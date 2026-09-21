@@ -14,7 +14,7 @@ import { bytes, errorMessage, mdEscape, oneLine, slug, truncate } from "../../sd
 import { BARE_TOKEN_TTL, EXPIRY_MARGIN, TokenError, mintToken, parseToken } from "../../sdk/src/token.ts";
 
 describe("text", () => {
-  test("bytes: B, KB with a decimal under 10, MB, GB", () => {
+  test("bytes: B, KB with a decimal under 10, MB, GB, TB", () => {
     expect(bytes(0)).toBe("0 B");
     expect(bytes(512)).toBe("512 B");
     expect(bytes(1536)).toBe("1.5 KB");
@@ -24,6 +24,7 @@ describe("text", () => {
     expect(bytes(1.2 * 1024 ** 2)).toBe("1.2 MB");
     expect(bytes(25.3 * 1024 ** 2)).toBe("25.3 MB");
     expect(bytes(3 * 1024 ** 3)).toBe("3.00 GB");
+    expect(bytes(1.5 * 1024 ** 4)).toBe("1.50 TB");
   });
   test("truncate and oneLine", () => {
     expect(truncate("abcdef", 4)).toBe("abc…");
