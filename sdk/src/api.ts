@@ -680,17 +680,32 @@ export const CONCEAL_SECONDS = 30;
 export const conceal = (text: string, clearAfter = CONCEAL_SECONDS): CopyText => ({ text, concealed: true, ...(clearAfter > 0 && { clear_after: clearAfter }) });
 
 /**
- * The frontmost app's selected text (`selection.rs` in the app, over
- * `pal_core::selection`): the accessibility API first (`AXSelectedText`
- * of the focused element on macOS; the primary selection on Linux), then,
- * when `general.selection_snapshot` allows, a copy-shortcut snapshot with
- * the clipboard put back as it was. Resolves with null when nothing is
- * selected; rejects on macOS without Accessibility (the prompt is shown
- * once per run). The panel is up in front of the app during a pick, and
- * the selection is still the app's: reading it from `pick` works.
+ * What the app in front has selected (`selection.rs` in the app, over
+ * `pal_core::selection`).
+ *
+ * `text()`: the selected text: the accessibility API first
+ * (`AXSelectedText` of the focused element on macOS; the primary
+ * selection on Linux), then, when `general.selection_snapshot` allows, a
+ * copy-shortcut snapshot with the clipboard put back as it was. Resolves
+ * with null when nothing is selected; rejects on macOS without
+ * Accessibility (the prompt is shown once per run). The panel is up in
+ * front of the app during a pick, and the selection is still the app's:
+ * reading it from `pick` works.
+ *
+ * `files()`: the files selected in the file manager in front, as absolute
+ * paths in its order: Finder's marked items (a window's, or the Desktop's
+ * with no window) over `osascript`, empty when Finder is not the app in
+ * front, when nothing is marked (a folder shown with nothing marked is
+ * nothing, not the folder) and on Linux, where no file manager exposes
+ * its selection. Read once per panel show and cached, like
+ * `dialog.current()`, so a `suggest`, a listing on every keystroke and a
+ * `pick` inside the palette share one read (~100 ms) and all see what
+ * was marked when the panel came up. Never rejects: a refused Automation
+ * permission is an empty list and a log line.
  */
 export const selection = {
   text: () => call<string | null>("selection.text"),
+  files: () => call<string[]>("selection.files"),
 };
 
 /** The open or save panel the app in front has up (`pal_core::dialog`): which app, which kind, its title when it has one. */
