@@ -1,7 +1,7 @@
 // What a list palette and a view answer in the same shape everywhere: a
 // hint row (inert, the icon says "information"), the failure toast, the
 // view node builders and the keycap-plus-caption hint line.
-import type { Action, Effect, Icon, Item, ViewNode } from "./protocol.ts";
+import type { Action, Arg, Effect, Form, Icon, Item, ViewNode } from "./protocol.ts";
 
 /** md-information_outline: the glyph of a hint row unless the extension says otherwise. */
 export const HINT_GLYPH = "\u{f02fd}";
@@ -25,6 +25,19 @@ export const toast = (title: string, message?: string, style?: "success" | "fail
 
 /** "Could not <what>" with the error's message, the panel kept open: what a pick answers when the OS or a service refused. */
 export const failed = (what: string, e: unknown): Effect => toast(`Could not ${what}`, String((e as { message?: unknown })?.message ?? e), "failure");
+
+/**
+ * A row's typed arguments (`Item.args`) as the form to answer with when a
+ * pick arrives without `ctx.values` (a bare `pal run`, an item hotkey, a
+ * script): the same fields as a page, the submit addressed as the pick
+ * was, so the values land in the same `pick` branch on the way back.
+ */
+export const argsForm = (args: Arg[], title: string, submit: { id: string; title: string }, errors?: Record<string, string>): Form => ({
+  title,
+  fields: args.map((a) => (a.kind === "select" ? { kind: "select", id: a.id, label: a.placeholder, options: a.options ?? [], required: a.required, default: a.default } : { kind: "text", id: a.id, label: a.placeholder, placeholder: a.placeholder, required: a.required, default: a.default })),
+  submit,
+  ...(errors && { errors }),
+});
 
 /** A bar popover's content width: the popover is 420 wide, less the view's padding (3 steps a side). Fixed widths in a popover view are measured against it. */
 export const POPOVER_W = 396;
