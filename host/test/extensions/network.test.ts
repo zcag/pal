@@ -289,6 +289,34 @@ describe("network status: what the strip says about the network", () => {
     expect(await bar({ networks: ["Cafe Wifi = nonsense"] })).toMatchObject({ icon: "\u{f0925}" });
   }, 20000);
 
+  test("a network's own glyph replaces the signal one, by its name or by its gateway; an emoji works; no entry leaves the default", async () => {
+    expect(await bar({ network_icons: ["Cafe Wifi = \u{f02dc}"] })).toMatchObject({ icon: "\u{f02dc}", title: "Cafe Wifi", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" });
+    // The gateway key: the half that works with the name redacted, and for a cable into the same router.
+    expect(await bar({ network_icons: ["192.168.1.1 = 🏠"] }, { ssid: "<redacted>" })).toMatchObject({ icon: "🏠" });
+    expect(await bar({ network_icons: ["elsewhere = 🏠", "10.9.9.9 = 🏠"] })).toMatchObject({ icon: "\u{f0925}" });
+    // The first matching line wins, and a line with no glyph is not an empty icon.
+    expect(await bar({ network_icons: ["Cafe Wifi = 🏠", "192.168.1.1 = 📱"] })).toMatchObject({ icon: "🏠" });
+    expect(await bar({ network_icons: ["Cafe Wifi = "] })).toMatchObject({ icon: "\u{f0925}" });
+    // It wins over the hotspot and open marks too; what those said moves into the tooltip, the popover badge keeps it.
+    const hotspot = await bar({ network_icons: ["Cafe Wifi = 📱"], networks: ["Cafe Wifi = hotspot"] }) as any;
+    expect(hotspot).toMatchObject({ icon: "📱", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1" });
+    expect(hotspot.menu.view.tree.children[0].children[2]).toMatchObject({ text: "hotspot" });
+    expect(await bar({ network_icons: ["Cafe Wifi = ☕"] }, { security: "NONE" })).toMatchObject({ icon: "☕", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · open network · Signal 72% · Gateway 192.168.1.1" });
+    // Icon only: the glyph stands alone, and hide still wins over everything.
+    const alone = await bar({ network_icons: ["Cafe Wifi = 🏠"], icon_only: true });
+    expect(alone.title).toBeUndefined();
+    expect(alone).toMatchObject({ icon: "🏠" });
+    expect(await bar({ network_icons: ["Cafe Wifi = 🏠"], networks: ["Cafe Wifi = hide"] })).toEqual({ hidden: true });
+  }, 30000);
+
+  test("the palette's rows for that interface carry the glyph too; the others keep their kind's", async () => {
+    const host = await boot({ network_icons: ["192.168.1.1 = 🏠"] });
+    try {
+      const items = await host.list("network", "network");
+      expect(items.map((i) => [i.id, i.icon])).toEqual(expect.arrayContaining([["if:en0:192.168.1.131", "🏠"], ["if:en0:fde8:77b8:c7e1:7e6e:1c19:75aa:36d5:d86e", "🏠"], ["if:en5:10.0.0.7", "\u{f0200}"], ["gateway", "\u{f1087}"]]));
+    } finally { host.kill(); }
+  }, 20000);
+
   test("icon only drops the title from every state, and keeps the tooltip that now carries the name", async () => {
     const wifi = await bar({ icon_only: true });
     expect(wifi.title).toBeUndefined();

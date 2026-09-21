@@ -50,9 +50,17 @@ into the same router has no name at all:
 | `public` | Marks one not to be trusted. A network with no security is marked that way on its own. |
 
 `ssid_labels` gives the strip a friendlier name with entries such as
-`Cafe Wifi = Cafe`; the full palette always retains the real SSID. Settings
-includes Wi-Fi, weak, hotspot, open, icon-only, wired and offline preview
-states.
+`Cafe Wifi = Cafe`; the full palette always retains the real SSID.
+
+`network_icons` gives a network its own glyph, keyed like `networks` on the
+SSID or the gateway: `eldiven = 󰋜`, `192.168.1.1 = 🏠`, `marvin = 📱`. The
+glyph is one emoji or a Nerd Font glyph pasted in (the Icons palette copies
+one; the bar draws the bundled Symbols Nerd Font). It stands in for the
+signal, hotspot, open or wired mark on the strip, and on that interface's
+rows in the palette; the tooltip then carries `hotspot` or `open network`
+where the glyph would have said it, and the popover's badge still names the
+kind. Settings includes Wi-Fi, weak, hotspot, open, icon-only, wired and
+offline preview states.
 
 ## Keyboard
 
@@ -90,6 +98,7 @@ Settings, `[extensions.network]`:
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
 | `ssid_labels` | list | `[]` | Friendly strip names as `SSID = label`; only the bar uses the label. |
 | `networks` | list | `[]` | `SSID = kind` or `gateway = kind`, where kind is `hide`, `hotspot` or `public`. |
+| `network_icons` | list | `[]` | `SSID = glyph` or `gateway = glyph`; one emoji or a Nerd Font glyph, drawn instead of the signal, hotspot, open or wired mark. |
 | `icon_only` | boolean | `false` | Drop the name from the bar item and let the glyph speak. |
 
 ## What it does not do

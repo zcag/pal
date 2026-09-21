@@ -14,7 +14,7 @@ import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCor
 import { renderNetworkPopover, type NetworkPopover } from "./view.ts";
 
 /** `[extensions.network]`, default in pal.json. */
-type Settings = { public_ip_url: string; icon_only: boolean; ssid_labels?: unknown[]; networks?: unknown[] };
+type Settings = { public_ip_url: string; icon_only: boolean; ssid_labels?: unknown[]; networks?: unknown[]; network_icons?: unknown[] };
 
 const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
@@ -215,7 +215,8 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
   for (const i of s.ifaces) {
     const label = [i.name, i.kind, i.ssid].filter(Boolean).join(" · ");
     const kw = [i.name, ...(i.kind === "Wi-Fi" ? ["wifi", "wlan", "ssid"] : []), "ip", "lan", "local", ...(i.ssid ? [i.ssid] : [])];
-    const icon = i.kind === "Wi-Fi" ? GLYPH.wifi : GLYPH.wired;
+    // The network's own glyph where it has one; the gateway key reaches only the interface carrying the route.
+    const icon = networkIcon(i, i.name === s.gateway?.dev ? s.gateway.ip : undefined) ?? (i.kind === "Wi-Fi" ? GLYPH.wifi : GLYPH.wired);
     for (const a of i.v4) out.push(row(`if:${i.name}:${a}`, a, label, SECTION.machine, kw, ifaceDetail(i), icon));
     for (const a of i.v6) out.push(row(`if:${i.name}:${a}`, a, `${label} · IPv6`, SECTION.machine, [...kw, "ipv6"], ifaceDetail(i), icon));
   }
@@ -265,16 +266,24 @@ type Kind = "hide" | "hotspot" | "public";
 const KINDS = new Set<string>(["hide", "hotspot", "public"]);
 
 /**
- * What the configured `networks` say this one is. An entry keys on the SSID *or*
- * on the gateway, because neither alone covers home: macOS redacts the name from
- * a process without Location Services, and a cable into the same router has no
- * name at all.
+ * The values of a list setting's entries keyed on this network. An entry keys
+ * on the SSID *or* on the gateway, because neither alone covers home: macOS
+ * redacts the name from a process without Location Services, and a cable into
+ * the same router has no name at all.
  */
+function* forNetwork(list: unknown[] | undefined, i: Iface | undefined, gateway: string | undefined): Generator<string> {
+  for (const [key, value] of pairsOf(list)) if (key === i?.ssid || key === gateway) yield value;
+}
+
+/** What the configured `networks` say this one is; a line naming no known kind is skipped rather than obeyed. */
 function classify(i: Iface | undefined, gateway: string | undefined): Kind | undefined {
-  for (const [key, kind] of pairsOf(settings.get<Settings>().networks)) {
-    if (KINDS.has(kind) && (key === i?.ssid || key === gateway)) return kind as Kind;
-  }
+  for (const kind of forNetwork(settings.get<Settings>().networks, i, gateway)) if (KINDS.has(kind)) return kind as Kind;
   if (i?.ssid && HOTSPOT_RE.test(i.ssid)) return "hotspot";
+}
+
+/** The glyph `network_icons` gives this network, if any: a home, an office, a cafe, a phone. */
+function networkIcon(i: Iface | undefined, gateway: string | undefined): string | undefined {
+  for (const icon of forNetwork(settings.get<Settings>().network_icons, i, gateway)) return icon;
 }
 
 const isOpen = (i: Iface) => !!i.security && /^(none|open)$/i.test(i.security);
@@ -311,11 +320,15 @@ async function statusBar(): Promise<BarItem> {
     if (!i) return face({ name: "Connected" }, { ...strip(GLYPH.wired, "Connected"), tooltip: `Gateway ${s.gateway.ip}` });
     const name = i.kind === "Wi-Fi" ? (ssidLabel(i.ssid) ?? i.ssid ?? "Wi-Fi") : (i.kind ?? i.name);
     const address = i.v4[0] ?? i.v6[0];
+    const badge = i.kind !== "Wi-Fi" ? "wired" as const : kind === "hotspot" ? "hotspot" as const : kind === "public" || isOpen(i) ? "public" as const : undefined;
+    // A network's own glyph replaces the one that said hotspot or open, so that
+    // moves into the tooltip (wired needs no word: the name is the kind there).
+    const own = networkIcon(i, s.gateway.ip);
+    const said = own && badge === "hotspot" ? "hotspot" : own && badge === "public" ? "open network" : undefined;
     // The name goes in whether or not it was relabelled: with Icon only the
     // tooltip is the one place left that can say which network this is.
-    const tooltip = [i.name, name, address, signalText(i), `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · ");
-    const badge = i.kind !== "Wi-Fi" ? "wired" as const : kind === "hotspot" ? "hotspot" as const : kind === "public" || isOpen(i) ? "public" as const : undefined;
-    return face({ name, kind: badge, address, signal: i.signal, security: i.security }, { ...strip(glyph(i, kind), name), tooltip });
+    const tooltip = [i.name, name, address, said, signalText(i), `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · ");
+    return face({ name, kind: badge, address, signal: i.signal, security: i.security }, { ...strip(own ?? glyph(i, kind), name), tooltip });
   } catch { return { hidden: true }; }
 }
 
