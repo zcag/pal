@@ -85,15 +85,17 @@ export type Item = {
    */
   actions?: Action[];
   /**
-   * Typed arguments the row takes before it runs (Raycast's command
-   * arguments): Enter on the row turns the search bar into these fields,
-   * in order, the row pinned as the crumb; Tab moves between them, Enter
-   * runs the pick with `ctx.values` by id (a string each; a `select`'s
-   * option id), Escape backs out. They gate the primary action and any
-   * action marked `args: true`; the other actions (a copy, an open) run as
-   * they are. A pick that arrives without `values` (`pal run`, a link) is
-   * the extension's to handle: answer `{ form }` for the same fields, or
-   * run with the defaults.
+   * Typed arguments (Raycast's command arguments): while the cursor rests
+   * on the row, the search bar draws a field per argument after the
+   * query; Tab moves into them, Escape back, and Enter runs the row as it
+   * always does, with what was typed as `ctx.values` by id (a string
+   * each; a `select`'s option id; an optional one left empty is `""`). A
+   * `required` one left empty marks its field and runs nothing. Which
+   * actions take them: those marked `args: true`, else the primary; the
+   * rest run bare, so an Open never waits on a Send's text. A pick that
+   * arrives without `values` (a bare `pal run`, an item hotkey, a script)
+   * is the extension's to handle: answer `{ form }` for the same fields
+   * (`argsForm`), or run with the defaults.
    */
   args?: Arg[];
   /**
@@ -129,7 +131,7 @@ export type Action = {
   style?: "destructive";
   /** Ask first; the question shown, with the action's title as the go-ahead. */
   confirm?: string;
-  /** Takes the row's `Item.args` first, as the primary action does; without it a secondary action runs without them. */
+  /** Takes the row's `Item.args` (`ctx.values`); when any action says so, only those do, else the primary does. */
   args?: true;
   /**
    * Works on several rows at once: with rows marked (cmd+click, shift+↑↓,

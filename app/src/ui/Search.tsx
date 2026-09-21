@@ -1,8 +1,20 @@
-import type { ChangeEvent, RefObject } from "react";
+import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { keepFocus } from "./keys";
-import type { Filter, Icon as IconSpec, Shortcut } from "./types";
+import type { Arg, Filter, Icon as IconSpec, Shortcut } from "./types";
+
+/** The focused row's typed arguments (`Item.args`), drawn after the query: a field each, `invalid` the required ones left empty on the last run, `firstRef` the first field (Tab from the query lands there), `onEscape` back to the query. */
+export type SearchArgs = { fields: Arg[]; values: Record<string, string>; invalid: Set<string>; onChange: (id: string, value: string) => void; firstRef: RefObject<HTMLInputElement | HTMLSelectElement | null>; onEscape: () => void };
+
+/** Keys inside an argument field: Escape goes back to the query; Enter, cmd+Enter, the up/down arrows and the launcher's cmd combos reach the page (they run the row, move the cursor, open the panel); everything else is the field's own (typing, Tab between fields, cmd+a/c/v/x, word deletes). */
+const EDIT_COMBOS = new Set(["a", "c", "v", "x", "z", "Backspace", "ArrowLeft", "ArrowRight"]);
+const onArgKey = (e: KeyboardEvent, onEscape: () => void) => {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onEscape(); return; }
+  const cmd = e.metaKey || e.ctrlKey;
+  if (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || (cmd && !EDIT_COMBOS.has(e.key))) return;
+  e.stopPropagation();
+};
 
 export type SearchProps = {
   value: string;
@@ -27,9 +39,11 @@ export type SearchProps = {
   onHint?: () => void;
   /** Compact mode: the marked-rows count, where the footer would show it. */
   count?: number;
+  /** The focused row's typed arguments, as fields after the query. */
+  args?: SearchArgs;
 };
 
-export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title, hint, onHint, count }: SearchProps) {
+export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title, hint, onHint, count, args }: SearchProps) {
   return (
     <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
       {back && (back.onBack ? (
@@ -62,7 +76,22 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
         value={value}
         readOnly={readOnly}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+        onKeyDown={args ? (e) => { if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); args.firstRef.current?.focus({ preventScroll: true }); } } : undefined}
       />}
+      {args && (
+        <div className="pal-args" role="group" aria-label="Arguments" onKeyDown={(e) => onArgKey(e, args.onEscape)}>
+          {args.fields.map((f, i) => {
+            const common = { name: f.id, "aria-label": f.placeholder, "aria-invalid": args.invalid.has(f.id) || undefined, "aria-required": f.required || undefined, "data-invalid": args.invalid.has(f.id) ? "" : undefined, className: "pal-args__field" };
+            return f.kind === "select" ? (
+              <select key={f.id} {...common} ref={i === 0 ? (args.firstRef as RefObject<HTMLSelectElement | null>) : undefined} value={args.values[f.id] ?? ""} onChange={(e) => args.onChange(f.id, e.target.value)}>
+                {(f.options ?? []).map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
+              </select>
+            ) : (
+              <input key={f.id} {...common} ref={i === 0 ? (args.firstRef as RefObject<HTMLInputElement | null>) : undefined} type="text" inputMode={f.kind === "number" ? "decimal" : undefined} placeholder={f.placeholder} value={args.values[f.id] ?? ""} onChange={(e) => args.onChange(f.id, e.target.value)} spellCheck={false} autoComplete="off" size={Math.max(6, Math.min(24, f.placeholder.length + 2))} />
+            );
+          })}
+        </div>
+      )}
       {filter && (
         <label className="pal-search__filter">
           <select value={filter.value} onChange={(e) => filter.onChange(e.target.value)} aria-label="Filter" tabIndex={-1}>

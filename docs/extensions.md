@@ -696,11 +696,13 @@ pick: async (id, action, ctx) => {
 
 A form is a page; a row that just needs a word or two before it runs
 declares `args` instead, and the search bar takes them (Raycast's command
-arguments). Enter on the row pins it as the crumb and turns the bar into
-one field per argument, Tab moves between them, Enter runs the pick with
-`ctx.values` by id, Escape backs out. A row of `ssh` that takes a command,
-a timer that takes a duration and a name, a translation that takes the
-text.
+arguments). While the cursor rests on the row, one field per argument
+appears after the query; Tab moves into them, Escape back to the query,
+and Enter runs the row as it always does, with what was typed as
+`ctx.values` by id. Nothing costs an extra keystroke: `ssh marko` with an
+empty command is one Enter, `ssh marko` + Tab + `uptime` + Enter runs
+that. A row of `ssh` that takes a command, a timer that takes a duration
+and a name, a chat that takes a message for its Send.
 
 ```ts
 { id: "marko", name: "marko", subtitle: "cagdas@marko",
@@ -713,9 +715,12 @@ text.
   optionally `kind` (`text`, `number`, `select` with `options`),
   `required` (blocks the run while empty) and `default`. Values arrive
   as strings (`select`: the option id), like a form's.
-- The fields gate the row's primary action (the first listed, or the
-  default pick) and any action marked `args: true`; a secondary `copy` or
-  `open` runs as it is.
+- Which actions take the values: those marked `args: true`; when none
+  is, the primary (the first listed, or the default pick). The rest run
+  bare, so a chat row's Enter still opens the chat while its `Send
+  message` (`args: true`) takes the text. A `required` argument left
+  empty blocks only the actions that take it: the field is marked and
+  focused, and nothing runs. An optional one left empty arrives as `""`.
 - A pick can still arrive without `values`: `pal run
   ext/palette/id?command=uptime` fills them from the link's query, but a
   bare `pal run`, an item hotkey or a pick from a script does not. Answer

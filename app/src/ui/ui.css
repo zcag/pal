@@ -403,9 +403,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-field__input:focus { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 1px #9f97ff); }
 .pal-field__input::placeholder { color: var(--pal-fg-faint, #868794); }
 
-/* Typed arguments in the search row (Form inline): the row's crumb, then a boxed field per argument at the search size, the submit key at the end. A required field left empty is rung in the danger colour and keeps focus. */
-.pal-search--args { gap: var(--pal-space-2, 8px); }
-.pal-args { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--pal-space-2, 8px); height: 100%; overflow-x: auto; scrollbar-width: none; }
+/* Typed arguments (`Item.args`) after the query, while the cursor rests on a row that has them: a boxed field per argument, a size under the query. A required field left empty on Enter is rung in the destructive colour until it is typed in. */
+.pal-args { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--pal-space-2, 8px); height: 100%; overflow-x: auto; scrollbar-width: none; }
 .pal-args__field {
   flex: 0 1 auto;
   min-width: 6ch;
@@ -424,7 +423,6 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-args__field:focus { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 1px #9f97ff); }
 .pal-args__field::placeholder { color: var(--pal-fg-faint, #868794); }
 .pal-args__field[data-invalid] { box-shadow: 0 0 0 1px var(--pal-destructive, #ff6e66); }
-.pal-args__hint { flex: none; margin-left: auto; }
 .pal-field__body { display: flex; flex-direction: column; gap: var(--pal-space-1, 4px); min-width: 0; }
 .pal-field__required { color: var(--pal-fg-faint, #868794); }
 .pal-field__help { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }

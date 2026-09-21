@@ -46,7 +46,7 @@ export type Action = {
   hidden?: true;
   /** Runs over the marked rows as one pick (`ctx.ids`); the only actions listed while rows are marked. */
   multi?: true;
-  /** Takes the row's `Item.args` first, as the primary action does. */
+  /** Takes the row's `Item.args` (`ctx.values`); when any action says so, only those do, else the primary does. */
   args?: true;
 };
 
@@ -80,7 +80,7 @@ export type Item = {
   /** `detail` is what came inline; the rest is asked for when the pane rests on the item. */
   lazyDetail?: boolean;
   actions?: Action[];
-  /** Typed arguments taken in the search bar before the primary action (`Item.args` in the SDK); `ctx.values` carries them. */
+  /** Typed arguments drawn after the query while the cursor is on the row (`Item.args` in the SDK); `ctx.values` carries them to the actions that take them. */
   args?: Arg[];
   /** Drawn greyed; a pick on it does nothing (a menu row). */
   disabled?: boolean;
