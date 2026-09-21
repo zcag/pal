@@ -1195,6 +1195,14 @@ Settings, `[extensions.windows]`:
 | --- | --- | --- | --- |
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
 
+The switcher ([Keyboard](keyboard.md#switcher)): the manifest suggests
+`hold = "alt+tab"` for this palette, so holding Alt and pressing Tab
+shows the windows flat with the cursor on row 2, Tab again steps down,
+Shift+Tab up, and letting go of Alt focuses the row under the cursor;
+typing filters meanwhile, Escape cancels. `[palettes.windows] hold = ""`
+turns it off, another chord moves it; on Linux a compositor keybind runs
+[`pal switch`](cli.md#pal-switch) instead.
+
 ## Window Management (`window-management`, `window-management-arrange`)
 
 Move and resize windows from the keyboard, Raycast's set: one row per

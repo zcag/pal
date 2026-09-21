@@ -16,6 +16,7 @@ Where the binary is:
 ```text
 pal                 start pal; with one running, show the panel
 pal toggle          show the panel if hidden, hide it if shown
+pal switch [WHAT]   the switcher: next (default) begins or steps, prev steps up, commit runs the row, cancel hides (see below)
 pal show            show the panel
 pal hide            hide the panel
 pal settings [page] open the settings window (overview, general, palettes, extensions, bar, about)
@@ -179,6 +180,28 @@ one subcommand with a reply channel; the picker level is the panel's own
 list, so the keyboard grammar is the usual one. Only one picker is up at
 a time: a second `pal pick` cancels the first (exit 1). The panel hiding
 for any other reason (a click elsewhere, `pal hide`) cancels too.
+
+## `pal switch`
+
+The switcher ([Keyboard](keyboard.md#switcher)) from a keybind, for
+Wayland, where no global chord can be registered: the compositor sends the
+presses and the release that the `hold` chord delivers by itself on macOS.
+`pal switch` (or `pal switch next`) begins a hold when none is on, over
+the palette whose `hold` is set (Windows, by its manifest's suggestion,
+when no other is), and steps the cursor down when one is; `prev` steps
+up; `commit` runs the row under the cursor (Focus, for a window) and
+`cancel` hides. Hyprland:
+
+```
+bind  = ALT, Tab, exec, pal switch
+bind  = ALT SHIFT, Tab, exec, pal switch prev
+bindr = ALT, Alt_L, exec, pal switch commit
+```
+
+`bindr` fires on the key's release, so letting go of Alt is the commit.
+The same commands work on macOS (a Karabiner or skhd user can drive it
+too); begun from the CLI a hold never watches the modifiers, so `commit`
+is the only release.
 
 ## Deep links
 
