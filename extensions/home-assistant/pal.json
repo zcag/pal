@@ -75,7 +75,7 @@
     "category": "integration",
     "features": [
       "Every entity of the chosen domains at the root with its state as a tag (`on`, `locked`, `playing`) and when it last changed; favourites first, a filter per domain",
-      "Actions by domain: Toggle, Turn on, Turn off, Brightness (`cmd+b`) for a light; Set temperature as a form for a thermostat; Open, Close, Stop for a cover; Lock and Unlock (asking first); play, next, volume for a media player; Activate, Run, Trigger for scenes, scripts and automations",
+      "Actions by domain: Toggle, Turn on, Turn off, Brightness (`cmd+b`) for a light; Set temperature for a thermostat, the temperature and mode typed in the bar; Open, Close, Stop for a cover; Lock and Unlock (asking first); play, next, volume for a media player; Activate, Run, Trigger for scenes, scripts and automations",
       "`cmd+c` copies the entity id, `cmd+shift+a` lists its attributes, `cmd+o` opens it in Home Assistant",
       "Every service as a form: the target entity as a select, then the service's fields from its description",
       "Areas as drill-ins: `enter` on an area lists its entities",
@@ -124,7 +124,7 @@
       },
       {
         "title": "Set temperature",
-        "description": "A form with the temperature and the mode of a thermostat.",
+        "description": "The bar takes a thermostat's temperature (the current one prefilled, its range as the hint) and mode, then climate.set_temperature.",
         "keys": "enter"
       },
       {

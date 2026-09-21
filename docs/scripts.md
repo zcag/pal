@@ -265,9 +265,11 @@ palette is live, so the next time the panel shows).
 echo "Deployed to $1${2:+ ($2)}"
 ```
 
-`chmod +x` it. Enter on the row opens a form for `target` and `note`,
-Run runs the file with them as `$1` and `$2`, the panel hides, and the
-HUD shows the first line it printed. The two files under
+`chmod +x` it. Enter on the row turns the search bar into a field for
+`target` and one for `note`, Enter again runs the file with them as `$1`
+and `$2`, the panel hides, and the HUD shows the first line it printed.
+A pick that arrives without the fields (an item hotkey, a bare `pal run`,
+a script) gets the same two as a form. The two files under
 `examples/commands/` in the repo are this one and a list-mode one.
 
 Any language: the file runs as it is, so the shebang decides
@@ -284,8 +286,8 @@ command.
 | `@pal.description` | The row's subtitle (an `inline` command's output replaces it). |
 | `@pal.icon` | An emoji or a Nerd Font glyph, a hex colour, one of the twelve brand colours (`amber`: a tile in that colour with the script mark), a PNG, JPEG or SVG next to the script (relative to it, inlined up to 64 KB), or an https url. Without one the row wears the script mark in the extension's colour. |
 | `@pal.mode` | `hud` (default): the panel hides and the HUD shows the first output line, "Done" with none. `silent`: nothing shown unless the run failed. `show`: the whole output comes back as a level, in the detail pane, with a Copy action. `list`: the output is rows, below. `inline`: the first output line is the row's subtitle, refreshed on every show once `refresh` has passed. |
-| `@pal.args` | `<name> <placeholder…>`, one per line, in the order the script gets them as `$1`, `$2`, ... Enter opens a form; a placeholder ending in `(optional)` makes the field optional, the rest are required. |
-| `@pal.confirm` | `true`: ask before running (the title as the go-ahead). A command with `args` asks through its form instead. |
+| `@pal.args` | `<name> <placeholder…>`, one per line, in the order the script gets them as `$1`, `$2`, ... They are the row's typed arguments: Enter turns the search bar into one field each, Enter again runs; a placeholder ending in `(optional)` makes the field optional, the rest are required. A pick without the values (a hotkey, `pal run`) gets them as a form. |
+| `@pal.confirm` | `true`: ask before running (the title as the go-ahead). A command with `args` asks through its fields instead. |
 | `@pal.keyword` | Extra words the search matches, space or comma separated; repeatable. |
 | `@pal.section` | A section header the rows with the same one share. |
 | `@pal.cwd` | The working directory (`~` expanded, relative to the script's folder); the script's folder by default. |
@@ -305,9 +307,9 @@ ignored.
 
 | keys | action |
 | --- | --- |
-| `enter` | Run (as the mode says); Open, for a `list` command; Run…, a form first, for one with `args` |
+| `enter` | Run (as the mode says); Open, for a `list` command; with `args`, the arguments in the bar first (`$1`, `$2`, ... in header order) |
 | `cmd+o` | Open the script file in its editor |
-| `cmd+c` | Copy output: runs the command (up to 8 s) and copies what it printed |
+| `cmd+c` | Copy output: runs the command (up to 8 s) and copies what it printed; with `args`, the arguments in the bar first |
 | `cmd+shift+c` | Copy the file's path |
 | `cmd+i` | The detail pane: file, mode, arguments, confirm, working directory |
 | `cmd+r` | List again now |

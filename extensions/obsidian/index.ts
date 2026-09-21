@@ -6,12 +6,13 @@
 // A note opens in Obsidian (`obsidian://open`) or an editor, reads inside
 // the panel through the SDK's markdown renderer (`md`), and the pane
 // shows it with its links, tags and backlinks. Writes: a daily note from
-// its template, a line appended to it, a new note; nothing else is
-// changed. vault.ts owns the index and the file system, notes.ts the
+// its template, a line appended to it, a new note (the line, the title
+// and the folder typed in the search bar: the rows' `args`); nothing else
+// is changed. vault.ts owns the index and the file system, notes.ts the
 // parsing.
 import { readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { clipboard, errorMessage, expand, failed, hint, home, md, selection, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
+import { argsForm, clipboard, errorMessage, expand, failed, hint, home, md, selection, settings, storage, toast, type Action, type Arg, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
 import { DAILY_FORMAT, cut, dailyConfig, dayAfter, fileName, fillTemplate, firstVault, formatDate, frontMatter, obsidianSearchUrl, obsidianUrl, plainLine, resolve, unescapePipes, wikilink, type Note } from "./notes.ts";
 import { BACKEND, appendNote, dispose, exists, index, noteText, search, writeNote, type Index } from "./vault.ts";
 
@@ -133,11 +134,22 @@ function noteRow(n: Note, actions: Action[], extra: Partial<Item> = {}): Item {
   };
 }
 
-const COMMANDS: Item[] = [
+const str = (v: unknown) => (typeof v === "string" ? v : "");
+
+/** The commands at the top of Notes; New note's folder choices are the index's, so the list is built per listing. */
+const commands = (i: Index): Item[] => [
   { id: "cmd:today", name: "Today's note", subtitle: "Open today's daily note; created from the template when missing", icon: ICON.today, keywords: ["daily", "journal", "log"], section: "Obsidian", actions: [{ id: "open", title: "Open today's note" }, { id: "append", title: "Append to today", shortcut: "cmd+enter" }] },
-  { id: "cmd:new", name: "New note", subtitle: "A note by title in a folder of the vault", icon: ICON.plus, keywords: ["create", "write"], section: "Obsidian", actions: [{ id: "new", title: "New note" }] },
+  { ...NEW_ROW, id: "cmd:new", section: "Obsidian", args: newArgs(i) },
   { id: "cmd:search", name: "Search notes", subtitle: "Full-text over every note", icon: ICON.search, keywords: ["find", "grep"], section: "Obsidian", actions: [{ id: "search", title: "Search" }, { id: "obsidian", title: "Search in Obsidian", shortcut: "cmd+enter" }] },
   { id: "cmd:random", name: "Random note", subtitle: "Open one at random", icon: ICON.random, keywords: ["shuffle", "surprise"], section: "Obsidian", actions: [{ id: "open", title: "Open a random note" }] },
+];
+
+/** The two writing rows take their values in the search bar (`args`); a pick without them (a hotkey, `pal run`) gets the same fields as a form. */
+const APPEND_ROW: Item = { id: "append", name: "Append to today", subtitle: "A line onto today's note; {clipboard}, {selection}, {date} and {time} are filled in", icon: ICON.append, keywords: ["log", "journal", "add"], section: "Write", args: [{ id: "text", placeholder: "A line for today", required: true }], actions: [{ id: "append", title: "Append to today" }] };
+const NEW_ROW: Item = { id: "new", name: "New note", subtitle: "A note by title in a folder of the vault; the body from the template, else your selection or the clipboard", icon: ICON.plus, keywords: ["create", "write"], section: "Write", actions: [{ id: "new", title: "Create note" }] };
+const newArgs = (i: Index, values?: FormValues): Arg[] => [
+  { id: "title", placeholder: "Title", required: true, default: str(values?.title) || undefined },
+  { id: "folder", placeholder: "Folder", kind: "select", options: ["", ...i.folders.filter(Boolean)].map((f) => ({ id: f, title: f || "/ (the vault)" })), default: str(values?.folder) },
 ];
 
 // ---- notes: every note, or the ones a push asks for --------------------------------------------
@@ -157,7 +169,7 @@ async function noteRows(ctx?: Ctx): Promise<Item[]> {
   if (args.outgoing !== undefined) return outgoingRows(i, args.outgoing, actions);
   const rows = i.notes.map((n) => noteRow(n, actions));
   if (!rows.length) rows.push(hint("empty", "The vault has no notes", `Nothing ends in .md under ${i.root}; New note starts one`, { actions: [{ id: "new", title: "New note" }], icon: ICON.plus }));
-  return [...COMMANDS, ...rows];
+  return [...commands(i), ...rows];
 }
 
 /** The note opened or read last, for Backlinks and Outgoing links with nothing pushed. */
@@ -307,16 +319,11 @@ async function dailyRows(ctx?: Ctx): Promise<Item[]> {
     const n = i.byPath.get(await dailyPath(r, dayAfter(now, -k)));
     if (n) rows.push(noteRow(n, actions, { section: "This week", icon: ICON.week }));
   }
-  rows.push(
-    { id: "append", name: "Append to today", subtitle: "A line onto today's note, from the clipboard or what you type", icon: ICON.append, keywords: ["log", "journal", "add"], section: "Write", actions: [{ id: "append", title: "Append to today" }] },
-    { id: "new", name: "New note", subtitle: "A note by title in a folder of the vault", icon: ICON.plus, keywords: ["create", "write"], section: "Write", actions: [{ id: "new", title: "New note" }] },
-  );
+  rows.push(APPEND_ROW, { ...NEW_ROW, args: newArgs(i) });
   return rows;
 }
 
-// ---- forms: append to today, new note -----------------------------------------------------------
-
-const str = (v: unknown) => (typeof v === "string" ? v : "");
+// ---- writing: append to today, new note ---------------------------------------------------------
 
 /** What a body starts as: the front app's selection, else the clipboard's text; empty past `PREFILL_MAX`. */
 async function prefill(): Promise<string> {
@@ -331,19 +338,9 @@ async function prefill(): Promise<string> {
 /** `{selection}`, `{clipboard}`, `{date}`, `{time}`, `{datetime}`, `{uuid}` as Snippets fills them. */
 const SOURCES = { clipboard: async () => (await clipboard.current().catch(() => null))?.text ?? (await clipboard.list({ kind: "text", limit: 1 }).catch(() => []))[0]?.text ?? "", selection: selection.text };
 
-async function appendForm(values?: FormValues, errors?: Record<string, string>): Promise<Form> {
-  const r = await root();
-  const path = await dailyPath(r, new Date());
-  return {
-    id: "append",
-    title: "Append to today",
-    fields: [
-      { kind: "textarea", id: "text", label: "Text", required: true, default: values ? str(values.text) : await prefill(), placeholder: "What happened, a link, a thought", description: `Added as a new line at the end of ${path}. {selection}, {clipboard}, {date} and {time} are filled in.` },
-    ],
-    submit: { id: "append:save", title: "Append" },
-    errors,
-  };
-}
+/** The append row's field as a form (a pick without the bar's values), the line prefilled from the selection or the clipboard; `errors` when a submit was refused. */
+const appendForm = async (values?: FormValues, errors?: Record<string, string>): Promise<Form> =>
+  argsForm([{ ...APPEND_ROW.args![0], default: values ? str(values.text) : await prefill() }], "Append to today", { id: "append", title: "Append" }, errors);
 
 async function saveAppend(values: FormValues): Promise<Effect> {
   const raw = str(values.text);
@@ -359,32 +356,23 @@ async function saveAppend(values: FormValues): Promise<Effect> {
   }
 }
 
-async function newForm(values?: FormValues, errors?: Record<string, string>, folder?: string): Promise<Form> {
-  const i = await ix();
-  const s = conf();
-  const folders = ["", ...i.folders.filter(Boolean)];
-  const body = values ? str(values.body) : (await templateText(i.root, s.template?.trim() ?? "", "")) || (await prefill());
-  return {
-    id: "new",
-    title: "New note",
-    fields: [
-      { kind: "text", id: "title", label: "Title", required: true, default: str(values?.title), placeholder: "What the note is about", description: "The file name too; Obsidian's forbidden characters become dashes." },
-      { kind: "select", id: "folder", label: "Folder", options: folders.map((f) => ({ id: f, title: f || "/ (the vault)" })), default: str(values?.folder ?? folder ?? "") },
-      { kind: "textarea", id: "body", label: "Body", default: body, placeholder: "# Title\n\nMarkdown, [[wikilinks]], #tags", description: s.template?.trim() ? `Starts as the template ${s.template.trim()}, {{title}} and {{date}} filled.` : "Starts as your selection or the clipboard's text; a template setting replaces that." },
-    ],
-    submit: { id: "new:save", title: "Create note" },
-    errors,
-  };
+/** The new note row's fields as a form (a pick without the bar's values); `errors` when a submit was refused. */
+const newForm = async (values?: FormValues, errors?: Record<string, string>): Promise<Form> => argsForm(newArgs(await ix(), values), "New note", { id: "new", title: "Create note" }, errors);
+
+/** What a new note's body is when none is given (the bar's fields have no body): the `template` setting with {{title}} and {{date}} filled, else the selection or the clipboard. */
+async function defaultBody(r: string, title: string): Promise<string> {
+  return (await templateText(r, conf().template?.trim() ?? "", title)) || (await prefill());
 }
 
 async function saveNew(values: FormValues): Promise<Effect> {
-  const title = str(values.title).trim(), folder = str(values.folder).replace(/^\/+|\/+$/g, ""), body = str(values.body);
+  const title = str(values.title).trim(), folder = str(values.folder).replace(/^\/+|\/+$/g, "");
   const name = fileName(title);
   if (!name) return { form: await newForm(values, { title: "Required" }) };
   try {
     const i = await ix();
     const path = `${folder ? `${folder}/` : ""}${name}.md`;
     if (await exists(i.root, path)) return { form: await newForm(values, { title: `${path} is there already` }) };
+    const body = typeof values.body === "string" ? values.body : await defaultBody(i.root, name);
     await writeNote(i.root, path, fillTemplate(body, { title: name }));
     await remember(path);
     const j = await ix(true);
@@ -442,7 +430,7 @@ async function recentRows(ctx?: Ctx): Promise<Item[]> {
 
 // ---- picks ----------------------------------------------------------------------------------------
 
-async function pickCommand(id: string, action?: string): Promise<Effect | void> {
+async function pickCommand(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   switch (id) {
     case "cmd:today": {
       if (action === "append") return { form: await appendForm() };
@@ -452,7 +440,7 @@ async function pickCommand(id: string, action?: string): Promise<Effect | void> 
       await remember(path);
       return { ...open(i, path), ...(created ? { hud: `Created ${basename(path, ".md")}` } : {}) };
     }
-    case "cmd:new": return { form: await newForm() };
+    case "cmd:new": return ctx?.values ? saveNew(ctx.values) : { form: await newForm() };
     case "cmd:search": { const i = await ix(); return action === "obsidian" ? { open: obsidianSearchUrl(i.name, "") } : { push: { extension: EXTENSION, palette: "search" } }; }
     case "cmd:random": {
       const i = await ix();
@@ -471,9 +459,10 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
     if (action === "obsidian") { const i = await ix(); return { open: obsidianSearchUrl(i.name, "") }; }
     return;
   }
-  if (id.startsWith("cmd:")) return pickCommand(id, action);
-  if (id === "append") return action === "append:save" ? saveAppend(ctx?.values ?? {}) : { form: await appendForm() };
-  if (id === "new") return action === "new:save" ? saveNew(ctx?.values ?? {}) : { form: await newForm() };
+  if (id.startsWith("cmd:")) return pickCommand(id, action, ctx);
+  // The bar's values, or the form's on the way back; neither: the form.
+  if (id === "append") return ctx?.values ? saveAppend(ctx.values) : { form: await appendForm() };
+  if (id === "new") return ctx?.values ? saveNew(ctx.values) : { form: await newForm() };
   if (id === "daily:create") {
     const r = await root();
     const { path } = await ensureDaily(r, new Date());

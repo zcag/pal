@@ -20,7 +20,7 @@ nothing to restore", "Next Display: only one display").
 | Center | `center` | the same size, centred |
 | Reasonable Size | `reasonable_size` | `reasonable_size_percent` of the screen, centred |
 | Larger, Smaller | `larger` `smaller` | 10% more (or less) on each side about the centre, kept on the screen |
-| Resize to… | `resize` | a form: a size (`1280x720`, or one number for a square) and, optionally, X and Y; blank keeps the window centred on its current centre, and the size is capped to its screen |
+| Resize to… | `resize` | typed in the search bar: a size (`1280x720`, or one number for a square) and, optionally, X and Y; blank keeps the window centred on its current centre, and the size is capped to its screen |
 | Move Left, Right, Up, Down | `move_left` `move_right` `move_up` `move_down` | nudged by `step` pixels, stopping at the screen's edge |
 | Next Display, Previous Display | `next_display` `previous_display` | the same place and proportions on the other display; refused with one |
 | Toggle Fullscreen | `fullscreen` | the app's own full screen on or off (a Space of its own on macOS) |
@@ -58,7 +58,7 @@ Two palettes:
 | --- | --- |
 | `enter` | Apply the layout to the focused window |
 | `cmd+enter` | Apply to…: pick a window from the open ones, then the layout goes on that one |
-| `enter` in Resize to… | Resize: the size (and place) typed goes on the window |
+| `enter` in Resize to… | Resize: arguments `size` (required), `x` and `y` (optional): the size (and place) typed in the bar goes on the window; a pick without them (a hotkey, a bare `pal run`) asks in a form |
 | `enter` in Arrange Window | Arrange: the layouts for the picked window |
 
 Per-layout global hotkeys, which move the focused window without showing

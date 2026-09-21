@@ -8,11 +8,13 @@
 // applies the chosen layout to the one picked; opened from the root,
 // `arrange` goes the other way round: pick a window, then its layout, the
 // same rows with the window's title as subtitle. "Resize to..." is the one
-// row that is not a core layout: a form takes a size (and a place), and
-// the frame is written from here (`windows.frame` / `set_frame`, kept
-// inside the window's display); pal's panel never activates, so the
-// focused window read on submit is still the one you were in.
-import { settings, windows, xdg, type Action, type Display, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Rect, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
+// row that is not a core layout: the search bar takes a size (and a
+// place) as the row's arguments (a form with the same fields for a pick
+// that arrives without them), and the frame is written from here
+// (`windows.frame` / `set_frame`, kept inside the window's display); pal's
+// panel never activates, so the focused window read on submit is still
+// the one you were in.
+import { argsForm, settings, windows, xdg, type Action, type Arg, type Display, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Rect, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
 import { layoutIcon } from "./icons.ts";
 
 /** `[extensions.window-management]`, defaults in pal.json. */
@@ -83,8 +85,15 @@ const noTarget = (id: RowId) => id === "unminimize";
 
 // ---- Resize to... -----------------------------------------------------------
 
-/** Common sizes, the form's hint. */
+/** Common sizes, the size field's hint. */
 const PRESETS = "1280x720, 1440x900, 1920x1080";
+/** The Resize row's arguments: the size, then where to put it (blank keeps the window centred where it is). */
+const RESIZE_ARGS: Arg[] = [
+  { id: "size", placeholder: "1280x720", required: true },
+  { id: "x", placeholder: "X (blank: centred)" },
+  { id: "y", placeholder: "Y (blank: centred)" },
+];
+const RESIZE_SUBMIT = { id: "resize-submit", title: "Resize" };
 const SIZE_RE = /^(\d{2,5})(?:(?:\s*[x×*,]\s*|\s+)(\d{2,5}))?$/i;
 
 /** `1280x720`, `1280 720`, `1280×720`, `1280*720`, `1280` (a square): width and height in px, or nothing. */
@@ -124,30 +133,24 @@ export function resizeFrame(from: Rect, size: { w: number; h: number }, at: { x?
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
 }
 
-/** The form; its id carries the picked window (`resize:<id>`), none for the focused one. */
-const resizeForm = (target?: Args, values: FormValues = {}, errors?: Form["errors"]): Form => ({
+/** The arguments as a page, for a pick without values and for a refused one (the messages under the fields); its id carries the picked window (`resize:<id>`), none for the focused one. */
+const resizeForm = (target?: Args, errors?: Form["errors"]): Form => ({
+  ...argsForm(RESIZE_ARGS, target?.title ? `Resize ${target.title}` : "Resize the focused window", RESIZE_SUBMIT, errors),
   id: target?.id ? `${RESIZE}:${target.id}` : RESIZE,
-  title: target?.title ? `Resize ${target.title}` : "Resize the focused window",
-  fields: [
-    { kind: "text", id: "size", label: "Size", placeholder: "1280x720", required: true, default: String(values.size ?? ""), description: `Width x height in px; one number is a square. Common: ${PRESETS}.` },
-    { kind: "text", id: "x", label: "X", placeholder: "blank keeps it centred where it is", default: String(values.x ?? ""), description: "The left edge, px from the screen's left; blank keeps the window centred on its current centre." },
-    { kind: "text", id: "y", label: "Y", placeholder: "blank keeps it centred where it is", default: String(values.y ?? ""), description: "The top edge, px from the screen's top." },
-  ],
-  submit: { id: "resize-submit", title: "Resize" },
-  errors,
 });
 
-/** The submit: the size and place checked (the form again with the messages otherwise), the frame written, the panel down and the HUD saying the size. */
-async function resize(target: Args | undefined, values: FormValues): Promise<Effect> {
+/** The values in: the size and place checked (the fields again with the messages otherwise), the frame written, the panel down and the HUD saying the size. */
+async function resize(target: Args | undefined, values: FormValues | undefined): Promise<Effect> {
+  if (!values) return { form: resizeForm(target) };
   const size = parseSize(String(values.size ?? ""));
   const x = parseCoord(String(values.x ?? "")), y = parseCoord(String(values.y ?? ""));
   const errors: Record<string, string> = {};
   if (!size) errors.size = `Width x height in px, like ${PRESETS.split(",")[0]}`;
   if (x === null) errors.x = "A whole number of px, or blank";
   if (y === null) errors.y = "A whole number of px, or blank";
-  if (Object.keys(errors).length || !size) return { form: resizeForm(target, values, errors) };
+  if (Object.keys(errors).length || !size) return { form: resizeForm(target, errors) };
   const id = target?.id ?? (await windows.focused())?.id;
-  if (!id) return { form: resizeForm(target, values, { size: "No window has focus: open one first, or pick one with Apply to…" }) };
+  if (!id) return { form: resizeForm(target, { size: "No window has focus: open one first, or pick one with Apply to…" }) };
   const from = await windows.frame(id);
   const area = displayOf(await windows.displays(), from)?.visible_frame;
   const to = resizeFrame(from, size, { x: x ?? undefined, y: y ?? undefined }, area);
@@ -162,11 +165,14 @@ function row(l: (typeof LAYOUTS)[number], target?: Args): Item {
     subtitle: target?.title ?? (noTarget(l.id) ? "Last minimized window" : "Focused window"),
     icon: layoutIcon(l.id),
     keywords: l.keywords,
+    // The size in the bar gates Apply; Apply to… picks the window first and the size comes in that level.
+    ...(l.id === RESIZE && { args: RESIZE_ARGS }),
     actions: target || noTarget(l.id) ? [APPLY] : [APPLY, APPLY_TO],
   };
 }
 
-function windowRow(w: Window): Item {
+/** A window to arrange; opened for Resize, the row takes the size in the bar. */
+function windowRow(w: Window, layout?: RowId): Item {
   return {
     id: w.id,
     name: w.title,
@@ -174,7 +180,8 @@ function windowRow(w: Window): Item {
     keywords: [w.bundle_or_class],
     icon: w.icon ? { app: w.icon } : WINDOW_GLYPH,
     accessories: w.monitor ? [{ text: w.monitor }] : [],
-    actions: [{ id: "apply", title: "Arrange" }],
+    ...(layout === RESIZE && { args: RESIZE_ARGS }),
+    actions: [{ id: "apply", title: layout === RESIZE ? "Resize" : "Arrange" }],
   };
 }
 
@@ -208,7 +215,8 @@ export default {
         const name = id as RowId;
         if (!LAYOUTS.some((l) => l.id === name)) return;
         if (action === "apply-to" && !noTarget(name)) return { push: { extension: EXT, palette: "arrange", args: { layout: name } } };
-        if (name === RESIZE) return { form: resizeForm(args?.id ? args : undefined) };
+        // The bar's values, or (a hotkey, a bare `pal run`) the same fields as a form.
+        if (name === RESIZE) return resize(args?.id ? args : undefined, ctx?.values);
         return effect(name, args?.id);
       },
     },
@@ -216,12 +224,15 @@ export default {
       title: "Arrange Window",
       input: true,
       placeholder: "Which window?",
-      list: async (query = "") => (await windows.list()).filter((w) => !w.minimized && matches(query, w.title, w.app, w.bundle_or_class)).map(windowRow),
+      list: async (query = "", ctx) => {
+        const layout = (ctx?.args as Args | undefined)?.layout;
+        return (await windows.list()).filter((w) => !w.minimized && matches(query, w.title, w.app, w.bundle_or_class)).map((w) => windowRow(w, layout));
+      },
       pick: async (id, action, ctx) => {
         const layout = (ctx?.args as Args | undefined)?.layout;
         if (action === "resize-submit") return resize({ id: id.slice(RESIZE.length + 1) }, ctx?.values ?? {});
         const w = (await windows.list()).find((w) => w.id === id);
-        if (layout === RESIZE) return { form: resizeForm({ id, title: w?.title ?? id }) };
+        if (layout === RESIZE) return resize({ id, title: w?.title ?? id }, ctx?.values);
         if (layout) return effect(layout, id);
         return { push: { extension: EXT, palette: "window-management", args: { id, title: w?.title ?? id } } };
       },

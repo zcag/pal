@@ -22,8 +22,8 @@ echo "Deployed to $1"
 ```
 
 `chmod +x` it and put it in `~/.config/pal/commands/` (the `commands`
-setting; the folder is watched). Enter runs it, a form first when it has
-`args`; `hud` shows the first output line in the HUD, `silent` nothing,
+setting; the folder is watched). Enter runs it, the `args` typed into the
+search bar first when it has them (a form for a pick without them); `hud` shows the first output line in the HUD, `silent` nothing,
 `show` the whole output as a level, `list` its JSON-lines output as rows
 (a row with `url` opens, one with `copy` copies, another runs the script
 again with `PAL_PICK`), `inline` its first line as the row's subtitle,
@@ -99,7 +99,7 @@ In Script Commands:
 
 | keys | action |
 | --- | --- |
-| `enter` | Run the command as its mode says; Open a `list` one; a form first when it has `args` |
+| `enter` | Run the command as its mode says; Open a `list` one; its `args` in the bar first when it has them (`$1`, `$2`, ... in header order; `cmd+c` Copy output takes them too) |
 | `cmd+o` | Open the script file |
 | `cmd+c` | Copy output: run it and copy what it printed |
 | `cmd+shift+c` | Copy the file's path |
@@ -147,7 +147,7 @@ after changing them, Settings > Restart extension host. `timeout`,
   group and counts as failed.
 - Watch the config: a new table shows after Restart extension host (the
   commands folder is watched; the v1 config is not).
-- Confirm a script command that takes arguments: its form is the
+- Confirm a script command that takes arguments: its fields are the
   confirmation.
 
 ## Platforms

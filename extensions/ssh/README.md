@@ -23,6 +23,11 @@ unwrapped, comma lists split, hashed lines, bare IPs and hosts already in
 the config skipped.
 
 Connect opens a terminal window running `ssh <host>` and hides the panel.
+Enter on a host first turns the search bar into one field, the command
+(blank is a shell: Enter again connects as before); a command typed there
+runs as `ssh -t <host> <command>` and the window stays until Enter, so a
+quick `uptime` is not gone with it. A pick that arrives without the field
+(an item hotkey, a bare `pal run`) connects to a shell.
 Ping sends one echo to the `HostName` (else the name) with a 2 s wait and
 toasts the round trip (`web-1.example.com: 3 ms`), or why it did not
 answer; the panel stays open.
@@ -31,7 +36,7 @@ answer; the panel stays open.
 
 | keys | action |
 | --- | --- |
-| `enter` | Connect: a terminal window running `ssh <host>` |
+| `enter` | Connect: a terminal window running `ssh <host>`; argument `command` (optional): run that there instead of a shell, the window kept until Enter |
 | `cmd+c` | Copy host: the name as written in the config |
 | `cmd+shift+c` | Copy ssh command: `ssh <host>` |
 | `cmd+shift+j` | Copy ssh -J command: `ssh -J <jump> <host>` (only on a host with a `ProxyJump`) |

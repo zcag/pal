@@ -84,8 +84,8 @@
     "features": [
       "Every note at the root by title, alias, tag or folder, sectioned by folder; Enter opens it in Obsidian, cmd+Enter in your editor (or the other way round, a setting)",
       "Search Notes: full-text as you type over the vault (ripgrep when installed, a scan otherwise), the matching line as the subtitle and the matches bold in the pane",
-      "Daily Notes: today (created from the template when missing), yesterday, this week; Append to today is a form prefilled from the clipboard, {selection} and {date} filled in",
-      "New note as a form: title, folder, body from a template or your selection; Tags with counts, Recent Notes, Backlinks and Outgoing links of any note",
+      "Daily Notes: today (created from the template when missing), yesterday, this week; Append to today takes the line in the search bar, {clipboard}, {selection} and {date} filled in",
+      "New note takes the title and the folder in the search bar, the body from a template or your selection; Tags with counts, Recent Notes, Backlinks and Outgoing links of any note",
       "The pane (cmd+i) is the note with its tags, links and backlinks; Read in pal (cmd+shift+r) draws it with headings, lists, callouts, code and tables in pal's tokens",
       "Copy wikilink (cmd+c) writes [[name]] as Obsidian would; the index rebuilds when the vault changes on disk"
     ],
@@ -99,7 +99,7 @@
       { "file": "2-detail.png", "caption": "The pane: the note rendered, its tags, links and backlinks under it" },
       { "file": "3-search.png", "caption": "Search Notes: the matching line on each row, the matches bold in the pane" },
       { "file": "4-daily.png", "caption": "Daily Notes: today, yesterday, this week, Append to today, New note" },
-      { "file": "5-append.png", "caption": "Append to today: a line onto today's note, prefilled from the clipboard" },
+      { "file": "5-append.png", "caption": "Append to today: the line typed in the search bar lands at the end of today's note" },
       { "file": "6-read.png", "caption": "A note read in pal: callouts, lists, code and tables drawn with the tokens" }
     ],
     "actions": [
@@ -111,8 +111,8 @@
       { "title": "Outgoing links", "description": "The notes it links to; a link to nothing yet offers Create the note.", "keys": "cmd+l" },
       { "title": "Copy path", "description": "The file's absolute path.", "keys": "cmd+shift+c" },
       { "title": "Create today's note", "description": "From the daily template; asks first.", "keys": "enter" },
-      { "title": "Append to today", "description": "The form; the text lands on its own line at the end of today's note.", "keys": "enter" },
-      { "title": "New note", "description": "The form: title, folder, body.", "keys": "enter" },
+      { "title": "Append to today", "description": "The line typed in the bar lands on its own line at the end of today's note; from Today's note's cmd+enter, a form.", "keys": "enter" },
+      { "title": "New note", "description": "The title and the folder typed in the bar; the body from the template or your selection.", "keys": "enter" },
       { "title": "Notes with the tag", "description": "On a tag row: the notes carrying it.", "keys": "enter" },
       { "title": "Search in Obsidian", "description": "On the Search notes command: Obsidian's own search.", "keys": "cmd+enter" }
     ]
@@ -142,7 +142,7 @@
   "palettes": {
     "notes": {
       "title": "Notes",
-      "description": "Every note of the vault by title, alias, tag or folder, sectioned by folder; Today's note, New note, Search notes and Random note at the top.",
+      "description": "Every note of the vault by title, alias, tag or folder, sectioned by folder; Today's note, New note (the title and the folder typed in the bar), Search notes and Random note at the top.",
       "kind": "list",
       "tier": "primary",
       "ttl": 300,
@@ -172,10 +172,10 @@
     },
     "daily": {
       "title": "Daily Notes",
-      "description": "Today's note (created from the template when missing), yesterday's, this week's; Append to today and New note as forms.",
+      "description": "Today's note (created from the template when missing), yesterday's, this week's; Append to today and New note, their values typed in the bar.",
       "kind": "live",
       "keys": [
-        { "keys": "enter", "title": "Open the note; on Create today's note, create it (asks first); on the forms, open them" },
+        { "keys": "enter", "title": "Open the note; on Create today's note, create it (asks first); on Append to today and New note, type the line, or the title and folder, then Enter again" },
         { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
         { "keys": "cmd+c", "title": "Copy the wikilink" },
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },

@@ -3,7 +3,7 @@
 // state into a row: domain glyph, state tone, accessories, the per-domain
 // actions, and a service's field descriptions into a form. No pal imports,
 // so the tests can drive these without a host.
-import { errorMessage, tinted, type Accessory, type Action, type FormField, type Icon, type Item, type TagColor } from "@zcag/pal";
+import { errorMessage, tinted, type Accessory, type Action, type Arg, type FormField, type Icon, type Item, type TagColor } from "@zcag/pal";
 
 /** `[extensions.home-assistant]`, defaults in pal.json. */
 export type Settings = { url: string; token: string; domains: string[]; favorites: string[]; timeout: number };
@@ -176,6 +176,18 @@ export const SERVICE: Record<string, string> = {
 
 export const name = (s: State) => (typeof s.attributes.friendly_name === "string" && s.attributes.friendly_name) || s.entity_id;
 
+/** A thermostat's arguments, typed in the bar before Set temperature: the temperature (the current one prefilled, the range in the placeholder) and the mode from its `hvac_modes`. */
+export function climateArgs(s: State): Arg[] {
+  const modes = Array.isArray(s.attributes.hvac_modes) ? (s.attributes.hvac_modes as string[]) : [];
+  const [min, max] = [s.attributes.min_temp, s.attributes.max_temp].map((v) => (typeof v === "number" ? v : undefined));
+  const unit = typeof s.attributes.temperature_unit === "string" ? ` ${s.attributes.temperature_unit}` : "";
+  const cur = s.attributes.temperature;
+  return [
+    { id: "temperature", placeholder: min !== undefined && max !== undefined ? `Temperature ${min}..${max}${unit}` : `Temperature${unit}`, required: true, ...(typeof cur === "number" && { default: String(cur) }) },
+    ...(modes.length ? [{ id: "hvac_mode", placeholder: "Mode", kind: "select" as const, options: modes.map((m) => ({ id: m, title: titleCase(m) })), default: modes.includes(s.state) ? s.state : modes[0] }] : []),
+  ];
+}
+
 export function row(s: State, area?: string): Item {
   const d = domainOf(s.entity_id);
   return {
@@ -185,6 +197,7 @@ export function row(s: State, area?: string): Item {
     icon: icon(s),
     keywords: [s.entity_id, d, ...(area ? [area] : [])],
     accessories: accessories(s),
+    ...(d === "climate" && { args: climateArgs(s) }),
     actions: actions(s),
   };
 }

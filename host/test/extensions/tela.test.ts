@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { checkView, tinted } from "../../../sdk/src/index.ts";
 import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
-import { BASE, RESEARCH, SETTINGS, calls, server, setRead, state } from "./tela-mock.ts";
+import { BASE, RESEARCH, SETTINGS, calls, seen, server, setRead, state } from "./tela-mock.ts";
 
 
 let host: Host;
@@ -60,15 +60,29 @@ describe("tela", () => {
       expect(calls("GET", "/api/recent-changes")).toHaveLength(1);
     });
 
-    test("the commands: New opens the form with the default space chosen, Search and Ask push their palettes, Quick Notes opens /n", async () => {
+    test("the commands: New opens the form with the default space chosen, Search pushes its palette, Ask takes the question in the bar (a form without values; the view with them, the browser on cmd+enter), Quick Notes opens /n", async () => {
       const r = await pick("pages", "cmd:new");
       expect(r.form).toMatchObject({ id: "new", title: "New tela page", submit: { id: "save", title: "Create page" } });
       const f = r.form as Form;
       expect(f.fields.map((x) => x.id)).toEqual(["title", "space", "body"]);
       expect(f.fields[1]).toMatchObject({ kind: "select", default: "2", options: [{ id: "1", title: "Notes" }, { id: "2", title: "Engineering" }, { id: "3", title: "Blog" }] });
       expect(await pick("pages", "cmd:search")).toEqual({ push: { extension: "tela", palette: "search" } });
-      expect(await pick("pages", "cmd:ask")).toEqual({ push: { extension: "tela", palette: "research" } });
-      expect(await pick("pages", "cmd:ask", "browser")).toEqual({ open: `${BASE}/ask?q=` });
+      const askRow = (await list("pages")).find((i) => i.id === "cmd:ask")!;
+      expect(askRow.args).toEqual([{ id: "question", placeholder: "Question", required: true }]);
+      expect(askRow.actions).toEqual([{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter", args: true }]);
+      const form = (await pick("pages", "cmd:ask")).form as Form;
+      expect(form).toMatchObject({ title: "Ask tela", submit: { id: "ask", title: "Ask" } });
+      expect(form.fields.map((x) => [x.id, x.kind, !!x.required])).toEqual([["question", "text", true]]);
+      expect(((await pick("pages", "cmd:ask", "browser")).form as Form).submit).toEqual({ id: "browser", title: "Ask in the browser" });
+      expect(((await pick("pages", "cmd:ask", "ask", { values: { question: " " } })).form as Form).errors).toEqual({ question: "Required" });
+      expect(await pick("pages", "cmd:ask", "browser", { values: { question: "what is a deck" } })).toEqual({ open: `${BASE}/ask?q=what%20is%20a%20deck` });
+      const asked = (await pick("pages", "cmd:ask", "ask", { values: { question: "what is a deck" } })).view as View;
+      expect(asked).toMatchObject({ id: "research", title: "what is a deck" });
+      expect(calls("POST", "/api/mcp").at(-1)!.body.params).toEqual({ name: "research", arguments: { question: "what is a deck", limit: 8 } });
+      // Asked from the row, the question is remembered as the palette's are; forgotten here, and the MCP session's trace dropped, so the research tests start clean.
+      await pick("research", "ask:what is a deck", "forget");
+      state.inits = 0;
+      for (let i = seen.length - 1; i >= 0; i--) if (seen[i].path === "/api/mcp") seen.splice(i, 1);
       expect(await pick("pages", "cmd:notes")).toEqual({ open: `${BASE}/n` });
     });
 

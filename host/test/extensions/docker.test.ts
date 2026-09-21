@@ -116,17 +116,22 @@ describe("docker", () => {
     expect(await pick("b5d74103f8fe", "copy-id")).toEqual({ copy: "b5d74103f8fe" });
   });
 
-  test("images: repo:tag (the id for <none>), size and age, run form with a ports check, remove", async () => {
+  test("images: repo:tag (the id for <none>), size and age, run with the bar's name and ports (a form for a pick without them), remove", async () => {
     const items = await list("images");
     expect(items.map((i) => i.name)).toEqual(["127.0.0.1:5000/tela-backend:latest", "0123456789ab"]);
     expect(items[0]).toMatchObject({ subtitle: "379e574779b1", accessories: [{ text: "69.1MB" }, { text: "4 days ago" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["run", "copy-id", "remove"]);
+    // Run's values come from the bar; a pick without them (a hotkey, `pal run`) gets the same fields as a form, submitted back to `run`.
+    expect(items[0].args!.map((a) => a.id)).toEqual(["name", "ports"]);
     const form = await pick(items[0].id, "run", "images");
-    expect(form.form).toMatchObject({ id: items[0].id, title: "Run 127.0.0.1:5000/tela-backend:latest", submit: { id: "run-submit", title: "Run" } });
+    expect(form.form).toMatchObject({ id: items[0].id, title: "Run 127.0.0.1:5000/tela-backend:latest", submit: { id: "run", title: "Run" } });
     expect(form.form!.fields.map((f) => f.id)).toEqual(["name", "ports"]);
-    const bad = await pick(items[0].id, "run-submit", "images", { name: "", ports: "eighty" });
+    const bad = await pick(items[0].id, "run", "images", { name: "", ports: "eighty" });
     expect(bad.form!.errors).toEqual({ ports: "Not a port mapping: eighty" });
-    const ok = await pick(items[0].id, "run-submit", "images", { name: "web", ports: "8080:80, 443:443/tcp" });
+    expect(bad.form!.fields.map((f) => f.id)).toEqual(["name", "ports"]);
+    expect(await pick(items[0].id, "run", "images", { name: "", ports: "" })).toMatchObject({ keep: true, toast: { title: "Started 0123456789ab" } });
+    expect(called().at(-1)).toBe("run -d 127.0.0.1:5000/tela-backend:latest");
+    const ok = await pick(items[0].id, "run", "images", { name: "web", ports: "8080:80, 443:443/tcp" });
     expect(ok).toEqual({ keep: true, toast: { title: "Started web", message: "from 127.0.0.1:5000/tela-backend:latest" } });
     expect(called().at(-1)).toBe("run -d --name web -p 8080:80 -p 443:443/tcp 127.0.0.1:5000/tela-backend:latest");
     expect(await pick("0123456789ab", "remove", "images")).toEqual({ keep: true, toast: { title: "Removed 0123456789ab" } });

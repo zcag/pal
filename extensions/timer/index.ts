@@ -30,7 +30,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bar, clock, effects, errorMessage, exec, failed, hint, home, settings, storage, toast, view as liveView, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, bar, clock, effects, errorMessage, exec, failed, hint, home, settings, storage, toast, view as liveView, type Action, type Arg, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { KEY as POMODORO_KEY, STATS_KEY, asSession, dayOf, describe, minutesOf, nameOf, next as nextPhase, phaseWord, tally, type Config, type Phase, type Session, type Stats } from "./pomodoro.ts";
 import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
@@ -364,21 +364,18 @@ function row(t: Timer): Item {
   return { id: t.id, name: t.name, subtitle, icon: p ? TOMATO : GLYPH, keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), { tag: STATE[t.state].tag, color: STATE[t.state].color }], actions };
 }
 
-const newRow: Item = { id: NEW, name: "New timer", subtitle: "A duration and a name", icon: PLUS, keywords: ["timer", "start", "countdown"], actions: [{ id: "new", title: "New timer" }] };
+/** The New row's arguments, typed in the bar: the duration, a name, and whether the phone rings (a select, since the bar has no checkbox). */
+const NEW_ARGS: Arg[] = [
+  { id: "duration", placeholder: "25m, 90s, 1h30m, 2:30, 25", required: true },
+  { id: "name", placeholder: "Name (optional)" },
+  { id: "ring", placeholder: "Phone", kind: "select", options: [{ id: "no", title: "Silent" }, { id: "yes", title: "Ring the phone" }], default: "no" },
+];
+const newRow: Item = { id: NEW, name: "New timer", subtitle: "A duration and a name", icon: PLUS, keywords: ["timer", "start", "countdown"], args: NEW_ARGS, actions: [{ id: "start", title: "Start" }] };
 const pomodoroRow = (c: Config): Item => ({ id: POMODORO, name: "Start Pomodoro", subtitle: `${minutesOf("work", c)} min of work, ${minutesOf("break", c)} of break, ${Math.max(1, Math.round(c.pomodoro_rounds))} rounds then ${minutesOf("long", c)} min off`, icon: TOMATO, keywords: ["pomodoro", "focus", "work", "break"], actions: [{ id: POMODORO, title: "Start pomodoro" }] });
 const statsRow = (n: number): Item => ({ id: STATS_ROW, name: `Pomodoros today: ${n}`, subtitle: n === 1 ? "One work round finished" : `${n} work rounds finished`, icon: TOMATO, keywords: ["pomodoro", "stats"], actions: [] });
 
-const form = (errors?: Record<string, string>): Form => ({
-  id: NEW,
-  title: "New timer",
-  fields: [
-    { kind: "text", id: "duration", label: "Duration", placeholder: "25m, 90s, 1h30m, 2:30, 25", required: true, description: "A bare number is minutes." },
-    { kind: "text", id: "name", label: "Name", placeholder: "tea", description: "Optional; the duration otherwise. A name already taken restarts that timer." },
-    { kind: "checkbox", id: "ring", label: "Phone", text: "Ring the phone out loud when it lands" },
-  ],
-  submit: { id: "start", title: "Start" },
-  errors,
-});
+/** The bar's fields as a page: for a pick without values (a hotkey, `pal run`), and for a duration the CLI refused (the message under the field). */
+const form = (errors?: Record<string, string>): Form => ({ ...argsForm(NEW_ARGS, "New timer", { id: "start", title: "Start" }, errors), id: NEW });
 
 /** The CLI as the setting names it, on PATH or as a path; nothing when neither exists. */
 const cliPath = () => { const c = conf().command; return Bun.which(c) ?? (Bun.file(home(c)).size > 0 ? home(c) : undefined); };
@@ -396,12 +393,13 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
   if (action === "skip") return skipPomodoro();
   if (action === "stop-pomodoro") return stopPomodoro();
   if (id === NEW) {
-    if (action !== "start") return { form: form() };
-    const v = ctx?.values ?? {};
+    const v = ctx?.values;
+    if (!v) return { form: form() };
     const duration = String(v.duration ?? "").trim(), name = String(v.name ?? "").trim();
     if (!duration) return { form: form({ duration: "A duration is needed" }) };
+    // `ring` is the select's option id from the bar or the form; a link's boolean rides through `link`, not here.
     let out: string;
-    try { out = await timer(duration, ...(name ? [name] : []), ...(v.ring ? ["--ring"] : [])); } catch (e) { return { form: form({ duration: errorMessage(e) }) }; }
+    try { out = await timer(duration, ...(name ? [name] : []), ...(v.ring === "yes" || v.ring === true ? ["--ring"] : [])); } catch (e) { return { form: form({ duration: errorMessage(e) }) }; }
     return toast("Timer started", out);
   }
   const args = action === "add" ? ["add", ADD, id] : action === "done" ? ["done"] : [action ?? "pause", id];

@@ -93,7 +93,7 @@
       "Every `[palette.<name>]` table of a v1-style config becomes a palette, `scripts-<name>` in the settings",
       "A data-file palette: `auto_list = true` and a `data` file (JSON array, JSON lines or TOML), each row an item with `name`, `subtitle`, `keywords`, `url`, `section`, `accessories`, `detail`",
       "A script palette: a `run.sh` answering `list` with JSON lines and `pick` with a result envelope (`clipboard`, `open`, `toast`, `show`, `palette` to drill in, `reload`)",
-      "Script Commands: one row per executable in a folder with a `# @pal.title` header; `@pal.mode` silent, hud, show, list or inline, `@pal.args` as a form, `@pal.confirm`, `@pal.keyword`; Raycast's `@raycast.*` headers work as they are",
+      "Script Commands: one row per executable in a folder with a `# @pal.title` header; `@pal.mode` silent, hud, show, list or inline, `@pal.args` typed in the bar, `@pal.confirm`, `@pal.keyword`; Raycast's `@raycast.*` headers work as they are",
       "`input` palettes list on every keystroke with the query on stdin, `live` ones on every show, `filter` gives a scope dropdown, `view = \"grid\"` tiles",
       "`preview`: a shell command run lazily for the detail pane; a `ttl` keeps a listing across restarts so a slow script is not run on every start"
     ],
@@ -131,7 +131,7 @@
       },
       {
         "file": "7-command-form.png",
-        "caption": "A command with @pal.args asks for them in a form"
+        "caption": "A command with @pal.args takes them in the search bar"
       }
     ],
     "actions": [
@@ -152,7 +152,7 @@
       },
       {
         "title": "Run",
-        "description": "A script command, as its mode says: hud shows the first output line, show the whole output, list its rows, silent nothing. Asks first with @pal.confirm.",
+        "description": "A script command, as its mode says: hud shows the first output line, show the whole output, list its rows, silent nothing. Its @pal.args are typed in the bar first ($1, $2, ... in header order). Asks first with @pal.confirm.",
         "keys": "enter"
       },
       {
@@ -162,7 +162,7 @@
       },
       {
         "title": "Copy output",
-        "description": "Runs the command and copies what it printed.",
+        "description": "Runs the command and copies what it printed; its @pal.args are typed in the bar first.",
         "keys": "cmd+c"
       },
       {

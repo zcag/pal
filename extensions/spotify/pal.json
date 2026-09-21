@@ -223,12 +223,12 @@
     },
     "devices": {
       "title": "Spotify Devices",
-      "description": "Every device Spotify is open on: transfer playback to one, and the volume of the active one.",
+      "description": "Every device Spotify is open on: transfer playback to one, and the volume of the active one (up, down, mute, or a level typed in the bar).",
       "kind": "live",
       "keys": [
         {
           "keys": "enter",
-          "title": "Play here (a device); volume up, down, mute (the volume rows)"
+          "title": "Play here (a device); volume up, down, mute (the volume rows); on Set volume…, the level typed in the bar first"
         },
         {
           "keys": "cmd+enter",
@@ -407,7 +407,7 @@
     "features": [
       "Signs in to your own Spotify app with PKCE: no secret, the refresh token kept by pal",
       "Search as you type: tracks, artists, albums, playlists, podcasts and episodes in sections with their cover art; Enter plays, cmd+enter queues, cmd+l likes, cmd+o opens in Spotify",
-      "Playlists (yours and followed, with a drill-in per playlist), Library (Liked Songs, recently played, top tracks and artists), Devices (transfer, volume) and the Queue (skip to a row)",
+      "Playlists (yours and followed, with a drill-in per playlist), Library (Liked Songs, recently played, top tracks and artists), Devices (transfer, volume steps or a level typed in the bar) and the Queue (skip to a row)",
       "A lyrics view: the cover, a ticking progress bar, shuffle, repeat and like, and lrclib's synced lyrics around the line playing, the cover's colour as a tint; space, arrows, l, s, r, q, d",
       "Root rows for play or pause, next, previous, like, and \"Play <playlist>\" for each pinned playlist",
       "A bar item with the track or the lyric line playing; the popover is the lyrics view, ticking, with the whole transport on keys",
@@ -559,6 +559,11 @@
       {
         "title": "Transfer without playing",
         "keys": "cmd+enter"
+      },
+      {
+        "title": "Set volume",
+        "description": "In Devices: the level (0 to 100) typed in the bar, on the active device.",
+        "keys": "enter"
       },
       {
         "title": "Skip to it",

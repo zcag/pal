@@ -1,6 +1,6 @@
 // window-management against canned core/windows.* replies: the static
 // layout rows, the `layout` effect with the settings' knobs, the drill-in
-// to `arrange` and back, the Resize to… form writing a frame.
+// to `arrange` and back, the Resize to… arguments writing a frame.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import { LAYOUTS, displayOf, parseSize, resizeFrame } from "../../../extensions/window-management/index.ts";
@@ -123,20 +123,22 @@ describe("window-management", () => {
     expect(resizeFrame(frames.w1, { w: 3000, h: 2000 }, {})).toEqual({ x: -1000, y: -600, w: 3000, h: 2000 });
   });
 
-  test("Resize to… is a form; its submit writes the frame of the focused window, hides and says the size", async () => {
+  test("Resize to… takes the size and place in the bar; the values write the frame of the focused window, hide and say the size; a pick without them is the same fields as a form", async () => {
     const row = (await list()).find((i) => i.id === "resize")!;
     expect(row).toMatchObject({ name: "Resize to…", subtitle: "Focused window", actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
+    expect(row.args).toEqual([{ id: "size", placeholder: "1280x720", required: true }, { id: "x", placeholder: "X (blank: centred)" }, { id: "y", placeholder: "Y (blank: centred)" }]);
+    expect((await list()).filter((i) => i.args).map((i) => i.id)).toEqual(["resize"]);
     const form = (await pick("resize")) as { form: { id: string; title: string; fields: { id: string }[]; submit: { id: string } } };
     expect(form.form).toMatchObject({ id: "resize", title: "Resize the focused window", submit: { id: "resize-submit", title: "Resize" } });
     expect(form.form.fields.map((f) => f.id)).toEqual(["size", "x", "y"]);
-    // Nonsense is the form again with the message, nothing written.
-    const again = (await pick("resize", "resize-submit", { values: { size: "huge", x: "", y: "" } })) as { form: { errors: Record<string, string>; fields: { id: string; default?: string }[] } };
+    // Nonsense is the fields again with the message, nothing written; from the bar (apply) or the form's submit alike.
+    const again = (await pick("resize", "apply", { values: { size: "huge", x: "", y: "" } })) as { form: { errors: Record<string, string>; fields: { id: string }[] } };
     expect(again.form.errors).toEqual({ size: "Width x height in px, like 1280x720" });
-    expect(again.form.fields[0].default).toBe("huge");
+    expect(again.form.fields.map((f) => f.id)).toEqual(["size", "x", "y"]);
     expect((await pick("resize", "resize-submit", { values: { size: "1280x720", x: "left", y: "" } }) as { form: { errors: Record<string, string> } }).form.errors).toEqual({ x: "A whole number of px, or blank" });
     expect(set).toEqual([]);
     // The focused window (w1 at 100,100 800x600), centred on its centre, on its display.
-    expect(await pick("resize", "resize-submit", { values: { size: "1280x720", x: "", y: "" } })).toEqual({ hide: true, hud: "Resized to 1280x720" });
+    expect(await pick("resize", "apply", { values: { size: "1280x720", x: "", y: "" } })).toEqual({ hide: true, hud: "Resized to 1280x720" });
     expect(set).toEqual([{ id: "w1", x: 0, y: 40, w: 1280, h: 720 }]);
     set.length = 0;
     // Capped to the display, said as landed.
@@ -145,17 +147,25 @@ describe("window-management", () => {
     set.length = 0;
   });
 
-  test("Resize to… on a picked window: from the target level, and from arrange with the row's Apply to…", async () => {
+  test("Resize to… on a picked window: from the target level, and from arrange with the row's Apply to… (the window rows take the size then)", async () => {
     const form = (await pick("resize", "apply", { args: { id: "w3", title: "Downloads" } })) as { form: { id: string; title: string } };
     expect(form.form).toMatchObject({ id: "resize:w3", title: "Resize Downloads" });
-    expect(await pick("resize:w3", "resize-submit", { values: { size: "640x480", x: "", y: "" }, args: { id: "w3", title: "Downloads" } })).toEqual({ hide: true, hud: "Resized to 640x480" });
+    expect(await pick("resize", "apply", { values: { size: "640x480", x: "", y: "" }, args: { id: "w3", title: "Downloads" } })).toEqual({ hide: true, hud: "Resized to 640x480" });
     expect(set).toEqual([{ id: "w3", x: 1680, y: 160, w: 640, h: 480 }]);
     set.length = 0;
-    expect(await pick("resize", "apply-to")).toEqual({ push: { extension: EXT, palette: "arrange", args: { layout: "resize" } } });
-    expect(await pick("w3", "apply", { args: { layout: "resize" } }, "arrange")).toMatchObject({ form: { id: "resize:w3", title: "Resize Downloads" } });
-    expect(await pick("resize:w3", "resize-submit", { values: { size: "640x480", x: "", y: "" } }, "arrange")).toEqual({ hide: true, hud: "Resized to 640x480" });
+    expect(await pick("resize:w3", "resize-submit", { values: { size: "640x480", x: "", y: "" }, args: { id: "w3", title: "Downloads" } })).toEqual({ hide: true, hud: "Resized to 640x480" });
     expect(set).toHaveLength(1);
     set.length = 0;
-    expect(host.coreCalls.filter((c) => c.method === "windows.set_frame")).toHaveLength(4);
+    expect(await pick("resize", "apply-to")).toEqual({ push: { extension: EXT, palette: "arrange", args: { layout: "resize" } } });
+    // Opened for Resize, every window row carries the size fields and its action says so; for any other layout they take nothing.
+    const rows = await list("arrange", undefined, { layout: "resize" });
+    expect(rows.map((r) => [r.id, r.actions![0].title, r.args?.map((a) => a.id)])).toEqual([["w1", "Resize", ["size", "x", "y"]], ["w3", "Resize", ["size", "x", "y"]]]);
+    expect((await list("arrange", undefined, { layout: "right_half" })).every((r) => r.args === undefined && r.actions![0].title === "Arrange")).toBe(true);
+    expect(await pick("w3", "apply", { args: { layout: "resize" } }, "arrange")).toMatchObject({ form: { id: "resize:w3", title: "Resize Downloads" } });
+    expect(await pick("w3", "apply", { values: { size: "640x480", x: "", y: "" }, args: { layout: "resize" } }, "arrange")).toEqual({ hide: true, hud: "Resized to 640x480" });
+    expect(await pick("resize:w3", "resize-submit", { values: { size: "640x480", x: "", y: "" } }, "arrange")).toEqual({ hide: true, hud: "Resized to 640x480" });
+    expect(set).toHaveLength(2);
+    set.length = 0;
+    expect(host.coreCalls.filter((c) => c.method === "windows.set_frame")).toHaveLength(6);
   });
 });

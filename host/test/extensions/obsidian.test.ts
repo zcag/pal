@@ -337,32 +337,40 @@ describe("the extension", () => {
     expect(await pick("notes", "cmd:today")).toEqual({ open: expect.stringContaining(`file=daily%2F${iso(today)}`) });
   });
 
-  test("Append to today: the form prefilled from the clipboard; the submit expands placeholders and lands the text on its own line at the end; empty text is refused", async () => {
-    const f = (await pick("daily", "append")).form!;
-    expect(f).toMatchObject({ id: "append", title: "Append to today", submit: { id: "append:save", title: "Append" } });
-    expect(f.fields[0]).toMatchObject({ kind: "textarea", id: "text", required: true, default: "from the clipboard" });
-    expect(await pick("daily", "append", "append:save", { values: { text: "- read {clipboard} on {date}" } })).toEqual({ hud: `Appended to ${iso(today)}` });
+  test("Append to today: the line is the row's typed argument; a pick with values expands placeholders and lands the text on its own line at the end; without values the same field as a form, prefilled from the clipboard; empty text is refused", async () => {
+    const row = (await list("daily")).find((x) => x.id === "append")!;
+    expect(row.args).toEqual([{ id: "text", placeholder: "A line for today", required: true }]);
+    expect(row.actions).toEqual([{ id: "append", title: "Append to today" }]);
+    expect(await pick("daily", "append", "append", { values: { text: "- read {clipboard} on {date}" } })).toEqual({ hud: `Appended to ${iso(today)}` });
     expect(await Bun.file(join(vault, `daily/${iso(today)}.md`)).text()).toBe(`# ${formatDate("dddd, D MMMM YYYY", today)}\n\n## Log\n\n- read from the clipboard on ${iso(today)}\n`);
-    expect(await pick("daily", "append", "append:save", { values: { text: "second" } })).toEqual({ hud: `Appended to ${iso(today)}` });
+    expect(await pick("daily", "append", "append", { values: { text: "second" } })).toEqual({ hud: `Appended to ${iso(today)}` });
     expect(await Bun.file(join(vault, `daily/${iso(today)}.md`)).text()).toMatch(/on \d{4}-\d\d-\d\d\nsecond\n$/);
-    const refused = await pick("daily", "append", "append:save", { values: { text: "  " } });
-    expect(refused.form!.errors).toEqual({ text: "Required" });
-    expect(await pick("notes", "cmd:today", "append")).toMatchObject({ form: { id: "append" } });
+    const f = (await pick("daily", "append")).form!;
+    expect(f).toMatchObject({ title: "Append to today", submit: { id: "append", title: "Append" } });
+    expect(f.fields).toEqual([{ kind: "text", id: "text", label: "A line for today", placeholder: "A line for today", required: true, default: "from the clipboard" }]);
+    expect((await pick("daily", "append", "append", { values: { text: "  " } })).form!.errors).toEqual({ text: "Required" });
+    // The command row's cmd+enter has no bar field of its own (Enter opens the note), so it is the form.
+    expect(await pick("notes", "cmd:today", "append")).toMatchObject({ form: { title: "Append to today", submit: { id: "append" } } });
   });
 
-  test("New note: the form (title, the vault's folders, the body from the template with {{title}} filled); the submit writes the file and opens it; a duplicate is refused", async () => {
+  test("New note: the title and the folder are the row's typed arguments (the vault's folders as the choices); a pick with values writes the file with the template body, {{title}} filled, and opens it; without values the same fields as a form; a duplicate or an empty title is refused", async () => {
+    const row = (await list("notes")).find((x) => x.id === "cmd:new")!;
+    expect(row.args).toEqual([{ id: "title", placeholder: "Title", required: true }, { id: "folder", placeholder: "Folder", kind: "select", options: [{ id: "", title: "/ (the vault)" }, { id: "daily", title: "daily" }, { id: "infra", title: "infra" }, { id: "personal/projects", title: "personal/projects" }], default: "" }]);
+    expect(row.actions).toEqual([{ id: "new", title: "Create note" }]);
+    expect((await list("daily")).find((x) => x.id === "new")!.args).toEqual(row.args);
     const f = (await pick("notes", "cmd:new")).form!;
-    expect(f).toMatchObject({ id: "new", title: "New note", submit: { id: "new:save", title: "Create note" } });
-    expect(f.fields.map((x) => x.id)).toEqual(["title", "folder", "body"]);
-    expect((f.fields[1] as { options: { id: string }[] }).options.map((o) => o.id)).toEqual(["", "daily", "infra", "personal/projects"]);
-    expect((f.fields[2] as { default?: string }).default).toBe(`# \n\nCreated ${iso(today)}.\n`);
-    const r = await pick("notes", "new", "new:save", { values: { title: "Trip: Kaş?", folder: "personal/projects", body: "# {{title}}\n\nferry times\n" } });
+    expect(f).toMatchObject({ title: "New note", submit: { id: "new", title: "Create note" } });
+    expect(f.fields.map((x) => [x.id, x.kind])).toEqual([["title", "text"], ["folder", "select"]]);
+    const r = await pick("notes", "cmd:new", "new", { values: { title: "Trip: Kaş?", folder: "personal/projects" } });
     expect(r).toEqual({ open: expect.stringContaining("file=personal%2Fprojects%2FTrip-%20Ka%C5%9F-"), hud: "Created Trip- Kaş-" });
-    expect(await Bun.file(join(vault, "personal/projects/Trip- Kaş-.md")).text()).toBe("# Trip- Kaş-\n\nferry times\n");
-    const dup = await pick("notes", "new", "new:save", { values: { title: "Trip: Kaş?", folder: "personal/projects", body: "" } });
+    expect(await Bun.file(join(vault, "personal/projects/Trip- Kaş-.md")).text()).toBe(`# Trip- Kaş-\n\nCreated ${iso(today)}.\n`);
+    const dup = await pick("notes", "new", "new", { values: { title: "Trip: Kaş?", folder: "personal/projects" } });
     expect(dup.form!.errors).toEqual({ title: "personal/projects/Trip- Kaş-.md is there already" });
-    expect((await pick("notes", "new", "new:save", { values: { title: " ", folder: "", body: "" } })).form!.errors).toEqual({ title: "Required" });
-    expect((await list("daily")).find((x) => x.id === "new")).toBeDefined();
+    expect(dup.form!.fields.map((x) => (x as { default?: string }).default)).toEqual(["Trip: Kaş?", "personal/projects"]);
+    expect((await pick("daily", "new", "new", { values: { title: " ", folder: "" } })).form!.errors).toEqual({ title: "Required" });
+    // A body given (a link's) is written as it is.
+    expect(await pick("notes", "new", "new", { values: { title: "Ferry", folder: "", body: "# {{title}}\n\nferry times\n" } })).toMatchObject({ hud: "Created Ferry" });
+    expect(await Bun.file(join(vault, "Ferry.md")).text()).toBe("# Ferry\n\nferry times\n");
   });
 
   test("the watcher: a note written by hand shows in the next listing without a refresh, and a deleted one is gone", async () => {

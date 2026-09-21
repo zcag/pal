@@ -12,7 +12,7 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LIBRARY } from "../../../extensions/quicklinks/library.ts";
-import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
+import { asLinks, badUrl, fill, fillNamed, fromJson, placeholder, placeholders, splitKeywords } from "../../../extensions/quicklinks/links.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import type { Item } from "../../../sdk/src/index.ts";
 import { Host, fixtures, stored } from "../harness.ts";
@@ -28,6 +28,12 @@ describe("links", () => {
   test("fill encodes the query as a url component, every occurrence", () => {
     expect(fill("https://github.com/search?q={query}&type={query}", "a b&c")).toBe("https://github.com/search?q=a%20b%26c&type=a%20b%26c");
     expect(fill('https://x/{argument name="Repo"}/', "zcag/pal")).toBe("https://x/zcag%2Fpal/");
+  });
+  test("placeholders lists the distinct names in order; fillNamed fills each by name, encoded, a missing one empty", () => {
+    expect(placeholders('https://x/{argument name="Owner"}/{argument name="Repo"}/{query}?again={argument name="Owner"}')).toEqual(["Owner", "Repo", "query"]);
+    expect(placeholders("https://x/")).toEqual([]);
+    expect(fillNamed('https://x/{argument name="Owner"}/{argument name="Repo"}?q={query}', { Owner: "zcag", Repo: "pal launcher", query: "a&b" })).toBe("https://x/zcag/pal%20launcher?q=a%26b");
+    expect(fillNamed("https://x/{query}", {})).toBe("https://x/");
   });
   test("badUrl takes a scheme or an absolute path, refuses the rest with a hint", () => {
     expect(badUrl("https://x.y/{query}")).toBeUndefined();
@@ -131,7 +137,8 @@ describe("quicklinks", () => {
     expect(items[0]).toMatchObject({ name: "Create Quicklink", icon: "\u{f0c94}", actions: [{ id: "create", title: "Create quicklink" }] });
     expect(items[1]).toMatchObject({ name: "Browse Library", icon: "\u{f0ba9}", actions: [{ id: "library", title: "Browse library" }] });
     for (const i of items) expect(i.icon || i.url).toBeTruthy();
-    expect(items[2]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }] });
+    expect(items[2]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }], args: [{ id: "query", placeholder: "Query", required: true }] });
+    expect(items[3].args).toBeUndefined();
     expect(items[2].icon).toBeUndefined();
     expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy", "edit", "delete"]);
     expect(items[2].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete this quicklink?" });
@@ -220,8 +227,24 @@ describe("quicklinks", () => {
     expect(await pick("import:http://grafana.lan")).toEqual({ open: "http://grafana.lan" });
   });
 
-  test("a {query} link drills in; the level lists one row whose id is the filled url, a hint while nothing is typed", async () => {
-    expect(await pick("gh")).toEqual({ push: { extension: "quicklinks", palette: "quicklinks", args: { link: "gh" } } });
+  test("a {query} link takes the query as its typed argument: a pick with values opens the url filled and encoded, one without answers a form with the same field; named placeholders are one argument each", async () => {
+    expect(await pick("gh", "open", { values: { query: "bun test" } })).toEqual({ open: "https://github.com/search?q=bun%20test" });
+    expect(await pick("gh", undefined, { values: { query: "a&b" } })).toEqual({ open: "https://github.com/search?q=a%26b" });
+    const form = (await pick("gh")).form as Form;
+    expect(form).toMatchObject({ title: "Open GitHub search", submit: { id: "open", title: "Open" } });
+    expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["query", "text", true]]);
+    expect(await pick("gh", "copy")).toEqual({ copy: "https://github.com/search?q={query}" });
+    stored.set("quicklinks\0links", [...(stored.get("quicklinks\0links") as object[]), { id: "repo", name: "Repo file", url: 'https://github.com/{argument name="Owner"}/{argument name="Repo"}/blob/main/{query}' }]);
+    try {
+      const repo = (await list()).find((i) => i.id === "repo")!;
+      expect(repo.args).toEqual([{ id: "Owner", placeholder: "Owner", required: true }, { id: "Repo", placeholder: "Repo", required: true }, { id: "query", placeholder: "Query", required: true }]);
+      expect(repo.accessories).toEqual([{ tag: "{Owner}" }, { tag: "{Repo}" }, { tag: "{query}" }]);
+      expect(await pick("repo", "open", { values: { Owner: "zcag", Repo: "pal", query: "docs/links.md" } })).toEqual({ open: "https://github.com/zcag/pal/blob/main/docs%2Flinks.md" });
+      expect(((await pick("repo")).form as Form).fields.map((f) => f.id)).toEqual(["Owner", "Repo", "query"]);
+    } finally { stored.set("quicklinks\0links", (stored.get("quicklinks\0links") as { id: string }[]).filter((l) => l.id !== "repo")); }
+  });
+
+  test("the drill-in level (the library's search, a link route without a query) lists one row whose id is the filled url, a hint while nothing is typed", async () => {
     const hint = await host.list("quicklinks", "quicklinks", "", { args: { link: "gh" } });
     expect(hint).toHaveLength(1);
     expect(hint[0]).toMatchObject({ id: "gh", name: "Type the query", actions: [] });

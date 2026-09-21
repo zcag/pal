@@ -1,13 +1,14 @@
 // tela: the wiki in the panel. Nine palettes over one client (api.ts)
 // and one data layer (data.ts): full-text Search and semantic Research
 // (input), Pages (recent across spaces, favourites first; a space's tree
-// when pushed from Spaces), Spaces, New Page (a form), Decks, Sheets,
+// when pushed from Spaces; its Ask tela row takes the question in the
+// bar), Spaces, New Page (a form), Decks, Sheets,
 // Comments (what addresses you), Backlinks (of the page opened last). A
 // page is one id everywhere, `page:<n>`: a list row, the view it opens as
 // (`render.ts` over the SDK's `md`), the form that comments on it. Editing a
 // page's body is not the panel's job (tela's MCP does that). One bar
 // item, `inbox`: unread mentions and replies, hidden at zero.
-import { ago, clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
+import { ago, argsForm, clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, EXTENSION, askUrl, baseUrl, conf, keysUrl, log, notesUrl, pageUrl, researchOn, searchUrl, spaceUrl } from "./api.ts";
 import {
   RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, recent, research, search, spaceName, spaceTree, spaces,
@@ -222,18 +223,28 @@ async function saveComment(id: number, values: FormValues): Promise<Effect> {
 
 // ---- pages palette: the root's rows, or a space's tree ------------------------------
 
+const ASK_ARGS: Arg[] = [{ id: "question", placeholder: "Question", required: true }];
+
 const COMMANDS: Item[] = [
   { id: "cmd:new", name: "New tela page", subtitle: "A page in a space, the body from your selection or the clipboard", icon: ICON.plus, keywords: ["create", "write", "wiki"], actions: [{ id: "new", title: "New page" }] },
   { id: "cmd:search", name: "Search tela", subtitle: "Full-text over every page you can see", icon: ICON.search, keywords: ["find", "wiki"], actions: [{ id: "search", title: "Search" }, { id: "browser", title: "Search in the browser", shortcut: "cmd+enter" }] },
-  { id: "cmd:ask", name: "Ask tela", subtitle: "A question answered from the pages that matter", icon: ICON.research, keywords: ["research", "question", "wiki"], actions: [{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter" }] },
+  // The question is typed in the bar (the row's `args`); cmd+enter takes it to the browser instead. The Ask tela palette still lists past questions.
+  { id: "cmd:ask", name: "Ask tela", subtitle: "A question answered from the pages that matter, typed in the bar", icon: ICON.research, keywords: ["research", "question", "wiki"], args: ASK_ARGS, actions: [{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter", args: true }] },
   { id: "cmd:notes", name: "Quick Notes", subtitle: "Your scratchpad page on tela", icon: ICON.note, keywords: ["scratch", "journal", "daily"], actions: [{ id: "open", title: "Open Quick Notes" }] },
 ];
 
-async function pickCommand(id: string, action?: string): Promise<Effect | void> {
+async function pickCommand(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   switch (id) {
     case "cmd:new": return { form: await newPageForm() };
     case "cmd:search": return action === "browser" ? { open: searchUrl("") } : { push: { extension: EXTENSION, palette: "search" } };
-    case "cmd:ask": return action === "browser" ? { open: askUrl("") } : { push: { extension: EXTENSION, palette: "research" } };
+    case "cmd:ask": {
+      // Without the bar's values (a hotkey, `pal run`): the same field as a form, submitted to the action picked.
+      const submit = action === "browser" ? { id: "browser", title: "Ask in the browser" } : { id: "ask", title: "Ask" };
+      const q = str(ctx?.values?.question).trim();
+      if (!ctx?.values || !q) return { form: argsForm(ASK_ARGS, "Ask tela", submit, ctx?.values && { question: "Required" }) };
+      if (action === "browser") return { open: askUrl(q) };
+      try { return await ask(q); } catch (e) { return toast("Research failed", e instanceof ApiError && e.unconfigured ? "This tela has no embedder configured; Search still works" : errorMessage(e), "failure"); }
+    }
     case "cmd:notes": return { open: notesUrl() };
   }
 }
@@ -594,7 +605,7 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
     return pickHint(id, action);
   }
   if (id === "new") return action === "save" ? saveNewPage(ctx?.values ?? {}) : { form: await newPageForm() };
-  if (id.startsWith("cmd:")) return pickCommand(id, action);
+  if (id.startsWith("cmd:")) return pickCommand(id, action, ctx);
   if (id.startsWith("space:")) return pickSpace(id, action, ctx);
   if (id.startsWith("notif:")) return pickNotif(id, action);
   if (id === "research" || id.startsWith("ask:")) return pickResearch(id, action, ctx);

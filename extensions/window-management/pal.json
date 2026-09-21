@@ -75,7 +75,7 @@
       "Restore puts the window back where it was before a run of layouts; moving it by hand in between starts a new run",
       "`gap` keeps pixels between windows and the screen edge; the halves, thirds and quarters are equal cells with the gap between them; `step` is how far a Move nudges",
       "Larger and Smaller scale the window by 10% about its centre and keep it on screen; Toggle Fullscreen is the app's own full screen (a Space on macOS); Unminimize brings back the window Minimize last put away",
-      "Resize to… takes a size (`1280x720`, or one number for a square) and, when you want it, a place; the window keeps its centre otherwise and stays on its display",
+      "Resize to… takes a size (`1280x720`, or one number for a square) and, when you want it, a place, typed into the search bar; the window keeps its centre otherwise and stays on its display",
       "`cycle` makes a repeated Left Half step through two thirds and a third, so one hotkey pressed again cycles the sizes",
       "Per-layout global hotkeys in `[palettes.window-management.item_hotkeys]` move the focused window without showing pal"
     ],
@@ -109,7 +109,7 @@
       },
       {
         "file": "6-resize.png",
-        "caption": "Resize to…: a size and, optionally, a place; blank keeps the window centred where it is"
+        "caption": "Resize to…: a size and, optionally, a place, typed in the bar; blank keeps the window centred where it is"
       }
     ],
     "actions": [
@@ -125,7 +125,7 @@
       },
       {
         "title": "Resize",
-        "description": "In the Resize to… form: the size (and place) typed goes on the window; the HUD says the size.",
+        "description": "On Resize to…: the bar takes the size (required) and X, Y (optional); the size (and place) typed goes on the window and the HUD says the size.",
         "keys": "enter"
       },
       {
@@ -140,7 +140,7 @@
       "description": "Move the focused window to a layout",
       "params": {
         "name": {
-          "description": "left_half, right_half, maximize, larger, move_left, fullscreen, minimize, next_display, restore, ... (the row ids; Resize to… is a form, not a link)",
+          "description": "left_half, right_half, maximize, larger, move_left, fullscreen, minimize, next_display, restore, ... (the row ids; Resize to… takes its size in the bar, not from a link)",
           "required": true
         }
       }

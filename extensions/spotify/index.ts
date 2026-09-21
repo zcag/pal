@@ -4,7 +4,7 @@
 // sections with their cover art; `playlists` (yours, followed; a drill-in
 // lists a playlist's tracks); `library` (Liked Songs newest first, recently
 // played, top tracks and artists this month) under filters; `devices`
-// (live: transfer playback, volume rows); `queue` (live: the queue, skip to
+// (live: transfer playback, volume rows, a level typed in the bar); `queue` (live: the queue, skip to
 // a row); `commands` (play/pause, skip, like, and a "Play <playlist>" row
 // per pinned playlist, all root results); and `now-playing`, the lyrics
 // view (view.ts): the cover, the track, a ticking progress bar, the state
@@ -28,7 +28,7 @@
 // too. Outside the popover's window the item asks to be rendered again at
 // the next lyric line (`refresh`), so the strip changes line on time
 // without a poll.
-import { bar, errorMessage, failed, hint, toast, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { argsForm, bar, errorMessage, failed, hint, toast, view as liveView, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, stopListener } from "./auth.ts";
 import { ApiError, Offline, RateLimited, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
@@ -666,18 +666,27 @@ async function deviceRows(): Promise<Item[]> {
       { id: "volume:up", name: "Volume up", subtitle: `${active.name}: ${active.volume ?? 0}% to ${Math.min(100, (active.volume ?? 0) + 10)}%`, icon: G.volumeUp, section: "Volume", keywords: ["louder"], actions: [{ id: "run", title: "Volume up" }] },
       { id: "volume:down", name: "Volume down", subtitle: `${active.name}: ${active.volume ?? 0}% to ${Math.max(0, (active.volume ?? 0) - 10)}%`, icon: G.volumeDown, section: "Volume", keywords: ["quieter"], actions: [{ id: "run", title: "Volume down" }] },
       { id: "volume:mute", name: "Mute", subtitle: active.name, icon: G.volumeMute, section: "Volume", actions: [{ id: "run", title: "Mute" }] },
+      // The level typed in the bar (the row's `args`), for a jump the ten-percent steps would take several picks to reach.
+      { id: "volume:set", name: "Set volume…", subtitle: `${active.name}: a level from 0 to 100, typed in the bar`, icon: G.volumeUp, section: "Volume", keywords: ["level", "percent"], args: VOLUME_ARGS, actions: [{ id: "run", title: "Set volume" }] },
     );
   }
   return rows;
 }
 
-async function pickDevice(id: string, action?: string): Promise<Effect> {
+const VOLUME_ARGS: Arg[] = [{ id: "level", placeholder: "0 to 100", kind: "number", required: true }];
+const volumeForm = (errors?: Record<string, string>): Effect => ({ form: argsForm(VOLUME_ARGS, "Set volume", { id: "run", title: "Set volume" }, errors) });
+
+async function pickDevice(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   try {
     if (id.startsWith("volume:")) {
+      // Without the bar's values (a hotkey, `pal run`): the same field as a form.
+      if (id === "volume:set" && !ctx?.values) return volumeForm();
+      const level = id === "volume:set" ? Math.round(Number(ctx!.values!.level)) : NaN;
+      if (id === "volume:set" && (!Number.isFinite(level) || level < 0 || level > 100)) return volumeForm({ level: "A whole number from 0 to 100" });
       const ds = await listDevices();
       const active = ds.find((d) => d.active);
       if (!active) return { keep: true, toast: { title: "No active device", style: "failure" } };
-      const v = id === "volume:mute" ? 0 : Math.max(0, Math.min(100, (active.volume ?? 0) + (id === "volume:up" ? 10 : -10)));
+      const v = id === "volume:set" ? level : id === "volume:mute" ? 0 : Math.max(0, Math.min(100, (active.volume ?? 0) + (id === "volume:up" ? 10 : -10)));
       await setVolume(v);
       patch((p) => ({ ...p, device: p.device ? { ...p.device, volume: v } : p.device }));
       return { keep: true, toast: { title: `${active.name} at ${v}%` } };
@@ -826,7 +835,7 @@ export default {
       live: true,
       placeholder: "A device, or the volume",
       list: () => guard(deviceRows),
-      pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickDevice(id, action)),
+      pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickDevice(id, action, ctx)),
     },
     queue: {
       title: "Queue",

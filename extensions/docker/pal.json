@@ -66,7 +66,7 @@
     "features": [
       "Every container, running ones first: the image under the name, the published ports (`8080:80`), docker's status (`Up 27 hours`) and a coloured state tag on the right",
       "`enter` stops a running container (after a confirm) or starts a stopped one; `cmd+l` opens its last 200 log lines in the panel; `cmd+t` opens a terminal with a shell inside it",
-      "Images: `enter` asks for a name and `host:container` ports in a form, then `docker run -d`",
+      "Images: `enter` takes a name and `host:container` ports in the search bar (both optional), then `docker run -d`",
       "Compose projects docker knows of: `up -d`, `down`, `restart`, logs, open the project folder",
       "Podman works through the same commands: set `binary = \"podman\"`",
       "Without the binary, or with the daemon down, one hint row says which; a slow command goes on in the background and the toast says so"
@@ -132,8 +132,8 @@
         "keys": "cmd+c"
       },
       {
-        "title": "Run…",
-        "description": "An image: a form for the name and ports, then docker run -d.",
+        "title": "Run",
+        "description": "An image: the bar takes a name and host:container ports (both optional, comma separated ports), then docker run -d.",
         "keys": "enter"
       },
       {
@@ -187,11 +187,11 @@
     "images": {
       "kind": "live",
       "lazy": true,
-      "description": "Local images: run one (name and ports asked), remove, copy the id.",
+      "description": "Local images: run one (name and ports typed in the bar), remove, copy the id.",
       "keys": [
         {
           "keys": "enter",
-          "title": "Run, after a form for the name and ports"
+          "title": "Run, with the name and ports typed in the bar (both optional)"
         },
         {
           "keys": "cmd+c",

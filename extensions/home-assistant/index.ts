@@ -1,9 +1,10 @@
 // Home Assistant: entities as rows (live, so the states at the root are
-// current), services as forms, areas as drill-ins. Everything is the REST
+// current; a thermostat takes its temperature and mode in the search
+// bar), services as forms, areas as drill-ins. Everything is the REST
 // API in ha.ts with the settings' URL, token and timeout; a request that
 // fails is one hint row with the fix, never an error.
-import { errorMessage, hint, settings, toast, when, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
-import { actions, asText, attributeRows, Client, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, icon, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
+import { argsForm, errorMessage, hint, settings, toast, when, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { actions, asText, attributeRows, Client, climateArgs, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, icon, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
 
 const EXTENSION = "home-assistant";
 /** `ctx.args` of the entities palette's drill-ins. */
@@ -56,20 +57,8 @@ function presetRows(s: State, kind: "brightness" | "volume"): Item[] {
   ];
 }
 
-const temperatureForm = (s: State, errors?: Record<string, string>): Form => {
-  const modes = Array.isArray(s.attributes.hvac_modes) ? (s.attributes.hvac_modes as string[]) : [];
-  const [min, max] = [s.attributes.min_temp, s.attributes.max_temp].map((v) => (typeof v === "number" ? v : undefined));
-  return {
-    id: s.entity_id,
-    title: `Set ${name(s)}`,
-    fields: [
-      { kind: "text", id: "temperature", label: "Temperature", required: true, default: s.attributes.temperature === undefined || s.attributes.temperature === null ? "" : String(s.attributes.temperature), placeholder: "21", description: min !== undefined && max !== undefined ? `${min}..${max}${typeof s.attributes.temperature_unit === "string" ? " " + s.attributes.temperature_unit : ""}` : undefined },
-      ...(modes.length ? [{ kind: "select" as const, id: "hvac_mode", label: "Mode", options: modes.map((m) => ({ id: m, title: titleCase(m) })), default: modes.includes(s.state) ? s.state : modes[0] }] : []),
-    ],
-    submit: { id: "set_temperature", title: "Set" },
-    errors,
-  };
-};
+/** The thermostat's bar arguments as a page: for a pick without values (a hotkey, `pal run`), and for a value that is not a number (the message under the field). */
+const temperatureForm = (s: State, errors?: Record<string, string>): Form => ({ ...argsForm(climateArgs(s), `Set ${name(s)}`, { id: "temperature", title: "Set" }, errors), id: s.entity_id });
 
 /** The form for one service: the target as a select of the matching entities, then its fields. */
 async function serviceForm(c: Client, id: string, errors?: Record<string, string>): Promise<Form> {
@@ -131,13 +120,14 @@ async function pickEntity(id: string, action: string | undefined, ctx: Ctx | und
   /** A drill-in level, its crumb the entity's name. */
   const drill = async (args: Args, suffix = "") => ({ push: { extension: EXTENSION, palette: "entities", args, title: `${name(await c.state(id))}${suffix}` } });
   switch (act) {
-    case "set_temperature": {
-      const v = ctx?.values ?? {};
+    // The bar's values (or the form's, submitted back as `temperature`; `set_temperature` was the form's submit id before, a saved hotkey may carry it).
+    case "temperature": case "set_temperature": {
+      const v = ctx?.values;
+      if (!v) return { form: temperatureForm(await c.state(id)) };
       const t = Number(String(v.temperature ?? "").trim());
       if (!String(v.temperature ?? "").trim() || Number.isNaN(t)) return { form: temperatureForm(await c.state(id), { temperature: "Not a number" }) };
       return call(c, id, "set_temperature", { temperature: t, ...(v.hvac_mode ? { hvac_mode: v.hvac_mode } : {}) });
     }
-    case "temperature": return { form: temperatureForm(await c.state(id)) };
     case "brightness": return drill({ brightness: id }, " brightness");
     case "volume": return drill({ volume: id }, " volume");
     case "attributes": return drill({ attributes: id });

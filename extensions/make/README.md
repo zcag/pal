@@ -22,9 +22,13 @@ cursor rests on a row) shows the recipe as a code block and, in its
 metadata, the project, the Makefile's name, the description and whether it
 is phony.
 
-Run opens a terminal in the project folder running `make <target>`; the
+Enter on a target first turns the search bar into one field, the words to
+put after the target (`VERBOSE=1`, `-j4`, split on spaces; blank runs it
+plain, so Enter twice is `make <target>`; a pick that arrives without the
+field, a hotkey or a bare `pal run`, runs it plain too). Run opens a
+terminal in the project folder running `make <target> <words>`; the
 window stays open until Enter is pressed, so a quick target's output is
-not gone with it, and the HUD names the target. With `terminal =
+not gone with it, and the HUD names the command. With `terminal =
 "background"` make runs unseen instead: a toast carries the exit status
 and the output's last line, and a failure opens the whole output in the
 panel too; a run still going after 8 s is left to finish on its own and
@@ -34,7 +38,7 @@ the toast says so.
 
 | keys | action |
 | --- | --- |
-| `enter` | Run: `make <target>` in a terminal in the project folder, or in the background |
+| `enter` | Run: `make <target>` in a terminal in the project folder, or in the background; argument `extra` (optional): variables or flags after the target |
 | `cmd+c` | Copy command: `make -C <dir> <target>` |
 | `cmd+o` | Open project: the folder in the file manager |
 | `cmd+l` | Show Makefile: the whole file in the panel, `esc` goes back |

@@ -34,7 +34,7 @@
     "tagline": "Your own links, with a {query} slot for search URLs",
     "category": "productivity",
     "features": [
-      "Enter opens the link; one with `{query}` in its url (`https://github.com/search?q={query}`) drills in and fills it with what you type, percent-encoded",
+      "Enter opens the link; one with `{query}` in its url (`https://github.com/search?q={query}`) takes it as a typed argument in the search bar (one field per placeholder name), percent-encoded",
       "`{selection}` and `{clipboard}` in a url are filled without asking (the text selected in the app in front, the newest copy), so `https://translate.google.com/?text={selection}` opens in one Enter",
       "Create Quicklink is a form (name, url, keywords, the browser to open with), its url and name filled from the tab in front; Edit (`cmd+e`) opens it filled in, a url with no scheme is refused under the field",
       "Browse Library: 25 ready-made searches (Google, Wikipedia, GitHub, npm, MDN, Stack Overflow, Maps...) added to your links with Enter, or searched with at once (`cmd+enter`)",
@@ -56,7 +56,7 @@
       },
       {
         "file": "2-query.png",
-        "caption": "Drilled into a search link: the input fills the placeholder, Enter opens the filled url"
+        "caption": "A search link picked: the bar asks for the query, Enter opens the filled url"
       },
       {
         "file": "3-actions.png",
@@ -74,7 +74,7 @@
     "actions": [
       {
         "title": "Open",
-        "description": "Opens the url, or drills in to fill its {query} first.",
+        "description": "Opens the url; a {query} link asks for it in the search bar first, one field per placeholder name.",
         "keys": "enter"
       },
       {
@@ -149,7 +149,7 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Open, or fill in the {query}; in the library, add the search"
+          "title": "Open, the {query} typed in the bar first; in the library, add the search"
         },
         {
           "keys": "cmd+enter",

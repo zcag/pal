@@ -3,9 +3,12 @@
 Your own links, kept in the extension's storage and edited in the panel.
 Enter on a link opens it. A link whose url has a `{query}` placeholder
 (`https://github.com/search?q={query}`; Raycast's `{argument}` and
-`{argument name="Repo"}` are read the same way) drills in instead: the
-input fills the placeholder as you type, percent-encoded, and Enter opens
-the filled url (`cmd+c` copies it). `{selection}` and `{clipboard}` in a
+`{argument name="Repo"}` are read the same way) takes it as a typed
+argument instead: Enter turns the search bar into one field per
+placeholder name (`Query`, or the name given), Enter again opens the url
+with them filled in, percent-encoded. A pick that arrives without the
+values (`pal run`, an item hotkey) asks for them in a form with the same
+fields. `{selection}` and `{clipboard}` in a
 url are filled without asking (the text selected in the app in front, or
 the newest copy; the SDK's placeholders, `{date}` and the rest included,
 each percent-encoded), so `https://translate.google.com/?text={selection}`
@@ -32,9 +35,9 @@ link asks for, its keywords and where it came from.
 
 | keys | action |
 | --- | --- |
-| `enter` | Open the url, or drill in to fill its `{query}` first; in the library, add the search to your links |
+| `enter` | Open the url; on a `{query}` link, type the argument(s) in the bar first (one field per placeholder name), then Enter opens the filled url; in the library, add the search to your links |
 | `cmd+enter` | In the library, search with it without adding |
-| `cmd+c` | Copy URL, as stored (placeholder included); inside the drill-in, the filled url |
+| `cmd+c` | Copy URL, as stored (placeholder included); inside the library's drill-in, the filled url |
 | `cmd+e` | Edit: the form, filled in |
 | `ctrl+x` | Delete, after a confirm |
 | `cmd+i` | The detail pane |
@@ -65,14 +68,17 @@ A quicklink file for `import` looks like this:
 
 ## What it does not do
 
-- No `{query}` at the root: a search link needs its drill-in, so `gh
-  rust` at the root does not open a GitHub search. Open the link's row
-  first, then type.
+- No `{query}` at the root: `gh rust` at the root does not open a GitHub
+  search (a query nothing matched lists every search link filled with
+  it, as fallback rows). Enter on the link's row, then type.
 - Open with is a browser by name, not any app: the list is the browsers
   found on the machine. A link to a `mailto:` or an app's own scheme goes
   to the system opener whatever the field says.
-- Two different placeholders in one url: every one is filled with the
-  same text, since the drill-in has one input.
+- Two placeholders of one name in a url are filled with the same text;
+  two names (`{argument name="Owner"}/{argument name="Repo"}`) are two
+  fields in the bar. The library's "Search with it" and a link route
+  without a query go through a drill-in with one input, which fills every
+  placeholder alike.
 - Import does not merge edits: a link whose url you already have is
   skipped, whatever its name or keywords in the file.
 

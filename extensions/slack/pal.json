@@ -178,13 +178,13 @@
     },
     "status": {
       "title": "Status",
-      "description": "Your status, presence and Do Not Disturb as the first rows; set a status from the presets, clear it, snooze notifications for 30 minutes, an hour or until tomorrow, go away or active.",
+      "description": "Your status, presence and Do Not Disturb as the first rows; set a status from the presets or type one (text, emoji, expiry in the search bar), clear it, snooze notifications for 30 minutes, an hour, until tomorrow or for the minutes you type, go away or active.",
       "kind": "live",
       "lazy": true,
       "keys": [
         {
           "keys": "enter",
-          "title": "Set it"
+          "title": "Set it; Set a status… and Do Not Disturb for… take their values in the bar first"
         }
       ]
     }
@@ -276,7 +276,7 @@
       "The bar item counts only what is addressed to you, so it is usually hidden and worth reading when it is not; red while a direct message waits",
       "Channels: every channel, group and direct message you are in, with the topic and the member count",
       "Search Slack as you type with Slack's own syntax: from:@name, in:#channel, has:link",
-      "Status: presets with an expiry, clear, Do Not Disturb for 30 minutes, an hour or until tomorrow, away or active",
+      "Status: presets with an expiry or one typed in the bar (text, emoji, expiry), clear, Do Not Disturb for 30 minutes, an hour, until tomorrow or any minutes, away or active",
       "No Slack app to install: the desktop app's own session is read from its files, so what you see is exactly your inbox"
     ],
     "permissions": [
@@ -367,14 +367,14 @@
       },
       {
         "title": "Set status",
-        "description": "A preset, with its expiry."
+        "description": "A preset, with its expiry; on Set a status…, the text, emoji and expiry typed in the bar."
       },
       {
         "title": "Clear status"
       },
       {
         "title": "Do Not Disturb",
-        "description": "30 minutes, 1 hour, or until tomorrow; End Do Not Disturb while it is on."
+        "description": "30 minutes, 1 hour, until tomorrow, or the minutes typed in the bar; End Do Not Disturb while it is on."
       },
       {
         "title": "Set away / Set active"

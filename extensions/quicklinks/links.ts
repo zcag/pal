@@ -12,13 +12,16 @@ export type Link = { id: string; name: string; url: string; keywords?: string[];
 const PLACEHOLDER = /\{(?:query|argument)(?:\s+name="([^"]*)")?\}/g;
 
 /** The name the placeholder asks for, or undefined when the url has none. */
-export function placeholder(url: string): string | undefined {
-  const m = new RegExp(PLACEHOLDER.source).exec(url);
-  return m ? m[1] || "query" : undefined;
-}
+export const placeholder = (url: string): string | undefined => placeholders(url)[0];
+
+/** Every distinct name the url's placeholders ask for, in order of first appearance (`{query}` and a bare `{argument}` are both "query"): one typed argument each. */
+export const placeholders = (url: string): string[] => [...new Set(Array.from(url.matchAll(PLACEHOLDER), (m) => m[1] || "query"))];
 
 /** Every placeholder replaced by the query, percent-encoded as a url component. */
 export const fill = (url: string, query: string): string => url.replace(PLACEHOLDER, encodeURIComponent(query));
+
+/** Each placeholder replaced by the value under its name (the typed arguments), percent-encoded; a name with no value is left empty. */
+export const fillNamed = (url: string, values: Record<string, unknown>): string => url.replace(PLACEHOLDER, (_, name?: string) => encodeURIComponent(String(values[name || "query"] ?? "")));
 
 /**
  * A url the opener can take: an absolute one with a scheme (`https:`,

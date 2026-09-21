@@ -1,7 +1,7 @@
 {
   "name": "make",
   "title": "Makefile Targets",
-  "description": "The targets of every Makefile under your project folders. Enter runs one in a terminal (or in the background, with a toast).",
+  "description": "The targets of every Makefile under your project folders. Enter runs one in a terminal (or in the background, with a toast), variables or flags typed in the bar first.",
   "version": "0.1.0",
   "icon": { "tile": { "glyph": "󰣪", "bg": "orange" } },
   "author": "pal",
@@ -95,7 +95,7 @@
     "actions": [
       {
         "title": "Run",
-        "description": "make <target> in a terminal in the project folder, or in the background per the setting.",
+        "description": "make <target> in a terminal in the project folder, or in the background per the setting; the bar takes optional words after the target first (VERBOSE=1, -j4).",
         "keys": "enter"
       },
       {
@@ -122,7 +122,7 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Run the target"
+          "title": "Run the target (variables or flags typed in the bar go after it; blank runs it plain)"
         },
         {
           "keys": "cmd+c",

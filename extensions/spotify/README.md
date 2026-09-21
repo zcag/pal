@@ -16,7 +16,7 @@ anywhere.
 | Search Spotify | `spotify-search` | input | plays the row (a track, or a playlist, album, artist or show as the context) |
 | Playlists | `spotify-playlists` | indexed, 5 min | plays the playlist; `cmd+enter` lists its tracks |
 | Library | `spotify-library` | indexed, 5 min, filters | plays the track (or the artist) |
-| Spotify Devices | `spotify-devices` | live | transfers playback to the device; the volume rows act on the active one |
+| Spotify Devices | `spotify-devices` | live | transfers playback to the device; the volume rows act on the active one, Set volume… with the level typed in the bar |
 | Queue | `spotify-queue` | live | skips to the row (one Next per row ahead) |
 | Spotify | `spotify-commands` | indexed, primary | play or pause, next, previous, like, lyrics, sign out, and "Play <playlist>" for each pinned one |
 
@@ -33,7 +33,10 @@ the rest follows), `cmd+s` plays a playlist shuffled. The search waits
 the date), Recently played (the time, each track once), Top tracks and
 Top artists of the last weeks (ranked). **Devices** shows every device
 Spotify is open on with its kind's glyph, its volume and an `active`
-tag; the three Volume rows step the active device by 10 or mute it.
+tag; the three Volume rows step the active device by 10 or mute it, and
+Set volume… takes a level (0 to 100) as its typed argument: Enter turns
+the search bar into the field, Enter again sets it (a pick without the
+value, from `pal run` or a hotkey, asks in a form with the same field).
 **Queue** lists what plays now and what comes next, numbered; the Web
 API has no way to remove a row from the queue, so the row's Enter skips
 to it instead.

@@ -561,7 +561,11 @@ describe("slack", () => {
   describe("status", () => {
     test("the first rows are what is set now; then the presets from the setting, Do Not Disturb, presence", async () => {
       const items = await list("status");
-      expect(ids(items)).toEqual(["status:current", "dnd:current", "presence:current", "status:0", "status:1", "status:2", "status:3", "dnd:30", "dnd:60", "dnd:tomorrow", "presence:away"]);
+      expect(ids(items)).toEqual(["status:current", "dnd:current", "presence:current", "status:0", "status:1", "status:2", "status:3", "status:custom", "dnd:30", "dnd:60", "dnd:tomorrow", "dnd:custom", "presence:away"]);
+      // The two rows whose values come from the bar: a status (text, emoji, expiry) and a snooze (minutes).
+      expect(items[7]).toMatchObject({ name: "Set a status…", section: "Status", args: [{ id: "text", placeholder: "Status", required: true }, { id: "emoji", placeholder: "Emoji", default: ":speech_balloon:" }, { id: "expiry", kind: "select", default: "" }], actions: [{ id: "set", title: "Set status" }] });
+      expect(items[7].args![2].options!.map((o) => o.id)).toEqual(["", "30m", "1h", "2h", "4h", "today"]);
+      expect(items[11]).toMatchObject({ name: "Do Not Disturb for…", section: "Do Not Disturb", args: [{ id: "minutes", placeholder: "Minutes", kind: "number", required: true }], actions: [{ id: "snooze", title: "Pause notifications" }] });
       expect(items[0]).toMatchObject({ name: "Out of office", icon: "🌴", section: "Now", actions: [{ id: "clear", title: "Clear status" }] });
       expect(items[0].subtitle).toMatch(/^Your status, until /);
       expect(items[1]).toMatchObject({ name: "Notifications on", actions: [] });
@@ -597,6 +601,26 @@ describe("slack", () => {
       expect((await list("status"))[2]).toMatchObject({ name: "Away", actions: [{ id: "presence:toggle", title: "Set active" }] });
       expect(await pick("status", "presence:current", "presence:toggle")).toMatchObject({ toast: { title: "Set active" } });
       expect(calls("users.setPresence").at(-1)!.body.presence).toBe("auto");
+    });
+
+    test("a status typed in the bar: the emoji gets its colons, the expiry lands as the presets' would; a snooze of any minutes; without values either row answers a form with the same fields, an empty or bad value the form with the message", async () => {
+      expect(await pick("status", "status:custom", "set", { values: { text: "Pairing", emoji: "computer", expiry: "1h" } })).toMatchObject({ toast: { title: "Status set", message: ":computer: Pairing (1h)" } });
+      const set = JSON.parse(calls("users.profile.set").at(-1)!.body.profile);
+      expect(set).toMatchObject({ status_emoji: ":computer:", status_text: "Pairing" });
+      expect(set.status_expiration).toBeGreaterThan(Date.now() / 1000 + 59 * 60);
+      expect(set.status_expiration).toBeLessThan(Date.now() / 1000 + 61 * 60);
+      await pick("status", "status:custom", "set", { values: { text: "Lunch", emoji: "", expiry: "" } });
+      expect(JSON.parse(calls("users.profile.set").at(-1)!.body.profile)).toEqual({ status_emoji: ":speech_balloon:", status_text: "Lunch", status_expiration: 0 });
+      const form = (await pick("status", "status:custom", "set")).form as Form;
+      expect(form).toMatchObject({ title: "Set a status", submit: { id: "set", title: "Set status" } });
+      expect(form.fields.map((f) => [f.id, f.kind])).toEqual([["text", "text"], ["emoji", "text"], ["expiry", "select"]]);
+      expect(((await pick("status", "status:custom", "set", { values: { text: "  ", emoji: "", expiry: "" } })).form as Form).errors).toEqual({ text: "Required" });
+
+      expect(await pick("status", "dnd:custom", "snooze", { values: { minutes: "45" } })).toMatchObject({ toast: { title: "Do Not Disturb on", message: "For 45 minutes" } });
+      expect(calls("dnd.setSnooze").at(-1)!.body.num_minutes).toBe("45");
+      await pick("status", "dnd:current", "dnd:end");
+      expect(((await pick("status", "dnd:custom", "snooze")).form as Form).fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["minutes", "text", true]]);
+      expect(((await pick("status", "dnd:custom", "snooze", { values: { minutes: "0" } })).form as Form).errors).toEqual({ minutes: "A whole number of minutes, 1 or more" });
     });
   });
 

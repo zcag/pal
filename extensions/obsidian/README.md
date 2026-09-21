@@ -53,14 +53,19 @@ Three things, each on your action and nowhere else:
 - **Today's daily note**, from its template, when you pick Today's note or
   Create today's note (which asks first) and the file is missing; also
   before an append when it is missing.
-- **A line at the end of today's note**: Append to today (the form, its
-  text prefilled from the clipboard; `{selection}`, `{clipboard}`,
-  `{date}`, `{time}` filled in) and the `append-today` link.
-- **A new note**: New note (the form: title, folder, body; the body from
-  the `template` setting with `{{title}}` filled, else your selection or
-  the clipboard), the `new` link, and Create the note on a link to
-  nothing in Outgoing Links (a `# Title` line). A title that names a note
-  already there is refused in the form.
+- **A line at the end of today's note**: Append to today (the line is
+  the row's typed argument: Enter turns the search bar into the field,
+  Enter again appends; `{selection}`, `{clipboard}`, `{date}`, `{time}`
+  filled in) and the `append-today` link. Today's note's `⌘Enter`, and a
+  pick without the value (`pal run`, a hotkey), ask in a form with the
+  same field, prefilled from the clipboard.
+- **A new note**: New note (the title and the folder are the row's typed
+  arguments, the folder a choice among the vault's; the body is the
+  `template` setting with `{{title}}` and `{{date}}` filled, else your
+  selection or the clipboard, and the note opens at once), the `new`
+  link, and Create the note on a link to nothing in Outgoing Links (a
+  `# Title` line). A title that names a note already there is refused,
+  with the fields as a form to fix it in.
 
 Nothing is edited or deleted. The note opened or read last is remembered
 in pal's storage for Backlinks and Outgoing links.
@@ -71,8 +76,9 @@ in pal's storage for Backlinks and Outgoing links.
 level), the description as the subtitle, up to three tags and the change
 date on the right; the name, the aliases, the tags and the folder are
 keywords, so `#infra` or `the box` finds a note too. Four commands lead:
-Today's note (`⌘Enter` appends instead), New note, Search notes (`⌘Enter`
-opens Obsidian's own search) and Random note. Pushed from Tags it lists
+Today's note (`⌘Enter` appends instead), New note (title and folder typed
+in the bar), Search notes (`⌘Enter` opens Obsidian's own search) and
+Random note. Pushed from Tags it lists
 one tag's notes (a nested tag under its parent too).
 
 On every note row: Open in Obsidian (`obsidian://open`, so Obsidian
@@ -102,7 +108,8 @@ with more matches, then the newest; sixty at most.
 
 **Daily Notes** is live: today's note (a Create row when missing, which
 asks before writing), yesterday's, the rest of the last seven days under
-This week, then Append to today and New note. **Tags** counts every tag
+This week, then Append to today (the line typed in the bar) and New note
+(the title and the folder). **Tags** counts every tag
 across the vault, most used first; Enter lists the notes, `⌘C` copies the
 tag. **Recent Notes** is the twenty changed last. **Backlinks** and
 **Outgoing Links** are for the note you opened last, or the row `⌘B` /

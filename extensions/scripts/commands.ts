@@ -2,17 +2,18 @@
 // folder whose header carries `# @pal.*` tags (Raycast's `@raycast.*`
 // accepted as aliases, so a Raycast script command drops in unchanged) is
 // one row of the Commands palette. The header says the title, the icon,
-// the mode (`silent`, `hud`, `show`, `list`, `inline`), the arguments (a
-// form), whether to confirm, the keywords. The folder is watched, so a
+// the mode (`silent`, `hud`, `show`, `list`, `inline`), the arguments
+// (typed into the search bar; a form for a pick that arrives without
+// them), whether to confirm, the keywords. The folder is watched, so a
 // saved file is read again on the next listing, and the palette is live
 // so an `inline` command's first output line is current on every show.
 import { existsSync, readdirSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
-import { effects, errorMessage, hint, home, tile, TILE_COLORS, toast, type Action, type Ctx, type Effect, type Item, type Palette, type TileColor } from "@zcag/pal";
+import { argsForm, effects, errorMessage, hint, home, tile, TILE_COLORS, toast, type Action, type Arg as BarArg, type Ctx, type Effect, type Item, type Palette, type TileColor } from "@zcag/pal";
 import { accessory, detail, glyph, log, parseLines, run, S, toActions, type Raw } from "./shared.ts";
 
 export type Mode = "silent" | "hud" | "show" | "list" | "inline";
-type Arg = { name: string; label: string; placeholder: string; optional?: boolean };
+type Arg = { name: string; placeholder: string; optional?: boolean };
 export type Command = {
   /** The file name, the row's id (readable in `item_hotkeys`). */
   id: string;
@@ -65,13 +66,13 @@ function parseArgs(t: Record<string, string[]>): Arg[] {
   const out: Arg[] = [];
   for (const line of t.args ?? t.arg ?? []) {
     const [name, ...rest] = line.split(/\s+/);
-    if (name) out.push({ name, label: name[0].toUpperCase() + name.slice(1), placeholder: rest.join(" ") || name, optional: rest.some((w) => w === "(optional)") });
+    if (name) out.push({ name, placeholder: rest.join(" ") || name, optional: rest.some((w) => w === "(optional)") });
   }
   for (const key of Object.keys(t).filter((k) => /^argument\d+$/.test(k)).sort()) {
     for (const json of t[key]) {
       try {
         const a = JSON.parse(json);
-        out.push({ name: key, label: String(a.placeholder ?? key), placeholder: String(a.placeholder ?? key), optional: a.optional === true });
+        out.push({ name: key, placeholder: String(a.placeholder ?? key), optional: a.optional === true });
       } catch { log(`${key}: not JSON, skipped`); }
     }
   }
@@ -168,6 +169,8 @@ async function runNow(c: Command, values?: Record<string, unknown>) {
 const RUN: Action = { id: "run", title: "Run" };
 const OPEN: Action = { id: "open", title: "Open script", shortcut: "cmd+o" };
 const COPY_OUTPUT: Action = { id: "copy_output", title: "Copy output", shortcut: "cmd+c" };
+/** The header's arguments as the row's (`Item.args`): typed in the bar before Run or Copy output; the values reach the script as `$1..$n` in header order. */
+const barArgs = (c: Command): BarArg[] => c.args.map((a) => ({ id: a.name, placeholder: a.placeholder, required: !a.optional }));
 const COPY_PATH: Action = { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" };
 
 /** An `inline` command's last output, by id, with when it was made. */
@@ -183,8 +186,8 @@ async function inlineText(c: Command): Promise<string> {
 }
 
 function row(c: Command, subtitle: string | undefined): Item {
-  const verb = c.mode === "list" ? "Open" : c.args.length ? "Run…" : "Run";
-  // A command with arguments asks through its form; a confirm on top would come before the values are typed.
+  const verb = c.mode === "list" ? "Open" : "Run";
+  // A command with arguments takes them in the bar first; a confirm on top would come before the values are typed.
   const run: Action = { ...RUN, title: verb, ...(c.confirm && !c.args.length && { confirm: `${c.title}?` }) };
   return {
     id: c.id,
@@ -195,7 +198,9 @@ function row(c: Command, subtitle: string | undefined): Item {
     section: c.section,
     accessories: c.mode !== "hud" ? [{ text: c.mode }] : undefined,
     detail: { metadata: [{ label: "File", value: c.path }, { label: "Mode", value: c.mode }, ...(c.args.length ? [{ label: "Arguments", value: c.args.map((a) => a.name).join(", ") }] : []), ...(c.confirm ? [{ label: "Confirm", value: "yes" }] : []), { label: "Runs in", value: c.cwd }] },
-    actions: [run, OPEN, COPY_OUTPUT, COPY_PATH],
+    // Copy output runs the script too, so it takes the same values.
+    ...(c.args.length && { args: barArgs(c) }),
+    actions: [run, OPEN, c.args.length ? { ...COPY_OUTPUT, args: true } : COPY_OUTPUT, COPY_PATH],
   };
 }
 
@@ -227,13 +232,8 @@ function listRows(c: Command, out: string): Item[] {
 /** The rows of a list-mode level, by the row id, for the pick. */
 const listed = new Map<string, Map<string, Raw>>();
 
-const form = (c: Command, values?: Record<string, unknown>, errors?: Record<string, string>) => ({
-  id: c.id,
-  title: c.title,
-  fields: c.args.map((a) => ({ kind: "text" as const, id: a.name, label: a.label, placeholder: a.placeholder, required: !a.optional, default: values?.[a.name] === undefined ? undefined : String(values[a.name]) })),
-  submit: { id: "run_args", title: c.mode === "list" ? "Open" : "Run" },
-  errors,
-});
+/** The bar's arguments as a page: what a pick without values (a hotkey, `pal run`, a script) answers, submitted back to the same action. */
+const form = (c: Command, submit: { id: string; title: string }, errors?: Record<string, string>) => ({ ...argsForm(barArgs(c), c.title, submit, errors), id: c.id });
 
 // ---- the palette ------------------------------------------------------------------------
 
@@ -270,11 +270,12 @@ export function commands(): { palette: Palette; dispose: () => void } {
 
   const byId = (id: string) => all().find((c) => c.id === id);
 
-  /** Runs the command as its mode says: a form first when it takes arguments and has none yet. */
+  /** Runs the command as its mode says: the fields as a form first when it takes arguments and has none yet. */
   async function start(c: Command, values?: Record<string, unknown>): Promise<Effect> {
-    if (c.args.length && !values) return { form: form(c) };
+    const submit = { id: "run", title: c.mode === "list" ? "Open" : "Run" };
+    if (c.args.length && !values) return { form: form(c, submit) };
     const missing = c.args.filter((a) => !a.optional && !String(values?.[a.name] ?? "").trim());
-    if (missing.length) return { form: form(c, values, Object.fromEntries(missing.map((a) => [a.name, "Required"]))) };
+    if (missing.length) return { form: form(c, submit, Object.fromEntries(missing.map((a) => [a.name, "Required"]))) };
     if (c.mode === "list") return { push: { extension: "scripts", palette: "commands", args: { list: c.id, values } } };
     if (c.mode === "inline") inline.delete(c.id);
     void runLater(c, values);
@@ -328,17 +329,13 @@ export function commands(): { palette: Palette; dispose: () => void } {
       switch (action) {
         case "open": return { open: c.path };
         case "copy_path": return { copy: c.path };
-        case "copy_output": {
-          if (c.args.length) return { form: { ...form(c), submit: { id: "copy_args", title: "Copy output" } } };
-          const r = await runNow(c);
-          return r.ok ? { copy: r.out.trimEnd() } : toast(failure(c, r), undefined, "failure");
-        }
-        case "copy_args": {
+        case "copy_output": case "copy_args": {
+          if (c.args.length && !ctx?.values) return { form: form(c, { id: "copy_output", title: "Copy output" }) };
           const r = await runNow(c, ctx?.values);
           return r.ok ? { copy: r.out.trimEnd() } : toast(failure(c, r), undefined, "failure");
         }
-        case "run_args": return start(c, ctx?.values);
-        default: return start(c);
+        // `run`, a bare pick, or `run_args` (the form's submit before the bar took the values; a saved hotkey may still say it).
+        default: return start(c, ctx?.values);
       }
     },
   };

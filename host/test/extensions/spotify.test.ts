@@ -347,7 +347,8 @@ describe("spotify, signed in", () => {
   describe("devices", () => {
     test("a row per device with its glyph, volume and the active tag; Enter transfers, the volume rows act on the active one", async () => {
       const items = await list("devices");
-      expect(ids(items)).toEqual(["device:d1", "device:d2", "device:d3", "volume:up", "volume:down", "volume:mute"]);
+      expect(ids(items)).toEqual(["device:d1", "device:d2", "device:d3", "volume:up", "volume:down", "volume:mute", "volume:set"]);
+      expect(items[6]).toMatchObject({ name: "Set volume…", subtitle: "hornet: a level from 0 to 100, typed in the bar", section: "Volume", args: [{ id: "level", placeholder: "0 to 100", kind: "number", required: true }], actions: [{ id: "run", title: "Set volume" }] });
       expect(items[0]).toMatchObject({ name: "hornet", subtitle: "Computer", icon: "\u{f0322}", accessories: [{ text: "40%" }, { tag: "active", color: "green" }], section: "Devices" });
       expect(items[0].actions!.map((a) => a.id)).toEqual(["vol-up", "vol-down"]);
       expect(items[1]).toMatchObject({ name: "Kitchen", icon: "\u{f04c3}", accessories: [{ text: "70%" }] });
@@ -361,6 +362,18 @@ describe("spotify, signed in", () => {
       expect(await pick("devices", "volume:up")).toMatchObject({ keep: true, toast: { title: "hornet at 50%" } });
       expect(calls("PUT", "/v1/me/player/volume?volume_percent=50")).toHaveLength(1);
       expect(await pick("devices", "volume:mute")).toMatchObject({ toast: { title: "hornet at 0%" } });
+      state.player = { ...state.player, device: DEVICES[0] };
+    });
+
+    test("Set volume: the level typed in the bar goes to the active device as it is; without values a form with the same field; a level off the scale is refused in it", async () => {
+      expect(await pick("devices", "volume:set", "run", { values: { level: "23" } })).toMatchObject({ keep: true, toast: { title: "hornet at 23%" } });
+      expect(calls("PUT", "/v1/me/player/volume?volume_percent=23")).toHaveLength(1);
+      const form = (await pick("devices", "volume:set", "run")).form!;
+      expect(form).toMatchObject({ title: "Set volume", submit: { id: "run", title: "Set volume" } });
+      expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["level", "text", true]]);
+      expect((await pick("devices", "volume:set", "run", { values: { level: "140" } })).form!.errors).toEqual({ level: "A whole number from 0 to 100" });
+      expect((await pick("devices", "volume:set", "run", { values: { level: "loud" } })).form!.errors).toEqual({ level: "A whole number from 0 to 100" });
+      expect(calls("PUT", "/v1/me/player/volume?volume_percent=140")).toHaveLength(0);
       state.player = { ...state.player, device: DEVICES[0] };
     });
   });

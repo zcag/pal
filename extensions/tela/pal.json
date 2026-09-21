@@ -144,7 +144,7 @@
     },
     "pages": {
       "title": "Pages",
-      "description": "Favourites, then what changed lately across spaces; New tela page, Search tela, Ask tela and Quick Notes at the top. From Spaces, one space's pages.",
+      "description": "Favourites, then what changed lately across spaces; New tela page, Search tela, Ask tela (the question typed in the bar) and Quick Notes at the top. From Spaces, one space's pages.",
       "kind": "list",
       "lazy": true,
       "ttl": 300,
@@ -519,12 +519,12 @@
       },
       {
         "title": "Ask",
-        "description": "Research the question; on a source in the answer, open it.",
+        "description": "Research the question (on the Pages row, typed in the bar first); on a source in the answer, open it.",
         "keys": "enter"
       },
       {
         "title": "Ask in the browser",
-        "description": "tela's Ask page with the question.",
+        "description": "tela's Ask page with the question (on the Pages row, typed in the bar first).",
         "keys": "cmd+enter"
       },
       {

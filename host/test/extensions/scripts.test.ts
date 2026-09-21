@@ -284,9 +284,9 @@ describe("script commands: the header", () => {
   test("parse: every field from the tags, raycast aliases mapped (compact is hud, fullOutput is show, argument1 JSON, packageName, currentDirectoryPath), defaults for the rest", () => {
     const d = parse(join(cmdDir, "deploy.sh"))!;
     expect(d).toMatchObject({ id: "deploy.sh", title: "Deploy site", icon: "🚀", mode: "hud", confirm: true, keywords: ["deploy", "ship"], subtitle: "Push the site to production", cwd: cmdDir, refresh: 60 });
-    expect(d.args).toEqual([{ name: "target", label: "Target", placeholder: "Environment (staging or prod)", optional: false }, { name: "note", label: "Note", placeholder: "Release note (optional)", optional: true }]);
+    expect(d.args).toEqual([{ name: "target", placeholder: "Environment (staging or prod)", optional: false }, { name: "note", placeholder: "Release note (optional)", optional: true }]);
     const r = parse(join(cmdDir, "ray.sh"))!;
-    expect(r).toMatchObject({ title: "Say hi", mode: "hud", section: "Raycast", icon: "👋", confirm: false, cwd: "/", args: [{ name: "argument1", label: "Name", placeholder: "Name", optional: false }] });
+    expect(r).toMatchObject({ title: "Say hi", mode: "hud", section: "Raycast", icon: "👋", confirm: false, cwd: "/", args: [{ name: "argument1", placeholder: "Name", optional: false }] });
     expect(parse(join(cmdDir, "ports.sh"))!.icon).toEqual({ tile: { glyph: "\u{f0bc3}", bg: "amber" } });
     expect(parse(join(cmdDir, "uptime.sh"))).toMatchObject({ mode: "inline", refresh: 3600 });
     expect(parse(join(cmdDir, "show.sh"))!.mode).toBe("show");
@@ -309,7 +309,11 @@ describe("script commands: the palette", () => {
     const by = Object.fromEntries(items.map((i) => [i.id, i]));
     expect(by["deploy.sh"]).toMatchObject({ name: "Deploy site", subtitle: "Push the site to production", icon: "🚀", keywords: ["deploy", "ship"] });
     expect(by["deploy.sh"].accessories).toBeUndefined();
-    expect(by["deploy.sh"].actions).toEqual([{ id: "run", title: "Run…" }, { id: "open", title: "Open script", shortcut: "cmd+o" }, { id: "copy_output", title: "Copy output", shortcut: "cmd+c" }, { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" }]);
+    // The header's arguments are the row's, typed in the bar before Run (and Copy output, which runs it too); no confirm on top of them.
+    expect(by["deploy.sh"].actions).toEqual([{ id: "run", title: "Run" }, { id: "open", title: "Open script", shortcut: "cmd+o" }, { id: "copy_output", title: "Copy output", shortcut: "cmd+c", args: true }, { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" }]);
+    expect(by["deploy.sh"].args).toEqual([{ id: "target", placeholder: "Environment (staging or prod)", required: true }, { id: "note", placeholder: "Release note (optional)", required: false }]);
+    expect(by["ray.sh"].args).toEqual([{ id: "argument1", placeholder: "Name", required: true }]);
+    expect(by["quiet.sh"].args).toBeUndefined();
     expect(by["deploy.sh"].detail!.metadata).toEqual([{ label: "File", value: join(cmdDir, "deploy.sh") }, { label: "Mode", value: "hud" }, { label: "Arguments", value: "target, note" }, { label: "Confirm", value: "yes" }, { label: "Runs in", value: cmdDir }]);
     expect(by["ports.sh"]).toMatchObject({ name: "Listening ports", accessories: [{ text: "list" }], actions: [{ id: "run", title: "Open" }, expect.anything(), expect.anything(), expect.anything()] });
     expect(by["ports.sh"].icon).toEqual({ tile: { glyph: "\u{f0bc3}", bg: "amber" } });
@@ -323,7 +327,7 @@ describe("script commands: the palette", () => {
 
   test("hud: Enter hides and the HUD then carries the first output line; a failure carries stderr's first line; silent says nothing unless it failed", async () => {
     await cmds();
-    expect(await cpick("ray.sh", "run_args", { values: { argument1: "Ada" } })).toEqual({ hide: true });
+    expect(await cpick("ray.sh", "run", { values: { argument1: "Ada" } })).toEqual({ hide: true });
     expect(await nextEffect()).toEqual({ hud: "Say hi: hi Ada from /" });
     expect(await cpick("broken.sh")).toEqual({ hide: true });
     expect(await nextEffect()).toEqual({ hud: "Broken: boom" });
@@ -333,14 +337,15 @@ describe("script commands: the palette", () => {
     expect(host.coreCalls.filter((c) => c.method === "effects.run")).toHaveLength(before);
   });
 
-  test("arguments: Enter is a form with a field per @pal.args, required unless optional; the submit runs with them in order; a missing required one is refused", async () => {
+  test("arguments: the bar's values run the script with them in order ($1, $2); a pick without them is the same fields as a form; a missing required one is refused", async () => {
     await cmds();
     const f = (await cpick("deploy.sh")).form as Form;
-    expect(f).toMatchObject({ id: "deploy.sh", title: "Deploy site", submit: { id: "run_args", title: "Run" } });
-    expect(f.fields.map((x) => [x.id, x.label, x.kind, x.placeholder, !!x.required])).toEqual([["target", "Target", "text", "Environment (staging or prod)", true], ["note", "Note", "text", "Release note (optional)", false]]);
-    expect(((await cpick("deploy.sh", "run_args", { values: { target: " ", note: "x" } })).form as Form).errors).toEqual({ target: "Required" });
-    expect(await cpick("deploy.sh", "run_args", { values: { target: "prod", note: "v2" } })).toEqual({ hide: true });
+    expect(f).toMatchObject({ id: "deploy.sh", title: "Deploy site", submit: { id: "run", title: "Run" } });
+    expect(f.fields.map((x) => [x.id, x.label, x.kind, x.placeholder, !!x.required])).toEqual([["target", "Environment (staging or prod)", "text", "Environment (staging or prod)", true], ["note", "Release note (optional)", "text", "Release note (optional)", false]]);
+    expect(((await cpick("deploy.sh", "run", { values: { target: " ", note: "x" } })).form as Form).errors).toEqual({ target: "Required" });
+    expect(await cpick("deploy.sh", "run", { values: { target: "prod", note: "v2" } })).toEqual({ hide: true });
     expect(await nextEffect()).toEqual({ hud: "Deploy site: Deployed to prod (v2)" });
+    // The form's old submit id still lands (a saved hotkey may carry it).
     expect(await cpick("deploy.sh", "run_args", { values: { target: "staging" } })).toEqual({ hide: true });
     expect(await nextEffect()).toEqual({ hud: "Deploy site: Deployed to staging" });
   });
@@ -368,14 +373,15 @@ describe("script commands: the palette", () => {
     expect(await cpick("out", "copy_shown", { args: (e.push as { args: unknown }).args })).toEqual({ copy: "line 1\nline 2\n" });
   });
 
-  test("Open script opens the file, Copy path copies it, Copy output runs it and copies what it printed (a form first when it takes arguments)", async () => {
+  test("Open script opens the file, Copy path copies it, Copy output runs it and copies what it printed (with the bar's values; a form first without them)", async () => {
     await cmds();
     expect(await cpick("quiet.sh", "open")).toEqual({ open: join(cmdDir, "quiet.sh") });
     expect(await cpick("quiet.sh", "copy_path")).toEqual({ copy: join(cmdDir, "quiet.sh") });
     expect(await cpick("show.sh", "copy_output")).toEqual({ copy: "line 1\nline 2" });
     expect(await cpick("broken.sh", "copy_output")).toMatchObject({ keep: true, toast: { title: "Broken: boom", style: "failure" } });
-    expect((await cpick("ray.sh", "copy_output")).form).toMatchObject({ submit: { id: "copy_args", title: "Copy output" } });
-    expect(await cpick("ray.sh", "copy_args", { values: { argument1: "Bob" } })).toEqual({ copy: "hi Bob from /" });
+    expect((await cpick("ray.sh", "copy_output")).form).toMatchObject({ id: "ray.sh", submit: { id: "copy_output", title: "Copy output" }, fields: [{ id: "argument1" }] });
+    expect(await cpick("ray.sh", "copy_output", { values: { argument1: "Bob" } })).toEqual({ copy: "hi Bob from /" });
+    expect(await cpick("ray.sh", "copy_args", { values: { argument1: "Cy" } })).toEqual({ copy: "hi Cy from /" });
   });
 
   test("the folder is watched: a file added after the first listing is a row on the next; one removed is gone, and picking it is a toast", async () => {

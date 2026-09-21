@@ -16,12 +16,14 @@ on every show, so the numbers are current, and the timers are root
 results (type the name). A landed timer stays listed for five minutes,
 then drops out as the CLI reaps it.
 
-**New timer** is next to last: a form with the duration (`25m`, `90s`,
-`1h30m`, `2:30`; a bare number is minutes), an optional name (the
-duration otherwise; a name already taken restarts that timer) and a
-checkbox to ring the phone out loud when it lands (the CLI's `--ring`).
-Start runs the CLI and toasts what it printed; a duration the CLI refuses
-comes back on the form with its message.
+**New timer** is next to last: Enter turns the search bar into its three
+fields, the duration (`25m`, `90s`, `1h30m`, `2:30`; a bare number is
+minutes), an optional name (the duration otherwise; a name already taken
+restarts that timer) and a Silent / Ring the phone choice (the CLI's
+`--ring`, out loud when it lands). Enter again runs the CLI and toasts
+what it printed; a duration the CLI refuses comes back under the field
+with its message. A pick that arrives without the fields (a hotkey, a
+bare `pal run`) asks for the same three in a form.
 
 **Start Pomodoro** is the last row while no pomodoro runs: it starts a
 work timer (`Pomodoro 1 of 4`, 25 minutes) and from then on the cycle
@@ -50,7 +52,7 @@ is in storage, so a restart of the host picks it up where it was.
 | `cmd+s` | Skip to the next phase | on the pomodoro's timer: `timer stop <id>`, then the next phase's timer |
 | `cmd+shift+d` | Stop pomodoro | on the pomodoro's timer: the cycle over |
 | `cmd+d` | Stop | `timer stop <id>`, the timer is gone |
-| `enter` on New timer | New timer | the form; `enter` in the form starts it |
+| `enter` on New timer | Start | arguments `duration` (required), `name`, `ring` (Silent / Ring the phone) in the bar; `enter` again starts it |
 | `enter` on Start Pomodoro | Start pomodoro | the first round's timer |
 
 Without the CLI (the `command` setting names nothing on PATH or on disk)

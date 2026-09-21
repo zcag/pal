@@ -58,7 +58,7 @@ beforeAll(async () => {
 afterAll(() => { host?.kill(); process.env.PATH = PATH; if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(root, { recursive: true, force: true }); });
 
 const list = () => host.list("make", "make");
-const pick = (id: string, action?: string) => host.pick("make", "make", id, action);
+const pick = (id: string, action?: string, ctx?: { values?: Record<string, string> }) => host.pick("make", "make", id, action, ctx);
 const id = (target: string, dir: string) => `${target}@${dir}`;
 
 describe("make", () => {
@@ -106,6 +106,12 @@ describe("make", () => {
     expect(script).toContain("make test; s=$?;");
     expect(script).toContain("read -r _");
     expect(await pick(id("a", pal), "run")).toEqual({ hud: "make a" });
+    // The row's one argument: words after the target, each quoted for the shell; blank is the plain run.
+    expect((await list()).find((i) => i.id === id("test", pal))!.args).toEqual([{ id: "extra", placeholder: "Variables or flags: VERBOSE=1 -j4 (optional)" }]);
+    expect(await pick(id("test", pal), "run", { values: { extra: "  " } })).toEqual({ hud: "make test" });
+    expect(await pick(id("test", pal), "run", { values: { extra: " VERBOSE=1  -j4 " } })).toEqual({ hud: "make test VERBOSE=1 -j4" });
+    const withExtra = (JSON.parse(readFileSync(join(root, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[]).find((a) => a.includes("make test"))!;
+    expect(withExtra).toContain("make test VERBOSE=1 -j4; s=$?;");
   });
 
   test("copy command, open project, show Makefile", async () => {
@@ -121,6 +127,8 @@ describe("make", () => {
     host.changeSettings("make", { settings: { projects: [root], terminal: "background" } });
     await list();
     expect(await pick(id("all", bare))).toEqual({ keep: true, toast: { title: "make all: done", message: "all" } });
+    // The bar's words ride along as make's own arguments.
+    expect(await pick(id("all", bare), "run", { values: { extra: "-s" } })).toEqual({ keep: true, toast: { title: "make all -s: done", message: "all" } });
     const r = await pick(id("fail", bare));
     expect(r.toast).toMatchObject({ title: "make fail: exit 2", style: "failure" });
     expect(r.show!.markdown).toContain("boom");

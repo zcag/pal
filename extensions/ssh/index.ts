@@ -2,11 +2,13 @@
 // User, Port and ProxyJump; `Include` lines are followed one level (globs,
 // `~`, relative to ~/.ssh), and the file a host came from is its section.
 // Optionally the names in known_hosts as a last section. Enter opens a
-// terminal running `ssh <host>`; the other actions copy the name or the
-// command (the `-J` form for a host behind a jump), or ping the host.
+// terminal running `ssh <host>`, or, with a command typed into the row's
+// argument, `ssh -t <host> <command>` kept open until Enter; the other
+// actions copy the name or the command (the `-J` form for a host behind a
+// jump), or ping the host.
 import { readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import { exec, hint, home, settings, terminal, toast, xdg, type Accessory, type Action, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { exec, hint, home, settings, terminal, toast, xdg, type Accessory, type Action, type Arg, type Ctx, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.ssh]`, defaults in pal.json. */
 type Settings = { config: string; include_known_hosts: boolean; terminal: terminal.Choice };
@@ -16,6 +18,8 @@ type HostEntry = { name: string; file: string; hostname?: string; user?: string;
 const LINUX = process.platform === "linux";
 const ICON = xdg("network-server") ?? "⌁";
 const CONNECT: Action = { id: "connect", title: "Connect" };
+/** Connect's one argument: blank is a shell, a command runs there and the window waits for Enter. Optional, so a bare pick (a hotkey, `pal run`) still connects. */
+const ARGS: Arg[] = [{ id: "command", placeholder: "Command (blank: a shell)" }];
 const COPY_HOST: Action = { id: "copy-host", title: "Copy host", shortcut: "cmd+c" };
 const COPY_COMMAND: Action = { id: "copy-command", title: "Copy ssh command", shortcut: "cmd+shift+c" };
 const COPY_JUMP: Action = { id: "copy-jump", title: "Copy ssh -J command", shortcut: "cmd+shift+j" };
@@ -122,6 +126,7 @@ function item(h: HostEntry, section: string): Item {
     accessories,
     section,
     detail: { markdown: `# ${h.name}\n\n\`\`\`\nssh ${h.jump ? `-J ${h.jump} ` : ""}${h.name}\n\`\`\``, metadata },
+    args: ARGS,
     actions: [CONNECT, COPY_HOST, COPY_COMMAND, ...(h.jump ? [COPY_JUMP] : []), PING],
   };
 }
@@ -160,7 +165,7 @@ export default {
       title: "SSH Hosts",
       placeholder: "Connect to a host",
       list,
-      pick: async (id, action) => {
+      pick: async (id, action, ctx?: Ctx) => {
         const cmd = `ssh ${id}`;
         // A pick on a row restored from the persisted index, before this run has listed.
         if (!hosts.size) list();
@@ -175,7 +180,12 @@ export default {
             return r.ok ? toast(`${target}: ${r.ms < 10 ? r.ms.toFixed(1) : Math.round(r.ms)} ms`) : toast(`${target} did not answer`, r.why, "failure");
           }
         }
-        const why = terminal.open(["ssh", id], settings.get<Settings>().terminal);
+        // A command typed in the bar: run over a tty (so htop and the like work) and the window stays until Enter, as make's Run does.
+        const command = String(ctx?.values?.command ?? "").trim();
+        const argv = command
+          ? ["sh", "-c", `ssh -t ${terminal.quote(id)} ${terminal.quote(command)}; s=$?; printf '\\n[ssh %s exited %s] Enter closes ' ${terminal.quote(id)} "$s"; read -r _`]
+          : ["ssh", id];
+        const why = terminal.open(argv, settings.get<Settings>().terminal);
         return why ? toast("Could not open a terminal", why, "failure") : {};
       },
     },

@@ -4,9 +4,10 @@
 // `INBOX_FRESH_MS` so the panel showing and the bar refreshing on it cost
 // one fetch); Channels is an hourly catalog; Search Slack is an input
 // palette over `search.messages`; Status is live and lists what is set now
-// before the presets. Row ids carry the workspace (`<team>/<conversation>`),
+// before the presets, then a status and a snooze typed in the bar (the
+// rows' `args`). Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { clock, errorMessage, failed, hint, imageData, settings, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { argsForm, clock, errorMessage, failed, hint, imageData, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
@@ -272,10 +273,13 @@ async function statusRows(): Promise<Item[]> {
     keywords: ["status"],
     actions: [{ id: "set", title: "Set status" }],
   }));
+  // A status of your own, typed in the bar: the text, the emoji (a preset's default when left alone), the expiry as the presets spell it.
+  set.push({ id: STATUS_CUSTOM, name: "Set a status…", subtitle: "Text, emoji and expiry typed in the bar", icon: ICON.status, section: "Status", keywords: ["status", "custom"], args: STATUS_ARGS, actions: [{ id: "set", title: "Set status" }] });
   const dndRows: Item[] = [
     { id: "dnd:30", name: "Do Not Disturb for 30 minutes", icon: ICON.dndOn, section: "Do Not Disturb", keywords: ["dnd", "snooze"], actions: [{ id: "snooze", title: "Pause notifications" }] },
     { id: "dnd:60", name: "Do Not Disturb for 1 hour", icon: ICON.dndOn, section: "Do Not Disturb", keywords: ["dnd", "snooze"], actions: [{ id: "snooze", title: "Pause notifications" }] },
     { id: "dnd:tomorrow", name: "Do Not Disturb until tomorrow", icon: ICON.dndOn, section: "Do Not Disturb", keywords: ["dnd", "snooze"], actions: [{ id: "snooze", title: "Pause notifications" }] },
+    { id: DND_CUSTOM, name: "Do Not Disturb for…", subtitle: "The minutes typed in the bar", icon: ICON.dndOn, section: "Do Not Disturb", keywords: ["dnd", "snooze", "minutes"], args: DND_ARGS, actions: [{ id: "snooze", title: "Pause notifications" }] },
   ];
   const pres: Item[] = [
     p.presence === "away"
@@ -288,9 +292,37 @@ async function statusRows(): Promise<Item[]> {
 /** Minutes until the next local midnight, for "until tomorrow". */
 const minutesToMidnight = () => Math.max(1, Math.ceil((expiresAt("today") * 1000 - Date.now()) / 60_000));
 
-async function pickStatus(id: string, action?: string): Promise<Effect> {
+/** The rows whose values come from the bar: a status of your own, a snooze of any length. */
+const STATUS_CUSTOM = "status:custom", DND_CUSTOM = "dnd:custom";
+const STATUS_ARGS: Arg[] = [
+  { id: "text", placeholder: "Status", required: true },
+  { id: "emoji", placeholder: "Emoji", default: ":speech_balloon:" },
+  { id: "expiry", placeholder: "Expires", kind: "select", default: "", options: [{ id: "", title: "No expiry" }, { id: "30m", title: "In 30 minutes" }, { id: "1h", title: "In 1 hour" }, { id: "2h", title: "In 2 hours" }, { id: "4h", title: "In 4 hours" }, { id: "today", title: "Tomorrow" }] },
+];
+const DND_ARGS: Arg[] = [{ id: "minutes", placeholder: "Minutes", kind: "number", required: true }];
+/** Either row's fields as a form: a pick without the bar's values (a hotkey, `pal run`), or one refused with `errors`. */
+const statusForm = (errors?: Record<string, string>): Effect => ({ form: argsForm(STATUS_ARGS, "Set a status", { id: "set", title: "Set status" }, errors) });
+const dndForm = (errors?: Record<string, string>): Effect => ({ form: argsForm(DND_ARGS, "Do Not Disturb", { id: "snooze", title: "Pause notifications" }, errors) });
+/** An emoji as Slack's profile wants it: `coffee` and `:coffee:` both `:coffee:`; a pasted ☕ is left as is (Slack takes unicode too). */
+const colons = (e: string) => (/^[\w+-]+$/.test(e) ? `:${e}:` : e);
+
+async function pickStatus(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   try {
     if (id === "status:current" && action === "clear") { await setStatus("", "", 0); return toast("Status cleared"); }
+    if (id === STATUS_CUSTOM) {
+      if (!ctx?.values) return statusForm();
+      const text = String(ctx.values.text ?? "").trim(), emoji = colons(String(ctx.values.emoji ?? "").trim() || STATUS_ARGS[1].default!), expiry = String(ctx.values.expiry ?? "") || undefined;
+      if (!text) return statusForm({ text: "Required" });
+      await setStatus(emoji, text, expiresAt(expiry));
+      return toast("Status set", `${emoji} ${text}${expiry ? ` (${expiry})` : ""}`);
+    }
+    if (id === DND_CUSTOM) {
+      if (!ctx?.values) return dndForm();
+      const minutes = Math.round(Number(ctx.values.minutes));
+      if (!Number.isFinite(minutes) || minutes < 1) return dndForm({ minutes: "A whole number of minutes, 1 or more" });
+      await snooze(minutes);
+      return toast("Do Not Disturb on", `For ${minutes} minutes`);
+    }
     if (id.startsWith("status:")) {
       const preset = parsePreset((conf().statuses ?? [])[Number(id.slice(7))] ?? "");
       if (!preset) throw new Error(`no preset ${id}`);
@@ -460,7 +492,7 @@ export default {
       title: "Status",
       live: true,
       list: () => guard(statusRows),
-      pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickStatus(id, action)),
+      pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickStatus(id, action, ctx)),
     },
   },
   bar: {

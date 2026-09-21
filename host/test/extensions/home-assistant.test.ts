@@ -160,6 +160,12 @@ describe("entities", () => {
     expect(ids("switch.fan")).toEqual(["toggle", "on", "off", "copy_id", "attributes", "open_ha"]);
     expect(ids("input_boolean.guest")).toEqual(["toggle", "on", "off", "copy_id", "attributes", "open_ha"]);
     expect(ids("climate.living")).toEqual(["temperature", "on", "off", "copy_id", "attributes", "open_ha"]);
+    // A thermostat takes its temperature (the current one prefilled, the range as the hint) and mode in the bar; no other domain carries arguments.
+    expect(items.find((i) => i.id === "climate.living")!.args).toEqual([
+      { id: "temperature", placeholder: "Temperature 7..30 °C", required: true, default: "21" },
+      { id: "hvac_mode", placeholder: "Mode", kind: "select", options: [{ id: "off", title: "Off" }, { id: "heat", title: "Heat" }], default: "heat" },
+    ]);
+    expect(items.filter((i) => i.args).map((i) => i.id)).toEqual(["climate.living"]);
     expect(ids("cover.blind")).toEqual(["close", "open", "stop", "copy_id", "attributes", "open_ha"]);
     expect(ids("lock.front")).toEqual(["unlock", "lock", "copy_id", "attributes", "open_ha"]);
     expect(items.find((i) => i.id === "lock.front")!.actions![0]).toMatchObject({ title: "Unlock", confirm: "Unlock Front door?" });
@@ -242,18 +248,22 @@ describe("entities", () => {
     await pick("50", "set", { args: { volume: "media_player.tv" } });
     expect(lastCall()).toEqual({ path: "media_player.volume_set", body: { entity_id: "media_player.tv", volume_level: 0.5 } });
   });
-  test("climate: Set temperature is a form with the current value and the modes; its submit posts set_temperature, a non-number comes back on the field", async () => {
+  test("climate: Set temperature with the bar's values posts set_temperature; a pick without them is the same fields as a form; a non-number comes back on the field", async () => {
     const r = await pick("climate.living", "temperature");
     const form = r.form as Form;
-    expect(form).toMatchObject({ id: "climate.living", title: "Set Living", submit: { id: "set_temperature", title: "Set" } });
+    expect(form).toMatchObject({ id: "climate.living", title: "Set Living", submit: { id: "temperature", title: "Set" } });
     expect(form.fields).toEqual([
-      { kind: "text", id: "temperature", label: "Temperature", required: true, default: "21", placeholder: "21", description: "7..30 °C" },
+      { kind: "text", id: "temperature", label: "Temperature 7..30 °C", required: true, default: "21", placeholder: "Temperature 7..30 °C" },
       { kind: "select", id: "hvac_mode", label: "Mode", options: [{ id: "off", title: "Off" }, { id: "heat", title: "Heat" }], default: "heat" },
     ]);
-    expect(await pick("climate.living", "set_temperature", { values: { temperature: "22.5", hvac_mode: "heat" } })).toMatchObject({ keep: true, toast: { title: "Living: heat" } });
+    expect(await pick("climate.living", "temperature", { values: { temperature: "22.5", hvac_mode: "heat" } })).toMatchObject({ keep: true, toast: { title: "Living: heat" } });
     expect(lastCall()).toEqual({ path: "climate.set_temperature", body: { entity_id: "climate.living", temperature: 22.5, hvac_mode: "heat" } });
-    const bad = await pick("climate.living", "set_temperature", { values: { temperature: "warm", hvac_mode: "heat" } });
+    // The form's old submit id still lands (a saved hotkey may carry it).
+    expect(await pick("climate.living", "set_temperature", { values: { temperature: "21", hvac_mode: "off" } })).toMatchObject({ keep: true });
+    expect(lastCall()).toEqual({ path: "climate.set_temperature", body: { entity_id: "climate.living", temperature: 21, hvac_mode: "off" } });
+    const bad = await pick("climate.living", "temperature", { values: { temperature: "warm", hvac_mode: "heat" } });
     expect((bad.form as Form).errors).toEqual({ temperature: "Not a number" });
+    expect((bad.form as Form).fields.map((f) => f.id)).toEqual(["temperature", "hvac_mode"]);
   });
   test("detail is lazy: the entity, its state and its attributes as metadata", async () => {
     const d = await host.detail(E, "entities", "light.kitchen");

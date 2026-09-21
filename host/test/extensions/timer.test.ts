@@ -63,7 +63,13 @@ describe("timer", () => {
     expect(existsSync(dir)).toBe(true);
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["new", "pomodoro"]);
-    expect(items[0]).toMatchObject({ name: "New timer", icon: "\u{f0415}", actions: [{ id: "new", title: "New timer" }] });
+    expect(items[0]).toMatchObject({ name: "New timer", icon: "\u{f0415}", actions: [{ id: "start", title: "Start" }] });
+    // The bar takes the duration, a name and whether the phone rings; only the duration is required.
+    expect(items[0].args).toEqual([
+      { id: "duration", placeholder: "25m, 90s, 1h30m, 2:30, 25", required: true },
+      { id: "name", placeholder: "Name (optional)" },
+      { id: "ring", placeholder: "Phone", kind: "select", options: [{ id: "no", title: "Silent" }, { id: "yes", title: "Ring the phone" }], default: "no" },
+    ]);
     expect(items[1]).toMatchObject({ name: "Start Pomodoro", subtitle: "25 min of work, 5 of break, 4 rounds then 15 min off", icon: "\u{f025b}", actions: [{ id: "pomodoro", title: "Start pomodoro" }] });
   });
 
@@ -134,15 +140,17 @@ describe("timer", () => {
     clear();
   });
 
-  test("New timer: a form; a duration the CLI refuses comes back as its error under the field; a good one starts it", async () => {
+  test("New timer: the bar's values start it; a pick without them is the same fields as a form; a duration the CLI refuses comes back as its error under the field", async () => {
     clear();
-    const f = await pick("new", "new");
+    const f = await pick("new", "start");
     expect(f.form).toMatchObject({ id: "new", title: "New timer", submit: { id: "start", title: "Start" } });
-    expect((f.form as any).fields.map((x: any) => [x.id, x.kind])).toEqual([["duration", "text"], ["name", "text"], ["ring", "checkbox"]]);
+    expect((f.form as any).fields.map((x: any) => [x.id, x.kind])).toEqual([["duration", "text"], ["name", "text"], ["ring", "select"]]);
     expect(await pick("new", "start", { duration: "  ", name: "" })).toMatchObject({ form: { errors: { duration: "A duration is needed" } } });
     expect(await pick("new", "start", { duration: "nope", name: "" })).toMatchObject({ form: { errors: { duration: "bad duration 'nope' (try 25m, 90s, 1h30m, 2:30)" } } });
-    expect(await pick("new", "start", { duration: "25m", name: "tea", ring: true })).toEqual({ keep: true, toast: { title: "Timer started", message: "tea started" } });
+    expect(await pick("new", "start", { duration: "25m", name: "tea", ring: "yes" })).toEqual({ keep: true, toast: { title: "Timer started", message: "tea started" } });
     expect(asked().at(-1)).toBe("25m tea --ring");
+    expect(await pick("new", "start", { duration: "25m", name: "tea", ring: "no" })).toMatchObject({ keep: true });
+    expect(asked().at(-1)).toBe("25m tea");
     expect((await list()).map((i) => i.id)).toEqual(["tea", "new", "pomodoro"]);
     expect(await pick("new", "start", { duration: "90s" })).toMatchObject({ keep: true });
     expect(asked().at(-1)).toBe("90s");

@@ -45,7 +45,7 @@ has them all. By domain on an entity row:
 | --- | --- |
 | light | Toggle, Turn on, Turn off, Brightness (`cmd+b`: presets of 10 / 25 / 50 / 75 / 100 %, the current one tagged) |
 | switch, fan, input_boolean, humidifier | Toggle, Turn on, Turn off |
-| climate | Set temperature (a form: the temperature with the entity's range, the mode from its `hvac_modes`), Turn on, Turn off |
+| climate | Set temperature (arguments in the bar: `temperature`, the current one prefilled and the entity's range as the hint; `hvac_mode`, a select from its `hvac_modes`; a pick without them asks in a form), Turn on, Turn off |
 | cover | Open, Close, Stop (Close first while open) |
 | lock | Lock, Unlock (both ask first; the one that changes the state comes first) |
 | media_player | Play or Pause, Next track, Previous track, Volume (`cmd+u`: presets), Turn off |

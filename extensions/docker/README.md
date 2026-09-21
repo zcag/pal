@@ -20,10 +20,12 @@ name finds the container from the root. The detail pane lists id, image,
 command, status, created, ports, mounts, networks and project.
 
 **Docker Images** (`images`): `repository:tag` (the id for an untagged
-image), the id as subtitle, size and age on the right. Run asks for a name
-and ports in a form (`host:container` pairs, comma separated; a malformed
-one is refused under the field) and runs `docker run -d [--name] [-p …]
-<image>`.
+image), the id as subtitle, size and age on the right. Enter turns the
+search bar into two fields, the name and the ports (`host:container`
+pairs, comma separated), both optional: Enter again runs `docker run -d
+[--name] [-p …] <image>`; a malformed port is refused under the field. A
+pick that arrives without the fields (a hotkey, a bare `pal run`) asks for
+them in a form instead.
 
 **Compose Projects** (`compose`): every project docker knows of, its
 folder as subtitle, the status text and a tag (running green, a mix amber,
@@ -52,7 +54,7 @@ Images:
 
 | keys | action |
 | --- | --- |
-| `enter` | Run: the form, then `docker run -d` |
+| `enter` | Run: arguments `name` (docker picks one when blank) and `ports` (`8080:80, 443:443`), then `docker run -d` |
 | `cmd+c` | Copy id |
 | `cmd+d` | Remove: `docker rmi`, after a confirm |
 

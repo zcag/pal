@@ -45,8 +45,12 @@ once an hour (`⌘R` for now). **Search Slack** sends what you type to
 `from:@name`, `in:#channel`, `has:link`, `before:yesterday`, `on:` a
 date; rows are the message, who said it where, and when. **Status** lists
 what is set now first (your status with its expiry, Do Not Disturb, your
-presence), then the presets from the `statuses` setting, Do Not Disturb
-for 30 minutes, an hour or until tomorrow, and Set away / Set active.
+presence), then the presets from the `statuses` setting and a "Set a
+status…" row whose text, emoji and expiry are typed in the search bar,
+Do Not Disturb for 30 minutes, an hour, until tomorrow or for the minutes
+you type ("Do Not Disturb for…"), and Set away / Set active. A pick of
+either typed row that arrives without its values (a hotkey, `pal run`)
+asks for them in a form with the same fields.
 
 ## Signing in
 
@@ -117,7 +121,7 @@ stale bar item) instead of piling onto the limit.
 | `cmd+shift+r` | Mark as read, up to the latest message | Unreads, not a thread row |
 | `cmd+shift+o` | Open in browser (the web client's archive page) | Unreads, Channels, Search |
 | `cmd+c` | Copy link (Copy text on a search hit) | Unreads, Channels, Search |
-| `enter` | Set status, Clear status, Pause notifications, End Do Not Disturb, Set away / active | Status |
+| `enter` | Set status, Clear status, Pause notifications, End Do Not Disturb, Set away / active; on "Set a status…" the bar takes the status text, the emoji (`:speech_balloon:` unless you say) and the expiry (none, 30m, 1h, 2h, 4h, tomorrow), on "Do Not Disturb for…" the minutes | Status |
 | `cmd+i` | The detail pane: the unread run | Unreads |
 
 ## Settings

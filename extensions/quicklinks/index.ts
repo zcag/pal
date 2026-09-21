@@ -1,8 +1,10 @@
 // Quicklinks: your own links, kept in the extension's storage and edited
-// through forms in the panel. A url with a `{query}` placeholder opens
-// through a drill-in level whose input fills it (a search engine); one
-// with `{selection}` or `{clipboard}` (the SDK's placeholders) is filled
-// without asking; one without opens at once, in the app the link names
+// through forms in the panel. A url with a `{query}` placeholder (a
+// search engine) takes it as the row's typed argument, one per named
+// placeholder, in the search bar on Enter; the library's "Search with it"
+// and a link route without a query still go through a drill-in level whose
+// input fills it. One with `{selection}` or `{clipboard}` (the SDK's
+// placeholders) is filled without asking; one without opens at once, in the app the link names
 // (`app`, "Open with" in the form) or the default, and with
 // `prefer_existing_tab` in a browser tab already on that page (the SDK's
 // `tabs.find`). The Create form fills its url and name from the tab in
@@ -10,9 +12,9 @@
 // searches (library.ts); an `import` file adds read-only links; the
 // Import and Export rows move links in and out as JSON files.
 import { existsSync } from "node:fs";
-import { clipboard, errorMessage, expand, failed, hasPlaceholders, home, selection, settings, storage, tabs, type Action, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, clipboard, errorMessage, expand, failed, hasPlaceholders, home, selection, settings, storage, tabs, type Action, type Arg, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { LIBRARY, LIBRARY_ID, libraryEntry, libraryId } from "./library.ts";
-import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords, type Link } from "./links.ts";
+import { asLinks, badUrl, fill, fillNamed, fromJson, placeholder, placeholders, splitKeywords, type Link } from "./links.ts";
 
 /** `[extensions.quicklinks]`, defaults in pal.json. */
 type Settings = { import?: string; prefer_existing_tab: boolean };
@@ -117,8 +119,11 @@ const byName = async (name: string) => {
   return links.find((l) => l.name.toLowerCase() === n) ?? links.find((l) => l.keywords?.some((k) => k.toLowerCase() === n));
 };
 
+/** A `{query}` link's typed arguments: one per placeholder name, typed in the search bar on Enter; every one is needed for the url to mean anything. */
+const argsOf = (l: Link): Arg[] => placeholders(l.url).map((name) => ({ id: name, placeholder: name === "query" ? "Query" : name, required: true }));
+
 function row(l: Link): Item {
-  const arg = placeholder(l.url);
+  const args = argsOf(l);
   const readOnly = l.id.startsWith(IMPORTED);
   return {
     id: l.id,
@@ -126,16 +131,17 @@ function row(l: Link): Item {
     subtitle: l.url,
     url: l.url,
     keywords: l.keywords,
-    accessories: l.app || arg ? [...(l.app ? [{ text: l.app }] : []), ...(arg ? [{ tag: `{${arg}}` }] : [])] : undefined,
+    accessories: l.app || args.length ? [...(l.app ? [{ text: l.app }] : []), ...args.map((a) => ({ tag: `{${a.id}}` }))] : undefined,
     detail: {
       markdown: `# ${l.name}\n\n\`\`\`\n${l.url}\n\`\`\``,
       metadata: [
-        ...(arg ? [{ label: "Asks for", value: arg }] : []),
+        ...(args.length ? [{ label: "Asks for", value: args.map((a) => a.id).join(", ") }] : []),
         ...(l.keywords?.length ? [{ label: "Keywords", tags: l.keywords.map((text) => ({ text })) }] : []),
         ...(l.app ? [{ label: "Opens with", value: l.app }] : []),
         { label: "Source", value: readOnly ? "Import file" : "Your quicklinks" },
       ],
     },
+    ...(args.length && { args }),
     actions: readOnly ? [OPEN, COPY] : [OPEN, COPY, EDIT, DELETE],
   };
 }
@@ -336,9 +342,13 @@ export default {
             await storage.set(KEY, (await own()).filter((x) => x.id !== id));
             return { keep: true, toast: { title: "Deleted", message: l.name } };
           }
-          default:
-            // A typed placeholder drills in; the SDK's ones are filled here and the url opens at once.
-            return placeholder(l.url) ? { push: { extension: EXTENSION, palette: PALETTE, args: { link: id } } } : openLink(l, hasPlaceholders(l.url) ? await fillSilent(l.url) : l.url);
+          default: {
+            // A typed placeholder is the row's argument: filled from the bar's values, asked for as a form when the pick came without them (`pal run`, a hotkey); the SDK's ones are filled here and the url opens at once.
+            const args = argsOf(l);
+            if (!args.length) return openLink(l, hasPlaceholders(l.url) ? await fillSilent(l.url) : l.url);
+            if (!ctx?.values) return { form: argsForm(args, `Open ${l.name}`, OPEN) };
+            return openLink(l, await fillSilent(fillNamed(l.url, ctx.values)));
+          }
         }
       },
     },

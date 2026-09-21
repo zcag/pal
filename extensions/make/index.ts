@@ -4,11 +4,12 @@
 // a line starting with a name and a colon, `.PHONY` names included even
 // when their rule is not literal, a `##` comment on the line or the comment
 // line above the rule as its description. Run opens a terminal in the
-// project folder running `make <target>` (the SDK's `terminal`), or, with
-// `terminal = "background"`, runs it here and toasts the exit status.
+// project folder running `make <target>` (the SDK's `terminal`), with the
+// words typed into the row's argument after it (`VERBOSE=1`, `-j4`), or,
+// with `terminal = "background"`, runs it here and toasts the exit status.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
-import { errorMessage, home, settings, terminal, tilde, toast, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, home, settings, terminal, tilde, toast, type Action, type Arg, type Ctx, type Detail, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.make]`, defaults in pal.json. */
 type Settings = { projects: string[]; terminal: terminal.Choice | "background" };
@@ -101,6 +102,10 @@ export function parse(text: string): Target[] {
 
 // ---- rows ---------------------------------------------------------------------
 
+/** Run's one argument in the bar: the words after the target, split on spaces. Optional, so Enter twice (or a bare pick) is the plain `make <target>`. */
+const ARGS: Arg[] = [{ id: "extra", placeholder: "Variables or flags: VERBOSE=1 -j4 (optional)" }];
+const extraWords = (ctx?: Ctx) => String(ctx?.values?.extra ?? "").trim().split(/\s+/).filter(Boolean);
+
 const ACTIONS: Action[] = [
   { id: "run", title: "Run" },
   { id: "copy", title: "Copy command", shortcut: "cmd+c" },
@@ -128,6 +133,7 @@ function list(): Item[] {
         icon: ICON,
         keywords: [name, ...(target.phony ? ["phony"] : [])],
         section: name,
+        args: ARGS,
       });
     }
   }
@@ -153,10 +159,10 @@ function detail(id: string): Detail | undefined {
 
 // ---- run ----------------------------------------------------------------------
 
-/** `make <target>` in the project folder, awaited up to `WAIT_MS`; the toast carries the exit status, a failure its output too. */
-async function background(dir: string, target: string) {
-  const proc = Bun.spawn(["make", target], { cwd: dir, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const cmd = `make ${target}`;
+/** `make <target> <extra>` in the project folder, awaited up to `WAIT_MS`; the toast carries the exit status, a failure its output too. */
+async function background(dir: string, target: string, extra: string[]) {
+  const proc = Bun.spawn(["make", target, ...extra], { cwd: dir, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const cmd = ["make", target, ...extra].join(" ");
   const outP = new Response(proc.stdout).text(), errP = new Response(proc.stderr).text();
   const code = await Promise.race([proc.exited, Bun.sleep(WAIT_MS).then(() => undefined)]);
   if (code === undefined) {
@@ -177,7 +183,7 @@ export default {
       placeholder: "Target or project",
       actions: ACTIONS,
       list,
-      pick: async (id, action = "run") => {
+      pick: async (id, action = "run", ctx) => {
         const r = rows.get(id);
         if (!r) return toast("Target not listed", "Refresh the palette with cmd+r", "failure");
         const { dir } = r.project, { name } = r.target;
@@ -191,12 +197,13 @@ export default {
           }
         }
         const want = S().terminal;
-        if (want === "background") return background(dir, name);
+        const extra = extraWords(ctx);
+        if (want === "background") return background(dir, name, extra);
         // The window stays until Enter, so a quick target's output is not gone with it.
-        const q = terminal.quote(name);
-        const script = `make ${q}; s=$?; printf '\\n[make %s exited %s] Enter closes ' ${q} "$s"; read -r _`;
+        const q = [name, ...extra].map(terminal.quote).join(" ");
+        const script = `make ${q}; s=$?; printf '\\n[make %s exited %s] Enter closes ' ${terminal.quote(name)} "$s"; read -r _`;
         const why = terminal.open(["sh", "-c", script], want, dir);
-        return why ? toast("Could not open a terminal", why, "failure") : { hud: `make ${name}` };
+        return why ? toast("Could not open a terminal", why, "failure") : { hud: `make ${[name, ...extra].join(" ")}` };
       },
       detail,
     },

@@ -1,11 +1,12 @@
 // Docker: three live palettes over the docker CLI's `--format '{{json .}}'` output. Containers, running
 // first (Enter starts a stopped one and stops a running one, after a
-// confirm); images, with a form to run one; Compose projects. Podman works
+// confirm); images, run with a name and ports typed in the bar; Compose
+// projects. Podman works
 // through the same commands (`binary = "podman"`, or its `docker` alias).
 // Without the binary, or with the daemon down, one inert hint row says so.
 // Logs open as a `show` level; Shell opens a terminal (the SDK's `terminal`).
 import { basename, dirname } from "node:path";
-import { hint as hintRow, settings, terminal, tilde, toast, type Accessory, type Action, type Detail, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
+import { argsForm, hint as hintRow, settings, terminal, tilde, toast, type Accessory, type Action, type Arg, type Detail, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
 
 /** `[extensions.docker]`, defaults in pal.json. */
 type Settings = { binary: string; ttl: number; terminal: terminal.Choice };
@@ -189,9 +190,14 @@ async function pickContainer(id: string, action?: string) {
 type ImageRow = { ID: string; Repository: string; Tag: string; Size: string; CreatedSince?: string; CreatedAt?: string; Containers?: string };
 
 const IMAGE_ACTIONS: Action[] = [
-  { id: "run", title: "Run…" },
+  { id: "run", title: "Run" },
   { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
   { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this image? A container still using it keeps docker from removing it." },
+];
+/** Run's arguments, typed in the bar: both optional (docker picks a name, no port published), so Enter twice runs the image bare. */
+const RUN_ARGS: Arg[] = [
+  { id: "name", placeholder: "Name (docker picks one when blank)" },
+  { id: "ports", placeholder: "Ports: 8080:80, 443:443" },
 ];
 
 const imageName = (r: ImageRow) => (r.Repository === "<none>" ? r.ID : `${r.Repository}:${r.Tag}`);
@@ -206,6 +212,7 @@ function image(r: ImageRow): Item {
     keywords: [r.ID, r.Repository],
     accessories: [{ text: r.Size }, ...(r.CreatedSince ? [{ text: r.CreatedSince }] : [])],
     detail: { metadata: [{ label: "Id", value: r.ID }, { label: "Repository", value: r.Repository }, { label: "Tag", value: r.Tag }, { label: "Size", value: r.Size }, ...(r.CreatedAt ? [{ label: "Created", value: r.CreatedAt }] : [])] },
+    args: RUN_ARGS,
     actions: IMAGE_ACTIONS,
   };
 }
@@ -217,24 +224,16 @@ async function listImages(): Promise<Item[]> {
   return items.length ? items : [hint("No images", `${S().binary || "docker"} pull one and it lists here`)];
 }
 
-const runForm = (image: string, errors?: Record<string, string>) => ({ form: {
-  id: image,
-  title: `Run ${image}`,
-  fields: [
-    { kind: "text" as const, id: "name", label: "Name", placeholder: "docker picks one when empty" },
-    { kind: "text" as const, id: "ports", label: "Ports", placeholder: "8080:80, 443:443", description: "host:container pairs, comma separated; each becomes a -p." },
-  ],
-  submit: { id: "run-submit", title: "Run" },
-  errors,
-} });
+/** The bar's fields as a page: what a pick without values (a hotkey, `pal run`) answers, and what a bad port comes back on. */
+const runForm = (image: string, errors?: Record<string, string>) => ({ form: { ...argsForm(RUN_ARGS, `Run ${image}`, { id: "run", title: "Run" }, errors), id: image } });
 
 async function pickImage(id: string, action = "run", values?: Record<string, string | boolean>) {
   switch (action) {
     case "copy-id": return { copy: id };
-    case "run": return runForm(id);
-    case "run-submit": {
-      const name = String(values?.name ?? "").trim();
-      const ports = String(values?.ports ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+    case "run": {
+      if (!values) return runForm(id);
+      const name = String(values.name ?? "").trim();
+      const ports = String(values.ports ?? "").split(",").map((p) => p.trim()).filter(Boolean);
       const bad = ports.find((p) => !/^(\d+\.){0,3}\d*:?\d+(:\d+)?(\/(tcp|udp))?$/.test(p));
       if (bad) return runForm(id, { ports: `Not a port mapping: ${bad}` });
       const r = await docker(["run", "-d", ...(name ? ["--name", name] : []), ...ports.flatMap((p) => ["-p", p]), id], ACT_MS);

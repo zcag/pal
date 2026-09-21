@@ -1,7 +1,8 @@
 // ssh against a temp ~/.ssh fixture: the `config` setting points at it, so
-// the real ~/.ssh is never read.
+// the real ~/.ssh is never read; `PAL_TERMINAL_LOG` catches Connect's argv
+// instead of opening a terminal.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Host } from "../harness.ts";
@@ -52,14 +53,20 @@ writeFileSync(join(dir, "known_hosts"), [
   "archer,archer.lan ssh-ed25519 FFFF",
 ].join("\n"));
 
+const TERMINAL = process.env.TERMINAL;
 let host: Host;
 beforeAll(async () => {
+  // Linux: the chooser takes $TERMINAL as given (nothing is spawned under PAL_TERMINAL_LOG), so a box without one (the CI runner) still answers an argv.
+  if (process.platform !== "darwin") process.env.TERMINAL ||= "kitty";
+  process.env.PAL_TERMINAL_LOG = join(dir, "terminal");
   host = await Host.bundled({ settings: { ssh: { settings: { config } } } });
 });
-afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(dir, { recursive: true, force: true }); });
 
 const list = () => host.list("ssh", "ssh");
-const pick = (id: string, action?: string) => host.pick("ssh", "ssh", id, action);
+const pick = (id: string, action?: string, values?: Record<string, string>) => host.pick("ssh", "ssh", id, action, values && { values });
+/** The last terminal argv Connect asked for. */
+const opened = () => JSON.parse(readFileSync(join(dir, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[];
 
 describe("ssh", () => {
   test("meta: indexed, not live", () => {
@@ -86,6 +93,8 @@ describe("ssh", () => {
     expect(by.bare.subtitle).toBeUndefined();
     expect(by.bare.accessories).toEqual([]);
     expect(by.marko.actions!.map((a) => a.id)).toEqual(["connect", "copy-host", "copy-command", "ping"]);
+    // Connect takes one optional argument in the bar: the command to run there.
+    expect(by.marko.args).toEqual([{ id: "command", placeholder: "Command (blank: a shell)" }]);
     // A ProxyJump is a tag and a keyword, and adds the -J copy.
     expect(by.inner).toMatchObject({ keywords: ["10.0.0.7", "marko"], accessories: [{ tag: "via marko", color: "blue" }] });
     expect(by.inner.actions!.map((a) => a.id)).toEqual(["connect", "copy-host", "copy-command", "copy-jump", "ping"]);
@@ -106,6 +115,17 @@ describe("ssh", () => {
     expect(await pick("marko", "copy-command")).toEqual({ copy: "ssh marko" });
     expect(await pick("inner", "copy-jump")).toEqual({ copy: "ssh -J marko inner" });
     expect(await pick("marko", "copy-jump")).toEqual({ copy: "ssh marko" });
+  });
+
+  test("connect: a shell without values or with a blank command; a typed command runs over ssh -t and the window waits for Enter", async () => {
+    expect(await pick("marko", "connect")).toEqual({});
+    expect(opened().slice(-2)).toEqual(["ssh", "marko"]);
+    expect(await pick("marko", "connect", { command: "" })).toEqual({});
+    expect(opened().slice(-2)).toEqual(["ssh", "marko"]);
+    expect(await pick("marko", "connect", { command: "uptime -p" })).toEqual({});
+    const argv = opened();
+    expect(argv.slice(-3, -1)).toEqual(["sh", "-c"]);
+    expect(argv.at(-1)).toMatch(/^ssh -t marko 'uptime -p'; s=\$\?; printf .*read -r _$/);
   });
 
   test("ping: the round trip as a toast for a host that answers, a failure toast for one that does not", async () => {
