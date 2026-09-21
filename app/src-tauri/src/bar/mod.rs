@@ -237,7 +237,7 @@ impl BarItem {
     /// hidden when nothing is left to draw.
     pub fn shaped(mut self, look: &BarLook) -> BarItem {
         if let Some(icon) = &look.icon {
-            self.icon = Some(look_icon(icon));
+            self.icon = Some(Value::String(icon.clone()));
         }
         if !look.show_icon {
             self.icon = None;
@@ -283,20 +283,6 @@ impl BarItem {
     /// opening this item's menu. The menu remains available to a hover peek.
     pub fn opens_directly(&self) -> bool {
         self.click == Some(Click::Open)
-    }
-}
-
-/// A `[bar.items] icon` as the item carries it: a picture when it names
-/// one (an absolute or `~/` path to an image file, a `data:image/` URI, an
-/// `icon://` url), else the glyph, emoji or text it is.
-pub fn look_icon(s: &str) -> Value {
-    let s = s.trim();
-    if s.starts_with('/') || s.starts_with("~/") {
-        json!({ "image": pal_core::fs::expand_home(s).to_string_lossy() })
-    } else if s.starts_with("data:image/") || s.starts_with("icon://") {
-        json!({ "image": s })
-    } else {
-        Value::String(s.to_string())
     }
 }
 
@@ -1421,11 +1407,6 @@ mod tests {
         assert_eq!(own.icon, Some(json!("🔔")), "the look's icon replaces the extension's");
         assert_eq!(own.icon_kind(), Some(IconKind::Text("🔔".into())));
         assert!(BarItem::default().shaped(&BarLook { icon: Some("\u{f09b}".into()), ..Default::default() }).icon.is_some(), "and gives an item without one an icon");
-        let picture = item.clone().shaped(&BarLook { icon: Some("~/icons/work.svg".into()), ..Default::default() });
-        assert_eq!(picture.icon, Some(json!({ "image": pal_core::fs::expand_home("~/icons/work.svg").to_string_lossy() })), "a path is a picture, the tilde expanded");
-        assert!(matches!(picture.icon_kind(), Some(IconKind::Image { template: false, .. })));
-        assert_eq!(look_icon("data:image/png;base64,AA=="), json!({ "image": "data:image/png;base64,AA==" }));
-        assert_eq!(look_icon(" 3 "), json!("3"), "anything else is the text it is");
         assert!(item.clone().shaped(&BarLook { icon: Some("🔔".into()), show_icon: false, ..Default::default() }).icon.is_none(), "show_icon off drops it all the same");
         let gone = item.shaped(&BarLook { show_icon: false, show_title: false, badge_style: BadgeStyle::None, ..Default::default() });
         assert!(gone.hidden, "nothing left to draw takes no slot");

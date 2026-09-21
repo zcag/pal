@@ -359,19 +359,14 @@ pub fn image_png(icon: &serde_json::Value) -> Option<Vec<u8>> {
     std::fs::read(image_file(icon)?).ok()
 }
 
-/// A PNG file for an `{ app }`, `icon://`, `data:` or absolute-path icon
-/// (sketchybar wants a path): the core's cache for an app, a favicon and
-/// a file on disk (an image by extension, SVG included, the same policy
-/// as the webview's `file` route), a `SIZE` square written next to them
-/// for a `data:` image, keyed on its bytes.
+/// A PNG file for an `{ app }`, `icon://` or `data:` icon (sketchybar
+/// wants a path): the core's cache for the first two, a `SIZE` square
+/// written next to them for a `data:` image, keyed on its bytes.
 pub fn image_file(icon: &serde_json::Value) -> Option<std::path::PathBuf> {
     if let Some(app) = icon.get("app").and_then(|a| a.as_str()) {
         return pal_core::icons::app_icon(std::path::Path::new(app), SIZE).ok();
     }
     let src = icon.get("image")?.as_str()?;
-    if src.starts_with('/') {
-        return pal_core::icons::thumbnail(&crate::icon::image_file(src)?, SIZE).ok();
-    }
     if src.starts_with("data:image/") {
         use std::hash::{Hash, Hasher};
         let mut h = std::hash::DefaultHasher::new();
@@ -389,7 +384,6 @@ pub fn image_file(icon: &serde_json::Value) -> Option<std::path::PathBuf> {
     match url.path().trim_start_matches('/') {
         "app" => pal_core::icons::app_icon(std::path::Path::new(&param("path")?), SIZE).ok(),
         "favicon" => pal_core::icons::favicon(&param("url")?, SIZE).ok(),
-        "file" => pal_core::icons::thumbnail(&crate::icon::image_file(&param("path")?)?, SIZE).ok(),
         _ => None,
     }
 }

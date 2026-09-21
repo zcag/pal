@@ -72,14 +72,10 @@ export function clipText(s: string, max: number): string {
   return `${keep.trimEnd()}…`;
 }
 
-/** `bar::look_icon`: a look's icon that names a picture (a path, a `data:` URI, an `icon://` url); the strip stands in a glyph for it, as `previewState` does for an extension's image. */
-const isPicture = (s: string) => s.startsWith("/") || s.startsWith("~/") || s.startsWith("data:image/") || s.startsWith("icon://");
-const PICTURE = "\u{f0976}";
-
 /** `BarItem::shaped`: the item with the look applied, hidden when nothing is left to draw. */
 export function shapeItem(item: BarStripItem, look: BarLook): BarStripItem {
   const out: BarStripItem = { ...item };
-  if (look.icon?.trim()) out.icon = isPicture(look.icon.trim()) ? PICTURE : look.icon.trim();
+  if (look.icon?.trim()) out.icon = look.icon.trim();
   if (!look.showIcon) delete out.icon;
   if (!look.showTitle) { delete out.title; out.segments = []; }
   if (look.badgeStyle === "none") delete out.badge;

@@ -658,11 +658,9 @@ pub struct BarLook {
     /// Draw the icon.
     pub show_icon: bool,
     /// A glyph, an emoji or a short text drawn as the icon in place of the
-    /// one the extension answers (what `BarItem.icon` takes as a string),
-    /// or a picture: an absolute or `~/` path to an image file (PNG, JPEG,
-    /// GIF, SVG), a `data:image/` URI or an `icon://` url. Only an item's
-    /// own makes sense (every item the same icon is no bar), so a target
-    /// leaves it unset.
+    /// one the extension answers (what `BarItem.icon` takes as a string).
+    /// Only an item's own makes sense (every item the same icon is no
+    /// bar), so a target leaves it unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
     /// Draw the title and the segments; off is a glyph-only item.
