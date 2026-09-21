@@ -317,7 +317,23 @@ fn sync_palette_rows(app: &AppHandle) {
 
 async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title: String, metas: Vec<PaletteMeta>) {
     let config = settings::config(&app);
-    Palettes::with(&app, |reg| registry::replace_extension(reg, &ext, &ext_title, &metas, &config));
+    // A palette the extension no longer declares (a script plugin removed
+    // while pal was down, a renamed palette): out of the registry, the
+    // index and the cache, or its rows would stay at the root with no
+    // tier and nothing to pick them (`no palette scripts/iconnerd`).
+    let gone: Vec<Source> = Palettes::with(&app, |reg| {
+        let gone = reg.iter().filter(|r| r.source.extension == ext && !metas.iter().any(|m| m.name == r.source.palette)).map(|r| r.source.clone()).collect();
+        registry::replace_extension(reg, &ext, &ext_title, &metas, &config);
+        gone
+    });
+    if !gone.is_empty() {
+        with_index(&app, |ix| gone.iter().for_each(|s| ix.remove(s)));
+        let dir = cache_dir(&app);
+        for s in &gone {
+            cache::remove(&dir, s);
+        }
+        eprintln!("index\t{ext}\tdropped {} gone palette(s): {}", gone.len(), gone.iter().map(|s| s.palette.as_str()).collect::<Vec<_>>().join(","));
+    }
     sync_palette_rows(&app);
     hotkey::apply(&app, &config);
     let now = unix_secs();
