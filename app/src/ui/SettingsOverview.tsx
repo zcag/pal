@@ -89,6 +89,11 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
     }
   }
 
+  // The switcher over cmd+tab replaces the App Switcher through an event tap, which needs the grant (hotkey.rs).
+  if (h?.hold_blocked) {
+    items.push({ id: "hold", level: "attention", title: "Switcher", detail: `The switcher chord ${comboLabel(h.hold_blocked)} needs Input Monitoring. Switch it on under Privacy & Security > Input Monitoring.`, action: { label: "Grant…", permission: "input_monitoring" } });
+  }
+
   const names = new Set(v.extensions.map((e) => e.name));
   // Snippet expansion watches the keys typed in other apps: Input Monitoring matters once it is on.
   const expand = v.extensions.some((e) => e.name === "snippets" && e.values?.expand === true);

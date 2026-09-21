@@ -30,6 +30,12 @@ describe("overviewItems", () => {
     expect(item.detail).toContain("Raycast");
     expect(item.action?.go).toEqual({ page: "general", anchor: "general:hotkey" });
   });
+  it("lists the switcher chord the Dock owns while its tap waits on Input Monitoring, with Grant", () => {
+    const [item] = overviewItems({ ...ok, hotkey: { ...one, hold_blocked: "cmd+tab" } });
+    expect(item.id).toBe("hold");
+    expect(item.detail).toContain(`${comboLabel("cmd+tab")} needs Input Monitoring`);
+    expect(item.action).toEqual({ label: "Grant…", permission: "input_monitoring" });
+  });
   it("says none set for an empty hotkey, which never registers", () => {
     const [item] = overviewItems({ ...ok, hotkey: { hotkeys: [], registered: true } });
     expect(item.level).toBe("ok");

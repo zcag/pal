@@ -75,16 +75,26 @@ used first, so row 2 is where you just were) and the cursor starts there.
 
 | keys | does |
 | --- | --- |
-| `alt+tab` (the `hold` chord) | Held: show the palette with the cursor on row 2; pressed again while held: step down, wrapping |
+| `alt+tab` (the `hold` chord), tapped | Switch to the previous window at once, nothing shown; tapped twice quickly, to the one before that (each press within the 150 ms is one row further, the `shift+` variant one back) |
+| `alt+tab`, held | After 150 ms: show the palette with the cursor on row 2 (plus the presses so far); pressed again while held: step down, wrapping |
 | `shift+alt+tab` | Step up |
-| let go of `alt` | Run the primary action of the row under the cursor (Focus, for a window); with nothing listed, hide |
+| let go of `alt` | Run the primary action of the row under the cursor (Focus, for a window); with nothing listed, hide. Let go right after the panel shows and it runs once the rows are in |
 | typing | Filter as always; the cursor keeps its row while it is still listed, else goes to row 1 of the filtered list; the release then runs that row |
 | `escape` | Cancel: hide, whatever is typed |
 | `enter` | Also runs the row, as in any list; a chord with no modifier (`f13`) has no release, so this is its commit |
 
 The release is read from the OS's modifier state (macOS; nothing to grant),
-so the chord's key may go up long before the modifier does. On Linux a
+so the chord's key may go up long before the modifier does. The tap is the
+Windows palette's (there are windows to switch to); any other palette held
+shows at once. After a hold the next root hotkey lands at the root, whatever
+`pop_to_root` says: the switcher is not a level to come back to. On Linux a
 compositor keybind drives the same machine with [`pal switch`](cli.md#pal-switch).
+
+`hold = "cmd+tab"` replaces the App Switcher: the Dock takes that chord
+before any registration, so pal watches the key with an event tap instead,
+which needs Input Monitoring, asked once when you set it (Settings ›
+Overview lists the chord with Grant until then). `cmd+shift+tab` steps back
+as the App Switcher's does.
 
 ## Other windows
 

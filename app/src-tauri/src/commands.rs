@@ -776,7 +776,7 @@ mod tests {
             profile: "default".into(),
             data: PathBuf::from("/Users/u/Library/Application Support/pal/default"),
             extensions: vec![("apps".into(), true), ("clipboard".into(), true), ("broken".into(), false)],
-            hotkey: hotkey::Outcome { hotkeys: vec![hotkey::RootOutcome { wanted: "ctrl+space".into(), registered: true, error: None, spotlight: None }], registered: true },
+            hotkey: hotkey::Outcome { hotkeys: vec![hotkey::RootOutcome { wanted: "ctrl+space".into(), registered: true, error: None, spotlight: None }], registered: true, hold_blocked: None },
             accessibility: false,
             theme: Theme::System,
         }
@@ -811,6 +811,7 @@ mod tests {
                 hotkey::RootOutcome { wanted: "ctrl+space".into(), registered: true, error: None, spotlight: None },
             ],
             registered: true,
+            hold_blocked: None,
         };
         d.accessibility = true;
         d.theme = Theme::Dark;

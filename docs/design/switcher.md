@@ -35,12 +35,12 @@ edge strip's peek.
   from a strip window pal owns. What needs Input Monitoring (a key
   engaging a *peeking* sidebar) degrades exactly as the popover's peek
   does today (`bar/popover.rs`).
-- Non-goals now: replacing Cmd+Tab itself (the Dock owns it; taking it
-  needs an event tap and the Input Monitoring grant, so it is a later
-  setting gated like snippet expansion, not the default); window
-  thumbnails; more than one sidebar; a sidebar on Linux (no popover
-  window there yet, `bar::SUPPORTED`); an `AXObserver` for focus changes
-  inside one app (below, MRU).
+- Non-goals now: window thumbnails; more than one sidebar; a sidebar on
+  Linux (no popover window there yet, `bar::SUPPORTED`); an `AXObserver`
+  for focus changes inside one app (below, MRU). Replacing Cmd+Tab itself
+  was one (the Dock owns it) until the tap round below: `hold =
+  "cmd+tab"` goes through a `CGEventTap`, gated on Input Monitoring like
+  snippet expansion, never the default.
 
 ## MRU order and hidden state (`pal_core::windows`)
 
@@ -85,11 +85,18 @@ with a root or palette hotkey loses to them, in the existing order.
 
 ### Mechanics (macOS)
 
-- Press, switcher idle: `switcher::begin(app, key)` runs `show_in(key)`
-  with `hold: true` in the `pal://shown` payload. The page opens the
-  palette with the cursor on row 2 (`min(1, rows - 1)`), sections off (a
+- Press, switcher idle: `switcher::begin` stamps the focused window and
+  starts a 150 ms show timer (`SHOW_AFTER`); nothing is painted. A press
+  before it fires counts a step (the shift variant one back). The timer,
+  with the chord still held, runs `show_hold(key, steps)` with `hold:
+  true` and `steps` in the `pal://shown` payload. The page opens the
+  palette with the cursor on row `2 + steps` (wrapping), sections off (a
   flat MRU list; `groupBySection` is skipped while a hold is on), the
-  search field empty with the palette's placeholder.
+  search field empty with the palette's placeholder. A release before
+  the timer is the tap (2026-09-22 round): the shell lists
+  `pal_core::windows::list()` itself once the stamp landed and raises
+  row `2 + steps` (`windows::raise`, the focus effect's helper), no page.
+  The tap is the windows palette's; any other held palette shows at once.
 - Press again (the OS delivers the registered chord to `hotkey::pressed`
   again, never to the webview): `pal://switch { step: 1 }`; the shift
   variant `step: -1`. The page moves the cursor, wrapping.
@@ -104,9 +111,23 @@ with a root or palette hotkey loses to them, in the existing order.
   is not the previous window. Only a typed filter follows the row by id.
 - A chord with no modifier (`f13`) has no release: presses step, Enter
   commits.
+- A commit reaching the page before the held level's rows landed (the
+  release right after the show) waits for them and runs on the placed
+  row; nothing hides early.
 - Escape, a click outside, any hide: cancel; the poll stops on the
   panel's hide (`panel::hide` calls `switcher::on_hidden` the way it
-  calls `pick::on_hidden`).
+  calls `pick::on_hidden`). A hold's end also calls `pop::forget`, so
+  the next root hotkey lands at the root whatever `pop_to_root` says.
+- `cmd+tab` (and its shift variant) is the Dock's: a Carbon registration
+  is accepted and the Dock still takes the press (measured on hornet).
+  `hotkey::apply` keeps such a chord in its map without registering and
+  installs a session-level, head-insert, active `CGEventTap` (keyDown and
+  flagsChanged; a matching keyDown runs `pressed` and is swallowed,
+  autorepeats swallowed without a press, the rest pass; re-enabled on
+  `kCGEventTapDisabledByTimeout`). It needs Input Monitoring: without it
+  the chord is logged, asked for once (expansion's path) and listed in
+  the Overview with Grant (`Outcome.hold_blocked`); a grant seen by
+  `permissions::watch` re-applies. The release is the same modifier poll.
 - Typing while held filters; the cursor keeps its row while it is still
   listed, else goes to row 1 of the filtered list. Release then commits
   the filtered row.

@@ -173,6 +173,8 @@ export type HotkeyStatus = {
   hotkeys: RootHotkeyStatus[];
   /** At least one entry works; true with none configured. */
   registered: boolean;
+  /** A switcher chord the Dock owns (`cmd+tab`), as configured, waiting on Input Monitoring for its event tap. */
+  hold_blocked?: string;
 };
 
 /** The largest `general.hotkey` list Settings offers to build; the file may hold more. */

@@ -8,7 +8,14 @@
 //! chord the palette's manifest suggests) is the switcher's chord: it and
 //! its `shift+` variant both register, every press goes to
 //! `switcher::press` (begin, then step; the release is the switcher's own
-//! poll).
+//! poll). The chords the Dock owns (`cmd+tab` and `cmd+shift+tab`, the App
+//! Switcher's) are the exception: macOS accepts their registration and
+//! still hands the press to the Dock (measured on hornet), so those go
+//! through a `CGEventTap` instead ([`tap`]: the key down is swallowed and
+//! `pressed` runs as if registered), which needs Input Monitoring; until
+//! it is granted the chord waits, asked for once and listed in the
+//! Overview ([`Outcome::hold_blocked`]), and the grant re-applies
+//! (`permissions::watch`).
 //! All come from the config file and are swapped live when it changes
 //! (`settings::on_reload`) or a palette arrives (`index::sync_extension`). An empty `general.hotkey` means none
 //! (a compositor keybind runs `pal toggle` instead). On Linux this only
@@ -41,7 +48,7 @@ use pal_core::config::{Config, Hotkeys};
 use pal_core::index::Source;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
 use crate::host::Host;
 use crate::{events, index, lock, settings};
@@ -93,20 +100,30 @@ pub struct Outcome {
     /// register) and, when every entry failed, false even though the
     /// previous root hotkeys are kept so pal stays reachable.
     pub registered: bool,
+    /// A hold chord the Dock owns (`cmd+tab`), as configured, waiting on
+    /// Input Monitoring for its event tap: the Overview's row.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hold_blocked: Option<String>,
 }
 
 impl Outcome {
     /// One line for the diagnostics: `off`, or every entry with its fate
-    /// (`cmd+space registered, ctrl+space failed: HotKey already registered`).
+    /// (`cmd+space registered, ctrl+space failed: HotKey already registered`),
+    /// and the hold chord waiting on Input Monitoring when one is.
     pub fn summary(&self) -> String {
-        if self.hotkeys.is_empty() {
-            return "off".into();
+        let roots = if self.hotkeys.is_empty() {
+            "off".to_string()
+        } else {
+            self.hotkeys
+                .iter()
+                .map(|h| if h.registered { format!("{} registered", h.wanted) } else { format!("{} failed: {}", h.wanted, h.error.as_deref().unwrap_or("unknown")) })
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        match &self.hold_blocked {
+            Some(h) => format!("{roots}; hold {h} needs Input Monitoring"),
+            None => roots,
         }
-        self.hotkeys
-            .iter()
-            .map(|h| if h.registered { format!("{} registered", h.wanted) } else { format!("{} failed: {}", h.wanted, h.error.as_deref().unwrap_or("unknown")) })
-            .collect::<Vec<_>>()
-            .join(", ")
     }
 }
 
@@ -331,7 +348,13 @@ fn judge(roots: &[Root], map: &HashMap<Shortcut, Target>, failed: &HashMap<Short
         })
         .collect();
     let registered = hotkeys.is_empty() || hotkeys.iter().any(|h| h.registered);
-    Outcome { hotkeys, registered }
+    Outcome { hotkeys, registered, hold_blocked: None }
+}
+
+/// A chord the Dock takes before any registration: `cmd+tab` and its
+/// `shift+` variant, the App Switcher's. These go through the event tap.
+fn dock_owned(s: &Shortcut) -> bool {
+    s.key == Code::Tab && (s.mods == Modifiers::SUPER || s.mods == Modifiers::SUPER | Modifiers::SHIFT)
 }
 
 /// Register what the config wants and drop what it no longer does. A
@@ -373,10 +396,15 @@ pub fn apply(app: &AppHandle, config: &Config) {
             }
         }
     }
+    // The Dock-owned hold chord as configured, for the Overview when its tap waits on the permission.
+    let mut owned: Option<String> = None;
     for (id, source, suggested) in crate::registry::registered_holds(app) {
         let p = config.palette(&id);
         let Some(h) = p.hold.as_deref().or(suggested.as_deref()).map(str::trim).filter(|h| !h.is_empty()) else { continue };
         if let Some(s) = parse(format!("palettes.{id}.hold"), h) {
+            if dock_owned(&s) {
+                owned = Some(h.to_lowercase());
+            }
             if let Some(back) = shifted(&s) {
                 wanted.insert(back, Target::Hold { source: source.clone(), mods: s.mods, back: true });
             }
@@ -400,20 +428,180 @@ pub fn apply(app: &AppHandle, config: &Config) {
     if current == wanted {
         // Nothing to (un)register. A root the OS took but Spotlight was
         // holding is re-judged here (the poll's re-apply lands here too);
-        // Spotlight (a `defaults` run) is read only when one was.
+        // Spotlight (a `defaults` run) is read only when one was. The tap
+        // is re-tried: a permission granted since lands here too.
         drop(_applying);
         let held = outcome(app).hotkeys.iter().any(|h| h.spotlight.is_some()).then(pal_core::spotlight::hotkey).flatten();
-        record(app, judge(&roots, &current, &HashMap::new(), held.as_deref()));
+        let mut o = judge(&roots, &current, &HashMap::new(), held.as_deref());
+        o.hold_blocked = tap::apply(app, current.keys().filter(|s| dock_owned(s)).copied().collect(), owned.as_deref()).then_some(owned).flatten();
+        record(app, o);
         return;
     }
     let shortcuts = app.global_shortcut();
-    let (next, failed) = reconcile(&current, &wanted, |s| shortcuts.register(*s).map_err(|e| e.to_string()), |s| shortcuts.unregister(*s).map_err(|e| e.to_string()));
+    // A Dock-owned chord is in the map for `pressed` without a registration: the tap delivers it.
+    let (next, failed) = reconcile(&current, &wanted, |s| if dock_owned(s) { Ok(()) } else { shortcuts.register(*s).map_err(|e| e.to_string()) }, |s| if dock_owned(s) { Ok(()) } else { shortcuts.unregister(*s).map_err(|e| e.to_string()) });
     *lock(&registered.map) = next.clone();
     drop(_applying);
     // Spotlight is read only for a root that changed or failed, which is
     // where this is: the early return above covers the rest.
     let held = (!roots.is_empty()).then(pal_core::spotlight::hotkey).flatten();
-    record(app, judge(&roots, &next, &failed, held.as_deref()));
+    let mut o = judge(&roots, &next, &failed, held.as_deref());
+    o.hold_blocked = tap::apply(app, next.keys().filter(|s| dock_owned(s)).copied().collect(), owned.as_deref()).then_some(owned).flatten();
+    record(app, o);
+}
+
+/// The event tap for the Dock-owned chords (macOS): a session-level
+/// active tap at the head of the chain on key downs (and modifier
+/// changes, which pass through), its source on the main run loop. A key
+/// down that is one of the watched chords runs [`pressed`] and is
+/// swallowed (the App Switcher never sees it); an autorepeat of it is
+/// swallowed without a press, as a Carbon hot key repeats nothing; every
+/// other event passes. The system disables a tap whose callback runs
+/// long; it is re-enabled from the callback itself. A keyboard tap
+/// delivers nothing without Input Monitoring (`IOHIDCheckAccess`), so
+/// without it none is installed: the chord is logged, asked for once
+/// (the prompt and the pane, as expansion asks) and reported.
+#[cfg(target_os = "macos")]
+mod tap {
+    use std::cell::RefCell;
+    use std::ffi::c_void;
+    use std::ptr::NonNull;
+    use std::sync::{Mutex, OnceLock};
+
+    use objc2_core_foundation::{kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop, CFRunLoopSource};
+    use objc2_core_graphics::{CGEvent, CGEventField, CGEventFlags, CGEventMask, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType};
+    use tauri::AppHandle;
+    use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
+
+    use crate::{lock, permissions};
+
+    /// The virtual key code of Tab.
+    const TAB: i64 = 48;
+
+    /// The chords the tap swallows and hands to `pressed`; read on every key down.
+    static WATCHED: Mutex<Vec<Shortcut>> = Mutex::new(Vec::new());
+    static APP: OnceLock<AppHandle> = OnceLock::new();
+
+    thread_local! {
+        /// The tap and its run loop source; the main thread's, like the run loop.
+        static TAP: RefCell<Option<(CFRetained<CFMachPort>, CFRetained<CFRunLoopSource>)>> = const { RefCell::new(None) };
+    }
+
+    /// The chord a key down is (Tab with the four modifiers that count;
+    /// the rest of the flags, fn or the numeric pad, are ignored).
+    fn chord(code: i64, flags: CGEventFlags) -> Option<Shortcut> {
+        if code != TAB {
+            return None;
+        }
+        let pairs = [(CGEventFlags::MaskCommand, Modifiers::SUPER), (CGEventFlags::MaskShift, Modifiers::SHIFT), (CGEventFlags::MaskAlternate, Modifiers::ALT), (CGEventFlags::MaskControl, Modifiers::CONTROL)];
+        let mods = pairs.iter().filter(|(f, _)| flags.contains(*f)).fold(Modifiers::empty(), |m, (_, x)| m | *x);
+        Some(Shortcut::new(Some(mods), Code::Tab))
+    }
+
+    unsafe extern "C-unwind" fn callback(_proxy: CGEventTapProxy, ty: CGEventType, event: NonNull<CGEvent>, _info: *mut c_void) -> *mut CGEvent {
+        if ty == CGEventType::TapDisabledByTimeout || ty == CGEventType::TapDisabledByUserInput {
+            TAP.with(|t| {
+                if let Some((port, _)) = &*t.borrow() {
+                    CGEvent::tap_enable(port, true);
+                }
+            });
+            eprintln!("hotkey\ttap\tre-enabled after {ty:?}");
+            return event.as_ptr();
+        }
+        if ty == CGEventType::KeyDown {
+            // SAFETY: the system hands a live event to the tap's callback.
+            let e = unsafe { event.as_ref() };
+            let code = CGEvent::integer_value_field(Some(e), CGEventField::KeyboardEventKeycode);
+            if let Some(s) = chord(code, CGEvent::flags(Some(e))).filter(|s| lock(&WATCHED).contains(s)) {
+                if CGEvent::integer_value_field(Some(e), CGEventField::KeyboardEventAutorepeat) == 0 {
+                    if let Some(app) = APP.get() {
+                        super::pressed(app, &s);
+                    }
+                }
+                return std::ptr::null_mut();
+            }
+        }
+        event.as_ptr()
+    }
+
+    /// Follow `chords` (`label`: the chord as configured, for the log):
+    /// none removes the tap; some install it (once) with Input Monitoring,
+    /// and without it ask once and answer true, the chord blocked. Any
+    /// thread: the tap itself is made and removed on the main one.
+    pub fn apply(app: &AppHandle, chords: Vec<Shortcut>, label: Option<&str>) -> bool {
+        let _ = APP.set(app.clone());
+        let label = label.unwrap_or("cmd+tab").to_string();
+        *lock(&WATCHED) = chords.clone();
+        if chords.is_empty() {
+            remove(app);
+            return false;
+        }
+        if !permissions::input_monitoring() {
+            eprintln!("switcher\t{label} needs Input Monitoring");
+            permissions::request_once(app, "input_monitoring");
+            remove(app);
+            return true;
+        }
+        let _ = app.run_on_main_thread(move || {
+            TAP.with(|t| {
+                if t.borrow().is_some() {
+                    return;
+                }
+                let mask: CGEventMask = (1 << CGEventType::KeyDown.0) | (1 << CGEventType::FlagsChanged.0);
+                // SAFETY: the callback has the signature the tap expects and reads nothing from `user_info`.
+                let Some(port) = (unsafe { CGEvent::tap_create(CGEventTapLocation::SessionEventTap, CGEventTapPlacement::HeadInsertEventTap, CGEventTapOptions::Default, mask, Some(callback), std::ptr::null_mut()) }) else {
+                    return eprintln!("hotkey\ttap\trefused\t{label}");
+                };
+                let (Some(source), Some(main)) = (CFMachPort::new_run_loop_source(None, Some(&port), 0), CFRunLoop::main()) else {
+                    return eprintln!("hotkey\ttap\tno run loop source");
+                };
+                // SAFETY: a CoreFoundation constant, read only.
+                main.add_source(Some(&source), unsafe { kCFRunLoopCommonModes });
+                CGEvent::tap_enable(&port, true);
+                eprintln!("hotkey\ttap\tinstalled\t{label}");
+                *t.borrow_mut() = Some((port, source));
+            });
+        });
+        false
+    }
+
+    fn remove(app: &AppHandle) {
+        let _ = app.run_on_main_thread(|| {
+            TAP.with(|t| {
+                if let Some((port, source)) = t.borrow_mut().take() {
+                    if let Some(main) = CFRunLoop::main() {
+                        // SAFETY: as above.
+                        main.remove_source(Some(&source), unsafe { kCFRunLoopCommonModes });
+                    }
+                    CGEvent::tap_enable(&port, false);
+                    port.invalidate();
+                    eprintln!("hotkey\ttap\tremoved");
+                }
+            });
+        });
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn a_key_down_is_the_chord_of_its_flags() {
+            let key = |s: &str| s.parse::<Shortcut>().unwrap();
+            assert_eq!(chord(TAB, CGEventFlags::MaskCommand), Some(key("cmd+tab")));
+            assert_eq!(chord(TAB, CGEventFlags::MaskCommand | CGEventFlags::MaskShift | CGEventFlags::MaskNonCoalesced), Some(key("cmd+shift+tab")), "stray flags are ignored");
+            assert_eq!(chord(TAB, CGEventFlags::MaskAlternate), Some(key("alt+tab")), "not owned, but it is what it is: WATCHED decides");
+            assert_eq!(chord(0, CGEventFlags::MaskCommand), None, "cmd+a is nobody's");
+        }
+    }
+}
+
+/// No Dock off macOS: nothing is owned, nothing to tap.
+#[cfg(not(target_os = "macos"))]
+mod tap {
+    pub fn apply(_app: &tauri::AppHandle, _chords: Vec<tauri_plugin_global_shortcut::Shortcut>, _label: Option<&str>) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -449,6 +637,16 @@ mod tests {
         assert_eq!(shifted(&key("cmd+ctrl+space")), Some(key("cmd+ctrl+shift+space")));
         assert_eq!(shifted(&key("shift+f13")), None, "shift already: the one chord, no variant");
         assert_eq!(shifted(&key("f13")), Some(key("shift+f13")), "no modifier still gets a back step");
+    }
+
+    #[test]
+    fn the_dock_owns_cmd_tab_and_its_shift_variant_only() {
+        assert!(dock_owned(&key("cmd+tab")));
+        assert!(dock_owned(&key("cmd+shift+tab")));
+        assert!(dock_owned(&shifted(&key("cmd+tab")).unwrap()));
+        assert!(!dock_owned(&key("alt+tab")));
+        assert!(!dock_owned(&key("cmd+alt+tab")));
+        assert!(!dock_owned(&key("cmd+space")));
     }
 
     #[test]
@@ -527,9 +725,11 @@ mod tests {
 
     #[test]
     fn no_roots_is_registered_and_off() {
-        let o = judge(&[], &HashMap::new(), &HashMap::new(), None);
+        let mut o = judge(&[], &HashMap::new(), &HashMap::new(), None);
         assert!(o.registered && o.hotkeys.is_empty());
         assert_eq!(o.summary(), "off");
+        o.hold_blocked = Some("cmd+tab".into());
+        assert_eq!(o.summary(), "off; hold cmd+tab needs Input Monitoring");
         let junk = parse_roots(&Hotkeys::from("junk"));
         let o = judge(&junk, &map(&[(FALLBACK, Target::Root)]), &HashMap::new(), None);
         assert!(o.hotkeys[0].registered, "the fallback is what registered");

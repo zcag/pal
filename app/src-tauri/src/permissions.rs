@@ -25,7 +25,8 @@
 //! a change; a grant is seen by [`watch`], which checks every [`POLL`]
 //! while a window is open and something was missing, and emits
 //! [`events::PERMISSIONS`] on a change (the Welcome row goes, Settings
-//! turns the dot green).
+//! turns the dot green, an Input Monitoring grant re-applies the hotkeys
+//! for the switcher's `cmd+tab` tap).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -325,6 +326,11 @@ pub fn watch(app: &AppHandle) {
                 events::emit(&app, events::PERMISSIONS, s);
                 if s.accessibility && !last.accessibility {
                     welcome::sync(&app);
+                }
+                // The switcher's tap for a Dock-owned chord waits on this one (hotkey.rs).
+                if s.input_monitoring && !last.input_monitoring {
+                    let (config, handle) = (settings::config(&app), app.clone());
+                    tauri::async_runtime::spawn_blocking(move || crate::hotkey::apply(&handle, &config));
                 }
                 last = s;
             }
