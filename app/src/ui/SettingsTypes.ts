@@ -44,6 +44,8 @@ export type PaletteConfig = {
   enabled: boolean;
   alias?: string;
   hotkey?: string;
+  /** `hold`, the switcher chord: unset follows the manifest's suggestion (`SettingsPalette.hold`), `""` turns it off, anything else is the chord. */
+  hold?: string;
   /** Icon override; an emoji or glyph. The extension's own icon when unset. */
   icon?: string;
   /** `tier` override; the manifest's (or the code's) when unset. */
@@ -53,11 +55,16 @@ export type PaletteConfig = {
   settings: SettingValues;
 };
 
+/** The switcher chord that applies to a palette: the file's, else the manifest's; `undefined` when off (`""` in the file, or nothing suggested). */
+export const holdOf = (p: SettingsPalette): string | undefined => (p.config.hold ?? p.hold)?.trim() || undefined;
+
 /** One key the manifest documents for a palette (`ManifestKey`). */
 export type PaletteKey = { keys: string; title: string };
 
 export type SettingsPalette = {
   id: string;
+  /** `extension/palette`, what `[sidebar] palette` and the hotkey targets name; absent for a fixture. */
+  source?: string;
   title: string;
   description?: string;
   icon?: Icon;
@@ -66,6 +73,8 @@ export type SettingsPalette = {
   keys?: PaletteKey[];
   /** The tier the manifest or the code declares; `normal` when neither says. */
   tier?: PaletteTier;
+  /** The switcher chord the manifest suggests (`alt+tab` for Windows); applies while the file has no `hold` line. */
+  hold?: string;
   /** Settings the extension declared for this palette. */
   settings: SettingSpec[];
   config: PaletteConfig;
@@ -321,6 +330,27 @@ export function lookWrites(cur: BarLookOverride, next: BarLookOverride, base: Ba
   }
   return out;
 }
+
+/** `[sidebar]` in the file (core::config::Sidebar): one live palette docked to a screen edge. */
+export type SidebarEdge = "left" | "right";
+export type SidebarConfig = {
+  /** `extension/palette`; empty is no sidebar. */
+  palette: string;
+  edge: SidebarEdge;
+  /** `cursor`, `primary`, or a display's name as the OS reports it. */
+  display: string;
+  /** Points. */
+  width: number;
+  /** The pointer resting at the edge peeks it. */
+  peek: boolean;
+  hotkey?: string;
+};
+
+/** The core's defaults (`Sidebar::default`): what an absent key means, and what a value equal to it leaves out of the file. */
+export const sidebarDefaults: SidebarConfig = { palette: "", edge: "right", display: "cursor", width: 320, peek: true };
+
+/** The palette the sidebar is built for; what the General page's switch writes. */
+export const SIDEBAR_WINDOWS = "windows/windows";
 
 /** `[bar.items] show`: what an item with nothing to say does with its slot (core `BarShow`). */
 export type BarShow = "auto" | "always";

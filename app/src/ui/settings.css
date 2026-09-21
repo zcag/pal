@@ -307,6 +307,12 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-hotkey[data-compact] { height: var(--pal-icon-box, 24px); min-width: 0; padding: 0 var(--pal-space-1, 4px); background: transparent; box-shadow: none; }
 .pal-hotkey[data-compact] .pal-kbd kbd { min-width: var(--pal-kbd-h, 18px); padding: 0 0.35em; background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); }
 .pal-hotkey[data-compact][data-empty] .pal-hotkey__prompt { color: var(--pal-fg-faint, #868794); }
+.pal-hotkey[data-placeholder] .pal-kbd kbd { color: var(--pal-fg-faint, #868794); }
+/* A switcher chord: the recorder, Clear, and Reset back to the suggestion */
+.pal-hold { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); }
+.pal-hold__off { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); }
+/* The sidebar's switch with the palette select beside it once on */
+.pal-sidebar__on { display: inline-flex; align-items: center; gap: var(--pal-space-3, 12px); }
 .pal-hotkey[data-compact]:hover { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
 .pal-hotkey[data-compact]:focus-visible, .pal-hotkey[data-compact][data-recording] { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
 

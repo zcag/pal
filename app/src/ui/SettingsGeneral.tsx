@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { ArmedButton, SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { HoldControl } from "./SettingsPalettes";
+import { SettingsSidebar, sidebarIndex, type SettingsSidebarProps } from "./SettingsSidebar";
 import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { MAX_ROOT_HOTKEYS, permissionRows, type ConfigFileInfo, type GeneralConfig, type HotkeyStatus, type PermissionId, type PermissionsStatus, type RootHotkeyStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
@@ -28,6 +30,17 @@ export type SettingsGeneralProps = {
   onOpenOverview?: () => void;
   /** The theme file picker (`general.theme_file`), shown when given: `useThemeFile()` in Settings.tsx, a fixture in the gallery. */
   themeFile?: ThemeFileProps;
+  /** The Windows palette's switcher chord (`palettes.windows.hold`): the file's value and the manifest's suggestion; the card shows when given. */
+  switcher?: SwitcherProps;
+  /** `[sidebar]`, the card shows when given (macOS: the only platform that builds one). */
+  sidebar?: SettingsSidebarProps;
+};
+
+export type SwitcherProps = {
+  /** `palettes.windows.hold` as the file has it: unset follows `suggested`, `""` is off. */
+  hold?: string;
+  suggested?: string;
+  onChange: (hold: string | undefined) => void;
 };
 
 /**
@@ -69,6 +82,7 @@ const text = {
   hotkey: { anchor: "general:hotkey", hint: "Show pal from any app", label: "Show pal", description: isMac
     ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
     : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file.", keywords: "hotkey shortcut keys spotlight cmd space several second another" },
+  switcher: { anchor: "general:switcher", hint: "Switch windows", label: "Window switcher", description: "Tap it to go back to the previous window; hold it and press again to pick. cmd+tab replaces the App Switcher and needs Input Monitoring.", keywords: "switcher alt tab cmd tab hold windows previous chord" },
   permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security.", keywords: "permissions grant privacy" },
   ask: { anchor: "general:ask", hint: "Permissions", label: "Ask on first launch", description: "Show the Accessibility prompt the first time the panel opens on a new profile, while the Welcome tips are up.", keywords: "" },
   theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
@@ -84,13 +98,16 @@ const text = {
 } as const;
 
 /** What the search field finds on this page: every row above, by its label, its description and its keywords. The search's own label is the row's, except where the group names it better (Hotkey, Permissions, Config file, Reset ranking). */
-export const generalIndex: SettingsIndexEntry[] = (Object.entries(text) as [keyof typeof text, (typeof text)[keyof typeof text]][]).map(([id, r]) => ({
-  page: "general",
-  label: id === "hotkey" ? "Hotkey" : id === "permissions" ? "Permissions" : id === "file" ? "Config file" : id === "frecency" ? "Reset ranking" : id === "host" ? "Restart extension host" : id === "refresh" ? "Refresh listings" : r.label,
-  hint: r.hint,
-  anchor: r.anchor,
-  keywords: `${r.label} ${r.description} ${r.keywords}`,
-}));
+export const generalIndex: SettingsIndexEntry[] = [
+  ...(Object.entries(text) as [keyof typeof text, (typeof text)[keyof typeof text]][]).map(([id, r]): SettingsIndexEntry => ({
+    page: "general",
+    label: id === "hotkey" ? "Hotkey" : id === "permissions" ? "Permissions" : id === "file" ? "Config file" : id === "frecency" ? "Reset ranking" : id === "host" ? "Restart extension host" : id === "refresh" ? "Refresh listings" : r.label,
+    hint: r.hint,
+    anchor: r.anchor,
+    keywords: `${r.label} ${r.description} ${r.keywords}`,
+  })),
+  ...sidebarIndex,
+];
 
 /**
  * Under a recorder: registered, or not and why. A wanted ⌘Space that
@@ -171,8 +188,30 @@ function HotkeyRows({ value, onChange, status, onOpenKeyboardShortcuts }: { valu
   );
 }
 
-/** pal's own settings: the hotkey, how it looks, how it starts, what the OS lets it do, and the file behind all of it. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, onOpenOverview, themeFile }: SettingsGeneralProps) {
+/**
+ * The Windows palette's switcher chord as its own card, so the switcher
+ * is met here and not only in the file: the chord that applies (the
+ * manifest's `alt+tab` until the file says otherwise), Clear for off, and
+ * the Input Monitoring grant when the chord is `cmd+tab` and the grant is
+ * missing (that one replaces the App Switcher through an event tap).
+ */
+function Switcher({ hold, suggested, onChange, permissions, onRequestPermission }: SwitcherProps & { permissions?: PermissionsStatus; onRequestPermission?: (which: PermissionId) => void }) {
+  const chord = (hold ?? suggested)?.trim();
+  const needsGrant = !!chord && sameCombo(chord, "cmd+tab") && permissions?.input_monitoring === false;
+  return (
+    <SettingsGroup title="Window switcher" note="palettes.windows.hold">
+      <SettingsRow anchor={text.switcher.anchor} label={text.switcher.label} description={<>{text.switcher.description}{chord ? "" : " Off: the Windows palette opens from its hotkey or the root only."}{needsGrant && <> <span className="pal-setting__note">Input Monitoring is not granted, so {comboLabel("cmd+tab")} stays the App Switcher's until it is.</span></>}</>}>
+        <span className="pal-hold pal-switcher">
+          <HoldControl value={hold} suggested={suggested} label="Switch windows" onChange={onChange} />
+          {needsGrant && onRequestPermission && <button type="button" className="pal-button" data-small data-primary="" onClick={() => onRequestPermission("input_monitoring")}>Turn on Input Monitoring…</button>}
+        </span>
+      </SettingsRow>
+    </SettingsGroup>
+  );
+}
+
+/** pal's own settings: the hotkey, the window switcher and the sidebar, how it looks, how it starts, what the OS lets it do, and the file behind all of it. */
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, onOpenOverview, themeFile, switcher, sidebar }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -183,6 +222,9 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           <HotkeyRows value={value.hotkeys} onChange={(v) => set("hotkeys", v)} status={hotkey} onOpenKeyboardShortcuts={onOpenKeyboardShortcuts} />
         </SettingsRow>
       </SettingsGroup>
+
+      {switcher && <Switcher {...switcher} permissions={permissions} onRequestPermission={onRequestPermission} />}
+      {sidebar && <SettingsSidebar {...sidebar} />}
 
       {permissions && (
         <SettingsGroup title="Permissions">

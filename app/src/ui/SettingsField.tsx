@@ -46,9 +46,11 @@ export function SettingsSwitch({ checked, onChange, label, disabled }: { checked
  * Hotkey recorder, a key-cap styled button. Shows the combo as key caps;
  * Enter, Space or a click starts recording ("Type shortcut…"), the next
  * modifier combo is taken, Escape cancels, Backspace while recording
- * clears the hotkey.
+ * clears the hotkey. `placeholder` is a combo that applies while none is
+ * set (a manifest's suggestion), drawn greyed; `bare` takes a key with no
+ * modifier too (a switcher chord like `f13`, which has no release).
  */
-export function SettingsHotkey({ value, onChange, label, compact }: { value?: string; onChange: (v: string | undefined) => void; label?: string; compact?: boolean }) {
+export function SettingsHotkey({ value, onChange, label, compact, placeholder, bare }: { value?: string; onChange: (v: string | undefined) => void; label?: string; compact?: boolean; placeholder?: string; bare?: boolean }) {
   const [recording, setRecording] = useState(false);
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (!recording) {
@@ -60,7 +62,7 @@ export function SettingsHotkey({ value, onChange, label, compact }: { value?: st
     if (e.key === "Escape") return setRecording(false);
     if (e.key === "Backspace" || e.key === "Delete") { onChange(undefined); return setRecording(false); }
     if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
-    if (!(e.metaKey || e.ctrlKey || e.altKey)) return; // a global hotkey needs a modifier
+    if (!bare && !(e.metaKey || e.ctrlKey || e.altKey)) return; // a global hotkey needs a modifier
     onChange(comboOf(e.nativeEvent));
     setRecording(false);
   };
@@ -71,13 +73,14 @@ export function SettingsHotkey({ value, onChange, label, compact }: { value?: st
       data-recording={recording || undefined}
       data-compact={compact || undefined}
       data-empty={!value && !recording ? "" : undefined}
-      aria-label={label ? `${label}: ${value ?? "not set"}` : undefined}
+      data-placeholder={!value && placeholder && !recording ? "" : undefined}
+      aria-label={label ? `${label}: ${value ?? (placeholder ? `${placeholder} (suggested)` : "not set")}` : undefined}
       aria-live="polite"
       onClick={() => setRecording(true)}
       onKeyDown={onKey}
       onBlur={() => setRecording(false)}
     >
-      {recording ? <span className="pal-hotkey__prompt">Type shortcut…</span> : value ? <Kbd shortcut={value} /> : <span className="pal-hotkey__prompt">{compact ? "Record" : "Record Shortcut"}</span>}
+      {recording ? <span className="pal-hotkey__prompt">Type shortcut…</span> : value ? <Kbd shortcut={value} /> : placeholder ? <Kbd shortcut={placeholder} /> : <span className="pal-hotkey__prompt">{compact ? "Record" : "Record Shortcut"}</span>}
     </button>
   );
 }

@@ -4,7 +4,7 @@ import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { Tag } from "./Row";
 import { SettingsField, SettingsHotkey, SettingsSelect, SettingsSwitch } from "./SettingsField";
-import type { PaletteConfig, PaletteTier, SettingsExtension, SettingsIndexEntry, SettingsPalette, SettingValue } from "./SettingsTypes";
+import { holdOf, type PaletteConfig, type PaletteTier, type SettingsExtension, type SettingsIndexEntry, type SettingsPalette, type SettingValue } from "./SettingsTypes";
 import type { Icon as IconSpec } from "./types";
 
 /** One indexed row of a palette, for the item hotkeys' picker. */
@@ -29,9 +29,34 @@ export const paletteIcon = (p: SettingsPalette, ext: SettingsExtension): IconSpe
 /** The search index, per instance key (`palettes:gmail@work-inbox`): an instance's group reads "Gmail (Work) › Inbox (Work)". */
 export const palettesIndex = (extensions: SettingsExtension[]): SettingsIndexEntry[] =>
   extensions.flatMap((e) => [
-    ...e.palettes.map((p) => ({ page: "palettes" as const, label: p.title === e.title ? p.title : `${e.extTitle ?? e.title} › ${p.title}`, hint: p.description ?? `${e.title} palette`, anchor: `palettes:${p.id}`, keywords: `${p.config.alias ?? ""} ${p.config.hotkey ?? ""} ${p.id} ${e.key} ${e.title} palette` })),
+    ...e.palettes.map((p) => ({ page: "palettes" as const, label: p.title === e.title ? p.title : `${e.extTitle ?? e.title} › ${p.title}`, hint: p.description ?? `${e.title} palette`, anchor: `palettes:${p.id}`, keywords: `${p.config.alias ?? ""} ${p.config.hotkey ?? ""} ${holdOf(p) ?? ""} ${p.id} ${e.key} ${e.title} palette` })),
+    // The switcher chord, for the palettes where it means something now: one suggested or written, not fifty rows for "chord".
+    ...e.palettes.filter((p) => p.hold || p.config.hold !== undefined).map((p) => ({ page: "palettes" as const, label: "Switcher chord", hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:hold`, keywords: `hold switcher ${holdOf(p) ?? "off"} alt tab cmd tab ${p.title}` })),
     ...e.palettes.flatMap((p) => p.settings.map((s) => ({ page: "palettes" as const, label: s.label, hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:${s.id}`, keywords: s.description }))),
   ]);
+
+/** The Switcher chord row's description, on the palette pane and the General card alike. */
+export const HOLD_HELP = "Held, it opens this palette flat with the cursor on row 2; release runs the row. cmd+tab needs Input Monitoring.";
+
+/**
+ * `palettes.<id>.hold` as one control: the recorder shows the chord that
+ * applies (the file's, else the manifest's suggestion greyed), Clear
+ * writes `""` (off) where a suggestion would otherwise apply and unsets
+ * where none does (the same effect, no line in the file), and a file
+ * line next to a suggestion gets a Reset back to it (unset). Backspace in
+ * the recorder is Clear.
+ */
+export function HoldControl({ value, suggested, label, onChange }: { value?: string; suggested?: string; label: string; onChange: (hold: string | undefined) => void }) {
+  const effective = value ?? suggested;
+  const off = suggested ? "" : undefined;
+  return (
+    <span className="pal-hold">
+      <SettingsHotkey value={value?.trim() || undefined} placeholder={value === undefined ? suggested?.trim() || undefined : undefined} bare onChange={(v) => onChange(v ?? off)} label={label} />
+      {effective?.trim() ? <button type="button" className="pal-button" data-small aria-label={`Clear ${label.toLowerCase()}`} onClick={() => onChange(off)}>Clear</button> : <span className="pal-hold__off">Off</span>}
+      {value !== undefined && suggested?.trim() && <button type="button" className="pal-setting__reset" title={`Back to the extension's suggestion: ${suggested}`} onClick={() => onChange(undefined)}>Reset</button>}
+    </span>
+  );
+}
 
 const tiers: { id: PaletteTier; title: string }[] = [
   { id: "primary", title: "Primary: reached by name" },
@@ -202,6 +227,12 @@ function PalettePane({ p, ext, onChange, onSetting, onOpenExtension, items }: { 
           </ul>
         </section>
       )}
+
+      <section className="pal-ppane__section" aria-label="Switcher chord" data-anchor={`palettes:${p.id}:hold`}>
+        <h4 className="pal-ppane__h">Switcher chord <span className="pal-ppane__h-note">palettes.{p.id}.hold</span></h4>
+        <HoldControl value={p.config.hold} suggested={p.hold} label={`${p.title} switcher chord`} onChange={(hold) => onChange({ hold })} />
+        <p className="pal-ppane__hint pal-itemkeys__hint">{HOLD_HELP}{p.hold && p.config.hold === undefined ? ` ${ext.extTitle ?? ext.title} suggests this one.` : ""}</p>
+      </section>
 
       {p.kind !== "view" && <ItemHotkeys p={p} onChange={(itemHotkeys) => onChange({ itemHotkeys })} items={items} />}
 
