@@ -963,8 +963,8 @@
           "type": "string"
         },
         "palette": {
-          "default": "windows/windows",
-          "description": "The palette it shows, `extension/palette`; empty is no sidebar.",
+          "default": "",
+          "description": "The palette it shows, `extension/palette`; empty (the default) is\nno sidebar: an edge that peeks is asked for, never shipped on.",
           "type": "string"
         },
         "peek": {
@@ -1127,7 +1127,7 @@
         "display": "cursor",
         "edge": "right",
         "hotkey": null,
-        "palette": "windows/windows",
+        "palette": "",
         "peek": true,
         "width": 320.0
       },

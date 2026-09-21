@@ -365,7 +365,7 @@ on Linux the table is read and validated, nothing is built.
 
 ```toml
 [sidebar]
-palette = "windows/windows"   # any palette; "" = no sidebar
+palette = "windows/windows"   # any palette; unset or "" = no sidebar (the default)
 edge = "right"                # left | right
 display = "cursor"            # cursor | primary | a display's name
 width = 320
@@ -375,7 +375,7 @@ hotkey = "ctrl+opt+tab"
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `palette` | string | `"windows/windows"` | The palette it shows, `<extension>/<palette>`; `""` turns the sidebar off (no window peeks, no strip, no hotkey). A live palette lists again on every show, as it does for the panel. |
+| `palette` | string | unset | The palette it shows, `<extension>/<palette>`; `windows/windows` is the one built for it. Unset or `""` is no sidebar (no window, no strip, no hotkey): an edge that peeks when the pointer rests there is asked for, never on by default. A live palette lists again on every show, as it does for the panel. |
 | `edge` | `"left"`, `"right"` | `"right"` | The edge it docks to, 8 px in from it and from the top of the work area. |
 | `display` | string | `"cursor"` | Which display: `cursor` (the one under the pointer at each show; a peek strip on every display), `primary` (the one with the menu bar), or a display's name as the OS reports it (`Built-in Retina Display`; an unknown name falls back to the cursor's, with a log line). |
 | `width` | number, points | `320` | The window's width; the height follows the rows, up to the work area. |

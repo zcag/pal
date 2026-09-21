@@ -573,7 +573,8 @@ pub enum Edge {
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
 pub struct Sidebar {
-    /// The palette it shows, `extension/palette`; empty is no sidebar.
+    /// The palette it shows, `extension/palette`; empty (the default) is
+    /// no sidebar: an edge that peeks is asked for, never shipped on.
     pub palette: String,
     /// The screen edge it docks to.
     pub edge: Edge,
@@ -595,7 +596,7 @@ pub struct Sidebar {
 
 impl Default for Sidebar {
     fn default() -> Self {
-        Self { palette: "windows/windows".into(), edge: Edge::Right, display: "cursor".into(), width: 320.0, peek: true, hotkey: None, extra: BTreeMap::new() }
+        Self { palette: String::new(), edge: Edge::Right, display: "cursor".into(), width: 320.0, peek: true, hotkey: None, extra: BTreeMap::new() }
     }
 }
 
@@ -1497,7 +1498,7 @@ show = "always"
     fn sidebar_defaults_and_overrides() {
         let (c, d) = parse("").unwrap();
         assert!(d.is_empty());
-        assert_eq!(c.sidebar.palette(), Some("windows/windows"), "windows is the one that ships wired");
+        assert_eq!(c.sidebar.palette(), None, "off until a palette is named: a strip at the edge is opt-in");
         assert_eq!((c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek, c.sidebar.hotkey), (Edge::Right, "cursor", 320.0, true, None));
         let (c, d) = parse("[sidebar]\npalette = \"apps/apps\"\nedge = \"left\"\ndisplay = \"primary\"\nwidth = 400\npeek = false\nhotkey = \"ctrl+alt+tab\"\n").unwrap();
         assert!(d.is_empty());

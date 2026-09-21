@@ -1184,3 +1184,68 @@ The trap this round, hit by two of three agents independently and once pre-exist
 Also worth keeping, on delegating this kind of work: three agents produced four defects that review caught and tests did not — fake width derivations (`STEP = POPOVER_W / 99`) that overflowed, **153 lines of reformatting churn** in a compact `pal.json` that should have been a 2-line edit, and hand-rolled `hm()`/`weekday()` built on `Intl.DateTimeFormat` when the SDK already exports `clock` and `dayName`. None of it fails a test. The checklist that finds it: `diff --stat` first and challenge any file whose line count is out of proportion to the change, verify every width numerically, and grep the SDK for anything that looks hand-rolled.
 
 Tests after: host `bun test` 1235 pass, 1 skip (77 files); vitest 37 files, 240 pass; host `tsc` **11 lines, down from 23** — the weather test rewrite took the stale weather errors with it; what remains is pre-existing in network (2) and bluetooth (1).
+
+## Switcher and sidebar (2026-09-21)
+
+The Contexts question, answered on product terms (pal is for other people, not
+one desktop): the hold-modifier switcher and the edge sidebar both shipped,
+built on what the tree had rather than as new surfaces. Spec:
+`docs/design/switcher.md`. Branch `switcher`, three agents in worktrees
+(`wt-mru`, `wt-hold`, `wt-side`) merged here, then the live pass with a
+scratch instance on hornet (`target/scratch-sw`, the recipe under Findings).
+
+- **MRU order** (`pal_core::windows`): a bounded focus history
+  (`note_focus`, 64 ids) sorts the macOS list most recently used first, the
+  rest in CG's front to back; stamped on every app activation (the bar
+  triggers' observer), on the panel's and the sidebar's show
+  (`windows::stamp_focused`, a thread reading `focused()`), and by `focus`
+  itself. The bridge's `list` waits up to 150 ms for a stamp in flight,
+  else the relist the show triggers raced the stamp and the switcher's
+  first frame had the window just left in CG order. `Window.hidden`
+  (`isHidden` per pid) tells a hidden app from another space; `Show app`
+  (`cmd+shift+h`) is `activate`, which already unhid.
+- **Switcher**: `palettes.<id>.hold` (the windows manifest suggests
+  `alt+tab`; `opt` is not a modifier the parser knows, so the spec's
+  `opt+tab` is spelled `alt+tab`), `Target::Hold` registers the chord and
+  its `shift+` variant, `switcher.rs` begins on the first press (`show_hold`,
+  `hold: true` in `pal://shown`), steps on every further press (the OS
+  hands the registered chord to `hotkey::pressed`, never to the webview),
+  and commits when a 40 ms poll of `NSEvent.modifierFlags()` sees the
+  chord's modifiers up; a commit waits on a relist in flight (`IN_FLIGHT`,
+  up to 300 ms). No tap, no new permission. `pal switch
+  [next|prev|commit|cancel]` drives the same machine from a compositor
+  bind (Hyprland `bind`/`bindr` in docs/cli.md). **The page's cursor under
+  a hold is an index, never a row followed by id**: the rows on screen at
+  the begin are the last show's, and following their row 2 by id across the
+  fresh relist committed the wrong window twice on hornet before the fix
+  (`f9edd3c`); only a typed filter follows the row.
+- **Sidebar**: `[sidebar]` (`palette`, `edge`, `display`, `width`, `peek`,
+  `hotkey`), off until a palette is named (an edge that peeks when the
+  pointer rests there is asked for, never shipped on). A second window of
+  the popover's kind (`sidebar`, `index.html?bar&sidebar`) driven by
+  `sidebar.rs` over the popover's pure `Machine`; docked placement; the
+  peek is a 2 px transparent NSPanel of pal's own along the edge with a
+  tracking area (`panel::strip`), one per display under `display =
+  "cursor"`, no Input Monitoring needed; engage by click (the page's
+  `bar_engage` on mousedown), the hotkey, or a key during a peek (the
+  popover's monitor, Input Monitoring or nothing). Ordinals drawn always;
+  `cmd+N` runs row N. Two bugs the live pass found that no test could: the
+  `sidebar` window label was missing from `capabilities/default.json`, so
+  the page's `listen()` was denied while app commands still passed (the
+  event landed in the popover's page instead, whose listener is on the
+  `Any` target: Tauri delivers every `emit_to` to `Any` listeners in every
+  webview); the bar page's `pal://bar` listener is now named to its own
+  window. And `Vec::drain(n..)` on the first `strip_place` panicked in an
+  observer callback (length 0, `drain(1..)`).
+- **Measured on hornet** (scratch instance, synthetic keys through System
+  Events): Slack then kitty, `alt+tab` released: Slack, 89 ms from release
+  to focus; Chrome, kitty, Slack then `alt+tab`, `tab` released: Chrome.
+  Sidebar: hotkey engages, `cmd+8` focused row 8, the strip's
+  `mouseEntered` fired at x = 1799 on the 1800 pt display and the peek
+  showed after the hover delay. `screencapture` resigns an engaged sidebar
+  (it takes key), which is not a bug. skhd on hornet holds
+  `ctrl+alt+shift+s` (Spotify), which is why the scratch used `+9`.
+- Not done: Settings › Palettes does not edit `hold` yet
+  (`SettingsPalettes.tsx`); the sidebar's `show_when`/`hide_when`; an
+  `AXObserver` for focus changes inside one app; replacing Cmd+Tab itself
+  (an event tap, Input Monitoring, gated like expansion); a Linux sidebar.

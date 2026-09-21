@@ -7,7 +7,10 @@ one). Both are built on what the tree has: the panel and its keys, the
 bar popover's state machine and window, the `windows` capability. The
 reference behaviours are Contexts and AltTab; the mechanism is pal's, so
 neither is tied to windows: any palette can be held or pinned, windows
-is the one that ships wired. Status: proposed.
+is the one that ships wired. Status: implemented 2026-09-21 (the
+`switcher` branch), verified on hornet with a scratch instance: the real
+chord end to end, the MRU order, the sidebar's hotkey, `cmd+N` and the
+edge strip's peek.
 
 ## Goals and non-goals
 
@@ -24,8 +27,9 @@ is the one that ships wired. Status: proposed.
 - A sidebar is a live palette docked to a screen edge: it peeks when the
   pointer rests at the edge, engages on click, hotkey or a key, and every
   row carries its number so `cmd+3` (engaged) runs row 3 without a
-  search. One sidebar for now, its palette from the config; windows is
-  the default.
+  search. One sidebar for now, its palette from the config; off until a
+  palette is named (an edge that peeks is asked for, never shipped on),
+  windows is the one built for it.
 - No new permission for the default paths. Modifier release is read from
   `NSEvent.modifierFlags`, which any process may; the edge peek comes
   from a strip window pal owns. What needs Input Monitoring (a key
@@ -128,7 +132,7 @@ skhd user can drive it too.
 
 ```toml
 [sidebar]
-palette = "windows/windows"   # any palette; "" = no sidebar
+palette = "windows/windows"   # any palette; unset or "" = no sidebar (the default)
 edge = "right"                # left | right
 display = "cursor"            # cursor | primary | <name from `pal windows displays`>
 width = 320

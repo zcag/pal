@@ -318,13 +318,14 @@ Bar lists every item with its target, position, hotkey and appearance
 (`[bar]` in [Config](config.md#bar)). Not drawn on Linux: the table is
 read and the items are listed by `pal bar list`, but no item renders.
 
-The sidebar is the other thing at the edge of the screen (macOS): one
-live palette, Windows by default, docked to the right edge. Rest the
+The sidebar is the other thing at the edge of the screen (macOS), off
+until you ask for it: one live palette docked to an edge, `palette =
+"windows/windows"` under `[sidebar]` being the one built for it. Rest the
 pointer at the edge and it peeks; click into it, press a key, or press
 its hotkey and it is yours to type in; every row wears its number and
 `⌘1` to `⌘9` run that row outright. `[sidebar]` in
 [Config](config.md#sidebar) picks the palette, the edge, the display and
-the hotkey, or turns it off.
+the hotkey.
 
 ## Settings
 
