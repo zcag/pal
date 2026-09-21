@@ -4139,3 +4139,78 @@ Settings, `[extensions.images]`:
 | `pad_color` | hex | `#ffffff` | What Pad to a square fills with. |
 | `tinypng_api_key` | secret | (none) | Adds Compress with TinyPNG. |
 | `tools` | list | every tool | The order the encoders are tried. |
+
+## Stats (`stats`, `stats/cpu`, `stats/memory`, `stats/disk`, `stats/network`, `stats/load`)
+
+CPU, memory, disk, network and load as five bar items off one sampler
+(every `interval` seconds, 3 by default; about 5 ms a tick, 27 ms while a
+process popover is open), each hidden by its rules while quiet and
+coloured past its thresholds, with a popover of the breakdown; the same
+facts as rows in the `Stats` palette. Detail: `extensions/stats/README.md`.
+
+| item | strip (the `*_label` setting) | quiet, hidden | amber | red |
+| --- | --- | --- | --- | --- |
+| `stats/cpu` | `42%`; `▂▃▅▇▆`; one bar per core; `42% · node` | under 70% | from 70% | from 90% |
+| `stats/memory` | `63%`; `24.2 GB`; `14.4 GB free`; sparkline | under 80% with no pressure | 80%, or pressure `warn` | 90%, or `critical` |
+| `stats/disk` | the startup volume's free space; share; used | over 20 GB free, every writable volume under 85% | 85% or 20 GB | 95% or 5 GB |
+| `stats/network` | `↓1.2M ↑80K`; `↓1.2M`; sparkline | under 1 MB/s either way | | (blue from 10 MB/s) |
+| `stats/load` | `3.26`; `3.26 3.25 2.91` | the 1 min load under the core count | from the cores | from twice them |
+
+The rules are the manifest's, edited by id in Settings > Bar or under
+`[bar.items."stats/cpu".rules.quiet]`; `show = "always"` keeps an item on
+the strip muted at rest, a `quiet` rule set to `when = "false"` keeps it in
+colour. The states every render publishes (`stats.cpu`, `stats.cpu_top`,
+`stats.cores`, `stats.memory`, `stats.memory_pressure`, `stats.swap`,
+`stats.disk`, `stats.disk_free` (GB), `stats.disk_worst`, `stats.net_down`
+and `stats.net_up` (KB/s), `stats.load1`, `load5`, `load15`) are what a
+rule of your own reads.
+
+The popovers, each with a sparkline of the last 60 samples in the theme's
+ink, a cursor ring the arrows (or `j`/`k`) and a click move, and `s` for
+the palette: **CPU** the share and level, cores / load / uptime, one bar
+per core, the five busiest processes (`Enter` Activity Monitor, `x` kill
+after a confirm, `c` copy, `p` Processes); **Memory** the segments bar
+(app, wired, compressed, cached, free) with a legend, the swap, the five
+largest, the same keys; **Disk** a card per volume with its bar, free
+space, mount point and a `read-only` badge (`Enter` reveals in Finder,
+`c` copies the path); **Network** the two rates, both in one sparkline,
+every interface with its kind, SSID, address and rates (`Enter` the
+Network palette, `c` copies the address); **Load** the three averages as
+tiles, the per-core figure.
+
+The palette is live (from the last sample, no tool runs; `⌘R` samples
+now) with the detail pane showing: Processor (CPU, load), Memory (memory,
+swap), Disks, Network (each interface, then the totals), Busiest and
+Largest processes, System (uptime). The value is the name.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Copy | `Enter` | the value: the share, the usage, a volume's mount point, an interface's address, a process's pid |
+| Open Activity Monitor | `⌘O` | the Processes palette on Linux |
+| Open bar popover | `⌘P` | the row's item, through `pal://bar/stats/<item>` |
+| Reveal in Finder | `⌘R` | a volume |
+| All addresses | `⌘A` | the Network palette |
+| Kill | `⌘⌫` | a process, after a confirm |
+
+Links: `pal://stats/cpu` (and `memory`, `disk`, `network`, `load`) opens
+the popover; `?palette=1` the palette on that section.
+
+Sources, no root: `os.cpus()` deltas, `os.loadavg()`, `vm_stat` and
+`sysctl` (Activity Monitor's arithmetic and the kernel's pressure level),
+`netstat -ibn`, `df -kP` and `mount` (every 60 s), `ps` (every 10 s, every
+tick while a process popover is open) on macOS; `/proc/meminfo` and
+`/proc/pressure/memory`, `/proc/net/dev` with `ip -j -br addr`,
+`/proc/mounts` on Linux. No temperature (a native reader or root on
+macOS).
+
+Settings, `[extensions.stats]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `interval` | number | `3` | Seconds between samples, 1 to 60. |
+| `cpu_label` | `percent`, `spark`, `bars`, `top` | `percent` | The CPU strip's label. |
+| `memory_label` | `percent`, `used`, `free`, `spark` | `percent` | The Memory strip's label. |
+| `disk_label` | `percent`, `free`, `used` | `free` | The Disk strip's label, for the startup volume. |
+| `network_label` | `rate`, `down`, `spark` | `rate` | The Network strip's label. |
+| `load_label` | `one`, `three` | `one` | The 1 minute average, or all three. |
+| `disk_hide` | list | `[]` | Mount points or volume names left out. |

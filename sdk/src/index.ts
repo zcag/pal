@@ -22,6 +22,8 @@ export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W,
 export { bytes, errorMessage, mdEscape, oneLine, slug, truncate } from "./text.ts";
 export { EXEC_MS, exec, run } from "./exec.ts";
 export type { Exec, ExecOptions } from "./exec.ts";
+export { listProcesses, parsePs, PS_ARGV, PS_MS } from "./procs.ts";
+export type { Proc } from "./procs.ts";
 export { BARE_TOKEN_TTL, EXPIRY_MARGIN, mintToken, parseToken, TOKEN_CMD_MS, TokenError } from "./token.ts";
 export type { Token } from "./token.ts";
 export { pngSize } from "./png.ts";

@@ -1023,6 +1023,16 @@ arrows move and a click sets, and the strip untouched:
 - **States, `forced`** (`extensions/states/`): the states held by hand
   with the time left on the soonest to expire; hidden while none is.
   `on: ["state:*"]`, so a hold or a reset redraws it at once.
+- **Stats, `cpu`, `memory`, `disk`, `network`, `load`**
+  (`extensions/stats/`): five items off one 3 s sampler that pushes them
+  all (`bar.update`, the core's `every` floor being 10 s), each stating
+  its facts (`stats/cpu`, `stats/memory_pressure`, `stats/disk_free`,
+  `stats/net_down`, ...) and hidden by its manifest rules while quiet.
+  The popovers: per-core bars and the busiest processes with a Kill key,
+  the memory segments and the largest, a card per volume (`Enter`
+  reveals), every interface with its rates and address, the load tiles,
+  each with a sparkline of the last 60 samples as an SVG `image` in the
+  theme's ink. `ps` runs every tick only while a process popover is open.
 
 ## States
 
@@ -1311,7 +1321,7 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   { action?, size? })`: keycaps then a muted caption, the footer line;
   `POPOVER_W` (396), the width a bar popover's view measures fixed widths
   against.
-- Text: `bytes(n)` ("3.2 KB", "1.5 MB"), `truncate(s, n)` (an ellipsis as the
+- Text: `bytes(n)` ("3.2 KB", "1.5 MB", "1.50 TB"), `truncate(s, n)` (an ellipsis as the
   last character), `oneLine(s)` (whitespace runs as one space, invisible
   characters such as a mail preheader's zero-width joiners out), `slug(s)`,
   `errorMessage(e)` (an Error's message, else the value as text),
@@ -1336,7 +1346,9 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
 - Processes: `exec(argv, { ms?, cwd?, stdin?, env? })`: `{ code, out, err,
   timedOut }`, killed after `ms` (`EXEC_MS`, 10 s); `run(argv, opts)`:
   stdout, or a throw with stderr, the exit code, or "<program> did not
-  finish in N s".
+  finish in N s". `listProcesses()`: the process table as `Proc[]` (`pid`,
+  `ppid`, `uid`, `cpu`, `rss` in KiB, `comm`, `name`) from one `ps`
+  (`PS_ARGV`, `parsePs(out)`); what Processes lists and Stats ranks.
 - Tokens: `parseToken(out, now?)`: the bearer token a command printed (a
   bare line, or JSON with `access_token` and its expiry) and when it stops
   being good; `mintToken(command, now?)` runs it through `sh -c`, a
