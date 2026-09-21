@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Launcher, menuLevel, type LauncherHandle, type Level } from "./Launcher";
+import { barKey, Launcher, menuLevel, type LauncherHandle, type Level } from "./Launcher";
 import { menuKind, type BarPayload, type BarShow } from "./bar";
 import { mark, useCore, useLiveViews } from "./core";
 import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
@@ -24,13 +24,13 @@ function levelOf(p: BarShow): Level {
   const ext = p.key.split("/")[0];
   const e = p.effect;
   if (e?.push) return { kind: "palette", palette: sourceKey(e.push), args: e.push.args };
-  if (e?.view) return { kind: "view", palette: p.key, title: p.title, spec: toView(e.view) };
+  if (e?.view) return { kind: "view", palette: barKey(p.key), title: p.title, spec: toView(e.view) };
   if (e?.show) return { kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title };
   const m = p.menu;
   switch (menuKind(m)) {
     case "nodes": return menuLevel(p.key, p.title, m as Extract<typeof m, unknown[]>);
     case "palette": { const pm = m as { palette: string; extension?: string; args?: unknown }; return { kind: "palette", palette: `${pm.extension ?? ext}/${pm.palette}`, args: pm.args }; }
-    case "view": return { kind: "view", palette: p.key, title: p.title, spec: toView((m as { view: never }).view) };
+    case "view": return { kind: "view", palette: barKey(p.key), title: p.title, spec: toView((m as { view: never }).view) };
     default: return menuLevel(p.key, p.title, []);
   }
 }
@@ -89,7 +89,7 @@ export default function BarPage() {
   // A row of the item's own level (a menu row, a view action, a form's submit) is `bar/action`; a palette level's rows are the usual pick.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
     const key = showing.current?.key;
-    if (item.source || !key || item.palette !== key) return core.pick(item, query, action, ctx);
+    if (item.source || !key || (item.palette !== key && item.palette !== barKey(key))) return core.pick(item, query, action, ctx);
     const t0 = performance.now();
     // What a control read rides along (`ctx.values` in the extension's `onAction`): the text field on Enter, a form's fields, a slider's fraction.
     const r = await invoke<Effect>("bar_action", { key, action: action ?? item.id, values: ctx?.values ?? null });

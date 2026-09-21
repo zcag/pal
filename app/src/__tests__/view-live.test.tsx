@@ -115,12 +115,12 @@ describe("live view", () => {
 
   it("a bar item's own { view } level (BarPage's levelOf) is reported by the item and takes a { bar } push; a { palette } level naming a view palette starts as a view level", async () => {
     await mount();
-    await act(() => { launcher.current!.start({ kind: "view", palette: "spotify/playing", title: "Spotify", spec: spec(lines("a"), { id: "now" }) }); });
+    await act(() => { launcher.current!.start({ kind: "view", palette: "bar:spotify/playing", title: "Spotify", spec: spec(lines("a"), { id: "now" }) }); });
     await flush();
     expect(opens.at(-1)).toEqual({ extension: "spotify", bar: "playing", id: "now" });
     // The popover opening on the same item again (the shell forgot the report): reported again, the same value.
     const n = opens.length;
-    await act(() => { launcher.current!.start({ kind: "view", palette: "spotify/playing", title: "Spotify", spec: spec(lines("a"), { id: "now" }) }); });
+    await act(() => { launcher.current!.start({ kind: "view", palette: "bar:spotify/playing", title: "Spotify", spec: spec(lines("a"), { id: "now" }) }); });
     await flush();
     expect(opens.slice(n)).toEqual([{ extension: "spotify", bar: "playing", id: "now" }]);
     await push({ extension: "spotify", palette: "playing", spec: { tree: lines("p") } });
@@ -135,13 +135,28 @@ describe("live view", () => {
     expect(values()).toEqual(["line a", "line b", "line c"]);
   });
 
+  it("a bar item named after one of its extension's palettes (github's prs/issues/notifications) is still the item's own level: reported by the item, and a pick from it carries no source", async () => {
+    const playing: SourceInfo = { ...source, palette: "playing", title: "Playing", input: false };
+    const picks: { palette?: string; source?: unknown }[] = [];
+    await act(async () => {
+      root.render(<Launcher ref={launcher} sources={[source, playing]} search={async () => []} view={async () => served} onPick={(item) => { picks.push({ palette: item.palette, source: item.source }); return {}; }} onHide={() => {}} onViewOpen={(o) => opens.push(o)} />);
+    });
+    await flush();
+    await act(() => { launcher.current!.start({ kind: "view", palette: "bar:spotify/playing", title: "Spotify", spec: spec(lines("a"), { id: "now" }) }); });
+    await flush();
+    expect(opens.at(-1)).toEqual({ extension: "spotify", bar: "playing", id: "now" });
+    await act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true })); });
+    await flush();
+    expect(picks).toEqual([{ palette: "bar:spotify/playing", source: undefined }]);
+  });
+
   it("a palette pushed over the popover's view level hides it, and the item rendered again in place meanwhile does not bring it back", async () => {
     await mount();
-    const bar = (v: string) => ({ kind: "view" as const, palette: "spotify/playing", title: "Spotify", spec: spec(lines(v), { id: "now" }) });
+    const bar = (v: string) => ({ kind: "view" as const, palette: "bar:spotify/playing", title: "Spotify", spec: spec(lines(v), { id: "now" }) });
     await act(() => { launcher.current!.start(bar("a")); });
     await flush();
     expect(opens.at(-1)).toEqual({ extension: "spotify", bar: "playing", id: "now" });
-    await act(() => { launcher.current!.apply({ id: "now", name: "x", palette: "spotify/playing" }, { push: { extension: "spotify", palette: "lyrics" } }); });
+    await act(() => { launcher.current!.apply({ id: "now", name: "x", palette: "bar:spotify/playing" }, { push: { extension: "spotify", palette: "lyrics" } }); });
     await flush();
     // The pushed level is a view palette too: it is what is on top now.
     expect(opens.at(-1)).toEqual({ extension: "spotify", palette: "lyrics", id: "view" });

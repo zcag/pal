@@ -155,8 +155,10 @@ const VIEW_ID = "view";
 export type ViewOpen = { extension: string; palette?: string; bar?: string; id: string };
 /** A push for an open view level (`ViewUpdate` in the SDK, `pal://view`): a whole `ViewSpec`, or `{ tree }` alone with the level's actions, title and input kept. */
 export type ViewUpdate = { extension: string; palette?: string | null; bar?: string | null; id?: string | null; spec: ViewSpec | { tree: ViewNode } };
-/** The bar item a level's `palette` key names when it is no source (`ext/item`, BarPage's `levelOf`). */
-const barOf = (key: string): { extension: string; bar: string } | undefined => { const i = key.indexOf("/"); return i > 0 ? { extension: key.slice(0, i), bar: key.slice(i + 1) } : undefined; };
+/** A bar item's own level (BarPage's `levelOf`) keys its `palette` as `bar:ext/item`: a source key is `ext/palette`, and an extension may name a bar item after one of its palettes (github's prs, issues, notifications), so the bare key would resolve to the palette and a pick would go there. */
+export const barKey = (key: string) => `bar:${key}`;
+/** The bar item a level's `palette` key names, when it is one. */
+const barOf = (key: string): { extension: string; bar: string } | undefined => { if (!key.startsWith("bar:")) return; const k = key.slice(4), i = k.indexOf("/"); return i > 0 ? { extension: k.slice(0, i), bar: k.slice(i + 1) } : undefined; };
 /** Keys a view level holds while a pick is on its way, at most; a fast typist's letters, not a held key. */
 const VIEW_QUEUE = 4;
 /** What a view level does with a key, queued while a pick is in flight and run against the tree the reply brings; `submit` and `cancel` are the `View.input` field's Enter and Escape. */
@@ -329,7 +331,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   level.current = view;
 
   const byKey = useMemo(() => new Map(sources.map((s) => [sourceKey(s), s])), [sources]);
-  const titleOf = (key: string) => byKey.get(key)?.title ?? key;
+  const titleOf = (key: string) => byKey.get(key)?.title ?? barOf(key)?.bar ?? key;
   const scopeKey = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? view.palette : null;
   const isMenu = view.kind === "menu";
   /** `pal pick`'s picker (a menu level with `pick`). */
@@ -960,7 +962,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const viewTitle = isView ? spec?.title ?? titleOf(view.palette) : form ? form.spec.title : "";
   /** A source's tile, or for a key that is no source (a bar item's view or menu level, a shown item's palette) the tile of any palette of its extension: every palette wears the manifest's. */
   const iconFor = (key: string | undefined) => {
-    const s = key ? byKey.get(key) ?? sources.find((x) => x.extension === key.split("/")[0] && x.icon) : undefined;
+    const ext = key && (barOf(key)?.extension ?? key.split("/")[0]);
+    const s = key ? byKey.get(key) ?? sources.find((x) => x.extension === ext && x.icon) : undefined;
     return s?.icon ? iconOf(s.icon, s.title) : undefined;
   };
   const levelIcon = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? iconFor(view.palette) : view.kind === "show" ? iconFor(view.palette) : isMenu ? iconFor(view.key) : undefined;
