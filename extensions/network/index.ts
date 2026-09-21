@@ -14,7 +14,7 @@ import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCor
 import { renderNetworkPopover, type NetworkPopover } from "./view.ts";
 
 /** `[extensions.network]`, default in pal.json; `ssid_labels` and `network_icons` are the old split of `networks`, still read (see `table`). */
-type Settings = { public_ip_url: string; icon_only: boolean; networks?: unknown[]; ssid_labels?: unknown[]; network_icons?: unknown[] };
+type Settings = { public_ip_url: string; networks?: unknown[]; ssid_labels?: unknown[]; network_icons?: unknown[] };
 
 const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
@@ -334,7 +334,8 @@ function glyph(i: Iface, kind: Kind | undefined): string {
 }
 
 /** Icon only: the glyph already says wired, hotspot, untrusted or how strong the link is, and the name is one hover away. */
-const strip = (icon: string, title: string) => settings.get<Settings>().icon_only ? { icon } : { icon, title };
+// A glyph-only item is the core's `[bar.items."network/status"] show_title = false`, not a setting of this extension's.
+const strip = (icon: string, title: string) => ({ icon, title });
 
 /** The one interface the compact strip speaks for: default-route first. */
 function active(s: Snapshot): Iface | undefined {

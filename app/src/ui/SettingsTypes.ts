@@ -342,6 +342,24 @@ export type BarItemConfig = {
   look: BarLookOverride;
 };
 
+/** What a rule does while it holds: presence, urgency, and the look keys (`BarLookOverride`), each unset meaning "leave". */
+export type BarRuleEffect = BarLookOverride & { hidden?: boolean; urgent?: boolean; position?: string };
+
+/** One rule of a bar item as the pane lists it (settings.rs `BarRuleView`): as it applies, the extension's own for comparison, and whether it holds now. */
+export type BarRuleView = {
+  id: string;
+  when: string;
+  description?: string;
+  effect: BarRuleEffect;
+  /** The extension's rule; absent for one of the file's own. */
+  default?: { when: string; effect: BarRuleEffect };
+  overridden: boolean;
+  active: boolean;
+};
+
+/** A state the item's renders publish, with its live value. */
+export type BarStateView = { name: string; value: boolean | number | string | null; description?: string };
+
 /** One static state an extension declared for its Settings-only bar preview. */
 export type BarItemMock = {
   /** Stable manifest key, never shown to the user. */
@@ -376,6 +394,10 @@ export type BarItem = {
   state?: BarItemState;
   /** Optional, extension-declared states that replace only this pane's strip. */
   mocks?: BarItemMock[];
+  /** The item's rules as they apply, in order. */
+  rules?: BarRuleView[];
+  /** The facts the item publishes, what its rules read. */
+  states?: BarStateView[];
   config: BarItemConfig;
   /** The extension's settings about this item (`SettingSpec.bar`, or a `bar_` id): shown on the pane, written to the extension's table. */
   settings?: BarItemSetting[];

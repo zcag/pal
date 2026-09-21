@@ -257,6 +257,7 @@ Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 | `show` | `"auto"`, `"always"` | `"auto"` | What the item does with its slot when its render says `hidden`: `auto` takes it off the strip; `always` keeps the quiet shape the render offers (`BarItem.empty`: the glyph, an honest tooltip such as "No unread mail", the same popover; weather's reading as the title), muted, without a badge or segments, in the item's own frame. An item whose render offers no such shape (signed out) hides either way. Read at draw time, so a flip needs no re-render. |
 | `show_when` | string | unset | A state expression (`[states]`, below): the item is on the strip only while it is true (`working`, `hour >= 9 and not deep`). Read at draw time; nothing renders while it holds the item off, and the flip back renders once. |
 | `hide_when` | string | unset | The opposite: off the strip while true. Both may be set; hidden when either says so. |
+| `rules.<id>` | table | unset | The item's presentation rules by id (`[bar.items."power/battery".rules.low]`): an extension's rule overridden key by key (`when`, `hidden`, `urgent`, `position`, `description`, and the appearance keys above), or a rule of your own (which needs `when`). Below, "Rules". |
 | `target` | as above | unset | This item's target; the global one when unset. |
 | `position` | string | unset | This item's sketchybar position; `sketchybar.position` when unset. |
 | `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |
@@ -271,6 +272,43 @@ the bar's own items are never touched, and every pal item is removed on
 quit. A bar restarted by its own rc (which wipes its items) gets pal's
 back at the next probe, or at once with `pal bar sync` at the end of the
 rc.
+
+## Rules: presence, urgency and appearance by state
+
+An extension's bar item states its facts with every render (`power/level`,
+`power/charging`, `spotify/playing`, `calendar/phase`: the States palette
+lists them, and the item's pane under Settings > Bar shows them live) and
+declares in its `pal.json` the **rules** that turn those into how the item
+draws: while a rule's `when` (a state expression, as `[states]` below)
+holds, the item is hidden, urgent, moved, or drawn with the appearance
+keys of this table. Rules apply in the extension's order, later wins.
+The extension no longer decides presentation in its code, so every one of
+those decisions is yours to move:
+
+```toml
+[bar.items."power/battery".rules.low]
+when = "power.level < 25"            # the extension's rule, its threshold moved
+
+[bar.items."power/battery".rules.fine]
+hidden = false                       # keep the healthy battery on the strip
+
+[bar.items."media/now-playing".rules.paused]
+hidden = false                       # a paused track stays, muted (the rule's own tint)
+
+[bar.items."power/battery".rules.focus]   # a rule of your own
+when = "not working"
+hidden = true
+color = "muted"
+```
+
+A key you set replaces the extension's for that rule; a key you leave
+keeps the extension's. Settings > Bar lists an item's rules with the
+condition, what each does, whether it holds now and where it comes from,
+and edits them the same way. A rule's `hidden` is decided at draw time
+after the render (the item keeps rendering, since its facts come from the
+render); `show_when`/`hide_when` above hold an item off without a render.
+A rule's `color` wins over a `muted` the render answered, since the rule is
+the decision; the item-level `color` key above leaves `muted` alone.
 
 ## `[states]`
 

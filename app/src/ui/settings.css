@@ -944,6 +944,50 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-bpane__reset { display: flex; align-items: center; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-4, 16px); padding-top: var(--pal-space-3, 12px); border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-bpane__reset .pal-pane__note { margin-right: 0; font-size: var(--pal-text-xs, 11px); }
 
+/* Settings > Bar > an item's Rules: the facts line, one row per rule (a dot for "holds now", the id, the condition in mono, the effect as chips, where it comes from), the editor a row opens into. */
+.pal-rules__lead { margin: 0 0 var(--pal-space-2, 8px); max-width: 68ch; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-rules__facts { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pal-space-1, 4px) var(--pal-space-3, 12px); margin: 0 0 var(--pal-space-2, 8px); font-size: var(--pal-text-xs, 11px); }
+.pal-rules__facts-label { color: var(--pal-fg-faint, #868794); }
+.pal-rules__fact code { color: var(--pal-fg, #ececf0); font-family: var(--pal-font-mono, ui-monospace, monospace); }
+.pal-rules__fact-value { color: var(--pal-tag-blue, #7aa2f7); font-variant-numeric: tabular-nums; }
+.pal-rules__list { margin: 0; padding: 0; list-style: none; border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
+.pal-rules__row + .pal-rules__row { border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-rules__head { display: grid; grid-template-columns: 10px minmax(56px, auto) minmax(0, 1fr) auto auto; align-items: center; gap: var(--pal-space-2, 8px) var(--pal-space-3, 12px); width: 100%; padding: var(--pal-space-2, 8px) var(--pal-space-3, 12px); border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: default; }
+.pal-rules__head:hover { background: var(--pal-selection, rgba(255, 255, 255, 0.06)); }
+.pal-rules__head:focus-visible { outline: none; box-shadow: inset var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-rules__row:first-child .pal-rules__head { border-radius: var(--pal-radius-tile, 10px) var(--pal-radius-tile, 10px) 0 0; }
+.pal-rules__row:last-child:not([data-open]) .pal-rules__head { border-radius: 0 0 var(--pal-radius-tile, 10px) var(--pal-radius-tile, 10px); }
+.pal-rules__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); }
+.pal-rules__row[data-active] .pal-rules__dot { background: var(--pal-success, #4fc98a); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pal-success, #4fc98a) 25%, transparent); }
+.pal-rules__name { font-size: var(--pal-text-sm, 12px); font-weight: var(--pal-weight-medium, 500); }
+.pal-rules__row[data-own] .pal-rules__name::after { content: ""; }
+.pal-rules__cond { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-muted, #a3a4ae); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
+.pal-rules__row[data-active] .pal-rules__cond { color: var(--pal-fg, #ececf0); }
+.pal-rules__effect { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--pal-space-1, 4px); }
+.pal-rules__chip { padding: 1px 6px; border-radius: 999px; background: var(--pal-tag-grey-bg, rgba(255, 255, 255, 0.1)); color: var(--pal-fg, #ececf0); font-size: var(--pal-text-xs, 11px); white-space: nowrap; }
+.pal-rules__chip[data-empty] { color: var(--pal-tag-amber, #f0b25a); background: var(--pal-tag-amber-bg, #3e342a); }
+.pal-rules__origin { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); font-style: italic; white-space: nowrap; }
+.pal-rules__row[data-overridden] .pal-rules__origin, .pal-rules__row[data-own] .pal-rules__origin { color: var(--pal-tag-amber, #f0b25a); }
+.pal-rules__editor { padding: 0 var(--pal-space-3, 12px) var(--pal-space-3, 12px) 30px; }
+.pal-rules__desc { margin: 0 0 var(--pal-space-2, 8px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-rules__fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--pal-space-2, 8px) var(--pal-space-3, 12px); }
+.pal-rules__field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pal-rules__field--wide { grid-column: 1 / -1; }
+.pal-rules__label { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); }
+.pal-rules__field .pal-field__input, .pal-rules__field .pal-select__input { height: var(--pal-icon-box, 24px); font-size: var(--pal-text-sm, 12px); }
+.pal-rules__field .pal-number .pal-field__input { width: 72px; }
+.pal-rules__when { width: 100%; font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }
+.pal-rules__default { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-rules__default code { font-family: var(--pal-font-mono, ui-monospace, monospace); }
+.pal-rules__actions { display: flex; align-items: center; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-3, 12px); }
+.pal-rules__actions .pal-pane__note { margin: 0; font-size: var(--pal-text-xs, 11px); }
+.pal-rules__add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-2, 8px); }
+.pal-rules__add .pal-field__input { height: var(--pal-icon-box, 24px); font-size: var(--pal-text-sm, 12px); }
+.pal-rules__add .pal-rules__id { width: 120px; font-family: var(--pal-font-mono, ui-monospace, monospace); }
+.pal-rules__add .pal-rules__when { width: 260px; }
+.pal-rules__add-note { flex-basis: 100%; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-rules > .pal-button { margin-top: var(--pal-space-2, 8px); }
+
 /* Settings > General > Theme file: the select, the buttons under it, the file's name or its complaints. */
 .pal-theme-file { display: flex; flex-direction: column; align-items: flex-start; gap: var(--pal-space-2); min-width: 0; }
 .pal-theme-file__note { color: var(--pal-fg-faint); font-size: var(--pal-text-sm); line-height: var(--pal-leading-prose); overflow-wrap: anywhere; }

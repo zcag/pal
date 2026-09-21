@@ -63,9 +63,9 @@ row's id (the address):
 
 Nothing to install. **Low battery alert** (`low_threshold`, 25) is the
 percentage at which connected, battery-reporting devices become visible on
-the bar. **Bar item** (`bar_show`, `low`) says when the strip is drawn at
-all: `low` is the alert alone, `connected` keeps a muted Bluetooth glyph
-up while any device is connected; keeping it up at all times is the core's
+the bar. When the strip is drawn is the item's rules (`none`, `fine`,
+`low`, `critical` under Settings > Bar): turn `fine`'s Hidden off to keep
+a muted Bluetooth glyph up while any device is connected; keeping it up at all times is the core's
 `show = "always"` under `[bar.items."bluetooth/battery"]` (docs/config.md).
 Either way the tooltip names what is connected and the popover is the
 same. The palette itself always lists every paired device.

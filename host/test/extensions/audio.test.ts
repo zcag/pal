@@ -41,7 +41,7 @@ describe("audio", () => {
   test("meta: live", () => {
     const loaded = host.loaded().find((l) => l.extension === "audio")!;
     expect(loaded.palettes).toEqual([{ name: "audio", title: "Audio", live: true, input: false, icon: tile("violet", "\u{f057e}"), placeholder: "Switch output or input, set the volume" }]);
-    expect(loaded.bar).toMatchObject([{ id: "volume", title: "Volume", refresh: { every: 5, on: ["wake"] }, keys: expect.any(Array), mocks: { muted: { item: { color: "muted" } } }, source: true }, { id: "microphone", title: "Microphone", refresh: { every: 5, on: ["wake"] }, keys: expect.any(Array), mocks: { normal: { item: { hidden: true, empty: { icon: "\u{f036c}" } } } }, source: true }]);
+    expect(loaded.bar).toMatchObject([{ id: "volume", title: "Volume", refresh: { every: 5, on: ["wake"] }, keys: expect.any(Array), mocks: { muted: { item: { color: "muted" } } }, source: true }, { id: "microphone", title: "Microphone", refresh: { every: 5, on: ["wake"] }, keys: expect.any(Array), mocks: { normal: { item: { hidden: true, empty: { icon: "\u{f036c}" } } } }, rules: [{ id: "live", hidden: true }, { id: "muted", color: "red" }, { id: "missing", color: "red" }], source: true }]);
   });
 
   test("bar: volume controls the default output directly, scroll adjusts it, and the mic appears only while muted", async () => {
@@ -50,27 +50,26 @@ describe("audio", () => {
     expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f0580}", icon_size: 18, icon_width: 31, scroll: { up: "up", down: "down" } });
     expect((await host.render("audio", "volume")).click).toBeUndefined();
     expect((await host.render("audio", "volume")).title).toBeUndefined();
-    // A live mic is hidden, the glyph and the popover its empty shape for the core's show = always; its click then only opens the popover.
+    // A live mic renders as itself with input live (the manifest's rule hides it), the glyph and the popover its empty shape; its click only opens the popover.
     const live = await host.render("audio", "microphone");
-    expect(live).toMatchObject({ hidden: true, empty: { icon: "\u{f036c}", tooltip: "MacBook Pro Microphone · 57%" } });
+    expect(live).toMatchObject({ icon: "\u{f036c}", tooltip: "MacBook Pro Microphone · 57%", states: { input: "live" }, empty: { icon: "\u{f036c}", tooltip: "MacBook Pro Microphone · 57%" } });
+    expect(live).not.toHaveProperty("hidden");
     expect(live.click).toBeUndefined();
     expect(viewOf(live.empty!)).toMatchObject({ id: "microphone", title: "Input: MacBook Pro Microphone" });
     expect(await host.barAction("audio", "volume", "up")).toEqual({ keep: true, hud: "MacBook Pro Speakers 61%" });
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
-    expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
+    expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", states: { input: "muted" }, click: "open" });
     expect(await host.request<any>("bar/open", { extension: "audio", id: "microphone" })).toEqual({ keep: true, hud: "MacBook Pro Microphone at 75%" });
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: false } : d);
   });
 
-  test("bar_show_microphone at muted leaves a missing input quiet (no empty shape either); no output is hidden in the glyph slot, the muted glyph and the popover its empty shape", async () => {
+  test("a missing input renders red-less with input none (the manifest's missing rule tints it; hide it there to leave it quiet); no output is hidden in the glyph slot, the muted glyph and the popover its empty shape", async () => {
     const saved = devices;
     try {
       devices = devices.filter((d) => d.kind !== "input");
-      expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036e}", color: "red", tooltip: "No input device" });
-      host.changeSettings("audio", { settings: { level: "flash", bar_show_microphone: "muted" } });
-      expect(await host.render("audio", "microphone")).toEqual({ hidden: true });
+      expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036e}", tooltip: "No input device", states: { input: "none" } });
       devices = saved.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
-      expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
+      expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", states: { input: "muted" }, click: "open" });
       devices = saved.filter((d) => d.kind !== "output");
       const none = await host.render("audio", "volume");
       expect(none).toMatchObject({ hidden: true, icon_size: 18, icon_width: 31, empty: { icon: "\u{f075f}", tooltip: "No output device" } });

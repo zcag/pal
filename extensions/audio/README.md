@@ -49,8 +49,8 @@ Audio palette for the searchable list. A device the backend reports no level for
 red when that input is muted or absent, and a click restores an available input
 to 75%. Its popover is the same shape the other way round: the microphone in use
 on the card, the other inputs as rows, the output in the line beneath.
-`bar_show_microphone` narrows that to muted alone (a missing input stays
-quiet). Either strip is kept up while it has nothing to say by the core's
+Whether a missing input shows is the item's `missing` rule (Hidden on
+under Settings > Bar leaves it quiet). Either strip is kept up while it has nothing to say by the core's
 `show = "always"` under its `[bar.items."audio/<id>"]` (docs/config.md):
 the live microphone, or a missing output, as a muted glyph whose click
 opens the popover. Both poll every five seconds until the core has a
@@ -62,7 +62,6 @@ Settings, `[extensions.audio]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `level` | select | `flash` | Where the percentage lives: `flash` for three seconds after a change, `always`, or `never`. |
-| `bar_show_microphone` | `auto` / `muted` | `auto` | When the Microphone strip is drawn: muted or missing, or muted only. |
 
 ## Rows
 

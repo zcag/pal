@@ -32,3 +32,17 @@ export const barItems: BarItem[] = [
 
 /** An item with nothing to say that offers a quiet shape (`BarItem.empty`), kept on the strip by `show = "always"`. */
 export const quietItem: BarItem = { key: "gmail/unread", extension: "gmail", id: "unread", title: "Unread", extTitle: "Gmail", source: true, refreshEvery: 120, renderedAt: Math.floor(Date.now() / 1000) - 60, stale: false, state: { hidden: true, urgent: false, empty: { icon: "\u{f01ee}", tooltip: "No unread mail" } }, mocks: [{ id: "unread", title: "3 unread", item: { hidden: false, urgent: false, icon: "\u{f01ee}", badge: 3 } }], config: { enabled: true, show: "always", look: {} } };
+
+/** Power's battery item with its rules (docs/design/states.md): the extension's three, one changed in the file, one of the user's own; the facts it publishes. */
+export const ruledItem: BarItem = {
+  key: "power/battery", extension: "power", id: "battery", title: "Battery", extTitle: "Power", source: true, refreshEvery: 60, renderedAt: Math.floor(Date.now() / 1000) - 30, stale: false,
+  state: { hidden: false, urgent: false, icon: "\u{f0079}", title: "42%", color: "amber" },
+  states: [{ name: "level", value: 42, description: "Charge, percent" }, { name: "charging", value: false }, { name: "draw", value: 4.2, description: "Watts, while on battery" }],
+  rules: [
+    { id: "fine", when: "not power.charging and power.level >= 50", description: "Nothing to say on a healthy battery.", effect: { hidden: true }, default: { when: "not power.charging and power.level >= 50", effect: { hidden: true } }, overridden: false, active: false },
+    { id: "low", when: "power.level < 25", effect: { color: "red", urgent: true }, default: { when: "power.level < 15", effect: { color: "red", urgent: true } }, overridden: true, active: false },
+    { id: "warn", when: "power.level < 50", effect: { color: "amber" }, default: { when: "power.level < 50", effect: { color: "amber" } }, overridden: false, active: true },
+    { id: "focus", when: "not working", effect: { hidden: true }, overridden: true, active: false },
+  ],
+  config: { enabled: true, look: {} },
+};

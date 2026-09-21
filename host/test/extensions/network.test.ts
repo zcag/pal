@@ -301,10 +301,7 @@ describe("network status: what the strip says about the network", () => {
     expect(hotspot).toMatchObject({ icon: "📱", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1" });
     expect(hotspot.menu.view.tree.children[0].children[2]).toMatchObject({ text: "hotspot" });
     expect(await bar({ networks: ["Cafe Wifi = icon:☕"] }, { security: "NONE" })).toMatchObject({ icon: "☕", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · open network · Signal 72% · Gateway 192.168.1.1" });
-    // Icon only: the glyph stands alone, and hide still wins over everything.
-    const alone = await bar({ networks: ["Cafe Wifi = icon:🏠"], icon_only: true });
-    expect(alone.title).toBeUndefined();
-    expect(alone).toMatchObject({ icon: "🏠" });
+    // Hide wins over everything.
     expect(await bar({ networks: ["Cafe Wifi = hide icon:🏠"] })).toEqual({ hidden: true });
   }, 30000);
 
@@ -346,13 +343,7 @@ describe("network status: what the strip says about the network", () => {
     } finally { host.kill(); }
   }, 20000);
 
-  test("icon only drops the title from every state, and keeps the tooltip that now carries the name", async () => {
-    const wifi = await bar({ icon_only: true });
-    expect(wifi.title).toBeUndefined();
-    expect(wifi).toMatchObject({ icon: "\u{f0925}", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" });
-    const offline = await bar({ icon_only: true }, { route: false });
-    expect(offline.title).toBeUndefined();
-    expect(offline).toMatchObject({ icon: "\u{f092d}", color: "red" });
+  test("offline is red with its title; a glyph-only item is the core's show_title, not a setting here", async () => {
     expect(await bar({}, { route: false })).toMatchObject({ icon: "\u{f092d}", title: "Offline", color: "red" });
   }, 20000);
 

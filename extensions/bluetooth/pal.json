@@ -18,28 +18,11 @@
       "id": "low_threshold",
       "bar": "battery",
       "label": "Low battery alert",
-      "description": "Show the Bluetooth Battery bar item when a connected device at or below this level reports a battery. At 20% or below (or this level when lower), the alert is red.",
+      "description": "A connected device at or below this level counts as low: named on the bar item, and its rules show the item. At 20% or below (or this level when lower) the tint is red.",
       "min": 1,
       "max": 100,
       "unit": "%",
       "default": 25
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Bluetooth Battery item is drawn. Low is the alert alone; Connected keeps a muted Bluetooth glyph on the strip while a device is connected, the tooltip naming what, the popover the same.",
-      "options": [
-        {
-          "id": "low",
-          "title": "When a connected device's battery is low"
-        },
-        {
-          "id": "connected",
-          "title": "When a device is connected"
-        }
-      ],
-      "default": "low"
     }
   ],
   "store": {
@@ -125,6 +108,20 @@
       ]
     }
   },
+  "states": {
+    "low": {
+      "description": "Connected devices at or under the low threshold",
+      "kind": "number"
+    },
+    "lowest": {
+      "description": "The lowest battery among the connected devices, percent",
+      "kind": "number"
+    },
+    "connected": {
+      "description": "Connected devices",
+      "kind": "number"
+    }
+  },
   "bar": {
     "battery": {
       "keys": [
@@ -184,10 +181,40 @@
           "title": "All healthy",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰂯", "tooltip": "No connected devices" }
+            "empty": {
+              "icon": "󰂯",
+              "tooltip": "No connected devices"
+            }
           }
         }
-      }
+      },
+      "rules": [
+        {
+          "id": "none",
+          "when": "bluetooth.connected == 0",
+          "description": "Nothing connected: off the strip.",
+          "hidden": true
+        },
+        {
+          "id": "fine",
+          "when": "bluetooth.low == 0",
+          "description": "Nothing low: off the strip (turn Hidden off to keep a muted glyph up while a device is connected).",
+          "hidden": true,
+          "color": "muted"
+        },
+        {
+          "id": "low",
+          "when": "bluetooth.low > 0",
+          "description": "A device is low: a reminder.",
+          "color": "amber"
+        },
+        {
+          "id": "critical",
+          "when": "bluetooth.low > 0 and bluetooth.lowest <= 20",
+          "description": "Act now.",
+          "color": "red"
+        }
+      ]
     }
   }
 }

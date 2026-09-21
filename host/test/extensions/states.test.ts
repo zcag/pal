@@ -73,7 +73,7 @@ describe("over the wire", () => {
     expect(byId(r, "working").accessories).toEqual([{ tag: "false", color: "muted" }, { tag: "expr", color: "muted" }]);
     expect(byId(r, "working").subtitle).toBe("On the clock");
     expect(byId(r, "hour").accessories).toEqual([{ tag: "10", color: "blue" }, { tag: "built-in", color: "muted" }]);
-    expect(byId(r, "hour").actions?.map((a) => a.id)).toEqual(["copy"], "a built-in is only copied");
+    expect(byId(r, "hour").actions?.map((a) => a.id)).toEqual(["copy"]); // a built-in is only copied
     expect(byId(r, "sessions/working").subtitle).toBe("Published by sessions");
     expect(byId(r, "deep").actions?.map((a) => a.id)).toEqual(["toggle", "set", "hold-1h", "hold-3h", "hold-tomorrow", "copy", "undeclare"]);
   });
@@ -99,7 +99,7 @@ describe("over the wire", () => {
     expect(w.value).toBe(true);
     expect(w.until! - before).toBeGreaterThanOrEqual(3 * 3_600_000 - 50);
     r = await rows();
-    expect(byId(r, "working").accessories?.[1].tag).toMatch(/^held · (2 h 59 m|3 h 0 m)$/);
+    expect((byId(r, "working").accessories?.[1] as { tag: string }).tag).toMatch(/^held · (2 h 59 m|3 h 0 m)$/);
 
     await host.pick("states", "states", "working", "reset");
     expect(table.entries.get("working")).toMatchObject({ value: false, source: "expr" });

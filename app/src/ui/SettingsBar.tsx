@@ -3,6 +3,7 @@ import { BarStrip, type BarLook, type BarStripItem, type BarStripTarget } from "
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
 import { SettingsDisclosure, SettingsField, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsBarRules, type RuleWrite } from "./SettingsBarRules";
 import { SettingsList, type SettingsListItem } from "./SettingsList";
 import { Tag } from "./Row";
 import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarItemState, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type SettingsIndexEntry } from "./SettingsTypes";
@@ -13,6 +14,8 @@ export type SettingsBarProps = {
   onChange: (config: BarConfig) => void;
   items: BarItem[];
   onItem: (key: string, config: BarItemConfig) => void;
+  /** A rule of an item changed in its pane (`SettingsBarRules`): the keys to write under `[bar.items."<key>".rules.<id>]`, or `null` to drop the table. */
+  onRule?: (key: string, id: string, write: RuleWrite | null) => void;
   /** sketchybar answered its last probe. */
   sketchybar: boolean;
   /** This platform draws bar items (macOS); off it the page only says so. */
@@ -321,7 +324,7 @@ const hovers = [{ id: "", title: "Default" }, { id: "on", title: "On" }, { id: "
 const shows: { id: BarShow; title: string }[] = [{ id: "auto", title: "When there is something" }, { id: "always", title: "Always" }];
 
 /** The selected item: description, preview, placement, appearance with inheritance, hotkey, peek, Reset. */
-function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onOpenExtension?: (name: string) => void; onSetting?: (extension: string, id: string, value: unknown) => void }) {
+function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSetting }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onRule?: (id: string, write: RuleWrite | null) => void; onOpenExtension?: (name: string) => void; onSetting?: (extension: string, id: string, value: unknown) => void }) {
   const c = b.config;
   const put = (patch: Partial<BarItemConfig>) => onItem({ ...c, ...patch });
   const eff = effectiveTarget(b, config, sketchybar);
@@ -385,6 +388,8 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
         </section>
       )}
 
+      {(!!b.rules?.length || !!b.states?.length || onRule) && <SettingsBarRules b={b} anchor={anchor} onRule={(id, w) => onRule?.(id, w)} />}
+
       <section className="pal-ppane__section" aria-label="Placement">
         <h4 className="pal-ppane__h">Placement <span className="pal-ppane__h-note">bar.items."{b.key}"</span></h4>
         <div className="pal-bar-groups pal-bar-groups--flat">
@@ -398,14 +403,14 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:show_when`}>
             <label className="pal-setting__label" htmlFor={`${anchor}-show-when`}>Show when<code className="pal-bar-field__key">show_when</code></label>
             <div className="pal-setting__body">
-              <div className="pal-setting__control"><input id={`${anchor}-show-when`} className="pal-field__input" type="text" placeholder="working" value={c.showWhen ?? ""} spellCheck={false} onChange={(e) => put({ showWhen: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
+              <div className="pal-setting__control"><input id={`${anchor}-show-when`} className="pal-field__input" type="text" placeholder="e.g. working" value={c.showWhen ?? ""} spellCheck={false} onChange={(e) => put({ showWhen: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
               <p className="pal-setting__desc">A state expression: the item is on the strip only while it is true (<code>working</code>, <code>hour &gt;= 9 and not deep</code>). Nothing renders while it holds the item off. The States palette lists what there is to read.</p>
             </div>
           </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:hide_when`}>
             <label className="pal-setting__label" htmlFor={`${anchor}-hide-when`}>Hide when<code className="pal-bar-field__key">hide_when</code></label>
             <div className="pal-setting__body">
-              <div className="pal-setting__control"><input id={`${anchor}-hide-when`} className="pal-field__input" type="text" placeholder="locked or idle > 600" value={c.hideWhen ?? ""} spellCheck={false} onChange={(e) => put({ hideWhen: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
+              <div className="pal-setting__control"><input id={`${anchor}-hide-when`} className="pal-field__input" type="text" placeholder="e.g. locked or idle > 600" value={c.hideWhen ?? ""} spellCheck={false} onChange={(e) => put({ hideWhen: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
               <p className="pal-setting__desc">The opposite: off the strip while this is true. Both may be set.</p>
             </div>
           </div>
@@ -479,7 +484,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
  * of its last render in both themes, its placement, its popover, and its
  * departures from the defaults folded away until it has some.
  */
-export function SettingsBar({ config, onChange, items, onItem, sketchybar, supported = true, selected, onSelect, onOpenExtension, onSetting }: SettingsBarProps) {
+export function SettingsBar({ config, onChange, items, onItem, onRule, sketchybar, supported = true, selected, onSelect, onOpenExtension, onSetting }: SettingsBarProps) {
   const [local, setLocal] = useState<string | undefined>(undefined);
   const key = selected ?? local ?? BAR_DEFAULTS;
   const current = items.find((b) => b.key === key);
@@ -506,7 +511,7 @@ export function SettingsBar({ config, onChange, items, onItem, sketchybar, suppo
       <SettingsList label="Bar items" items={rows} selected={key} onSelect={select} />
       <div className="pal-split__pane">
         {current
-          ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} onSetting={onSetting} />
+          ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onRule={onRule && ((id, w) => onRule(current.key, id, w))} onOpenExtension={onOpenExtension} onSetting={onSetting} />
           : <Defaults config={config} onChange={onChange} sketchybar={sketchybar} items={items} />}
       </div>
     </div>

@@ -177,9 +177,9 @@ describe("slack", () => {
     expect(loaded.palettes[1]).toMatchObject({ title: "Channels", ttl: 3600, tier: "catalog", live: false });
     expect(loaded.palettes[2]).toMatchObject({ title: "Search Slack", input: true });
     expect(loaded.palettes[3]).toMatchObject({ title: "Status", live: true });
-    expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
+    expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), rules: [{ id: "quiet", when: "slack.attention == 0", description: expect.any(String), hidden: true, color: "muted" }, { id: "dm", when: "slack.dm > 0", description: expect.any(String), urgent: true }], source: true }]);
     expect(loaded.bar[0].keys!.map((k) => k.keys)).toEqual(["enter", "up", "r", "m", "a", "o", "p", "cmd+shift+o", "cmd+c"]);
-    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["dm_urgent", "boolean"], ["presence", "boolean"], ["refresh", "number"], ["bar_show", "select"]]);
+    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["presence", "boolean"], ["refresh", "number"]]);
   });
 
   test("multi: a workspace is an instance; `workspace` and the token never inherit from the default", () => {
@@ -362,7 +362,7 @@ describe("slack", () => {
       };
       const before = calls("client.counts").length;
       const item = await host.render("slack", "unreads", { reason: "cli" });
-      expect(item).toMatchObject({ icon: "\u{f04b1}", badge: 6, urgent: true, refresh: 120, tooltip: "2 direct messages, 1 mention, 3 thread replies; 2 channels unread" });
+      expect(item).toMatchObject({ icon: "\u{f04b1}", badge: 6, refresh: 120, tooltip: "2 direct messages, 1 mention, 3 thread replies; 2 channels unread", states: { attention: 6, dm: 2, channels: 2 } });
       // The timer and the show trigger take an inbox under 30 s old: the panel showing fires both the render and the palette's relist for one fetch.
       expect(calls("client.counts")).toHaveLength(before + 1);
       await host.render("slack", "unreads", { reason: "every" });
@@ -450,49 +450,35 @@ describe("slack", () => {
       expect(calls("conversations.mark").slice(before).map((c) => c.body.channel).sort()).toEqual(["C_ENG", "D_MARA"]);
     });
 
-    test("dm_urgent off: the same inbox is not urgent; a refresh setting under 10 s is clamped", async () => {
-      host.changeSettings("slack", { settings: { ...BASE, dm_urgent: false, refresh: 3 } });
+    test("urgency is the manifest's dm rule over slack/dm, not the render's; a refresh setting under 10 s is clamped", async () => {
+      host.changeSettings("slack", { settings: { ...BASE, refresh: 3 } });
       await Bun.sleep(50);
       const item = await host.render("slack", "unreads", { reason: "cli" });
-      expect(item).toMatchObject({ badge: 6, urgent: false, refresh: 10 });
+      expect(item).toMatchObject({ badge: 6, refresh: 10, states: { attention: 6, dm: 2, channels: 2 } });
+      expect(item).not.toHaveProperty("urgent");
       host.changeSettings("slack", { settings: BASE });
       await Bun.sleep(50);
     });
 
-    test("only channels unread is hidden (the count is what is addressed, not what is unread); nothing at all is hidden too; the view of an emptied inbox is inbox zero", async () => {
+    test("only channels unread renders with attention 0 (the manifest's quiet rule hides it) and the empty shape; the view of an emptied inbox is inbox zero", async () => {
       counts = QUIET;
-      expect(await host.render("slack", "unreads", { reason: "cli" })).toMatchObject({ hidden: true, refresh: 120, empty: { icon: "\u{f04b1}", tooltip: "1 channel unread" } });
+      const quiet = await host.render("slack", "unreads", { reason: "cli" });
+      expect(quiet).toMatchObject({ icon: "\u{f04b1}", tooltip: "1 channel unread", refresh: 120, empty: { icon: "\u{f04b1}", tooltip: "1 channel unread" }, states: { attention: 0, dm: 0, channels: 1 } });
+      expect(quiet).not.toHaveProperty("hidden");
+      expect(quiet).not.toHaveProperty("badge");
       // A key in a popover still up over the emptied inbox draws inbox zero with the quiet channel.
       const r = await host.barAction("slack", "unreads", "down", ctx);
       const v = checkView(viewOf(r));
       expect(texts(v)).toEqual(expect.arrayContaining(["Inbox zero", "Nothing addressed to you; 1 channel is unread"]));
       expect(v.actions[0]).toEqual({ id: "open", title: "Open Slack" });
       counts = NONE;
-      // Nothing unread at all: hidden, the glyph and inbox zero the empty shape the core's show = always keeps.
+      // Nothing unread at all: the same, attention 0 and channels 0, the glyph and inbox zero the empty shape.
       const none = await host.render("slack", "unreads", { reason: "update" });
-      expect(none).toMatchObject({ hidden: true, refresh: 120, empty: { icon: "\u{f04b1}", tooltip: "Nothing unread" } });
+      expect(none).toMatchObject({ tooltip: "Nothing unread", refresh: 120, states: { attention: 0, channels: 0 }, empty: { icon: "\u{f04b1}", tooltip: "Nothing unread" } });
       expect(none.badge).toBeUndefined();
       expect(texts(checkView(viewOf(none.empty!)))).toContain("Inbox zero");
     });
 
-    test("bar_show at unread keeps the glyph while a channel is merely unread; muted, no badge, the popover is inbox zero; nothing at all is hidden", async () => {
-      try {
-        counts = QUIET;
-        host.changeSettings("slack", { settings: { ...BASE, bar_show: "unread" } });
-        await Bun.sleep(50);
-        const quiet = await host.render("slack", "unreads", { reason: "cli" });
-        expect(quiet).toMatchObject({ icon: "\u{f04b1}", color: "muted", tooltip: "1 channel unread", refresh: 120 });
-        expect(quiet.badge).toBeUndefined();
-        expect(quiet.urgent).toBeUndefined();
-        expect(quiet.empty).toBeUndefined();
-        expect(texts(checkView(viewOf(quiet)))).toEqual(expect.arrayContaining(["Inbox zero", "Nothing addressed to you; 1 channel is unread"]));
-        counts = NONE;
-        expect(await host.render("slack", "unreads", { reason: "update" })).toMatchObject({ hidden: true, refresh: 120, empty: { tooltip: "Nothing unread" } });
-      } finally {
-        host.changeSettings("slack", { settings: BASE });
-        await Bun.sleep(50);
-      }
-    });
   });
 
   describe("failures", () => {
@@ -524,7 +510,7 @@ describe("slack", () => {
       const items = await list("unreads");
       expect(items[0]).toMatchObject({ id: "hint:auth", name: "Slack is not signed in", subtitle: expect.stringContaining("nowhere") });
       expect(await pick("unreads", "hint:auth")).toEqual({ open: "pal://settings/extensions" });
-      expect(await host.render("slack", "unreads", { reason: "cli" })).toEqual({ hidden: true, refresh: 120 });
+      expect(await host.render("slack", "unreads", { reason: "cli" })).toEqual({ hidden: true, refresh: 120, states: { attention: null, dm: null, channels: null } });
       host.changeSettings("slack", { settings: BASE });
       await Bun.sleep(50);
     });

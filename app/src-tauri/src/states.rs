@@ -65,7 +65,7 @@ pub fn install(app: &AppHandle) {
     let mut states = States::default();
     states.load(read_feed().persisted);
     let config = settings::config(app);
-    states.configure(&config.states, &config.bar.conditions());
+    states.configure(&config.states, &crate::bar::conditions(app, &config));
     for d in states.diagnostics() {
         eprintln!("states\t{:?}\t{}\t{}", d.level, d.path, d.message);
     }
@@ -77,11 +77,12 @@ pub fn install(app: &AppHandle) {
 
 /// The config was reloaded: `[states]` or a `show_when`/`hide_when` changed.
 pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
-    if prev.states == next.states && prev.bar.conditions() == next.bar.conditions() {
+    if prev.states == next.states && prev.bar.items == next.bar.items {
         return;
     }
+    let conditions = crate::bar::conditions(app, next);
     let changed = with(app, |s| {
-        let c = s.configure(&next.states, &next.bar.conditions());
+        let c = s.configure(&next.states, &conditions);
         for d in s.diagnostics() {
             eprintln!("states\t{:?}\t{}\t{}", d.level, d.path, d.message);
         }
@@ -139,6 +140,49 @@ pub fn reset(app: &AppHandle, name: &str) {
     arm_expiry(app);
 }
 
+/// An extension registered its bar items (their rules come from the
+/// manifest): the conditions are built again.
+pub fn reconfigure_bar(app: &AppHandle) {
+    if app.try_state::<Live>().is_none() {
+        return;
+    }
+    let config = settings::config(app);
+    let conditions = crate::bar::conditions(app, &config);
+    let changed = with(app, |s| {
+        let c = s.configure(&config.states, &conditions);
+        for d in s.diagnostics() {
+            eprintln!("states\t{:?}\t{}\t{}", d.level, d.path, d.message);
+        }
+        c
+    });
+    fan_out(app, changed);
+}
+
+/// A render's `states`: every one published under `<who>/<name>` in one
+/// change (`bar/mod.rs` `set`); a `null` withdraws.
+pub fn publish_many(app: &AppHandle, who: &str, states: std::collections::BTreeMap<String, Value>) {
+    if states.is_empty() || app.try_state::<Live>().is_none() {
+        return;
+    }
+    let mut all = Vec::new();
+    with(app, |s| {
+        for (name, v) in states {
+            match s.publish(&format!("{who}/{name}"), who, v) {
+                Ok(c) => all.extend(c),
+                Err(e) => eprintln!("states\t{who}/{name}\t{e}"),
+            }
+        }
+    });
+    all.sort();
+    all.dedup();
+    fan_out(app, all);
+}
+
+/// The ids of `key`'s rules that hold now.
+pub fn active_rules(app: &AppHandle, key: &str) -> Vec<String> {
+    app.try_state::<Live>().map(|st| lock(&st.states).active_rules(key)).unwrap_or_default()
+}
+
 /// An extension's `state.set`: lands under `<who>/<name>`; `null` withdraws.
 pub fn publish(app: &AppHandle, who: &str, name: &str, value: Value) -> Result<(), String> {
     if name.contains('/') {
@@ -150,12 +194,17 @@ pub fn publish(app: &AppHandle, who: &str, name: &str, value: Value) -> Result<(
     Ok(())
 }
 
-/// A built-in's value; not persisted.
+/// A built-in's value; not persisted. Off the calling thread: the macOS
+/// sources are AppKit notification observers on the main thread, and the
+/// fan-out takes the config and the bar registry, which other threads
+/// hold while waiting for the main thread (the config watcher applying a
+/// hotkey), so publishing in the observer deadlocked the app.
 fn builtin(app: &AppHandle, name: &str, value: Value) {
-    match with(app, |s| s.publish(name, "builtin", value)) {
-        Ok(changed) => fan_out(app, changed),
+    let (app, name) = (app.clone(), name.to_string());
+    tauri::async_runtime::spawn_blocking(move || match with(&app, |s| s.publish(&name, "builtin", value)) {
+        Ok(changed) => fan_out(&app, changed),
         Err(e) => eprintln!("states\tbuiltin {name}\t{e}"),
-    }
+    });
 }
 
 /// The panel showed or hid (lib.rs): the `panel` built-in.

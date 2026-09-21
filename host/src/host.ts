@@ -15,7 +15,7 @@ import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { isTileIcon } from "../../sdk/src/icon.ts";
-import { checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import { checkBarRules, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
 import type { BarMeta, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
@@ -148,7 +148,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
-    check.warnings.push(...checkLinks(manifest, ext));
+    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);

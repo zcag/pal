@@ -164,7 +164,7 @@ describe("whatsapp", () => {
     ]);
     expect(loaded.bar.map((b) => [b.id, b.refresh?.every])).toEqual([["unread", 120]]);
     expect(Object.keys(loaded.manifest.links ?? {})).toEqual(["open", "search"]);
-    expect(loaded.manifest.settings!.map((s) => [s.id, s.kind, s.default])).toEqual([["base_url", "text", "http://wp.lan"], ["api_key", "secret", ""], ["session", "text", "main"], ["send", "boolean", false], ["dm_urgent", "boolean", true], ["open", "select", "auto"]]);
+    expect(loaded.manifest.settings!.map((s) => [s.id, s.kind, s.default])).toEqual([["base_url", "text", "http://wp.lan"], ["api_key", "secret", ""], ["session", "text", "main"], ["send", "boolean", false], ["open", "select", "auto"]]);
     for (const p of Object.values(loaded.manifest.palettes ?? {})) for (const k of p.keys ?? []) expect(["cmd+i", "cmd+r", "cmd+k", "cmd+backspace"]).not.toContain(k.keys);
   });
 
@@ -353,7 +353,7 @@ describe("whatsapp", () => {
   test("the bar item: the count of unread chats, urgent for a direct one, the popover's rows with the pictures as data urls; one list shared with the palettes", async () => {
     const before = mock.calls(/\/chats$/).length;
     const item = await host.render(X, "unread", { reason: "cli" });
-    expect(item).toMatchObject({ icon: "\u{f05a3}", badge: 3, urgent: true, tooltip: "3 chats unread: 2 direct messages, 1 group" });
+    expect(item).toMatchObject({ icon: "\u{f05a3}", badge: 3, tooltip: "3 chats unread: 2 direct messages, 1 group", states: { unread: 3, direct: 2 } });
     expect(mock.calls(/\/chats$/)).toHaveLength(before + 1);
     await host.render(X, "unread", { reason: "every" });
     await list("unread");
@@ -367,12 +367,9 @@ describe("whatsapp", () => {
     expect(images.map((i) => [i.alt, i.src.slice(0, 26)])).toEqual([["Mara Lind", "data:image/svg+xml;base64,"], ["Weekend hike", "data:image/svg+xml;base64,"]]);
     expect(nodes(view.tree).find((n) => n.type === "tile")).toMatchObject({ text: "T", fill: "solid" });
     expect(keycaps(view)).toEqual(["enter", "r", "m", "a", "o", "p"]);
-    // dm_urgent off: a plain count.
-    host.changeSettings(X, { settings: settings({ send: true, dm_urgent: false }) });
-    await host.until(() => host.coreCalls.length > 0);
-    expect((await host.render(X, "unread", { reason: "settings" })).urgent).toBe(false);
-    host.changeSettings(X, { settings: settings({ send: true }) });
-    await host.until(() => host.coreCalls.length > 0);
+    // Urgency is the manifest's dm rule over whatsapp/direct, not the render's.
+    expect(item).not.toHaveProperty("urgent");
+    expect(item.states).toEqual({ unread: 3, direct: 2 });
   });
 
   test("popover keys: the cursor, Enter opens, m marks read, r opens the field and Enter sends, Escape cancels, a marks all, o and p; a chat id as the action", async () => {
@@ -406,9 +403,10 @@ describe("whatsapp", () => {
     expect(await host.barAction(X, "unread", "open-pal", ctx)).toEqual({ push: { extension: X, palette: "unread" } });
     expect(await host.barAction(X, "unread", "open-whatsapp", ctx)).toEqual({ open: "https://web.whatsapp.com/" });
     expect(await host.barAction(X, "unread", MARA)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });
-    // Everything read: hidden at zero, the glyph and the popover listing the recent chats its empty shape for the core's show = always.
+    // Everything read: unread 0 (the manifest's quiet rule hides it), the glyph and the popover listing the recent chats its empty shape.
     const stays = await host.render(X, "unread", { reason: "cli" });
-    expect(stays).toMatchObject({ hidden: true, empty: { icon: "\u{f05a3}", tooltip: "Nothing unread" } });
+    expect(stays).toMatchObject({ tooltip: "Nothing unread", states: { unread: 0, direct: 0 }, empty: { icon: "\u{f05a3}", tooltip: "Nothing unread" } });
+    expect(stays).not.toHaveProperty("hidden");
     expect(stays.badge).toBeUndefined();
     expect(texts(checkView(viewOf(stays.empty!)))).toEqual(expect.arrayContaining(["Recent", "Mara Lind", "Weekend hike"]));
     for (const [id, n] of [[MARA, 3], [HIKE, 5], [TOMAS, 1]] as const) mock.chat(id)!.unread = n;
@@ -460,7 +458,7 @@ describe("whatsapp", () => {
     await host.until(() => host.coreCalls.length > 0);
     const n = mock.seen.length;
     expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:key", name: "API key is not set", subtitle: "Set api_key under Settings › Extensions › WhatsApp: a key from OpenWA's Settings, API keys" }]);
-    expect(await host.render(X, "unread", { reason: "cli" })).toEqual({ hidden: true });
+    expect(await host.render(X, "unread", { reason: "cli" })).toEqual({ hidden: true, states: { unread: null, direct: null } });
     expect(mock.seen.length).toBe(n);
     host.changeSettings(X, { settings: settings({ session: "nope" }) });
     await host.until(() => host.coreCalls.length > 0);
@@ -477,7 +475,7 @@ describe("whatsapp", () => {
   test("a stale session UUID in storage (the session recreated) is resolved again once and the call retried", async () => {
     stored.set(`${X}\0session:main`, "00000000-0000-0000-0000-000000000000");
     // A changed setting drops the resolved UUID from memory, so the stale one in storage is what the next call takes.
-    host.changeSettings(X, { settings: settings({ dm_urgent: false }) });
+    host.changeSettings(X, { settings: settings({ open: "app" }) });
     await host.until(() => host.coreCalls.length > 0);
     const before = mock.calls("/api/sessions").length;
     expect((await list("chats", "", { refresh: true }))[0]).toMatchObject({ id: MARA });

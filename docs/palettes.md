@@ -2828,7 +2828,7 @@ away / Set active. `users.profile.set`, `dnd.setSnooze` / `endSnooze`,
 
 **The bar item** `slack/unreads`: the count of what is addressed (DMs +
 mentions + thread replies) as the badge, hidden at zero, urgent while a
-direct message waits (`dm_urgent`); every `refresh` seconds and on show,
+direct message waits (its `dm` rule); every `refresh` seconds and on show,
 wake, network. The popover is a view: a section per kind with the newest
 rows (avatars with a direct message's presence dot, the latest line, a
 count badge; Enter opens one), the
@@ -2859,7 +2859,6 @@ Settings, `[extensions.slack]`:
 | `token` | secret | (none) | The user token, with `auth = "token"`. |
 | `workspace` | text | (none) | The workspace when the app is signed in to several (id or domain); empty lists every one. |
 | `statuses` | list | five presets | `:emoji: text (expiry)` per line; expiry `30m`, `2h`, `1d`, `today`, or none. |
-| `dm_urgent` | boolean | `true` | The bar item red while a direct message is unread. |
 | `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away): one `users.getPresence` per person, remembered a minute; off makes no such call. |
 | `refresh` | number (s) | `120` | Seconds between bar refreshes, 10 at least. |
 
@@ -3966,7 +3965,7 @@ owner's rule for sends: an outward action, only as a form he submits).
 **The bar item** `whatsapp/unread`: the number of unread chats as the
 badge, hidden at zero (the core's `show = "always"` keeps the glyph and
 lists the recent chats in the popover), red while a direct chat is unread
-(`dm_urgent`); every 120 s and on show, wake, network. The popover is a
+(its `dm` rule); every 120 s and on show, wake, network. The popover is a
 view of the item's own (`view.ts`): direct messages then groups with the
 picture as a data url, the newest message and the time, a cursor the
 arrows move and a click sets; `Enter` opens, `m` marks read, `a` all,
@@ -3999,7 +3998,6 @@ Settings, `[extensions.whatsapp]`:
 | `api_key` | secret | (none) | Sent as `x-api-key`; in the OS keychain. |
 | `session` | text | `main` | The session's name; the UUID is resolved once and kept in storage (`session:<name>`), resolved again on a 404 naming the session. |
 | `send` | boolean | `false` | Send a message, React, the popover's reply field. |
-| `dm_urgent` | boolean | `true` | Red while a direct chat is unread. |
 | `open` | `auto`, `app`, `web` | `auto` | Where a chat opens. |
 
 Hint rows: no key (Open WhatsApp settings), the gateway unreachable at

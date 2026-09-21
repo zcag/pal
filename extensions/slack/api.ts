@@ -18,7 +18,7 @@ import { extract, NotSignedIn, type Creds, type Team } from "./auth.ts";
 export const EXTENSION = "slack";
 export const REQUEST_MS = 10_000;
 /** `[extensions.slack]`, defaults in pal.json. */
-export type Settings = { auth: "app" | "token"; token: string; workspace: string; statuses: string[]; dm_urgent: boolean; presence: boolean; refresh: number; bar_show?: "auto" | "unread" };
+export type Settings = { auth: "app" | "token"; token: string; workspace: string; statuses: string[]; presence: boolean; refresh: number };
 export const conf = () => settings.get<Settings>(EXTENSION);
 export const log = (...a: unknown[]) => console.error("[slack]", ...a);
 

@@ -111,7 +111,6 @@ Settings, `[extensions.network]`:
 | --- | --- | --- | --- |
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
 | `networks` | list | `[]` | One line per network, `SSID = kind label:Name icon:X` (or `gateway = ...`); each field optional, any order. Kind is `hide`, `hotspot` or `public`; the label is the bar's name; the icon is one emoji or a Nerd Font glyph drawn instead of the signal, hotspot, open or wired mark. The old `ssid_labels` and `network_icons` lists are still read this release. |
-| `icon_only` | boolean | `false` | Drop the name from the bar item and let the glyph speak. |
 
 ## What it does not do
 
@@ -130,3 +129,5 @@ Settings, `[extensions.network]`:
 macOS and Linux, with the platform's own tools as in the table above. The
 Bonjour `.local` name and the SSID redaction are macOS only; the
 `resolvectl` path is for a Linux behind systemd-resolved.
+
+A glyph-only bar item is the core's: `[bar.items."network/status"] show_title = false` in the config, or Title off on the item's pane under Settings > Bar.

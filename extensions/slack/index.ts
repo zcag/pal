@@ -370,7 +370,7 @@ async function pickStatus(id: string, action?: string, ctx?: Ctx): Promise<Effec
 /**
  * The count of what is addressed to you (direct messages, mentions, thread
  * replies) as the badge, hidden at zero, urgent while a direct message
- * waits (`dm_urgent`); the popover is a view of the item's own (view.ts):
+ * waits (the manifest's `dm` rule); the popover is a view of the item's own (view.ts):
  * a section per kind with every row (the popover scrolls), a cursor the arrows move
  * and a click sets, the channels that are only unread as badges, the keys
  * as hints. Enter opens the focused row in Slack, `r` turns the search row
@@ -406,27 +406,21 @@ async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
   // The panel showing fires both this render and the palette's relist: an inbox under INBOX_FRESH_MS serves both. Only a push from the CLI or `bar.refresh` insists.
   let i: Inbox;
   try { i = await loadInbox(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
-    if (e instanceof NotSignedIn) return { hidden: true, refresh: refreshSecs() };
+    if (e instanceof NotSignedIn) return { hidden: true, refresh: refreshSecs(), states: { attention: null, dm: null, channels: null } };
     throw e;
   }
   const attn = i.dm + i.mention + i.thread;
   const refresh = refreshSecs();
+  const menu = { view: renderBar(await barState(i)) };
+  // The facts (`slack/attention`, `slack/dm`, `slack/channels`): the manifest's rules hide the item with nothing addressed to you (keep the glyph for channels merely unread by narrowing that rule) and make a direct message urgent. The same glyph and popover are the `empty` shape a `show = "always"` config keeps.
+  const states = { attention: attn, dm: i.dm, channels: i.channels };
   if (attn === 0) {
-    // The count is what is addressed to you; `bar_show = "unread"` keeps the glyph for channels that are merely unread, muted and without a badge. Otherwise hidden, the same glyph and popover the `empty` shape a `show = "always"` config keeps.
-    const menu = { view: renderBar(await barState(i)) };
     const tooltip = i.channels ? `${plural(i.channels, "channel")} unread` : "Nothing unread";
-    if (conf().bar_show === "unread" && i.channels > 0) return { icon: ICON.slack, color: "muted", tooltip, refresh, menu };
-    return { hidden: true, refresh, empty: { icon: ICON.slack, tooltip, menu } };
+    return { icon: ICON.slack, tooltip, refresh, menu, empty: { icon: ICON.slack, tooltip, menu }, states };
   }
   const parts = [i.dm ? plural(i.dm, "direct message") : "", i.mention ? plural(i.mention, "mention") : "", i.thread ? plural(i.thread, "thread reply", "thread replies") : ""].filter(Boolean);
-  return {
-    icon: ICON.slack,
-    badge: attn,
-    urgent: conf().dm_urgent !== false && i.dm > 0,
-    tooltip: `${parts.join(", ")}${i.channels ? `; ${plural(i.channels, "channel")} unread` : ""}`,
-    refresh,
-    menu: { view: renderBar(await barState(i)) },
-  };
+  const tooltip = `${parts.join(", ")}${i.channels ? `; ${plural(i.channels, "channel")} unread` : ""}`;
+  return { icon: ICON.slack, badge: attn, tooltip, refresh, menu, empty: { icon: ICON.slack, tooltip, menu }, states };
 }
 
 /** The popover drawn again from the inbox at hand (no fetch): what a key that only moves the cursor answers. */

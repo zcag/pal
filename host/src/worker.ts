@@ -14,7 +14,7 @@
 // settings }` on a settings change, `{ stop }` before terminate. Out: `{
 // res: { id, result | error } }`, `{ call: { id, method, params, timeout }
 // }` for the SDK's bridge calls (answered by `{ reply }`), `{ stopped }`.
-import { checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import { checkBarRules, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
 import type { Extension, InstanceInfo, ResolvedSettings } from "../../sdk/src/protocol.ts";
 import { bind, type Caller } from "../../sdk/src/runtime.ts";
 import { barMetas, barMethods } from "./bar.ts";
@@ -96,7 +96,7 @@ async function init(id: number, i: WorkerInit) {
     for (const kind of ["inline", "fallback", "suggest"] as const) methods[kind] = (p) => sections([[key, loaded]], manifestOf, kind, p?.query, rootTimeout);
     // The manifest against the code, with the instance's title and mark on every meta.
     const check = checkPalettes(i.manifest, loaded, instanceMeta(i.inst, i.alone));
-    check.warnings.push(...checkLinks(i.manifest, loaded));
+    check.warnings.push(...checkLinks(i.manifest, loaded), ...checkBarRules(i.manifest));
     self.postMessage({ res: { id, result: { palettes: check.metas, bar: barMetas(loaded, i.manifest), warnings: check.warnings, ms: performance.now() - t0 } } });
   } catch (e) {
     error = describe(e);

@@ -4,10 +4,9 @@
 // ⌘C copies the address. Live: the connected state is read again on
 // every show; the list is the OS's, connected first then by name.
 import { bluetooth, errorMessage, failed, hint, settings, toast, truncate, xdg, type Accessory, type Action, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
-import { GLYPH, KIND, batteries, levelColor, render as renderBattery, rows as batteryRows, type BarState } from "./view.ts";
+import { GLYPH, KIND, batteries, render as renderBattery, rows as batteryRows, type BarState } from "./view.ts";
 
-/** `bar_show`: `low` is the alert alone; `connected` keeps the strip up while a device is connected as a muted Bluetooth glyph, still a way into the popover. */
-type Settings = { low_threshold: number; bar_show?: "low" | "connected" };
+type Settings = { low_threshold: number };
 const EXTENSION = "bluetooth";
 const MAC = process.platform === "darwin";
 const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.BluetoothSettings";
@@ -42,32 +41,39 @@ function barState(devices: BluetoothDevice[], threshold: number): BarState {
   return st;
 }
 
-/** An interruption-only Bluetooth battery strip: the lowest connected device, or hidden (or, by `bar_show`, a muted glyph naming what is connected); the same glyph is the `empty` shape a `show = "always"` config keeps between alerts. */
+/**
+ * The Bluetooth battery strip: the lowest connected device by name when
+ * one is at or under `low_threshold`, else the glyph naming what is
+ * connected; and the facts (`bluetooth/low`, `bluetooth/lowest`,
+ * `bluetooth/connected`; docs/design/states.md). The manifest's rules
+ * hide it while nothing is low (muted for a user who keeps the glyph up
+ * while a device is connected), hide it with nothing connected, and tint
+ * it amber, then red at 20%. The same glyph is the `empty` shape a
+ * `show = "always"` config keeps between alerts.
+ */
 async function batteryBar(): Promise<BarItem> {
   try {
-    const { low_threshold: threshold, bar_show: show } = settings.get<Settings>(EXTENSION);
+    const { low_threshold: threshold } = settings.get<Settings>(EXTENSION);
     const devices = await bluetooth.devices();
     const low = batteries(devices).filter((d) => d.battery! <= threshold);
-    if (!low.length) {
-      const connected = devices.filter((d) => d.connected);
-      const detail = connected.map((d) => `${d.name}${d.battery === null ? "" : ` ${d.battery}%`}`).join(" · ");
-      const icon = xdg(connected.length ? "bluetooth-connected" : "bluetooth")!;
-      const tooltip = connected.length ? `Bluetooth · ${detail}` : "No connected devices";
-      const menu = { view: renderBattery(barState(devices, threshold)) };
-      if (show === "connected" && connected.length) return { icon, color: "muted", tooltip, click: "open", menu };
-      return { hidden: true, empty: { icon, tooltip, menu } };
-    }
+    const connected = devices.filter((d) => d.connected);
+    const lowest = batteries(devices).map((d) => d.battery!).reduce<number | null>((m, b) => (m === null || b < m ? b : m), null);
+    const states = { low: low.length, lowest, connected: connected.length };
+    const menu = { view: renderBattery(barState(devices, threshold)) };
+    const quiet = { icon: xdg(connected.length ? "bluetooth-connected" : "bluetooth")!, tooltip: connected.length ? `Bluetooth · ${connected.map((d) => `${d.name}${d.battery === null ? "" : ` ${d.battery}%`}`).join(" · ")}` : "No connected devices", menu };
+    if (!low.length) return { ...quiet, click: "open", empty: quiet, states };
     const first = low[0];
     const detail = low.map((d) => `${d.name} ${d.battery}%${d.battery_detail ? ` (${d.battery_detail})` : ""}`).join(" · ");
     return {
       icon: BATTERY,
       title: low.length === 1 ? truncate(`${first.name} ${first.battery}%`, 64) : `${low.length} low`,
-      color: levelColor(first.battery!, threshold),
       tooltip: `Bluetooth battery · ${detail}`,
       click: "open",
-      menu: { view: renderBattery(barState(devices, threshold)) },
+      menu,
+      empty: quiet,
+      states,
     };
-  } catch { return { hidden: true }; }
+  } catch { return { hidden: true, states: { low: null, lowest: null, connected: null } }; }
 }
 
 async function openBluetoothSettings(): Promise<Effect> {

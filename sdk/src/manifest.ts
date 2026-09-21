@@ -284,6 +284,31 @@ export const LINK_PARAM_TYPES = ["string", "number", "boolean", "json", "string[
  * route is still listed, since the settings window shows the warning next
  * to it.
  */
+/**
+ * The bar items' `rules` in `pal.json`: each has an id (unique within
+ * the item, lowercase letters, digits, _), a `when` string, and does
+ * something (hidden, urgent, or an appearance key).
+ */
+export function checkBarRules(manifest: Manifest): string[] {
+  const warnings: string[] = [];
+  const LOOK = ["hidden", "urgent", "color", "urgent_color", "size", "icon_size", "text_size", "dim", "opacity", "spacing", "show_icon", "icon", "show_title", "badge_color", "badge_style", "width", "font", "max_chars", "position"];
+  for (const [id, b] of Object.entries(manifest.bar ?? {})) {
+    if (b?.rules === undefined) continue;
+    if (!Array.isArray(b.rules)) { warnings.push(`bar.${id}.rules: not a list`); continue; }
+    const ids = new Set<string>();
+    for (const r of b.rules) {
+      const where = `bar.${id}.rules${typeof r?.id === "string" ? `.${r.id}` : ""}`;
+      if (!r || typeof r !== "object") { warnings.push(`${where}: not an object`); continue; }
+      if (typeof r.id !== "string" || !/^[a-z0-9_]+$/.test(r.id)) warnings.push(`${where}: a rule id is lowercase letters, digits and _`);
+      else if (ids.has(r.id)) warnings.push(`${where}: the id is used twice`);
+      else ids.add(r.id);
+      if (typeof r.when !== "string" || !r.when.trim()) warnings.push(`${where}: "when" must be a state expression`);
+      if (!LOOK.some((k) => (r as Record<string, unknown>)[k] !== undefined)) warnings.push(`${where}: the rule does nothing (no hidden, urgent or appearance key)`);
+    }
+  }
+  return warnings;
+}
+
 export function checkLinks(manifest: Manifest, ext: Extension): string[] {
   const warnings: string[] = [];
   const links = manifest.links;

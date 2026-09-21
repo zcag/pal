@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { errorMessage, exec, hint, home, settings, toast, truncate, type Accessory, type BarItem, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { renderPowerPopover, type PowerPopover } from "./view.ts";
 
-type Settings = { show_below: number; show_charging_below: number; show_draw_watts: number; power_state_file: string };
+type Settings = { power_state_file: string };
 type Battery = { percent: number; source: "Battery Power" | "Power Adapter"; status: "charging" | "discharging" | "charged" | "unknown"; remaining?: string; eta?: string };
 type WatchState = { ts?: number; w?: number; ext?: boolean; chg?: boolean; eta?: number; level?: string; alerts?: unknown; blame?: unknown; temp?: number; locks?: unknown; today?: unknown };
 type Snapshot = Battery & { watch?: WatchState; alerts: PowerPopover["alerts"]; blame: PowerPopover["blame"] };
@@ -20,6 +20,8 @@ const RAMP: [number, string][] = [[90, GLYPH.full], [70, "\u{f0081}"], [50, "\u{
  * colour arrives, never the other way round.
  */
 const LOW_PERCENT = 20, CRITICAL_PERCENT = 10, ETA_PERCENT = LOW_PERCENT + 5;
+/** On battery, a measured draw from here up is worth the strip's width (the watts and the culprit in the title); the manifest's `draw` rule shows the item from the same number, which the user moves by that rule's `when`. */
+const LOUD_WATTS = 15;
 const MAC_SETTINGS = "x-apple.systempreferences:com.apple.Battery-Settings.extension";
 const LINUX_SETTINGS = [["gnome-control-center", "power"], ["systemsettings", "kcm_powerdevilprofilesconfig"]];
 const CMD_MS = 3000;
@@ -106,7 +108,7 @@ const glyph = (s: Snapshot) => s.status === "charging" || s.status === "charged"
 const stateLabel = (s: Snapshot) => s.status === "charging" ? "Charging" : s.status === "discharging" ? "Discharging" : s.status === "charged" ? "Charged" : "Battery status unavailable";
 const watchFresh = (s: Snapshot) => s.watch?.w === undefined ? undefined : `${s.watch.w.toFixed(1)} W draw`;
 /** Waste interrupts whatever the level is; a bare draw only counts on battery. */
-const loud = (s: Snapshot) => !!s.alerts.length || (s.source === "Battery Power" && (s.watch?.w ?? 0) >= settingsOf().show_draw_watts);
+const loud = (s: Snapshot) => !!s.alerts.length || (s.source === "Battery Power" && (s.watch?.w ?? 0) >= LOUD_WATTS);
 
 /** When a rule fired it named the culprit; otherwise only a dominant background process is worth the width. */
 function cause(s: Snapshot): string | undefined {
@@ -131,22 +133,24 @@ function title(s: Snapshot): string {
   return parts.join(" · ");
 }
 
-function shouldShow(s: Snapshot): boolean {
-  const c = settingsOf();
-  if (loud(s)) return true;
-  return s.source === "Battery Power" ? s.percent < c.show_below : s.percent <= c.show_charging_below;
-}
 function popover(s: Snapshot) {
   return renderPowerPopover({ percent: s.percent, source: s.source, status: stateLabel(s), remaining: s.remaining, watts: s.watch?.w, alerts: s.alerts, blame: s.blame });
 }
-/** Hidden while healthy; the level and the popover are then the `empty` shape a `show = "always"` config keeps, muted. No battery at all is hidden either way. */
+/**
+ * The item as rendered says the level and publishes the facts (`power/level`,
+ * `power/charging`, `power/draw`, `power/alert`); whether it shows and in
+ * what colour is the manifest's rules over those (docs/design/states.md):
+ * hidden while healthy, amber and red by the level or the watcher's
+ * alerts. The `empty` shape is what `show = "always"` keeps while a rule
+ * hides it. No battery at all is hidden either way.
+ */
 async function barItem(): Promise<BarItem> {
   const s = await snapshot().catch(() => undefined);
-  if (!s) return { hidden: true };
+  if (!s) return { hidden: true, states: { level: null, charging: null, draw: null, alert: null } };
   const tooltip = [s.source, stateLabel(s), s.remaining, watchFresh(s), s.alerts[0]?.message].filter(Boolean).join(" · ");
   const menu = { view: popover(s) };
-  if (!shouldShow(s)) return { hidden: true, empty: { icon: glyph(s), title: title(s), tooltip, menu } };
-  return { icon: glyph(s), title: title(s), color: severity(s), tooltip, click: "open", menu };
+  const alert = s.alerts.some((a) => a.level === "crit") ? "crit" : s.alerts.length ? "warn" : null;
+  return { icon: glyph(s), title: title(s), tooltip, click: "open", menu, empty: { icon: glyph(s), title: title(s), tooltip, menu }, states: { level: s.percent, charging: s.source !== "Battery Power", draw: s.watch?.w ?? 0, alert } };
 }
 
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((x): x is [string, string] => !!x[1]).map(([label, value]) => ({ label, value }));

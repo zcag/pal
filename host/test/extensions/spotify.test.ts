@@ -185,7 +185,7 @@ describe("spotify", () => {
       id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true,
       mocks: expect.objectContaining({ lyrics: expect.objectContaining({ title: "Synced lyric line" }), track: expect.objectContaining({ title: "No synced lyrics" }), paused: expect.objectContaining({ item: { hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Nothing playing" } } }) }),
     })]);
-    expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["bar_show", "select"], ["pinned", "list"]]);
+    expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["pinned", "list"]]);
   });
 
   describe("sign-in", () => {
@@ -561,17 +561,13 @@ describe("spotify, signed in", () => {
       expect(calls("POST", "/v1/me/player/next").length).toBe(nexts + 2);
       expect(calls("GET", "/v1/me/player/queue").length).toBeGreaterThan(before);
       state.player = { ...state.player, is_playing: false };
-      // Paused: hidden, the glyph with the paused track as its tooltip and the popover offering Play the empty shape for the core's show = always.
-      const quiet = await h.render("spotify", "playing", { reason: "media" as never });
-      expect(quiet).toMatchObject({ hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused" } });
-      expect(quiet.empty!.title).toBeUndefined();
-      expect((quiet.empty!.menu as { view: any }).view.actions[0]).toMatchObject({ id: "toggle", title: "Play" });
-      // bar_show: paused keeps the track on the strip itself, muted, the popover offering Play.
-      h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_show: "paused" } });
-      await Bun.sleep(50);
+      // Paused: the track renders as itself with playing false (the manifest's rule hides it), the glyph with the paused track as its tooltip and the popover offering Play its empty shape.
       const paused = await h.render("spotify", "playing", { reason: "media" as never });
-      expect(paused).toMatchObject({ icon: "\u{f04c7}", title: "Weird Fishes/ Arpeggi · Radiohead", color: "muted", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused", scroll: { up: "next", down: "previous" } });
-      expect(paused.empty).toBeUndefined();
+      expect(paused).toMatchObject({ icon: "\u{f04c7}", title: "Weird Fishes/ Arpeggi · Radiohead", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused", scroll: { up: "next", down: "previous" }, states: { playing: false, loaded: true }, empty: { icon: "\u{f04c7}", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused" } });
+      expect(paused).not.toHaveProperty("color");
+      expect(paused).not.toHaveProperty("hidden");
+      expect(paused.empty!.title).toBeUndefined();
+      expect((paused.empty!.menu as { view: any }).view.actions[0]).toMatchObject({ id: "toggle", title: "Play" });
       expect((paused.menu as { view: any }).view.actions[0]).toMatchObject({ id: "toggle", title: "Play" });
       const held = state.player;
       state.player = null;

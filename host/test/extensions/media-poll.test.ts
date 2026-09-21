@@ -17,18 +17,22 @@ beforeAll(async () => {
 afterAll(() => host.kill());
 
 describe("media bar poll", () => {
-  test("a track change is pushed; the same state is not; nothing playing pushes hidden and stops the poll", async () => {
+  test("a track change is pushed; the same state is not; a pause is pushed and polled on; no player pushes hidden and stops the poll", async () => {
     expect((await host.render("media", "now-playing")).title).toBe("Blue Monday · New Order");
     await Bun.sleep(350);
     expect(host.updates("media", "now-playing")).toEqual([]);
     expect(asked).toBeGreaterThan(2);
     np = { players: [{ ...spotify, title: "Ceremony" }], system_wide: true };
     expect((await host.nextUpdate("media", "now-playing")).title).toBe("Ceremony · New Order");
+    // Paused: the same player is still the strip's (the manifest's rule hides it), pushed with playing false, and the poll goes on.
     np = { players: [{ ...spotify, title: "Ceremony", state: "paused" }], system_wide: true };
+    expect(await host.nextUpdate("media", "now-playing")).toMatchObject({ title: "Ceremony · New Order", states: { playing: false, state: "paused" } });
+    // No player at all: hidden with the empty shape, and the poll stops.
+    np = { players: [], system_wide: true };
     expect(await host.nextUpdate("media", "now-playing")).toMatchObject({ hidden: true, empty: { tooltip: "Nothing playing" } });
     const n = asked;
     await Bun.sleep(350);
     expect(asked).toBe(n);
-    expect(host.updates("media", "now-playing")).toHaveLength(2);
+    expect(host.updates("media", "now-playing")).toHaveLength(3);
   });
 });

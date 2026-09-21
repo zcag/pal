@@ -90,14 +90,15 @@ whose code fails to load.
   in the code's `palettes` object; what goes here and what goes in the
   code is the next section.
 - `bar.<id>`: a bar item's `title`, `description`, `refresh` schedule,
-  `keys`, and optional Settings-only `mocks` (below, "Bar items"). The id
-  is the key in the code's `bar` object.
+  `keys`, optional Settings-only `mocks`, and its `rules` (below, "Bar
+  items"). The id is the key in the code's `bar` object.
 - `links.<route>`: a deep link route the code answers, with its
   `description`, `params` and `confirm` (below, "Links: routes of your
   own").
-- `states.<name>`: a state the code publishes with `state.set` (below,
-  "States"), its `description` and `kind` (`boolean`, `number`,
-  `string`), so the States palette shows it before it is ever set.
+- `states.<name>`: a state the code publishes, with `state.set` or in a
+  render's `states` (below, "States"), its `description` and `kind`
+  (`boolean`, `number`, `string`), so the States palette and the item's
+  Settings pane show it before it is ever set.
 - `multi`: `true` when the extension can run as several configured
   instances (two accounts, two homes; below, "Instances"). Without it a
   `[instances."<name>@<suffix>"]` in the config file is not loaded.
@@ -831,6 +832,10 @@ diffs it against the last one:
   `destructive`), `urgent` (drawn as an alarm), `stale` (muted, "could not
   refresh"), `progress` (0..1, a thin fill), `tooltip`, `refresh` (seconds until
   the next `render`, this once).
+- `states`: the facts the item knows, as `{ name: scalar }`, published
+  as `<extension>/<name>` with the render (`power/level`,
+  `calendar/phase`): what the manifest's `rules` and anyone's state
+  expressions read. `null` withdraws one. Not drawn.
 - `menu`: what a click, the item's hotkey or a hover peek opens, always in
   pal's own popover. An array of `BarMenuNode` is a **menu level**: rows
   (`{ type: "item", id, title, subtitle?, icon?, shortcut?, checked?,
@@ -858,6 +863,32 @@ lists the item without running the code:
   "notifications": { "title": "Notifications", "description": "Unread count", "refresh": { "every": 300, "on": ["show", "wake", "network"] } }
 }
 ```
+
+**Rules.** `rules` next to `refresh`: how the item draws by its facts,
+decided by the core at draw time and overridden by the user by id
+(docs/config.md, "Rules"). An item states what it knows in `states` and
+leaves presence, urgency and colour to its rules; the settings that used
+to pick a threshold or a colour go with that:
+
+```json
+"rules": [
+  { "id": "fine", "when": "not power.charging and power.level >= 50 and not power.alert", "description": "Plenty left, nothing wrong.", "hidden": true },
+  { "id": "low", "when": "not power.charging and power.level <= 20", "description": "Getting low.", "color": "amber" },
+  { "id": "critical", "when": "not power.charging and power.level <= 10", "description": "Nearly out.", "color": "red" }
+]
+```
+
+Each rule: `id` (unique in the item, lowercase letters, digits, `_`),
+`when` (a Jinja state expression; the item's own facts are
+`<extension>.<name>`), a `description` for the Settings pane, and what it
+does while it holds: `hidden`, `urgent`, `position`, and the `[bar.items]`
+appearance keys (`color`, `size`, `icon`, `show_title`, `dim`, `font`,
+`width`, ...). In order, later wins. A rule that does nothing is a load
+warning. A hidden rule takes the same path as `hidden: true` from the
+render: `show = "always"` keeps the `empty` shape, so a render that may be
+hidden by a rule answers `empty` too. The render keeps running while a
+rule hides the item (its facts come from the render); the user's
+`show_when`/`hide_when` are what hold an item off without one.
 
 `refresh.every` is seconds between renders (10 at least), `on` adds
 triggers: `show` (the panel shown), `wake`, `network` (back online),

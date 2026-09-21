@@ -118,6 +118,24 @@ struct Compiled {
     any: bool,
 }
 
+/// What a bar item asks of the states (`docs/design/states.md`, "Rules"):
+/// the user's `show_when`/`hide_when`, and the `when` of each rule, in
+/// order, by id.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct BarConditions {
+    pub key: String,
+    pub show_when: Option<String>,
+    pub hide_when: Option<String>,
+    pub rules: Vec<(String, String)>,
+}
+
+#[derive(Default)]
+struct BarCond {
+    show: Option<Compiled>,
+    hide: Option<Compiled>,
+    rules: Vec<(String, Compiled)>,
+}
+
 /// The table. `configure` takes the config, the layer setters take one
 /// value each, and every one answers the names whose resolved value
 /// changed.
@@ -125,8 +143,8 @@ struct Compiled {
 pub struct States {
     decls: BTreeMap<String, Decl>,
     exprs: BTreeMap<String, Compiled>,
-    /// `show_when` / `hide_when` per bar item key, as (show, hide).
-    bar: BTreeMap<String, (Option<Compiled>, Option<Compiled>)>,
+    /// Per bar item key: `show_when`, `hide_when`, and its rules' `when` by id in order.
+    bar: BTreeMap<String, BarCond>,
     manual: BTreeMap<String, Manual>,
     published: BTreeMap<String, Published>,
     resolved: BTreeMap<String, Value>,
@@ -141,7 +159,8 @@ fn env() -> &'static Environment<'static> {
     static ENV: OnceLock<Environment<'static>> = OnceLock::new();
     ENV.get_or_init(|| {
         let mut e = Environment::new();
-        e.set_undefined_behavior(UndefinedBehavior::Chainable);
+        // An unknown state is left out of the context, so it is undefined: falsy on its own, `not x` is true, and a comparison or an attribute read on it fails (the expression reads null) rather than sorting below every number as `none` would (`none < 20` is true in Jinja; a rule must not fire on a state nothing has fed).
+        e.set_undefined_behavior(UndefinedBehavior::SemiStrict);
         e
     })
 }
@@ -164,7 +183,7 @@ pub fn is_scalar(v: &Value) -> bool {
     !matches!(v, Value::Array(_) | Value::Object(_))
 }
 
-fn compile(src: &str, known: &dyn Fn(&str) -> bool) -> Result<Compiled, String> {
+fn compile(src: &str) -> Result<Compiled, String> {
     let expr = env().compile_expression_owned(src.to_string()).map_err(|e| e.to_string())?;
     let mut deps = BTreeSet::new();
     let mut any = false;
@@ -173,13 +192,12 @@ fn compile(src: &str, known: &dyn Fn(&str) -> bool) -> Result<Compiled, String> 
             any = true;
             continue;
         }
-        // `sessions.working` is the state `sessions/working` when there is one, else the bare `sessions`.
+        // `sessions.working` reads the state `sessions/working`, or a bare `sessions` with an attribute: both are recorded, since the extension's may not exist yet.
         let (head, rest) = v.split_once('.').map_or((v.as_str(), None), |(h, r)| (h, Some(r)));
-        let slashed = rest.map(|r| format!("{head}/{r}"));
-        deps.insert(match slashed {
-            Some(s) if known(&s) => s,
-            _ => head.to_string(),
-        });
+        deps.insert(head.to_string());
+        if let Some(r) = rest {
+            deps.insert(format!("{head}/{r}"));
+        }
     }
     Ok(Compiled { expr, deps, any })
 }
@@ -193,10 +211,10 @@ fn toml_to_json(v: &toml::Value) -> Value {
 }
 
 impl States {
-    /// The config's `[states]` and the bar items' `show_when`/`hide_when`
-    /// (`(key, show, hide)`), replacing the last configuration. Answers the
-    /// names whose value changed; the diagnostics are kept ([`Self::diagnostics`]).
-    pub fn configure(&mut self, decls: &BTreeMap<String, Decl>, bar: &[(String, Option<String>, Option<String>)]) -> Vec<String> {
+    /// The config's `[states]` and every bar item's conditions, replacing
+    /// the last configuration. Answers the names whose value changed; the
+    /// diagnostics are kept ([`Self::diagnostics`]).
+    pub fn configure(&mut self, decls: &BTreeMap<String, Decl>, bar: &[BarConditions]) -> Vec<String> {
         let mut diags = Vec::new();
         self.decls.clear();
         self.exprs.clear();
@@ -221,11 +239,14 @@ impl States {
         let known = |n: &str| self.decls.contains_key(n) || self.published.contains_key(n) || self.manual.contains_key(n) || BUILTINS.contains(&n);
         for (name, d) in &self.decls {
             if let Some(src) = &d.expr {
-                match compile(src, &known) {
+                match compile(src) {
                     Ok(c) => {
-                        for dep in &c.deps {
-                            if !known(dep) && !self.decls.contains_key(dep) {
-                                diags.push(Diagnostic::warn(format!("states.{name}.expr"), format!("`{dep}` is not a state; it reads null until something sets it")));
+                        // One warning per name read: `a.b` recorded `a` and `a/b`, and either being a state (or `a` an extension with states) is fine.
+                        for dep in c.deps.iter().filter(|d| !d.contains('/')) {
+                            let slashed = c.deps.iter().any(|d| d.starts_with(&format!("{dep}/")) && known(d));
+                            let prefix = self.published.keys().any(|k| k.starts_with(&format!("{dep}/")));
+                            if !known(dep) && !slashed && !prefix {
+                                diags.push(Diagnostic::warn(format!("states.{name}.expr"), format!("`{dep}` is not a state; the expression reads null until something sets it")));
                             }
                         }
                         self.exprs.insert(name.clone(), c);
@@ -237,20 +258,20 @@ impl States {
                 }
             }
         }
-        for (key, show, hide) in bar {
-            let mut one = |src: &Option<String>, which: &str| match src {
-                None => None,
-                Some(s) => match compile(s, &known) {
-                    Ok(c) => Some(c),
-                    Err(e) => {
-                        diags.push(Diagnostic::warn(format!("bar.items.{key}.{which}"), e));
-                        None
-                    }
-                },
+        for b in bar {
+            let key = &b.key;
+            let mut one = |src: &str, which: &str| match compile(src) {
+                Ok(c) => Some(c),
+                Err(e) => {
+                    diags.push(Diagnostic::warn(format!("bar.items.{key}.{which}"), e));
+                    None
+                }
             };
-            let (s, h) = (one(show, "show_when"), one(hide, "hide_when"));
-            if s.is_some() || h.is_some() {
-                self.bar.insert(key.clone(), (s, h));
+            let show = b.show_when.as_deref().and_then(|s| one(s, "show_when"));
+            let hide = b.hide_when.as_deref().and_then(|s| one(s, "hide_when"));
+            let rules: Vec<(String, Compiled)> = b.rules.iter().filter_map(|(id, w)| one(w, &format!("rules.{id}.when")).map(|c| (id.clone(), c))).collect();
+            if show.is_some() || hide.is_some() || !rules.is_empty() {
+                self.bar.insert(key.clone(), BarCond { show, hide, rules });
             }
         }
         for cycle in self.cycles() {
@@ -366,24 +387,32 @@ impl States {
     /// Whether the bar item `key` shows by its `show_when`/`hide_when`
     /// (true without either).
     pub fn shows(&self, key: &str) -> bool {
-        let Some((show, hide)) = self.bar.get(key) else { return true };
+        let Some(b) = self.bar.get(key) else { return true };
         let ctx = self.context();
         let truthy = |c: &Compiled| c.expr.eval(&ctx).map(|v| v.is_true()).unwrap_or(false);
-        show.as_ref().is_none_or(truthy) && !hide.as_ref().is_some_and(truthy)
+        b.show.as_ref().is_none_or(truthy) && !b.hide.as_ref().is_some_and(truthy)
     }
 
-    /// The bar items whose `show_when`/`hide_when` reads one of `changed`.
+    /// The ids of the bar item's rules whose `when` holds now, in rule order.
+    pub fn active_rules(&self, key: &str) -> Vec<String> {
+        let Some(b) = self.bar.get(key) else { return Vec::new() };
+        let ctx = self.context();
+        b.rules.iter().filter(|(_, c)| c.expr.eval(&ctx).map(|v| v.is_true()).unwrap_or(false)).map(|(id, _)| id.clone()).collect()
+    }
+
+    /// The bar items whose `show_when`/`hide_when` or a rule reads one of `changed`.
     pub fn bar_items_reading(&self, changed: &[String]) -> Vec<String> {
+        let reads = |c: &Compiled| c.any || c.deps.iter().any(|d| changed.contains(d));
         self.bar
             .iter()
-            .filter(|(_, (s, h))| [s, h].into_iter().flatten().any(|c| c.any || c.deps.iter().any(|d| changed.contains(d))))
+            .filter(|(_, b)| b.show.as_ref().is_some_and(reads) || b.hide.as_ref().is_some_and(reads) || b.rules.iter().any(|(_, c)| reads(c)))
             .map(|(k, _)| k.clone())
             .collect()
     }
 
     /// `pal state eval`: an expression against the table now.
     pub fn eval(&self, src: &str) -> Result<Value, String> {
-        let c = compile(src, &|n| self.resolved.contains_key(n))?;
+        let c = compile(src)?;
         let v = c.expr.eval(self.context()).map_err(|e| e.to_string())?;
         Ok(serde_json::to_value(v).unwrap_or(Value::Null))
     }
@@ -414,7 +443,7 @@ impl States {
     fn context(&self) -> minijinja::Value {
         let mut top: BTreeMap<String, Value> = BTreeMap::new();
         let mut maps: BTreeMap<String, serde_json::Map<String, Value>> = BTreeMap::new();
-        for (name, v) in &self.resolved {
+        for (name, v) in self.resolved.iter().filter(|(_, v)| !v.is_null()) {
             match name.split_once('/') {
                 Some((ext, n)) => {
                     maps.entry(ext.to_string()).or_default().insert(n.to_string(), v.clone());
@@ -427,7 +456,7 @@ impl States {
         for (ext, m) in maps {
             top.entry(ext).or_insert(Value::Object(m));
         }
-        let all: serde_json::Map<String, Value> = self.resolved.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let all: serde_json::Map<String, Value> = self.resolved.iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| (k.clone(), v.clone())).collect();
         top.insert("states".into(), Value::Object(all));
         minijinja::Value::from_serialize(&top)
     }
@@ -555,7 +584,7 @@ mod tests {
         let mut s = States::default();
         s.configure(&table(&[("working", decl("hour >= 9 and hour < 18")), ("deep", Decl::default())]), &[]);
         assert_eq!(s.get("hour"), Some(&Value::Null), "null until the app feeds it");
-        assert_eq!(s.get("working"), Some(&json!(false)), "Jinja compares none like a value: `none >= 9` is false");
+        assert_eq!(s.get("working"), Some(&Value::Null), "a comparison against an unknown is unknown");
         assert_eq!(s.get("deep"), Some(&json!(false)), "a declared state without a value is false");
         let changed = s.publish("hour", "builtin", json!(10)).unwrap();
         assert_eq!(changed, ["hour", "working"]);
@@ -593,7 +622,9 @@ mod tests {
         assert_eq!(s.get("busy"), Some(&json!(false)));
         s.publish("sessions/working", "sessions", Value::Null).unwrap();
         assert_eq!(s.get("sessions/working"), None, "withdrawn");
-        assert_eq!(s.get("busy"), Some(&json!(false)), "a missing map reads undefined, which is false");
+        assert_eq!(s.get("busy"), Some(&Value::Null), "an attribute of a missing map is unknown");
+        s.configure(&table(&[("quiet", decl("not sessions"))]), &[]);
+        assert_eq!(s.get("quiet"), Some(&json!(true)), "a bare unknown is falsy");
     }
 
     #[test]
@@ -632,11 +663,16 @@ mod tests {
     fn bar_items_follow_their_expressions() {
         let mut s = States::default();
         s.publish("hour", "builtin", json!(10)).unwrap();
-        s.configure(&table(&[("working", decl("hour >= 9"))]), &[("github/prs".into(), Some("working".into()), None), ("spotify/playing".into(), None, Some("working and states.deep".into())), ("x/y".into(), Some("hour >".into()), None)]);
+        let cond = |key: &str, show: Option<&str>, hide: Option<&str>, rules: &[(&str, &str)]| BarConditions { key: key.into(), show_when: show.map(String::from), hide_when: hide.map(String::from), rules: rules.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect() };
+        s.configure(&table(&[("working", decl("hour >= 9"))]), &[cond("github/prs", Some("working"), None, &[]), cond("spotify/playing", None, Some("working and states.deep"), &[]), cond("x/y", Some("hour >"), None, &[]), cond("power/battery", None, None, &[("low", "power.level < 20"), ("warn", "power.level < 50"), ("bad", "hour <")])]);
         assert!(s.shows("github/prs"));
         assert!(s.shows("spotify/playing"));
         assert!(s.shows("x/y"), "a bad expression shows the item and is a diagnostic");
-        assert_eq!(s.diagnostics().len(), 1);
+        assert_eq!(s.diagnostics().len(), 2, "the bad show_when and the bad rule");
+        assert!(s.active_rules("power/battery").is_empty(), "no level yet: none holds");
+        s.publish("power/level", "power", json!(15)).unwrap();
+        assert_eq!(s.active_rules("power/battery"), ["low", "warn"], "in rule order");
+        assert_eq!(s.bar_items_reading(&["power/level".into()]), ["power/battery", "spotify/playing"], "the rule reader, and the `states.` reader of everything");
         s.set_manual("deep", json!(true), None).unwrap();
         assert!(!s.shows("spotify/playing"));
         let mut r = s.bar_items_reading(&["working".into()]);

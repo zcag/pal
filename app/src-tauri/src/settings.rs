@@ -736,6 +736,42 @@ pub struct BarItemView {
     /// Named static states an extension declared for this item's Settings-only preview.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     mocks: Vec<BarMockView>,
+    /// The item's rules as they apply (the extension's with the file's on
+    /// top, then the file's own), in order, each with whether it holds now.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    rules: Vec<BarRuleView>,
+    /// The states the item's renders publish (`<extension>/<name>`), with
+    /// their live values: what its rules read.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    states: Vec<BarStateView>,
+}
+
+/// One rule on the Settings Bar pane.
+#[derive(Serialize)]
+pub struct BarRuleView {
+    id: String,
+    /// As it applies: the file's `when` over the extension's.
+    when: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    /// The effect as it applies (the merged `BarRule`).
+    rule: pal_core::config::BarRule,
+    /// The extension's own rule, absent for one of the file's.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<pal_core::config::BarRule>,
+    /// The file has a table for this id.
+    overridden: bool,
+    /// The `when` holds now.
+    active: bool,
+}
+
+/// One state an item publishes, on the pane.
+#[derive(Serialize)]
+pub struct BarStateView {
+    name: String,
+    value: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
 }
 
 /// The last render's strip: what the page's state line reads and what its
@@ -811,7 +847,13 @@ pub struct BarView {
     items: Vec<BarItemView>,
 }
 
-fn bar_view(app: &AppHandle) -> BarView {
+/// The `states` an extension's `pal.json` declares, name to description.
+fn manifest_states(app: &AppHandle, key: &str) -> std::collections::BTreeMap<String, String> {
+    manifest_of(app, key).and_then(|m| m.get("states").cloned()).and_then(|v| v.as_object().cloned()).map(|o| o.into_iter().filter_map(|(k, v)| v.get("description").and_then(|d| d.as_str()).map(|d| (k, d.to_string()))).collect()).unwrap_or_default()
+}
+
+/// `config` is the caller's: `settings_get` holds the `loaded` lock, so this must not take it again.
+fn bar_view(app: &AppHandle, config: &Config) -> BarView {
     let items = if app.try_state::<crate::bar::Bar>().is_some() { crate::bar::snapshot(app) } else { Vec::new() };
     BarView {
         supported: crate::bar::SUPPORTED,
@@ -820,7 +862,21 @@ fn bar_view(app: &AppHandle) -> BarView {
             .into_iter()
             .map(|(key, e)| {
                 let (extension, id) = crate::bar::split_key(&key).map(|(a, b)| (a.to_string(), b.to_string())).unwrap_or_default();
+                let active = crate::states::active_rules(app, &key);
+                let item_cfg = config.bar.item(&key);
+                let rules = crate::bar::rules_of(config, &key, &e.manifest)
+                    .into_iter()
+                    .map(|(id, rule)| {
+                        let default = e.manifest.rules.iter().find(|r| r.id == id).map(|r| r.rule.clone());
+                        BarRuleView { when: rule.when.clone().unwrap_or_default(), description: rule.description.clone(), overridden: item_cfg.rules.contains_key(&id), active: active.contains(&id), default, rule, id }
+                    })
+                    .collect();
+                let declared = manifest_states(app, &extension);
+                let prefix = format!("{extension}/");
+                let states = crate::states::list(app).into_iter().filter(|s| s.name.starts_with(&prefix)).map(|s| { let name = s.name[prefix.len()..].to_string(); BarStateView { description: declared.get(&name).cloned(), name, value: s.value } }).collect();
                 BarItemView {
+                    rules,
+                    states,
                     state: e.last.as_ref().map(bar_item_state),
                     mocks: e.manifest.mocks.iter().map(|(id, mock)| BarMockView { id: id.clone(), title: mock.title.clone(), item: bar_item_state(&mock.item) }).collect(),
                     key,
@@ -879,7 +935,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         store: Store::locate().dir().to_path_buf(),
         hotkey: hotkey::outcome(&app),
         permissions: permissions::status(),
-        bar: bar_view(&app),
+        bar: bar_view(&app, &l.config),
         checks: lock(&st.checks).clone(),
     }
 }

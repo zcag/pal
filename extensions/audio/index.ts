@@ -30,8 +30,8 @@ const VOLUME_ITEM = "volume";
 /** How long the level stays up after a change, his `VOL_FLASH_SEC`. */
 const FLASH_MS = 3000;
 
-/** `[extensions.audio]`, defaults in pal.json. `bar_show_microphone`: `muted` leaves a missing input quiet. */
-type Settings = { level: "flash" | "always" | "never"; bar_show_microphone?: "auto" | "muted" };
+/** `[extensions.audio]`, defaults in pal.json. */
+type Settings = { level: "flash" | "always" | "never" };
 
 let flashUntil = 0;
 let collapse: ReturnType<typeof setTimeout> | undefined;
@@ -135,22 +135,24 @@ async function renderVolume(): Promise<BarItem> {
 }
 
 /**
- * Mic only interrupts the bar when it needs attention: muted or absent.
- * `bar_show_microphone` narrows that to muted alone. A live mic is
- * hidden, the glyph and the popover its `empty` shape: a `show =
- * "always"` config keeps it muted, and its click only opens the popover
- * (the direct click restores the level, which a live mic does not want).
+ * The mic as it is (`audio/input`: live, muted or none); the manifest's
+ * rules hide a live one and tint a muted or missing one red, so the item
+ * interrupts the bar only when it needs attention (a user who wants a
+ * missing input quiet hides the `missing` rule too). Live, the glyph and
+ * the popover are its `empty` shape: a `show = "always"` config keeps it
+ * muted, and its click only opens the popover (the direct click restores
+ * the level, which a live mic does not want).
  */
 async function renderMic(): Promise<BarItem> {
   try {
     const st = await barState("input");
     const d = st.devices.find((x) => x.default);
-    const show = settings.get<Settings>().bar_show_microphone ?? "auto";
     const menu = { view: renderBar(st) };
-    if (!d) return show === "muted" ? { hidden: true } : { icon: MIC_OFF, color: "red", tooltip: "No input device", click: "open", menu };
-    if (!d.muted) return { hidden: true, empty: { icon: MIC, tooltip: `${d.name}${d.volume === null ? "" : ` · ${d.volume}%`}`, menu } };
-    return { icon: MIC_MUTED, color: "red", tooltip: `${d.name}, muted`, click: "open", menu };
-  } catch { return { hidden: true }; }
+    if (!d) return { icon: MIC_OFF, tooltip: "No input device", click: "open", menu, states: { input: "none" } };
+    const live = { icon: MIC, tooltip: `${d.name}${d.volume === null ? "" : ` · ${d.volume}%`}`, menu };
+    if (!d.muted) return { ...live, empty: live, states: { input: "live" } };
+    return { icon: MIC_MUTED, tooltip: `${d.name}, muted`, click: "open", menu, empty: live, states: { input: "muted" } };
+  } catch { return { hidden: true, states: { input: null } }; }
 }
 
 /**

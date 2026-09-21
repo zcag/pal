@@ -31,8 +31,7 @@ const STORAGE_KEY = "auth";
 export const log = (...a: unknown[]) => console.error("[spotify]", ...a);
 
 /** `[extensions.spotify]`, defaults in pal.json. */
-/** `bar_show`: `playing` is the strip's rule; `paused` keeps a loaded track on it, muted. */
-export type Settings = { client_id: string; redirect_port: number; bar_lyrics: boolean; pinned: string[]; bar_show?: "playing" | "paused" };
+export type Settings = { client_id: string; redirect_port: number; bar_lyrics: boolean; pinned: string[] };
 export const conf = () => settings.get<Settings>(EXTENSION);
 
 /** Nobody is signed in: no client id yet, or no tokens (never signed in, signed out, or Spotify revoked the refresh token). */

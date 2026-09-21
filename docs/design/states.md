@@ -293,6 +293,62 @@ place; then the names with the shortest time left (`working ⏱ 2 h 40 m`,
 or `working` alone with no expiry), amber, click opens the palette
 filtered to `manual`. The honest tell that a state is being held by hand.
 
+## Rules: extensions publish facts, the core decides presentation
+
+Built 2026-09-21, second pass (Cagdas: "clean up a lot of tech debt around
+auto hide / colour change / size change based on state logic for bar
+items; they can all publish states and use their own states to have
+default rules for those behaviours, configurable over their defaults").
+The survey found the same shape in every bar extension: a fact the
+extension knows, a presentation decision hard-wired in `render`, and a
+bespoke setting bolted on (calendar's eleven `bar_*_color/size/position`,
+power's three thresholds, a `bar_show` select each on media, spotify,
+slack, bluetooth and audio with its own option names, weather's band,
+`dm_urgent` on slack and whatsapp, network's `icon_only`).
+
+- **A render carries its facts**: `BarItem.states` (`{ name: scalar }`),
+  published as `<extension>/<name>` atomically with the render
+  (`bar/mod.rs` `set` before the draw), so a rule reads the facts of the
+  render it decorates. Declared under `states` in `pal.json`. A `null`
+  withdraws (an item that could not read at all publishes nulls).
+- **Rules in the manifest** (`bar.<id>.rules`, an ordered list of
+  `{ id, when, description?, hidden?, urgent?, position?, ...look }`),
+  compiled with the other conditions in `States::configure`
+  (`BarConditions.rules`), evaluated at draw time (`States::active_rules`,
+  `draw_for`): `hidden` and `urgent` land on the item before `kept`, a
+  rule's `color` replaces the render's (a `muted` from the render
+  included: the rule is the decision), the rest merge over the item's
+  look override in order.
+- **Overrides by id**: `[bar.items."<key>".rules.<id>]` merges key by key
+  (`BarRule::with`, `Bar::rules_of`); an id the manifest lacks is a rule
+  of the user's own and needs `when`. The conditions are rebuilt when an
+  extension registers its items (`states::reconfigure_bar`), since rules
+  come from manifests.
+- **Settings > Bar** (`SettingsBarRules.tsx`): under the item, a "Reads"
+  line with the facts and their live values, then a row per rule (a dot
+  for "holds now", the id, the condition in mono, the effect as chips,
+  "Power's" / "Power's, changed" / "yours"), opening into an editor of the
+  few keys a rule is made of (When, Hidden, Urgent, Tint, Size, Position,
+  Icon), each edit one key under the rule's table; Reset drops an
+  overridden extension rule's table, Remove a rule of the user's own; Add
+  a rule takes an id and a condition and starts hidden.
+- **Migrated**: calendar (`phase`, `minutes`, `call`; rules far/near/
+  warning/critical/running; eleven settings gone), power (`level`,
+  `charging`, `draw`, `alert`; fine/plugged/low/warn/critical/crit; three
+  gone), media (`playing`, `state`, `app`; paused), spotify (`playing`,
+  `loaded`; paused), slack (`attention`, `dm`, `channels`; quiet/dm;
+  `bar_show` and `dm_urgent` gone), whatsapp (`unread`, `direct`;
+  quiet/dm; `dm_urgent` gone), bluetooth (`low`, `lowest`, `connected`;
+  none/fine/low/critical; `bar_show` gone, `low_threshold` kept since it
+  shapes the content), weather (`temp`, `code`, `quiet`, `condition`;
+  ordinary/cold/hot; `low`, `high`, `notable_conditions` gone), audio's
+  microphone (`input`; live/muted/missing), network (`icon_only` gone:
+  `show_title = false` was already the core's).
+- Kept as settings, on purpose: what shapes content rather than
+  presentation (`media.bar_artwork`, `spotify.bar_lyrics`, the calendar's
+  `near/warn/urgent_minutes` that define the phase, bluetooth's
+  `low_threshold`, hue's `main_room`).
+
 ## Settings
 
 Settings > Bar shows `show_when` and `hide_when` on the item pane under

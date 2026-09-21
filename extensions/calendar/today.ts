@@ -65,17 +65,7 @@ type PresentationRules = BarRules & { near_minutes: number };
 /** The strip's time-state vocabulary, also used by Settings' mock picker. */
 export type UpcomingPhase = "far" | "near" | "warning" | "critical" | "running";
 
-/**
- * The appearance Calendar wants for one time state. `size` maps to both
- * runtime font sizes; `position` moves the sketchybar item for this state.
- */
-export type UpcomingPresentation = { phase: UpcomingPhase; color: BarColor; size?: number; position?: string };
-
-const COLORS = new Set<BarColor>(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal", "text", "muted", "accent", "destructive"]);
 const number = (value: unknown, fallback: number) => Number.isFinite(Number(value)) ? Number(value) : fallback;
-const size = (value: unknown) => { const n = number(value, 0); return n > 0 ? n : undefined; };
-const position = (value: unknown) => typeof value === "string" && value.trim() ? value.trim() : undefined;
-const color = (value: unknown, fallback: BarColor): BarColor => typeof value === "string" && COLORS.has(value as BarColor) ? value as BarColor : fallback;
 
 /** Settings normalised once, so the root suggestion and the bar share every eligibility boundary. */
 export function barRules(s: Settings): PresentationRules {
@@ -120,21 +110,15 @@ export function escalation(e: Pick<CalendarEvent, "start" | "end">, now: number,
 }
 
 /**
- * The calendar's whole visual decision for an event. Defaults deliberately
- * match the existing item: muted until warning, amber, red, then green; no
- * dynamic size or placement until the bar can draw those fields.
+ * The event's time state, what the bar item publishes as `calendar/phase`
+ * (docs/design/states.md) and its manifest rules colour: `far` beyond
+ * `near_minutes`, `near`, `warning` inside `warn_minutes`, `critical`
+ * inside `urgent_minutes`, `running` once started.
  */
-export function upcomingPresentation(e: Pick<CalendarEvent, "start" | "end">, now: number, s: Settings): UpcomingPresentation {
+export function phaseOf(e: Pick<CalendarEvent, "start" | "end">, now: number, s: Settings): UpcomingPhase {
   const r = barRules(s);
   const mins = (e.start - now) / MIN;
-  const phase: UpcomingPhase = e.start <= now ? "running" : mins <= r.urgent_minutes ? "critical" : mins <= r.warn_minutes ? "warning" : mins <= r.near_minutes ? "near" : "far";
-  switch (phase) {
-    case "far": return { phase, color: color(s.bar_far_color, "muted"), size: size(s.bar_far_size), position: position(s.bar_far_position) };
-    case "near": return { phase, color: color(s.bar_near_color, "muted"), size: size(s.bar_near_size), position: position(s.bar_near_position) };
-    case "warning": return { phase, color: color(s.bar_warning_color, "amber"), size: size(s.bar_attention_size), position: position(s.bar_attention_position) };
-    case "critical": return { phase, color: color(s.bar_critical_color, "red"), size: size(s.bar_attention_size), position: position(s.bar_attention_position) };
-    case "running": return { phase, color: color(s.bar_running_color, "green"), size: size(s.bar_attention_size), position: position(s.bar_attention_position) };
-  }
+  return e.start <= now ? "running" : mins <= r.urgent_minutes ? "critical" : mins <= r.warn_minutes ? "warning" : mins <= r.near_minutes ? "near" : "far";
 }
 
 /**
@@ -182,20 +166,18 @@ export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, 
   const rules = barRules(s);
   const list = eligible(events, now, rules);
   const e = list[0];
-  if (!e) return { hidden: true };
+  if (!e) return { hidden: true, states: { phase: "none", minutes: null, call: false } };
   const next = e.start <= now ? list.find((x) => x.start > now) : undefined;
-  const presentation = upcomingPresentation(e, now, s);
+  const phase = phaseOf(e, now, s);
   const segments: BarSegment[] = [{ id: "when", text: barWhen(e, now) }];
-  if (next) segments.push({ id: "next", text: barWhen(next, now), color: upcomingPresentation(next, now, s).color, tooltip: about(next) });
+  if (next) segments.push({ id: "next", text: barWhen(next, now), color: escalation(next, now, barRules(s).warn_minutes, barRules(s).urgent_minutes), tooltip: about(next) });
+  // No colour of its own: the manifest's rules tint the item by `calendar.phase` (muted far and near, amber, red, green), which the user overrides by id.
   return {
     icon: ICON,
     title: barName(e),
     segments,
-    color: presentation.color,
-    icon_size: presentation.size,
-    label_size: presentation.size,
-    position: presentation.position,
     badge: e.conference_url ? "dot" : undefined,
+    states: { phase, minutes: Math.round((e.start - now) / MIN), call: !!e.conference_url },
     stale: stale ? true : undefined,
     tooltip: `${about(e)}${e.conference_url ? ", Enter joins" : ""}${next ? `; then ${about(next)}` : ""}`,
     click: "open",

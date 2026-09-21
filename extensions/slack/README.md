@@ -139,10 +139,10 @@ stale bar item) instead of piling onto the limit.
 | `token` | secret | (none) | The user token, with `auth = "token"`; the file holds a `keychain:` reference. |
 | `workspace` | text | (none) | The workspace when the app is signed in to several, by id (`T...`) or domain; empty lists every one (status and search on the first). |
 | `statuses` | list | five presets | One per line as `:emoji: text (expiry)`; the expiry is `30m`, `2h`, `1d` or `today`, or left out. Common Slack shortcodes are drawn as the emoji. |
-| `dm_urgent` | boolean | `true` | Draw the bar item as urgent (red) while a direct message is unread. |
 | `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away), one `users.getPresence` per person, remembered a minute; off makes no such call. |
 | `refresh` | number (s) | `120` | Seconds between refreshes of the bar item (10 at least). |
-| `bar_show` | `auto` / `unread` | `auto` | When the bar item is drawn: with something addressed to you, or also while a channel is merely unread (the glyph alone, muted, without a badge). Keeping it at all times is the core's `show = "always"` under `[bar.items."slack/unreads"]` (docs/config.md). |
+
+When the bar item is drawn and whether a direct message makes it urgent are its rules (`quiet`, `dm`) under Settings > Bar: narrow `quiet` to `slack.attention == 0 and slack.channels == 0` to keep the glyph while a channel is merely unread, turn `dm`'s Urgent off for a plain count. Keeping it at all times is the core's `show = "always"` under `[bar.items."slack/unreads"]` (docs/config.md).
 
 ## The bar item
 

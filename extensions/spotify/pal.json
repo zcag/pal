@@ -38,23 +38,6 @@
       "default": true
     },
     {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Spotify item is drawn. Paused keeps a loaded track on the strip, muted.",
-      "options": [
-        {
-          "id": "playing",
-          "title": "While something plays"
-        },
-        {
-          "id": "paused",
-          "title": "While a track is loaded, paused too"
-        }
-      ],
-      "default": "playing"
-    },
-    {
       "kind": "list",
       "id": "pinned",
       "label": "Pinned playlists",
@@ -298,6 +281,16 @@
       ]
     }
   },
+  "states": {
+    "playing": {
+      "description": "Spotify is playing",
+      "kind": "boolean"
+    },
+    "loaded": {
+      "description": "A track is loaded, playing or paused",
+      "kind": "boolean"
+    }
+  },
   "bar": {
     "playing": {
       "title": "Spotify",
@@ -332,7 +325,10 @@
           "title": "Paused or nothing playing",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰓇", "tooltip": "Nothing playing" }
+            "empty": {
+              "icon": "󰓇",
+              "tooltip": "Nothing playing"
+            }
           }
         }
       },
@@ -401,6 +397,15 @@
         {
           "keys": "cmd+o",
           "title": "Open in Spotify"
+        }
+      ],
+      "rules": [
+        {
+          "id": "paused",
+          "when": "spotify.loaded and not spotify.playing",
+          "description": "A loaded track that is paused: off the strip, muted for anyone who keeps it.",
+          "hidden": true,
+          "color": "muted"
         }
       ]
     }
