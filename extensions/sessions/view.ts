@@ -108,7 +108,7 @@ function empty(): ViewNode {
 function hints(s?: Session): ViewNode {
   const kids: ViewNode[] = [];
   if (s) {
-    kids.push(...keyHint("enter", s.state === "ended" ? "resume" : "focus"), ...keyHint("o", "transcript"), ...keyHint("r", "copy resume"));
+    kids.push(...keyHint("enter", s.state === "ended" ? "resume" : "focus"), ...keyHint("t", "transcript"), ...keyHint("o", "editor"), ...keyHint("r", "copy resume"));
     if (s.state !== "ended") kids.push(...keyHint("x", "kill"));
     if (s.pane) kids.push(...keyHint("s", "send"));
   }
@@ -124,7 +124,8 @@ export function actions(st: PopoverState): Action[] {
   if (!s) return [{ id: "pal", title: "Open Sessions in pal", shortcut: "p" }];
   return [
     s.state === "ended" ? { id: "resume", title: "Resume in a terminal", shortcut: "enter" } : { id: "focus", title: "Focus the terminal", shortcut: "enter" },
-    { id: "transcript", title: "Open transcript", shortcut: ["o", "cmd+o"] },
+    { id: "view", title: "Transcript", shortcut: ["t", "cmd+t"] },
+    { id: "transcript", title: "Open transcript in the editor", shortcut: ["o", "cmd+o"] },
     { id: "copy-resume", title: "Copy resume command", shortcut: ["r", "cmd+c"] },
     ...(s.state !== "ended" ? [{ id: "kill", title: "Kill", shortcut: ["x", "cmd+d"], style: "destructive" as const, confirm: `Send SIGTERM to ${AGENT_TITLE[s.agent]} (pid ${s.pid ?? "?"})?` }] : []),
     ...(s.pane ? [{ id: "send", title: "Send a line (in pal)", shortcut: "s" }] : []),

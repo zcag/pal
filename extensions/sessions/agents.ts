@@ -18,6 +18,10 @@ export const AGENT_TITLE: Record<Agent, string> = { claude: "Claude Code", codex
 
 /** A tool call the assistant made whose result is not in the file yet. */
 export type Pending = { id: string; name: string; summary: string; at: number };
+/** One entry of the conversation as the transcript view draws it: a prompt, the assistant's text, a tool call with its outcome, or a stretch of thinking. */
+export type Turn = { kind: "user" | "assistant" | "tool" | "thinking"; at: number; text?: string; name?: string; summary?: string; status?: "done" | "failed" | "pending"; ms?: number };
+/** How many of the latest turns the fold keeps for the view (the whole file is never held). */
+export const KEEP_TURNS = 60;
 export type Tokens = { context?: number; output?: number; total?: number };
 
 /** Everything the fold keeps for one file. Times are unix ms. */
@@ -41,6 +45,10 @@ export type Acc = {
   reply?: string;
   /** Calls without a result yet, by id, in order; the last is the one shown. */
   calls: Map<string, Pending>;
+  /** The latest `KEEP_TURNS` entries, oldest first, for the transcript view. */
+  log: Turn[];
+  /** The tool entries of `log` by call id, to mark their outcome when the result lands; pruned with it. */
+  toolLog: Map<string, Turn>;
   /** A turn started (Codex `task_started`, Copilot `assistant.turn_start`); Claude's is the prompt. */
   turnAt: number;
   /** The last turn's end and how long it took. */
@@ -57,7 +65,7 @@ export type Acc = {
   last: number;
 };
 
-export const acc = (agent: Agent): Acc => ({ agent, promptAt: 0, calls: new Map(), turnAt: 0, endedAt: 0, turns: 0, tokens: {}, started: 0, last: 0 });
+export const acc = (agent: Agent): Acc => ({ agent, promptAt: 0, calls: new Map(), log: [], toolLog: new Map(), turnAt: 0, endedAt: 0, turns: 0, tokens: {}, started: 0, last: 0 });
 
 const ts = (v: unknown): number => (typeof v === "string" ? Date.parse(v) || 0 : typeof v === "number" ? (v > 1e12 ? v : v * 1000) : 0);
 const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
@@ -104,16 +112,45 @@ export function summarise(input: unknown): string {
   return truncate(JSON.stringify(o), 120);
 }
 
+/** An entry onto the log, the oldest dropped past `KEEP_TURNS` (and its tool id forgotten). */
+function push(a: Acc, t: Turn): Turn {
+  a.log.push(t);
+  if (a.log.length > KEEP_TURNS) { const gone = a.log.shift()!; for (const [k, v] of a.toolLog) if (v === gone) a.toolLog.delete(k); }
+  return t;
+}
+
 /** A prompt lands: the file says a turn began (Claude has no other mark of it). Only a typed one is shown; a wrapped one (a task notification, a slash command's output) still starts a turn. */
 function prompt(a: Acc, text: string, at: number) {
   a.promptAt = at;
   if (!typed(text)) return;
   a.prompt = text;
   a.first ??= text;
+  push(a, { kind: "user", at, text });
+}
+
+function reply(a: Acc, text: string, at: number) {
+  a.reply = text;
+  push(a, { kind: "assistant", at, text });
+}
+
+function thinking(a: Acc, at: number, ms?: number) {
+  const last = a.log.at(-1);
+  // Consecutive thinking entries read as one line.
+  if (last?.kind === "thinking") { if (ms !== undefined) last.ms = (last.ms ?? 0) + ms; return; }
+  push(a, { kind: "thinking", at, ...(ms !== undefined && { ms }) });
 }
 
 function call(a: Acc, id: string, name: string, input: unknown, at: number) {
-  a.calls.set(id, { id, name, summary: summarise(input), at });
+  const summary = summarise(input);
+  a.calls.set(id, { id, name, summary, at });
+  a.toolLog.set(id, push(a, { kind: "tool", at, name, summary, status: "pending" }));
+}
+
+/** The result landed: the call answered, its log entry marked. */
+function result(a: Acc, id: string, failed = false) {
+  a.calls.delete(id);
+  const t = a.toolLog.get(id);
+  if (t) { t.status = failed ? "failed" : "done"; a.toolLog.delete(id); }
 }
 
 /** A turn ended: the calls are answered or abandoned either way. */
@@ -138,7 +175,7 @@ function claude(a: Acc, e: Record<string, unknown>) {
     case "user": {
       if (e.isSidechain || !m) break;
       const blocks = arr(m.content).map(obj);
-      for (const b of blocks) if (b?.type === "tool_result" && str(b.tool_use_id)) a.calls.delete(str(b.tool_use_id)!);
+      for (const b of blocks) if (b?.type === "tool_result" && str(b.tool_use_id)) result(a, str(b.tool_use_id)!, b.is_error === true);
       const text = textOf(m.content);
       if (!e.isMeta && text && !blocks.some((b) => b?.type === "tool_result")) prompt(a, text, at);
       break;
@@ -153,7 +190,8 @@ function claude(a: Acc, e: Record<string, unknown>) {
       }
       for (const b of arr(m.content).map(obj)) {
         if (!b) continue;
-        if (b.type === "text" && str(b.text)) a.reply = str(b.text);
+        if (b.type === "text" && str(b.text)) reply(a, str(b.text)!, at);
+        if (b.type === "thinking") thinking(a, at);
         if (b.type === "tool_use" && str(b.id)) call(a, str(b.id)!, str(b.name) ?? "tool", b.input, at);
       }
       // `end_turn` without a `turn_duration` after it (an older CLI): the turn is over for the state, not for the count.
@@ -201,12 +239,13 @@ function codex(a: Acc, e: Record<string, unknown>) {
           const text = textOf(p.content);
           if (!text) break;
           if (p.role === "user" && typed(text)) prompt(a, text, at);
-          else if (p.role === "assistant") a.reply = text;
+          else if (p.role === "assistant") reply(a, text, at);
           break;
         }
+        case "reasoning": thinking(a, at); break;
         case "custom_tool_call": if (str(p.call_id)) call(a, str(p.call_id)!, str(p.name) ?? "tool", p.input, at); break;
         case "function_call": if (str(p.call_id)) call(a, str(p.call_id)!, str(p.name) ?? "tool", p.arguments, at); break;
-        case "custom_tool_call_output": case "function_call_output": if (str(p.call_id)) a.calls.delete(str(p.call_id)!); break;
+        case "custom_tool_call_output": case "function_call_output": if (str(p.call_id)) result(a, str(p.call_id)!); break;
       }
       break;
   }
@@ -232,11 +271,12 @@ function copilot(a: Acc, e: Record<string, unknown>) {
     case "session.model_change": a.model = str(d.newModel) ?? a.model; break;
     case "session.permissions_changed": a.permission = str(d.allowAllPermissionMode) ?? (d.allowAllPermissions ? "allow all" : a.permission); break;
     case "assistant.message":
-      if (str(d.content)) a.reply = str(d.content);
+      if (str(d.reasoningText)) thinking(a, at);
+      if (str(d.content)) reply(a, str(d.content)!, at);
       a.model = str(d.model) ?? a.model;
       break;
     case "tool.execution_start": if (str(d.toolCallId)) call(a, str(d.toolCallId)!, str(d.toolName) ?? "tool", d.arguments, at); break;
-    case "tool.execution_complete": if (str(d.toolCallId)) a.calls.delete(str(d.toolCallId)!); break;
+    case "tool.execution_complete": if (str(d.toolCallId)) result(a, str(d.toolCallId)!, d.success === false); break;
     case "model.model_call_success": {
       const u = obj(obj(d.responseChunk)?.usage);
       if (u) { a.tokens.context = num(u.prompt_tokens); a.tokens.output = (a.tokens.output ?? 0) + (num(u.completion_tokens) ?? 0); }

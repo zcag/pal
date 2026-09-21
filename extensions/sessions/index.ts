@@ -37,9 +37,10 @@
 import { watch, type FSWatcher } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { ago, bar, clock, failed, hint, home, mdEscape, now, run, settings, storage, terminal, tilde, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+import { ago, bar, clock, errorMessage, exec, failed, hint, home, mdEscape, now, run, settings, storage, terminal, tilde, tinted, toast, truncate, view as liveView, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { AGENTS, AGENT_TITLE, acc, claudeSlug, fmtTokens, fold, parseWorkspace, pending as pendingOf, title as titleOf, working as fileWorking, type Acc, type Agent } from "./agents.ts";
-import { agentOf, cwds, focus, paneOf, panes, sendKeys, table, type Proc, type Terminal } from "./procs.ts";
+import { agentOf, cwds, focus, log, paneOf, panes, sendKeys, table, tool, type Proc, type Terminal } from "./procs.ts";
+import { PAGE, render as renderTranscript, type TranscriptState } from "./transcript.ts";
 import { AGENT_GLYPH, STATE, current, ordered, render, shown, tagOf, type PopoverState, type Session, type State } from "./view.ts";
 
 type Settings = { agents: string[]; stale_minutes: number; recent_hours: number; terminal: Terminal; editor: string };
@@ -56,6 +57,8 @@ const EXACT_MS = 10 * 60_000;
 /** Two reads within this reuse one scan (the bar and the palette ask together). */
 const SCAN_TTL_MS = 1500;
 const WATCH_DEBOUNCE_MS = 500;
+/** A write to a transcript shown in the view pushes the tree again this long after the last one. */
+const STREAM_DEBOUNCE_MS = 300;
 const CUT_PROMPT = 600, CUT_REPLY = 900;
 
 const conf = () => settings.get<Settings>(EXTENSION);
@@ -380,7 +383,8 @@ const SEND_ARGS: Arg[] = [{ id: "text", placeholder: "Line to type into the sess
 const resumeCommand = (s: Session) => (s.agent === "claude" ? `claude --resume ${s.id}` : s.agent === "codex" ? `codex resume ${s.id}` : `copilot --resume=${s.id}`);
 
 const OPEN_ACTIONS: Action[] = [
-  { id: "transcript", title: "Open transcript", shortcut: "cmd+o" },
+  { id: "view", title: "Transcript", shortcut: "cmd+t" },
+  { id: "transcript", title: "Open transcript in the editor", shortcut: "cmd+o" },
   { id: "reveal", title: process.platform === "darwin" ? "Reveal transcript in Finder" : "Show transcript in file manager", shortcut: "cmd+shift+o" },
   { id: "folder", title: "Open folder" },
   { id: "editor", title: "Open in editor", shortcut: "cmd+e" },
@@ -458,23 +462,103 @@ async function detail(id: string): Promise<Detail | undefined> {
     { label: "Session", value: s.id },
     { label: "Transcript", value: tilde(s.file) },
   ];
+  parts.push("_cmd+t opens the transcript here_");
   return { markdown: parts.join("\n\n"), metadata };
 }
 
 const spawn = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 
+/**
+ * `path` in the editor Settings names when it is found (launchd's PATH
+ * lacks `~/.local/bin` and Homebrew, so `tool` looks there), else the
+ * OS's own way (`open -t`: TextEdit for a file; `open` for a folder;
+ * `xdg-open` on Linux). A non-zero exit is a toast with the reason; an
+ * editor still running after `OPEN_MS` is taken as opened.
+ */
+const OPEN_MS = 5000;
+async function openIn(path: string, editor: string, fallback: string[]): Promise<Effect> {
+  const ed = editor.trim() && tool(editor.trim());
+  if (!ed) log(`open: ${editor.trim() || "no editor set"} not found on PATH or in the usual bins, falling back to ${fallback[0]}`);
+  const argv = ed ? [ed, path] : fallback;
+  log(`open: ${argv.join(" ")}`);
+  const r = await exec(argv, { ms: OPEN_MS }).catch((e) => ({ code: -1, out: "", err: errorMessage(e), timedOut: false }));
+  if (r.code !== 0 && !r.timedOut) return failed(`open ${basename(path)} with ${basename(argv[0])}`, new Error(r.err.trim() || `exit ${r.code}`));
+  return { hide: true };
+}
+
+// ---- the transcript view ------------------------------------------------------
+
+/** Per session, what the view keeps between keys: how many entries it shows, and whether the field is open. */
+const views = new Map<string, { window: number; field: boolean }>();
+const viewState = (key: string) => views.get(key) ?? views.set(key, { window: PAGE, field: false }).get(key)!;
+// The log is read off the file's live fold, not the draft's copy: a refold from scratch (a rewritten file) replaces the accumulator.
+const transcriptState = (d: Draft): TranscriptState => ({ session: d, log: files.get(d.file)?.acc.log ?? d.acc.log, ...viewState(d.key), now: now() });
+const transcript = (d: Draft): Effect => ({ view: renderTranscript(transcriptState(d)) });
+
+/** The keys of the transcript level, all answered with the level's tree again. */
+async function transcriptAction(d: Draft, action: string, values?: Record<string, string | boolean>): Promise<Effect> {
+  const st = viewState(d.key);
+  switch (action) {
+    case "older": st.window += PAGE; return transcript(d);
+    case "refresh": { await scan(true); return transcript(by(d.key) ?? d); }
+    case "copy-reply": return d.reply ? { copy: d.reply, hud: "Copied the last reply" } : toast("No reply yet", undefined, "failure");
+    case "open-file": return act(d, "transcript");
+    case "field": st.field = true; return transcript(d);
+    case "cancel": st.field = false; return transcript(d);
+    case "submit": {
+      const r = await act(d, "send", { text: String(values?.input ?? "") });
+      if (r.toast) return { ...r, view: renderTranscript(transcriptState(d)) };
+      st.field = false;
+      return { ...transcript(d), hud: r.hud };
+    }
+    default: return act(d, undefined);
+  }
+}
+const TRANSCRIPT_ACTIONS = new Set(["older", "refresh", "copy-reply", "open-file", "field", "cancel", "submit"]);
+
+// While a transcript level is shown its file is watched and every write pushes the tree again, so a running session streams into the view.
+const streams = new Map<string, { w: FSWatcher; timer?: ReturnType<typeof setTimeout> }>();
+let hooked = false;
+function hookViews() {
+  if (hooked) return;
+  hooked = true;
+  liveView.onShown((ev) => { if (ev.id && (ev.palette === PALETTE || ev.bar === ITEM)) stream(ev.id, ev.bar ? { bar: ITEM } : { palette: PALETTE }); }, EXTENSION);
+  liveView.onHidden((ev) => { if (ev.id) unstream(ev.id); if (ev.bar === ITEM && ev.id === barTranscript) barTranscript = undefined; }, EXTENSION);
+}
+function stream(key: string, target: { palette?: string; bar?: string }) {
+  const d = by(key);
+  if (!d || streams.has(key)) return;
+  try {
+    const w = watch(d.file, () => {
+      const s = streams.get(key);
+      if (!s) return;
+      clearTimeout(s.timer);
+      s.timer = setTimeout(async () => {
+        await entry(d.agent, d.file, 0).catch(() => undefined);
+        liveView.update(renderTranscript(transcriptState(d)), { ...target, id: key }).catch(() => {});
+      }, STREAM_DEBOUNCE_MS);
+    });
+    w.on("error", () => unstream(key));
+    streams.set(key, { w });
+  } catch { /* the file went away: the next key re-renders what is left */ }
+}
+function unstream(key: string) {
+  const s = streams.get(key);
+  if (!s) return;
+  clearTimeout(s.timer);
+  s.w.close();
+  streams.delete(key);
+}
+
 /** The palette's rows' actions; the popover's keys land here too with the same ids. */
 async function act(s: Session, action: string | undefined, values?: Record<string, string | boolean>): Promise<Effect> {
   const c = conf();
   switch (action) {
-    case "transcript": return { open: s.file };
+    case "view": hookViews(); return transcript(s as Draft);
+    case "transcript": return openIn(s.file, c.editor, process.platform === "darwin" ? ["open", "-t", s.file] : ["xdg-open", s.file]);
     case "reveal": spawn(process.platform === "darwin" ? ["open", "-R", s.file] : ["xdg-open", dirname(s.file)]); return { hide: true };
     case "folder": return { open: s.cwd };
-    case "editor": {
-      const ed = c.editor.trim();
-      if (ed && Bun.which(ed)) { spawn([ed, s.cwd]); return { hide: true }; }
-      return { open: s.cwd };
-    }
+    case "editor": return openIn(s.cwd, c.editor, process.platform === "darwin" ? ["open", s.cwd] : ["xdg-open", s.cwd]);
     case "copy-resume": return { copy: resumeCommand(s) };
     case "copy-id": return { copy: s.id };
     case "copy-cwd": return { copy: s.cwd };
@@ -494,17 +578,20 @@ async function act(s: Session, action: string | undefined, values?: Record<strin
       return { hud: `Sent to ${s.pane}` };
     }
     case "resume": {
-      const argv = resumeCommand(s).split(" ");
+      // The terminal's shell is not a login shell: the CLI by its path, since `~/.local/bin` and Homebrew are not on launchd's PATH.
+      const [cli, ...rest] = resumeCommand(s).split(" ");
+      const argv = [tool(cli) ?? cli, ...rest];
       if (c.terminal === "tmux") {
-        try { await run(["tmux", "new-window", "-c", s.cwd, resumeCommand(s)]); return { hide: true }; } catch (e) { return failed("open a tmux window", e); }
+        try { await run([tool("tmux") ?? "tmux", "new-window", "-c", s.cwd, argv.join(" ")]); return { hide: true }; } catch (e) { return failed("open a tmux window", e); }
       }
+      // WezTerm has no entry in the SDK's chooser: Auto finds whatever is installed.
       const why = terminal.open(argv, c.terminal === "iterm" ? "iTerm2" : c.terminal === "terminal" ? "Terminal" : c.terminal === "kitty" ? "kitty" : "auto", s.cwd);
       return why ? toast("Could not open a terminal", why, "failure") : { hide: true };
     }
     default: {
       if (!s.pid) return act(s, "resume");
       const how = await focus(s.pid, s.tty, c.terminal, await table());
-      return how ? { hide: true } : toast("Could not find its window", s.tty ? `Nothing on ${basename(s.tty)} in tmux, kitty, iTerm2 or Terminal` : "The process has no terminal", "failure");
+      return how ? { hide: true } : toast("Could not find its window", s.tty ? `Nothing on ${basename(s.tty)} in tmux, kitty, iTerm2, Terminal or WezTerm, and no app to raise` : "The process has no terminal", "failure");
     }
   }
 }
@@ -521,12 +608,15 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   }
   const s = by(id);
   if (!s) return toast("Session not found", "It may have gone stale; the list is refreshed", "failure");
+  if (action && TRANSCRIPT_ACTIONS.has(action)) return transcriptAction(s, action, ctx?.values as Record<string, string | boolean> | undefined);
   return act(s, action, ctx?.values as Record<string, string | boolean> | undefined);
 }
 
 // ---- the bar item ----------------------------------------------------------------
 
 let barFocus: string | undefined;
+/** The session whose transcript the popover shows over its list, for the keys of that level. */
+let barTranscript: string | undefined;
 
 function popoverState(sessions: Session[]): PopoverState {
   const st: PopoverState = { sessions: ordered(sessions), cursor: barFocus, now: now() };
@@ -539,13 +629,15 @@ export function barItem(sessions: Session[]): BarItem {
   if (!sessions.length) return { hidden: true, empty: { icon: GLYPH, tooltip: "No sessions", menu } };
   const n = (state: State) => sessions.filter((s) => s.state === state).length;
   const blocked = n("blocked"), waiting = n("waiting"), working = n("working"), ended = n("ended");
+  // Plain counts in the state colours, no total and no glyph prefixes: red + amber + blue + grey add up to the sessions there are, which a "6 ·5" never did.
   const segments = [
-    ...(blocked ? [{ id: "blocked", text: `!${blocked}`, color: "red" as const, tooltip: `${blocked} waiting on you` }] : []),
-    ...(waiting ? [{ id: "waiting", text: `·${waiting}`, color: "amber" as const, tooltip: `${waiting} your turn` }] : []),
-    ...(working ? [{ id: "working", text: `…${working}`, color: "blue" as const, tooltip: `${working} working` }] : []),
+    ...(blocked ? [{ id: "blocked", text: String(blocked), color: "red" as const, tooltip: `${blocked} waiting on you` }] : []),
+    ...(waiting ? [{ id: "waiting", text: String(waiting), color: "amber" as const, tooltip: `${waiting} your turn` }] : []),
+    ...(working ? [{ id: "working", text: String(working), color: "blue" as const, tooltip: `${working} working` }] : []),
+    ...(ended ? [{ id: "ended", text: String(ended), color: "muted" as const, tooltip: `${ended} ended` }] : []),
   ];
   const words = [blocked && `${blocked} waiting on you`, waiting && `${waiting} your turn`, working && `${working} working`, ended && `${ended} ended`].filter(Boolean);
-  return { icon: GLYPH, title: String(sessions.length), segments, ...(blocked && { urgent: true }), tooltip: `${sessions.length} session${sessions.length === 1 ? "" : "s"}: ${words.join(", ")}`, menu };
+  return { icon: GLYPH, segments, ...(blocked && { urgent: true }), tooltip: `${sessions.length} session${sessions.length === 1 ? "" : "s"}: ${words.join(", ")}`, menu };
 }
 
 const shownSessions = async (force = false) => (await scan(force)).filter((d) => !d.stale);
@@ -557,6 +649,7 @@ async function renderBar(ctx: BarCtx): Promise<BarItem> {
 /** A key or a click in the popover: the row under the ring goes through the palette's actions; the arrows and a click move the ring. */
 async function popoverAction(action: string, ctx: BarCtx): Promise<Effect> {
   if (action === "pal") return { push: { extension: EXTENSION, palette: PALETTE } };
+  if (barTranscript && TRANSCRIPT_ACTIONS.has(action)) { const d = by(barTranscript); if (d) return transcriptAction(d, action, ctx.values); }
   const sessions = await shownSessions();
   const st = popoverState(sessions);
   const rows = shown(st.sessions);
@@ -572,6 +665,7 @@ async function popoverAction(action: string, ctx: BarCtx): Promise<Effect> {
   if (!s) return { keep: true };
   switch (action) {
     case "send": return { push: { extension: EXTENSION, palette: PALETTE, query: s.id.slice(0, 8) } };
+    case "view": barTranscript = s.key; hookViews(); return transcript(s as Draft);
     case "kill": { const r = await act(s, "kill"); return r.toast ? r : { keep: true, hud: r.hud }; }
     default: return act(s, action === "focus" ? undefined : action, ctx.values);
   }
@@ -611,5 +705,5 @@ export default {
   bar: {
     [ITEM]: { render: renderBar, onAction: popoverAction },
   },
-  dispose: () => { clearTimeout(pendingRefresh); for (const w of watchers.values()) w.close(); watchers.clear(); },
+  dispose: () => { clearTimeout(pendingRefresh); for (const w of watchers.values()) w.close(); watchers.clear(); for (const k of streams.keys()) unstream(k); },
 } satisfies Extension;

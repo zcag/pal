@@ -13,8 +13,9 @@ import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
 import { checkBarItem, checkView } from "../../../sdk/src/view.ts";
 import { acc, fold, parseWorkspace, pending, summarise, title, working as busy } from "../../../extensions/sessions/agents.ts";
 import { claude, codex, copilot, ps } from "../../../extensions/sessions/fixture.ts";
-import { agentOf, ancestors, appOf, cputime, kittyWindowOf, stepsFor, ttyOf } from "../../../extensions/sessions/procs.ts";
+import { agentOf, ancestors, appOf, cputime, kittyCandidates, kittyListenOn, kittyPids, kittyWindowOf, stepsFor, tool, ttyOf } from "../../../extensions/sessions/procs.ts";
 import { actions, render as renderPopover, shown, type Session } from "../../../extensions/sessions/view.ts";
+import { CAP, PAGE } from "../../../extensions/sessions/transcript.ts";
 import { Host } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-sessions-"));
@@ -28,8 +29,12 @@ const canned = (name: string, text: string) => writeFileSync(join(out, `${name}.
 stub("ps", `sed "s/@T@/$(date +%s)/" ${JSON.stringify(join(out, "ps.out"))} 2>/dev/null`);
 stub("lsof", `cat ${JSON.stringify(join(out, "lsof.out"))} 2>/dev/null`);
 stub("tmux", `case "$1" in list-panes) cat ${JSON.stringify(join(out, "tmux-panes.out"))} 2>/dev/null ;; list-clients) cat ${JSON.stringify(join(out, "tmux-clients.out"))} 2>/dev/null ;; esac`);
-stub("kitten", `case "$2" in ls) cat ${JSON.stringify(join(out, "kitten.out"))} 2>/dev/null ;; esac`);
-stub("osascript", `cat ${JSON.stringify(join(out, "osascript.out"))} 2>/dev/null`);
+// kitty answers on the socket of the kitty process whose pid is 500 (`listen_on unix:/tmp/mykitty` in the conf below, the pid appended); any other socket is refused.
+stub("kitten", `case "$*" in "@ --to unix:/tmp/mykitty-500 ls") cat ${JSON.stringify(join(out, "kitten.out"))} 2>/dev/null ;; "@ --to unix:/tmp/mykitty-500 focus-window "*) exit 0 ;; *) echo "no socket" >&2; exit 1 ;; esac`);
+// A System Events script (the pid rung) succeeds unless `out/frontmost.fail` exists; the tab scripts answer the canned word.
+stub("osascript", `case "$*" in *"System Events"*) if [ -f ${JSON.stringify(join(out, "frontmost.fail"))} ]; then echo "no such process" >&2; exit 1; fi ;; *) cat ${JSON.stringify(join(out, "osascript.out"))} 2>/dev/null ;; esac`);
+stub("wezterm", `case "$2" in list) cat ${JSON.stringify(join(out, "wezterm.out"))} 2>/dev/null ;; esac`);
+stub("bad-editor", `echo "boom: no display" >&2; exit 1`);
 stub("open", "");
 stub("kill", "");
 stub("code", "");
@@ -60,6 +65,7 @@ const working = [
   claude.text(ID.claude, CWD.pal, s(280), "Done: three files.", "end_turn"),
   claude.turnDuration(ID.claude, CWD.pal, s(279), 21000),
   claude.user(ID.claude, CWD.pal, s(30), "now the tests"),
+  claude.thinking(ID.claude, CWD.pal, s(28)),
   claude.toolUse(ID.claude, CWD.pal, s(25), "tu-1", "Read", { file_path: "/Users/me/proj/pal/host/test/harness.ts" }),
   claude.toolResult(ID.claude, CWD.pal, s(24), "tu-1"),
   claude.text(ID.claude, CWD.pal, s(6), "Reading the harness, then writing.", "tool_use"),
@@ -107,6 +113,8 @@ const copilotLines = [
 
 /** The process table: a claude on pal (tty ttys007, under kitty) and a codex on api (ttys002), both burning cpu; a claude on api (in tmux, ttys011) with a fixed cpu time; a copilot on notes (ttys000); and what must not count. */
 const procs = (blockedTime = "0:05.00") => [
+  // An older kitty whose socket is dead, then the live one: the socket resolution has to fall through.
+  ps(499, 1, "??", 0.0, "0:01.00", "/Applications/kitty.app/Contents/MacOS/kitty"),
   ps(500, 1, "??", 0.0, "1:00.00", "/Applications/kitty.app/Contents/MacOS/kitty"),
   ps(501, 500, "ttys007", 0.0, "0:00.10", "-zsh"),
   ps(35164, 501, "ttys007", 17.7, "0:@T@", "claude --dangerously-skip-permissions"),
@@ -123,7 +131,7 @@ const procs = (blockedTime = "0:05.00") => [
 ].join("\n");
 const lsof = "p35164\nfcwd\nn/Users/me/proj/pal\np41000\nfcwd\nn/Users/me/proj/api\np75762\nfcwd\nn/Users/me/proj/api\np29645\nfcwd\nn/Users/me/notes\n";
 
-const PATH0 = process.env.PATH!, HOME0 = process.env.HOME!;
+const PATH0 = process.env.PATH!, HOME0 = process.env.HOME!, KITTY0 = process.env.KITTY_LISTEN_ON;
 let host: Host;
 beforeAll(async () => {
   put(claudeFile(ID.claude, CWD.pal), working, s(5));
@@ -141,12 +149,14 @@ beforeAll(async () => {
   canned("tmux-clients", "/dev/ttys020\n");
   canned("kitten", JSON.stringify([{ id: 1, tabs: [{ id: 1, windows: [{ id: 7, pid: 501, foreground_processes: [{ pid: 35164, cmdline: ["claude"] }] }, { id: 8, pid: 900, foreground_processes: [] }] }] }]));
   canned("osascript", "no\n");
+  delete process.env.KITTY_LISTEN_ON;
+  put(join(home, ".config", "kitty", "kitty.conf"), ["# kitty", "allow_remote_control yes", "listen_on unix:/tmp/mykitty", "font_size 13"]);
   process.env.HOME = home;
   process.env.PATH = `${bin}:${PATH0}`;
   process.env.PAL_TERMINAL_LOG = join(base, "terminal.log");
   host = await Host.bundled();
 });
-afterAll(() => { host.kill(); process.env.HOME = HOME0; process.env.PATH = PATH0; delete process.env.PAL_TERMINAL_LOG; rmSync(base, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); process.env.HOME = HOME0; process.env.PATH = PATH0; if (KITTY0 !== undefined) process.env.KITTY_LISTEN_ON = KITTY0; delete process.env.PAL_TERMINAL_LOG; rmSync(base, { recursive: true, force: true }); });
 
 const list = (filter?: string, refresh = true) => host.list("sessions", "sessions", undefined, { ...(filter && { filter }), ...(refresh && { refresh }) });
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("sessions", "sessions", id, action, ctx);
@@ -224,9 +234,29 @@ describe("sessions: the fold", () => {
     expect(appOf(502, table)).toBe("/Applications/kitty.app");
     expect(kittyWindowOf(502, [{ id: 3, pid: 900, pids: [] }, { id: 7, pid: 501, pids: [] }], table)?.id).toBe(7);
     expect(kittyWindowOf(502, [{ id: 3, pid: 900, pids: [502] }], table)?.id).toBe(3);
-    expect(stepsFor("auto")).toEqual(["tmux", "kitty", "iterm", "terminal", "app"]);
+    expect(stepsFor("auto")).toEqual(["tmux", "kitty", "iterm", "terminal", "wezterm", "pid", "app"]);
+    expect(stepsFor("wezterm")).toEqual(["tmux", "wezterm"]);
     expect(stepsFor("tmux")).toEqual(["tmux"]);
     expect(stepsFor("iterm")).toEqual(["tmux", "iterm"]);
+  });
+
+  test("tools: PATH first, then the bins launchd's PATH lacks; kitty's socket from KITTY_LISTEN_ON, else listen_on with each kitty pid appended, then bare", () => {
+    expect(tool("ps")).toBe(join(bin, "ps"));
+    const extra = join(base, "extra-bin");
+    mkdirSync(extra, { recursive: true });
+    writeFileSync(join(extra, "pal-only-here"), "#!/bin/sh\n");
+    expect(tool("pal-only-here", [join(base, "nowhere"), extra])).toBe(join(extra, "pal-only-here"));
+    expect(tool("pal-nowhere-at-all", [extra])).toBeUndefined();
+    expect(kittyListenOn("# c\nallow_remote_control yes\nlisten_on unix:/tmp/mykitty\n")).toBe("unix:/tmp/mykitty");
+    expect(kittyListenOn("listen_on none\n")).toBeUndefined();
+    expect(kittyListenOn("font_size 13\n")).toBeUndefined();
+    const table = [{ pid: 87710, ppid: 1, cpu: 0, time: 0, started: 0, command: "/Applications/kitty.app/Contents/MacOS/kitty" }, { pid: 2, ppid: 1, cpu: 0, time: 0, started: 0, command: "kitty --single-instance" }, { pid: 3, ppid: 1, cpu: 0, time: 0, started: 0, command: "/Applications/kitty.app/Contents/MacOS/kitten @ ls" }];
+    expect(kittyPids(table)).toEqual([87710, 2]);
+    expect(kittyCandidates("unix:/tmp/mykitty", [87710, 2], {})).toEqual(["unix:/tmp/mykitty-87710", "unix:/tmp/mykitty-2", "unix:/tmp/mykitty"]);
+    expect(kittyCandidates("unix:/tmp/mykitty", [87710], { KITTY_LISTEN_ON: "unix:/tmp/mykitty-87710" })).toEqual(["unix:/tmp/mykitty-87710", "unix:/tmp/mykitty"]);
+    expect(kittyCandidates("tcp:localhost:12345", [87710], {})).toEqual(["tcp:localhost:12345"]);
+    expect(kittyCandidates(undefined, [87710], {})).toEqual([]);
+    expect(kittyCandidates(undefined, [], { KITTY_LISTEN_ON: "unix:@mykitty" })).toEqual(["unix:@mykitty"]);
   });
 });
 
@@ -266,8 +296,8 @@ describe("sessions: the palette", () => {
     expect(by[key("claude", ID.done)]).toMatchObject({ name: "tidy the notes" });
     expect(tag(by[key("claude", ID.done)])).toBe("ended");
     // A live row's actions: focus first, the tmux one gets Send with its argument; an ended row resumes.
-    expect(by[key("claude", ID.claude)].actions!.map((a) => a.id)).toEqual(["focus", "transcript", "reveal", "folder", "editor", "copy-resume", "copy-id", "copy-cwd", "kill"]);
-    expect(by[key("claude", ID.blocked)].actions!.map((a) => a.id)).toEqual(["focus", "send", "transcript", "reveal", "folder", "editor", "copy-resume", "copy-id", "copy-cwd", "kill"]);
+    expect(by[key("claude", ID.claude)].actions!.map((a) => a.id)).toEqual(["focus", "view", "transcript", "reveal", "folder", "editor", "copy-resume", "copy-id", "copy-cwd", "kill"]);
+    expect(by[key("claude", ID.blocked)].actions!.map((a) => a.id)).toEqual(["focus", "send", "view", "transcript", "reveal", "folder", "editor", "copy-resume", "copy-id", "copy-cwd", "kill"]);
     expect(by[key("claude", ID.blocked)].args).toEqual([{ id: "text", placeholder: "Line to type into the session", required: true }]);
     expect(by[key("claude", ID.claude)].args).toBeUndefined();
     expect(by[key("claude", ID.done)].actions![0]).toEqual({ id: "resume", title: "Resume in a terminal" });
@@ -373,7 +403,7 @@ describe("sessions: the palette", () => {
   test("agents off: a Codex-only list; the hint row with nothing", async () => {
     host.changeSettings("sessions", { settings: { agents: ["codex"] } });
     expect((await list()).map((i) => i.id)).toEqual([key("codex", ID.codex)]);
-    expect(await render()).toMatchObject({ title: "1", segments: [{ id: "working", text: "…1", color: "blue" }] });
+    expect(await render()).toMatchObject({ segments: [{ id: "working", text: "1", color: "blue" }] });
     host.changeSettings("sessions", { settings: { agents: [] } });
     const items = await list();
     expect(items).toHaveLength(1);
@@ -402,25 +432,120 @@ describe("sessions: the palette", () => {
     expect(Object.fromEntries(p.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Agent: "Copilot CLI 1.0.30", Permissions: "allowAll", Process: "pid 29645 on ttys000" });
   });
 
-  test("actions: transcript, reveal, folder, editor, the copies, kill (one and marked), send over tmux", async () => {
+  test("the transcript view: the header, the entries in order as a chat (prompt blocks, replies, tool rows with their dots, the thinking line), the pending call lit when blocked; [ widens, c copies the reply, s sends over tmux or refuses", async () => {
+    const viewOf = (r: Record<string, unknown>) => checkView((r as { view: View }).view);
+    const dots = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "tile" && n.key === "dot" ? [n.color] : []));
+    const v = viewOf(await pick(key("claude", ID.claude), "view"));
+    expect(v).toMatchObject({ id: key("claude", ID.claude), keys: "actions", title: "Sessions extension" });
+    expect(v.input).toBeUndefined();
+    const t = texts(v);
+    expect(t.slice(0, 2)).toEqual(["\uec82", "Sessions extension"]);
+    expect(t[2]).toMatch(/^Claude Code · pal · main · claude-opus-5 · 1 turn · 141k context$/);
+    expect(t.slice(3)).toEqual(["add a sessions extension", "Done: three files.", "now the tests", "thought for 3 s", "\u{f0493}", "Read", "/Users/me/proj/pal/host/test/harness.ts", "Reading the harness, then writing.", "\u{f0493}", "Bash", "bun test test/extensions/sessions*", "focus", "copy reply", "editor", "refresh"]);
+    expect(dots(v)).toEqual(["green", "grey"]);
+    // The prompt is a sunken block with the accent rail; the tool rows are not lit while the session is working.
+    const blocks = nodes(v.tree).filter((n) => n.type === "stack" && n.surface === "sunken");
+    expect(blocks).toHaveLength(2);
+    expect(nodes(v.tree).some((n) => n.type === "stack" && n.surface === "elevated")).toBe(false);
+    expect(keycaps(v)).toEqual(["f", "c", "o", "r"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["focus", "copy-reply", "open-file", "older", "refresh"]);
+    // The blocked session: its hanging Bash call is lit, and Send is offered (a tmux pane).
+    const b = viewOf(await pick(key("claude", ID.blocked), "view"));
+    const lit = nodes(b.tree).find((n) => n.type === "stack" && n.surface === "elevated")!;
+    expect(texts({ tree: lit, actions: [] })).toEqual(["\u{f0493}", "Bash", "git push origin main"]);
+    expect(dots(b)).toEqual(["grey"]);
+    expect(b.actions.map((a) => a.id)).toEqual(["focus", "copy-reply", "open-file", "field", "older", "refresh"]);
+    expect(keycaps(b)).toEqual(["f", "c", "o", "s", "r"]);
+    // c copies the last reply; on a session with none it says so.
+    expect(await pick(key("claude", ID.claude), "copy-reply")).toEqual({ copy: "Reading the harness, then writing.", hud: "Copied the last reply" });
+    expect(await pick(key("claude", ID.blocked), "copy-reply")).toMatchObject({ toast: { title: "No reply yet", style: "failure" } });
+    // s opens the field (the search row types), Enter sends the line over tmux and closes it; on a session outside tmux the send is refused with a toast.
+    const f = viewOf(await pick(key("claude", ID.blocked), "field"));
+    expect(f.input).toEqual({ placeholder: "Type a line for Claude Code", submit: "submit", cancel: "cancel" });
+    expect(f.actions.slice(0, 2).map((a) => a.id)).toEqual(["submit", "cancel"]);
+    let n = asked().length;
+    const sent = await pick(key("claude", ID.blocked), "submit", { values: { input: "yes, go ahead" } });
+    expect(sent).toMatchObject({ hud: "Sent to work:0.1" });
+    expect(viewOf(sent).input).toBeUndefined();
+    expect(since(n).filter((l) => l.startsWith("tmux send"))).toEqual(["tmux send-keys -t work:0.1 -l yes, go ahead", "tmux send-keys -t work:0.1 Enter"]);
+    const refused = await pick(key("claude", ID.claude), "submit", { values: { input: "hi" } });
+    expect(refused).toMatchObject({ toast: { title: "Not in tmux", style: "failure" } });
+    expect(viewOf(refused).id).toBe(key("claude", ID.claude));
+    expect(viewOf(await pick(key("claude", ID.blocked), "cancel")).input).toBeUndefined();
+    // A long transcript: the last PAGE entries, a line counting the rest; [ shows PAGE more; a long reply is cut at CAP with the remainder counted.
+    const cwd = "/Users/me/proj/long", id = "88888888-aaaa-4bbb-8ccc-000000000008";
+    const lines: string[] = [];
+    for (let i = 1; i <= 12; i++) lines.push(claude.user(id, cwd, s(500 - i * 20), `prompt ${i}`), claude.text(id, cwd, s(490 - i * 20), i === 12 ? "x".repeat(CAP + 250) : `reply ${i}`, "end_turn"), claude.turnDuration(id, cwd, s(489 - i * 20), 1000));
+    put(claudeFile(id, cwd), lines, s(200));
+    try {
+      await list();
+      let l = viewOf(await pick(key("claude", id), "view"));
+      expect(texts(l)).toContain(`${24 - PAGE} earlier entries, [ shows more`);
+      expect(texts(l)).not.toContain("prompt 5");
+      expect(texts(l)).toContain("reply 5");
+      expect(texts(l)).toContain("… 250 more chars");
+      expect(texts(l).slice(3).filter((x) => /^(prompt|reply) \d+$/.test(x))).toHaveLength(PAGE - 1);
+      l = viewOf(await pick(key("claude", id), "older"));
+      expect(texts(l)).toContain("prompt 1");
+      expect(texts(l).some((x) => x.endsWith("[ shows more"))).toBe(false);
+      expect(l.actions.map((a) => a.id)).toEqual(["copy-reply", "open-file", "older", "refresh"]);
+    } finally {
+      rmSync(join(home, ".claude", "projects", slug(cwd)), { recursive: true, force: true });
+    }
+  });
+
+  test("the transcript view streams: while its level is shown a write to the file pushes the tree again", async () => {
+    const k = key("claude", ID.blocked);
+    await pick(k, "view");
+    host.viewShown("sessions", { palette: "sessions" }, k);
+    await Bun.sleep(100);
+    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.toolResult(ID.blocked, CWD.api, Date.now(), "tu-9") + "\n" + claude.text(ID.blocked, CWD.api, Date.now(), "Pushed.", "end_turn") + "\n", { flag: "a" });
+    const u = await host.nextViewUpdate("sessions", { palette: "sessions" }, (x) => x.id === k);
+    const tree = (u.spec as View).tree;
+    expect(texts({ tree, actions: [] })).toContain("Pushed.");
+    expect(nodes(tree).flatMap((n) => (n.type === "tile" && n.key === "dot" ? [n.color] : []))).toEqual(["green"]);
+    host.viewHidden("sessions", { palette: "sessions" }, k);
+    await Bun.sleep(100);
+    const before = host.viewUpdates("sessions", { palette: "sessions" }).length;
+    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.user(ID.blocked, CWD.api, Date.now(), "thanks") + "\n", { flag: "a" });
+    await Bun.sleep(700);
+    expect(host.viewUpdates("sessions", { palette: "sessions" })).toHaveLength(before);
+    // The list reads the new state: the turn ended, then a prompt: working. Then the file is put back as it was for the tests after this one.
+    expect((await list()).find((i) => i.id === k)!.section).toBe("Working");
+    put(claudeFile(ID.blocked, CWD.api), blocked, s(60));
+    expect((await list()).find((i) => i.id === k)!.section).toBe("Waiting on you?");
+  });
+
+  test("actions: transcript in the editor (found by the resolver, else open -t, a failure a toast), reveal, folder, editor, the copies, kill (one and marked), send over tmux", async () => {
     const id = key("claude", ID.blocked);
-    expect(await pick(id, "transcript")).toEqual({ open: claudeFile(ID.blocked, CWD.api) });
+    const file = claudeFile(ID.blocked, CWD.api);
+    let n = asked().length;
+    expect(await pick(id, "transcript")).toEqual({ hide: true });
+    expect(since(n)).toContain(`code ${file}`);
+    host.changeSettings("sessions", { settings: { editor: "no-such-editor-here" } });
+    n = asked().length;
+    expect(await pick(id, "transcript")).toEqual({ hide: true });
+    expect(since(n)).toContain(`open -t ${file}`);
+    host.changeSettings("sessions", { settings: { editor: "bad-editor" } });
+    expect(await pick(id, "transcript")).toMatchObject({ toast: { title: `Could not open ${ID.blocked}.jsonl with bad-editor`, message: "boom: no display", style: "failure" } });
+    host.changeSettings("sessions", { settings: {} });
     expect(await pick(id, "folder")).toEqual({ open: CWD.api });
     expect(await pick(id, "copy-resume")).toEqual({ copy: `claude --resume ${ID.blocked}` });
     expect(await pick(key("codex", ID.codex), "copy-resume")).toEqual({ copy: `codex resume ${ID.codex}` });
     expect(await pick(key("copilot", ID.copilot), "copy-resume")).toEqual({ copy: `copilot --resume=${ID.copilot}` });
     expect(await pick(id, "copy-id")).toEqual({ copy: ID.blocked });
     expect(await pick(id, "copy-cwd")).toEqual({ copy: CWD.api });
-    let n = asked().length;
+    n = asked().length;
     expect(await pick(id, "reveal")).toEqual({ hide: true });
     await host.until(() => since(n).some((l) => l.startsWith("open ")));
     expect(since(n)).toContain(`open -R ${claudeFile(ID.blocked, CWD.api)}`);
     n = asked().length;
     expect(await pick(id, "editor")).toEqual({ hide: true });
-    await host.until(() => since(n).some((l) => l.startsWith("code ")));
     expect(since(n)).toContain(`code ${CWD.api}`);
     host.changeSettings("sessions", { settings: { editor: "no-such-editor-here" } });
-    expect(await pick(id, "editor")).toEqual({ open: CWD.api });
+    n = asked().length;
+    expect(await pick(id, "editor")).toEqual({ hide: true });
+    expect(since(n)).toContain(`open ${CWD.api}`);
     host.changeSettings("sessions", { settings: {} });
     n = asked().length;
     expect(await pick(id, "kill")).toEqual({ keep: true, hud: "Sent SIGTERM to 41000" });
@@ -444,14 +569,16 @@ describe("sessions: the palette", () => {
     const tmux = since(n).filter((l) => l.startsWith("tmux "));
     expect(tmux).toEqual(["tmux list-panes -a -F #{pane_tty} #{pane_pid} #{session_name}:#{window_index}.#{pane_index}", "tmux switch-client -t work:0.1", "tmux select-window -t work:0.1", "tmux select-pane -t work:0.1", "tmux list-clients -t work -F #{client_tty}"]);
     // Terminal.app is not in the table, so its AppleScript is never run (it would launch the app). The script's lines follow its log line.
+    // The socket: the dead kitty's (pid 499) refused, the live one's answers and is kept from then on.
     const rest = since(n).filter((l) => /^(kitten|osascript|open|kill|code) /.test(l));
-    expect(rest.map((l) => l.split(" ").slice(0, 2).join(" "))).toEqual(["kitten @", "osascript -e"]);
-    expect(rest[1]).toContain('tell application "iTerm2"');
+    expect(rest.slice(0, 2)).toEqual(["kitten @ --to unix:/tmp/mykitty-499 ls", "kitten @ --to unix:/tmp/mykitty-500 ls"]);
+    expect(rest.map((l) => l.split(" ").slice(0, 2).join(" "))).toEqual(["kitten @", "kitten @", "osascript -e"]);
+    expect(rest[2]).toContain('tell application "iTerm2"');
     expect(since(n).join("\n")).toContain('if tty of s is "/dev/ttys020"');
     // The pal session is on ttys007 under kitty, no tmux pane: kitty's window 7 holds its shell, focus-window is the answer.
     n = asked().length;
     expect(await pick(key("claude", ID.claude))).toEqual({ hide: true });
-    expect(since(n).filter((l) => l.startsWith("kitten "))).toEqual(["kitten @ ls", "kitten @ focus-window --match id:7"]);
+    expect(since(n).filter((l) => /^(kitten|open) /.test(l))).toEqual(["kitten @ --to unix:/tmp/mykitty-500 ls", "kitten @ --to unix:/tmp/mykitty-500 focus-window --match id:7", "open -a kitty"]);
     expect(since(n).some((l) => l.startsWith("osascript "))).toBe(false);
     // With no kitty window for it, iTerm2 answers ok: the AppleScript step did it.
     canned("kitten", "[]");
@@ -459,11 +586,26 @@ describe("sessions: the palette", () => {
     n = asked().length;
     expect(await pick(key("claude", ID.claude))).toEqual({ hide: true });
     expect(since(n).filter((l) => l.startsWith("osascript ")).length).toBe(1);
-    // Neither: the app the process runs under (kitty.app, an ancestor of the shell) is opened.
+    // Neither, and WezTerm not running: the GUI ancestor (kitty.app, pid 500) is raised by pid through System Events, chosen over `open`.
     canned("osascript", "no\n");
     n = asked().length;
     expect(await pick(key("claude", ID.claude))).toEqual({ hide: true });
+    expect(since(n)).toContain('osascript -e tell application "System Events" to set frontmost of (first process whose unix id is 500) to true');
+    expect(since(n).some((l) => l.startsWith("open "))).toBe(false);
+    // System Events refuses: the app bundle is opened, the last resort.
+    writeFileSync(join(out, "frontmost.fail"), "");
+    n = asked().length;
+    expect(await pick(key("claude", ID.claude))).toEqual({ hide: true });
     expect(since(n)).toContain("open /Applications/kitty.app");
+    rmSync(join(out, "frontmost.fail"));
+    // WezTerm running with a pane on the codex session's tty: `wezterm cli list` finds it, the pane is activated and the app raised.
+    canned("ps", procs() + "\n" + ps(800, 1, "??", 0.0, "0:10.00", "/Applications/WezTerm.app/Contents/MacOS/wezterm-gui"));
+    canned("wezterm", JSON.stringify([{ pane_id: 5, tty_name: "/dev/ttys002", title: "codex" }, { pane_id: 6, tty_name: "/dev/ttys030", title: "zsh" }]));
+    await list();
+    n = asked().length;
+    expect(await pick(key("codex", ID.codex))).toEqual({ hide: true });
+    expect(since(n).filter((l) => /^(wezterm|open) /.test(l))).toEqual(["wezterm cli list --format json", "wezterm cli activate-pane --pane-id 5", "open -a WezTerm"]);
+    canned("ps", procs());
     // tmux only: nothing beyond the pane; for a session outside tmux, nothing at all.
     host.changeSettings("sessions", { settings: { terminal: "tmux" } });
     n = asked().length;
@@ -473,12 +615,13 @@ describe("sessions: the palette", () => {
     canned("kitten", JSON.stringify([{ id: 1, tabs: [{ id: 1, windows: [{ id: 7, pid: 501, foreground_processes: [] }] }] }]));
     // Enter on an ended session opens a terminal in its folder with the resume command; the tmux setting opens a tmux window instead.
     expect(await pick(key("claude", ID.done))).toEqual({ hide: true });
+    // The CLI by its path: the window's shell has launchd's PATH, not the user's.
     const argv = terminalOpened();
-    expect(argv.at(-1)).toBe(`cd ${CWD.notes} && exec claude --resume ${ID.done}`);
+    expect(argv.at(-1)).toMatch(new RegExp(`^cd ${CWD.notes} && exec (\\S*/)?claude --resume ${ID.done}$`));
     host.changeSettings("sessions", { settings: { terminal: "tmux" } });
     n = asked().length;
     expect(await pick(key("claude", ID.done), "resume")).toEqual({ hide: true });
-    expect(since(n)).toContain(`tmux new-window -c ${CWD.notes} claude --resume ${ID.done}`);
+    expect(since(n).find((l) => l.startsWith("tmux new-window"))).toMatch(new RegExp(`^tmux new-window -c ${CWD.notes} (\\S*/)?claude --resume ${ID.done}$`));
     host.changeSettings("sessions", { settings: {} });
   });
 
@@ -500,25 +643,27 @@ describe("sessions: the palette", () => {
 describe("sessions: the bar", () => {
   test("the strip: the count, a segment per state, urgent while one is blocked, the tooltip; the popover passes the check", async () => {
     const item = await render();
-    expect(item).toMatchObject({ icon: "\u{f0674}", title: "5", urgent: true, tooltip: "5 sessions: 1 waiting on you, 1 your turn, 2 working, 1 ended", segments: [{ id: "blocked", text: "!1", color: "red" }, { id: "waiting", text: "·1", color: "amber" }, { id: "working", text: "…2", color: "blue" }] });
+    expect(item).toMatchObject({ icon: "\u{f0674}", urgent: true, tooltip: "5 sessions: 1 waiting on you, 1 your turn, 2 working, 1 ended", segments: [{ id: "blocked", text: "1", color: "red" }, { id: "waiting", text: "1", color: "amber" }, { id: "working", text: "2", color: "blue" }, { id: "ended", text: "1", color: "muted" }] });
     expect(checkBarItem(item)).toBeTruthy();
     const v = menuView(item);
     expect(v).toMatchObject({ id: "sessions", keys: "actions", title: "5 sessions" });
     expect(texts(v).slice(0, 8)).toEqual(["Waiting on you?", "", "deploy it", "api · main · tmux work:0.1", expect.any(String), "Your turn", "", "Review Issue 4258 Status"]);
     expect(badges(v)).toEqual(["1", "waiting on you?", "1", "your turn", "2", "working", "working", "1", "ended"]);
-    expect(keycaps(v)).toEqual(["enter", "o", "r", "x", "s", "p", "up", "down"]);
+    expect(keycaps(v)).toEqual(["enter", "t", "o", "r", "x", "s", "p", "up", "down"]);
     // The ring is on the first row; its actions lead with Focus and offer Send (a tmux pane) and Kill with a confirm.
     const rows = nodes(v.tree).filter((n) => n.type === "stack" && n.action?.startsWith("focus:"));
     expect(rows.map((r) => r.selected)).toEqual([true, undefined, undefined, undefined, undefined]);
-    expect(v.actions.slice(0, 6).map((a) => [a.id, a.shortcut])).toEqual([["focus", "enter"], ["transcript", ["o", "cmd+o"]], ["copy-resume", ["r", "cmd+c"]], ["kill", ["x", "cmd+d"]], ["send", "s"], ["pal", "p"]]);
+    expect(v.actions.slice(0, 7).map((a) => [a.id, a.shortcut])).toEqual([["focus", "enter"], ["view", ["t", "cmd+t"]], ["transcript", ["o", "cmd+o"]], ["copy-resume", ["r", "cmd+c"]], ["kill", ["x", "cmd+d"]], ["send", "s"], ["pal", "p"]]);
     expect(v.actions.find((a) => a.id === "kill")).toMatchObject({ style: "destructive", confirm: "Send SIGTERM to Claude Code (pid 41000)?" });
   });
 
   test("the keys: arrows and a click move the ring, o opens the transcript, r copies, x kills, p and s push the palette, Enter focuses or resumes", async () => {
     const view = (r: Record<string, unknown>) => checkView((r as { view: View }).view);
-    expect(await act("transcript")).toEqual({ open: claudeFile(ID.blocked, CWD.api) });
-    expect(await act("copy-resume")).toEqual({ copy: `claude --resume ${ID.blocked}` });
     let n = asked().length;
+    expect(await act("transcript")).toEqual({ hide: true });
+    expect(since(n)).toContain(`code ${claudeFile(ID.blocked, CWD.api)}`);
+    expect(await act("copy-resume")).toEqual({ copy: `claude --resume ${ID.blocked}` });
+    n = asked().length;
     expect(await act("kill")).toEqual({ keep: true, hud: "Sent SIGTERM to 41000" });
     expect(since(n)).toContain("kill -TERM 41000");
     expect(await act("pal")).toEqual({ push: { extension: "sessions", palette: "sessions" } });
@@ -538,14 +683,14 @@ describe("sessions: the bar", () => {
     v = view(await act("up"));
     expect(ring(v)).toBe(key("claude", ID.done));
     expect(v.actions[0]).toEqual({ id: "resume", title: "Resume in a terminal", shortcut: "enter" });
-    expect(keycaps(v)).toEqual(["enter", "o", "r", "p", "up", "down"]);
+    expect(keycaps(v)).toEqual(["enter", "t", "o", "r", "p", "up", "down"]);
     expect(await act("resume")).toEqual({ hide: true });
-    expect(terminalOpened().at(-1)).toBe(`cd ${CWD.notes} && exec claude --resume ${ID.done}`);
+    expect(terminalOpened().at(-1)).toMatch(new RegExp(`^cd ${CWD.notes} && exec (\\S*/)?claude --resume ${ID.done}$`));
     // Enter on the pal session: the kitty window.
     v = view(await act(`focus:${key("claude", ID.claude)}`));
     n = asked().length;
     expect(await act("focus")).toEqual({ hide: true });
-    expect(since(n)).toContain("kitten @ focus-window --match id:7");
+    expect(since(n).slice(-2)).toEqual(["kitten @ --to unix:/tmp/mykitty-500 focus-window --match id:7", "open -a kitty"]);
   });
 
   test("a write under a watched directory asks the bar for a render within a second", async () => {
@@ -569,6 +714,6 @@ describe("sessions: the bar", () => {
     expect(shown(sessions).map((x) => x.key)).toEqual(["claude:3", "claude:2", "claude:7", "claude:1", "claude:5", "claude:6"]);
     expect(texts(v)).toContain("and 2 more in pal");
     expect(nodes(v.tree).find((x) => x.selected)?.key).toBe("claude:7");
-    expect(actions({ sessions, cursor: "claude:7", now: T }).map((a) => a.id)).toEqual(["focus", "transcript", "copy-resume", "kill", "pal", "down", "up", "focus:claude:3", "focus:claude:2", "focus:claude:7", "focus:claude:1", "focus:claude:5", "focus:claude:6"]);
+    expect(actions({ sessions, cursor: "claude:7", now: T }).map((a) => a.id)).toEqual(["focus", "view", "transcript", "copy-resume", "kill", "pal", "down", "up", "focus:claude:3", "focus:claude:2", "focus:claude:7", "focus:claude:1", "focus:claude:5", "focus:claude:6"]);
   });
 });

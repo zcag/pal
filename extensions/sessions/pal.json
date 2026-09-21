@@ -57,7 +57,7 @@
       "kind": "select",
       "id": "terminal",
       "label": "Terminal",
-      "description": "Where Focus looks for the session's window and what Resume opens. Auto tries a tmux pane, then kitty, iTerm2, Terminal, then the app the process runs under; tmux only stops after the pane.",
+      "description": "Where Focus looks for the session's window and what Resume opens. Auto tries a tmux pane, then kitty, iTerm2, Terminal, WezTerm, then raises the app the process runs under by its pid; a named one tries tmux then that alone; tmux only stops after the pane.",
       "options": [
         {
           "id": "auto",
@@ -76,6 +76,10 @@
           "title": "Terminal"
         },
         {
+          "id": "wezterm",
+          "title": "WezTerm"
+        },
+        {
           "id": "tmux",
           "title": "tmux only"
         }
@@ -86,7 +90,7 @@
       "kind": "text",
       "id": "editor",
       "label": "Editor",
-      "description": "The command Open in editor runs with the session's folder; the folder opens in Finder when it is not on PATH.",
+      "description": "The command Open in editor and Open transcript run (found on PATH, then in Homebrew's and ~/.local/bin); the OS opener when it is not found.",
       "placeholder": "code",
       "default": "code"
     }
@@ -126,8 +130,12 @@
           "title": "Send the line typed in the bar to a session in a tmux pane"
         },
         {
+          "keys": "cmd+t",
+          "title": "The transcript as a view: the last entries as a chat, [ for older, c copies the reply, s sends a line over tmux"
+        },
+        {
           "keys": "cmd+o",
-          "title": "Open the transcript"
+          "title": "Open the transcript in the editor"
         },
         {
           "keys": "cmd+shift+o",
@@ -161,11 +169,10 @@
           "title": "Two sessions working",
           "item": {
             "icon": "󰙴",
-            "title": "2",
             "segments": [
               {
                 "id": "working",
-                "text": "…2",
+                "text": "2",
                 "color": "blue"
               }
             ],
@@ -176,16 +183,15 @@
           "title": "One waiting on you, one your turn",
           "item": {
             "icon": "󰙴",
-            "title": "2",
             "segments": [
               {
                 "id": "blocked",
-                "text": "!1",
+                "text": "1",
                 "color": "red"
               },
               {
                 "id": "waiting",
-                "text": "·1",
+                "text": "1",
                 "color": "amber"
               }
             ],
@@ -197,21 +203,20 @@
           "title": "Every state at once",
           "item": {
             "icon": "󰙴",
-            "title": "5",
             "segments": [
               {
                 "id": "blocked",
-                "text": "!1",
+                "text": "1",
                 "color": "red"
               },
               {
                 "id": "waiting",
-                "text": "·1",
+                "text": "1",
                 "color": "amber"
               },
               {
                 "id": "working",
-                "text": "…2",
+                "text": "2",
                 "color": "blue"
               }
             ],
@@ -223,7 +228,6 @@
           "title": "One just ended, nothing running",
           "item": {
             "icon": "󰙴",
-            "title": "1",
             "segments": [],
             "tooltip": "1 session: 1 ended"
           }
@@ -252,8 +256,12 @@
           "title": "Focus the session's terminal (an ended one: resume it)"
         },
         {
+          "keys": "t",
+          "title": "The transcript as a view over the list"
+        },
+        {
           "keys": "o",
-          "title": "Open the transcript"
+          "title": "Open the transcript in the editor"
         },
         {
           "keys": "r",
@@ -286,7 +294,8 @@
       "One row per session from the files the CLIs keep (`~/.claude/projects`, `~/.codex/sessions`, `~/.copilot/session-state`), by state: waiting on you, your turn, working, ended",
       "The state from the transcript alone: a prompt or turn start after the last turn end is working; a tool call left without a result for 20 s while the process sits idle reads `waiting on you?`, the shape of a permission prompt; a hook can tell the exact state through `pal://sessions/state`",
       "The pane: the last prompt, the assistant's last text, the pending tool call with its command or path, the agent and model, folder and branch, turns, tokens, permission mode, the transcript path",
-      "`enter` brings the session's terminal in front: a tmux pane, a kitty window, an iTerm2 or Terminal tab by tty, else the app it runs under; on an ended session it opens a terminal with the resume command",
+      "`enter` brings the session's terminal in front: a tmux pane, a kitty window (over its remote-control socket, found from kitty.conf), an iTerm2 or Terminal tab by tty, a WezTerm pane, else the app it runs under raised by its pid; on an ended session it opens a terminal with the resume command",
+      "`cmd+t` opens the transcript as a view inside pal: prompts, replies, tool calls with their outcome, thinking, streaming while the session runs; `[` for older entries, `c` copies the last reply, `s` types a line into a tmux-backed session",
       "A line typed in the bar goes into a tmux-backed session with `cmd+enter`; `cmd+c` copies `claude --resume <id>`, `codex resume <id>` or `copilot --resume=<id>`; `cmd+d` kills",
       "A bar item with the count and red, amber and blue segments per state, an alarm while a session waits on you, hidden with none; its popover a row per session with Enter, `o`, `r`, `x`, `s` and `p`"
     ],
@@ -295,6 +304,7 @@
       "lsof",
       "tmux",
       "kitten",
+      "wezterm",
       "osascript"
     ],
     "platforms": [
@@ -319,8 +329,13 @@
         "keys": "cmd+enter"
       },
       {
-        "title": "Open transcript",
-        "description": "The transcript file in the default editor.",
+        "title": "Transcript",
+        "description": "The conversation as a view inside pal, live while the session runs.",
+        "keys": "cmd+t"
+      },
+      {
+        "title": "Open transcript in the editor",
+        "description": "The transcript file in the editor named in Settings, else the OS's text editor.",
         "keys": "cmd+o"
       },
       {

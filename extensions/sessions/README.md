@@ -25,6 +25,30 @@ folder and branch, when it started, the last write, the number of turns
 and how long the last one took, the tokens the file reports, the
 permission mode, the process, the session id and the transcript path.
 
+**Transcript** (`cmd+t`, `t` in the popover) opens the conversation as a
+view without leaving pal: a header (the agent's mark, the title, the
+state with its age, folder, branch, model, turns, tokens), then the last
+15 entries oldest to newest as a chat. A prompt is a sunken block with a
+rail in the accent colour, the assistant's text plain paragraphs (cut at
+1200 characters with a line counting the rest), a tool call one compact
+row (its name, the command or path, a dot: green done, red failed, grey
+still running) lit when the session is waiting on that call, a stretch of
+thinking one muted line ("thought for 12 s"). While the level is shown
+the file is watched and every write redraws it, so a running session
+streams into the view. The fold keeps the last 60 entries of a file, not
+the whole of it; older ones are not shown.
+
+| key | what |
+| --- | --- |
+| `[` | 15 older entries |
+| `f` | Focus the terminal |
+| `c` | Copy the last reply |
+| `o` | Open the transcript in the editor |
+| `s` | Send a line (a tmux-backed session): the search row becomes a field, Enter types the line into the pane |
+| `r` | Refresh |
+| `up` / `down` | Scroll |
+| `escape` | Back |
+
 ## Where the files are
 
 | agent | files | resume |
@@ -90,28 +114,52 @@ question mark and the pane says "from a hook".
 
 ## Focus: which terminals
 
-Enter on a live row brings its window in front, by a ladder of steps each
-tried in turn until one answers:
+Enter on a live row brings its window in front, by a ladder of rungs each
+tried in turn until one answers; a rung whose tool is missing or whose
+socket does not answer is skipped with a line in pal's log, and the toast
+("Could not find its window") comes only when every rung failed:
 
 1. **tmux**: `tmux list-panes -a` finds the pane on the process's tty (or
    whose shell is an ancestor of it); `switch-client`, `select-window`
    and `select-pane` select it inside its server, and the client attached
-   to that session gives the tty the next steps look for. A pane with no
+   to that session gives the tty the next rungs look for. A pane with no
    client attached gets a new terminal window running `tmux attach`.
-2. **kitty**: `kitten @ ls` (needs `allow_remote_control` in `kitty.conf`)
-   lists windows with the pid of their shell; the one that is an ancestor
-   of the process is focused with `kitten @ focus-window`.
+2. **kitty**: `kitten @ ls` lists windows with the pid of their shell; the
+   one that is an ancestor of the process is focused with `kitten @
+   focus-window`, then the app is brought in front (focus-window alone
+   does not raise kitty over another app). kitty is optional and never
+   assumed; it needs `allow_remote_control yes` and a `listen_on
+   unix:/tmp/<name>` in `kitty.conf`, and pal finds the socket from that
+   line: kitty appends its pid to the path, so `<path>-<pid>` is tried
+   for every running kitty, then `<path>` itself (`KITTY_LISTEN_ON` first
+   when pal itself runs inside kitty). The socket that answered is kept
+   until it stops answering.
 3. **iTerm2** and **Terminal**: an AppleScript walks the tabs for the one
    whose tty matches and selects it; only when the app is running, since
    the script would launch it otherwise.
-4. **The app**: the `.app` bundle found walking the process's parents is
-   activated with `open`, nothing inside it selected.
+4. **WezTerm**: `wezterm cli list` names each pane's tty; the matching
+   pane is activated with `wezterm cli activate-pane` and the app raised.
+   Only while WezTerm runs.
+5. **By pid**: the nearest ancestor of the process that is a GUI app (its
+   command inside a `.app` bundle) is brought to the front through System
+   Events by its pid. For a terminal with one window per process
+   (Alacritty) that is exactly the window; for one process with many
+   windows (Ghostty, Warp, VS Code's terminal) it raises the app with its
+   last window, which is the most macOS offers without an API of the
+   app's own.
+6. **The app**: the `.app` bundle is activated with `open`, the last
+   resort when no ancestor could be raised.
 
 The `terminal` setting narrows this: `tmux only` stops after the pane,
-`kitty`, `iTerm2` and `Terminal` try tmux then that app alone, `Auto`
-runs the whole ladder. The same setting says what **Resume in a terminal**
-opens for an ended session: a new window in that app running the resume
-command in the session's folder, or a new tmux window.
+`kitty`, `iTerm2`, `Terminal` and `WezTerm` try tmux then that app alone,
+`Auto` runs the whole ladder. The same setting says what **Resume in a
+terminal** opens for an ended session: a new window in that app running
+the resume command in the session's folder, or a new tmux window.
+
+The host runs under launchd's PATH (`/usr/bin:/bin:/usr/sbin:/sbin`), so
+`tmux`, `kitten`, `wezterm`, the editor and the agents' own CLIs are
+looked for on PATH and then in `/opt/homebrew/bin`, `/usr/local/bin`,
+`~/.local/bin`, kitty's and WezTerm's app bundles.
 
 ## Keyboard
 
@@ -119,7 +167,8 @@ command in the session's folder, or a new tmux window.
 | --- | --- | --- |
 | `enter` | Focus the terminal | the ladder above; on an ended row, Resume in a terminal |
 | `cmd+enter` | Send the line | a tmux-backed session only: the bar's `text` argument typed into the pane with `send-keys -l`, then Enter |
-| `cmd+o` | Open transcript | the transcript file in the default editor |
+| `cmd+t` | Transcript | the conversation as a view, above |
+| `cmd+o` | Open transcript in the editor | the file in the `editor` command when it is found, else `open -t` (TextEdit); a refusal is a toast with the reason |
 | `cmd+shift+o` | Reveal transcript | in Finder (the file manager on Linux) |
 | | Open folder | the session's folder |
 | `cmd+e` | Open in editor | `<editor> <folder>` when the editor is on PATH, else the folder opens |
@@ -141,7 +190,8 @@ the keys act on (a click moves it):
 | key | what |
 | --- | --- |
 | `enter` | Focus the terminal (an ended row: resume it) |
-| `o` | Open the transcript |
+| `t` | The transcript as a view, over the list |
+| `o` | Open the transcript in the editor |
 | `r` | Copy the resume command |
 | `x` | Kill (asks first) |
 | `s` | Open the palette on a tmux session's row, to type a line into it |
@@ -155,5 +205,5 @@ the keys act on (a click moves it):
 | `agents` | `claude`, `codex`, `copilot` | which agents' files are read |
 | `stale_minutes` | 30 | how long an ended session stays listed, and how long a silent turn counts as working |
 | `recent_hours` | 24 | how far back Recent lists, and how old a file may be to be read at all |
-| `terminal` | Auto | the Focus ladder and what Resume opens: Auto, kitty, iTerm2, Terminal, tmux only |
-| `editor` | `code` | the command Open in editor runs with the folder |
+| `terminal` | Auto | the Focus ladder and what Resume opens: Auto, kitty, iTerm2, Terminal, WezTerm, tmux only |
+| `editor` | `code` | the command Open in editor and Open transcript run; the OS opener when it is not found |

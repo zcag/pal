@@ -2,7 +2,11 @@
 // `copilot` processes are running, from which directory, on which tty, and
 // how to bring that tty's window in front. Everything is a command the
 // tests can stand in for on PATH (`ps`, `lsof`, `tmux`, `kitten`,
-// `osascript`, `open`); nothing here reads a session file.
+// `osascript`, `open`); nothing here reads a session file. The host runs
+// under launchd's PATH (`/usr/bin:/bin:/usr/sbin:/sbin`), so a tool is
+// looked for on PATH and then in the bins launchd does not know
+// (`tool`); kitty is reached over the socket `listen_on` in kitty.conf
+// names, with kitty's pid appended as kitty does (`kittyTo`).
 //
 // Focus is a ladder of steps that each answer whether they did it, tried
 // in order: the tmux pane on that tty (selected inside its own server,
@@ -11,9 +15,12 @@
 // an ancestor of), iTerm2 and Terminal over AppleScript matched by tty,
 // and last the `.app` bundle found walking the pid's parents, activated
 // with nothing selected inside it.
-import { readlink } from "node:fs/promises";
-import { exec, run, terminal } from "@zcag/pal";
+import { readFile, readlink } from "node:fs/promises";
+import { join } from "node:path";
+import { exec, home, run, terminal } from "@zcag/pal";
 import type { Agent } from "./agents.ts";
+
+export const log = (...a: unknown[]) => console.error("[sessions]", ...a);
 
 export type Proc = { pid: number; ppid: number; tty?: string; cpu: number; /** Accumulated cpu, seconds. */ time: number; started: number; command: string };
 export type Pane = { tty: string; pid: number; target: string; session: string };
@@ -22,6 +29,20 @@ export type KittyWindow = { id: number; pid: number; pids: number[] };
 const LINUX = process.platform === "linux";
 const PS = ["ps", "-axo", "pid=,ppid=,tty=,%cpu=,cputime=,lstart=,command="];
 const MS = 4000;
+
+// ---- finding the tools ----------------------------------------------------------
+
+/** Where the tools live when launchd's PATH does not say: Homebrew (Apple silicon, then Intel), the user's own bin, kitty's bundle. */
+export const EXTRA_BINS = ["/opt/homebrew/bin", "/usr/local/bin", "~/.local/bin", "/Applications/kitty.app/Contents/MacOS", "/Applications/WezTerm.app/Contents/MacOS"];
+const found = new Map<string, string>();
+/** `name` as PATH resolves it, else the first of `dirs` that has it; a hit is cached, a miss is looked for again next time. */
+export function tool(name: string, dirs = EXTRA_BINS): string | undefined {
+  const hit = found.get(name) ?? Bun.which(name, { PATH: process.env.PATH ?? "" }) ?? dirs.map((d) => join(home(d), name)).find((p) => Bun.file(p).size > 0);
+  if (hit) found.set(name, hit);
+  return hit;
+}
+/** The argv word for `name`: its path when found, the bare name otherwise (so the failure names it). */
+const bin = (name: string) => tool(name) ?? name;
 
 /** `0:01.23`, `12:34.56`, `1:02:03`, `2-03:04:05` as seconds. */
 export function cputime(s: string): number {
@@ -105,7 +126,7 @@ export function appOf(pid: number, procs: Proc[]): string | undefined {
 
 /** Every pane of every tmux server the default socket knows: its tty, its shell's pid and its `session:window.pane` target. None when tmux is not running. */
 export async function panes(): Promise<Pane[]> {
-  const r = await exec(["tmux", "list-panes", "-a", "-F", "#{pane_tty} #{pane_pid} #{session_name}:#{window_index}.#{pane_index}"], { ms: MS }).catch(() => undefined);
+  const r = await exec([bin("tmux"), "list-panes", "-a", "-F", "#{pane_tty} #{pane_pid} #{session_name}:#{window_index}.#{pane_index}"], { ms: MS }).catch(() => undefined);
   if (!r || r.code !== 0) return [];
   return r.out.split("\n").map((l) => l.trim().split(" ")).filter((w) => w.length === 3).map(([tty, pid, target]) => ({ tty, pid: Number(pid), target, session: target.slice(0, target.lastIndexOf(":")) }));
 }
@@ -115,38 +136,87 @@ export const paneOf = (p: Proc, list: Pane[], procs: Proc[]): Pane | undefined =
 
 /** The tty of the client attached to a tmux session, to focus the terminal that shows it; none when it is detached. */
 export async function clientTty(session: string): Promise<string | undefined> {
-  const r = await exec(["tmux", "list-clients", "-t", session, "-F", "#{client_tty}"], { ms: MS }).catch(() => undefined);
+  const r = await exec([bin("tmux"), "list-clients", "-t", session, "-F", "#{client_tty}"], { ms: MS }).catch(() => undefined);
   return r?.code === 0 ? r.out.split("\n").map((s) => s.trim()).find(Boolean) : undefined;
 }
 
 /** The pane selected inside its server: the client switched to its session, the window and the pane picked. */
 export async function selectPane(pane: Pane): Promise<void> {
-  await run(["tmux", "switch-client", "-t", pane.target], { ms: MS }).catch(() => {});
-  await run(["tmux", "select-window", "-t", pane.target], { ms: MS });
-  await run(["tmux", "select-pane", "-t", pane.target], { ms: MS });
+  await run([bin("tmux"), "switch-client", "-t", pane.target], { ms: MS }).catch(() => {});
+  await run([bin("tmux"), "select-window", "-t", pane.target], { ms: MS });
+  await run([bin("tmux"), "select-pane", "-t", pane.target], { ms: MS });
 }
 
 /** A line typed into the pane and sent: `-l` keeps it literal, Enter goes as a key on its own (after `-l` it would be four letters). */
 export async function sendKeys(pane: Pane, text: string): Promise<void> {
-  await run(["tmux", "send-keys", "-t", pane.target, "-l", text], { ms: MS });
-  await run(["tmux", "send-keys", "-t", pane.target, "Enter"], { ms: MS });
+  await run([bin("tmux"), "send-keys", "-t", pane.target, "-l", text], { ms: MS });
+  await run([bin("tmux"), "send-keys", "-t", pane.target, "Enter"], { ms: MS });
 }
 
 // ---- kitty -----------------------------------------------------------------------
 
-/** kitty's windows over remote control (`allow_remote_control` in kitty.conf): each with the pid of its shell and of what runs in front. Empty when kitty is not there or refuses. */
-export async function kittyWindows(): Promise<KittyWindow[]> {
-  const r = await exec(["kitten", "@", "ls"], { ms: MS }).catch(() => undefined);
-  if (!r || r.code !== 0) return [];
+/** The `listen_on` line of a kitty.conf (`unix:/tmp/mykitty`, `tcp:localhost:12345`); none when unset or `none`. */
+export function kittyListenOn(conf: string): string | undefined {
+  const m = conf.match(/^\s*listen_on\s+(\S+)/m);
+  return m && m[1] !== "none" ? m[1] : undefined;
+}
+
+/** The kitty processes' pids (`kitty.app/Contents/MacOS/kitty`, or a bare `kitty`), for the socket names. */
+export const kittyPids = (procs: Proc[]): number[] => procs.filter((p) => base(p.command.split(/\s+/)[0]) === "kitty").map((p) => p.pid);
+
+/**
+ * The sockets kitty may be listening on, best first: `KITTY_LISTEN_ON` (set
+ * inside a kitty window), then `listen_on` from kitty.conf, which for a
+ * `unix:<path>` kitty serves as `<path>-<pid>` when the conf named it
+ * (one instance per socket), or as `<path>` when the command line did.
+ */
+export function kittyCandidates(listenOn: string | undefined, pids: number[], env: Record<string, string | undefined> = process.env): string[] {
+  const out: string[] = [];
+  if (env.KITTY_LISTEN_ON) out.push(env.KITTY_LISTEN_ON);
+  if (listenOn) {
+    if (listenOn.startsWith("unix:") && !listenOn.startsWith("unix:@")) out.push(...pids.map((pid) => `${listenOn}-${pid}`));
+    out.push(listenOn);
+  }
+  return [...new Set(out)];
+}
+
+/** kitty.conf as kitty reads it: `$KITTY_CONFIG_DIRECTORY/kitty.conf`, else `~/.config/kitty/kitty.conf`. */
+async function kittyConf(): Promise<string> {
+  const dirs = [process.env.KITTY_CONFIG_DIRECTORY, "~/.config/kitty"].filter((d): d is string => !!d);
+  for (const d of dirs) { const t = await readFile(join(home(d), "kitty.conf"), "utf8").catch(() => undefined); if (t !== undefined) return t; }
+  return "";
+}
+
+const kittyLs = (to: string) => exec([bin("kitten"), "@", "--to", to, "ls"], { ms: MS }).catch(() => undefined);
+
+// The socket that answered last, kept until it stops answering.
+let kittySocket: string | undefined;
+
+/**
+ * kitty's windows over remote control (`allow_remote_control yes` and a
+ * `listen_on` in kitty.conf): each with the pid of its shell and of what
+ * runs in front, and the socket that answered (for the `focus-window` that
+ * follows). Empty, with the reason logged, when kitten is not installed,
+ * no socket answers, or kitty refuses.
+ */
+export async function kittyWindows(procs: Proc[]): Promise<{ to?: string; windows: KittyWindow[] }> {
+  if (!tool("kitten")) { log(`focus: kitten not found on PATH or in ${EXTRA_BINS.join(", ")}`); return { windows: [] }; }
+  let r = kittySocket ? await kittyLs(kittySocket) : undefined;
+  if (!r || r.code !== 0) {
+    kittySocket = undefined;
+    const tried = kittyCandidates(kittyListenOn(await kittyConf()), kittyPids(procs));
+    for (const to of tried) { r = await kittyLs(to); if (r?.code === 0) { kittySocket = to; break; } }
+    if (!kittySocket) { log(tried.length ? `focus: no kitty socket answered (tried ${tried.join(", ")})` : "focus: kitty has no listen_on in kitty.conf and KITTY_LISTEN_ON is unset"); return { windows: [] }; }
+  }
   let data: unknown;
-  try { data = JSON.parse(r.out); } catch { return []; }
+  try { data = JSON.parse(r!.out); } catch { return { to: kittySocket, windows: [] }; }
   const out: KittyWindow[] = [];
   for (const os of Array.isArray(data) ? data : []) for (const tab of (os as { tabs?: unknown[] }).tabs ?? []) for (const w of (tab as { windows?: Record<string, unknown>[] }).windows ?? []) {
     if (typeof w.id !== "number" || typeof w.pid !== "number") continue;
     const fg = Array.isArray(w.foreground_processes) ? (w.foreground_processes as { pid?: unknown }[]).map((p) => p.pid).filter((p): p is number => typeof p === "number") : [];
     out.push({ id: w.id, pid: w.pid, pids: fg });
   }
-  return out;
+  return { to: kittySocket, windows: out };
 }
 
 /** The kitty window whose shell is the process, one of its ancestors, or has it in front. */
@@ -157,10 +227,11 @@ export const kittyWindowOf = (pid: number, windows: KittyWindow[], procs: Proc[]
 
 // ---- the focus ladder ----------------------------------------------------------
 
-export type Terminal = "auto" | "kitty" | "iterm" | "terminal" | "tmux";
+export type Terminal = "auto" | "kitty" | "iterm" | "terminal" | "wezterm" | "tmux";
+export type Step = "tmux" | "kitty" | "iterm" | "terminal" | "wezterm" | "pid" | "app";
 
-/** The steps the ladder tries for a setting: tmux first always, then only the named app, or every one. */
-export const stepsFor = (want: Terminal): ("tmux" | "kitty" | "iterm" | "terminal" | "app")[] => (want === "tmux" ? ["tmux"] : want === "auto" ? ["tmux", "kitty", "iterm", "terminal", "app"] : ["tmux", want]);
+/** The steps the ladder tries for a setting: tmux first always, then only the named app, or every one with the pid and app rungs last. */
+export const stepsFor = (want: Terminal): Step[] => (want === "tmux" ? ["tmux"] : want === "auto" ? ["tmux", "kitty", "iterm", "terminal", "wezterm", "pid", "app"] : ["tmux", want]);
 
 const appRunning = (procs: Proc[], bundle: string) => procs.some((p) => p.command.includes(`${bundle}/Contents/MacOS/`));
 
@@ -207,12 +278,51 @@ return "no"`;
   return r?.out.trim() === "ok";
 }
 
-/** kitty's window holding `pid` focused over remote control. */
+/** kitty's window holding `pid` focused over remote control, then the app itself brought in front (focus-window alone does not raise kitty over another app). */
 export async function focusKitty(pid: number, procs: Proc[]): Promise<boolean> {
-  const w = kittyWindowOf(pid, await kittyWindows(), procs);
+  const { to, windows } = await kittyWindows(procs);
+  const w = to && kittyWindowOf(pid, windows, procs);
   if (!w) return false;
-  const r = await exec(["kitten", "@", "focus-window", "--match", `id:${w.id}`], { ms: MS }).catch(() => undefined);
-  return r?.code === 0;
+  const r = await exec([bin("kitten"), "@", "--to", to, "focus-window", "--match", `id:${w.id}`], { ms: MS }).catch(() => undefined);
+  if (r?.code !== 0) { log(`focus: kitty refused focus-window id:${w.id}: ${r?.err.trim() ?? "no answer"}`); return false; }
+  if (!LINUX) await exec(["open", "-a", "kitty"], { ms: MS }).catch(() => {});
+  log(`focus: kitty window ${w.id}`);
+  return true;
+}
+
+/** WezTerm's pane on `tty` (`wezterm cli list` names each pane's tty), activated, then the app brought in front. Only while WezTerm runs, and only when `wezterm` is found. */
+export async function focusWezTerm(tty: string, procs: Proc[]): Promise<boolean> {
+  if (!procs.some((p) => /wezterm/i.test(p.command.split(/\s+/)[0]))) return false;
+  const wt = tool("wezterm");
+  if (!wt) { log(`focus: WezTerm runs but wezterm was not found on PATH or in ${EXTRA_BINS.join(", ")}`); return false; }
+  const r = await exec([wt, "cli", "list", "--format", "json"], { ms: MS }).catch(() => undefined);
+  if (r?.code !== 0) { log(`focus: wezterm cli list failed: ${r?.err.trim() ?? "no answer"}`); return false; }
+  let panes: { pane_id?: unknown; tty_name?: unknown }[] = [];
+  try { panes = JSON.parse(r.out); } catch { return false; }
+  const pane = panes.find((p) => p.tty_name === tty);
+  if (typeof pane?.pane_id !== "number") return false;
+  const a = await exec([wt, "cli", "activate-pane", "--pane-id", String(pane.pane_id)], { ms: MS }).catch(() => undefined);
+  if (a?.code !== 0) { log(`focus: wezterm refused activate-pane ${pane.pane_id}: ${a?.err.trim() ?? "no answer"}`); return false; }
+  if (!LINUX) await exec(["open", "-a", "WezTerm"], { ms: MS }).catch(() => {});
+  return true;
+}
+
+/** The nearest ancestor of `pid` that is a GUI app (its command inside a `.app` bundle): Alacritty, Ghostty, Warp, VS Code's terminal. */
+export const appProcOf = (pid: number, procs: Proc[]): Proc | undefined => ancestors(pid, procs).find((p) => /\.app\/Contents\/MacOS\//.test(p.command));
+
+/**
+ * That ancestor brought to the front by its pid through System Events:
+ * for a one-window-per-process terminal (Alacritty) the very window, for
+ * a many-windows one the app with its last window, which is the most
+ * macOS offers without an API of the app's own.
+ */
+export async function focusPid(pid: number, procs: Proc[]): Promise<Proc | undefined> {
+  if (LINUX) return;
+  const p = appProcOf(pid, procs);
+  if (!p) return;
+  const r = await exec(["osascript", "-e", `tell application "System Events" to set frontmost of (first process whose unix id is ${p.pid}) to true`], { ms: MS }).catch(() => undefined);
+  if (r?.code !== 0) { log(`focus: System Events would not raise pid ${p.pid}: ${r?.err.trim() ?? "no answer"}`); return; }
+  return p;
 }
 
 /** The app an ancestor of `pid` runs from, activated; the last resort, nothing inside it selected. */
@@ -240,19 +350,24 @@ export async function focus(pid: number, tty: string | undefined, want: Terminal
       await selectPane(pane).catch(() => {});
       const client = await clientTty(pane.session);
       if (!client) {
-        const why = terminal.open(["tmux", "attach", "-t", pane.session], "auto");
+        const why = terminal.open([bin("tmux"), "attach", "-t", pane.session], "auto");
+        log(why ? `focus: tmux pane ${pane.target} has no client and no terminal opens: ${why}` : `focus: tmux pane ${pane.target}, attached in a new terminal`);
         return why ? undefined : "tmux";
       }
       // The client is a tmux process on that tty; the ladder continues from it.
       const cp = procs.find((p) => p.tty === client && /(^|\/)tmux(\s|$)/.test(p.command)) ?? procs.find((p) => p.tty === client);
       target = { pid: cp?.pid ?? pid, tty: client };
+      log(`focus: tmux pane ${pane.target} selected, its client on ${client}`);
       if (steps.length === 1) return "tmux";
-    } else if (steps.length === 1) return;
+    } else if (steps.length === 1) { log(`focus: pid ${pid} is in no tmux pane`); return; }
   }
   for (const step of steps) {
     if (step === "kitty" && (await focusKitty(target.pid, procs))) return "kitty";
-    if (step === "iterm" && target.tty && (await focusITerm(target.tty, procs))) return "iterm";
-    if (step === "terminal" && target.tty && (await focusTerminalApp(target.tty, procs))) return "terminal";
-    if (step === "app" && (await focusApp(target.pid, procs))) return "app";
+    if (step === "iterm" && target.tty && (await focusITerm(target.tty, procs))) { log(`focus: iTerm2 tab on ${target.tty}`); return "iterm"; }
+    if (step === "terminal" && target.tty && (await focusTerminalApp(target.tty, procs))) { log(`focus: Terminal tab on ${target.tty}`); return "terminal"; }
+    if (step === "wezterm" && target.tty && (await focusWezTerm(target.tty, procs))) { log(`focus: WezTerm pane on ${target.tty}`); return "wezterm"; }
+    if (step === "pid") { const p = await focusPid(target.pid, procs); if (p) { log(`focus: pid ${p.pid} (${appOf(target.pid, procs)}) raised`); return "pid"; } }
+    if (step === "app" && (await focusApp(target.pid, procs))) { log(`focus: app ${appOf(target.pid, procs)}`); return "app"; }
   }
+  log(`focus: nothing found for pid ${target.pid}${target.tty ? ` on ${target.tty}` : ""} (tried ${steps.join(", ")})`);
 }
