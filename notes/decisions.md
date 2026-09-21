@@ -1249,3 +1249,44 @@ scratch instance on hornet (`target/scratch-sw`, the recipe under How to run it)
   (`SettingsPalettes.tsx`); the sidebar's `show_when`/`hide_when`; an
   `AXObserver` for focus changes inside one app; replacing Cmd+Tab itself
   (an event tap, Input Monitoring, gated like expansion); a Linux sidebar.
+
+## Switcher round 2: the tap, cmd+tab, Settings (2026-09-22)
+
+His three corrections on the first cut, all Cmd+Tab semantics, plus "pal is
+drivable from the UI": nothing may exist only as a config line.
+
+- **A tap switches at once and paints nothing.** `switcher::press` when idle
+  stamps the front window, starts the release poll and arms a 150 ms
+  `SHOW_AFTER`; the panel shows only if the chord is still held then.
+  Presses before the show accumulate as `steps` (`Shown.steps` places the
+  cursor at row `2 + steps`); a release before it is the tap: the shell
+  lists (`await_stamp` first) and raises row `2 + steps` itself through
+  `windows::raise` (the focus effect's raise, moved out of effects.rs so
+  the two share it). A commit that reaches the page before its rows are in
+  is parked and runs once they land. The tap applies to `windows/windows`;
+  another held palette shows at once.
+- **No pop back into the windows palette**: `pop::forget()` from a shown
+  commit and from `on_hidden`, so the next show is the root whatever
+  `pop_to_root` says.
+- **cmd+tab.** Measured: a Carbon registration of cmd+tab is accepted and
+  the Dock still takes the press. So `hotkey::dock_owned` chords (Tab with
+  exactly cmd or cmd+shift) go through a session `CGEventTap` (active,
+  head-insert, keyDown swallowed for the chord, autorepeats dropped,
+  re-enabled on `TapDisabledByTimeout`), which needs Input Monitoring:
+  asked once (`request_once`, as expansion does), an Overview row with
+  Grant until then (`Outcome.hold_blocked`), re-applied when the grant
+  lands (`permissions::watch`). Verified on hornet: cmd+tab tap raised the
+  previous window, cmd+tab tab raised row 3, the App Switcher never opened.
+- **Settings**: General has a Window switcher card (the windows palette's
+  chord; Clear writes `hold = ""`, Reset the manifest's suggestion; Grant
+  for Input Monitoring only when the chord is cmd+tab and the grant is
+  missing) and the whole Sidebar card (switch, palette, edge, display from
+  the OS names, width, peek, hotkey; Bar has a pointer row); Palettes has
+  the per-palette Switcher chord; Welcome has two tips; the Overview
+  lists both as facts.
+- **Not the switcher's, seen twice on the scratch instance**: a fresh
+  profile's first show lists the lazy palettes, and one of them steals key
+  (1Password's authorisation dialog for `onepassword/items`, a
+  Bluetooth/Location prompt from `permissions.request`), so the panel
+  resigns and hides mid-hold. A daily profile answered those long ago; a
+  first-run pal should defer such prompts until the panel is down.
