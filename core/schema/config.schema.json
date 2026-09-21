@@ -289,7 +289,7 @@
           "description": "`system` or `mono`."
         },
         "icon": {
-          "description": "A glyph, an emoji or a short text drawn as the icon in place of the\none the extension answers (what `BarItem.icon` takes as a string).\nOnly an item's own makes sense (every item the same icon is no\nbar), so a target leaves it unset.",
+          "description": "A glyph, an emoji or a short text drawn as the icon in place of the\none the extension answers (what `BarItem.icon` takes as a string),\nor a picture: an absolute or `~/` path to an image file (PNG, JPEG,\nGIF, SVG), a `data:image/` URI or an `icon://` url. Only an item's\nown makes sense (every item the same icon is no bar), so a target\nleaves it unset.",
           "type": "string"
         },
         "icon_size": {
@@ -531,7 +531,7 @@
           "description": "`system` or `mono`."
         },
         "icon": {
-          "description": "A glyph, an emoji or a short text drawn as the icon in place of the\none the extension answers (what `BarItem.icon` takes as a string).\nOnly an item's own makes sense (every item the same icon is no\nbar), so a target leaves it unset.",
+          "description": "A glyph, an emoji or a short text drawn as the icon in place of the\none the extension answers (what `BarItem.icon` takes as a string),\nor a picture: an absolute or `~/` path to an image file (PNG, JPEG,\nGIF, SVG), a `data:image/` URI or an `icon://` url. Only an item's\nown makes sense (every item the same icon is no bar), so a target\nleaves it unset.",
           "type": "string"
         },
         "icon_size": {

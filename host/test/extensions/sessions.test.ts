@@ -3,10 +3,11 @@
 // every command the extension runs (`ps`, `lsof`, `tmux`, `kitten`,
 // `osascript`, `open`, `kill`, `code`) on PATH, each printing a canned
 // answer from a file the tests rewrite and logging its argv.
-// `PAL_TERMINAL_LOG` catches the terminal Resume opens. The `blocked?`
+// `PAL_TERMINAL_LOG` catches the terminal Resume opens; `PAL_PROC` is the
+// /proc the Linux cwd lookup reads, mirroring the lsof answer. The `blocked?`
 // test waits the real two seconds the idle check takes on a first sight.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -19,12 +20,20 @@ import { CAP, PAGE } from "../../../extensions/sessions/transcript.ts";
 import { Host } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-sessions-"));
-const home = join(base, "home"), bin = join(base, "bin"), out = join(base, "out"), log = join(base, "bin.log");
+const MAC = process.platform === "darwin";
+const home = join(base, "home"), bin = join(base, "bin"), out = join(base, "out"), proc = join(base, "proc"), log = join(base, "bin.log");
 for (const d of [home, bin, out]) mkdirSync(d, { recursive: true });
 
 // The stand-ins: `<name> <args>` appended to the log, stdout from `out/<name>.out` (tmux and kitten pick a file by subcommand).
 const stub = (name: string, body: string) => { writeFileSync(join(bin, name), `#!/bin/sh\necho "${name} $*" >> ${JSON.stringify(log)}\n${body}\n`); chmodSync(join(bin, name), 0o755); };
-const canned = (name: string, text: string) => writeFileSync(join(out, `${name}.out`), text);
+const canned = (name: string, text: string) => {
+  writeFileSync(join(out, `${name}.out`), text);
+  // Linux reads `/proc/<pid>/cwd` where macOS asks lsof: the same answer as links under a stand-in root (`PAL_PROC`).
+  if (name === "lsof") {
+    rmSync(proc, { recursive: true, force: true });
+    for (const [, pid, cwd] of text.matchAll(/^p(\d+)\nfcwd\nn(.*)$/gm)) { mkdirSync(join(proc, pid), { recursive: true }); symlinkSync(cwd, join(proc, pid, "cwd")); }
+  }
+};
 // `@T@` in a cputime is the clock: a process whose cpu seconds grow with the wall clock is never idle.
 stub("ps", `sed "s/@T@/$(date +%s)/" ${JSON.stringify(join(out, "ps.out"))} 2>/dev/null`);
 stub("lsof", `cat ${JSON.stringify(join(out, "lsof.out"))} 2>/dev/null`);
@@ -36,6 +45,7 @@ stub("osascript", `case "$*" in *"System Events"*) if [ -f ${JSON.stringify(join
 stub("wezterm", `case "$2" in list) cat ${JSON.stringify(join(out, "wezterm.out"))} 2>/dev/null ;; esac`);
 stub("bad-editor", `echo "boom: no display" >&2; exit 1`);
 stub("open", "");
+stub("xdg-open", "");
 stub("kill", "");
 stub("code", "");
 const asked = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").filter(Boolean) : []);
@@ -154,9 +164,10 @@ beforeAll(async () => {
   process.env.HOME = home;
   process.env.PATH = `${bin}:${PATH0}`;
   process.env.PAL_TERMINAL_LOG = join(base, "terminal.log");
+  process.env.PAL_PROC = proc;
   host = await Host.bundled();
 });
-afterAll(() => { host.kill(); process.env.HOME = HOME0; process.env.PATH = PATH0; if (KITTY0 !== undefined) process.env.KITTY_LISTEN_ON = KITTY0; delete process.env.PAL_TERMINAL_LOG; rmSync(base, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); process.env.HOME = HOME0; process.env.PATH = PATH0; if (KITTY0 !== undefined) process.env.KITTY_LISTEN_ON = KITTY0; delete process.env.PAL_TERMINAL_LOG; delete process.env.PAL_PROC; rmSync(base, { recursive: true, force: true }); });
 
 const list = (filter?: string, refresh = true) => host.list("sessions", "sessions", undefined, { ...(filter && { filter }), ...(refresh && { refresh }) });
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("sessions", "sessions", id, action, ctx);
@@ -282,7 +293,8 @@ describe("sessions: the palette", () => {
     ]);
     // The ps stand-in was read twice for the idle check; lsof once, for every agent pid at once.
     expect(since(n).filter((l) => l.startsWith("ps ")).length).toBe(2);
-    expect(since(n).find((l) => l.startsWith("lsof "))).toBe("lsof -a -p 35164,41000,75762,29645 -d cwd -Fpn");
+    // macOS asks lsof once for every agent pid; Linux reads /proc (the stand-in, `PAL_PROC`) and never runs it.
+    expect(since(n).find((l) => l.startsWith("lsof "))).toBe(MAC ? "lsof -a -p 35164,41000,75762,29645 -d cwd -Fpn" : undefined);
     const by = Object.fromEntries(items.map((i) => [i.id, i]));
     expect(by[key("claude", ID.claude)]).toMatchObject({ name: "Sessions extension", subtitle: "Claude Code · pal · main", icon: { glyph: "", color: "orange" }, keywords: ["claude", "pal", "main", "11111111"] });
     expect(tag(by[key("claude", ID.claude)])).toBe("working");
@@ -525,7 +537,7 @@ describe("sessions: the palette", () => {
     host.changeSettings("sessions", { settings: { editor: "no-such-editor-here" } });
     n = asked().length;
     expect(await pick(id, "transcript")).toEqual({ hide: true });
-    expect(since(n)).toContain(`open -t ${file}`);
+    expect(since(n)).toContain(MAC ? `open -t ${file}` : `xdg-open ${file}`);
     host.changeSettings("sessions", { settings: { editor: "bad-editor" } });
     expect(await pick(id, "transcript")).toMatchObject({ toast: { title: `Could not open ${ID.blocked}.jsonl with bad-editor`, message: "boom: no display", style: "failure" } });
     host.changeSettings("sessions", { settings: {} });
@@ -537,15 +549,16 @@ describe("sessions: the palette", () => {
     expect(await pick(id, "copy-cwd")).toEqual({ copy: CWD.api });
     n = asked().length;
     expect(await pick(id, "reveal")).toEqual({ hide: true });
-    await host.until(() => since(n).some((l) => l.startsWith("open ")));
-    expect(since(n)).toContain(`open -R ${claudeFile(ID.blocked, CWD.api)}`);
+    // Reveal: Finder on the file with `open -R`; the file's folder with xdg-open on Linux.
+    await host.until(() => since(n).some((l) => /^(open|xdg-open) /.test(l)));
+    expect(since(n)).toContain(MAC ? `open -R ${claudeFile(ID.blocked, CWD.api)}` : `xdg-open ${join(home, ".claude", "projects", "-Users-me-proj-api")}`);
     n = asked().length;
     expect(await pick(id, "editor")).toEqual({ hide: true });
     expect(since(n)).toContain(`code ${CWD.api}`);
     host.changeSettings("sessions", { settings: { editor: "no-such-editor-here" } });
     n = asked().length;
     expect(await pick(id, "editor")).toEqual({ hide: true });
-    expect(since(n)).toContain(`open ${CWD.api}`);
+    expect(since(n)).toContain(`${MAC ? "open" : "xdg-open"} ${CWD.api}`);
     host.changeSettings("sessions", { settings: {} });
     n = asked().length;
     expect(await pick(id, "kill")).toEqual({ keep: true, hud: "Sent SIGTERM to 41000" });
@@ -561,7 +574,8 @@ describe("sessions: the palette", () => {
     expect(await pick(key("claude", ID.claude), "send", { values: { text: "hi" } })).toMatchObject({ toast: { title: "Not in tmux", style: "failure" } });
   });
 
-  test("focus: tmux first (the pane selected, the client's tty followed), then kitty by pid, then iTerm2 and Terminal by tty over AppleScript, then the app; Enter on an ended row resumes in a terminal", async () => {
+  // The ladder past tmux and kitty is AppleScript and `open -a`: macOS alone (procs.ts `focus`).
+  test.skipIf(!MAC)("focus: tmux first (the pane selected, the client's tty followed), then kitty by pid, then iTerm2 and Terminal by tty over AppleScript, then the app; Enter on an ended row resumes in a terminal", async () => {
     // The blocked session sits in a tmux pane whose client is on ttys020: the pane is selected, the client looked for on that tty (nothing runs there), kitty asked for a window holding the session (none) and iTerm2's AppleScript says no.
     await list();
     let n = asked().length;
@@ -578,7 +592,8 @@ describe("sessions: the palette", () => {
     // The pal session is on ttys007 under kitty, no tmux pane: kitty's window 7 holds its shell, focus-window is the answer.
     n = asked().length;
     expect(await pick(key("claude", ID.claude))).toEqual({ hide: true });
-    expect(since(n).filter((l) => /^(kitten|open) /.test(l))).toEqual(["kitten @ --to unix:/tmp/mykitty-500 ls", "kitten @ --to unix:/tmp/mykitty-500 focus-window --match id:7", "open -a kitty"]);
+    // The app is brought in front with `open -a` on macOS alone.
+    expect(since(n).filter((l) => /^(kitten|open) /.test(l))).toEqual(["kitten @ --to unix:/tmp/mykitty-500 ls", "kitten @ --to unix:/tmp/mykitty-500 focus-window --match id:7", ...(MAC ? ["open -a kitty"] : [])]);
     expect(since(n).some((l) => l.startsWith("osascript "))).toBe(false);
     // With no kitty window for it, iTerm2 answers ok: the AppleScript step did it.
     canned("kitten", "[]");
@@ -657,7 +672,7 @@ describe("sessions: the bar", () => {
     expect(v.actions.find((a) => a.id === "kill")).toMatchObject({ style: "destructive", confirm: "Send SIGTERM to Claude Code (pid 41000)?" });
   });
 
-  test("the keys: arrows and a click move the ring, o opens the transcript, r copies, x kills, p and s push the palette, Enter focuses or resumes", async () => {
+  test.skipIf(!MAC)("the keys: arrows and a click move the ring, o opens the transcript, r copies, x kills, p and s push the palette, Enter focuses or resumes", async () => {
     const view = (r: Record<string, unknown>) => checkView((r as { view: View }).view);
     let n = asked().length;
     expect(await act("transcript")).toEqual({ hide: true });

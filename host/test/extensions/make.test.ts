@@ -58,7 +58,7 @@ beforeAll(async () => {
 afterAll(() => { host?.kill(); process.env.PATH = PATH; if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(root, { recursive: true, force: true }); });
 
 const list = () => host.list("make", "make");
-const pick = (id: string, action?: string, ctx?: { values?: Record<string, string> }) => host.pick("make", "make", id, action, ctx);
+const pick = (id: string, action?: string, ctx?: { values?: Record<string, string> }, timeout?: number) => host.pick("make", "make", id, action, ctx, timeout);
 const id = (target: string, dir: string) => `${target}@${dir}`;
 
 describe("make", () => {
@@ -100,7 +100,7 @@ describe("make", () => {
     await list();
     expect(await pick(id("test", pal))).toEqual({ hud: "make test" });
     const argv = JSON.parse(readFileSync(join(root, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[];
-    // kitty takes the script as its last argument; Terminal.app (the CI runner) wraps it in an AppleScript `do script` line with its own quoting.
+    // The log holds the command the terminal runs, whatever terminal the machine has: the script is its last word.
     const script = argv.find((a) => a.includes("make test"))!;
     expect(script).toContain(`cd ${pal} && exec sh -c `);
     expect(script).toContain("make test; s=$?;");
@@ -123,17 +123,19 @@ describe("make", () => {
     expect(await pick("nope@/nowhere")).toMatchObject({ keep: true, toast: { title: "Target not listed", style: "failure" } });
   });
 
+  // A background run waits for make itself; the CI runner's first make can take seconds, so these picks (and the test) get 20 s rather than the harness's 5.
   test.skipIf(!HAS_MAKE)("background: runs make here and toasts the exit status; a failure opens the output too", async () => {
     host.changeSettings("make", { settings: { projects: [root], terminal: "background" } });
     await list();
-    expect(await pick(id("all", bare))).toEqual({ keep: true, toast: { title: "make all: done", message: "all" } });
+    const SLOW = 20_000;
+    expect(await pick(id("all", bare), undefined, undefined, SLOW)).toEqual({ keep: true, toast: { title: "make all: done", message: "all" } });
     // The bar's words ride along as make's own arguments.
-    expect(await pick(id("all", bare), "run", { values: { extra: "-s" } })).toEqual({ keep: true, toast: { title: "make all -s: done", message: "all" } });
-    const r = await pick(id("fail", bare));
+    expect(await pick(id("all", bare), "run", { values: { extra: "-s" } }, SLOW)).toEqual({ keep: true, toast: { title: "make all -s: done", message: "all" } });
+    const r = await pick(id("fail", bare), undefined, undefined, SLOW);
     expect(r.toast).toMatchObject({ title: "make fail: exit 2", style: "failure" });
     expect(r.show!.markdown).toContain("boom");
     host.changeSettings("make", { settings: { projects: [root] } });
-  });
+  }, 25_000);
 
   test("a projects folder that does not exist lists nothing rather than failing", async () => {
     host.changeSettings("make", { settings: { projects: [join(root, "nope")] } });

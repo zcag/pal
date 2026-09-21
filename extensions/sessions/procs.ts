@@ -94,7 +94,9 @@ export async function cwds(pids: number[]): Promise<Map<number, string>> {
   const out = new Map<number, string>();
   if (!pids.length) return out;
   if (LINUX) {
-    await Promise.all(pids.map((pid) => readlink(`/proc/${pid}/cwd`).then((p) => out.set(pid, p)).catch(() => {})));
+    // `PAL_PROC` (tests): a stand-in for /proc, holding `<pid>/cwd` links for the faked table.
+    const proc = process.env.PAL_PROC || "/proc";
+    await Promise.all(pids.map((pid) => readlink(`${proc}/${pid}/cwd`).then((p) => out.set(pid, p)).catch(() => {})));
     return out;
   }
   const r = await exec(["lsof", "-a", "-p", pids.join(","), "-d", "cwd", "-Fpn"], { ms: MS });

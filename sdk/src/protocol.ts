@@ -697,7 +697,7 @@ export type BarItem = {
    * nothing to open a popover on). The extension never reads the setting.
    */
   empty?: BarEmpty;
-  /** A glyph (drawn from the bundled Nerd Font), an emoji, `{ image }` (`icon://`, `data:image/`), `{ app }`. `Icon`'s image form gains `template?: boolean`. */
+  /** A glyph (drawn from the bundled Nerd Font), an emoji, `{ image }` (`icon://`, `data:image/`, an absolute path to an image file), `{ app }`. `Icon`'s image form gains `template?: boolean`. */
   icon?: Icon;
   /** Text beside the icon: a count, a code, a track. Short; the menu bar has no truncation of its own. */
   title?: string;

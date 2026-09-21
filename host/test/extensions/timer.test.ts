@@ -81,12 +81,13 @@ describe("timer", () => {
     host.changeSettings("timer", { settings: { command: cli, dir } });
   });
 
+  // "landed N ago" is read off the clock: a second may tick between the fixture and the render on a slow runner.
   test("the strip: the soonest running timer's time left with a fill and a colour by progress, a landed one as the alarm, a paused one muted", async () => {
     put("tea", { state: "running", deadline: now() + 600 });
     put("eggs", { state: "paused", left: 30 });
     put("pizza", { state: "done", fired: now() - 10, auto: true, name: "25m" });
     const done = await render();
-    expect(done).toMatchObject({ icon: "\u{f0954}", title: "Done", urgent: true, progress: 1, tooltip: "25m landed 0:10 ago (+2 more)", menu: { view: { id: "timer", keys: "actions", title: "3 timers" } } });
+    expect(done).toMatchObject({ icon: "\u{f0954}", title: "Done", urgent: true, progress: 1, tooltip: expect.stringMatching(/^25m landed 0:1[0-2] ago \(\+2 more\)$/), menu: { view: { id: "timer", keys: "actions", title: "3 timers" } } });
     unlinkSync(join(dir, "pizza.state"));
     // The clock may tick between the file and the render: a second less is fine.
     const tea = await render();
@@ -123,7 +124,7 @@ describe("timer", () => {
     put("pizza", { state: "done", fired: now() - 10 });
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["pizza", "tea", "eggs", "new", "pomodoro"]);
-    expect(items[0]).toMatchObject({ name: "pizza", subtitle: "Landed 0:10 ago", accessories: [{ tag: "done", color: "red" }] });
+    expect(items[0]).toMatchObject({ name: "pizza", subtitle: expect.stringMatching(/^Landed 0:1[0-2] ago$/), accessories: [{ tag: "done", color: "red" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["done", "add", "stop"]);
     expect(items[1]).toMatchObject({ name: "tea", subtitle: expect.stringMatching(/^(10:00|9:59) left, done at /), accessories: [{ tag: "running", color: "blue" }] });
     expect(items[1].actions!.map((a) => a.id)).toEqual(["pause", "add", "stop"]);

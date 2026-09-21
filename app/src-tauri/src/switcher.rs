@@ -53,7 +53,8 @@ use crate::{events, index, lock, pop, windows};
 /// How long the chord has to stay held before the panel shows; a release
 /// before this is a tap.
 const SHOW_AFTER: Duration = Duration::from_millis(150);
-/// How often the modifiers are read while a hold is on.
+/// How often the modifiers are read while a hold is on (the poll is macOS's: `NSEvent.modifierFlags`).
+#[cfg(target_os = "macos")]
 const POLL: Duration = Duration::from_millis(40);
 /// The most a commit waits for the held palette's show relist.
 const RELIST_WAIT: Duration = Duration::from_millis(300);
@@ -66,6 +67,8 @@ const RELIST_TICK: Duration = Duration::from_millis(10);
 /// without any, or a CLI begin, has no poll.
 struct Active {
     source: Source,
+    /// Read by the macOS poll alone; a Linux hold has none.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     generation: u64,
     steps: i32,
     shown: bool,

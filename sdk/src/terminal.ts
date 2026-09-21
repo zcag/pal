@@ -62,10 +62,12 @@ function macArgv(name: string, app: string, cmd: string[]): string[] {
   }
 }
 
+/** `cmd` as the terminal runs it: from `cwd` when given. Every terminal takes an argv, none a directory the same way, so a `cd` in front covers them all. */
+export const command = (cmd: string[], cwd?: string): string[] => (cwd ? ["sh", "-c", `cd ${quote(cwd)} && exec ${cmd.map(quote).join(" ")}`] : cmd);
+
 /** The argv that opens a terminal running `cmd` (from `cwd` when given), or a string saying why there is none. */
 export function argv(cmd: string[], want: Choice = "auto", cwd?: string): string[] | string {
-  // Every terminal takes an argv, none a directory the same way: a `cd` in front covers them all.
-  if (cwd) cmd = ["sh", "-c", `cd ${quote(cwd)} && exec ${cmd.map(quote).join(" ")}`];
+  cmd = command(cmd, cwd);
   if (!MAC) {
     const term = linux();
     return term ? linuxArgv(term, cmd) : "no terminal: set $TERMINAL";
@@ -76,12 +78,19 @@ export function argv(cmd: string[], want: Choice = "auto", cwd?: string): string
   return macArgv(name, app, cmd);
 }
 
-/** Opens the terminal and forgets it; the reason when none could be opened. `PAL_TERMINAL_LOG` (tests) records the argv instead of running it. */
+/**
+ * Opens the terminal and forgets it; the reason when none could be opened.
+ * `PAL_TERMINAL_LOG` (tests) records the command the terminal would run
+ * (`command`: the `cd` wrapper included) instead of opening one: what a
+ * test asserts is the command, and the terminal's own argv differs per
+ * machine (kitty takes it as trailing arguments, Terminal.app on the CI
+ * runner wraps it in an AppleScript line with its own quoting).
+ */
 export function open(cmd: string[], want: Choice = "auto", cwd?: string): string | undefined {
   const a = argv(cmd, want, cwd);
   if (typeof a === "string") return a;
   const log = process.env.PAL_TERMINAL_LOG;
-  if (log) { appendFileSync(log, JSON.stringify(a) + "\n"); return; }
+  if (log) { appendFileSync(log, JSON.stringify(command(cmd, cwd)) + "\n"); return; }
   Bun.spawn(a, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 }
 

@@ -309,6 +309,8 @@ fn watch_displays(app: &AppHandle) {
 #[cfg(not(target_os = "macos"))]
 fn watch_displays(_app: &AppHandle) {}
 
+/// The screen notification's handler (macOS; nothing watches displays elsewhere yet).
+#[cfg(target_os = "macos")]
 fn on_displays_changed(app: &AppHandle) {
     eprintln!("sidebar\tdisplays changed");
     place_strips(app);
