@@ -1,0 +1,343 @@
+{
+  "name": "sessions",
+  "title": "Sessions",
+  "description": "Every AI coding session on this machine (Claude Code, Codex, Copilot CLI) and what each is doing: working, your turn, waiting on you, or ended. Read from the files the CLIs write and the process table; Enter brings the session's terminal in front.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰚩",
+      "bg": "violet"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "keywords": [
+    "ai",
+    "agent",
+    "claude",
+    "codex",
+    "copilot"
+  ],
+  "settings": [
+    {
+      "kind": "list",
+      "id": "agents",
+      "label": "Agents",
+      "description": "Which agents' files are read: claude, codex, copilot.",
+      "placeholder": "claude",
+      "default": [
+        "claude",
+        "codex",
+        "copilot"
+      ],
+      "bar": "sessions"
+    },
+    {
+      "kind": "number",
+      "id": "stale_minutes",
+      "label": "Ended sessions shown for",
+      "description": "A session with no process behind it stays listed as ended this long after its last write, so a crash is seen; older ones are only under the Recent filter.",
+      "min": 1,
+      "max": 1440,
+      "unit": "min",
+      "default": 30,
+      "bar": "sessions"
+    },
+    {
+      "kind": "number",
+      "id": "recent_hours",
+      "label": "Recent filter",
+      "description": "How far back the Recent filter lists sessions to resume.",
+      "min": 1,
+      "max": 720,
+      "unit": "h",
+      "default": 24
+    },
+    {
+      "kind": "select",
+      "id": "terminal",
+      "label": "Terminal",
+      "description": "Where Focus looks for the session's window and what Resume opens. Auto tries a tmux pane, then kitty, iTerm2, Terminal, then the app the process runs under; tmux only stops after the pane.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "Auto"
+        },
+        {
+          "id": "kitty",
+          "title": "kitty"
+        },
+        {
+          "id": "iterm",
+          "title": "iTerm2"
+        },
+        {
+          "id": "terminal",
+          "title": "Terminal"
+        },
+        {
+          "id": "tmux",
+          "title": "tmux only"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "kind": "text",
+      "id": "editor",
+      "label": "Editor",
+      "description": "The command Open in editor runs with the session's folder; the folder opens in Finder when it is not on PATH.",
+      "placeholder": "code",
+      "default": "code"
+    }
+  ],
+  "links": {
+    "state": {
+      "description": "Record a session's state from a hook, for ten minutes, over what the files say",
+      "params": {
+        "agent": {
+          "description": "claude, codex or copilot",
+          "required": true
+        },
+        "session": {
+          "description": "The session id the CLI gave the hook",
+          "required": true
+        },
+        "state": {
+          "description": "working, waiting (your turn) or blocked (a prompt is up)",
+          "required": true
+        }
+      }
+    }
+  },
+  "palettes": {
+    "sessions": {
+      "title": "Sessions",
+      "description": "Every session by state: waiting on you, your turn, working, ended. The pane shows the last exchange and, for a blocked one, the tool call left hanging.",
+      "kind": "live",
+      "tier": "primary",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Focus the session's terminal (an ended one: resume it in a new terminal)"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Send the line typed in the bar to a session in a tmux pane"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open the transcript"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Reveal the transcript"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Open the folder in the editor"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the resume command"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the session id"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Kill the process (asks first; works on marked rows)"
+        }
+      ]
+    }
+  },
+  "bar": {
+    "sessions": {
+      "title": "Sessions",
+      "description": "How many sessions are running, with red !N waiting on you, amber ·N your turn, blue …N working; an alarm while one is waiting on you; hidden with none. The popover lists them by state: Enter focuses the terminal, o opens the transcript, r copies the resume command, x kills.",
+      "mocks": {
+        "working": {
+          "title": "Two sessions working",
+          "item": {
+            "icon": "󰙴",
+            "title": "2",
+            "segments": [
+              {
+                "id": "working",
+                "text": "…2",
+                "color": "blue"
+              }
+            ],
+            "tooltip": "2 sessions: 2 working"
+          }
+        },
+        "attention": {
+          "title": "One waiting on you, one your turn",
+          "item": {
+            "icon": "󰙴",
+            "title": "2",
+            "segments": [
+              {
+                "id": "blocked",
+                "text": "!1",
+                "color": "red"
+              },
+              {
+                "id": "waiting",
+                "text": "·1",
+                "color": "amber"
+              }
+            ],
+            "urgent": true,
+            "tooltip": "2 sessions: 1 waiting on you, 1 your turn"
+          }
+        },
+        "mixed": {
+          "title": "Every state at once",
+          "item": {
+            "icon": "󰙴",
+            "title": "5",
+            "segments": [
+              {
+                "id": "blocked",
+                "text": "!1",
+                "color": "red"
+              },
+              {
+                "id": "waiting",
+                "text": "·1",
+                "color": "amber"
+              },
+              {
+                "id": "working",
+                "text": "…2",
+                "color": "blue"
+              }
+            ],
+            "urgent": true,
+            "tooltip": "5 sessions: 1 waiting on you, 1 your turn, 2 working, 1 ended"
+          }
+        },
+        "ended": {
+          "title": "One just ended, nothing running",
+          "item": {
+            "icon": "󰙴",
+            "title": "1",
+            "segments": [],
+            "tooltip": "1 session: 1 ended"
+          }
+        },
+        "hidden": {
+          "title": "No sessions",
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰙴",
+              "tooltip": "No sessions"
+            }
+          }
+        }
+      },
+      "refresh": {
+        "every": 10,
+        "on": [
+          "show",
+          "wake"
+        ]
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Focus the session's terminal (an ended one: resume it)"
+        },
+        {
+          "keys": "o",
+          "title": "Open the transcript"
+        },
+        {
+          "keys": "r",
+          "title": "Copy the resume command"
+        },
+        {
+          "keys": "x",
+          "title": "Kill the process (asks first)"
+        },
+        {
+          "keys": "s",
+          "title": "Open the palette on a tmux session's row, to type a line into it"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Sessions palette"
+        },
+        {
+          "keys": "up",
+          "title": "Move between sessions (or j and k)"
+        }
+      ]
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "Every Claude Code, Codex and Copilot session, and which one needs you",
+    "category": "developer",
+    "features": [
+      "One row per session from the files the CLIs keep (`~/.claude/projects`, `~/.codex/sessions`, `~/.copilot/session-state`), by state: waiting on you, your turn, working, ended",
+      "The state from the transcript alone: a prompt or turn start after the last turn end is working; a tool call left without a result for 20 s while the process sits idle reads `waiting on you?`, the shape of a permission prompt; a hook can tell the exact state through `pal://sessions/state`",
+      "The pane: the last prompt, the assistant's last text, the pending tool call with its command or path, the agent and model, folder and branch, turns, tokens, permission mode, the transcript path",
+      "`enter` brings the session's terminal in front: a tmux pane, a kitty window, an iTerm2 or Terminal tab by tty, else the app it runs under; on an ended session it opens a terminal with the resume command",
+      "A line typed in the bar goes into a tmux-backed session with `cmd+enter`; `cmd+c` copies `claude --resume <id>`, `codex resume <id>` or `copilot --resume=<id>`; `cmd+d` kills",
+      "A bar item with the count and red, amber and blue segments per state, an alarm while a session waits on you, hidden with none; its popover a row per session with Enter, `o`, `r`, `x`, `s` and `p`"
+    ],
+    "permissions": [
+      "ps",
+      "lsof",
+      "tmux",
+      "kitten",
+      "osascript"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [],
+    "actions": [
+      {
+        "title": "Focus the terminal",
+        "description": "The window the session runs in, in front; a tmux pane is selected on the way.",
+        "keys": "enter"
+      },
+      {
+        "title": "Resume in a terminal",
+        "description": "On an ended session: a terminal opens in its folder running the resume command.",
+        "keys": "enter"
+      },
+      {
+        "title": "Send the line",
+        "description": "On a session in a tmux pane: the bar's text typed into it and sent.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Open transcript",
+        "description": "The transcript file in the default editor.",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Open in editor",
+        "description": "The session's folder in the editor named in Settings, Finder when it is not on PATH.",
+        "keys": "cmd+e"
+      },
+      {
+        "title": "Copy resume command",
+        "description": "The CLI's own resume line for this session.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Kill",
+        "description": "SIGTERM to the session's process, after a confirm; the transcript stays.",
+        "keys": "cmd+d"
+      }
+    ]
+  }
+}

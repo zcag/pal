@@ -189,7 +189,8 @@ describe("media", () => {
       expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
       expect((await host.list("media", "media")).map((r) => r.id)).toContain("spotify");
       host.changeSettings("media", { settings: { exclude: ["Spotify"] } });
-      expect(await host.request<unknown>("suggest", { extension: "media", palette: "media" })).toEqual([]);
+      // `suggest` is host-wide (every suggesting palette answers): only media's section is this test's.
+      expect(((await host.request<{ extension: string }[]>("suggest")) ?? []).filter((s) => s.extension === "media")).toEqual([]);
       host.changeSettings("media", { settings: { exclude: ["Music"] } });
       expect((await host.render("media", "now-playing")).title).toContain("Blue Monday");
       host.changeSettings("media", { settings: { exclude: [] } });
@@ -263,14 +264,17 @@ describe("media", () => {
       expect(host.viewUpdates("media", { bar: "now-playing" }).length).toBe(n);
     });
 
-    test("only a playing player shows: paused or nothing is hidden; an action then says so", async () => {
+    test("only a playing player shows: paused or nothing is hidden, the glyph and the popover saying nothing plays its empty shape for the core's show = always; an action then says so", async () => {
       np = { players: [music, idle], system_wide: true };
-      expect(await host.render("media", "now-playing")).toEqual({ hidden: true });
+      const none = await host.render("media", "now-playing");
+      expect(none).toMatchObject({ hidden: true, empty: { icon: "\uf001", tooltip: "Nothing playing" } });
+      expect(none.title).toBeUndefined();
+      expect(texts(viewOf(none.empty!))[0]).toBe("Nothing playing");
       expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
       np = { players: [spotify, music, idle], system_wide: true };
     });
 
-    test("bar_show: running keeps a paused player on the strip, muted, and its actions reach it; always keeps the glyph with no player, the popover saying nothing plays", async () => {
+    test("bar_show at running keeps a paused player on the strip, muted, and its actions reach it; no player at all is hidden", async () => {
       try {
         np = { players: [music, idle], system_wide: true };
         host.changeSettings("media", { settings: { bar_show: "running" } });
@@ -281,12 +285,7 @@ describe("media", () => {
         expect(await host.barAction("media", "now-playing", "play_pause")).toEqual({ keep: true });
         expect(calls).toEqual([{ player: "music", command: "play_pause" }]);
         np = { players: [], system_wide: true };
-        expect(await host.render("media", "now-playing")).toEqual({ hidden: true });
-        host.changeSettings("media", { settings: { bar_show: "always" } });
-        const none = await host.render("media", "now-playing");
-        expect(none).toMatchObject({ icon: "\uf001", color: "muted", tooltip: "Nothing playing" });
-        expect(none.title).toBeUndefined();
-        expect(texts(viewOf(none))[0]).toBe("Nothing playing");
+        expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true, empty: { tooltip: "Nothing playing" } });
         expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
       } finally {
         host.changeSettings("media", { settings: {} });

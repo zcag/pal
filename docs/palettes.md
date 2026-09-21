@@ -102,6 +102,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Quicklinks](#quicklinks-quicklinks) | `quicklinks` | indexed, primary | Open, or fill in the {query} |
 | [Screenshots](#screenshots-screenshots) | `screenshots` | live, primary | Capture, or open the screenshot |
 | [Services](#services-services) | `services` | live, normal | Stop or start (unload or load on macOS) |
+| [Sessions](#sessions-sessions) | `sessions` | live, primary | Focus the session's terminal (an ended one: resume it in a new terminal) |
 | [Shell](#shell-shell-shell-history) | `shell` | input, normal | Run the command (in the view: copy the output) |
 | [Shell History](#shell-shell-shell-history) | `shell-history` | input, normal | Run the command again |
 | [Shortcuts](#shortcuts-shortcuts) | `shortcuts` | indexed, primary | Run the shortcut |
@@ -3963,8 +3964,8 @@ setting. The key can do all of it; the setting is the control (the
 owner's rule for sends: an outward action, only as a form he submits).
 
 **The bar item** `whatsapp/unread`: the number of unread chats as the
-badge, hidden at zero (`unread_only_bar` off keeps the glyph and lists
-the recent chats in the popover), red while a direct chat is unread
+badge, hidden at zero (the core's `show = "always"` keeps the glyph and
+lists the recent chats in the popover), red while a direct chat is unread
 (`dm_urgent`); every 120 s and on show, wake, network. The popover is a
 view of the item's own (`view.ts`): direct messages then groups with the
 picture as a data url, the newest message and the time, a cursor the
@@ -3998,7 +3999,6 @@ Settings, `[extensions.whatsapp]`:
 | `api_key` | secret | (none) | Sent as `x-api-key`; in the OS keychain. |
 | `session` | text | `main` | The session's name; the UUID is resolved once and kept in storage (`session:<name>`), resolved again on a 404 naming the session. |
 | `send` | boolean | `false` | Send a message, React, the popover's reply field. |
-| `unread_only_bar` | boolean | `true` | Hide the bar item at zero. |
 | `dm_urgent` | boolean | `true` | Red while a direct chat is unread. |
 | `open` | `auto`, `app`, `web` | `auto` | Where a chat opens. |
 
