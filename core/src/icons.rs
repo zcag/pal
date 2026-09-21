@@ -63,8 +63,9 @@ pub fn favicon(url: &str, size: u32) -> Result<PathBuf> {
 
 /// PNG of the image file at `src`, fitted into a `size` square, from the
 /// same cache as the icons: a thumbnail is an icon of a file (the clipboard
-/// palette's image rows), and this cache already has the fit, the atomic
-/// store and a prune. Keyed on the path's mtime, like an app icon.
+/// palette's image rows, a bar item's own picture), and this cache already
+/// has the fit, the atomic store and a prune. Keyed on the path's mtime,
+/// like an app icon. Decoded like a favicon, so an SVG is rasterised.
 pub fn thumbnail(src: &Path, size: u32) -> Result<PathBuf> {
     let dir = cache_dir();
     let mtime = fs::metadata(src)?.modified().ok().and_then(unix_secs);
@@ -72,7 +73,7 @@ pub fn thumbnail(src: &Path, size: u32) -> Result<PathBuf> {
     if let Some(hit) = cached(&dir, &key) {
         return Ok(hit);
     }
-    let img = image::open(src).map_err(|e| Error::Unavailable(e.to_string()))?.into_rgba8();
+    let img = decode(&fs::read(src)?, size).ok_or_else(|| Error::Unavailable(format!("{}: not an image", src.display())))?;
     store(&dir, &key, &fit(img, size))
 }
 

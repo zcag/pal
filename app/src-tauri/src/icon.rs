@@ -9,8 +9,8 @@
 //! as is, for the Settings window's Extensions page;
 //! `icon://localhost/file?path=<image>&size=48` is a thumbnail of an image
 //! file on disk (`thumbnailUrl` in api.ts: the screenshots palette's rows,
-//! a browsed folder's pictures), `size=0` the file itself when it is a
-//! PNG or a JPEG. Any failure is a 404 so the `<img>` falls back to its
+//! a browsed folder's pictures, a bar item's picture), `size=0` the file
+//! itself when it is a PNG or a JPEG (an SVG only thumbnails). Any failure is a 404 so the `<img>` falls back to its
 //! glyph.
 //! On Windows the same handler sits at `http://icon.localhost/...`; the
 //! UI derives the base the way Tauri's `convertFileSrc` does.
@@ -46,7 +46,7 @@ fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
     let file = match (url.path().trim_start_matches('/'), size) {
         ("clip", _) => return std::fs::read(crate::clipboard::image(app, param("id")?.parse().ok()?, size)?).ok(),
         ("shot", _) => return std::fs::read(screenshot(app, &param("ext")?, &param("file")?)?).ok(),
-        ("file", 0) => return std::fs::read(image_file(&param("path")?)?).ok(),
+        ("file", 0) => return std::fs::read(image_file(&param("path")?).filter(|p| p.extension().is_none_or(|e| e != "svg"))?).ok(),
         ("file", _) => icons::thumbnail(image_file(&param("path")?)?.as_path(), size),
         (_, 0) => return None,
         ("app", _) => icons::app_icon(Path::new(&param("path")?), size),
@@ -63,14 +63,14 @@ fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
 }
 
 /// What the `file` route serves as is: the two formats the webview draws
-/// straight from disk. A thumbnail goes through the image crate, which
-/// also reads GIF.
-const IMAGE_EXT: [&str; 4] = ["png", "jpg", "jpeg", "gif"];
+/// straight from disk. A thumbnail goes through the core's decoder, which
+/// also reads GIF and rasterises SVG.
+const IMAGE_EXT: [&str; 5] = ["png", "jpg", "jpeg", "gif", "svg"];
 
 /// An absolute path to an image file (by extension), else nothing: the
 /// route is reachable by any extension, so it serves pictures and never
-/// an arbitrary file.
-fn image_file(path: &str) -> Option<std::path::PathBuf> {
+/// an arbitrary file. The bar's `{ image: "/path" }` goes through here too.
+pub(crate) fn image_file(path: &str) -> Option<std::path::PathBuf> {
     let p = std::path::PathBuf::from(path);
     let ext = p.extension()?.to_str()?.to_ascii_lowercase();
     (p.is_absolute() && IMAGE_EXT.contains(&ext.as_str()) && p.is_file()).then_some(p)
