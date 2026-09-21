@@ -39,28 +39,42 @@ network's name, unless **Icon only** is set — then the glyph stands alone and
 hovering gives the name, the address, the signal and the gateway. Click opens
 Network Settings, while the popover opens this palette.
 
-`networks` says what a network *is*, keyed on its SSID or on its gateway —
-neither alone is enough, since macOS redacts the name (see below) and a cable
-into the same router has no name at all:
+`networks` is one line per network, `SSID = kind label:Name icon:X`, keyed
+on the SSID or on the gateway (neither alone is enough, since macOS redacts
+the name, see below, and a cable into the same router has no name at all, so
+`192.168.1.1 = ...` reaches both). The fields are keyed rather than
+positional: any subset in any order reads the same and a line with only an
+icon needs no placeholders. A bare word is the kind, `label:` gives the strip
+a friendlier name (the palette always retains the real SSID; a name with a
+space goes in quotes, `label:"Cafe Corner"`), `icon:` is one emoji or a Nerd
+Font glyph pasted in (the Icons palette copies one; the bar draws the bundled
+Symbols Nerd Font). Each field comes from the first matching line that sets
+it, so an SSID line and a gateway line for the same router can split the work.
+
+```
+192.168.1.1 = hide icon:󰋜
+Cafe Wifi = hotspot label:Cafe icon:☕
+marvin = icon:📱
+```
 
 | kind | what it does |
 | --- | --- |
-| `hide` | The item is not drawn. For the network you are on almost all the time: it can tell you nothing you do not already know from the room you are in, so its *absence* is what carries information — the item appearing at all means you are somewhere else. |
+| `hide` | The item is not drawn. For the network you are on almost all the time: it can tell you nothing you do not already know from the room you are in, so its *absence* is what carries information; the item appearing at all means you are somewhere else. |
 | `hotspot` | Marks a link whose data costs money. A name containing `iphone`, `android`, `hotspot` or `tether` is taken as one without being configured. |
 | `public` | Marks one not to be trusted. A network with no security is marked that way on its own. |
 
-`ssid_labels` gives the strip a friendlier name with entries such as
-`Cafe Wifi = Cafe`; the full palette always retains the real SSID.
+The icon stands in for the signal, hotspot, open or wired mark on the strip,
+and on that interface's rows in the palette; the tooltip then carries
+`hotspot` or `open network` where the glyph would have said it, and the
+popover's badge still names the kind. The label replaces the SSID, and on a
+cable the kind, since a gateway-keyed line reaches both. Settings includes
+Wi-Fi, weak, hotspot, open, icon-only, wired and offline preview states.
 
-`network_icons` gives a network its own glyph, keyed like `networks` on the
-SSID or the gateway: `eldiven = 󰋜`, `192.168.1.1 = 🏠`, `marvin = 📱`. The
-glyph is one emoji or a Nerd Font glyph pasted in (the Icons palette copies
-one; the bar draws the bundled Symbols Nerd Font). It stands in for the
-signal, hotspot, open or wired mark on the strip, and on that interface's
-rows in the palette; the tooltip then carries `hotspot` or `open network`
-where the glyph would have said it, and the popover's badge still names the
-kind. Settings includes Wi-Fi, weak, hotspot, open, icon-only, wired and
-offline preview states.
+The older `ssid_labels` (`SSID = label`) and `network_icons` (`SSID = glyph`)
+lists still work this release: they are folded into the table after the
+`networks` lines, so a `networks` line wins for the field it sets, and their
+presence is logged once as deprecated. Move them onto `networks` lines; the
+keys go away next release.
 
 ## Keyboard
 
@@ -96,9 +110,7 @@ Settings, `[extensions.network]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
-| `ssid_labels` | list | `[]` | Friendly strip names as `SSID = label`; only the bar uses the label. |
-| `networks` | list | `[]` | `SSID = kind` or `gateway = kind`, where kind is `hide`, `hotspot` or `public`. |
-| `network_icons` | list | `[]` | `SSID = glyph` or `gateway = glyph`; one emoji or a Nerd Font glyph, drawn instead of the signal, hotspot, open or wired mark. |
+| `networks` | list | `[]` | One line per network, `SSID = kind label:Name icon:X` (or `gateway = ...`); each field optional, any order. Kind is `hide`, `hotspot` or `public`; the label is the bar's name; the icon is one emoji or a Nerd Font glyph drawn instead of the signal, hotspot, open or wired mark. The old `ssid_labels` and `network_icons` lists are still read this release. |
 | `icon_only` | boolean | `false` | Drop the name from the bar item and let the glyph speak. |
 
 ## What it does not do

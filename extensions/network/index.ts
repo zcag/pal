@@ -13,8 +13,8 @@ import { hostname } from "node:os";
 import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCore, type Action, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { renderNetworkPopover, type NetworkPopover } from "./view.ts";
 
-/** `[extensions.network]`, default in pal.json. */
-type Settings = { public_ip_url: string; icon_only: boolean; ssid_labels?: unknown[]; networks?: unknown[]; network_icons?: unknown[] };
+/** `[extensions.network]`, default in pal.json; `ssid_labels` and `network_icons` are the old split of `networks`, still read (see `table`). */
+type Settings = { public_ip_url: string; icon_only: boolean; networks?: unknown[]; ssid_labels?: unknown[]; network_icons?: unknown[] };
 
 const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
@@ -216,7 +216,7 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
     const label = [i.name, i.kind, i.ssid].filter(Boolean).join(" · ");
     const kw = [i.name, ...(i.kind === "Wi-Fi" ? ["wifi", "wlan", "ssid"] : []), "ip", "lan", "local", ...(i.ssid ? [i.ssid] : [])];
     // The network's own glyph where it has one; the gateway key reaches only the interface carrying the route.
-    const icon = networkIcon(i, i.name === s.gateway?.dev ? s.gateway.ip : undefined) ?? (i.kind === "Wi-Fi" ? GLYPH.wifi : GLYPH.wired);
+    const icon = marks(i, i.name === s.gateway?.dev ? s.gateway.ip : undefined).icon ?? (i.kind === "Wi-Fi" ? GLYPH.wifi : GLYPH.wired);
     for (const a of i.v4) out.push(row(`if:${i.name}:${a}`, a, label, SECTION.machine, kw, ifaceDetail(i), icon));
     for (const a of i.v6) out.push(row(`if:${i.name}:${a}`, a, `${label} · IPv6`, SECTION.machine, [...kw, "ipv6"], ifaceDetail(i), icon));
   }
@@ -247,43 +247,78 @@ async function snapshot(ctx?: Ctx, includePublic = true): Promise<{ s: Snapshot;
   return { s: { ...base, ifaces, tailscale, host: hostname(), public: pub }, withPublic: !!url };
 }
 
-/** `X = Y` entries of a list setting, both sides trimmed and non-empty. */
-function* pairsOf(list: unknown[] | undefined): Generator<[string, string]> {
-  for (const value of list ?? []) {
-    if (typeof value !== "string") continue;
-    const [key, val] = value.split(/\s*=\s*/, 2).map((s) => s.trim());
-    if (key && val) yield [key, val];
-  }
-}
-
-/** `SSID = familiar name` entries turn an unwieldy router name into what its owner calls it. */
-function ssidLabel(ssid: string | undefined): string | undefined {
-  if (!ssid) return;
-  for (const [name, label] of pairsOf(settings.get<Settings>().ssid_labels)) if (name === ssid) return label;
-}
+// ---- the networks table ---------------------------------------------------
+// One `networks` line per network: `SSID = kind label:Name icon:X`. The
+// fields are keyed rather than positional so any subset reads the same and
+// no placeholder stands in for a missing one; a bare word is the kind, and
+// a label with a space is quoted. A line keys on the SSID *or* on the
+// gateway, because neither alone covers home: macOS redacts the name from a
+// process without Location Services, and a cable into the same router has no
+// name at all.
 
 type Kind = "hide" | "hotspot" | "public";
 const KINDS = new Set<string>(["hide", "hotspot", "public"]);
+/** What the table marks a network as; every field optional. */
+type Marks = { kind?: Kind; label?: string; icon?: string };
+type Line = Marks & { key: string };
+/** One field after the `=`: an optional `name:`, then a quoted or a bare value. */
+const FIELD = /(?:(\w+):)?(?:"([^"]*)"|(\S+))/g;
 
-/**
- * The values of a list setting's entries keyed on this network. An entry keys
- * on the SSID *or* on the gateway, because neither alone covers home: macOS
- * redacts the name from a process without Location Services, and a cable into
- * the same router has no name at all.
- */
-function* forNetwork(list: unknown[] | undefined, i: Iface | undefined, gateway: string | undefined): Generator<string> {
-  for (const [key, value] of pairsOf(list)) if (key === i?.ssid || key === gateway) yield value;
+/** `key = rest` of one list line, both trimmed; nothing for a line without a key. */
+function splitLine(value: unknown): [string, string] | undefined {
+  if (typeof value !== "string") return;
+  const eq = value.indexOf("=");
+  const key = eq < 0 ? "" : value.slice(0, eq).trim();
+  return key ? [key, value.slice(eq + 1).trim()] : undefined;
 }
 
-/** What the configured `networks` say this one is; a line naming no known kind is skipped rather than obeyed. */
-function classify(i: Iface | undefined, gateway: string | undefined): Kind | undefined {
-  for (const kind of forNetwork(settings.get<Settings>().networks, i, gateway)) if (KINDS.has(kind)) return kind as Kind;
-  if (i?.ssid && HOTSPOT_RE.test(i.ssid)) return "hotspot";
+/** A `networks` line. A bare word that is not a kind, and a `name:` that is not a field, are skipped rather than obeyed. */
+function parseLine(value: unknown): Line | undefined {
+  const parts = splitLine(value);
+  if (!parts) return;
+  const line: Line = { key: parts[0] };
+  for (const [, name, quoted, bare] of parts[1].matchAll(FIELD)) {
+    const v = quoted ?? bare;
+    if (name === "label") line.label = v;
+    else if (name === "icon") line.icon = v;
+    else if (!name && KINDS.has(v)) line.kind = v as Kind;
+  }
+  return line;
 }
 
-/** The glyph `network_icons` gives this network, if any: a home, an office, a cafe, a phone. */
-function networkIcon(i: Iface | undefined, gateway: string | undefined): string | undefined {
-  for (const icon of forNetwork(settings.get<Settings>().network_icons, i, gateway)) return icon;
+/** The last old lists seen, so their deprecation is logged once per change rather than every render. */
+let legacySeen: string | undefined;
+
+/** The table: `networks` first, then the old `ssid_labels` and `network_icons` lists folded in as label-only and icon-only lines, so a `networks` line wins. */
+function table(): Line[] {
+  const s = settings.get<Settings>();
+  const out = (s.networks ?? []).map(parseLine).filter((l): l is Line => !!l);
+  const legacy: Line[] = [];
+  for (const v of s.ssid_labels ?? []) { const p = splitLine(v); if (p?.[1]) legacy.push({ key: p[0], label: p[1] }); }
+  for (const v of s.network_icons ?? []) { const p = splitLine(v); if (p?.[1]) legacy.push({ key: p[0], icon: p[1] }); }
+  const sig = JSON.stringify(legacy);
+  if (sig !== legacySeen) {
+    legacySeen = sig;
+    if (legacy.length) console.error(`[network] ssid_labels and network_icons are deprecated and go away next release: put the label and icon on the network's \`networks\` line, as \`SSID = kind label:Name icon:X\` (${legacy.length} old ${legacy.length === 1 ? "entry" : "entries"} still read)`);
+  }
+  return out.concat(legacy);
+}
+
+/** What the table marks this network as: each field from the first line keyed on its SSID or its gateway that sets it. */
+function marks(i: Iface | undefined, gateway: string | undefined): Marks {
+  const out: Marks = {};
+  for (const l of table()) {
+    if (l.key !== i?.ssid && l.key !== gateway) continue;
+    out.kind ??= l.kind; out.label ??= l.label; out.icon ??= l.icon;
+  }
+  return out;
+}
+
+/** The marks, with a phone's hotspot recognised by its name when no line says so. */
+function classify(i: Iface | undefined, gateway: string | undefined): Marks {
+  const m = marks(i, gateway);
+  if (!m.kind && i?.ssid && HOTSPOT_RE.test(i.ssid)) m.kind = "hotspot";
+  return m;
 }
 
 const isOpen = (i: Iface) => !!i.security && /^(none|open)$/i.test(i.security);
@@ -310,7 +345,7 @@ async function statusBar(): Promise<BarItem> {
   try {
     const { s } = await snapshot(undefined, false);
     const i = active(s);
-    const kind = classify(i, s.gateway?.ip);
+    const { kind, label, icon: own } = classify(i, s.gateway?.ip);
     // Nothing to say about the network he is on almost all the time: gone, not
     // dimmed, so the item's mere presence is the message.
     if (kind === "hide") return { hidden: true };
@@ -318,12 +353,12 @@ async function statusBar(): Promise<BarItem> {
       ({ ...item, click: "open", menu: { view: renderNetworkPopover({ ...p, interface: i && [i.name, i.kind].filter(Boolean).join(" · "), gateway: s.gateway?.ip, dns: s.dns }) } });
     if (!s.gateway) return face({ name: "Offline", kind: "offline" }, { ...strip(BAR_GLYPH.off, "Offline"), color: "red", tooltip: "No default route" });
     if (!i) return face({ name: "Connected" }, { ...strip(GLYPH.wired, "Connected"), tooltip: `Gateway ${s.gateway.ip}` });
-    const name = i.kind === "Wi-Fi" ? (ssidLabel(i.ssid) ?? i.ssid ?? "Wi-Fi") : (i.kind ?? i.name);
+    // The label stands in for the SSID, and on a cable for the kind, since a gateway-keyed line reaches both.
+    const name = label ?? (i.kind === "Wi-Fi" ? i.ssid ?? "Wi-Fi" : i.kind ?? i.name);
     const address = i.v4[0] ?? i.v6[0];
     const badge = i.kind !== "Wi-Fi" ? "wired" as const : kind === "hotspot" ? "hotspot" as const : kind === "public" || isOpen(i) ? "public" as const : undefined;
     // A network's own glyph replaces the one that said hotspot or open, so that
     // moves into the tooltip (wired needs no word: the name is the kind there).
-    const own = networkIcon(i, s.gateway.ip);
     const said = own && badge === "hotspot" ? "hotspot" : own && badge === "public" ? "open network" : undefined;
     // The name goes in whether or not it was relabelled: with Icon only the
     // tooltip is the one place left that can say which network this is.

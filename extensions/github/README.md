@@ -35,7 +35,11 @@ latest comments and the milestone. **Create issue** at the top is a form
 popovers) keeps one out of every list, the bar counts and the popovers
 until you unmute it: the **Muted** filter of either palette lists what is
 muted, with Unmute on the row. The set is kept in pal's storage, not on
-GitHub, and a muted thing keeps its notifications.
+GitHub, and a muted thing keeps its notifications. A mute ends on its own
+once it has nothing left to do: an id a fetched list shows merged or closed
+is dropped on that listing, and one no list has carried for thirty days is
+dropped too (the last sighting is kept beside the set, and the mute itself
+starts that clock), each drop logged.
 
 **Repositories** is yours (owner or collaborator, by push date), your
 `default_org`'s recently pushed, and your starred ones, sectioned so. Rows
@@ -107,9 +111,10 @@ Settings, `[extensions.github]`:
 | `clone_protocol` | `ssh` / `https` | `ssh` | What Copy clone URL copies. |
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
-| `bar_show_prs` | `auto` / `always` | `auto` | When the Pull requests item is drawn: with open pull requests, or always (the glyph alone, muted, with none). |
-| `bar_show_issues` | `auto` / `always` | `auto` | The same for Issues. |
-| `bar_show_notifications` | `auto` / `always` | `auto` | The same for Notifications: with something unread, or always (muted, no badge). |
+
+Each bar item is hidden at zero; `show = "always"` under its
+`[bar.items."github/<id>"]` keeps the glyph on the strip anyway, muted,
+with an honest tooltip and the same popover (docs/config.md).
 
 The bar item **Pull requests** is hidden at zero. When it has work, the
 strip is the bucket summary: red blocked (conflicts, failing checks or

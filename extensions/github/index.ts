@@ -77,21 +77,64 @@ function thread(body: string, entries: { author: string; at: string; body: strin
 // every list, count and popover, until unmuted from the palette's Muted
 // filter (or the row's own action, wherever it still turns up: Search). The
 // ids are kept in storage (`owner/repo#n`, one set for both kinds), loaded
-// once: this worker is the only writer.
+// once: this worker is the only writer. A mute is not forever: an id a
+// fetched list shows merged or closed is dropped on the spot, and one no list
+// has carried for thirty days is dropped too, off `mutedSeen` (id to the last
+// time a list had it; the mute itself starts the clock), so the set does not
+// collect every PR he ever muted.
 
-const MUTED = "muted";
+const MUTED = "muted", MUTED_SEEN = "mutedSeen";
+const UNSEEN_MS = 30 * 24 * 60 * 60 * 1000;
+/** A seen time is written back only once it has moved a day: the lists come every few minutes, the file need not. */
+const SEEN_STEP_MS = 24 * 60 * 60 * 1000;
 let muted = new Set<string>();
-const mutedReady = storage.get<string[]>(MUTED).then((ids) => { muted = new Set(ids ?? []); }, (e) => log(`muted: ${errorMessage(e)}`));
-const setMuted = async (id: string, on: boolean) => { on ? muted.add(id) : muted.delete(id); await storage.set(MUTED, [...muted]); };
+let mutedSeen: Record<string, number> = {};
+const mutedReady = Promise.all([storage.get<string[]>(MUTED), storage.get<Record<string, number>>(MUTED_SEEN)])
+  .then(([ids, seen]) => { muted = new Set(ids ?? []); mutedSeen = seen ?? {}; }, (e) => log(`muted: ${errorMessage(e)}`));
+const saveMuted = () => Promise.all([storage.set(MUTED, [...muted]), storage.set(MUTED_SEEN, mutedSeen)]);
+async function setMuted(id: string, on: boolean) {
+  if (on) { muted.add(id); mutedSeen[id] = Date.now(); } else { muted.delete(id); delete mutedSeen[id]; }
+  await saveMuted();
+}
+
+/** Muted ids a fetched list settles: seen merged or closed, or seen by no list for thirty days, are dropped and logged; the rest have their seen time moved up. */
+async function pruneMuted(list: { id: string; state: string }[]) {
+  const now = Date.now();
+  const state = new Map(list.map((x) => [x.id, x.state]));
+  const dropped: [id: string, why: string][] = [];
+  let dirty = false;
+  for (const id of muted) {
+    const s = state.get(id);
+    if (s === "merged" || s === "closed") dropped.push([id, s]);
+    else if (s) { dirty ||= now - (mutedSeen[id] ?? 0) >= SEEN_STEP_MS; mutedSeen[id] = now; }
+    else if (!mutedSeen[id]) { mutedSeen[id] = now; dirty = true; }
+    else if (now - mutedSeen[id] > UNSEEN_MS) dropped.push([id, "unseen for 30 days"]);
+  }
+  for (const [id] of dropped) { muted.delete(id); delete mutedSeen[id]; }
+  if (dropped.length) log(`unmuted ${dropped.map(([id, why]) => `${id} (${why})`).join(", ")}`);
+  if (dropped.length || dirty) await saveMuted();
+}
+
+/** The fetched lists with the muted set settled against them; the Muted filter reads these, the counts and rows the stripped ones below. */
+async function prLists(refresh?: boolean): Promise<PRLists> {
+  const [l] = await Promise.all([fetchPrs(refresh), mutedReady]);
+  await pruneMuted([...l.mine, ...l.reviews, ...l.merged]);
+  return l;
+}
+async function issueLists(refresh?: boolean): Promise<IssueLists> {
+  const [l] = await Promise.all([fetchIssues(refresh), mutedReady]);
+  await pruneMuted([...l.assigned, ...l.mentioned, ...l.created]);
+  return l;
+}
 
 /** The lists as every count and row sees them: the muted ones stripped. */
 async function prs(refresh?: boolean): Promise<PRLists> {
-  const [l] = await Promise.all([fetchPrs(refresh), mutedReady]);
+  const l = await prLists(refresh);
   const keep = (xs: PR[]) => xs.filter((pr) => !muted.has(pr.id));
   return { mine: keep(l.mine), reviews: keep(l.reviews), merged: keep(l.merged) };
 }
 async function issues(refresh?: boolean): Promise<IssueLists> {
-  const [l] = await Promise.all([fetchIssues(refresh), mutedReady]);
+  const l = await issueLists(refresh);
   const keep = (xs: Issue[]) => xs.filter((i) => !muted.has(i.id));
   return { assigned: keep(l.assigned), mentioned: keep(l.mentioned), created: keep(l.created) };
 }
@@ -238,7 +281,7 @@ async function prRows(ctx?: Ctx): Promise<Item[]> {
   const rows: Item[] = [];
   const add = (list: PR[], section: string) => { for (const pr of list) if (!seen.has(pr.id)) { seen.add(pr.id); rows.push(prRow(pr, section)); } };
   if (filter === "muted") {
-    const l = await fetchPrs(!!ctx?.refresh);
+    const l = await prLists(!!ctx?.refresh);
     add([...l.mine, ...l.reviews].filter((pr) => muted.has(pr.id)), "Muted");
     return rows.length ? rows : [hint("none", "Nothing muted", "Mute on a pull request keeps it out of the lists, the count and the bar item")];
   }
@@ -305,7 +348,8 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
     throw e;
   }
   const { list, buckets } = prBuckets(lists);
-  if (!list.length) return conf().bar_show_prs === "always" ? { icon: ICON.prs, color: "muted", tooltip: "No open pull requests", menu: { view: renderPrs(prBarState(lists)) } } : { hidden: true };
+  // Nothing open: hidden, the glyph and the popover offered for a `show = "always"` config.
+  if (!list.length) return { hidden: true, empty: { icon: ICON.prs, tooltip: "No open pull requests", menu: { view: renderPrs(prBarState(lists)) } } };
   const [blocked, active, ready, waiting, reviews] = buckets.map((b) => b.rows);
   const segments = [
     ...(blocked.length ? [{ id: "blocked", text: `×${blocked.length}`, color: "red" as const, tooltip: `${blocked.length} PR${blocked.length === 1 ? "" : "s"} needs attention` }] : []),
@@ -474,7 +518,7 @@ async function issueRows(ctx?: Ctx): Promise<Item[]> {
   const rows: Item[] = [createIssueRow];
   const add = (list: Issue[], section: string) => { for (const i of list) if (!seen.has(i.id)) { seen.add(i.id); rows.push(issueRow(i, section)); } };
   if (filter === "muted") {
-    const l = await fetchIssues(!!ctx?.refresh);
+    const l = await issueLists(!!ctx?.refresh);
     add([...l.assigned, ...l.mentioned, ...l.created].filter((i) => muted.has(i.id)), "Muted");
     return rows.length > 1 ? rows.slice(1) : [hint("none", "Nothing muted", "Mute on an issue keeps it out of the lists, the count and the bar item")];
   }
@@ -514,7 +558,7 @@ async function issuesItem(ctx: BarCtx): Promise<BarItem> {
     throw e;
   }
   const list = uniqueIssues(lists);
-  if (!list.length) return conf().bar_show_issues === "always" ? { icon: ICON.issues, color: "muted", tooltip: "No open issues", menu: { view: renderIssues(issueBarState(lists)) } } : { hidden: true };
+  if (!list.length) return { hidden: true, empty: { icon: ICON.issues, tooltip: "No open issues", menu: { view: renderIssues(issueBarState(lists)) } } };
   const count = (kind: "assigned" | "mentioned" | "created") => list.filter((x) => x.kind === kind).length;
   const assigned = count("assigned"), mentioned = count("mentioned"), created = count("created");
   return {
@@ -803,9 +847,9 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
 }
 
 /**
- * The bar item: the unread count as a badge, hidden at zero (or, with
- * `bar_show_notifications` at `always`, the glyph alone, muted, so the
- * item stays a way into the popover), the popover a view of the unread
+ * The bar item: the unread count as a badge, hidden at zero (the glyph
+ * and the popover offered as the `empty` shape, so a `show = "always"`
+ * config keeps the item a way in), the popover a view of the unread
  * threads grouped by repository (view.ts) with the keys' cursor kept
  * here by thread id. The cache is the palette's
  * (`notifications`, ETag): a trigger from the bar (the panel shown, a
@@ -833,7 +877,7 @@ async function notifItem(ctx: BarCtx): Promise<BarItem> {
     if (e instanceof AuthError) return { hidden: true };
     throw e;
   }
-  if (list.length === 0) return conf().bar_show_notifications === "always" ? { icon: BAR_GLYPH, color: "muted", tooltip: "No unread notifications", menu: { view: renderNotifs(notifState(list)) } } : { hidden: true };
+  if (list.length === 0) return { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "No unread notifications", menu: { view: renderNotifs(notifState(list)) } } };
   return {
     icon: BAR_GLYPH,
     badge: list.length,

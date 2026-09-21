@@ -196,7 +196,7 @@ describe("github", () => {
     expect(metas[2]).toMatchObject({ title: "Repositories", ttl: 300, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }] });
     expect(metas[3]).toMatchObject({ title: "Notifications", live: true, ttl: 60 });
     expect(metas[4]).toMatchObject({ title: "Search GitHub", input: true, detail: "lazy" });
-    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"], ["bar_show_prs", "select"], ["bar_show_issues", "select"], ["bar_show_notifications", "select"]]);
+    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"]]);
   });
 
   test("multi: two accounts are two instances; the token is per instance (a secret), the rest inherits; the lone default runs in a worker, unmarked", () => {
@@ -508,7 +508,7 @@ describe("github", () => {
       expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual(expect.arrayContaining([
         { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
         { id: "issues", title: "Issues", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ assigned: expect.any(Object), mine: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
-        { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, always: { title: expect.any(String), item: { icon: "", color: "muted", tooltip: "No unread notifications" } }, clear: { title: "All caught up", item: { hidden: true } } }), keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
+        { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true, empty: { icon: "", tooltip: "No unread notifications" } } } }), keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
       ]));
     });
 
@@ -593,27 +593,17 @@ describe("github", () => {
       expect(tree(all)).toContain('"value":"All caught up"');
     });
 
-    test("nothing unread is hidden", async () => {
+    test("nothing unread: hidden, the empty shape (glyph, tooltip, the popover saying so) offered for the core's show = always", async () => {
       const unread = NOTIFICATIONS.map((n) => n.unread);
       NOTIFICATIONS.forEach((n) => { n.unread = false; });
       try {
         // Mark all read forgot the cache, so this render fetches.
-        expect(await host.render("github", "notifications", { reason: "every" })).toEqual({ hidden: true });
-      } finally { NOTIFICATIONS.forEach((n, i) => { n.unread = unread[i]; }); }
-    });
-
-    test("bar_show_notifications at always: nothing unread is the glyph alone, muted, no badge, the popover saying so", async () => {
-      const unread = NOTIFICATIONS.map((n) => n.unread);
-      NOTIFICATIONS.forEach((n) => { n.unread = false; });
-      host.changeSettings("github", { settings: { bar_show_notifications: "always" } });
-      try {
         const item = await host.render("github", "notifications", { reason: "every" });
-        expect(item).toMatchObject({ icon: "\u{f09b}", color: "muted", tooltip: "No unread notifications" });
+        expect(item).toMatchObject({ hidden: true, empty: { icon: "\u{f09b}", tooltip: "No unread notifications" } });
         expect(item.badge).toBeUndefined();
-        expect(texts(viewOf(item))).toContain("All caught up");
+        expect(texts(viewOf(item.empty!))).toContain("All caught up");
       } finally {
         NOTIFICATIONS.forEach((n, i) => { n.unread = unread[i]; });
-        host.changeSettings("github", { settings: {} });
         await host.render("github", "notifications", { reason: "show" });
       }
     });
@@ -768,25 +758,47 @@ describe("github", () => {
       expect(ops("Issues")).toHaveLength(before.issues);
     });
 
-    test("bar_show_prs and bar_show_issues at always: nothing open is the glyph alone, muted, no segments, the popover saying so", async () => {
+    test("prune: a muted PR seen merged is dropped on the next list, one no list has carried for 31 days too, an open one stays however old its seen time; mutedSeen written back, the drops logged", async () => {
+      const DAY = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      stored.clear();
+      // A merged PR, an open one last seen long ago, an id no list knows, and a closed issue with no seen time yet.
+      stored.set("github\0muted", ["zcag/pal#50", "acme/widgets#71", "acme/old#1", "zcag/pal#3"]);
+      stored.set("github\0mutedSeen", { "zcag/pal#50": now, "acme/widgets#71": now - 40 * DAY, "acme/old#1": now - 31 * DAY });
+      const h = await Host.bundled({ settings: { github: { settings: { default_org: "acme", merged_days: 7 } } } });
+      try {
+        expect(ids(await h.list("github", "prs"))).toEqual(["zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
+        expect(stored.get("github\0muted")).toEqual(["acme/widgets#71", "zcag/pal#3"]);
+        expect(h.stderr).toContain("[github] unmuted zcag/pal#50 (merged), acme/old#1 (unseen for 30 days)");
+        // Seen in a list: the time moves up; never recorded: the clock starts now rather than at zero.
+        const seen = stored.get("github\0mutedSeen") as Record<string, number>;
+        expect(Object.keys(seen).sort()).toEqual(["acme/widgets#71", "zcag/pal#3"]);
+        expect(seen["acme/widgets#71"]).toBeGreaterThanOrEqual(now);
+        expect(seen["zcag/pal#3"]).toBeGreaterThanOrEqual(now);
+        // The issue lists settle the closed issue the same way; the Muted filter lists what is left.
+        expect(ids(await h.list("github", "issues"))).toEqual(["create", "acme/widgets#5", "acme/api#8", "zcag/pal#3"]);
+        expect(stored.get("github\0muted")).toEqual(["acme/widgets#71"]);
+        expect(h.stderr).toContain("[github] unmuted zcag/pal#3 (closed)");
+        expect(ids(await h.list("github", "prs", undefined, { filter: "muted" }))).toEqual(["acme/widgets#71"]);
+        expect(await h.list("github", "issues", undefined, { filter: "muted" })).toMatchObject([{ id: "hint:none", name: "Nothing muted" }]);
+      } finally { h.kill(); stored.clear(); }
+    });
+
+    test("nothing open: prs and issues are hidden with an empty shape (the glyph, no segments, the popover saying so) for the core's show = always", async () => {
       const saved = { prs: { ...PRS }, issues: { ...ISSUES } };
       PRS.mine = []; PRS.reviews = []; PRS.merged = [];
       ISSUES.assigned = []; ISSUES.mentioned = []; ISSUES.created = [];
       try {
-        expect(await host.render("github", "prs", { reason: "show" })).toEqual({ hidden: true });
-        expect(await host.render("github", "issues", { reason: "show" })).toEqual({ hidden: true });
-        host.changeSettings("github", { settings: { bar_show_prs: "always", bar_show_issues: "always" } });
-        const prs = await host.render("github", "prs", { reason: "update" });
-        expect(prs).toMatchObject({ icon: "\uf407", color: "muted", tooltip: "No open pull requests" });
+        const prs = await host.render("github", "prs", { reason: "show" });
+        expect(prs).toMatchObject({ hidden: true, empty: { icon: "\uf407", tooltip: "No open pull requests" } });
         expect(prs.segments).toBeUndefined();
-        expect(texts(viewOf(prs))).toContain("No open pull requests");
-        const issues = await host.render("github", "issues", { reason: "update" });
-        expect(issues).toMatchObject({ icon: "\uf41b", color: "muted", tooltip: "No open issues" });
+        expect(texts(viewOf(prs.empty!))).toContain("No open pull requests");
+        const issues = await host.render("github", "issues", { reason: "show" });
+        expect(issues).toMatchObject({ hidden: true, empty: { icon: "\uf41b", tooltip: "No open issues" } });
         expect(issues.segments).toBeUndefined();
-        expect(texts(viewOf(issues))).toContain("No open issues");
+        expect(texts(viewOf(issues.empty!))).toContain("No open issues");
       } finally {
         Object.assign(PRS, saved.prs); Object.assign(ISSUES, saved.issues);
-        host.changeSettings("github", { settings: {} });
         await host.render("github", "prs", { reason: "show" });
         await host.render("github", "issues", { reason: "show" });
       }

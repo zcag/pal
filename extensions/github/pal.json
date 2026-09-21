@@ -86,60 +86,6 @@
         }
       ],
       "default": "merge"
-    },
-    {
-      "kind": "select",
-      "id": "bar_show_prs",
-      "bar": "prs",
-      "label": "Pull requests on the bar",
-      "description": "When the Pull requests item is drawn. Always keeps the glyph on the strip, muted, with nothing open, so the popover stays a click away.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When you have open pull requests"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "auto"
-    },
-    {
-      "kind": "select",
-      "id": "bar_show_issues",
-      "bar": "issues",
-      "label": "Issues on the bar",
-      "description": "When the Issues item is drawn. Always keeps the glyph on the strip, muted, with nothing open.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When you have open issues"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "auto"
-    },
-    {
-      "kind": "select",
-      "id": "bar_show_notifications",
-      "bar": "notifications",
-      "label": "Notifications on the bar",
-      "description": "When the Notifications item is drawn. Always keeps the glyph on the strip, muted and without a badge, with nothing unread.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When something is unread"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "auto"
     }
   ],
   "palettes": {
@@ -316,13 +262,9 @@
           "title": "Every bucket at once",
           "item": { "icon": "", "segments": [{ "id": "blocked", "text": "×1", "color": "red" }, { "id": "active", "text": "…2", "color": "amber" }, { "id": "ready", "text": "✓1", "color": "green" }, { "id": "waiting", "text": "·3", "color": "muted" }], "tooltip": "7 open pull requests" }
         },
-        "always": {
-          "title": "Nothing open, kept on the bar (Always)",
-          "item": { "icon": "", "color": "muted", "tooltip": "No open pull requests" }
-        },
         "clear": {
           "title": "No open pull requests",
-          "item": { "hidden": true }
+          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "No open pull requests" } }
         }
       },
       "refresh": { "every": 300, "on": ["show", "wake", "network"] },
@@ -365,13 +307,9 @@
           "title": "Your open issues",
           "item": { "icon": "", "segments": [{ "id": "created", "text": "·1", "color": "muted" }], "tooltip": "1 open issue" }
         },
-        "always": {
-          "title": "Nothing open, kept on the bar (Always)",
-          "item": { "icon": "", "color": "muted", "tooltip": "No open issues" }
-        },
         "clear": {
           "title": "No open issues",
-          "item": { "hidden": true }
+          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "No open issues" } }
         }
       },
       "refresh": { "every": 300, "on": ["show", "wake", "network"] },
@@ -422,13 +360,9 @@
             "tooltip": "1 unread notification"
           }
         },
-        "always": {
-          "title": "Nothing unread, kept on the bar (Always)",
-          "item": { "icon": "", "color": "muted", "tooltip": "No unread notifications" }
-        },
         "clear": {
           "title": "All caught up",
-          "item": { "hidden": true }
+          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "No unread notifications" } }
         }
       },
       "refresh": {

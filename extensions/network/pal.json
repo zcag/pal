@@ -23,28 +23,11 @@
     },
     {
       "kind": "list",
-      "id": "ssid_labels",
-      "bar": "status",
-      "label": "SSID labels",
-      "description": "Optional friendly names as `SSID = label`, for example `Cafe Wifi = Cafe`. The Network bar uses the label; the palette still shows the real SSID.",
-      "default": []
-    },
-    {
-      "kind": "list",
       "id": "networks",
       "bar": "status",
       "label": "Known networks",
-      "description": "What a network is, as `SSID = kind` or `gateway = kind`; the gateway form also covers a cable into the same router and a Wi-Fi name macOS declines to reveal. `hide` drops the bar item entirely — the network you are on almost all the time can tell you nothing, so its absence is the point. `hotspot` marks one that costs data, `public` one to distrust. For example `eldiven = hide`, `192.168.1.1 = hide`, `marvin = hotspot`.",
-      "placeholder": "eldiven = hide",
-      "default": []
-    },
-    {
-      "kind": "list",
-      "id": "network_icons",
-      "bar": "status",
-      "label": "Network icons",
-      "description": "A network's own glyph on the bar and its palette rows, as `SSID = glyph` or `gateway = glyph` (the gateway form covers a cable and a redacted name, as in Known networks). The glyph is one emoji or a Nerd Font glyph pasted in (the Icons palette copies one). It replaces the signal, hotspot, open or wired mark; the tooltip and the popover still say those. For example `eldiven = 󰋜`, `192.168.1.1 = 🏠`, `marvin = 📱`.",
-      "placeholder": "eldiven = 󰋜",
+      "description": "One line per network, `SSID = kind label:Name icon:X`, keyed on the SSID or on the gateway (`192.168.1.1 = ...` also covers a cable into the same router and a Wi-Fi name macOS declines to reveal). Every field is optional and the order is free: a bare word is the kind, `label:` renames the network on the bar (the palette keeps the real SSID; a name with a space goes in quotes, `label:\"Cafe Corner\"`), `icon:` is one emoji or a Nerd Font glyph pasted in (the Icons palette copies one) drawn instead of the signal, hotspot, open or wired mark. Keyed fields rather than positions so a line with only an icon needs no placeholders. Kinds: `hide` drops the bar item entirely, since the network you are on almost all the time can tell you nothing and its absence is the point; `hotspot` marks one that costs data; `public` one to distrust. For example `192.168.1.1 = hide icon:󰋜`, `Cafe Wifi = hotspot label:Cafe icon:☕`.",
+      "placeholder": "Cafe Wifi = hotspot label:Cafe icon:☕",
       "default": []
     },
     {
@@ -151,7 +134,7 @@
   "bar": {
     "status": {
       "title": "Network status",
-      "description": "The active network, as its name or — with Icon only — as a glyph alone: signal strength on Wi-Fi, its own mark for a hotspot or an open network, wired, or offline, or the glyph Network icons gives that network (home, office, cafe, phone). A network set to `hide` in Known networks draws nothing. Click opens Network Settings; the popover names the connection and its kind, then the interface, the address, the gateway, the signal and security, and the DNS servers.",
+      "description": "The active network, as its name (or the label Known networks gives it), or with Icon only as a glyph alone: signal strength on Wi-Fi, its own mark for a hotspot or an open network, wired, or offline, or the icon Known networks gives that network (home, office, cafe, phone). A network set to `hide` there draws nothing. Click opens Network Settings; the popover names the connection and its kind, then the interface, the address, the gateway, the signal and security, and the DNS servers.",
       "refresh": {
         "every": 5,
         "on": [

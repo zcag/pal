@@ -224,7 +224,7 @@ function hints(): ViewNode {
   return row([...keyHint(["enter"], "open"), ...keyHint(["m"], "read"), ...keyHint(["a"], "all read"), ...keyHint(["p"], "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
-/** What a popover says with no rows; the PR and issue items reach it only by choice (`bar_show_*` at `always`), so it says why it is empty rather than showing bare hints. */
+/** What a popover says with no rows; the PR and issue items reach it only by choice (the core's `show = "always"` keeping their `empty` shape), so it says why it is empty rather than showing bare hints. */
 function empty(title = "All caught up", sub = "Nothing unread on GitHub"): ViewNode {
   return column(
     [
