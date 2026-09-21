@@ -35,6 +35,8 @@ export type Session = {
   reply?: string;
   pending?: Pending;
   state: State;
+  /** Claude: subagents running for it while its own turn is over (`working` on their account). */
+  agents?: number;
   /** When the state began: the prompt, the turn's end, the call, the last write. */
   stateAt: number;
   /** The state came from a hook through `sessions/state`, not the files. */
@@ -70,8 +72,8 @@ export const shown = (sessions: Session[]): Session[] => ordered(sessions).slice
 /** The row the keys act on: the cursor's session when still shown, else the first. */
 export const current = (st: PopoverState): Session | undefined => { const rows = shown(st.sessions); return rows.find((s) => s.key === st.cursor) ?? rows[0]; };
 
-/** `blocked` reads with a question mark: the state that said so is a guess unless a hook confirmed it. */
-export const tagOf = (s: Session): string => (s.state === "blocked" && s.exact ? "waiting on you" : STATE[s.state].tag);
+/** `blocked` reads with a question mark: the state that said so is a guess unless a hook confirmed it. A parent working through its subagents says how many. */
+export const tagOf = (s: Session): string => (s.state === "blocked" && s.exact ? "waiting on you" : s.state === "working" && s.agents ? `${s.agents} agent${s.agents === 1 ? "" : "s"}` : STATE[s.state].tag);
 
 const folder = (cwd: string) => cwd.slice(cwd.lastIndexOf("/") + 1) || cwd;
 

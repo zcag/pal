@@ -24,7 +24,10 @@ export type Tokens = { context?: number; output?: number; total?: number };
 export type Acc = {
   agent: Agent;
   id?: string;
+  /** The latest directory the file names: where the work is. */
   cwd?: string;
+  /** The first: where the process was started, which is the directory it still reports. */
+  start?: string;
   branch?: string;
   version?: string;
   model?: string;
@@ -44,6 +47,8 @@ export type Acc = {
   endedAt: number;
   turnMs?: number;
   turns: number;
+  /** Claude: subagents still running when the last turn ended (`pendingBackgroundAgentCount` on `turn_duration`). */
+  agents?: number;
   tokens: Tokens;
   /** Claude's `permissionMode`, Copilot's permission mode. */
   permission?: string;
@@ -122,7 +127,7 @@ function ended(a: Acc, at: number, ms?: number) {
 function claude(a: Acc, e: Record<string, unknown>) {
   const at = ts(e.timestamp);
   a.id ??= str(e.sessionId);
-  if (str(e.cwd)) a.cwd = str(e.cwd);
+  if (str(e.cwd)) { a.cwd = str(e.cwd); a.start ??= a.cwd; }
   if (str(e.gitBranch) && e.gitBranch !== "HEAD") a.branch = str(e.gitBranch);
   a.version ??= str(e.version);
   const m = obj(e.message);
@@ -156,7 +161,7 @@ function claude(a: Acc, e: Record<string, unknown>) {
       break;
     }
     case "system":
-      if (e.subtype === "turn_duration") ended(a, at, num(e.durationMs));
+      if (e.subtype === "turn_duration") { ended(a, at, num(e.durationMs)); a.agents = num(e.pendingBackgroundAgentCount) ?? 0; }
       break;
   }
 }
@@ -169,6 +174,7 @@ function codex(a: Acc, e: Record<string, unknown>) {
     case "session_meta":
       a.id ??= str(p.session_id) ?? str(p.id);
       a.cwd = str(p.cwd) ?? a.cwd;
+      a.start ??= a.cwd;
       a.version ??= str(p.cli_version);
       a.started ||= ts(p.timestamp) || at;
       break;
@@ -213,6 +219,7 @@ function copilot(a: Acc, e: Record<string, unknown>) {
     case "session.start":
       a.id ??= str(d.sessionId);
       a.cwd = str(obj(d.context)?.cwd) ?? a.cwd;
+      a.start ??= a.cwd;
       a.version ??= str(d.copilotVersion);
       a.started ||= ts(d.startTime) || at;
       break;

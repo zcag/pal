@@ -15,8 +15,11 @@ export const claude = {
     JSON.stringify({ isSidechain: false, type: "assistant", message: { model: "claude-opus-5", role: "assistant", content: [{ type: "text", text }], stop_reason: stop, usage: { input_tokens: 12, cache_creation_input_tokens: 1000, cache_read_input_tokens: 140000, output_tokens: 120 } }, uuid: `a-${t}`, timestamp: iso(t), cwd, sessionId: id, version: "2.1.278", gitBranch: "main" }),
   toolUse: (id: string, cwd: string, t: number, toolId: string, name: string, input: Record<string, unknown>) =>
     JSON.stringify({ isSidechain: false, type: "assistant", message: { model: "claude-opus-5", role: "assistant", content: [{ type: "tool_use", id: toolId, name, input }], stop_reason: "tool_use", usage: { input_tokens: 8, cache_creation_input_tokens: 0, cache_read_input_tokens: 141000, output_tokens: 40 } }, uuid: `a-${t}`, timestamp: iso(t), cwd, sessionId: id, version: "2.1.278", gitBranch: "main" }),
-  turnDuration: (id: string, cwd: string, t: number, ms: number) =>
-    JSON.stringify({ isSidechain: false, type: "system", subtype: "turn_duration", durationMs: ms, messageCount: 4, timestamp: iso(t), uuid: `s-${t}`, isMeta: false, cwd, sessionId: id, version: "2.1.278", gitBranch: "main" }),
+  turnDuration: (id: string, cwd: string, t: number, ms: number, agents = 0) =>
+    JSON.stringify({ isSidechain: false, type: "system", subtype: "turn_duration", durationMs: ms, messageCount: 4, pendingBackgroundAgentCount: agents, timestamp: iso(t), uuid: `s-${t}`, isMeta: false, cwd, sessionId: id, version: "2.1.278", gitBranch: "main" }),
+  /** A subagent's transcript under `<id>/subagents/`: one line is enough, its mtime is what counts. */
+  subagent: (parent: string, cwd: string, t: number) =>
+    JSON.stringify({ parentUuid: null, isSidechain: true, type: "user", message: { role: "user", content: "the task" }, uuid: `u-${t}`, timestamp: iso(t), cwd, sessionId: parent, version: "2.1.278", gitBranch: "main" }),
   title: (id: string, title: string) => JSON.stringify({ type: "ai-title", aiTitle: title, sessionId: id }),
   permission: (id: string, mode: string) => JSON.stringify({ type: "permission-mode", permissionMode: mode, sessionId: id }),
   lastPrompt: (id: string, text: string) => JSON.stringify({ type: "last-prompt", lastPrompt: text, leafUuid: "x", sessionId: id }),

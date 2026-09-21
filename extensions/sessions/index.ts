@@ -13,13 +13,17 @@
 // interrupted turn leaves no mark, only silence); `blocked` ("waiting on
 // you?") when, working, the assistant's last tool call has no result after
 // 20 s and the process used no cpu over 2 s, which is what a permission
-// prompt looks like from outside; else `waiting` (your turn); `ended` when
+// prompt looks like from outside; else `waiting` (your turn), unless a
+// Claude parent's last turn end says subagents are still out, or their
+// transcripts under `<id>/` were written within 90 s: `working` for them,
+// the count on the row; `ended` when
 // no process runs on the directory and the file was written within
 // `stale_minutes`, so a crash is seen; older than that the session is
 // only under the Recent filter (within `recent_hours`), as something to
-// resume. A live process is paired to a file by agent and working
-// directory, newest file to newest process: two sessions in one directory
-// both list, and which pid each gets is a guess.
+// resume. A live process is paired to a file by agent and directory (the
+// one it started in, then the latest the file names), newest file to
+// newest process: two sessions in one directory both list, and which pid
+// each gets is a guess.
 //
 // The bar item `sessions`: the count as the title, a red `!N` for blocked,
 // amber `·N` for your turn, blue `…N` working, an alarm while anything is
@@ -34,7 +38,7 @@ import { watch, type FSWatcher } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { ago, bar, clock, failed, hint, home, mdEscape, now, run, settings, storage, terminal, tilde, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
-import { AGENTS, AGENT_TITLE, acc, fmtTokens, fold, parseWorkspace, pending as pendingOf, title as titleOf, working as fileWorking, type Acc, type Agent } from "./agents.ts";
+import { AGENTS, AGENT_TITLE, acc, claudeSlug, fmtTokens, fold, parseWorkspace, pending as pendingOf, title as titleOf, working as fileWorking, type Acc, type Agent } from "./agents.ts";
 import { agentOf, cwds, focus, paneOf, panes, sendKeys, table, type Proc, type Terminal } from "./procs.ts";
 import { AGENT_GLYPH, STATE, current, ordered, render, shown, tagOf, type PopoverState, type Session, type State } from "./view.ts";
 
@@ -45,6 +49,8 @@ const EXTENSION = "sessions", ITEM = "sessions", PALETTE = "sessions";
 const GLYPH = "\u{f0674}";
 /** A tool call this old without a result is a candidate for `blocked`; the process must then be idle over this long. */
 const BLOCKED_AFTER_MS = 20_000, IDLE_OVER_MS = 2000, IDLE_CPU_S = 0.1;
+/** A subagent transcript written within this is a subagent still running for its parent. */
+const SUBAGENT_FRESH_MS = 90_000;
 /** A state told through the link holds this long. */
 const EXACT_MS = 10 * 60_000;
 /** Two reads within this reuse one scan (the bar and the palette ask together). */
@@ -62,9 +68,9 @@ const roots = (): Record<Agent, string> => ({ claude: home("~/.claude"), codex: 
 type Entry = { path: string; agent: Agent; size: number; mtime: number; acc: Acc; rest: string };
 const files = new Map<string, Entry>();
 
-/** The bytes appended since the last read folded in; a file that shrank (rewritten) is read from the start again. */
+/** The bytes appended since the last read folded in; a file that shrank, or was touched without growing (rewritten in place), is read from the start again. */
 async function foldFile(e: Entry, size: number, mtime: number): Promise<void> {
-  if (size < e.size) { e.acc = acc(e.agent); e.size = 0; e.rest = ""; }
+  if (size < e.size || (size === e.size && mtime !== e.mtime && e.size > 0)) { e.acc = acc(e.agent); e.size = 0; e.rest = ""; }
   if (size === e.size) { e.mtime = mtime; return; }
   const reader = Bun.file(e.path).slice(e.size, size).stream().getReader();
   const decoder = new TextDecoder();
@@ -186,6 +192,27 @@ async function branchOf(cwd: string): Promise<string | undefined> {
   return branch;
 }
 
+/**
+ * Claude's subagents write their own transcripts under `<id>/` beside the
+ * parent's (`<id>/subagents/agent-*.jsonl` today, one level down at most):
+ * how many were written within `SUBAGENT_FRESH_MS`, and the newest write.
+ */
+async function subagents(file: string): Promise<{ fresh: number; last: number }> {
+  const dir = file.replace(/\.jsonl$/, "");
+  const files: string[] = [];
+  for (const e of await ls(dir)) {
+    if (e.isFile() && e.name.endsWith(".jsonl")) files.push(join(dir, e.name));
+    else if (e.isDirectory()) for (const f of await ls(join(dir, e.name))) if (f.isFile() && f.name.endsWith(".jsonl")) files.push(join(dir, e.name, f.name));
+  }
+  let fresh = 0, last = 0;
+  for (const f of files) {
+    const m = (await stat(f).catch(() => undefined))?.mtimeMs ?? 0;
+    if (m > last) last = m;
+    if (now() - m <= SUBAGENT_FRESH_MS) fresh++;
+  }
+  return { fresh, last };
+}
+
 /** Copilot's `open-sessions-state.json`: `{ <id>: { working, openedAt, refreshedAt } }`. */
 async function copilotOpen(root: string): Promise<Record<string, { working?: boolean }>> {
   try { const v = JSON.parse(await readFile(join(root, "open-sessions-state.json"), "utf8")); return v && typeof v === "object" ? v : {}; } catch { return {}; }
@@ -196,16 +223,30 @@ async function lockPid(dir: string): Promise<number | undefined> {
   for (const f of await ls(dir)) { const m = f.name.match(/^inuse\.(\d+)\.lock$/); if (m) return Number(m[1]); }
 }
 
-type Draft = Session & { acc: Acc; stale: boolean };
+/** `dirs`: every directory the session is known by, for the pairing: the start (Claude's project slug, Codex's `session_meta`, Copilot's `workspace.yaml`) and the latest the file names. */
+type Draft = Session & { acc: Acc; stale: boolean; dirs: string[]; /** The newest subagent write, the working state's start when it is theirs. */ subAt?: number };
+
+/**
+ * A process belongs to a session when its working directory is one the
+ * session is known by. The directory a process reports is where it was
+ * started; the transcript's latest entries name where the work is (Claude
+ * writes a tool's cwd, a Codex `turn_context` may move), so the start is
+ * matched first and the latest second. Claude's start is the project
+ * directory's slug, compared slugged.
+ */
+const startedIn = (d: Draft, cwd: string | undefined): boolean => !!cwd && (cwd === d.dirs[0] || (d.agent === "claude" && claudeSlug(cwd) === basename(dirname(d.file))));
+const owns = (d: Draft, cwd: string | undefined): boolean => !!cwd && (d.dirs.includes(cwd) || startedIn(d, cwd));
 
 /** A file as a session before the process table has its say: the fold's fields, the title by agent, a `ended` state to be revised. */
 async function draft(e: Entry): Promise<Draft | undefined> {
   const a = e.acc;
   let id = a.id, cwd = a.cwd, title = titleOf(a), started = a.started;
+  const dirs = [a.start, a.cwd];
   if (e.agent === "copilot") {
     id = basename(dirname(e.path));
     const ws = parseWorkspace(await readFile(join(dirname(e.path), "workspace.yaml"), "utf8").catch(() => ""));
     cwd = ws.cwd || cwd;
+    dirs.unshift(ws.cwd);
     if (ws.name) title = ws.name;
     started ||= Date.parse(ws.created_at) || 0;
   }
@@ -215,6 +256,7 @@ async function draft(e: Entry): Promise<Draft | undefined> {
     key: `${e.agent}:${id}`, agent: e.agent, id, cwd, branch: a.branch ?? (await branchOf(cwd)), title, file: e.path, version: a.version, model: a.model,
     started: started || e.mtime, last: Math.max(a.last, e.mtime), turns: a.turns, turnMs: a.turnMs, tokens: a.tokens, permission: a.permission,
     prompt: a.prompt, promptAt: a.promptAt, reply: a.reply, pending: p, state: "ended", stateAt: Math.max(a.last, e.mtime), acc: a, stale: false,
+    dirs: dirs.filter((x): x is string => !!x),
   };
 }
 
@@ -222,7 +264,7 @@ async function draft(e: Entry): Promise<Draft | undefined> {
 function stateAt(s: Draft): number {
   const a = s.acc;
   switch (s.state) {
-    case "working": return (s.agent === "claude" ? a.promptAt : a.turnAt) || s.last;
+    case "working": return s.agents ? Math.max(s.subAt ?? 0, a.endedAt) || s.last : (s.agent === "claude" ? a.promptAt : a.turnAt) || s.last;
     case "blocked": return s.pending?.at ?? s.last;
     case "waiting": return a.endedAt || s.last;
     default: return s.last;
@@ -263,11 +305,12 @@ async function doScan(): Promise<Draft[]> {
   const open = on.has("copilot") ? await copilotOpen(r.copilot) : {};
   for (const d of drafts.filter((x) => x.agent === "copilot")) {
     const pid = await lockPid(dirname(d.file));
-    const p = (pid && agents.find((x) => x.pid === pid && agentOf(x.command) === "copilot")) || (open[d.id] && agents.find((x) => !taken.has(x.pid) && agentOf(x.command) === "copilot" && dirs.get(x.pid) === d.cwd));
+    const p = (pid && agents.find((x) => x.pid === pid && agentOf(x.command) === "copilot")) || (open[d.id] && agents.find((x) => !taken.has(x.pid) && agentOf(x.command) === "copilot" && owns(d, dirs.get(x.pid))));
     if (p) { taken.add(p.pid); d.pid = p.pid; d.tty = p.tty; }
   }
   for (const d of drafts.filter((x) => x.agent !== "copilot")) {
-    const p = agents.find((x) => !taken.has(x.pid) && agentOf(x.command) === d.agent && dirs.get(x.pid) === d.cwd);
+    const free = agents.filter((x) => !taken.has(x.pid) && agentOf(x.command) === d.agent);
+    const p = free.find((x) => startedIn(d, dirs.get(x.pid))) ?? free.find((x) => owns(d, dirs.get(x.pid)));
     if (p) { taken.add(p.pid); d.pid = p.pid; d.tty = p.tty; }
   }
 
@@ -281,6 +324,12 @@ async function doScan(): Promise<Draft[]> {
     if (d.agent === "copilot" && open[d.id]?.working) { d.state = "working"; continue; }
     // A turn writes something every few seconds; one silent for `stale_minutes` was interrupted (Escape leaves no mark in the file), so it is the user's turn.
     d.state = fileWorking(d.acc) && now() - d.last <= stale ? "working" : "waiting";
+    // A Claude parent whose turn ended with subagents still out, or whose subagent transcripts were written just now, is working on their account.
+    if (d.state === "waiting" && d.agent === "claude") {
+      const sub = await subagents(d.file);
+      const n = d.acc.agents || sub.fresh;
+      if (n > 0) { d.state = "working"; d.agents = n; d.subAt = sub.last; }
+    }
     if (d.state === "working" && d.pending && now() - d.pending.at > BLOCKED_AFTER_MS) {
       let quiet = idle(d.pid!);
       if (quiet === undefined) { await Bun.sleep(IDLE_OVER_MS); procs = await table(); sample(procs); quiet = idle(d.pid!); }
@@ -356,6 +405,7 @@ function item(s: Session): Item {
   const accessories: Accessory[] = [{ tag: tagOf(s), color: STATE[s.state].color }];
   const v = versionOf(s);
   if (v) accessories.push({ text: truncate(v, 24) });
+  if (s.agents) accessories.push({ text: `${s.agents} agent${s.agents === 1 ? "" : "s"} running` });
   accessories.push({ text: ago(s.stateAt, { short: true }) });
   if (s.pane) accessories.push({ text: `tmux ${s.pane}` }); else if (s.tty) accessories.push({ text: basename(s.tty) });
   return {
@@ -401,6 +451,7 @@ async function detail(id: string): Promise<Detail | undefined> {
     { label: "Started", value: when(s.started) },
     { label: "Last activity", value: `${when(s.last)} (${ago(s.last)})` },
     { label: "Turns", value: `${s.turns}${s.turnMs ? `, the last took ${Math.round(s.turnMs / 1000)} s` : ""}` },
+    ...(s.agents ? [{ label: "Subagents", value: `${s.agents} running (the transcripts under ${tilde(s.file.replace(/\.jsonl$/, ""))})` }] : []),
     ...(tokens ? [{ label: "Tokens", value: tokens }] : []),
     ...(s.permission ? [{ label: "Permissions", value: s.permission }] : []),
     ...(s.pid ? [{ label: "Process", value: `pid ${s.pid}${s.tty ? ` on ${basename(s.tty)}` : ""}${s.pane ? `, tmux ${s.pane}` : ""}` }] : []),

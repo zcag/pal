@@ -300,6 +300,61 @@ describe("sessions: the palette", () => {
     }
   });
 
+  test("a transcript whose entries moved to another directory still pairs with the process on the one it started in (the project slug), and is working", async () => {
+    const start = "/Users/me", moved = "/Users/me/proj/elsewhere", id = "66666666-aaaa-4bbb-8ccc-000000000006";
+    // The project directory is the start's slug; every entry names the directory a tool ran in.
+    put(claudeFile(id, start), [claude.user(id, moved, s(20), "fix the pairing"), claude.toolUse(id, moved, s(3), "tu-7", "Read", { file_path: `${moved}/index.ts` })], s(3));
+    canned("ps", procs() + "\n" + ps(53000, 1, "ttys010", 0.0, "0:@T@", "claude"));
+    canned("lsof", lsof + `p53000\nfcwd\nn${start}\n`);
+    try {
+      const row = (await list()).find((i) => i.id === key("claude", id))!;
+      expect(row.section).toBe("Working");
+      expect(row.accessories).toContainEqual({ text: "ttys010" });
+      expect(row.subtitle).toBe("Claude Code · elsewhere · main");
+      expect(Object.fromEntries((await host.detail("sessions", "sessions", key("claude", id))).metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Folder: moved, Process: "pid 53000 on ttys010" });
+    } finally {
+      rmSync(claudeFile(id, start));
+      canned("ps", procs());
+      canned("lsof", lsof);
+    }
+  });
+
+  test("a Claude parent whose turn ended with subagents out (pendingBackgroundAgentCount, or a subagent transcript written within 90 s) is working on their account, with the count; neither: your turn", async () => {
+    const cwd = "/Users/me/proj/swarm", id = "77777777-aaaa-4bbb-8ccc-000000000007";
+    const parent = (agents: number) => [claude.user(id, cwd, s(200), "run the four reviews"), claude.text(id, cwd, s(100), "Four agents are on it.", "end_turn"), claude.turnDuration(id, cwd, s(99), 100000, agents)];
+    const sub = join(home, ".claude", "projects", slug(cwd), id, "subagents", "agent-1.jsonl");
+    canned("ps", procs() + "\n" + ps(54000, 1, "ttys013", 0.0, "0:@T@", "claude"));
+    canned("lsof", lsof + `p54000\nfcwd\nn${cwd}\n`);
+    const row = async () => (await list()).find((i) => i.id === key("claude", id))!;
+    try {
+      put(claudeFile(id, cwd), parent(2), s(99));
+      put(sub, [claude.subagent(id, cwd, s(10))], s(10));
+      let r = await row();
+      expect(r.section).toBe("Working");
+      expect(tag(r)).toBe("2 agents");
+      expect(r.accessories).toContainEqual({ text: "2 agents running" });
+      expect((await host.detail("sessions", "sessions", key("claude", id))).metadata!.find((m) => m.label === "Subagents")!.value).toMatch(/^2 running \(the transcripts under ~\/\.claude\/projects\/-Users-me-proj-swarm\/77777777/);
+      const v = menuView(await render());
+      expect(badges(v)).toContain("2 agents");
+      expect((await render()).tooltip).toContain("working");
+      // The count says none, but a subagent transcript was written just now: working, the number of fresh files.
+      put(claudeFile(id, cwd), parent(0), s(98));
+      r = await row();
+      expect(r.section).toBe("Working");
+      expect(tag(r)).toBe("1 agent");
+      // Neither: the count says none and the subagent file is five minutes old.
+      put(sub, [claude.subagent(id, cwd, s(300))], s(300));
+      r = await row();
+      expect(r.section).toBe("Your turn");
+      expect(tag(r)).toBe("your turn");
+      expect(r.accessories!.some((a) => "text" in a && a.text.endsWith("running"))).toBe(false);
+    } finally {
+      rmSync(join(home, ".claude", "projects", slug(cwd)), { recursive: true, force: true });
+      canned("ps", procs());
+      canned("lsof", lsof);
+    }
+  });
+
   test("filters: one agent each; Recent lists a stale session too, All does not", async () => {
     put(claudeFile(ID.old, CWD.old), [claude.user(ID.old, CWD.old, s(7200), "old work"), claude.text(ID.old, CWD.old, s(7100), "done", "end_turn"), claude.turnDuration(ID.old, CWD.old, s(7099), 1000)], s(7099));
     expect((await list("claude")).map((i) => i.id)).toEqual([key("claude", ID.blocked), key("claude", ID.claude), key("claude", ID.done)]);
