@@ -284,18 +284,53 @@
         {
           "id": "keep-awake",
           "name": "Keep Awake",
-          "subtitle": "Stop the machine sleeping until you allow it",
+          "subtitle": "Stop the machine from sleeping for 1h, or as long as you type",
           "icon": "󰛊",
           "keywords": [
             "caffeinate",
+            "insomnia",
+            "no sleep",
+            "inhibit",
+            "allow sleep",
             "awake",
-            "insomnia"
+            "amphetamine"
           ],
           "accessories": [],
           "actions": [
             {
-              "id": "run",
-              "title": "Keep Awake"
+              "id": "awake",
+              "title": "Keep awake"
+            },
+            {
+              "id": "forever",
+              "title": "Keep awake until turned off"
+            },
+            {
+              "id": "until",
+              "title": "Until a time, or while an app runs…",
+              "shortcut": "cmd+u"
+            }
+          ],
+          "args": [
+            {
+              "id": "for",
+              "placeholder": "45m, 2h, 14:30, forever (blank: 1h)"
+            },
+            {
+              "id": "display",
+              "placeholder": "Display",
+              "kind": "select",
+              "options": [
+                {
+                  "id": "on",
+                  "title": "Display too"
+                },
+                {
+                  "id": "off",
+                  "title": "System only"
+                }
+              ],
+              "default": "on"
             }
           ]
         },

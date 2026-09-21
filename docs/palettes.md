@@ -1086,13 +1086,14 @@ rename and move the same way.
 ## System (`system`)
 
 Sleep, lock, log out, restart, shut down, empty the trash, dark mode,
-volume, brightness, do not disturb, eject, show desktop, keep awake, quit
-or unhide every app, dismiss notifications. The
-rows are indexed, so `mute` or `sleep` at the root finds them (each
-carries keywords: `suspend`, `power off`, `bin`); live because the Keep
-Awake row flips to Allow Sleep while a keep-awake is running, and a live
-palette lists again on every show. pal hides the panel before running a
-command, so it lands on the desktop, not on pal.
+volume, brightness, do not disturb, eject, show desktop, keep awake (for a
+while, until a time, or while an app runs, with a countdown on the bar),
+quit or unhide every app, dismiss notifications. The rows are indexed, so
+`mute` or `sleep` at the root finds them (each carries keywords:
+`suspend`, `power off`, `bin`); live because the Keep Awake row reads
+Allow Sleep with the time left while a run is on, and a live palette lists
+again on every show. pal hides the panel before running a command, so it
+lands on the desktop, not on pal.
 
 Only commands this machine can run are listed:
 
@@ -1110,7 +1111,7 @@ Only commands this machine can run are listed:
 | Toggle Do Not Disturb | runs a Shortcut named "Toggle Do Not Disturb"; hidden until you create one (Focus has no CLI) | `swaync-client`, `makoctl` or `dunstctl`; hidden with none |
 | Eject All Disks | Finder | not available |
 | Show Desktop | Mission Control | not available |
-| Keep Awake / Allow Sleep | `caffeinate -d -i`, detached; running it again stops it | `systemd-inhibit --what=idle:sleep ... sleep infinity`, the same toggle |
+| Keep Awake / Allow Sleep | `caffeinate -i` (`-di` with the display), `-t` for the deadline, `-w` to follow an app; below | `systemd-inhibit --what=sleep` (`idle:sleep` with the display) around `sleep <secs>`, `tail --pid` or `timeout`; a hint row without `systemd-inhibit` |
 | Quit All Apps | System Events: every regular app but Finder and pal asked to quit, one by one, so an app with unsaved work still shows its sheet | not available |
 | Unhide All Apps | System Events: every hidden app made visible | not available |
 | Dismiss Notifications | Notification Center over Accessibility: the Clear All (else Close) action of every notification group; nothing on screen is nothing to do | `swaync-client --close-all`, `makoctl dismiss --all` or `dunstctl close-all`; hidden with none |
@@ -1122,10 +1123,59 @@ that fails keeps the panel open with a toast carrying the tool's message.
 **Link**: `pal://system/run?id=<command>` runs one by its id (`sleep`,
 `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`,
 `volume-up`, `volume-down`, `volume-mute`, `brightness-up`,
-`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`, `quit-all`, `unhide-all`,
-`dismiss-notifications`);
-the route is declared with `confirm`, so a link always asks first
-([Links](links.md#extension-routes)).
+`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake` (the
+toggle), `quit-all`, `unhide-all`, `dismiss-notifications`); the route is
+declared with `confirm`, so a link always asks first
+([Links](links.md#extension-routes)). `pal://system/awake?for=1h&display=1`
+is Keep Awake's own (below).
+
+### Keep Awake
+
+The row takes how long in the bar (`Item.args`): `45m`, `2h`, `1h30m`, a
+bare number of minutes, a clock time (`14:30`, `2pm`, `until 14:30`;
+tomorrow's when today's has passed), or `forever`; blank runs
+`awake_default` (an hour). A second field says whether the display stays
+up too (`awake_display` preselected). `Enter` starts it, the panel hides
+and the HUD says what it did (`Awake for 45 min`, `Awake until 14:30`,
+`Awake until turned off`); `cmd+enter` keeps awake until turned off;
+`cmd+u` opens a form with the same spelling, the display switch and an
+app to follow (one with a window open: the run ends when it quits,
+`caffeinate -w`). While a run is on the row reads **Allow Sleep** with the
+time left as a tag: `Enter` ends it (`Sleep allowed`), `Keep awake for…`
+takes the bar's fields for a new span, `cmd+d` flips the display; the
+row sits in the empty root's Now section meanwhile. A spelling that is
+neither a duration nor a time is a failure toast (under the field, in
+the form).
+
+`caffeinate` does the timing itself (`-t <secs>`), so a run ends on time
+whether or not pal is up. pal keeps one record of the run (pid, until,
+display, app) in its storage and checks it against the live process on
+every read (the pid alive, its command line `caffeinate`'s, the deadline
+not passed); the child is not killed with the host, so a restarted pal
+finds the same run back, and a record whose process is gone (or is
+something else after a reboot) is dropped silently. A run that ends while
+pal watches says so in the HUD (`Keep awake ended, sleep allowed`).
+
+**Bar item `system/awake`**: a coffee glyph and the countdown (`2h 40m`,
+`12m`, `45s`; `∞` without an end), a monitor mark after it when the
+display is kept awake too, amber in the last five minutes (the `ending`
+rule, over `system.awake_left`); hidden while off, and
+`[bar.items."system/awake"] show = "always"` keeps a muted coffee whose
+click still opens the popover. The popover: the run on a card (what it is,
+since when, the time left large, a bar), the presets (`awake_presets`) as
+tiles on the digits `1`..`5` (a new end from now, on or off), the display
+switch on `d` (a run is restarted with the other flag; off, it is the next
+run's), `u` a field for a spelling, `Enter` allows sleep while on and
+starts the default while off, `backspace` allows sleep, `o` the System
+palette. The ticks are pal's own: a push when the countdown's text next
+changes (every minute; every second under one, or while the popover is
+up). States published: `system/awake`, `system/awake_until` (unix ms,
+null without an end), `system/awake_left` (minutes, rounded up),
+`system/awake_display`.
+
+**Link**: `pal://system/awake?for=1h&display=1` (`until=14:30`,
+`app=Xcode`, `off=1`; bare toggles: the default duration, or off while
+on); `pal call system/awake for=2h` from a shell.
 
 ### Trash count and dark mode
 
@@ -1142,6 +1192,9 @@ Settings, `[extensions.system]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `confirm_destructive` | bool | `true` | Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app. |
+| `awake_default` | string | `"1h"` | What a bare Keep Awake runs for: a duration, a clock time, or `forever`. |
+| `awake_presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
+| `awake_display` | bool | `true` | Keep the display awake too (`caffeinate -d`); off, the display may sleep while the machine stays up. The row's field and the popover's switch override it per run. |
 
 ## Windows (`windows`)
 
