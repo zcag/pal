@@ -259,6 +259,9 @@ Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 | --- | --- | --- | --- |
 | `enabled` | bool | `true` | `false` takes the item off every target and stops its refresh. |
 | `show` | `"auto"`, `"always"` | `"auto"` | What the item does with its slot when its render says `hidden`: `auto` takes it off the strip; `always` keeps the quiet shape the render offers (`BarItem.empty`: the glyph, an honest tooltip such as "No unread mail", the same popover; weather's reading as the title), muted, without a badge or segments, in the item's own frame. An item whose render offers no such shape (signed out) hides either way. Read at draw time, so a flip needs no re-render. |
+| `show_when` | string | unset | A state expression (`[states]`, below): the item is on the strip only while it is true (`working`, `hour >= 9 and not deep`). Read at draw time; nothing renders while it holds the item off, and the flip back renders once. |
+| `hide_when` | string | unset | The opposite: off the strip while true. Both may be set; hidden when either says so. |
+| `rules.<id>` | table | unset | The item's presentation rules by id (`[bar.items."power/battery".rules.low]`): an extension's rule overridden key by key (`when`, `hidden`, `urgent`, `position`, `description`, and the appearance keys above), or a rule of your own (which needs `when`). Below, "Rules". |
 | `target` | as above | unset | This item's target; the global one when unset. |
 | `position` | string | unset | This item's sketchybar position; `sketchybar.position` when unset. |
 | `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |
@@ -273,6 +276,81 @@ the bar's own items are never touched, and every pal item is removed on
 quit. A bar restarted by its own rc (which wipes its items) gets pal's
 back at the next probe, or at once with `pal bar sync` at the end of the
 rc.
+
+## Rules: presence, urgency and appearance by state
+
+An extension's bar item states its facts with every render (`power/level`,
+`power/charging`, `spotify/playing`, `calendar/phase`: the States palette
+lists them, and the item's pane under Settings > Bar shows them live) and
+declares in its `pal.json` the **rules** that turn those into how the item
+draws: while a rule's `when` (a state expression, as `[states]` below)
+holds, the item is hidden, urgent, moved, or drawn with the appearance
+keys of this table. Rules apply in the extension's order, later wins.
+The extension no longer decides presentation in its code, so every one of
+those decisions is yours to move:
+
+```toml
+[bar.items."power/battery".rules.low]
+when = "power.level < 25"            # the extension's rule, its threshold moved
+
+[bar.items."power/battery".rules.fine]
+hidden = false                       # keep the healthy battery on the strip
+
+[bar.items."media/now-playing".rules.paused]
+hidden = false                       # a paused track stays, muted (the rule's own tint)
+
+[bar.items."power/battery".rules.focus]   # a rule of your own
+when = "not working"
+hidden = true
+color = "muted"
+```
+
+A key you set replaces the extension's for that rule; a key you leave
+keeps the extension's. Settings > Bar lists an item's rules with the
+condition, what each does, whether it holds now and where it comes from,
+and edits them the same way. A rule's `hidden` is decided at draw time
+after the render (the item keeps rendering, since its facts come from the
+render); `show_when`/`hide_when` above hold an item off without a render.
+A rule's `color` wins over a `muted` the render answered, since the rule is
+the decision; the item-level `color` key above leaves `muted` alone.
+
+## `[states]`
+
+Named variables the whole of pal reads (`docs/design/states.md`): the
+bar items' `show_when`/`hide_when`, an extension's `state.get`, `pal
+state`. A state is yours: it exists because `[states.<name>]` is here, or
+because `pal state set <name> …` was run once. pal ships no meaning for
+"working"; it ships `hour` and `weekday` and you write the rule.
+
+```toml
+[states.working]
+expr = "weekday not in ['sat', 'sun'] and hour >= 9 and hour < 18 or sessions.working > 0"
+description = "On the clock"      # what the States palette shows
+
+[states.deep]                     # no expr: only ever set by hand or from outside
+default = false
+
+[bar.items."github/prs"]
+show_when = "working"
+```
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `expr` | string | unset | A Jinja expression over other states (`and`, `or`, `not`, `in`, comparisons, `x if c else y`, filters), re-evaluated whenever a state it names changes. An extension's state is `sessions.working` here (its states as a map under its key, since `/` divides); any name at all is `states['gmail@work/unread']`. A state it names that nothing has fed reads `none`; an expression that fails to parse or evaluate is a diagnostic and reads `null`. A cycle is a diagnostic and both read `null`. |
+| `default` | bool, number, string | `false` | The value with nothing set and no expression. A state holds a scalar, never a table or a list. |
+| `description` | string | unset | The palette's subtitle. |
+
+**Names.** Lowercase letters, digits, `_`. The built-ins are reserved
+(`hour`, `minute`, `weekday`, `date`, `front_app`, `awake_since`,
+`network`, `theme`, `locked`, `idle`, `host`, `panel`); an extension's
+are `<key>/<name>` (`sessions/working`, `gmail@work/unread`) and only it
+can feed them.
+
+**Resolution.** A value set by hand (`pal state set`, the palette; with an
+optional expiry) wins, else `expr`, else what an extension or a built-in
+published, else `default`. `pal state reset <name>` drops the manual value.
+The manual and published layers survive a relaunch (`states.json` under
+pal's data directory, next to `bar.json`); the built-ins are read afresh.
 
 ## `[sidebar]`
 
@@ -304,8 +382,8 @@ hotkey = "ctrl+opt+tab"
 | `peek` | bool | `true` | The pointer resting at the edge peeks it; `false` leaves the hotkey and nothing at the edge. |
 | `hotkey` | string | unset | A global hotkey that engages it (shown key from hidden, or a peek made key). Same syntax as `general.hotkey`; the root, palette and bar item hotkeys win a clash. |
 
-`show_when` / `hide_when` (the sidebar following a named state) join
-when states land (`docs/design/states.md`).
+`show_when` / `hide_when` (the sidebar following a named state, as a bar
+item does) are not read yet.
 
 ## `[extensions.<name>]`
 

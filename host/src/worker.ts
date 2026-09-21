@@ -14,13 +14,14 @@
 // settings }` on a settings change, `{ stop }` before terminate. Out: `{
 // res: { id, result | error } }`, `{ call: { id, method, params, timeout }
 // }` for the SDK's bridge calls (answered by `{ reply }`), `{ stopped }`.
-import { checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import { checkBarRules, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
 import type { Extension, InstanceInfo, ResolvedSettings } from "../../sdk/src/protocol.ts";
 import { bind, type Caller } from "../../sdk/src/runtime.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { instanceInfo, instanceMeta, rewriteCall, type WorkerInit } from "./instances.ts";
 import { describe, log, paletteMethods, sections, timeout } from "./serve.ts";
 import { context, resolved, subscribe, update } from "./settings.ts";
+import { onStates, update as updateStates } from "./states.ts";
 import { onView, viewMethods, views } from "./views.ts";
 
 declare const self: Worker;
@@ -67,7 +68,7 @@ const instance = (): InstanceInfo => {
   return info;
 };
 
-bind({ call, caller, resolved, subscribe, update: (extension, s) => update({ [extension]: s }), instance, views, onView });
+bind({ call, caller, resolved, subscribe, update: (extension, s) => update({ [extension]: s }), instance, views, onView, onStates });
 
 // ---- messages -----------------------------------------------------------
 
@@ -95,7 +96,7 @@ async function init(id: number, i: WorkerInit) {
     for (const kind of ["inline", "fallback", "suggest"] as const) methods[kind] = (p) => sections([[key, loaded]], manifestOf, kind, p?.query, rootTimeout);
     // The manifest against the code, with the instance's title and mark on every meta.
     const check = checkPalettes(i.manifest, loaded, instanceMeta(i.inst, i.alone));
-    check.warnings.push(...checkLinks(i.manifest, loaded));
+    check.warnings.push(...checkLinks(i.manifest, loaded), ...checkBarRules(i.manifest));
     self.postMessage({ res: { id, result: { palettes: check.metas, bar: barMetas(loaded, i.manifest), warnings: check.warnings, ms: performance.now() - t0 } } });
   } catch (e) {
     error = describe(e);
@@ -135,6 +136,8 @@ self.onmessage = (ev: MessageEvent) => {
     init(m.id, m.init as WorkerInit);
   } else if (m?.req) {
     serve(m.id, String(m.req.method), m.req.params);
+  } else if (m?.states) {
+    updateStates(m.states);
   } else if (m?.settings) {
     update({ [key]: m.settings as ResolvedSettings });
   } else if (m?.stop) {

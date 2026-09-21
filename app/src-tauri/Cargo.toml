@@ -40,6 +40,8 @@ tauri-plugin-deep-link = "2"
 percent-encoding = "2"
 # pick: the CLI's SIGINT handler unlinks its reply socket before exiting 130 (pick.rs)
 libc = "0.2"
+# states: `pal state watch` follows the feed file (states.rs)
+notify = "8"
 # snippet expansion: `{uuid}` in an expanded snippet (expansion.rs)
 uuid = { version = "1", features = ["v4"] }
 
@@ -50,7 +52,9 @@ window-vibrancy = "0.6"
 # colour: NSColorSampler, the loupe the system draws, and NSColor/NSColorSpace to read the pick in sRGB (color.rs)
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSEvent", "NSWorkspace", "NSRunningApplication", "NSResponder", "NSWindow", "NSPanel", "NSScreen", "NSGraphics", "NSColor", "NSColorSampler", "NSColorSpace", "objc2-core-foundation", "block2"] }
-objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSNotification", "NSString", "NSGeometry", "NSOperation", "block2"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSNotification", "NSDistributedNotificationCenter", "NSString", "NSGeometry", "NSOperation", "block2"] }
+# states: `idle` reads the seconds since the last input event (states.rs)
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEventSource", "CGEventTypes"] }
 block2 = "0.6"
 # permissions: CoreLocation for the Location Services prompt that unlocks Wi-Fi network names (permissions.rs)
 objc2-core-location = { version = "0.3", default-features = false, features = ["std", "CLLocationManager", "CLLocationManagerDelegate"] }

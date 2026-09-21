@@ -326,20 +326,21 @@ let viewOpen = false;
 let lastPushed: string | undefined;
 
 /**
- * The strip and the popover for the state: hidden unless something plays,
- * or, by `bar_show`, the track muted while paused (`paused`). Hidden, the
- * glyph alone (the paused track or the status as its tooltip) is the
- * `empty` shape a `show = "always"` config keeps; the popover is the
- * same view either way, so play, sign in and the devices stay a click
- * away.
+ * The strip and the popover for the state, and the facts
+ * (`spotify/playing`, `spotify/loaded`; docs/design/states.md): a loaded
+ * track that is paused renders as itself, and the manifest's `paused`
+ * rule hides it (muted for a user who keeps it); nothing loaded is hidden
+ * here. Hidden, the glyph alone (the paused track or the status as its
+ * tooltip) is the `empty` shape a `show = "always"` config keeps; the
+ * popover is the same view either way, so play, sign in and the devices
+ * stay a click away.
  */
 function barItem(l: Live, st: NowState): BarItem {
   const p = l.player, t = p?.track;
-  if (!p || !t || !p.playing) {
-    const menu = { view: render(st) };
-    if (t && conf().bar_show === "paused") return { icon: G.spotify, title: `${t.name} · ${t.artist}`.slice(0, 64), color: "muted", tooltip: `${trackText(t)}, paused`, scroll: { up: "next", down: "previous" }, menu };
-    return { hidden: true, empty: { icon: G.spotify, tooltip: t ? `${trackText(t)}, paused` : STATUS_TEXT[st.status?.kind ?? "nothing"][0], menu } };
-  }
+  const menu = { view: render(st) };
+  const empty = { icon: G.spotify, tooltip: t ? `${trackText(t)}, paused` : STATUS_TEXT[st.status?.kind ?? "nothing"][0], menu };
+  if (!p || !t) return { hidden: true, empty, states: { playing: false, loaded: false } };
+  if (!p.playing) return { icon: G.spotify, title: `${t.name} · ${t.artist}`.slice(0, 64), tooltip: `${trackText(t)}, paused`, scroll: { up: "next", down: "previous" }, menu, empty, states: { playing: false, loaded: true } };
   const synced = st.lyrics?.synced;
   const line = synced?.length && conf().bar_lyrics !== false ? currentLine(synced, st.position) : undefined;
   const title = (line ?? `${t.name} · ${t.artist}`).slice(0, 64);
@@ -350,7 +351,7 @@ function barItem(l: Live, st: NowState): BarItem {
     const nextAt = synced.find((x) => x.at > st.position)?.at;
     if (nextAt !== undefined) refresh = Math.max(1, Math.ceil(nextAt - st.position));
   }
-  return { icon: G.spotify, title, tooltip: `${trackText(t)}${p.device ? ` (${p.device.name})` : ""}`, scroll: { up: "next", down: "previous" }, menu: { view: render(st) }, ...(refresh ? { refresh } : {}) };
+  return { icon: G.spotify, title, tooltip: `${trackText(t)}${p.device ? ` (${p.device.name})` : ""}`, scroll: { up: "next", down: "previous" }, menu, empty, states: { playing: true, loaded: true }, ...(refresh ? { refresh } : {}) };
 }
 
 const stopLyricTick = () => { clearTimeout(lyricTick); lyricTick = undefined; };
@@ -402,9 +403,9 @@ function followLyricsWhenReady(l: Live, st: NowState) {
   }).catch(() => {}).finally(() => lyricLookup.delete(t.id));
 }
 
-/** The item while nothing plays: a paused track `bar_show` keeps on the strip wants its cover, so the state is fetched; hidden otherwise, the cheap state drawing the popover the `empty` shape carries. */
+/** The item while nothing plays: a paused track wants its cover for the popover, so the state is fetched; nothing loaded takes the cheap state, which draws the popover the `empty` shape carries. */
 async function quietItem(l: Live): Promise<BarItem> {
-  return barItem(l, l.player?.track && conf().bar_show === "paused" ? await fullState(l, "compact", 400) : stateOf(l, "compact"));
+  return barItem(l, l.player?.track ? await fullState(l, "compact", 400) : stateOf(l, "compact"));
 }
 
 async function renderBar(ctx: BarCtx): Promise<BarItem> {

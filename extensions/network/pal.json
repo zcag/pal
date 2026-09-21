@@ -29,14 +29,6 @@
       "description": "One line per network, `SSID = kind label:Name icon:X`, keyed on the SSID or on the gateway (`192.168.1.1 = ...` also covers a cable into the same router and a Wi-Fi name macOS declines to reveal). Every field is optional and the order is free: a bare word is the kind, `label:` renames the network on the bar (the palette keeps the real SSID; a name with a space goes in quotes, `label:\"Cafe Corner\"`), `icon:` is one emoji or a Nerd Font glyph pasted in (the Icons palette copies one) drawn instead of the signal, hotspot, open or wired mark. Keyed fields rather than positions so a line with only an icon needs no placeholders. Kinds: `hide` drops the bar item entirely, since the network you are on almost all the time can tell you nothing and its absence is the point; `hotspot` marks one that costs data; `public` one to distrust. For example `192.168.1.1 = hide icon:󰋜`, `Cafe Wifi = hotspot label:Cafe icon:☕`.",
       "placeholder": "Cafe Wifi = hotspot label:Cafe icon:☕",
       "default": []
-    },
-    {
-      "kind": "boolean",
-      "id": "icon_only",
-      "bar": "status",
-      "label": "Icon only",
-      "text": "Drop the name from the bar item; the glyph still says wired, hotspot, open or how strong the signal is, and hovering gives the name.",
-      "default": false
     }
   ],
   "store": {
@@ -175,13 +167,6 @@
             "tooltip": "en0 · Kronotrop · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1"
           }
         },
-        "icon_only": {
-          "title": "Icon only",
-          "item": {
-            "icon": "󰤨",
-            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1"
-          }
-        },
         "wired": {
           "title": "Wired",
           "item": {
@@ -197,6 +182,13 @@
             "title": "Offline",
             "color": "red",
             "tooltip": "No default route"
+          }
+        },
+        "glyph": {
+          "title": "Glyph only (show_title off on the item)",
+          "item": {
+            "icon": "󰤨",
+            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1"
           }
         }
       },

@@ -20,34 +20,6 @@
       "description": "A place name, optionally narrowed by region or country: “Istanbul”, “London, Ontario”, “Paris, Texas”. Only the first part is searched; the rest choose between same-named places. Resolved privately by Open-Meteo's location search.",
       "placeholder": "Istanbul, Turkey",
       "default": ""
-    },
-    {
-      "kind": "number",
-      "id": "low",
-      "bar": "weather",
-      "label": "Cold below",
-      "min": -50,
-      "max": 50,
-      "unit": "°C",
-      "default": 10
-    },
-    {
-      "kind": "number",
-      "id": "high",
-      "bar": "weather",
-      "label": "Hot above",
-      "min": -20,
-      "max": 60,
-      "unit": "°C",
-      "default": 30
-    },
-    {
-      "kind": "list",
-      "id": "notable_conditions",
-      "bar": "weather",
-      "label": "Additional notable weather codes",
-      "description": "Optional WMO weather codes that should surface even within the temperature band.",
-      "default": []
     }
   ],
   "palettes": {
@@ -56,10 +28,28 @@
       "description": "Current temperature, condition, feels-like temperature, humidity and wind for the configured place."
     }
   },
+  "states": {
+    "temp": {
+      "description": "The temperature now, in the service's unit",
+      "kind": "number"
+    },
+    "code": {
+      "description": "The WMO weather code now",
+      "kind": "number"
+    },
+    "quiet": {
+      "description": "A clear or cloudy sky (WMO 0 to 3): nothing falling, no fog",
+      "kind": "boolean"
+    },
+    "condition": {
+      "description": "The condition's name",
+      "kind": "string"
+    }
+  },
   "bar": {
     "weather": {
       "title": "Weather",
-      "description": "A quiet condition-led weather signal: hidden in ordinary weather, visible for rain, fog, wind or temperatures outside your comfort band. The popover is the forecast: the reading now with feels-like, humidity, wind and rain, the next eight hours from this one, then four days of high, low and the chance of rain, with sunrise and sunset.",
+      "description": "A quiet condition-led weather signal: hidden by its rules in ordinary weather (a quiet sky between 10 and 30 degrees), visible for rain, fog, wind or temperatures outside that band, blue when cold and red when hot. The popover is the forecast: the reading now with feels-like, humidity, wind and rain, the next eight hours from this one, then four days of high, low and the chance of rain, with sunrise and sunset.",
       "refresh": {
         "every": 600,
         "on": [
@@ -117,7 +107,11 @@
           "title": "Ordinary weather",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰖕", "title": "19°C", "tooltip": "Partly cloudy in Istanbul" }
+            "empty": {
+              "icon": "󰖕",
+              "title": "19°C",
+              "tooltip": "Partly cloudy in Istanbul"
+            }
           }
         },
         "unavailable": {
@@ -139,6 +133,27 @@
         {
           "keys": "r",
           "title": "Read the forecast again now"
+        }
+      ],
+      "rules": [
+        {
+          "id": "ordinary",
+          "when": "weather.quiet and weather.temp >= 10 and weather.temp <= 30",
+          "description": "A quiet sky inside the comfort band: off the strip (move the band here).",
+          "hidden": true,
+          "color": "muted"
+        },
+        {
+          "id": "cold",
+          "when": "weather.temp < 10",
+          "description": "Below the comfort band.",
+          "color": "blue"
+        },
+        {
+          "id": "hot",
+          "when": "weather.temp > 30",
+          "description": "Above the comfort band.",
+          "color": "red"
         }
       ]
     }

@@ -29,6 +29,7 @@ pal list            the installed extensions: name, version, source
 pal instance ...    instances of a multi extension: list, add, remove (see below)
 pal action NAME     act on the value on stdin (see Actions for scripts)
 pal bar ...         bar items (see below)
+pal state ...       states: the table, set one by hand, reset, eval, watch (see below)
 pal link URL        run a pal:// link as written; --list prints every route
 pal open EXT/PAL    the panel inside a palette (-q QUERY, --filter ID); --url URL opens a url instead
 pal run EXT/PAL/ID  run one row, the panel down (-a ACTION, --args JSON)
@@ -130,7 +131,7 @@ sketchybar's click and hover scripts run (pal sets those itself, with the
 absolute path of its binary, since sketchybar's `PATH` is launchd's).
 
 ```text
-pal bar list                                  every declared item: key, state (visible, hidden, stale, unrendered), title, last text
+pal bar list                                  every declared item: key, state (visible, hidden, held, stale, unrendered), title, last text
 pal bar json <ext>/<id>                       the item's last rendered state as JSON
 pal bar click <ext>/<id> [--anchor A]         a click: the popover under the item, or its open action
 pal bar hover <ext>/<id> --state S [--anchor A]   the pointer entered (`enter`, `mouse.entered`) or left (`exit`, `mouse.exited`) the item
@@ -143,6 +144,31 @@ pal bar sync                                  probe sketchybar and re-apply ever
 `bounding_rects`, `menubar` and nothing use the panel's usual place, and
 `x,y,w,h` in screen points is a rect of your own. `--state` also takes
 sketchybar's `$SENDER` as it is, so an item's `script` is one line.
+
+## `pal state`
+
+The named variables of `[states]` ([Configuration](config.md)) with
+their live values. The table, `get`, `json`, `eval` and `watch` read the
+feed the running instance writes (`states.json` under pal's data
+directory) in the calling process; `set` and `reset` reach the instance.
+
+```text
+pal state                                     name, value, source (manual, expr, builtin, an extension's key, default), time left, description
+pal state get <name>                          the value, one line (`null` for unknown); exit 1 when there is no such state
+pal state set <name> <value>                  by hand until reset: true, false, a number, or any text
+pal state set <name> <value> --for 3h         ... for a while: 90s, 25m, 1h30m, 2h, 1d (a bare number is minutes)
+pal state set <name> <value> --until 18:00    ... until a time of day (tomorrow's when it has passed)
+pal state reset <name>                        the manual value goes; the expression, the publisher or the default answers
+pal state eval "hour >= 9 and working"        what an expression reads now, for writing one
+pal state json                                every state as JSON
+pal state watch                               name<TAB>value on every change, until killed
+```
+
+`set` on a name nothing declared makes the state for this run and keeps
+its value across relaunches, so a shell hook, a cron or a launchd tick
+feeds a state the way an extension would, without being one. A held
+state shows on the bar (`states/forced`, amber, with the time left) and
+under the States palette's "Held by hand" filter.
 
 ## `pal pick`
 

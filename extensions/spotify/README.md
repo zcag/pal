@@ -110,7 +110,7 @@ same view in a compact layout, fed the same way.
 `spotify/playing`: the track playing (`title · artist`) beside the
 Spotify mark, or, with **Lyrics on the bar** (`bar_lyrics`, on), the
 lyric line playing when lrclib has synced lyrics for the track; hidden
-while nothing plays (unless `bar_show` keeps the track muted while
+while nothing plays (unless its `paused` rule keeps the track muted while
 paused, or the core's `show = "always"` under `[bar.items."spotify/playing"]`
 keeps the glyph alone, muted; docs/config.md). A click opens the lyrics view in the popover, in a
 compact layout: the cover with the track, the artist and the album
@@ -183,7 +183,8 @@ Settings, `[extensions.spotify]`:
 | `client_id` | text | unset | Your app's client id. |
 | `redirect_port` | number | `27182` | The loopback port for the sign-in redirect; must match the app's redirect URI. |
 | `bar_lyrics` | boolean | `true` | The lyric line on the bar strip instead of the track name (when lrclib has synced lyrics). |
-| `bar_show` | `playing` / `paused` | `playing` | When the bar item is drawn: while something plays, or also while a track sits paused (muted). Keeping the glyph with nothing at all (its popover still offering play, sign in and the devices) is the core's `show = "always"` under `[bar.items."spotify/playing"]`. |
+
+Whether a paused track stays on the strip is the item's `paused` rule under Settings > Bar (Hidden off keeps it, muted). Keeping the glyph with nothing at all (its popover still offering play, sign in and the devices) is the core's `show = "always"` under `[bar.items."spotify/playing"]`.
 | `pinned` | list | `[]` | Playlist names or `spotify:playlist:` links, each a "Play <name>" root row. |
 
 ## Limits and failures

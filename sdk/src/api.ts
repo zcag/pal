@@ -3,7 +3,7 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import type { BarItem, CopyText, Effect, InstanceInfo, ResolvedSettings, View, ViewNode, ViewShown, ViewTarget, ViewUpdate, WindowLayoutRequest } from "./protocol.ts";
+import type { BarItem, CopyText, Effect, InstanceInfo, ResolvedSettings, StateEntry, StateValue, View, ViewNode, ViewShown, ViewTarget, ViewUpdate, WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 import { checkBarItem, checkView } from "./view.ts";
 
@@ -112,6 +112,38 @@ export const bar = {
   update: (id: string, item: BarItem, extension?: string) => call<null>("bar.update", { extension: who(extension), id, item: checkBarItem(item, `bar.update ${id}`) }),
   /** Ask for a `render` with reason `update`. */
   refresh: (id: string, extension?: string) => call<null>("bar.refresh", { extension: who(extension), id }),
+};
+
+/**
+ * States (`docs/design/states.md`): named variables the user declares in
+ * `[states]`, sets by hand, derives from one another and points bar items
+ * at (`show_when`). An extension reads any of them and publishes its own
+ * under its key: `state.set("working", 3)` from `sessions` is the state
+ * `sessions/working`, `sessions.working` in an expression. Declare what
+ * you publish under `states` in `pal.json` so the palette can show it
+ * before it is set. Which extension is asking is known inside
+ * `list`/`pick`/`render` and at import time; from a timer pass the name.
+ */
+export const state = {
+  /** The resolved value of `name` (`null` when unknown or no such state), or every state by name without one. */
+  get: ((name?: string, extension?: string) => call("states.get", { extension: who(extension), name })) as { (name: string, extension?: string): Promise<StateValue>; (): Promise<Record<string, StateValue>> },
+  /** Publish `<me>/<name>`: a JSON scalar; `null` withdraws it (the state reads its default). */
+  set: (name: string, value: StateValue, extension?: string) => call<null>("states.set", { extension: who(extension), name, value }),
+  /** Every state as the palette lists it. */
+  list: (extension?: string) => call<StateEntry[]>("states.list", { extension: who(extension) }),
+  /** What a Jinja expression over the states reads now (`"hour >= 9 and working"`). */
+  eval: (expr: string, extension?: string) => call<StateValue>("states.eval", { extension: who(extension), expr }),
+  /** The States palette's own: a value by hand until `until` (unix ms) or reset. Lands on any state, an expression's included (an override). */
+  hold: (name: string, value: StateValue, until?: number, extension?: string) => call<null>("states.manual", { extension: who(extension), name, value, until }),
+  /** The States palette's own: the manual value goes. */
+  reset: (name: string, extension?: string) => call<null>("states.reset", { extension: who(extension), name }),
+  /** The States palette's own: write `[states.<name>]` to the config file (an existing table's keys are replaced; a missing one is unset). */
+  declare: (name: string, decl: { expr?: string; default?: StateValue; description?: string }, extension?: string) => call<null>("states.declare", { extension: who(extension), name, ...decl }),
+  /** The States palette's own: remove `[states.<name>]` from the config file. */
+  undeclare: (name: string, extension?: string) => call<null>("states.undeclare", { extension: who(extension), name }),
+  /** A change: `onChange("working", (v) => ...)` for one state's new value, `onChange((changed) => ...)` for every change as `{ name: value }`. Returns the unsubscribe. */
+  onChange: (a: string | ((changed: Record<string, StateValue>) => void), b?: (value: StateValue) => void): (() => void) =>
+    typeof a === "string" ? runtime().onStates((c) => { if (a in c) b?.(c[a]); }) : runtime().onStates(a),
 };
 
 /** Pushes to one view level closer together than this are coalesced: the last one within the window goes, ~30 a second at most. */

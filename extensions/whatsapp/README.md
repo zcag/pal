@@ -53,7 +53,7 @@ opens a chat, `⌘C` copies the number, `⌘⇧C` copies a vCard 3.0
 ## The bar item
 
 `whatsapp/unread`: the number of unread chats as the badge, hidden at
-zero, red while a direct chat is among them (`dm_urgent`); every 120 s
+zero and red while a direct chat is among them by its rules (`quiet`, `dm` under Settings > Bar); every 120 s
 and when the panel shows, after a wake and when the network is back.
 The popover lists them, direct messages then groups, each with the
 picture, the newest message and the time, and a cursor the arrows move
@@ -112,7 +112,6 @@ gateway answered.
 | `api_key` | secret | (none) | Sent as `x-api-key`. |
 | `session` | text | `main` | The session's name; its UUID is resolved and cached. |
 | `send` | boolean | `false` | Send a message, React, the popover's reply field. |
-| `dm_urgent` | boolean | `true` | The bar item red while a direct chat is unread. |
 | `open` | select | `auto` | `auto` (the desktop app when installed on macOS, else the web client), `app`, `web`. |
 
 Hint rows name the fix: no key set (Open WhatsApp settings), the

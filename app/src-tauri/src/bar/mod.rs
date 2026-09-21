@@ -19,7 +19,11 @@
 //!
 //! `hidden: true` takes no space on any target and its timer keeps
 //! running. `enabled = false` in `[bar.items.<key>]` removes the item and
-//! its timer; the config is re-applied live (`apply_config`).
+//! its timer; the config is re-applied live (`apply_config`). A
+//! `show_when`/`hide_when` there does the same by a state expression
+//! (states.rs): while it holds the item off, no render runs; the flip
+//! back renders once with reason `state`, as `on_states_changed` does for
+//! an item that asked for `state:<name>` in `refresh.on`.
 //!
 //! Linux: no target yet ([`SUPPORTED`] is false). The registry still takes
 //! every declared item (`pal bar list` and the Settings window see them)
@@ -32,12 +36,12 @@ pub mod menubar;
 pub mod popover;
 pub mod sketchybar;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use pal_core::config::{BadgeStyle, BarLook, BarShow, BarTarget, Config};
+use pal_core::config::{BadgeStyle, BarLook, BarLookOverride, BarShow, BarTarget, Config};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
@@ -160,6 +164,11 @@ pub struct BarItem {
     pub click: Option<Click>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub menu: Option<Value>,
+    /// The facts the item knows, published as `<extension>/<name>` with the
+    /// render (docs/design/states.md): what its rules and anyone's
+    /// expressions read. Not drawn.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub states: BTreeMap<String, Value>,
 }
 
 /// What an `icon` value is, for the renderers.
@@ -322,6 +331,19 @@ pub struct ManifestBar {
     /// never renders these to a real bar.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub mocks: BTreeMap<String, ManifestBarMock>,
+    /// The extension's presentation rules, in order (`docs/design/states.md`,
+    /// "Rules"): each `{ id, when, hidden?, urgent?, ...look }`; the file
+    /// overrides one by id (`Bar::rules_of`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rules: Vec<ManifestBarRule>,
+}
+
+/// One `ManifestBar.rules[]` entry: a `BarRule` with its id.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ManifestBarRule {
+    pub id: String,
+    #[serde(flatten)]
+    pub rule: pal_core::config::BarRule,
 }
 
 /// One `ManifestBar.mocks.<id>` entry. `item` is the same complete state an
@@ -338,7 +360,7 @@ fn yes() -> bool {
 
 impl Default for ManifestBar {
     fn default() -> Self {
-        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new() }
+        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new(), rules: Vec::new() }
     }
 }
 
@@ -496,6 +518,9 @@ pub struct Entry {
     pub timer_gen: u64,
     /// Seeded by `PAL_BAR_FIXTURE`: no host behind it.
     pub fixture: bool,
+    /// Off every target by its `show_when`/`hide_when` (states.rs); the
+    /// flip back renders rather than re-draws the last item.
+    pub held: bool,
     /// The instance's label ("Work") for an item of a `multi` extension's
     /// instance that is not alone (settings.rs `InstanceInfo::label`):
     /// appended to the tooltip and the popover's title. The strip itself is
@@ -574,9 +599,34 @@ pub fn install(app: &AppHandle) {
     fixture::seed(app);
 }
 
-/// Whether `key` is drawn here: the config says so and the platform can.
-fn draws(config: &Config, key: &str) -> bool {
-    SUPPORTED && config.bar.draws(key)
+/// `key`'s rules as they apply now: the manifest's with the file's on top (`Bar::rules_of`).
+pub fn rules_of(config: &Config, key: &str, manifest: &ManifestBar) -> Vec<(String, pal_core::config::BarRule)> {
+    let m: Vec<(String, pal_core::config::BarRule)> = manifest.rules.iter().map(|r| (r.id.clone(), r.rule.clone())).collect();
+    config.bar.rules_of(key, &m)
+}
+
+/// Every item's conditions for `states::States::configure`: the file's
+/// `show_when`/`hide_when`, and its rules' `when` (a registered item's
+/// from its manifest with the file's overrides; an item in the file alone
+/// gets the file's own rules).
+pub fn conditions(app: &AppHandle, config: &Config) -> Vec<pal_core::states::BarConditions> {
+    let registered: BTreeMap<String, ManifestBar> = app.try_state::<Bar>().map(|st| lock(&st.entries).iter().map(|(k, e)| (k.clone(), e.manifest.clone())).collect()).unwrap_or_default();
+    let mut keys: BTreeSet<String> = registered.keys().cloned().collect();
+    keys.extend(config.bar.items.keys().cloned());
+    keys.into_iter()
+        .map(|key| {
+            let item = config.bar.item(&key);
+            let rules = rules_of(config, &key, registered.get(&key).unwrap_or(&ManifestBar::default())).into_iter().filter_map(|(id, r)| r.when.map(|w| (id, w))).collect();
+            pal_core::states::BarConditions { key: key.clone(), show_when: item.show_when.clone(), hide_when: item.hide_when.clone(), rules }
+        })
+        .filter(|c| c.show_when.is_some() || c.hide_when.is_some() || !c.rules.is_empty())
+        .collect()
+}
+
+/// Whether `key` is drawn here: the config says so, its state condition
+/// holds, and the platform can.
+fn draws(app: &AppHandle, config: &Config, key: &str) -> bool {
+    SUPPORTED && config.bar.draws(key) && crate::states::shows(app, key)
 }
 
 /// The host loaded an extension (an instance of one: `ext` is the key):
@@ -593,7 +643,7 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, i
         let mut added = Vec::new();
         for m in bars {
             let key = key_of(ext, &m.id);
-            let entry = e.entry(key.clone()).or_insert_with(|| Entry { manifest: m.clone(), last: None, rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None });
+            let entry = e.entry(key.clone()).or_insert_with(|| Entry { manifest: m.clone(), last: None, rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None });
             entry.manifest = m;
             entry.fixture = false;
             entry.instance = instance.clone();
@@ -608,11 +658,12 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, i
     for k in &gone {
         forget(app, k);
     }
+    crate::states::reconfigure_bar(app);
     for k in &added {
         let source = entry(app, k).is_some_and(|e| e.manifest.source);
         if !source {
             eprintln!("bar\t{k}\tregistered\tno render in the code; never rendered");
-        } else if draws(&config, k) {
+        } else if draws(app, &config, k) {
             eprintln!("bar\t{k}\tregistered");
             render(app, k, "load");
         } else {
@@ -797,6 +848,10 @@ fn strip_label<'a>(t: &'a str, label: Option<&str>) -> Option<&'a str> {
 /// the tooltip here, before the compare, so an unchanged render stays
 /// unchanged.
 fn set(app: &AppHandle, key: &str, mut item: BarItem, push: bool) {
+    // The item's facts first, so the draw below sees its rules by them.
+    if let Some((ext, _)) = split_key(key) {
+        crate::states::publish_many(app, ext, std::mem::take(&mut item.states));
+    }
     let changed = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
         item.label(entry.instance.as_deref());
@@ -820,19 +875,49 @@ fn set(app: &AppHandle, key: &str, mut item: BarItem, push: bool) {
     }
 }
 
-/// The item as drawn: the last state as `show` keeps it, with `stale`
-/// from the registry, and the config that places it. `None` while it has
-/// never rendered.
-fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind) -> Option<Draw> {
+/// The last render with the rules that hold applied (`active`, in rule
+/// order, later wins): presence, urgency and position on the item, a
+/// rule's tint over the render's, the other appearance keys merged over
+/// the file's own into the look override returned beside it. `None`
+/// while the item has never rendered.
+fn ruled(config: &Config, key: &str, entry: &Entry, active: &[String]) -> Option<(BarItem, BarLookOverride)> {
     let cfg = config.bar.item(key);
-    let mut item = entry.last.clone()?.kept(cfg.show);
+    let mut item = entry.last.clone()?;
+    let mut over = cfg.look.clone();
+    for (_, rule) in rules_of(config, key, &entry.manifest).into_iter().filter(|(id, _)| active.contains(id)) {
+        if let Some(h) = rule.hidden {
+            item.hidden = h;
+        }
+        if let Some(u) = rule.urgent {
+            item.urgent = u;
+        }
+        if rule.position.is_some() {
+            item.position = rule.position.clone();
+        }
+        // A rule's tint is the decision, a `muted` from the render included, and over the file's item-level `color` (a preference, which leaves muted alone).
+        if let Some(c) = &rule.look.color {
+            item.color = Some(c.clone());
+            over.color = None;
+        }
+        over = over.with(&BarLookOverride { color: None, ..rule.look.clone() });
+    }
+    Some((item, over))
+}
+
+/// The item as drawn: the last state with its rules applied and as
+/// `show` keeps it, with `stale` from the registry, and the config that
+/// places it. `None` while it has never rendered.
+fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind, active: &[String]) -> Option<Draw> {
+    let cfg = config.bar.item(key);
+    let (item, over) = ruled(config, key, entry, active)?;
+    let mut item = item.kept(cfg.show);
     item.stale = item.stale || entry.stale;
     let target = match kind {
         Kind::Sketchybar => BarTarget::Sketchybar,
         Kind::Menubar => BarTarget::Menubar,
     };
     let hover = item.has_menu() && config.bar.open_on_hover(key, target);
-    let look = config.bar.look(key, target);
+    let look = config.bar.look_with(target, &over);
     let position = item.position.clone().unwrap_or_else(|| config.bar.position_of(key));
     Some(Draw { item: item.shaped(&look), order: cfg.order.unwrap_or(0), position, hover, look })
 }
@@ -843,9 +928,10 @@ fn sync(app: &AppHandle, key: &str) {
     let config = settings::config(app);
     let entry = entry(app, key);
     let wanted = kinds(config.bar.target_of(key), sketchybar_alive(app));
-    let enabled = config.bar.item(key).enabled;
+    let enabled = draws(app, &config, key);
+    let active = crate::states::active_rules(app, key);
     for kind in [Kind::Menubar, Kind::Sketchybar] {
-        let draw = entry.as_ref().filter(|_| enabled && wanted.contains(&kind)).and_then(|e| draw_for(&config, key, e, kind));
+        let draw = entry.as_ref().filter(|_| enabled && wanted.contains(&kind)).and_then(|e| draw_for(&config, key, e, kind, &active));
         target(kind).apply(app, key, draw.as_ref());
     }
     write_feed(app);
@@ -864,7 +950,7 @@ fn schedule(app: &AppHandle, key: &str) {
     let next = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
         entry.timer_gen += 1;
-        if entry.fixture || !draws(&config, key) {
+        if entry.fixture || !draws(app, &config, key) {
             return None;
         }
         let every = entry.manifest.refresh.as_ref().and_then(|r| r.every);
@@ -911,7 +997,8 @@ pub fn update(app: &AppHandle, key: &str, item: BarItem) {
 pub fn trigger(app: &AppHandle, trigger: &'static str) {
     crate::events::emit(app, crate::events::TRIGGER, json!({ "name": trigger }));
     let config = settings::config(app);
-    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(k, en)| !en.fixture && en.manifest.wants(trigger) && draws(&config, k)).map(|(k, _)| k.clone()).collect());
+    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(_, en)| !en.fixture && en.manifest.wants(trigger)).map(|(k, _)| k.clone()).collect());
+    let keys: Vec<String> = keys.into_iter().filter(|k| draws(app, &config, k)).collect();
     for k in keys {
         render(app, &k, trigger);
     }
@@ -934,7 +1021,7 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     }
     let keys: Vec<String> = Bar::with(app, |e| e.keys().cloned().collect());
     for key in &keys {
-        let (was, now) = (draws(prev, key), draws(next, key));
+        let (was, now) = (draws(app, prev, key), draws(app, next, key));
         if !was && now {
             render(app, key, "settings");
         } else if was && !now {
@@ -942,6 +1029,55 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
             forget(app, key);
         }
         sync(app, key);
+    }
+}
+
+/// States changed (states.rs): every item whose `show_when`/`hide_when`
+/// reads one of `changed` (every conditioned item with `all`) is placed by
+/// its condition now, and one whose `refresh.on` lists `state:<name>`
+/// renders (`state:*`: on any change). Coming back from held-off renders
+/// too: what it last drew is as old as the hold.
+pub fn on_states_changed(app: &AppHandle, changed: &[String], all: bool) {
+    if app.try_state::<Bar>().is_none() {
+        return; // the built-ins' first values land before the registry exists
+    }
+    let config = settings::config(app);
+    let conditioned: Vec<String> = if all { conditions(app, &config).into_iter().map(|c| c.key).collect() } else { crate::states::bar_items_reading(app, changed) };
+    let triggered: Vec<String> = Bar::with(app, |e| e.iter().filter(|(_, en)| !en.fixture && (changed.iter().any(|n| en.manifest.wants(&format!("state:{n}"))) || (!changed.is_empty() && en.manifest.wants("state:*")))).map(|(k, _)| k.clone()).collect());
+    for key in conditioned {
+        let now = draws(app, &config, &key);
+        let held = Bar::with(app, |e| e.get_mut(&key).map(|en| std::mem::replace(&mut en.held, !now)));
+        match (held, now) {
+            (None, _) => {}
+            (Some(true), true) => render(app, &key, "state"),
+            (Some(false), true) => sync(app, &key),
+            (_, false) => {
+                schedule(app, &key);
+                forget(app, &key);
+                write_feed(app);
+            }
+        }
+    }
+    for key in triggered {
+        if draws(app, &config, &key) {
+            render(app, &key, "state");
+        }
+    }
+}
+
+/// A manual value was set or reset (states.rs): the items that asked for
+/// `state:*` render, whether or not a resolved value moved (holding a
+/// state at the value it already had is still something to show).
+pub fn on_states_held(app: &AppHandle) {
+    if app.try_state::<Bar>().is_none() {
+        return;
+    }
+    let config = settings::config(app);
+    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(_, en)| !en.fixture && en.manifest.wants("state:*")).map(|(k, _)| k.clone()).collect());
+    for key in keys {
+        if draws(app, &config, &key) {
+            render(app, &key, "state");
+        }
     }
 }
 
@@ -1058,6 +1194,9 @@ pub struct FeedEntry {
     pub title: String,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub stale: bool,
+    /// Off every target by its `show_when`/`hide_when` (states.rs).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub held: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rendered_at: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1072,7 +1211,8 @@ pub struct Feed {
 /// The feed says what the strip shows: an item `show = "always"` keeps is its kept shape here too.
 fn write_feed(app: &AppHandle) {
     let config = settings::config(app);
-    let feed = Feed { items: snapshot(app).into_iter().map(|(k, e)| { let item = e.last.map(|i| i.kept(config.bar.item(&k).show)); (k, FeedEntry { title: e.manifest.title, stale: e.stale, rendered_at: e.rendered_unix, item }) }).collect() };
+    // As drawn: the rules that hold and `show` applied, so `pal bar list` says what the strip shows.
+    let feed = Feed { items: snapshot(app).into_iter().map(|(k, e)| { let active = crate::states::active_rules(app, &k); let item = ruled(&config, &k, &e, &active).map(|(i, _)| i.kept(config.bar.item(&k).show)); (k, FeedEntry { title: e.manifest.title, stale: e.stale, held: e.held, rendered_at: e.rendered_unix, item }) }).collect() };
     let path = feed_path();
     tauri::async_runtime::spawn_blocking(move || {
         if let Some(dir) = path.parent() {
@@ -1162,7 +1302,7 @@ mod fixture {
                 let Ok(item) = serde_json::from_value::<BarItem>(r["item"].clone()) else { continue };
                 let key = key_of(ext, id);
                 let manifest = ManifestBar { id: id.into(), title: r["title"].as_str().unwrap_or(id).into(), ..Default::default() };
-                e.insert(key.clone(), Entry { manifest, last: Some(item), rendered_at: Some(Instant::now()), rendered_unix: Some(unix_secs()), stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: true, instance: None });
+                e.insert(key.clone(), Entry { manifest, last: Some(item), rendered_at: Some(Instant::now()), rendered_unix: Some(unix_secs()), stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: true, held: false, instance: None });
                 keys.push(key);
             }
         });
@@ -1331,23 +1471,47 @@ mod tests {
     fn draw_carries_the_placement_and_hidden_reaches_the_target() {
         let (config, _) = pal_core::config::parse("[bar.menubar]\nsize = 12\n[bar.items.\"x/y\"]\norder = 5\nposition = \"left\"\nopen_on_hover = true\nbadge_style = \"dot\"\n").unwrap();
         let item: BarItem = serde_json::from_value(json!({ "hidden": true, "menu": { "palette": "apps" } })).unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
-        let d = draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap();
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let d = draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap();
         assert!(d.item.hidden, "a hidden item is handed over: the target takes its slot away, its timer keeps running");
         assert!(d.item.stale, "the registry's stale rides on the item");
         assert_eq!((d.order, d.position.as_str(), d.hover), (5, "left", true));
         assert_eq!((d.look.size, d.look.badge_style), (12.0, BadgeStyle::Dot), "the look rides on the draw: the target's default with the item's keys");
-        assert_eq!(draw_for(&config, "x/y", &entry, Kind::Sketchybar).unwrap().look.size, 0.0, "sketchybar's own defaults");
+        assert_eq!(draw_for(&config, "x/y", &entry, Kind::Sketchybar, &[]).unwrap().look.size, 0.0, "sketchybar's own defaults");
         let counted = Entry { last: Some(BarItem { badge: Some(Badge::Count(3)), icon: Some(json!("\u{f09b}")), ..Default::default() }), ..entry.clone() };
-        assert_eq!(draw_for(&config, "x/y", &counted, Kind::Menubar).unwrap().item.badge, Some(Badge::Dot(DotTag::Dot)), "the item is shaped by the look before the target sees it");
+        assert_eq!(draw_for(&config, "x/y", &counted, Kind::Menubar, &[]).unwrap().item.badge, Some(Badge::Dot(DotTag::Dot)), "the item is shaped by the look before the target sees it");
         let none = Entry { last: None, ..entry };
-        assert!(draw_for(&config, "x/y", &none, Kind::Menubar).is_none(), "nothing to draw before the first render");
+        assert!(draw_for(&config, "x/y", &none, Kind::Menubar, &[]).is_none(), "nothing to draw before the first render");
         let (config, _) = pal_core::config::parse("").unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
-        assert!(!draw_for(&config, "x/y", &entry, Kind::Sketchybar).unwrap().hover, "no target peeks by default");
-        assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap().hover);
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        assert!(!draw_for(&config, "x/y", &entry, Kind::Sketchybar, &[]).unwrap().hover, "no target peeks by default");
+        assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap().hover);
         let no_menu = Entry { last: Some(BarItem::default()), ..entry };
-        assert!(!draw_for(&config, "x/y", &no_menu, Kind::Sketchybar).unwrap().hover, "an item with no menu never peeks");
+        assert!(!draw_for(&config, "x/y", &no_menu, Kind::Sketchybar, &[]).unwrap().hover, "an item with no menu never peeks");
+    }
+
+    #[test]
+    fn active_rules_decide_presence_urgency_tint_and_position_in_order() {
+        let (config, _) = pal_core::config::parse("[bar.items.\"power/battery\"]\ncolor = \"blue\"\n[bar.items.\"power/battery\".rules.low]\nwhen = \"power.level < 25\"\nsize = 14\n[bar.items.\"power/battery\".rules.focus]\nwhen = \"not working\"\nhidden = true\n").unwrap();
+        let rule = |id: &str, json: serde_json::Value| ManifestBarRule { id: id.into(), rule: serde_json::from_value(json).unwrap() };
+        let manifest = ManifestBar { rules: vec![rule("fine", json!({ "when": "power.level >= 50", "hidden": true })), rule("low", json!({ "when": "power.level < 20", "color": "amber", "urgent": true })), rule("critical", json!({ "when": "power.level < 10", "color": "red", "position": "q" }))], ..ManifestBar::default() };
+        let item: BarItem = serde_json::from_value(json!({ "icon": "x", "title": "42%", "color": "muted", "empty": { "icon": "x" } })).unwrap();
+        let entry = Entry { manifest, last: Some(item), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let rules = rules_of(&config, "power/battery", &entry.manifest);
+        assert_eq!(rules.iter().map(|(id, r)| (id.as_str(), r.when.as_deref().unwrap())).collect::<Vec<_>>(), [("fine", "power.level >= 50"), ("low", "power.level < 25"), ("critical", "power.level < 10"), ("focus", "not working")], "the manifest's in order with the file's when on top, then the file's own");
+        assert_eq!(rules[1].1.look.size, Some(14.0), "a key the file adds to an extension's rule");
+        assert_eq!(rules[1].1.look.color.as_deref(), Some("amber"), "a key the file leaves keeps the extension's");
+        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &[]).unwrap();
+        assert_eq!((d.item.hidden, d.item.color.as_deref(), d.item.urgent), (false, Some("muted"), false), "no rule holds: the render's own, the file's blue leaves muted alone");
+        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &["low".into()]).unwrap();
+        assert_eq!((d.item.hidden, d.item.color.as_deref(), d.item.urgent, d.look.size), (false, Some("amber"), true, 14.0), "a rule's tint replaces the render's muted; its size rides on the look");
+        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &["low".into(), "critical".into()]).unwrap();
+        assert_eq!((d.item.color.as_deref(), d.position.as_str(), d.item.urgent), (Some("red"), "q", true), "later wins on the tint; the position moves; urgent stays from the earlier rule");
+        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &["focus".into()]).unwrap();
+        assert!(d.item.hidden, "a rule of the file's own hides");
+        let (always, _) = pal_core::config::parse("[bar.items.\"power/battery\"]\nshow = \"always\"\n").unwrap();
+        let d = draw_for(&always, "power/battery", &entry, Kind::Menubar, &["fine".into()]).unwrap();
+        assert!(!d.item.hidden && d.item.color.as_deref() == Some("muted"), "a rule's hidden takes the empty shape under show = always, as the render's would");
     }
 
     #[test]
@@ -1371,13 +1535,13 @@ mod tests {
         assert!(framed.scroll.is_none() && framed.click.is_none(), "its actions do not: nothing to act on");
 
         let (config, _) = pal_core::config::parse("[bar.items.\"x/y\"]\nshow = \"always\"\n[bar.items.\"x/z\"]\nbadge_style = \"dot\"\n").unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(quiet.clone()), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
-        let d = draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap();
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(quiet.clone()), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let d = draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap();
         assert!(!d.item.hidden && d.item.muted(), "the config keeps it on the strip, dim");
         assert_eq!(d.tint(), Some("muted"));
-        assert!(draw_for(&config, "x/z", &entry, Kind::Menubar).unwrap().item.hidden, "auto is the default: off the strip");
+        assert!(draw_for(&config, "x/z", &entry, Kind::Menubar, &[]).unwrap().item.hidden, "auto is the default: off the strip");
         let stale = Entry { stale: true, ..entry };
-        assert!(draw_for(&config, "x/y", &stale, Kind::Menubar).unwrap().item.stale, "the registry's stale rides on the kept shape too");
+        assert!(draw_for(&config, "x/y", &stale, Kind::Menubar, &[]).unwrap().item.stale, "the registry's stale rides on the kept shape too");
 
         let mut labelled = quiet;
         labelled.label(Some("Work"));

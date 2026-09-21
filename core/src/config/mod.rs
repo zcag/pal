@@ -60,6 +60,10 @@ pub struct Config {
     /// instance) or by the bare name to title the default one
     /// (`docs/design/instances.md`).
     pub instances: BTreeMap<String, Instance>,
+    /// States: named variables bar items and extensions read
+    /// (`[states.working] expr = "hour >= 9 and hour < 18"`;
+    /// `docs/design/states.md`).
+    pub states: BTreeMap<String, crate::states::Decl>,
     /// Extension settings, keyed by extension name, or by instance key
     /// (`[extensions."gmail@work"]`, which inherits `[extensions.gmail]`
     /// except its secrets and `scope: "instance"` settings). Shape is
@@ -746,6 +750,30 @@ pub struct BarLookOverride {
     pub max_chars: Option<usize>,
 }
 
+impl BarLookOverride {
+    /// This override with `o`'s set keys on top (a rule's over the item's).
+    pub fn with(&self, o: &BarLookOverride) -> BarLookOverride {
+        BarLookOverride {
+            dim: o.dim.or(self.dim),
+            opacity: o.opacity.or(self.opacity),
+            size: o.size.or(self.size),
+            icon_size: o.icon_size.or(self.icon_size),
+            text_size: o.text_size.or(self.text_size),
+            spacing: o.spacing.or(self.spacing),
+            show_icon: o.show_icon.or(self.show_icon),
+            icon: o.icon.clone().or_else(|| self.icon.clone()),
+            show_title: o.show_title.or(self.show_title),
+            color: o.color.clone().or_else(|| self.color.clone()),
+            urgent_color: o.urgent_color.clone().or_else(|| self.urgent_color.clone()),
+            badge_color: o.badge_color.clone().or_else(|| self.badge_color.clone()),
+            badge_style: o.badge_style.or(self.badge_style),
+            width: o.width.or(self.width),
+            font: o.font.or(self.font),
+            max_chars: o.max_chars.or(self.max_chars),
+        }
+    }
+}
+
 impl BarLook {
     /// This look with `o`'s keys on top.
     pub fn with(&self, o: &BarLookOverride) -> BarLook {
@@ -826,6 +854,73 @@ pub enum BarShow {
 
 /// `[bar.items."<extension>/<id>"]`: one item's settings; absent keys mean
 /// the target's defaults.
+/// One presentation rule of a bar item (`docs/design/states.md`, "Rules"):
+/// while `when` (a state expression over the states the item publishes
+/// and any other) is true, the item is hidden, urgent, or drawn with these
+/// appearance keys. An extension declares its rules in `pal.json`
+/// (`bar.<id>.rules`, an ordered list, later wins); the user overrides one
+/// by its id here, any key alone (`[bar.items."power/battery".rules.low]
+/// when = "power.level < 25"`), or adds one of their own (which needs
+/// `when`).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct BarRule {
+    /// The state expression. Required on a rule of your own; on an
+    /// extension's rule, unset keeps the extension's.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub when: Option<String>,
+    /// What the rule is for, on the Settings pane.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Off every target while the rule holds (its `empty` shape under
+    /// `show = "always"`, as when the extension hides it).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hidden: Option<bool>,
+    /// Drawn as an alarm while the rule holds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub urgent: Option<bool>,
+    /// A sketchybar position while the rule holds (`q` to bring a critical
+    /// event centre, `left` to park a far one).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
+    /// The appearance while the rule holds, each key over the item's own.
+    #[serde(flatten)]
+    pub look: BarLookOverride,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl BarRule {
+    /// `over` on top of this rule: every key `over` sets replaces this one's.
+    pub fn with(&self, over: &BarRule) -> BarRule {
+        let mut r = self.clone();
+        if over.when.is_some() {
+            r.when = over.when.clone();
+        }
+        if over.description.is_some() {
+            r.description = over.description.clone();
+        }
+        if over.hidden.is_some() {
+            r.hidden = over.hidden;
+        }
+        if over.urgent.is_some() {
+            r.urgent = over.urgent;
+        }
+        if over.position.is_some() {
+            r.position = over.position.clone();
+        }
+        r.look = self.look.with(&over.look);
+        r
+    }
+
+    /// Whether the rule does anything when it holds.
+    pub fn is_empty(&self) -> bool {
+        self.hidden.is_none() && self.urgent.is_none() && self.position.is_none() && self.look == BarLookOverride::default()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
@@ -846,6 +941,17 @@ pub struct BarItemConfig {
     /// Order among pal's own items: ascending left to right on the menu
     /// bar and within a sketchybar position.
     pub order: Option<i64>,
+    /// A state expression (`working`, `hour >= 9 and not deep`): the item
+    /// is on the strip only while it is true. Read at draw time; no render
+    /// while hidden.
+    pub show_when: Option<String>,
+    /// The opposite: the item leaves the strip while this is true. Both
+    /// may be set.
+    pub hide_when: Option<String>,
+    /// The item's rules by id: an extension's overridden key by key, or
+    /// one of your own (`BarRule`).
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub rules: BTreeMap<String, BarRule>,
     /// This item's appearance, each key over the target's default.
     #[serde(flatten)]
     pub look: BarLookOverride,
@@ -856,7 +962,7 @@ pub struct BarItemConfig {
 
 impl Default for BarItemConfig {
     fn default() -> Self {
-        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, look: BarLookOverride::default(), extra: BTreeMap::new() }
+        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, show_when: None, hide_when: None, rules: BTreeMap::new(), look: BarLookOverride::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -864,6 +970,17 @@ impl Bar {
     /// One item's settings, defaults when the file has no entry for it.
     pub fn item(&self, key: &str) -> std::borrow::Cow<'_, BarItemConfig> {
         self.items.get(key).map_or_else(|| std::borrow::Cow::Owned(BarItemConfig::default()), std::borrow::Cow::Borrowed)
+    }
+
+    /// One item's rules as they apply: the extension's (`manifest`, in
+    /// its order) with the file's overrides by id on top, then the file's
+    /// own rules (in key order). A rule of the file's own without `when`
+    /// is left out.
+    pub fn rules_of(&self, key: &str, manifest: &[(String, BarRule)]) -> Vec<(String, BarRule)> {
+        let item = self.item(key);
+        let mut out: Vec<(String, BarRule)> = manifest.iter().map(|(id, r)| (id.clone(), item.rules.get(id).map_or_else(|| r.clone(), |o| r.with(o)))).collect();
+        out.extend(item.rules.iter().filter(|(id, r)| r.when.is_some() && !manifest.iter().any(|(m, _)| m == *id)).map(|(id, r)| (id.clone(), r.clone())));
+        out
     }
 
     /// The target an item draws on: its own, else the global one.
@@ -887,6 +1004,16 @@ impl Bar {
             _ => &self.menubar.look,
         };
         base.with(&self.item(key).look)
+    }
+
+    /// The target's defaults with `over` on top: an item's keys with its
+    /// active rules' merged in (`bar/mod.rs` `draw_for`).
+    pub fn look_with(&self, target: BarTarget, over: &BarLookOverride) -> BarLook {
+        let base = match target {
+            BarTarget::Sketchybar => &self.sketchybar.look,
+            _ => &self.menubar.look,
+        };
+        base.with(over)
     }
 
     /// Whether a hover peeks `key` on `target`: the item's say, else the target's.
@@ -994,6 +1121,12 @@ impl Config {
         out.extend(unknown("bar.sketchybar.", &self.bar.sketchybar.extra));
         for (key, i) in &self.bar.items {
             out.extend(unknown(&format!("bar.items.{key}."), &i.extra));
+            for (id, r) in &i.rules {
+                out.extend(unknown(&format!("bar.items.{key}.rules.{id}."), &r.extra));
+            }
+        }
+        for (key, d) in &self.states {
+            out.extend(unknown(&format!("states.{key}."), &d.extra));
         }
         out.extend(unknown("sidebar.", &self.sidebar.extra));
         for (key, i) in &self.instances {

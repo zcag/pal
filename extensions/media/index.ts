@@ -53,9 +53,7 @@ const ARTWORK_TIMEOUT_MS = 3000;
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
 type Playing = NowPlaying & { stream?: boolean };
-/** `bar_show`: `playing` is the strip's rule; `running` keeps a paused (or idle) player on it, muted. */
-type BarShow = "playing" | "running";
-type Settings = { bar_artwork?: boolean; exclude?: string[]; bar_show?: BarShow };
+type Settings = { bar_artwork?: boolean; exclude?: string[] };
 /** `core/media.artwork`: the cover as a data url, and its own size (square or not). */
 type Artwork = { data: string; width: number; height: number };
 type Cover = { id: string; image: string; square: boolean };
@@ -155,9 +153,8 @@ const excluded = (p: Player) => {
 };
 /** The playing player the bar and the Now row show: the first playing one that is not excluded. */
 const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !excluded(p));
-const barShow = (): BarShow => settings.get<Settings>(EXTENSION).bar_show ?? "playing";
-/** The player the strip follows: the playing one, or (`bar_show` past `playing`) the first that is not excluded, paused or idle. */
-const playerForBar = (np: { players: Player[] }) => playingForBar(np) ?? (barShow() === "playing" ? undefined : np.players.find((p) => !excluded(p)));
+/** The player the strip follows: the playing one, else the first that is not excluded, paused or idle (the manifest's `paused` rule hides that one unless the user keeps it). */
+const playerForBar = (np: { players: Player[] }) => playingForBar(np) ?? np.players.find((p) => !excluded(p));
 
 /** The cover a player names by url, as a data url for the popover: fetched or read once per url, the last one kept. Nothing for a picture too large, unreachable or not an image. */
 let fetched: { url: string; data?: string } | undefined;
@@ -209,20 +206,24 @@ const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.no
 /**
  * What the strip shows for a playing player: the track (else the app) as
  * the title and the glyph (the cover instead when `bar_artwork` is on and
- * it is square), the popover's tree (view.ts) as the menu. A player that
- * is not playing (there by `bar_show`) is the same, muted; no player at
- * all is hidden, the glyph alone with the popover saying nothing plays
- * its `empty` shape for a `show = "always"` config.
+ * it is square), the popover's tree (view.ts) as the menu, and the facts
+ * (`media/playing`, `media/state`, `media/app`; docs/design/states.md):
+ * the manifest's `paused` rule hides a player that is not playing, muted
+ * for a user who keeps it. No player at all is hidden, the glyph alone
+ * with the popover saying nothing plays its `empty` shape for a
+ * `show = "always"` config.
  */
 export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now()): BarItem {
-  if (!p) return { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "Nothing playing", menu: { view: render({ canOpen: false }) } } };
+  const empty = { icon: BAR_GLYPH, tooltip: "Nothing playing", menu: { view: render({ canOpen: false }) } };
+  if (!p) return { hidden: true, empty, states: { playing: false, state: "none", app: null } };
   const playing = p.state === "playing";
   return {
     icon: barArtwork && c?.square ? { image: c.image } : BAR_GLYPH,
     title: (p.title ? [p.title, p.artist].filter(Boolean).join(" · ") : p.name).slice(0, 40),
-    ...(playing ? {} : { color: "muted" as const }),
     tooltip: p.title ? `${trackText(p)} (${p.name})${playing ? "" : `, ${p.state}`}` : playing ? `Playing in ${p.name}` : `${p.name}, ${p.state}`,
     menu: { view: render(stateOf(p, cover, at)) },
+    empty,
+    states: { playing, state: p.state, app: p.name },
   };
 }
 
@@ -264,8 +265,8 @@ function listen() {
 }
 
 /**
- * Polls while the strip had a player at the last look (playing, or paused
- * with `bar_show` past `playing`) and the core does not stream (a
+ * Polls while the strip had a player at the last look (playing or paused)
+ * and the core does not stream (a
  * streaming core fires the `media` trigger itself); stops once it has
  * none, and the core's own timer restarts it when one comes back.
  */

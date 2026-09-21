@@ -1,0 +1,51 @@
+{
+  "name": "states",
+  "title": "States",
+  "description": "The named variables pal reads: the ones you declare in `[states]`, the built-ins (the hour, the weekday, the front app, the network), what extensions publish. Set one by hand for a while, reset it, declare a new one; a bar item shows what is being held by hand.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰓹",
+      "bg": "indigo"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": ["state", "states", "variable", "working"],
+  "store": {
+    "tagline": "Named variables: declare, set by hand, compose, hide bar items on",
+    "category": "system",
+    "features": [
+      "Every state with its live value and which layer answers: set by hand, its expression, a publisher, the default",
+      "Set true or false until reset, or for 15 minutes, an hour, three hours, until tomorrow; any value and duration typed into the row",
+      "New state writes `[states.<name>]` to the config file with an expression, a default and a description",
+      "A bar item that shows only while a state is held by hand, with the time left"
+    ]
+  },
+  "palettes": {
+    "states": {
+      "title": "States",
+      "description": "Every state with its value and source; set one by hand, reset it, declare a new one.",
+      "kind": "live",
+      "tier": "normal",
+      "keywords": ["state", "variable", "working", "set"],
+      "keys": [
+        { "keys": "enter", "title": "Toggle a boolean, or set the typed value" },
+        { "keys": "cmd+r", "title": "Reset the manual value" },
+        { "keys": "cmd+backspace", "title": "Remove the declaration from the config" }
+      ]
+    }
+  },
+  "bar": {
+    "forced": {
+      "title": "Held states",
+      "description": "The states set by hand, with the time left on the soonest to expire; hidden while none is. A click opens the palette.",
+      "refresh": { "every": 60, "on": ["state:*"] },
+      "mocks": {
+        "one": { "title": "One state held for a while", "item": { "icon": "󰓹", "title": "working · 2 h 40 m", "color": "amber", "tooltip": "working = true, set by hand, 2 h 40 m left" } },
+        "two": { "title": "Two states held", "item": { "icon": "󰓹", "title": "working · 40 m", "badge": 2, "color": "amber", "tooltip": "working = true (40 m), deep = true" } }
+      }
+    }
+  }
+}

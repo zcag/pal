@@ -2,7 +2,9 @@
   "name": "calendar",
   "title": "Calendar",
   "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; a form adds one, or one typed line (`standup tomorrow 10:00`). EventKit on macOS, khal on Linux.",
-  "keywords": ["cal"],
+  "keywords": [
+    "cal"
+  ],
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -112,100 +114,6 @@
       "step": 1,
       "unit": "min",
       "default": 5
-    },
-    {
-      "kind": "select",
-      "id": "bar_far_color",
-      "label": "Far colour",
-      "description": "The item colour outside the near window, but still inside the bar horizon.",
-      "options": [{ "id": "muted", "title": "Muted" }, { "id": "text", "title": "Text" }, { "id": "grey", "title": "Grey" }, { "id": "blue", "title": "Blue" }, { "id": "teal", "title": "Teal" }],
-      "default": "muted"
-    },
-    {
-      "kind": "select",
-      "id": "bar_near_color",
-      "label": "Near colour",
-      "description": "The item colour after Near from, before the warning cutoff.",
-      "options": [{ "id": "muted", "title": "Muted" }, { "id": "text", "title": "Text" }, { "id": "grey", "title": "Grey" }, { "id": "blue", "title": "Blue" }, { "id": "teal", "title": "Teal" }],
-      "default": "muted"
-    },
-    {
-      "kind": "select",
-      "id": "bar_warning_color",
-      "label": "Warning colour",
-      "description": "The item colour from Warning from until the critical cutoff.",
-      "options": [{ "id": "amber", "title": "Amber" }, { "id": "violet", "title": "Violet" }, { "id": "red", "title": "Red" }, { "id": "text", "title": "Text" }],
-      "default": "amber"
-    },
-    {
-      "kind": "select",
-      "id": "bar_critical_color",
-      "label": "Critical colour",
-      "description": "The item colour from Critical from until the event starts.",
-      "options": [{ "id": "red", "title": "Red" }, { "id": "amber", "title": "Amber" }, { "id": "destructive", "title": "Destructive" }, { "id": "text", "title": "Text" }],
-      "default": "red"
-    },
-    {
-      "kind": "select",
-      "id": "bar_running_color",
-      "label": "Running colour",
-      "description": "The item colour while the event is under way.",
-      "options": [{ "id": "green", "title": "Green" }, { "id": "blue", "title": "Blue" }, { "id": "amber", "title": "Amber" }, { "id": "text", "title": "Text" }],
-      "default": "green"
-    },
-    {
-      "kind": "number",
-      "id": "bar_far_size",
-      "label": "Far size",
-      "description": "Point size outside the near window. Zero keeps the item's normal Bar appearance.",
-      "min": 0,
-      "max": 24,
-      "step": 0.5,
-      "unit": "pt",
-      "default": 0
-    },
-    {
-      "kind": "number",
-      "id": "bar_near_size",
-      "label": "Near size",
-      "description": "Point size from Near from until warning. Zero keeps the item's normal Bar appearance.",
-      "min": 0,
-      "max": 24,
-      "step": 0.5,
-      "unit": "pt",
-      "default": 0
-    },
-    {
-      "kind": "number",
-      "id": "bar_attention_size",
-      "label": "Attention size",
-      "description": "Point size while warning, critical or running. Zero keeps the item's normal Bar appearance.",
-      "min": 0,
-      "max": 24,
-      "step": 0.5,
-      "unit": "pt",
-      "default": 0
-    },
-    {
-      "kind": "text",
-      "id": "bar_far_position",
-      "label": "Far position",
-      "description": "A sketchybar position outside the near window, such as left or right. Empty keeps the item's Bar settings position.",
-      "default": ""
-    },
-    {
-      "kind": "text",
-      "id": "bar_near_position",
-      "label": "Near position",
-      "description": "A sketchybar position after Near from, before warning. Empty keeps the item's Bar settings position.",
-      "default": ""
-    },
-    {
-      "kind": "text",
-      "id": "bar_attention_position",
-      "label": "Attention position",
-      "description": "A sketchybar position while warning, critical or running, such as q. Empty keeps the item's Bar settings position.",
-      "default": ""
     },
     {
       "kind": "boolean",
@@ -405,17 +313,122 @@
       ]
     }
   },
+  "states": {
+    "phase": {
+      "description": "The next event's time state: far, near, warning, critical, running, or none within the horizon",
+      "kind": "string"
+    },
+    "minutes": {
+      "description": "Minutes until the next event starts (negative while it runs)",
+      "kind": "number"
+    },
+    "call": {
+      "description": "The next event has a call to join",
+      "kind": "boolean"
+    }
+  },
   "bar": {
     "upcoming": {
       "title": "Upcoming",
-      "description": "The next event's name with `in 12m` beside it, `25m left` while it runs (and `in 8m` for the one due next); hidden when nothing starts within the horizon; far, near, warning, critical and running appearances are configurable, a dot when there is a call to join. A click joins the call, or opens Calendar; a hover peek opens the day with Join on the calls, the running event on a card, tomorrow folded.",
+      "description": "The next event's name with `in 12m` beside it, `25m left` while it runs (and `in 8m` for the one due next); hidden when nothing starts within the horizon; a dot when there is a call to join. The colour follows the rules: muted far off and near, amber from Warning from, red from Critical from, green while it runs. A click joins the call, or opens Calendar; a hover peek opens the day with Join on the calls, the running event on a card, tomorrow folded.",
       "mocks": {
-        "far": { "title": "Starts in 3 hours", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 3h" }], "color": "muted", "badge": "dot" } },
-        "near": { "title": "Starts in 45 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 45m" }], "color": "muted", "badge": "dot" } },
-        "warning": { "title": "Starts in 12 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 12m" }], "color": "amber", "badge": "dot" } },
-        "critical": { "title": "Starts in 4 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 4m" }], "color": "red", "badge": "dot" } },
-        "running": { "title": "In progress, 25 minutes left", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "25m left" }], "color": "green", "badge": "dot" } },
-        "running-next": { "title": "In progress, the next one in 8 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "12m left" }, { "id": "next", "text": "in 8m", "color": "amber", "tooltip": "Design sync, 11:00 – 11:30 (Team)" }], "color": "green", "badge": "dot", "tooltip": "Project review, 10:20 – 10:50 (Work), Enter joins; then Design sync, 11:00 – 11:30 (Team)" } }
+        "far": {
+          "title": "Starts in 3 hours",
+          "item": {
+            "icon": "󰃭",
+            "title": "Project review",
+            "segments": [
+              {
+                "id": "when",
+                "text": "in 3h"
+              }
+            ],
+            "color": "muted",
+            "badge": "dot"
+          }
+        },
+        "near": {
+          "title": "Starts in 45 minutes",
+          "item": {
+            "icon": "󰃭",
+            "title": "Project review",
+            "segments": [
+              {
+                "id": "when",
+                "text": "in 45m"
+              }
+            ],
+            "color": "muted",
+            "badge": "dot"
+          }
+        },
+        "warning": {
+          "title": "Starts in 12 minutes",
+          "item": {
+            "icon": "󰃭",
+            "title": "Project review",
+            "segments": [
+              {
+                "id": "when",
+                "text": "in 12m"
+              }
+            ],
+            "color": "amber",
+            "badge": "dot"
+          }
+        },
+        "critical": {
+          "title": "Starts in 4 minutes",
+          "item": {
+            "icon": "󰃭",
+            "title": "Project review",
+            "segments": [
+              {
+                "id": "when",
+                "text": "in 4m"
+              }
+            ],
+            "color": "red",
+            "badge": "dot"
+          }
+        },
+        "running": {
+          "title": "In progress, 25 minutes left",
+          "item": {
+            "icon": "󰃭",
+            "title": "Project review",
+            "segments": [
+              {
+                "id": "when",
+                "text": "25m left"
+              }
+            ],
+            "color": "green",
+            "badge": "dot"
+          }
+        },
+        "running-next": {
+          "title": "In progress, the next one in 8 minutes",
+          "item": {
+            "icon": "󰃭",
+            "title": "Project review",
+            "segments": [
+              {
+                "id": "when",
+                "text": "12m left"
+              },
+              {
+                "id": "next",
+                "text": "in 8m",
+                "color": "amber",
+                "tooltip": "Design sync, 11:00 – 11:30 (Team)"
+              }
+            ],
+            "color": "green",
+            "badge": "dot",
+            "tooltip": "Project review, 10:20 – 10:50 (Work), Enter joins; then Design sync, 11:00 – 11:30 (Team)"
+          }
+        }
       },
       "refresh": {
         "every": 300,
@@ -457,6 +470,38 @@
         {
           "keys": "up, down",
           "title": "Move between the rows; a click on a row focuses it, a click on Join joins it"
+        }
+      ],
+      "rules": [
+        {
+          "id": "far",
+          "when": "calendar.phase == 'far'",
+          "description": "Beyond Near from: nothing pressing.",
+          "color": "muted"
+        },
+        {
+          "id": "near",
+          "when": "calendar.phase == 'near'",
+          "description": "Inside Near from, before Warning from.",
+          "color": "muted"
+        },
+        {
+          "id": "warning",
+          "when": "calendar.phase == 'warning'",
+          "description": "Inside Warning from.",
+          "color": "amber"
+        },
+        {
+          "id": "critical",
+          "when": "calendar.phase == 'critical'",
+          "description": "Inside Critical from: about to start.",
+          "color": "red"
+        },
+        {
+          "id": "running",
+          "when": "calendar.phase == 'running'",
+          "description": "Under way: what is left of it.",
+          "color": "green"
         }
       ]
     }

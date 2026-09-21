@@ -33,24 +33,6 @@
         }
       ],
       "default": "flash"
-    },
-    {
-      "kind": "select",
-      "id": "bar_show_microphone",
-      "bar": "microphone",
-      "label": "Microphone on the bar",
-      "description": "When the Microphone strip is drawn. By default it interrupts only when the input is muted or missing; Muted leaves a missing input quiet.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When the microphone is muted or missing"
-        },
-        {
-          "id": "muted",
-          "title": "When the microphone is muted"
-        }
-      ],
-      "default": "auto"
     }
   ],
   "store": {
@@ -146,6 +128,12 @@
       ]
     }
   },
+  "states": {
+    "input": {
+      "description": "The default input: live, muted, or none",
+      "kind": "string"
+    }
+  },
   "bar": {
     "volume": {
       "title": "Volume",
@@ -236,7 +224,10 @@
             "hidden": true,
             "icon_size": 18,
             "icon_width": 31,
-            "empty": { "icon": "󰝟", "tooltip": "No output device" }
+            "empty": {
+              "icon": "󰝟",
+              "tooltip": "No output device"
+            }
           }
         }
       }
@@ -297,10 +288,33 @@
           "title": "Input available",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰍬", "tooltip": "MacBook Pro Microphone · 75%" }
+            "empty": {
+              "icon": "󰍬",
+              "tooltip": "MacBook Pro Microphone · 75%"
+            }
           }
         }
-      }
+      },
+      "rules": [
+        {
+          "id": "live",
+          "when": "audio.input == 'live'",
+          "description": "A live mic needs no attention: off the strip.",
+          "hidden": true
+        },
+        {
+          "id": "muted",
+          "when": "audio.input == 'muted'",
+          "description": "Muted: red, so a call finds it.",
+          "color": "red"
+        },
+        {
+          "id": "missing",
+          "when": "audio.input == 'none'",
+          "description": "No input device: red (turn Hidden on to leave it quiet).",
+          "color": "red"
+        }
+      ]
     }
   }
 }

@@ -27,23 +27,6 @@
       "placeholder": "Spotify",
       "description": "Players this extension leaves to another (the Spotify extension's own item, say), by app name (Spotify, Music, Google Chrome) or player id (spotify, music, system): the bar item and the root's Now row skip them; the palette still lists them.",
       "default": []
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Now Playing strip is drawn. While a player runs keeps a paused track on the strip, muted.",
-      "options": [
-        {
-          "id": "playing",
-          "title": "While something plays"
-        },
-        {
-          "id": "running",
-          "title": "While a player runs, paused too"
-        }
-      ],
-      "default": "playing"
     }
   ],
   "palettes": {
@@ -74,10 +57,24 @@
       ]
     }
   },
+  "states": {
+    "playing": {
+      "description": "A player is playing",
+      "kind": "boolean"
+    },
+    "state": {
+      "description": "The strip's player: playing, paused, stopped, or none",
+      "kind": "string"
+    },
+    "app": {
+      "description": "The player's name",
+      "kind": "string"
+    }
+  },
   "bar": {
     "now-playing": {
       "title": "Now Playing",
-      "description": "The playing track on the strip, hidden while nothing plays; the popover shows the cover, the track, a progress bar that ticks and the transport as keys. Re-rendered the moment the track changes (macOS).",
+      "description": "The playing track on the strip; a paused player is hidden by its rule (keep it on the strip, muted, by turning that rule's Hidden off), nothing running is hidden either way. The popover shows the cover, the track, a progress bar that ticks and the transport as keys. Re-rendered the moment the track changes (macOS).",
       "refresh": {
         "every": 30,
         "on": [
@@ -89,23 +86,48 @@
       "mocks": {
         "track": {
           "title": "A track playing",
-          "item": { "icon": "", "title": "Weird Fishes/ Arpeggi · Radiohead", "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music)" }
+          "item": {
+            "icon": "",
+            "title": "Weird Fishes/ Arpeggi · Radiohead",
+            "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music)"
+          }
         },
         "artwork": {
           "title": "The cover as the icon (Cover on the bar)",
-          "item": { "icon": { "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAIAAABvFaqvAAADyElEQVR4nH3Szwa2WgOG8Y4kIkqKRUmxKOlhUfLEokeKRQ0a5NKgQYMGDTq473C+Q9iDPdm+Py/X+De5b8u3CW2ETWKT2Uib0qa2UTatzddG2/xsJhtjs9psNrvNYXPaXDa3zWPz2li+Q+ggHBKHzEE6lA61g3JoHb4O2uHnMDkYh9Vhc9gdDofT4XK4HR6H18HyXUIX4ZK4ZC7SpXSpXZRL6/J10S4/l8nFuKwum8vucricLpfL7fK4vC6W7xF6CI/EI/OQHqVH7aE8Wo+vh/b4eUwexmP12Dx2j8Pj9Lg8bo/H4/Ww/IAwQAQkAVmADCgD6gAV0AZ8A3TAL2AKMAFrwBawBxwBZ8AVcAc8AW+A5UeEESIiicgiZEQZUUeoiDbiG6EjfhFThIlYI7aIPeKIOCOuiDviiXgjLF8QCoQgEWQCKSgFtUAJWsFXoAU/wSQwglWwCXbBITgFl+AWPIJXYPkxYYyISWKyGBlTxtQxKqaN+cbomF/MFGNi1pgtZo85Ys6YK+aOeWLeGMtPCVNESpKSpciUMqVOUSltyr//Nf6zNWVL2VOOlDPlSrlTnpQ3xfJzwhyRk+RkOTKnzKlzVP6fyt9tOXvOkXPmXDl3zpPz5li+JJQISSLJJFJSSmr5v5W/2yWH5JRcklvySF6J5ReEBaIgKcgKZEFZUBd/hAqOgrPgKrgLnoK3wPIrwgpRkVRkFbKirKirP0IVR8VZcVXcFU/FW2H5H8IP4kPyIfsgP5Qf6s8foQ/Hh/PD9eH+8Hx4P1i+IlQIRaLIFFJRKmr1R0hxKE7FpbgVj+JVWH5D2CAakoasQTaUDXWDav7Pag17w9FwNlwNd8PT8DZYfkfYITqSjqxDdpQddYfqaLv/+lHH1rF3HB1nx9Vxdzwdb4fl94Q9oifpyXpkT9lT96ietufbo3t+PVOP6Vl7tp695+g5e66eu+fpeXssXxNqhCbRZBqpKTW1RmlazVejNT/NpDGaVbNpds2hOTWX5tY8mldj+QPhgBhIBrIBOVAO1ANqoB34DuiB38A0YAbWgW1gHzgGzoFr4B54Bt4Byx8JR8RIMpKNyJFypB5RI+3Id0SP/EamETOyjmwj+8gxco5cI/fIM/KOWP5MOCNmkplsRs6UM/WMmmlnvjN65jczzZiZdWab2WeOmXPmmrlnnpl3xvINoUEYEkNmkIbSUBuUoTV8DdrwM0wGY1gNm2E3HIbTcBluw2N4DZa/EC6IhWQhW5AL5UK9oBbahe+CXvgtTAtmYV3YFvaFY+FcuBbuhWfhXfgL3ZiR8ZsNxlQAAAAASUVORK5CYII=" }, "title": "Weird Fishes/ Arpeggi · Radiohead", "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music)" }
+          "item": {
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAIAAABvFaqvAAADyElEQVR4nH3Szwa2WgOG8Y4kIkqKRUmxKOlhUfLEokeKRQ0a5NKgQYMGDTq473C+Q9iDPdm+Py/X+De5b8u3CW2ETWKT2Uib0qa2UTatzddG2/xsJhtjs9psNrvNYXPaXDa3zWPz2li+Q+ggHBKHzEE6lA61g3JoHb4O2uHnMDkYh9Vhc9gdDofT4XK4HR6H18HyXUIX4ZK4ZC7SpXSpXZRL6/J10S4/l8nFuKwum8vucricLpfL7fK4vC6W7xF6CI/EI/OQHqVH7aE8Wo+vh/b4eUwexmP12Dx2j8Pj9Lg8bo/H4/Ww/IAwQAQkAVmADCgD6gAV0AZ8A3TAL2AKMAFrwBawBxwBZ8AVcAc8AW+A5UeEESIiicgiZEQZUUeoiDbiG6EjfhFThIlYI7aIPeKIOCOuiDviiXgjLF8QCoQgEWQCKSgFtUAJWsFXoAU/wSQwglWwCXbBITgFl+AWPIJXYPkxYYyISWKyGBlTxtQxKqaN+cbomF/MFGNi1pgtZo85Ys6YK+aOeWLeGMtPCVNESpKSpciUMqVOUSltyr//Nf6zNWVL2VOOlDPlSrlTnpQ3xfJzwhyRk+RkOTKnzKlzVP6fyt9tOXvOkXPmXDl3zpPz5li+JJQISSLJJFJSSmr5v5W/2yWH5JRcklvySF6J5ReEBaIgKcgKZEFZUBd/hAqOgrPgKrgLnoK3wPIrwgpRkVRkFbKirKirP0IVR8VZcVXcFU/FW2H5H8IP4kPyIfsgP5Qf6s8foQ/Hh/PD9eH+8Hx4P1i+IlQIRaLIFFJRKmr1R0hxKE7FpbgVj+JVWH5D2CAakoasQTaUDXWDav7Pag17w9FwNlwNd8PT8DZYfkfYITqSjqxDdpQddYfqaLv/+lHH1rF3HB1nx9Vxdzwdb4fl94Q9oifpyXpkT9lT96ietufbo3t+PVOP6Vl7tp695+g5e66eu+fpeXssXxNqhCbRZBqpKTW1RmlazVejNT/NpDGaVbNpds2hOTWX5tY8mldj+QPhgBhIBrIBOVAO1ANqoB34DuiB38A0YAbWgW1gHzgGzoFr4B54Bt4Byx8JR8RIMpKNyJFypB5RI+3Id0SP/EamETOyjmwj+8gxco5cI/fIM/KOWP5MOCNmkplsRs6UM/WMmmlnvjN65jczzZiZdWab2WeOmXPmmrlnnpl3xvINoUEYEkNmkIbSUBuUoTV8DdrwM0wGY1gNm2E3HIbTcBluw2N4DZa/EC6IhWQhW5AL5UK9oBbahe+CXvgtTAtmYV3YFvaFY+FcuBbuhWfhXfgL3ZiR8ZsNxlQAAAAASUVORK5CYII="
+            },
+            "title": "Weird Fishes/ Arpeggi · Radiohead",
+            "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music)"
+          }
         },
         "untitled": {
           "title": "A player naming no track",
-          "item": { "icon": "", "title": "Safari", "tooltip": "Playing in Safari" }
+          "item": {
+            "icon": "",
+            "title": "Safari",
+            "tooltip": "Playing in Safari"
+          }
         },
         "paused": {
           "title": "Paused, kept on the bar (While a player runs)",
-          "item": { "icon": "", "title": "Weird Fishes/ Arpeggi · Radiohead", "color": "muted", "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music), paused" }
+          "item": {
+            "icon": "",
+            "title": "Weird Fishes/ Arpeggi · Radiohead",
+            "color": "muted",
+            "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music), paused"
+          }
         },
         "silent": {
           "title": "Nothing playing",
-          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "Nothing playing" } }
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "",
+              "tooltip": "Nothing playing"
+            }
+          }
         }
       },
       "keys": [
@@ -128,6 +150,15 @@
         {
           "keys": "o",
           "title": "Open the track in its player (cmd+o too)"
+        }
+      ],
+      "rules": [
+        {
+          "id": "paused",
+          "when": "not media.playing",
+          "description": "A player that is not playing: off the strip, muted for anyone who keeps it.",
+          "hidden": true,
+          "color": "muted"
         }
       ]
     }

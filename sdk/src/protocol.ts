@@ -732,6 +732,8 @@ export type BarItem = {
   click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
   menu?: BarMenu;
+  /** The facts the item knows, published as `<extension>/<name>` with this render (`docs/design/states.md`): what its manifest `rules` and anyone's expressions read. A JSON scalar each; `null` withdraws one. Not drawn. */
+  states?: Record<string, StateValue>;
 };
 
 /** `BarItem.empty`: the glyph, a title (weather's reading), the honest tooltip ("No unread mail") and the popover of an item with nothing to say. */
@@ -754,13 +756,43 @@ export type BarMenuNode =
   | { type: "separator" };
 
 /** When the core asks `render` again. `every` is seconds (min 10, like Raycast's interval); `on` adds triggers. */
-export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "focus" | "minute")[] };
+/** `state:<name>` renders when that state's value changes (`state:*`: any state, and any hold or reset by hand); docs/design/states.md. */
+export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "focus" | "minute" | `state:${string}`)[] };
 
 /** One named, static state Settings can put through an item's preview strip. It never reaches the live bar. */
 export type ManifestBarMock = { title: string; item: BarItem };
 
+/** `pal.json`: `states.<name>`: one state the extension publishes, readable without the code. */
+export type ManifestState = { description?: string; kind?: "boolean" | "number" | "string" };
+
+/** A state's value: a JSON scalar; `null` is unknown. */
+export type StateValue = boolean | number | string | null;
+
+/** Which layer answers for a state: set by hand, its expression, a publisher (an extension's key, or `builtin`), or the declared default. */
+export type StateSource = "manual" | "expr" | "default" | { published: string };
+
+/** One state as `state.list()` answers it (`pal_core::states::Entry`). */
+export type StateEntry = { name: string; value: StateValue; source: StateSource; /** Unix ms the manual value lasts until. */ until?: number; expr?: string; description?: string; /** The expression failed; the value is null. */ error?: string; /** Declared in the config, else it exists because something set it. */ declared: boolean; builtin: boolean };
+
+/** The core's `states/changed`: the states whose resolved value changed, with the new values. */
+export type StatesChanged = { states: Record<string, StateValue> };
+
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[] };
+/**
+ * One presentation rule of a bar item (`docs/design/states.md`, "Rules"):
+ * while `when` (a state expression, typically over the states the item's
+ * render publishes: `power.level < 20`) holds, the core hides the item,
+ * marks it urgent, or draws it with these appearance keys (the
+ * `[bar.items]` look keys: `color`, `size`, `position`, `dim`, `icon`,
+ * `show_title`...). Rules apply in order, later wins. The user overrides
+ * one by its `id` in the config, any key alone, or adds their own. An
+ * extension states its facts and declares its defaults here rather than
+ * deciding presentation in `render`; the settings that used to pick a
+ * threshold or a colour are gone with that.
+ */
+export type ManifestBarRule = { id: string; when: string; description?: string; hidden?: boolean; urgent?: boolean; color?: string; urgent_color?: string; size?: number; icon_size?: number; text_size?: number; dim?: number; opacity?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; badge_color?: string; badge_style?: "count" | "dot" | "none"; width?: number; font?: "system" | "mono"; max_chars?: number; position?: string };
+
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[]; /** The item's presentation rules, in order (`ManifestBarRule`). */ rules?: ManifestBarRule[] };
 
 /**
  * Why `render` runs, and what a popover-opening click carried. `compact`:
@@ -769,7 +801,7 @@ export type ManifestBar = { title: string; description?: string; refresh?: BarRe
  * out for that width; the core sets it on every bar call today, since
  * the popover is the only surface a bar item draws on.
  */
-export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo };
+export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "state" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo };
 
 /**
  * Which instance of a `multi` extension the code runs as (`instance()` in
@@ -932,6 +964,8 @@ export type Manifest = {
   bar?: Record<string, ManifestBar>;
   /** The routes `Extension.link` answers (`pal://<name>/<route>`), with their params, readable without the code. */
   links?: Record<string, ManifestLink>;
+  /** The states the code publishes with `state.set` (`docs/design/states.md`), keyed by the bare name: what the States palette shows for one before it is ever set. */
+  states?: Record<string, ManifestState>;
   /**
    * The extension can run as several configured instances (two accounts,
    * two homes; docs/design/instances.md): each `[instances."<name>@<suffix>"]`

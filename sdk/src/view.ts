@@ -231,6 +231,13 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
     }
   }
   if (item.menu !== undefined) checkBarMenu(item.menu, where);
+  if (item.states !== undefined) {
+    if (!item.states || typeof item.states !== "object" || Array.isArray(item.states)) throw new Error(`${where}: states must be an object of scalars`);
+    for (const [k, v] of Object.entries(item.states)) {
+      if (!/^[a-z0-9_]+$/.test(k)) throw new Error(`${where}: state "${k}" is not a name (lowercase letters, digits, _)`);
+      if (!(v === null || ["boolean", "number", "string"].includes(typeof v))) throw new Error(`${where}: state "${k}" must be a boolean, a number, a string or null`);
+    }
+  }
   // The shape `show = "always"` draws while hidden: the same title and menu limits, since it lands on the strip as an item.
   if (item.empty !== undefined) {
     const e = item.empty;

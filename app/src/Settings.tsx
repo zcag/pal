@@ -12,7 +12,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages, BAR_DEFAULTS,
-  resolveLook, lookDefaults, lookOf, lookWrites, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
+  resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
   useThemeFile,
@@ -26,7 +26,7 @@ import { iconOf } from "./items";
 type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; icon?: string; tier?: PaletteTier; item_hotkeys?: Record<string, string>; settings?: Record<string, unknown> };
 /** core `BarLook` as the file spells it. */
 type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: number; text_size?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; color?: string; urgent_color?: string; badge_color?: string; badge_style?: BarBadgeStyle; width?: number; font?: BarFont; max_chars?: number };
-type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number };
+type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
   general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; backspace_back?: boolean; check_updates: boolean };
@@ -52,7 +52,10 @@ type Checked<T> = { at: number; value?: T; error?: string };
 type Checks = { app?: Checked<UpdateInfo>; extensions?: Checked<Update[]> };
 /** settings.rs `BarItemView`. */
 type RawBarState = NonNullable<BarItem["state"]>;
-type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[] };
+/** A rule's effect from the file's spelling: the look keys as the page names them, plus hidden, urgent and position. */
+const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
+type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
+type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
 type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
 type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicReport };
@@ -185,9 +188,12 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     refreshEvery: b.refresh_every,
     renderedAt: b.rendered_at,
     stale: b.stale,
+    held: b.held,
     state: b.state,
     mocks: b.mocks,
-    config: { enabled: raw.enabled ?? true, show: raw.show === "always" ? "always" : undefined, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, look: lookOf(raw) },
+    rules: b.rules?.map((r) => ({ id: r.id, when: r.when, description: r.description, effect: ruleEffect(r.rule), default: r.default && { when: r.default.when ?? "", effect: ruleEffect(r.default) }, overridden: r.overridden, active: r.active })),
+    states: b.states,
+    config: { enabled: raw.enabled ?? true, show: raw.show === "always" ? "always" : undefined, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, showWhen: raw.show_when, hideWhen: raw.hide_when, look: lookOf(raw) },
     settings: (ext?.settings ?? []).filter((s) => (s.bar ? s.bar === b.id : s.id.startsWith("bar_"))).map((spec) => {
       const own = ext!.values[spec.id], inherited = ext!.inherited?.[spec.id];
       return { spec, value: own ?? inherited ?? spec.default, base: ext!.inherited ? inherited : undefined, note: own === undefined && inherited !== undefined ? `From ${ext!.inheritedFrom ?? ext!.title}` : undefined };
@@ -384,6 +390,14 @@ export default function Settings() {
     call.then(() => setError(null), (e) => { setError(String(e)); refresh(); });
   }, [refresh]);
 
+  /** A rule's keys under `[bar.items."<key>".rules.<id>]`; `null` unsets the table (the extension's rule applies again, or a rule of the file's own goes). The look keys are written by their file spelling. */
+  const onBarRule = useCallback((key: string, id: string, w: Record<string, unknown> | null) => {
+    const path = ["bar", "items", key, "rules", id];
+    if (w === null) return write(path, undefined);
+    const spelling = new Map<string, string>(LOOK_KEYS);
+    for (const [k, v] of Object.entries(w)) write([...path, spelling.get(k) ?? k], v);
+  }, [write]);
+
   /** A declared setting: a value equal to its default (or none) leaves the file, anything else is written. For a non-default instance `base` is the value it inherits from the default's table: an equal value leaves the file too, so the instance keeps following. */
   const writeDeclared = useCallback(async (key: string[], spec: SettingSpec | undefined, value: SettingValue, base?: SettingValue) => {
     if (spec?.kind === "secret" && typeof value === "string" && value && !/^(keychain|env):/.test(value)) {
@@ -484,6 +498,8 @@ export default function Settings() {
     if ((next.hotkey ?? "") !== (cur.hotkey ?? "")) write(["bar", "items", key, "hotkey"], next.hotkey || undefined);
     if (next.openOnHover !== cur.openOnHover) write(["bar", "items", key, "open_on_hover"], next.openOnHover);
     if (next.order !== cur.order) write(["bar", "items", key, "order"], next.order);
+    if ((next.showWhen ?? "") !== (cur.showWhen ?? "")) write(["bar", "items", key, "show_when"], next.showWhen?.trim() || undefined);
+    if ((next.hideWhen ?? "") !== (cur.hideWhen ?? "")) write(["bar", "items", key, "hide_when"], next.hideWhen?.trim() || undefined);
     // An item's key equal to its target's default leaves the file (the target it draws on, as the pane resolves it: sketchybar's when aimed there or under `auto` with sketchybar up, else the menu bar's).
     const target = next.target ?? bar.target;
     const onSketchybar = target === "sketchybar" || (target === "auto" && (view.bar?.sketchybar ?? false));
@@ -555,7 +571,7 @@ export default function Settings() {
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
       {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
-      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => go("extensions", `extensions:${key}`)} onSetting={(key, id, value) => { const e = extensions.find((x) => x.key === key); if (e) onExtension(key, { ...e.values, [id]: value as SettingValue }); }} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => go("extensions", `extensions:${key}`)} onSetting={(key, id, value) => { const e = extensions.find((x) => x.key === key); if (e) onExtension(key, { ...e.values, [id]: value as SettingValue }); }} />}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

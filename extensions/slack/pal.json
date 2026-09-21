@@ -64,14 +64,6 @@
     },
     {
       "kind": "boolean",
-      "id": "dm_urgent",
-      "bar": "unreads",
-      "label": "Direct messages",
-      "text": "Draw the bar item as urgent (red) while a direct message is unread",
-      "default": true
-    },
-    {
-      "kind": "boolean",
       "id": "presence",
       "label": "Presence dots",
       "text": "A dot on each direct message row: green while the person is active, grey while away",
@@ -87,23 +79,6 @@
       "max": 3600,
       "unit": "s",
       "default": 120
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Unreads item is drawn. The count is always what is addressed to you; the other choice keeps the glyph on the strip, muted and without a badge, while a channel is merely unread.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When something is addressed to you"
-        },
-        {
-          "id": "unread",
-          "title": "Also while a channel is unread"
-        }
-      ],
-      "default": "auto"
     }
   ],
   "palettes": {
@@ -193,6 +168,20 @@
       ]
     }
   },
+  "states": {
+    "attention": {
+      "description": "Direct messages, mentions and thread replies addressed to you",
+      "kind": "number"
+    },
+    "dm": {
+      "description": "Unread direct messages",
+      "kind": "number"
+    },
+    "channels": {
+      "description": "Channels merely unread",
+      "kind": "number"
+    }
+  },
   "bar": {
     "unreads": {
       "title": "Unreads",
@@ -208,27 +197,54 @@
       "mocks": {
         "mentions": {
           "title": "Mentions and thread replies",
-          "item": { "icon": "󰒱", "badge": 3, "urgent": false, "tooltip": "2 mentions, 1 thread reply; 4 channels unread" }
+          "item": {
+            "icon": "󰒱",
+            "badge": 3,
+            "urgent": false,
+            "tooltip": "2 mentions, 1 thread reply; 4 channels unread"
+          }
         },
         "dm": {
           "title": "A direct message waits",
-          "item": { "icon": "󰒱", "badge": 2, "urgent": true, "tooltip": "1 direct message, 1 mention" }
+          "item": {
+            "icon": "󰒱",
+            "badge": 2,
+            "urgent": true,
+            "tooltip": "1 direct message, 1 mention"
+          }
         },
         "one": {
           "title": "One mention",
-          "item": { "icon": "󰒱", "badge": 1, "urgent": false, "tooltip": "1 mention" }
+          "item": {
+            "icon": "󰒱",
+            "badge": 1,
+            "urgent": false,
+            "tooltip": "1 mention"
+          }
         },
         "channels": {
           "title": "Only channels unread, kept on the bar (Bar item: unread)",
-          "item": { "icon": "󰒱", "color": "muted", "tooltip": "4 channels unread" }
+          "item": {
+            "icon": "󰒱",
+            "color": "muted",
+            "tooltip": "4 channels unread"
+          }
         },
         "clear": {
           "title": "Nothing addressed to you",
-          "item": { "hidden": true, "empty": { "icon": "󰒱", "tooltip": "Nothing unread" } }
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰒱",
+              "tooltip": "Nothing unread"
+            }
+          }
         },
         "out": {
           "title": "Signed out",
-          "item": { "hidden": true }
+          "item": {
+            "hidden": true
+          }
         }
       },
       "keys": [
@@ -267,6 +283,21 @@
         {
           "keys": "cmd+c",
           "title": "Copy the row's link"
+        }
+      ],
+      "rules": [
+        {
+          "id": "quiet",
+          "when": "slack.attention == 0",
+          "description": "Nothing addressed to you: off the strip (narrow it to `slack.attention == 0 and slack.channels == 0` to keep the glyph for channels merely unread), muted for anyone who keeps it.",
+          "hidden": true,
+          "color": "muted"
+        },
+        {
+          "id": "dm",
+          "when": "slack.dm > 0",
+          "description": "A direct message waits.",
+          "urgent": true
         }
       ]
     }

@@ -2,9 +2,16 @@
   "name": "whatsapp",
   "title": "WhatsApp",
   "description": "Your WhatsApp chats through a self-hosted OpenWA gateway: the chats by recency with the newest message and who sent it, the unread ones at the root and counted on the bar, a full-text search over the whole archive, the contacts with their numbers. Reading and marking read are always on; sending, replying and reacting only where you turn send on.",
-  "keywords": ["wa"],
+  "keywords": [
+    "wa"
+  ],
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰖣", "bg": "green" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰖣",
+      "bg": "green"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -42,22 +49,23 @@
       "default": false
     },
     {
-      "kind": "boolean",
-      "id": "dm_urgent",
-      "bar": "unread",
-      "label": "Direct messages",
-      "text": "Draw the bar item as urgent (red) while a direct chat is unread",
-      "default": true
-    },
-    {
       "kind": "select",
       "id": "open",
       "label": "Open chats in",
       "description": "auto opens the desktop app when it is installed (macOS) and the web client otherwise. A group has no link of its own, so it opens WhatsApp at the top either way.",
       "options": [
-        { "id": "auto", "title": "The desktop app when installed, else the web client" },
-        { "id": "app", "title": "The desktop app (whatsapp://)" },
-        { "id": "web", "title": "The web client (web.whatsapp.com)" }
+        {
+          "id": "auto",
+          "title": "The desktop app when installed, else the web client"
+        },
+        {
+          "id": "app",
+          "title": "The desktop app (whatsapp://)"
+        },
+        {
+          "id": "web",
+          "title": "The web client (web.whatsapp.com)"
+        }
       ],
       "default": "auto"
     }
@@ -71,12 +79,30 @@
       "tier": "primary",
       "rank": 10,
       "keys": [
-        { "keys": "enter", "title": "Open the chat (a group opens WhatsApp at the top)" },
-        { "keys": "cmd+enter", "title": "Mark as read (Mark as unread on a read chat)" },
-        { "keys": "cmd+shift+r", "title": "Send a message typed in the bar (send on)" },
-        { "keys": "cmd+shift+e", "title": "React to the latest message (send on)" },
-        { "keys": "cmd+shift+o", "title": "Open in the web client" },
-        { "keys": "cmd+c", "title": "Copy the number (the name of a group)" }
+        {
+          "keys": "enter",
+          "title": "Open the chat (a group opens WhatsApp at the top)"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Mark as read (Mark as unread on a read chat)"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Send a message typed in the bar (send on)"
+        },
+        {
+          "keys": "cmd+shift+e",
+          "title": "React to the latest message (send on)"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open in the web client"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the number (the name of a group)"
+        }
       ]
     },
     "unread": {
@@ -85,12 +111,30 @@
       "kind": "live",
       "lazy": true,
       "keys": [
-        { "keys": "enter", "title": "Open the chat" },
-        { "keys": "cmd+enter", "title": "Mark as read" },
-        { "keys": "cmd+shift+r", "title": "Send a message typed in the bar (send on)" },
-        { "keys": "cmd+shift+e", "title": "React to the latest message (send on)" },
-        { "keys": "cmd+shift+o", "title": "Open in the web client" },
-        { "keys": "cmd+c", "title": "Copy the number (the name of a group)" }
+        {
+          "keys": "enter",
+          "title": "Open the chat"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Mark as read"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Send a message typed in the bar (send on)"
+        },
+        {
+          "keys": "cmd+shift+e",
+          "title": "React to the latest message (send on)"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open in the web client"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the number (the name of a group)"
+        }
       ]
     },
     "search": {
@@ -98,9 +142,18 @@
       "description": "Full-text search over the archive (every message back to the first chat): the matching line, who said it where, and when.",
       "kind": "input",
       "keys": [
-        { "keys": "enter", "title": "Open the chat" },
-        { "keys": "cmd+c", "title": "Copy the message" },
-        { "keys": "cmd+shift+o", "title": "Open the chat in the web client" }
+        {
+          "keys": "enter",
+          "title": "Open the chat"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the message"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open the chat in the web client"
+        }
       ]
     },
     "contacts": {
@@ -111,34 +164,140 @@
       "ttl": 3600,
       "tier": "catalog",
       "keys": [
-        { "keys": "enter", "title": "Open a chat with the contact" },
-        { "keys": "cmd+c", "title": "Copy the number" },
-        { "keys": "cmd+shift+c", "title": "Copy as a vCard" },
-        { "keys": "cmd+shift+o", "title": "Open the chat in the web client" }
+        {
+          "keys": "enter",
+          "title": "Open a chat with the contact"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the number"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy as a vCard"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open the chat in the web client"
+        }
       ]
+    }
+  },
+  "states": {
+    "unread": {
+      "description": "Chats with unread messages",
+      "kind": "number"
+    },
+    "direct": {
+      "description": "Direct chats among them",
+      "kind": "number"
     }
   },
   "bar": {
     "unread": {
       "title": "Unread",
       "description": "The number of unread chats as a badge, hidden at zero, red while a direct chat waits; the popover lists them with the picture, the newest message and the time, opens, marks read and (send on) replies from the keys.",
-      "refresh": { "every": 120, "on": ["show", "wake", "network"] },
+      "refresh": {
+        "every": 120,
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
+      },
       "mocks": {
-        "groups": { "title": "Unread groups only", "item": { "icon": "󰖣", "badge": 2, "urgent": false, "tooltip": "2 chats unread: 2 groups" } },
-        "direct": { "title": "A direct chat waits", "item": { "icon": "󰖣", "badge": 3, "urgent": true, "tooltip": "3 chats unread: 1 direct message, 2 groups" } },
-        "one": { "title": "One unread chat", "item": { "icon": "󰖣", "badge": 1, "urgent": true, "tooltip": "1 chat unread: 1 direct message" } },
-        "clear": { "title": "Nothing unread", "item": { "hidden": true, "empty": { "icon": "󰖣", "tooltip": "Nothing unread" } } },
-        "out": { "title": "No gateway key", "item": { "hidden": true } }
+        "groups": {
+          "title": "Unread groups only",
+          "item": {
+            "icon": "󰖣",
+            "badge": 2,
+            "urgent": false,
+            "tooltip": "2 chats unread: 2 groups"
+          }
+        },
+        "direct": {
+          "title": "A direct chat waits",
+          "item": {
+            "icon": "󰖣",
+            "badge": 3,
+            "urgent": true,
+            "tooltip": "3 chats unread: 1 direct message, 2 groups"
+          }
+        },
+        "one": {
+          "title": "One unread chat",
+          "item": {
+            "icon": "󰖣",
+            "badge": 1,
+            "urgent": true,
+            "tooltip": "1 chat unread: 1 direct message"
+          }
+        },
+        "clear": {
+          "title": "Nothing unread",
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰖣",
+              "tooltip": "Nothing unread"
+            }
+          }
+        },
+        "out": {
+          "title": "No gateway key",
+          "item": {
+            "hidden": true
+          }
+        }
       },
       "keys": [
-        { "keys": "enter", "title": "Open the row's chat" },
-        { "keys": "up", "title": "Move the cursor (down, j, k too; a click sets it)" },
-        { "keys": "r", "title": "Reply: the search row becomes the field, Enter sends (send on)" },
-        { "keys": "m", "title": "Mark the row read" },
-        { "keys": "a", "title": "Mark all read (cmd+shift+a too)" },
-        { "keys": "o", "title": "Open WhatsApp" },
-        { "keys": "p", "title": "Open the Unread palette" },
-        { "keys": "cmd+shift+o", "title": "Open the row's chat in the web client" }
+        {
+          "keys": "enter",
+          "title": "Open the row's chat"
+        },
+        {
+          "keys": "up",
+          "title": "Move the cursor (down, j, k too; a click sets it)"
+        },
+        {
+          "keys": "r",
+          "title": "Reply: the search row becomes the field, Enter sends (send on)"
+        },
+        {
+          "keys": "m",
+          "title": "Mark the row read"
+        },
+        {
+          "keys": "a",
+          "title": "Mark all read (cmd+shift+a too)"
+        },
+        {
+          "keys": "o",
+          "title": "Open WhatsApp"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Unread palette"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open the row's chat in the web client"
+        }
+      ],
+      "rules": [
+        {
+          "id": "quiet",
+          "when": "whatsapp.unread == 0",
+          "description": "Nothing unread: off the strip, muted for anyone who keeps it.",
+          "hidden": true,
+          "color": "muted"
+        },
+        {
+          "id": "dm",
+          "when": "whatsapp.direct > 0",
+          "description": "A direct message waits.",
+          "urgent": true
+        }
       ]
     }
   },
@@ -146,13 +305,19 @@
     "open": {
       "description": "Open a chat",
       "params": {
-        "chat": { "description": "A chat id (…@c.us, …@lid, …@g.us), a phone number, or a name from the chats or the contacts", "required": true }
+        "chat": {
+          "description": "A chat id (…@c.us, …@lid, …@g.us), a phone number, or a name from the chats or the contacts",
+          "required": true
+        }
       }
     },
     "search": {
       "description": "Search the archive",
       "params": {
-        "q": { "description": "Words from any message", "required": true }
+        "q": {
+          "description": "Words from any message",
+          "required": true
+        }
       }
     }
   },
@@ -168,32 +333,114 @@
       "Sending is off until you turn it on: with it, Send a message on a chat row (the text typed in the bar, a quote choice for the latest message), React, a reply field in the popover",
       "Reads a self-hosted OpenWA gateway over its HTTP API with an API key; nothing else sees your chats"
     ],
-    "permissions": ["network", "token"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "network",
+      "token"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-chats.png", "caption": "Chats: unread first, the picture, the newest message and who sent it, the count, the time" },
-      { "file": "2-detail.png", "caption": "The pane: the last messages as a conversation, a quoted reply indented, a photo named" },
-      { "file": "3-unread.png", "caption": "Unread: direct messages then groups, the same keys" },
-      { "file": "4-search.png", "caption": "Search WhatsApp: the matching line, who said it where, when" },
-      { "file": "5-contacts.png", "caption": "Contacts: the number under the name; copy it or a vCard" },
-      { "file": "6-message.png", "caption": "Send a message (send on): the message typed in the bar, the latest message quotable" },
-      { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits", "kind": "bar" },
-      { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar", "kind": "bar" },
-      { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys", "kind": "bar" },
-      { "file": "bar-menubar-popover-dark.png", "caption": "The popover in the dark theme", "kind": "bar" },
-      { "file": "bar-menubar-popover-reply.png", "caption": "r turns the search row into a message field (send on); Enter sends it", "kind": "bar" },
-      { "file": "bar-sketchybar.png", "caption": "On sketchybar: the glyph and the count", "kind": "bar" }
+      {
+        "file": "1-chats.png",
+        "caption": "Chats: unread first, the picture, the newest message and who sent it, the count, the time"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The pane: the last messages as a conversation, a quoted reply indented, a photo named"
+      },
+      {
+        "file": "3-unread.png",
+        "caption": "Unread: direct messages then groups, the same keys"
+      },
+      {
+        "file": "4-search.png",
+        "caption": "Search WhatsApp: the matching line, who said it where, when"
+      },
+      {
+        "file": "5-contacts.png",
+        "caption": "Contacts: the number under the name; copy it or a vCard"
+      },
+      {
+        "file": "6-message.png",
+        "caption": "Send a message (send on): the message typed in the bar, the latest message quotable"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-reply.png",
+        "caption": "r turns the search row into a message field (send on); Enter sends it",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the glyph and the count",
+        "kind": "bar"
+      }
     ],
     "actions": [
-      { "title": "Open chat", "description": "In the desktop app (whatsapp://send?phone=) or the web client; a group opens WhatsApp at the top.", "keys": "enter" },
-      { "title": "Mark as read", "description": "Mark as unread on a read chat; works on marked rows too.", "keys": "cmd+enter" },
-      { "title": "Send a message", "description": "The text typed in the bar (the row's argument), a Reply choice quoting the latest message; a form when picked without it; send on only.", "keys": "cmd+shift+r" },
-      { "title": "React to the latest message", "description": "One of WhatsApp's six quick reactions, or remove yours; send on only.", "keys": "cmd+shift+e" },
-      { "title": "Open in the web client", "keys": "cmd+shift+o" },
-      { "title": "Copy number", "description": "Copy name on a group.", "keys": "cmd+c" },
-      { "title": "Copy message", "description": "On a search hit.", "keys": "cmd+c" },
-      { "title": "Copy as vCard", "description": "On a contact.", "keys": "cmd+shift+c" },
-      { "title": "Open WhatsApp settings", "description": "On a hint row: the extension's settings." }
+      {
+        "title": "Open chat",
+        "description": "In the desktop app (whatsapp://send?phone=) or the web client; a group opens WhatsApp at the top.",
+        "keys": "enter"
+      },
+      {
+        "title": "Mark as read",
+        "description": "Mark as unread on a read chat; works on marked rows too.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Send a message",
+        "description": "The text typed in the bar (the row's argument), a Reply choice quoting the latest message; a form when picked without it; send on only.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "React to the latest message",
+        "description": "One of WhatsApp's six quick reactions, or remove yours; send on only.",
+        "keys": "cmd+shift+e"
+      },
+      {
+        "title": "Open in the web client",
+        "keys": "cmd+shift+o"
+      },
+      {
+        "title": "Copy number",
+        "description": "Copy name on a group.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy message",
+        "description": "On a search hit.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy as vCard",
+        "description": "On a contact.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Open WhatsApp settings",
+        "description": "On a hint row: the extension's settings."
+      }
     ]
   }
 }

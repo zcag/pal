@@ -50,21 +50,21 @@ const server = Bun.serve({ port: 0, fetch(req) {
   expect(url.searchParams.get("daily")).toBe("weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset");
   return Response.json(forecast);
 } });
-const configured = (location: string) => ({ settings: { location, low: 10, high: 30, notable_conditions: [] } });
+const configured = (location: string) => ({ settings: { location } });
 let host: Host;
 beforeAll(async () => { process.env.PAL_WEATHER_GEOCODE = `http://127.0.0.1:${server.port}/v1/search`; process.env.PAL_WEATHER_FORECAST = `http://127.0.0.1:${server.port}/v1/forecast`; host = await Host.bundled({ settings: { weather: configured("Istanbul, Turkey") } }); });
 afterAll(() => { host.kill(); server.stop(true); delete process.env.PAL_WEATHER_GEOCODE; delete process.env.PAL_WEATHER_FORECAST; });
 describe("weather", () => {
   test("meta: the bar item advertises its popover keys", () => {
     const loaded = host.loaded().find((x) => x.extension === "weather")!;
-    expect(loaded.bar).toEqual([{ id: "weather", title: "Weather", description: expect.any(String), refresh: { every: 600, on: ["wake", "network"] }, mocks: expect.any(Object), keys: expect.any(Array), source: true }]);
+    expect(loaded.bar).toEqual([{ id: "weather", title: "Weather", description: expect.any(String), refresh: { every: 600, on: ["wake", "network"] }, mocks: expect.any(Object), keys: expect.any(Array), rules: [{ id: "ordinary", when: "weather.quiet and weather.temp >= 10 and weather.temp <= 30", description: expect.any(String), hidden: true, color: "muted" }, { id: "cold", when: "weather.temp < 10", description: expect.any(String), color: "blue" }, { id: "hot", when: "weather.temp > 30", description: expect.any(String), color: "red" }], source: true }]);
     expect(loaded.bar[0].keys!.map((k) => k.keys)).toEqual(["o", "r"]);
   });
 
   test("a notable condition has an independent condition-led bar and compact palette", async () => {
     forecast = forecastWithOutlook;
     host.changeSettings("weather", configured("Istanbul, Turkey"));
-    expect(await host.render("weather", "weather")).toMatchObject({ icon: "󰖗", title: "14°C", color: "blue", tooltip: "Rain in Istanbul" });
+    expect(await host.render("weather", "weather")).toMatchObject({ icon: "󰖗", title: "14°C", tooltip: "Rain in Istanbul", states: { temp: 14, quiet: false, condition: "Rain" } });
     expect((await host.list("weather", "weather")).map((x) => x.name)).toEqual(["14°C", "12°C", "82%", "18 km/h"]);
   });
 
@@ -117,17 +117,17 @@ describe("weather", () => {
     expect(await host.render("weather", "weather")).toMatchObject({ color: "red", stale: true, tooltip: "No place named “Nowhereville”" });
   });
 
-  test("ordinary weather is hidden, the reading its empty shape (title, glyph, the forecast popover) for the core's show = always; notable weather keeps its colour", async () => {
+  test("ordinary weather renders the reading in the condition's tint with quiet true (the manifest's rule hides it), the reading its empty shape; notable weather the same with quiet false", async () => {
     const quiet = { ...forecastWithOutlook, current: { ...forecastWithOutlook.current, temperature_2m: 21, weather_code: 1 } };
     try {
       forecast = quiet;
       host.changeSettings("weather", configured("Istanbul, Turkey"));
       const item = await host.render("weather", "weather");
-      expect(item).toMatchObject({ hidden: true, empty: { icon: "󰖕", title: "21°C", tooltip: "Mostly clear in Istanbul" } });
-      expect(item.color).toBeUndefined();
+      expect(item).toMatchObject({ icon: "󰖕", title: "21°C", tooltip: "Mostly clear in Istanbul", color: "amber", states: { temp: 21, code: 1, quiet: true, condition: "Mostly clear" }, empty: { icon: "󰖕", title: "21°C", tooltip: "Mostly clear in Istanbul" } });
+      expect(item).not.toHaveProperty("hidden");
       expect(viewOf(item.empty!).title).toBe("Istanbul, Republic of Türkiye");
       forecast = forecastWithOutlook;
-      expect(await host.render("weather", "weather")).toMatchObject({ icon: "󰖗", title: "14°C", color: "blue", tooltip: "Rain in Istanbul" });
+      expect(await host.render("weather", "weather")).toMatchObject({ icon: "󰖗", title: "14°C", states: { quiet: false }, tooltip: "Rain in Istanbul" });
     } finally {
       forecast = forecastWithOutlook;
       host.changeSettings("weather", configured("Istanbul, Turkey"));
@@ -136,7 +136,7 @@ describe("weather", () => {
 
   test("an empty location stays quiet and the manifest provides settings previews", async () => {
     host.changeSettings("weather", configured(""));
-    expect(await host.render("weather", "weather")).toEqual({ hidden: true });
+    expect(await host.render("weather", "weather")).toMatchObject({ hidden: true });
     expect(host.loaded().find((x) => x.extension === "weather")!.bar[0].mocks?.quiet.item).toEqual({ hidden: true, empty: { icon: "󰖕", title: "19°C", tooltip: "Partly cloudy in Istanbul" } });
   });
 });

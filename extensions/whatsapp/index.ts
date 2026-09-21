@@ -306,7 +306,8 @@ async function pickPerson(id: string, action?: string): Promise<Effect> {
 
 /**
  * The count of unread chats as the badge, urgent while a direct chat is
- * among them (`dm_urgent`), hidden at zero, the glyph and the popover
+ * among them (the manifest's `dm` rule), hidden at zero by its `quiet`
+ * rule, the glyph and the popover
  * (which then lists the recent chats) its `empty` shape for a `show =
  * "always"` config. The popover is a view of the item's own (view.ts):
  * direct messages then groups, a cursor the arrows move and a click
@@ -340,21 +341,18 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   // The panel showing fires both this render and the palettes' relists: a list under CHATS_FRESH_MS serves all. Only a push from the CLI or `bar.refresh` insists.
   let list: Chat[];
   try { list = await loadChats(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
-    if (e instanceof NoKey) return { hidden: true };
+    if (e instanceof NoKey) return { hidden: true, states: { unread: null, direct: null } };
     throw e;
   }
   const unread = list.filter((c) => c.unread > 0);
   const direct = unread.filter((c) => !c.group).length, groups = unread.length - direct;
   const menu = { view: renderBar(await barState(list)) };
-  if (!unread.length) return { hidden: true, empty: { icon: ICON.whatsapp, tooltip: "Nothing unread", menu } };
+  // The facts (`whatsapp/unread`, `whatsapp/direct`): the manifest's rules hide the item at zero and make a direct message urgent.
+  const states = { unread: unread.length, direct };
+  const empty = { icon: ICON.whatsapp, tooltip: "Nothing unread", menu };
+  if (!unread.length) return { icon: ICON.whatsapp, tooltip: "Nothing unread", menu, empty, states };
   const parts = [direct ? plural(direct, "direct message") : "", groups ? plural(groups, "group") : ""].filter(Boolean);
-  return {
-    icon: ICON.whatsapp,
-    badge: unread.length,
-    urgent: conf().dm_urgent !== false && direct > 0,
-    tooltip: `${plural(unread.length, "chat")} unread: ${parts.join(", ")}`,
-    menu,
-  };
+  return { icon: ICON.whatsapp, badge: unread.length, tooltip: `${plural(unread.length, "chat")} unread: ${parts.join(", ")}`, menu, empty, states };
 }
 
 /** The popover drawn again from the list at hand (no fetch): what a key that only moves the cursor answers. */

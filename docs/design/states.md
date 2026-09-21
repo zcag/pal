@@ -6,8 +6,8 @@ derives them from one another, feeds them from a shell hook or an
 extension, and points bar items and palettes at them. `working` is the
 motivating one: a state you compose from what pal already knows (the
 hour, the weekday, a session extension's "busy") or force from the
-command line, and that the PR item hides on. Status: proposed; nothing
-implemented.
+command line, and that the PR item hides on. Status: built 2026-09-21
+(the deltas from the proposal are marked "as built").
 
 ## Goals and non-goals
 
@@ -97,9 +97,12 @@ just the value. `reset` removes the manual layer either way.
 
 ## Persistence
 
-`~/.local/state/pal/states.json` (`{ "manual": { "<name>": { "value",
-"until"? } }, "published": { "<name>": { "value", "who", "at" } } }`),
-written whole and atomically on every change, next to `bar.json`. Read
+`<data dir>/states.json` (`{ "manual": { "<name>": { "value",
+"until"? } }, "published": { "<name>": { "value", "who", "at" } } }`,
+plus, as built, `entries` (every resolved state as `Entry`) and
+`diagnostics`, so `pal state` reads it in its own process the way `pal
+bar list` reads `bar.json`), written whole and atomically on every
+change, next to `bar.json`. Read
 at startup so a `--for 3h` survives a relaunch and an extension's last
 value is there before its worker is up (marked stale in the palette
 until it publishes again). Built-ins are not stored; they are read at
@@ -131,44 +134,48 @@ Each built-in changes only when its source fires, so an expression over
 
 ## The expression language
 
-Small, and one grammar for `expr`, `show_when`, `hide_when` and the
-CLI's `pal state eval`:
+As built: **Jinja**, through `minijinja` (Cagdas, 2026-09-21: a syntax
+people already know beats a grammar of pal's own), one grammar for
+`expr`, `show_when`, `hide_when` and `pal state eval`:
 
-- Literals: `true`, `false`, `null`, numbers, `'single'` or `"double"`
-  quoted strings.
-- A state by name (`hour`, `sessions/working`).
-- `!`, `&&`, `||`, `== != < <= > >=`, parentheses.
-- `in`: `weekday in ['sat', 'sun']`, `front_app in ['com.apple.Safari']`.
-- Truthiness for a bare state or `!`: `false`, `0`, `""`, `null` are
-  false. A comparison with `null` on either side is `null` (so `x > 3` on
-  an unknown `x` is unknown, not false), and `null` reads false where a
-  boolean is wanted.
+- `and`, `or`, `not`, `in`, `== != < <= > >=`, `x if c else y`,
+  parentheses, the builtin filters (`hour|string`), `true`/`false`/`none`,
+  numbers, `'single'` or `"double"` quoted strings.
+- A state by name (`hour`, `working`). Since `/` divides, an extension's
+  state is `sessions.working` (its states as a map under its key), and
+  any name at all is `states['gmail@work/unread']`.
+- What Jinja says, a state says: an unknown state is `none`, which is
+  false on its own and compares like a value (`none >= 9` is false, not
+  unknown), a missing extension map is undefined (`Chainable`, so
+  `sessions.working` with no `sessions` reads false rather than
+  erroring). An expression that fails to parse is a load diagnostic and
+  reads `null`; one that fails to evaluate reads `null` and the palette
+  shows the error.
 - `show_when` / `hide_when` want a boolean; a string or number there is
   truthiness.
 
-Implemented as a hand-written recursive descent parser in
-`core/src/states/expr.rs`, ~200 lines with tests, parsed once at config
-load and kept as a tree. A crate was considered (`evalexpr` is the usual
-one) and rejected: it brings its own value model, its own functions and
-its own precedence, and the grammar here is seven operators. The parser
-also gives the dependency set of an expression for free (the names it
-reads), which is what the cycle check and the change propagation need.
+`Expression::undeclared_variables(nested)` gives the dependency set (the
+names it reads), which is what the cycle check and `bar_items_reading`
+need; `states[...]` in a source depends on everything.
 
 ## Change propagation
 
-`core/src/states/mod.rs`, `States`: the table, the parsed expressions
-with their dependency edges, the persisted layers. `set(name, layer,
-value)` writes one layer and then walks: every expression naming a state
-whose resolved value changed is re-evaluated, breadth first, at most once
-per set (the graph is acyclic by the load check). The set of states
+`core/src/states.rs`, `States`: the table, the compiled expressions with
+their dependency edges, the persisted layers. As built, every write
+recomputes the whole table (tens of states, once a minute at most from
+the clock) in dependency order rather than walking a graph; the edges
+serve the cycle check and "which bar items read this". The set of states
 whose resolved value changed is the **change**, and the change goes out
 once:
 
 - to the bar (`bar::on_states_changed(changed)`): every item whose
   `show_when`/`hide_when` names one re-runs `draws` and syncs (the same
-  path a `show` flip takes in `apply_config`, `bar/mod.rs:928`, no
-  render), and every item that asked for `state:<name>` in `refresh.on`
-  renders with reason `state`;
+  path a `show` flip takes in `apply_config`, no render; `Entry.held`
+  remembers, and the flip back renders since what it last drew is as old
+  as the hold), and every item that asked for `state:<name>` in
+  `refresh.on` renders with reason `state` (`state:*`: on any change, and
+  on any hold or reset by hand through `on_states_held`, since holding a
+  state at the value it had is still something the `forced` item shows);
 - to the pages as `pal://states` with the changed names and values (a
   view palette lists `state:<name>` under `on` like any trigger,
   `views.rs`);
@@ -235,10 +242,10 @@ no manifest counterpart). `kind` is `boolean` | `number` | `string`.
 ```
 pal state                          # a table: name  value  source  until  description
 pal state get working              # the value, one line (`null` for unknown); exit 1 when the state does not exist
+pal state json                     # every state as JSON
 pal state set working true         # manual, until reset
 pal state set working true --for 3h   # manual, expires (durations as the config's: 90s 25m 1h30m)
 pal state set working true --until 18:00
-pal state set working null         # a manual null: forces unknown (rarely wanted; it is there for symmetry)
 pal state reset working            # the manual layer goes; expr / published / default answers
 pal state eval "hour >= 9 && working"   # what an expression reads now, for writing one
 pal state watch                    # streams `name\tvalue` on every change, for a script
@@ -247,13 +254,16 @@ pal state watch                    # streams `name\tvalue` on every change, for 
 `set` on an undeclared bare name declares it for this run and persists
 its value, so a shell hook can feed a state before anyone has written a
 `[states.<name>]` table for it. The value is parsed as JSON, else taken
-as a string, so `set mood grumpy` works and `set n 3` is a number. On
-`--for` and `--until` at once the earlier wins. This is the route for a
+as a string, so `set mood grumpy` works and `set n 3` is a number. With
+`--for` and `--until` both given, `--for` wins (as built). This is the route for a
 hook, a cron, a launchd tick, a `claude-state`-style script: it feeds
 `working` exactly as an extension would, without being one.
 
-Exit codes as the rest of `cli.rs`; a running pal is required (the
-command is a handover, like `pal bar render`).
+The table, `get`, `json`, `eval` and `watch` read the feed file in the
+calling process (the single-instance channel is one way, as for `pal bar
+list`); `eval` runs the expression against the feed's resolved values.
+`set` and `reset` are a handover to the running instance, like `pal bar
+render`, and print nothing.
 
 ## The States palette
 
@@ -272,8 +282,8 @@ A bundled core-backed extension, `extensions/states/`, like `system`:
   top: a form (name, kind, default, expression, description) that writes
   the table through `settings.set`-style surgical edit (`edit.rs`, the
   path the settings window uses), so the palette and the file agree.
-- A `live` palette (the values change under it), `on: ["state:*"]`, so
-  the panel updates while open.
+- A `live` palette (the values change under it): every show lists again,
+  and every action answers `keep`, which lists again.
 
 Rows are indexed at the root (`working` typed at the root finds the state
 with its value in the accessory), tier `secondary`.
@@ -283,35 +293,97 @@ place; then the names with the shortest time left (`working ⏱ 2 h 40 m`,
 or `working` alone with no expiry), amber, click opens the palette
 filtered to `manual`. The honest tell that a state is being held by hand.
 
+## Rules: extensions publish facts, the core decides presentation
+
+Built 2026-09-21, second pass (Cagdas: "clean up a lot of tech debt around
+auto hide / colour change / size change based on state logic for bar
+items; they can all publish states and use their own states to have
+default rules for those behaviours, configurable over their defaults").
+The survey found the same shape in every bar extension: a fact the
+extension knows, a presentation decision hard-wired in `render`, and a
+bespoke setting bolted on (calendar's eleven `bar_*_color/size/position`,
+power's three thresholds, a `bar_show` select each on media, spotify,
+slack, bluetooth and audio with its own option names, weather's band,
+`dm_urgent` on slack and whatsapp, network's `icon_only`).
+
+- **A render carries its facts**: `BarItem.states` (`{ name: scalar }`),
+  published as `<extension>/<name>` atomically with the render
+  (`bar/mod.rs` `set` before the draw), so a rule reads the facts of the
+  render it decorates. Declared under `states` in `pal.json`. A `null`
+  withdraws (an item that could not read at all publishes nulls).
+- **Rules in the manifest** (`bar.<id>.rules`, an ordered list of
+  `{ id, when, description?, hidden?, urgent?, position?, ...look }`),
+  compiled with the other conditions in `States::configure`
+  (`BarConditions.rules`), evaluated at draw time (`States::active_rules`,
+  `draw_for`): `hidden` and `urgent` land on the item before `kept`, a
+  rule's `color` replaces the render's (a `muted` from the render
+  included: the rule is the decision), the rest merge over the item's
+  look override in order.
+- **Overrides by id**: `[bar.items."<key>".rules.<id>]` merges key by key
+  (`BarRule::with`, `Bar::rules_of`); an id the manifest lacks is a rule
+  of the user's own and needs `when`. The conditions are rebuilt when an
+  extension registers its items (`states::reconfigure_bar`), since rules
+  come from manifests.
+- **Settings > Bar** (`SettingsBarRules.tsx`): under the item, a "Reads"
+  line with the facts and their live values, then a row per rule (a dot
+  for "holds now", the id, the condition in mono, the effect as chips,
+  "Power's" / "Power's, changed" / "yours"), opening into an editor of the
+  few keys a rule is made of (When, Hidden, Urgent, Tint, Size, Position,
+  Icon), each edit one key under the rule's table; Reset drops an
+  overridden extension rule's table, Remove a rule of the user's own; Add
+  a rule takes an id and a condition and starts hidden.
+- **Migrated**: calendar (`phase`, `minutes`, `call`; rules far/near/
+  warning/critical/running; eleven settings gone), power (`level`,
+  `charging`, `draw`, `alert`; fine/plugged/low/warn/critical/crit; three
+  gone), media (`playing`, `state`, `app`; paused), spotify (`playing`,
+  `loaded`; paused), slack (`attention`, `dm`, `channels`; quiet/dm;
+  `bar_show` and `dm_urgent` gone), whatsapp (`unread`, `direct`;
+  quiet/dm; `dm_urgent` gone), bluetooth (`low`, `lowest`, `connected`;
+  none/fine/low/critical; `bar_show` gone, `low_threshold` kept since it
+  shapes the content), weather (`temp`, `code`, `quiet`, `condition`;
+  ordinary/cold/hot; `low`, `high`, `notable_conditions` gone), audio's
+  microphone (`input`; live/muted/missing), network (`icon_only` gone:
+  `show_title = false` was already the core's).
+- Kept as settings, on purpose: what shapes content rather than
+  presentation (`media.bar_artwork`, `spotify.bar_lyrics`, the calendar's
+  `near/warn/urgent_minutes` that define the phase, bluetooth's
+  `low_threshold`, hue's `main_room`).
+
 ## Settings
 
-Settings > General gains nothing. Settings > Bar shows `show_when` on the
-item pane (above). A **States** section under Extensions > States (the
-bundled extension's page) lists the declared states with their live
-values and the built-ins; a "Manage" link opens the palette. Declaring
-and editing happen in the palette and the file, not in a second form.
+Settings > Bar shows `show_when` and `hide_when` on the item pane under
+Placement, and the state line reads "off the strip by show_when ..."
+while a condition holds the item off. Declaring and editing states
+happen in the palette and the file, not in a second form.
 
 ## What lands where
 
-- `core/src/states/{mod.rs, expr.rs}`: the model, the parser, the
-  resolution, the persistence, the tests (pure: a table of sets in,
-  changes out; expressions in, values and dependency sets out).
-- `core/src/config/mod.rs`: `Config.states`, `State { expr, default,
-  description }`, `BarItemConfig.show_when / hide_when` as parsed
-  expressions (a bad one is a load warning that reads "always"),
-  `Bar::draws` taking the states, the schema.
+- `core/src/states.rs`: the model over `minijinja`, the resolution, the
+  persisted shape, the tests (pure: a table of sets in, changes out).
+- `core/src/config/mod.rs`: `Config.states` (`states::Decl { expr,
+  default, description }`), `BarItemConfig.show_when / hide_when` as
+  strings (`Bar::conditions()` hands them to `States::configure`, which
+  compiles them; a bad one is a diagnostic and the item shows), the
+  schema.
 - `app/src-tauri/src/states.rs`: the live table behind `lock`, the
   built-in sources (the minute tick, the workspace notifications, the
   lock notifications, idle), the expiry timer, the fan-out to the bar,
   the pages and the host; `bridge.rs` gains `"states"`.
-- `app/src-tauri/src/bar/mod.rs`: `wants("state:<name>")`,
-  `on_states_changed`, `draws` reading the states, reason `state`.
+- `app/src-tauri/src/bar/mod.rs`: `wants("state:<name>")` and
+  `state:*`, `on_states_changed`, `on_states_held`, `draws` asking
+  `states::shows`, `Entry.held` (also in the feed and Settings), reason
+  `state`.
 - `app/src-tauri/src/cli.rs`: `Cmd::State { cmd: StateCmd }`.
 - `app/src-tauri/src/events.rs`: `pal://states`.
 - `sdk/src/api.ts`: `state`; `sdk/src/manifest.ts`: `states` in the
   manifest; `sdk/src/protocol.ts`: the types; `host/src/`: the
   `states/changed` notification to subscribers, the instance rewrite.
-- `extensions/states/`: the palette and the `forced` item.
+- `extensions/states/`: the palette and the `forced` item;
+  `host/test/extensions/states.test.ts`.
+- `extensions/sessions/`: publishes `working` and `waiting` at every
+  render, declared in its `pal.json`.
+- Settings > Bar: `show_when`/`hide_when` fields on the item pane under
+  Placement; the state line reads "off the strip by show_when ...".
 - `extensions/github/`: prs keeps its `work_hours` setting for now (the
   extension does not know the user's state names); its description points
   at `show_when = "working"` on the item as the general way, and the
@@ -320,13 +392,12 @@ and editing happen in the palette and the file, not in a second form.
   (`state` in the SDK, `states` in the manifest, the trigger),
   `docs/cli.md` (`pal state`).
 
-## Order of work
+## Not built, on purpose or not yet
 
-1. `core/src/states`: the model and the parser, with tests. Nothing
-   above it changes until this is solid.
-2. Config: `[states]`, `show_when`/`hide_when`, the schema.
-3. App: the live table, the built-ins, persistence, the bar hook
-   (`draws` and the trigger), the events. `pal state` on the CLI.
-4. SDK and host: `state.*`, the manifest key, `states/changed`.
-5. The palette and the `forced` item.
-6. Docs.
+- Settings > Extensions > States as a section listing the declared
+  states: the palette and the file are the two places; a third form was
+  not worth its upkeep.
+- Linux: `front_app`, `awake_since`, `locked` and `idle` read `null`
+  there (the sources are AppKit and CoreGraphics); the rest works.
+- The `github` prs item keeps its own `work_hours` setting; `show_when =
+  "working"` on the item is the general way now.

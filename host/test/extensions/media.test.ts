@@ -145,7 +145,7 @@ describe("media", () => {
   describe("bar: now-playing", () => {
     test("meta and render: the playing track as the title, the popover a view with the titles, the progress row, the transport and copy/open as keycaps; the core's media trigger declared", async () => {
       // `as unknown`: `BarRefresh.on` in sdk/src/protocol.ts does not list the core's `media` trigger yet; the host passes any name through.
-      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), source: true }]);
+      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), rules: [{ id: "paused", when: "not media.playing", description: expect.any(String), hidden: true, color: "muted" }], source: true }]);
       const item = await host.render("media", "now-playing");
       expect(item).toMatchObject({ icon: "\uf001", title: "Blue Monday · New Order", tooltip: "New Order - Blue Monday (Spotify)" });
       const v = viewOf(item);
@@ -184,9 +184,9 @@ describe("media", () => {
     test("exclude: a listed player is left to another extension on the bar and in the Now row, by name, id or app; the palette still lists it", async () => {
       np = { players: [spotify, music, idle], system_wide: true };
       host.changeSettings("media", { settings: { exclude: ["Spotify"] } });
-      expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
+      expect(await host.render("media", "now-playing")).toMatchObject({ title: "Song 2 · Blur", states: { playing: false, state: "paused", app: "Music" } });
       host.changeSettings("media", { settings: { exclude: ["spotify"] } });
-      expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
+      expect(await host.render("media", "now-playing")).toMatchObject({ states: { playing: false } });
       expect((await host.list("media", "media")).map((r) => r.id)).toContain("spotify");
       host.changeSettings("media", { settings: { exclude: ["Spotify"] } });
       // `suggest` is host-wide (every suggesting palette answers): only media's section is this test's.
@@ -264,33 +264,22 @@ describe("media", () => {
       expect(host.viewUpdates("media", { bar: "now-playing" }).length).toBe(n);
     });
 
-    test("only a playing player shows: paused or nothing is hidden, the glyph and the popover saying nothing plays its empty shape for the core's show = always; an action then says so", async () => {
+    test("a paused player renders muted-less with playing false (the manifest's rule hides it); nothing at all is hidden with the empty shape; its actions reach the paused player", async () => {
       np = { players: [music, idle], system_wide: true };
+      const paused = await host.render("media", "now-playing");
+      expect(paused).toMatchObject({ icon: "\uf001", title: "Song 2 · Blur", tooltip: "Blur - Song 2 (Music), paused", states: { playing: false, state: "paused", app: "Music" }, empty: { icon: "\uf001", tooltip: "Nothing playing" } });
+      expect(paused).not.toHaveProperty("color");
+      expect(viewOf(paused).actions[0]).toEqual({ id: "play_pause", title: "Play", shortcut: "space" });
+      calls.length = 0;
+      expect(await host.barAction("media", "now-playing", "play_pause")).toEqual({ keep: true });
+      expect(calls).toEqual([{ player: "music", command: "play_pause" }]);
+      np = { players: [], system_wide: true };
       const none = await host.render("media", "now-playing");
-      expect(none).toMatchObject({ hidden: true, empty: { icon: "\uf001", tooltip: "Nothing playing" } });
+      expect(none).toMatchObject({ hidden: true, empty: { icon: "\uf001", tooltip: "Nothing playing" }, states: { playing: false, state: "none", app: null } });
       expect(none.title).toBeUndefined();
       expect(texts(viewOf(none.empty!))[0]).toBe("Nothing playing");
       expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
       np = { players: [spotify, music, idle], system_wide: true };
-    });
-
-    test("bar_show at running keeps a paused player on the strip, muted, and its actions reach it; no player at all is hidden", async () => {
-      try {
-        np = { players: [music, idle], system_wide: true };
-        host.changeSettings("media", { settings: { bar_show: "running" } });
-        const paused = await host.render("media", "now-playing");
-        expect(paused).toMatchObject({ icon: "\uf001", title: "Song 2 · Blur", color: "muted", tooltip: "Blur - Song 2 (Music), paused" });
-        expect(viewOf(paused).actions[0]).toEqual({ id: "play_pause", title: "Play", shortcut: "space" });
-        calls.length = 0;
-        expect(await host.barAction("media", "now-playing", "play_pause")).toEqual({ keep: true });
-        expect(calls).toEqual([{ player: "music", command: "play_pause" }]);
-        np = { players: [], system_wide: true };
-        expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true, empty: { tooltip: "Nothing playing" } });
-        expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
-      } finally {
-        host.changeSettings("media", { settings: {} });
-        np = { players: [spotify, music, idle], system_wide: true };
-      }
     });
   });
 

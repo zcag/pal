@@ -35,6 +35,10 @@
 //! and `sync` reach the instance (sketchybar's click and hover scripts
 //! run them).
 //!
+//! `pal state ...` (states.rs): the table, `get`, `eval`, `json` and
+//! `watch` read the feed file in this process; `set` and `reset` reach the
+//! instance.
+//!
 //! `pal pick` (pick.rs): the rows on stdin, the panel as the picker, the
 //! choice on stdout; the one subcommand with an answer, over a socket of
 //! its own that the handed-over argv names (`--reply`).
@@ -101,6 +105,11 @@ pub enum Cmd {
     Bar {
         #[command(subcommand)]
         cmd: BarCmd,
+    },
+    /// States: the table of named variables; set one by hand, reset it, evaluate an expression, watch changes.
+    State {
+        #[command(subcommand)]
+        cmd: Option<StateCmd>,
     },
     /// Run a pal:// link as written (docs/links.md); no confirm card, this is your own hand.
     Link {
@@ -223,6 +232,36 @@ fn text_or_stdin(text: &Option<String>) -> String {
         let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);
         s.trim_end_matches('\n').to_string()
     })
+}
+
+#[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
+pub enum StateCmd {
+    /// One state's value, one line (`null` when unknown); exit 1 when there is no such state.
+    Get { name: String },
+    /// Set a state by hand: `true`, `false`, a number, or a string; until reset, or for a while.
+    Set {
+        name: String,
+        value: String,
+        /// How long: `90s`, `25m`, `1h30m`, `2h`, `1d` (a bare number is minutes).
+        #[arg(long = "for", value_name = "DURATION")]
+        for_: Option<String>,
+        /// A time of day, `HH:MM`: today, or tomorrow when it has passed.
+        #[arg(long, value_name = "HH:MM")]
+        until: Option<String>,
+    },
+    /// Drop the manual value: the expression, the publisher or the default answers again.
+    Reset { name: String },
+    /// What an expression reads now (`"hour >= 9 and working"`), for writing one.
+    Eval { expr: String },
+    /// The whole table as JSON.
+    Json,
+    /// Stream `name<TAB>value` on every change.
+    Watch,
+}
+
+/// `pal state set`'s value: JSON when it parses (`true`, `3`, `"x"`), else the text.
+pub fn state_value(s: &str) -> serde_json::Value {
+    serde_json::from_str(s).ok().filter(pal_core::states::is_scalar).unwrap_or_else(|| serde_json::Value::String(s.to_string()))
 }
 
 impl Cmd {
@@ -394,6 +433,7 @@ impl Cmd {
                     let item = e.item.as_ref();
                     let state = match item {
                         None => "unrendered",
+                        _ if e.held => "held",
                         Some(i) if i.hidden => "hidden",
                         _ if e.stale => "stale",
                         _ => "visible",
@@ -403,6 +443,57 @@ impl Cmd {
                 }
                 Some(0)
             }
+            Cmd::State { cmd: None } => {
+                let feed = crate::states::read_feed();
+                let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+                for e in &feed.entries {
+                    let source = match &e.source {
+                        pal_core::states::Source::Manual => "manual".to_string(),
+                        pal_core::states::Source::Expr => "expr".to_string(),
+                        pal_core::states::Source::Published(who) => who.clone(),
+                        pal_core::states::Source::Default => "default".to_string(),
+                    };
+                    let left = e.until.map(|u| left_text(u.saturating_sub(now) / 1000)).unwrap_or_default();
+                    let note = e.error.as_deref().map(|x| format!("error: {x}")).or_else(|| e.description.clone()).or_else(|| e.expr.as_ref().map(|x| format!("= {x}"))).unwrap_or_default();
+                    println!("{}\t{}\t{}\t{}\t{}", e.name, e.value, source, left, note);
+                }
+                for d in &feed.diagnostics {
+                    eprintln!("{:?}\t{}\t{}", d.level, d.path, d.message);
+                }
+                Some(0)
+            }
+            Cmd::State { cmd: Some(StateCmd::Get { name }) } => match crate::states::read_feed().entries.iter().find(|e| &e.name == name) {
+                Some(e) => {
+                    println!("{}", e.value);
+                    Some(0)
+                }
+                None => {
+                    eprintln!("pal\tno state {name}");
+                    Some(1)
+                }
+            },
+            Cmd::State { cmd: Some(StateCmd::Json) } => {
+                println!("{}", serde_json::to_string_pretty(&crate::states::read_feed().entries).unwrap_or_default());
+                Some(0)
+            }
+            Cmd::State { cmd: Some(StateCmd::Eval { expr }) } => {
+                // Against the feed's resolved values: the same table the instance holds.
+                let mut s = pal_core::states::States::default();
+                for e in crate::states::read_feed().entries {
+                    let _ = s.publish(&e.name, "feed", e.value);
+                }
+                match s.eval(expr) {
+                    Ok(v) => {
+                        println!("{v}");
+                        Some(0)
+                    }
+                    Err(e) => {
+                        eprintln!("pal\t{e}");
+                        Some(1)
+                    }
+                }
+            }
+            Cmd::State { cmd: Some(StateCmd::Watch) } => Some(crate::states::watch_feed()),
             Cmd::Bar { cmd: BarCmd::Json { key } } => match crate::bar::read_feed().items.get(key) {
                 Some(e) => {
                     println!("{}", serde_json::to_string_pretty(e).unwrap_or_default());
@@ -512,6 +603,24 @@ impl Cmd {
             }
             Cmd::Quit => crate::quit(&handle),
             Cmd::Bar { cmd } => run_bar(&handle, cmd),
+            Cmd::State { cmd: Some(StateCmd::Set { name, value, for_, until }) } => {
+                let until = match (for_, until) {
+                    (Some(d), _) => match crate::states::parse_duration(&d) {
+                        Some(secs) => Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0) + secs * 1000),
+                        None => return eprintln!("states\tset {name}\tnot a duration: {d}"),
+                    },
+                    (None, Some(t)) => match crate::states::parse_until(&t) {
+                        Some(u) => Some(u),
+                        None => return eprintln!("states\tset {name}\tnot a time: {t}"),
+                    },
+                    (None, None) => None,
+                };
+                if let Err(e) = crate::states::set_manual(&handle, &name, state_value(&value), until) {
+                    eprintln!("states\tset {name}\t{e}");
+                }
+            }
+            Cmd::State { cmd: Some(StateCmd::Reset { name }) } => crate::states::reset(&handle, &name),
+            Cmd::State { .. } => {}
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
             Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } | Cmd::Instance { cmd: InstanceCmd::List } => {}
@@ -699,5 +808,14 @@ mod tests {
         assert_eq!(cmd(&["link", "--list"]).run_compat(), Some(0));
         assert!(Cli::try_parse_from(["pal", "link"]).is_err(), "a url or --list");
         assert!(Cli::try_parse_from(["pal", "open"]).is_err(), "a palette or --url");
+    }
+}
+
+/// `2 h 40 m`, `12 m`, `40 s` for the table's time-left column.
+fn left_text(secs: u64) -> String {
+    match (secs / 3600, secs % 3600 / 60, secs % 60) {
+        (0, 0, s) => format!("{s} s"),
+        (0, m, _) => format!("{m} m"),
+        (h, m, _) => format!("{h} h {m} m"),
     }
 }

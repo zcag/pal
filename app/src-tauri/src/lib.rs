@@ -36,6 +36,7 @@ mod registry;
 mod selection;
 mod settings;
 mod sidebar;
+mod states;
 mod storage;
 mod switcher;
 mod system;
@@ -181,6 +182,7 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: bool) {
     dialog::on_shown();
     index::on_shown(app, held.as_deref());
     bar::on_shown(app);
+    states::on_panel(app, true);
     // A fresh profile's first show asks for Accessibility (once per run);
     // a missing permission is watched for while the panel is up.
     permissions::ask_on_first_show(app);
@@ -413,6 +415,7 @@ pub fn run() {
             updater::install_checks(app.handle());
             index::restore_cache(app.handle());
             views::install(app.handle());
+            states::install(app.handle());
             bar::install(app.handle());
             sidebar::install(app.handle());
             media::install(app.handle());

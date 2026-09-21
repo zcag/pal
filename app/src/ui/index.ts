@@ -46,7 +46,7 @@ export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permis
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
   GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, PromptPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
-  BarTarget, BarShow, BarConfig, BarItemConfig, BarItem, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont,
+  BarTarget, BarShow, BarConfig, BarItemConfig, BarItem, BarRuleEffect, BarRuleView, BarStateView, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont,
 } from "./SettingsTypes";
-export { resolveLook, lookDefaults, lookOf, lookWrites } from "./SettingsTypes";
+export { resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS } from "./SettingsTypes";
 export { badgedIcon, instanceBadge, instanceTint, instancesOf, resolveInstance, slugSuffix, suffixProblem, suffixTitle, validSuffix, type InstanceInfo, type RawInstance, type SettingsInstance } from "./SettingsTypes";

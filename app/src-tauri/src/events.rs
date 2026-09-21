@@ -55,6 +55,9 @@ pub const VIEW: &str = "pal://view";
 /// `show`, `focus`, `minute`); a view level whose palette lists it under
 /// `on` asks for its tree again (bar/mod.rs `trigger`).
 pub const TRIGGER: &str = "pal://trigger";
+/// To every page: states changed, `{ states: { <name>: value } }` (states.rs);
+/// a view level whose palette lists `state:<name>` under `on` asks again.
+pub const STATES: &str = "pal://states";
 /// To the panel's page: a confirm card to render with its `Confirm`
 /// component, `{ title, message, ok, cancel, token }`, or `null` to drop
 /// the one up (deeplink.rs); the page answers on [`CONFIRM_REPLY`].

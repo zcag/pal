@@ -160,6 +160,16 @@
       ]
     }
   },
+  "states": {
+    "working": {
+      "description": "Sessions with a turn in progress",
+      "kind": "number"
+    },
+    "waiting": {
+      "description": "Sessions waiting on you (your turn, or blocked on a permission)",
+      "kind": "number"
+    }
+  },
   "bar": {
     "sessions": {
       "title": "Sessions",

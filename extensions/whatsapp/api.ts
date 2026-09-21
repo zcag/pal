@@ -10,7 +10,7 @@
 // the four writes; index.ts gates the first three behind `send`.
 import { settings, storage } from "@zcag/pal";
 
-export type Conf = { base_url?: string; api_key?: string; session?: string; send?: boolean; dm_urgent?: boolean; open?: "auto" | "app" | "web" };
+export type Conf = { base_url?: string; api_key?: string; session?: string; send?: boolean; open?: "auto" | "app" | "web" };
 export const conf = (): Conf => settings.get<Conf>();
 
 export const DEFAULT_URL = "http://wp.lan";

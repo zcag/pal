@@ -14,39 +14,6 @@
   "license": "MIT",
   "settings": [
     {
-      "kind": "number",
-      "id": "show_below",
-      "bar": "battery",
-      "label": "Show on battery below",
-      "description": "Hide the bar item while discharging at or above this level, unless the power watcher has a warning or reports a high draw.",
-      "min": 1,
-      "max": 100,
-      "unit": "%",
-      "default": 50
-    },
-    {
-      "kind": "number",
-      "id": "show_charging_below",
-      "bar": "battery",
-      "label": "Show while charging below",
-      "description": "Hide the bar item on external power above this level.",
-      "min": 1,
-      "max": 100,
-      "unit": "%",
-      "default": 20
-    },
-    {
-      "kind": "number",
-      "id": "show_draw_watts",
-      "bar": "battery",
-      "label": "Show draw above",
-      "description": "While on battery, show when the optional power watcher measures at least this many watts.",
-      "min": 1,
-      "max": 100,
-      "unit": "W",
-      "default": 15
-    },
-    {
       "kind": "path",
       "id": "power_state_file",
       "label": "Power watcher state",
@@ -128,10 +95,28 @@
       ]
     }
   },
+  "states": {
+    "level": {
+      "description": "Charge, percent",
+      "kind": "number"
+    },
+    "charging": {
+      "description": "On external power",
+      "kind": "boolean"
+    },
+    "draw": {
+      "description": "Measured draw in watts from the power watcher; 0 without it",
+      "kind": "number"
+    },
+    "alert": {
+      "description": "The power watcher's worst warning: crit, warn, or nothing",
+      "kind": "string"
+    }
+  },
   "bar": {
     "battery": {
       "title": "Battery",
-      "description": "Battery level, and the time left once that is the question being asked. Click opens Battery Settings; its popover explains the live draw and culprits when the power watcher is available.",
+      "description": "Battery level, and the time left once that is the question being asked. Hidden while healthy by its rules: on battery from 50%, on the charger from 20%, unless the power watcher warns or measures a draw of 15 W. Amber at 20%, red at 10% or on a critical warning. Click opens Battery Settings; its popover explains the live draw and culprits when the power watcher is available.",
       "refresh": {
         "every": 30,
         "on": [
@@ -143,7 +128,11 @@
           "title": "Healthy, hidden",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰂄", "title": "100%", "tooltip": "Power Adapter · Charged" }
+            "empty": {
+              "icon": "󰂄",
+              "title": "100%",
+              "tooltip": "Power Adapter · Charged"
+            }
           }
         },
         "draining": {
@@ -193,6 +182,44 @@
         {
           "keys": "enter",
           "title": "Open Battery settings"
+        }
+      ],
+      "rules": [
+        {
+          "id": "fine",
+          "when": "not power.charging and power.level >= 50 and not power.alert and power.draw < 15",
+          "description": "On battery with plenty left and nothing wrong: nothing to say.",
+          "hidden": true
+        },
+        {
+          "id": "plugged",
+          "when": "power.charging and power.level > 20 and not power.alert",
+          "description": "On the charger past the low mark: nothing to say.",
+          "hidden": true
+        },
+        {
+          "id": "low",
+          "when": "not power.charging and power.level <= 20",
+          "description": "Getting low on battery.",
+          "color": "amber"
+        },
+        {
+          "id": "warn",
+          "when": "power.alert == 'warn'",
+          "description": "The power watcher has a warning (a background burn, a high draw).",
+          "color": "amber"
+        },
+        {
+          "id": "critical",
+          "when": "not power.charging and power.level <= 10",
+          "description": "Nearly out.",
+          "color": "red"
+        },
+        {
+          "id": "crit",
+          "when": "power.alert == 'crit'",
+          "description": "The power watcher's critical warning.",
+          "color": "red"
         }
       ]
     }

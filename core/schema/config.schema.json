@@ -110,7 +110,7 @@
     },
     "BarItemConfig": {
       "additionalProperties": false,
-      "description": "`[bar.items.\"<extension>/<id>\"]`: one item's settings; absent keys mean\nthe target's defaults.",
+      "description": "One item's say on each `BarLook` key; `None` is the target's default.",
       "properties": {
         "badge_color": {
           "description": "The colour of this item's count badge and dot, a name or `#rrggbb`. The target's when unset (its own colour when that is too).",
@@ -153,6 +153,10 @@
           ],
           "description": "`system` or `mono` for this item. The target's when unset."
         },
+        "hide_when": {
+          "description": "The opposite: the item leaves the strip while this is true. Both\nmay be set.",
+          "type": "string"
+        },
         "hotkey": {
           "description": "Global hotkey that opens the item's popover engaged (or runs its open action).",
           "type": "string"
@@ -191,6 +195,13 @@
           "description": "sketchybar position for this item (as `[bar.sketchybar] position`).",
           "type": "string"
         },
+        "rules": {
+          "additionalProperties": {
+            "$ref": "#/$defs/BarRule"
+          },
+          "description": "The item's rules by id: an extension's overridden key by key, or\none of your own (`BarRule`).",
+          "type": "object"
+        },
         "show": {
           "$ref": "#/$defs/BarShow",
           "default": "auto",
@@ -203,6 +214,10 @@
         "show_title": {
           "description": "Draw this item's title and segments. The target's when unset.",
           "type": "boolean"
+        },
+        "show_when": {
+          "description": "A state expression (`working`, `hour >= 9 and not deep`): the item\nis on the strip only while it is true. Read at draw time; no render\nwhile hidden.",
+          "type": "string"
         },
         "size": {
           "description": "Point size of the glyph and the text here. The target's when unset.",
@@ -339,6 +354,124 @@
         "width": {
           "default": 0,
           "description": "A fixed width in points, so a ticking timer does not jitter; `0`\nis the natural width. Text past it is clipped.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "BarRule": {
+      "additionalProperties": false,
+      "description": "`[bar.items.\"<extension>/<id>\"]`: one item's settings; absent keys mean\nthe target's defaults.\nOne presentation rule of a bar item (`docs/design/states.md`, \"Rules\"):\nwhile `when` (a state expression over the states the item publishes\nand any other) is true, the item is hidden, urgent, or drawn with these\nappearance keys. An extension declares its rules in `pal.json`\n(`bar.<id>.rules`, an ordered list, later wins); the user overrides one\nby its id here, any key alone (`[bar.items.\"power/battery\".rules.low]\nwhen = \"power.level < 25\"`), or adds one of their own (which needs\n`when`).",
+      "properties": {
+        "badge_color": {
+          "description": "The colour of this item's count badge and dot, a name or `#rrggbb`. The target's when unset (its own colour when that is too).",
+          "type": "string"
+        },
+        "badge_style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BadgeStyle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How this item's count badge is drawn. The target's when unset."
+        },
+        "color": {
+          "description": "This item's tint, a colour name or `#rrggbb`. The target's when unset.",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the rule is for, on the Settings pane.",
+          "type": "string"
+        },
+        "dim": {
+          "description": "A muted item's strength here, percent. The target's when unset.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BarFont"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`system` or `mono` for this item. The target's when unset."
+        },
+        "hidden": {
+          "description": "Off every target while the rule holds (its `empty` shape under\n`show = \"always\"`, as when the extension hides it).",
+          "type": "boolean"
+        },
+        "icon": {
+          "description": "A glyph, an emoji or a short text drawn as this item's icon in place of the extension's. The extension's when unset.",
+          "type": "string"
+        },
+        "icon_size": {
+          "description": "Point size of this item's glyph alone; `0` follows `size`. The target's when unset.",
+          "format": "double",
+          "type": "number"
+        },
+        "max_chars": {
+          "description": "This item's longest title, in characters. The target's when unset.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "opacity": {
+          "description": "This item's strength, percent, on every colour it draws. The target's when unset.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "position": {
+          "description": "A sketchybar position while the rule holds (`q` to bring a critical\nevent centre, `left` to park a far one).",
+          "type": "string"
+        },
+        "show_icon": {
+          "description": "Draw this item's icon. The target's when unset.",
+          "type": "boolean"
+        },
+        "show_title": {
+          "description": "Draw this item's title and segments. The target's when unset.",
+          "type": "boolean"
+        },
+        "size": {
+          "description": "Point size of the glyph and the text here. The target's when unset.",
+          "format": "double",
+          "type": "number"
+        },
+        "spacing": {
+          "description": "Points between the icon, the title and the segments here. The target's when unset.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text_size": {
+          "description": "Point size of this item's text alone; `0` follows `size`. The target's when unset.",
+          "format": "double",
+          "type": "number"
+        },
+        "urgent": {
+          "description": "Drawn as an alarm while the rule holds.",
+          "type": "boolean"
+        },
+        "urgent_color": {
+          "description": "This item's colour when urgent. The target's when unset.",
+          "type": "string"
+        },
+        "when": {
+          "description": "The state expression. Required on a rule of your own; on an\nextension's rule, unset keeps the extension's.",
+          "type": "string"
+        },
+        "width": {
+          "description": "A fixed width in points for this item; `0` is natural. The target's when unset.",
           "format": "uint32",
           "minimum": 0,
           "type": "integer"
@@ -526,6 +659,24 @@
         }
       ],
       "description": "`general.deeplink_confirm`: whether a link that acts shows the confirm\ncard. `true`/`false` for all, or the extensions whose links are trusted\n(the card is skipped for `run`, `form` and routes into them)."
+    },
+    "Decl": {
+      "additionalProperties": false,
+      "description": "One `[states.<name>]` table.",
+      "properties": {
+        "default": {
+          "description": "The value with nothing set and no expression; `false` when absent."
+        },
+        "description": {
+          "description": "What the States palette shows under the name.",
+          "type": "string"
+        },
+        "expr": {
+          "description": "A Jinja expression over other states (`hour >= 9 and hour < 18`);\nre-evaluated whenever a state it names changes. Without one the\nstate is only ever set by hand, from the CLI or by a publisher.",
+          "type": "string"
+        }
+      },
+      "type": "object"
     },
     "Edge": {
       "description": "Which screen edge the sidebar docks to.",
@@ -981,6 +1132,14 @@
         "width": 320.0
       },
       "description": "The sidebar: a live palette docked to a screen edge\n(`docs/design/switcher.md`)."
+    },
+    "states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Decl"
+      },
+      "default": {},
+      "description": "States: named variables bar items and extensions read\n(`[states.working] expr = \"hour >= 9 and hour < 18\"`;\n`docs/design/states.md`).",
+      "type": "object"
     }
   },
   "title": "pal config",

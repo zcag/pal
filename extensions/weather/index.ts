@@ -5,7 +5,7 @@ import { errorMessage, hint, settings, type BarItem, type Effect, type Extension
 import { fmt, fold, label, placeLabel, render as renderPopover, type Current, type Place, type Reading } from "./view.ts";
 
 /** `[extensions.weather]`, defaults in pal.json. */
-type Settings = { location: string; low: number; high: number; notable_conditions: unknown[] };
+type Settings = { location: string };
 const GEOCODE = () => process.env.PAL_WEATHER_GEOCODE ?? "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST = () => process.env.PAL_WEATHER_FORECAST ?? "https://api.open-meteo.com/v1/forecast";
 const placeCache = new Map<string, Place>();
@@ -63,21 +63,21 @@ async function read(): Promise<Reading | undefined> {
   if (!data.current || number(data.current.temperature_2m) === undefined || number(data.current.weather_code) === undefined) throw new Error("Weather service returned no current conditions");
   return { place: p, current: data.current, unit: data.current_units?.temperature_2m ?? "°C", windUnit: data.current_units?.wind_speed_10m ?? "km/h", hourly: data.hourly, daily: data.daily };
 }
-function isNotable(r: Reading): boolean {
-  const s = settings.get<Settings>(); const low = Number(s.low) || 10, high = Number(s.high) || 30;
-  const custom = (Array.isArray(s.notable_conditions) ? s.notable_conditions : []).map(Number);
-  return r.current.temperature_2m < low || r.current.temperature_2m > high || !quietCodes.has(r.current.weather_code) || custom.includes(r.current.weather_code);
-}
-function tint(r: Reading): "muted" | "amber" | "blue" | "teal" | "red" {
-  const s = settings.get<Settings>(); if (r.current.temperature_2m < (Number(s.low) || 10)) return "blue"; if (r.current.temperature_2m > (Number(s.high) || 30)) return "red"; return label(r)[2];
-}
+/**
+ * The reading in the condition's own tint, and the facts (`weather/temp`,
+ * `weather/code`, `weather/quiet`, `weather/condition`;
+ * docs/design/states.md): the manifest's rules hide ordinary weather
+ * (a quiet sky inside 10 to 30 degrees, the band the user moves by the
+ * rule's `when`) and tint cold blue and heat red. The reading is the
+ * `empty` shape a `show = "always"` config keeps, muted, so the forecast
+ * stays a click away.
+ */
 async function bar(): Promise<BarItem> {
   try {
-    const r = await read(); if (!r) return { hidden: true };
-    const [condition, glyph] = label(r);
+    const r = await read(); if (!r) return { hidden: true, states: { temp: null, code: null, quiet: null, condition: null } };
+    const [condition, glyph, color] = label(r);
     const item = { icon: glyph, title: `${fmt(r.current.temperature_2m)}${r.unit}`, tooltip: `${condition} in ${r.place.name}`, menu: { view: renderPopover(r) } };
-    // Ordinary weather is hidden; the reading is the `empty` shape a `show = "always"` config keeps, muted, so the forecast stays a click away.
-    return isNotable(r) ? { ...item, color: tint(r) } : { hidden: true, empty: item };
+    return { ...item, color, empty: item, states: { temp: r.current.temperature_2m, code: r.current.weather_code, quiet: quietCodes.has(r.current.weather_code), condition } };
   }
   catch (e) { const message = errorMessage(e); return { icon: "󰖪", title: "Weather", color: "red", stale: true, tooltip: message }; }
 }

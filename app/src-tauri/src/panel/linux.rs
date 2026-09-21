@@ -66,6 +66,7 @@ pub fn hide(app: &AppHandle) {
             crate::pop::note_hidden();
             crate::pick::on_hidden(app);
             crate::switcher::on_hidden(app);
+            crate::states::on_panel(app, false);
             crate::views::set_visible(app, WINDOW, false, false);
         }
         let _ = w.hide();

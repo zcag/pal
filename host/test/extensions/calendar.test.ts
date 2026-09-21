@@ -16,7 +16,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
-import { barName, barRules, barWhen, eligible, escalation, nextEvent, nextWords, onDay, shortSpan, span, state, upcomingItem, upcomingPresentation } from "../../../extensions/calendar/today.ts";
+import { barName, barWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, shortSpan, span, state, upcomingItem } from "../../../extensions/calendar/today.ts";
 import { parseLength, parseQuick, type Quick } from "../../../extensions/calendar/quick.ts";
 import { actions as popoverActions, focusable, freshPopover, listed, popover } from "../../../extensions/calendar/view.ts";
 import type { BarItem, Calendar, CalendarEvent, Form, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -281,20 +281,20 @@ describe("today helpers", () => {
   });
   test("upcomingItem: hidden, the name as the title with the time as a segment, the colours, the dot, stale", () => {
     const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
-    expect(upcomingItem([], t0, s)).toEqual({ hidden: true });
+    expect(upcomingItem([], t0, s)).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
     const soon = ev("s", "Standup", t0 + 12 * MIN, t0 + 42 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const item = upcomingItem([soon], t0, s);
     // The `when` segment has no colour of its own: on either target it takes the item's, so it reads amber here.
-    expect(item).toMatchObject({ title: "Standup", segments: [{ id: "when", text: "in 12m" }], color: "amber", badge: "dot", tooltip: `Standup, ${timeRange(soon)} (Work), Enter joins`, click: "open", menu: { view: { id: "upcoming", keys: "actions" } } });
+    expect(item).toMatchObject({ title: "Standup", segments: [{ id: "when", text: "in 12m" }], badge: "dot", tooltip: `Standup, ${timeRange(soon)} (Work), Enter joins`, click: "open", menu: { view: { id: "upcoming", keys: "actions" } }, states: { phase: "warning", minutes: 12, call: true } });
     expect(item.segments![0].color).toBeUndefined();
     expect(item.stale).toBeUndefined();
     const long = ev("l", "A very long meeting title that goes on and on and on", t0 + 3 * H, t0 + 4 * H);
-    expect(upcomingItem([long], t0, s)).toMatchObject({ title: "A very long meeting title that goes on and on and on", segments: [{ id: "when", text: "in 3h" }], color: "muted" });
+    expect(upcomingItem([long], t0, s)).toMatchObject({ title: "A very long meeting title that goes on and on and on", segments: [{ id: "when", text: "in 3h" }], states: { phase: "far" } });
     expect((upcomingItem([long], t0, s) as BarItem).badge).toBeUndefined();
-    expect(upcomingItem([soon], t0 + 8 * MIN, s)).toMatchObject({ title: "Standup", segments: [{ id: "when", text: "in 4m" }], color: "red" });
-    expect(upcomingItem([soon], t0 + 20 * MIN, s, "archer is away")).toMatchObject({ title: "Standup", segments: [{ id: "when", text: "22m left" }], color: "green", stale: true });
+    expect(upcomingItem([soon], t0 + 8 * MIN, s)).toMatchObject({ title: "Standup", segments: [{ id: "when", text: "in 4m" }], states: { phase: "critical" } });
+    expect(upcomingItem([soon], t0 + 20 * MIN, s, "archer is away")).toMatchObject({ title: "Standup", segments: [{ id: "when", text: "22m left" }], states: { phase: "running" }, stale: true });
     expect(JSON.stringify((upcomingItem([soon], t0 + 20 * MIN, s, "archer is away").menu as { view: View }).view.tree)).toContain("showing the last events read");
-    expect(upcomingItem([soon], t0, { ...s, warn_minutes: 10 })).toMatchObject({ color: "muted" });
+    expect(upcomingItem([soon], t0, { ...s, warn_minutes: 10 })).toMatchObject({ states: { phase: "near" } });
   });
 
   test("upcomingItem while an event runs: what is left, and the next one due as a second segment in its own colour with its name in the tooltip", () => {
@@ -302,10 +302,10 @@ describe("today helpers", () => {
     const cur = ev("c", "Weekly sync", t0 - 18 * MIN, t0 + 12 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const review = ev("r", "Design review", t0 + 20 * MIN, t0 + 80 * MIN, { calendar: cals[1] });
     // Alone: the name, `12m left` in the running colour, no second segment.
-    expect(upcomingItem([cur], t0, s)).toMatchObject({ title: "Weekly sync", segments: [{ id: "when", text: "12m left" }], color: "green", badge: "dot", tooltip: `Weekly sync, ${timeRange(cur)} (Work), Enter joins` });
+    expect(upcomingItem([cur], t0, s)).toMatchObject({ title: "Weekly sync", segments: [{ id: "when", text: "12m left" }], states: { phase: "running" }, badge: "dot", tooltip: `Weekly sync, ${timeRange(cur)} (Work), Enter joins` });
     // The next due inside the horizon: `in 20m`, muted past the warning, its words after `; then` in the tooltip.
     const both = upcomingItem([review, cur], t0, s);
-    expect(both).toMatchObject({ title: "Weekly sync", color: "green", badge: "dot", tooltip: `Weekly sync, ${timeRange(cur)} (Work), Enter joins; then Design review, ${timeRange(review)} (Home)` });
+    expect(both).toMatchObject({ title: "Weekly sync", states: { phase: "running" }, badge: "dot", tooltip: `Weekly sync, ${timeRange(cur)} (Work), Enter joins; then Design review, ${timeRange(review)} (Home)` });
     expect(both.segments).toEqual([{ id: "when", text: "12m left" }, { id: "next", text: "in 20m", color: "muted", tooltip: `Design review, ${timeRange(review)} (Home)` }]);
     // Eight minutes on: `4m left`, the review inside the warning, amber; inside the urgent, red.
     expect(upcomingItem([review, cur], t0 + 8 * MIN, s).segments).toEqual([{ id: "when", text: "4m left" }, { id: "next", text: "in 12m", color: "amber", tooltip: `Design review, ${timeRange(review)} (Home)` }]);
@@ -319,32 +319,16 @@ describe("today helpers", () => {
     expect(upcomingItem([review, cur], t0 - 21 * MIN, s).segments).toEqual([{ id: "when", text: "in 3m" }]);
   });
 
-  test("upcoming presentation: far, near, warning, critical and running keep their own configurable appearance", () => {
-    const s: Settings = {
-      source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true,
-      horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30,
-      bar_far_color: "grey", bar_near_color: "blue", bar_warning_color: "amber", bar_critical_color: "red", bar_running_color: "green",
-      bar_far_size: 9, bar_near_size: 11, bar_attention_size: 14,
-      bar_far_position: "left", bar_near_position: "center", bar_attention_position: "q",
-    };
+  test("the phase is the item's state; the colour is the manifest's rules', not the render's", () => {
+    const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
     const at = (minutes: number) => ev(`at-${minutes}`, "Review", t0 + minutes * MIN, t0 + (minutes + 30) * MIN);
-    expect(upcomingPresentation(at(120), t0, s)).toEqual({ phase: "far", color: "grey", size: 9, position: "left" });
-    expect(upcomingPresentation(at(45), t0, s)).toEqual({ phase: "near", color: "blue", size: 11, position: "center" });
-    expect(upcomingPresentation(at(12), t0, s)).toEqual({ phase: "warning", color: "amber", size: 14, position: "q" });
-    expect(upcomingPresentation(at(4), t0, s)).toEqual({ phase: "critical", color: "red", size: 14, position: "q" });
-    expect(upcomingPresentation(at(-1), t0, s)).toEqual({ phase: "running", color: "green", size: 14, position: "q" });
-    expect(upcomingItem([at(12)], t0, s)).toMatchObject({ icon_size: 14, label_size: 14, position: "q" });
-    expect(upcomingItem([at(45)], t0, s)).toMatchObject({ icon_size: 11, label_size: 11, position: "center" });
-    // Existing defaults stay exactly as the original item: no dynamic look,
-    // muted before warning, amber then red, green once the event started.
-    const defaults: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
-    expect(barRules(defaults)).toMatchObject({ near_minutes: 60, horizon_hours: 10 });
-    expect(upcomingPresentation(at(120), t0, defaults)).toEqual({ phase: "far", color: "muted", size: undefined, position: undefined });
-    expect(upcomingPresentation(at(45), t0, defaults)).toEqual({ phase: "near", color: "muted", size: undefined, position: undefined });
-    expect(upcomingPresentation(at(12), t0, defaults)).toEqual({ phase: "warning", color: "amber", size: undefined, position: undefined });
-    expect(upcomingPresentation(at(4), t0, defaults)).toEqual({ phase: "critical", color: "red", size: undefined, position: undefined });
-    expect(upcomingPresentation(at(-1), t0, defaults)).toEqual({ phase: "running", color: "green", size: undefined, position: undefined });
-    expect(upcomingItem([at(12)], t0, defaults)).toMatchObject({ icon_size: undefined, label_size: undefined, position: undefined });
+    expect([120, 45, 12, 4, -1].map((m) => phaseOf(at(m), t0, s))).toEqual(["far", "near", "warning", "critical", "running"]);
+    const item = upcomingItem([at(12)], t0, s);
+    expect(item.states).toEqual({ phase: "warning", minutes: 12, call: false });
+    expect(item.color).toBeUndefined();
+    expect(item.icon_size).toBeUndefined();
+    expect(upcomingItem([], t0, s)).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
+    expect(upcomingItem([at(-1)], t0, s).states).toMatchObject({ phase: "running", minutes: -1 });
   });
 
   /** Every node of a tree, depth first. */
@@ -670,8 +654,8 @@ describe("today palette and the upcoming bar item", () => {
       expect(await h2.pick(E, T, "nothing")).toEqual({});
       expect(await h2.detail(E, T, "nothing")).toEqual({});
       // The strip: nothing inside ten hours.
-      expect(await h2.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true });
-      expect(await h2.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true });
+      expect(await h2.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
+      expect(await h2.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
     } finally { h2.kill(); }
     const h3 = await Host.bundled({ core: core([events[5]]) });
     try {
@@ -683,7 +667,7 @@ describe("today palette and the upcoming bar item", () => {
 
   test("the bar item: the running call with what is left and the Dentist due after it, a dot, a minute tick from the cache in under 5 ms, the rest fetch", async () => {
     const first = await host.render(E, "upcoming", { reason: "load" });
-    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup", color: "green", badge: "dot", click: "open", tooltip: "Standup, 10:20 – 10:50 (Work), Enter joins; then Dentist, 11:12 – 11:42 (Home)", menu: { view: { id: "upcoming", keys: "actions", title: "Today · Wed 16 Sep" } } });
+    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup", states: { phase: "running" }, badge: "dot", click: "open", tooltip: "Standup, 10:20 – 10:50 (Work), Enter joins; then Dentist, 11:12 – 11:42 (Home)", menu: { view: { id: "upcoming", keys: "actions", title: "Today · Wed 16 Sep" } } });
     expect(first.segments).toEqual([{ id: "when", text: "20m left" }, { id: "next", text: "in 42m", color: "muted", tooltip: "Dentist, 11:12 – 11:42 (Home)" }]);
     expect(first.stale).toBeUndefined();
     const before = eventsCalls();
@@ -791,32 +775,32 @@ describe("today palette and the upcoming bar item", () => {
     } finally { h3.kill(); }
   });
 
-  test("the bar item hides without permission and honours the horizon and colour settings", async () => {
+  test("the bar item hides without permission and honours the horizon and the phase boundaries", async () => {
     status = "not_determined";
-    try { expect(await host.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true }); } finally { status = "granted"; }
+    try { expect(await host.render(E, "upcoming", { reason: "load" })).toMatchObject({ hidden: true }); } finally { status = "granted"; }
     host.changeSettings(E, { settings: { days: 14, warn_minutes: 60, urgent_minutes: 30, hide_declined: false } });
     await Bun.sleep(50);
     try {
       // With the running call gone from the fixture the next one is Dentist, 42 minutes out: amber under a 60-minute rule.
       const h2 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 60, urgent_minutes: 45 } } } });
       try {
-        expect(await h2.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], color: "red" });
+        expect(await h2.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "critical", minutes: 42 } });
       } finally { h2.kill(); }
       const h3 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { horizon_hours: 1, warn_minutes: 15 } } } });
       try {
-        expect(await h3.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], color: "muted" });
+        expect(await h3.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "near" } });
         expect((await h3.render(E, "upcoming", { reason: "load" }) as BarItem).badge).toBeUndefined();
       } finally { h3.kill(); }
       // The boundaries are inclusive: 42 minutes out is amber under warn 42 / urgent 41, red under urgent 42.
       const h4 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 42, urgent_minutes: 41 } } } });
-      try { expect(await h4.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], color: "amber" }); } finally { h4.kill(); }
+      try { expect(await h4.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "warning" } }); } finally { h4.kill(); }
       const h5 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 60, urgent_minutes: 42 } } } });
-      try { expect(await h5.render(E, "upcoming", { reason: "load" })).toMatchObject({ color: "red" }); } finally { h5.kill(); }
+      try { expect(await h5.render(E, "upcoming", { reason: "load" })).toMatchObject({ states: { phase: "critical" } }); } finally { h5.kill(); }
       // The horizon is inclusive too: the Concert tomorrow at 19:00 is 32 h 30 min out.
       const h6 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32.5 } } } });
-      try { expect(await h6.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Concert", segments: [{ id: "when", text: "in 32h 30m" }], color: "muted" }); } finally { h6.kill(); }
+      try { expect(await h6.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Concert", segments: [{ id: "when", text: "in 32h 30m" }], states: { phase: "far" } }); } finally { h6.kill(); }
       const h7 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32 } } } });
-      try { expect(await h7.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true }); } finally { h7.kill(); }
+      try { expect(await h7.render(E, "upcoming", { reason: "load" })).toMatchObject({ hidden: true, states: { phase: "none" } }); } finally { h7.kill(); }
     } finally {
       host.changeSettings(E, { settings: { days: 14 } });
       await Bun.sleep(50);

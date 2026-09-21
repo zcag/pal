@@ -15,14 +15,15 @@ import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { isTileIcon } from "../../sdk/src/icon.ts";
-import { checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
-import type { BarMeta, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "../../sdk/src/protocol.ts";
+import { checkBarRules, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import type { BarMeta, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance } from "./instances.ts";
 import { bindSdk, SDK } from "./sdk.ts";
 import { describe, forgetDetails, log, paletteMethods, sections as sectionsOf, timeout, type Section, type SectionKind } from "./serve.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
+import { update as updateStates } from "./states.ts";
 import { forget as forgetViews, viewMethods } from "./views.ts";
 
 const VERSION = "0.0.1";
@@ -147,7 +148,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
-    check.warnings.push(...checkLinks(manifest, ext));
+    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
@@ -264,7 +265,7 @@ async function stopInstances(name: string, keep: string[] = []) {
 }
 
 /** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
-const HOST_LEVEL = new Set(["hello", "inline", "fallback", "suggest", "settings/changed", "instances/changed"]);
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "suggest", "settings/changed", "instances/changed", "states/changed"]);
 
 /** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
 const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
@@ -459,6 +460,12 @@ const methods: Record<string, (params: any) => unknown> = {
       const r = redacted(nameOf(name), s);
       log(`settings ${name} ${JSON.stringify(r.settings)} palettes ${JSON.stringify(r.palettes)}`);
     }
+  },
+  // Notification from the core: states changed; the inline extensions' listeners here, every worker's through its own relay.
+  "states/changed": (p: StatesChanged) => {
+    const changed = p?.states ?? {};
+    updateStates(changed);
+    for (const w of workers.values()) w.states(changed);
   },
   // Notification from the core: `[instances.*]` of the extension changed; its instances are reloaded, as a file change would.
   "instances/changed": async (p) => {
