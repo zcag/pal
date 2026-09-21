@@ -87,14 +87,19 @@ fn copied_text(copy: &clipboard::Copy) -> String {
     }
 }
 
-/// Hide the window the pick came from (`window`: the panel, or the bar
-/// popover) and wait for its orderOut to hand key focus back to the app
-/// in front, so what follows (a keystroke, an activate) lands there.
-/// Harmless on a window that was not up (an item hotkey fired).
+/// Hide the window the pick came from (`window`: the panel, the bar
+/// popover or the sidebar) and wait for its orderOut to hand key focus
+/// back to the app in front, so what follows (a keystroke, an activate)
+/// lands there. Harmless on a window that was not up (an item hotkey
+/// fired).
 async fn hide_first(app: &AppHandle, window: &str) -> Result<(), String> {
     let handle = app.clone();
-    let popover = window == crate::bar::popover::WINDOW;
-    app.run_on_main_thread(move || if popover { crate::bar::popover::hide(&handle) } else { panel::hide(&handle) }).map_err(|e| e.to_string())?;
+    let hide: fn(&AppHandle) = match window {
+        crate::bar::popover::WINDOW => crate::bar::popover::hide,
+        crate::sidebar::WINDOW => crate::sidebar::hide,
+        _ => panel::hide,
+    };
+    app.run_on_main_thread(move || hide(&handle)).map_err(|e| e.to_string())?;
     tokio::time::sleep(HIDE_SETTLE).await;
     Ok(())
 }

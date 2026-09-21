@@ -290,8 +290,8 @@ pub async fn host_request(
 ) -> Result<Value, String> {
     let t0 = Instant::now();
     let mut params = params.unwrap_or(Value::Null);
-    // From the bar popover, a listing or a tree is drawn compact (`Ctx.compact`); the pick's flag is set in index.rs.
-    if window.label() == crate::bar::popover::WINDOW && matches!(method.as_str(), "list" | "view") {
+    // From the bar popover or the sidebar, a listing or a tree is drawn compact (`Ctx.compact`); the pick's flag is set in index.rs.
+    if crate::views::is_compact(window.label()) && matches!(method.as_str(), "list" | "view") {
         if let Value::Object(o) = &mut params {
             o.insert("compact".into(), Value::Bool(true));
         }

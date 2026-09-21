@@ -281,12 +281,14 @@ mod large {
 
 pub use large::{hide as large_hide, install as large_install, show as large_show};
 
-// ---- bar popover ---------------------------------------------------------
+// ---- bar popover and sidebar ----------------------------------------------
 
-/// The bar popover's panel (bar/popover.rs): key like the main panel
-/// when engaged, shown without key for a peek; its own tracking area
-/// reports the pointer entering and leaving (the peek's grace spans the
-/// gap between an item and the popover). Its own module, as `hud`.
+/// The bar popover's panel (bar/popover.rs), and the sidebar's (sidebar.rs,
+/// the same kind under another label): key like the main panel when
+/// engaged, shown without key for a peek; its own tracking area reports
+/// the pointer entering and leaving (the peek's grace spans the gap
+/// between an item and the popover, or the strip and the sidebar). Its
+/// own module, as `hud`.
 mod bar {
     use tauri::{AppHandle, Manager, WebviewWindow};
     use tauri_nspanel::{tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, TrackingAreaOptions, WebviewWindowExt};
@@ -312,6 +314,21 @@ mod bar {
         })
     }
 
+    /// The machine behind a window of this kind, by its label: what its
+    /// resign and its pointer tracking feed.
+    struct Hooks {
+        on_resign: fn(&AppHandle),
+        on_pointer: fn(&AppHandle, bool),
+    }
+
+    fn hooks(label: &str) -> Hooks {
+        if label == crate::sidebar::WINDOW {
+            Hooks { on_resign: crate::sidebar::on_resign, on_pointer: crate::sidebar::on_pointer }
+        } else {
+            Hooks { on_resign: crate::bar::popover::on_resign, on_pointer: crate::bar::popover::on_pointer }
+        }
+    }
+
     /// The main panel's arrangement (`install` above): floating,
     /// non-activating, all Spaces, never ordered out, hidden = alpha 0
     /// and the mouse passing through, occlusion detection off.
@@ -330,37 +347,41 @@ mod bar {
         // (2026-09-16, `key->paint "ok sent" (0)` in the popover's page).
         panel.set_becomes_key_only_if_needed(true);
         let app = window.app_handle().clone();
+        let label = window.label().to_string();
+        let Hooks { on_resign, on_pointer } = hooks(&label);
         let events = BarPanelEvents::new();
-        events.window_did_become_key(move |_| eprintln!("bar\tpopover\tkey\t{:.1}ms since start", crate::since_start_ms()));
+        let l = label.clone();
+        events.window_did_become_key(move |_| eprintln!("bar\t{l}\tkey\t{:.1}ms since start", crate::since_start_ms()));
         let h = app.clone();
-        events.window_did_resign_key(move |_| crate::bar::popover::on_resign(&h));
+        events.window_did_resign_key(move |_| on_resign(&h));
         let h = app.clone();
-        events.on_mouse_entered(move |_| crate::bar::popover::on_pointer(&h, true));
+        events.on_mouse_entered(move |_| on_pointer(&h, true));
         let h = app.clone();
-        events.on_mouse_exited(move |_| crate::bar::popover::on_pointer(&h, false));
+        events.on_mouse_exited(move |_| on_pointer(&h, false));
         panel.set_event_handler(Some(events.as_ref()));
         let occlusion = window.with_webview(|wv| unsafe {
             let wk = &*(wv.inner() as *const AnyObject);
             let _: () = msg_send![wk, _setWindowOcclusionDetectionEnabled: false];
         });
         if let Err(e) = occlusion {
-            eprintln!("bar\twith_webview failed\t{e}; the popover page may pause when covered");
+            eprintln!("bar\t{label}\twith_webview failed\t{e}; the page may pause when covered");
         }
         panel.set_ignores_mouse_events(true);
         panel.set_alpha_value(0.0);
         panel.show();
     }
 
-    /// Show: key (`engaged`, the page's input takes the keyboard) or a
-    /// peek, ordered front without key so the app in front keeps typing.
-    pub fn show(app: &AppHandle, engaged: bool) {
+    /// Show `label`: key (`engaged`, the page's input takes the keyboard)
+    /// or a peek, ordered front without key so the app in front keeps
+    /// typing.
+    pub fn show(app: &AppHandle, label: &'static str, engaged: bool) {
         super::on_main(app, move |app| {
-            let Ok(p) = app.get_webview_panel(crate::bar::popover::WINDOW) else { return };
+            let Ok(p) = app.get_webview_panel(label) else { return };
             p.set_ignores_mouse_events(false);
             p.set_alpha_value(1.0);
             if engaged {
                 p.show_and_make_key();
-                if let Some(w) = app.get_webview_window(crate::bar::popover::WINDOW) {
+                if let Some(w) = app.get_webview_window(label) {
                     let webview: &tauri::Webview = w.as_ref();
                     let _ = webview.set_focus();
                 }
@@ -370,9 +391,9 @@ mod bar {
         });
     }
 
-    pub fn hide(app: &AppHandle) {
-        super::on_main(app, |app| {
-            let Ok(p) = app.get_webview_panel(crate::bar::popover::WINDOW) else { return };
+    pub fn hide(app: &AppHandle, label: &'static str) {
+        super::on_main(app, move |app| {
+            let Ok(p) = app.get_webview_panel(label) else { return };
             if p.as_panel().alphaValue() <= 0.0 {
                 return;
             }
@@ -385,3 +406,122 @@ mod bar {
 }
 
 pub use bar::{hide as bar_hide, install as bar_install, show as bar_show};
+
+// ---- sidebar strip ---------------------------------------------------------
+
+/// The sidebar's peek strips (sidebar.rs): a 2 px panel of pal's own
+/// along the docked edge of each display the config can mean, no
+/// webview, transparent (a clear background at alpha 1: a window at
+/// alpha 0 gets no mouse events), non-activating, floating on every
+/// Space, taking the mouse only to notice it (`mouseEntered` /
+/// `mouseExited` from a tracking area over its whole content view, on a
+/// view class of ours since AppKit sends them to the area's owner).
+/// `place` moves the panels it has and makes or closes the difference;
+/// `remove` closes them all.
+mod strip {
+    use std::cell::RefCell;
+
+    use objc2::rc::Retained;
+    use objc2::runtime::NSObjectProtocol;
+    use objc2::{define_class, msg_send, DefinedClass, MainThreadMarker, MainThreadOnly};
+    use objc2_app_kit::{NSBackingStoreType, NSColor, NSEvent, NSFloatingWindowLevel, NSPanel, NSScreen, NSTrackingArea, NSTrackingAreaOptions, NSView, NSWindowCollectionBehavior, NSWindowStyleMask};
+    use objc2_foundation::{NSPoint, NSRect, NSSize};
+    use tauri::AppHandle;
+
+    struct Ivars {
+        on: Box<dyn Fn(bool)>,
+    }
+
+    define_class!(
+        // SAFETY: NSView has no subclassing requirements beyond the main thread; no Drop.
+        #[unsafe(super(NSView))]
+        #[thread_kind = MainThreadOnly]
+        #[name = "PalStripView"]
+        #[ivars = Ivars]
+        struct StripView;
+
+        unsafe impl NSObjectProtocol for StripView {}
+
+        impl StripView {
+            #[unsafe(method(mouseEntered:))]
+            fn mouse_entered(&self, _event: &NSEvent) {
+                (self.ivars().on)(true);
+            }
+
+            #[unsafe(method(mouseExited:))]
+            fn mouse_exited(&self, _event: &NSEvent) {
+                (self.ivars().on)(false);
+            }
+        }
+    );
+
+    thread_local! {
+        static STRIPS: RefCell<Vec<Retained<NSPanel>>> = const { RefCell::new(Vec::new()) };
+    }
+
+    /// A logical rect, top-left origin (tauri's space), in AppKit's
+    /// bottom-left space: the primary screen's height is the hinge.
+    fn flip(mtm: MainThreadMarker, (x, y, w, h): (f64, f64, f64, f64)) -> NSRect {
+        let hinge = NSScreen::screens(mtm).iter().next().map_or(0.0, |s| s.frame().size.height);
+        NSRect::new(NSPoint::new(x, hinge - y - h), NSSize::new(w, h))
+    }
+
+    fn make(mtm: MainThreadMarker, frame: NSRect, on: Box<dyn Fn(bool)>) -> Retained<NSPanel> {
+        let panel = NSPanel::initWithContentRect_styleMask_backing_defer(NSPanel::alloc(mtm), frame, NSWindowStyleMask::Borderless | NSWindowStyleMask::NonactivatingPanel, NSBackingStoreType::Buffered, false);
+        // SAFETY: a panel made and kept on the main thread; `releasedWhenClosed` off so the Retained here is its one owner.
+        unsafe { panel.setReleasedWhenClosed(false) };
+        panel.setLevel(NSFloatingWindowLevel);
+        panel.setCollectionBehavior(NSWindowCollectionBehavior::CanJoinAllSpaces | NSWindowCollectionBehavior::FullScreenAuxiliary | NSWindowCollectionBehavior::Stationary | NSWindowCollectionBehavior::IgnoresCycle);
+        panel.setOpaque(false);
+        panel.setBackgroundColor(Some(&NSColor::clearColor()));
+        panel.setHasShadow(false);
+        panel.setHidesOnDeactivate(false);
+        panel.setIgnoresMouseEvents(false);
+        let bounds = NSRect::new(NSPoint::new(0.0, 0.0), frame.size);
+        let view = StripView::alloc(mtm).set_ivars(Ivars { on });
+        // SAFETY: NSView's designated initialiser on our subclass.
+        let view: Retained<StripView> = unsafe { msg_send![super(view), initWithFrame: bounds] };
+        // SAFETY: the view owns the area and outlives it (the panel holds the view); `InVisibleRect` follows the view's bounds, so a re-place needs no bookkeeping.
+        let area = unsafe { NSTrackingArea::initWithRect_options_owner_userInfo(mtm.alloc::<NSTrackingArea>(), bounds, NSTrackingAreaOptions::MouseEnteredAndExited | NSTrackingAreaOptions::ActiveAlways | NSTrackingAreaOptions::InVisibleRect, Some(&view), None) };
+        view.addTrackingArea(&area);
+        panel.setContentView(Some(&view));
+        panel.orderFrontRegardless();
+        panel
+    }
+
+    /// One strip per rect (main thread), `on` getting the pointer entering (true) and leaving any of them.
+    pub fn place(app: &AppHandle, rects: Vec<(f64, f64, f64, f64)>, on: fn(&AppHandle, bool)) {
+        let handle = app.clone();
+        super::on_main(app, move |_| {
+            let Some(mtm) = MainThreadMarker::new() else { return };
+            STRIPS.with(|s| {
+                let mut s = s.borrow_mut();
+                for p in s.drain(rects.len()..) {
+                    p.orderOut(None);
+                }
+                for (i, rect) in rects.into_iter().enumerate() {
+                    let frame = flip(mtm, rect);
+                    match s.get(i) {
+                        Some(p) => p.setFrame_display(frame, false),
+                        None => {
+                            let h = handle.clone();
+                            s.push(make(mtm, frame, Box::new(move |entered| on(&h, entered))));
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    pub fn remove(app: &AppHandle) {
+        super::on_main(app, |_| {
+            STRIPS.with(|s| {
+                for p in s.borrow_mut().drain(..) {
+                    p.orderOut(None);
+                }
+            });
+        });
+    }
+}
+
+pub use strip::{place as strip_place, remove as strip_remove};

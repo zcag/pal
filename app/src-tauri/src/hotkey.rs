@@ -3,7 +3,8 @@
 //! (`<item id> = "<keys>"`) run one item of the palette with the panel down,
 //! as if picked (`index::run_pick`: the host's `pick`, then its effects),
 //! and `bar.items.<key>.hotkey` opens a bar item's popover engaged (or runs
-//! its open action, `bar::popover::on_hotkey`).
+//! its open action, `bar::popover::on_hotkey`), and `sidebar.hotkey`
+//! engages the sidebar (`sidebar::on_hotkey`).
 //! All come from the config file and are swapped live when it changes
 //! (`settings::on_reload`) or a palette arrives (`index::sync_extension`). An empty `general.hotkey` means none
 //! (a compositor keybind runs `pal toggle` instead). On Linux this only
@@ -46,14 +47,15 @@ const POLL: Duration = Duration::from_secs(2);
 
 /// What a registered shortcut does: toggle the panel, open it in a
 /// palette (by its `extension/palette` key, what the UI scopes on), pick
-/// one item of a palette without the panel, or open a bar item's popover
-/// (by its `extension/id` key).
+/// one item of a palette without the panel, open a bar item's popover
+/// (by its `extension/id` key), or engage the sidebar.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Target {
     Root,
     Palette(String),
     Item(Source, String),
     Bar(String),
+    Sidebar,
 }
 
 /// One entry of `general.hotkey` and how its registration went.
@@ -194,6 +196,7 @@ pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
             let app = app.clone();
             tauri::async_runtime::spawn_blocking(move || crate::bar::popover::on_hotkey(&app, &key));
         }
+        Some(Target::Sidebar) => crate::sidebar::on_hotkey(app),
         Some(Target::Item(source, id)) => {
             let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
             let app = app.clone();
@@ -311,10 +314,11 @@ fn judge(roots: &[Root], map: &HashMap<Shortcut, Target>, failed: &HashMap<Short
 /// Register what the config wants and drop what it no longer does. A
 /// palette's hotkeys are only registered once the palette exists, a bar
 /// item's whatever its state (the item may be hidden or not yet
-/// rendered; its hotkey still opens it). In a clash the root hotkeys win
-/// over a palette's, a palette's over a bar item's, a bar item's over a
-/// palette item's; a hotkey another app holds is reported and skipped,
-/// the rest still apply.
+/// rendered; its hotkey still opens it), the sidebar's while it has a
+/// palette. In a clash the root hotkeys win over a palette's, a
+/// palette's over a bar item's, a bar item's over a palette item's, any
+/// of them over the sidebar's; a hotkey another app holds is reported
+/// and skipped, the rest still apply.
 pub fn apply(app: &AppHandle, config: &Config) {
     let mut wanted: HashMap<Shortcut, Target> = HashMap::new();
     let parse = |what: String, h: &str| match h.trim().parse::<Shortcut>() {
@@ -324,6 +328,11 @@ pub fn apply(app: &AppHandle, config: &Config) {
             None
         }
     };
+    if let Some(h) = config.sidebar.hotkey.as_deref().filter(|h| !h.trim().is_empty() && config.sidebar.palette().is_some()) {
+        if let Some(s) = parse("sidebar.hotkey".into(), h) {
+            wanted.insert(s, Target::Sidebar);
+        }
+    }
     let palettes = crate::registry::registered_palettes(app);
     for (id, source) in &palettes {
         for (item, h) in &config.palette(id).item_hotkeys {

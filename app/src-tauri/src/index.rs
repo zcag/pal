@@ -488,11 +488,10 @@ async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &Pa
 /// The panel is showing: the `lazy` palettes still waiting for their
 /// first listing of the run get it (`list_palette`, the host's own
 /// timeout, one task each, `why` = `show`), and every live palette that
-/// is due (`relist_due`) lists again, all at once, each given
-/// `LIVE_RELIST_TIMEOUT`, and the page is told once. Spawned, so the show
-/// never waits on it; the paint has the old rows, the next keystroke (or
-/// the `pal://index` re-query) the new ones. A lazy live palette on its
-/// first show goes the lazy way only.
+/// is due lists again (`relist`). Spawned, so the show never waits on it;
+/// the paint has the old rows, the next keystroke (or the `pal://index`
+/// re-query) the new ones. A lazy live palette on its first show goes the
+/// lazy way only.
 pub fn on_shown(app: &AppHandle) {
     SHOWN.store(true, Ordering::SeqCst);
     // The welcome rows follow the permission and the marker; a no-op once hidden.
@@ -521,6 +520,40 @@ pub fn on_shown(app: &AppHandle) {
     let live: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
         reg.iter().filter(|r| r.enabled && r.meta.relists_on_show() && !lazy_now.contains(&r.source)).map(|r| (r.source.clone(), r.meta.clone())).collect()
     });
+    relist(app, live);
+}
+
+/// The sidebar is showing `key` (`extension/palette`, sidebar.rs): that
+/// palette alone goes the panel's way, its first listing of the run if
+/// it was waiting for a show, else the live relist above.
+pub fn relist_live(app: &AppHandle, key: &str) {
+    let found = Palettes::with(app, |reg| {
+        reg.iter_mut().find(|r| r.enabled && palette_key(&r.source) == key).map(|r| {
+            let waiting = std::mem::take(&mut r.awaits_show);
+            (r.source.clone(), r.meta.clone(), waiting)
+        })
+    });
+    let Some((source, m, waiting)) = found else { return eprintln!("index\tsidebar\t{key}\tno such palette to list") };
+    if waiting {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let host = app.state::<Arc<Host>>().inner().clone();
+            list_palette(&app, &host, &source, &m, "show").await;
+        });
+    } else if m.relists_on_show() {
+        relist(app, vec![(source, m)]);
+    }
+}
+
+/// `extension/palette`, the key the page and the config name a palette by.
+pub fn palette_key(s: &Source) -> String {
+    format!("{}/{}", s.extension, s.palette)
+}
+
+/// The live palettes among `live` that are due (`relist_due`) list again,
+/// all at once, each given `LIVE_RELIST_TIMEOUT`, and the page is told
+/// once. Spawned, so the show never waits on it.
+fn relist(app: &AppHandle, live: Vec<(Source, PaletteMeta)>) {
     let now = unix_secs();
     let ages: Vec<Option<u64>> = with_index(app, |ix| live.iter().map(|(s, _)| ix.source(s).and_then(|i| i.listed_at)).collect());
     let mut relisted = lock(&RELISTED);
@@ -1065,7 +1098,7 @@ pub async fn run_pick(app: &AppHandle, host: &Arc<Host>, source: &Source, pick: 
 pub async fn run_pick_from(app: &AppHandle, host: &Arc<Host>, source: &Source, pick: &Pick<'_>, window: &str) -> Result<Value, String> {
     let Pick { id, action, args, values, ids } = *pick;
     let mut params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args, "values": values, "ids": ids });
-    if window == crate::bar::popover::WINDOW {
+    if crate::views::is_compact(window) {
         params["compact"] = Value::Bool(true);
     }
     let t0 = Instant::now();

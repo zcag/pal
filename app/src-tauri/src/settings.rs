@@ -226,6 +226,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
         autostart::apply(app, &loaded.config);
     }
     crate::bar::apply_config(app, &prev, &loaded.config);
+    crate::sidebar::apply_config(app, &prev, &loaded.config);
     crate::expansion::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);

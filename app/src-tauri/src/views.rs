@@ -5,8 +5,8 @@
 //!
 //! The page reports its top view level through `view_open` whenever it
 //! changes (a push, a pop, a level covered, the tree landing); the shell
-//! reports whether the window is visible (`set_visible` from the panel's
-//! and the popover's show and hide). A view counts as open only while
+//! reports whether the window is visible (`set_visible` from the panel's,
+//! the popover's and the sidebar's show and hide). A view counts as open only while
 //! both hold, and the notifications fire on the transitions of that set:
 //! a hidden panel keeps its level, but nothing should tick for it. A push
 //! goes to every window whose open view it names, as a `pal://view` event
@@ -116,9 +116,10 @@ impl Table {
     }
 }
 
-/// The bar popover is the compact surface (420 px, bar/popover.rs).
-fn is_compact(window: &str) -> bool {
-    window == crate::bar::popover::WINDOW
+/// The bar popover (420 px, bar/popover.rs) and the sidebar (320 by
+/// default, sidebar.rs) are the compact surfaces.
+pub(crate) fn is_compact(window: &str) -> bool {
+    window == crate::bar::popover::WINDOW || window == crate::sidebar::WINDOW
 }
 
 pub struct Views(Mutex<Table>);

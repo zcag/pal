@@ -37,7 +37,9 @@ pub const UPDATE: &str = "pal://update";
 pub const SETTINGS: &str = "pal://settings";
 /// The bar popover's page: the item to show on one level (`{ key, title,
 /// engaged, urgent, menu, item, effect? }`), `{ engage: true }` once a
-/// peek is made key, `{ hide: true }` when it goes (bar/popover.rs).
+/// peek is made key, `{ hide: true }` when it goes (bar/popover.rs). The
+/// sidebar's window gets the same, `sidebar: true` and its palette as
+/// the menu (sidebar.rs).
 pub const BAR: &str = "pal://bar";
 /// To one window's page: a push for the view level it has on top
 /// (`ViewUpdate` in sdk/src/protocol.ts: `{ extension, palette | bar, id?,

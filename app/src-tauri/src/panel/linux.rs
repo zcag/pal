@@ -170,17 +170,22 @@ pub fn large_hide(app: &AppHandle) {
 
 pub fn bar_install(window: &WebviewWindow) {
     let app = window.app_handle().clone();
+    let sidebar = window.label() == crate::sidebar::WINDOW;
     window.on_window_event(move |e| {
         if matches!(e, WindowEvent::Focused(false)) {
-            crate::bar::popover::on_resign(&app);
+            if sidebar {
+                crate::sidebar::on_resign(&app);
+            } else {
+                crate::bar::popover::on_resign(&app);
+            }
         }
     });
     let _ = window.show();
     let _ = window.hide();
 }
 
-pub fn bar_show(app: &AppHandle, engaged: bool) {
-    let Some(w) = app.get_webview_window(crate::bar::popover::WINDOW) else { return };
+pub fn bar_show(app: &AppHandle, label: &'static str, engaged: bool) {
+    let Some(w) = app.get_webview_window(label) else { return };
     let _ = w.show();
     if engaged {
         let _ = w.set_focus();
@@ -189,8 +194,17 @@ pub fn bar_show(app: &AppHandle, engaged: bool) {
     }
 }
 
-pub fn bar_hide(app: &AppHandle) {
-    if let Some(w) = app.get_webview_window(crate::bar::popover::WINDOW) {
+pub fn bar_hide(app: &AppHandle, label: &'static str) {
+    if let Some(w) = app.get_webview_window(label) {
         let _ = w.hide();
     }
 }
+
+// ---- sidebar strip ---------------------------------------------------------
+//
+// No sidebar on Linux yet (sidebar.rs builds nothing there), so the strip
+// is a pair of no-ops with the macOS signatures.
+
+pub fn strip_place(_app: &AppHandle, _rects: Vec<(f64, f64, f64, f64)>, _on: fn(&AppHandle, bool)) {}
+
+pub fn strip_remove(_app: &AppHandle) {}
