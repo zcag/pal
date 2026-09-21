@@ -7,7 +7,7 @@
 // `stats/memory_pressure`, `stats/disk_free`, `stats/net_down`, ...) and
 // the manifest's rules hide it while quiet and colour it past the
 // thresholds; the popovers are `view.ts`, the sources `sample.ts`.
-import { bar, hint, settings, state, toast, truncate, view as liveView, wifi, type BarItem, type Effect, type Extension, type Item, type LinkParams, type Metadata, type Proc, type View } from "@zcag/pal";
+import { bar, hint, now, settings, state, toast, truncate, view as liveView, when, wifi, type BarItem, type Effect, type Extension, type Item, type LinkParams, type Metadata, type Proc, type View } from "@zcag/pal";
 import { CPU, diskLevel, History, levelOf, LOAD, MEMORY, Sampler, shownIface, type IfaceRate, type Memory, type Sample, type Volume } from "./sample.ts";
 import { colorOf, gb, INNER_W, load as loadText, MAC, memorySegments, pct, rate, rateShort, renderCpu, renderDisk, renderLoad, renderMemory, renderNetwork, sparkGlyphs, sparkline, topByCpu, topByMemory, uptimeText, type Iface, type SparkSeries, type Theme } from "./view.ts";
 
@@ -317,7 +317,7 @@ function rows(s: Sample, only?: string): Item[] {
   }, { keywords: [String(p.pid), "process"], accessories: [{ text: `#${n + 1}` }], actions: [{ id: "copy", title: "Copy PID" }, { id: "kill", title: "Kill", shortcut: "cmd+backspace", style: "destructive", confirm: `Send SIGTERM to ${p.name} (${p.pid})?` }, MONITOR, POPOVER] });
   topByCpu(procs).forEach((p, n) => out.push(procRow(p, SECTION.busiest, n)));
   topByMemory(procs).forEach((p, n) => out.push(procRow(p, SECTION.largest, n)));
-  out.push(row("uptime", uptimeText(s.uptime), `Uptime · since ${new Date(Date.now() - s.uptime * 1000).toLocaleString()}`, GLYPH.uptime, SECTION.system, uptimeText(s.uptime), { metadata: meta([["Uptime", uptimeText(s.uptime)], ["Seconds", String(Math.round(s.uptime))]]) }, { keywords: ["uptime", "since", "boot"], actions: [COPY] }));
+  out.push(row("uptime", uptimeText(s.uptime), `Uptime · since ${when(now() - s.uptime * 1000)}`, GLYPH.uptime, SECTION.system, uptimeText(s.uptime), { metadata: meta([["Uptime", uptimeText(s.uptime)], ["Seconds", String(Math.round(s.uptime))]]) }, { keywords: ["uptime", "since", "boot"], actions: [COPY] }));
   if (!only) return out;
   const want: Record<string, string[]> = { cpu: [SECTION.cpu, SECTION.busiest], memory: [SECTION.memory, SECTION.largest], disk: [SECTION.disk], network: [SECTION.network], load: [SECTION.cpu] };
   const sections = want[only];

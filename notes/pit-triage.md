@@ -434,7 +434,7 @@ Per area (done / partial / missing / not for pal):
 | 71 | `01M2KJSVD8VFVAYT1FGWYQ15YR` | builtin: Menu Bar Agenda (next event in the menu bar) | done |  | `calendar/upcoming` bar item: next event, join and open in the popover: `extensions/calendar/pal.json` |
 | 156 | `01M2KJSVEXVPJ6VSV5DJ5VTJ33` | ext-api: Menu-bar command lifecycle | done |  | bar items render on load, on their timer, on push; last state in `bar.json`; `dispose()` on reload: `docs/extensions.md` |
 | 175 | `01M2KJSVEXVPJ6VSV5ETDJCMDC` | ext-api: MenuBarExtra component tree | done |  | bar `menu` nodes: items with shortcut / checked / disabled / destructive, sections, submenus (3 deep), separators: `docs/design/bar.md` |
-| 361 | `01M2KJSVH99GDGGQHBQYCBN4C1` | beyond: Glance live stats beside the query box and performance pages | not for pal |  | bar items are pal's glance surface and sketchybar already shows stats; a stat strip beside the query is not the design |
+| 361 | `01M2KJSVH99GDGGQHBQYCBN4C1` | beyond: Glance live stats beside the query box and performance pages | done |  | bar items are pal's glance surface: the `stats` extension (2026-09-22) puts cpu, memory, disk, network and load on the bar, each hidden while quiet, with a popover of the breakdown and a `Stats` palette; a stat strip beside the query is still not the design |
 
 ## Onboarding
 

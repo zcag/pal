@@ -118,6 +118,7 @@ const moveActions = (rows: string[], what: string): Action[] => [
 const paletteActions: Action[] = [{ id: "palette", title: "Open Stats palette", shortcut: "s" }];
 /** Activity Monitor on macOS; the Processes palette is the nearest thing on Linux. */
 const monitorAction: Action = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "enter" } : { id: "processes", title: "Open Processes", shortcut: "enter" };
+const MONITOR_HINT = MAC ? "monitor" : "processes";
 const killAction = (p: Proc | undefined): Action[] => (p ? [{ id: "kill", title: `Kill ${p.name}`, shortcut: "x", style: "destructive", confirm: `Send SIGTERM to ${p.name} (${p.pid})?` }] : []);
 
 // ---- cpu -------------------------------------------------------------------
@@ -159,7 +160,7 @@ export function renderCpu(st: CpuPopover): View {
       ...coreGrid(st.cpu.cores),
       ...procSection(top.map((p, i) => procRow(p, i === focus)), "Busiest processes"),
       { type: "divider", key: "rule" },
-      hints([["enter", MAC ? "Activity Monitor" : "Processes", MAC ? "monitor" : "processes"], ["x", "kill", "kill"], ["c", "copy", "copy"], ["s", "stats", "palette"], [["up", "down"], "move"]]),
+      hints([["enter", MONITOR_HINT, MONITOR_HINT], ["x", "kill", "kill"], ["c", "copy", "copy"], ["s", "stats", "palette"], [["up", "down"], "move"]]),
     ], { key: "cpu", padding: 3, gap: 2 }),
   };
 }
@@ -200,7 +201,7 @@ export function renderMemory(st: MemoryPopover): View {
       ...spark([{ values: st.history, color: colorOf(level) }], st, { max: 100, caption: "memory used" }),
       ...procSection(top.map((p, i) => procRow(p, i === focus)), "Largest processes"),
       { type: "divider", key: "rule" },
-      hints([["enter", MAC ? "Activity Monitor" : "Processes", MAC ? "monitor" : "processes"], ["x", "kill", "kill"], ["c", "copy", "copy"], ["s", "stats", "palette"], [["up", "down"], "move"]]),
+      hints([["enter", MONITOR_HINT, MONITOR_HINT], ["x", "kill", "kill"], ["c", "copy", "copy"], ["s", "stats", "palette"], [["up", "down"], "move"]]),
     ], { key: "memory", padding: 3, gap: 2 }),
   };
 }
@@ -282,7 +283,7 @@ export function renderLoad(st: LoadPopover): View {
       row([tile("l1", l1, "1 min"), tile("l5", l5, "5 min"), tile("l15", l15, "15 min")], { key: "tiles", gap: 2 }),
       ...spark([{ values: st.history, color: colorOf(level) }], st, { floor: Math.max(1, st.cores), caption: `1 min load, ${st.cores} cores is full` }),
       { type: "divider", key: "rule" },
-      hints([["enter", MAC ? "Activity Monitor" : "Processes", MAC ? "monitor" : "processes"], ["c", "copy", "copy"], ["s", "stats", "palette"]]),
+      hints([["enter", MONITOR_HINT, MONITOR_HINT], ["c", "copy", "copy"], ["s", "stats", "palette"]]),
     ], { key: "load", padding: 3, gap: 2 }),
   };
 }
