@@ -169,9 +169,9 @@ const DETAIL_DEBOUNCE = 100, DETAIL_SKELETON_AFTER = 150;
 
 export type LauncherHandle = {
   reset(): void;
-  /** Straight into a palette (its `sourceKey`), from a palette hotkey; `hold` from the switcher's chord (switcher.rs): the level lists flat, the cursor lands on row 2 and `switch` drives it. */
-  open(palette: string, opts?: { hold?: boolean }): void;
-  /** The switcher (`pal://switch`) while a hold is on: `step` moves the cursor with wrap, `commit` runs the primary action of the row under it (hides when there is none). */
+  /** Straight into a palette (its `sourceKey`), from a palette hotkey; `hold` from the switcher's chord (switcher.rs): the level lists flat, the cursor lands on row 2 (plus `steps`, the presses the chord took before the panel showed) and `switch` drives it. */
+  open(palette: string, opts?: { hold?: boolean; steps?: number }): void;
+  /** The switcher (`pal://switch`) while a hold is on: `step` moves the cursor with wrap, `commit` runs the primary action of the row under it (hides when there is none); a commit before the level's rows have landed waits for them. */
   switch(cmd: { step?: number; commit?: boolean }): void;
   /** The search box set to `q` at the current level (a `pal://open` link's `?q=`). */
   type(q: string): void;
@@ -499,22 +499,26 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold]);
 
   const cur = useCursor(hits.length);
-  // Under a hold the cursor is Cmd+Tab's: row 2 once the level's rows are
-  // in, then an index (row 1 plus the steps), which a relist (`pal://index`
-  // with the fresh MRU order) keeps, since the stale rows on screen at the
-  // begin are the last show's and their row 2 is not the previous window.
-  // A typed filter is the one change that follows the row by id
-  // (`followCursor`; row 0 when the row left the filter). The rows the hold
-  // began over are the level before: seen, never placed on.
-  const holdRows = useRef<{ found: Hit[]; id?: string; placed: boolean } | null>(null);
+  // Under a hold the cursor is Cmd+Tab's: row 2 (plus the presses the
+  // chord took before the show, `steps`, wrapping) once the level's rows
+  // are in, then an index (row 1 plus the steps), which a relist
+  // (`pal://index` with the fresh MRU order) keeps, since the stale rows
+  // on screen at the begin are the last show's and their row 2 is not the
+  // previous window. A typed filter is the one change that follows the
+  // row by id (`followCursor`; row 0 when the row left the filter). The
+  // rows the hold began over are the level before: seen, never placed on
+  // (`answered` once the level's own search has replied, even with nothing;
+  // `at` is where the cursor was put). A `commit` that came before that
+  // reply waits in `commit` and runs from the effect below.
+  const holdRows = useRef<{ found: Hit[]; id?: string; placed: boolean; answered: boolean; steps: number; at: number; commit: boolean } | null>(null);
   useEffect(() => {
     if (!hold) return;
     const t = holdRows.current;
     if (t && t.found === found) { if (t.placed) t.id = hits[cur.cursor]?.item.id; return; }
-    const placed = t?.placed ?? false;
-    const idx = !placed ? Math.min(1, Math.max(0, hits.length - 1)) : query ? followCursor(hits, t?.id, 0) : Math.min(cur.cursor, Math.max(0, hits.length - 1));
+    const placed = t?.placed ?? false, steps = t?.steps ?? 0;
+    const idx = !placed ? (hits.length ? (((1 + steps) % hits.length) + hits.length) % hits.length : 0) : query ? followCursor(hits, t?.id, 0) : Math.min(cur.cursor, Math.max(0, hits.length - 1));
     if (idx !== cur.cursor) cur.set(idx);
-    holdRows.current = { found, id: hits[idx]?.item.id, placed: placed || hits.length > 0 };
+    holdRows.current = { found, id: hits[idx]?.item.id, placed: placed || hits.length > 0, answered: true, steps, at: idx, commit: t?.commit ?? false };
   }, [hold, found, hits, cur.cursor, query]);
   const current: Item | undefined = hits[cur.cursor]?.item;
   /** A list level: rows to mark and pick (the root, a palette, a menu). */
@@ -630,21 +634,31 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const closeConfirm = () => { setConfirming(null); focus(); };
   const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; setHold(false); }, []);
   const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setHistIdx(-1); shown(); input.current?.focus(); }, [nav.reset, cur.reset, shown]);
-  const openPalette = (palette: string, opts?: { hold?: boolean }) => {
+  const openPalette = (palette: string, opts?: { hold?: boolean; steps?: number }) => {
     reset();
     enter(palette);
     if (!opts?.hold) return;
     // After the push's `setHold(false)` in the same batch. The rows on screen are the level before: seen, not followed.
     setHold(true);
     setSearchSeq((n) => n + 1);
-    holdRows.current = { found, placed: false };
+    holdRows.current = { found, placed: false, answered: false, steps: opts.steps ?? 0, at: 0, commit: false };
   };
-  /** `pal://switch` while a hold is on; nothing once the level left the hold (the shell forgets its side on any hide). */
+  /** `pal://switch` while a hold is on; nothing once the level left the hold (the shell forgets its side on any hide). A commit before the level's rows landed (the chord let go right after the show) is kept for them. */
   const switchTo = (cmd: { step?: number; commit?: boolean }) => {
     if (!hold) return;
     if (cmd.step && hits.length) cur.set((cur.cursor + cmd.step + hits.length) % hits.length);
-    if (cmd.commit) { if (current && listed[0]) run(listed[0]); else onHide(); }
+    if (!cmd.commit) return;
+    const t = holdRows.current;
+    if (t && !t.answered) { t.commit = true; return; }
+    if (current && listed[0]) run(listed[0]); else onHide();
   };
+  // The kept commit: once the level's search answered and the cursor sits where the hold put it (the `cur.set` above has rendered).
+  useEffect(() => {
+    const t = holdRows.current;
+    if (!hold || !t?.commit || !t.answered || (hits.length > 0 && cur.cursor !== t.at)) return;
+    t.commit = false;
+    if (current && listed[0]) run(listed[0]); else onHide();
+  });
   // A source gone from under an open level (an instance removed, a palette
   // switched off, an extension deleted: the core drops the source and emits
   // `pal://index`): the level's rows would sit on nothing, so it pops to

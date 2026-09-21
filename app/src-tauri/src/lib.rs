@@ -110,6 +110,14 @@ struct Shown {
     /// with the cursor on row 2 and follows `pal://switch`.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     hold: bool,
+    /// The presses the hold took before this show (the chord pressed again
+    /// within the show delay): the cursor starts that many rows below row 2.
+    #[serde(skip_serializing_if = "is_zero")]
+    steps: i32,
+}
+
+fn is_zero(n: &i32) -> bool {
+    *n == 0
 }
 
 // ---- show / hide ---------------------------------------------------------
@@ -153,22 +161,25 @@ fn show(app: &AppHandle) {
 /// An already visible panel is not moved; the page still gets the event, so
 /// a palette hotkey switches what is showing.
 pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
-    show_with(app, palette, false);
+    show_with(app, palette, None);
 }
 
-/// `show_in` for the switcher: `hold` rides in the event, and the held
-/// palette lists again on this show whatever the live relist gap says
-/// (a switch and a switch back within two seconds must see the new order).
-pub(crate) fn show_hold(app: &AppHandle, palette: String) {
-    show_with(app, Some(palette), true);
+/// `show_in` for the switcher, `steps` presses into the hold: `hold` and
+/// `steps` ride in the event, and the held palette lists again on this
+/// show whatever the live relist gap says (a switch and a switch back
+/// within two seconds must see the new order).
+pub(crate) fn show_hold(app: &AppHandle, palette: String, steps: i32) {
+    show_with(app, Some(palette), Some(steps));
 }
 
-fn show_with(app: &AppHandle, palette: Option<String>, hold: bool) {
+fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
     let t0 = now_ms();
     let keep = pop::keep(&settings::config(app).general.pop_to_root);
     if !panel::is_visible(app) {
-        // The window the user was in when they pressed the hotkey: first in the windows palette (the bridge's `list` waits for the stamp).
-        windows::stamp_focused();
+        // The window the user was in when they pressed the hotkey: first in the windows palette (the bridge's `list` waits for the stamp). A hold stamped at its begin.
+        if hold.is_none() {
+            windows::stamp_focused();
+        }
         place(app);
         panel::show(app);
     } else if palette.is_none() {
@@ -176,8 +187,8 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: bool) {
     }
     // The page keeps its level only with `keep` and no palette to open; otherwise it starts over and reports its view anew.
     views::set_visible(app, WINDOW, true, !(keep && palette.is_none()));
-    let held = hold.then(|| palette.clone()).flatten();
-    events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold });
+    let held = hold.and(palette.clone());
+    events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold: hold.is_some(), steps: hold.unwrap_or(0) });
     // After the event: the live palettes list again off this thread; a file dialog in front is looked for once per show.
     dialog::on_shown();
     index::on_shown(app, held.as_deref());

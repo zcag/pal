@@ -5,7 +5,12 @@
 //! `"always"` is the old behaviour, `"never"` keeps the level for ever, and
 //! `"after 90s"` keeps it while the hide is younger than that. A palette
 //! hotkey opens its palette either way (the page's `open` resets first).
+//! The switcher's hold is not a level to come back to: `forget` (from
+//! `switcher::on_hidden`) makes the next `keep` answer false once, so the
+//! `ctrl+space` after an `alt+tab` lands at the root, not in the windows
+//! palette.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Instant;
 
@@ -16,14 +21,25 @@ use crate::lock;
 /// When the panel last hid; `None` before the first hide of the run (a
 /// fresh page: nothing to keep).
 static HIDDEN_AT: Mutex<Option<Instant>> = Mutex::new(None);
+/// The last level is not one to come back to (a switcher hold ended):
+/// the next `keep` answers false and clears this.
+static FORGET: AtomicBool = AtomicBool::new(false);
 
 /// The panel hid now.
 pub fn note_hidden() {
     *lock(&HIDDEN_AT) = Some(Instant::now());
 }
 
+/// The next show starts at the root whatever the mode says, once.
+pub fn forget() {
+    FORGET.store(true, Ordering::Relaxed);
+}
+
 /// Whether the page keeps its level on this show.
 pub fn keep(mode: &PopToRoot) -> bool {
+    if FORGET.swap(false, Ordering::Relaxed) {
+        return false;
+    }
     let hidden_for = lock(&HIDDEN_AT).map(|t| t.elapsed().as_secs_f64());
     decide(mode, hidden_for)
 }
@@ -46,6 +62,15 @@ mod tests {
         assert!(decide(&PopToRoot::After(90), Some(89.9)));
         assert!(!decide(&PopToRoot::After(90), Some(90.0)));
         assert!(decide(&PopToRoot::default(), Some(30.0)), "the default is after 90s");
+    }
+
+    #[test]
+    fn forget_pops_the_next_show_only() {
+        note_hidden();
+        assert!(keep(&PopToRoot::Never), "hidden just now: kept");
+        forget();
+        assert!(!keep(&PopToRoot::Never), "a hold ended: the next show is at the root");
+        assert!(keep(&PopToRoot::Never), "and only that one");
     }
 
     #[test]

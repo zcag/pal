@@ -216,7 +216,10 @@ presses and the release that the `hold` chord delivers by itself on macOS.
 the palette whose `hold` is set (Windows, by its manifest's suggestion,
 when no other is), and steps the cursor down when one is; `prev` steps
 up; `commit` runs the row under the cursor (Focus, for a window) and
-`cancel` hides. Hyprland:
+`cancel` hides. The panel shows 150 ms after the begin: a `commit` before
+that is a tap, and pal switches to the previous window (one further per
+`next` taken meanwhile, one back per `prev`) without showing anything;
+after it the `commit` runs the row under the cursor. Hyprland:
 
 ```
 bind  = ALT, Tab, exec, pal switch

@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
 // The switcher's hold (docs/design/switcher.md, switcher.rs): `open` with
-// `hold` lists the palette flat with the cursor on row 2, `switch` steps
-// with wrap and commits the row under the cursor, the cursor keeps its
-// index across a relist (`version`; the fresh MRU order is the point),
-// typing keeps its row by id while listed, and Escape hides outright.
+// `hold` lists the palette flat with the cursor on row 2 (plus the `steps`
+// the chord took before the panel showed), `switch` steps with wrap and
+// commits the row under the cursor (a commit ahead of the rows waits for
+// them), the cursor keeps its index across a relist (`version`; the fresh
+// MRU order is the point), typing keeps its row by id while listed, and
+// Escape hides outright.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -23,9 +25,11 @@ const picks: string[] = [];
 const hides: number[] = [];
 /** The palette's rows as the index has them now; a relist swaps them. */
 let rows: Item[] = [];
+/** Set, the search answers only once this resolves: rows still loading. */
+let gate: Promise<void> | null = null;
 
 beforeEach(() => {
-  el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); picks.length = 0; hides.length = 0;
+  el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); picks.length = 0; hides.length = 0; gate = null;
   rows = [win("safari-1", "Safari"), win("kitty-1", "kitty"), win("safari-2", "Safari"), win("mail-1", "Mail")];
   HTMLElement.prototype.getBoundingClientRect = function () { return { left: 0, top: 0, right: 600, bottom: 400, width: 600, height: 400, x: 0, y: 0, toJSON: () => ({}) } as DOMRect; };
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 400 });
@@ -37,7 +41,7 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); el.remove(); });
 
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
-const search = async (q: string, scope?: SourceInfo) => (scope ? rows.filter((r) => r.name.includes(q)).map((item) => ({ item })) : []);
+const search = async (q: string, scope?: SourceInfo) => { if (gate) await gate; return scope ? rows.filter((r) => r.name.includes(q)).map((item) => ({ item })) : []; };
 const render = (version = 0) => act(async () => {
   root.render(<Launcher ref={launcher} sources={sources} version={version} search={search} onPick={(i) => { picks.push(i.id); }} onHide={() => { hides.push(1); }} />);
 });
@@ -69,6 +73,45 @@ describe("the switcher's hold", () => {
     await act(() => { launcher.current!.open(WINDOWS, { hold: true }); });
     await flush();
     expect(cursor()).toBe("safari-2");
+  });
+
+  it("the presses before the show place the cursor that many rows further, wrapping", async () => {
+    await render();
+    await act(() => { launcher.current!.open(WINDOWS, { hold: true, steps: 2 }); });
+    await flush();
+    expect(cursor()).toBe("mail-1");
+    await act(() => { launcher.current!.open(WINDOWS, { hold: true, steps: 4 }); });
+    await flush();
+    expect(cursor()).toBe("kitty-1");
+    await act(() => { launcher.current!.open(WINDOWS, { hold: true, steps: -1 }); });
+    await flush();
+    expect(cursor()).toBe("safari-1");
+  });
+
+  it("a commit before the rows land runs once they do, on the row the steps chose", async () => {
+    await render();
+    let release!: () => void;
+    gate = new Promise((r) => { release = r; });
+    await act(() => { launcher.current!.open(WINDOWS, { hold: true, steps: 1 }); });
+    await sw({ commit: true });
+    await flush();
+    expect(picks).toEqual([]);
+    expect(hides).toEqual([]);
+    gate = null;
+    await act(async () => { release(); });
+    await flush();
+    expect(picks).toEqual(["safari-2"]);
+    // With nothing listed once they land: the hide, as a commit over an empty list.
+    rows = [];
+    gate = new Promise((r) => { release = r; });
+    await act(() => { launcher.current!.open(WINDOWS, { hold: true }); });
+    await sw({ commit: true });
+    await flush();
+    expect(hides).toEqual([]);
+    gate = null;
+    await act(async () => { release(); });
+    await flush();
+    expect(hides).toHaveLength(1);
   });
 
   it("without the hold the same palette is grouped by app", async () => {

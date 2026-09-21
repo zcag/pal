@@ -27,10 +27,10 @@ export default function App() {
     };
   }, [bump, showing]);
 
-  // hotkey -> painted panel; a palette hotkey names where to open, the switcher's chord adds `hold` (switcher.rs); `keep` (general.pop_to_root, pop.rs) leaves the level and query as they were
+  // hotkey -> painted panel; a palette hotkey names where to open, the switcher's chord adds `hold` and the presses it took before the show as `steps` (switcher.rs); `keep` (general.pop_to_root, pop.rs) leaves the level and query as they were
   useEffect(() => {
-    const un = listen<{ t0: number; palette?: string; keep?: boolean; hold?: boolean }>("pal://shown", (e) => {
-      if (e.payload.palette) launcher.current?.open(e.payload.palette, { hold: !!e.payload.hold });
+    const un = listen<{ t0: number; palette?: string; keep?: boolean; hold?: boolean; steps?: number }>("pal://shown", (e) => {
+      if (e.payload.palette) launcher.current?.open(e.payload.palette, { hold: !!e.payload.hold, steps: e.payload.steps });
       else if (e.payload.keep) launcher.current?.shown();
       else launcher.current?.reset();
       window.dispatchEvent(new Event(SHOWN_EVENT));
