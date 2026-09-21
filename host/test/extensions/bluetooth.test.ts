@@ -85,7 +85,7 @@ describe("bluetooth", () => {
     try {
       const at = async (battery: number) => {
         devices = [{ address: "14:28:76:8B:AE:C8", name: "AirPods Pro", connected: true, kind: "headphones", battery, battery_detail: null }];
-        return await host.render<any>("bluetooth", "battery");
+        return (await host.render("bluetooth", "battery")) as any;
       };
       expect(await at(26)).toMatchObject({ states: { low: 0, lowest: 26, connected: 1 }, empty: { tooltip: "Bluetooth · AirPods Pro 26%" } });
       expect(await at(25)).toMatchObject({ title: "AirPods Pro 25%", states: { low: 1, lowest: 25 } });

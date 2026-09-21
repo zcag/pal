@@ -358,8 +358,8 @@ describe("network status: what the strip says about the network", () => {
       expect(view.tree.children[0].children[2]).toMatchObject({ type: "badge", text: "connected" });
       expect(view.actions.map((a: any) => a.id)).toEqual(["settings", "addresses"]);
       // The address book is still one key away rather than gone.
-      expect(await host.request("bar/action", { extension: "network", id: "status", action: "addresses" })).toEqual({ push: { extension: "network", palette: "network" } });
-      expect(await host.request("bar/action", { extension: "network", id: "status", action: "settings" })).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
+      expect(await host.barAction("network", "status", "addresses")).toEqual({ push: { extension: "network", palette: "network" } });
+      expect(await host.barAction("network", "status", "settings")).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
     } finally { host.kill(); }
   }, 20000);
 
