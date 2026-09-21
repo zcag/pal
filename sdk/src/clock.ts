@@ -12,6 +12,9 @@
 // than `toLocaleString`: the host runs under whatever locale launchd
 // gave it (`en-US` on a machine set to `en_TR`), so the locale forms put
 // the month first and an AM/PM on a user whose system clock says 14:05.
+// And the one way a duration is read (`parseDuration`: `25m`, `1h30m`, a
+// bare number as minutes), so a state held for a while and a machine kept
+// awake for a while take the same spellings.
 const PINNED = process.env.PAL_NOW ? Date.parse(process.env.PAL_NOW) : NaN;
 if (process.env.PAL_NOW && !Number.isFinite(PINNED)) console.error(`[pal] PAL_NOW is not a date: ${process.env.PAL_NOW}`);
 
@@ -60,4 +63,25 @@ export function ago(t: number | string | Date, { now: ref = now(), short = false
   for (const [size, long, brief] of AGO) { unit = short ? brief : long; if (Math.round(n) < size) break; n /= size; }
   const span = short ? `${Math.round(n)}${unit}` : `${Math.round(n)} ${unit}`;
   return diff < 0 ? `in ${span}` : short ? span : `${span} ago`;
+}
+
+/** The units `parseDuration` reads, in seconds. */
+const DURATION_UNITS: Record<string, number> = { s: 1, sec: 1, secs: 1, m: 60, min: 60, mins: 60, h: 3600, hr: 3600, hrs: 3600, d: 86400, day: 86400, days: 86400 };
+
+/**
+ * A duration as people type one: `90s`, `25m`, `1h30m`, `2h`, `1d`, `1 h`,
+ * with a bare number read as minutes. Seconds, or `undefined` for
+ * anything else (`soon`, an empty string, `2:30`).
+ */
+export function parseDuration(s: string): number | undefined {
+  const t = s.replace(/\s+/g, "").toLowerCase();
+  if (!t) return;
+  if (/^\d+$/.test(t)) return Number(t) * 60;
+  let total = 0;
+  for (const m of t.matchAll(/(\d+)([a-z]+)/g)) {
+    const unit = DURATION_UNITS[m[2]];
+    if (!unit) return;
+    total += Number(m[1]) * unit;
+  }
+  return t.replace(/(\d+)([a-z]+)/g, "") === "" ? total : undefined;
 }

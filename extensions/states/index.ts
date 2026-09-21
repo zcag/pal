@@ -2,7 +2,7 @@
 // bar item that shows what is held by hand. Every read and write is a
 // `state.*` / `core/states.*` call; nothing is cached here, the core is
 // the table.
-import { argsForm, failed, hint, state, toast, type Accessory, type Action, type Arg, type BarItem, type Effect, type Extension, type Item, type StateEntry, type StateValue } from "@zcag/pal";
+import { argsForm, failed, hint, parseDuration, state, toast, type Accessory, type Action, type Arg, type BarItem, type Effect, type Extension, type Item, type StateEntry, type StateValue } from "@zcag/pal";
 
 const GLYPH = "\u{f04f9}"; // 󰓹 nf-md-variable
 const PLUS = "\u{f0415}";
@@ -21,20 +21,6 @@ const SET_ARGS: Arg[] = [
 
 /** `true`, `3`, `"x"` as JSON; anything else the text. */
 const parse = (s: string): StateValue => { try { const v = JSON.parse(s); return v === null || ["boolean", "number", "string"].includes(typeof v) ? v : s; } catch { return s; } };
-
-/** `90s`, `25m`, `1h30m`, `2h`, `1d`; a bare number is minutes. Seconds, or nothing. */
-export function duration(s: string): number | undefined {
-  const t = s.replace(/\s+/g, "").toLowerCase();
-  if (!t) return;
-  if (/^\d+$/.test(t)) return Number(t) * 60;
-  let total = 0;
-  for (const m of t.matchAll(/(\d+)([a-z]+)/g)) {
-    const unit = { s: 1, sec: 1, secs: 1, m: 60, min: 60, mins: 60, h: 3600, hr: 3600, hrs: 3600, d: 86400, day: 86400, days: 86400 }[m[2]];
-    if (!unit) return;
-    total += Number(m[1]) * unit;
-  }
-  return t.replace(/(\d+)([a-z]+)/g, "") === "" ? total : undefined;
-}
 
 /** `2 h 40 m`, `12 m`, `40 s`. */
 export const left = (ms: number): string => {
@@ -101,7 +87,7 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
         const raw = String(v?.value ?? "").trim();
         if (!raw) return { form: { ...argsForm(SET_ARGS, `Set ${id}`, { id: "set", title: "Set" }), id } };
         const forText = String(v?.for ?? "").trim();
-        const secs = forText ? duration(forText) : undefined;
+        const secs = forText ? parseDuration(forText) : undefined;
         if (forText && secs === undefined) return { form: { ...argsForm(SET_ARGS, `Set ${id}`, { id: "set", title: "Set" }, { for: "90s, 25m, 1h30m, 2h, 1d" }), id } };
         await state.hold(id, parse(raw), secs ? Date.now() + secs * 1000 : undefined);
         return { keep: true };

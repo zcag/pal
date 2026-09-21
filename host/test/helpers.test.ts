@@ -5,7 +5,7 @@
 // helpers moved here (polish round 3), so a move is proven equivalent.
 import { afterAll, describe, expect, test } from "bun:test";
 import { tilde } from "../../sdk/src/api.ts";
-import { ago } from "../../sdk/src/clock.ts";
+import { ago, parseDuration } from "../../sdk/src/clock.ts";
 import { EXEC_MS, exec, run } from "../../sdk/src/exec.ts";
 import { IMAGE_MISS_TTL, forgetImages, imageData } from "../../sdk/src/image.ts";
 import { pngSize } from "../../sdk/src/png.ts";
@@ -49,6 +49,17 @@ describe("text", () => {
 });
 
 describe("clock", () => {
+  test("parseDuration: units chain, a bare number is minutes, junk is nothing", () => {
+    expect(parseDuration("90s")).toBe(90);
+    expect(parseDuration("25m")).toBe(1500);
+    expect(parseDuration("1h30m")).toBe(5400);
+    expect(parseDuration("1 h")).toBe(3600);
+    expect(parseDuration("25")).toBe(1500);
+    expect(parseDuration("1d")).toBe(86400);
+    expect(parseDuration("soon")).toBeUndefined();
+    expect(parseDuration("2:30")).toBeUndefined();
+    expect(parseDuration("")).toBeUndefined();
+  });
   test("ago: just now, then s / min / h / d / w / mo / y, a future moment as in; short is the column form", () => {
     const now = Date.UTC(2026, 8, 16, 12, 0, 0);
     const back = (ms: number, short = false) => ago(now - ms, { now, short });

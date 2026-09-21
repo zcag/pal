@@ -82,7 +82,7 @@ comment, `src/protocol.ts` is the contract.
 | `hint()`, `toast()`, `failed()` | an inert row that tells the user something; a toast that keeps the panel open; the "Could not <what>" failure toast |
 | `text()`, `row()`, `column()`, `keycap()`, `keyHint()`, `POPOVER_W` | view node builders, the keycaps-plus-caption line, a bar popover's content width |
 | `bytes()`, `truncate()`, `oneLine()`, `slug()`, `errorMessage()`, `mdEscape()` | small text helpers |
-| `now()`, `clock()`, `dayName()`, `dayNameYear()`, `isoDay()`, `when()`, `ago()` | the clock, in unix ms (`PAL_NOW` pins it for tests); a moment written as `14:05`, `Fri 18 Sep`, `Fri 18 Sep 2026`, `2026-09-18`, the clock today and the day before it otherwise, or how long ago (`5 min ago`, `2 h ago`; `5m`, `2h` with `short`) (never `toLocaleString`: the host's locale is not the user's) |
+| `now()`, `clock()`, `dayName()`, `dayNameYear()`, `isoDay()`, `when()`, `ago()`, `parseDuration()` | the clock, in unix ms (`PAL_NOW` pins it for tests); a moment written as `14:05`, `Fri 18 Sep`, `Fri 18 Sep 2026`, `2026-09-18`, the clock today and the day before it otherwise, or how long ago (`5 min ago`, `2 h ago`; `5m`, `2h` with `short`) (never `toLocaleString`: the host's locale is not the user's); a duration as typed (`25m`, `1h30m`, a bare number as minutes) in seconds |
 | `exec()`, `run()` | a program run with a timeout: the code and both streams, or stdout with stderr as the error |
 | `parseToken()`, `mintToken()`, `TokenError` | a bearer token a shell command prints |
 | `pngSize()`, `imageData()` | a PNG's size off its header; a picture on the web as a data url for a view |
