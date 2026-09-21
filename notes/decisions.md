@@ -1290,3 +1290,44 @@ drivable from the UI": nothing may exist only as a config line.
   Bluetooth/Location prompt from `permissions.request`), so the panel
   resigns and hides mid-hold. A daily profile answered those long ago; a
   first-run pal should defer such prompts until the panel is down.
+
+## Sidebar round 2: instant, at the pointer, one click (2026-09-22)
+
+His verdict on the first cut: not snappy, a click should pick and close,
+and it should appear at the pointer's height. What changed and what the
+live pass found:
+
+- **Timings are the sidebar's own**: `[sidebar] delay` (0: the strip's
+  `mouseEntered` feeds the machine straight back, no timer) and `grace`
+  (150 ms), not the bar's 250/400 hover pair; both on the Settings card.
+- **Anchored on the pointer**: `dock(.., anchor_y)` centres the window on
+  the pointer's y at the show (kept in the state while the height settles
+  after the rows land), clamped to the work area; the hotkey with no
+  pointer involvement docks at the top. The y comes from AppKit's
+  `NSEvent.mouseLocation` flipped on the primary screen (`popover::cursor_y`):
+  tauri's `cursor_position` answered nothing from the strip's own
+  main-thread callback, so the anchor was `None` until then.
+- **One click picks**: a click into a *peek* was eaten by AppKit's
+  click-through rule (the mousedown made the non-key panel key and the
+  page saw nothing, measured: `bar sidebar key` and no `Key`/pick line).
+  `panel::accept_first_mouse` adds `acceptsFirstMouse:` answering yes to
+  wry's webview class (and KVO's dynamic subclass over it) at the bar
+  windows' install, once. The same rule had cost the bar popover's peek a
+  click too.
+- **The window's build**: the Settings switch (a config reload) built the
+  sidebar window inside a `run_on_main_thread` closure and the daily app
+  hung with the beach ball; a build from the setup hook (inline, the main
+  thread) and from the watcher's thread (proxied) both work, so
+  `ensure_window` builds inline when on the main thread (noted at
+  `install`) and on the calling thread otherwise, the panel conversion
+  hopping to main after.
+- **Testing traps, for next time**: a scratch instance started while an
+  older one is still up hands its args over and exits, so `ps aux | grep
+  release/pal` (the process shows as `./release/pal`, not its full path)
+  before every start; three strays were alive at once and one of them
+  owned the strip while another's window was on screen, which read as
+  "the peek shows an empty root level" for an hour. A scratch running a
+  copy of the daily config has `launch_at_login = true` and hands itself
+  to launchd after a minute (`~/Library/LaunchAgents/io.cagdas.pal.scratchsw.plist`):
+  set it false in the copy. A stale `/tmp/io_cagdas_pal_scratchsw_si.sock`
+  after a kill makes the next start hand over to nobody and exit.

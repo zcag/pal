@@ -82,7 +82,7 @@ describe("Sidebar card", () => {
   it("every row is indexed under General with an anchor on the card, and the summary reads as a line", async () => {
     await show({ ...on, edge: "left", display: "primary" }, () => {});
     for (const e of sidebarIndex) expect(el.querySelector(`[data-anchor="${e.anchor}"]`), e.label).toBeTruthy();
-    expect(sidebarIndex.map((e) => e.label)).toEqual(["Sidebar", "Sidebar: edge", "Sidebar: display", "Sidebar: width", "Sidebar: peek", "Sidebar: hotkey"]);
+    expect(sidebarIndex.map((e) => e.label)).toEqual(["Sidebar", "Sidebar: edge", "Sidebar: display", "Sidebar: width", "Sidebar: peek after", "Sidebar: stays for", "Sidebar: peek", "Sidebar: hotkey"]);
     expect(sidebarSummary(sidebarDefaults, palettes)).toBe("off");
     expect(sidebarSummary(on, palettes)).toBe("Windows on the right edge");
     expect(sidebarSummary({ ...on, edge: "left", display: "primary" }, palettes)).toBe("Windows on the left edge, primary display");

@@ -25,7 +25,7 @@ import { iconOf } from "./items";
 
 type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; hold?: string | null; icon?: string; tier?: PaletteTier; item_hotkeys?: Record<string, string>; settings?: Record<string, unknown> };
 /** core `Sidebar` as the file spells it (every key present, the core fills the defaults). */
-type RawSidebar = { palette?: string; edge?: SidebarEdge; display?: string; width?: number; peek?: boolean; hotkey?: string | null };
+type RawSidebar = { palette?: string; edge?: SidebarEdge; display?: string; width?: number; peek?: boolean; delay?: number; grace?: number; hotkey?: string | null };
 /** core `BarLook` as the file spells it. */
 type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: number; text_size?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; color?: string; urgent_color?: string; badge_color?: string; badge_style?: BarBadgeStyle; width?: number; font?: BarFont; max_chars?: number };
 type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string };
@@ -496,7 +496,7 @@ export default function Settings() {
     writeLook(["bar", "sketchybar"], bar.sketchybar, next.sketchybar, lookDefaults);
   };
   const rawSidebar = config.sidebar ?? {};
-  const sidebar: SidebarConfig = { palette: rawSidebar.palette ?? "", edge: rawSidebar.edge ?? sidebarDefaults.edge, display: rawSidebar.display ?? sidebarDefaults.display, width: rawSidebar.width ?? sidebarDefaults.width, peek: rawSidebar.peek ?? sidebarDefaults.peek, hotkey: rawSidebar.hotkey ?? undefined };
+  const sidebar: SidebarConfig = { palette: rawSidebar.palette ?? "", edge: rawSidebar.edge ?? sidebarDefaults.edge, display: rawSidebar.display ?? sidebarDefaults.display, width: rawSidebar.width ?? sidebarDefaults.width, peek: rawSidebar.peek ?? sidebarDefaults.peek, delay: rawSidebar.delay ?? sidebarDefaults.delay, grace: rawSidebar.grace ?? sidebarDefaults.grace, hotkey: rawSidebar.hotkey ?? undefined };
   /** `[sidebar]`, one key per change; a key back at the core's default leaves the file, except `palette`, where `""` is Off said outright. */
   const onSidebar = (next: SidebarConfig) => {
     if (next.palette !== sidebar.palette) write(["sidebar", "palette"], next.palette);
@@ -504,6 +504,8 @@ export default function Settings() {
     if (next.display !== sidebar.display) write(["sidebar", "display"], next.display === sidebarDefaults.display ? undefined : next.display);
     if (next.width !== sidebar.width) write(["sidebar", "width"], next.width === sidebarDefaults.width ? undefined : next.width);
     if (next.peek !== sidebar.peek) write(["sidebar", "peek"], next.peek === sidebarDefaults.peek ? undefined : next.peek);
+    if (next.delay !== sidebar.delay) write(["sidebar", "delay"], next.delay === sidebarDefaults.delay ? undefined : next.delay);
+    if (next.grace !== sidebar.grace) write(["sidebar", "grace"], next.grace === sidebarDefaults.grace ? undefined : next.grace);
     if ((next.hotkey ?? "") !== (sidebar.hotkey ?? "")) write(["sidebar", "hotkey"], next.hotkey || undefined);
   };
   /** Every enabled palette as `extension/palette` with its title, what the sidebar's select offers. */

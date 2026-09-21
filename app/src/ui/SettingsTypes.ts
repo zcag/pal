@@ -343,13 +343,17 @@ export type SidebarConfig = {
   display: string;
   /** Points. */
   width: number;
-  /** The pointer resting at the edge peeks it. */
+  /** The pointer at the edge peeks it. */
   peek: boolean;
+  /** Milliseconds the pointer rests at the edge before the peek; 0 is at once. */
+  delay: number;
+  /** Milliseconds after the pointer has left before a peek closes. */
+  grace: number;
   hotkey?: string;
 };
 
 /** The core's defaults (`Sidebar::default`): what an absent key means, and what a value equal to it leaves out of the file. */
-export const sidebarDefaults: SidebarConfig = { palette: "", edge: "right", display: "cursor", width: 320, peek: true };
+export const sidebarDefaults: SidebarConfig = { palette: "", edge: "right", display: "cursor", width: 320, peek: true, delay: 0, grace: 150 };
 
 /** The palette the sidebar is built for; what the General page's switch writes. */
 export const SIDEBAR_WINDOWS = "windows/windows";

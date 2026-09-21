@@ -21,7 +21,9 @@ const text = {
   edge: { anchor: "general:sidebar:edge", label: "Edge", description: "Which side of the screen it docks to, 8 px in from the edge and from the top.", keywords: "left right side" },
   display: { anchor: "general:sidebar:display", label: "Display", description: "Cursor is whichever display the pointer is on at each show (a peek strip on every display); Primary the one with the menu bar; a name that display alone.", keywords: "monitor screen cursor primary" },
   width: { anchor: "general:sidebar:width", label: "Width", description: "Points. The height follows the rows, up to the work area.", keywords: "size points" },
-  peek: { anchor: "general:sidebar:peek", label: "Peek", description: "The pointer resting at the edge peeks it. Off leaves the hotkey and nothing at the edge.", keywords: "hover strip pointer" },
+  delay: { anchor: "general:sidebar:delay", label: "Peek after", description: "How long the pointer rests at the edge before the peek; 0 is the moment it touches.", keywords: "hover delay instant" },
+  grace: { anchor: "general:sidebar:grace", label: "Stays for", description: "How long a peek stays after the pointer has left the edge and the window.", keywords: "hover grace linger" },
+  peek: { anchor: "general:sidebar:peek", label: "Peek", description: "The pointer touching the edge peeks it, centred on the pointer. Off leaves the hotkey and nothing at the edge.", keywords: "hover strip pointer" },
   hotkey: { anchor: "general:sidebar:hotkey", label: "Hotkey", description: "Engages it from any app: shown key from hidden, or a peek made key. The root, palette and bar item hotkeys win a clash.", keywords: "shortcut keys engage" },
 } as const;
 
@@ -69,6 +71,12 @@ export function SettingsSidebar({ value, onChange, palettes = [], displays = [] 
       </SettingsRow>
       <SettingsRow anchor={text.peek.anchor} label={text.peek.label} description={text.peek.description}>
         <SettingsSwitch checked={value.peek} onChange={(v) => set("peek", v)} label="Sidebar peek" />
+      </SettingsRow>
+      <SettingsRow anchor={text.delay.anchor} label={text.delay.label} description={text.delay.description} htmlFor="pal-sidebar-delay">
+        <span className="pal-number"><input id="pal-sidebar-delay" className="pal-field__input pal-bar__order" type="number" min={0} step={50} aria-label="Sidebar peek delay" value={value.delay} onChange={(e) => { const n = Number(e.target.value); if (e.target.value !== "" && Number.isFinite(n) && n >= 0) set("delay", n); }} /><span className="pal-number__unit">ms</span></span>
+      </SettingsRow>
+      <SettingsRow anchor={text.grace.anchor} label={text.grace.label} description={text.grace.description} htmlFor="pal-sidebar-grace">
+        <span className="pal-number"><input id="pal-sidebar-grace" className="pal-field__input pal-bar__order" type="number" min={0} step={50} aria-label="Sidebar peek grace" value={value.grace} onChange={(e) => { const n = Number(e.target.value); if (e.target.value !== "" && Number.isFinite(n) && n >= 0) set("grace", n); }} /><span className="pal-number__unit">ms</span></span>
       </SettingsRow>
       <SettingsRow anchor={text.hotkey.anchor} label={text.hotkey.label} description={text.hotkey.description}>
         <SettingsHotkey value={value.hotkey} onChange={(v) => set("hotkey", v)} label="Sidebar hotkey" />

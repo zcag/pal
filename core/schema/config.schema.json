@@ -948,6 +948,13 @@
       "additionalProperties": false,
       "description": "`[sidebar]`: one live palette docked to a screen edge, peeked when the\npointer rests there, engaged by a click, a key or its hotkey; every\nrow numbered so `cmd+N` runs it (`docs/design/switcher.md`). The hover\ntimings are `[bar]`'s. macOS only: read and validated on Linux, nothing\nbuilt.",
       "properties": {
+        "delay": {
+          "default": 0,
+          "description": "Milliseconds the pointer rests at the edge before the peek; 0 is at once.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
         "display": {
           "default": "cursor",
           "description": "Which display: `cursor` (the one under the pointer at each show),\n`primary` (the one with the menu bar), or a display's name as the\nOS reports it (`Built-in Retina Display`).",
@@ -957,6 +964,13 @@
           "$ref": "#/$defs/Edge",
           "default": "right",
           "description": "The screen edge it docks to."
+        },
+        "grace": {
+          "default": 150,
+          "description": "Milliseconds after the pointer has left the edge and the window before a peek closes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
         },
         "hotkey": {
           "description": "Global hotkey that engages it. Same syntax as `general.hotkey`; the\nroot, palette and bar item hotkeys win a clash.",
@@ -969,7 +983,7 @@
         },
         "peek": {
           "default": true,
-          "description": "The pointer resting at the edge for `bar.hover_delay` peeks it.",
+          "description": "The pointer at the edge peeks it.",
           "type": "boolean"
         },
         "width": {
@@ -1124,8 +1138,10 @@
     "sidebar": {
       "$ref": "#/$defs/Sidebar",
       "default": {
+        "delay": 0,
         "display": "cursor",
         "edge": "right",
+        "grace": 150,
         "hotkey": null,
         "palette": "",
         "peek": true,

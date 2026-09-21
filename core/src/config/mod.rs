@@ -584,8 +584,12 @@ pub struct Sidebar {
     pub display: String,
     /// Width in points; the height follows the rows up to the work area.
     pub width: f64,
-    /// The pointer resting at the edge for `bar.hover_delay` peeks it.
+    /// The pointer at the edge peeks it.
     pub peek: bool,
+    /// Milliseconds the pointer rests at the edge before the peek; 0 is at once.
+    pub delay: u64,
+    /// Milliseconds after the pointer has left the edge and the window before a peek closes.
+    pub grace: u64,
     /// Global hotkey that engages it. Same syntax as `general.hotkey`; the
     /// root, palette and bar item hotkeys win a clash.
     pub hotkey: Option<String>,
@@ -596,7 +600,7 @@ pub struct Sidebar {
 
 impl Default for Sidebar {
     fn default() -> Self {
-        Self { palette: String::new(), edge: Edge::Right, display: "cursor".into(), width: 320.0, peek: true, hotkey: None, extra: BTreeMap::new() }
+        Self { palette: String::new(), edge: Edge::Right, display: "cursor".into(), width: 320.0, peek: true, delay: 0, grace: 150, hotkey: None, extra: BTreeMap::new() }
     }
 }
 
@@ -1502,6 +1506,7 @@ show = "always"
         assert!(d.is_empty());
         assert_eq!(c.sidebar.palette(), None, "off until a palette is named: a strip at the edge is opt-in");
         assert_eq!((c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek, c.sidebar.hotkey), (Edge::Right, "cursor", 320.0, true, None));
+        assert_eq!((c.sidebar.delay, c.sidebar.grace), (0, 150), "a peek is instant and lingers a beat");
         let (c, d) = parse("[sidebar]\npalette = \"apps/apps\"\nedge = \"left\"\ndisplay = \"primary\"\nwidth = 400\npeek = false\nhotkey = \"ctrl+alt+tab\"\n").unwrap();
         assert!(d.is_empty());
         assert_eq!((c.sidebar.palette(), c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek), (Some("apps/apps"), Edge::Left, "primary", 400.0, false));

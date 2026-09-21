@@ -35,6 +35,7 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
 
 use pal_core::config::{Config, Edge, Sidebar as SidebarConfig};
 use pal_core::index::Source;
@@ -60,14 +61,19 @@ const MIN_HEIGHT: f64 = 80.0;
 /// `d`, [`INSET`] from that edge and from the top, `content` tall (what
 /// the page measured) within the work area less the insets, at least
 /// [`MIN_HEIGHT`]; never wider than the work area allows.
-pub fn dock(d: &Display, edge: Edge, width: f64, content: f64) -> (f64, f64, f64, f64) {
+pub fn dock(d: &Display, edge: Edge, width: f64, content: f64, anchor_y: Option<f64>) -> (f64, f64, f64, f64) {
     let w = width.min(d.w - 2.0 * INSET).max(1.0);
     let h = content.clamp(MIN_HEIGHT, (d.h - 2.0 * INSET).max(MIN_HEIGHT));
     let x = match edge {
         Edge::Left => d.x + INSET,
         Edge::Right => d.x + d.w - INSET - w,
     };
-    (x, d.y + INSET, w, h)
+    // Centred on the pointer's y when there is one (the peek, the click), kept inside the work area; the top otherwise (the hotkey from a keyboard).
+    let y = match anchor_y {
+        Some(cy) => (cy - h / 2.0).clamp(d.y + INSET, (d.y + d.h - INSET - h).max(d.y + INSET)),
+        None => d.y + INSET,
+    };
+    (x, y, w, h)
 }
 
 /// The strip's frame along `edge` of `d`: [`STRIP`] wide, the work area's height.
@@ -104,6 +110,9 @@ struct Sidebar {
     /// Engaged or not, while showing.
     showing: Mutex<Option<bool>>,
     height: Mutex<f64>,
+    /// The pointer's y (logical, the display's space) when the show began:
+    /// the window is centred on it and stays there while its height settles.
+    anchor_y: Mutex<Option<f64>>,
 }
 
 /// Whether there is a sidebar to run: the platform has the window and the config names a palette.
@@ -112,6 +121,7 @@ fn enabled(app: &AppHandle) -> bool {
 }
 
 pub fn install(app: &AppHandle) {
+    let _ = MAIN.set(std::thread::current().id());
     app.manage(Sidebar::default());
     *lock(&app.state::<Sidebar>().height) = 480.0;
     if !crate::bar::SUPPORTED {
@@ -147,16 +157,8 @@ fn ensure_window(app: &AppHandle) {
         return;
     }
     let width = settings::config(app).sidebar.width;
-    let handle = app.clone();
-    // Built on a thread of its own, never inside a main-thread closure: the
-    // build proxies to the event loop and waits, and a build dispatched onto
-    // that loop hung the daily app on hornet (the Settings switch,
-    // 2026-09-22) where the same build from the setup hook and from the
-    // config watcher's thread on a scratch instance did not. The panel
-    // conversion wants the main thread and hops there after.
-    std::thread::spawn(move || {
-        eprintln!("sidebar\twindow\tbuilding");
-        let builder = WebviewWindowBuilder::new(&handle, WINDOW, WebviewUrl::App("index.html?bar&sidebar".into()))
+    let build = move |handle: &AppHandle| {
+        WebviewWindowBuilder::new(handle, WINDOW, WebviewUrl::App("index.html?bar&sidebar".into()))
             .title("pal Sidebar")
             .inner_size(width, 480.0)
             .decorations(false)
@@ -165,30 +167,48 @@ fn ensure_window(app: &AppHandle) {
             .skip_taskbar(true)
             .always_on_top(true)
             .visible_on_all_workspaces(true)
-            .visible(false);
-        match builder.build() {
-            Ok(w) => {
-                let h = handle.clone();
-                let _ = handle.run_on_main_thread(move || {
-                    panel::bar_install(&w);
-                    eprintln!("sidebar\twindow\tbuilt");
-                    BUILDING.store(false, Ordering::SeqCst);
-                    // A show that came while the window was on its way (the strip peeked, the hotkey) finds it now.
-                    if is_visible(&h) {
-                        place_window(&h);
-                    }
-                });
-            }
-            Err(e) => {
-                BUILDING.store(false, Ordering::SeqCst);
-                eprintln!("sidebar\twindow failed\t{e}");
-            }
+            .visible(false)
+            .build()
+    };
+    // On the main thread (the setup hook) the build is inline, as the
+    // popover's. Off it (the config watcher, the Settings switch) the build
+    // runs where it is called: it proxies to the event loop and waits, and
+    // a build dispatched onto that loop through `run_on_main_thread` hung
+    // the daily app on hornet (2026-09-22). The panel conversion wants the
+    // main thread either way.
+    if MAIN.get() == Some(&std::thread::current().id()) {
+        match build(app) {
+            Ok(w) => panel::bar_install(&w),
+            Err(e) => eprintln!("sidebar\twindow failed\t{e}"),
         }
-    });
+        BUILDING.store(false, Ordering::SeqCst);
+        return;
+    }
+    eprintln!("sidebar\twindow\tbuilding");
+    match build(app) {
+        Ok(w) => {
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                panel::bar_install(&w);
+                eprintln!("sidebar\twindow\tbuilt");
+                BUILDING.store(false, Ordering::SeqCst);
+                // A show that came while the window was on its way (the strip peeked, the hotkey) finds it now.
+                if is_visible(&h) {
+                    place_window(&h);
+                }
+            });
+        }
+        Err(e) => {
+            BUILDING.store(false, Ordering::SeqCst);
+            eprintln!("sidebar\twindow failed\t{e}");
+        }
+    }
 }
 
 /// A build under way (`ensure_window` runs on every apply; two must not race the same label).
 static BUILDING: AtomicBool = AtomicBool::new(false);
+/// The main thread, noted at `install` (the setup hook runs there): where a window build is inline.
+static MAIN: std::sync::OnceLock<std::thread::ThreadId> = std::sync::OnceLock::new();
 
 fn feed(app: &AppHandle, input: Input) {
     if !enabled(app) && !matches!(input, Input::Escape | Input::Resign) {
@@ -206,8 +226,12 @@ fn feed(app: &AppHandle, input: Input) {
     };
     for a in actions {
         match a {
-            Action::ArmDelay(_, gen) => popover::arm(app, popover::hover_delay(app), move |app| feed(app, Input::Delay(gen))),
-            Action::ArmGrace(gen) => popover::arm(app, popover::hover_grace(app), move |app| feed(app, Input::Grace(gen))),
+            // The sidebar's own timings, not the bar's: a peek at the edge is instant by default (`delay = 0` feeds the machine straight back).
+            Action::ArmDelay(_, gen) => match settings::config(app).sidebar.delay {
+                0 => feed(app, Input::Delay(gen)),
+                ms => popover::arm(app, Duration::from_millis(ms), move |app| feed(app, Input::Delay(gen))),
+            },
+            Action::ArmGrace(gen) => popover::arm(app, Duration::from_millis(settings::config(app).sidebar.grace), move |app| feed(app, Input::Grace(gen))),
             Action::Show(_, engaged) => show(app, engaged),
             Action::Engage(_) => engage(app),
             Action::Hide => hide_now(app),
@@ -233,6 +257,10 @@ fn show(app: &AppHandle, engaged: bool) {
         let mut s = lock(&st.showing);
         let first = s.is_none();
         *s = Some(engaged);
+        // A fresh show anchors on the pointer (the display's own y); an engage of a peek keeps the peek's place.
+        if first {
+            *lock(&st.anchor_y) = popover::cursor_y(app);
+        }
         first
     };
     // A fresh show: the page starts its level over and reports its view anew; shown again while up, it keeps what it has.
@@ -297,8 +325,11 @@ fn place_window(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let cfg = settings::config(app).sidebar;
     let Some(d) = display(app, &cfg) else { return };
-    let h = *lock(&app.state::<Sidebar>().height);
-    popover::set_frame(&w, dock(&d, cfg.edge, cfg.width, h));
+    let st = app.state::<Sidebar>();
+    let (h, anchor) = (*lock(&st.height), *lock(&st.anchor_y));
+    let frame = dock(&d, cfg.edge, cfg.width, h, anchor);
+    eprintln!("sidebar\tplace\t{:?}\tanchor_y={anchor:?}", frame);
+    popover::set_frame(&w, frame);
 }
 
 /// The strips where the config wants them (none with `peek = false` or no palette).
@@ -405,15 +436,19 @@ mod tests {
     #[test]
     fn docks_to_either_edge_with_the_inset_and_follows_the_content_within_the_work_area() {
         let main = d(0.0, 25.0, 1512.0, 957.0, "Built-in Retina Display");
-        assert_eq!(dock(&main, Edge::Right, 320.0, 400.0), (1512.0 - 8.0 - 320.0, 33.0, 320.0, 400.0));
-        assert_eq!(dock(&main, Edge::Left, 320.0, 400.0), (8.0, 33.0, 320.0, 400.0));
+        assert_eq!(dock(&main, Edge::Right, 320.0, 400.0, None), (1512.0 - 8.0 - 320.0, 33.0, 320.0, 400.0));
+        assert_eq!(dock(&main, Edge::Left, 320.0, 400.0, None), (8.0, 33.0, 320.0, 400.0));
         // Taller than the work area: cut to it less the insets; shorter than the minimum: raised to it.
-        assert_eq!(dock(&main, Edge::Right, 320.0, 5000.0).3, 957.0 - 16.0);
-        assert_eq!(dock(&main, Edge::Right, 320.0, 10.0).3, MIN_HEIGHT);
+        assert_eq!(dock(&main, Edge::Right, 320.0, 5000.0, None).3, 957.0 - 16.0);
+        assert_eq!(dock(&main, Edge::Right, 320.0, 10.0, None).3, MIN_HEIGHT);
         // On the second display its own origin counts; a width past the work area is cut to it.
         let right = d(1512.0, 0.0, 2560.0, 1440.0, "DELL U2720Q");
-        assert_eq!(dock(&right, Edge::Left, 320.0, 300.0), (1520.0, 8.0, 320.0, 300.0));
-        assert_eq!(dock(&d(0.0, 0.0, 200.0, 400.0, ""), Edge::Right, 320.0, 300.0), (8.0, 8.0, 184.0, 300.0));
+        assert_eq!(dock(&right, Edge::Left, 320.0, 300.0, None), (1520.0, 8.0, 320.0, 300.0));
+        assert_eq!(dock(&d(0.0, 0.0, 200.0, 400.0, ""), Edge::Right, 320.0, 300.0, None), (8.0, 8.0, 184.0, 300.0));
+        // Anchored on the pointer: centred on its y, held inside the work area at either end.
+        assert_eq!(dock(&main, Edge::Right, 320.0, 400.0, Some(500.0)).1, 300.0);
+        assert_eq!(dock(&main, Edge::Right, 320.0, 400.0, Some(40.0)).1, 33.0);
+        assert_eq!(dock(&main, Edge::Right, 320.0, 400.0, Some(970.0)).1, 25.0 + 957.0 - 8.0 - 400.0);
         // The strip hugs the edge over the work area's full height.
         assert_eq!(strip(&main, Edge::Right), (1510.0, 25.0, 2.0, 957.0));
         assert_eq!(strip(&right, Edge::Left), (1512.0, 0.0, 2.0, 1440.0));

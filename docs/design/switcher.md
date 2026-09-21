@@ -171,18 +171,23 @@ driven by its own `sidebar` module that reuses the popover's pure
 `Machine` (state keyed by the sidebar's id) and the popover page. What
 differs from a popover:
 
-- **Placement**: docked, not anchored. `x` = the display's work-area
-  edge (8 px inset), `y` = the work area's top + 8, width from the
-  config, height = content up to the work-area height (the page reports
-  `bar_size` as it does for the popover). The display is resolved at
-  each show (`popover::displays` lists them with the under-cursor index).
+- **Placement**: docked to the edge (`x` = the work area's edge, 8 px
+  in), centred on the pointer's height when the pointer brought it (the
+  peek, a click into it), at the work area's top from the hotkey; the
+  anchor is kept while the height settles. Width from the config, height
+  = content up to the work-area height (the page reports `bar_size` as
+  it does for the popover). The display is resolved at each show
+  (`popover::displays` lists them with the under-cursor index).
 - **Peek**: an edge strip, a 2 px wide transparent NSPanel pal owns along
   the chosen edge of the chosen display, `ignoresMouseEvents: false`, a
   tracking area like `BarPanel`'s. Its `mouse_entered` is
   `Input::Enter(sidebar)`, `mouse_exited` `Input::Exit(sidebar)`; the
-  sidebar window's own tracking area gives `PopoverEnter/Exit`. So the
-  hover delay and grace, the peek-then-engage, the resign-hides rules
-  are the popover's table unchanged. The strip is re-placed on display
+  sidebar window's own tracking area gives `PopoverEnter/Exit`. The
+  machine is the popover's table unchanged; the timings are the
+  sidebar's own (`delay`, 0 by default: the peek is instant; `grace`
+  150 ms), not the bar's hover ones. A click into a peek is the pick
+  (wry's webview class answers `acceptsFirstMouse:` yes, else AppKit's
+  click-through rule eats the first click of a non-key panel). The strip is re-placed on display
   changes (`NSApplicationDidChangeScreenParametersNotification`) and
   removed with `peek = false`.
 - **Engage**: click, the `hotkey`, or a key during a peek (the popover's

@@ -496,6 +496,26 @@ fn hide_now(app: &AppHandle) {
 
 /// Every display's work area in logical points (the primary first, as
 /// AppKit lists them), and the index of the one under the cursor.
+/// The pointer's y in the logical top-left space `Display` and `set_frame`
+/// use: AppKit's `mouseLocation` (bottom-left, points) flipped on the
+/// primary screen's height, the hinge `panel::strip` flips with too. Read
+/// here rather than through tauri's `cursor_position`, which answered
+/// nothing from the strip's own (main-thread) callback on hornet.
+#[cfg(target_os = "macos")]
+pub(crate) fn cursor_y(_app: &AppHandle) -> Option<f64> {
+    use objc2_app_kit::{NSEvent, NSScreen};
+    let mtm = objc2::MainThreadMarker::new()?;
+    let hinge = NSScreen::screens(mtm).iter().next().map(|s| s.frame().size.height)?;
+    Some(hinge - NSEvent::mouseLocation().y)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn cursor_y(app: &AppHandle) -> Option<f64> {
+    let c = app.cursor_position().ok()?;
+    let m = app.monitor_from_point(c.x, c.y).ok()??;
+    Some(c.y / m.scale_factor())
+}
+
 pub(crate) fn displays(app: &AppHandle) -> (Vec<Display>, usize) {
     let all = app.available_monitors().unwrap_or_default();
     let cursor = app.cursor_position().ok();

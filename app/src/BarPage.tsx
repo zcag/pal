@@ -66,6 +66,8 @@ export default function BarPage() {
       if ("hide" in p) { showing.current = null; setShow(null); return; }
       if ("engage" in p) { if (showing.current) showing.current.engaged = true; (page.current?.querySelector(".pal-search__input") as HTMLInputElement | null)?.focus(); return; }
       // The same item rendered again while showing: its level is replaced in place; another item starts over.
+      // One line in the log per show: which item, peek or engaged, and whether its level is replaced in place (a lost show is otherwise invisible in a release build).
+      mark(`bar show ${p.key} ${p.engaged ? "engaged" : "peek"}${showing.current?.key === p.key ? " again" : ""}`, 0);
       const inPlace = showing.current?.key === p.key && menuKind(showing.current.menu) === menuKind(p.menu) && !!showing.current.effect === !!p.effect;
       showing.current = p;
       setShow(p);

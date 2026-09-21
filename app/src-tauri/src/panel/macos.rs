@@ -364,6 +364,7 @@ mod bar {
         let occlusion = window.with_webview(|wv| unsafe {
             let wk = &*(wv.inner() as *const AnyObject);
             let _: () = msg_send![wk, _setWindowOcclusionDetectionEnabled: false];
+            super::accept_first_mouse(wk);
         });
         if let Err(e) = occlusion {
             eprintln!("bar\t{label}\twith_webview failed\t{e}; the page may pause when covered");
@@ -408,6 +409,36 @@ mod bar {
 }
 
 pub use bar::{hide as bar_hide, install as bar_install, show as bar_show};
+
+/// A click into a peeking popover or sidebar must be the click, not the
+/// one that only makes the window key: AppKit asks the view under the
+/// pointer `acceptsFirstMouse:` and WKWebView says no, so the first click
+/// on a non-key panel was swallowed (measured on hornet 2026-09-22: the
+/// mousedown made the sidebar key and the page saw nothing). wry's
+/// webview class gets the method here, once, answering yes; every webview
+/// in this process is pal's own, so nothing else changes.
+unsafe fn accept_first_mouse(wk: &AnyObject) {
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        unsafe extern "C-unwind" fn yes(_this: *const AnyObject, _cmd: objc2::runtime::Sel, _event: *const AnyObject) -> objc2::runtime::Bool {
+            objc2::runtime::Bool::YES
+        }
+        // SAFETY: `B@:@` is the type encoding of `- (BOOL)acceptsFirstMouse:(NSEvent *)`; the imp matches it. A method the class already has (a later wry) is left alone: `class_addMethod` refuses to replace one.
+        let imp: objc2::runtime::Imp = unsafe { std::mem::transmute(yes as unsafe extern "C-unwind" fn(*const AnyObject, objc2::runtime::Sel, *const AnyObject) -> objc2::runtime::Bool) };
+        // The instance's class is KVO's dynamic subclass when something observes it (`NSKVONotifying_…`); wry's own class beneath it gets the method too, for a webview nothing observes.
+        let mut class = Some(wk.class());
+        while let Some(c) = class {
+            let name = c.name().to_string_lossy();
+            if !name.contains("WryWebView") {
+                break;
+            }
+            let added = unsafe { objc2::ffi::class_addMethod(c as *const _ as *mut _, objc2::sel!(acceptsFirstMouse:), imp, c"B@:@".as_ptr()) };
+            eprintln!("bar\tacceptsFirstMouse\t{name}\t{}", if added.as_bool() { "added" } else { "kept the class's own" });
+            class = c.superclass();
+        }
+    });
+}
 
 // ---- sidebar strip ---------------------------------------------------------
 
