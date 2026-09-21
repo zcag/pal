@@ -53,9 +53,10 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Compose Projects](#docker-docker-docker-images-docker-compose) | `docker-compose` | live, normal | Up |
 | [Downloads](#downloads-downloads) | `downloads` | live, primary | Open the file |
 | [Emoji](#emoji-emoji) | `emoji` | indexed, grid, catalog | Copy emoji |
-| [Files](#files-files-files-browse-files-recent) | `files` | input, normal | Open the file, browse a folder |
-| [Browse Folder](#files-files-files-browse-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
-| [Recent Files](#files-files-files-browse-files-recent) | `files-recent` | live, primary | Open the file |
+| [Files](#files-files-files-browse-files-selection-files-recent) | `files` | input, normal | Open the file, browse a folder |
+| [Browse Folder](#files-files-files-browse-files-selection-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
+| [Finder Selection](#files-files-files-browse-files-selection-files-recent) | `files-selection` | input, normal | Open the file, browse a folder |
+| [Recent Files](#files-files-files-browse-files-selection-files-recent) | `files-recent` | live, primary | Open the file |
 | [Generate](#generate-generate) | `generate` | input, normal | Copy the value (show the QR code on its row) |
 | [GIFs](#gifs-gifs-gifs-favourites) | `gifs` | indexed, grid, normal | Copy the GIF file |
 | [Favourite GIFs](#gifs-gifs-gifs-favourites) | `gifs-favourites` | indexed, grid, normal | Copy the GIF file |
@@ -919,7 +920,7 @@ Settings, `[extensions.ssh]`:
 | `include_known_hosts` | bool | `false` | List the names in `known_hosts` too, in a second section. |
 | `terminal` | `auto`, `kitty`, `Terminal`, `iTerm2`, `Ghostty`, `Alacritty` | `auto` | macOS only: which terminal Connect opens. |
 
-## Files (`files`, `files-browse`, `files-recent`)
+## Files (`files`, `files-browse`, `files-selection`, `files-recent`)
 
 An input palette over the operating system's own file index: what you type
 is a name search on every keystroke, never a walk pal indexes itself. A
@@ -999,9 +1000,10 @@ Actions:
 | Use in TextEdit's open panel | `⌘G` | only while the app in front has an Open or Save panel up: pal hides and types the path into it through its Go to Folder sheet (`ctrl+L` on a GTK chooser); listed first then, and the empty root leads with a "Dialog" hint into Files |
 
 Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open,
-Reveal, Copy path (the paths one per line), Copy file, Compress (one
-archive) and Move to Trash run over all of them as one pick; Quick Look,
-Open with…, the terminal and the three forms stay one file's.
+Reveal, Quick Look (one panel, arrows between them), Copy path (the paths
+one per line), Copy file, Compress (one archive) and Move to Trash run
+over all of them as one pick; Open with…, the terminal and the three
+forms stay one file's.
 
 ### Browsing folders
 
@@ -1053,6 +1055,33 @@ row.
 it gets a toast saying so). The clipboard history records it as a files
 entry like any copy.
 
+### The Finder selection
+
+Open pal over a Finder window (or the Desktop) with files marked and the
+empty root leads with a **Selected in Finder** section, nothing typed:
+each marked item as a file row with every action above, pictures with
+their thumbnails; with two or more, an **N items** row first (the names,
+the total size) whose actions run on all of them at once: Open all,
+Reveal all, Quick Look all, Copy paths, Copy files, Compress together,
+Move all to Trash (asks first), and whose `Enter` opens the palette with
+the whole selection. The root shows four item rows at most.
+
+**Finder Selection** (`files-selection`) is the same as a palette of its
+own, for a hotkey or `pal open files/selection`: the N items row, then
+every marked item, typing filters them by name, marks and the multi
+actions work as anywhere. With nothing to list it says why: "Nothing is
+selected in Finder" with Finder in front, "Finder is not in front"
+otherwise (the `front_app` state), "Not available on Linux" there, since
+no file manager exposes its selection.
+
+The selection is the core's `selection.files()` (Finder's `selection`
+over `osascript`, only while Finder is the app in front; ~190 ms, read
+once per panel show and cached), so it is what was marked when the panel
+came up: a folder shown with nothing marked is nothing, not the folder,
+and a selected dot file is listed whatever `show_hidden` says. The
+Images palette reads the same selection for its inputs, and `{files}` in
+a snippet or a quicklink fills in the paths.
+
 ### Recent files and Quick Look
 
 - Before you type, the Files palette lists the **recently used files**
@@ -1065,7 +1094,10 @@ entry like any copy.
 - **Recent Files** (`files-recent`) lists the same rows as a palette of
   its own: live (newest first is the order), listed again on a show once
   the listing is a minute old, with the same actions and detail pane.
-- **Quick Look** (`⌘Y`) on macOS opens the file in `qlmanage -p`.
+- **Quick Look** (`⌘Y`) on macOS opens the file in `qlmanage -p` (every
+  marked row in one panel). The System palette's "Quick Look Finder
+  Selection" row does the same for what is marked in Finder without
+  listing it first.
 
 Settings, `[extensions.files]`:
 
@@ -1114,6 +1146,7 @@ Only commands this machine can run are listed:
 | Quit All Apps | System Events: every regular app but Finder and pal asked to quit, one by one, so an app with unsaved work still shows its sheet | not available |
 | Unhide All Apps | System Events: every hidden app made visible | not available |
 | Dismiss Notifications | Notification Center over Accessibility: the Clear All (else Close) action of every notification group; nothing on screen is nothing to do | `swaync-client --close-all`, `makoctl dismiss --all` or `dunstctl close-all`; hidden with none |
+| Quick Look Finder Selection | the Quick Look panel (`qlmanage -p`) over what is marked in Finder (the core's `selection.files()`, read once per show): the names as the subtitle, the count on the right; while nothing is marked, or Finder is not in front, the row is inert and its subtitle says which | not available |
 
 Log Out, Restart, Shut Down, Empty Trash and Quit All Apps are destructive: with
 `confirm_destructive` on, `Enter` asks "(command) now?" first. A command
@@ -1123,7 +1156,9 @@ that fails keeps the panel open with a toast carrying the tool's message.
 `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`,
 `volume-up`, `volume-down`, `volume-mute`, `brightness-up`,
 `brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`, `quit-all`, `unhide-all`,
-`dismiss-notifications`);
+`dismiss-notifications`, and on macOS `quick-look-selection`, the one for
+a Quick Look hotkey: the HUD says "nothing is selected in Finder" when
+there is nothing to show);
 the route is declared with `confirm`, so a link always asks first
 ([Links](links.md#extension-routes)).
 
