@@ -535,6 +535,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__stack[data-justify="between"] { justify-content: space-between; }
 /* A grow node takes the free space of its parent, never less than its content: with a basis of 0 a column inside an auto-height parent (the bar popover's root, a nested column) collapsed to nothing and its children overflowed over their neighbours. */
 .pal-view__stack[data-grow] { flex: 1 1 auto; }
+/* A weighted (`flex`) or sized (`width`/`height`) stack is a box whose size is its parent's to give: it clips what does not fit, padding inside. */
+.pal-view__stack[data-box] { box-sizing: border-box; overflow: hidden; }
 /* Surfaces: a well behind a board, a card behind stats. A surface wants its own padding; without one it hugs its children. */
 .pal-view__stack[data-surface="sunken"] { background: var(--pal-bg-sunken, #141417); }
 .pal-view__stack[data-surface="elevated"] { background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, inset 0 1px 0 rgba(255, 255, 255, 0.07)); }
