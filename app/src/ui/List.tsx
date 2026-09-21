@@ -20,6 +20,8 @@ export type ListProps = {
   marked?: (item: Item) => boolean;
   /** A cmd+click (ctrl on Linux): mark or unmark the row instead of picking it. */
   onToggle?: (index: number) => void;
+  /** Every row wears its number (1 to 9) whether or not cmd is held: the sidebar, where cmd+N is the pick. */
+  ordinals?: boolean;
   label?: string;
 };
 
@@ -32,7 +34,7 @@ export const clickWithModifier = (e: { metaKey: boolean; ctrlKey: boolean }) => 
  * scroll with the rows, as in Raycast: a sticky one would sit over the
  * cursor row whenever the cursor is the first in its section.
  */
-export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, label }, ref) {
+export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, ordinals, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item)), [hits]);
@@ -90,7 +92,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
               match={hits[i].match}
               active={i === cursor}
               style={style}
-              ordinal={cmdHeld ? i + 1 : undefined}
+              ordinal={ordinals || cmdHeld ? i + 1 : undefined}
               marked={marked?.(row.items[0])}
               onHover={hover(i)}
               onClick={(e) => (onToggle && clickWithModifier(e) ? onToggle(i) : onPick?.(i))}

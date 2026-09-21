@@ -17,9 +17,9 @@ export type BarMenu = BarMenuNode[] | { palette: string; extension?: string; arg
 
 export type BarItemWire = { hidden?: boolean; icon?: unknown; title?: string; badge?: number | "dot"; color?: string; urgent?: boolean; stale?: boolean; tooltip?: string; menu?: BarMenu | null };
 
-/** `pal://bar`: the item to show on one level, a peek made key, or the popover going. */
+/** `pal://bar`: the item to show on one level, a peek made key, or the popover going. The sidebar's window gets the same shape with `sidebar: true` and its palette as the menu (sidebar.rs). */
 export type BarPayload =
-  | { key: string; title: string; engaged: boolean; urgent: boolean; tooltip?: string; menu: BarMenu | null; item: BarItemWire; effect?: Effect }
+  | { key: string; title: string; engaged: boolean; urgent: boolean; tooltip?: string; menu: BarMenu | null; item: BarItemWire; effect?: Effect; sidebar?: boolean }
   | { engage: true }
   | { hide: true };
 

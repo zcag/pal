@@ -237,6 +237,8 @@ export type LauncherProps = {
   onPickReply?: (token: number, ids: string[] | null) => void;
   /** Flips `general.compact` (cmd+shift+m, the "Compact mode" action); the action is only offered when given. */
   onCompact?: () => void;
+  /** Sidebar mode: every row wears its number without cmd held, and cmd+N runs row N instead of moving the cursor to it (the number is the pick). */
+  ordinals?: boolean;
   mark?: (name: string, t: number) => void;
 };
 
@@ -285,7 +287,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, mark } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, ordinals = false, mark } = props;
   const prefs = props.prefs ?? DEFAULT_PREFS;
   /** Compact: no detail pane (cmd+i is inert), the footer's primary hint sits in the search row instead. */
   const compact = prefs.compact;
@@ -939,6 +941,14 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     return move(dir);
   };
 
+  /** A cmd+N pick (`ordinals`) on a row the cursor was not on waits for the cursor's render: `run` reads the row under it. */
+  const runAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (runAt.current === null || runAt.current !== cur.cursor) return;
+    runAt.current = null;
+    if (current && listed[0]) run(listed[0]);
+  });
+
   useKeys(
     {
       move: ({ dir }) => move(dir),
@@ -949,7 +959,13 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         else if (to === "end") cur.set(cur.last);
         else cur.move((to === "pageDown" ? 1 : -1) * (list.current?.pageSize() ?? 10));
       },
-      jumpTo: ({ index }) => (view.kind !== "view" && view.kind !== "form" && index < hits.length ? cur.set(index) : false),
+      jumpTo: ({ index }) => {
+        if (view.kind === "view" || view.kind === "form" || index >= hits.length) return false;
+        if (!ordinals) return cur.set(index);
+        if (index === cur.cursor) { if (current && listed[0]) run(listed[0]); return; }
+        runAt.current = index;
+        cur.set(index);
+      },
       // Enter and cmd+enter are a row's: with nothing under the cursor the shell's actions wait in the panel.
       // A form's fields take them first (Form's own scope); reaching here means focus is elsewhere, so the form is asked to submit.
       primary: () => (view.kind === "show" ? pop() : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (listed[0]?.id === CLEAR ? noMulti() : run(listed[0])) : current && listed[0] ? run(listed[0]) : false),
@@ -1020,8 +1036,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
           note={query && view.kind === "root" && sources.length > 0 && extensions < 2 ? `${extensions === 0 ? "No extensions are" : "Only one extension is"} loaded, so there is little to find. Settings (${isMac ? "⌘," : "Ctrl+,"}) › Extensions lists them; the Welcome tips link the guide to adding more.` : undefined}
         />
       : isGrid
-        ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} columns={columns} />
-        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} />;
+        ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} columns={columns} ordinals={ordinals} />
+        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} ordinals={ordinals} />;
 
   /** The footer's primary hint and Enter handler, one place: the footer draws it, or the search row's right side in compact mode. */
   const primaryHint = isShow ? { title: "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || current) && primaryAction ? { title: primaryAction.title } : undefined;
