@@ -68,8 +68,7 @@ const opened = renderPopover({ ...data, scenes: livingScenes, scenesOf: living.n
 const bar = {
   key: "hue/home",
   title: "Home",
-  // The real strip carries the room's colour as a PNG dot (`dotPng`); the gallery's bar page draws glyphs only, so the shot shows the bulb in amber.
-  item: { icon: G.bulb, color: "amber", title: `${on} on`, tooltip: `${on} of ${lights.length} lights on · Living room 72%`, menu: { view: popover } },
+  item: { icon: G.bulb, title: `${on} on`, tooltip: `${on} of ${lights.length} lights on · Living room 72%`, menu: { view: popover } },
   states: [
     { id: "off", item: { icon: G.bulbOff, title: null, color: "muted", tooltip: "All lights off" } },
     { id: "stale", item: { stale: true, tooltip: `${on} of ${lights.length} lights on (stale)` } },

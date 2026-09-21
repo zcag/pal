@@ -16,9 +16,8 @@
 import { hostname } from "node:os";
 import { bar, effects, errorMessage, failed as failedRow, settings, storage, toast, view as liveView, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
 import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
-import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, toHex, xyToHs, type RGB } from "./color.ts";
+import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, toHex, xyToHs } from "./color.ts";
 import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Light, type Room, type Scene } from "./model.ts";
-import { dotPng } from "./png.ts";
 import { freshPopover, gridRooms, moveCursor, renderPopover, type PopoverData, type PopoverState } from "./popover.ts";
 import { DURATIONS, EFFECTS, FOCUS, PRESETS, fresh, render, renderSetup, shown, type SetupState, type Target, type ViewState } from "./render.ts";
 import { G, NAME, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
@@ -578,9 +577,9 @@ export function barItem(): BarItem {
   const main = mainRoom(rooms);
   const a = main ? aggregate(main) : undefined;
   const stale = down.size > 0 && down.size === home.bridges.size;
-  const color: RGB | undefined = a?.anyOn ? a.color : undefined;
+  // The bulb glyph, lit or off: the main room's colour used to be a PNG dot in the icon slot, which read as a yellow blob next to "5 on", not as a lamp. The colour lives in the popover's room tiles.
   return {
-    icon: color ? { image: dotPng(color) } : G.bulbOff,
+    icon: a?.anyOn ? G.bulb : G.bulbOff,
     title: on ? `${on} on` : undefined,
     color: on ? undefined : "muted",
     tooltip: on ? `${on} of ${lights.length} lights on${main && a?.anyOn ? ` · ${main.name}${a.brightness !== undefined ? ` ${Math.round(a.brightness)}%` : ""}` : ""}` : "All lights off",

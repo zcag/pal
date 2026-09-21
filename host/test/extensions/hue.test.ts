@@ -543,10 +543,10 @@ describe("over the wire against the mock bridge", () => {
     expect(await host.pick(E, "entertainment", "ent:tv-area", "stop")).toMatchObject({ hud: "TV area: stopped" });
   });
 
-  test("the bar item: the count, the main room's dot as a PNG, the popover as a view: the rooms as tiles with switches, the sensors, the scenes, the keys; a toggle, the arrows, a room opened, a slider tap, All off", async () => {
+  test("the bar item: the count, the lit bulb glyph, the popover as a view: the rooms as tiles with switches, the sensors, the scenes, the keys; a toggle, the arrows, a room opened, a slider tap, All off", async () => {
     const item = await host.render(E, "home");
     expect(item.title).toMatch(/^\d+ on$/);
-    expect((item.icon as { image: string }).image).toMatch(/^data:image\/png;base64,/);
+    expect(item.icon).toBe("\u{f0335}");
     const view = (item.menu as { view: View }).view;
     expect(checkView(view)).toBe(view);
     expect(view).toMatchObject({ id: "home", keys: "actions", title: "Hue Bridge" });
