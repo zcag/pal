@@ -2567,11 +2567,14 @@ it repeats.
 
 **The bar item** (`calendar/upcoming`,
 [Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)): the next
-event as `Standup in 12m` (`Standup now` while it runs, the title cut to 36
-characters), hidden when nothing timed starts within `horizon_hours` (10), so a
-clear evening is a clear strip. The event is the first that has not ended, timed
-unless `hide_all_day` is off, not declined unless `hide_declined` is off,
-starting inside the horizon; a running one counts until it ends. Colour by
+event's name as the title with the time as a segment after it (`in 12m`, `25m
+left` while it runs), so the target's `max_chars` clips the name and never the
+time; while one runs the next due under the same rules adds an `in 8m` segment
+in its own colour, its name in the tooltip. Hidden when nothing timed starts
+within `horizon_hours` (10), so a clear evening is a clear strip. The event is
+the first that has not ended, timed unless `hide_all_day` is off, not declined
+unless `hide_declined` is off, starting inside the horizon; a running one
+counts until it ends (a click joins its call, not the next one's). Colour by
 escalation, the boundaries inclusive: `muted` far off, `amber` from
 `warn_minutes` (15) before the start, `red` from `urgent_minutes` (5), `green`
 while it runs; sketchybar draws the same names through the bar module's colour

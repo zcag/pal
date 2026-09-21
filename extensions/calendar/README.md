@@ -14,9 +14,10 @@ item over one source and one cache:
   tomorrow 10:00`, read back as a row while you type and added on Enter;
   a root query nothing matched offers it as a fallback row.
 - **Upcoming** (`calendar/upcoming`, the bar item): the next event as
-  `Standup in 12m` on the menu bar or sketchybar, `now` while it runs,
-  hidden when nothing starts within ten hours; muted far off, amber inside
-  fifteen minutes, red inside five; a dot when there is a call to join. A
+  `Standup  in 12m` on the menu bar or sketchybar, `25m left` while it
+  runs (with `in 8m` for the one due next), hidden when nothing starts
+  within ten hours; muted far off, amber inside fifteen minutes, red
+  inside five; a dot when there is a call to join. A
   click joins that call (or opens Calendar); a hover peek opens the day:
   the rows still to come, Join on the calls, tomorrow folded; Enter joins.
 
@@ -134,15 +135,25 @@ source; a Google source refuses the write as the form does.
 
 `calendar/upcoming` speaks for the first event that has not ended, timed
 (all-day ones skipped unless `hide_all_day` is off), not declined, and
-starting within `horizon_hours`; a running one counts and reads `now`
-until it ends. Its state is `far` (outside `near_minutes`), `near`,
-`warning` (from `warn_minutes`), `critical` (from `urgent_minutes`) or
-`running`; the boundaries are inclusive. The default colours retain the
-original behaviour: `muted`, `muted`, `amber`, `red`, then `green`.
-Each state has a configurable colour, size and sketchybar position; zero/empty
-preserve the normal Bar appearance. `badge: "dot"`
-when there is a call. The tooltip is the title, the time range and the
-calendar. sketchybar draws the same colours through the bar module's map.
+starting within `horizon_hours`; a running one counts until it ends. The
+event's name is the title and the time is a segment after it (`in 12m`
+before the event, `25m left` while it runs), so the target's `max_chars`
+clip shortens a long name and never the time; the segment has no colour
+of its own and takes the item's. While an event runs, the next one due
+under the same rules (the one the strip would show once this ends) adds a
+second segment, `in 8m`, in that event's own state colour, with its name
+in the tooltip (`Weekly sync, 10:12 – 10:42 (Work), Enter joins; then
+Design review, 11:00 – 12:00 (Team)`) and in the popover: the strip has
+one name's width and segments are never clipped, so a second name stays
+off it. A click joins the running event's call, not the next one's. Its
+state is `far` (outside `near_minutes`), `near`, `warning` (from
+`warn_minutes`), `critical` (from `urgent_minutes`) or `running`; the
+boundaries are inclusive. The default colours retain the original
+behaviour: `muted`, `muted`, `amber`, `red`, then `green`. Each state
+has a configurable colour, size and sketchybar position; zero/empty
+preserve the normal Bar appearance. `badge: "dot"` when there is a call.
+The tooltip is the title, the time range and the calendar. sketchybar
+draws the same colours through the bar module's map.
 
 The core asks every five minutes and on wake, the network coming back
 and the minute tick (`refresh: { every: 300, on: ["minute", "wake",

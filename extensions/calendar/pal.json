@@ -408,13 +408,14 @@
   "bar": {
     "upcoming": {
       "title": "Upcoming",
-      "description": "The next event as `Standup in 12m`, `now` while it runs; hidden when nothing starts within the horizon; far, near, warning, critical and running appearances are configurable, a dot when there is a call to join. A click joins the call, or opens Calendar; a hover peek opens the day with Join on the calls, the running event on a card, tomorrow folded.",
+      "description": "The next event's name with `in 12m` beside it, `25m left` while it runs (and `in 8m` for the one due next); hidden when nothing starts within the horizon; far, near, warning, critical and running appearances are configurable, a dot when there is a call to join. A click joins the call, or opens Calendar; a hover peek opens the day with Join on the calls, the running event on a card, tomorrow folded.",
       "mocks": {
-        "far": { "title": "Starts in 3 hours", "item": { "icon": "󰃭", "title": "Project review in 3h", "color": "muted", "badge": "dot" } },
-        "near": { "title": "Starts in 45 minutes", "item": { "icon": "󰃭", "title": "Project review in 45m", "color": "muted", "badge": "dot" } },
-        "warning": { "title": "Starts in 12 minutes", "item": { "icon": "󰃭", "title": "Project review in 12m", "color": "amber", "badge": "dot" } },
-        "critical": { "title": "Starts in 4 minutes", "item": { "icon": "󰃭", "title": "Project review in 4m", "color": "red", "badge": "dot" } },
-        "running": { "title": "In progress", "item": { "icon": "󰃭", "title": "Project review now", "color": "green", "badge": "dot" } }
+        "far": { "title": "Starts in 3 hours", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 3h" }], "color": "muted", "badge": "dot" } },
+        "near": { "title": "Starts in 45 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 45m" }], "color": "muted", "badge": "dot" } },
+        "warning": { "title": "Starts in 12 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 12m" }], "color": "amber", "badge": "dot" } },
+        "critical": { "title": "Starts in 4 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "in 4m" }], "color": "red", "badge": "dot" } },
+        "running": { "title": "In progress, 25 minutes left", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "25m left" }], "color": "green", "badge": "dot" } },
+        "running-next": { "title": "In progress, the next one in 8 minutes", "item": { "icon": "󰃭", "title": "Project review", "segments": [{ "id": "when", "text": "12m left" }, { "id": "next", "text": "in 8m", "color": "amber", "tooltip": "Design sync, 11:00 – 11:30 (Team)" }], "color": "green", "badge": "dot", "tooltip": "Project review, 10:20 – 10:50 (Work), Enter joins; then Design sync, 11:00 – 11:30 (Team)" } }
       },
       "refresh": {
         "every": 300,

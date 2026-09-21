@@ -43,19 +43,22 @@ const settings: Settings = { source: "auto", accounts: [], calendars: [], days: 
 const st = freshPopover(false, true);
 const item = upcomingItem(events, NOW, settings, undefined, st);
 const running = upcomingItem(events, at(10, 18), settings, undefined, st);
+// Two minutes left of the sync, the review twenty out: both on the strip.
+const ending = upcomingItem(events, at(10, 40), settings, undefined, st);
 
 const bar = {
   key: "calendar/upcoming",
   title: "Upcoming",
   item,
   states: [
-    { id: "far", item: { title: "Design review: settings win… in 3h", color: "muted", badge: null, tooltip: "Design review: settings window, 11:00 – 12:00 (Team)" } },
-    { id: "urgent", item: { title: "Weekly sync in 4m", color: "red", tooltip: "Weekly sync, 10:12 – 10:42 (Work), Enter joins" } },
+    { id: "far", item: { title: "Design review: settings window", segments: [{ id: "when", text: "in 3h" }], color: "muted", badge: null, tooltip: "Design review: settings window, 11:00 – 12:00 (Team)" } },
+    { id: "urgent", item: { title: "Weekly sync", segments: [{ id: "when", text: "in 4m" }], color: "red", tooltip: "Weekly sync, 10:12 – 10:42 (Work), Enter joins" } },
     // The sync running: its row on a card with `ends in`, the Join solid.
-    { id: "now", item: { title: "Weekly sync now", color: "green", tooltip: "Weekly sync, 10:12 – 10:42 (Work), Enter joins", menu: running.menu } },
+    { id: "now", item: { title: "Weekly sync", segments: [{ id: "when", text: "24m left" }], color: "green", tooltip: "Weekly sync, 10:12 – 10:42 (Work), Enter joins", menu: running.menu } },
+    { id: "now-next", item: { title: "Weekly sync", segments: ending.segments, color: "green", tooltip: ending.tooltip, menu: ending.menu } },
     { id: "stale", item: { stale: true, tooltip: "Weekly sync, 10:12 – 10:42 (Work), Enter joins (stale)" } },
     // Late in the day, tomorrow unfolded, the ring on its first row.
-    { id: "tomorrow", item: { title: "Dentist in 30m", color: "muted", badge: null, tooltip: "Dentist, 15:30 – 16:15 (Home)", menu: { view: popover(events, at(15), true, { ...st, expanded: true, cursor: 2 }) } } },
+    { id: "tomorrow", item: { title: "Dentist", segments: [{ id: "when", text: "in 30m" }], color: "muted", badge: null, tooltip: "Dentist, 15:30 – 16:15 (Home)", menu: { view: popover(events, at(15), true, { ...st, expanded: true, cursor: 2 }) } } },
   ],
   shots: {
     "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the next event and how long until it, amber inside fifteen minutes, a dot for a call to join" },
@@ -67,4 +70,4 @@ const bar = {
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-calendar.json", import.meta.url), JSON.stringify(bar) + "\n");
-console.log(`${events.length} events, the strip says ${item.title}`);
+console.log(`${events.length} events, the strip says ${item.title} ${item.segments?.map((s) => s.text).join(" ")}`);

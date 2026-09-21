@@ -1,8 +1,9 @@
 // The pure side of Today and the `upcoming` bar item: an event's state
 // against the clock (`in 12 min`, `now, 25 min left`, `over`), its
-// duration, which event the strip speaks for, the escalation colour, and
-// the strip's title. Nothing here touches the core; the tests import it.
-import type { BarColor, BarItem, CalendarEvent } from "@zcag/pal";
+// duration, which events the strip speaks for, the escalation colour, and
+// the strip's title and time segments. Nothing here touches the core; the
+// tests import it.
+import { MAX_BAR_TITLE, type BarColor, type BarItem, type BarSegment, type CalendarEvent } from "@zcag/pal";
 import { addDays, clock, dayName, startOfDay, timeRange } from "./schedule.ts";
 import type { Settings } from "./source.ts";
 import { freshPopover, popover, type PopoverState } from "./view.ts";
@@ -13,8 +14,6 @@ const H = 60 * MIN;
 export const ICON = "\u{f00ed}";
 export const ITEM = "upcoming";
 export const TODAY = "today";
-/** The strip's title keeps this much of the event's title; `MAX_BAR_TITLE` is 64 and the time part needs room. */
-const BAR_TITLE_CHARS = 36;
 
 export type State = { kind: "over" | "now" | "soon" | "later"; text: string };
 
@@ -91,19 +90,20 @@ export function barRules(s: Settings): PresentationRules {
 }
 
 /**
- * The event the strip speaks for: the first (by start) that has not
- * ended, timed unless `hide_all_day` is off, not declined when
- * `hide_declined`, and starting inside `horizon_hours`; nothing when
- * the day is clear that far out. A running event counts: the strip says
- * `now` until it ends.
+ * The events the strip may speak for, by start: not ended, timed unless
+ * `hide_all_day` is off, not declined when `hide_declined`, starting
+ * inside `horizon_hours`; empty when the day is clear that far out. A
+ * running event counts: the strip says what is left of it until it ends.
  */
-export function nextEvent(events: CalendarEvent[], now: number, r: BarRules): CalendarEvent | undefined {
+export function eligible(events: CalendarEvent[], now: number, r: BarRules): CalendarEvent[] {
   const horizon = now + r.horizon_hours * H;
   return events
-    .filter((e) => e.end > now && !(r.hide_all_day && e.all_day) && !(r.hide_declined && e.my_status === "declined"))
-    .sort((a, b) => a.start - b.start || a.end - b.end)
-    .find((e) => e.start <= horizon);
+    .filter((e) => e.end > now && e.start <= horizon && !(r.hide_all_day && e.all_day) && !(r.hide_declined && e.my_status === "declined"))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
 }
+
+/** The event the strip speaks for first: a running one, else the next to start. What a click joins. */
+export const nextEvent = (events: CalendarEvent[], now: number, r: BarRules): CalendarEvent | undefined => eligible(events, now, r)[0];
 
 /**
  * The escalation: `muted` far off, `amber` inside `warn_minutes`, `red`
@@ -137,12 +137,21 @@ export function upcomingPresentation(e: Pick<CalendarEvent, "start" | "end">, no
   }
 }
 
-/** `Standup in 12m`, `Standup now`, the title cut to fit the strip. */
-export function barTitle(e: Pick<CalendarEvent, "title" | "start" | "end">, now: number): string {
+/**
+ * The strip's title: the event's name alone, cut only at the protocol's
+ * ceiling. Each target clips it to its `max_chars`; the time rides in a
+ * segment (`barWhen`) so a long name never eats it.
+ */
+export function barName(e: Pick<CalendarEvent, "title">): string {
   const title = (e.title || "(no title)").trim();
-  const cut = title.length > BAR_TITLE_CHARS ? title.slice(0, BAR_TITLE_CHARS - 1).trimEnd() + "…" : title;
-  return e.start <= now ? `${cut} now` : `${cut} in ${shortSpan(e.start - now)}`;
+  return title.length > MAX_BAR_TITLE ? title.slice(0, MAX_BAR_TITLE - 1).trimEnd() + "…" : title;
 }
+
+/** The strip's time: `in 12m` before the event, `25m left` while it runs. */
+export const barWhen = (e: Pick<CalendarEvent, "start" | "end">, now: number): string => (e.start <= now ? `${shortSpan(e.end - now)} left` : `in ${shortSpan(e.start - now)}`);
+
+/** `Standup, 10:00 – 10:30 (Work)`: the tooltip's words for one event. */
+const about = (e: CalendarEvent): string => `${e.title || "(no title)"}, ${timeRange(e)}${e.calendar.title ? ` (${e.calendar.title})` : ""}`;
 
 /** The day's events (local), in start order; `day` is any moment of it. */
 export const onDay = (events: CalendarEvent[], day: number): CalendarEvent[] => {
@@ -158,27 +167,37 @@ export function nextWords(e: CalendarEvent | undefined, now: number): string {
 }
 
 /**
- * The strip for `events` at `now` under the settings' rules, with the
- * popover (view.ts) over the same events as its menu; pure, so the tests
- * and the gallery fixture agree with it. `stale` is the error behind a
- * cache kept past a failed fetch (the strip muted, the popover says so).
+ * The strip for `events` at `now` under the settings' rules: the name as
+ * the title, the time as a `when` segment in the item's colour (`in 12m`,
+ * `25m left`). While an event runs and another is due under the same
+ * rules, a `next` segment follows in that event's own escalation colour,
+ * `in 8m`, its name in the tooltip and the popover: the strip has one
+ * name's width (`max_chars`) and segments are never clipped, so a second
+ * name stays off it. The popover (view.ts) over the same events is the
+ * menu; pure, so the tests and the gallery fixture agree with it. `stale`
+ * is the error behind a cache kept past a failed fetch (the strip muted,
+ * the popover says so).
  */
 export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, stale?: string | false, st: PopoverState = freshPopover()): BarItem {
   const rules = barRules(s);
-  const e = nextEvent(events, now, rules);
+  const list = eligible(events, now, rules);
+  const e = list[0];
   if (!e) return { hidden: true };
-  const cal = e.calendar.title ? ` (${e.calendar.title})` : "";
+  const next = e.start <= now ? list.find((x) => x.start > now) : undefined;
   const presentation = upcomingPresentation(e, now, s);
+  const segments: BarSegment[] = [{ id: "when", text: barWhen(e, now) }];
+  if (next) segments.push({ id: "next", text: barWhen(next, now), color: upcomingPresentation(next, now, s).color, tooltip: about(next) });
   return {
     icon: ICON,
-    title: barTitle(e, now),
+    title: barName(e),
+    segments,
     color: presentation.color,
     icon_size: presentation.size,
     label_size: presentation.size,
     position: presentation.position,
     badge: e.conference_url ? "dot" : undefined,
     stale: stale ? true : undefined,
-    tooltip: `${e.title || "(no title)"}, ${timeRange(e)}${cal}${e.conference_url ? ", Enter joins" : ""}`,
+    tooltip: `${about(e)}${e.conference_url ? ", Enter joins" : ""}${next ? `; then ${about(next)}` : ""}`,
     click: "open",
     menu: { view: popover(events, now, rules.hide_declined, st, typeof stale === "string" ? stale : undefined) },
   };
