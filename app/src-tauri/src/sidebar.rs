@@ -33,6 +33,7 @@
 //! - Linux: the config is read and validated, nothing is built
 //!   (`bar::SUPPORTED`), one log line says so.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use pal_core::config::{Config, Edge, Sidebar as SidebarConfig};
@@ -142,15 +143,19 @@ fn apply(app: &AppHandle) {
 }
 
 fn ensure_window(app: &AppHandle) {
-    if app.get_webview_window(WINDOW).is_some() {
+    if app.get_webview_window(WINDOW).is_some() || BUILDING.swap(true, Ordering::SeqCst) {
         return;
     }
     let width = settings::config(app).sidebar.width;
     let handle = app.clone();
-    let _ = app.run_on_main_thread(move || {
-        if handle.get_webview_window(WINDOW).is_some() {
-            return;
-        }
+    // Built on a thread of its own, never inside a main-thread closure: the
+    // build proxies to the event loop and waits, and a build dispatched onto
+    // that loop hung the daily app on hornet (the Settings switch,
+    // 2026-09-22) where the same build from the setup hook and from the
+    // config watcher's thread on a scratch instance did not. The panel
+    // conversion wants the main thread and hops there after.
+    std::thread::spawn(move || {
+        eprintln!("sidebar\twindow\tbuilding");
         let builder = WebviewWindowBuilder::new(&handle, WINDOW, WebviewUrl::App("index.html?bar&sidebar".into()))
             .title("pal Sidebar")
             .inner_size(width, 480.0)
@@ -162,11 +167,28 @@ fn ensure_window(app: &AppHandle) {
             .visible_on_all_workspaces(true)
             .visible(false);
         match builder.build() {
-            Ok(w) => panel::bar_install(&w),
-            Err(e) => eprintln!("sidebar\twindow failed\t{e}"),
+            Ok(w) => {
+                let h = handle.clone();
+                let _ = handle.run_on_main_thread(move || {
+                    panel::bar_install(&w);
+                    eprintln!("sidebar\twindow\tbuilt");
+                    BUILDING.store(false, Ordering::SeqCst);
+                    // A show that came while the window was on its way (the strip peeked, the hotkey) finds it now.
+                    if is_visible(&h) {
+                        place_window(&h);
+                    }
+                });
+            }
+            Err(e) => {
+                BUILDING.store(false, Ordering::SeqCst);
+                eprintln!("sidebar\twindow failed\t{e}");
+            }
         }
     });
 }
+
+/// A build under way (`ensure_window` runs on every apply; two must not race the same label).
+static BUILDING: AtomicBool = AtomicBool::new(false);
 
 fn feed(app: &AppHandle, input: Input) {
     if !enabled(app) && !matches!(input, Input::Escape | Input::Resign) {
