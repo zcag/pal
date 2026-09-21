@@ -44,6 +44,7 @@
     {
       "kind": "boolean",
       "id": "unread_only_bar",
+      "bar": "unread",
       "label": "Bar item",
       "text": "Show the bar item only while a chat is unread",
       "description": "Off keeps the WhatsApp glyph on the bar with no count, muted, as a way into the popover, which then lists the recent chats.",
@@ -52,6 +53,7 @@
     {
       "kind": "boolean",
       "id": "dm_urgent",
+      "bar": "unread",
       "label": "Direct messages",
       "text": "Draw the bar item as urgent (red) while a direct chat is unread",
       "default": true

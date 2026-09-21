@@ -18,6 +18,8 @@ export type SettingSpec = Base & {
   required?: boolean;
   /** `instance`: identifies the account (a server url, a workspace); never inherited by another instance of a `multi` extension, like a secret. */
   scope?: "instance";
+  /** The bar item (its id) the setting is about: Settings > Bar shows it on that item's pane too. An id starting `bar_` with no `bar` is shown on every item of the extension. */
+  bar?: string;
 } &
   (
     | { kind: "text"; placeholder?: string; default?: string }
@@ -364,7 +366,12 @@ export type BarItem = {
   /** Optional, extension-declared states that replace only this pane's strip. */
   mocks?: BarItemMock[];
   config: BarItemConfig;
+  /** The extension's settings about this item (`SettingSpec.bar`, or a `bar_` id): shown on the pane, written to the extension's table. */
+  settings?: BarItemSetting[];
 };
+
+/** One extension setting as the bar pane shows it: the spec, its current value, and what an instance inherits (SettingsExtensions draws the same row). */
+export type BarItemSetting = { spec: SettingSpec; value: SettingValue | undefined; base?: SettingValue; note?: string };
 
 /**
  * The extension-level settings an extension cannot work without and that

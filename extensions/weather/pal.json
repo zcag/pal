@@ -24,6 +24,7 @@
     {
       "kind": "number",
       "id": "low",
+      "bar": "weather",
       "label": "Cold below",
       "min": -50,
       "max": 50,
@@ -33,6 +34,7 @@
     {
       "kind": "number",
       "id": "high",
+      "bar": "weather",
       "label": "Hot above",
       "min": -20,
       "max": 60,
@@ -42,6 +44,7 @@
     {
       "kind": "list",
       "id": "notable_conditions",
+      "bar": "weather",
       "label": "Additional notable weather codes",
       "description": "Optional WMO weather codes that should surface even within the temperature band.",
       "default": []

@@ -809,7 +809,8 @@ export type LinkHandler = (route: string, params: LinkParams) => Effect | void |
 export type SettingOption = { id: string; title: string };
 
 /** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. */
-type SettingBase = { id: string; label: string; description?: string; scope?: "instance" };
+/** `bar`: the setting is about that bar item (its id), so Settings > Bar shows it on the item's pane too; an id starting `bar_` with no `bar` is shown on every item of the extension. */
+type SettingBase = { id: string; label: string; description?: string; scope?: "instance"; bar?: string };
 
 /** One setting an extension declares, with its default. */
 export type SettingSpec = SettingBase &

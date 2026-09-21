@@ -37,6 +37,7 @@
     {
       "kind": "select",
       "id": "bar_show_volume",
+      "bar": "volume",
       "label": "Volume on the bar",
       "description": "When the Volume strip is drawn. It leaves the bar only when no output device is in use; Always keeps a muted glyph there even then.",
       "options": [
@@ -54,6 +55,7 @@
     {
       "kind": "select",
       "id": "bar_show_microphone",
+      "bar": "microphone",
       "label": "Microphone on the bar",
       "description": "When the Microphone strip is drawn. By default it interrupts only when the input is muted or missing; Muted leaves a missing input quiet; Always keeps the strip up, a live microphone as a muted glyph whose click opens the popover instead of restoring the level.",
       "options": [

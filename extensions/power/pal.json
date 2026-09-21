@@ -16,6 +16,7 @@
     {
       "kind": "number",
       "id": "show_below",
+      "bar": "battery",
       "label": "Show on battery below",
       "description": "Hide the bar item while discharging at or above this level, unless the power watcher has a warning or reports a high draw.",
       "min": 1,
@@ -26,6 +27,7 @@
     {
       "kind": "number",
       "id": "show_charging_below",
+      "bar": "battery",
       "label": "Show while charging below",
       "description": "Hide the bar item on external power above this level.",
       "min": 1,
@@ -36,6 +38,7 @@
     {
       "kind": "number",
       "id": "show_draw_watts",
+      "bar": "battery",
       "label": "Show draw above",
       "description": "While on battery, show when the optional power watcher measures at least this many watts.",
       "min": 1,
@@ -46,6 +49,7 @@
     {
       "kind": "boolean",
       "id": "always_show",
+      "bar": "battery",
       "label": "Always show battery",
       "text": "Keep the battery item visible even when it is healthy.",
       "default": false

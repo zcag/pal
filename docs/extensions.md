@@ -65,7 +65,11 @@ whose code fails to load.
 - `settings`: extension-level settings, `[extensions.<name>]` in the config
   file (`SettingSpec`). Every one has `id`, `label`, an optional
   `description` and a `default`; `"scope": "instance"` marks one that
-  identifies the account (below, "Instances"). The kinds and what each
+  identifies the account (below, "Instances"); `"bar": "<item id>"` marks
+  one that is about a bar item (when it shows, its thresholds, its
+  colours), so Settings > Bar lists it on that item's pane as well, and an
+  id starting `bar_` with no `bar` lands on every item of the extension.
+  The kinds and what each
   adds: `text` and `secret` (`placeholder`; a secret goes to the OS
   keychain, [Config](config.md#secrets)), `number` (`min`, `max`, `step`,
   `unit`), `boolean` (`text`, the line beside the switch), `select`

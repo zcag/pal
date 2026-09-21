@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { BarStrip, type BarLook, type BarStripItem, type BarStripTarget } from "./BarStrip";
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
-import { SettingsDisclosure, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsDisclosure, SettingsField, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { SettingsList, type SettingsListItem } from "./SettingsList";
 import { Tag } from "./Row";
 import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type SettingsIndexEntry } from "./SettingsTypes";
@@ -22,6 +22,8 @@ export type SettingsBarProps = {
   onSelect?: (key: string) => void;
   /** The Extensions page for an item's extension. */
   onOpenExtension?: (name: string) => void;
+  /** One of the extension's own settings changed from an item's pane (`BarItem.settings`): written to the extension's table, as the Extensions page does. */
+  onSetting?: (extension: string, id: string, value: unknown) => void;
 };
 
 type Target = "menubar" | "sketchybar";
@@ -303,7 +305,7 @@ function rowTag(b: BarItem): ReactNode {
 const hovers = [{ id: "", title: "Default" }, { id: "on", title: "On" }, { id: "off", title: "Off" }];
 
 /** The selected item: description, preview, placement, appearance with inheritance, hotkey, peek, Reset. */
-function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onOpenExtension?: (name: string) => void }) {
+function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onOpenExtension?: (name: string) => void; onSetting?: (extension: string, id: string, value: unknown) => void }) {
   const c = b.config;
   const put = (patch: Partial<BarItemConfig>) => onItem({ ...c, ...patch });
   const eff = effectiveTarget(b, config, sketchybar);
@@ -350,6 +352,20 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
           </div>
         )))}
       </section>
+
+      {!!b.settings?.length && (
+        // What the extension decides about this item (when it shows, its colours, its thresholds): the same rows as the Extensions page, written to the same table, so they are found where the item is.
+        <section className="pal-ppane__section" aria-label="Item settings">
+          <h4 className="pal-ppane__h">Item settings <span className="pal-ppane__h-note">extensions.{b.extension}, the extension's own; the rest under {onOpenExtension ? <button type="button" className="pal-link" onClick={() => onOpenExtension(b.extension)}>{b.extTitle}</button> : b.extTitle}</span></h4>
+          <div className="pal-settings-group__rows pal-xpane__fields">
+            {b.settings.map((s) => (
+              <div key={s.spec.id} data-anchor={`extensions:${b.extension}:${s.spec.id}`} data-inherited={s.note ? "" : undefined}>
+                <SettingsField spec={s.spec} value={s.value} onChange={(v) => onSetting?.(b.extension, s.spec.id, v)} base={s.base} note={s.note} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="pal-ppane__section" aria-label="Placement">
         <h4 className="pal-ppane__h">Placement <span className="pal-ppane__h-note">bar.items."{b.key}"</span></h4>
@@ -424,7 +440,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
  * of its last render in both themes, its placement, its popover, and its
  * departures from the defaults folded away until it has some.
  */
-export function SettingsBar({ config, onChange, items, onItem, sketchybar, supported = true, selected, onSelect, onOpenExtension }: SettingsBarProps) {
+export function SettingsBar({ config, onChange, items, onItem, sketchybar, supported = true, selected, onSelect, onOpenExtension, onSetting }: SettingsBarProps) {
   const [local, setLocal] = useState<string | undefined>(undefined);
   const key = selected ?? local ?? BAR_DEFAULTS;
   const current = items.find((b) => b.key === key);
@@ -451,7 +467,7 @@ export function SettingsBar({ config, onChange, items, onItem, sketchybar, suppo
       <SettingsList label="Bar items" items={rows} selected={key} onSelect={select} />
       <div className="pal-split__pane">
         {current
-          ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} />
+          ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} onSetting={onSetting} />
           : <Defaults config={config} onChange={onChange} sketchybar={sketchybar} items={items} />}
       </div>
     </div>

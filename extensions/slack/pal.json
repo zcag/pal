@@ -65,6 +65,7 @@
     {
       "kind": "boolean",
       "id": "dm_urgent",
+      "bar": "unreads",
       "label": "Direct messages",
       "text": "Draw the bar item as urgent (red) while a direct message is unread",
       "default": true

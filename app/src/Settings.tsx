@@ -188,6 +188,10 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     state: b.state,
     mocks: b.mocks,
     config: { enabled: raw.enabled ?? true, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, look: lookOf(raw) },
+    settings: (ext?.settings ?? []).filter((s) => (s.bar ? s.bar === b.id : s.id.startsWith("bar_"))).map((spec) => {
+      const own = ext!.values[spec.id], inherited = ext!.inherited?.[spec.id];
+      return { spec, value: own ?? inherited ?? spec.default, base: ext!.inherited ? inherited : undefined, note: own === undefined && inherited !== undefined ? `From ${ext!.inheritedFrom ?? ext!.title}` : undefined };
+    }),
   };
 }
 
@@ -550,7 +554,7 @@ export default function Settings() {
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
       {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
-      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => go("extensions", `extensions:${key}`)} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => go("extensions", `extensions:${key}`)} onSetting={(key, id, value) => { const e = extensions.find((x) => x.key === key); if (e) onExtension(key, { ...e.values, [id]: value as SettingValue }); }} />}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

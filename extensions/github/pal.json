@@ -90,6 +90,7 @@
     {
       "kind": "select",
       "id": "bar_show_prs",
+      "bar": "prs",
       "label": "Pull requests on the bar",
       "description": "When the Pull requests item is drawn. Always keeps the glyph on the strip, muted, with nothing open, so the popover stays a click away.",
       "options": [
@@ -107,6 +108,7 @@
     {
       "kind": "select",
       "id": "bar_show_issues",
+      "bar": "issues",
       "label": "Issues on the bar",
       "description": "When the Issues item is drawn. Always keeps the glyph on the strip, muted, with nothing open.",
       "options": [
@@ -124,6 +126,7 @@
     {
       "kind": "select",
       "id": "bar_show_notifications",
+      "bar": "notifications",
       "label": "Notifications on the bar",
       "description": "When the Notifications item is drawn. Always keeps the glyph on the strip, muted and without a badge, with nothing unread.",
       "options": [
