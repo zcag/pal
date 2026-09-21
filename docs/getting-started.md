@@ -104,7 +104,8 @@ pal, Settings…, Restart extension host, Check for updates… and Quit pal;
 `pal settings` still work.
 
 The first panel leads with a Welcome section: a few rows that explain the
-panel, open Settings and ask for the one permission most palettes need.
+panel, name the window switcher's chord and the sidebar, open Settings and
+ask for the one permission most palettes need.
 The last row hides them ("Show tips again" in the ⌘K panel brings them
 back).
 
@@ -333,9 +334,10 @@ the hotkey.
 menu opens the Settings window: six pages across the top. **Overview**
 is what needs attention (a hotkey that did not register, a missing
 permission, an extension that needs a token, a config file problem, an
-update) and the counts; **General** the hotkeys, permissions, theme,
-position, startup, the config file and maintenance (reset the search
-history, restart the extension host, list everything again);
+update) and the counts; **General** the hotkeys, the window switcher's
+chord, the sidebar, permissions, theme, position, startup, the config file
+and maintenance (reset the search history, restart the extension host,
+list everything again);
 **Palettes** every palette with its switch, alias, hotkey, icon, tier,
 item hotkeys and declared settings; **Extensions** every extension with
 its settings, its instances, load errors and warnings, and a box that
