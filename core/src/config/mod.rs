@@ -52,6 +52,9 @@ pub struct Config {
     pub palettes: BTreeMap<String, Palette>,
     /// Bar items: the menu bar and sketchybar strips (`docs/design/bar.md`).
     pub bar: Bar,
+    /// The sidebar: a live palette docked to a screen edge
+    /// (`docs/design/switcher.md`).
+    pub sidebar: Sidebar,
     /// Instances of `multi` extensions, keyed `<name>@<suffix>`
     /// (`[instances."gmail@work"]`; the table existing is what makes the
     /// instance) or by the bare name to title the default one
@@ -543,6 +546,57 @@ impl Default for Bar {
     }
 }
 
+/// Which screen edge the sidebar docks to.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Edge {
+    Left,
+    #[default]
+    Right,
+}
+
+/// `[sidebar]`: one live palette docked to a screen edge, peeked when the
+/// pointer rests there, engaged by a click, a key or its hotkey; every
+/// row numbered so `cmd+N` runs it (`docs/design/switcher.md`). The hover
+/// timings are `[bar]`'s. macOS only: read and validated on Linux, nothing
+/// built.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct Sidebar {
+    /// The palette it shows, `extension/palette`; empty is no sidebar.
+    pub palette: String,
+    /// The screen edge it docks to.
+    pub edge: Edge,
+    /// Which display: `cursor` (the one under the pointer at each show),
+    /// `primary` (the one with the menu bar), or a display's name as the
+    /// OS reports it (`Built-in Retina Display`).
+    pub display: String,
+    /// Width in points; the height follows the rows up to the work area.
+    pub width: f64,
+    /// The pointer resting at the edge for `bar.hover_delay` peeks it.
+    pub peek: bool,
+    /// Global hotkey that engages it. Same syntax as `general.hotkey`; the
+    /// root, palette and bar item hotkeys win a clash.
+    pub hotkey: Option<String>,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl Default for Sidebar {
+    fn default() -> Self {
+        Self { palette: "windows/windows".into(), edge: Edge::Right, display: "cursor".into(), width: 320.0, peek: true, hotkey: None, extra: BTreeMap::new() }
+    }
+}
+
+impl Sidebar {
+    /// The palette key, or none: an empty `palette` is no sidebar.
+    pub fn palette(&self) -> Option<&str> {
+        Some(self.palette.trim()).filter(|p| !p.is_empty())
+    }
+}
+
 /// `badge_style`: how a count badge is drawn.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -936,6 +990,7 @@ impl Config {
         for (key, i) in &self.bar.items {
             out.extend(unknown(&format!("bar.items.{key}."), &i.extra));
         }
+        out.extend(unknown("sidebar.", &self.sidebar.extra));
         for (key, i) in &self.instances {
             if !(instance::is_key(key) || instance::valid_name(key)) {
                 out.push(Diagnostic::warn(format!("instances.{key}"), "not an instance key: <name>@<suffix>, the suffix lowercase letters, digits, - and _ (not \"default\"), or a bare name for the default instance"));
@@ -1298,6 +1353,23 @@ show = "always"
         assert!(parse("[bar]\ntarget = \"tray\"\n").is_err(), "an unknown target is a parse error");
         let (_, d) = parse("[bar]\nhover = 1\n[bar.items.\"a/b\"]\nenable = true\n").unwrap();
         assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["bar.hover", "bar.items.a/b.enable"]);
+    }
+
+    #[test]
+    fn sidebar_defaults_and_overrides() {
+        let (c, d) = parse("").unwrap();
+        assert!(d.is_empty());
+        assert_eq!(c.sidebar.palette(), Some("windows/windows"), "windows is the one that ships wired");
+        assert_eq!((c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek, c.sidebar.hotkey), (Edge::Right, "cursor", 320.0, true, None));
+        let (c, d) = parse("[sidebar]\npalette = \"apps/apps\"\nedge = \"left\"\ndisplay = \"primary\"\nwidth = 400\npeek = false\nhotkey = \"ctrl+alt+tab\"\n").unwrap();
+        assert!(d.is_empty());
+        assert_eq!((c.sidebar.palette(), c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek), (Some("apps/apps"), Edge::Left, "primary", 400.0, false));
+        assert_eq!(c.sidebar.hotkey.as_deref(), Some("ctrl+alt+tab"));
+        let (c, _) = parse("[sidebar]\npalette = \" \"\n").unwrap();
+        assert_eq!(c.sidebar.palette(), None, "blank is no sidebar");
+        assert!(parse("[sidebar]\nedge = \"top\"\n").is_err(), "left or right");
+        let (_, d) = parse("[sidebar]\nside = \"left\"\n").unwrap();
+        assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["sidebar.side"]);
     }
 
     #[test]

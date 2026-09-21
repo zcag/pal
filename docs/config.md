@@ -270,6 +270,39 @@ quit. A bar restarted by its own rc (which wipes its items) gets pal's
 back at the next probe, or at once with `pal bar sync` at the end of the
 rc.
 
+## `[sidebar]`
+
+A live palette docked to a screen edge (the design in
+`docs/design/switcher.md`): it peeks when the pointer rests at the edge
+for `bar.hover_delay` and closes `bar.hover_grace` after it has left;
+a click into the peek, a key while it is up, or its hotkey engages it
+(key: typing filters, Enter runs, Escape hides). Every row wears its
+number, and `cmd+N` (`ctrl+N` on Linux) runs row N without a search, so
+the numbers on screen are the promise. One sidebar; macOS only for now:
+on Linux the table is read and validated, nothing is built.
+
+```toml
+[sidebar]
+palette = "windows/windows"   # any palette; "" = no sidebar
+edge = "right"                # left | right
+display = "cursor"            # cursor | primary | a display's name
+width = 320
+peek = true
+hotkey = "ctrl+opt+tab"
+```
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `palette` | string | `"windows/windows"` | The palette it shows, `<extension>/<palette>`; `""` turns the sidebar off (no window peeks, no strip, no hotkey). A live palette lists again on every show, as it does for the panel. |
+| `edge` | `"left"`, `"right"` | `"right"` | The edge it docks to, 8 px in from it and from the top of the work area. |
+| `display` | string | `"cursor"` | Which display: `cursor` (the one under the pointer at each show; a peek strip on every display), `primary` (the one with the menu bar), or a display's name as the OS reports it (`Built-in Retina Display`; an unknown name falls back to the cursor's, with a log line). |
+| `width` | number, points | `320` | The window's width; the height follows the rows, up to the work area. |
+| `peek` | bool | `true` | The pointer resting at the edge peeks it; `false` leaves the hotkey and nothing at the edge. |
+| `hotkey` | string | unset | A global hotkey that engages it (shown key from hidden, or a peek made key). Same syntax as `general.hotkey`; the root, palette and bar item hotkeys win a clash. |
+
+`show_when` / `hide_when` (the sidebar following a named state) join
+when states land (`docs/design/states.md`).
+
 ## `[extensions.<name>]`
 
 Extension settings, keyed by extension name. The shape is whatever the

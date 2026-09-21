@@ -527,6 +527,14 @@
       ],
       "description": "`general.deeplink_confirm`: whether a link that acts shows the confirm\ncard. `true`/`false` for all, or the extensions whose links are trusted\n(the card is skipped for `run`, `form` and routes into them)."
     },
+    "Edge": {
+      "description": "Which screen edge the sidebar docks to.",
+      "enum": [
+        "left",
+        "right"
+      ],
+      "type": "string"
+    },
     "General": {
       "additionalProperties": false,
       "properties": {
@@ -781,6 +789,43 @@
       ],
       "type": "string"
     },
+    "Sidebar": {
+      "additionalProperties": false,
+      "description": "`[sidebar]`: one live palette docked to a screen edge, peeked when the\npointer rests there, engaged by a click, a key or its hotkey; every\nrow numbered so `cmd+N` runs it (`docs/design/switcher.md`). The hover\ntimings are `[bar]`'s. macOS only: read and validated on Linux, nothing\nbuilt.",
+      "properties": {
+        "display": {
+          "default": "cursor",
+          "description": "Which display: `cursor` (the one under the pointer at each show),\n`primary` (the one with the menu bar), or a display's name as the\nOS reports it (`Built-in Retina Display`).",
+          "type": "string"
+        },
+        "edge": {
+          "$ref": "#/$defs/Edge",
+          "default": "right",
+          "description": "The screen edge it docks to."
+        },
+        "hotkey": {
+          "description": "Global hotkey that engages it. Same syntax as `general.hotkey`; the\nroot, palette and bar item hotkeys win a clash.",
+          "type": "string"
+        },
+        "palette": {
+          "default": "windows/windows",
+          "description": "The palette it shows, `extension/palette`; empty is no sidebar.",
+          "type": "string"
+        },
+        "peek": {
+          "default": true,
+          "description": "The pointer resting at the edge for `bar.hover_delay` peeks it.",
+          "type": "boolean"
+        },
+        "width": {
+          "default": 320.0,
+          "description": "Width in points; the height follows the rows up to the work area.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
     "Theme": {
       "description": "Follow the OS, or force one.",
       "enum": [
@@ -920,6 +965,18 @@
       "default": {},
       "description": "Per-palette settings, keyed by palette id.",
       "type": "object"
+    },
+    "sidebar": {
+      "$ref": "#/$defs/Sidebar",
+      "default": {
+        "display": "cursor",
+        "edge": "right",
+        "hotkey": null,
+        "palette": "windows/windows",
+        "peek": true,
+        "width": 320.0
+      },
+      "description": "The sidebar: a live palette docked to a screen edge\n(`docs/design/switcher.md`)."
     }
   },
   "title": "pal config",
