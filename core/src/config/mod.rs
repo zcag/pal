@@ -445,6 +445,11 @@ pub struct Palette {
     pub alias: Option<String>,
     /// Hotkey that opens pal directly in this palette.
     pub hotkey: Option<String>,
+    /// The switcher chord: held, it shows this palette flat with the cursor
+    /// on row 2, every press steps (its `shift+` variant back), letting go
+    /// of the modifier runs the row (`alt+tab` on Windows). `""` turns off
+    /// the default the extension's manifest suggests.
+    pub hold: Option<String>,
     /// Global hotkeys that run one of the palette's items without showing
     /// the panel, keyed by item id: `left_half = "ctrl+alt+left"` under
     /// `[palettes.window-management.item_hotkeys]`. The item's primary
@@ -467,7 +472,7 @@ pub struct Palette {
 
 impl Default for Palette {
     fn default() -> Self {
-        Self { enabled: true, alias: None, hotkey: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, settings: toml::Table::new(), extra: BTreeMap::new() }
+        Self { enabled: true, alias: None, hotkey: None, hold: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, settings: toml::Table::new(), extra: BTreeMap::new() }
     }
 }
 
@@ -945,7 +950,7 @@ impl Config {
     /// non-default instance's palette inherits the default's
     /// (`[palettes.gmail-inbox]` under `[palettes."gmail@work-inbox"]`), the
     /// same secrets and `scope: "instance"` ids skipped. The pal-provided
-    /// keys (`enabled`, `alias`, `hotkey`, `icon`, `tier`) never inherit.
+    /// keys (`enabled`, `alias`, `hotkey`, `hold`, `icon`, `tier`) never inherit.
     pub fn palette_settings(&self, key: &str, palette: &str, manifest_defaults: &toml::Table, specs: &serde_json::Value) -> toml::Table {
         let name = instance::name_of(key);
         let base = if name == key { None } else { self.palettes.get(&instance::palette_id(name, palette)).map(|p| inheritable(&p.settings, specs)) };

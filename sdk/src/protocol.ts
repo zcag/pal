@@ -902,6 +902,8 @@ export type ManifestPalette = {
   fallback?: boolean | string;
   /** Extra words the palette's row at the root answers to (`gh`, `hass`), on top of its title, key and the extension's `keywords`. */
   keywords?: string[];
+  /** The switcher chord to suggest (`alt+tab`): applied when `palettes.<id>.hold` is unset in the config; `""` there turns it off. */
+  hold?: string;
 };
 
 /**
@@ -1000,4 +1002,6 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   refresh?: number;
   /** A view palette: the triggers that re-ask it while open (`Palette.on`, the manifest's first). */
   on?: ViewTrigger[];
+  /** The switcher chord the manifest suggests (`ManifestPalette.hold`); the config's `hold` wins. */
+  hold?: string;
 };

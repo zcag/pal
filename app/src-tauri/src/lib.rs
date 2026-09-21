@@ -37,6 +37,7 @@ mod selection;
 mod settings;
 mod sidebar;
 mod storage;
+mod switcher;
 mod system;
 mod theme;
 mod tray;
@@ -104,6 +105,10 @@ struct Shown {
     /// The page keeps its level and query (`general.pop_to_root`, pop.rs)
     /// instead of going back to the root.
     keep: bool,
+    /// The switcher opened `palette` (switcher.rs): the page lists it flat
+    /// with the cursor on row 2 and follows `pal://switch`.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    hold: bool,
 }
 
 // ---- show / hide ---------------------------------------------------------
@@ -147,10 +152,21 @@ fn show(app: &AppHandle) {
 /// An already visible panel is not moved; the page still gets the event, so
 /// a palette hotkey switches what is showing.
 pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
+    show_with(app, palette, false);
+}
+
+/// `show_in` for the switcher: `hold` rides in the event, and the held
+/// palette lists again on this show whatever the live relist gap says
+/// (a switch and a switch back within two seconds must see the new order).
+pub(crate) fn show_hold(app: &AppHandle, palette: String) {
+    show_with(app, Some(palette), true);
+}
+
+fn show_with(app: &AppHandle, palette: Option<String>, hold: bool) {
     let t0 = now_ms();
     let keep = pop::keep(&settings::config(app).general.pop_to_root);
     if !panel::is_visible(app) {
-        // The window the user was in when they pressed the hotkey: first in the windows palette (the list below runs after the stamp is under way).
+        // The window the user was in when they pressed the hotkey: first in the windows palette (the bridge's `list` waits for the stamp).
         windows::stamp_focused();
         place(app);
         panel::show(app);
@@ -159,10 +175,11 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     }
     // The page keeps its level only with `keep` and no palette to open; otherwise it starts over and reports its view anew.
     views::set_visible(app, WINDOW, true, !(keep && palette.is_none()));
-    events::emit(app, events::SHOWN, Shown { t0, palette, keep });
+    let held = hold.then(|| palette.clone()).flatten();
+    events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold });
     // After the event: the live palettes list again off this thread; a file dialog in front is looked for once per show.
     dialog::on_shown();
-    index::on_shown(app);
+    index::on_shown(app, held.as_deref());
     bar::on_shown(app);
     // A fresh profile's first show asks for Accessibility (once per run);
     // a missing permission is watched for while the panel is up.
@@ -263,6 +280,8 @@ pub fn run() {
     builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
+                // A release is not an event here: the switcher reads the modifiers itself (switcher.rs), since a
+                // chord's key may go up long before its modifier does.
                 .with_handler(|app, shortcut, event| {
                     if event.state == ShortcutState::Pressed {
                         hotkey::pressed(app, shortcut);

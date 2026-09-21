@@ -137,6 +137,12 @@ describe("checkPalettes", () => {
     expect(bad.metas[0]).not.toHaveProperty("keywords");
   });
 
+  test("hold: the manifest's switcher chord reaches the meta trimmed; blank or unset is off the wire", () => {
+    expect(checkPalettes(man({ p: { hold: " alt+tab " } }), ext({ p: list })).metas[0].hold).toBe("alt+tab");
+    expect(checkPalettes(man({ p: { hold: "" } }), ext({ p: list })).metas[0]).not.toHaveProperty("hold");
+    expect(checkPalettes(man({ p: {} }), ext({ p: list })).metas[0]).not.toHaveProperty("hold");
+  });
+
   test("lazy on either side reaches the meta; the manifest's wins, a difference is a warning; never on the wire when unset", () => {
     expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: list })).metas[0].lazy).toBe(true);
     expect(checkPalettes(man({ p: {} }), ext({ p: { ...list, lazy: true } })).metas[0].lazy).toBe(true);

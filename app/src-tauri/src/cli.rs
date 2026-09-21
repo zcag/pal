@@ -38,8 +38,12 @@
 //! `pal pick` (pick.rs): the rows on stdin, the panel as the picker, the
 //! choice on stdout; the one subcommand with an answer, over a socket of
 //! its own that the handed-over argv names (`--reply`).
+//!
+//! `pal switch [next|prev|commit|cancel]` (switcher.rs) drives the
+//! switcher from a compositor keybind, where no global chord can: the
+//! press, the back step, the release, the escape.
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use pal_core::extensions::Store;
 use tauri::{AppHandle, Manager};
 
@@ -54,6 +58,11 @@ pub struct Cli {
 pub enum Cmd {
     /// Show the panel if hidden, hide it if shown.
     Toggle,
+    /// The switcher: `next` (the default) begins a hold over the palette with a `hold` chord, or steps down; `prev` steps up; `commit` runs the row under the cursor; `cancel` hides.
+    Switch {
+        #[arg(value_enum)]
+        what: Option<SwitchCmd>,
+    },
     /// Show the panel.
     Show,
     /// Hide the panel.
@@ -177,6 +186,15 @@ pub enum Cmd {
         #[arg(value_name = "KEY=VALUE")]
         params: Vec<String>,
     },
+}
+
+/// `pal switch WHAT`; bare `pal switch` is `next`.
+#[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SwitchCmd {
+    Next,
+    Prev,
+    Commit,
+    Cancel,
 }
 
 /// Percent-encoding for a link's path part or query value: everything but
@@ -482,6 +500,7 @@ impl Cmd {
         let handle = app.clone();
         let _ = app.run_on_main_thread(move || match self {
             Cmd::Toggle => crate::toggle(&handle),
+            Cmd::Switch { what } => crate::switcher::cli(&handle, what.unwrap_or(SwitchCmd::Next)),
             Cmd::Show => crate::show(&handle),
             Cmd::Hide => crate::panel::hide(&handle),
             Cmd::Settings { page } => crate::settings::open_page(&handle, page.as_deref()),
@@ -659,6 +678,17 @@ mod tests {
     fn pick_parses_its_flags_and_the_hidden_reply_socket() {
         assert_eq!(cmd(&["pick"]), Cmd::Pick { title: None, multi: false, query: None, select: None, reply: None });
         assert_eq!(cmd(&["pick", "--reply", "/tmp/x.sock", "--title", "T", "--multi", "--query", "q", "--select", "id"]), Cmd::Pick { title: Some("T".into()), multi: true, query: Some("q".into()), select: Some("id".into()), reply: Some("/tmp/x.sock".into()) });
+    }
+
+    #[test]
+    fn switch_is_next_when_bare_and_names_its_steps() {
+        assert_eq!(cmd(&["switch"]), Cmd::Switch { what: None });
+        assert_eq!(cmd(&["switch", "prev"]), Cmd::Switch { what: Some(SwitchCmd::Prev) });
+        assert_eq!(cmd(&["switch", "commit"]), Cmd::Switch { what: Some(SwitchCmd::Commit) });
+        assert_eq!(cmd(&["switch", "cancel"]), Cmd::Switch { what: Some(SwitchCmd::Cancel) });
+        assert!(Cli::try_parse_from(["pal", "switch", "sideways"]).is_err());
+        assert!(cmd(&["switch"]).link().is_none(), "not a link: the instance drives the switcher");
+        assert_eq!(cmd(&["switch"]).run_compat(), None, "goes on to the handover");
     }
 
     #[test]

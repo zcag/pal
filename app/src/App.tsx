@@ -27,17 +27,20 @@ export default function App() {
     };
   }, [bump, showing]);
 
-  // hotkey -> painted panel; a palette hotkey names where to open; `keep` (general.pop_to_root, pop.rs) leaves the level and query as they were
+  // hotkey -> painted panel; a palette hotkey names where to open, the switcher's chord adds `hold` (switcher.rs); `keep` (general.pop_to_root, pop.rs) leaves the level and query as they were
   useEffect(() => {
-    const un = listen<{ t0: number; palette?: string; keep?: boolean }>("pal://shown", (e) => {
-      if (e.payload.palette) launcher.current?.open(e.payload.palette);
+    const un = listen<{ t0: number; palette?: string; keep?: boolean; hold?: boolean }>("pal://shown", (e) => {
+      if (e.payload.palette) launcher.current?.open(e.payload.palette, { hold: !!e.payload.hold });
       else if (e.payload.keep) launcher.current?.shown();
       else launcher.current?.reset();
       window.dispatchEvent(new Event(SHOWN_EVENT));
       requestAnimationFrame(() => mark("hotkey->paint ms", Date.now() - e.payload.t0));
     });
+    // The switcher while it holds a palette: a press steps the cursor, the modifier let go (or `pal switch commit`) runs the row under it.
+    const unSwitch = listen<{ step?: number; commit?: boolean }>("pal://switch", (e) => launcher.current?.switch(e.payload));
     return () => {
       un.then((f) => f());
+      unSwitch.then((f) => f());
     };
   }, []);
 

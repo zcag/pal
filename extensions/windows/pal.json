@@ -97,6 +97,7 @@
       "tier": "primary",
       "kind": "live",
       "description": "What is open right now, most recently used first.",
+      "hold": "alt+tab",
       "keys": [
         {
           "keys": "enter",

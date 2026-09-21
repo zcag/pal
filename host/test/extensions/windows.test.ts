@@ -35,7 +35,7 @@ const perApp = MAC ? ["hide-app", "minimize-all", "close-all"] : ["minimize-all"
 
 describe("windows", () => {
   test("meta: live, not input, so titles are root results", () => {
-    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: tile("slate", "\u{f10ac}"), placeholder: "Switch to a window", tier: "primary", multi: true }]);
+    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: tile("slate", "\u{f10ac}"), placeholder: "Switch to a window", tier: "primary", multi: true, hold: "alt+tab" }]);
   });
 
   test("rows in the core's order: title, app as subtitle, section and keyword, app icon or a glyph, state accessories", async () => {

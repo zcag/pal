@@ -4,10 +4,16 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
-/// The panel is showing: `Shown { t0, palette? }` (lib.rs). `t0` is the
-/// show's wall-clock start, for the paint mark; `palette` is
-/// `extension/palette` to open straight into.
+/// The panel is showing: `Shown { t0, palette?, keep, hold? }` (lib.rs).
+/// `t0` is the show's wall-clock start, for the paint mark; `palette` is
+/// `extension/palette` to open straight into; `hold` that the switcher
+/// opened it (the page lists flat, cursor on row 2).
 pub const SHOWN: &str = "pal://shown";
+/// To the panel's page while the switcher holds a palette: `{ step: 1 |
+/// -1 }` moves the cursor with wrap (a press of the chord, its shift
+/// variant), `{ commit: true }` runs the row under it (the modifier let
+/// go, or `pal switch commit`; switcher.rs).
+pub const SWITCH: &str = "pal://switch";
 /// The index changed (a listing landed, a source went, a filter swapped):
 /// the page queries again. No payload.
 pub const INDEX: &str = "pal://index";

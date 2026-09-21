@@ -66,6 +66,26 @@ Palette actions carry their own (`⌘C` Copy link in bookmarks, `⌘P` Pin in
 clipboard history, ...); the action panel lists them next to each action.
 See [Palettes](palettes.md).
 
+## Switcher
+
+Cmd+Tab's shape over a palette's rows, for the palette whose `hold` chord
+is set ([Config](config.md#palettesid)); Windows suggests `alt+tab`. The
+list is flat (no sections, the index's order: for Windows most recently
+used first, so row 2 is where you just were) and the cursor starts there.
+
+| keys | does |
+| --- | --- |
+| `alt+tab` (the `hold` chord) | Held: show the palette with the cursor on row 2; pressed again while held: step down, wrapping |
+| `shift+alt+tab` | Step up |
+| let go of `alt` | Run the primary action of the row under the cursor (Focus, for a window); with nothing listed, hide |
+| typing | Filter as always; the cursor keeps its row while it is still listed, else goes to row 1 of the filtered list; the release then runs that row |
+| `escape` | Cancel: hide, whatever is typed |
+| `enter` | Also runs the row, as in any list; a chord with no modifier (`f13`) has no release, so this is its commit |
+
+The release is read from the OS's modifier state (macOS; nothing to grant),
+so the chord's key may go up long before the modifier does. On Linux a
+compositor keybind drives the same machine with [`pal switch`](cli.md#pal-switch).
+
 ## Other windows
 
 - **The picker** (`pal pick`, [CLI](cli.md#pal-pick)) is a level of the

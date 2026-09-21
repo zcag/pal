@@ -7,7 +7,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, Toast, View,
-  groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
+  followCursor, groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
   isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection,
 } from "./ui";
 import { Fzf } from "fzf";
@@ -169,8 +169,10 @@ const DETAIL_DEBOUNCE = 100, DETAIL_SKELETON_AFTER = 150;
 
 export type LauncherHandle = {
   reset(): void;
-  /** Straight into a palette (its `sourceKey`), from a palette hotkey. */
-  open(palette: string): void;
+  /** Straight into a palette (its `sourceKey`), from a palette hotkey; `hold` from the switcher's chord (switcher.rs): the level lists flat, the cursor lands on row 2 and `switch` drives it. */
+  open(palette: string, opts?: { hold?: boolean }): void;
+  /** The switcher (`pal://switch`) while a hold is on: `step` moves the cursor with wrap, `commit` runs the primary action of the row under it (hides when there is none). */
+  switch(cmd: { step?: number; commit?: boolean }): void;
   /** The search box set to `q` at the current level (a `pal://open` link's `?q=`). */
   type(q: string): void;
   /** The palette level's filter set to `id` (a `pal://open` link's `?filter=`); nothing outside a palette with filters. */
@@ -303,6 +305,10 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const [confirming, setConfirming] = useState<Action | null>(null);
   const [toast, setToast] = useState<ToastSpec | null>(null);
   const [found, setFound] = useState<Hit[]>([]);
+  /** The switcher holds this level (`open` with `hold`): the rows stay flat, the cursor follows its row by id, Escape hides, `switch` steps and commits. */
+  const [hold, setHold] = useState(false);
+  /** Bumped by a hold's open, so the level's rows are searched afresh even where nothing else changed. */
+  const [searchSeq, setSearchSeq] = useState(0);
   /** The marked rows (`selection.ts`): one palette's ids, kept across queries, dropped on a level change and after the pick that used them. */
   const [sel, setSel] = useState<Selection | null>(null);
   /** The root's inline and fallback rows for `key` (the query they answer); stale for any other query. */
@@ -373,7 +379,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const n = ++seq.current;
     if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu") return setFound([]);
     search(query, scope, ctx).then((h) => { if (n === seq.current) setFound(h); });
-  }, [search, query, scopeKey, view.kind, ctx, indexVersion]);
+  }, [search, query, scopeKey, view.kind, ctx, indexVersion, searchSeq]);
   // The root's inline and fallback sections: asked `ROOT_DEBOUNCE` after the
   // last keystroke, the local hits already painted; the next keystroke
   // cancels a pending ask and a late reply is dropped by its key. Both
@@ -483,16 +489,32 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   useEffect(() => () => onViewOpen?.(null), [onViewOpen]);
 
 
-  // At the root, palettes are the sections; inside one, the palette's own sections are.
+  // At the root, palettes are the sections; inside one, the palette's own sections are, except under the switcher's hold (a flat list in the index's order, no headers, so row 2 is the previous window).
   const hits = useMemo(() => {
     if (view.kind === "menu") return groupBySection(menuHits);
-    if (view.kind !== "root") return groupBySection(found);
+    if (view.kind !== "root") return hold ? found.map((h) => (h.item.section ? { ...h, item: { ...h.item, section: undefined } } : h)) : groupBySection(found);
     const fresh = extra.key === query && !!query.trim();
     const now = query ? [] : [...(dialogUp && byKey.has(FILES) ? [dialogHit(dialogUp)] : []), ...suggested];
     return groupBySection(rootHits(query.trim(), found, fresh ? extra.inline : [], fresh ? extra.fallback : [], now, prefs.fallbacksAlways, titleOf));
-  }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways]);
+  }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold]);
 
   const cur = useCursor(hits.length);
+  // Under a hold the cursor is a row, not an index: the rows the hold began
+  // over are the level before (`live: false`, never followed), the first
+  // fresh ones put it on row 2, and from then on it keeps its row by id
+  // across a relist (`pal://index`) or a filter typed (`followCursor`);
+  // the same rows with the cursor moved just note the new row.
+  const holdRows = useRef<{ found: Hit[]; id?: string; live: boolean } | null>(null);
+  const typed = useRef(false);
+  useEffect(() => {
+    if (!hold) return;
+    const t = holdRows.current;
+    if (t && t.found === found) { if (t.live) t.id = hits[cur.cursor]?.item.id; return; }
+    const idx = followCursor(hits, t?.live ? t.id : undefined, typed.current ? 0 : cur.cursor);
+    typed.current = false;
+    if (idx !== cur.cursor) cur.set(idx);
+    holdRows.current = { found, id: hits[idx]?.item.id, live: true };
+  }, [hold, found, hits, cur.cursor]);
   const current: Item | undefined = hits[cur.cursor]?.item;
   /** A list level: rows to mark and pick (the root, a palette, a menu). */
   const isList = view.kind === "root" || view.kind === "palette" || view.kind === "menu";
@@ -575,8 +597,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const setArg = (id: string, v: string) => { setArgValues((s) => ({ ...s, [id]: v })); if (argInvalid.has(id)) setArgInvalid((s) => { const n = new Set(s); n.delete(id); return n; }); };
   const focusArg = (id: string) => { const el = argFirst.current?.closest(".pal-args")?.querySelector<HTMLElement>(`[name="${CSS.escape(id)}"]`); el?.focus({ preventScroll: true }); };
   const takesArgs = (item: Item, a: Action) => !!item.args?.length && (a.args || (!item.actions?.some((x) => x.args) && (!item.actions || item.actions[0]?.id === a.id)));
-  const push = (v: Level) => { nav.push(v); cur.reset(); setPaletteFilter(undefined); setSel(null); };
-  const pop = () => { nav.pop(); cur.reset(); setPaletteFilter(undefined); setSel(null); };
+  const push = (v: Level) => { nav.push(v); cur.reset(); setPaletteFilter(undefined); setSel(null); setHold(false); };
+  const pop = () => { nav.pop(); cur.reset(); setPaletteFilter(undefined); setSel(null); setHold(false); };
   /** Mark or unmark the row at `i` (cmd+click, `x`); a row that cannot be marked is left alone. */
   const toggleAt = (i: number) => { const item = hits[i]?.item; if (item && markable(item)) { cur.set(i); setSel((s) => toggle(s, item)); } };
   /** Into a palette: a view palette opens as a view level (its tree asked for), any other as a list; `q` is typed into it on arrival, `title` is the crumb when the push named one. */
@@ -600,13 +622,29 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       if (target) { enter(sourceKey(target), undefined, m[2]); return; }
     }
     nav.setQuery(q);
-    cur.reset();
+    // Under a hold the cursor keeps its row while the filter lists it (row 0 else), so it stays until the rows arrive.
+    if (hold) typed.current = true;
+    else cur.reset();
   };
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
-  const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; }, []);
+  const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; setHold(false); }, []);
   const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setHistIdx(-1); shown(); input.current?.focus(); }, [nav.reset, cur.reset, shown]);
-  const openPalette = useCallback((palette: string) => { reset(); enter(palette); }, [reset, enter]);
+  const openPalette = (palette: string, opts?: { hold?: boolean }) => {
+    reset();
+    enter(palette);
+    if (!opts?.hold) return;
+    // After the push's `setHold(false)` in the same batch. The rows on screen are the level before: seen, not followed.
+    setHold(true);
+    setSearchSeq((n) => n + 1);
+    holdRows.current = { found, live: false };
+  };
+  /** `pal://switch` while a hold is on; nothing once the level left the hold (the shell forgets its side on any hide). */
+  const switchTo = (cmd: { step?: number; commit?: boolean }) => {
+    if (!hold) return;
+    if (cmd.step && hits.length) cur.set((cur.cursor + cmd.step + hits.length) % hits.length);
+    if (cmd.commit) { if (current && listed[0]) run(listed[0]); else onHide(); }
+  };
   // A source gone from under an open level (an instance removed, a palette
   // switched off, an extension deleted: the core drops the source and emits
   // `pal://index`): the level's rows would sit on nothing, so it pops to
@@ -665,11 +703,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     });
   }, [nav.patch, byKey]);
   const trigger = useCallback((name: string) => { const top = level.current; if (top.kind === "view" && byKey.get(top.palette)?.on?.includes(name)) reask(name); }, [byKey, reask]);
-  const type = useCallback((q: string) => { setQuery(q); focus(); }, [nav.setQuery, cur.reset]);
+  // Not memoised: `setQuery` reads this render's level, query and hold (a memo on it kept the first render's).
+  const type = (q: string) => { setQuery(q); focus(); };
   const filter = (id: string) => { setPaletteFilter(id); cur.reset(); };
   // `applyEffect` closes over this render's stack, so the handle is rebuilt per render (cheap: an object).
   const apply = (item: Item, effect: Effect, args?: unknown) => applyEffect(item, effect, args !== undefined ? { args } : undefined);
-  useImperativeHandle(ref, () => ({ reset, open: openPalette, start, type, focus, filter, apply, shown, toast: setToast, update, trigger }));
+  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus, filter, apply, shown, toast: setToast, update, trigger }));
 
   // The item's own actions first (the default "Open" when it declares none;
   // a welcome tip declares `[]`, so Enter on it shows its detail), then the
@@ -971,7 +1010,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       primary: () => (view.kind === "show" ? pop() : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (listed[0]?.id === CLEAR ? noMulti() : run(listed[0])) : current && listed[0] ? run(listed[0]) : false),
       secondary: () => (view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "secondary" }) : current && listed[1] ? run(listed[1]) : false),
       actions: () => (listed.length ? setActionsOpen(true) : false),
-      escape: () => (view.kind === "view" && viewInput ? viewCommand({ type: "cancel" }) : sel ? setSel(null) : query ? setQuery("") : nav.depth > 1 ? pop() : picker ? onPickReply?.(picker.token, null) : onHide()),
+      // Under the switcher's hold Escape is the cancel, whatever is typed: the hide reaches the shell (switcher.rs `on_hidden`).
+      escape: () => (hold ? onHide() : view.kind === "view" && viewInput ? viewCommand({ type: "cancel" }) : sel ? setSel(null) : query ? setQuery("") : nav.depth > 1 ? pop() : picker ? onPickReply?.(picker.token, null) : onHide()),
       back: () => (query || nav.depth === 1 ? false : pop()),
       // Without a filter, Tab is still swallowed: it would otherwise walk focus out of the input. A view gets it as the bare key `tab` (and `shift+tab` as a combo), so a picker can move its focus.
       filter: filterSpec ? ({ dir }) => {

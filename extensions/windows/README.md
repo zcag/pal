@@ -26,6 +26,7 @@ row is seen to go.
 | `cmd+shift+h` | Show app (macOS, on a hidden app's window): the app comes forward with every window it had, and the panel hides |
 | `cmd+shift+m` | Minimize all of this app; on an app with more than one window |
 | `cmd+shift+w` | Close all of this app, after a confirm; on an app with more than one window |
+| `alt+tab` (held), `shift+alt+tab` | The switcher: the manifest's `hold` chord. Held, the palette shows flat with the cursor on row 2; each press steps down (shift: up); letting go of Alt focuses the row under the cursor. `[palettes.windows] hold = ""` turns it off, another chord moves it; Linux drives it with `pal switch` from a keybind (docs/cli.md) |
 
 A focus, close or minimise that fails keeps the panel open with a toast
 carrying the reason ("needs Accessibility permission", "the window is

@@ -23,7 +23,7 @@ export { Toast, type ToastSpec } from "./Toast";
 export { Hud } from "./Hud";
 export { Presence } from "./presence";
 export { useNavStack, type NavStack } from "./nav";
-export { useCursor, type Cursor } from "./cursor";
+export { followCursor, useCursor, type Cursor } from "./cursor";
 export { isMarked, mark, markable, multiActions, pickIds, toggle, type Selection } from "./selection";
 export { useKeys, useCmdHeld, keepFocus, grammar, shortcutsOf, hasShortcut, shiftedArrow, isMac, type Command, type Handlers } from "./keys";
 export { groupBySection, domId } from "./virtual";

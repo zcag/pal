@@ -59,11 +59,34 @@ fn row(w: &windows::Window) -> Value {
 /// Hyprland's order is its own and the other backends have none.
 pub fn stamp_focused() {
     #[cfg(target_os = "macos")]
-    std::thread::spawn(|| {
-        if let Ok(Some(w)) = windows::focused() {
-            windows::note_focus(&w.id);
-        }
-    });
+    {
+        let (lock, cv) = &*STAMP;
+        *lock.lock().unwrap_or_else(std::sync::PoisonError::into_inner) += 1;
+        std::thread::spawn(|| {
+            if let Ok(Some(w)) = windows::focused() {
+                windows::note_focus(&w.id);
+            }
+            *lock.lock().unwrap_or_else(std::sync::PoisonError::into_inner) -= 1;
+            cv.notify_all();
+        });
+    }
+}
+
+/// Stamps in flight, and the condvar a `list` waits on: the show's stamp
+/// and the relist it triggers race otherwise, and the switcher's first
+/// frame would have the window just left in CG order instead of first.
+#[cfg(target_os = "macos")]
+static STAMP: std::sync::LazyLock<(std::sync::Mutex<u32>, std::sync::Condvar)> = std::sync::LazyLock::new(Default::default);
+
+/// Wait for a stamp in flight, briefly (an AX read of a napping app can
+/// take longer; the list then goes ahead with what the history has).
+fn await_stamp() {
+    #[cfg(target_os = "macos")]
+    {
+        let (lock, cv) = &*STAMP;
+        let pending = lock.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _ = cv.wait_timeout_while(pending, std::time::Duration::from_millis(150), |n| *n > 0);
+    }
 }
 
 /// Run a named layout; the core's `Applied` on success.
@@ -74,7 +97,10 @@ pub fn apply_layout(p: &LayoutParams) -> Result<windows::Applied, String> {
 
 pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     match func {
-        "list" => Ok(Value::Array(windows::list().map_err(err)?.iter().map(row).collect())),
+        "list" => {
+            await_stamp();
+            Ok(Value::Array(windows::list().map_err(err)?.iter().map(row).collect()))
+        }
         // The app forward (unhidden), not one window: Show app. Its name.
         "activate" => {
             let p: IdParams = parse(params)?;
