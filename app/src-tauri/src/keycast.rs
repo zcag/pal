@@ -42,7 +42,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::{spec_defaults, Config};
-use pal_core::keycast::{caps, click_caps, Entry, Feed, KeyEvent, Options};
+use pal_core::keycast::{caps, click_caps, Entry, Feed, KeyEvent, Options, Phase};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
@@ -464,6 +464,12 @@ fn on_event(app: &AppHandle, ev: &Event) {
                 return;
             }
             let now = now_ms();
+            // One line at the start of a trackpad stretch and at a gesture's edges (never per event, never per wheel notch): what the trackpad actually delivers to a global monitor.
+            match (ev.scroll, ev.gesture) {
+                (Some(sc), _) if sc.phase == Phase::Began => eprintln!("keycast\tscroll\tbegan\t{:.1},{:.1}", sc.dx, sc.dy),
+                (_, Some(g)) if g.phase != Phase::Changed => eprintln!("keycast\tgesture\t{:?}\t{:?}\t{:.3}\t{:.0},{:.0}", g.kind, g.phase, g.amount, g.dx, g.dy),
+                _ => {}
+            }
             let changed = match (ev.scroll, ev.gesture) {
                 (Some(sc), _) => s.feed.scroll(&sc, now),
                 (_, Some(g)) => s.feed.gesture(&g, now),
