@@ -1504,3 +1504,184 @@ Disk Space (`extensions/space/`): a big file finder and cleanup with a zoomable 
 - **Cleanup**: candidate folders that exist are measured with the same walker (10 min cache, a listing waits 4 s then shows "measuring…"), stale `node_modules` and cargo `target` (a `debug` or `release` inside) come from the scans in hand, downloads by mtime. One destructive action per row, always confirmed, always the Trash; Empty Trash is the one final action and says so. Docker images are not listed: the docker extension exposes no size to other extensions.
 - **Also**: the SDK's `bytes` gained TB (a whole disk showed as "1024.00 GB"); `rows.ts` holds the list rows pure so the gallery fixture draws them without the runtime; a Bun 1.4.2 quirk seen in the tests: `toMatchObject` with `expect.arrayContaining` emptied the received array, so the info test asserts by hand.
 - **Left**: the nested (grandchild) boxes are not clickable on their own (a click lands on the parent box); a `stats` bar item for free space is the other lane's; Linux volumes are `/`, `/home` and the media mounts without names; the cleanup's "trash the contents" trashes every top-level entry of a cache folder one Finder call at a time (a few seconds for a hundred entries).
+
+## Decided: theater (2026-09-22)
+
+- `extensions/theater`: one extension for the owner's whole media stack, 33 palettes, four bar items and seven links over one client (`http.ts`: a `Service` row per service saying how it signs its requests: `X-Api-Key`, `X-Emby-Token`, an `apikey` query, qBittorrent's bearer key or a cookie login with a `Referer`, a Subsonic salted token, a JSON login answering a JWT, or nothing) and one module per service (`jellyfin`, `seerr`, `arr` shared by Radarr, Sonarr and Lidarr, `sab` and `qbit` composed by `downloads`, `prowlarr` with NZBHydra2 next to it, `navidrome`, `abs`, `kavita`, `shelfmark`, `bazarr`), `rows.ts` for the shared hints, guard and search debounce, `view.ts` for the four popovers.
+- **Every service is a settings group; unconfigured means quiet.** 35 settings (`<service>_url` plus a secret key, or a user and a secret password). A service with an empty setting is one "Set up X" row in the Theater palette (Enter opens Settings on that field), its indexed palettes answer `[]` (a hint row per palette would put twenty "Set up" rows into the root of someone with two services), and its input palettes say what to set. `PAL_THEATER_<SERVICE>_<FIELD>` replaces any setting for the tests and scratch runs.
+- **The Theater palette** probes every configured service in parallel (3.5 s each, cached 30 s) and answers the version and one key number per service, `up`/`attention`/`down` as a tag. Enter opens the web UI, cmd+Enter the service's palette, ⌘K its other palettes as drill-ins. Verified live: all 16 services on marko in 766 ms.
+- **Design calls.** The arrs are one home palette each (commands, health, queue, next seven days) plus `-add`, `-wanted`, `-history`, rather than five filters, so the core does not list five variants per app on every show. SABnzbd and qBittorrent are one Downloads palette and one bar item (the question is what is coming in); history stays per client. Sync watchlist runs `ImportListSync` per enabled list by `definitionId` (the vault's 12 h gotcha: the whole-app sync honours the Trakt list's interval, a single list's does not). Add uses the app's first quality profile and root folder, as the app's own form defaults, and asks first. Jellyfin rows are about one user (`jellyfin_user`, else the first administrator); posters ride as `{ image: url }` (Jellyfin serves images without a key), Navidrome covers with the salted token in the url, Audiobookshelf's with the JWT, Kavita's with the user's API key. Episode rows lead with the series and code. Every destructive action (decline, remove, delete, stop) asks first; adds, grabs, requests and downloads too.
+- **Bar items** (`downloads`, `playing`, `requests`, `queue`), each hidden with an `empty` shape when there is nothing to say, states published (`downloading`, `speed`, `paused`, `watching`, `pending`, `queued`, `stuck`), rules for amber (paused, stuck). One popover render for all four: rows with a glyph or a poster (`imageData`), a tag, a figure and a progress bar, a cursor the arrows move and a click sets, the keys per item (space pause all / pause session, `a`/`d` approve and decline, backspace delete or remove, `p` the palette).
+- **Verified live** (his stack through the host harness, read-only, the keys from the compose env, Jellyfin's from its db and Hydra's from its unauthenticated internal config; a scratch env file, nothing committed): the Theater palette (16 services), Jellyfin Continue Watching (5) and Latest (24) with posters, search and the pane, the device picker (no session open), Jellyseerr requests (none) and a TMDB search, the three arr home palettes (Sonarr's two stuck imports show as `needs a hand`), wanted, history and lookups, Downloads (idle) and history, Prowlarr's indexers and a search (10 s, 60 releases), Hydra's search, Navidrome's albums and search with covers, Audiobookshelf (empty library), Kavita On Deck and search, Shelfmark's status and search (Hardcover answers 0 for everything on his instance today, so the release and download path is exercised against the mock only), Bazarr (51 wanted, four providers), the four bar renders. No write was sent to the real stack.
+- Tests: `host/test/extensions/theater.test.ts` (36, against `theater-mock.ts`: one Bun server, every service under its own prefix, the failure modes flipped by `state`), the fixture `extensions/theater/fixture.ts` writes `app/src/gallery/shots/{theater,bar-theater}.json` (no PNGs rendered in this lane).
+- Left: the gallery screenshots (`node app/scripts/shots.mjs theater`); Shelfmark end to end once Hardcover answers again; Radarr's calendar carries no `hasFile`-style upcoming rows when nothing releases in the week (the row shape is tested against the mock); a Trakt-less Lidarr has no Sync row by design.
+## Decided: keycast (2026-09-22)
+
+A keystroke and cursor visualiser for recordings and screen shares
+(KeyCastr, Keyviz, Raycast's keystroke overlays as the references), built
+as an extension whose rows drive a core capability plus an overlay
+window in the app.
+
+- **One key monitor for the whole app** (`app/src-tauri/src/keytap.rs`).
+  Expansion's `NSEvent` global monitor was the only tap pal had for other
+  apps' keys; it is now a shared source with a pure, tested registry:
+  each subscriber says what it wants (`Wants { keys, clicks, moves }`),
+  the monitor's mask is the union, it is installed with the first
+  subscriber, re-made when the union moves and removed with the last, so
+  expansion and keycast on together cost one monitor. Every `Event`
+  carries the key code, `characters` and `charactersIgnoringModifiers`,
+  the modifiers as `pal_core::keycast::Mods`, the front app (keys only)
+  and `secure` (`IsSecureEventInputEnabled`), read once; handlers run on
+  the main thread inside the block. Expansion's `monitor` module went;
+  its `classify` now reads an `Event` and its test moved with it.
+- **The pure part is the core** (`core/src/keycast.rs`): `caps` (the
+  glyphs in macOS's order then the key: a named key by virtual key code,
+  a typed key as what it typed, inside a combo the key's own face so
+  `⌘⇧S` reads as the shortcut; shift shows only inside a combo or on a
+  named key), `click_caps` (a click with modifiers, the one kind the
+  strip shows), and `Feed` (a repeat of the newest entry within the hold
+  bumps its count and time, `max` entries, `prune` by hold). Seven tests.
+- **The shell** (`app/src-tauri/src/keycast.rs`): `core/keycast.{status,
+  start, stop, toggle}` over the bridge; the state (on, mode, the feed)
+  behind one mutex never held across a main-thread hop; the overlay
+  window made in code like the popover, an NSPanel like the HUD's
+  (never key, mouse ignored, all Spaces, status level, alpha 0 when off),
+  sized to the whole display under the cursor and moved when the cursor
+  crosses to another (checked on every key and click, every 250 ms on
+  moves); the page gets the feed after every key, the cursor at most
+  every 20 ms, every click, and the display's work-area insets so the
+  strip clears the Dock and the menu bar, all in window CSS pixels
+  (`cursor_position` less the window's origin over its scale). Settings
+  are the extension's manifest compiled in, read the way expansion reads
+  snippets' (`Settings::from`, re-read on every config reload). Whether
+  it is on is runtime state, not config; the shell publishes
+  `keycast/active` and `keycast/mode` (off the calling thread, as the
+  built-ins are) and the bar item re-renders on `state:keycast/active`.
+  Start asks for Input Monitoring once (`request_once`, as expansion).
+  Hard rules kept: nothing while `secure`, nothing typed into pal itself
+  (a global monitor never sees the active app), `shortcuts_only` drops
+  plain typing (a combo, or a function or navigation key, passes; shift
+  alone is typing). Linux: `SUPPORTED` is false, the window is never
+  made, `status` says `available: false` with the reason and `start`
+  rejects; no X11 backend exists to build on, so nothing is faked.
+- **The page** (`app/src/KeycastPage.tsx`, `keycast.ts`, `keycast.css`):
+  a reducer over the payloads (tested: off clears what is drawn and
+  keeps the settings, a click ripples only while the setting is on, a
+  storm keeps the newest twelve), the strip in a HUD capsule with the
+  panel's own `.pal-kbd` caps at 36 px, a repeat remounting its entry
+  (the key carries the count) so it pops again and its fade clock
+  restarts, the fade a CSS animation delayed by `hold` and the DOM pruned
+  every 250 ms; the ring rides the cursor through a 40 ms transform
+  transition and shrinks while a button is down; a ripple is a disc in
+  the ring's colour for the left button, a hollow amber ring for the
+  right, grey for the middle, gone on `animationend`. The strip's five
+  corners are `data-position` rules with the scale's origin at the
+  anchor; the newest entry is nearest the anchored edge.
+- **The extension** (`extensions/keycast/`): a live palette (Start / Stop
+  flipping, the three modes with `current` and `default` tags, Shortcuts
+  only through `settings.set`, the Input Monitoring row asking on Enter,
+  one honest row off macOS), Start and Stop answering `{ hud }` so the
+  panel is never in the recording, the Stop row in the root's Now
+  section while on; `pal://keycast/{toggle,start,stop}?mode=`; the bar
+  item `active` (a red dot with the mode, a rule `on` for the colour,
+  hidden with an `empty` shape, four `mocks`), its popover the three
+  modes as tiles with the ring on the one on, the shortcuts-only switch
+  and the hints (`view.ts`, pure). Thirteen host tests against an
+  in-memory shell. The Overview's Input Monitoring row shows while
+  keycast is on (`settings_get` carries `keycast`).
+- **Not built, on purpose**: held modifiers shown before the key
+  (`FlagsChanged`), a per-key filter list, entry and exit animation
+  presets, a second window for the strip alone (one full-screen
+  pass-through window serves both modes; keys-only pays for a
+  transparent full-screen layer it barely draws into). X11 capture on
+  Linux waits for a key backend.
+- **Verified**: `cargo clippy --workspace --all-targets -D warnings` and
+  `cargo test --workspace` clean (core 7, app 4 new, expansion's 5
+  still), `tsc` and `vitest` (8 new) in the app, `tsc` and `bun test`
+  in the host (13 new, 1306 pass). **Seen live on hornet** (07:57, a
+  scratch release build `io.cagdas.pal.keycast` with its own config and
+  data dir, bar off, run from the agent shell, which the OS judged as
+  holding Input Monitoring): `pal call keycast/toggle mode=both` logged
+  `keytap monitor installed Wants { keys, clicks, moves }` and `keycast
+  display Monitor #41052 3600x2338 inset [38, 0, 0, 0]`; a `cmd+s` and
+  two `up` arrows sent through System Events drew `⌘ S` and `↑ ×2` as
+  two capsules at the bottom centre (a screenshot cropped and looked
+  at); the ring sat exactly on the cursor after `cliclick m:900,500` on
+  the Retina display; a right click drew the hollow amber ripple, a left
+  click the filled blue disc, both caught by a screencapture fired right
+  after the click (the 480 ms ripple is gone by the time a `sleep` and
+  a capture have run). `keycast/stop` removed the monitor and withdrew
+  the mode state (`null`). Two things learned: the `keycast` window had
+  to be added to `capabilities/default.json` (the page's `listen` was
+  refused by the ACL, seen as a `page-error` mark: every window label
+  goes there), and keys posted by `cliclick` did not reach the global
+  monitor while System Events' did, so a live check types through
+  `osascript`.
+
+## Decided: keycast, scroll and gestures (2026-09-22)
+
+The owner's addition after the first round: the strip also names what
+the wheel and the trackpad do.
+
+- **The tap** (`keytap.rs`): `Wants` gained `scrolls` (`ScrollWheel`)
+  and `gestures` (`Magnify | Rotate | Swipe | SmartMagnify`; not the bare
+  `Gesture` type 29, which rides beside every one of those with nothing
+  of its own to read); an `Event` carries `scroll: Option<Scroll>` (the
+  scrolling deltas, the phase, the momentum phase) or `gesture:
+  Option<GestureEvent>` (the kind, this event's magnification or
+  rotation, a swipe's `deltaX`/`deltaY`, the phase), read only off their
+  own event types, as the key fields are. `NSEventPhase` maps to a
+  plain `Phase` in the core.
+- **Pure** (`core/src/keycast.rs`): `scroll_arrow` (the dominant axis,
+  AppKit's signs: `scrollingDeltaY` positive is up; natural scrolling
+  flips what the OS delivers, so the arrow is the content's way),
+  `scroll_level` (1..3 from how much piled up, the page sizes the arrow
+  by it), `scroll_caps` (`scroll ↓`), `gesture_caps` (`pinch out +35%`,
+  `pinch in −20%`, `rotate ↺ 12°` for AppKit's positive
+  counter-clockwise, `swipe ←`, `smart zoom`). `Feed::scroll`: one entry
+  per stretch (Began..Ended), its arrow and level re-made from the
+  running total on every Changed, the momentum after only moving its
+  time so it stays up through the coast; a wheel's notches (no phases)
+  in the same direction within the hold join the newest scroll entry,
+  a turn or a key in between starts another; no `×N` on a scroll.
+  `Feed::gesture`: a pinch or a rotation is one entry from Began to
+  Ended counting up; a swipe and a smart zoom are one entry each. Six
+  new core tests.
+- **The shell**: `gestures` is a setting (on by default) and they draw
+  on the strip only: `Mode::wants` asks for scrolls and gestures when
+  the strip is drawn (keys, both) and the setting is on; cursor-only
+  stays the pointer alone. Why on the strip and not by the ring: a
+  scroll or a pinch is something the audience needs named, like a
+  shortcut, and the strip is where named things go; cursor-only is the
+  mode chosen to keep words off the screen. Same gates as a key (no
+  secure field). One log line at a trackpad stretch's Began and at a
+  gesture's edges, never per event or per wheel notch, so a run's log
+  says what the trackpad delivered to a global monitor.
+- **The page**: entries carry `kind` and `level`; the fade moved from a
+  CSS animation delay to the page's own 100 ms clock (`exiting` for the
+  last 240 ms of the hold, a transition), so an entry a scroll keeps
+  updating never fades under the fingers; a scroll's arrow grows with
+  the level, a gesture's amount sits in tabular figures so it counts up
+  without jitter. The palette's Scroll and gestures row (`cmd+shift+g`),
+  the popover's `g` switch, two more bar mocks.
+- **The display under the cursor**: tauri's `monitor_from_point`
+  answered none for a cursor plainly inside hornet's one display
+  (`(1376, 1340)` physical on 3600 by 2338, from the monitor block on
+  the main thread; it had answered on the first run), so `follow`
+  hit-tests `available_monitors` itself, as the popover's `displays`
+  does, and takes the first when none holds the cursor: an overlay
+  somewhere beats none.
+- **Seen live on the scratch instance** (08:10-08:25): the tap installed
+  with `scrolls, gestures`; wheel scrolls posted through
+  `CGEvent(scrollWheelEvent2Source:)` from a Swift one-liner drew
+  `scroll ↑` with the arrow at level 2 after fifteen notches (a screen
+  capture, cropped, looked at), and reached the terminal beneath as a
+  scroll too. **Not seen**: a pinch, a rotation, a two-finger swipe, a
+  smart zoom, and the three- and four-finger system swipes, since no
+  finger gesture can be posted from a shell (there is no public API to
+  synthesise a magnify or a swipe event, and the private MultitouchSupport
+  framework was off the table); the log lines are the instrument for the
+  owner's first real run: a pinch should print `gesture Magnify Began`
+  and `Ended`, and a Mission Control swipe should print nothing at all
+  (the window server takes system gestures before any app sees them; the
+  docs say so as a fact of AppKit, not as something measured here).

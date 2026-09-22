@@ -157,6 +157,27 @@ pub fn large_hide(app: &AppHandle) {
     }
 }
 
+// ---- keycast overlay -------------------------------------------------------
+//
+// Keycast has no Linux input tap (keycast.rs `SUPPORTED`), so its window
+// is never made here; these keep the shell's calls one shape.
+
+pub fn keycast_install(window: &WebviewWindow) {
+    let _ = window.hide();
+}
+
+pub fn keycast_show(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::keycast::WINDOW) {
+        let _ = w.show();
+    }
+}
+
+pub fn keycast_hide(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::keycast::WINDOW) {
+        let _ = w.hide();
+    }
+}
+
 // ---- bar popover ---------------------------------------------------------
 //
 // The bar popover (bar/popover.rs) is a fourth toplevel, `pal Bar`: shown

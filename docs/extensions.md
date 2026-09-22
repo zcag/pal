@@ -1040,6 +1040,12 @@ arrows move and a click sets, and the strip untouched:
   allows sleep. Ticks at the moments the countdown's text changes. The
   run is `caffeinate` with its own `-t`, found back by pid after a host
   restart.
+- **Keycast, `active`** (`extensions/keycast/`): a red record dot with
+  the mode while the overlay runs, hidden otherwise; the popover the
+  three modes as tiles (`k`, `c`, `b`, the one on ringed), the
+  shortcuts-only (`s`) and gestures (`g`) switches, `backspace` stops. `on:
+  ["state:keycast/active", "state:keycast/mode"]`: the shell publishes
+  both, so a link or the palette flipping it redraws the item at once.
 
 ## States
 
@@ -1318,6 +1324,14 @@ to the core.
   Playing as the `system` player on macOS (a title-less player with a
   state is one that reports no track, Chrome for one), `playerctl` on
   Linux.
+- Keycast, through the raw bridge (no typed wrapper; the bundled
+  `keycast` extension is its one caller): `core.call("keycast.status")`
+  answers `{ available, reason?, active, mode, input_monitoring,
+  settings }`, `core.call("keycast.start", { mode? })`, `"keycast.stop"`
+  and `"keycast.toggle", { mode? }` (`keys`, `cursor`, `both`) drive the
+  overlay (`app/src-tauri/src/keycast.rs`) and answer the same status.
+  The shell publishes `keycast/active` and `keycast/mode` as states.
+  Off macOS `available` is false and `start` rejects with the reason.
 
 ### Shared helpers
 

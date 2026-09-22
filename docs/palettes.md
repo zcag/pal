@@ -4745,3 +4745,259 @@ Settings, `[extensions.space]`:
 | `cross_devices` | boolean | `false` | Walk into other file systems under the root (macOS firmlinks are always crossed). |
 | `largest` | 10 to 1000 | `100` | Rows in the Largest lists. |
 | `stale_days` | 1 to 365 | `30` | When a build folder or a download counts as stale. |
+
+## Theater (`theater`, `theater-jellyfin`, `theater-jellyfin-search`, `theater-jellyfin-playing`, `theater-seerr-requests`, `theater-seerr-request`, `theater-radarr`, `theater-sonarr`, `theater-lidarr` and their `-add`, `-wanted`, `-history`, `theater-downloads`, `theater-downloads-history`, `theater-prowlarr`, `theater-prowlarr-search`, `theater-hydra-search`, `theater-navidrome`, `theater-navidrome-search`, `theater-abs`, `theater-abs-search`, `theater-kavita`, `theater-kavita-search`, `theater-shelfmark`, `theater-shelfmark-releases`, `theater-bazarr`, `theater/downloads`, `theater/playing`, `theater/requests`, `theater/queue`)
+
+One extension for a self-hosted media stack: Jellyfin, Jellyseerr, Radarr,
+Sonarr, Lidarr, Prowlarr, NZBHydra2, Bazarr, SABnzbd, qBittorrent,
+Navidrome, Audiobookshelf, Kavita, Shelfmark, Filebrowser and Homepage.
+Every service is a settings group (a URL and an API key, or a user and a
+password) and only the ones filled in light up: an unconfigured service is
+one "Set up X" row in the Theater palette (Enter opens Settings on its
+first empty field), its own indexed palettes list nothing, and its search
+palettes say what to set. Each service speaks its own API (the endpoints
+are in `extensions/theater/README.md`); one client (`http.ts`) folds the
+auth in and keeps a small cache.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Theater | `theater` | live, 30 s | opens the service's web UI |
+| Jellyfin | `theater-jellyfin` | live, 60 s | opens the item in Jellyfin |
+| Search Jellyfin | `theater-jellyfin-search` | input | opens the item in Jellyfin |
+| Now Playing on Jellyfin | `theater-jellyfin-playing` | live, 30 s | opens the item |
+| Play on | `theater-jellyfin-play` | pushed | plays the item on that session |
+| Requests | `theater-seerr-requests` | live, 60 s | opens the request in Jellyseerr |
+| Request a title | `theater-seerr-request` | input | requests it (asks first) |
+| Radarr, Sonarr, Lidarr | `theater-radarr`... | live, 60 s | opens in the app |
+| Add a movie / series / artist | `theater-radarr-add`... | input | adds with the default profile and searches (asks first) |
+| Wanted movies / episodes / albums | `theater-radarr-wanted`... | indexed, 5 min | searches for it now |
+| Radarr / Sonarr / Lidarr history | `theater-radarr-history`... | indexed, 5 min | opens in the app |
+| Downloads | `theater-downloads` | live, 20 s | opens the download client |
+| Download history | `theater-downloads-history` | indexed, 2 min | opens the download client |
+| Indexers | `theater-prowlarr` | indexed, 5 min | opens Prowlarr's indexers |
+| Search indexers | `theater-prowlarr-search` | input | grabs through Prowlarr (asks first) |
+| Search NZBHydra2 | `theater-hydra-search` | input | sends the NZB to SABnzbd (asks first) |
+| Navidrome | `theater-navidrome` | live, 60 s | opens in Navidrome |
+| Search Navidrome | `theater-navidrome-search` | input | opens in Navidrome |
+| Audiobookshelf | `theater-abs` | live, 60 s | opens in Audiobookshelf |
+| Search Audiobookshelf | `theater-abs-search` | input | opens in Audiobookshelf |
+| Kavita | `theater-kavita` | live, 60 s | opens the web reader |
+| Search Kavita | `theater-kavita-search` | input | opens the web reader |
+| Request a book | `theater-shelfmark` | input | lists the releases for the book |
+| Releases | `theater-shelfmark-releases` | pushed | downloads the release (asks first) |
+| Subtitles | `theater-bazarr` | indexed, 5 min | opens in Bazarr |
+
+**Theater.** Every configured service as a row: the tile, the version and
+one key number in the subtitle (Jellyfin: who is watching; Jellyseerr:
+pending requests; the arrs: the queue with the stuck count and any health
+warning; SABnzbd: the speed, the queue and the free disk; qBittorrent:
+active torrents and the connection state; Bazarr: what wants subtitles
+and a throttled provider; Prowlarr: indexers and failing ones), a green
+`up`, an amber `attention` or a red `down` tag with the error. Enter opens
+the web UI, `⌘Enter` the service's palette in pal, ⌘K lists its other
+palettes as drill-ins, `⌘C` copies the URL, `⌘R` probes again (the probes
+cache 30 s, every one with its own 3.5 s timeout, all in parallel).
+Filebrowser and Homepage are open rows.
+
+**Jellyfin.** Continue Watching (the position as a percentage) then
+Latest, the poster as the row's icon (Jellyfin serves images without a
+key), an episode led by its series and code; favourites and played items
+tagged. The pane: the poster, the overview, year, runtime, rating,
+genres, watched state, when it was added. Search lists movies, series,
+episodes, albums and songs by section 300 ms after the last key. On every
+item: Open (`Enter`), Play on a device (`⌘Enter`: a picker of the
+sessions that take remote control, Enter plays there), Mark played or
+unplayed (`⌘⇧P`), Favourite (`⌘F`), Copy link (`⌘C`). Now Playing lists
+the sessions with something on: user, device, client, the position,
+paused or playing, transcoding tagged; `⌘Enter` pauses or resumes,
+`⌘⇧S` stops (asks). The rows are about one user: `jellyfin_user`, else
+the first administrator.
+
+**Jellyseerr.** Requests, pending first, the title resolved from TMDB
+through the server (cached an hour), the poster, who asked, the status
+and 4K tags; the filter narrows to pending, approved, available or all.
+On a pending one: Approve (`⌘Enter`), Decline (`⌘⇧D`, asks). Request a
+title searches TMDB through Jellyseerr (people dropped), a title already
+requested or available tagged; Enter requests (asks), `⌘Enter` in 4K when
+the server enables it for that type, `⌘O` opens it, `⌘C` copies the TMDB
+link.
+
+**Radarr, Sonarr, Lidarr** (one module, `arr.ts`). The home palette:
+the commands (Add, Wanted, History, Sync watchlist now, Open), the
+health warnings from `/health`, the queue (the movie, episode or album
+the record is about, the release, a state tag: downloading, importing,
+`needs a hand` for an import that waits on a manual choice, `failed`,
+`error`; the size, the percentage, the time left), then the next seven
+days from the calendar. On a queue row: Open, Remove from queue (`⌘⌫`,
+asks; removed from the client, never blocklisted), Copy release title.
+Sync watchlist runs `ImportListSync` once per enabled import list by
+`definitionId`, the form that ignores the Trakt list's hardcoded 12 h
+refresh interval. Wanted: the newest 40 monitored items without a file
+with a line saying how many more; Enter runs the search command for that
+one (`MoviesSearch`, `EpisodeSearch`, `AlbumSearch`), `⌘Enter` opens it.
+History: grabbed, imported, failed, deleted with the release, the quality
+and the client's message. Add: a lookup, one already in the library
+tagged; Enter adds with the first quality profile, root folder (and
+metadata profile on Lidarr), monitored, and starts a search (asks);
+`⌘Enter` adds without searching; `⌘O` opens it on TMDB, TVDB or
+MusicBrainz.
+
+**Downloads.** SABnzbd and qBittorrent as one queue, sectioned by
+client, the active items first: the name, the category, the speed, the
+time left, the size; a state tag (downloading, queued, paused, stalled,
+metadata, checking, error) and the percentage. Pause all / Resume all
+and Set speed limit on top (a form: a percentage or a rate such as `2M`
+for SABnzbd, a rate for qBittorrent, `0` lifts it). On a row: Open the
+client, Pause or Resume (`⌘Enter`), Delete with its files (`⌘⌫`, asks),
+Copy name. qBittorrent 5 is driven with `stop`/`start`, older ones with
+`pause`/`resume`; a bearer API key (5.2+) signs the requests, else the
+WebUI user and password with a `Referer` on the login (without one
+qBittorrent's CSRF guard reports a wrong password). Download history:
+what SABnzbd completed or failed (the reason on the row and in the
+pane), the torrents qBittorrent has finished; `⌘⌫` removes one from the
+history (the torrent without its files).
+
+**Indexers.** Prowlarr's indexers by protocol with priority and privacy,
+a failing one red with Prowlarr's reason and when it retries, a
+disabled one grey, Prowlarr's own health warnings on top; `⌘Enter`
+runs the indexer's test. Search indexers asks every enabled indexer
+(up to 30 s), the rows sectioned by indexer with size, age, category,
+flags, seeders or grabs; Enter grabs the release through Prowlarr into
+its download client (asks), `⌘Enter` opens the release page, `⌘C` copies
+the magnet or download link. Search NZBHydra2 is the same over Hydra's
+newznab API; Enter sends the NZB to SABnzbd when it is set up (asks),
+else opens Hydra.
+
+**Navidrome** (Subsonic API, a salted token per request, the password
+never on the wire). What plays now (who, on what player), the albums
+added lately with covers; search by artist, album and song; Enter opens
+the album or artist in Navidrome's web app, `⌘S` stars or unstars, `⌘C`
+copies the link. **Audiobookshelf**: continue listening with the
+progress, then what was added lately per library; search over books,
+podcasts and authors; Mark finished (`⌘⇧P`, asks). **Kavita**: On Deck
+with the page reached, the series added lately; search over series,
+collections, reading lists and files; Enter opens the web reader.
+**Request a book** (Shelfmark): with nothing typed, what Shelfmark is
+downloading, queued or failed on; a search on its metadata provider
+lists books with the author, year and series; Enter pushes the
+releases found for one (format, size, indexer, seeders) and Enter on a
+release downloads it into the ebook library (asks) with the same
+payload Shelfmark's own button posts. **Subtitles** (Bazarr): how many
+movies and episodes want subtitles (Enter runs Bazarr's wanted-search
+tasks, asks), each provider's health with a throttled one's retry, the
+wanted items with the missing languages as tags; `⌘Enter` searches for
+that one.
+
+**The bar items**, each a `{ view }` popover with a cursor the arrows
+move and a click sets, `p` opening the palette:
+- `theater/downloads`: the combined download speed and the active count,
+  amber and `paused · N` while everything is paused; hidden while both
+  clients are idle. Every 15 s and on show, wake, network. The popover:
+  the queue with a progress bar per row, Enter opens the client, `space`
+  pauses or resumes everything, `⌘Enter` the focused item, `⌫` deletes it
+  (asks). States `downloading`, `speed`, `paused`.
+- `theater/playing`: who is watching on Jellyfin (the name, or the
+  count); hidden while nothing plays. Every 30 s. The popover: the
+  sessions with the poster and the position, `space` pauses or resumes
+  the focused one. State `watching`.
+- `theater/requests`: pending Jellyseerr requests as the badge, hidden
+  at zero. Every 300 s. The popover: the requests with their posters, `a`
+  approves, `d` declines (asks) the focused one. State `pending`.
+- `theater/queue`: the arr queues combined, the stuck count as the
+  badge and amber; hidden while empty. Every 60 s. The popover: each
+  item with its state and progress, `⌫` removes the focused one (asks).
+  States `queued`, `stuck`.
+
+**Links.** `pal://theater/search?q=` and `pal://theater/request?q=`
+open Search Jellyfin and Request a title with the query typed;
+`pal://theater/downloads` opens Downloads; `pal://theater/pause-all` and
+`resume-all` reach both clients; `pal://theater/sync-watchlist?app=radarr`
+(both when omitted) runs the import list sync; `pal://theater/open?service=kavita`
+opens a service's web UI.
+
+Settings, `[extensions.theater]`: `<service>_url` for every service
+(`jellyfin`, `seerr`, `radarr`, `sonarr`, `lidarr`, `prowlarr`, `hydra`,
+`bazarr`, `sab`, `qbit`, `navidrome`, `abs`, `kavita`, `shelfmark`,
+`filebrowser`, `homepage`); `<service>_key` (secret) for Jellyfin,
+Jellyseerr, the arrs, Prowlarr, NZBHydra2, Bazarr and SABnzbd;
+`qbit_key` (secret, a 5.2+ API key) or `qbit_user` and `qbit_password`;
+`<service>_user` and `<service>_password` (secret) for Navidrome,
+Audiobookshelf and Kavita; `jellyfin_user`, whose watched state the rows
+show. For the tests, `PAL_THEATER_<SERVICE>_<URL|KEY|USER|PASSWORD>`
+replaces any of them.
+## Keycast (`keycast`, `keycast/active`)
+
+Keystrokes and clicks drawn over the screen for a recording or a screen
+share (KeyCastr, Keyviz), macOS only. A live, normal palette: Start
+keycast / Stop keycast leads it (its subtitle the mode and the strip's
+corner; the row is in the root's Now section while it runs), then the
+three modes, Keys only, Cursor only, Keys and cursor (the one on tagged
+`current`, the default `default`), then Shortcuts only: on / off and
+Scroll and gestures: on / off, and, while the grant is missing, a
+Keycast needs Input Monitoring row that asks on Enter. Start and Stop hide the panel and the HUD says `Keycast
+on: keys and cursor`, so the panel is never in the recording.
+
+What it draws (`app/src-tauri/src/keycast.rs`, the overlay window; the
+caps and the feed are `pal_core::keycast`): the recent keys as the
+panel's own key caps at twice the size in a HUD capsule, `⌃ ⌥ ⇧ ⌘` as
+glyphs, a named key as its symbol (`↵ ⇥ ⌫ ⌦ ␣ esc ← ⇞ F5`), a typed key
+as what it typed and inside a combo as the key's face (`⌘⇧S`), a repeat
+within the hold folded into one cap with `×3`, a click with modifiers as
+`⌥ click`; each fading `hold` seconds after its last press, `max` kept.
+With `gestures` on the strip also names what the trackpad and the wheel
+do: `scroll ↓` (the arrow from the dominant axis of what has piled up,
+sized by how far in three steps, one entry per stretch that the momentum
+keeps on screen; a wheel's notches one way join the newest), `pinch out
++35%` and `rotate ↻ 12°` (one entry each counting up until the fingers
+lift), `swipe ←`, `smart zoom`; only what AppKit hands a global monitor,
+so the system's three- and four-finger swipes never show. A ring around
+the cursor in the `ring_color` (smaller while a button is down) and a
+ripple on every click, a filled disc for the left button, a hollow amber
+ring for the right, grey for the middle. The overlay is a
+full-screen pass-through window on the display under the cursor,
+following it across displays; the strip keeps clear of the menu bar and
+the Dock. Nothing typed shows while a secure text field has the keyboard
+(a password, `sudo`), nor what is typed into pal itself; with
+`shortcuts_only` plain typing stays off the screen and only a key with
+`cmd`, `ctrl` or `alt` or a function or navigation key shows.
+
+| keys | action |
+| --- | --- |
+| `enter` | Start or stop; on a mode row, start in (or switch to) that mode |
+| `cmd+enter` | Stop, from a mode row |
+| `cmd+shift+s` | Shortcuts only on or off |
+| `cmd+shift+g` | Scroll and gestures on or off |
+| `cmd+,` | Open the settings |
+
+`pal://keycast/toggle?mode=keys|cursor|both` (off to on in that mode,
+the default without one; on in that mode or with none named to off; on
+in another mode switches), `pal://keycast/start?mode=` and
+`pal://keycast/stop` are the keybind's routes. The shell publishes
+`keycast/active` and `keycast/mode` as states.
+
+The bar item `keycast/active`: a red record dot with the mode (`keys +
+cursor`) while it runs, hidden otherwise (a rule `on` colours it; `show
+= "always"` keeps a muted dot). The popover: the three modes as tiles
+(`k`, `c`, `b`), the shortcuts-only (`s`) and gestures (`g`) switches,
+`backspace` stops, `o` opens the palette.
+
+Input Monitoring: Start asks once when it is missing (as snippet
+expansion does; the two share one `NSEvent` global monitor), the
+Overview lists the permission while keycast is on. Linux: one row,
+"Keycast is not available here" (no portable input tap: Wayland hands
+input to the focused client only, and there is no X11 key backend).
+
+Settings, `[extensions.keycast]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `mode` | `both`, `keys`, `cursor` | `both` | What Start draws when no mode is named. |
+| `position` | `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` | `bottom-center` | The strip's corner of the work area. |
+| `scale` | 0.5 to 3 | `1` | The size of the caps and the ring. |
+| `hold` | 0.5 to 10 | `2` | Seconds a key stays after its last press. |
+| `max` | 1 to 12 | `5` | How many entries the strip keeps. |
+| `shortcuts_only` | boolean | `false` | Only combos and function or navigation keys show. |
+| `ring` | boolean | `true` | The ring around the cursor (clicks ripple either way). |
+| `ring_color` | tag colour | `blue` | The ring's and the left click's colour. |
+| `ripples` | boolean | `true` | A ripple on every click. |
+| `gestures` | boolean | `true` | Scrolls and trackpad gestures on the strip (keys and both modes). |

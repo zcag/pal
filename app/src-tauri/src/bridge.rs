@@ -13,6 +13,7 @@
 //! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)
 //! - `core/media.{now_playing, control, artwork}` (media.rs)
 //! - `core/ocr.{image {path | data}, available}` (ocr.rs)
+//! - `core/keycast.{status, start {mode?}, stop, toggle {mode?}}` (keycast.rs)
 //! - `core/selection.{text,files}` (selection.rs)
 //! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
@@ -58,6 +59,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),
         "ocr" => crate::ocr::call(app, func, params),
+        "keycast" => crate::keycast::call(app, func, params),
         "selection" => crate::selection::call(app, func, params),
         "windows" => crate::windows::call(app, func, params),
         "calendar" => calendar::call(app, func, params),
@@ -82,6 +84,7 @@ mod tests {
         assert_eq!(route("core/wifi.set_power"), Ok(("wifi", "set_power")));
         assert_eq!(route("core/calendar.events"), Ok(("calendar", "events")));
         assert_eq!(route("core/ocr.image"), Ok(("ocr", "image")));
+        assert_eq!(route("core/keycast.toggle"), Ok(("keycast", "toggle")));
         assert_eq!(route("core/dialog.current"), Ok(("dialog", "current")));
         assert_eq!(route("core/selection.text"), Ok(("selection", "text")));
         assert_eq!(route("core/menubar.press"), Ok(("menubar", "press")));

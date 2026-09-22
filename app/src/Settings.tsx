@@ -59,7 +59,7 @@ type RawBarState = NonNullable<BarItem["state"]>;
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
 type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[] };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** The keycast overlay is on (keycast.rs). */ keycast?: boolean };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
 type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicReport };
 
@@ -551,7 +551,7 @@ export default function Settings() {
   const fileName = view.path.split("/").pop() ?? "config.toml";
   // Off macOS every permission is a given (permissions.rs), so the rows have nothing to say.
   const permissions = isMac ? view.permissions : undefined;
-  const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update }).length;
+  const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update, keycast: view.keycast }).length;
   const sidebarLine = barSupported ? sidebarSummary(sidebar, sidebarPalettes) : undefined;
 
   return (
@@ -570,6 +570,7 @@ export default function Settings() {
           checks={{ enabled: config.general.check_updates, checkedAt: checkedAt(view.checks), error: view.checks.app?.error ?? view.checks.extensions?.error, status: view.checks.app?.value?.status, busy: checking }}
           switcher={windows ? holdOf(windows) ?? "" : undefined}
           sidebar={sidebarLine}
+          keycast={view.keycast}
           onCheckUpdates={() => check(true)}
           onInstallUpdate={() => installUpdate().catch(fail)}
           onGo={go}
