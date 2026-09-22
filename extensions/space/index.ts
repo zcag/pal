@@ -306,8 +306,6 @@ async function mapPick(root: string, action: string | undefined, ctx?: Ctx): Pro
   const st = () => stateOf(sc, ctx?.compact);
   const dir = find(sc.tree, u.dir) ?? sc.tree;
   const kids = children(dir, s.sizes);
-  const f = kids[u.focus] as Node | undefined;
-  const fpath = f ? pathOf(f) : undefined;
   const reply = (): Effect => ({ view: render(st()) });
   const m = /^(box|row|crumb):(\d+)$/.exec(action ?? "");
   if (m) {
@@ -317,6 +315,8 @@ async function mapPick(root: string, action: string | undefined, ctx?: Ctx): Pro
     if (m[1] === "row" || !kids[i]?.dir) return reply();
     action = "zoom";
   }
+  const f = kids[u.focus] as Node | undefined;
+  const fpath = f ? pathOf(f) : undefined;
   switch (action) {
     case "zoom": {
       if (!f) return reply();

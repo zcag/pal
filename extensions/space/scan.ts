@@ -204,7 +204,8 @@ export function pack(root: Node, budget: number): Packed {
   const one = (n: Node): Packed => {
     const p: Packed = [n.name, n.dir ? 1 : 0, n.alloc, n.size, n.rest ? -n.rest : n.files, Math.round(n.mtime), n.dir ? KINDS.indexOf(dominant(n)) : -1];
     if (n.dir && n.kids) {
-      const kept = n.kids.filter((k) => k.alloc >= cut && k.alloc > 0);
+      // Under a cut of zero (the budget holds every node) the empty ones stay too, so the round trip is whole.
+      const kept = n.kids.filter((k) => k.alloc >= cut && (k.alloc > 0 || cut === 0));
       const dropped = n.kids.length - kept.length + (n.omitted ?? 0);
       // A directory with anything cut says so, so a zoom into it rescans; one with an empty listing says that too (an empty array).
       p[7] = [...kept.map(one), ...(dropped ? [dropped] : [])];
@@ -233,7 +234,7 @@ export function packWithin(root: Node, bytes: number, start = 2000): Packed {
   let budget = start;
   for (;;) {
     const p = pack(root, budget);
-    if (budget <= 16 || JSON.stringify(p).length <= bytes) return p;
+    if (budget <= 2 || JSON.stringify(p).length <= bytes) return p;
     budget = Math.floor(budget * 0.75);
   }
 }
