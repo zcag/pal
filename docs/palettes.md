@@ -2243,6 +2243,77 @@ media; the arrows move the cursor, a click sets it):
 | Cover on the bar (`bar_artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
 | Leave to another extension (`exclude`) | empty | players this extension leaves to another, by app name or player id (`Spotify`, `music`): the bar item and the root's Now row skip them; the palette still lists them |
 
+## Displays (`displays`, `displays/brightness`)
+
+Every display with its mode and brightness, from `extensions/displays/`.
+One row per display: its name (the Displays pane's, "Built-in Liquid
+Retina XDR Display", "DELL U2720Q"), the mode it is in as the subtitle
+(`2560×1440 @ 60 Hz · HiDPI`, the rotation, the connection), `main` and
+`mirror` / `mirrored` tags, and the brightness as the accessory where
+something can read it. The typed argument on the row takes a percent or
+a step (`40`, `+10`) for `⌘B`. Enter drills into the display:
+
+- **Brightness**, **Contrast**, **Volume** (the last two over DDC, on an
+  external monitor; Volume only when the monitor answers for it): a
+  slider view. `←` `→` move by the step setting, `⇧←` `⇧→` by 1 %, `1`…`9`
+  are 10…90 %, `0` is 100 %, `m` full, a click on the slider sets the
+  clicked fraction. The built-in panel never goes below 5 % from here,
+  so the screen stays readable. From the row, `⌘=` and `⌘-` step without
+  opening the slider and `⌘B` takes the percent typed in the bar.
+- **Input source**: HDMI 1 / 2, DisplayPort 1 / 2, USB-C (the VCP 60
+  codes; LG's alternate codes by the setting), or another code typed in.
+  `ddcctl` and `ddcutil` read which is active and tag it; `m1ddc` only
+  sets.
+- **Resolution & scaling**: every mode displayplacer lists, HiDPI ("looks
+  like") first, then native, each with its refresh rate, the current one
+  tagged. A mode that changes the resolution or the scaling asks first;
+  the arrangement before is kept as an **Undo** row at the palette's root
+  until it is used or forgotten.
+- **Rotation** (0 / 90 / 180 / 270; rotating the built-in screen asks,
+  with displayplacer's own warning), **Mirror with…** / **Stop
+  mirroring**, **Make main** (the origins shift so the display sits at
+  (0,0), the layout otherwise kept), **Sleep displays** (System's own
+  command).
+
+At the root too: **Night Shift** on / off when the `nightlight` CLI is
+installed, **Sleep displays**, and the **presets**: "Save current
+arrangement as…" keeps displayplacer's own reproduce line (one command
+per output on Linux) under a name; each preset is a row with Apply,
+Rename (`⌘R`), Overwrite with the current arrangement (`⌘S`) and Delete
+(`⌘⌫`), its commands in the detail pane. Live: read again on every show
+(the tool listings are cached for 20 s, `⌘R` reads afresh). What is
+missing for the displays there are is a Setup row each, Enter copying
+the install command.
+
+| tool | macOS | Linux | what it adds |
+| --- | --- | --- | --- |
+| nothing | `system_profiler` | `hyprctl` / `wlr-randr` / `xrandr`, whichever is there | the displays, their names, the current mode, main and mirror |
+| `displayplacer` (`brew install displayplacer`) | modes, rotation, mirroring, make main, presets | the compositor tool does these | arrangement |
+| `brightness` (`brew install --HEAD brightness`; the bottled 1.2 cannot read Apple Silicon panels) | the built-in display and Apple displays | `brightnessctl` | brightness |
+| `m1ddc` (Apple Silicon) / `ddcctl` (Intel) | external monitors over DDC/CI | `ddcutil` | brightness, contrast, volume, input source |
+| `nightlight` (`brew install smudge/smudge/nightlight`) | Night Shift | no | the toggle |
+
+| setting | default | what |
+| --- | --- | --- |
+| Brightness step (`step`) | 5 % | what the arrows, a scroll on the bar item and a `+10`-style link move by |
+| Display on the bar (`bar_display`) | the external display | whose level the bar item shows: `external`, `main` or `builtin` |
+| LG input codes (`input_alt`) | off | the alternate VCP 60 addressing LG (and some others) take |
+
+**Bar item `displays/brightness`**: the chosen display's brightness as a
+glyph (three steps of the same sun) and the percent; a scroll on the item
+moves it by the step. The popover is a card per display with its mode
+line and a slider (`↑` `↓` move between them, `←` `→` and the digits set
+the one the cursor is on, `n` Night Shift, Enter opens the display in
+pal, `p` the palette). Hidden by its rules (Settings > Bar) while only the
+built-in display is connected, whose keyboard keys already set it, and
+while nothing installed can set any display; `show = "always"` keeps it
+muted with the level.
+
+Routes: `pal://displays/brightness?value=50|+10|-10&display=main|external|builtin|<id>|<name>`
+(also `contrast`, `volume`), `pal://displays/input?source=hdmi1|hdmi2|dp1|dp2|usbc|<code>`,
+`pal://displays/mode?mode=<n>|1800x1169|1800x1169@60|2560x1440 hidpi|3024x1964 native`,
+`pal://displays/preset?name=<name>`, `pal://displays/night-shift?state=on|off|toggle`.
+
 ## Unicode Characters (`unicode`)
 
 A grid of 1795 characters one pastes rather than types (a `catalog` at
