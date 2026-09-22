@@ -38,10 +38,10 @@ const named = (n: number | string | null | undefined) => {
 /** What the accessory calls the window's workspace: the desktop's name when it has one. */
 const workspaceLabel = (ws: string) => named(ws) ?? ws;
 
-/** The row title: the desktop's name, else the compositor's workspace name, else its number; a full-screen app's space is named by the app. */
+/** The row title: the desktop's name, else the compositor's workspace name, else its number (macOS and X11 both call it a desktop); a full-screen app's space is named by the app. */
 function spaceTitle(s: Workspace, apps: string[]): string {
   if (s.fullscreen) return `${apps[0] ?? "Full screen"} (full screen)`;
-  return named(s.index) ?? s.name ?? (MAC ? `Desktop ${s.index}` : `Workspace ${s.index}`);
+  return named(s.index) ?? s.name ?? `Desktop ${s.index}`;
 }
 
 /** The row id `item_hotkeys` key on: the desktop's name when it has one, else its number (a full-screen space its backend id, there is no name to give it). */
