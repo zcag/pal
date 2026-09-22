@@ -48,6 +48,11 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Named Colours](#colors-colors-picker-colors-colors-history-colors-convert) | `colors` | indexed, grid, catalog | Open in Picker |
 | [Colour History](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-history` | live, normal | Open in Picker (on the top row: pick from the screen) |
 | [Convert Colour](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-convert` | input, normal | Open in Picker |
+| [Disk Space](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space` | live, normal | Open the map of the root (scans first when there is none) |
+| [Disk Map](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-map` | view, normal | Zoom into the focused folder; open a file |
+| [Largest Files](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-largest` | live, normal | Open the file |
+| [Largest Folders](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-folders` | live, normal | Show in the map |
+| [Cleanup Suggestions](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-cleanup` | live, normal | Show in the map |
 | [Docker Containers](#docker-docker-docker-images-docker-compose) | `docker` | live, normal | Stop a running container, start a stopped one |
 | [Docker Images](#docker-docker-docker-images-docker-compose) | `docker-images` | live, normal | Run, after a form for the name and ports |
 | [Compose Projects](#docker-docker-docker-images-docker-compose) | `docker-compose` | live, normal | Up |
@@ -4104,3 +4109,66 @@ Settings, `[extensions.images]`:
 | `pad_color` | hex | `#ffffff` | What Pad to a square fills with. |
 | `tinypng_api_key` | secret | (none) | Adds Compress with TinyPNG. |
 | `tools` | list | every tool | The order the encoders are tried. |
+
+## Disk Space (`space`, `space-map`, `space-largest`, `space-folders`, `space-cleanup`)
+
+A big file finder and cleanup, from `extensions/space/`. **Disk Space**
+lists where to look: Home, every mounted volume with its free space
+(`/Volumes/*` on macOS; `/`, `/home` and the media mounts on Linux),
+the folders scanned before with their size and age, `Scan a folder…`
+with the path as a typed argument in the bar, and Cleanup suggestions.
+Enter opens **Disk Map**, a view level: the root scanned (a parallel
+Bun walk, ~7 s for a million-file home, the map drawn live as it
+runs) and drawn as a squarified treemap of boxes inside boxes, area by
+size, a folder's own children faintly inside it, the same children as
+rows beside the board with size and share, the focused box described
+on a footer line. A scan is packed into storage when it lands (the
+biggest nodes under 56 KB per root, four roots), so the next open draws
+at once, marked "scanned 2 h ago"; a zoom into a folder the saved tree
+cut rescans that folder alone. Boxes are coloured by the kind that
+weighs most below them (the `colour` setting, or `c`: by depth instead),
+sizes are the blocks on disk (`sizes`, or `a`: apparent).
+
+| keys | action |
+| --- | --- |
+| `enter` | Zoom into the focused folder; open a file |
+| `cmd+enter` | Reveal in Finder / the file manager |
+| `backspace`, `-` | Zoom out |
+| `up` `down` `left` `right`, `hjkl` | Focus the box in that direction |
+| `tab`, `shift+tab` | Next / previous by size |
+| `m` | Mark or unmark for the trash |
+| `cmd+d` | Move to Trash: the focused box, or every marked one (asks, naming count and size) |
+| `space` | Quick Look (macOS) |
+| `cmd+o`, `cmd+c`, `i` | Open, Copy path, Info (a detail level: kind, sizes, count, share, modified, owner) |
+| `cmd+l` | Largest files under this folder |
+| `c`, `a` | Colour by kind or depth; sizes on disk or apparent |
+| `cmd+r` | Rescan this folder; while scanning, stop |
+
+A click on a box zooms into it (a file: focuses it), on a row focuses
+it, on a crumb zooms out to it. **Largest Files** and **Largest
+Folders** list the biggest under the last root (or the one a row or a
+link names), the kind as a tag and a filter by kind on the files;
+open, reveal, Quick Look (`cmd+y`), show in the map (`cmd+m`), copy
+path, info (`cmd+shift+i`), trash (`cmd+d`, marked rows together).
+**Cleanup Suggestions** measures what is usually safe to clear (user
+and package caches, Xcode's DerivedData, `node_modules` and cargo
+`target` folders untouched for `stale_days` from the scans in hand,
+downloads older than that, the Trash) and offers one destructive action
+per row (`cmd+d`), asked first, everything to the Trash (Empty Trash is
+the one final action, and says so). Trash is Finder's delete on macOS,
+`gio trash` on Linux; `PAL_SPACE_TRASH` names a stand-in for the tests.
+
+Links: `pal://space/scan?root=~/proj` (`rescan=1` scans again),
+`pal://space/largest?root=…`. No bar item: free space is the stats
+lane's. The research notes and the timings are in the extension's
+README.
+
+Settings, `[extensions.space]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `sizes` | `allocated`, `apparent` | `allocated` | What the boxes and rows measure. |
+| `colour` | `kind`, `depth` | `kind` | What colours a box. |
+| `cross_devices` | boolean | `false` | Walk into other file systems under the root (macOS firmlinks are always crossed). |
+| `largest` | 10 to 1000 | `100` | Rows in the Largest lists. |
+| `stale_days` | 1 to 365 | `30` | When a build folder or a download counts as stale. |
