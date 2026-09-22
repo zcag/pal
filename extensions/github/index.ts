@@ -348,22 +348,25 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
     throw e;
   }
   const { list, buckets } = prBuckets(lists);
-  // Nothing open: hidden, the glyph and the popover offered for a `show = "always"` config.
-  if (!list.length) return { hidden: true, empty: { icon: ICON.prs, tooltip: "No open pull requests", menu: { view: renderPrs(prBarState(lists)) } } };
   const [blocked, active, ready, waiting, reviews] = buckets.map((b) => b.rows);
+  // `review_requests` off (the default): the strip is my own pull requests, the ones whose state is mine to act on. A review asked of me is still in the popover's bucket, and never the reason the item is on the strip.
+  const withReviews = !!conf().review_requests;
+  const counted = withReviews ? list : list.filter((pr) => !reviews.includes(pr));
+  // Nothing open: hidden, the glyph and the popover offered for a `show = "always"` config.
+  if (!counted.length) return { hidden: true, empty: { icon: ICON.prs, tooltip: "No open pull requests", menu: { view: renderPrs(prBarState(lists)) } } };
   const segments = [
     ...(blocked.length ? [{ id: "blocked", text: `×${blocked.length}`, color: "red" as const, tooltip: `${blocked.length} PR${blocked.length === 1 ? "" : "s"} needs attention` }] : []),
     ...(active.length ? [{ id: "active", text: `…${active.length}`, color: "amber" as const, tooltip: `${active.length} PR${active.length === 1 ? "" : "s"} awaiting review or checks` }] : []),
     ...(ready.length ? [{ id: "ready", text: `✓${ready.length}`, color: "green" as const, tooltip: `${ready.length} PR${ready.length === 1 ? "" : "s"} ready to merge` }] : []),
     ...(waiting.length ? [{ id: "waiting", text: `·${waiting.length}`, color: "muted" as const, tooltip: `${waiting.length} PR${waiting.length === 1 ? "" : "s"} waiting` }] : []),
-    ...(reviews.length ? [{ id: "reviews", icon: ICON.eye, text: String(reviews.length), color: "blue" as const, tooltip: `${reviews.length} review${reviews.length === 1 ? "" : "s"} asked of you` }] : []),
+    ...(withReviews && reviews.length ? [{ id: "reviews", icon: ICON.eye, text: String(reviews.length), color: "blue" as const, tooltip: `${reviews.length} review${reviews.length === 1 ? "" : "s"} asked of you` }] : []),
   ];
   return {
     icon: ICON.prs,
     segments,
-    tooltip: `${list.length} open pull request${list.length === 1 ? "" : "s"}`,
+    tooltip: `${counted.length} open pull request${counted.length === 1 ? "" : "s"}`,
     menu: { view: renderPrs(prBarState(lists)) },
-    ...(list.some(runningChecks) ? { refresh: 60 } : {}),
+    ...(counted.some(runningChecks) ? { refresh: 60 } : {}),
   };
 }
 

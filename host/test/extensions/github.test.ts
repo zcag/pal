@@ -196,7 +196,7 @@ describe("github", () => {
     expect(metas[2]).toMatchObject({ title: "Repositories", ttl: 300, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }] });
     expect(metas[3]).toMatchObject({ title: "Notifications", live: true, ttl: 60 });
     expect(metas[4]).toMatchObject({ title: "Search GitHub", input: true, detail: "lazy" });
-    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"]]);
+    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"], ["review_requests", "boolean"]]);
   });
 
   test("multi: two accounts are two instances; the token is per instance (a secret), the rest inherits; the lone default runs in a worker, unmarked", () => {
@@ -616,9 +616,9 @@ describe("github", () => {
     test("render: PRs and issues are compact status items whose popovers show the same buckets as the strip", async () => {
       const prs = await host.render("github", "prs", { reason: "load" });
       expect(prs).toMatchObject({
-        icon: "\uf407", tooltip: "3 open pull requests",
-        // acme/api#9 has changes requested, but it is a review asked of me, not mine: its state is not my attention item.
-        segments: [{ id: "blocked", text: "×1", color: "red" }, { id: "waiting", text: "·1", color: "muted" }, { id: "reviews", icon: "\uea70", text: "1", color: "blue" }],
+        icon: "\uf407", tooltip: "2 open pull requests",
+        // acme/api#9 has changes requested, but it is a review asked of me, not mine: its state is not my attention item, and with `review_requests` off it is not counted on the strip at all.
+        segments: [{ id: "blocked", text: "×1", color: "red" }, { id: "waiting", text: "·1", color: "muted" }],
       });
       const prView = viewOf(prs);
       expect(checkView(prView)).toBe(prView);
@@ -652,6 +652,17 @@ describe("github", () => {
       expect(is).toContain('"text":"bug","color":"grey"');
       expect(is).toContain('"text":"p1","color":"grey"');
       expect(is).toContain('"action":"focus:acme/widgets#5","selected":true');
+    });
+
+    test("review_requests: on, the reviews asked of me are a blue segment and count in the tooltip; off again, the strip is my own PRs", async () => {
+      host.changeSettings("github", { settings: { default_org: "acme", repos_root: dir, clone_protocol: "ssh", merged_days: 7, review_requests: true } });
+      const on = await host.render("github", "prs", { reason: "update" });
+      expect(on).toMatchObject({ tooltip: "3 open pull requests", segments: [{ id: "blocked" }, { id: "waiting" }, { id: "reviews", icon: "\uea70", text: "1", color: "blue" }] });
+      host.changeSettings("github", { settings: { default_org: "acme", repos_root: dir, clone_protocol: "ssh", merged_days: 7 } });
+      const off = await host.render("github", "prs", { reason: "update" });
+      expect(off.segments!.map((g) => g.id)).toEqual(["blocked", "waiting"]);
+      // The review is still in the popover, where it is information rather than a count.
+      expect(texts(viewOf(off))).toEqual(expect.arrayContaining(["Review requested", "Fix the parser"]));
     });
 
     test("view helpers: bucket order and all PR states", () => {
@@ -734,7 +745,7 @@ describe("github", () => {
       expect(ids(await list("prs"))).toEqual(["zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
       expect(ids(await list("prs", "reviews"))).toEqual(["acme/api#9"]);
       const strip = await host.render("github", "prs", { reason: "update" });
-      expect(strip).toMatchObject({ tooltip: "2 open pull requests", segments: [{ id: "waiting", text: "·1" }, { id: "reviews", icon: "\uea70", text: "1" }] });
+      expect(strip).toMatchObject({ tooltip: "1 open pull request", segments: [{ id: "waiting", text: "·1" }] });
       expect(texts(viewOf(strip))).not.toContain("Directory readiness");
       const mutedRows = await list("prs", "muted");
       expect(ids(mutedRows)).toEqual(["acme/widgets#71"]);

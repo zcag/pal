@@ -111,19 +111,22 @@ Settings, `[extensions.github]`:
 | `clone_protocol` | `ssh` / `https` | `ssh` | What Copy clone URL copies. |
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
+| `review_requests` | boolean | `false` | Count the reviews asked of you on the Pull requests strip; off, the strip is your own pull requests and a review sits in the popover alone. |
 
 Each bar item is hidden at zero; `show = "always"` under its
 `[bar.items."github/<id>"]` keeps the glyph on the strip anyway, muted,
 with an honest tooltip and the same popover (docs/config.md).
 
 The bar item **Pull requests** is hidden at zero. When it has work, the
-strip is the bucket summary: red blocked (conflicts, failing checks or
-changes requested), amber active (checks running or review required),
-green ready to merge, muted waiting. Its popover opens the same story:
-sections in that order, each row the PR title, `owner/repo#n`, the
-specific state badge and age. Six rows fit; the rest is "and N more in
-pal". `↑`/`↓` (or `k`/`j`) move the cursor, a click focuses a row,
-`Enter` opens it on GitHub, `c` copies its URL, `r` refreshes, and `p`
+strip is the bucket summary of **your own** pull requests: red blocked
+(conflicts, failing checks or changes requested), amber active (checks
+running or review required), green ready to merge, muted waiting. A
+review asked of you is someone else's work: it is in the popover's last
+section, and on the strip as a blue count only with `review_requests`.
+Its popover opens the same story: sections in that order, each row the
+PR title, `owner/repo#n`, the specific state badge and age. Six rows
+fit; the rest is "and N more in pal". `↑`/`↓` (or `k`/`j`) move the
+cursor, a click focuses a row, `Enter` opens it on GitHub, `c` copies its URL, `r` refreshes, and `p`
 opens the full Pull Requests palette.
 
 The bar item **Issues** is hidden at zero. The strip counts assigned,

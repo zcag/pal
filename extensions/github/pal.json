@@ -86,6 +86,15 @@
         }
       ],
       "default": "merge"
+    },
+    {
+      "kind": "boolean",
+      "id": "review_requests",
+      "label": "Review requests on the strip",
+      "text": "Count the pull requests waiting on your review",
+      "description": "Off (the default) keeps the Pull requests item to your own PRs, whose checks and reviews are yours to act on; a review asked of you is someone else's work and sits in the popover's own bucket either way.",
+      "default": false,
+      "bar": "prs"
     }
   ],
   "palettes": {
@@ -244,10 +253,10 @@
   "bar": {
     "prs": {
       "title": "Pull requests",
-      "description": "Separate PR status item: red needs attention, amber is awaiting review or checks, green is ready to merge, muted is waiting. The popover shows those buckets with the PR title, repo, state and age.",
+      "description": "Separate PR status item over your own pull requests: red needs attention, amber is awaiting review or checks, green is ready to merge, muted is waiting; a review asked of you is a blue count only with `review_requests` on. The popover shows every bucket, reviews included, with the PR title, repo, state and age.",
       "mocks": {
         "attention": {
-          "title": "Needs attention",
+          "title": "Needs attention, with review requests on",
           "item": { "icon": "", "segments": [{ "id": "blocked", "text": "×2", "color": "red" }, { "id": "waiting", "text": "·1", "color": "muted" }, { "id": "reviews", "icon": "", "text": "2", "color": "blue" }], "tooltip": "5 open pull requests" }
         },
         "ready": {

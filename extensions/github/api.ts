@@ -20,7 +20,7 @@ const TOKEN_MS = 5 * 60_000, TOKEN_FAIL_MS = 30_000;
 export const log = (...a: unknown[]) => console.error("[github]", ...a);
 
 /** `[extensions.github]`, defaults in pal.json. */
-export type Settings = { token: string; default_org: string; repos_root: string; clone_protocol: "ssh" | "https"; merged_days: number; merge_method: "merge" | "squash" | "rebase" };
+export type Settings = { token: string; default_org: string; repos_root: string; clone_protocol: "ssh" | "https"; merged_days: number; merge_method: "merge" | "squash" | "rebase"; review_requests: boolean };
 export const conf = () => settings.get<Settings>(EXTENSION);
 
 export class AuthError extends Error {
