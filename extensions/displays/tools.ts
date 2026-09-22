@@ -11,10 +11,9 @@
 // directories a shadowed `brightness` is looked for in (the tests set it
 // empty).
 import { exec, now, windows } from "@zcag/pal";
-import { INPUTS, formatPlacements, mergeMac, parseBrightnessCli, parseBrightnessctl, parseDdcctl, parseDdcutilDetect, parseDdcutilVcp, parseDisplayplacer, parseHyprctl, parseM1ddcList, parseProfiler, parseWlrRandr, parseXrandr, splitQuoted, type InputId, type Mode, type Placement, type Screen } from "./model.ts";
+import { INPUTS, formatPlacements, mergeMac, parseBrightnessCli, parseBrightnessctl, parseDdcctl, parseDdcutilDetect, parseDdcutilVcp, parseDisplayplacer, parseHyprctl, parseM1ddcList, parseProfiler, parseWlrRandr, parseXrandr, splitQuoted, type InputId, type Placement, type Screen } from "./model.ts";
 
-export const OS = process.env.PAL_DISPLAYS_OS ?? process.platform;
-export const MAC = OS === "darwin";
+export const MAC = (process.env.PAL_DISPLAYS_OS ?? process.platform) === "darwin";
 /** DDC is slow (a read is a round trip over the monitor's i2c), so each call gets its own budget. */
 const DDC_MS = 4000, LIST_MS = 6000;
 /** How long a snapshot stands: a plug-in shows within this, or at once on `⌘R`, a wake or a write. */
@@ -256,9 +255,6 @@ export async function apply(argv: string[][], t: Tools): Promise<void> {
   }
   invalidate();
 }
-
-/** `displayplacer`'s `mode:N` form, for a mode applied alone on a machine whose full line is not to be touched. */
-export const modeArg = (uuid: string, mode: Mode) => `id:${uuid} mode:${mode.id}`;
 
 // ---- Night Shift -----------------------------------------------------------
 
