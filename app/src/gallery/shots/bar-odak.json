@@ -1,0 +1,830 @@
+{
+  "key": "odak/today",
+  "title": "Today",
+  "item": {
+    "icon": "󰄴",
+    "title": "4",
+    "tooltip": "1 overdue, 3 today",
+    "menu": {
+      "view": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "compact",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 0,
+              "key": "rows",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "d74cc4c1",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "surface": "elevated",
+                  "selected": true,
+                  "action": "focus:d74cc4c1",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰄰",
+                      "key": "f",
+                      "style": "glyph",
+                      "size": "sm",
+                      "color": "faint",
+                      "width": 16
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "t",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Call the bank about the card",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 280
+                        },
+                        {
+                          "type": "text",
+                          "value": "Today · #personal",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 280
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "value": "overdue 3 d",
+                      "size": "xs",
+                      "color": "destructive",
+                      "width": 76,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "c1019507",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:c1019507",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰄰",
+                      "key": "f",
+                      "style": "glyph",
+                      "size": "sm",
+                      "color": "faint",
+                      "width": 16
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "t",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Review the parser PR https://github.com/example/pal/pull/42",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 280
+                        },
+                        {
+                          "type": "text",
+                          "value": "Focus · #work",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 280
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "value": "today",
+                      "size": "xs",
+                      "color": "amber",
+                      "width": 76,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "2f801c41",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:2f801c41",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰀨",
+                      "key": "f",
+                      "style": "glyph",
+                      "size": "sm",
+                      "color": "destructive",
+                      "width": 16
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "t",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Ship the release notes",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 280
+                        },
+                        {
+                          "type": "text",
+                          "value": "Focus · #work",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 280
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "value": "",
+                      "size": "xs",
+                      "color": "faint",
+                      "width": 76,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "752e0c39",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:752e0c39",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰄰",
+                      "key": "f",
+                      "style": "glyph",
+                      "size": "sm",
+                      "color": "faint",
+                      "width": 16
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "t",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Write the changelog entry",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 280
+                        },
+                        {
+                          "type": "text",
+                          "value": "Focus · #work",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 280
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "value": "",
+                      "size": "xs",
+                      "color": "faint",
+                      "width": 76,
+                      "align": "end"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints",
+              "minHeight": 22,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter",
+                  "action": "complete"
+                },
+                {
+                  "type": "text",
+                  "value": "done",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "u",
+                  "action": "urgent"
+                },
+                {
+                  "type": "text",
+                  "value": "urgent",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "n",
+                  "action": "new"
+                },
+                {
+                  "type": "text",
+                  "value": "new",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "o",
+                  "action": "open-odak"
+                },
+                {
+                  "type": "text",
+                  "value": "odak",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "p",
+                  "action": "open-pal"
+                },
+                {
+                  "type": "text",
+                  "value": "pal",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "complete",
+            "title": "Complete",
+            "shortcut": "x"
+          },
+          {
+            "id": "urgent",
+            "title": "Mark urgent",
+            "shortcut": "u"
+          },
+          {
+            "id": "tomorrow",
+            "title": "Snooze to tomorrow",
+            "shortcut": "t"
+          },
+          {
+            "id": "new",
+            "title": "New todo",
+            "shortcut": "n"
+          },
+          {
+            "id": "open-odak",
+            "title": "Open odak",
+            "shortcut": "o"
+          },
+          {
+            "id": "open-pal",
+            "title": "Open in pal",
+            "shortcut": "p"
+          },
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "shortcut": "r"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:d74cc4c1",
+            "title": "Go to Call the bank about the card",
+            "hidden": true
+          },
+          {
+            "id": "focus:c1019507",
+            "title": "Go to Review the parser PR https://github.com/example/pal/pull/42",
+            "hidden": true
+          },
+          {
+            "id": "focus:2f801c41",
+            "title": "Go to Ship the release notes",
+            "hidden": true
+          },
+          {
+            "id": "focus:752e0c39",
+            "title": "Go to Write the changelog entry",
+            "hidden": true
+          }
+        ],
+        "title": "1 overdue, 3 today",
+        "id": "today",
+        "keys": "actions"
+      }
+    },
+    "empty": {
+      "icon": "󰄴",
+      "tooltip": "1 overdue, 3 today",
+      "menu": {
+        "view": {
+          "tree": {
+            "type": "stack",
+            "direction": "column",
+            "gap": 2,
+            "key": "compact",
+            "padding": 3,
+            "children": [
+              {
+                "type": "stack",
+                "direction": "column",
+                "gap": 0,
+                "key": "rows",
+                "children": [
+                  {
+                    "type": "stack",
+                    "direction": "row",
+                    "align": "center",
+                    "gap": 2,
+                    "key": "d74cc4c1",
+                    "padding": 1,
+                    "minHeight": 44,
+                    "radius": true,
+                    "surface": "elevated",
+                    "selected": true,
+                    "action": "focus:d74cc4c1",
+                    "transition": {
+                      "enter": "fade",
+                      "exit": "fade"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "󰄰",
+                        "key": "f",
+                        "style": "glyph",
+                        "size": "sm",
+                        "color": "faint",
+                        "width": 16
+                      },
+                      {
+                        "type": "stack",
+                        "direction": "column",
+                        "gap": 0,
+                        "key": "t",
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Call the bank about the card",
+                            "size": "md",
+                            "weight": "semibold",
+                            "width": 280
+                          },
+                          {
+                            "type": "text",
+                            "value": "Today · #personal",
+                            "size": "xs",
+                            "color": "muted",
+                            "width": 280
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "overdue 3 d",
+                        "size": "xs",
+                        "color": "destructive",
+                        "width": 76,
+                        "align": "end"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "stack",
+                    "direction": "row",
+                    "align": "center",
+                    "gap": 2,
+                    "key": "c1019507",
+                    "padding": 1,
+                    "minHeight": 44,
+                    "radius": true,
+                    "action": "focus:c1019507",
+                    "transition": {
+                      "enter": "fade",
+                      "exit": "fade"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "󰄰",
+                        "key": "f",
+                        "style": "glyph",
+                        "size": "sm",
+                        "color": "faint",
+                        "width": 16
+                      },
+                      {
+                        "type": "stack",
+                        "direction": "column",
+                        "gap": 0,
+                        "key": "t",
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Review the parser PR https://github.com/example/pal/pull/42",
+                            "size": "md",
+                            "weight": "semibold",
+                            "width": 280
+                          },
+                          {
+                            "type": "text",
+                            "value": "Focus · #work",
+                            "size": "xs",
+                            "color": "muted",
+                            "width": 280
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "today",
+                        "size": "xs",
+                        "color": "amber",
+                        "width": 76,
+                        "align": "end"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "stack",
+                    "direction": "row",
+                    "align": "center",
+                    "gap": 2,
+                    "key": "2f801c41",
+                    "padding": 1,
+                    "minHeight": 44,
+                    "radius": true,
+                    "action": "focus:2f801c41",
+                    "transition": {
+                      "enter": "fade",
+                      "exit": "fade"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "󰀨",
+                        "key": "f",
+                        "style": "glyph",
+                        "size": "sm",
+                        "color": "destructive",
+                        "width": 16
+                      },
+                      {
+                        "type": "stack",
+                        "direction": "column",
+                        "gap": 0,
+                        "key": "t",
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Ship the release notes",
+                            "size": "md",
+                            "weight": "semibold",
+                            "width": 280
+                          },
+                          {
+                            "type": "text",
+                            "value": "Focus · #work",
+                            "size": "xs",
+                            "color": "muted",
+                            "width": 280
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "",
+                        "size": "xs",
+                        "color": "faint",
+                        "width": 76,
+                        "align": "end"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "stack",
+                    "direction": "row",
+                    "align": "center",
+                    "gap": 2,
+                    "key": "752e0c39",
+                    "padding": 1,
+                    "minHeight": 44,
+                    "radius": true,
+                    "action": "focus:752e0c39",
+                    "transition": {
+                      "enter": "fade",
+                      "exit": "fade"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "󰄰",
+                        "key": "f",
+                        "style": "glyph",
+                        "size": "sm",
+                        "color": "faint",
+                        "width": 16
+                      },
+                      {
+                        "type": "stack",
+                        "direction": "column",
+                        "gap": 0,
+                        "key": "t",
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Write the changelog entry",
+                            "size": "md",
+                            "weight": "semibold",
+                            "width": 280
+                          },
+                          {
+                            "type": "text",
+                            "value": "Focus · #work",
+                            "size": "xs",
+                            "color": "muted",
+                            "width": 280
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "",
+                        "size": "xs",
+                        "color": "faint",
+                        "width": 76,
+                        "align": "end"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 1,
+                "key": "hints",
+                "minHeight": 22,
+                "children": [
+                  {
+                    "type": "keycap",
+                    "keys": "enter",
+                    "action": "complete"
+                  },
+                  {
+                    "type": "text",
+                    "value": "done",
+                    "style": "muted",
+                    "size": "xs"
+                  },
+                  {
+                    "type": "keycap",
+                    "keys": "u",
+                    "action": "urgent"
+                  },
+                  {
+                    "type": "text",
+                    "value": "urgent",
+                    "style": "muted",
+                    "size": "xs"
+                  },
+                  {
+                    "type": "keycap",
+                    "keys": "n",
+                    "action": "new"
+                  },
+                  {
+                    "type": "text",
+                    "value": "new",
+                    "style": "muted",
+                    "size": "xs"
+                  },
+                  {
+                    "type": "keycap",
+                    "keys": "o",
+                    "action": "open-odak"
+                  },
+                  {
+                    "type": "text",
+                    "value": "odak",
+                    "style": "muted",
+                    "size": "xs"
+                  },
+                  {
+                    "type": "keycap",
+                    "keys": "p",
+                    "action": "open-pal"
+                  },
+                  {
+                    "type": "text",
+                    "value": "pal",
+                    "style": "muted",
+                    "size": "xs"
+                  }
+                ]
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "shortcut": "x"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "u"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "t"
+            },
+            {
+              "id": "new",
+              "title": "New todo",
+              "shortcut": "n"
+            },
+            {
+              "id": "open-odak",
+              "title": "Open odak",
+              "shortcut": "o"
+            },
+            {
+              "id": "open-pal",
+              "title": "Open in pal",
+              "shortcut": "p"
+            },
+            {
+              "id": "refresh",
+              "title": "Refresh",
+              "shortcut": "r"
+            },
+            {
+              "id": "down",
+              "title": "Next row",
+              "shortcut": [
+                "down",
+                "j"
+              ],
+              "hidden": true
+            },
+            {
+              "id": "up",
+              "title": "Previous row",
+              "shortcut": [
+                "up",
+                "k"
+              ],
+              "hidden": true
+            },
+            {
+              "id": "focus:d74cc4c1",
+              "title": "Go to Call the bank about the card",
+              "hidden": true
+            },
+            {
+              "id": "focus:c1019507",
+              "title": "Go to Review the parser PR https://github.com/example/pal/pull/42",
+              "hidden": true
+            },
+            {
+              "id": "focus:2f801c41",
+              "title": "Go to Ship the release notes",
+              "hidden": true
+            },
+            {
+              "id": "focus:752e0c39",
+              "title": "Go to Write the changelog entry",
+              "hidden": true
+            }
+          ],
+          "title": "1 overdue, 3 today",
+          "id": "today",
+          "keys": "actions"
+        }
+      }
+    },
+    "states": {
+      "overdue": 1,
+      "today": 3,
+      "open": 14
+    }
+  },
+  "states": [
+    {
+      "id": "quiet",
+      "item": {
+        "title": "3",
+        "tooltip": "3 today"
+      }
+    }
+  ],
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: today's count, red while anything is overdue"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the overdue first, then today's, Enter completes, n adds"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the glyph and the count"
+    }
+  }
+}
