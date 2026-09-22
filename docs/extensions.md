@@ -1168,6 +1168,12 @@ to the core.
   and an install reopens the root with the name typed. What the Store
   palette is built on.
 - `selection.text()`: the text selected in the app in front, or null.
+  `textAtHand()`: what a palette opened with nothing typed should work
+  on: the selection (a failed read counts as none), else the clipboard's
+  text (`clipboard.current()`, or the newest text entry), trimmed, as
+  `{ text, where: "selection" | "clipboard" }` or null; one read per
+  `TEXT_AT_HAND_TTL_MS` (2 s) across calls, so an `input` palette may ask
+  on every empty listing. Translate and Turkish start from it.
 - `dialog.current()`: the open or save panel in front, or null (the
   `dialog` effect types a path into it).
   The accessibility API first (`AXSelectedText` of the focused element on
@@ -1300,6 +1306,8 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
 - Text: `bytes(n)` ("3.2 KB", "1.5 MB"), `truncate(s, n)` (an ellipsis as the
   last character), `oneLine(s)` (whitespace runs as one space, invisible
   characters such as a mail preheader's zero-width joiners out), `slug(s)`,
+  `appName(bundleId)` (`com.google.Chrome` as "Chrome": a small table, else
+  the last segment; what a clipboard entry's `source_app` reads as),
   `errorMessage(e)` (an Error's message, else the value as text),
   `mdEscape(text)` (plain text as markdown that reads as the text, links
   left whole).

@@ -10,7 +10,7 @@
 // Google's unofficial web endpoint or DeepL with a key. A picked
 // translation goes to the history palette (storage, the last hundred).
 import { createHash } from "node:crypto";
-import { clipboard, errorMessage, hint, oneLine, selection, settings, storage, toast, truncate, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, hint, oneLine, settings, storage, textAtHand, toast, truncate, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { MAX_CHARS, speak, translate, TranslateError, type Backend, type Translation } from "./backends.ts";
 import { langOf, matches, nameOf, otherEnd, parse, systemLanguage } from "./lang.ts";
 
@@ -44,8 +44,6 @@ const CLEAR: Action = { id: "clear", title: "Clear history", style: "destructive
 const DEBOUNCE_MS = 350;
 const HISTORY_MAX = 100;
 const CACHE_MAX = 200;
-/** A selection or clipboard read is reused for this long across empty listings (each deletion back to nothing would read again). */
-const SOURCE_TTL_MS = 2000;
 
 const S = () => settings.get<Settings>();
 
@@ -67,22 +65,9 @@ async function remember(h: Held): Promise<void> {
 // ---- the source text -------------------------------------------------------------
 
 type Source = { text: string; where: "typed" | "selection" | "clipboard" };
-let lastRead: { at: number; source?: Source } | undefined;
 
-/** Typed text as it is; nothing typed: the selection, else the clipboard, read once per `SOURCE_TTL_MS`. */
-async function source(typed: string): Promise<Source | undefined> {
-  if (typed) return { text: typed, where: "typed" };
-  if (lastRead && Date.now() - lastRead.at < SOURCE_TTL_MS) return lastRead.source;
-  let s: Source | undefined;
-  const sel = await selection.text().catch(() => null);
-  if (sel?.trim()) s = { text: sel.trim(), where: "selection" };
-  else {
-    const clip = (await clipboard.list({ kind: "text", limit: 1 }).catch(() => []))[0]?.text;
-    if (clip?.trim()) s = { text: clip.trim(), where: "clipboard" };
-  }
-  lastRead = { at: Date.now(), source: s };
-  return s;
-}
+/** Typed text as it is; nothing typed: the selection, else the clipboard (`textAtHand`, read once per 2 s across empty listings). */
+const source = async (typed: string): Promise<Source | undefined> => (typed ? { text: typed, where: "typed" } : (await textAtHand()) ?? undefined);
 
 // ---- translating -------------------------------------------------------------------
 

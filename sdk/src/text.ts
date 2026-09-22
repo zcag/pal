@@ -17,6 +17,15 @@ export const oneLine = (s: string): string => s.replace(INVISIBLE, "").replace(/
 /** `Hello, Wörld!` as `hello-world`: lowercase ASCII words joined by hyphens, accents stripped. */
 export const slug = (s: string): string => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
+/** Bundle ids whose last segment is not the app's name (Slack's `slackmacgap`, Chrome's `Chrome` is fine); the rest read from the id. */
+const APP_NAMES: Record<string, string> = {
+  "com.apple.Terminal": "Terminal", "com.apple.Safari": "Safari", "com.apple.TextEdit": "TextEdit", "com.apple.finder": "Finder",
+  "com.apple.Notes": "Notes", "com.apple.mail": "Mail", "com.apple.Preview": "Preview", "com.google.Chrome": "Chrome",
+  "net.kovidgoyal.kitty": "kitty", "com.googlecode.iterm2": "iTerm", "com.microsoft.VSCode": "VS Code", "com.tinyspeck.slackmacgap": "Slack",
+};
+/** A bundle id (`com.google.Chrome`, what a clipboard entry's `source_app` is) as something readable: a known name, else the last segment. */
+export const appName = (id: string): string => APP_NAMES[id] ?? id.split(".").pop() ?? id;
+
 /** What a thrown value says: an Error's message, else the value as text. */
 export const errorMessage = (e: unknown): string => String((e as { message?: unknown })?.message ?? e);
 
