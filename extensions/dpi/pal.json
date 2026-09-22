@@ -1,0 +1,173 @@
+{
+  "name": "dpi",
+  "title": "DPI Bypass",
+  "description": "The `dpi` script's censorship bypass as a toggle with an indicator: Turn on / Turn off, a Repair row when only half of it is in effect, the status with its facts, an end-to-end test whose rows land one by one, the log and the build. A shield on the bar while it is on, amber while partial. byedpi and the network settings on macOS, zapret and dnscrypt-proxy under systemd on Linux; the script does all of it, pal runs it and draws what it says.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰕥",
+      "bg": "indigo"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": ["dpi", "bypass", "byedpi", "zapret", "censorship"],
+  "settings": [
+    {
+      "kind": "path",
+      "id": "tool",
+      "label": "Tool",
+      "description": "The dpi script: a name on PATH or a path. It lives at ~/.local/bin/dpi; that directory is looked in when the name is not on PATH.",
+      "pick": "file",
+      "default": "dpi"
+    },
+    {
+      "kind": "list",
+      "id": "test_urls",
+      "label": "Test urls",
+      "placeholder": "https://discord.com/ = blocked",
+      "description": "What the test curls: `url`, or `url = blocked` (the bypass must get it through) / `url = control` (a site that must keep working). Without a role the first two are blocked and the rest controls, as the script's list reads.",
+      "default": [
+        "https://discord.com/ = blocked",
+        "https://www.roblox.com/ = blocked",
+        "https://www.enpara.com/ = control",
+        "https://www.raycast.com/ = control",
+        "https://slack.com/ = control",
+        "https://example.com/ = control"
+      ]
+    },
+    {
+      "kind": "list",
+      "id": "dns",
+      "label": "Override DNS",
+      "placeholder": "1.1.1.1",
+      "description": "The resolvers `dpi on` sets on macOS (the script's DNS_ON), so the status can tell a full bypass from a partial one: the proxy up with the DNS still the ISP's is partial. Empty: DNS is not judged.",
+      "default": ["1.1.1.1", "9.9.9.9"]
+    }
+  ],
+  "store": {
+    "tagline": "The dpi bypass on and off, with a shield on the bar",
+    "category": "system",
+    "features": [
+      "Turn on bypass / Turn off bypass leads the palette and sits in the root's Now section while on; Enter runs the script, the panel hides and the HUD says what the script said (`dpi on (Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9)`)",
+      "A partial state (the proxy up but the SOCKS or the DNS not pointing at it, or the reverse; one of the two Linux units down) is amber with the reason and gets a Repair row: off, then on",
+      "The status row's detail pane: proxy, service, DNS and SOCKS (the units and the DNS probe on Linux); Enter copies the script's own output",
+      "The test: one curl per url at once, through the proxy while it is up, each row landing as it answers with the code as a coloured tag, the time and its role; the header says `2 blocked reach, 4 controls fine` or names what failed; `cmd+r` runs it again",
+      "The bar item: a shield while on, hidden while off by its rule (`show = \"always\"` keeps a muted one), amber while partial; the popover has the status card, Enter toggles, `t` runs the test in place, `r` repairs, `l` opens the log, `o` the palette",
+      "`pal://dpi/toggle`, `on`, `off`, `test`, `status` for a keybind",
+      "Linux: `sudo -n true` is probed before a switch; a closed credential window is a toast saying to run `sudo -v` first, never a hung prompt",
+      "Nothing of byedpi or the network settings is reimplemented: the script is the engine, pal is the button and the light"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"],
+    "screenshots": [],
+    "actions": [
+      { "title": "Turn on / Turn off", "description": "Runs the script; the HUD says its line.", "keys": "enter" },
+      { "title": "Test the bypass", "description": "The test level, from any row.", "keys": "cmd+t" },
+      { "title": "Repair", "description": "Off, then on; on the Turn off row while partial.", "keys": "cmd+shift+r" },
+      { "title": "Copy the status", "description": "The script's status output.", "keys": "cmd+c" }
+    ]
+  },
+  "links": {
+    "toggle": { "description": "Turn the bypass on, or off while it is on (the script's toggle)" },
+    "on": { "description": "Turn the bypass on" },
+    "off": { "description": "Turn the bypass off; the script restores the previous settings" },
+    "test": { "description": "Open the panel on the test level; the test runs at once" },
+    "status": { "description": "Open the DPI Bypass palette" }
+  },
+  "palettes": {
+    "dpi": {
+      "kind": "live",
+      "description": "Turn the bypass on or off, repair a half-on one, read the status, run the test, open the log, build byedpi.",
+      "keys": [
+        { "keys": "enter", "title": "Turn the bypass on or off; on Status, copy it; on Test, run it" },
+        { "keys": "cmd+t", "title": "Test the bypass" },
+        { "keys": "cmd+shift+r", "title": "Repair: off, then on (while partial)" },
+        { "keys": "cmd+c", "title": "Copy the status" }
+      ]
+    },
+    "test": {
+      "kind": "view",
+      "description": "The bypass tested end to end: a row per url with its HTTP code, the time and whether it is a blocked site or a control, landing one by one.",
+      "keys": [
+        { "keys": "enter", "title": "Open the url under the cursor" },
+        { "keys": "c", "title": "Copy the row's line" },
+        { "keys": "cmd+c", "title": "Copy the whole report" },
+        { "keys": "cmd+r", "title": "Run the test again" },
+        { "keys": "up", "title": "Move the cursor (down, j, k too)" }
+      ]
+    }
+  },
+  "states": {
+    "on": { "description": "The bypass is on, or partly on", "kind": "boolean" },
+    "state": { "description": "off, on or partial", "kind": "string" },
+    "service": { "description": "The network service the proxy is set on (macOS), or the units (Linux)", "kind": "string" }
+  },
+  "bar": {
+    "bypass": {
+      "title": "DPI Bypass",
+      "description": "A shield while the bypass is on, hidden while off by its rule (`show = \"always\"` keeps a muted one), amber while only half of it is in effect. The popover: the status card with the facts, Enter turns it on or off, `t` runs the test and shows its rows in place, `r` repairs, `c` copies the status, `l` opens the log, `o` the palette.",
+      "refresh": {
+        "every": 60,
+        "on": ["show", "wake", "network"]
+      },
+      "rules": [
+        {
+          "id": "off",
+          "when": "dpi.state == 'off'",
+          "description": "Off: nothing to say.",
+          "hidden": true
+        },
+        {
+          "id": "partial",
+          "when": "dpi.state == 'partial'",
+          "description": "Only half of the bypass is in effect.",
+          "color": "amber"
+        }
+      ],
+      "mocks": {
+        "off": {
+          "title": "Off, hidden",
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰒙",
+              "tooltip": "Bypass off: Wi-Fi as before, byedpi down"
+            }
+          }
+        },
+        "on": {
+          "title": "On, over Wi-Fi",
+          "item": {
+            "icon": "󰕥",
+            "tooltip": "Bypass on: Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9"
+          }
+        },
+        "partial": {
+          "title": "Partly on",
+          "item": {
+            "icon": "󰞀",
+            "color": "amber",
+            "tooltip": "Bypass partly on: Proxy up (pid 4242), but SOCKS off and DNS not overridden"
+          }
+        },
+        "linux": {
+          "title": "On, Linux",
+          "item": {
+            "icon": "󰕥",
+            "tooltip": "Bypass on: zapret + dnscrypt-proxy up, resolver -> 127.0.0.1"
+          }
+        }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Turn the bypass on or off" },
+        { "keys": "t", "title": "Test the bypass; the rows land in the popover" },
+        { "keys": "r", "title": "Repair: off, then on" },
+        { "keys": "c", "title": "Copy the status" },
+        { "keys": "l", "title": "Open the log (macOS)" },
+        { "keys": "o", "title": "Open the DPI Bypass palette" }
+      ]
+    }
+  }
+}

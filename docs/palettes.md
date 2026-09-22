@@ -5001,3 +5001,69 @@ Settings, `[extensions.keycast]`:
 | `ring_color` | tag colour | `blue` | The ring's and the left click's colour. |
 | `ripples` | boolean | `true` | A ripple on every click. |
 | `gestures` | boolean | `true` | Scrolls and trackpad gestures on the strip (keys and both modes). |
+
+## DPI Bypass (`dpi`, `dpi-test`, `dpi/bypass`)
+
+The owner's `dpi` script (`~/.local/bin/dpi`: byedpi as a SOCKS proxy
+with the active network service's DNS and SOCKS pointed at it on macOS,
+zapret and dnscrypt-proxy under systemd on Linux) as a toggle with an
+indicator, from `extensions/dpi/`. The script is the engine; pal runs
+`on`, `off`, `toggle`, `status` and `build` and draws what it says. A
+live, normal palette: Turn on bypass / Turn off bypass leads it (Enter
+runs the script, the panel hides, the HUD says the script's own line,
+`dpi on (Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9)`; the row
+is in the root's Now section while on), then Status (the facts in the
+detail pane: proxy, service, DNS, SOCKS, or the units and the DNS probe;
+Enter copies the script's output), Test the bypass, Open the log and
+Build byedpi (macOS; the build asks first and the HUD says when it
+landed), Copy the status. A **partial** status (the proxy up but the
+service's SOCKS or DNS not pointing at it, or a service still pointed at
+a proxy that died; one Linux unit down, or both up with the resolver
+still answering the block page) is amber with the reason on the row and
+gets a Repair row: off, then on. Without the script, one row saying where
+it lives, Enter on the `tool` setting. `on` and `off` take about five
+seconds on macOS: waited for up to seven inside the pick, then the HUD
+says it is under way and the line lands when the script finishes.
+
+Bypass Test (`dpi-test`, a view): the script's `dpi test` run here one
+curl per url, all at once, through `socks5h://127.0.0.1:<port>` while the
+proxy is up on macOS, direct otherwise; each row the host and its url, a
+`blocked` or `control` badge, the code as a badge (green 2xx/3xx, amber
+4xx/5xx, red `000`) and the time, landing as each curl answers; the
+header `2 blocked reach, 4 controls fine`, or what failed by host.
+Opening the level runs it. `test_urls` is `url` or `url = blocked|control`
+(the first two blocked without a role, the rest controls).
+
+| keys | action |
+| --- | --- |
+| `enter` | Turn the bypass on or off; on Status, copy it; in the test, open the url |
+| `cmd+t` | Test the bypass |
+| `cmd+shift+r` | Repair: off, then on (while partial) |
+| `cmd+c` | Copy the status; in the test, the report |
+| `c` | Test: copy the row's line |
+| `cmd+r` | Test: run it again |
+| `up` `down` `j` `k` | Test: move the ring |
+
+`pal://dpi/toggle`, `pal://dpi/on`, `pal://dpi/off` (the HUD says the
+script's line), `pal://dpi/test` (the panel on the test level),
+`pal://dpi/status` (the palette). States `dpi/on`, `dpi/state` (`off`,
+`on`, `partial`), `dpi/service`.
+
+The bar item `dpi/bypass`: a shield while on, hidden while off by its
+`off` rule (`show = "always"` keeps a muted shield), amber by its
+`partial` rule; refreshed every minute and on `show`, `wake`, `network`.
+The popover: the status card with the facts, Enter turns it on or off,
+`t` runs the test with its rows landing under the card, `r` repairs, `c`
+copies the status, `l` opens the log (macOS), `o` opens the palette.
+
+Linux: `sudo -n true` is probed before a switch; a closed credential
+window is a toast saying to run `sudo -v` in a terminal, and nothing
+runs. No log or build rows there.
+
+Settings, `[extensions.dpi]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `tool` | path | `dpi` | The script, a name on PATH or a path; `~/.local/bin` is looked in too. |
+| `test_urls` | list | the script's six | What the test curls, `url` or `url = blocked|control`. |
+| `dns` | list | `1.1.1.1`, `9.9.9.9` | The resolvers `dpi on` sets on macOS, to judge partial; empty leaves DNS unjudged. |
