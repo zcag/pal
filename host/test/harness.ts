@@ -98,14 +98,30 @@ export class Host {
   get pid() { return this.proc.pid; }
 
   private write(msg: Request | Response | Notification) {
-    this.proc.stdin.write(JSON.stringify(msg) + "\n");
-    this.proc.stdin.flush();
+    this.send(JSON.stringify(msg) + "\n");
   }
 
   /** Raw line on stdin, for malformed input. */
   writeRaw(line: string) {
-    this.proc.stdin.write(line);
-    this.proc.stdin.flush();
+    this.send(line);
+  }
+
+  /**
+   * A host that has already gone answers a write with EPIPE, and thrown
+   * from `answer` (a request read off stdout, replied to after the process
+   * exited: a palette's own timer pushing while the file's host is torn
+   * down) it is an unhandled error that fails the whole run and names no
+   * test. There is nothing to deliver it to, so it is dropped: a test that
+   * was waiting on the reply still fails, with its own "unanswered after
+   * N ms".
+   */
+  private send(text: string) {
+    try {
+      this.proc.stdin.write(text);
+      this.proc.stdin.flush();
+    } catch (e) {
+      if ((e as { code?: string }).code !== "EPIPE") throw e;
+    }
   }
 
   /** One request; resolves with the reply envelope (`{ id, result }` or `{ id, error }`). */
