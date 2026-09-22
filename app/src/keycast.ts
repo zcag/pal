@@ -7,9 +7,9 @@ export type Position = "bottom-center" | "bottom-left" | "bottom-right" | "top-r
 export type Button = "left" | "right" | "middle";
 
 /** `[extensions.keycast]` as the shell resolves it (extensions/keycast/pal.json). */
-export type Settings = { mode: Mode; position: Position; scale: number; hold: number; max: number; shortcuts_only: boolean; ring: boolean; ring_color: string; ripples: boolean };
-/** One entry of the strip (`pal_core::keycast::Entry`): the caps, the repeat count, the last press in unix ms. */
-export type Entry = { id: number; keys: string[]; count: number; at: number };
+export type Settings = { mode: Mode; position: Position; scale: number; hold: number; max: number; shortcuts_only: boolean; ring: boolean; ring_color: string; ripples: boolean; gestures: boolean };
+/** One entry of the strip (`pal_core::keycast::Entry`): the caps, the repeat count, the last press or move in unix ms, what it is, and for a scroll how much (1..3). */
+export type Entry = { id: number; keys: string[]; count: number; at: number; kind: "key" | "scroll" | "gesture"; level: number };
 export type Ripple = { id: number; x: number; y: number; button: Button };
 
 export type Payload =
@@ -31,7 +31,7 @@ export type State = {
   inset: [number, number, number, number];
 };
 
-export const DEFAULTS: Settings = { mode: "both", position: "bottom-center", scale: 1, hold: 2, max: 5, shortcuts_only: false, ring: true, ring_color: "blue", ripples: true };
+export const DEFAULTS: Settings = { mode: "both", position: "bottom-center", scale: 1, hold: 2, max: 5, shortcuts_only: false, ring: true, ring_color: "blue", ripples: true, gestures: true };
 
 export const initial = (): State => ({ active: false, mode: "both", settings: null, entries: [], cursor: null, down: false, ripples: [], inset: [0, 0, 0, 0] });
 
@@ -65,6 +65,11 @@ export function reduce(s: State, p: PageAction): State {
 
 /** The entries still inside their hold at `now`: what the page keeps in the DOM (the shell prunes on the next key, the page between keys). */
 export const visible = (entries: Entry[], holdSeconds: number, now: number): Entry[] => entries.filter((e) => now - e.at < holdSeconds * 1000);
+
+/** How long the fade at the end of the hold takes (tokens.css `--pal-dur-hud-out`). */
+export const OUT_MS = 240;
+/** Whether an entry is inside its last `OUT_MS` at `now`: the page marks it exiting, and an update (a scroll still going) brings it back. */
+export const exiting = (e: Entry, holdSeconds: number, now: number): boolean => e.at + holdSeconds * 1000 - now <= OUT_MS;
 
 /** A ripple's colour: the ring's for the left button, amber for the right (told apart), grey for a middle click. */
 export const rippleColor = (button: Button, ring: string): string => (button === "left" ? ring : button === "right" ? "amber" : "grey");

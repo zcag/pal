@@ -1,14 +1,14 @@
 // The bar popover as a tree (`View` in `@zcag/pal`), pure: index.ts hands
 // it the core's status, the fixture renders made-up ones through the same
 // function. The three modes as tiles (the one on wears the accent ring),
-// the shortcuts-only switch on its own row, and a line of key hints; the
+// the shortcuts-only and gestures switches on rows of their own, and a line of key hints; the
 // first action is Stop while on (a click on the red dot, then Enter), and
 // Start in the default mode while the strip keeps the item at Always.
 import { POPOVER_W, column, keyHint, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
 
 export type Mode = "keys" | "cursor" | "both";
 /** `core/keycast.status` (app keycast.rs `Status`): on or off, the mode, whether the OS lets pal watch, and the settings as resolved. */
-export type Status = { available: boolean; reason?: string; active: boolean; mode: Mode; input_monitoring: boolean; settings: { mode: Mode; position: string; scale: number; hold: number; max: number; shortcuts_only: boolean; ring: boolean; ring_color: string; ripples: boolean } };
+export type Status = { available: boolean; reason?: string; active: boolean; mode: Mode; input_monitoring: boolean; settings: { mode: Mode; position: string; scale: number; hold: number; max: number; shortcuts_only: boolean; ring: boolean; ring_color: string; ripples: boolean; gestures: boolean } };
 
 export const MODES: Mode[] = ["keys", "cursor", "both"];
 /** The mode's word, for a row, a tooltip, the HUD. */
@@ -42,17 +42,22 @@ function status(st: Status): ViewNode {
   return text(line, { key: `status-${st.active}-${st.input_monitoring}`, style: "muted", size: "xs", width: POPOVER_W - 8, transition: { enter: "fade", exit: "none" } });
 }
 
-function shortcuts(st: Status): ViewNode {
+/** A setting as a row with a switch: the title, what the state means, the switch; the whole row a tap. */
+function toggleRow(key: string, title: string, sub: string, on: boolean, action: string): ViewNode {
   return row([
-    column([text("Shortcuts only", { style: "body", key: "so-title" }), text(st.settings.shortcuts_only ? "Plain typing stays off the screen" : "Every key is shown", { style: "muted", size: "xs", key: `so-sub-${st.settings.shortcuts_only}`, transition: { enter: "fade", exit: "none" } })], { key: "so-text", gap: 0, grow: true }),
-    { type: "switch", key: "so-switch", on: st.settings.shortcuts_only, action: "shortcuts", label: "Shortcuts only" },
-  ], { key: "shortcuts", gap: 2, padding: 1, minHeight: 32, action: "shortcuts" });
+    column([text(title, { style: "body", key: `${key}-title` }), text(sub, { style: "muted", size: "xs", key: `${key}-sub-${on}`, transition: { enter: "fade", exit: "none" } })], { key: `${key}-text`, gap: 0, grow: true }),
+    { type: "switch", key: `${key}-switch`, on, action, label: title },
+  ], { key, gap: 2, padding: 1, minHeight: 32, action });
 }
+
+const shortcuts = (st: Status): ViewNode => toggleRow("shortcuts", "Shortcuts only", st.settings.shortcuts_only ? "Plain typing stays off the screen" : "Every key is shown", st.settings.shortcuts_only, "shortcuts");
+const gestures = (st: Status): ViewNode => toggleRow("gestures", "Scroll and gestures", st.settings.gestures ? "Scrolls, pinches, rotations and swipes on the strip" : "Keys and clicks only", st.settings.gestures, "gestures");
 
 function hints(st: Status): ViewNode {
   return row([
     ...keyHint(["k", "c", "b"], "mode"),
-    ...keyHint("s", "shortcuts only", { action: "shortcuts" }),
+    ...keyHint("s", "shortcuts", { action: "shortcuts" }),
+    ...keyHint("g", "gestures", { action: "gestures" }),
     ...(st.active ? keyHint("backspace", "stop", { action: "toggle" }) : keyHint("enter", "start", { action: "toggle" })),
     ...keyHint("o", "palette", { action: "open" }),
   ], { key: "hints", gap: 1, minHeight: 22 });
@@ -64,11 +69,12 @@ export function actions(st: Status): Action[] {
     st.active ? { id: "toggle", title: "Stop keycast", shortcut: "backspace", style: "destructive" } : { id: "toggle", title: "Start keycast" },
     ...MODES.map((m): Action => ({ id: `mode:${m}`, title: st.active && st.mode === m ? `${TILE[m].action} (on)` : TILE[m].action, shortcut: TILE[m].key })),
     { id: "shortcuts", title: st.settings.shortcuts_only ? "Show every key" : "Shortcuts only", shortcut: "s" },
+    { id: "gestures", title: st.settings.gestures ? "Keys and clicks only" : "Scroll and gestures", shortcut: "g" },
     { id: "open", title: "Open the Keycast palette", shortcut: "o" },
   ];
 }
 
 export function render(st: Status): View {
-  const kids: ViewNode[] = st.available ? [tiles(st), status(st), shortcuts(st), hints(st)] : [status(st)];
+  const kids: ViewNode[] = st.available ? [tiles(st), status(st), shortcuts(st), gestures(st), hints(st)] : [status(st)];
   return { tree: column(kids, { key: "popover", padding: 3, gap: 2 }), actions: actions(st), title: st.active ? `Keycast: ${modeWord(st.mode)}` : "Keycast", id: "keycast", keys: "actions" };
 }

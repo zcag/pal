@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULTS, MAX_RIPPLES, countLabel, initial, reduce, rippleColor, showsCursor, showsKeys, visible, type Payload, type State } from "../keycast";
+import { DEFAULTS, MAX_RIPPLES, OUT_MS, countLabel, exiting, initial, reduce, rippleColor, showsCursor, showsKeys, visible, type Entry, type Payload, type State } from "../keycast";
 
 const on = (over: Partial<State["settings"] & object> = {}): State => reduce(initial(), { kind: "state", active: true, mode: "both", settings: { ...DEFAULTS, ...over } });
-const entry = (id: number, at: number, keys = ["⌘", "S"], count = 1) => ({ id, keys, count, at });
+const entry = (id: number, at: number, keys = ["⌘", "S"], count = 1): Entry => ({ id, keys, count, at, kind: "key", level: 0 });
 
 describe("keycast page: the reducer", () => {
   it("off clears what is drawn and keeps the settings and the display", () => {
@@ -57,6 +57,12 @@ describe("keycast page: the helpers", () => {
     expect(visible(es, 2, 3000).map((e) => e.id)).toEqual([2]);
     expect(visible(es, 2, 2999).map((e) => e.id)).toEqual([1, 2]);
     expect(visible(es, 2, 4500)).toEqual([]);
+  });
+  it("an entry is exiting for the last 240 ms of its hold, and an update takes it back", () => {
+    const e = entry(1, 1000);
+    expect(exiting(e, 2, 2000)).toBe(false);
+    expect(exiting(e, 2, 3000 - OUT_MS)).toBe(true);
+    expect(exiting({ ...e, at: 2900 }, 2, 3000)).toBe(false);
   });
   it("the count reads ×N past one press", () => {
     expect(countLabel(1)).toBeNull();

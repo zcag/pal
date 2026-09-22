@@ -13,7 +13,7 @@ import { Host } from "../harness.ts";
 import manifest from "../../../extensions/keycast/pal.json" with { type: "json" };
 import ext from "../../../extensions/keycast/index.ts";
 
-const settings: Status["settings"] = { mode: "both", position: "bottom-center", scale: 1, hold: 2, max: 5, shortcuts_only: false, ring: true, ring_color: "blue", ripples: true };
+const settings: Status["settings"] = { mode: "both", position: "bottom-center", scale: 1, hold: 2, max: 5, shortcuts_only: false, ring: true, ring_color: "blue", ripples: true, gestures: true };
 const off: Status = { available: true, active: false, mode: "both", input_monitoring: true, settings };
 const on = (mode: Status["mode"]): Status => ({ ...off, active: true, mode });
 
@@ -33,7 +33,9 @@ describe("the popover", () => {
   test("Enter is Stop while on and Start while off; the keys k c b s o", () => {
     const a = render(on("keys")).actions;
     expect(a[0]).toMatchObject({ id: "toggle", title: "Stop keycast", shortcut: "backspace", style: "destructive" });
-    expect(a.map((x) => x.shortcut)).toEqual(["backspace", "k", "c", "b", "s", "o"]);
+    expect(a.map((x) => x.shortcut)).toEqual(["backspace", "k", "c", "b", "s", "g", "o"]);
+    const switches = flat(render(on("keys")).tree).filter((n) => n.type === "switch") as Extract<ViewNode, { type: "switch" }>[];
+    expect(switches.map((x) => [x.action, x.on])).toEqual([["shortcuts", false], ["gestures", true]]);
     expect(a[1].title).toBe("Keys only (on)");
     expect(render(off).actions[0]).toMatchObject({ id: "toggle", title: "Start keycast" });
     expect(render(on("both")).title).toBe("Keycast: keys and cursor");
@@ -87,9 +89,11 @@ describe("over the wire", () => {
 
   test("off: Start leads, the modes follow with the default marked, shortcuts-only last", async () => {
     const r = await rows();
-    expect(r.map((x) => x.id)).toEqual(["toggle", "mode:keys", "mode:cursor", "mode:both", "shortcuts"]);
+    expect(r.map((x) => x.id)).toEqual(["toggle", "mode:keys", "mode:cursor", "mode:both", "shortcuts", "gestures"]);
+    expect(byId(r, "gestures")).toMatchObject({ name: "Scroll and gestures: on" });
+    expect(byId(r, "gestures").actions?.map((a) => a.shortcut)).toEqual(["cmd+shift+g", "cmd+shift+s", "cmd+,"]);
     expect(byId(r, "toggle")).toMatchObject({ name: "Start keycast", subtitle: "Keys and cursor, strip at the bottom centre" });
-    expect(byId(r, "toggle").actions?.map((a) => a.id)).toEqual(["start", "shortcuts", "settings"]);
+    expect(byId(r, "toggle").actions?.map((a) => a.id)).toEqual(["start", "shortcuts", "gestures", "settings"]);
     expect(tag(byId(r, "mode:both"))).toBe("default");
     expect(tag(byId(r, "mode:keys"))).toBeUndefined();
     expect(byId(r, "shortcuts")).toMatchObject({ name: "Shortcuts only: off" });
@@ -103,7 +107,7 @@ describe("over the wire", () => {
     expect(tag(byId(r, "toggle"))).toBe("on");
     expect(tag(byId(r, "mode:both"))).toBe("current");
     expect(byId(r, "mode:both").actions?.[0]).toMatchObject({ id: "stop", title: "Stop" });
-    expect(byId(r, "mode:keys").actions?.map((a) => a.id)).toEqual(["start", "stop", "shortcuts", "settings"]);
+    expect(byId(r, "mode:keys").actions?.map((a) => a.id)).toEqual(["start", "stop", "shortcuts", "gestures", "settings"]);
     expect((await now()).map((x) => x.name)).toEqual(["Stop keycast"]);
   });
 
@@ -119,6 +123,10 @@ describe("over the wire", () => {
     expect(await host.pick("keycast", "keycast", "shortcuts")).toEqual({ keep: true });
     expect(host.written.get("keycast")).toEqual({ shortcuts_only: true });
     expect(await host.pick("keycast", "keycast", "mode:keys", "shortcuts")).toEqual({ keep: true });
+    expect(host.written.get("keycast")).toEqual({});
+    expect(await host.pick("keycast", "keycast", "gestures")).toEqual({ keep: true });
+    expect(host.written.get("keycast")).toEqual({ gestures: false });
+    expect(await host.barAction("keycast", "active", "gestures")).toEqual({ keep: true });
     expect(host.written.get("keycast")).toEqual({});
     expect(await host.pick("keycast", "keycast", "toggle", "settings")).toEqual({ open: "pal://settings/extensions?anchor=extensions:keycast" });
   });
@@ -139,7 +147,7 @@ describe("over the wire", () => {
     expect(item.empty?.menu && "view" in item.empty.menu).toBe(true);
     expect(await host.barAction("keycast", "active", "mode:both")).toEqual({ keep: true });
     item = await host.render("keycast", "active");
-    expect(item).toMatchObject({ icon: "\u{f044a}", title: "keys + cursor", tooltip: "Keycast: keys and cursor" });
+    expect(item).toMatchObject({ icon: "\u{f044a}", title: "keys + cursor", tooltip: "Keycast: keys and cursor · scroll and gestures" });
     expect(item.hidden).toBeUndefined();
     expect(await host.barAction("keycast", "active", "mode:keys")).toEqual({ keep: true });
     expect(shell.st.mode).toBe("keys");

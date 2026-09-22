@@ -23,7 +23,7 @@
 .pal-keycast__strip[data-position="bottom-right"] { bottom: 0; right: 0; align-items: flex-end; transform-origin: bottom right; }
 .pal-keycast__strip[data-position="top-right"] { top: 0; right: 0; align-items: flex-end; flex-direction: column-reverse; transform-origin: top right; }
 .pal-keycast__strip[data-position="top-left"] { top: 0; left: 0; align-items: flex-start; flex-direction: column-reverse; transform-origin: top left; }
-/* One entry: the HUD's capsule around the panel's key caps at twice their size, the repeat count muted after them. In with the HUD's rise, out by a fade that starts 240 ms before the hold ends; a repeat remounts the entry (its key carries the count), so it pops again and its clock restarts. */
+/* One entry: the HUD's capsule around the panel's key caps at twice their size, the repeat count muted after them. In with the HUD's rise; out by a fade the page switches on (`data-exiting`) for the last 240 ms of the hold, so a scroll or a pinch still updating its entry never fades under the fingers; a key repeat remounts the entry (its key carries the count), so it pops again. */
 .pal-keycast__entry {
   display: inline-flex;
   align-items: center;
@@ -36,16 +36,20 @@
   box-shadow: var(--pal-shadow-hud, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 20px -6px rgba(0, 0, 0, 0.6));
   font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif);
   white-space: nowrap;
-  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease), pal-keycast-out var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in) calc(var(--kc-hold, 2000ms) - var(--pal-dur-hud-out, 240ms)) forwards;
+  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
+  transition: opacity var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in);
 }
+.pal-keycast__entry[data-exiting] { opacity: 0; transform: translateY(4px) scale(0.98); }
 .pal-keycast__entry .pal-kbd { --pal-kbd-h: 36px; gap: var(--pal-space-2, 8px); }
 .pal-keycast__entry .pal-kbd kbd { font-size: 22px; font-weight: var(--pal-weight-semibold, 600); color: var(--pal-fg, #ececf0); border-radius: var(--pal-radius-control, 6px); padding: 0 0.4em; }
 /* A word on a cap (`esc`, `click`, `F12`) reads at a smaller size than a glyph. */
 .pal-keycast__entry .pal-kbd kbd[data-wide] { font-size: 15px; letter-spacing: 0.01em; }
 .pal-keycast__count { color: var(--pal-fg-muted, #a3a4ae); font-size: 17px; font-weight: var(--pal-weight-medium, 500); font-variant-numeric: tabular-nums; }
-@keyframes pal-keycast-out {
-  to { opacity: 0; transform: translateY(4px) scale(0.98); }
-}
+/* A scroll's arrow grows with how far it went (`level` 1..3, `pal_core::keycast::scroll_level`); the word cap stays. A gesture's amount (`+35%`, `↻ 12°`) is a word cap in tabular figures so it counts up without jitter. */
+.pal-keycast__entry[data-kind="scroll"] .pal-kbd kbd:last-child { transition: font-size var(--pal-dur-fast, 80ms) var(--pal-ease, ease); }
+.pal-keycast__entry[data-level="2"] .pal-kbd kbd:last-child { font-size: 26px; }
+.pal-keycast__entry[data-level="3"] .pal-kbd kbd:last-child { font-size: 30px; }
+.pal-keycast__entry[data-kind="gesture"] .pal-kbd kbd { font-variant-numeric: tabular-nums; }
 
 /* The cursor layer spans the display; the ring rides the cursor (its transform is the position, 20 ms apart, eased between), shrinking while a button is down. */
 .pal-keycast__cursor { position: absolute; inset: 0; }
@@ -82,7 +86,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pal-keycast__entry { animation-duration: 0.01ms; animation-delay: 0ms, var(--kc-hold, 2000ms); }
+  .pal-keycast__entry { animation-duration: 0.01ms; transition: none; }
   .pal-keycast__ring { transition: none; }
   .pal-keycast__ripple { animation-duration: 200ms; }
 }

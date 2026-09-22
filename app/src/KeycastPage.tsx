@@ -1,13 +1,13 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { DEFAULTS, countLabel, initial, reduce, rippleColor, showsCursor, showsKeys, visible, type Entry, type Payload, type Ripple, type State } from "./keycast";
+import { DEFAULTS, countLabel, exiting, initial, reduce, rippleColor, showsCursor, showsKeys, visible, type Entry, type Payload, type Ripple, type State } from "./keycast";
 // The tokens (the tag palette, the HUD's surface) and `.pal-kbd` come with the ui bundle: the caps are the panel's own key caps, larger.
 import "./ui";
 import "./keycast.css";
 
-/** The page prunes entries whose hold ended this often; the CSS fades them out before that. */
-const PRUNE_MS = 250;
+/** The page's clock while entries are up: each is marked exiting for its last 240 ms and dropped once its hold has ended. Driven here rather than by a CSS delay so an entry a scroll keeps updating never fades mid-gesture. */
+const TICK_MS = 100;
 
 /**
  * The `keycast` window's page (`index.html?keycast`): the overlay the shell
@@ -26,12 +26,15 @@ export default function KeycastPage() {
   }, []);
   // Entries leave the DOM once their hold has ended; a keys payload puts the shell's pruned list back anyway.
   const hold = (st.settings ?? DEFAULTS).hold;
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!st.entries.length) return;
     const t = setInterval(() => {
-      const kept = visible(st.entries, hold, Date.now());
+      const t = Date.now();
+      setNow(t);
+      const kept = visible(st.entries, hold, t);
       if (kept.length !== st.entries.length) dispatch({ kind: "keys", entries: kept });
-    }, PRUNE_MS);
+    }, TICK_MS);
     return () => clearInterval(t);
   }, [st.entries, hold]);
   if (!st.active || !st.settings) return <div className="pal-keycast-page" />;
@@ -42,7 +45,7 @@ export default function KeycastPage() {
       {showsKeys(st.mode) && (
         <div className="pal-keycast__area" style={{ inset: `${top}px ${right}px ${bottom}px ${left}px` }}>
           <div className="pal-keycast__strip" data-position={s.position} role="log" aria-live="off">
-            {st.entries.map((e) => <Caps key={`${e.id}:${e.count}`} entry={e} />)}
+            {st.entries.map((e) => <Caps key={`${e.id}:${e.count}`} entry={e} out={exiting(e, hold, now)} />)}
           </div>
         </div>
       )}
@@ -56,11 +59,11 @@ export default function KeycastPage() {
   );
 }
 
-/** One entry: the caps as the panel's key caps, and the repeat count after them. */
-function Caps({ entry }: { entry: Entry }) {
+/** One entry: the caps as the panel's key caps, and the repeat count after them; `out` for its last moments. A scroll's `level` sizes its arrow. */
+function Caps({ entry, out }: { entry: Entry; out: boolean }) {
   const count = countLabel(entry.count);
   return (
-    <div className="pal-keycast__entry">
+    <div className="pal-keycast__entry" data-kind={entry.kind} data-level={entry.level || undefined} data-exiting={out || undefined}>
       <span className="pal-kbd">{entry.keys.map((k, i) => <kbd key={i} data-wide={k.length > 2 || undefined}>{k}</kbd>)}</span>
       {count && <span className="pal-keycast__count">{count}</span>}
     </div>

@@ -19,7 +19,9 @@ const KEYS = "\u{f030c}";
 const CURSOR = "\u{f01bf}";
 const BOTH = "\u{f0313}";
 const SHIELD = "\u{f0bc4}";
-const TOGGLE = "toggle", SHORTCUTS = "shortcuts", PERMISSION = "permission", SETTINGS = "settings";
+const TOGGLE = "toggle", SHORTCUTS = "shortcuts", GESTURES = "gestures", PERMISSION = "permission", SETTINGS = "settings";
+/** nf-md-gesture_swipe for the gestures row. */
+const SWIPE = "\u{f0d76}";
 
 const status = () => core.call<Status>("keycast.status");
 const start = (mode?: Mode) => core.call<Status>("keycast.start", mode ? { mode } : {});
@@ -31,11 +33,18 @@ export const hudLine = (st: Status): string => (st.active ? `Keycast on: ${modeW
 
 const parseMode = (v: unknown): Mode | undefined => (typeof v === "string" && (MODES as string[]).includes(v.trim()) ? (v.trim() as Mode) : undefined);
 
-/** What every row offers besides its own: the shortcuts-only flip and the settings. */
+/** What every row offers besides its own: the shortcuts-only and gestures flips and the settings. */
 const common = (st: Status): Action[] => [
   { id: SHORTCUTS, title: st.settings.shortcuts_only ? "Show every key" : "Shortcuts only", shortcut: "cmd+shift+s" },
+  { id: GESTURES, title: st.settings.gestures ? "Keys and clicks only" : "Scroll and gestures", shortcut: "cmd+shift+g" },
   { id: SETTINGS, title: "Open settings", shortcut: "cmd+," },
 ];
+
+/** A boolean setting flipped from a row or the popover; the relist or the re-render shows the new state. */
+async function flip(id: "shortcuts_only" | "gestures"): Promise<Effect> {
+  await settings.set(id, !settings.get<Record<string, boolean>>()[id]);
+  return { keep: true };
+}
 
 /** Start / Stop, the row the palette leads with and the root's Now section shows while on. */
 function toggleRow(st: Status): Item {
@@ -74,7 +83,17 @@ const shortcutsRow = (st: Status): Item => ({
   icon: "\u{f097b}",
   keywords: ["keycast", "shortcuts", "typing", "private"],
   accessories: [{ tag: st.settings.shortcuts_only ? "on" : "off", color: st.settings.shortcuts_only ? "green" : "muted" }],
-  actions: [{ id: SHORTCUTS, title: st.settings.shortcuts_only ? "Show every key" : "Show shortcuts only", shortcut: "cmd+shift+s" }, { id: SETTINGS, title: "Open settings", shortcut: "cmd+," }],
+  actions: [{ id: SHORTCUTS, title: st.settings.shortcuts_only ? "Show every key" : "Show shortcuts only", shortcut: "cmd+shift+s" }, ...common(st).slice(1)],
+});
+
+const gesturesRow = (st: Status): Item => ({
+  id: GESTURES,
+  name: `Scroll and gestures: ${st.settings.gestures ? "on" : "off"}`,
+  subtitle: st.settings.gestures ? "Scrolls (sized by how far), pinch, rotate, two-finger swipe and smart zoom on the strip" : "Keys and clicks only on the strip",
+  icon: SWIPE,
+  keywords: ["keycast", "scroll", "gesture", "pinch", "rotate", "swipe", "trackpad"],
+  accessories: [{ tag: st.settings.gestures ? "on" : "off", color: st.settings.gestures ? "green" : "muted" }],
+  actions: [{ id: GESTURES, title: st.settings.gestures ? "Keys and clicks only" : "Show scroll and gestures", shortcut: "cmd+shift+g" }, common(st)[0], common(st)[2]],
 });
 
 /** Without the grant nothing typed reaches pal: the row says so and Enter asks (the prompt, or the pane once it was answered no). */
@@ -85,7 +104,7 @@ async function list(): Promise<Item[]> {
   if (!st.available) return [hint("unavailable", "Keycast is not available here", st.reason ?? "No input tap on this platform")];
   const rows: Item[] = [];
   if (!st.input_monitoring) rows.push(permissionRow());
-  rows.push(toggleRow(st), ...MODES.map((m) => modeRow(m, st)), shortcutsRow(st));
+  rows.push(toggleRow(st), ...MODES.map((m) => modeRow(m, st)), shortcutsRow(st), gesturesRow(st));
   return rows;
 }
 
@@ -96,10 +115,8 @@ async function pick(id: string, action?: string): Promise<Effect> {
     try { await permissions.request("input_monitoring"); } catch (e) { return failed("ask for Input Monitoring", e); }
     return { keep: true };
   }
-  if (id === SHORTCUTS || action === SHORTCUTS) {
-    await settings.set("shortcuts_only", !settings.get<{ shortcuts_only: boolean }>().shortcuts_only);
-    return { keep: true };
-  }
+  if (id === SHORTCUTS || action === SHORTCUTS) return flip("shortcuts_only");
+  if (id === GESTURES || action === GESTURES) return flip("gestures");
   try {
     if (action === "stop") return { hud: hudLine(await stop()) };
     if (id === TOGGLE) return { hud: hudLine(await toggle()) };
@@ -116,16 +133,15 @@ async function renderBar(): Promise<BarItem> {
   const st = await status();
   const menu = { view: render(st) };
   if (!st.active) return { hidden: true, empty: { icon: REC, tooltip: st.available ? "Keycast is off" : st.reason, menu } };
-  return { icon: REC, title: modeShort(st.mode), tooltip: `Keycast: ${modeWord(st.mode)}${st.settings.shortcuts_only ? " · shortcuts only" : ""}`, menu };
+  const notes = [...(st.settings.shortcuts_only ? ["shortcuts only"] : []), ...(st.settings.gestures && st.mode !== "cursor" ? ["scroll and gestures"] : [])];
+  return { icon: REC, title: modeShort(st.mode), tooltip: `Keycast: ${modeWord(st.mode)}${notes.map((n) => ` · ${n}`).join("")}`, menu };
 }
 
 /** A key or a click in the popover: the shell is asked, the item re-rendered (`keep`) with the new tree; Stop hides the popover with the HUD's line. */
 async function popoverAction(action: string): Promise<Effect> {
   if (action === "open") return { push: { extension: EXTENSION, palette: PALETTE } };
-  if (action === SHORTCUTS) {
-    await settings.set("shortcuts_only", !settings.get<{ shortcuts_only: boolean }>().shortcuts_only);
-    return { keep: true };
-  }
+  if (action === SHORTCUTS) return flip("shortcuts_only");
+  if (action === GESTURES) return flip("gestures");
   try {
     if (action === TOGGLE) {
       const st = await toggle();
