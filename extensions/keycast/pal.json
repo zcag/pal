@@ -110,6 +110,13 @@
       "label": "Click ripples",
       "text": "A ripple spreads from the cursor on every click, left and right told apart",
       "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "gestures",
+      "label": "Scroll and gestures",
+      "text": "Scrolling, pinch, rotate, two-finger swipe and smart zoom on the key strip (keys and both modes)",
+      "default": true
     }
   ],
   "states": {
@@ -150,6 +157,7 @@
         { "keys": "enter", "title": "Start or stop; on a mode row, start in (or switch to) that mode" },
         { "keys": "cmd+enter", "title": "Stop, from a mode row" },
         { "keys": "cmd+shift+s", "title": "Shortcuts only on or off" },
+        { "keys": "cmd+shift+g", "title": "Scroll and gestures on or off" },
         { "keys": "cmd+,", "title": "Open the settings" }
       ]
     }
@@ -166,6 +174,8 @@
         "both": { "title": "Keys and cursor", "item": { "icon": "󰑊", "title": "keys + cursor", "color": "red", "tooltip": "Keycast: keys and cursor" } },
         "keys": { "title": "Keys only", "item": { "icon": "󰑊", "title": "keys", "color": "red", "tooltip": "Keycast: keys" } },
         "cursor": { "title": "Cursor only", "item": { "icon": "󰑊", "title": "cursor", "color": "red", "tooltip": "Keycast: cursor" } },
+        "gestures": { "title": "Keys and cursor, scroll and gestures on the strip", "item": { "icon": "󰑊", "title": "keys + cursor", "color": "red", "tooltip": "Keycast: keys and cursor · scroll and gestures" } },
+        "quiet": { "title": "Keys only, shortcuts only, gestures off", "item": { "icon": "󰑊", "title": "keys", "color": "red", "tooltip": "Keycast: keys · shortcuts only" } },
         "idle": { "title": "Off", "item": { "hidden": true, "empty": { "icon": "󰑊", "tooltip": "Keycast is off" } } }
       },
       "keys": [
@@ -173,6 +183,7 @@
         { "keys": "c", "title": "Cursor only" },
         { "keys": "b", "title": "Keys and cursor" },
         { "keys": "s", "title": "Shortcuts only on or off" },
+        { "keys": "g", "title": "Scroll and gestures on or off" },
         { "keys": "backspace", "title": "Stop" },
         { "keys": "o", "title": "Open the Keycast palette" }
       ]
@@ -184,6 +195,7 @@
     "features": [
       "The recent keys as caps at a corner of the display under the cursor: ⌃ ⌥ ⇧ ⌘ as glyphs, named keys as their symbols (↵ ⇥ ⌫ → F5), a repeat folded into one cap with ×3, each fading after the hold",
       "A ring around the cursor and a ripple on every click, left and right told apart, on a full-screen pass-through overlay that follows the cursor across displays",
+      "Scrolling and trackpad gestures on the strip: `scroll ↓` sized by how far, kept up through the momentum, `pinch out +35%` and `rotate ↻ 12°` as one entry that counts up until the fingers lift, `swipe ←`, `smart zoom`",
       "Keys, cursor, or both; shortcuts only (cmd, ctrl, alt, function and navigation keys) when what is typed should stay off the screen; nothing is ever shown while a secure text field has the keyboard",
       "Start and Stop in the palette, `pal://keycast/toggle?mode=keys|cursor|both` for a keybind, a red dot on the bar while it runs whose popover switches the mode and stops it",
       "Corner, scale, hold, length, ring colour and ripples as settings"

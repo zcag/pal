@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn keys_are_classified_for_the_matcher() {
         use pal_core::keycast::Mods;
-        let ev = |code: u16, chars: &str, mods: Mods| Event { kind: keytap::Kind::KeyDown, code, mods, chars: chars.into(), base: String::new(), front: None, secure: false };
+        let ev = |code: u16, chars: &str, mods: Mods| Event { kind: keytap::Kind::KeyDown, code, mods, chars: chars.into(), base: String::new(), front: None, secure: false, scroll: None, gesture: None };
         let none = Mods::default();
         assert_eq!(classify(&ev(0, "a", none)), Key::Text("a".into()));
         assert_eq!(classify(&ev(0, "A", Mods { shift: true, ..none })), Key::Text("A".into()));

@@ -24,7 +24,7 @@
 
 use std::sync::Mutex;
 
-use pal_core::keycast::{Button, Mods};
+use pal_core::keycast::{Button, Gesture, GestureEvent, Mods, Phase, Scroll};
 use tauri::AppHandle;
 
 use crate::lock;
@@ -38,15 +38,19 @@ pub struct Wants {
     pub clicks: bool,
     /// The pointer moving (with or without a button held): at the input rate, so only what draws the pointer asks.
     pub moves: bool,
+    /// Scroll wheel and trackpad scrolling, with the phases and the momentum.
+    pub scrolls: bool,
+    /// Trackpad gestures: pinch, rotate, two-finger swipe, smart zoom.
+    pub gestures: bool,
 }
 
 impl Wants {
     fn union(self, o: Wants) -> Wants {
-        Wants { keys: self.keys || o.keys, clicks: self.clicks || o.clicks, moves: self.moves || o.moves }
+        Wants { keys: self.keys || o.keys, clicks: self.clicks || o.clicks, moves: self.moves || o.moves, scrolls: self.scrolls || o.scrolls, gestures: self.gestures || o.gestures }
     }
 
     fn any(self) -> bool {
-        self.keys || self.clicks || self.moves
+        self.keys || self.clicks || self.moves || self.scrolls || self.gestures
     }
 
     fn takes(self, kind: &Kind) -> bool {
@@ -54,6 +58,8 @@ impl Wants {
             Kind::KeyDown => self.keys,
             Kind::MouseDown(_) | Kind::MouseUp(_) => self.clicks,
             Kind::MouseMoved => self.moves,
+            Kind::Scroll => self.scrolls,
+            Kind::Gesture(_) => self.gestures,
         }
     }
 }
@@ -64,6 +70,8 @@ pub enum Kind {
     MouseDown(Button),
     MouseUp(Button),
     MouseMoved,
+    Scroll,
+    Gesture(Gesture),
 }
 
 /// One event off the monitor.
@@ -81,6 +89,10 @@ pub struct Event {
     pub front: Option<String>,
     /// A secure text field has the keyboard: nothing typed may be read or shown.
     pub secure: bool,
+    /// A scroll's deltas and phases (`Kind::Scroll` only).
+    pub scroll: Option<Scroll>,
+    /// A gesture's amount, direction and phase (`Kind::Gesture` only).
+    pub gesture: Option<GestureEvent>,
 }
 
 pub type Handler = fn(&AppHandle, &Event);
@@ -159,10 +171,10 @@ mod monitor {
 
     use objc2::rc::Retained;
     use objc2::runtime::AnyObject;
-    use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags, NSEventType, NSWorkspace};
+    use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags, NSEventPhase, NSEventType, NSWorkspace};
     use tauri::AppHandle;
 
-    use super::{Button, Event, Kind, Mods, Wants};
+    use super::{Button, Event, Gesture, GestureEvent, Kind, Mods, Phase, Scroll, Wants};
 
     thread_local! {
         static MONITOR: RefCell<Option<(Wants, Retained<AnyObject>)>> = const { RefCell::new(None) };
@@ -187,7 +199,32 @@ mod monitor {
         if w.moves {
             m |= NSEventMask::MouseMoved | NSEventMask::LeftMouseDragged | NSEventMask::RightMouseDragged | NSEventMask::OtherMouseDragged;
         }
+        if w.scrolls {
+            m |= NSEventMask::ScrollWheel;
+        }
+        if w.gestures {
+            // Not the bare `Gesture` type (29): it rides beside every one of these with nothing of its own to read.
+            m |= NSEventMask::Magnify | NSEventMask::Rotate | NSEventMask::Swipe | NSEventMask::SmartMagnify;
+        }
         m
+    }
+
+    fn phase(p: NSEventPhase) -> Phase {
+        if p.contains(NSEventPhase::Began) {
+            Phase::Began
+        } else if p.contains(NSEventPhase::Changed) {
+            Phase::Changed
+        } else if p.contains(NSEventPhase::Ended) {
+            Phase::Ended
+        } else if p.contains(NSEventPhase::Cancelled) {
+            Phase::Cancelled
+        } else if p.contains(NSEventPhase::MayBegin) {
+            Phase::MayBegin
+        } else if p.contains(NSEventPhase::Stationary) {
+            Phase::Stationary
+        } else {
+            Phase::None
+        }
     }
 
     fn mods(flags: NSEventModifierFlags) -> Mods {
@@ -211,6 +248,11 @@ mod monitor {
             NSEventType::OtherMouseDown => Kind::MouseDown(Button::Other),
             NSEventType::OtherMouseUp => Kind::MouseUp(Button::Other),
             NSEventType::MouseMoved | NSEventType::LeftMouseDragged | NSEventType::RightMouseDragged | NSEventType::OtherMouseDragged => Kind::MouseMoved,
+            NSEventType::ScrollWheel => Kind::Scroll,
+            NSEventType::Magnify => Kind::Gesture(Gesture::Magnify),
+            NSEventType::Rotate => Kind::Gesture(Gesture::Rotate),
+            NSEventType::Swipe => Kind::Gesture(Gesture::Swipe),
+            NSEventType::SmartMagnify => Kind::Gesture(Gesture::SmartMagnify),
             _ => return None,
         })
     }
@@ -232,7 +274,23 @@ mod monitor {
         } else {
             (0, String::new(), String::new(), None)
         };
-        Some(Event { kind, code, mods: mods(flags), chars, base, front, secure })
+        // The scroll and gesture fields are read only off their own events: AppKit raises on the others.
+        let scroll = (kind == Kind::Scroll).then(|| Scroll { dx: e.scrollingDeltaX(), dy: e.scrollingDeltaY(), phase: phase(e.phase()), momentum: phase(e.momentumPhase()) });
+        let gesture = match kind {
+            Kind::Gesture(g) => Some(GestureEvent {
+                kind: g,
+                amount: match g {
+                    Gesture::Magnify => e.magnification(),
+                    Gesture::Rotate => e.rotation() as f64,
+                    _ => 0.0,
+                },
+                dx: if g == Gesture::Swipe { e.deltaX() } else { 0.0 },
+                dy: if g == Gesture::Swipe { e.deltaY() } else { 0.0 },
+                phase: if g == Gesture::SmartMagnify { Phase::None } else { phase(e.phase()) },
+            }),
+            _ => None,
+        };
+        Some(Event { kind, code, mods: mods(flags), chars, base, front, secure, scroll, gesture })
     }
 
     /// The monitor for `wants` (main thread): none for nothing wanted,
@@ -281,17 +339,20 @@ mod tests {
         let mut r: Registry<&'static str> = Registry::default();
         assert_eq!(r.wants(), Wants::default(), "nothing wanted: no monitor");
         r.add("expansion", Wants { keys: true, ..Default::default() }, "expansion");
-        assert_eq!(r.wants(), Wants { keys: true, clicks: false, moves: false });
-        r.add("keycast", Wants { keys: true, clicks: true, moves: true }, "keycast");
-        assert_eq!(r.wants(), Wants { keys: true, clicks: true, moves: true }, "one monitor for both");
+        assert_eq!(r.wants(), Wants { keys: true, ..Default::default() });
+        r.add("keycast", Wants { keys: true, clicks: true, moves: true, scrolls: true, gestures: true }, "keycast");
+        assert_eq!(r.wants(), Wants { keys: true, clicks: true, moves: true, scrolls: true, gestures: true }, "one monitor for both");
         assert_eq!(r.targets(&Kind::KeyDown), ["expansion", "keycast"], "a key reaches both, in order");
         assert_eq!(r.targets(&Kind::MouseDown(Button::Left)), ["keycast"]);
         assert_eq!(r.targets(&Kind::MouseMoved), ["keycast"]);
+        assert_eq!(r.targets(&Kind::Scroll), ["keycast"]);
+        assert_eq!(r.targets(&Kind::Gesture(Gesture::Magnify)), ["keycast"]);
         // A re-subscription replaces (keycast narrows to keys only): the union shrinks with it.
         r.add("keycast", Wants { keys: true, ..Default::default() }, "keycast2");
         assert_eq!(r.targets(&Kind::KeyDown), ["expansion", "keycast2"], "replaced in place, not appended");
-        assert_eq!(r.wants(), Wants { keys: true, clicks: false, moves: false });
+        assert_eq!(r.wants(), Wants { keys: true, ..Default::default() });
         assert!(r.targets(&Kind::MouseUp(Button::Right)).is_empty());
+        assert!(r.targets(&Kind::Scroll).is_empty());
         r.remove("expansion");
         assert_eq!(r.targets(&Kind::KeyDown), ["keycast2"], "the other keeps the monitor");
         r.remove("keycast");

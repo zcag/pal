@@ -99,11 +99,13 @@ impl Mode {
         }
     }
 
-    /// What the monitor has to deliver for the mode: keys and the clicks
-    /// that carry modifiers for the strip, clicks for the ripples, and the
-    /// moves only while there is a ring to ride them.
-    fn wants(self, ring: bool) -> Wants {
-        Wants { keys: self.keys(), clicks: true, moves: self.cursor() && ring }
+    /// What the monitor has to deliver for the mode and the settings: keys
+    /// and the clicks that carry modifiers for the strip, clicks for the
+    /// ripples, the moves only while there is a ring to ride them, and
+    /// scrolls and gestures only where the strip is drawn and wanted.
+    fn wants(self, s: &Settings) -> Wants {
+        let strip = self.keys() && s.gestures;
+        Wants { keys: self.keys(), clicks: true, moves: self.cursor() && s.ring, scrolls: strip, gestures: strip }
     }
 }
 
@@ -119,6 +121,7 @@ pub struct Settings {
     pub ring: bool,
     pub ring_color: String,
     pub ripples: bool,
+    pub gestures: bool,
 }
 
 impl Settings {
@@ -226,15 +229,14 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     let Some(st) = app.try_state::<Keycast>() else { return };
     let mut s = lock(&st.0);
     s.feed.opts = after.options();
-    let ring_moved = before.ring != after.ring;
+    let wants = (s.mode.wants(&before), s.mode.wants(&after));
     s.settings = after;
     if s.active {
         let p = Payload::State { active: true, mode: s.mode, settings: &s.settings };
         events::emit_to(app, WINDOW, events::KEYCAST, p);
-        if ring_moved {
-            let wants = s.mode.wants(s.settings.ring);
+        if wants.0 != wants.1 {
             drop(s);
-            keytap::subscribe(app, "keycast", wants, on_event);
+            keytap::subscribe(app, "keycast", wants.1, on_event);
         }
     }
 }
@@ -280,7 +282,7 @@ pub fn start(app: &AppHandle, mode: Option<Mode>) -> Result<Status, String> {
         s.mode = mode;
         s.feed.clear();
         s.display = None;
-        (was, mode, mode.wants(s.settings.ring))
+        (was, mode, mode.wants(&s.settings))
     };
     eprintln!("keycast\t{}\t{}", if was { "mode" } else { "start" }, mode.name());
     if !permissions::input_monitoring() {
@@ -456,6 +458,24 @@ fn on_event(app: &AppHandle, ev: &Event) {
                 events::emit_to(app, WINDOW, events::KEYCAST, Payload::Cursor { x, y });
             }
         }
+        // A scroll or a gesture on the strip: the same gates as a key (the strip drawn, no secure field), the feed decides whether anything moved.
+        Kind::Scroll | Kind::Gesture(_) => {
+            if ev.secure || !mode.keys() || !s.settings.gestures {
+                return;
+            }
+            let now = now_ms();
+            let changed = match (ev.scroll, ev.gesture) {
+                (Some(sc), _) => s.feed.scroll(&sc, now),
+                (_, Some(g)) => s.feed.gesture(&g, now),
+                _ => false,
+            };
+            if !changed {
+                return;
+            }
+            let entries = s.feed.entries().iter().cloned().collect();
+            drop(s);
+            events::emit_to(app, WINDOW, events::KEYCAST, Payload::Keys { entries });
+        }
     }
 }
 
@@ -471,7 +491,7 @@ mod tests {
         assert_eq!(s.scale, 1.0);
         assert_eq!(s.options(), Options { hold_ms: 2000, max: 5 });
         assert!(!s.shortcuts_only);
-        assert!(s.ring && s.ripples);
+        assert!(s.ring && s.ripples && s.gestures);
         assert_eq!(s.ring_color, "blue");
     }
 
@@ -492,9 +512,11 @@ mod tests {
         assert_eq!(Mode::parse("keys"), Some(Mode::Keys));
         assert_eq!(Mode::parse(" both "), Some(Mode::Both));
         assert_eq!(Mode::parse("ring"), None);
-        assert_eq!(Mode::Keys.wants(true), Wants { keys: true, clicks: true, moves: false }, "clicks with modifiers go on the strip");
-        assert_eq!(Mode::Cursor.wants(true), Wants { keys: false, clicks: true, moves: true });
-        assert_eq!(Mode::Both.wants(true), Wants { keys: true, clicks: true, moves: true });
-        assert_eq!(Mode::Both.wants(false), Wants { keys: true, clicks: true, moves: false }, "no ring, no moves");
+        let s = Settings::from(&Config::default());
+        assert_eq!(Mode::Keys.wants(&s), Wants { keys: true, clicks: true, moves: false, scrolls: true, gestures: true }, "clicks with modifiers, scrolls and gestures go on the strip");
+        assert_eq!(Mode::Cursor.wants(&s), Wants { keys: false, clicks: true, moves: true, scrolls: false, gestures: false }, "no strip, nothing to name a scroll on");
+        assert_eq!(Mode::Both.wants(&s), Wants { keys: true, clicks: true, moves: true, scrolls: true, gestures: true });
+        let quiet = Settings { ring: false, gestures: false, ..s };
+        assert_eq!(Mode::Both.wants(&quiet), Wants { keys: true, clicks: true, moves: false, scrolls: false, gestures: false }, "no ring, no moves; gestures off, none watched");
     }
 }
