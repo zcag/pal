@@ -4267,3 +4267,72 @@ Settings, `[extensions.stats]`:
 | `network_label` | `rate`, `down`, `spark` | `rate` | The Network strip's label. |
 | `load_label` | `one`, `three` | `one` | The 1 minute average, or all three. |
 | `disk_hide` | list | `[]` | Mount points or volume names left out. |
+
+## odak (`odak`, `odak-add`, `odak-search`, `odak-done`, `odak/today`)
+
+One extension, four palettes and a bar item over an [odak](https://github.com/zcag/odak)
+server, signed in with its API key. Everything is the server's own REST
+API (`GET /todos` once, cached 60 s and shared by the palettes and the
+bar; `/sections`; the writes). `extensions/odak/README.md` has the
+endpoint list and the two model quirks worked around (an id is a hash of
+the line, so every edit gives a new one, computed here as odak does; a
+day cannot be cleared).
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Todos | `odak` | live, 60 s | completes the todo (Tab marks several) |
+| Add Todo | `odak-add` | input | adds the line as read |
+| Search Todos | `odak-search` | input | completes an open todo, reopens a completed one |
+| Completed | `odak-done` | live, 60 s | reopens |
+
+**Signing in.** `url` is the server (`http://host:8761`, the same origin
+as the web UI), `api_key` its `ODAK_API_KEY` (kept in the keychain).
+Without either, every palette is one hint row naming which and opening it
+in Settings; a refused key says so; a server that does not answer names
+the address and `⌘R`, and rows already fetched stay through an outage.
+
+**Todos.** Two commands (New todo, the text typed in the bar as an
+argument, `⌘Enter` into Add Todo; Open odak), then Overdue and Due today,
+then the file's sections in order, a subtask under its parent, Not yet at
+the end for a `[w:date]` still ahead. A row carries its tags and its day
+as chips (`overdue 3 d` red, `today` amber, `tomorrow` blue, `Fri` within
+the week, the date beyond), a red mark when urgent, the subtask count; the
+pane the subtasks as a task list and the metadata. Complete (`Enter`, a
+toast and an Undo row for a minute), Edit… (`⌘E`), Snooze to tomorrow
+(`⌘T`), Snooze… (`⌘S`: tomorrow, in 3 days, next Monday, next week, in a
+month, or a day typed), Move to section… (`⌘M`), Mark urgent (`⌘U`), Add
+subtask… (`⌘N`), Open link (`⌘L`), Open odak (`⌘O`), Copy text (`⌘C`),
+Copy link (`⌘⇧C`), Delete (`⌘D`, asks). The root's Now section shows what
+is overdue or due today.
+
+**Add Todo.** One line, read back as you type: `#tag`, a bare `!` for
+urgent, `/section` (a prefix of one of the file's), `d:day` / `w:day`, and
+a day in words at the end (`tomorrow`, `fri`, `next mon`, `in 3 days`,
+`20 sep`, `2026-10-01`, `by fri`; a time after it stays in the text).
+Enter adds and hides with the HUD line, `⌘Enter` keeps the line, `⌘⇧C`
+copies it. Before you type: what was just added (Undo deletes it), the
+selection and the clipboard as todos. A root query with no hit offers
+"Add “…” to odak". **Search Todos**: every word against text, tags and
+section, open by section then completed. **Completed**: what is checked
+off by section, with when for the ones completed from pal; Enter reopens.
+
+**The bar item** `odak/today`: the count of open todos due today or in
+`today_sections` plus the overdue, red while any is overdue (rule
+`overdue`), hidden at zero (rule `quiet`; `show = "always"` keeps the
+glyph), every 300 s and on show, wake, network; facts `odak/overdue`,
+`odak/today`, `odak/open`. The popover: the overdue first, then today's,
+a cursor the arrows move; `Enter`/`x` completes, `u` the flag, `t`
+tomorrow, `n` a field whose Enter adds, `o` odak, `p` the palette, `r`
+fetches again. `pal://odak/add?text=...` adds from outside (`section`,
+`due`, `tags`, `urgent` on top).
+
+Settings, `[extensions.odak]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `url` | text | (none) | The server's origin. |
+| `api_key` | secret | (none) | `ODAK_API_KEY`. |
+| `default_section` | text | `Inbox` | Where a todo lands unless the line names a section (one of the file's, else Inbox). |
+| `today_sections` | list | `["Focus", "Today"]` | What the bar item counts as today's, on top of what is due today. |
+
+For the tests, `PAL_ODAK_URL` and `PAL_ODAK_KEY` replace the two settings.
