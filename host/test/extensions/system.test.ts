@@ -152,7 +152,8 @@ describe("system", () => {
     // The stand-in is detached; it lands within a moment.
     const log = () => Bun.file(qlLog).text().then((t) => t.trim().split("\n")).catch(() => [] as string[]);
     for (let i = 0; i < 40 && (await log()).length < 4; i++) await Bun.sleep(50);
-    expect(await log()).toEqual([...finder, ...finder]);
+    // Two detached runs append at once; the order between them is theirs.
+    expect((await log()).sort()).toEqual([...finder, ...finder].sort());
     expect(ran).not.toContain("quick-look-selection");
     finder = [];
     front = "com.google.Chrome";

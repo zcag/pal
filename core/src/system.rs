@@ -26,13 +26,11 @@
 //! macOS versions, so the script walks the shapes known (Sonoma through
 //! Tahoe) and reports what it found.
 //!
-//! **Keep awake** is a toggle: it starts `caffeinate -d -i` (Linux:
-//! `systemd-inhibit ... sleep infinity`) detached and remembers the pid in
-//! `data_dir/keep-awake.pid`; running it again stops that process. The
-//! [`SPECS`] entry is always "Keep Awake"; [`commands`] swaps in "Allow
-//! Sleep" while that pid is alive, so the title says which way it will go.
+//! **Keep awake** is the System extension's (`extensions/system/awake.ts`:
+//! `caffeinate` with its own `-t`, a bar item, `pal://system/awake`). The
+//! [`SPECS`] entry stays so the extension's row takes its place in the
+//! catalogue; [`run`] refuses it and points there.
 
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use serde::{Deserialize, Serialize};
@@ -107,18 +105,13 @@ const SPECS: &[Spec] = &[
 
 /// The catalogue, with what this machine can do marked `available`.
 pub fn commands() -> Vec<SystemCommand> {
-    let awake = keep_awake_pid().is_some();
     SPECS
         .iter()
         .map(|s| {
-            let (title, subtitle) = match (s.id, awake) {
-                ("keep-awake", true) => ("Allow Sleep".to_string(), "Keeping awake now; let the machine sleep again".to_string()),
-                _ => (s.title.to_string(), s.subtitle.to_string()),
-            };
             SystemCommand {
                 id: s.id.to_string(),
-                title,
-                subtitle,
+                title: s.title.to_string(),
+                subtitle: s.subtitle.to_string(),
                 icon: s.icon.to_string(),
                 keywords: s.keywords.iter().map(|k| k.to_string()).collect(),
                 destructive: s.destructive,
@@ -136,7 +129,7 @@ pub fn run(id: &str) -> Result<()> {
         return Err(Error::Unavailable(format!("{id} is not available on this machine")));
     }
     match id {
-        "keep-awake" => toggle_keep_awake(),
+        "keep-awake" => Err(Error::Unavailable("keep awake is the System extension's: pal://system/awake".into())),
         _ => platform::run(id),
     }
 }
@@ -156,44 +149,6 @@ fn sh(bin: &str, args: &[&str]) -> Result<String> {
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-fn keep_awake_file() -> PathBuf {
-    crate::fs::data_dir().join("keep-awake.pid")
-}
-
-/// The keep-awake process pal started, if it is still the one running.
-fn keep_awake_pid() -> Option<i32> {
-    let pid: i32 = std::fs::read_to_string(keep_awake_file()).ok()?.trim().parse().ok()?;
-    let cmd = sh("ps", &["-o", "command=", "-p", &pid.to_string()]).ok()?;
-    (cmd.contains("caffeinate") || cmd.contains("systemd-inhibit")).then_some(pid)
-}
-
-fn toggle_keep_awake() -> Result<()> {
-    if let Some(pid) = keep_awake_pid() {
-        sh("kill", &[&pid.to_string()])?;
-        let _ = std::fs::remove_file(keep_awake_file());
-        return Ok(());
-    }
-    let (bin, args): (&str, &[&str]) = if cfg!(target_os = "macos") {
-        ("caffeinate", &["-d", "-i"])
-    } else {
-        ("systemd-inhibit", &["--what=idle:sleep", "--who=pal", "--why=Keep awake", "sleep", "infinity"])
-    };
-    let mut child = Command::new(bin).args(args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::piped()).spawn()?;
-    // One that dies at once (polkit refused the inhibit, say) is a failure
-    // with its reason, not a pid file pointing at nothing.
-    std::thread::sleep(std::time::Duration::from_millis(150));
-    if child.try_wait()?.is_some() {
-        let mut err = String::new();
-        if let Some(mut e) = child.stderr.take() {
-            let _ = std::io::Read::read_to_string(&mut e, &mut err);
-        }
-        return Err(Error::Failed(format!("{bin}: {}", err.trim())));
-    }
-    drop(child.stderr.take());
-    crate::fs::write_atomic(&keep_awake_file(), child.id().to_string())?;
-    Ok(())
-}
-
 #[cfg(target_os = "macos")]
 mod platform {
     use super::*;
@@ -207,11 +162,16 @@ mod platform {
         sh("osascript", &args).map(drop)
     }
 
-    /// Whether the `brightness` on PATH is the CLI that sets the display
-    /// (`brightness -l` lists displays), not something else by that name.
-    fn brightness_cli() -> bool {
-        static OK: OnceLock<bool> = OnceLock::new();
-        *OK.get_or_init(|| has("brightness") && sh("brightness", &["-l"]).is_ok_and(|o| o.contains("display")))
+    /// The `brightness` CLI that sets the display (`brightness -l` lists
+    /// displays): the Homebrew one first, since a script of the same name
+    /// earlier on PATH shadows it, then whatever PATH has.
+    fn brightness_cli() -> Option<&'static str> {
+        static CLI: OnceLock<Option<&'static str>> = OnceLock::new();
+        *CLI.get_or_init(|| {
+            ["/opt/homebrew/bin/brightness", "/usr/local/bin/brightness", "brightness"]
+                .into_iter()
+                .find(|b| (b.starts_with('/') || has(b)) && sh(b, &["-l"]).is_ok_and(|o| o.contains("display")))
+        })
     }
 
     /// Whether the user made the Shortcut that toggles Focus.
@@ -222,7 +182,7 @@ mod platform {
 
     pub fn available(id: &str) -> bool {
         match id {
-            "brightness-up" | "brightness-down" => brightness_cli(),
+            "brightness-up" | "brightness-down" => brightness_cli().is_some(),
             "dnd" => dnd_shortcut(),
             _ => true,
         }
@@ -305,10 +265,11 @@ mod platform {
     }
 
     fn brightness(delta: f32) -> Result<()> {
-        let out = sh("brightness", &["-l"])?;
+        let cli = brightness_cli().ok_or_else(|| Error::Unavailable("no brightness CLI".into()))?;
+        let out = sh(cli, &["-l"])?;
         // "display 0: ... brightness 0.500000"
         let cur: f32 = out.lines().filter_map(|l| l.trim().strip_prefix("brightness ")).next().and_then(|v| v.trim().parse().ok()).unwrap_or(0.5);
-        sh("brightness", &[&format!("{:.2}", (cur + delta).clamp(0.0, 1.0))]).map(drop)
+        sh(cli, &[&format!("{:.2}", (cur + delta).clamp(0.0, 1.0))]).map(drop)
     }
 
     pub fn run(id: &str) -> Result<()> {
