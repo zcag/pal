@@ -1373,7 +1373,11 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   Gmail's accounts are built on it.
 - Pictures: `pngSize(head)`: `{ width, height }` off a PNG's first 24 bytes;
   `imageData(url)`: a picture on the web as a data url for an `image` node,
-  fetched once and kept (`forgetImages()` for tests).
+  fetched once and kept (`forgetImages()` for tests); `copyImage(path,
+  fmt?)`: a PNG or JPEG file onto the clipboard as an image (AppleScript's
+  `«class PNGf»` / `«class JPEG»` on macOS, `wl-copy` or `xclip` on
+  Linux), true when it landed, false for any other format so the caller
+  falls back to `copy_files`. Images and Immich copy pictures with it.
 - `terminal`: a terminal window: `terminal.open(cmd, want?, cwd?)` /
   `terminal.argv(...)` run a command in a fresh window (the app by name or
   found in /Applications, `$TERMINAL` or the first installed on Linux),

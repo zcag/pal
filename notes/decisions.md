@@ -1402,3 +1402,51 @@ Two text tools, both extensions only: `extensions/diff/` ("diffy") and `extensio
 - **Turkish** (red tile, md-format_letter_case): one input palette, five rows in a fixed order named by the result, the count of characters changed as an accessory and `unchanged` as a grey tag. The deasciifier is **`turkish-deasciifier` on npm (1.0.0, ISC)**: the same file as `f/deasciifier` (Mustafa Emre Acer's 2010 port of Yüret's table, byte for byte), without that package's postinstall that opens a macOS workflow; checked against a dozen sentences and the classic `sik/kus/acik/yas` before choosing, all right, and it does letter English (`this is` → `thiş iş`), which the README says. A 180 KB CJS module: imported on first use, one instance, typed by a local `deasciifier.d.ts`. The cases are `toLocale{Upper,Lower}Case("tr")`; title case lowers first and capitalises after a non-letter that is not an apostrophe (`İstanbul'da`). Enter pastes (a paste over the selection the rows came from replaces it, which is the "replace the selection" the brief asked for without a new effect), `cmd+c` copies; the links default to paste when the text came from a selection and to copy otherwise. **No `{turkish}` placeholder**: `placeholders.ts` is one regex over seven fixed names with no registry for an extension's source; a hook would be a design of its own, not this lane's.
 - **SDK, two small shared pieces** instead of a fourth and fifth copy: `textAtHand()` (the selection, else the clipboard's text, 2 s reuse) in api.ts, now what Translate's `source()` is built on too (tela and obsidian carry the same ten lines in a `prefill()` with a length cap; left for their own pass), and `appName(bundleId)` in text.ts, moved out of the clipboard extension so the diff header can say "from Chrome".
 - **Left**: screenshots and a gallery fixture; a `hunk`-level "next change" key (`tab` walks folds, not changes); the folder-of-files case; the `diff-pick` list is capped at the newest 100 text entries.
+
+## Decided: immich (2026-09-22)
+
+The owner's photo library (Immich v3.1 on archer, 60k+ assets) as a
+bundled extension, `extensions/immich/`, indigo tile, md-image_multiple.
+Four palettes: `immich` (an input grid over the CLIP search, the newest
+uploads before typing, the pane open by default), `albums`, `people`
+(indexed, lazy, a ttl each) and `memories` (live); three links
+(`search`, `album`, `person`).
+
+- **The wire carries the picture.** Immich's thumbnails need the key
+  header, so the webview cannot load them by url; the `thumbnail`
+  rendition (WebP, 10-25 KB) is fetched into the cache directory once
+  and rides as a data url, as gifs does (24 tiles are ~500 KB, checked
+  against his server). The pane's picture is the `preview` JPEG written
+  to the cache and served through the core's `icon://localhost/file`
+  route, so it never crosses the wire. Album covers are capped at 60 and
+  faces at 150 per listing (his 759 albums at 150 covers were 3.3 MB on
+  every load); the rest keep the glyph. The cache is bounded by file
+  count, pruned oldest first every hundred writes.
+- **One grid, scoped by args.** Albums, people and memories push the
+  same `immich` palette with `{ album }`, `{ person }` or `{ memory }`
+  and a crumb; a search inside an album runs on the server with
+  `albumIds`, a memory's photos are filtered here (they came with the
+  memory). The More tile carries a hash of its listing key so paging
+  survives another listing in between.
+- **The query grammar** (`parseQuery`, pure): words are CLIP, a
+  file-looking word is a name search, `since:` / `before:` / `in:` (a
+  year or a city) / `type:` / `is:` lift out. The dropdown's filters
+  are also words, so a link's `filter` rides in the query (a push cannot
+  set the dropdown). Dates are the asset's `localDateTime` read with UTC
+  getters: the wall clock where the photo was taken, as Immich shows it.
+- **Permissions are the key's.** His read-only key answers 403 on the
+  statistics, `/users/me` and every write; the extension reads what it
+  may (no library row, every album offered as owned), and a refused
+  write is a toast naming the permission from Immich's message. Nothing
+  was written to his library: the live run listed, searched, drilled in,
+  fetched previews and downloaded one preview into a scratch folder.
+- **`copyImage` moved into `@zcag/pal`** (`sdk/src/image.ts`, from
+  images' exec.ts, which now wraps it with its own format sniff);
+  `PAL_COPY_IMAGE` names a stand-in for the tests. `bytes` learned TB.
+- **Verified**: 21 tests in `host/test/extensions/immich.test.ts` against
+  `immich-mock.ts` (the v3 shapes as probed); the live read-only run
+  through the harness against his server (recent 331 ms, a CLIP search
+  1.2 s, albums 2.4 s on the first load with covers, people 3.2 s with
+  faces, memories 61 ms). Not done: store screenshots (no fixture.ts
+  yet; the shots need the Vite dev server), a bar item (none asked; the
+  library has nothing glanceable).

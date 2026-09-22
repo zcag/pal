@@ -87,6 +87,10 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Freedesktop icon names](#icons-icons-icons-freedesktop-icons-iconify) | `icons-freedesktop` | indexed, grid, catalog | Copy name |
 | [Iconify Icons](#icons-icons-icons-freedesktop-icons-iconify) | `icons-iconify` | input, grid | Copy SVG |
 | [Images](#images-images) | `images` | input, normal | Compress |
+| [Immich](#immich-immich-immich-albums-immich-people-immich-memories) | `immich` | input, grid | Open the photo in Immich |
+| [Immich Albums](#immich-immich-immich-albums-immich-people-immich-memories) | `immich-albums` | indexed, normal | Open the album as a grid |
+| [Immich People](#immich-immich-immich-albums-immich-people-immich-memories) | `immich-people` | indexed, normal | The person's photos as a grid |
+| [On This Day](#immich-immich-immich-albums-immich-people-immich-memories) | `immich-memories` | live, normal | That year's photos as a grid |
 | [Makefile Targets](#makefile-targets-make) | `make` | indexed, normal | Run the target |
 | [Maps](#maps-maps) | `maps` | input, normal | Open the place or the route |
 | [Now Playing](#now-playing-media) | `media` | live, normal | Play or pause |
@@ -4524,3 +4528,82 @@ Settings, `[extensions.turkish]`:
 
 Not done: a `{turkish …}` snippet placeholder (`sdk/src/placeholders.ts`
 has a fixed grammar with no hook for an extension's source).
+
+## Immich (`immich`, `immich-albums`, `immich-people`, `immich-memories`)
+
+The Immich photo library from the panel, from `extensions/immich/`. An
+input grid over Immich's CLIP search: what is typed goes to
+`/search/smart` 300 ms after the last key ("a receipt", "dog on the
+beach"), a file name (`DSC00500`, `IMG-20260418-WA0021.jpg`) to
+`/search/metadata` by name, and nothing typed lists the newest uploads
+under a Recent section. Every tile is Immich's own thumbnail rendition
+(WebP, ~10 KB, fetched once into `~/Library/Caches/pal/immich`,
+`$XDG_CACHE_HOME/pal/immich`, and sent as a data url), captioned with
+the place and the day ("Serdivan · 3 May 2022"; a video leads with "▶"
+and its length). `since:2025`, `before:2024-06`, `in:2023`,
+`in:Ataşehir`, `type:video` and `is:favourite` / `is:archived` narrow
+either search; the dropdown (`Tab`) limits to photos, videos,
+favourites or the archive; a More tile pages on, 24 at a time. Every
+search sends `visibility`, since v3 lists archived and hidden assets
+when it is left out. The pane (open by default) is the preview
+rendition large over when and where (the place a link to the map), the
+camera, lens and exposure, the size, the file, the people, the albums
+it is in and the tags, fetched lazily per photo.
+
+`Enter` opens the photo on the web address (`web_url`, else `url`);
+`⌘Enter` copies the link; `⌘⇧C` copies the picture itself (the
+preview JPEG through `copyImage`, or as a file); `⌘Y` Quick Looks it
+(macOS); `⌘S` downloads the preview and `⌘⇧S` the original (fetched
+behind the panel, the HUD says when it landed) into `download_to` as
+`<day>_<name>`; `⌘F` favourites or unfavourites; `⌘⇧A` opens the albums
+as a picker (New album… first) and Enter there files the photos; `⌘⇧F`
+copies the file name. The downloads, Favourite and Add to album take
+marked rows (`⌘`-click, `⇧↑↓`). A root query nothing matched offers
+"Search Immich for …".
+
+**Immich Albums** (`immich-albums`, indexed, 5 minutes, lazy): every
+album with its cover, count, date range and a `shared` tag, the ones
+with photos first (changed last first), the empty ones last; `Enter`
+opens the album as the grid, where a search runs inside it; `⌘Enter`
+opens it in Immich, `⌘C` copies the link. A key that may read the
+statistics gets an "Immich library" row on top (photos, videos, bytes
+on disk). **Immich People** (`immich-people`, indexed, 10 minutes):
+the named people, favourites first, with their face; `Enter` lists
+their photos, a last row counts the faces without a name. **On This
+Day** (`immich-memories`, live, 30 minutes): Immich's memories for
+today, a row per past year with the count, the places and the first
+picture; `Enter` lists that year's photos.
+
+`pal://immich/search?q=…&filter=videos`, `pal://immich/album?name=…`
+(or `id=`) and `pal://immich/person?name=…` open the grids from a
+script or a keybind.
+
+| keys | action |
+| --- | --- |
+| `enter` | Open in Immich |
+| `cmd+enter` | Copy link |
+| `cmd+shift+c` | Copy image |
+| `cmd+y` | Quick Look (macOS) |
+| `cmd+s` | Download preview |
+| `cmd+shift+s` | Download original |
+| `cmd+f` | Favourite or unfavourite |
+| `cmd+shift+a` | Add to album… |
+| `cmd+shift+f` | Copy file name |
+| `cmd+i` | The detail pane |
+| `tab` | Photos, videos, favourites, archive |
+
+Settings, `[extensions.immich]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `url` | text | empty | Where the Immich API answers. |
+| `api_key` | secret | empty | An API key from Account Settings › API Keys. |
+| `web_url` | text | empty | Where links open when the site has another name than the API; empty: `url`. |
+| `download_to` | folder | `~/Downloads` | Where the downloads go. |
+
+`[palettes.immich.settings] columns` (3 to 10, default 6) is the tiles
+per row. Without `url` or `api_key` every palette is one row that opens
+Settings on the missing field; a refused key, a missing permission (a
+403 names it) and an unreachable server each say so in one row or a
+toast. For the tests, `PAL_IMMICH_CACHE` moves the cache directory and
+`PAL_COPY_IMAGE` stands in for the clipboard copy.

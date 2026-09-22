@@ -2,7 +2,7 @@
 // string, a slug, an error's message. Pure; the platform-free half of the
 // SDK next to placeholders.ts.
 
-/** `512 B`, `3.2 KB`, `24 KB` (whole from 10 KB), `1.5 MB`, `2.25 GB`, `1.50 TB`. */
+/** `512 B`, `3.2 KB`, `24 KB` (whole from 10 KB), `1.5 MB`, `2.25 GB`, `1.12 TB` (a photo library). */
 export const bytes = (n: number): string =>
   n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : n < 1024 ** 4 ? `${(n / 1024 ** 3).toFixed(2)} GB` : `${(n / 1024 ** 4).toFixed(2)} TB`;
 
