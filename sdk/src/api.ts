@@ -708,6 +708,34 @@ export const selection = {
   files: () => call<string[]>("selection.files"),
 };
 
+/** What `textAtHand` found: the text and where it came from. */
+export type TextAtHand = { text: string; where: "selection" | "clipboard" };
+/** A read of the selection and the clipboard is reused for this long: a palette that asks on every keystroke of an emptying query would send the copy shortcut each time. */
+export const TEXT_AT_HAND_TTL_MS = 2000;
+let textAtHandLast: { at: number; found: TextAtHand | null } | undefined;
+
+/**
+ * The text at hand when a palette opens with nothing typed: the selection
+ * in the app in front (a failed read counts as none), else what is on the
+ * clipboard (`clipboard.current`, or the newest text entry when history
+ * never recorded the current one), trimmed; `null` when there is neither.
+ * Read once per `TEXT_AT_HAND_TTL_MS` across calls, so an `input` palette
+ * may ask on every empty listing. Translate and Turkish start from it.
+ */
+export async function textAtHand(): Promise<TextAtHand | null> {
+  if (textAtHandLast && Date.now() - textAtHandLast.at < TEXT_AT_HAND_TTL_MS) return textAtHandLast.found;
+  let found: TextAtHand | null = null;
+  const sel = await selection.text().catch(() => null);
+  if (sel?.trim()) found = { text: sel.trim(), where: "selection" };
+  else {
+    const cur = await clipboard.current().catch(() => null);
+    const clip = cur?.kind === "text" ? cur.text : (await clipboard.list({ kind: "text", limit: 1 }).catch(() => []))[0]?.text;
+    if (clip?.trim()) found = { text: clip.trim(), where: "clipboard" };
+  }
+  textAtHandLast = { at: Date.now(), found };
+  return found;
+}
+
 /** The open or save panel the app in front has up (`pal_core::dialog`): which app, which kind, its title when it has one. */
 export type Dialog = { app: string; pid: number; kind: "open" | "save"; title?: string | null };
 
