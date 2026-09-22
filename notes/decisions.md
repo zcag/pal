@@ -1374,9 +1374,22 @@ window in the app.
 - **Verified**: `cargo clippy --workspace --all-targets -D warnings` and
   `cargo test --workspace` clean (core 7, app 4 new, expansion's 5
   still), `tsc` and `vitest` (8 new) in the app, `tsc` and `bun test`
-  in the host (13 new, 1306 pass). The overlay itself was not seen in a
-  running instance from this lane (no scratch build was run); the
-  window arrangement is the HUD's line for line, the placement maths
-  and the page are covered by tests, and the first live run should
-  check the ring's offset on a Retina display and the strip's clearance
-  of the Dock.
+  in the host (13 new, 1306 pass). **Seen live on hornet** (07:57, a
+  scratch release build `io.cagdas.pal.keycast` with its own config and
+  data dir, bar off, run from the agent shell, which the OS judged as
+  holding Input Monitoring): `pal call keycast/toggle mode=both` logged
+  `keytap monitor installed Wants { keys, clicks, moves }` and `keycast
+  display Monitor #41052 3600x2338 inset [38, 0, 0, 0]`; a `cmd+s` and
+  two `up` arrows sent through System Events drew `⌘ S` and `↑ ×2` as
+  two capsules at the bottom centre (a screenshot cropped and looked
+  at); the ring sat exactly on the cursor after `cliclick m:900,500` on
+  the Retina display; a right click drew the hollow amber ripple, a left
+  click the filled blue disc, both caught by a screencapture fired right
+  after the click (the 480 ms ripple is gone by the time a `sleep` and
+  a capture have run). `keycast/stop` removed the monitor and withdrew
+  the mode state (`null`). Two things learned: the `keycast` window had
+  to be added to `capabilities/default.json` (the page's `listen` was
+  refused by the ACL, seen as a `page-error` mark: every window label
+  goes there), and keys posted by `cliclick` did not reach the global
+  monitor while System Events' did, so a live check types through
+  `osascript`.
