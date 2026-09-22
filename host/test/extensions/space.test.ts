@@ -551,7 +551,7 @@ describe("space over the wire", () => {
     expect(files[0].accessories).toEqual([{ tag: "Video", color: "violet" }, { text: "200 KB" }]);
     expect(await host.list("space", "largest", "", { args: { root }, filter: "image" })).toEqual([expect.objectContaining({ id: "hint:empty", name: "No files here" })]);
     const dirs = await host.list("space", "folders", "", { args: { root } });
-    expect(dirs.map((d) => [d.name, d.accessories![0].text])).toEqual([["Movies", "2 files"]]);
+    expect(dirs.map((d) => [d.name, (d.accessories![0] as { text: string }).text])).toEqual([["Movies", "2 files"]]);
     expect(await host.pick("space", "folders", join(root, "Movies"), "map", { args: { root } })).toEqual({ push: { extension: "space", palette: "map", args: { root }, title: root } });
     const other = join(dir, "other");
     mkdirSync(other);
@@ -564,15 +564,15 @@ describe("space over the wire", () => {
   });
 
   test("cleanup: the candidate folders that exist, measured; nothing under this HOME beyond the hint to scan it", async () => {
-    const rows = await host.list("space", "cleanup", "", {}, 8000);
+    const rows = await host.list("space", "cleanup", "");
     expect(rows.every((r) => r.section)).toBe(true);
     expect(rows.some((r) => r.id === "hint:scan-home" || r.section === "Stale build folders")).toBe(true);
     for (const r of rows.filter((r) => !r.id.startsWith("hint:"))) expect(r.actions!.find((a) => a.style === "destructive")!.confirm).toBeTruthy();
   });
 
   test("links: scan opens the map (a fresh root starts scanning), largest the list; a path that is not a folder is refused", async () => {
-    expect(await host.request("link", { extension: "space", route: "scan", params: { root } })).toEqual({ push: { extension: "space", palette: "map", args: { root }, title: root } });
-    expect(await host.request("link", { extension: "space", route: "largest", params: { root } })).toEqual({ push: { extension: "space", palette: "largest", args: { root }, title: `Largest in ${root}` } });
+    expect(await host.request<unknown>("link", { extension: "space", route: "scan", params: { root } })).toEqual({ push: { extension: "space", palette: "map", args: { root }, title: root } });
+    expect(await host.request<unknown>("link", { extension: "space", route: "largest", params: { root } })).toEqual({ push: { extension: "space", palette: "largest", args: { root }, title: `Largest in ${root}` } });
     await expect(host.request("link", { extension: "space", route: "scan", params: { root: join(root, "notes.txt") } })).rejects.toThrow("not a folder");
     // Forget: the saved scan goes, the folder stays.
     expect(await host.pick("space", "space", `root:${root}`, "forget")).toMatchObject({ toast: { title: "Forgotten" } });
