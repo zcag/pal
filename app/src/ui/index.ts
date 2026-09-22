@@ -34,6 +34,7 @@ import "./settings.css";
 export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./SettingsWindow";
 export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
 export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
+export { SettingsShortcuts, shortcutsIndex, bindings, clashOf, type Binding } from "./SettingsShortcuts";
 export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
 export { SettingsPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";
 export { SettingsSidebar, sidebarIndex, sidebarSummary, SIDEBAR_HELP, type SettingsSidebarProps } from "./SettingsSidebar";

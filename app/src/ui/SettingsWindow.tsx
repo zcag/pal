@@ -7,6 +7,7 @@ import type { Diagnostic, SettingsIndexEntry, SettingsPage } from "./SettingsTyp
 const icons: Record<SettingsPage, ReactNode> = {
   overview: <svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" /><path d="M6.2 9.2l2 2 3.8-4.2" /></svg>,
   general: <svg viewBox="0 0 18 18"><path d="M3 5h12M3 9h12M3 13h12" /><circle cx="6.5" cy="5" r="1.6" /><circle cx="11.5" cy="9" r="1.6" /><circle cx="7.5" cy="13" r="1.6" /></svg>,
+  shortcuts: <svg viewBox="0 0 18 18"><rect x="2" y="4.5" width="14" height="9" rx="1.6" /><path d="M5 8h1M8 8h1M11 8h1M5.5 11h7" /></svg>,
   palettes: <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1.2" /><rect x="10" y="2.5" width="5.5" height="5.5" rx="1.2" /><rect x="2.5" y="10" width="5.5" height="5.5" rx="1.2" /><rect x="10" y="10" width="5.5" height="5.5" rx="1.2" /></svg>,
   extensions: <svg viewBox="0 0 18 18"><path d="M9 2.2l5.9 3.4v6.8L9 15.8l-5.9-3.4V5.6z" /><path d="M9 9l5.9-3.4M9 9v6.8M9 9L3.1 5.6" /></svg>,
   bar: <svg viewBox="0 0 18 18"><rect x="2" y="3" width="14" height="4" rx="1.2" /><circle cx="12.5" cy="5" r="0.9" fill="currentColor" stroke="none" /><path d="M5 5h3" /><path d="M9 7v3.5M6.5 13.5h5" /><rect x="5" y="10.5" width="8" height="4.5" rx="1" /></svg>,
@@ -16,6 +17,7 @@ const icons: Record<SettingsPage, ReactNode> = {
 export const settingsPages: { id: SettingsPage; title: string }[] = [
   { id: "overview", title: "Overview" },
   { id: "general", title: "General" },
+  { id: "shortcuts", title: "Shortcuts" },
   { id: "palettes", title: "Palettes" },
   { id: "extensions", title: "Extensions" },
   { id: "bar", title: "Bar" },

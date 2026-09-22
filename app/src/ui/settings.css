@@ -800,6 +800,36 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-ppane__none { margin: 0; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
 .pal-ppane__fields { display: flex; flex-direction: column; gap: var(--pal-space-3, 12px); }
 /* Item hotkeys: id (typed or picked), the name it resolves to, the recorder, Remove. */
+/* Settings › Shortcuts: the filter bar, the add form, the three tables (the item-hotkeys rows below, widened) and the clash lines. */
+.pal-shortcuts__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--pal-space-3, 12px); margin: 0 auto var(--pal-space-4, 16px); }
+.pal-shortcuts__field {
+  flex: 0 1 300px;
+  height: calc(var(--pal-settings-control-h, 30px) - var(--pal-space-1, 4px));
+  background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3));
+  box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08));
+}
+.pal-shortcuts__field:focus { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-shortcuts__add { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); margin: 0 auto var(--pal-space-4, 16px); padding: var(--pal-space-3, 12px); border: 1px solid var(--pal-border, rgba(255, 255, 255, 0.1)); border-radius: var(--pal-radius-md, 8px); background: var(--pal-bg-elevated, rgba(255, 255, 255, 0.04)); }
+.pal-shortcuts__add-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); }
+.pal-shortcuts__add-row .pal-shortcuts__field { flex: 0 1 180px; }
+.pal-shortcuts__add-row .pal-shortcuts__field:disabled { opacity: 0.6; }
+.pal-shortcuts__table { width: 100%; margin: 0; }
+/* A row is a grid: the name takes what is left, the controls sit at the right in their own columns, a clash line spans under all of it. */
+.pal-shortcuts__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; column-gap: var(--pal-space-3, 12px); row-gap: 2px; padding: var(--pal-space-1, 4px) 0; }
+.pal-shortcuts__row + .pal-shortcuts__row { border-top: 1px solid var(--pal-border-faint, rgba(255, 255, 255, 0.06)); }
+.pal-shortcuts__row .pal-itemkeys__item { min-width: 0; }
+.pal-shortcuts__name { min-width: 0; overflow: hidden; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: var(--pal-text-sm, 12px); text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: default; }
+button.pal-shortcuts__name:hover { text-decoration: underline; }
+.pal-shortcuts__id { flex: 0 0 auto; color: var(--pal-fg-faint, #868794); }
+.pal-shortcuts__cell { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); }
+.pal-shortcuts__cell-label { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-shortcuts__clash { grid-column: 1 / -1; }
+.pal-shortcuts__clash:empty { display: none; }
+.pal-shortcuts__clash .pal-hotkey-status { margin: 0 0 2px; }
+.pal-hotkey-status[data-state="clash"] { color: var(--pal-warning, #e5b567); }
+.pal-hotkey-status[data-state="clash"] .pal-hotkey-status__dot { background: var(--pal-warning, #e5b567); }
+.pal-general__shortcuts { display: inline-flex; align-items: center; gap: var(--pal-space-3, 12px); }
+
 .pal-itemkeys { display: flex; flex-direction: column; gap: var(--pal-space-1, 4px); margin: 0 0 var(--pal-space-2, 8px); padding: 0; list-style: none; }
 .pal-itemkeys__row { display: flex; align-items: center; gap: var(--pal-space-2, 8px); min-height: 24px; }
 .pal-itemkeys__item { display: flex; flex: 1 1 auto; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; }

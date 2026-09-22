@@ -107,7 +107,7 @@ as the App Switcher's does.
   Escape does not, Tab moves between the two buttons; a link's card
   answers no by itself after 30 s.
 - **The Settings window**: `escape` and `⌘W` (`Ctrl+W` on Linux) hide it;
-  `/` focuses its search, `⌘1` to `⌘6` switch pages, arrows move along the
+  `/` focuses its search, `⌘1` to `⌘7` switch pages, arrows move along the
   tabs and the search hits.
 - **A bar popover** takes the same grammar as the panel for its menu, view
   and palette levels ([Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)).

@@ -16,8 +16,8 @@ import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
 import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
-  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
-  aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsShortcuts, SettingsWindow,
+  aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
 import Shots from "./shots";
@@ -637,6 +637,9 @@ function GalleryPage() {
         <State label="General, at rest">
           <WidePair>{(t) => <SettingsDemo key={t} page="general" />}</WidePair>
         </State>
+        <State label="Shortcuts: pal's own keys, then the palettes, rows and bar items with one, a doubled chord said on both rows">
+          <WidePair>{(t) => <SettingsDemo key={t} page="shortcuts" />}</WidePair>
+        </State>
         <State label="Palettes, GitHub open: the table of pal's per-palette columns, the selected palette's declared settings under it">
           <WidePair>{(t) => <SettingsDemo key={t} page="palettes" />}</WidePair>
         </State>
@@ -713,11 +716,12 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const [barItems, setBarItems] = useState(settingsBarItems);
   const [barKey, setBarKey] = useState<string | undefined>("timer/timer");
   const patchBarItem = (key: string, config: BarItemConfig) => setBarItems((bs) => bs.map((b) => (b.key === key ? { ...b, config } : b)));
-  const index = [...generalIndex, ...palettesIndex(exts), ...extensionsIndex(exts), ...barIndex(barItems), ...aboutIndex];
+  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...palettesIndex(exts), ...extensionsIndex(exts), ...barIndex(barItems), ...aboutIndex];
   const mac = /Mac/.test(navigator.platform);
   return (
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
-      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} />}
+      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} />}
+      {page === "shortcuts" && <SettingsShortcuts general={general} onGeneral={setGeneral} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} extensions={exts} onPalette={patchPalette} bar={barItems} onBarItem={patchBarItem} onGo={(p) => setPage(p)} />}
       {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
       {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}

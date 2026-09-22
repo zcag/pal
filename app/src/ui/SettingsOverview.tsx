@@ -76,12 +76,12 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
   const items: OverviewItem[] = [];
   const h = v.hotkey;
   if (h && !h.hotkeys.length) {
-    items.push({ id: "hotkey", level: "ok", title: "Hotkey", detail: "None set; pal toggle from a compositor keybind opens the panel.", action: { label: "Set one", go: { page: "general", anchor: "general:hotkey" } } });
+    items.push({ id: "hotkey", level: "ok", title: "Hotkey", detail: "None set; pal toggle from a compositor keybind opens the panel.", action: { label: "Set one", go: { page: "shortcuts", anchor: "shortcuts:hotkey" } } });
   }
   for (const [i, r] of (h?.hotkeys ?? []).entries()) {
     if (r.registered) continue;
     const id = i ? `hotkey:${i + 1}` : "hotkey";
-    const anchor = i ? `general:hotkey:${i + 1}` : "general:hotkey";
+    const anchor = i ? `shortcuts:hotkey:${i + 1}` : "shortcuts:hotkey";
     const combo = comboLabel(r.wanted);
     const others = h!.hotkeys.filter((o) => o !== r && o.registered).map((o) => comboLabel(o.wanted));
     const still = others.length ? ` ${others.join(", ")} still opens pal.` : "";
@@ -89,9 +89,9 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
     if (spotlight) {
       items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} is Spotlight's. Untick Show Spotlight search under Keyboard Shortcuts > Spotlight, then pal takes it.${still}`, action: { label: "Open Keyboard Shortcuts", keyboardShortcuts: true } });
     } else if (/already registered|in use/i.test(r.error ?? "")) {
-      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} is held by another app (Raycast, if it is running: its hotkey is under Raycast Settings > General). Change one of them.${still}`, action: { label: "Change", go: { page: "general", anchor } } });
+      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} is held by another app (Raycast, if it is running: its hotkey is under Raycast Settings > General). Change one of them.${still}`, action: { label: "Change", go: { page: "shortcuts", anchor } } });
     } else {
-      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} did not register${r.error ? `: ${r.error}` : ""}.${still}`, action: { label: "Change", go: { page: "general", anchor } } });
+      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} did not register${r.error ? `: ${r.error}` : ""}.${still}`, action: { label: "Change", go: { page: "shortcuts", anchor } } });
     }
   }
 
@@ -205,8 +205,8 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
   const barOn = (v.bar ?? []).filter((b) => b.config.enabled && b.source).length;
   const hotkeys = [withHotkey ? `${withHotkey} with a hotkey` : "", withHold ? `${withHold} with a switcher chord` : "", itemHotkeys ? `${plural(itemHotkeys, "item hotkey")}` : ""].filter(Boolean).join(", ");
   return [
-    { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "general", anchor: "general:hotkey" } },
-    ...(v.switcher === undefined ? [] : [{ label: "Switcher", value: v.switcher ? <span className="pal-overview__hotkeys" aria-label={comboLabel(v.switcher)}><Kbd shortcut={v.switcher} /></span> : "off", go: { page: "general" as const, anchor: "general:switcher" } }]),
+    { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "shortcuts", anchor: "shortcuts:hotkey" } },
+    ...(v.switcher === undefined ? [] : [{ label: "Switcher", value: v.switcher ? <span className="pal-overview__hotkeys" aria-label={comboLabel(v.switcher)}><Kbd shortcut={v.switcher} /></span> : "off", go: { page: "shortcuts" as const, anchor: "shortcuts:switcher" } }]),
     ...(v.sidebar === undefined ? [] : [{ label: "Sidebar", value: v.sidebar, go: { page: "general" as const, anchor: "general:sidebar" } }]),
     { label: "Extensions", value: `${plural(names.size - failedNames.size, "extension")} loaded${failedNames.size ? `, ${failedNames.size} failed` : ""}${instances ? `, ${plural(instances, "extra instance")}` : ""}`, go: { page: "extensions" } },
     { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "palettes" } },

@@ -10,8 +10,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
-  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages, BAR_DEFAULTS, BAR_SIDEBAR,
+  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsShortcuts, SettingsWindow,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, BAR_SIDEBAR,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
@@ -545,7 +545,7 @@ export default function Settings() {
   const openKeyboardShortcuts = () => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail);
 
   const barSupported = view.bar?.supported ?? isMac;
-  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
+  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined), ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
   /** A search hit selects what it names before the page lights its row. */
   const onJump = (entry: SettingsIndexEntry) => go(entry.page, entry.anchor);
   const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
@@ -590,14 +590,29 @@ export default function Settings() {
           onResetFrecency={() => invoke("settings_reset_frecency").catch(fail)}
           onRestartHost={() => invoke("settings_restart_host").catch(fail)}
           onRefreshListings={() => invoke("index_refresh", { source: null }).catch(fail)}
-          hotkey={view.hotkey}
-          onOpenKeyboardShortcuts={openKeyboardShortcuts}
           permissions={permissions}
           onRequestPermission={requestPermission}
           onOpenOverview={() => go("overview", "overview:attention")}
           themeFile={themeFile}
-          switcher={windows ? { hold: windows.config.hold, suggested: windows.hold, onChange: (hold) => onPalette(windows.id, { ...windows.config, hold }) } : undefined}
           sidebar={barSupported ? { value: sidebar, onChange: onSidebar, palettes: sidebarPalettes, displays: view.displays } : undefined}
+          onOpenShortcuts={() => go("shortcuts", "shortcuts:hotkey")}
+        />
+      )}
+      {page === "shortcuts" && (
+        <SettingsShortcuts
+          general={general}
+          onGeneral={onGeneral}
+          hotkey={view.hotkey}
+          onOpenKeyboardShortcuts={openKeyboardShortcuts}
+          permissions={permissions}
+          onRequestPermission={requestPermission}
+          extensions={extensions}
+          onPalette={onPalette}
+          bar={barSupported ? barItems : undefined}
+          onBarItem={barSupported ? onBarItem : undefined}
+          sidebar={barSupported ? { value: sidebar, onChange: onSidebar } : undefined}
+          items={paletteItems}
+          onGo={go}
         />
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}

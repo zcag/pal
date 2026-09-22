@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
-// Settings > General's hotkey rows as clicked: a preset writes its own
+// Settings > Shortcuts's root hotkey rows as clicked: a preset writes its own
 // row, Remove drops one, Add another opens an empty row that writes
 // nothing until a combination lands in it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { SettingsGeneral, comboLabel } from "../SettingsGeneral";
+import { comboLabel } from "../SettingsGeneral";
+import { SettingsShortcuts } from "../SettingsShortcuts";
 import type { GeneralConfig } from "../SettingsTypes";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -20,7 +21,7 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); el.remove(); });
 
-const show = (hotkeys: string[], onChange: (v: GeneralConfig) => void) => act(() => { root.render(<SettingsGeneral value={{ ...general, hotkeys }} onChange={onChange} file={{ path: "x" }} />); });
+const show = (hotkeys: string[], onChange: (v: GeneralConfig) => void) => act(() => { root.render(<SettingsShortcuts general={{ ...general, hotkeys }} onGeneral={onChange} extensions={[]} onPalette={() => {}} />); });
 const button = (label: string) => el.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
 const preset = (row: number, combo: string) => [...el.querySelectorAll<HTMLButtonElement>(`[aria-label="Presets for hotkey ${row}"] button`)].find((b) => b.textContent === comboLabel(combo));
 const click = (b: HTMLButtonElement | undefined | null) => act(() => { b!.click(); });

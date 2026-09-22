@@ -4,12 +4,12 @@
 // line, a recorded chord is written as `hold`, Clear writes `""` (off,
 // distinct from unset) where a suggestion would otherwise apply and
 // unsets where none does, Reset next to a file line goes back to the
-// suggestion, and a bare key (no modifier) is a chord too. The General
-// page's Window switcher card is the same control on the Windows palette.
+// suggestion, and a bare key (no modifier) is a chord too. The Shortcuts
+// page's Window switcher row is the same control on the Windows palette.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { SettingsGeneral } from "../SettingsGeneral";
+import { SettingsShortcuts } from "../SettingsShortcuts";
 import { SettingsPalettes, palettesIndex } from "../SettingsPalettes";
 import { holdOf, type GeneralConfig, type PaletteConfig, type SettingsExtension } from "../SettingsTypes";
 
@@ -97,32 +97,32 @@ describe("Switcher chord on the palette pane", () => {
   });
 });
 
-describe("Window switcher card on General", () => {
-  const card = () => el.querySelector<HTMLElement>('[aria-label="Window switcher"]')!;
-  const page = (props: Partial<Parameters<typeof SettingsGeneral>[0]>) => act(() => { root.render(<SettingsGeneral value={general} onChange={() => {}} file={{ path: "x" }} {...props} />); });
+describe("Window switcher row on Shortcuts", () => {
+  const card = () => el.querySelector<HTMLElement>('[data-anchor="shortcuts:switcher"]')!;
+  const page = (props: Partial<Parameters<typeof SettingsShortcuts>[0]>) => act(() => { root.render(<SettingsShortcuts general={general} onGeneral={() => {}} extensions={[]} onPalette={() => {}} {...props} />); });
   it("shows the chord that applies with Clear, and writes the Windows palette's hold", async () => {
     const onChange = vi.fn();
-    await page({ switcher: { suggested: "alt+tab", onChange } });
+    await page({ extensions: [windows()], onPalette: onChange });
     expect(card().querySelector('[aria-label="Switch windows: alt+tab (suggested)"]')).toBeTruthy();
     expect(card().textContent).toContain("Tap it to go back to the previous window; hold it and press again to pick.");
     click(card().querySelector<HTMLButtonElement>('[aria-label="Clear switch windows"]'));
-    expect(onChange).toHaveBeenLastCalledWith("");
+    expect(onChange).toHaveBeenLastCalledWith("windows", expect.objectContaining({ hold: "" }));
     expect(card().textContent).not.toContain("Input Monitoring is not granted");
   });
   it("offers the Input Monitoring grant only for cmd+tab while the grant is missing", async () => {
     const request = vi.fn();
-    await page({ switcher: { hold: "cmd+tab", suggested: "alt+tab", onChange: () => {} }, permissions: { accessibility: true, input_monitoring: false }, onRequestPermission: request });
+    await page({ extensions: [windows("cmd+tab")], permissions: { accessibility: true, input_monitoring: false }, onRequestPermission: request });
     const grant = byText("Turn on Input Monitoring…", card());
     expect(grant).toBeTruthy();
     click(grant);
     expect(request).toHaveBeenCalledWith("input_monitoring");
-    await page({ switcher: { hold: "cmd+tab", suggested: "alt+tab", onChange: () => {} }, permissions: { accessibility: true, input_monitoring: true } });
+    await page({ extensions: [windows("cmd+tab")], permissions: { accessibility: true, input_monitoring: true } });
     expect(byText("Turn on Input Monitoring…", card())).toBeUndefined();
-    await page({ switcher: { hold: "alt+tab", onChange: () => {} }, permissions: { accessibility: true, input_monitoring: false } });
+    await page({ extensions: [windows("alt+tab", null)], permissions: { accessibility: true, input_monitoring: false } });
     expect(byText("Turn on Input Monitoring…", card())).toBeUndefined();
   });
   it("is absent without a Windows palette", async () => {
     await page({});
-    expect(el.querySelector('[aria-label="Window switcher"]')).toBeNull();
+    expect(el.querySelector('[data-anchor="shortcuts:switcher"]')).toBeNull();
   });
 });

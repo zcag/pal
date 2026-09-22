@@ -274,7 +274,7 @@ export type Diagnostic = {
   message: string;
 };
 
-export type SettingsPage = "overview" | "general" | "palettes" | "extensions" | "bar" | "about";
+export type SettingsPage = "overview" | "general" | "shortcuts" | "palettes" | "extensions" | "bar" | "about";
 
 /**
  * One searchable entry: a page, the setting's label, where on the page it

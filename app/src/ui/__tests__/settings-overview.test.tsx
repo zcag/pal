@@ -28,7 +28,7 @@ describe("overviewItems", () => {
   it("points at another app for a key the OS refused", () => {
     const [item] = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "alt+space", registered: false, error: "HotKey already registered" }], registered: false } });
     expect(item.detail).toContain("Raycast");
-    expect(item.action?.go).toEqual({ page: "general", anchor: "general:hotkey" });
+    expect(item.action?.go).toEqual({ page: "shortcuts", anchor: "shortcuts:hotkey" });
   });
   it("lists the switcher chord the Dock owns while its tap waits on Input Monitoring, with Grant", () => {
     const [item] = overviewItems({ ...ok, hotkey: { ...one, hold_blocked: "cmd+tab" } });
@@ -45,7 +45,7 @@ describe("overviewItems", () => {
     const items = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "cmd+space", registered: true }, { wanted: "ctrl+space", registered: false, error: "HotKey already registered" }], registered: true } });
     expect(items.map((i) => i.id)).toEqual(["hotkey:2"]);
     expect(items[0].detail).toBe(`${comboLabel("ctrl+space")} is held by another app (Raycast, if it is running: its hotkey is under Raycast Settings > General). Change one of them. ${comboLabel("cmd+space")} still opens pal.`);
-    expect(items[0].action?.go).toEqual({ page: "general", anchor: "general:hotkey:2" });
+    expect(items[0].action?.go).toEqual({ page: "shortcuts", anchor: "shortcuts:hotkey:2" });
     const both = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" }, { wanted: "ctrl+space", registered: false, error: "HotKey already registered" }], registered: false } });
     expect(both.map((i) => i.id)).toEqual(["hotkey", "hotkey:2"]);
     expect(both.every((i) => !i.detail.includes("still opens"))).toBe(true);
@@ -151,7 +151,7 @@ describe("SettingsOverview", () => {
     expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
     // The switcher and the sidebar, as facts of their own when the page is told about them; a palette with a chord counts in the Palettes line.
     const both = overviewFacts({ ...ok, switcher: "alt+tab", sidebar: "Windows on the right edge" });
-    expect(both.map((f) => [f.label, f.go.anchor])).toEqual([["Hotkey", "general:hotkey"], ["Switcher", "general:switcher"], ["Sidebar", "general:sidebar"], ["Extensions", undefined], ["Palettes", undefined], ["Bar", undefined]]);
+    expect(both.map((f) => [f.label, f.go.anchor])).toEqual([["Hotkey", "shortcuts:hotkey"], ["Switcher", "shortcuts:switcher"], ["Sidebar", "general:sidebar"], ["Extensions", undefined], ["Palettes", undefined], ["Bar", undefined]]);
     expect(renderToStaticMarkup(<>{both[1].value}</>)).toContain(`aria-label="${comboLabel("alt+tab")}"`);
     expect(both[2].value).toBe("Windows on the right edge");
     expect(overviewFacts({ ...ok, switcher: "", sidebar: "off" })[1].value).toBe("off");
