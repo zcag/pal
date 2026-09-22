@@ -48,6 +48,8 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Named Colours](#colors-colors-picker-colors-colors-history-colors-convert) | `colors` | indexed, grid, catalog | Open in Picker |
 | [Colour History](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-history` | live, normal | Open in Picker (on the top row: pick from the screen) |
 | [Convert Colour](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-convert` | input, normal | Open in Picker |
+| [Diff](#diff-diff-diff-pick) | `diff` | view, normal | Copy the unified diff |
+| [Diff from History](#diff-diff-diff-pick) | `diff-pick` | input, normal | Pick the side (with two marked: diff them) |
 | [Docker Containers](#docker-docker-docker-images-docker-compose) | `docker` | live, normal | Stop a running container, start a stopped one |
 | [Docker Images](#docker-docker-docker-images-docker-compose) | `docker-images` | live, normal | Run, after a form for the name and ports |
 | [Compose Projects](#docker-docker-docker-images-docker-compose) | `docker-compose` | live, normal | Up |
@@ -135,6 +137,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Timers](#timer-timer-timers) | `timer-timers` | live, normal | Pause, resume or dismiss |
 | [Translate](#translate-translate-translate-history) | `translate` | input, normal | Copy the translation (on Swap: translate it back) |
 | [Translation History](#translate-translate-translate-history) | `translate-history` | live, normal | Copy the translation |
+| [Turkish](#turkish-turkish) | `turkish` | input, normal | Paste the converted text (over the selection it came from) |
 | [Unicode Characters](#unicode-characters-unicode) | `unicode` | indexed, grid, catalog | Copy character |
 | [Chats](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-chats` | live, primary | Open the chat (a group opens WhatsApp at the top) |
 | [Unread](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-unread` | live, normal | Open the chat |
@@ -4104,3 +4107,101 @@ Settings, `[extensions.images]`:
 | `pad_color` | hex | `#ffffff` | What Pad to a square fills with. |
 | `tinypng_api_key` | secret | (none) | Adds Compress with TinyPNG. |
 | `tools` | list | every tool | The order the encoders are tried. |
+
+## Diff (`diff`, `diff-pick`)
+
+Diff what you copied, from `extensions/diff/`. A view palette: opened
+bare it compares the two newest text entries of the clipboard history,
+the older on the left, so the diff reads as what changed on the way to
+the newer copy. The header names both sides with when and where they
+were copied and carries the counts as badges (`+12` green, `−4` red,
+`whitespace only` amber, `no differences`); under it the lines on a
+sunken surface, unified by default: both line numbers, the sign, the
+text in monospace, removed lines on a red tint and added ones on a
+green one (consecutive lines of one kind share the block), the words
+that differ inside a changed pair on a stronger tint, a pair that
+differs in whitespace alone tagged. `s` lays the two sides out side by
+side. Runs of unchanged lines beyond the three of context fold to one
+row ("⋯ 16 unchanged lines"); `tab` walks the folds, `space` or a
+click expands one, `a` all. `w` ignores whitespace as `diff -w` does,
+`x` swaps the sides, `enter` copies the unified diff, `l` and `r` the
+left and right text, `o` opens the pair in an external tool (`tool`:
+VS Code, kitty's diff kitten, FileMerge, Meld, or a custom command with
+`{left}` and `{right}`; the sides written under the cache when they are
+not files). Other pairs: `n` the two newest copies again, `e` the
+clipboard against the selection in the app in front, `h` two entries
+picked from the history, `f` two files from a form (a missing file, a
+folder or a binary refused under its field; over 1 MB left to the tool).
+Nothing to diff (one copy in the history, nothing selected) is a view
+that says so and lists the ways in.
+
+Diff from History (`diff-pick`, input, `multi`): the history's text
+entries; `enter` on one takes it as the left side and lists the rest
+for the right, or two marked (`tab`, `x`) and `enter` diff at once. The
+Clipboard History palette has the same two actions on a text entry,
+`Diff with…` and `Diff these two` (`cmd+shift+f`).
+
+| keys | action |
+| --- | --- |
+| `enter` | Copy the unified diff |
+| `o`, `cmd+enter` | Open both sides in the external tool |
+| `s` | Side by side, or unified |
+| `w` | Ignore whitespace, or mind it |
+| `x` | Swap the sides |
+| `l`, `r` | Copy the left, the right text |
+| `tab`, `shift+tab`, `space`, `a` | Next fold, previous, expand it, expand all |
+| `n`, `e`, `h`, `f` | The newest copies, clipboard vs selection, pick from history, two files |
+
+Links: `pal://diff/clipboard`, `pal://diff/selection`,
+`pal://diff/files?left=&right=`, `pal://diff/text?left=&right=`
+(`left_label`, `right_label`), `pal://diff/history?left=<id>&right=<id>`.
+
+Settings, `[extensions.diff]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `tool` | `auto`, `code`, `kitty`, `opendiff`, `meld`, `custom` | `auto` | What `o` opens the sides in; auto is the first installed. |
+| `tool_command` | text | empty | With `custom`: the command line, `{left}` and `{right}` the two files. |
+
+The diff is jsdiff (`diff` on npm). For the tests, `PAL_DIFF_PATH` is
+searched for the tools and `PAL_DIFF_CACHE` takes the written sides.
+
+## Turkish (`turkish`)
+
+Turkish text tools, from `extensions/turkish/`. An input palette: what
+you type (with nothing typed, the selection in the app in front, else
+the clipboard's text) converted five ways, one row each, named by the
+result with the conversion and the count of characters it touched
+beside it (`unchanged` as a tag when none): Deasciified (`Turkce
+yazilmis bir cumle` → `Türkçe yazılmış bir cümle`, the letters decided
+by context: `sik` → `sık`, `kus` → `kuş`, `acik` → `açık`, `yas` →
+`yaş`; Deniz Yüret's Emacs turkish-mode pattern table in Mustafa Emre
+Acer's JavaScript port, the `turkish-deasciifier` package), Asciified
+(the reverse table), UPPERCASE and lowercase the Turkish way (`i` → `İ`,
+`ı` → `I` and back, the `tr` locale), Title Case (every word, a suffix
+after an apostrophe kept down: `İstanbul'da`). `enter` pastes the row
+into the app in front, over the selection when that is where the text
+came from; `cmd+c` (and `cmd+enter`) copies; `cmd+t` hands the row to
+Translate; `cmd+shift+c` copies the source. The detail pane holds the
+whole converted text over the source.
+
+| keys | action |
+| --- | --- |
+| `enter` | Paste (over the selection the rows came from) |
+| `cmd+enter`, `cmd+c` | Copy |
+| `cmd+t` | Translate the row |
+| `cmd+shift+c` | Copy the source text |
+
+Links: `pal://turkish/deasciify?text=…` (and `asciify`, `upper`,
+`lower`, `title`) copies the result, `paste=1` pastes it; without `text`
+the selection (else the clipboard) is converted and, from a selection,
+pasted over it: a keybind that fixes the letters of what was just typed.
+
+Settings, `[extensions.turkish]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `primary_action` | `paste`, `copy` | `paste` | What `enter` does on a row. |
+
+Not done: a `{turkish …}` snippet placeholder (`sdk/src/placeholders.ts`
+has a fixed grammar with no hook for an extension's source).
