@@ -1,0 +1,551 @@
+{
+  "name": "theater",
+  "title": "Theater",
+  "description": "Your home media stack in one place: Jellyfin, Jellyseerr, Radarr, Sonarr, Lidarr, Prowlarr, NZBHydra2, Bazarr, SABnzbd, qBittorrent, Navidrome, Audiobookshelf, Kavita, Shelfmark, Filebrowser and Homepage. Every service is a settings group; only the ones you fill in light up.",
+  "keywords": ["media", "plex", "arr"],
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰿎", "bg": "red" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "text", "id": "jellyfin_url", "label": "Jellyfin URL", "placeholder": "http://marko:8096", "default": "" },
+    { "kind": "secret", "id": "jellyfin_key", "label": "Jellyfin API key", "description": "Dashboard › API Keys on the server.", "default": "" },
+    { "kind": "text", "id": "jellyfin_user", "label": "Jellyfin user", "description": "Whose Continue Watching and watched state; the first user when empty.", "placeholder": "cagdas", "default": "" },
+    { "kind": "text", "id": "seerr_url", "label": "Jellyseerr URL", "placeholder": "http://marko:5055", "default": "" },
+    { "kind": "secret", "id": "seerr_key", "label": "Jellyseerr API key", "description": "Settings › General on Jellyseerr (Overseerr works the same).", "default": "" },
+    { "kind": "text", "id": "radarr_url", "label": "Radarr URL", "placeholder": "http://marko:7878", "default": "" },
+    { "kind": "secret", "id": "radarr_key", "label": "Radarr API key", "description": "Settings › General › Security.", "default": "" },
+    { "kind": "text", "id": "sonarr_url", "label": "Sonarr URL", "placeholder": "http://marko:8989", "default": "" },
+    { "kind": "secret", "id": "sonarr_key", "label": "Sonarr API key", "default": "" },
+    { "kind": "text", "id": "lidarr_url", "label": "Lidarr URL", "placeholder": "http://marko:8686", "default": "" },
+    { "kind": "secret", "id": "lidarr_key", "label": "Lidarr API key", "default": "" },
+    { "kind": "text", "id": "prowlarr_url", "label": "Prowlarr URL", "placeholder": "http://marko:9696", "default": "" },
+    { "kind": "secret", "id": "prowlarr_key", "label": "Prowlarr API key", "default": "" },
+    { "kind": "text", "id": "hydra_url", "label": "NZBHydra2 URL", "placeholder": "http://marko:5076", "default": "" },
+    { "kind": "secret", "id": "hydra_key", "label": "NZBHydra2 API key", "description": "Config › Main › API key.", "default": "" },
+    { "kind": "text", "id": "bazarr_url", "label": "Bazarr URL", "placeholder": "http://marko:6767", "default": "" },
+    { "kind": "secret", "id": "bazarr_key", "label": "Bazarr API key", "description": "Settings › General › Security.", "default": "" },
+    { "kind": "text", "id": "sab_url", "label": "SABnzbd URL", "placeholder": "http://marko:8080", "default": "" },
+    { "kind": "secret", "id": "sab_key", "label": "SABnzbd API key", "description": "Config › General › API key (the NZB key is not enough for the queue).", "default": "" },
+    { "kind": "text", "id": "qbit_url", "label": "qBittorrent URL", "placeholder": "http://marko:8081", "default": "" },
+    { "kind": "secret", "id": "qbit_key", "label": "qBittorrent API key", "description": "qBittorrent 5.2+: a bearer key (POST /api/v2/app/rotateAPIKey from a logged-in session). Leave empty to sign in with the WebUI user and password instead.", "default": "" },
+    { "kind": "text", "id": "qbit_user", "label": "qBittorrent user", "placeholder": "admin", "default": "" },
+    { "kind": "secret", "id": "qbit_password", "label": "qBittorrent password", "default": "" },
+    { "kind": "text", "id": "navidrome_url", "label": "Navidrome URL", "placeholder": "http://marko:4533", "default": "" },
+    { "kind": "text", "id": "navidrome_user", "label": "Navidrome user", "default": "" },
+    { "kind": "secret", "id": "navidrome_password", "label": "Navidrome password", "description": "Sent as a Subsonic salted token, never in clear.", "default": "" },
+    { "kind": "text", "id": "abs_url", "label": "Audiobookshelf URL", "placeholder": "http://marko:13378", "default": "" },
+    { "kind": "text", "id": "abs_user", "label": "Audiobookshelf user", "default": "" },
+    { "kind": "secret", "id": "abs_password", "label": "Audiobookshelf password", "default": "" },
+    { "kind": "text", "id": "kavita_url", "label": "Kavita URL", "placeholder": "http://marko:5001", "default": "" },
+    { "kind": "text", "id": "kavita_user", "label": "Kavita user", "default": "" },
+    { "kind": "secret", "id": "kavita_password", "label": "Kavita password", "default": "" },
+    { "kind": "text", "id": "shelfmark_url", "label": "Shelfmark URL", "description": "The book request door (no auth).", "placeholder": "http://marko:8084", "default": "" },
+    { "kind": "text", "id": "filebrowser_url", "label": "Filebrowser URL", "description": "Opened from the Theater palette.", "placeholder": "http://marko:8082", "default": "" },
+    { "kind": "text", "id": "homepage_url", "label": "Homepage URL", "description": "The dashboard; opened from the Theater palette.", "placeholder": "http://marko:3001", "default": "" }
+  ],
+  "palettes": {
+    "theater": {
+      "title": "Theater",
+      "description": "Every configured service as a row with live health (up or down, version, one key number); Enter opens its web UI, cmd+Enter its palette in pal. A service you have not set up is one Set up row.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 30,
+      "keywords": ["stack", "media", "services"],
+      "keys": [
+        { "keys": "enter", "title": "Open the service's web UI" },
+        { "keys": "cmd+enter", "title": "The service in pal" },
+        { "keys": "cmd+c", "title": "Copy the URL" },
+        { "keys": "cmd+r", "title": "Check again" }
+      ]
+    },
+    "jellyfin": {
+      "title": "Jellyfin",
+      "description": "Continue Watching with the position, then the latest additions, posters on the rows; the pane has the overview, year, rating, runtime and watched state.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["jf", "continue", "watch"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Jellyfin" },
+        { "keys": "cmd+enter", "title": "Play on a device (a picker of the signed-in sessions)" },
+        { "keys": "cmd+shift+p", "title": "Mark played or unplayed" },
+        { "keys": "cmd+f", "title": "Add to or remove from favourites" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "jellyfin-search": {
+      "title": "Search Jellyfin",
+      "description": "Movies, series, episodes, albums and songs by title, 300 ms after the last key; the same actions as the Jellyfin rows.",
+      "kind": "input",
+      "keywords": ["jf"],
+      "fallback": "Search Jellyfin for “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "Open in Jellyfin" },
+        { "keys": "cmd+enter", "title": "Play on a device" },
+        { "keys": "cmd+shift+p", "title": "Mark played or unplayed" },
+        { "keys": "cmd+f", "title": "Favourite" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "jellyfin-playing": {
+      "title": "Now Playing on Jellyfin",
+      "description": "Active sessions: who watches what on which device, with the position; Enter opens the item, cmd+Enter pauses or resumes that session.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 30,
+      "keywords": ["sessions", "watching", "jf"],
+      "keys": [
+        { "keys": "enter", "title": "Open the item in Jellyfin" },
+        { "keys": "cmd+enter", "title": "Pause or resume the session" },
+        { "keys": "cmd+shift+s", "title": "Stop playback" }
+      ]
+    },
+    "jellyfin-play": {
+      "title": "Play on",
+      "description": "The picker Play on a device opens: every Jellyfin session that takes remote control; Enter plays the item there.",
+      "kind": "list",
+      "lazy": true,
+      "keys": [{ "keys": "enter", "title": "Play the item on that session" }]
+    },
+    "seerr-requests": {
+      "title": "Requests",
+      "description": "Jellyseerr requests, pending first, with the poster, who asked and the status; Approve and Decline on a pending one. The filter narrows to pending, approved, available or all.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["jellyseerr", "overseerr", "seerr", "pending"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Jellyseerr" },
+        { "keys": "cmd+enter", "title": "Approve (a pending request)" },
+        { "keys": "cmd+shift+d", "title": "Decline (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "seerr-request": {
+      "title": "Request a title",
+      "description": "Search TMDB through Jellyseerr; Enter requests the movie or series (asks first), cmd+Enter in 4K when the server allows it. A title already available or requested is tagged.",
+      "kind": "input",
+      "keywords": ["jellyseerr", "overseerr", "seerr", "tmdb"],
+      "fallback": "Request “{query}” on Jellyseerr",
+      "keys": [
+        { "keys": "enter", "title": "Request (asks first)" },
+        { "keys": "cmd+enter", "title": "Request in 4K, when enabled" },
+        { "keys": "cmd+o", "title": "Open in Jellyseerr" },
+        { "keys": "cmd+c", "title": "Copy the TMDB link" }
+      ]
+    },
+    "radarr": {
+      "title": "Radarr",
+      "description": "The queue with progress and status, the next seven days, health warnings, and the commands: add a movie, wanted, history, sync the watchlist now, open Radarr.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["movies", "queue"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Radarr" },
+        { "keys": "cmd+backspace", "title": "Remove from the queue (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the title" }
+      ]
+    },
+    "radarr-add": {
+      "title": "Add a movie",
+      "description": "Look a movie up on Radarr; Enter adds it with the default quality profile and root folder and searches (asks first). One already in the library is tagged.",
+      "kind": "input",
+      "keywords": ["radarr", "movie"],
+      "fallback": "Add “{query}” to Radarr",
+      "keys": [
+        { "keys": "enter", "title": "Add and search (asks first)" },
+        { "keys": "cmd+enter", "title": "Add without searching" },
+        { "keys": "cmd+o", "title": "Open on TMDB" }
+      ]
+    },
+    "radarr-wanted": {
+      "title": "Wanted movies",
+      "description": "Monitored movies without a file, newest release first; Enter searches for one, cmd+Enter opens it.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["radarr", "missing"],
+      "keys": [
+        { "keys": "enter", "title": "Search for the movie now" },
+        { "keys": "cmd+enter", "title": "Open in Radarr" }
+      ]
+    },
+    "radarr-history": {
+      "title": "Radarr history",
+      "description": "What Radarr grabbed, imported or failed on lately.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["radarr"],
+      "keys": [{ "keys": "enter", "title": "Open the movie in Radarr" }]
+    },
+    "sonarr": {
+      "title": "Sonarr",
+      "description": "The queue with progress and status, the episodes airing in the next seven days, health warnings, and the commands: add a series, wanted, history, sync the watchlist now, open Sonarr.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["tv", "series", "queue"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Sonarr" },
+        { "keys": "cmd+backspace", "title": "Remove from the queue (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the title" }
+      ]
+    },
+    "sonarr-add": {
+      "title": "Add a series",
+      "description": "Look a series up on Sonarr; Enter adds it with the default quality profile and root folder, every season monitored, and searches (asks first).",
+      "kind": "input",
+      "keywords": ["sonarr", "tv", "show"],
+      "fallback": "Add “{query}” to Sonarr",
+      "keys": [
+        { "keys": "enter", "title": "Add and search (asks first)" },
+        { "keys": "cmd+enter", "title": "Add without searching" },
+        { "keys": "cmd+o", "title": "Open on TVDB" }
+      ]
+    },
+    "sonarr-wanted": {
+      "title": "Wanted episodes",
+      "description": "Monitored episodes that aired without a file, newest first; Enter searches for one.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["sonarr", "missing"],
+      "keys": [
+        { "keys": "enter", "title": "Search for the episode now" },
+        { "keys": "cmd+enter", "title": "Open the series in Sonarr" }
+      ]
+    },
+    "sonarr-history": {
+      "title": "Sonarr history",
+      "description": "What Sonarr grabbed, imported or failed on lately.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["sonarr"],
+      "keys": [{ "keys": "enter", "title": "Open the series in Sonarr" }]
+    },
+    "lidarr": {
+      "title": "Lidarr",
+      "description": "The queue with progress and status, albums out in the next seven days, health warnings, and the commands: add an artist, wanted, history, open Lidarr.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["music", "queue"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Lidarr" },
+        { "keys": "cmd+backspace", "title": "Remove from the queue (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the title" }
+      ]
+    },
+    "lidarr-add": {
+      "title": "Add an artist",
+      "description": "Look an artist up on Lidarr; Enter adds them with the default profiles and root folder and searches for missing albums (asks first).",
+      "kind": "input",
+      "keywords": ["lidarr", "music", "band"],
+      "fallback": "Add “{query}” to Lidarr",
+      "keys": [
+        { "keys": "enter", "title": "Add and search (asks first)" },
+        { "keys": "cmd+enter", "title": "Add without searching" },
+        { "keys": "cmd+o", "title": "Open on MusicBrainz" }
+      ]
+    },
+    "lidarr-wanted": {
+      "title": "Wanted albums",
+      "description": "Monitored albums without files, newest first; Enter searches for one.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["lidarr", "missing"],
+      "keys": [
+        { "keys": "enter", "title": "Search for the album now" },
+        { "keys": "cmd+enter", "title": "Open the artist in Lidarr" }
+      ]
+    },
+    "lidarr-history": {
+      "title": "Lidarr history",
+      "description": "What Lidarr grabbed, imported or failed on lately.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["lidarr"],
+      "keys": [{ "keys": "enter", "title": "Open the artist in Lidarr" }]
+    },
+    "downloads": {
+      "title": "Downloads",
+      "description": "SABnzbd and qBittorrent as one queue: each item with progress, speed, time left and category; pause, resume and delete per item; Pause all, Resume all and a speed limit on top.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 20,
+      "keywords": ["sab", "sabnzbd", "qbit", "qbittorrent", "torrents", "usenet", "queue"],
+      "keys": [
+        { "keys": "enter", "title": "Open the download client" },
+        { "keys": "cmd+enter", "title": "Pause or resume the item" },
+        { "keys": "cmd+backspace", "title": "Delete the item (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the name" }
+      ]
+    },
+    "downloads-history": {
+      "title": "Download history",
+      "description": "What SABnzbd and qBittorrent finished lately, a failed one with its reason.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 120,
+      "keywords": ["sab", "sabnzbd", "qbit", "finished", "failed"],
+      "keys": [
+        { "keys": "enter", "title": "Open the download client" },
+        { "keys": "cmd+backspace", "title": "Remove from the history (asks first)" }
+      ]
+    },
+    "prowlarr": {
+      "title": "Indexers",
+      "description": "Every Prowlarr indexer with protocol, priority and health (a disabled or failing one says why), Prowlarr's own health warnings, and NZBHydra2's indexers when configured.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["prowlarr", "hydra", "nzbhydra", "trackers"],
+      "keys": [
+        { "keys": "enter", "title": "Open the indexer in Prowlarr" },
+        { "keys": "cmd+enter", "title": "Test the indexer" }
+      ]
+    },
+    "prowlarr-search": {
+      "title": "Search indexers",
+      "description": "A release search across every Prowlarr indexer: title, size, age, seeders or grabs, the indexer as a tag; Enter grabs it through Prowlarr into the download client (asks first).",
+      "kind": "input",
+      "keywords": ["prowlarr", "nzb", "torrent", "release"],
+      "fallback": "Search the indexers for “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "Grab through Prowlarr (asks first)" },
+        { "keys": "cmd+enter", "title": "Open the release page" },
+        { "keys": "cmd+c", "title": "Copy the download link" }
+      ]
+    },
+    "hydra-search": {
+      "title": "Search NZBHydra2",
+      "description": "A usenet search through NZBHydra2: title, size, age, grabs, the indexer as a tag; Enter sends the NZB to SABnzbd when it is configured, else opens Hydra.",
+      "kind": "input",
+      "keywords": ["hydra", "nzbhydra", "usenet", "nzb"],
+      "fallback": "Search NZBHydra2 for “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "Send to SABnzbd (asks first), or open in Hydra" },
+        { "keys": "cmd+enter", "title": "Open the release's page" },
+        { "keys": "cmd+c", "title": "Copy the NZB link" }
+      ]
+    },
+    "navidrome": {
+      "title": "Navidrome",
+      "description": "What is playing now, then the albums added lately with their covers; Enter opens in Navidrome, cmd+S stars.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["music", "subsonic", "albums"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Navidrome" },
+        { "keys": "cmd+s", "title": "Star or unstar" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "navidrome-search": {
+      "title": "Search Navidrome",
+      "description": "Artists, albums and songs with cover art, 300 ms after the last key.",
+      "kind": "input",
+      "keywords": ["music", "subsonic", "song", "album", "artist"],
+      "fallback": "Search Navidrome for “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "Open in Navidrome" },
+        { "keys": "cmd+s", "title": "Star or unstar" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "abs": {
+      "title": "Audiobookshelf",
+      "description": "Continue listening with the progress, then what was added lately across your libraries; Enter opens in Audiobookshelf.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["audiobooks", "podcasts", "listen"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Audiobookshelf" },
+        { "keys": "cmd+shift+p", "title": "Mark finished" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "abs-search": {
+      "title": "Search Audiobookshelf",
+      "description": "Books, podcasts and authors across every library.",
+      "kind": "input",
+      "keywords": ["audiobooks", "podcasts"],
+      "fallback": "Search Audiobookshelf for “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "Open in Audiobookshelf" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "kavita": {
+      "title": "Kavita",
+      "description": "Continue reading with the pages read, then the series added lately; Enter opens the web reader.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keywords": ["ebooks", "read", "books", "comics"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Kavita" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "kavita-search": {
+      "title": "Search Kavita",
+      "description": "Series, collections and files across your libraries.",
+      "kind": "input",
+      "keywords": ["ebooks", "books"],
+      "fallback": "Search Kavita for “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "Open in Kavita" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "shelfmark": {
+      "title": "Request a book",
+      "description": "Search Shelfmark's book provider; Enter lists the releases found for the book, and Enter on one downloads it into the ebook library (asks first). With nothing typed, what Shelfmark is downloading now.",
+      "kind": "input",
+      "keywords": ["shelfmark", "getbooks", "ebook", "book"],
+      "fallback": "Request the book “{query}”",
+      "keys": [
+        { "keys": "enter", "title": "The releases for the book" },
+        { "keys": "cmd+enter", "title": "Open Shelfmark" }
+      ]
+    },
+    "shelfmark-releases": {
+      "title": "Releases",
+      "description": "The releases Shelfmark found for one book (opened from Request a book): format, size, source, seeders; Enter downloads (asks first).",
+      "kind": "list",
+      "lazy": true,
+      "keys": [
+        { "keys": "enter", "title": "Download the release (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the release title" }
+      ]
+    },
+    "bazarr": {
+      "title": "Subtitles",
+      "description": "Bazarr: how many movies and episodes still want subtitles, each provider's health, and the wanted items with the missing languages; Search missing subtitles runs Bazarr's task.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "keywords": ["bazarr", "subs", "subtitles"],
+      "keys": [
+        { "keys": "enter", "title": "Open in Bazarr" },
+        { "keys": "cmd+enter", "title": "Search subtitles for the item" }
+      ]
+    }
+  },
+  "bar": {
+    "downloads": {
+      "title": "Downloads",
+      "description": "SABnzbd and qBittorrent together: the download speed and how many items are active; hidden while both are idle. The popover lists the queue with progress bars, space pauses or resumes everything.",
+      "refresh": { "every": 15, "on": ["show", "wake", "network"] },
+      "rules": [
+        { "id": "paused", "when": "theater.paused", "description": "Everything is paused.", "color": "amber" }
+      ],
+      "mocks": {
+        "busy": { "title": "Downloading", "item": { "icon": "󰇚", "title": "4.2 MB/s · 3", "tooltip": "3 downloading, 4.2 MB/s" } },
+        "paused": { "title": "Paused", "item": { "icon": "󰏤", "title": "paused · 2", "color": "amber", "tooltip": "2 in the queue, paused" } },
+        "idle": { "title": "Idle, hidden", "item": { "hidden": true, "empty": { "icon": "󰇚", "tooltip": "Nothing downloading" } } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open the client of the focused item" },
+        { "keys": "space", "title": "Pause or resume everything" },
+        { "keys": "backspace", "title": "Delete the focused item (asks first)" },
+        { "keys": "p", "title": "Open Downloads in pal" },
+        { "keys": "up, down", "title": "Move between the items" }
+      ]
+    },
+    "playing": {
+      "title": "Now Playing",
+      "description": "Who is watching what on Jellyfin: the count on the strip, the sessions with progress in the popover; hidden while nothing plays.",
+      "refresh": { "every": 30, "on": ["show", "wake", "network"] },
+      "mocks": {
+        "one": { "title": "One stream", "item": { "icon": "󰐊", "title": "cagdas", "tooltip": "cagdas · Barry S1E4 on the living room TV" } },
+        "two": { "title": "Two streams", "item": { "icon": "󰐊", "title": "2", "tooltip": "cagdas and a guest are watching" } },
+        "idle": { "title": "Nothing playing, hidden", "item": { "hidden": true, "empty": { "icon": "󰐊", "tooltip": "Nothing playing on Jellyfin" } } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open the item in Jellyfin" },
+        { "keys": "space", "title": "Pause or resume the focused session" },
+        { "keys": "p", "title": "Open Now Playing in pal" },
+        { "keys": "up, down", "title": "Move between the sessions" }
+      ]
+    },
+    "requests": {
+      "title": "Requests",
+      "description": "Pending Jellyseerr requests as the badge, hidden at zero; the popover lists them with the poster, a approves and d declines the focused one.",
+      "refresh": { "every": 300, "on": ["show", "wake", "network"] },
+      "mocks": {
+        "pending": { "title": "Two pending", "item": { "icon": "󰋻", "badge": 2, "tooltip": "2 pending requests" } },
+        "none": { "title": "Nothing pending, hidden", "item": { "hidden": true, "empty": { "icon": "󰋻", "tooltip": "No pending requests" } } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open the request in Jellyseerr" },
+        { "keys": "a", "title": "Approve the focused request" },
+        { "keys": "d", "title": "Decline the focused request (asks first)" },
+        { "keys": "p", "title": "Open Requests in pal" },
+        { "keys": "up, down", "title": "Move between the requests" }
+      ]
+    },
+    "queue": {
+      "title": "Arr queue",
+      "description": "What Radarr, Sonarr and Lidarr are fetching or importing: the count on the strip, amber when an item is stuck (an import that needs a hand, a failed download); hidden while every queue is empty.",
+      "refresh": { "every": 60, "on": ["show", "wake", "network"] },
+      "rules": [
+        { "id": "stuck", "when": "theater.stuck > 0", "description": "An item needs attention.", "color": "amber" }
+      ],
+      "mocks": {
+        "busy": { "title": "Fetching", "item": { "icon": "󰦗", "title": "3", "tooltip": "3 in the arr queues" } },
+        "stuck": { "title": "One stuck", "item": { "icon": "󰦗", "title": "3", "badge": 1, "color": "amber", "tooltip": "3 in the queues, 1 needs attention" } },
+        "idle": { "title": "Empty, hidden", "item": { "hidden": true, "empty": { "icon": "󰦗", "tooltip": "The arr queues are empty" } } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open the item's app" },
+        { "keys": "backspace", "title": "Remove the focused item from its queue (asks first)" },
+        { "keys": "p", "title": "Open the app's palette in pal" },
+        { "keys": "up, down", "title": "Move between the items" }
+      ]
+    }
+  },
+  "states": {
+    "downloading": { "description": "Items downloading across SABnzbd and qBittorrent", "kind": "number" },
+    "speed": { "description": "Combined download speed, bytes per second", "kind": "number" },
+    "paused": { "description": "Every download client is paused", "kind": "boolean" },
+    "watching": { "description": "Jellyfin sessions playing something", "kind": "number" },
+    "pending": { "description": "Jellyseerr requests waiting for approval", "kind": "number" },
+    "queued": { "description": "Items across the Radarr, Sonarr and Lidarr queues", "kind": "number" },
+    "stuck": { "description": "Queue items with a warning or an error", "kind": "number" }
+  },
+  "links": {
+    "search": { "description": "Open Search Jellyfin with a query typed", "params": { "q": { "description": "What to search for" } } },
+    "request": { "description": "Open Request a title with a query typed", "params": { "q": { "description": "The title to look up on Jellyseerr" } } },
+    "downloads": { "description": "Open the Downloads palette" },
+    "pause-all": { "description": "Pause SABnzbd and qBittorrent" },
+    "resume-all": { "description": "Resume SABnzbd and qBittorrent" },
+    "sync-watchlist": { "description": "Run an import list sync now (Radarr, Sonarr)", "params": { "app": { "description": "radarr or sonarr; both when omitted" } } },
+    "open": { "description": "Open a service's web UI", "params": { "service": { "description": "jellyfin, seerr, radarr, sonarr, lidarr, prowlarr, hydra, bazarr, sab, qbit, navidrome, abs, kavita, shelfmark, filebrowser, homepage", "required": true } } }
+  },
+  "store": {
+    "tagline": "Jellyfin, the arrs, the download clients, music, books: one extension",
+    "category": "productivity",
+    "features": [
+      "Theater: every configured service as a row with live health, Enter to its web UI, cmd+Enter into its palette",
+      "Jellyfin: Continue Watching and Latest with posters, search with a detail pane, Now Playing, play on a device, mark played, favourite",
+      "Jellyseerr: requests with Approve and Decline, Request a title through TMDB search, 4K when enabled",
+      "Radarr, Sonarr, Lidarr: queue, calendar, wanted, history, add with the default profile, sync the Trakt watchlist now",
+      "SABnzbd and qBittorrent as one Downloads queue: pause, resume, delete, a speed limit; history with failure reasons",
+      "Prowlarr and NZBHydra2 searches, indexer health; Navidrome, Audiobookshelf and Kavita with cover art; Shelfmark book requests; Bazarr wanted subtitles",
+      "Four bar items: downloads speed, who is watching, pending requests, the arr queue; each hidden when it has nothing to say"
+    ],
+    "permissions": ["network", "token"],
+    "platforms": ["macos", "linux"]
+  }
+}
