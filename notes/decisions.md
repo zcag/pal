@@ -1403,6 +1403,27 @@ show (`pending`, a generation) and places and reveals in one main-thread
 turn (`reveal`); `SHOW_WAIT` (80 ms) reveals anyway for an empty page. A
 show while up, and an engage, keep showing at once.
 
+## general.app_switcher: macOS's own switcher on another chord (2026-09-22)
+
+He wanted cmd+tab for pal and alt+tab for macOS's App Switcher. A Karabiner
+rule (installed on hornet) would only give the Dock a quick tap (Karabiner
+lets go of Cmd with the Tab), so pal's tap does it: a `general.app_switcher`
+Tab chord is swallowed and turned into the Dock's own: the chord's modifiers
+let go of (posted key-ups), a Cmd `flagsChanged` down, a Cmd+Tab per press
+(Cmd+Shift+Tab for the `shift+` variant) a beat later off the callback's
+thread, the passing `flagsChanged` carrying Cmd while it lasts, and a Cmd up
+when the chord's modifiers come up; every posted event is stamped
+(`EventSourceUserData` = `TAG`) so the tap lets its own through. Measured:
+the Dock reads the combined modifier state, so with option down a posted
+Cmd+Tab is Cmd+Option+Tab to it and nothing happens (the probe under
+`target/scratch-sw`'s era, `/tmp/claude-501/probe/cmdtab.swift`, and the
+first two builds); posting the option up first is what makes it work, and
+only a physical key could confirm it (a synthetic option from System
+Events lives in another source state that a HID-state key-up does not
+clear). He confirmed it on the daily app. A `hold` chord equal to it is
+dropped with a log line. Settings › General's Window switcher card has the
+row; docs/config.md the key.
+
 ## Decided: odak (2026-09-22)
 
 - `extensions/odak`: four palettes (`odak` Todos, live and lazy with a 60 s ttl, `multi`; `add` input with the root fallback row; `search` input; `done` Completed, live) and the bar item `odak/today`, over one client (`api.ts`: the bearer, one REST call, an in-memory cache with `patch`/`peek`), one data layer (`data.ts`), the add grammar and the day words (`when.ts`, pure, 13 tests), the popover (`view.ts`, pure). No instances: odak is one file per server and the API has no workspaces.
