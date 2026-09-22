@@ -24,9 +24,10 @@ three ways past it.
   answered inline, and a query nothing matches falls back to the web, a
   quicklink or a palette ([Getting
   started](docs/getting-started.md#the-root-inline-answers-fallbacks-and-the-empty-list)).
-- **A hundred-odd palettes bundled** in fifty-five extensions, from
+- **Close to two hundred palettes bundled** in sixty-nine extensions, from
   Applications and Clipboard History
-  to GitHub, Slack, Gmail, Spotify, Hue, Docker, Obsidian, 1Password and
+  to GitHub, Slack, Gmail, Spotify, Hue, Docker, Obsidian, 1Password, your
+  todos, photos, Grafana and home media stack, a disk map and
   a few games, each with its own actions, keys and settings
   ([Palettes](docs/palettes.md)).
 - **Extensions in TypeScript**, one directory with a manifest and an

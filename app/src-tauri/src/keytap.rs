@@ -24,7 +24,7 @@
 
 use std::sync::Mutex;
 
-use pal_core::keycast::{Button, Gesture, GestureEvent, Mods, Phase, Scroll};
+use pal_core::keycast::{Button, Gesture, GestureEvent, Mods, Scroll};
 use tauri::AppHandle;
 
 use crate::lock;
@@ -174,7 +174,8 @@ mod monitor {
     use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags, NSEventPhase, NSEventType, NSWorkspace};
     use tauri::AppHandle;
 
-    use super::{Button, Event, Gesture, GestureEvent, Kind, Mods, Phase, Scroll, Wants};
+    use super::{Button, Event, Gesture, GestureEvent, Kind, Mods, Scroll, Wants};
+    use pal_core::keycast::Phase;
 
     thread_local! {
         static MONITOR: RefCell<Option<(Wants, Retained<AnyObject>)>> = const { RefCell::new(None) };

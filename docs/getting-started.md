@@ -282,8 +282,8 @@ The root list is more than the index's hits.
 ## Palettes
 
 A palette is one list with its own actions: Applications, Clipboard
-History, Emoji, Files, Windows, Calculator and a hundred more ship with
-pal, in fifty-five extensions.
+History, Emoji, Files, Windows, Calculator and close to two hundred ship with
+pal, in sixty-nine extensions.
 [Palettes](palettes.md) describes each with its keys and settings. Three
 kinds, which matter for what the root shows: an **indexed** palette is
 listed once and searched from the index (apps, bookmarks, emoji); a

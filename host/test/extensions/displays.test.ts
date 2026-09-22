@@ -414,7 +414,9 @@ describe("displays: macOS with nothing installed", () => {
 
   test("the displays still list from system_profiler and the core's frames; setup rows say what to install; the bar hides by its states", async () => {
     const rows = await host.list("displays", "displays");
-    expect(rows.map((r) => r.id)).toEqual(["display:2", "display:1", "sleep", "hint:setup:displayplacer", "hint:setup:brightness", "hint:setup:m1ddc"]);
+    // The DDC tool named is the machine's: m1ddc on Apple silicon, ddcctl on Intel (CI's runner).
+    const ddc = process.arch === "arm64" ? "m1ddc" : "ddcctl";
+    expect(rows.map((r) => r.id)).toEqual(["display:2", "display:1", "sleep", "hint:setup:displayplacer", "hint:setup:brightness", `hint:setup:${ddc}`]);
     expect(rows[0]).toMatchObject({ name: "DELL U2720Q", subtitle: "2560×1440 @ 60 Hz · HiDPI · DisplayPort-DONGLETYPE-DP", accessories: [{ tag: "main", color: "blue" }] });
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "copy-id"]);
     expect(rows[3]).toMatchObject({ subtitle: "brew install displayplacer", section: "Setup", actions: [{ id: "copy-install" }] });
