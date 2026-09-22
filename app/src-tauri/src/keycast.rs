@@ -48,7 +48,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
 
 use crate::keytap::{self, Event, Kind, Wants};
-use crate::{events, hud, lock, panel, permissions, settings};
+use crate::{events, lock, panel, permissions, settings};
 
 pub const WINDOW: &str = "keycast";
 /// Where the overlay can be drawn and the keys watched.
@@ -369,10 +369,30 @@ fn cursor(app: &AppHandle) -> Option<(f64, f64)> {
     Some((((c.x - p.x as f64) / scale * 10.0).round() / 10.0, ((c.y - p.y as f64) / scale * 10.0).round() / 10.0))
 }
 
+/// The display under `cursor` (physical pixels) among `monitors`, by a
+/// hit test of our own: tauri's `monitor_from_point` answered none for
+/// a cursor plainly inside the one display on hornet (seen 2026-09-22,
+/// from a monitor block on the main thread), and the popover's
+/// `displays` already hit-tests this way. The first when none holds it.
+fn display_under(monitors: Vec<tauri::Monitor>, cursor: Option<(f64, f64)>) -> Option<tauri::Monitor> {
+    let hit = cursor.and_then(|(x, y)| {
+        monitors.iter().position(|m| {
+            let (px, py) = (m.position().x as f64, m.position().y as f64);
+            x >= px && x < px + m.size().width as f64 && y >= py && y < py + m.size().height as f64
+        })
+    });
+    let mut monitors = monitors;
+    match hit {
+        Some(i) => Some(monitors.swap_remove(i)),
+        None => monitors.into_iter().next(),
+    }
+}
+
 /// The window over the display under the cursor (main thread): moved and
 /// sized to it when the cursor is on another than the one it covers.
 fn follow(app: &AppHandle) {
-    let Some(m) = hud::monitor_at_cursor(app) else { return };
+    let cursor = app.cursor_position().ok().map(|c| (c.x, c.y));
+    let Some(m) = display_under(app.available_monitors().unwrap_or_default(), cursor) else { return };
     let name = m.name().cloned().unwrap_or_default();
     let st = app.state::<Keycast>();
     {

@@ -18,6 +18,16 @@ while it runs. macOS only.
   (`⌥ click`, `⌘ right click`) goes on the strip too. Each entry fades
   once `hold` seconds have passed since its last press; the strip keeps
   `max` entries, the oldest leaving first.
+- **Scroll and gestures** (on the strip, with `gestures` on): a scroll as
+  `scroll ↓`, the arrow the dominant axis of what has piled up and sized
+  by how far (three steps), one entry per stretch of trackpad scrolling
+  that its momentum keeps on screen, a wheel's notches in one direction
+  joining the newest; a pinch as `pinch out +35%` and a rotation as
+  `rotate ↻ 12°`, one entry each that counts up from the fingers landing
+  to their lifting; a two-finger swipe as `swipe ←`; a smart zoom
+  (two-finger double tap) as `smart zoom`. Only what AppKit hands a
+  global monitor: the system's three- and four-finger swipes (Spaces,
+  Mission Control) are the window server's and never arrive.
 - **Cursor**: a ring around the pointer in the `ring_color`, shrinking
   while a button is down, and a ripple spreading from every click: a
   filled disc in the ring's colour for the left button, a hollow amber
@@ -39,6 +49,7 @@ app's keys).
 | Start keycast / Stop keycast | On in the default mode, or off. The row is in the root's Now section while it is on. |
 | Keys only, Cursor only, Keys and cursor | Start in that mode, or switch to it while on; `cmd+enter` stops from a mode row. The one on is tagged `current`, the default `default`. |
 | Shortcuts only: on / off | Flip the setting (`cmd+shift+s` on any row). |
+| Scroll and gestures: on / off | Flip the setting (`cmd+shift+g` on any row). |
 | Keycast needs Input Monitoring | Shown while the grant is missing; Enter shows the system prompt, or the pane once it was refused. |
 
 `cmd+,` on any row opens the extension's settings. The palette hides
@@ -50,7 +61,8 @@ recording never has the panel in it.
 A red record dot with the mode (`keys + cursor`) while it runs, hidden
 otherwise (`show = "always"` keeps a muted dot). Its popover: the three
 modes as tiles (`k`, `c`, `b`; the one on wears the ring), the
-shortcuts-only switch (`s`), `backspace` stops, `o` opens the palette.
+shortcuts-only (`s`) and gestures (`g`) switches, `backspace` stops, `o`
+opens the palette.
 
 ## Links
 
@@ -83,6 +95,7 @@ the one snippet expansion uses (one `NSEvent` global monitor for both).
 | `ring` | `true` | The ring around the cursor (clicks ripple either way) |
 | `ring_color` | `blue` | The ring's and the left click's colour, from the tag palette |
 | `ripples` | `true` | A ripple on every click |
+| `gestures` | `true` | Scrolls and trackpad gestures on the strip (keys and both modes; cursor-only draws the pointer alone) |
 
 ## Linux
 

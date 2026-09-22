@@ -1026,7 +1026,7 @@ arrows move and a click sets, and the strip untouched:
 - **Keycast, `active`** (`extensions/keycast/`): a red record dot with
   the mode while the overlay runs, hidden otherwise; the popover the
   three modes as tiles (`k`, `c`, `b`, the one on ringed), the
-  shortcuts-only switch (`s`), `backspace` stops. `on:
+  shortcuts-only (`s`) and gestures (`g`) switches, `backspace` stops. `on:
   ["state:keycast/active", "state:keycast/mode"]`: the shell publishes
   both, so a link or the palette flipping it redraws the item at once.
 
