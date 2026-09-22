@@ -1393,3 +1393,71 @@ window in the app.
   goes there), and keys posted by `cliclick` did not reach the global
   monitor while System Events' did, so a live check types through
   `osascript`.
+
+## Decided: keycast, scroll and gestures (2026-09-22)
+
+The owner's addition after the first round: the strip also names what
+the wheel and the trackpad do.
+
+- **The tap** (`keytap.rs`): `Wants` gained `scrolls` (`ScrollWheel`)
+  and `gestures` (`Magnify | Rotate | Swipe | SmartMagnify`; not the bare
+  `Gesture` type 29, which rides beside every one of those with nothing
+  of its own to read); an `Event` carries `scroll: Option<Scroll>` (the
+  scrolling deltas, the phase, the momentum phase) or `gesture:
+  Option<GestureEvent>` (the kind, this event's magnification or
+  rotation, a swipe's `deltaX`/`deltaY`, the phase), read only off their
+  own event types, as the key fields are. `NSEventPhase` maps to a
+  plain `Phase` in the core.
+- **Pure** (`core/src/keycast.rs`): `scroll_arrow` (the dominant axis,
+  AppKit's signs: `scrollingDeltaY` positive is up; natural scrolling
+  flips what the OS delivers, so the arrow is the content's way),
+  `scroll_level` (1..3 from how much piled up, the page sizes the arrow
+  by it), `scroll_caps` (`scroll ↓`), `gesture_caps` (`pinch out +35%`,
+  `pinch in −20%`, `rotate ↺ 12°` for AppKit's positive
+  counter-clockwise, `swipe ←`, `smart zoom`). `Feed::scroll`: one entry
+  per stretch (Began..Ended), its arrow and level re-made from the
+  running total on every Changed, the momentum after only moving its
+  time so it stays up through the coast; a wheel's notches (no phases)
+  in the same direction within the hold join the newest scroll entry,
+  a turn or a key in between starts another; no `×N` on a scroll.
+  `Feed::gesture`: a pinch or a rotation is one entry from Began to
+  Ended counting up; a swipe and a smart zoom are one entry each. Six
+  new core tests.
+- **The shell**: `gestures` is a setting (on by default) and they draw
+  on the strip only: `Mode::wants` asks for scrolls and gestures when
+  the strip is drawn (keys, both) and the setting is on; cursor-only
+  stays the pointer alone. Why on the strip and not by the ring: a
+  scroll or a pinch is something the audience needs named, like a
+  shortcut, and the strip is where named things go; cursor-only is the
+  mode chosen to keep words off the screen. Same gates as a key (no
+  secure field). One log line at a trackpad stretch's Began and at a
+  gesture's edges, never per event or per wheel notch, so a run's log
+  says what the trackpad delivered to a global monitor.
+- **The page**: entries carry `kind` and `level`; the fade moved from a
+  CSS animation delay to the page's own 100 ms clock (`exiting` for the
+  last 240 ms of the hold, a transition), so an entry a scroll keeps
+  updating never fades under the fingers; a scroll's arrow grows with
+  the level, a gesture's amount sits in tabular figures so it counts up
+  without jitter. The palette's Scroll and gestures row (`cmd+shift+g`),
+  the popover's `g` switch, two more bar mocks.
+- **The display under the cursor**: tauri's `monitor_from_point`
+  answered none for a cursor plainly inside hornet's one display
+  (`(1376, 1340)` physical on 3600 by 2338, from the monitor block on
+  the main thread; it had answered on the first run), so `follow`
+  hit-tests `available_monitors` itself, as the popover's `displays`
+  does, and takes the first when none holds the cursor: an overlay
+  somewhere beats none.
+- **Seen live on the scratch instance** (08:10-08:25): the tap installed
+  with `scrolls, gestures`; wheel scrolls posted through
+  `CGEvent(scrollWheelEvent2Source:)` from a Swift one-liner drew
+  `scroll ↑` with the arrow at level 2 after fifteen notches (a screen
+  capture, cropped, looked at), and reached the terminal beneath as a
+  scroll too. **Not seen**: a pinch, a rotation, a two-finger swipe, a
+  smart zoom, and the three- and four-finger system swipes, since no
+  finger gesture can be posted from a shell (there is no public API to
+  synthesise a magnify or a swipe event, and the private MultitouchSupport
+  framework was off the table); the log lines are the instrument for the
+  owner's first real run: a pinch should print `gesture Magnify Began`
+  and `Ended`, and a Mission Control swipe should print nothing at all
+  (the window server takes system gestures before any app sees them; the
+  docs say so as a fact of AppKit, not as something measured here).
