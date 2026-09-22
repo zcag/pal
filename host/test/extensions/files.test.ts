@@ -482,11 +482,14 @@ describe.skipIf(!HAS_FIND)("the Finder selection", () => {
   test("nothing selected: no suggestion, and the palette says why (Finder in front or not; Linux has none)", async () => {
     expect(await suggest()).toBeUndefined();
     const why = (await sel())[0];
+    if (!MAC) {
+      expect(why).toMatchObject({ id: "hint:Not available on Linux", actions: [] });
+      return;
+    }
     expect(why).toMatchObject({ id: "hint:Finder is not in front", actions: [] });
     front = "com.apple.finder";
     expect((await sel())[0]).toMatchObject({ id: "hint:Nothing is selected in Finder", subtitle: "Select files in Finder, then open pal", actions: [] });
     front = "com.google.Chrome";
-    if (!MAC) expect(why.name).toBe("Not available on Linux");
   });
 
   test.skipIf(!MAC)("one file selected: its row alone, with the file actions, in the palette and under Selected in Finder at the root; a gone path is skipped", async () => {

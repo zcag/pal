@@ -117,7 +117,9 @@ const moveActions = (rows: string[], what: string): Action[] => [
 ];
 const paletteActions: Action[] = [{ id: "palette", title: "Open Stats palette", shortcut: "s" }];
 /** Activity Monitor on macOS; the Processes palette is the nearest thing on Linux. */
-const monitorAction: Action = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "enter" } : { id: "processes", title: "Open Processes", shortcut: "enter" };
+// Enter opens Activity Monitor on macOS and the Processes palette elsewhere, where `p` then has nothing of its own to open.
+const monitorAction: Action = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "enter" } : { id: "processes", title: "Open Processes", shortcut: ["enter", "p"] };
+const processesAction: Action[] = MAC ? [{ id: "processes", title: "Open Processes palette", shortcut: "p" }] : [];
 const MONITOR_HINT = MAC ? "monitor" : "processes";
 const killAction = (p: Proc | undefined): Action[] => (p ? [{ id: "kill", title: `Kill ${p.name}`, shortcut: "x", style: "destructive", confirm: `Send SIGTERM to ${p.name} (${p.pid})?` }] : []);
 
@@ -152,7 +154,7 @@ export function renderCpu(st: CpuPopover): View {
   const [l1, l5, l15] = st.load;
   return {
     title: `CPU ${pct(st.cpu.total)}`, id: "cpu", keys: "actions",
-    actions: [monitorAction, ...killAction(focused), { id: "copy", title: "Copy share", shortcut: ["c", "cmd+c"] }, { id: "processes", title: "Open Processes palette", shortcut: "p" }, ...paletteActions, ...moveActions(top.map((p) => String(p.pid)), "process")],
+    actions: [monitorAction, ...killAction(focused), { id: "copy", title: "Copy share", shortcut: ["c", "cmd+c"] }, ...processesAction, ...paletteActions, ...moveActions(top.map((p) => String(p.pid)), "process")],
     tree: column([
       ...head("cpu", pct(st.cpu.total), "CPU", levelBadge(level), `${st.cpu.cores.length} cores · load ${load(l1)} ${load(l5)} ${load(l15)} · up ${uptimeText(st.uptime)}`),
       ...spark([{ values: st.history, color: colorOf(level) }], st, { max: 100, caption: "cpu, whole machine" }),
@@ -194,7 +196,7 @@ export function renderMemory(st: MemoryPopover): View {
   const swap = m.swapTotal ? ` · swap ${gb(m.swapUsed)} of ${gb(m.swapTotal)}` : "";
   return {
     title: `Memory ${pct(share)}`, id: "memory", keys: "actions",
-    actions: [monitorAction, ...killAction(focused), { id: "copy", title: "Copy usage", shortcut: ["c", "cmd+c"] }, { id: "processes", title: "Open Processes palette", shortcut: "p" }, ...paletteActions, ...moveActions(top.map((p) => String(p.pid)), "process")],
+    actions: [monitorAction, ...killAction(focused), { id: "copy", title: "Copy usage", shortcut: ["c", "cmd+c"] }, ...processesAction, ...paletteActions, ...moveActions(top.map((p) => String(p.pid)), "process")],
     tree: column([
       ...head("memory", pct(share), "Memory", levelBadge(level, m.pressure === "normal" ? "normal" : m.pressure), `${gb(m.used)} of ${gb(m.total)} used${swap}`),
       ...memoryBar(m),
