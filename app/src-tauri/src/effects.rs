@@ -10,7 +10,9 @@
 //! ("Copied, clears in N s" for a concealed copy with `clear_after`), an
 //! extension's own `hud` text, the once-per-run note when a `focus`
 //! could only bring the app forward (`windows::raise`), the layout's name (or why it
-//! failed) after a `layout`, and which panel took the path after a
+//! failed) after a `layout`, why a `space` could not come in front
+//! (`windows::go_space`; nothing when it did, the desktop moving is the
+//! feedback), and which panel took the path after a
 //! `dialog` (the Files row's "Use in dialog": the panel hides, the path is
 //! typed into the front app's open or save panel through its Go to Folder
 //! sheet, `pal_core::dialog::go`).
@@ -164,6 +166,13 @@ pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Resul
         hide_first(app, window).await?;
         let (handle, id) = (app.clone(), id.to_string());
         blocking(move || windows::raise(&handle, &id)).await?;
+    }
+    if let Some(id) = envelope.get("space").and_then(Value::as_str) {
+        hide_first(app, window).await?;
+        let (handle, id) = (app.clone(), id.to_string());
+        if let Err(e) = blocking(move || windows::go_space(&handle, &id)).await {
+            hud::show(app, &e);
+        }
     }
     if let Some(what) = envelope.get("layout") {
         let p: windows::LayoutParams = serde_json::from_value(what.clone()).map_err(|e| format!("bad layout effect: {e}"))?;

@@ -304,6 +304,8 @@ is left to the load-time check.
   `focus` (a window id), `layout` (a `WindowLayoutRequest`: `name` one of
   the window layouts, `id` a window from `windows.list()`, else the
   focused one; the panel hides first and the HUD names the layout),
+  `space` (a space id from `windows.spaces()`: the panel hides, then the
+  space comes in front),
   `hide`, `toast` (`{ title, message?, style? }`, `style` `success` or
   `destructive`), `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
@@ -776,7 +778,7 @@ missing optional one, so `params.name` is `undefined` rather than `""`. A
 key the manifest does not name rides through as a string.
 
 The answer is an `Effect` like a pick's, run with the panel down: `copy`,
-`copy_files`, `open`, `paste`, `focus`, `layout`, `hud`, `toast` (its title
+`copy_files`, `open`, `paste`, `focus`, `layout`, `space`, `hud`, `toast` (its title
 is the HUD's line), `push` (the panel shows inside that palette, with the
 args) or nothing. `keep`, `show`, `view` and `form` need the level a pick
 came from and are refused with the reason, as `effects.run` refuses them;
@@ -1153,8 +1155,13 @@ to the core.
   `Rect`: `x`, `y`, `w`, `h`), `setFrame(id, rect)`, `displays()`
   (`Display[]`: `id`, `frame`, `visible_frame`, `primary`), `layout(req)`
   (a `WindowLayoutRequest` run now, the panel up; from `pick` prefer the
-  `layout` effect). Focus is the `{ focus: id }` effect from `pick`, so
-  the panel hides first.
+  `layout` effect), `spaces()` (every Space, workspace or desktop in the
+  desktop's order, `Space`: `id`, `index` (the number the desktop shows),
+  `name` (Hyprland's or Sway's), `current`, `previous` (left most
+  recently), `fullscreen`, `monitor`, `windows` (ids from `list()`)),
+  `goSpace(id)` (the space in front now; from `pick` prefer the `space`
+  effect, which hides first). Focus is the `{ focus: id }` effect from
+  `pick`, so the panel hides first.
 - `system.commands()` (sleep, lock, dark mode, volume, and so on, with
   `available` per machine), `system.run(id)` (hides the panel, then runs).
 - `apps.forFile(path)`: the applications the OS registers for a file

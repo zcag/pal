@@ -6,6 +6,8 @@
 //! `cargo run -p pal-core --example windows -- close <id>`
 //! `cargo run -p pal-core --example windows -- icon <id>`        the .app / .desktop its icon comes from
 //! `cargo run -p pal-core --example windows -- displays`         every display: frame and visible frame
+//! `cargo run -p pal-core --example windows -- spaces`           every space in the desktop's order, with the windows on it
+//! `cargo run -p pal-core --example windows -- space <id>`       bring that space in front (a window there raised, else ctrl+arrows)
 //! `cargo run -p pal-core --example windows -- focused`          the window with keyboard focus
 //! `cargo run -p pal-core --example windows -- frame <id>`       where it is
 //! `cargo run -p pal-core --example windows -- set-frame <id> <x> <y> <w> <h>`
@@ -49,6 +51,17 @@ fn main() {
                 println!("{:<12} frame {:<26} visible {:<26}{}", d.id, rect(&d.frame), rect(&d.visible_frame), if d.primary { " primary" } else { "" });
             }
         })),
+        Some("spaces") => {
+            let t0 = std::time::Instant::now();
+            done(windows::spaces().map(|ss| {
+                println!("{} spaces, {:.1} ms", ss.len(), t0.elapsed().as_secs_f64() * 1000.0);
+                for s in ss {
+                    let flags = [s.current.then_some("current"), s.previous.then_some("previous"), s.fullscreen.then_some("fullscreen")].into_iter().flatten().collect::<Vec<_>>().join(" ");
+                    println!("{:>8} #{:<2} {:<10} {:<20} {:<10} {}", s.id, s.index, s.name.unwrap_or_default(), flags, s.monitor.unwrap_or_default(), s.windows.join(","));
+                }
+            }))
+        }
+        Some("space") => done(windows::go_space(id())),
         Some("focused") => done(windows::focused().map(|w| match w {
             Some(w) => println!("{} {} {:?} {}", w.id, w.app, w.title, windows::frame(&w.id).map(|r| rect(&r)).unwrap_or_default()),
             None => println!("none"),

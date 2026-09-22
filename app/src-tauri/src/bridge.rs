@@ -23,7 +23,7 @@
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
-//! - `core/windows.{list, close, minimize, unminimize, fullscreen, frame, set_frame, displays, focused, layout}` (windows.rs)
+//! - `core/windows.{list, close, minimize, unminimize, fullscreen, frame, set_frame, displays, focused, layout, spaces, go_space}` (windows.rs)
 //! - `core/calendar.{permission, request, open_settings, calendars, events, create, delete, open}` (calendar.rs)
 //! - `core/view.update {extension, palette | bar, id?, spec}` (views.rs)
 

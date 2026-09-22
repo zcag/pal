@@ -462,6 +462,13 @@ export type Effect = {
    * like `focus`, with the same toast when missing.
    */
   layout?: WindowLayoutRequest;
+  /**
+   * Hide, then bring a space (an id from `windows.spaces`) in front. On
+   * macOS a window there is raised (the desktop follows it), an empty
+   * space is reached with Mission Control's ctrl+arrows, which need
+   * Accessibility; the HUD says so when it could not.
+   */
+  space?: string;
   hide?: true;
   toast?: { title: string; message?: string; style?: "success" | "failure" };
   /**

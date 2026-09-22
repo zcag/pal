@@ -372,6 +372,132 @@
           ]
         }
       ]
+    },
+    "spaces": {
+      "title": "Spaces",
+      "live": true,
+      "input": false,
+      "icon": {
+        "tile": {
+          "glyph": "󱂬",
+          "bg": "slate"
+        }
+      },
+      "placeholder": "Switch to a space",
+      "items": [
+        {
+          "id": "web",
+          "name": "web",
+          "subtitle": "Google Chrome",
+          "keywords": [
+            "space",
+            "desktop",
+            "workspace",
+            "1",
+            "Google Chrome"
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "accessories": [
+            {
+              "tag": "previous"
+            }
+          ],
+          "actions": [
+            {
+              "id": "go",
+              "title": "Go"
+            }
+          ]
+        },
+        {
+          "id": "term",
+          "name": "term",
+          "subtitle": "kitty · Code",
+          "keywords": [
+            "space",
+            "desktop",
+            "workspace",
+            "2",
+            "kitty",
+            "Code"
+          ],
+          "icon": {
+            "app": "/Applications/kitty.app"
+          },
+          "accessories": [
+            {
+              "tag": "current"
+            }
+          ],
+          "actions": [
+            {
+              "id": "go",
+              "title": "Go"
+            }
+          ]
+        },
+        {
+          "id": "misc",
+          "name": "misc",
+          "subtitle": "Mail · Finder",
+          "keywords": [
+            "space",
+            "desktop",
+            "workspace",
+            "3",
+            "Mail",
+            "Finder"
+          ],
+          "icon": {
+            "app": "/System/Applications/Mail.app"
+          },
+          "accessories": [],
+          "actions": [
+            {
+              "id": "go",
+              "title": "Go"
+            }
+          ]
+        },
+        {
+          "id": "4",
+          "name": "Desktop 4",
+          "subtitle": "Nothing open",
+          "keywords": [
+            "space",
+            "desktop",
+            "workspace",
+            "4"
+          ],
+          "icon": "󰍹",
+          "accessories": [],
+          "actions": [
+            {
+              "id": "go",
+              "title": "Go"
+            }
+          ]
+        },
+        {
+          "id": "last",
+          "name": "Previous space",
+          "subtitle": "web",
+          "keywords": [
+            "back",
+            "toggle",
+            "last"
+          ],
+          "icon": "󰁍",
+          "actions": [
+            {
+              "id": "go",
+              "title": "Go"
+            }
+          ]
+        }
+      ]
     }
   },
   "shots": {
@@ -398,6 +524,12 @@
       "keys": [
         "down*2",
         "cmd+shift+w"
+      ]
+    },
+    "5-spaces": {
+      "palette": "spaces",
+      "keys": [
+        "down"
       ]
     }
   }

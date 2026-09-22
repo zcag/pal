@@ -1249,9 +1249,10 @@ mod triggers {
 
     /// The clock tick (`minute`), and on macOS the workspace's wake and
     /// activate notifications (`wake`, `focus`); wake and a Space change
-    /// also probe for sketchybar again (`sketchybar::reprobe`), and an
+    /// also probe for sketchybar again (`sketchybar::reprobe`), an
     /// activation stamps the core's focus history
-    /// (`windows::stamp_focused`).
+    /// (`windows::stamp_focused`) and a Space change its space history
+    /// (`windows::stamp_space`).
     pub fn install(app: &AppHandle) {
         let handle = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -1284,10 +1285,10 @@ mod triggers {
                 observe(unsafe { NSWorkspaceDidWakeNotification }, Box::new(move || trigger(&h, "wake")));
                 let h = handle.clone();
                 observe(unsafe { NSWorkspaceDidActivateApplicationNotification }, Box::new(move || { crate::windows::stamp_focused(); trigger(&h, "focus") }));
-                for (name, why) in [(unsafe { NSWorkspaceDidWakeNotification }, "wake"), (unsafe { NSWorkspaceActiveSpaceDidChangeNotification }, "space")] {
-                    let h = handle.clone();
-                    observe(name, Box::new(move || sketchybar::reprobe(&h, why)));
-                }
+                let h = handle.clone();
+                observe(unsafe { NSWorkspaceDidWakeNotification }, Box::new(move || sketchybar::reprobe(&h, "wake")));
+                let h = handle.clone();
+                observe(unsafe { NSWorkspaceActiveSpaceDidChangeNotification }, Box::new(move || { crate::windows::stamp_space(); sketchybar::reprobe(&h, "space") }));
             });
         }
     }

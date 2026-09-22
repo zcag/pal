@@ -325,6 +325,26 @@ export type Window = {
   icon: string | null;
 };
 
+/** `pal_core::windows::Space`: a Space (macOS), workspace (Hyprland, Sway) or desktop (X11); `Space` is the view spacing scale, hence the name. */
+export type Workspace = {
+  /** What `goSpace` and the `space` effect take, stable while the space exists. */
+  id: string;
+  /** The number the desktop shows: Mission Control's (1-based across displays, desktops only; 0 for a full-screen app's space), Hyprland's and Sway's, X11's + 1. */
+  index: number;
+  /** A Hyprland or Sway workspace's name; null elsewhere. */
+  name: string | null;
+  /** In front on its display. */
+  current: boolean;
+  /** The space left most recently (a switch by pal or a swipe), while it exists and is not in front: where "back" goes. */
+  previous: boolean;
+  /** A full-screen app's own space (macOS). */
+  fullscreen: boolean;
+  /** Only when there is more than one display, as `Window.monitor`. */
+  monitor: string | null;
+  /** The windows on it, ids as `windows.list` gives them. */
+  windows: string[];
+};
+
 /** `pal_core::windows::Rect`: global top-left origin, points on macOS, logical pixels on Linux. */
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -356,6 +376,10 @@ export const windows = {
    * which hides first and shows the layout's name in the HUD.
    */
   layout: (req: WindowLayoutRequest) => call<Applied>("windows.layout", req),
+  /** Every space of every display in the desktop's order, with the windows on each. */
+  spaces: () => call<Workspace[]>("windows.spaces"),
+  /** Bring a space in front right now, with the panel wherever it is. From `pick` prefer the `space` effect, which hides first. */
+  goSpace: (id: string) => call<null>("windows.go_space", { id }),
 };
 
 /** `extensions.rs` `Row`: one extension the app knows, wherever it came from. */

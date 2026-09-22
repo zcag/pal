@@ -15,6 +15,21 @@ was minimised. The other actions close or minimise, one window or the
 app's whole set, without leaving the palette, which lists again so the
 row is seen to go.
 
+**Spaces** is the same capability one level up: a row per Space (macOS),
+workspace (Hyprland, Sway) or desktop (X11) in the desktop's order, the
+apps on it as the subtitle, the icon of the window used there last, a
+`current` tag on the one in front and `previous` on the one left most
+recently. Enter brings it in front: the panel hides, then on macOS a
+window there is raised (the desktop follows it; the one used there last
+by the focus history, else the biggest) and an empty space is reached
+with Mission Control's ctrl+arrows, one press per space between (needs
+Accessibility like paste); Linux asks the compositor. Previous space goes
+back to the one left most recently, a swipe counted too. `spaces =
+["web", "term", "misc"]` names the desktops by number; a named space's
+row id is its name, so `[palettes.windows-spaces.item_hotkeys]` reads
+`term = "ctrl+2"` and `last = "ctrl+f"`. With `back_and_forth` on, a
+space's key pressed while on it goes back to the previous one.
+
 ## Keyboard
 
 | keys | action |
@@ -57,6 +72,8 @@ Settings, `[extensions.windows]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
+| `spaces` | list of strings | `[]` | Names for the desktops by number: the Spaces row titles, the `ws` accessory, and the row ids `item_hotkeys` key on. |
+| `back_and_forth` | bool | `false` | A space's hotkey pressed while on it goes to the previous space. |
 
 ## Order
 
@@ -75,6 +92,9 @@ back until windows get used. Sway and X11 list front to back.
   often you chose a window. Type part of its title instead.
 - No moving or resizing: that is Window Management, which has Apply to…
   for a window picked from this list's rows.
+- No moving a window to another space, and no making or removing spaces:
+  macOS keeps those behind the Dock's private interface (yabai needs its
+  scripting addition and SIP off for them); Mission Control does both.
 - Hide app is macOS only; on Linux the action is not offered.
 - No window previews: the row has the app's icon, not a thumbnail.
 

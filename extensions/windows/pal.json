@@ -1,9 +1,14 @@
 {
   "name": "windows",
   "title": "Windows",
-  "description": "Every open window, with its app's icon, most recently used first and grouped by app. Enter switches to it; close, minimise, close or minimise all of the app, and hide or show the app from the action panel.",
+  "description": "Every open window, with its app's icon, most recently used first and grouped by app. Enter switches to it; close, minimise, close or minimise all of the app, and hide or show the app from the action panel. Spaces: a row per Space, workspace or desktop with the apps on it; Enter brings it in front, and named desktops take global hotkeys.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󱂬", "bg": "slate" } },
+  "icon": {
+    "tile": {
+      "glyph": "󱂬",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -15,14 +20,31 @@
       "text": "List minimised windows too",
       "description": "Focusing a minimised window restores it.",
       "default": true
+    },
+    {
+      "kind": "list",
+      "id": "spaces",
+      "label": "Space names",
+      "description": "Names for the desktops by number: the first entry names Desktop 1. A named space's row is titled by it, the windows rows say `ws <name>`, and its row id is the name, so `[palettes.windows-spaces.item_hotkeys]` reads `term = \"ctrl+alt+shift+a\"`.",
+      "placeholder": "web",
+      "default": []
+    },
+    {
+      "kind": "boolean",
+      "id": "back_and_forth",
+      "label": "Back and forth",
+      "text": "A space's hotkey pressed while on it goes to the previous space",
+      "description": "Hyprland's workspace_back_and_forth: the same key toggles between a space and where you came from. Enter on the current space's row does the same.",
+      "default": false
     }
   ],
   "store": {
-    "tagline": "Every open window, most recently used first; Enter switches to it",
+    "tagline": "Every open window, most recently used first, and the spaces they are on; Enter switches",
     "category": "productivity",
     "features": [
       "Live: listed again every time the panel shows, so window titles are root results and the order is most recently used, the window you came from first (macOS and Hyprland)",
       "A section per app; the app name is the subtitle and a keyword, the bundle id or window class a keyword too",
+      "Spaces: a row per Space, workspace or desktop in the desktop's order, the apps on it as the subtitle, the icon of the window used there last, `current` and `previous` tags; Enter brings it in front (macOS raises a window there so the desktop follows, an empty space by Mission Control's ctrl+arrows), Previous space goes back, and a named desktop's row takes an `item_hotkeys` key",
       "A hidden app's window carries a `hidden` tag, a minimised one `minimized`, one on another space `other space` or `ws 3`, and the monitor when known",
       "Close (`cmd+w`) and Minimize (`cmd+m`) keep the palette open and list again; Hide app (`cmd+h`) hides the whole app, Show app (`cmd+shift+h`) brings a hidden one back",
       "Minimize all (`cmd+shift+m`) and Close all (`cmd+shift+w`, asks first) act on every window of the app",
@@ -52,6 +74,10 @@
       {
         "file": "4-confirm.png",
         "caption": "Close all of this app asks first"
+      },
+      {
+        "file": "5-spaces.png",
+        "caption": "Spaces: the three desktops by name with the apps on each, the current one tagged"
       }
     ],
     "actions": [
@@ -89,6 +115,11 @@
         "title": "Close all of this app",
         "description": "Asks first.",
         "keys": "cmd+shift+w"
+      },
+      {
+        "title": "Go",
+        "description": "Spaces: hides the panel, then brings the space in front. On the current space with Back and forth on, goes to the previous one.",
+        "keys": "enter"
       }
     ]
   },
@@ -128,6 +159,24 @@
           "title": "Close all of the app's windows, after a confirm"
         }
       ]
+    },
+    "spaces": {
+      "title": "Spaces",
+      "kind": "live",
+      "description": "Every Space, workspace or desktop in the desktop's order, with the apps on it; Enter brings it in front. Previous space goes back to the one left most recently.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Bring the space in front"
+        }
+      ]
     }
-  }
+  },
+  "keywords": [
+    "window",
+    "switcher",
+    "space",
+    "desktop",
+    "workspace"
+  ]
 }

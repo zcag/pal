@@ -156,7 +156,8 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Wi-Fi](#wi-fi-wifi) | `wifi` | live, normal | Join, scan, or turn the radio off or on |
 | [Window Management](#window-management-window-management-window-management-arrange) | `window-management` | indexed, normal | Apply to the focused window |
 | [Arrange Window](#window-management-window-management-window-management-arrange) | `window-management-arrange` | input, normal | Pick the window, then its layout |
-| [Windows](#windows-windows) | `windows` | live, primary | Focus the window |
+| [Windows](#windows-windows-windows-spaces) | `windows` | live, primary | Focus the window |
+| [Spaces](#windows-windows-windows-spaces) | `windows-spaces` | live, normal | Bring the space in front |
 | [Wordle](#wordle-wordle) | `wordle` | view, normal | Submit the guess |
 | [YouTube](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-search` | input, normal | Open in the browser |
 | [YouTube Channels](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-channels` | input, normal | Latest videos |
@@ -1243,7 +1244,7 @@ Settings, `[extensions.system]`:
 | `awake_presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
 | `awake_display` | bool | `true` | Keep the display awake too (`caffeinate -d`); off, the display may sleep while the machine stays up. The row's field and the popover's switch override it per run. |
 
-## Windows (`windows`)
+## Windows (`windows`, `windows-spaces`)
 
 Every open window with its app's icon, most recently used first on macOS
 and Hyprland (front to back on Sway and X11), never ranked by how often
@@ -1294,11 +1295,60 @@ Minimize run over all of them; Focus is one window.
   panel hides), and on an app with more than one window **Minimize all of
   this app** (`⌘⇧M`) and **Close all of this app** (`⌘⇧W`, asks first).
 
+### Spaces
+
+**Spaces** (`windows-spaces`) is the same capability one level up: a row
+per Space (macOS), workspace (Hyprland, Sway) or desktop (X11) in the
+order the desktop shows them, the apps on it as the subtitle (most
+recently used first, each once), the icon of the window used there last
+(a monitor glyph when nothing is open there), a `current` tag on the one
+in front and `previous` on the one left most recently, and the display
+when there is more than one. A full-screen app's space (macOS) is a row
+named by the app. The last row, **Previous space**, goes back to the one
+left most recently: a switch by pal or a swipe, pal watches the Space
+change either way.
+
+`Enter` brings the space in front: the panel hides first. macOS has no
+public call to switch Spaces, so pal raises a window there (the desktop
+follows a raised window to its space, an absolute move: the window used
+there last by the focus history, else the biggest, never a hidden app's)
+and, for an empty space, presses Mission Control's own ctrl+left /
+ctrl+right one step per space between, which rides the native animation
+and needs the Accessibility permission like paste (the HUD says so when
+it is missing). Linux asks the compositor (`hyprctl dispatch workspace`,
+`swaymsg workspace`, `wmctrl -s`).
+
+Names: `spaces = ["web", "term", "misc"]` names the desktops by number
+(the first entry is Desktop 1). A named space's row is titled by it, the
+Windows rows say `ws term` instead of `ws 2`, and its row id is the name,
+which is what a global hotkey keys on:
+
+```toml
+[extensions.windows]
+spaces = ["web", "term", "misc"]
+back_and_forth = true
+
+[palettes.windows-spaces.item_hotkeys]
+web = "ctrl+1"
+term = "ctrl+2"
+misc = "ctrl+3"
+last = "ctrl+f"
+```
+
+An unnamed desktop's id is its number (`"4"`); `last` is Previous space.
+With `back_and_forth` on (Hyprland's `workspace_back_and_forth`), a
+space's key pressed while on that space goes to the previous one, so one
+key toggles between a space and where you came from; `Enter` on the
+current space's row does the same. `pal run windows/spaces/term` from a
+script or a compositor keybind is the same pick.
+
 Settings, `[extensions.windows]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
+| `spaces` | list of strings | `[]` | Names for the desktops by number: the row titles, the `ws` accessory, and the row ids `item_hotkeys` key on. |
+| `back_and_forth` | bool | `false` | A space's hotkey pressed while on it goes to the previous space. |
 
 The switcher ([Keyboard](keyboard.md#switcher)): the manifest suggests
 `hold = "alt+tab"` for this palette, so holding Alt and pressing Tab

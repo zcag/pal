@@ -51,6 +51,16 @@
 //!   session's environment, then by which tool answers; [`Error::Unavailable`]
 //!   when none does.
 //!
+//! Spaces ([`spaces`], [`go_space`]): on macOS the window server's, read
+//! through the private `CGS*` calls CoreGraphics re-exports from SkyLight
+//! (what yabai reads with SIP on; no permission), which is also where a
+//! window's desktop number (`Window::workspace`) comes from. There is no
+//! public call to switch, so `go_space` raises a window on the target
+//! (the desktop follows it; the focus history picks which) and steps an
+//! empty space's way with Mission Control's ctrl+arrows. Linux: Hyprland's
+//! `workspaces -j` / `dispatch workspace`, Sway's `get_workspaces` /
+//! `workspace`, X11's `wmctrl -d` / `-s`.
+//!
 //! [`app_icon_source`] gives the path [`crate::icons::app_icon`] renders: the
 //! `.app` bundle, or the `.desktop` file whose id or `StartupWMClass` is the
 //! window's class.
@@ -268,6 +278,87 @@ pub fn focused() -> Result<Option<Window>> {
     platform::focused()
 }
 
+/// One Space (macOS), workspace (Hyprland, Sway) or desktop (X11).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Space {
+    /// What [`go_space`] takes, stable while the space exists: the managed
+    /// space id on macOS, Hyprland's workspace id, Sway's workspace name,
+    /// X11's desktop number.
+    pub id: String,
+    /// The number the desktop shows: Mission Control's, 1-based across
+    /// displays and over the desktops only (0 for a full-screen app's
+    /// space, which it does not number); Hyprland's and Sway's number; X11's
+    /// desktop number + 1.
+    pub index: usize,
+    /// The backend's own name where it has one (a Hyprland or Sway
+    /// workspace), else none.
+    pub name: Option<String>,
+    /// In front on its display.
+    pub current: bool,
+    /// The space left most recently ([`note_space`]), while it exists and
+    /// is not in front: where "back" goes.
+    pub previous: bool,
+    /// A full-screen app's own space (macOS).
+    pub fullscreen: bool,
+    /// Which display, only when there is more than one (as `Window.monitor`).
+    pub monitor: Option<String>,
+    /// The windows on it, ids as [`list`] gives them, in the backend's order.
+    pub windows: Vec<String>,
+}
+
+/// Every space of every display in the order the desktop shows them,
+/// with the windows on each ([`Space::windows`]).
+pub fn spaces() -> Result<Vec<Space>> {
+    let mut spaces = platform::spaces()?;
+    let history = SPACES.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some(prev) = previous_space(&spaces, &history) {
+        spaces.iter_mut().for_each(|s| s.previous = s.id == prev);
+    }
+    Ok(spaces)
+}
+
+/// Bring the space in front. macOS has no public call for it: a window
+/// there is raised (the desktop follows a raised window to its space, an
+/// absolute move: the most recently used window there by the focus
+/// history, else the biggest), and an empty space is reached by
+/// Mission Control's own ctrl+arrow shortcuts, one press per space
+/// between, which needs Accessibility like paste. Linux asks the
+/// compositor. The space left is stamped as the previous one.
+pub fn go_space(id: &str) -> Result<()> {
+    let spaces = spaces()?;
+    let target = spaces.iter().find(|s| s.id == id).ok_or_else(|| Error::NotFound(format!("space {id}")))?;
+    if target.current {
+        return Ok(());
+    }
+    if let Some(from) = spaces.iter().find(|s| s.current && s.monitor == target.monitor) {
+        note_space(&from.id);
+    }
+    platform::go_space(&spaces, target)
+}
+
+/// The spaces in front lately, newest first, one entry each: stamped by
+/// [`go_space`] with the space it leaves and by the app on every Space
+/// change ([`note_space`] with the one that came up), so a swipe counts
+/// too. Bounded: a session is long, the useful past is one step.
+static SPACES: LazyLock<Mutex<VecDeque<String>>> = LazyLock::new(Default::default);
+const SPACES_CAP: usize = 8;
+
+/// Record that the space `id` is, or was until now, in front.
+pub fn note_space(id: &str) {
+    let mut h = SPACES.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    h.retain(|i| i != id);
+    h.push_front(id.to_string());
+    h.truncate(SPACES_CAP);
+}
+
+/// The space "back" goes to: the newest in `history` that still exists
+/// and is not in front on its display (the stamps are the current space
+/// on the way in and the one left on the way out, so the front of the
+/// history is often where we are).
+fn previous_space(spaces: &[Space], history: &VecDeque<String>) -> Option<String> {
+    history.iter().find(|id| spaces.iter().any(|s| s.id == **id && !s.current)).cloned()
+}
+
 /// What [`apply`] did: `layout` is the one applied, which with
 /// `Options::cycle` may be the next of the family asked for.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -396,6 +487,17 @@ mod state_tests {
     }
 
     #[test]
+    fn the_previous_space_is_the_newest_stamped_one_not_in_front() {
+        let sp = |id: &str, current: bool| Space { id: id.into(), index: 1, name: None, current, previous: false, fullscreen: false, monitor: None, windows: vec![] };
+        let spaces = vec![sp("web", false), sp("term", true), sp("misc", false)];
+        let h = |ids: &[&str]| ids.iter().map(|s| s.to_string()).collect::<VecDeque<_>>();
+        assert_eq!(previous_space(&spaces, &h(&["term", "web"])).as_deref(), Some("web"), "the one in front is skipped");
+        assert_eq!(previous_space(&spaces, &h(&["gone", "misc", "web"])).as_deref(), Some("misc"), "a space that closed is skipped");
+        assert_eq!(previous_space(&spaces, &h(&["term"])), None);
+        assert_eq!(previous_space(&spaces, &VecDeque::new()), None);
+    }
+
+    #[test]
     fn history_orders_by_recency_and_leaves_the_rest_in_the_backend_order() {
         let w = |id: &str| Window { id: id.into(), app: "a".into(), title: "t".into(), bundle_or_class: "b".into(), pid: 1, minimized: false, hidden: false, on_screen: true, monitor: None, workspace: None };
         let ids = |ws: &[Window]| ws.iter().map(|w| w.id.clone()).collect::<Vec<_>>();
@@ -435,6 +537,155 @@ mod platform {
     use objc2_core_foundation::CFRetained;
     use objc2_core_graphics::{CGWindowListCopyWindowInfo, CGWindowListOption};
     use objc2_foundation::{MainThreadMarker, NSArray, NSDictionary, NSNumber, NSRect, NSString};
+    use std::ptr::NonNull;
+
+    // Spaces are the window server's, behind the private `CGS*` entry
+    // points CoreGraphics re-exports from SkyLight (the same ones yabai
+    // reads with SIP on; any process may call them, no permission). The
+    // display list is an array of dictionaries, one per display: `Display
+    // Identifier`, `Current Space` (`ManagedSpaceID`) and `Spaces` in
+    // Mission Control's order, each with `ManagedSpaceID` and `type` (0 a
+    // desktop, 4 a full-screen app's space). A window's spaces come back
+    // as an array of ids; the mask 7 asks for every kind. Verified on
+    // macOS 26.4: a desktop's windows answer their space, the furniture
+    // (Chrome's helper windows, tooltips) none.
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C-unwind" {
+        fn CGSMainConnectionID() -> i32;
+        fn CGSCopyManagedDisplaySpaces(cid: i32) -> Option<NonNull<objc2_core_foundation::CFArray>>;
+        fn CGSCopySpacesForWindows(cid: i32, mask: i32, wids: NonNull<objc2_core_foundation::CFArray>) -> Option<NonNull<objc2_core_foundation::CFArray>>;
+    }
+    const EVERY_SPACE: i32 = 7;
+    const FULLSCREEN_SPACE: i64 = 4;
+
+    /// One space of the window server, as [`CGSCopyManagedDisplaySpaces`]
+    /// lists them: per display, in Mission Control's order.
+    struct ManagedSpace {
+        id: u64,
+        display: String,
+        current: bool,
+        fullscreen: bool,
+    }
+
+    fn managed_spaces() -> Vec<ManagedSpace> {
+        // SAFETY: a copy the caller owns, an array of dictionaries (toll-free
+        // bridged), read only.
+        let Some(arr) = (unsafe { CGSCopyManagedDisplaySpaces(CGSMainConnectionID()) }) else { return vec![] };
+        let arr: CFRetained<objc2_core_foundation::CFArray> = unsafe { CFRetained::from_raw(arr) };
+        // Untyped dictionaries throughout (a `downcast` of a nested one gives `NSDictionary<AnyObject, AnyObject>` too), so keys go in as objects.
+        let arr: &NSArray<NSDictionary<AnyObject, AnyObject>> = unsafe { &*CFRetained::as_ptr(&arr).as_ptr().cast() };
+        let key = |d: &NSDictionary<AnyObject, AnyObject>, k: &str| d.objectForKey(&*NSString::from_str(k));
+        let num = |d: &NSDictionary<AnyObject, AnyObject>, k: &str| key(d, k).and_then(|v| v.downcast::<NSNumber>().ok()).map(|n| n.longLongValue());
+        let mut out = vec![];
+        for d in arr {
+            let display = key(&d, "Display Identifier").and_then(|v| v.downcast::<NSString>().ok()).map(|s| s.to_string()).unwrap_or_default();
+            let current = key(&d, "Current Space").and_then(|v| v.downcast::<NSDictionary>().ok()).and_then(|c| num(&c, "ManagedSpaceID"));
+            let Some(spaces) = key(&d, "Spaces").and_then(|v| v.downcast::<NSArray>().ok()) else { continue };
+            for s in spaces.iter().filter_map(|s| s.downcast::<NSDictionary>().ok()) {
+                let Some(id) = num(&s, "ManagedSpaceID") else { continue };
+                out.push(ManagedSpace { id: id as u64, display: display.clone(), current: Some(id) == current, fullscreen: num(&s, "type") == Some(FULLSCREEN_SPACE) });
+            }
+        }
+        out
+    }
+
+    /// The spaces a window is on: one for a window of a desktop, several
+    /// for a sticky one, none for the furniture.
+    fn spaces_of_window(id: u32) -> Vec<u64> {
+        let wids = NSArray::from_retained_slice(&[NSNumber::new_u32(id)]);
+        // SAFETY: NSArray is toll-free bridged to CFArray; the copy returned is ours.
+        let Some(arr) = (unsafe { CGSCopySpacesForWindows(CGSMainConnectionID(), EVERY_SPACE, NonNull::from(&*wids).cast()) }) else { return vec![] };
+        let arr: CFRetained<objc2_core_foundation::CFArray> = unsafe { CFRetained::from_raw(arr) };
+        let arr: &NSArray<NSNumber> = unsafe { &*CFRetained::as_ptr(&arr).as_ptr().cast() };
+        arr.iter().map(|n| n.longLongValue() as u64).collect()
+    }
+
+    /// Mission Control's number for each desktop (1-based across displays,
+    /// the full-screen spaces unnumbered), keyed by managed space id.
+    fn desktop_numbers(spaces: &[ManagedSpace]) -> HashMap<u64, usize> {
+        spaces.iter().filter(|s| !s.fullscreen).enumerate().map(|(i, s)| (s.id, i + 1)).collect()
+    }
+
+    /// `Window::workspace` for a window: the desktop's number.
+    fn workspace_of(numbers: &HashMap<u64, usize>, wid: u32) -> Option<String> {
+        spaces_of_window(wid).iter().find_map(|s| numbers.get(s)).map(|n| n.to_string())
+    }
+
+    pub fn spaces() -> Result<Vec<Space>> {
+        let managed = managed_spaces();
+        if managed.is_empty() {
+            return Err(Error::Unavailable("the window server listed no spaces".into()));
+        }
+        let numbers = desktop_numbers(&managed);
+        let displays: Vec<String> = managed.iter().map(|s| s.display.clone()).fold(vec![], |mut v, d| {
+            if !v.contains(&d) {
+                v.push(d);
+            }
+            v
+        });
+        // Windows worth listing (an app a person switches to, window-sized), each on its spaces.
+        let mut on: HashMap<u64, Vec<String>> = HashMap::new();
+        for cg in cg_windows() {
+            if running(cg.pid).is_none() || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE {
+                continue;
+            }
+            for s in spaces_of_window(cg.id) {
+                on.entry(s).or_default().push(cg.id.to_string());
+            }
+        }
+        Ok(managed
+            .into_iter()
+            .map(|s| Space {
+                index: numbers.get(&s.id).copied().unwrap_or(0),
+                name: None,
+                current: s.current,
+                previous: false,
+                fullscreen: s.fullscreen,
+                monitor: (displays.len() > 1).then(|| format!("Display {}", displays.iter().position(|d| *d == s.display).unwrap_or(0) + 1)),
+                windows: on.remove(&s.id).unwrap_or_default(),
+                id: s.id.to_string(),
+            })
+            .collect())
+    }
+
+    /// The window to raise so the desktop follows it to `target`: the most
+    /// recently used one there by the focus history, else the biggest;
+    /// never a hidden app's (raising unhides it).
+    fn landing(target: &Space) -> Option<String> {
+        let cg = cg_windows();
+        let shown = |id: &str| id.parse::<u32>().ok().and_then(|n| cg.iter().find(|w| w.id == n)).filter(|w| running(w.pid).is_some_and(|a| !a.isHidden()));
+        let history = HISTORY.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some((id, _)) = history.iter().find(|(id, _)| target.windows.iter().any(|w| w == id) && shown(id).is_some()) {
+            return Some(id.clone());
+        }
+        target.windows.iter().filter_map(|id| shown(id).map(|w| (w.frame.w * w.frame.h, id))).max_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, id)| id.clone())
+    }
+
+    pub fn go_space(spaces: &[Space], target: &Space) -> Result<()> {
+        if let Some(id) = landing(target) {
+            return super::focus(&id);
+        }
+        // Nothing to aim at: Mission Control's ctrl+left / ctrl+right, one
+        // press per space between, along this display's strip.
+        let strip: Vec<&Space> = spaces.iter().filter(|s| s.monitor == target.monitor).collect();
+        let from = strip.iter().position(|s| s.current).ok_or_else(|| Error::Failed("no space is in front on that display".into()))?;
+        let to = strip.iter().position(|s| s.id == target.id).unwrap_or(from);
+        let (key, n) = if to > from { ("ctrl+right", to - from) } else { ("ctrl+left", from - to) };
+        for i in 0..n {
+            if i > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(SPACE_STEP_MS));
+            }
+            crate::clipboard::send_key(key).map_err(|e| match e {
+                crate::clipboard::Error::NeedsAccessibility => Error::NeedsAccessibility("switching to an empty space"),
+                e => Error::Failed(e.to_string()),
+            })?;
+        }
+        Ok(())
+    }
+
+    /// Between two ctrl+arrow presses: Mission Control drops a press that
+    /// lands mid-animation.
+    const SPACE_STEP_MS: u64 = 250;
 
     /// A CoreGraphics and an AX frame agree within this many points.
     const FRAME_SLACK: f64 = 2.0;
@@ -566,7 +817,7 @@ mod platform {
 
     /// One row: the AX title when there is one, else CoreGraphics' name,
     /// else the app's.
-    fn row(cg: &CgWindow, app: &NSRunningApplication, title: String, minimized: bool, hidden: bool, displays: &[Display]) -> Window {
+    fn row(cg: &CgWindow, app: &NSRunningApplication, title: String, minimized: bool, hidden: bool, displays: &[Display], workspace: Option<String>) -> Window {
         let name = app.localizedName().map(|s| s.to_string()).unwrap_or_default();
         Window {
             id: cg.id.to_string(),
@@ -578,12 +829,13 @@ mod platform {
             hidden,
             on_screen: cg.on_screen,
             monitor: monitor_of(displays, &cg.frame),
-            workspace: None,
+            workspace,
         }
     }
 
     pub fn list() -> Result<Vec<Window>> {
         let displays = displays().unwrap_or_default();
+        let numbers = desktop_numbers(&managed_spaces());
         let cg = cg_windows();
         // Per app: whether it is hidden (read once), and its AX windows
         // still unmatched. Each AX read is a round trip to that app's main
@@ -629,7 +881,8 @@ mod platform {
                 None if !regular || (cg.name.is_empty() && !cg.on_screen) || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE => continue,
                 None => (cg.name.clone(), false),
             };
-            out.push(row(&cg, app, title, minimized, *hidden, &displays));
+            let workspace = workspace_of(&numbers, cg.id);
+            out.push(row(&cg, app, title, minimized, *hidden, &displays, workspace));
         }
         Ok(order_by_history(out, &HISTORY.lock().unwrap_or_else(std::sync::PoisonError::into_inner)))
     }
@@ -664,7 +917,8 @@ mod platform {
                 None => return Ok(None),
             },
         };
-        Ok(Some(row(cg, &app, title, minimized, app.isHidden(), &displays)))
+        let workspace = workspace_of(&desktop_numbers(&managed_spaces()), cg.id);
+        Ok(Some(row(cg, &app, title, minimized, app.isHidden(), &displays, workspace)))
     }
 
     pub fn frame(id: &str) -> Result<Rect> {
@@ -925,6 +1179,96 @@ mod platform {
             }
             Backend::X11 => run("wmctrl", &["-i", "-r", id, "-e", &format!("0,{x},{y},{w},{h}")]).map(drop),
         }
+    }
+
+    pub fn spaces() -> Result<Vec<Space>> {
+        let windows = list()?;
+        let (monitors, mut spaces) = match need()? {
+            Backend::Hyprland => {
+                let monitors: Vec<serde_json::Value> = serde_json::from_str(&hyprctl(&["monitors", "-j"])?).unwrap_or_default();
+                let active: Vec<String> = monitors.iter().filter_map(|m| m["activeWorkspace"]["name"].as_str().map(str::to_string)).collect();
+                (monitors.len(), parse_hyprland_workspaces(&hyprctl(&["workspaces", "-j"])?, &active))
+            }
+            Backend::Sway => {
+                let spaces = parse_sway_workspaces(&run("swaymsg", &["-t", "get_workspaces"])?);
+                (spaces.iter().filter_map(|s| s.monitor.clone()).collect::<std::collections::HashSet<_>>().len(), spaces)
+            }
+            Backend::X11 => (1, parse_wmctrl_desktops(&run("wmctrl", &["-d"])?)),
+        };
+        // `Window::workspace` is the space's name (Hyprland, Sway) or number (X11): the join.
+        for s in &mut spaces {
+            let key = s.name.clone().unwrap_or_else(|| s.id.clone());
+            s.windows = windows.iter().filter(|w| w.workspace.as_deref() == Some(&key)).map(|w| w.id.clone()).collect();
+            if monitors < 2 {
+                s.monitor = None;
+            }
+        }
+        Ok(spaces)
+    }
+
+    pub fn go_space(_spaces: &[Space], target: &Space) -> Result<()> {
+        match need()? {
+            Backend::Hyprland => hyprctl(&["dispatch", "workspace", &target.id]).map(drop),
+            Backend::Sway => swaymsg(&format!("workspace {}", target.name.as_deref().unwrap_or(&target.id))),
+            Backend::X11 => run("wmctrl", &["-s", &target.id]).map(drop),
+        }
+    }
+
+    /// `hyprctl workspaces -j`: every workspace that exists (Hyprland makes
+    /// them as they are used), by id; `active` names the one in front on
+    /// each monitor. The special ones (scratchpads, pal's `special:minimized`)
+    /// are not spaces to go to.
+    pub fn parse_hyprland_workspaces(text: &str, active: &[String]) -> Vec<Space> {
+        let mut ws: Vec<serde_json::Value> = serde_json::from_str(text).unwrap_or_default();
+        ws.sort_by_key(|w| w["id"].as_i64().unwrap_or_default());
+        ws.iter()
+            .filter(|w| w["id"].as_i64().unwrap_or_default() > 0)
+            .map(|w| {
+                let name = w["name"].as_str().unwrap_or_default().to_string();
+                Space {
+                    id: w["id"].as_i64().unwrap_or_default().to_string(),
+                    index: w["id"].as_i64().unwrap_or_default().max(0) as usize,
+                    current: active.contains(&name),
+                    monitor: w["monitor"].as_str().map(str::to_string),
+                    name: Some(name),
+                    previous: false,
+                    fullscreen: false,
+                    windows: vec![],
+                }
+            })
+            .collect()
+    }
+
+    /// `swaymsg -t get_workspaces`: name, number, `focused`/`visible`, output.
+    pub fn parse_sway_workspaces(text: &str) -> Vec<Space> {
+        let ws: Vec<serde_json::Value> = serde_json::from_str(text).unwrap_or_default();
+        ws.iter()
+            .map(|w| {
+                let name = w["name"].as_str().unwrap_or_default().to_string();
+                Space {
+                    id: name.clone(),
+                    index: w["num"].as_i64().unwrap_or_default().max(0) as usize,
+                    current: w["visible"].as_bool() == Some(true) || w["focused"].as_bool() == Some(true),
+                    monitor: w["output"].as_str().map(str::to_string),
+                    name: Some(name),
+                    previous: false,
+                    fullscreen: false,
+                    windows: vec![],
+                }
+            })
+            .collect()
+    }
+
+    /// `wmctrl -d` lines (`0  * DG: 3840x1080  VP: 0,0  WA: 0,25 3840x1055  Workspace 1`):
+    /// the desktop number, `*` on the current one.
+    pub fn parse_wmctrl_desktops(text: &str) -> Vec<Space> {
+        text.lines()
+            .filter_map(|l| {
+                let mut it = l.split_whitespace();
+                let n: usize = it.next()?.parse().ok()?;
+                Some(Space { id: n.to_string(), index: n + 1, name: None, current: it.next() == Some("*"), previous: false, fullscreen: false, monitor: None, windows: vec![] })
+            })
+            .collect()
     }
 
     pub fn displays() -> Result<Vec<Display>> {
@@ -1380,6 +1724,29 @@ mod tests {
         assert_eq!(d[0].visible_frame, Rect { x: 0.0, y: 24.0, w: 2560.0, h: 1416.0 });
         assert_eq!(d[1].frame, Rect { x: 2560.0, y: 0.0, w: 1920.0, h: 1080.0 });
         assert!(d[0].primary && !d[1].primary);
+    }
+
+    #[test]
+    fn hyprland_workspaces_by_id_with_the_active_ones_current_and_the_special_ones_dropped() {
+        let text = r#"[{"id":3,"name":"3","monitor":"DP-1","windows":1},{"id":1,"name":"1","monitor":"DP-1","windows":2},{"id":-98,"name":"special:minimized","monitor":"DP-1","windows":1},{"id":2,"name":"web","monitor":"HDMI-A-1","windows":1}]"#;
+        let s = parse_hyprland_workspaces(text, &["1".to_string(), "web".to_string()]);
+        assert_eq!(s.iter().map(|s| (s.id.as_str(), s.index, s.name.as_deref().unwrap(), s.current, s.monitor.as_deref().unwrap())).collect::<Vec<_>>(), [("1", 1, "1", true, "DP-1"), ("2", 2, "web", true, "HDMI-A-1"), ("3", 3, "3", false, "DP-1")]);
+    }
+
+    #[test]
+    fn sway_workspaces_carry_name_number_visibility_and_output() {
+        let text = r#"[{"num":1,"name":"1","visible":true,"focused":true,"output":"DP-1"},{"num":2,"name":"2:mail","visible":false,"focused":false,"output":"DP-1"},{"num":10,"name":"10","visible":true,"focused":false,"output":"HDMI-A-1"}]"#;
+        let s = parse_sway_workspaces(text);
+        assert_eq!(s.iter().map(|s| (s.id.as_str(), s.index, s.current)).collect::<Vec<_>>(), [("1", 1, true), ("2:mail", 2, false), ("10", 10, true)]);
+        assert_eq!(s[1].name.as_deref(), Some("2:mail"));
+    }
+
+    #[test]
+    fn wmctrl_desktops_are_numbered_from_zero_with_the_star_on_the_current_one() {
+        let text = "0  - DG: 3840x1080  VP: 0,0  WA: 0,25 3840x1055  Workspace 1\n1  * DG: 3840x1080  VP: 0,0  WA: 0,25 3840x1055  Workspace 2\n2  - DG: 3840x1080  VP: N/A  WA: 0,25 3840x1055  Workspace 3\n";
+        let s = parse_wmctrl_desktops(text);
+        assert_eq!(s.iter().map(|s| (s.id.as_str(), s.index, s.current)).collect::<Vec<_>>(), [("0", 1, false), ("1", 2, true), ("2", 3, false)]);
+        assert!(s.iter().all(|s| s.name.is_none() && s.monitor.is_none()));
     }
 
     #[test]

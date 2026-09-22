@@ -1,13 +1,16 @@
 //! The windows capability: `pal_core::windows` over the bridge
 //! (`windows.list` / `activate` / `close` / `minimize` / `unminimize` /
 //! `fullscreen` / `frame` / `set_frame` / `displays` / `focused` /
-//! `layout`) and as the `focus` and `layout` effects (effects.rs), which
-//! hide the panel before touching the window. [`raise`] is the focus
+//! `layout` / `spaces` / `go_space`) and as the `focus`, `layout` and
+//! `space` effects (effects.rs), which hide the panel before touching the
+//! window or the desktop. [`raise`] is the focus
 //! itself, shared by the effect and the switcher's tap (switcher.rs):
 //! the window with Accessibility, else the app forward with a note.
 //! Each listed row carries `icon`, the `.app` / `.desktop` path the webview
 //! renders through `icon://app`. [`stamp_focused`] feeds the core's focus
-//! history, which orders the macOS list most recently used first.
+//! history, which orders the macOS list most recently used first;
+//! [`stamp_space`] its space history (the bar's Space-change observer), so
+//! "the previous space" counts a swipe too.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -121,6 +124,33 @@ pub fn raise(app: &AppHandle, id: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Stamp the space that just came in front (macOS's
+/// `NSWorkspaceActiveSpaceDidChangeNotification`): `windows::note_space`
+/// with the current one, off the main thread (the read is a window
+/// server round trip).
+pub fn stamp_space() {
+    std::thread::spawn(|| {
+        if let Ok(spaces) = windows::spaces() {
+            if let Some(s) = spaces.iter().find(|s| s.current) {
+                windows::note_space(&s.id);
+            }
+        }
+    });
+}
+
+/// Bring a space in front; what the HUD says when it could not. The
+/// panel, if up, is hidden by the caller first.
+pub fn go_space(app: &AppHandle, id: &str) -> Result<(), String> {
+    match windows::go_space(id) {
+        Ok(()) => Ok(()),
+        Err(windows::Error::NeedsAccessibility(_)) => {
+            permissions::request_once(app, "accessibility");
+            Err("switching to an empty space needs Accessibility".into())
+        }
+        Err(e) => Err(err(e)),
+    }
+}
+
 /// Run a named layout; the core's `Applied` on success.
 pub fn apply_layout(p: &LayoutParams) -> Result<windows::Applied, String> {
     let l = layout::Layout::parse(&p.name).ok_or_else(|| format!("no layout {:?}", p.name))?;
@@ -159,6 +189,12 @@ pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String
         "displays" => Ok(serde_json::to_value(windows::displays().map_err(err)?).unwrap()),
         "focused" => Ok(windows::focused().map_err(err)?.as_ref().map_or(Value::Null, row)),
         "layout" => Ok(serde_json::to_value(apply_layout(&parse(params)?)?).unwrap()),
+        "spaces" => Ok(serde_json::to_value(windows::spaces().map_err(err)?).unwrap()),
+        // From the host directly, with the panel wherever it is: `pal run` and a pick prefer the `space` effect.
+        "go_space" => {
+            let p: IdParams = parse(params)?;
+            go_space(_app, &p.id).map(|_| Value::Null)
+        }
         _ => Err(format!("unknown windows.{func}")),
     }
 }
