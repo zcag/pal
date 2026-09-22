@@ -244,7 +244,8 @@ const MODES: Record<string, Mode> = {
 };
 const MODE_WORDS = "sha256 · md5 · base64 · url · hex · qr · jwt · encode · decode";
 
-const haystack = (i: Item) => `${i.name} ${i.subtitle ?? ""} ${(i.keywords ?? []).join(" ")}`.toLowerCase();
+// The subtitle and keywords, not the name: a generator's name is its random value, and "uu" inside a base64 string is noise.
+const haystack = (i: Item) => `${i.subtitle ?? ""} ${(i.keywords ?? []).join(" ")}`.toLowerCase();
 
 async function list(query = ""): Promise<Item[]> {
   held.clear();

@@ -309,7 +309,8 @@ describe("stats popovers", () => {
     const v = renderCpu({ ...base, cpu: { total: 78, cores: [90, 66, 12, 0, 100] }, load: [3.26, 3.25, 2.91], uptime: 90000, history: hist, procs: many, focus: 1 });
     checkView(v, "cpu");
     expect(v.title).toBe("CPU 78%");
-    expect(v.actions.map((a) => a.id)).toEqual(["monitor", "kill", "copy", "processes", "palette", "down", "up", "focus:4321", "focus:9999", "focus:100", "focus:101", "focus:102"]);
+    // Enter is Activity Monitor on macOS, the Processes palette elsewhere (where `p` has no row of its own).
+    expect(v.actions.map((a) => a.id)).toEqual([...(process.platform === "darwin" ? ["monitor", "kill", "copy", "processes"] : ["processes", "kill", "copy"]), "palette", "down", "up", "focus:4321", "focus:9999", "focus:100", "focus:101", "focus:102"]);
     expect(v.actions[1]).toMatchObject({ title: "Kill sysmond", style: "destructive", confirm: "Send SIGTERM to sysmond (9999)?", shortcut: "x" });
     const flat = JSON.stringify(v.tree);
     expect(flat).toContain('"text":"high"');

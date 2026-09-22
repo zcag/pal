@@ -421,11 +421,11 @@ describe("displays: macOS with nothing installed", () => {
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "copy-id"]);
     expect(rows[3]).toMatchObject({ subtitle: "brew install displayplacer", section: "Setup", actions: [{ id: "copy-install" }] });
     expect(rows[4].subtitle).toBe("brew install --HEAD brightness");
-    expect(await host.pick("displays", "displays", "hint:setup:m1ddc", "copy-install")).toMatchObject({ copy: "brew install m1ddc" });
+    expect(await host.pick("displays", "displays", `hint:setup:${ddc}`, "copy-install")).toMatchObject({ copy: `brew install ${ddc}` });
     const level = await host.list("displays", "displays", "", { args: { display: "2" } });
-    expect(level.map((r) => r.id)).toEqual(["sleep", "hint:setup:displayplacer", "hint:setup:m1ddc"]);
+    expect(level.map((r) => r.id)).toEqual(["sleep", "hint:setup:displayplacer", `hint:setup:${ddc}`]);
     const item = await host.render("displays", "brightness");
-    expect(item).toMatchObject({ states: { brightness: null, external: 1, count: 2, settable: false }, tooltip: "DELL U2720Q: brightness, contrast, volume and input need m1ddc (brew install m1ddc)" });
+    expect(item).toMatchObject({ states: { brightness: null, external: 1, count: 2, settable: false }, tooltip: `DELL U2720Q: brightness, contrast, volume and input need ${ddc} (brew install ${ddc})` });
     expect(item.title).toBeUndefined();
     const v = viewOf(item);
     expect(sliders(v)).toHaveLength(0);
