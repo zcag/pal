@@ -765,3 +765,46 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   .pal-search[data-loading]::after { animation: none; }
   .pal-detail__skeleton > span { animation: none; }
 }
+
+/* ---- The sidebar (`index.html?bar&sidebar`, sidebar.rs) --------------------
+   A strip of windows at the screen edge, not a launcher: rows only while it
+   peeks, a slim field once engaged, no footer, no crumb tile, no section
+   headers (an app's windows sit together, an 8 px breath between apps), the
+   number on the left where the eye starts, the app name carried by the icon.
+   Sizes are the tokens the virtualiser reads (virtual.ts useMetrics), so
+   they are set here on the page root, not on the rows. */
+.pal-bar-page[data-sidebar] {
+  --pal-row-h: 30px;
+  --pal-section-h: 8px;
+  --pal-search-h: 36px;
+  --pal-footer-h: 0px;
+  --pal-list-inset: 4px;
+  --pal-row-px: 8px;
+  --pal-row-gap: 8px;
+  --pal-icon-box: 18px;
+  --pal-icon-glyph: 13px;
+  --pal-icon-emoji: 14px;
+  --pal-text-x: 12px;
+  --pal-radius-panel: 10px;
+  --pal-radius-row: 6px;
+}
+.pal-bar-page[data-sidebar] .pal-panel { box-shadow: inset 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-bar-page[data-sidebar] .pal-footer { display: none; }
+.pal-bar-page[data-sidebar] .pal-section { padding: 0; }
+.pal-bar-page[data-sidebar] .pal-section__title, .pal-bar-page[data-sidebar] .pal-section__count { display: none; }
+.pal-bar-page[data-sidebar] .pal-row { font-size: var(--pal-text-sm, 12px); }
+.pal-bar-page[data-sidebar] .pal-row__sub { display: none; }
+.pal-bar-page[data-sidebar] .pal-row__title { max-width: none; flex: 1 1 auto; }
+/* The accessories span dissolves into the row (`display: contents`), so the number can lead and the rest sit after the title, the title's flex pushing them right. */
+.pal-bar-page[data-sidebar] .pal-row__accs { display: contents; }
+.pal-bar-page[data-sidebar] .pal-acc, .pal-bar-page[data-sidebar] .pal-tag { font-size: var(--pal-text-xs, 11px); color: var(--pal-fg-faint, #868794); }
+/* The number leads the row: a fixed one-digit column, so titles align whatever the digit. */
+.pal-bar-page[data-sidebar] .pal-row__ordinal { order: -1; width: 12px; text-align: right; margin-right: calc(var(--pal-row-gap, 8px) * -1 + 2px); }
+.pal-bar-page[data-sidebar] .pal-row[data-active] .pal-row__ordinal { color: var(--pal-fg, #ececf0); }
+/* The field: gone while peeking (the pointer brought it, nothing to type into yet); slim and bare once engaged. */
+.pal-bar-page[data-sidebar][data-peek] .pal-panel__search { display: none; }
+.pal-bar-page[data-sidebar] .pal-search { padding: 0 var(--pal-space-3, 12px); }
+.pal-bar-page[data-sidebar] .pal-search__back { display: none; }
+.pal-bar-page[data-sidebar] .pal-search__input { font-size: var(--pal-text-base, 13px); }
+.pal-bar-page[data-sidebar] .pal-empty { padding: var(--pal-space-3, 12px); }
+.pal-bar-page[data-sidebar] .pal-empty__title { font-size: var(--pal-text-sm, 12px); }

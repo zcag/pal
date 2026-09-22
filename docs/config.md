@@ -368,7 +368,7 @@ on Linux the table is read and validated, nothing is built.
 palette = "windows/windows"   # any palette; unset or "" = no sidebar (the default)
 edge = "right"                # left | right
 display = "cursor"            # cursor | primary | a display's name
-width = 320
+width = 280
 peek = true
 delay = 0                     # ms the pointer rests at the edge before the peek
 grace = 150                   # ms after the pointer has left before a peek closes
@@ -380,7 +380,7 @@ hotkey = "ctrl+opt+tab"
 | `palette` | string | unset | The palette it shows, `<extension>/<palette>`; `windows/windows` is the one built for it. Unset or `""` is no sidebar (no window, no strip, no hotkey): an edge that peeks when the pointer rests there is asked for, never on by default. A live palette lists again on every show, as it does for the panel. |
 | `edge` | `"left"`, `"right"` | `"right"` | The edge it docks to, 8 px in from it; the window is centred on the pointer's height when the pointer brought it (the peek, a click), at the top of the work area from the hotkey. |
 | `display` | string | `"cursor"` | Which display: `cursor` (the one under the pointer at each show; a peek strip on every display), `primary` (the one with the menu bar), or a display's name as the OS reports it (`Built-in Retina Display`; an unknown name falls back to the cursor's, with a log line). |
-| `width` | number, points | `320` | The window's width; the height follows the rows, up to the work area. |
+| `width` | number, points | `280` | The window's width; the height follows the rows, up to the work area. |
 | `peek` | bool | `true` | The pointer resting at the edge peeks it; `false` leaves the hotkey and nothing at the edge. |
 | `delay` | number, ms | `0` | How long the pointer rests at the edge before the peek; `0` is at once. |
 | `grace` | number, ms | `150` | How long after the pointer has left the edge and the window a peek stays before it closes. |

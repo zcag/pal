@@ -156,7 +156,7 @@ skhd user can drive it too.
 palette = "windows/windows"   # any palette; unset or "" = no sidebar (the default)
 edge = "right"                # left | right
 display = "cursor"            # cursor | primary | <name from `pal windows displays`>
-width = 320
+width = 280
 peek = true                   # pointer at the edge peeks it
 hotkey = "ctrl+opt+tab"       # engages it (unset = none)
 ```

@@ -473,7 +473,8 @@ mod platform {
                     return None;
                 }
                 let pid = num("kCGWindowOwnerPID")?.integerValue() as i32;
-                if pid == me {
+                let name = text("kCGWindowName").unwrap_or_default();
+                if pid == me && name != OWN_WINDOW {
                     return None;
                 }
                 let bounds = d.objectForKey(&NSString::from_str("kCGWindowBounds"))?.downcast::<NSDictionary>().ok()?;
@@ -481,7 +482,7 @@ mod platform {
                 Some(CgWindow {
                     id: num("kCGWindowNumber")?.integerValue() as u32,
                     pid,
-                    name: text("kCGWindowName").unwrap_or_default(),
+                    name,
                     frame: Rect { x: b("X")?, y: b("Y")?, w: b("Width")?, h: b("Height")? },
                     on_screen: num("kCGWindowIsOnscreen").is_some_and(|n| n.boolValue()),
                 })
@@ -552,9 +553,16 @@ mod platform {
         Some(format!("Display {}", i + 1))
     }
 
+    /// The app behind a window, when it is one a person switches to: a
+    /// regular app, or an accessory one (a menu bar app with a settings
+    /// window, pal itself) whose window is then kept only when named.
     fn running(pid: i32) -> Option<Retained<NSRunningApplication>> {
-        NSRunningApplication::runningApplicationWithProcessIdentifier(pid).filter(|a| a.activationPolicy() == NSApplicationActivationPolicy::Regular)
+        NSRunningApplication::runningApplicationWithProcessIdentifier(pid).filter(|a| matches!(a.activationPolicy(), NSApplicationActivationPolicy::Regular | NSApplicationActivationPolicy::Accessory))
     }
+
+    /// pal's one window worth switching back to; the panel, the HUD, the
+    /// bar windows and Large Type are not windows to a person.
+    const OWN_WINDOW: &str = "pal Settings";
 
     /// One row: the AX title when there is one, else CoreGraphics' name,
     /// else the app's.
@@ -605,13 +613,20 @@ mod platform {
         for cg in cg {
             let Some(i) = apps.iter().position(|(p, ..)| *p == cg.pid) else { continue };
             let (_, app, hidden, pool) = &mut apps[i];
+            let regular = app.activationPolicy() == NSApplicationActivationPolicy::Regular;
             let (title, minimized) = match take_match(pool, &cg) {
+                // An accessory app's window counts only while Accessibility
+                // lists it with a title: a settings window closed to hidden
+                // or a capture overlay kept around sits in CoreGraphics'
+                // list all the same, unnamed or unlisted by AX.
+                Some(ax) if !regular && ax.title.is_empty() => continue,
                 Some(ax) => (if ax.title.is_empty() { cg.name.clone() } else { ax.title }, ax.minimized),
                 // No AX window for it: on another Space (`AXWindows` only
                 // lists the current one), or the app answers AX with
                 // nothing. Keep it if it looks like a window (named, or on
-                // screen, and not one of the 0x0 / strip-shaped helpers).
-                None if (cg.name.is_empty() && !cg.on_screen) || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE => continue,
+                // screen, and not one of the 0x0 / strip-shaped helpers);
+                // never an accessory app's.
+                None if !regular || (cg.name.is_empty() && !cg.on_screen) || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE => continue,
                 None => (cg.name.clone(), false),
             };
             out.push(row(&cg, app, title, minimized, *hidden, &displays));

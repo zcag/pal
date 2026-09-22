@@ -353,7 +353,7 @@ export type SidebarConfig = {
 };
 
 /** The core's defaults (`Sidebar::default`): what an absent key means, and what a value equal to it leaves out of the file. */
-export const sidebarDefaults: SidebarConfig = { palette: "", edge: "right", display: "cursor", width: 320, peek: true, delay: 0, grace: 150 };
+export const sidebarDefaults: SidebarConfig = { palette: "", edge: "right", display: "cursor", width: 280, peek: true, delay: 0, grace: 150 };
 
 /** The palette the sidebar is built for; what the General page's switch writes. */
 export const SIDEBAR_WINDOWS = "windows/windows";

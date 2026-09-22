@@ -600,7 +600,7 @@ pub struct Sidebar {
 
 impl Default for Sidebar {
     fn default() -> Self {
-        Self { palette: String::new(), edge: Edge::Right, display: "cursor".into(), width: 320.0, peek: true, delay: 0, grace: 150, hotkey: None, extra: BTreeMap::new() }
+        Self { palette: String::new(), edge: Edge::Right, display: "cursor".into(), width: 280.0, peek: true, delay: 0, grace: 150, hotkey: None, extra: BTreeMap::new() }
     }
 }
 
@@ -1505,7 +1505,7 @@ show = "always"
         let (c, d) = parse("").unwrap();
         assert!(d.is_empty());
         assert_eq!(c.sidebar.palette(), None, "off until a palette is named: a strip at the edge is opt-in");
-        assert_eq!((c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek, c.sidebar.hotkey), (Edge::Right, "cursor", 320.0, true, None));
+        assert_eq!((c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek, c.sidebar.hotkey), (Edge::Right, "cursor", 280.0, true, None));
         assert_eq!((c.sidebar.delay, c.sidebar.grace), (0, 150), "a peek is instant and lingers a beat");
         let (c, d) = parse("[sidebar]\npalette = \"apps/apps\"\nedge = \"left\"\ndisplay = \"primary\"\nwidth = 400\npeek = false\nhotkey = \"ctrl+alt+tab\"\n").unwrap();
         assert!(d.is_empty());

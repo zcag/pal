@@ -987,7 +987,7 @@
           "type": "boolean"
         },
         "width": {
-          "default": 320.0,
+          "default": 280.0,
           "description": "Width in points; the height follows the rows up to the work area.",
           "format": "double",
           "type": "number"
@@ -1145,7 +1145,7 @@
         "hotkey": null,
         "palette": "",
         "peek": true,
-        "width": 320.0
+        "width": 280.0
       },
       "description": "The sidebar: a live palette docked to a screen edge\n(`docs/design/switcher.md`)."
     },

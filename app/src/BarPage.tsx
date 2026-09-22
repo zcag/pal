@@ -64,7 +64,7 @@ export default function BarPage() {
     const un = listen<BarPayload>("pal://bar", (e) => {
       const p = e.payload;
       if ("hide" in p) { showing.current = null; setShow(null); return; }
-      if ("engage" in p) { if (showing.current) showing.current.engaged = true; (page.current?.querySelector(".pal-search__input") as HTMLInputElement | null)?.focus(); return; }
+      if ("engage" in p) { if (showing.current) { showing.current.engaged = true; setShow({ ...showing.current }); } (page.current?.querySelector(".pal-search__input") as HTMLInputElement | null)?.focus(); return; }
       // The same item rendered again while showing: its level is replaced in place; another item starts over.
       // One line in the log per show: which item, peek or engaged, and whether its level is replaced in place (a lost show is otherwise invisible in a release build).
       mark(`bar show ${p.key} ${p.engaged ? "engaged" : "peek"}${showing.current?.key === p.key ? " again" : ""}`, 0);
@@ -88,7 +88,9 @@ export default function BarPage() {
       raf = 0;
       const inner = el.querySelector<HTMLElement>(".pal-list__inner, .pal-view > .pal-view__stack, .pal-show, .pal-form-level, .pal-empty");
       const content = inner ? inner.scrollHeight + 16 : 120;
-      invoke("bar_size", { height: Math.min(MAX_HEIGHT, CHROME + content) });
+      // The chrome as drawn: the sidebar hides its field while peeking and has no footer, so the popover's fixed sum would leave a gap.
+      const chrome = sidebar ? (el.querySelector<HTMLElement>(".pal-panel__search")?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>(".pal-footer")?.offsetHeight ?? 0) : CHROME;
+      invoke("bar_size", { height: Math.min(MAX_HEIGHT, chrome + content) });
     };
     const mo = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(measure); });
     mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
@@ -100,7 +102,7 @@ export default function BarPage() {
   const viewOpen = useLiveViews(launcher);
 
   // A click into a peeking sidebar engages it (the popover's peek engages from its item, never from here).
-  const engage = useCallback(() => { if (sidebar && showing.current && !showing.current.engaged) { showing.current.engaged = true; invoke("bar_engage"); } }, []);
+  const engage = useCallback(() => { if (sidebar && showing.current && !showing.current.engaged) { showing.current.engaged = true; setShow({ ...showing.current }); invoke("bar_engage"); } }, []);
 
   // A row of the item's own level (a menu row, a view action, a form's submit) is `bar/action`; a palette level's rows are the usual pick.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
@@ -121,7 +123,7 @@ export default function BarPage() {
   }, [core.refresh]);
 
   return (
-    <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} title={show?.tooltip} onMouseDownCapture={engage}>
+    <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} data-peek={sidebar && show && !show.engaged ? "" : undefined} title={show?.tooltip} onMouseDownCapture={engage}>
       <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} ordinals={sidebar} />
     </div>
   );

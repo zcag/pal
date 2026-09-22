@@ -1331,3 +1331,26 @@ live pass found:
   to launchd after a minute (`~/Library/LaunchAgents/io.cagdas.pal.scratchsw.plist`):
   set it false in the copy. A stale `/tmp/io_cagdas_pal_scratchsw_si.sock`
   after a kill makes the next start hand over to nobody and exit.
+
+## Sidebar round 3: the look, and the windows it lists (2026-09-22)
+
+- **Look**: a `.pal-bar-page[data-sidebar]` token block (rows 30, section
+  8 as a breath between apps with its title hidden, field 36, footer 0,
+  inset 4, icon 18, radius 10) read by the virtualiser through
+  `useMetrics`, so CSS and row maths agree. A peek (`data-peek`) draws
+  rows only; the field appears slim and bare (no crumb tile) once
+  engaged; no footer; the subtitle (the app name) goes, the icon says it.
+  The ordinal leads the row: `.pal-row__accs { display: contents }`
+  dissolves the accessories span into the row so `order: -1` can hoist
+  the number and the title's flex pushes the rest right. Default width
+  280. The page measures its chrome off the DOM (`bar_size`) since the
+  field comes and goes.
+- **Which windows**: pal's own Settings window (`OWN_WINDOW`, by its CG
+  name; the panel, HUD, bar windows and Large Type are not windows to a
+  person) and accessory apps' windows (Tailscale Settings, a menu bar
+  app's preferences) join the list: `running` takes `Accessory` too, and
+  an accessory app's row needs an AX match with a title; unmatched or
+  untitled ones (status items, a preferences window closed to hidden, a
+  capture overlay kept around) are dropped. Whether a Settings window
+  hidden by its close still comes back through AX was not verified live
+  (Zoom was up on his screen; no more desktop driving that night).
