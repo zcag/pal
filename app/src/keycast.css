@@ -1,54 +1,142 @@
 /* Keycast overlay (KeycastPage.tsx): the page fills a whole display, the
    mouse passes through the window (keycast.rs), so nothing here is a
-   control. The strip of recent keys sits at one corner of the work area
-   (an area inset by the display's menu bar and Dock),
-   the ring and the ripples anywhere on the display. `--kc-scale`,
-   `--kc-hold` and `--kc-ring` come from the settings on the page root. */
+   control. The strip of recent keys is one row along an edge of the work
+   area (the display less its menu bar and Dock), newest on the right,
+   older ones fading with age; the ring and the ripples anywhere on the
+   display. `--kc-scale`, `--kc-hold` and `--kc-ring` come from the
+   settings on the page root, `--kc-age` (0 fresh .. 1 at the end of the
+   hold) on each entry from the page's clock. */
 .pal-keycast-page { position: fixed; inset: 0; overflow: hidden; pointer-events: none; user-select: none; cursor: none; }
 /* The work area: the page less the display's insets (KeycastPage sets them), what the strip is anchored inside so it clears the Dock and the menu bar. */
 .pal-keycast__area { position: absolute; }
 
-/* The strip: a column of entries, the newest nearest the edge it is anchored to, scaled from that corner. */
+/* The strip: a row, oldest left, newest right (KeyCastr, Keyviz and the
+   recorders all read this way); it grows from its anchor and the far end
+   fades out under a mask rather than clipping a cap in half. */
 .pal-keycast__strip {
   position: absolute;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--pal-space-2, 8px);
-  margin: var(--pal-space-6, 24px);
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 28px;
+  max-width: calc(100% - 56px);
+  padding: 12px 12px 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, #000 48px);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 48px);
   transform: scale(var(--kc-scale, 1));
 }
 .pal-keycast__strip[data-position="bottom-center"] { bottom: 0; left: 50%; transform: translateX(-50%) scale(var(--kc-scale, 1)); transform-origin: bottom center; }
-.pal-keycast__strip[data-position="bottom-left"] { bottom: 0; left: 0; align-items: flex-start; transform-origin: bottom left; }
-.pal-keycast__strip[data-position="bottom-right"] { bottom: 0; right: 0; align-items: flex-end; transform-origin: bottom right; }
-.pal-keycast__strip[data-position="top-right"] { top: 0; right: 0; align-items: flex-end; flex-direction: column-reverse; transform-origin: top right; }
-.pal-keycast__strip[data-position="top-left"] { top: 0; left: 0; align-items: flex-start; flex-direction: column-reverse; transform-origin: top left; }
-/* One entry: the HUD's capsule around the panel's key caps at twice their size, the repeat count muted after them. In with the HUD's rise; out by a fade the page switches on (`data-exiting`) for the last 240 ms of the hold, so a scroll or a pinch still updating its entry never fades under the fingers; a key repeat remounts the entry (its key carries the count), so it pops again. */
+.pal-keycast__strip[data-position="bottom-right"] { bottom: 0; right: 0; transform-origin: bottom right; }
+.pal-keycast__strip[data-position="top-right"] { top: 0; right: 0; transform-origin: top right; }
+/* Anchored on the left the row still reads oldest to newest, so it grows rightward and fades at its right end. */
+.pal-keycast__strip[data-position="bottom-left"],
+.pal-keycast__strip[data-position="top-left"] {
+  left: 0;
+  justify-content: flex-start;
+  mask-image: linear-gradient(to left, transparent, #000 48px);
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 48px);
+}
+.pal-keycast__strip[data-position="bottom-left"] { bottom: 0; transform-origin: bottom left; }
+.pal-keycast__strip[data-position="top-left"] { top: 0; transform-origin: top left; }
+
+/* One entry: a frosted capsule holding the caps (or a run of typed text),
+   the repeat count as a badge on its corner. Fresh it is full size and
+   opaque; with age it fades and settles (`--kc-age`), and in its last
+   240 ms it drops out (`data-exiting`, set by the page's clock so a scroll
+   or a pinch still updating never fades under the fingers). A key repeat
+   remounts the entry (its key carries the count), so it pops again. */
 .pal-keycast__entry {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--pal-space-2, 8px);
-  height: 52px;
-  padding: 0 var(--pal-space-3, 12px);
-  border-radius: var(--pal-radius-hud, 12px);
-  background: var(--pal-bg-elevated, #26262d);
-  color: var(--pal-fg, #ececf0);
-  box-shadow: var(--pal-shadow-hud, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 20px -6px rgba(0, 0, 0, 0.6));
+  gap: 8px;
+  flex: none;
+  height: 64px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: rgba(30, 30, 38, 0.84);
+  color: #f2f2f6;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 1.5px rgba(0, 0, 0, 0.45), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif);
   white-space: nowrap;
-  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
-  transition: opacity var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in);
+  opacity: calc(1 - 0.55 * var(--kc-age, 0));
+  transform: scale(calc(1 - 0.07 * var(--kc-age, 0)));
+  transform-origin: bottom center;
+  animation: pal-keycast-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transition: opacity 240ms ease-in, transform 240ms ease-in;
 }
-.pal-keycast__entry[data-exiting] { opacity: 0; transform: translateY(4px) scale(0.98); }
-.pal-keycast__entry .pal-kbd { --pal-kbd-h: 36px; gap: var(--pal-space-2, 8px); }
-.pal-keycast__entry .pal-kbd kbd { font-size: 22px; font-weight: var(--pal-weight-semibold, 600); color: var(--pal-fg, #ececf0); border-radius: var(--pal-radius-control, 6px); padding: 0 0.4em; }
-/* A word on a cap (`esc`, `click`, `F12`) reads at a smaller size than a glyph. */
-.pal-keycast__entry .pal-kbd kbd[data-wide] { font-size: 15px; letter-spacing: 0.01em; }
-.pal-keycast__count { color: var(--pal-fg-muted, #a3a4ae); font-size: 17px; font-weight: var(--pal-weight-medium, 500); font-variant-numeric: tabular-nums; }
+.pal-keycast__entry[data-exiting] { opacity: 0; transform: translateY(6px) scale(0.94); }
+@keyframes pal-keycast-in { from { opacity: 0; transform: translateY(10px) scale(0.86); } }
+
+/* A cap: a real key, with a lip at the bottom and a light along the top. A modifier glyph and a letter share one size; a word (`esc`, `click`, `F12`, `scroll`) sits smaller so the cap keeps its height. */
+.pal-keycast__entry .pal-kbd { gap: 6px; }
+.pal-keycast__entry .pal-kbd kbd {
+  --pal-kbd-h: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 0.45em;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #4a4a55 0%, #33333c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.5);
+  color: #fafafc;
+  font-size: 25px;
+  font-weight: var(--pal-weight-semibold, 600);
+  line-height: 1;
+  letter-spacing: 0;
+}
+.pal-keycast__entry .pal-kbd kbd[data-wide] { font-size: 15px; font-weight: var(--pal-weight-medium, 500); letter-spacing: 0.02em; padding: 0 0.7em; }
+/* The modifier glyphs are drawn a shade lighter than the key, so `⌘ S` reads as a chord, not two keys. */
+.pal-keycast__entry .pal-kbd kbd[data-mod] { background: linear-gradient(180deg, #5a5a68 0%, #40404b 100%); color: #ffffff; }
+
+/* A run of typing: the text itself, large, on the capsule with no caps; spaces kept; a caret while the run is still taking characters. */
+.pal-keycast__text {
+  font-size: 27px;
+  font-weight: var(--pal-weight-medium, 500);
+  letter-spacing: 0.01em;
+  padding: 0 4px;
+  white-space: pre;
+}
+.pal-keycast__text[data-live]::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--kc-ring, var(--pal-tag-blue, #4a8bf5));
+  animation: pal-keycast-caret 1s steps(2, start) infinite;
+}
+@keyframes pal-keycast-caret { to { visibility: hidden; } }
+
+/* The repeat badge, on the capsule's corner. */
+.pal-keycast__count {
+  position: absolute;
+  top: -9px;
+  right: -8px;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--kc-ring, var(--pal-tag-blue, #4a8bf5));
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(22, 22, 28, 0.9);
+  font-size: 13px;
+  font-weight: var(--pal-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
 /* A scroll's arrow grows with how far it went (`level` 1..3, `pal_core::keycast::scroll_level`); the word cap stays. A gesture's amount (`+35%`, `↻ 12°`) is a word cap in tabular figures so it counts up without jitter. */
-.pal-keycast__entry[data-kind="scroll"] .pal-kbd kbd:last-child { transition: font-size var(--pal-dur-fast, 80ms) var(--pal-ease, ease); }
-.pal-keycast__entry[data-level="2"] .pal-kbd kbd:last-child { font-size: 26px; }
-.pal-keycast__entry[data-level="3"] .pal-kbd kbd:last-child { font-size: 30px; }
+.pal-keycast__entry[data-kind="scroll"] .pal-kbd kbd:last-child { transition: font-size 80ms ease; }
+.pal-keycast__entry[data-level="2"] .pal-kbd kbd:last-child { font-size: 29px; }
+.pal-keycast__entry[data-level="3"] .pal-kbd kbd:last-child { font-size: 33px; }
 .pal-keycast__entry[data-kind="gesture"] .pal-kbd kbd { font-variant-numeric: tabular-nums; }
 
 /* The cursor layer spans the display; the ring rides the cursor (its transform is the position, 20 ms apart, eased between), shrinking while a button is down. */
@@ -87,6 +175,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pal-keycast__entry { animation-duration: 0.01ms; transition: none; }
+  .pal-keycast__text[data-live]::after { animation: none; }
   .pal-keycast__ring { transition: none; }
   .pal-keycast__ripple { animation-duration: 200ms; }
 }

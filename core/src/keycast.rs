@@ -158,6 +158,28 @@ pub fn caps(ev: &KeyEvent, shortcuts_only: bool) -> Option<Vec<String>> {
     Some(v)
 }
 
+/// How long after the last character a new one still joins the same text
+/// run, and how many characters a run holds before the next starts one.
+pub const TEXT_GAP_MS: u64 = 1000;
+pub const TEXT_MAX: usize = 24;
+
+/// The character a plain press typed, as typed (case kept), for the strip's
+/// text runs: no modifier combo, not a named key (space is the one named
+/// key that is text), one printable character. `None` is a cap's business.
+pub fn typed(ev: &KeyEvent) -> Option<String> {
+    if ev.mods.combo() {
+        return None;
+    }
+    if ev.code == 49 {
+        return Some(" ".into());
+    }
+    if named(ev.code).is_some() {
+        return None;
+    }
+    let s = ev.chars.trim_matches(char::is_control);
+    (s.chars().count() == 1 && !s.chars().any(|c| ('\u{f700}'..='\u{f8ff}').contains(&c))).then(|| s.to_string())
+}
+
 /// The caps for a click that carries modifiers (`⌥ click`, `⌘ right click`); a bare click is the cursor overlay's, not the strip's.
 pub fn click_caps(button: Button, mods: Mods) -> Option<Vec<String>> {
     if !mods.combo() && !mods.shift {
@@ -275,6 +297,8 @@ pub fn gesture_caps(kind: Gesture, total: f64, dx: f64, dy: f64) -> Option<Vec<S
 #[serde(rename_all = "lowercase")]
 pub enum EntryKind {
     Key,
+    /// A run of plain typing, `keys[0]` the text so far (KeyCastr's word grouping).
+    Text,
     Scroll,
     Gesture,
 }
@@ -347,6 +371,20 @@ impl Feed {
             }
         }
         self.add(keys, now, EntryKind::Key, 0);
+    }
+
+    /// A typed character: within `TEXT_GAP_MS` of the newest entry when that
+    /// is a run under `TEXT_MAX` characters it joins it, else it starts a run.
+    pub fn text(&mut self, ch: &str, now: u64) {
+        self.prune(now);
+        if let Some(last) = self.entries.back_mut() {
+            if last.kind == EntryKind::Text && now.saturating_sub(last.at) <= TEXT_GAP_MS && last.keys[0].chars().count() < TEXT_MAX {
+                last.keys[0].push_str(ch);
+                last.at = now;
+                return;
+            }
+        }
+        self.add(vec![ch.to_string()], now, EntryKind::Text, 0);
     }
 
     fn add(&mut self, keys: Vec<String>, now: u64, kind: EntryKind, level: u8) -> u64 {
@@ -530,6 +568,36 @@ mod tests {
         assert_eq!(click_caps(Button::Left, CMD), Some(vec!["⌘".into(), "click".into()]));
         assert_eq!(click_caps(Button::Right, SHIFT), Some(vec!["⇧".into(), "right click".into()]));
         assert_eq!(click_caps(Button::Other, ALT), Some(vec!["⌥".into(), "middle click".into()]));
+    }
+
+    #[test]
+    fn typed_is_the_character_as_typed_and_space_only_among_the_named() {
+        assert_eq!(typed(&ev(0, "a", "a", NONE)), Some("a".into()), "case kept, unlike a cap");
+        assert_eq!(typed(&ev(0, "A", "a", SHIFT)), Some("A".into()));
+        assert_eq!(typed(&ev(49, " ", " ", NONE)), Some(" ".into()), "space is text");
+        assert_eq!(typed(&ev(36, "\r", "\r", NONE)), None, "return is a named cap");
+        assert_eq!(typed(&ev(1, "s", "s", CMD)), None, "a combo is caps");
+        assert_eq!(typed(&ev(0, "\u{f710}", "\u{f710}", NONE)), None);
+    }
+
+    #[test]
+    fn typing_runs_together_until_a_gap_a_length_or_another_kind_of_entry() {
+        let mut f = Feed::new(Options { hold_ms: 5000, max: 5 });
+        for (i, c) in "hello world".chars().enumerate() {
+            f.text(&c.to_string(), i as u64 * 100);
+        }
+        assert_eq!(f.entries().len(), 1);
+        assert_eq!((f.entries()[0].kind, f.entries()[0].keys[0].as_str(), f.entries()[0].count), (EntryKind::Text, "hello world", 1));
+        f.text("!", 1000 + TEXT_GAP_MS + 1);
+        assert_eq!(f.entries().iter().map(|e| e.keys[0].as_str()).collect::<Vec<_>>(), ["hello world", "!"], "a pause starts a new run");
+        f.push(vec!["⌘".into(), "S".into()], 2200);
+        f.text("x", 2300);
+        assert_eq!(f.entries().iter().map(|e| e.keys[0].as_str()).collect::<Vec<_>>(), ["hello world", "!", "⌘", "x"], "a cap between runs splits them");
+        let mut g = Feed::new(Options { hold_ms: 5000, max: 5 });
+        for i in 0..TEXT_MAX + 2 {
+            g.text("a", i as u64);
+        }
+        assert_eq!(g.entries().iter().map(|e| e.keys[0].chars().count()).collect::<Vec<_>>(), [TEXT_MAX, 2], "a full run overflows into the next");
     }
 
     #[test]

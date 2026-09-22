@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULTS, MAX_RIPPLES, OUT_MS, countLabel, exiting, initial, reduce, rippleColor, showsCursor, showsKeys, visible, type Entry, type Payload, type State } from "../keycast";
+import { age, countLabel, DEFAULTS, exiting, initial, isModifier, liveText, MAX_RIPPLES, OUT_MS, reduce, rippleColor, showsCursor, showsKeys, TEXT_GAP_MS, type Entry, type Payload, type State, visible } from "../keycast";
 
 const on = (over: Partial<State["settings"] & object> = {}): State => reduce(initial(), { kind: "state", active: true, mode: "both", settings: { ...DEFAULTS, ...over } });
 const entry = (id: number, at: number, keys = ["⌘", "S"], count = 1): Entry => ({ id, keys, count, at, kind: "key", level: 0 });
@@ -77,5 +77,18 @@ describe("keycast page: the helpers", () => {
     expect([showsKeys("keys"), showsCursor("keys")]).toEqual([true, false]);
     expect([showsKeys("cursor"), showsCursor("cursor")]).toEqual([false, true]);
     expect([showsKeys("both"), showsCursor("both")]).toEqual([true, true]);
+  });
+  it("age runs 0 to 1 over the hold; a text run is live while newest and within the gap; the modifier glyphs are marked", () => {
+    const e = entry(1, 1000);
+    expect(age(e, 2, 1000)).toBe(0);
+    expect(age(e, 2, 2000)).toBe(0.5);
+    expect(age(e, 2, 9000)).toBe(1);
+    const t = { ...entry(2, 1000), kind: "text" as const, keys: ["hello"] };
+    expect(liveText(t, [e, t], 1500)).toBe(true);
+    expect(liveText(t, [e, t], 1000 + TEXT_GAP_MS)).toBe(false);
+    expect(liveText(t, [t, e], 1500)).toBe(false);
+    expect(liveText(e, [t, e], 1500)).toBe(false);
+    expect(["⌘", "⇧", "⌥", "⌃"].every(isModifier)).toBe(true);
+    expect(["S", "esc", "click", "fn"].some(isModifier)).toBe(false);
   });
 });

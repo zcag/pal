@@ -4930,7 +4930,7 @@ replaces any of them.
 Keystrokes and clicks drawn over the screen for a recording or a screen
 share (KeyCastr, Keyviz), macOS only. A live, normal palette: Start
 keycast / Stop keycast leads it (its subtitle the mode and the strip's
-corner; the row is in the root's Now section while it runs), then the
+edge; the row is in the root's Now section while it runs), then the
 three modes, Keys only, Cursor only, Keys and cursor (the one on tagged
 `current`, the default `default`), then Shortcuts only: on / off and
 Scroll and gestures: on / off, and, while the grant is missing, a
@@ -4938,12 +4938,19 @@ Keycast needs Input Monitoring row that asks on Enter. Start and Stop hide the p
 on: keys and cursor`, so the panel is never in the recording.
 
 What it draws (`app/src-tauri/src/keycast.rs`, the overlay window; the
-caps and the feed are `pal_core::keycast`): the recent keys as the
-panel's own key caps at twice the size in a HUD capsule, `⌃ ⌥ ⇧ ⌘` as
-glyphs, a named key as its symbol (`↵ ⇥ ⌫ ⌦ ␣ esc ← ⇞ F5`), a typed key
-as what it typed and inside a combo as the key's face (`⌘⇧S`), a repeat
-within the hold folded into one cap with `×3`, a click with modifiers as
-`⌥ click`; each fading `hold` seconds after its last press, `max` kept.
+caps and the feed are `pal_core::keycast`): the recent entries as one
+row along the chosen edge, oldest on the left and newest on the right
+(the way KeyCastr and Keyviz read), each a frosted capsule. Plain typing
+runs together as text in the capsule as typed (`hello world`, a caret
+while the run still takes characters: the next character within a
+second joins it, up to 24, and a pause, a shortcut or a named key starts
+the next); a shortcut is caps with a lip, `⌃ ⌥ ⇧ ⌘` as glyphs drawn a
+shade lighter than the key they chord with (`⌘⇧S`); a named key its
+symbol (`↵ ⇥ ⌫ ⌦ esc ← ⇞ F5`); a repeat within the hold folded into one
+entry with a `×3` badge on its corner; a click with modifiers `⌥ click`.
+An entry fades and settles with age and is gone `hold` seconds after
+its last press, `max` kept; the far end of a row longer than the screen
+fades out under a mask.
 With `gestures` on the strip also names what the trackpad and the wheel
 do: `scroll ↓` (the arrow from the dominant axis of what has piled up,
 sized by how far in three steps, one entry per stretch that the momentum
@@ -4992,7 +4999,7 @@ Settings, `[extensions.keycast]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `mode` | `both`, `keys`, `cursor` | `both` | What Start draws when no mode is named. |
-| `position` | `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` | `bottom-center` | The strip's corner of the work area. |
+| `position` | `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` | `bottom-center` | The strip's edge of the work area; the row grows from that anchor. |
 | `scale` | 0.5 to 3 | `1` | The size of the caps and the ring. |
 | `hold` | 0.5 to 10 | `2` | Seconds a key stays after its last press. |
 | `max` | 1 to 12 | `5` | How many entries the strip keeps. |

@@ -9,7 +9,7 @@ export type Button = "left" | "right" | "middle";
 /** `[extensions.keycast]` as the shell resolves it (extensions/keycast/pal.json). */
 export type Settings = { mode: Mode; position: Position; scale: number; hold: number; max: number; shortcuts_only: boolean; ring: boolean; ring_color: string; ripples: boolean; gestures: boolean };
 /** One entry of the strip (`pal_core::keycast::Entry`): the caps, the repeat count, the last press or move in unix ms, what it is, and for a scroll how much (1..3). */
-export type Entry = { id: number; keys: string[]; count: number; at: number; kind: "key" | "scroll" | "gesture"; level: number };
+export type Entry = { id: number; keys: string[]; count: number; at: number; kind: "key" | "text" | "scroll" | "gesture"; level: number };
 export type Ripple = { id: number; x: number; y: number; button: Button };
 
 export type Payload =
@@ -80,3 +80,15 @@ export const showsCursor = (mode: Mode) => mode !== "keys";
 
 /** `×3` after the caps once a key repeated; nothing for a single press. */
 export const countLabel = (count: number): string | null => (count > 1 ? `×${count}` : null);
+
+/** How far into its hold an entry is at `now`, 0 fresh to 1 at the end: the page fades and settles an entry by it. */
+export const age = (e: Entry, holdSeconds: number, now: number): number => Math.min(1, Math.max(0, (now - e.at) / (holdSeconds * 1000)));
+
+/** How long after its last character a text run still shows a caret (`pal_core::keycast::TEXT_GAP_MS`: the window in which the next character joins it). */
+export const TEXT_GAP_MS = 1000;
+/** Whether a text run is still taking characters: the newest entry, and its last character within the gap. */
+export const liveText = (e: Entry, entries: Entry[], now: number): boolean => e.kind === "text" && entries[entries.length - 1]?.id === e.id && now - e.at < TEXT_GAP_MS;
+
+/** The modifier glyphs (`pal_core::keycast::Mods::glyphs`), drawn a shade apart from the key they chord with. */
+export const MODIFIERS = new Set(["⌃", "⌥", "⇧", "⌘"]);
+export const isModifier = (cap: string): boolean => MODIFIERS.has(cap);

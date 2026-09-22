@@ -42,7 +42,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::{spec_defaults, Config};
-use pal_core::keycast::{caps, click_caps, Entry, Feed, KeyEvent, Options, Phase};
+use pal_core::keycast::{caps, click_caps, typed, Entry, Feed, KeyEvent, Options, Phase};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
@@ -435,8 +435,14 @@ fn on_event(app: &AppHandle, ev: &Event) {
                 return;
             }
             let key = KeyEvent { code: ev.code, mods: ev.mods, chars: ev.chars.clone(), base: ev.base.clone() };
-            let Some(c) = caps(&key, s.settings.shortcuts_only) else { return };
-            s.feed.push(c, now_ms());
+            // Plain typing runs together as text; everything else is caps.
+            match if s.settings.shortcuts_only { None } else { typed(&key) } {
+                Some(t) => s.feed.text(&t, now_ms()),
+                None => {
+                    let Some(c) = caps(&key, s.settings.shortcuts_only) else { return };
+                    s.feed.push(c, now_ms());
+                }
+            }
             let entries = s.feed.entries().iter().cloned().collect();
             drop(s);
             follow(app);

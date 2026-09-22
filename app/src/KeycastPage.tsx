@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { DEFAULTS, countLabel, exiting, initial, reduce, rippleColor, showsCursor, showsKeys, visible, type Entry, type Payload, type Ripple, type State } from "./keycast";
+import { DEFAULTS, age, countLabel, exiting, initial, isModifier, liveText, reduce, rippleColor, showsCursor, showsKeys, visible, type Entry, type Payload, type Ripple, type State } from "./keycast";
 // The tokens (the tag palette, the HUD's surface) and `.pal-kbd` come with the ui bundle: the caps are the panel's own key caps, larger.
 import "./ui";
 import "./keycast.css";
@@ -45,7 +45,7 @@ export default function KeycastPage() {
       {showsKeys(st.mode) && (
         <div className="pal-keycast__area" style={{ inset: `${top}px ${right}px ${bottom}px ${left}px` }}>
           <div className="pal-keycast__strip" data-position={s.position} role="log" aria-live="off">
-            {st.entries.map((e) => <Caps key={`${e.id}:${e.count}`} entry={e} out={exiting(e, hold, now)} />)}
+            {st.entries.map((e) => <Caps key={`${e.id}:${e.count}`} entry={e} age={age(e, hold, now)} live={liveText(e, st.entries, now)} out={exiting(e, hold, now)} />)}
           </div>
         </div>
       )}
@@ -59,12 +59,16 @@ export default function KeycastPage() {
   );
 }
 
-/** One entry: the caps as the panel's key caps, and the repeat count after them; `out` for its last moments. A scroll's `level` sizes its arrow. */
-function Caps({ entry, out }: { entry: Entry; out: boolean }) {
+/** One entry: a run of typing as text (a caret while it still takes characters), anything else as caps with the modifiers marked, the repeat count as a badge; `age` fades it, `out` for its last moments. A scroll's `level` sizes its arrow. */
+function Caps({ entry, age, live, out }: { entry: Entry; age: number; live: boolean; out: boolean }) {
   const count = countLabel(entry.count);
   return (
-    <div className="pal-keycast__entry" data-kind={entry.kind} data-level={entry.level || undefined} data-exiting={out || undefined}>
-      <span className="pal-kbd">{entry.keys.map((k, i) => <kbd key={i} data-wide={k.length > 2 || undefined}>{k}</kbd>)}</span>
+    <div className="pal-keycast__entry" data-kind={entry.kind} data-level={entry.level || undefined} data-exiting={out || undefined} style={{ "--kc-age": age } as React.CSSProperties}>
+      {entry.kind === "text" ? (
+        <span className="pal-keycast__text" data-live={live || undefined}>{entry.keys[0]}</span>
+      ) : (
+        <span className="pal-kbd">{entry.keys.map((k, i) => <kbd key={i} data-mod={isModifier(k) || undefined} data-wide={k.length > 2 || undefined}>{k}</kbd>)}</span>
+      )}
       {count && <span className="pal-keycast__count">{count}</span>}
     </div>
   );

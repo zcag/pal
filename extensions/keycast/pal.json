@@ -1,7 +1,7 @@
 {
   "name": "keycast",
   "title": "Keycast",
-  "description": "Keystrokes and clicks drawn over the screen for a recording or a screen share: the recent keys as caps (modifiers as glyphs, a repeat as ×3) fading from a corner, a ring around the cursor with a ripple on every click. Keys, cursor, or both; shortcuts only when typing should stay private; a red dot on the bar while it runs.",
+  "description": "Keystrokes and clicks drawn over the screen for a recording or a screen share: the recent keys as one row of caps along an edge (typing runs together as text, modifiers as glyphs, a repeat as ×3), the older ones fading, a ring around the cursor with a ripple on every click. Keys, cursor, or both; shortcuts only when typing should stay private; a red dot on the bar while it runs.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -30,7 +30,7 @@
       "kind": "select",
       "id": "position",
       "label": "Key strip position",
-      "description": "Which corner of the display under the cursor the keys stack in.",
+      "description": "Which edge of the display under the cursor the row of keys sits on.",
       "options": [
         { "id": "bottom-center", "title": "Bottom centre" },
         { "id": "bottom-left", "title": "Bottom left" },
@@ -193,7 +193,7 @@
     "tagline": "Keystrokes and clicks on screen for a recording or a screen share",
     "category": "productivity",
     "features": [
-      "The recent keys as caps at a corner of the display under the cursor: ⌃ ⌥ ⇧ ⌘ as glyphs, named keys as their symbols (↵ ⇥ ⌫ → F5), a repeat folded into one cap with ×3, each fading after the hold",
+      "The recent keys as one row along an edge of the display under the cursor, newest on the right: plain typing runs together as text, shortcuts as caps with ⌃ ⌥ ⇧ ⌘ as glyphs, named keys as their symbols (↵ ⇥ ⌫ → F5), a repeat folded into one cap with ×3, each fading with age and gone after the hold",
       "A ring around the cursor and a ripple on every click, left and right told apart, on a full-screen pass-through overlay that follows the cursor across displays",
       "Scrolling and trackpad gestures on the strip: `scroll ↓` sized by how far, kept up through the momentum, `pinch out +35%` and `rotate ↻ 12°` as one entry that counts up until the fingers lift, `swipe ←`, `smart zoom`",
       "Keys, cursor, or both; shortcuts only (cmd, ctrl, alt, function and navigation keys) when what is typed should stay off the screen; nothing is ever shown while a secure text field has the keyboard",

@@ -2,7 +2,8 @@
 
 Keystrokes and clicks drawn over the screen for a recording or a screen
 share, the way KeyCastr and Keyviz do it, built into pal: the recent keys
-as caps fading from a corner of the display under the cursor, a ring
+as one row of caps along an edge of the display under the cursor (plain
+typing runs together as text, the older entries fading with age), a ring
 around the cursor with a ripple on every click, a red dot on the bar
 while it runs. macOS only.
 
@@ -87,7 +88,7 @@ the one snippet expansion uses (one `NSEvent` global monitor for both).
 | key | default | what |
 | --- | --- | --- |
 | `mode` | `both` | What Start draws when no mode is named: `both`, `keys`, `cursor` |
-| `position` | `bottom-center` | The strip's corner of the work area: `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` |
+| `position` | `bottom-center` | The strip's edge of the work area, the row reading oldest to newest: `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` |
 | `scale` | `1` | The size of the caps and the ring, 0.5 to 3 |
 | `hold` | `2` | Seconds a key stays after its last press |
 | `max` | `5` | How many entries the strip keeps |
