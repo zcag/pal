@@ -72,6 +72,11 @@ that Grant opens the pane, where the switch is).
 | Calendars | the Calendar extension | the extension's "Grant calendar access" row | "Calendar access denied" with a row that opens the pane |
 | Full Disk Access | Verification Codes (Messages' database), Safari bookmarks, the Trash count on Empty Trash | there is no prompt: the row opens the pane and you add pal by hand | "Full Disk Access needed" as the palette's one row; the Safari section is one inert row |
 
+Now Playing scripts Spotify and Music only once macOS lets pal automate
+them: a running app pal was never allowed for is a row in the palette
+("Spotify is running; let pal control it directly") whose Enter shows
+the consent alert; its track is on the system-wide row meanwhile.
+
 Browser Tabs asks for Automation (an Apple Events prompt per browser,
 macOS's own, naming pal and the browser) the first time it lists a running
 Safari or Chrome, which is the first panel show (`lazy: true`), never at

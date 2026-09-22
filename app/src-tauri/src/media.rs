@@ -52,6 +52,11 @@ pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String
             let p: Params = serde_json::from_value(params).map_err(|e| format!("bad params: {e}"))?;
             media::control(&p.player, p.command).map(|_| Value::Null).map_err(|e| e.to_string())
         }
+        // The consent alert for one app, from the palette's row: the pick is the user's.
+        "ask" => {
+            let player = params["player"].as_str().ok_or("bad params: player")?;
+            media::ask(player).map(Value::Bool).map_err(|e| e.to_string())
+        }
         _ => Err(format!("unknown media.{func}")),
     }
 }

@@ -2259,7 +2259,14 @@ Linux without `playerctl` it says to install it.
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
   running (the check is `NSRunningApplication`, so pal never launches one
-  to ask); Spotify gives the artwork url and the track url. The system-wide
+  to ask) and only once macOS lets pal automate it: the first Apple Event
+  to an app is the system's Automation consent alert (Music adds its
+  Media Library one), and pal never fires that from a listing or at
+  launch. Until you allow it the app's track shows on the system-wide row
+  below, and the palette has a row "Spotify is running; let pal control
+  it directly" whose Enter lets macOS ask; refused in System Settings >
+  Privacy & Security > Automation stays refused. Spotify's own row gives
+  the artwork url and the track url. The system-wide
   Now Playing (any other player: a browser, VLC) is one more row, named
   and iconed from the app's bundle id, through the bundled MediaRemote
   adapter (`mediaremote-adapter.pl` plus a framework, run by

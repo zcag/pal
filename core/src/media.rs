@@ -2,7 +2,13 @@
 //!
 //! macOS: Spotify and Music over `osascript` (only while the app is
 //! running, checked through `NSRunningApplication` first: a `tell
-//! application` to one that is not would launch it), which gives the
+//! application` to one that is not would launch it; and only once macOS
+//! lets pal automate it, checked through `AEDeterminePermissionToAutomateTarget`
+//! without the prompt: the first Apple Event to an app is the Automation
+//! consent alert, and Music's the Media Library one on top, and neither
+//! is pal's to fire at launch from the bar's first look, so an app not
+//! asked about yet is listed under [`NowPlaying::unasked`] instead, for
+//! the palette's row whose pick is [`ask`]), which gives the
 //! state, track, artist, album, position and, for Spotify, the artwork url
 //! and the track url; plus the system-wide Now Playing (any other player:
 //! a browser, VLC) as one more row, from the first of: the MediaRemote
@@ -98,9 +104,23 @@ pub struct Player {
     pub duration: Option<f64>,
 }
 
+/// A player that runs but was never asked about (macOS Automation not
+/// determined): the system-wide row still shows what it plays.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Unasked {
+    /// What [`ask`] and `control` take: `spotify`, `music`.
+    pub id: String,
+    pub name: String,
+    /// The `.app`, for the row's icon.
+    pub app: String,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct NowPlaying {
     pub players: Vec<Player>,
+    /// macOS: the running players pal may not automate yet (never asked); nothing elsewhere.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unasked: Vec<Unasked>,
     /// Whether there is a system-wide source (`playerctl`; the bundled MediaRemote adapter or `nowplaying-cli` on macOS): without one only Spotify and Music are seen on macOS.
     pub system_wide: bool,
     /// The system-wide row came from the live stream: a change reaches [`on_change`] by itself, nothing needs to poll for it.
@@ -117,6 +137,13 @@ pub fn now_playing() -> Result<NowPlaying> {
 
 pub fn control(player: &str, cmd: Command) -> Result<()> {
     platform::control(player, cmd)
+}
+
+/// Let macOS ask whether pal may automate `player` (`spotify`, `music`):
+/// the app's script once, with the consent alert; true once it may. The
+/// row's pick in the media palette, never a listing's.
+pub fn ask(player: &str) -> Result<bool> {
+    platform::ask(player)
 }
 
 /// The cover the stream holds under `id` (a [`Player::artwork_id`]), as a
@@ -696,18 +723,76 @@ end tell"#,
         (true, false, p.filter(|p| !players.iter().any(|q| q.title == p.title && q.artist == p.artist)))
     }
 
+    /// Whether pal may send Apple Events to the running app at `bundle`,
+    /// without prompting (`AEDeterminePermissionToAutomateTarget`, the
+    /// wildcard event): `Some(true)` granted, `Some(false)` refused in
+    /// System Settings, `None` never asked (or the check itself failed).
+    fn automation(bundle: &str) -> Option<bool> {
+        #[repr(C)]
+        struct AEDesc {
+            descriptor_type: u32,
+            data_handle: *mut std::ffi::c_void,
+        }
+        #[link(name = "CoreServices", kind = "framework")]
+        extern "C" {
+            fn AECreateDesc(type_code: u32, data: *const std::ffi::c_void, size: isize, result: *mut AEDesc) -> i16;
+            fn AEDisposeDesc(desc: *mut AEDesc) -> i16;
+            fn AEDeterminePermissionToAutomateTarget(target: *const AEDesc, event_class: u32, event_id: u32, ask_user_if_needed: bool) -> i32;
+        }
+        const TYPE_APPLICATION_BUNDLE_ID: u32 = 0x62756E64; // 'bund'
+        const TYPE_WILDCARD: u32 = 0x2A2A2A2A; // '****'
+        const ERR_NOT_PERMITTED: i32 = -1743;
+        const ERR_WOULD_REQUIRE_CONSENT: i32 = -1744;
+        let mut desc = AEDesc { descriptor_type: 0, data_handle: std::ptr::null_mut() };
+        // SAFETY: the descriptor is created from a byte slice that outlives the call and disposed after; plain C calls otherwise.
+        unsafe {
+            if AECreateDesc(TYPE_APPLICATION_BUNDLE_ID, bundle.as_ptr().cast(), bundle.len() as isize, &mut desc) != 0 {
+                return None;
+            }
+            let r = AEDeterminePermissionToAutomateTarget(&desc, TYPE_WILDCARD, TYPE_WILDCARD, false);
+            AEDisposeDesc(&mut desc);
+            match r {
+                0 => Some(true),
+                ERR_NOT_PERMITTED => Some(false),
+                ERR_WOULD_REQUIRE_CONSENT => None,
+                other => {
+                    eprintln!("media\tautomation\t{bundle}\t{other}");
+                    None
+                }
+            }
+        }
+    }
+
     pub fn now_playing() -> Result<NowPlaying> {
         let mut players = vec![];
+        let mut unasked = vec![];
         for a in APPS {
             let Some((path, _)) = running(a.bundle) else { continue };
-            match osascript(a.script) {
-                Ok(line) => players.push(parse_line(a.id, a.name, Some(path), &line, a.unit)),
-                Err(e) => eprintln!("media\t{}\t{e}", a.id),
+            match automation(a.bundle) {
+                Some(true) => match osascript(a.script) {
+                    Ok(line) => players.push(parse_line(a.id, a.name, Some(path), &line, a.unit)),
+                    Err(e) => eprintln!("media\t{}\t{e}", a.id),
+                },
+                // Refused: the system-wide row is what there is; the pane is the user's.
+                Some(false) => eprintln!("media\t{}\tautomation refused; the system-wide row stands", a.id),
+                None => unasked.push(Unasked { id: a.id.into(), name: a.name.into(), app: path }),
             }
         }
         let (system_wide, stream, p) = system(&mut players);
         players.extend(p);
-        Ok(NowPlaying { players, system_wide, stream })
+        Ok(NowPlaying { players, unasked, system_wide, stream })
+    }
+
+    pub fn ask(player: &str) -> Result<bool> {
+        let app = APPS.iter().find(|a| a.id == player).ok_or_else(|| Error::Failed(format!("no player {player}")))?;
+        if running(app.bundle).is_none() {
+            return Err(Error::Failed(format!("{} is not running", app.name)));
+        }
+        // The script itself is the ask: the first event to the app shows the consent alert, and osascript waits for the answer.
+        if let Err(e) = osascript(app.script) {
+            eprintln!("media\t{}\task\t{e}", app.id);
+        }
+        Ok(automation(app.bundle) == Some(true))
     }
 
     pub fn control(player: &str, cmd: Command) -> Result<()> {
@@ -753,7 +838,7 @@ mod platform {
 
     pub fn now_playing() -> Result<NowPlaying> {
         if !on_path("playerctl") {
-            return Ok(NowPlaying { players: vec![], system_wide: false, stream: false });
+            return Ok(NowPlaying { players: vec![], unasked: Vec::new(), system_wide: false, stream: false });
         }
         let listed = match run("playerctl", &["-l"]) {
             Ok(l) => l,
@@ -770,7 +855,12 @@ mod platform {
                 parse_line(n, &display_name(n), desktop(n), &line, 1e-6)
             })
             .collect();
-        Ok(NowPlaying { players, system_wide: true, stream: false })
+        Ok(NowPlaying { players, unasked: Vec::new(), system_wide: true, stream: false })
+    }
+
+    /// No consent to ask for on MPRIS.
+    pub fn ask(_: &str) -> Result<bool> {
+        Ok(true)
     }
 
     pub fn control(player: &str, cmd: Command) -> Result<()> {
@@ -794,11 +884,24 @@ mod platform {
     pub fn control(_: &str, _: Command) -> Result<()> {
         now_playing().map(drop)
     }
+    pub fn ask(_: &str) -> Result<bool> {
+        now_playing().map(|_| false)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unasked_rides_only_when_there_is_one() {
+        let np = NowPlaying::default();
+        assert!(serde_json::to_value(&np).unwrap().get("unasked").is_none(), "nothing to ask about off macOS or once granted");
+        let np = NowPlaying { unasked: vec![Unasked { id: "spotify".into(), name: "Spotify".into(), app: "/Applications/Spotify.app".into() }], ..Default::default() };
+        assert_eq!(serde_json::to_value(&np).unwrap()["unasked"][0]["id"], "spotify");
+        let back: NowPlaying = serde_json::from_str(r#"{"players":[],"system_wide":true}"#).unwrap();
+        assert!(back.unasked.is_empty(), "an older core's reply reads");
+    }
 
     #[test]
     fn spotify_line_with_artwork_url_and_ms_durations() {

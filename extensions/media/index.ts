@@ -313,13 +313,18 @@ export default {
       list: async () => {
         try {
           const np = await media.nowPlaying();
-          return np.players.length ? Promise.all(np.players.map(item)) : [empty(np.system_wide)];
+          // A running player macOS has not been asked about: its track is on the system-wide row; this row's pick lets macOS ask (never a listing: the first event is the consent alert).
+          const unasked = (np.unasked ?? []).map((u) => hint(`ask:${u.id}`, `${u.name} is running; let pal control it directly`, "Enter lets macOS ask whether pal may automate it: its own row, with the track's link", { icon: { app: u.app }, actions: [{ id: "ask", title: "Allow pal to control it" }] }));
+          return np.players.length || unasked.length ? [...(await Promise.all(np.players.map(item))), ...unasked] : [empty(np.system_wide)];
         } catch (e) {
           return [hint("empty", "Now Playing is not available", errorMessage(e), { icon: xdg("dialog-error") })];
         }
       },
       pick: async (id, action) => {
         if (id === "hint:empty") return { keep: true };
+        if (id.startsWith("hint:ask:")) {
+          try { return (await media.ask(id.slice("hint:ask:".length))) ? { keep: true } : toast("Not allowed", "Switch it on under System Settings > Privacy & Security > Automation", "failure"); } catch (e) { return failed("ask for Automation", e); }
+        }
         if (action === "copy" || action === "open") {
           const p = (await media.nowPlaying()).players.find((p) => p.id === id);
           if (!p) return toast("That player is gone", undefined, "failure");

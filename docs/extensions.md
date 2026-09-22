@@ -1337,9 +1337,13 @@ to the core.
   `state`, `title`, `artist`, `album`, `artwork`, `url`, `app`,
   `position`, `duration`, playing first; `system_wide`: whether a
   system-wide source is there: the bundled MediaRemote adapter or
-  `nowplaying-cli` on macOS, `playerctl` on Linux), `control(player,
-  command)` (`play_pause`, `play`, `pause`, `next`, `previous`; the panel
-  stays up). Spotify and Music over AppleScript plus the system's Now
+  `nowplaying-cli` on macOS, `playerctl` on Linux; `unasked`, macOS: the
+  running players macOS has not been asked about, `{ id, name, app }`
+  each, since a listing never fires the Automation consent alert),
+  `control(player, command)` (`play_pause`, `play`, `pause`, `next`,
+  `previous`; the panel stays up), `ask(player)` (macOS: the consent
+  alert for `spotify` or `music`, from a pick only; true once allowed).
+  Spotify and Music over AppleScript plus the system's Now
   Playing as the `system` player on macOS (a title-less player with a
   state is one that reports no track, Chrome for one), `playerctl` on
   Linux.

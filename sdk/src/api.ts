@@ -543,8 +543,10 @@ export type MediaPlayer = {
   position: number | null;
   duration: number | null;
 };
-/** `pal_core::media::NowPlaying`: `system_wide` says whether a source beyond Spotify and Music is there (the bundled MediaRemote adapter or `nowplaying-cli` on macOS, `playerctl` on Linux). */
-export type NowPlaying = { players: MediaPlayer[]; system_wide: boolean };
+/** `pal_core::media::Unasked`: a running player macOS has not been asked about (Automation not determined); the system-wide row still shows its track. */
+export type MediaUnasked = { id: string; name: string; app: string };
+/** `pal_core::media::NowPlaying`: `system_wide` says whether a source beyond Spotify and Music is there (the bundled MediaRemote adapter or `nowplaying-cli` on macOS, `playerctl` on Linux); `unasked` (macOS) the running players pal may not automate yet, each a row whose pick is `ask`. */
+export type NowPlaying = { players: MediaPlayer[]; unasked?: MediaUnasked[]; system_wide: boolean };
 export type MediaCommand = "play_pause" | "play" | "pause" | "next" | "previous";
 
 /** Now playing (`pal_core::media`): Spotify and Music over AppleScript plus the system-wide source (the bundled MediaRemote adapter, else `nowplaying-cli`) on macOS, `playerctl` on Linux. */
@@ -553,6 +555,8 @@ export const media = {
   nowPlaying: () => call<NowPlaying>("media.now_playing"),
   /** A transport command to one player; the panel stays up. */
   control: (player: string, command: MediaCommand) => call<null>("media.control", { player, command }),
+  /** macOS: let the system ask whether pal may automate `player` (`spotify`, `music`), the consent alert; true once it may. From a pick only: the first Apple Event is the alert, and a listing must not fire it. */
+  ask: (player: string) => call<boolean>("media.ask", { player }),
 };
 
 /** `pal_core::permission::Status` (Calendars, Location): `not_determined` means a request will prompt; `denied`/`restricted` are switched in System Settings; `unavailable` is a machine without the backend (Linux without `khal`, Location off macOS). */

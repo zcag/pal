@@ -34,8 +34,10 @@ let np: NowPlaying & { stream?: boolean } = { players: [spotify, music, idle], s
 const calls: { player: string; command: string }[] = [];
 let artworkAsked = 0;
 let host: Host;
+let allowed = true;
 const coreFor = (asked: () => void) => ({
   "media.now_playing": () => np,
+  "media.ask": (p: { player: string }) => { calls.push({ player: p.player, command: "ask" }); return allowed; },
   "media.control": (p: { player: string; command: string }) => { if (p.player === "music" && p.command === "next") throw new Error("Music is not running"); calls.push(p); return null; },
   "media.artwork": (p: { id: string }) => { asked(); const a = artworks[p.id]; if (!a) throw new Error(`no artwork ${p.id}`); return a; },
 });
@@ -314,6 +316,23 @@ describe("media", () => {
     // macOS bundles its source (the MediaRemote adapter), so no install hint there: a build without it is what the row says.
     expect((await list())[0].subtitle).toBe(MAC ? "No player is running (this build has no MediaRemote adapter: only Spotify and Music are watched)" : "Install playerctl to control MPRIS players");
     expect(await pick("hint:empty")).toEqual({ keep: true });
+    np = { players: [spotify, music, idle], system_wide: true };
+  });
+
+  test("a running player macOS was never asked about: a row after the players whose pick lets macOS ask (a listing never does); refused is a toast naming the pane", async () => {
+    np = { players: [idle], unasked: [{ id: "spotify", name: "Spotify", app: "/Applications/Spotify.app" }], system_wide: true };
+    const rows = await list();
+    expect(rows.map((r) => r.id)).toEqual(["firefox.instance1", "hint:ask:spotify"]);
+    expect(rows[1]).toMatchObject({ name: "Spotify is running; let pal control it directly", icon: { app: "/Applications/Spotify.app" }, actions: [{ id: "ask", title: "Allow pal to control it" }] });
+    calls.length = 0;
+    expect(await pick("hint:ask:spotify")).toEqual({ keep: true });
+    expect(calls).toEqual([{ player: "spotify", command: "ask" }]);
+    allowed = false;
+    expect(await pick("hint:ask:spotify")).toMatchObject({ toast: { title: "Not allowed", style: "failure" } });
+    allowed = true;
+    np = { players: [], unasked: [{ id: "music", name: "Music", app: "/System/Applications/Music.app" }], system_wide: true };
+    // No empty row while there is something to ask about.
+    expect((await list()).map((r) => r.id)).toEqual(["hint:ask:music"]);
     np = { players: [spotify, music, idle], system_wide: true };
   });
 });
