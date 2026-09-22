@@ -85,8 +85,10 @@ const ui = (root: string): Ui => { let u = uis.get(root); if (!u) { u = { dir: r
 function stateOf(sc: Scan, compact?: boolean): MapState {
   const u = ui(sc.root);
   const s = S();
-  const dir = find(sc.tree, u.dir) ?? sc.tree;
-  if (dir !== sc.tree && !find(sc.tree, u.dir)) { u.dir = sc.root; u.focus = 0; }
+  // A folder the tree no longer holds (trashed, or cut from the saved tree): back to the root.
+  const found = find(sc.tree, u.dir);
+  if (!found) { u.dir = sc.root; u.focus = 0; }
+  const dir = found ?? sc.tree;
   const n = children(dir, s.sizes).length;
   if (u.focus >= n) u.focus = Math.max(0, n - 1);
   const st: MapState = { root: sc.tree, dir, focus: u.focus, marked: u.marked, sizes: s.sizes, colour: s.colour, scanning: sc.progress, scannedAt: sc.finished, partial: sc.partial, denied: sc.denied, compact, mac: MAC, now: now(), animate: u.animate };
