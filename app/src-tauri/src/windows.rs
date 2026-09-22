@@ -125,9 +125,11 @@ pub fn raise(app: &AppHandle, id: &str) -> Result<(), String> {
 }
 
 /// Stamp the space that just came in front (macOS's
-/// `NSWorkspaceActiveSpaceDidChangeNotification`): `windows::note_space`
+/// `NSWorkspaceActiveSpaceDidChangeNotification`; Linux has no caller,
+/// the compositor keeps no such history for pal): `windows::note_space`
 /// with the current one, off the main thread (the read is a window
 /// server round trip).
+#[cfg(target_os = "macos")]
 pub fn stamp_space() {
     std::thread::spawn(|| {
         if let Ok(spaces) = windows::spaces() {
