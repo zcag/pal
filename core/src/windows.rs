@@ -309,6 +309,9 @@ pub struct Space {
 /// Every space of every display in the order the desktop shows them,
 /// with the windows on each ([`Space::windows`]).
 pub fn spaces() -> Result<Vec<Space>> {
+    // A switch in flight settles first: the space read is what a pick
+    // decides on, and mid-switch it is the space just left.
+    let _settled = SWITCH.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut spaces = platform::spaces()?;
     let history = SPACES.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     if let Some(prev) = previous_space(&spaces, &history) {
@@ -325,7 +328,16 @@ pub fn spaces() -> Result<Vec<Space>> {
 /// space comes up with it in front. Linux asks the compositor. The space
 /// left is stamped as the previous one.
 pub fn go_space(id: &str) -> Result<()> {
-    let spaces = spaces()?;
+    // One switch at a time, held until the desktop reports the target in
+    // front (the macOS swipe is relative, so a second press counted from
+    // a space still on its way out lands one over).
+    let _switching = SWITCH.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut spaces = platform::spaces()?;
+    let history = SPACES.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some(prev) = previous_space(&spaces, &history) {
+        spaces.iter_mut().for_each(|s| s.previous = s.id == prev);
+    }
+    drop(history);
     let target = spaces.iter().find(|s| s.id == id).ok_or_else(|| Error::NotFound(format!("space {id}")))?;
     if target.current {
         return Ok(());
@@ -335,6 +347,10 @@ pub fn go_space(id: &str) -> Result<()> {
     }
     platform::go_space(&spaces, target)
 }
+
+/// Held by [`go_space`] from the read to the landing, and taken by
+/// [`spaces`] so a read waits for a switch in flight.
+static SWITCH: Mutex<()> = Mutex::new(());
 
 /// The spaces in front lately, newest first, one entry each: stamped by
 /// [`go_space`] with the space it leaves and by the app on every Space
@@ -676,6 +692,12 @@ mod platform {
                 }
             }
             swipe(to as i64 - from as i64)?;
+            // Until the window server reports the target in front, so the
+            // next read (a spammed hotkey's pick) starts from where we are.
+            let until = std::time::Instant::now() + SETTLE_WAIT;
+            while !managed_spaces().iter().any(|s| s.current && s.id.to_string() == target.id) && std::time::Instant::now() < until {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
         }
         // Then the window used there last, so the space comes up with it
         // in front rather than whatever the app had on top. Its AX window
@@ -695,6 +717,8 @@ mod platform {
 
     /// How long the raise after a swipe keeps trying to find the window over AX.
     const LANDING_WAIT: std::time::Duration = std::time::Duration::from_millis(250);
+    /// How long a swipe waits for the window server to report the target in front.
+    const SETTLE_WAIT: std::time::Duration = std::time::Duration::from_millis(400);
 
     /// Switch the display under the cursor `delta` spaces along its strip
     /// (right when positive) without the slide: macOS has no call for it,
