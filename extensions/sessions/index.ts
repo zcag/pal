@@ -629,12 +629,12 @@ export function barItem(sessions: Session[]): BarItem {
   if (!sessions.length) return { hidden: true, empty: { icon: GLYPH, tooltip: "No sessions", menu } };
   const n = (state: State) => sessions.filter((s) => s.state === state).length;
   const blocked = n("blocked"), waiting = n("waiting"), working = n("working"), ended = n("ended");
-  // Plain counts in the state colours, no total and no glyph prefixes: red + amber + blue + grey add up to the sessions there are, which a "6 ·5" never did.
+  // Plain counts in the state colours, no total and no glyph prefixes: red + amber + blue add up to the sessions that are still there, which a "6 ·5" never did.
+  // Ended sessions are not one of them: the strip is what is running, and a grey count of what stopped only ever read as work left to do.
   const segments = [
     ...(blocked ? [{ id: "blocked", text: String(blocked), color: "red" as const, tooltip: `${blocked} waiting on you` }] : []),
     ...(waiting ? [{ id: "waiting", text: String(waiting), color: "amber" as const, tooltip: `${waiting} your turn` }] : []),
     ...(working ? [{ id: "working", text: String(working), color: "blue" as const, tooltip: `${working} working` }] : []),
-    ...(ended ? [{ id: "ended", text: String(ended), color: "muted" as const, tooltip: `${ended} ended` }] : []),
   ];
   const words = [blocked && `${blocked} waiting on you`, waiting && `${waiting} your turn`, working && `${working} working`, ended && `${ended} ended`].filter(Boolean);
   return { icon: GLYPH, segments, ...(blocked && { urgent: true }), tooltip: `${sessions.length} session${sessions.length === 1 ? "" : "s"}: ${words.join(", ")}`, menu };

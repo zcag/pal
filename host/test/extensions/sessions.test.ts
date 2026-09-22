@@ -656,9 +656,9 @@ describe("sessions: the palette", () => {
 });
 
 describe("sessions: the bar", () => {
-  test("the strip: the count, a segment per state, urgent while one is blocked, the tooltip; the popover passes the check", async () => {
+  test("the strip: a segment per running state and none for the ended, urgent while one is blocked, the tooltip; the popover passes the check", async () => {
     const item = await render();
-    expect(item).toMatchObject({ icon: "\u{f0674}", urgent: true, tooltip: "5 sessions: 1 waiting on you, 1 your turn, 2 working, 1 ended", segments: [{ id: "blocked", text: "1", color: "red" }, { id: "waiting", text: "1", color: "amber" }, { id: "working", text: "2", color: "blue" }, { id: "ended", text: "1", color: "muted" }] });
+    expect(item).toMatchObject({ icon: "\u{f0674}", urgent: true, tooltip: "5 sessions: 1 waiting on you, 1 your turn, 2 working, 1 ended", segments: [{ id: "blocked", text: "1", color: "red" }, { id: "waiting", text: "1", color: "amber" }, { id: "working", text: "2", color: "blue" }] });
     expect(checkBarItem(item)).toBeTruthy();
     const v = menuView(item);
     expect(v).toMatchObject({ id: "sessions", keys: "actions", title: "5 sessions" });
