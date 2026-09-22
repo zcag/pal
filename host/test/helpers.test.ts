@@ -24,6 +24,7 @@ describe("text", () => {
     expect(bytes(1.2 * 1024 ** 2)).toBe("1.2 MB");
     expect(bytes(25.3 * 1024 ** 2)).toBe("25.3 MB");
     expect(bytes(3 * 1024 ** 3)).toBe("3.00 GB");
+    expect(bytes(1.5 * 1024 ** 4)).toBe("1.50 TB");
   });
   test("truncate and oneLine", () => {
     expect(truncate("abcdef", 4)).toBe("abc…");

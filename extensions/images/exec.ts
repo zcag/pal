@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { copyFile, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { exec, home, thumbnailUrl } from "@zcag/pal";
+import { copyImage as sdkCopyImage, exec, home, thumbnailUrl } from "@zcag/pal";
 import { fmtOf, identifyFormat, parseExiftool, parseIdentify, parseSips, strip, TOOL_ORDER, type Avail, type Dims, type Fmt, type Info, type Plan, type Step, type ToolName } from "./ops.ts";
 
 export const MAC = process.platform === "darwin";
@@ -199,23 +199,10 @@ export async function finderSelection(): Promise<string[]> {
 
 // ---- the clipboard ------------------------------------------------------------------
 
-/**
- * An image file onto the clipboard as an image (what a paste into Slack,
- * Notes or a browser takes): AppleScript's `«class PNGf»` / `«class JPEG»`
- * on macOS, `wl-copy` or `xclip` on Linux. Only PNG and JPEG have a
- * pasteboard type every app reads; anything else is left to a `copy_files`
- * (the caller's fallback). True when it was put there.
- */
-export async function copyImage(p: string): Promise<boolean> {
+/** An image file onto the clipboard as an image (`copyImage` in `@zcag/pal`), the format read off the file rather than its extension; anything but PNG and JPEG is left to a `copy_files`. */
+export function copyImage(p: string): Promise<boolean> {
   const fmt = fmtOf(p);
-  if (fmt !== "png" && fmt !== "jpeg") return false;
-  try {
-    if (MAC) await run(["osascript", "-e", `set the clipboard to (read (POSIX file ${JSON.stringify(p)}) as ${fmt === "png" ? "«class PNGf»" : "«class JPEG»"})`], 10_000);
-    else if (Bun.which("wl-copy")) await run(["sh", "-c", `wl-copy -t image/${fmt} < ${JSON.stringify(p)}`], 10_000);
-    else if (Bun.which("xclip")) await run(["sh", "-c", `xclip -selection clipboard -t image/${fmt} -i ${JSON.stringify(p)}`], 10_000);
-    else return false;
-    return true;
-  } catch { return false; }
+  return fmt === "png" || fmt === "jpeg" ? sdkCopyImage(p, fmt) : Promise.resolve(false);
 }
 
 // ---- TinyPNG -----------------------------------------------------------------------
