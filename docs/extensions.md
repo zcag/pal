@@ -1023,6 +1023,12 @@ arrows move and a click sets, and the strip untouched:
 - **States, `forced`** (`extensions/states/`): the states held by hand
   with the time left on the soonest to expire; hidden while none is.
   `on: ["state:*"]`, so a hold or a reset redraws it at once.
+- **Keycast, `active`** (`extensions/keycast/`): a red record dot with
+  the mode while the overlay runs, hidden otherwise; the popover the
+  three modes as tiles (`k`, `c`, `b`, the one on ringed), the
+  shortcuts-only switch (`s`), `backspace` stops. `on:
+  ["state:keycast/active", "state:keycast/mode"]`: the shell publishes
+  both, so a link or the palette flipping it redraws the item at once.
 
 ## States
 
