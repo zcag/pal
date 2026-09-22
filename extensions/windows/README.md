@@ -19,16 +19,17 @@ row is seen to go.
 workspace (Hyprland, Sway) or desktop (X11) in the desktop's order, the
 apps on it as the subtitle, the icon of the window used there last, a
 `current` tag on the one in front and `previous` on the one left most
-recently. Enter brings it in front: the panel hides, then on macOS a
-window there is raised (the desktop follows it; the one used there last
-by the focus history, else the biggest) and an empty space is reached
-with Mission Control's ctrl+arrows, one press per space between (needs
-Accessibility like paste); Linux asks the compositor. Previous space goes
-back to the one left most recently, a swipe counted too. `spaces =
-["web", "term", "misc"]` names the desktops by number; a named space's
-row id is its name, so `[palettes.windows-spaces.item_hotkeys]` reads
-`term = "ctrl+2"` and `last = "ctrl+f"`. With `back_and_forth` on, a
-space's key pressed while on it goes back to the previous one.
+recently. Enter brings it in front: the panel hides, then on macOS the
+strip moves by a synthesised Dock swipe too fast to animate (yabai's
+trick with SIP on; needs Accessibility like paste) and the window used
+there last (the focus history, else the biggest) is raised; Linux asks
+the compositor. Previous space goes back to the one left most recently,
+a swipe counted too; Toggle flips between the two spaces `toggle` names.
+`spaces = ["web", "term", "misc"]` names the desktops by number; a named
+space's row id is its name, so `[palettes.windows-spaces.item_hotkeys]`
+reads `term = "ctrl+2"`, `last = "ctrl+f"` or `toggle = "ctrl+f"`. With
+`back_and_forth` on, a space's key pressed while on it goes back to the
+previous one.
 
 ## Keyboard
 
@@ -74,6 +75,7 @@ Settings, `[extensions.windows]`:
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
 | `spaces` | list of strings | `[]` | Names for the desktops by number: the Spaces row titles, the `ws` accessory, and the row ids `item_hotkeys` key on. |
 | `back_and_forth` | bool | `false` | A space's hotkey pressed while on it goes to the previous space. |
+| `toggle` | list of two strings | `[]` | Two space names (or numbers) the Toggle row flips between: on the first to the second, anywhere else to the first. |
 
 ## Order
 

@@ -45,7 +45,7 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 # NSScreen + NSGraphics: the displays (frame, visibleFrame, NSScreenNumber) for the window layouts
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSWorkspace", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphicsContext", "NSPasteboard", "NSPasteboardItem", "NSRunningApplication", "NSScreen", "NSGraphics", "objc2-core-graphics", "libc"] }
 # clipboard paste: synthesise Cmd+V; windows: the window list
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGWindow", "CGColor"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGError", "CGWindow", "CGColor"] }
 # windows: the AXUIElement C API speaks CF types
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFArray", "CFString", "CFNumber", "CFCGTypes"] }
 # audio: the CoreAudio HAL (devices, defaults, volume, mute) without a tool to install

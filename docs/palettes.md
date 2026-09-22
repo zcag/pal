@@ -1309,14 +1309,15 @@ left most recently: a switch by pal or a swipe, pal watches the Space
 change either way.
 
 `Enter` brings the space in front: the panel hides first. macOS has no
-public call to switch Spaces, so pal raises a window there (the desktop
-follows a raised window to its space, an absolute move: the window used
-there last by the focus history, else the biggest, never a hidden app's)
-and, for an empty space, presses Mission Control's own ctrl+left /
-ctrl+right one step per space between, which rides the native animation
-and needs the Accessibility permission like paste (the HUD says so when
-it is missing). Linux asks the compositor (`hyprctl dispatch workspace`,
-`swaymsg workspace`, `wmctrl -s`).
+public call to switch Spaces, so pal does what yabai does with SIP on: a
+synthesised Dock swipe at a velocity no finger reaches, one step per
+space between along that display's strip, which moves the strip without
+the slide (instant), and then raises the window used there last (the
+focus history, else the biggest, never a hidden app's) so the space comes
+up with it in front. Posting the swipe needs the Accessibility permission
+like paste (the HUD says so when it is missing). Linux asks the
+compositor (`hyprctl dispatch workspace`, `swaymsg workspace`,
+`wmctrl -s`).
 
 Names: `spaces = ["web", "term", "misc"]` names the desktops by number
 (the first entry is Desktop 1). A named space's row is titled by it, the
@@ -1327,20 +1328,25 @@ which is what a global hotkey keys on:
 [extensions.windows]
 spaces = ["web", "term", "misc"]
 back_and_forth = true
+toggle = ["web", "term"]
 
 [palettes.windows-spaces.item_hotkeys]
 web = "ctrl+1"
 term = "ctrl+2"
 misc = "ctrl+3"
-last = "ctrl+f"
+toggle = "ctrl+f"
 ```
 
 An unnamed desktop's id is its number (`"4"`); `last` is Previous space.
 With `back_and_forth` on (Hyprland's `workspace_back_and_forth`), a
 space's key pressed while on that space goes to the previous one, so one
 key toggles between a space and where you came from; `Enter` on the
-current space's row does the same. `pal run windows/spaces/term` from a
-script or a compositor keybind is the same pick.
+current space's row does the same. `toggle = ["web", "term"]` adds a
+**Toggle** row (`toggle`) that flips between those two: on the first it
+goes to the second, anywhere else to the first, so `toggle = "ctrl+f"`
+in the hotkeys block is a fixed ping-pong between two spaces however you
+got where you are. `pal run windows/spaces/term` from a script or a
+compositor keybind is the same pick.
 
 Settings, `[extensions.windows]`:
 
@@ -1349,6 +1355,7 @@ Settings, `[extensions.windows]`:
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
 | `spaces` | list of strings | `[]` | Names for the desktops by number: the row titles, the `ws` accessory, and the row ids `item_hotkeys` key on. |
 | `back_and_forth` | bool | `false` | A space's hotkey pressed while on it goes to the previous space. |
+| `toggle` | list of two strings | `[]` | Two space names (or numbers) the Toggle row flips between. |
 
 The switcher ([Keyboard](keyboard.md#switcher)): the manifest suggests
 `hold = "alt+tab"` for this palette, so holding Alt and pressing Tab

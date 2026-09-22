@@ -17,17 +17,21 @@
 // Control's ctrl+arrows). `spaces` names the desktops by number, and a
 // named space's row id is its name, so `item_hotkeys` read `term =
 // "ctrl+alt+shift+a"`; "Previous space" (`last`) goes back to the space
-// left most recently, a swipe counted too.
+// left most recently, a swipe counted too, and "Toggle" (`toggle`) flips
+// between the two spaces `toggle` names: on the first, to the second;
+// anywhere else, to the first.
 import { failed, settings, toast, windows, xdg, type Accessory, type Action, type Extension, type Item, type Window, type Workspace } from "@zcag/pal";
 
 /** `[extensions.windows]`, defaults in pal.json. */
-type Settings = { include_minimized: boolean; spaces: string[]; back_and_forth: boolean };
+type Settings = { include_minimized: boolean; spaces: string[]; back_and_forth: boolean; toggle: string[] };
 
 const MAC = process.platform === "darwin";
 /** The row's glyph when the app has no artwork (md-window_maximize). */
 const WINDOW_GLYPH = xdg("window-new")!;
 /** A space with nothing on it (md-monitor). */
 const SPACE_GLYPH = xdg("video-display")!;
+/** The Toggle row (md-swap_horizontal). */
+const TOGGLE_GLYPH = "\u{f04e1}";
 
 /** The name `spaces` gives desktop `n` (1-based), else nothing. */
 const named = (n: number | string | null | undefined) => {
@@ -46,6 +50,12 @@ function spaceTitle(s: Workspace, apps: string[]): string {
 
 /** The row id `item_hotkeys` key on: the desktop's name when it has one, else its number (a full-screen space its backend id, there is no name to give it). */
 const spaceRowId = (s: Workspace) => (s.fullscreen ? `fs-${s.id}` : named(s.index) ?? String(s.index));
+
+/** The two spaces the `toggle` setting names, when both exist. */
+function togglePair(spaces: Workspace[]): [Workspace, Workspace] | undefined {
+  const [a, b] = settings.get<Settings>().toggle.map((name) => spaces.find((s) => spaceRowId(s) === name));
+  return a && b && a !== b ? [a, b] : undefined;
+}
 
 /** One `windows.list` per show, shared by the two palettes (each is listed on every show; the read is AX round trips). */
 let listing: { at: number; rows: Promise<Window[]> } | undefined;
@@ -177,10 +187,21 @@ export default {
           id: "last",
           name: "Previous space",
           subtitle: prev ? spaceTitle(prev, []) : "None yet",
-          keywords: ["back", "toggle", "last"],
+          keywords: ["back", "last"],
           icon: xdg("go-previous")!,
           actions: [GO],
         });
+        const pair = togglePair(spaces);
+        if (pair) {
+          rows.push({
+            id: "toggle",
+            name: `Toggle ${spaceTitle(pair[0], [])} / ${spaceTitle(pair[1], [])}`,
+            subtitle: `Between the two; from elsewhere to ${spaceTitle(pair[0], [])}`,
+            keywords: ["toggle", "flip", "ping-pong"],
+            icon: TOGGLE_GLYPH,
+            actions: [GO],
+          });
+        }
         return rows;
       },
       // Read again at the pick: a hotkey's id has to land on the space that is there now.
@@ -188,8 +209,9 @@ export default {
         let spaces: Workspace[];
         try { spaces = await windows.spaces(); } catch (e) { return failed("list the spaces", e); }
         const previous = spaces.find((s) => s.previous);
-        let target = id === "last" ? previous : spaces.find((s) => spaceRowId(s) === id);
-        if (!target) return toast(id === "last" ? "No previous space" : `No space ${id}`, undefined, "failure");
+        const pair = togglePair(spaces);
+        let target = id === "last" ? previous : id === "toggle" ? pair && (pair[0].current ? pair[1] : pair[0]) : spaces.find((s) => spaceRowId(s) === id);
+        if (!target) return toast(id === "last" ? "No previous space" : id === "toggle" ? "No toggle pair: set two space names in `toggle`" : `No space ${id}`, undefined, "failure");
         // A space's own key pressed on it goes back (Hyprland's `workspace_back_and_forth`).
         if (target.current && settings.get<Settings>().back_and_forth && previous) target = previous;
         return { space: target.id };

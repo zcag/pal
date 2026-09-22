@@ -55,9 +55,9 @@
 //! through the private `CGS*` calls CoreGraphics re-exports from SkyLight
 //! (what yabai reads with SIP on; no permission), which is also where a
 //! window's desktop number (`Window::workspace`) comes from. There is no
-//! public call to switch, so `go_space` raises a window on the target
-//! (the desktop follows it; the focus history picks which) and steps an
-//! empty space's way with Mission Control's ctrl+arrows. Linux: Hyprland's
+//! public call to switch, so `go_space` posts the Dock swipe gesture at a
+//! velocity that skips the slide (yabai's way with SIP on) and then raises
+//! the window used there last (the focus history picks which). Linux: Hyprland's
 //! `workspaces -j` / `dispatch workspace`, Sway's `get_workspaces` /
 //! `workspace`, X11's `wmctrl -d` / `-s`.
 //!
@@ -317,13 +317,13 @@ pub fn spaces() -> Result<Vec<Space>> {
     Ok(spaces)
 }
 
-/// Bring the space in front. macOS has no public call for it: a window
-/// there is raised (the desktop follows a raised window to its space, an
-/// absolute move: the most recently used window there by the focus
-/// history, else the biggest), and an empty space is reached by
-/// Mission Control's own ctrl+arrow shortcuts, one press per space
-/// between, which needs Accessibility like paste. Linux asks the
-/// compositor. The space left is stamped as the previous one.
+/// Bring the space in front. macOS has no public call for it: a
+/// synthesised Dock swipe at a velocity no finger reaches moves the strip
+/// without the slide (the trick yabai uses with SIP on), one step per
+/// space between, which needs Accessibility like paste; then the window
+/// used there last (the focus history, else the biggest) is raised so the
+/// space comes up with it in front. Linux asks the compositor. The space
+/// left is stamped as the previous one.
 pub fn go_space(id: &str) -> Result<()> {
     let spaces = spaces()?;
     let target = spaces.iter().find(|s| s.id == id).ok_or_else(|| Error::NotFound(format!("space {id}")))?;
@@ -535,7 +535,8 @@ mod platform {
     use objc2::runtime::AnyObject;
     use objc2_app_kit::{NSApplicationActivationOptions, NSApplicationActivationPolicy, NSRunningApplication, NSScreen, NSWorkspace};
     use objc2_core_foundation::CFRetained;
-    use objc2_core_graphics::{CGWindowListCopyWindowInfo, CGWindowListOption};
+    use objc2_core_foundation::CGPoint;
+    use objc2_core_graphics::{CGWarpMouseCursorPosition, CGWindowListCopyWindowInfo, CGWindowListOption};
     use objc2_foundation::{MainThreadMarker, NSArray, NSDictionary, NSNumber, NSRect, NSString};
     use std::ptr::NonNull;
 
@@ -662,30 +663,70 @@ mod platform {
     }
 
     pub fn go_space(spaces: &[Space], target: &Space) -> Result<()> {
-        if let Some(id) = landing(target) {
-            return super::focus(&id);
-        }
-        // Nothing to aim at: Mission Control's ctrl+left / ctrl+right, one
-        // press per space between, along this display's strip.
+        // The strip of this display, the swipe's distance along it.
         let strip: Vec<&Space> = spaces.iter().filter(|s| s.monitor == target.monitor).collect();
         let from = strip.iter().position(|s| s.current).ok_or_else(|| Error::Failed("no space is in front on that display".into()))?;
         let to = strip.iter().position(|s| s.id == target.id).unwrap_or(from);
-        let (key, n) = if to > from { ("ctrl+right", to - from) } else { ("ctrl+left", from - to) };
-        for i in 0..n {
-            if i > 0 {
-                std::thread::sleep(std::time::Duration::from_millis(SPACE_STEP_MS));
+        if to != from {
+            if let Some(n) = target.monitor.as_deref().and_then(|m| m.strip_prefix("Display ")).and_then(|n| n.parse::<usize>().ok()) {
+                // The swipe goes to the display under the cursor: put it on the target's (yabai does the same).
+                if let Some(d) = displays().ok().and_then(|ds| ds.into_iter().nth(n - 1)) {
+                    let (x, y) = d.frame.center();
+                    CGWarpMouseCursorPosition(CGPoint { x, y });
+                }
             }
-            crate::clipboard::send_key(key).map_err(|e| match e {
-                crate::clipboard::Error::NeedsAccessibility => Error::NeedsAccessibility("switching to an empty space"),
-                e => Error::Failed(e.to_string()),
-            })?;
+            swipe(to as i64 - from as i64)?;
+        }
+        // Then the window used there last, so the space comes up with it
+        // in front rather than whatever the app had on top. Its AX window
+        // is listed only once the space is visible, so a raise that finds
+        // no AX window is tried again for a moment; past that the app is
+        // activated, which lands on the right space either way.
+        let Some(id) = landing(target) else { return Ok(()) };
+        let until = std::time::Instant::now() + LANDING_WAIT;
+        loop {
+            match super::focus(&id) {
+                Err(Error::Failed(_)) if std::time::Instant::now() < until => std::thread::sleep(std::time::Duration::from_millis(15)),
+                Err(Error::Failed(_) | Error::NeedsAccessibility(_)) => return activate(&id).map(drop),
+                r => return r,
+            }
+        }
+    }
+
+    /// How long the raise after a swipe keeps trying to find the window over AX.
+    const LANDING_WAIT: std::time::Duration = std::time::Duration::from_millis(250);
+
+    /// Switch the display under the cursor `delta` spaces along its strip
+    /// (right when positive) without the slide: macOS has no call for it,
+    /// but a synthesised Dock swipe gesture at a velocity no finger reaches
+    /// skips the animation, one began/ended pair per space. The technique
+    /// is BetterTouchTool's as reverse-engineered by InstantSpaceSwitcher
+    /// (jurplel) and carried in yabai's `space_manager_focus_space_using_gesture`
+    /// (MIT); the field numbers are the private `kCGEventGesture*` ones,
+    /// named here as yabai names them. Needs Accessibility like any posted
+    /// event. A step into a space mid-animation is dropped by the Dock, so
+    /// the pairs go out at once, as yabai sends them.
+    fn swipe(delta: i64) -> Result<()> {
+        use objc2_core_graphics::{CGEvent, CGEventField, CGEventTapLocation};
+        if !crate::ax::trusted() {
+            return Err(Error::NeedsAccessibility("switching spaces"));
+        }
+        let e = CGEvent::new(None).ok_or_else(|| Error::Failed("CGEvent creation failed".into()))?;
+        let sign = if delta > 0 { 1.0 } else { -1.0 };
+        let int = |field: u32, v: i64| CGEvent::set_integer_value_field(Some(&e), CGEventField(field), v);
+        int(55, 30); // kCGSEventTypeField = kCGSEventDockControl
+        int(110, 23); // kCGEventGestureHIDType = kIOHIDEventTypeDockSwipe
+        int(123, 1); // kCGEventGestureSwipeMotion = kCGGestureMotionHorizontal
+        CGEvent::set_double_value_field(Some(&e), CGEventField(124), sign); // kCGEventGestureSwipeProgress
+        CGEvent::set_double_value_field(Some(&e), CGEventField(129), sign * 9999.0); // kCGEventGestureSwipeVelocityX
+        for _ in 0..delta.abs() {
+            int(132, 1); // kCGEventGesturePhase = began
+            CGEvent::post(CGEventTapLocation::SessionEventTap, Some(&e));
+            int(132, 4); // ended
+            CGEvent::post(CGEventTapLocation::SessionEventTap, Some(&e));
         }
         Ok(())
     }
-
-    /// Between two ctrl+arrow presses: Mission Control drops a press that
-    /// lands mid-animation.
-    const SPACE_STEP_MS: u64 = 250;
 
     /// A CoreGraphics and an AX frame agree within this many points.
     const FRAME_SLACK: f64 = 2.0;

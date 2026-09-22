@@ -36,6 +36,14 @@
       "text": "A space's hotkey pressed while on it goes to the previous space",
       "description": "Hyprland's workspace_back_and_forth: the same key toggles between a space and where you came from. Enter on the current space's row does the same.",
       "default": false
+    },
+    {
+      "kind": "list",
+      "id": "toggle",
+      "label": "Toggle pair",
+      "description": "Two space names (or numbers) the Toggle row flips between: on the first it goes to the second, anywhere else to the first. toggle = \"ctrl+f\" under item_hotkeys makes it a key.",
+      "placeholder": "web",
+      "default": []
     }
   ],
   "store": {
@@ -44,7 +52,7 @@
     "features": [
       "Live: listed again every time the panel shows, so window titles are root results and the order is most recently used, the window you came from first (macOS and Hyprland)",
       "A section per app; the app name is the subtitle and a keyword, the bundle id or window class a keyword too",
-      "Spaces: a row per Space, workspace or desktop in the desktop's order, the apps on it as the subtitle, the icon of the window used there last, `current` and `previous` tags; Enter brings it in front (macOS raises a window there so the desktop follows, an empty space by Mission Control's ctrl+arrows), Previous space goes back, and a named desktop's row takes an `item_hotkeys` key",
+      "Spaces: a row per Space, workspace or desktop in the desktop's order, the apps on it as the subtitle, the icon of the window used there last, `current` and `previous` tags; Enter brings it in front (macOS: an instant switch by the same synthesised swipe yabai uses, then the window used there last raised), Previous space goes back, Toggle flips between two named spaces, and a named desktop's row takes an `item_hotkeys` key",
       "A hidden app's window carries a `hidden` tag, a minimised one `minimized`, one on another space `other space` or `ws 3`, and the monitor when known",
       "Close (`cmd+w`) and Minimize (`cmd+m`) keep the palette open and list again; Hide app (`cmd+h`) hides the whole app, Show app (`cmd+shift+h`) brings a hidden one back",
       "Minimize all (`cmd+shift+m`) and Close all (`cmd+shift+w`, asks first) act on every window of the app",
@@ -163,7 +171,7 @@
     "spaces": {
       "title": "Spaces",
       "kind": "live",
-      "description": "Every Space, workspace or desktop in the desktop's order, with the apps on it; Enter brings it in front. Previous space goes back to the one left most recently.",
+      "description": "Every Space, workspace or desktop in the desktop's order, with the apps on it; Enter brings it in front. Previous space goes back to the one left most recently; Toggle flips between the two spaces named in the setting.",
       "keys": [
         {
           "keys": "enter",
