@@ -1,0 +1,223 @@
+{
+  "name": "grafana",
+  "title": "Grafana",
+  "description": "Your Grafana from the panel: dashboards by name with their folder and tags, the alerts firing and pending with silences, a PromQL prompt against Prometheus, and a bar item that counts what is firing. Over the HTTP API with a service account token.",
+  "version": "0.1.0",
+  "multi": true,
+  "icon": { "tile": { "glyph": "", "bg": "orange" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": ["grafana", "prometheus", "promql", "dashboards", "alerts", "metrics"],
+  "settings": [
+    {
+      "kind": "text",
+      "id": "url",
+      "scope": "instance",
+      "label": "URL",
+      "placeholder": "https://grafana.example.com",
+      "description": "Where Grafana answers, scheme included; no trailing slash needed.",
+      "default": ""
+    },
+    {
+      "kind": "secret",
+      "id": "token",
+      "label": "Token",
+      "placeholder": "keychain:pal/grafana-token",
+      "description": "A service account token (Administration › Service accounts): Viewer reads everything here, Editor is needed to silence alerts. Stored as a keychain: or env: reference.",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "time_range",
+      "label": "Time range",
+      "placeholder": "now-6h",
+      "description": "Appended to a dashboard's URL as from=…&to=now when set (now-6h, now-24h, now-7d); leave empty to open the dashboard's own range.",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "datasource",
+      "label": "Prometheus datasource",
+      "placeholder": "prometheus",
+      "description": "The datasource the Query palette runs against, by uid or name; leave empty for Grafana's default.",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "queries",
+      "label": "Saved queries",
+      "placeholder": "Targets down = up == 0",
+      "description": "PromQL listed before you type in the Query palette, one `Name = expr` per line (cmd+s on a result saves the one you ran).",
+      "default": [
+        "Targets down = up == 0",
+        "Firing alerts = ALERTS{alertstate=\"firing\"}",
+        "CPU busy % = 100 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100",
+        "Memory used % = 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
+        "Root disk used % = 100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})"
+      ]
+    },
+    {
+      "kind": "number",
+      "id": "sparklines",
+      "label": "Panels in the pane",
+      "description": "How many of a dashboard's time series panels the detail pane draws: as panel images when the image renderer plugin is installed, else as sparklines from the panels' queries. 0 turns it off.",
+      "min": 0,
+      "max": 6,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "kind": "number",
+      "id": "timeout",
+      "label": "Timeout",
+      "description": "How long one request may take before the row says Grafana did not answer.",
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "s",
+      "default": 8
+    }
+  ],
+  "palettes": {
+    "grafana": {
+      "title": "Grafana Dashboards",
+      "description": "Every dashboard, starred first, with its folder and tags; Enter opens it in the browser with the time range you set, cmd+enter asks for one. Folders as a filter that lists them, each a drill-in.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 900,
+      "keys": [
+        { "keys": "enter", "title": "Open the dashboard in the browser (with the `time_range` setting appended)" },
+        { "keys": "cmd+enter", "title": "Open with a time range: from, to and kiosk asked in a form" },
+        { "keys": "cmd+c", "title": "Copy the URL" },
+        { "keys": "cmd+s", "title": "Star or unstar (the token's own stars, which sort first here)" },
+        { "keys": "cmd+f", "title": "Open in kiosk mode (no chrome, for a wall)" },
+        { "keys": "cmd+u", "title": "Copy the uid" },
+        { "keys": "right", "title": "The dashboard's folder as a level" },
+        { "keys": "tab", "title": "All, Starred, Folders" }
+      ]
+    },
+    "alerts": {
+      "title": "Grafana Alerts",
+      "description": "Every alert instance firing or pending, by rule, with its summary, severity, labels and since when; silences as a filter, with the active silences to expire.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 30,
+      "keys": [
+        { "keys": "enter", "title": "Open the rule in Grafana" },
+        { "keys": "cmd+enter", "title": "Open the rule's dashboard" },
+        { "keys": "cmd+s", "title": "Silence this instance for 1 hour (asks first)" },
+        { "keys": "cmd+shift+s", "title": "Silence for 4 hours (asks first)" },
+        { "keys": "cmd+d", "title": "Silence for 1 day (asks first)" },
+        { "keys": "cmd+e", "title": "Expire the silence on a silenced instance, or a silence row (asks first)" },
+        { "keys": "cmd+c", "title": "Copy the summary" },
+        { "keys": "cmd+l", "title": "Copy the labels" },
+        { "keys": "tab", "title": "All, Firing, Pending, Silenced" }
+      ]
+    },
+    "query": {
+      "title": "Grafana Query",
+      "description": "A PromQL instant query against the Prometheus datasource, one row per series with its value; the saved queries before you type. Enter copies the value, cmd+o opens Explore.",
+      "kind": "input",
+      "keys": [
+        { "keys": "enter", "title": "Copy the value (on a saved query: run it)" },
+        { "keys": "cmd+enter", "title": "Copy the series with its value" },
+        { "keys": "cmd+o", "title": "Open the expression in Explore" },
+        { "keys": "cmd+c", "title": "Copy the expression" },
+        { "keys": "cmd+shift+a", "title": "Copy every series with its value" },
+        { "keys": "cmd+s", "title": "Save the expression under a name (the `queries` setting)" },
+        { "keys": "cmd+backspace", "title": "Remove a saved query" }
+      ]
+    }
+  },
+  "links": {
+    "query": {
+      "description": "Open the Query palette with an expression typed",
+      "params": {
+        "expr": { "description": "The PromQL", "required": true }
+      }
+    },
+    "open": {
+      "description": "Open a dashboard in the browser",
+      "params": {
+        "uid": { "description": "The dashboard's uid", "required": true },
+        "from": { "description": "A time range start (now-6h, an ISO date); the `time_range` setting when absent" },
+        "to": { "description": "Its end; now when absent" },
+        "kiosk": { "description": "Kiosk mode", "type": "boolean" }
+      }
+    }
+  },
+  "states": {
+    "firing": { "description": "Alert instances firing", "kind": "number" },
+    "pending": { "description": "Alert instances pending (over the threshold, inside their `for`)", "kind": "number" }
+  },
+  "bar": {
+    "alerts": {
+      "title": "Alerts",
+      "description": "How many alert instances are firing (red) and pending (amber); hidden while none is, by its rules. The popover lists them by state: Enter opens the rule, o the dashboard, s silences for an hour (f four, d a day), c copies the summary.",
+      "refresh": { "every": 60, "on": ["show", "wake", "network"] },
+      "mocks": {
+        "firing": {
+          "title": "Two firing",
+          "item": { "icon": "", "segments": [{ "id": "firing", "text": "2", "color": "red" }], "tooltip": "2 firing on Grafana" }
+        },
+        "mixed": {
+          "title": "One firing, one pending",
+          "item": { "icon": "", "segments": [{ "id": "firing", "text": "1", "color": "red" }, { "id": "pending", "text": "1", "color": "amber" }], "tooltip": "1 firing, 1 pending on Grafana" }
+        },
+        "pending": {
+          "title": "One pending, nothing firing",
+          "item": { "icon": "", "segments": [{ "id": "pending", "text": "1", "color": "amber" }], "tooltip": "1 pending on Grafana" }
+        },
+        "quiet": {
+          "title": "All quiet, hidden",
+          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "No alert is firing on Grafana" } }
+        }
+      },
+      "rules": [
+        { "id": "quiet", "when": "not grafana.firing and not grafana.pending", "description": "Nothing firing or pending: nothing to say.", "hidden": true },
+        { "id": "pending", "when": "grafana.pending and not grafana.firing", "description": "Something is over its threshold but inside its `for`.", "color": "amber" },
+        { "id": "firing", "when": "grafana.firing", "description": "An alert is firing.", "color": "red" }
+      ],
+      "keys": [
+        { "keys": "enter", "title": "Open the focused rule in Grafana" },
+        { "keys": "o", "title": "Open its dashboard (the alert list without one)" },
+        { "keys": "s", "title": "Silence the focused instance for 1 hour (asks first); on a silenced one, expire the silence" },
+        { "keys": "f", "title": "Silence for 4 hours (asks first)" },
+        { "keys": "d", "title": "Silence for 1 day (asks first)" },
+        { "keys": "c", "title": "Copy the summary" },
+        { "keys": "a", "title": "Open the alert list in Grafana" },
+        { "keys": "p", "title": "Open Grafana Alerts in pal" },
+        { "keys": "r", "title": "Refresh" },
+        { "keys": "up", "title": "Move between alerts (or j and k)" }
+      ]
+    }
+  },
+  "store": {
+    "tagline": "Dashboards, alerts and PromQL from the panel",
+    "category": "developer",
+    "features": [
+      "Every dashboard by name, starred first, its folder and tags as chips; `enter` opens it with the time range you set, `cmd+enter` asks for one, `cmd+f` opens it in kiosk mode, `cmd+s` stars it",
+      "The detail pane draws the dashboard's first time series panels: as panel images when the image renderer plugin is installed, else as sparklines from the panels' own queries",
+      "Alerts firing and pending, by rule, with the summary, the severity, the labels and since when; `cmd+s` silences an instance for an hour (`cmd+shift+s` four, `cmd+d` a day), the Silenced filter lists what is covered and the silences to expire",
+      "A PromQL prompt: one row per series with its value, `enter` copies it, `cmd+o` opens Explore; saved queries before you type, `cmd+s` saves the one you ran",
+      "A bar item counting what is firing (red) and pending (amber), hidden while quiet; its popover opens rules and silences from the bar",
+      "`pal://grafana/query?expr=up` opens the prompt with an expression, `pal://grafana/open?uid=…&from=now-24h` a dashboard; a second Grafana is a second instance"
+    ],
+    "permissions": ["network", "token"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [],
+    "actions": [
+      { "title": "Open", "description": "The dashboard in the browser, with the `time_range` setting appended when set.", "keys": "enter" },
+      { "title": "Open with a time range", "description": "From, to and kiosk asked in a form.", "keys": "cmd+enter" },
+      { "title": "Star / Unstar", "keys": "cmd+s" },
+      { "title": "Open in kiosk mode", "keys": "cmd+f" },
+      { "title": "Copy URL", "keys": "cmd+c" },
+      { "title": "Open rule", "description": "On an alert: the rule's page in Grafana.", "keys": "enter" },
+      { "title": "Silence for 1 hour / 4 hours / 1 day", "description": "On an alert instance; asks first. Needs the Editor role.", "keys": "cmd+s" },
+      { "title": "Expire silence", "description": "On a silenced instance or a silence row; asks first.", "keys": "cmd+e" },
+      { "title": "Copy value", "description": "On a query result.", "keys": "enter" },
+      { "title": "Open in Explore", "description": "On a query result or a saved query.", "keys": "cmd+o" }
+    ]
+  }
+}

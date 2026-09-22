@@ -4336,3 +4336,90 @@ Settings, `[extensions.odak]`:
 | `today_sections` | list | `["Focus", "Today"]` | What the bar item counts as today's, on top of what is due today. |
 
 For the tests, `PAL_ODAK_URL` and `PAL_ODAK_KEY` replace the two settings.
+
+## Grafana (`grafana`, `grafana-alerts`, `grafana-query`, `grafana/alerts`)
+
+Grafana over its HTTP API with a service account token (Viewer reads
+everything here; Editor is needed to silence or star); `multi`, so a
+second Grafana is `[instances."grafana@work"]` with its own `url` and
+`token` ([Config](config.md#instances)).
+
+**Grafana Dashboards** (`grafana`) is every dashboard the token can see,
+starred first, then as Grafana sorts them. A row is the title; the
+subtitle the description, or the folder when there is none; the folder
+is a blue tag and the first two tags follow it; the uid, the tags and
+the folder are keywords. `Enter` opens it in the browser with the
+`time_range` setting appended (`from=now-6h&to=now`) when set, `⌘Enter`
+asks for a range in a form (from, to, kiosk), `⌘F` opens it in kiosk
+mode, `⌘S` stars or unstars it (the token's own stars, which are what
+sort first here), `⌘C` copies the URL, `⌘U` the uid, `→` drills into the
+dashboard's folder. The filter (`Tab`) is All, Starred, Folders; Folders
+lists every folder with a dashboard in it and `Enter` drills in. Listed
+every 15 minutes. The detail pane (lazy) shows the description, the
+folder, the tags, the time range and refresh, the panels by type, and
+the first three time series panels (`sparklines`) drawn: as panel images
+when the image renderer plugin is installed (probed once per run), else
+as sparklines the extension draws from the panels' own queries in one
+`/api/ds/query` call over the dashboard's range, the first series' last
+value in the panel's unit as the caption.
+
+**Grafana Alerts** (`grafana-alerts`) is live: every alert instance
+firing or pending from the ruler's Prometheus-compatible API, marked
+where the Alertmanager says a silence covers it. Firing first, then by
+rule and labels. A row is the rule's name; the subtitle the rendered
+summary (else the labels); a red `firing` or amber `pending` tag, the
+severity, a `silenced` tag, since when. The pane has the summary and
+description, the rule (a link), the state, the labels, the value, the
+rule's health when it is not ok, the silence and the dashboard the rule
+points at. The filter is Firing and pending, Firing, Pending, Silenced
+(the covered instances, then the active silences, each with Expire).
+`Enter` opens the rule, `⌘Enter` its dashboard, `⌘S` / `⌘⇧S` / `⌘D`
+silence the instance for 1 hour / 4 hours / 1 day (asking first; the
+matchers are the rule's uid plus the instance's own labels), `⌘E` expires
+the silence, `⌘C` copies the summary, `⌘L` the labels. Listed on show,
+not twice within 30 s.
+
+**Grafana Query** (`grafana-query`) is an input palette: what you type
+runs as a PromQL instant query against the Prometheus datasource
+(`datasource` by uid or name, else Grafana's default), one row per
+series with Grafana's display name, the value on the right and the
+labels in the pane; a parse error is a calm hint with Prometheus's
+message. Before you type, the saved queries (`queries`, `Name = expr`
+lines): `Enter` runs one, `⌘⌫` removes it. On a result `Enter` copies
+the value, `⌘Enter` the series with its value, `⌘⇧A` every series, `⌘C`
+the expression, `⌘O` opens Explore with it, `⌘S` saves it under a name.
+
+**Bar item** `grafana/alerts`: the firing count in red and the pending
+count in amber, hidden by its rules while both are zero (a firing
+instance under a silence does not count); `grafana/firing` and
+`grafana/pending` as states. Refreshed every minute and on show, wake and
+the network back. The popover lists the instances by state with a colour
+rail: `Enter` opens the rule, `o` the dashboard, `s` / `f` / `d` silence
+for 1 hour / 4 hours / 1 day (asking first; `s` on a silenced one
+expires it), `c` copies the summary, `a` opens the alert list, `p` the
+palette, `r` refreshes.
+
+Links: `pal://grafana/query?expr=up%20%3D%3D%200` opens the prompt with
+the expression typed; `pal://grafana/open?uid=<uid>&from=now-24h&kiosk=1`
+opens a dashboard.
+
+When something is wrong every palette is one inert hint row that says
+what and where to fix it (Settings › Extensions › Grafana; the no-URL
+row's `Enter` opens it there): no URL, a URL without a scheme, no token,
+a `keychain:`/`env:` token that did not resolve, a rejected token (401),
+a host that did not answer within the timeout, or one that could not be
+reached. A redirecting URL is followed with the token kept and logged.
+A silence or a star a Viewer token may not make is a failure toast
+naming the role.
+
+Settings, `[extensions.grafana]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `url` | text | unset | Where Grafana answers, scheme included. |
+| `token` | secret | unset | A service account token. A `keychain:` or `env:` reference in the file. |
+| `time_range` | text | unset | Appended to a dashboard's URL as `from=…&to=now` when set; empty opens the dashboard's own range. |
+| `datasource` | text | unset | The Prometheus datasource the prompt runs against, by uid or name; empty is Grafana's default. |
+| `queries` | list | five `Name = expr` lines | The saved queries listed before you type. |
+| `sparklines` | number | `3` | How many time series panels the pane draws; `0` turns it off. |
+| `timeout` | number (s) | `8` | How long one request may take. |
