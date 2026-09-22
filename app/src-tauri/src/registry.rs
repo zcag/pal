@@ -266,22 +266,20 @@ pub fn synthetic_meta(source: &Source) -> Option<PaletteMeta> {
     Some(PaletteMeta { name: source.palette.clone(), title: title.into(), ..Default::default() })
 }
 
-/// The palette's row at the root: the title, the extension's title as
-/// subtitle (left out when they are the same), the name and extension as
-/// keywords plus the config's `alias`, and the config's `icon` over the
-/// palette's own.
-pub fn palette_row(r: &Registered, config: &Config) -> Item {
+/// Every word the palette answers to besides its title: its own name,
+/// its extension's, an instance's suffix (`work` for `gmail@work`, so
+/// `work inbox` finds it), the config's `alias` and the manifest's
+/// keywords, each once.
+pub fn palette_keywords(r: &Registered, config: &Config) -> Vec<String> {
     let m = &r.meta;
     let mut keywords = vec![m.name.clone()];
     if r.source.extension != m.name {
         keywords.push(r.source.extension.clone());
     }
-    // An instance's suffix (`work` for `gmail@work`), so `work inbox` finds it.
     if let (_, Some(suffix)) = instance::split(&r.source.extension) {
         keywords.push(suffix.to_string());
     }
-    let p = config.palette(&palette_id(&r.source));
-    if let Some(alias) = p.alias.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
+    if let Some(alias) = config.palette(&palette_id(&r.source)).alias.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
         keywords.push(alias.to_string());
     }
     for k in &m.keywords {
@@ -289,6 +287,34 @@ pub fn palette_row(r: &Registered, config: &Config) -> Item {
             keywords.push(k.clone());
         }
     }
+    keywords
+}
+
+/// The source's path for the index (`Index::set_path`): the titles a
+/// section header shows and every word the palette is reached by, so a
+/// query can name the palette and the row at once (`tod address`). One
+/// string, since the index only ever asks whether a typed word starts a
+/// word of it.
+pub fn palette_path(r: &Registered, config: &Config) -> String {
+    let mut words = vec![r.ext_title.clone()];
+    if r.meta.title != r.ext_title {
+        words.push(r.meta.title.clone());
+    }
+    for k in palette_keywords(r, config) {
+        if !words.iter().any(|w| w.eq_ignore_ascii_case(&k)) {
+            words.push(k);
+        }
+    }
+    words.join(" ")
+}
+
+/// The palette's row at the root: the title, the extension's title as
+/// subtitle (left out when they are the same), [`palette_keywords`] as
+/// its keywords, and the config's `icon` over the palette's own.
+pub fn palette_row(r: &Registered, config: &Config) -> Item {
+    let m = &r.meta;
+    let keywords = palette_keywords(r, config);
+    let p = config.palette(&palette_id(&r.source));
     Item {
         id: format!("{}/{}", r.source.extension, r.source.palette),
         name: m.title.clone(),
@@ -431,6 +457,18 @@ mod tests {
         assert_eq!(row.keywords, ["windows"], "no extension keyword when it is the name");
         assert_eq!(row.icon, None);
         assert!(r.enabled, "enabled unless the file says otherwise");
+    }
+
+    #[test]
+    fn palette_path_is_both_titles_and_every_word_the_palette_answers_to() {
+        let c = config(&[("clipboard-history", palette(true, Some("  cb "), None))]);
+        let mut m = meta("history", "Clipboard History");
+        m.keywords = vec!["clip".into()];
+        let r = Registered::new(Source::new("clipboard", "history"), m, "Clipboard".into(), &c);
+        assert_eq!(palette_path(&r, &c), "Clipboard Clipboard History history cb clip", "the extension's title, the palette's, then its keywords");
+        let c = Config::default();
+        let r = Registered::new(Source::new("windows", "windows"), meta("windows", "Windows"), "Windows".into(), &c);
+        assert_eq!(palette_path(&r, &c), "Windows", "a title said three times is said once");
     }
 
     #[test]

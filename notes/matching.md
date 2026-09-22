@@ -150,3 +150,14 @@ and its column model cannot weight name over keywords; it becomes worth it
 past roughly 100k items or if matching has to leave the IPC thread. The
 20 KB reply is 16 us to serialise and 41 us to parse; the one number still
 missing is the Tauri invoke round trip, to take in the app with a mark.
+
+## Since: the source's path (2026-09-22)
+
+A sixth field was added to the `weighted` engine that shipped from here,
+the source's own path (its titles, keywords and alias), so a query can
+name the palette and the row at once (`tod estonia`). It is matched once
+per source rather than per row and cannot answer a query on its own; the
+rules, the before/after heads and the cost are in notes/decisions.md,
+"Matching: the palette a row is in is part of the query". The probe that
+asks any of this against a real index cache is
+`cargo run -p pal-core --example query -- "<query>"`.

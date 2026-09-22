@@ -60,8 +60,9 @@ export type OwnIcon = string | TileIcon;
 
 /**
  * One row, what `list` answers. Only `id` and `name` are required. The
- * core indexes and ranks rows by `name`, `subtitle` and `keywords`; the
- * UI draws the rest. Keys beyond these ride through the core untouched
+ * core indexes and ranks rows by `name`, `subtitle` and `keywords`, and
+ * by the palette's own names for a word the row itself does not have
+ * (`tod estonia`); the UI draws the rest. Keys beyond these ride through the core untouched
  * and come back on nothing: `pick` gets the `id`, so keep what a pick
  * needs in your own table, keyed by it.
  */
@@ -947,7 +948,7 @@ export type ManifestPalette = {
   inline?: boolean;
   /** See `Palette.fallback`: `true` for an "Ask" row, a string for its title. */
   fallback?: boolean | string;
-  /** Extra words the palette's row at the root answers to (`gh`, `hass`), on top of its title, key and the extension's `keywords`. */
+  /** Extra words the palette's row at the root answers to (`gh`, `hass`), on top of its title, key and the extension's `keywords`; they name its rows too (`gh pal`). */
   keywords?: string[];
   /** The switcher chord to suggest (`alt+tab`): applied when `palettes.<id>.hold` is unset in the config; `""` there turns it off. */
   hold?: string;
@@ -1043,7 +1044,7 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   suggest?: true;
   /** Tab (and a bare `x` with nothing typed) marks rows (`Palette.multi`). */
   multi?: true;
-  /** Extra words the palette's row at the root answers to: the manifest's `keywords` and the palette's own, once each. */
+  /** Extra words the palette's row at the root answers to: the manifest's `keywords` and the palette's own, once each; with the titles they are the source's path, which names its rows too (`gh pal`). */
   keywords?: string[];
   /** The first listing of a run waits for the first panel show (`true`) or the user's first visit to the palette (`"visit"`; `Palette.lazy`); the cached rows restore either way. */
   lazy?: true | "visit";

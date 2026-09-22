@@ -331,11 +331,19 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
 }
 
 /// Re-lists `pal/palettes` from the registry: the enabled ones, with their
-/// aliases and icon overrides from the config.
+/// aliases and icon overrides from the config; and gives every source its
+/// path (`registry::palette_path`), the words a query may name the palette
+/// by beside the row's own (`Index::set_path`). Both follow the registry
+/// and the config, so they are set in the same pass.
 fn sync_palette_rows(app: &AppHandle) {
     let config = settings::config(app);
-    let rows = Palettes::with(app, |reg| palette_rows(reg, &config));
-    with_index(app, |ix| ix.replace(palettes_source(), rows));
+    let (rows, paths) = Palettes::with(app, |reg| (palette_rows(reg, &config), reg.iter().filter(|r| r.enabled).map(|r| (r.source.clone(), registry::palette_path(r, &config))).collect::<Vec<_>>()));
+    with_index(app, |ix| {
+        ix.replace(palettes_source(), rows);
+        for (source, path) in paths {
+            ix.set_path(source, path);
+        }
+    });
 }
 
 async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title: String, metas: Vec<PaletteMeta>) {

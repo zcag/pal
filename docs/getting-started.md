@@ -255,6 +255,12 @@ The root list is more than the index's hits.
   opens the palette with the query already typed. `general.fallbacks`
   orders them; `general.fallbacks_always` shows them under the hits too
   ([Config](config.md#general)).
+- **Naming the palette.** A word that names the palette a row is in
+  (its title, the extension's, a keyword the manifest gives it, its
+  alias) counts for that row: `tod estonia` finds the todo in Todos,
+  `gh pal` the repository in GitHub, without leaving the root. The word
+  has to start a word of that name, and it never answers on its own, so
+  `tod` alone is still the Todos row rather than every todo in it.
 - **Alias and space.** A palette's alias (`[palettes.<id>] alias`), its
   name, its one-word title, or a prefix of two letters or more that only
   one palette answers to, followed by a space, jumps into it with the rest

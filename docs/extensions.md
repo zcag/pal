@@ -81,7 +81,14 @@ whose code fails to load.
   (`["gh"]` on GitHub, `["ha", "hass"]` on Home Assistant, `["1p", "op"]`
   on 1Password). Typing one lists the extension's palettes first; without
   it `gh` scatters across `GitHub` and loses to rows that start a word
-  with it.
+  with it. They name the palette's **rows** as well: with the titles and
+  the config's `alias` they are the source's *path*, and a query word
+  that starts a word of it is spent there, so `gh pal` finds the
+  repository and `tod estonia` the todo. A word only lands in the path
+  when it starts a word of it (`mail` does not reach `Gmail`: that is
+  what a keyword is for), and a query all of whose words land there
+  lists nothing, so `gh` alone is still the palettes, not every pull
+  request in them.
 - `palettes.<key>`: the palette's static description: `title`,
   `description`, `kind`, `ttl`, `lazy`, `tier`, `keys`, `keywords` (the
   palette's own, on top of the extension's), `rank`, `settings`,

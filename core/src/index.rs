@@ -2,7 +2,9 @@
 //! and ranked here so a keystroke costs one scan in Rust and only the top N
 //! cross to the webview. Tiering is the `weighted` engine from `matchbench`
 //! (notes/matching.md): name, keywords and subtitle are separate
-//! nucleo-matcher fields, one thread, synchronous. On top of the match:
+//! nucleo-matcher fields, one thread, synchronous, plus the source's own
+//! path ([`PathField`], `tod address` for a todo in Todos) as a last
+//! field that can never answer alone. On top of the match:
 //! a source's [`Tier`] (primary up, catalog down), a bonus for a row
 //! that has the typed word, the exact-name bonus, and per source a cut of
 //! the rows that only scatter the query once one has the word, then a cap,
@@ -258,14 +260,19 @@ impl Entry {
         segs.next() == Some(q) || (q.chars().nth(1).is_some() && segs.any(|s| s == q))
     }
 
-    /// Every word of `q` (lowercased) starts a word of the name or of a
-    /// keyword: it is at the start, or after a char that is not a letter
-    /// or digit. `chr` starts `Google Chrome` and `chrome_close`, not
-    /// `Clipboard History` (scattered) nor `Digital Color Meter`
-    /// (inside a word).
-    fn starts_words(&self, q: &str) -> bool {
-        q.split_whitespace().all(|w| self.lower.match_indices(w).any(|(i, _)| self.lower[..i].chars().next_back().is_none_or(|c| !c.is_alphanumeric())))
+    /// Every word of the query starts a word of the name or of a keyword,
+    /// or (`path`, per word, from the source) of the source's path.
+    /// `chr` starts `Google Chrome` and `chrome_close`, not `Clipboard
+    /// History` (scattered) nor `Digital Color Meter` (inside a word).
+    fn starts_words(&self, words: &[String], path: &[bool]) -> bool {
+        words.iter().enumerate().all(|(i, w)| path.get(i) == Some(&true) || starts_word(&self.lower, w))
     }
+}
+
+/// `w` (lowercased) starts a word of `hay` (lowercased): it is at the
+/// start, or after a char that is neither a letter nor a digit.
+fn starts_word(hay: &str, w: &str) -> bool {
+    hay.match_indices(w).any(|(i, _)| hay[..i].chars().next_back().is_none_or(|c| !c.is_alphanumeric()))
 }
 
 impl From<Item> for Entry {
@@ -281,9 +288,24 @@ impl From<Item> for Entry {
     }
 }
 
+/// A source's path: the words the palette itself is reached by (its
+/// extension's title, its own, its keywords and alias), matched as a
+/// weak field of every row of the source so a query can name the palette
+/// and the row at once (`tod address` for a todo, `gh conflicts` for a
+/// pull request). See [`W_PATH`] for the rules that keep it from
+/// answering on its own.
+struct PathField {
+    text: Utf32String,
+    /// Lowercased, for the word-start test [`W_PATH`] requires.
+    lower: String,
+}
+
 struct Bucket {
     source: Source,
     entries: Vec<Entry>,
+    /// The words that name this source, see [`PathField`]; `None` until
+    /// [`Index::set_path`] says (every query then ignores the path).
+    path: Option<PathField>,
     /// id to position; the first item wins when an extension repeats an id.
     ids: HashMap<String, usize>,
     /// Ordered by arrival, not by use: `QueryOpts::boost` skips it.
@@ -405,6 +427,14 @@ impl Index {
         self.buckets.retain(|b| &b.source != source);
     }
 
+    /// The words that name a source ([`PathField`]): its extension's
+    /// title, its palette's, their keywords and the alias, in any order.
+    /// Empty clears it. Creates the source empty if new.
+    pub fn set_path(&mut self, source: Source, path: impl AsRef<str>) {
+        let path = path.as_ref().trim();
+        self.bucket(source).path = (!path.is_empty()).then(|| PathField { text: Utf32String::from(path), lower: path.to_lowercase() });
+    }
+
     /// Mark a source live: its order is arrival order, so `QueryOpts::boost`
     /// does not apply to it. Creates the source empty if new.
     pub fn set_live(&mut self, source: Source, live: bool) {
@@ -435,7 +465,7 @@ impl Index {
         let i = match self.buckets.iter().position(|b| b.source == source) {
             Some(i) => i,
             None => {
-                self.buckets.push(Bucket { source, entries: Vec::new(), ids: HashMap::new(), live: false, stale: false, listed_at: None });
+                self.buckets.push(Bucket { source, entries: Vec::new(), path: None, ids: HashMap::new(), live: false, stale: false, listed_at: None });
                 self.buckets.len() - 1
             }
         };
@@ -459,6 +489,9 @@ impl Index {
         self.pat = Pattern::new(q, CaseMatching::Smart, Normalization::Smart, AtomKind::Fuzzy);
         let matching = !self.pat.atoms.is_empty();
         let typed = q.trim().to_lowercase();
+        // The atoms' own words, lowercased: what the path is tested with,
+        // in the atoms' order so a word's path hit is found by its index.
+        let words: Vec<String> = self.pat.atoms.iter().map(|a| a.needle_text().to_string().to_lowercase()).collect();
         let mut cands = Vec::new();
         // Per scanned bucket: where its candidates sit in `cands`, and its tier.
         let mut spans: Vec<(usize, std::ops::Range<usize>, Tier)> = Vec::new();
@@ -468,6 +501,15 @@ impl Index {
             }
             let tier = opts.tier.map_or(Tier::Normal, |f| f(&bucket.source));
             let bonus = if matching { tier.bonus() } else { 0.0 };
+            // The path is one haystack for the whole source, so it is
+            // matched once here, not per row: per query word, what it
+            // scores in the path, and `None` where it does not start a
+            // word of it ([`W_PATH`]).
+            let path: Vec<Option<u32>> = match &bucket.path {
+                Some(p) if matching => self.pat.atoms.iter().zip(&words).map(|(atom, w)| starts_word(&p.lower, w).then(|| atom.score(p.text.slice(..), &mut self.matcher).map(|s| s as u32 * W_PATH / 100)).flatten()).collect(),
+                _ => Vec::new(),
+            };
+            let path_word: Vec<bool> = path.iter().map(Option::is_some).collect();
             let start = cands.len();
             for (e, entry) in bucket.entries.iter().enumerate() {
                 // Without matching or boost the scan order is the result order.
@@ -475,7 +517,7 @@ impl Index {
                     break 'scan;
                 }
                 let score = if matching {
-                    match score(&self.pat, &mut self.matcher, entry) {
+                    match score(&self.pat, &mut self.matcher, entry, &path) {
                         Some(s) => s as f32,
                         None => continue,
                     }
@@ -484,7 +526,7 @@ impl Index {
                 };
                 let boost = if bucket.live { None } else { opts.boost };
                 let mut score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id)) + bonus;
-                let word = matching && entry.starts_words(&typed);
+                let word = matching && entry.starts_words(&words, &path_word);
                 if word {
                     score += WORD_BONUS;
                     if entry.is_exactly(&typed) {
@@ -652,13 +694,25 @@ impl Cand {
 const W_NAME: u32 = 100;
 const W_KEYWORD: u32 = 80;
 const W_SUBTITLE: u32 = 50;
+/// The same for a word that landed in the source's path ([`PathField`]):
+/// the palette is where the row is, not what it is, so it counts least.
+/// Two rules keep the path from answering on its own, since it is the
+/// same haystack for every row of a source: a word only lands there when
+/// it **starts** a word of the path (`tod` reaches Todos, `mail` does not
+/// reach Gmail: that is what the manifest's keywords are for), and at
+/// least one word of the query must land in the row itself, so `tod`
+/// alone still lists the palette rather than every todo in it while `tod
+/// address` finds the todo.
+const W_PATH: u32 = 40;
 
 /// Every query word must land in some field; each takes its best weighted
 /// field and the item's score is the sum. So `cast tv` matches an item named
 /// `cast` with keyword `tv`, which one pattern over one field would reject.
-fn score(pat: &Pattern, matcher: &mut Matcher, f: &Entry) -> Option<u32> {
-    let mut total = 0;
-    for atom in &pat.atoms {
+/// `path` is what each word scored in the source's path (empty for a
+/// source with none), the last resort for a word that landed nowhere else.
+fn score(pat: &Pattern, matcher: &mut Matcher, f: &Entry, path: &[Option<u32>]) -> Option<u32> {
+    let (mut total, mut own) = (0, false);
+    for (i, atom) in pat.atoms.iter().enumerate() {
         let mut best = None;
         let mut consider = |s: Option<u16>, w: u32| {
             if let Some(s) = s {
@@ -675,9 +729,10 @@ fn score(pat: &Pattern, matcher: &mut Matcher, f: &Entry) -> Option<u32> {
         if let Some(sub) = &f.subtitle {
             consider(atom.score(sub.slice(..), matcher), W_SUBTITLE);
         }
-        total += best?;
+        own |= best.is_some();
+        total += best.or_else(|| path.get(i).copied().flatten())?;
     }
-    Some(total)
+    own.then_some(total)
 }
 
 #[cfg(test)]
@@ -959,6 +1014,29 @@ mod tests {
         assert!(r.more.is_empty());
         // The cut is the root's (with caps); a palette's own level lists everything.
         assert_eq!(ix.query("spo", QueryOpts { tier: Some(&tier), sources: Some(&[src("apps")]), ..Default::default() }).len(), 4);
+    }
+
+    #[test]
+    fn the_path_scopes_a_query_but_never_answers_it() {
+        let mut ix = index();
+        ix.extend(src("todos"), vec![item("t1", "Estonia visa: pick the trip week", None, &["personal"]), item("t2", "Pay the invoice", None, &[])]);
+        ix.set_path(src("todos"), "odak Todos todo tasks");
+        // The palette's name takes the word the row does not have; the row still has to answer for the rest.
+        assert_eq!(ids(&ix.query("tod estonia", QueryOpts::default())), ["t1"]);
+        assert_eq!(ids(&ix.query("todos invoice", QueryOpts::default())), ["t2"]);
+        assert!(ix.query("tod", QueryOpts::default()).iter().all(|h| h.source != src("todos")), "the path alone lists nothing: `tod` is the palette's row, not every todo in it");
+        assert!(ix.query("odak tasks", QueryOpts::default()).is_empty(), "two words, both only the path");
+        // Only at a word start, and only the source's own path.
+        assert!(ix.query("dos estonia", QueryOpts::default()).is_empty(), "`dos` is inside `Todos`, not a word of it");
+        assert!(ix.query("tod chrome", QueryOpts::default()).is_empty(), "another source's rows are not in this path");
+        // The word bonus counts a path word like any other: the scoped row leads what only scatters the letters.
+        ix.extend(src("notes"), vec![item("n1", "Trip to Denmark", Some("estonia and other visas"), &[])]);
+        let r = ix.query("tod estonia", QueryOpts::default());
+        assert_eq!(ids(&r), ["t1", "n1"]);
+        assert!(r[0].score >= r[1].score + WORD_BONUS, "{} against {}", r[0].score, r[1].score);
+        // Cleared again, the source is matched by its rows alone.
+        ix.set_path(src("todos"), "");
+        assert!(ix.query("tod estonia", QueryOpts::default()).iter().all(|h| h.source != src("todos")));
     }
 
     #[test]
