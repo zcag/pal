@@ -31,7 +31,7 @@ type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: numb
 type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
-  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; backspace_back?: boolean; check_updates: boolean };
+  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; backspace_back?: boolean; check_updates: boolean; app_switcher?: string | null };
   palettes: Record<string, RawPalette>;
   bar: RawBar;
   sidebar?: RawSidebar;
@@ -430,7 +430,7 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, askPermissionsOnStart: config.general.ask_permissions_on_start, backspaceBack: config.general.backspace_back !== false };
+  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, askPermissionsOnStart: config.general.ask_permissions_on_start, backspaceBack: config.general.backspace_back !== false, appSwitcher: config.general.app_switcher ?? undefined };
   const onGeneral = (next: GeneralConfig) => {
     // `general.hotkey` keeps the spelling the file has (a string stays a string) until a second entry needs the list.
     if (next.hotkeys.join("\n") !== general.hotkeys.join("\n")) write(["general", "hotkey"], Array.isArray(config.general.hotkey) || next.hotkeys.length > 1 ? next.hotkeys : (next.hotkeys[0] ?? ""));
@@ -440,6 +440,7 @@ export default function Settings() {
     if (next.position !== general.position) write(["general", "position"], next.position);
     if (next.askPermissionsOnStart !== general.askPermissionsOnStart) write(["general", "ask_permissions_on_start"], next.askPermissionsOnStart ? undefined : false);
     if (next.backspaceBack !== general.backspaceBack) write(["general", "backspace_back"], next.backspaceBack ? undefined : false);
+    if ((next.appSwitcher ?? "") !== (general.appSwitcher ?? "")) write(["general", "app_switcher"], next.appSwitcher || undefined);
   };
   const fail = (e: unknown) => setError(String(e));
 

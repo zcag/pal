@@ -396,12 +396,26 @@ pub fn apply(app: &AppHandle, config: &Config) {
             }
         }
     }
+    // `general.app_switcher`: the chord the tap turns into the Dock's own
+    // switcher (a Tab chord); a hold chord that is the same is dropped, the
+    // App Switcher's claim on it being the point.
+    let system = config.general.app_switcher.as_deref().map(str::trim).filter(|h| !h.is_empty()).and_then(|h| parse("general.app_switcher".into(), h)).filter(|s| {
+        let tab = s.key == Code::Tab && !s.mods.is_empty();
+        if !tab {
+            eprintln!("hotkey	general.app_switcher	{s}	not a Tab chord with a modifier; ignored");
+        }
+        tab
+    });
     // The Dock-owned hold chord as configured, for the Overview when its tap waits on the permission.
     let mut owned: Option<String> = None;
     for (id, source, suggested) in crate::registry::registered_holds(app) {
         let p = config.palette(&id);
         let Some(h) = p.hold.as_deref().or(suggested.as_deref()).map(str::trim).filter(|h| !h.is_empty()) else { continue };
         if let Some(s) = parse(format!("palettes.{id}.hold"), h) {
+            if system.is_some_and(|sys| sys == s || shifted(&sys) == Some(s)) {
+                eprintln!("hotkey	palettes.{id}.hold	{h}	is general.app_switcher's; pal's switcher needs another chord");
+                continue;
+            }
             if dock_owned(&s) {
                 owned = Some(h.to_lowercase());
             }
@@ -433,7 +447,7 @@ pub fn apply(app: &AppHandle, config: &Config) {
         drop(_applying);
         let held = outcome(app).hotkeys.iter().any(|h| h.spotlight.is_some()).then(pal_core::spotlight::hotkey).flatten();
         let mut o = judge(&roots, &current, &HashMap::new(), held.as_deref());
-        o.hold_blocked = tap::apply(app, current.keys().filter(|s| dock_owned(s)).copied().collect(), owned.as_deref()).then_some(owned).flatten();
+        o.hold_blocked = tap::apply(app, current.keys().filter(|s| dock_owned(s)).copied().collect(), system, owned.as_deref()).then_some(owned).flatten();
         record(app, o);
         return;
     }
@@ -446,7 +460,7 @@ pub fn apply(app: &AppHandle, config: &Config) {
     // where this is: the early return above covers the rest.
     let held = (!roots.is_empty()).then(pal_core::spotlight::hotkey).flatten();
     let mut o = judge(&roots, &next, &failed, held.as_deref());
-    o.hold_blocked = tap::apply(app, next.keys().filter(|s| dock_owned(s)).copied().collect(), owned.as_deref()).then_some(owned).flatten();
+    o.hold_blocked = tap::apply(app, next.keys().filter(|s| dock_owned(s)).copied().collect(), system, owned.as_deref()).then_some(owned).flatten();
     record(app, o);
 }
 
@@ -469,7 +483,7 @@ mod tap {
     use std::sync::{Mutex, OnceLock};
 
     use objc2_core_foundation::{kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop, CFRunLoopSource};
-    use objc2_core_graphics::{CGEvent, CGEventField, CGEventFlags, CGEventMask, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType};
+    use objc2_core_graphics::{CGEvent, CGEventField, CGEventFlags, CGEventMask, CGEventSource, CGEventSourceStateID, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType};
     use tauri::AppHandle;
     use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
 
@@ -480,7 +494,15 @@ mod tap {
 
     /// The chords the tap swallows and hands to `pressed`; read on every key down.
     static WATCHED: Mutex<Vec<Shortcut>> = Mutex::new(Vec::new());
+    /// `general.app_switcher`: the chord (without shift) the tap turns into
+    /// the Dock's own switcher, and whether a Cmd is virtually down for it.
+    static SYSTEM: Mutex<Option<Shortcut>> = Mutex::new(None);
+    static FORWARDING: Mutex<bool> = Mutex::new(false);
     static APP: OnceLock<AppHandle> = OnceLock::new();
+    /// Stamped on every event the tap posts (`EventSourceUserData`), so the tap lets its own through.
+    const TAG: i64 = 0x70616c;
+    /// The virtual key code of the left Command key.
+    const COMMAND: u16 = 55;
 
     thread_local! {
         /// The tap and its run loop source; the main thread's, like the run loop.
@@ -498,6 +520,69 @@ mod tap {
         Some(Shortcut::new(Some(mods), Code::Tab))
     }
 
+    /// One keyboard event posted as the HID system's: a key, or a modifier's
+    /// `flagsChanged` (`modifier`), with `flags`, tagged as pal's own.
+    fn post(key: u16, down: bool, modifier: bool, flags: CGEventFlags) {
+        let source = CGEventSource::new(CGEventSourceStateID::HIDSystemState);
+        let Some(e) = CGEvent::new_keyboard_event(source.as_deref(), key, down) else { return };
+        if modifier {
+            CGEvent::set_type(Some(&e), CGEventType::FlagsChanged);
+        }
+        CGEvent::set_flags(Some(&e), flags);
+        CGEvent::set_integer_value_field(Some(&e), CGEventField::EventSourceUserData, TAG);
+        CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&e));
+    }
+
+    /// The Dock's switcher driven from `general.app_switcher`: the first press
+    /// puts a Cmd down for the Dock (a `flagsChanged`), every press is a
+    /// Cmd+Tab (Cmd+Shift+Tab for the chord's `shift+` variant), and the
+    /// chord's modifiers coming up lets the Cmd up, which the Dock takes as
+    /// the switch. Measured on hornet 2026-09-22: posted this way, the Dock
+    /// opens, steps and commits as for the keys themselves.
+    fn forward_press(back: bool) {
+        let mut on = lock(&FORWARDING);
+        let first = !*on;
+        if first {
+            // The chord's own modifiers are let go of first, for the Dock: it
+            // reads the combined modifier state, and with the option still
+            // down a posted Cmd+Tab is Cmd+Option+Tab to it, which is nobody's
+            // (measured on hornet 2026-09-22 with the modifier held).
+            if let Some(sys) = *lock(&SYSTEM) {
+                for (m, key) in [(Modifiers::ALT, 58u16), (Modifiers::CONTROL, 59), (Modifiers::SHIFT, 56)] {
+                    if sys.mods.contains(m) {
+                        post(key, false, true, CGEventFlags::empty());
+                    }
+                }
+            }
+            post(COMMAND, true, true, CGEventFlags::MaskCommand);
+            *on = true;
+            eprintln!("hotkey\tapp switcher\tcmd down for the Dock");
+        }
+        drop(on);
+        let flags = if back { CGEventFlags::MaskCommand | CGEventFlags::MaskShift } else { CGEventFlags::MaskCommand };
+        // Off the tap's callback, a beat after the Cmd: the Dock wants the modifier to have landed before the Tab (posted back to back from the callback, it opened nothing).
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(if first { 30 } else { 5 }));
+            post(TAB as u16, true, false, flags);
+            post(TAB as u16, false, false, flags);
+        });
+    }
+
+    fn forward_release() {
+        let mut on = lock(&FORWARDING);
+        if *on {
+            post(COMMAND, false, true, CGEventFlags::empty());
+            *on = false;
+            eprintln!("hotkey\tapp switcher\tcmd up");
+        }
+    }
+
+    /// Whether `flags` still hold every modifier of `s` (the chord is held).
+    fn holds(flags: CGEventFlags, s: &Shortcut) -> bool {
+        let pairs = [(CGEventFlags::MaskCommand, Modifiers::SUPER), (CGEventFlags::MaskShift, Modifiers::SHIFT), (CGEventFlags::MaskAlternate, Modifiers::ALT), (CGEventFlags::MaskControl, Modifiers::CONTROL)];
+        pairs.iter().filter(|(_, m)| s.mods.contains(*m)).all(|(f, _)| flags.contains(*f))
+    }
+
     unsafe extern "C-unwind" fn callback(_proxy: CGEventTapProxy, ty: CGEventType, event: NonNull<CGEvent>, _info: *mut c_void) -> *mut CGEvent {
         if ty == CGEventType::TapDisabledByTimeout || ty == CGEventType::TapDisabledByUserInput {
             TAP.with(|t| {
@@ -508,12 +593,35 @@ mod tap {
             eprintln!("hotkey\ttap\tre-enabled after {ty:?}");
             return event.as_ptr();
         }
+        // SAFETY: the system hands a live event to the tap's callback.
+        let e = unsafe { event.as_ref() };
+        if CGEvent::integer_value_field(Some(e), CGEventField::EventSourceUserData) == TAG {
+            return event.as_ptr();
+        }
+        let flags = CGEvent::flags(Some(e));
+        if ty == CGEventType::FlagsChanged {
+            let held = lock(&SYSTEM).filter(|s| holds(flags, s)).is_some();
+            if !held {
+                forward_release();
+            } else if *lock(&FORWARDING) {
+                // Shift pressed for the step back (or any modifier) while the chord is held: the Dock reads the Cmd state off every `flagsChanged`, so this one says Cmd too.
+                CGEvent::set_flags(Some(e), flags | CGEventFlags::MaskCommand);
+            }
+            return event.as_ptr();
+        }
         if ty == CGEventType::KeyDown {
-            // SAFETY: the system hands a live event to the tap's callback.
-            let e = unsafe { event.as_ref() };
             let code = CGEvent::integer_value_field(Some(e), CGEventField::KeyboardEventKeycode);
-            if let Some(s) = chord(code, CGEvent::flags(Some(e))).filter(|s| lock(&WATCHED).contains(s)) {
-                if CGEvent::integer_value_field(Some(e), CGEventField::KeyboardEventAutorepeat) == 0 {
+            let Some(s) = chord(code, flags) else { return event.as_ptr() };
+            let repeat = CGEvent::integer_value_field(Some(e), CGEventField::KeyboardEventAutorepeat) != 0;
+            let system = *lock(&SYSTEM);
+            if let Some(sys) = system.filter(|sys| *sys == s || super::shifted(sys) == Some(s)) {
+                if !repeat {
+                    forward_press(s != sys);
+                }
+                return std::ptr::null_mut();
+            }
+            if lock(&WATCHED).contains(&s) {
+                if !repeat {
                     if let Some(app) = APP.get() {
                         super::pressed(app, &s);
                     }
@@ -528,11 +636,13 @@ mod tap {
     /// none removes the tap; some install it (once) with Input Monitoring,
     /// and without it ask once and answer true, the chord blocked. Any
     /// thread: the tap itself is made and removed on the main one.
-    pub fn apply(app: &AppHandle, chords: Vec<Shortcut>, label: Option<&str>) -> bool {
+    pub fn apply(app: &AppHandle, chords: Vec<Shortcut>, system: Option<Shortcut>, label: Option<&str>) -> bool {
         let _ = APP.set(app.clone());
-        let label = label.unwrap_or("cmd+tab").to_string();
+        let label = label.map(str::to_string).or_else(|| system.map(|s| format!("app switcher {s}"))).unwrap_or_else(|| "cmd+tab".into());
         *lock(&WATCHED) = chords.clone();
-        if chords.is_empty() {
+        *lock(&SYSTEM) = system;
+        if chords.is_empty() && system.is_none() {
+            forward_release();
             remove(app);
             return false;
         }
@@ -599,7 +709,7 @@ mod tap {
 /// No Dock off macOS: nothing is owned, nothing to tap.
 #[cfg(not(target_os = "macos"))]
 mod tap {
-    pub fn apply(_app: &tauri::AppHandle, _chords: Vec<tauri_plugin_global_shortcut::Shortcut>, _label: Option<&str>) -> bool {
+    pub fn apply(_app: &tauri::AppHandle, _chords: Vec<tauri_plugin_global_shortcut::Shortcut>, _system: Option<tauri_plugin_global_shortcut::Shortcut>, _label: Option<&str>) -> bool {
         false
     }
 }

@@ -86,6 +86,11 @@ pub struct General {
     /// shortcut is unticked under System Settings > Keyboard > Keyboard
     /// Shortcuts; pal says so in Settings and registers it once it is free.
     pub hotkey: Hotkeys,
+    /// macOS's own App Switcher (Cmd+Tab's) on this chord, for when pal's
+    /// switcher has taken `cmd+tab`: `"alt+tab"`. Its `shift+` variant steps
+    /// back. Goes through the same event tap as `cmd+tab` (Input
+    /// Monitoring); unset is off.
+    pub app_switcher: Option<String>,
     pub theme: Theme,
     /// A theme file overriding pal's colours, radii and fonts
     /// (`pal_core::theme`, docs/config.md "Theme file"): a name, looked up
@@ -208,6 +213,7 @@ impl Default for General {
     fn default() -> Self {
         Self {
             hotkey: Hotkeys::default(),
+            app_switcher: None,
             theme: Theme::System,
             theme_file: String::new(),
             compact: false,

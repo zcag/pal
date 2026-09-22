@@ -116,7 +116,7 @@ describe("SettingsGeneral permissions", () => {
   });
   it("is found by any word of a row's description, not only its label, and every indexed anchor is on the page", () => {
     const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);
-    expect(find("dock")).toEqual(["Menu bar icon", "Sidebar", "Sidebar: edge"]);
+    expect(find("dock")).toEqual(["macOS App Switcher", "Menu bar icon", "Sidebar", "Sidebar: edge"]);
     expect(find("crash")).toEqual(["Launch at login"]);
     expect(find("pop level")).toEqual(["Backspace goes back"]);
     expect(find("welcome tips")).toEqual(["Ask on first launch"]);

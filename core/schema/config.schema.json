@@ -694,6 +694,10 @@
           "description": "Typing a palette's alias (or its name, or its one-word title) and a\nspace at the root jumps into that palette with the rest typed:\n`calc 2+2`, `emoji cat`. `false` leaves the space as a character.",
           "type": "boolean"
         },
+        "app_switcher": {
+          "description": "macOS's own App Switcher (Cmd+Tab's) on this chord, for when pal's\nswitcher has taken `cmd+tab`: `\"alt+tab\"`. Its `shift+` variant steps\nback. Goes through the same event tap as `cmd+tab` (Input\nMonitoring); unset is off.",
+          "type": "string"
+        },
         "ask_permissions_on_start": {
           "default": true,
           "description": "macOS: ask for the Accessibility permission (the system prompt, and\nSystem Settings on that pane) the first time the panel shows on a\nprofile that has not hidden the Welcome tips yet. Paste and window\nswitching need it; `false` leaves the ask to the Welcome row and to\nSettings > General > Permissions.",
@@ -1074,6 +1078,7 @@
       "$ref": "#/$defs/General",
       "default": {
         "alias_space": true,
+        "app_switcher": null,
         "ask_permissions_on_start": true,
         "backspace_back": true,
         "check_updates": true,

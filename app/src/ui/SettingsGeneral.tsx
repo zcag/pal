@@ -83,6 +83,7 @@ const text = {
     ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
     : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file.", keywords: "hotkey shortcut keys spotlight cmd space several second another" },
   switcher: { anchor: "general:switcher", hint: "Switch windows", label: "Window switcher", description: "Tap it to go back to the previous window; hold it and press again to pick. cmd+tab replaces the App Switcher and needs Input Monitoring.", keywords: "switcher alt tab cmd tab hold windows previous chord" },
+  appSwitcher: { anchor: "general:app-switcher", hint: "The App Switcher's chord", label: "macOS App Switcher", description: "macOS's own app switcher (Cmd+Tab's) on another Tab chord, for when pal's switcher has taken cmd+tab: alt+tab, say. Held the same way; shift steps back. Needs Input Monitoring.", keywords: "app switcher macos cmd tab alt tab system dock" },
   permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security.", keywords: "permissions grant privacy" },
   ask: { anchor: "general:ask", hint: "Permissions", label: "Ask on first launch", description: "Show the Accessibility prompt the first time the panel opens on a new profile, while the Welcome tips are up.", keywords: "" },
   theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
@@ -195,7 +196,7 @@ function HotkeyRows({ value, onChange, status, onOpenKeyboardShortcuts }: { valu
  * the Input Monitoring grant when the chord is `cmd+tab` and the grant is
  * missing (that one replaces the App Switcher through an event tap).
  */
-function Switcher({ hold, suggested, onChange, permissions, onRequestPermission }: SwitcherProps & { permissions?: PermissionsStatus; onRequestPermission?: (which: PermissionId) => void }) {
+function Switcher({ hold, suggested, onChange, permissions, onRequestPermission, appSwitcher, onAppSwitcher }: SwitcherProps & { permissions?: PermissionsStatus; onRequestPermission?: (which: PermissionId) => void; appSwitcher?: string; onAppSwitcher: (chord: string | undefined) => void }) {
   const chord = (hold ?? suggested)?.trim();
   const needsGrant = !!chord && sameCombo(chord, "cmd+tab") && permissions?.input_monitoring === false;
   return (
@@ -205,6 +206,9 @@ function Switcher({ hold, suggested, onChange, permissions, onRequestPermission 
           <HoldControl value={hold} suggested={suggested} label="Switch windows" onChange={onChange} />
           {needsGrant && onRequestPermission && <button type="button" className="pal-button" data-small data-primary="" onClick={() => onRequestPermission("input_monitoring")}>Turn on Input Monitoring…</button>}
         </span>
+      </SettingsRow>
+      <SettingsRow anchor={text.appSwitcher.anchor} label={text.appSwitcher.label} description={text.appSwitcher.description}>
+        <SettingsHotkey value={appSwitcher} onChange={onAppSwitcher} label="macOS App Switcher chord" />
       </SettingsRow>
     </SettingsGroup>
   );
@@ -223,7 +227,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         </SettingsRow>
       </SettingsGroup>
 
-      {switcher && <Switcher {...switcher} permissions={permissions} onRequestPermission={onRequestPermission} />}
+      {switcher && <Switcher {...switcher} permissions={permissions} onRequestPermission={onRequestPermission} appSwitcher={value.appSwitcher} onAppSwitcher={(chord) => onChange({ ...value, appSwitcher: chord })} />}
       {sidebar && <SettingsSidebar {...sidebar} />}
 
       {permissions && (

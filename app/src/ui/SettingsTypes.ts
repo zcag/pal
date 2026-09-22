@@ -163,6 +163,8 @@ export type GeneralConfig = {
   askPermissionsOnStart: boolean;
   /** `general.backspace_back`: Backspace with nothing typed goes back a level. */
   backspaceBack: boolean;
+  /** `general.app_switcher`: macOS's own App Switcher on this Tab chord, through the event tap; unset is off. */
+  appSwitcher?: string;
 };
 
 /** hotkey.rs `RootOutcome`: one entry of `general.hotkey` and how its registration went. */
