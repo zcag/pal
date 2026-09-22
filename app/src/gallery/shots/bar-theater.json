@@ -1,0 +1,549 @@
+{
+  "key": "theater/downloads",
+  "title": "Downloads",
+  "item": {
+    "icon": "󰇚",
+    "title": "5.6 MB/s · 2",
+    "tooltip": "2 downloading, 5.6 MB/s",
+    "states": {
+      "downloading": 2,
+      "speed": 5603200,
+      "paused": false
+    },
+    "menu": {
+      "view": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "compact",
+          "padding": 3,
+          "children": [
+            {
+              "type": "text",
+              "value": "5.6 MB/s · 2 active",
+              "key": "summary",
+              "size": "xs",
+              "color": "muted"
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 0,
+              "key": "rows",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "sab:SABnzbd_nzo_1",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "surface": "elevated",
+                  "selected": true,
+                  "action": "focus:sab:SABnzbd_nzo_1",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "stack",
+                      "key": "lead",
+                      "direction": "column",
+                      "align": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "󰇚",
+                          "key": "g",
+                          "style": "glyph",
+                          "size": "md",
+                          "color": "accent",
+                          "width": 28
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "body",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Oppenheimer.2023.1080p.WEB-DL",
+                          "key": "t",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 256
+                        },
+                        {
+                          "type": "text",
+                          "value": "SABnzbd · movies · 13 min left",
+                          "key": "s",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 256
+                        },
+                        {
+                          "type": "progress",
+                          "key": "p",
+                          "value": 0.75,
+                          "width": 256,
+                          "color": "blue"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "right",
+                      "align": "end",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "key": "b",
+                          "text": "downloading",
+                          "color": "blue"
+                        },
+                        {
+                          "type": "text",
+                          "value": "4.4 MB/s",
+                          "key": "r",
+                          "style": "number",
+                          "size": "xs",
+                          "color": "muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "qbit:f7e9",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:qbit:f7e9",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "stack",
+                      "key": "lead",
+                      "direction": "column",
+                      "align": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "󰍇",
+                          "key": "g",
+                          "style": "glyph",
+                          "size": "md",
+                          "color": "accent",
+                          "width": 28
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "body",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "ted.lasso.s04e04.1080p.web.h264-cakes",
+                          "key": "t",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 256
+                        },
+                        {
+                          "type": "text",
+                          "value": "qBittorrent · tv-sonarr · 15 min left",
+                          "key": "s",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 256
+                        },
+                        {
+                          "type": "progress",
+                          "key": "p",
+                          "value": 0.42,
+                          "width": 256,
+                          "color": "blue"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "right",
+                      "align": "end",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "key": "b",
+                          "text": "downloading",
+                          "color": "blue"
+                        },
+                        {
+                          "type": "text",
+                          "value": "1.2 MB/s",
+                          "key": "r",
+                          "style": "number",
+                          "size": "xs",
+                          "color": "muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "sab:SABnzbd_nzo_2",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:sab:SABnzbd_nzo_2",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "stack",
+                      "key": "lead",
+                      "direction": "column",
+                      "align": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "󰇚",
+                          "key": "g",
+                          "style": "glyph",
+                          "size": "md",
+                          "color": "faint",
+                          "width": 28
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "body",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Ted.Lasso.S04E08.1080p.WEB",
+                          "key": "t",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 256
+                        },
+                        {
+                          "type": "text",
+                          "value": "SABnzbd · tv",
+                          "key": "s",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 256
+                        },
+                        {
+                          "type": "progress",
+                          "key": "p",
+                          "value": 0,
+                          "width": 256,
+                          "color": "blue"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "right",
+                      "align": "end",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "key": "b",
+                          "text": "queued",
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0%",
+                          "key": "r",
+                          "style": "number",
+                          "size": "xs",
+                          "color": "muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "qbit:a1b2",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:qbit:a1b2",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "stack",
+                      "key": "lead",
+                      "direction": "column",
+                      "align": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "󰍇",
+                          "key": "g",
+                          "style": "glyph",
+                          "size": "md",
+                          "color": "faint",
+                          "width": 28
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "body",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Project Hail Mary.epub",
+                          "key": "t",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 256
+                        },
+                        {
+                          "type": "text",
+                          "value": "qBittorrent · books",
+                          "key": "s",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 256
+                        },
+                        {
+                          "type": "progress",
+                          "key": "p",
+                          "value": 0,
+                          "width": 256,
+                          "color": "blue"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 1,
+                      "key": "right",
+                      "align": "end",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "key": "b",
+                          "text": "stalled",
+                          "color": "amber"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0%",
+                          "key": "r",
+                          "style": "number",
+                          "size": "xs",
+                          "color": "muted"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints",
+              "minHeight": 22,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter"
+                },
+                {
+                  "type": "text",
+                  "value": "open",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "space"
+                },
+                {
+                  "type": "text",
+                  "value": "pause all",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "backspace"
+                },
+                {
+                  "type": "text",
+                  "value": "delete",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "p"
+                },
+                {
+                  "type": "text",
+                  "value": "pal",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "open",
+            "title": "Open Oppenheimer.2023.1080p.WEB-DL"
+          },
+          {
+            "id": "toggle-all",
+            "title": "Pause everything",
+            "shortcut": "space"
+          },
+          {
+            "id": "toggle",
+            "title": "Pause the item",
+            "shortcut": "cmd+enter"
+          },
+          {
+            "id": "delete",
+            "title": "Delete the item",
+            "shortcut": "backspace",
+            "style": "destructive",
+            "confirm": "Delete Oppenheimer.2023.1080p.WEB-DL?"
+          },
+          {
+            "id": "open-pal",
+            "title": "Open in pal",
+            "shortcut": "p"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:sab:SABnzbd_nzo_1",
+            "title": "Go to Oppenheimer.2023.1080p.WEB-DL",
+            "hidden": true
+          },
+          {
+            "id": "focus:qbit:f7e9",
+            "title": "Go to ted.lasso.s04e04.1080p.web.h264-cakes",
+            "hidden": true
+          },
+          {
+            "id": "focus:sab:SABnzbd_nzo_2",
+            "title": "Go to Ted.Lasso.S04E08.1080p.WEB",
+            "hidden": true
+          },
+          {
+            "id": "focus:qbit:a1b2",
+            "title": "Go to Project Hail Mary.epub",
+            "hidden": true
+          }
+        ],
+        "title": "4 downloads",
+        "id": "downloads",
+        "keys": "actions"
+      }
+    }
+  },
+  "states": [
+    {
+      "id": "paused",
+      "item": {
+        "icon": "󰏤",
+        "title": "paused · 2",
+        "color": "amber",
+        "tooltip": "2 in the queue, paused"
+      }
+    }
+  ],
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the combined download speed and how many items are active"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the queue: every item with its progress bar, space pauses everything"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the speed and the count"
+    }
+  }
+}

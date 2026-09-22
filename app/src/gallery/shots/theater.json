@@ -1,0 +1,2690 @@
+{
+  "palettes": {
+    "theater": {
+      "title": "Theater",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "A service",
+      "live": true,
+      "items": [
+        {
+          "id": "service:jellyfin",
+          "name": "Jellyfin",
+          "subtitle": "v10.11.11 · 1 watching",
+          "icon": {
+            "tile": {
+              "glyph": "󰿎",
+              "bg": "violet"
+            }
+          },
+          "keywords": [
+            "media",
+            "movies",
+            "tv",
+            "watch",
+            "jellyfin"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/jellyfin",
+                  "href": "http://127.0.0.1:61730/jellyfin"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "10.11.11"
+              },
+              {
+                "label": "Status",
+                "value": "1 watching"
+              },
+              {
+                "label": "In pal",
+                "value": "Continue Watching and Latest, Search Jellyfin, Now Playing"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Jellyfin"
+            },
+            {
+              "id": "palette:jellyfin",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:jellyfin-search",
+              "title": "Search Jellyfin"
+            },
+            {
+              "id": "palette:jellyfin-playing",
+              "title": "Now Playing"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:seerr",
+          "name": "Jellyseerr",
+          "subtitle": "v2.7.3 · 1 pending",
+          "icon": {
+            "tile": {
+              "glyph": "󰋻",
+              "bg": "indigo"
+            }
+          },
+          "keywords": [
+            "requests",
+            "overseerr",
+            "seerr"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/seerr",
+                  "href": "http://127.0.0.1:61730/seerr"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "2.7.3"
+              },
+              {
+                "label": "Status",
+                "value": "1 pending"
+              },
+              {
+                "label": "In pal",
+                "value": "Requests, Request a title"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Jellyseerr"
+            },
+            {
+              "id": "palette:seerr-requests",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:seerr-request",
+              "title": "Request a title"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:radarr",
+          "name": "Radarr",
+          "subtitle": "v6.1.1 · 1 in queue",
+          "icon": {
+            "tile": {
+              "glyph": "󰟞",
+              "bg": "amber"
+            }
+          },
+          "keywords": [
+            "movies",
+            "radarr"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/radarr",
+                  "href": "http://127.0.0.1:61730/radarr"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "6.1.1"
+              },
+              {
+                "label": "Status",
+                "value": "1 in queue"
+              },
+              {
+                "label": "In pal",
+                "value": "Queue and calendar, Add a movie, Wanted movies, History"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Radarr"
+            },
+            {
+              "id": "palette:radarr",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:radarr-add",
+              "title": "Add a movie"
+            },
+            {
+              "id": "palette:radarr-wanted",
+              "title": "Wanted movies"
+            },
+            {
+              "id": "palette:radarr-history",
+              "title": "History"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:sonarr",
+          "name": "Sonarr",
+          "subtitle": "v4.0.17 · 1 in queue, 1 stuck · 1 health warning",
+          "icon": {
+            "tile": {
+              "glyph": "󰔂",
+              "bg": "cyan"
+            }
+          },
+          "keywords": [
+            "tv",
+            "series",
+            "sonarr"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "attention",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/sonarr",
+                  "href": "http://127.0.0.1:61730/sonarr"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "4.0.17"
+              },
+              {
+                "label": "Status",
+                "value": "1 in queue, 1 stuck · 1 health warning"
+              },
+              {
+                "label": "In pal",
+                "value": "Queue and calendar, Add a series, Wanted episodes, History"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Sonarr"
+            },
+            {
+              "id": "palette:sonarr",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:sonarr-add",
+              "title": "Add a series"
+            },
+            {
+              "id": "palette:sonarr-wanted",
+              "title": "Wanted episodes"
+            },
+            {
+              "id": "palette:sonarr-history",
+              "title": "History"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:lidarr",
+          "name": "Lidarr",
+          "subtitle": "v3.1.0 · queue empty",
+          "icon": {
+            "tile": {
+              "glyph": "󰌳",
+              "bg": "green"
+            }
+          },
+          "keywords": [
+            "music",
+            "lidarr"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/lidarr",
+                  "href": "http://127.0.0.1:61730/lidarr"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "3.1.0"
+              },
+              {
+                "label": "Status",
+                "value": "queue empty"
+              },
+              {
+                "label": "In pal",
+                "value": "Queue and calendar, Add an artist, Wanted albums, History"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Lidarr"
+            },
+            {
+              "id": "palette:lidarr",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:lidarr-add",
+              "title": "Add an artist"
+            },
+            {
+              "id": "palette:lidarr-wanted",
+              "title": "Wanted albums"
+            },
+            {
+              "id": "palette:lidarr-history",
+              "title": "History"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:prowlarr",
+          "name": "Prowlarr",
+          "subtitle": "v2.3.5 · 2 indexers · 1 failing",
+          "icon": {
+            "tile": {
+              "glyph": "󰐷",
+              "bg": "orange"
+            }
+          },
+          "keywords": [
+            "indexers",
+            "trackers",
+            "prowlarr"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "attention",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/prowlarr",
+                  "href": "http://127.0.0.1:61730/prowlarr"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "2.3.5"
+              },
+              {
+                "label": "Status",
+                "value": "2 indexers · 1 failing"
+              },
+              {
+                "label": "In pal",
+                "value": "Indexers, Search indexers"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Prowlarr"
+            },
+            {
+              "id": "palette:prowlarr",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:prowlarr-search",
+              "title": "Search indexers"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:hydra",
+          "name": "NZBHydra2",
+          "subtitle": "v8.8.1 · usenet meta search",
+          "icon": {
+            "tile": {
+              "glyph": "󰜏",
+              "bg": "slate"
+            }
+          },
+          "keywords": [
+            "usenet",
+            "nzb",
+            "nzbhydra",
+            "hydra"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/hydra",
+                  "href": "http://127.0.0.1:61730/hydra"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "8.8.1"
+              },
+              {
+                "label": "Status",
+                "value": "usenet meta search"
+              },
+              {
+                "label": "In pal",
+                "value": "Search NZBHydra2"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open NZBHydra2"
+            },
+            {
+              "id": "palette:hydra-search",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:bazarr",
+          "name": "Bazarr",
+          "subtitle": "v1.5.6 · 51 want subtitles · 1 provider throttled",
+          "icon": {
+            "tile": {
+              "glyph": "󰨖",
+              "bg": "pink"
+            }
+          },
+          "keywords": [
+            "subtitles",
+            "subs",
+            "bazarr"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "attention",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/bazarr",
+                  "href": "http://127.0.0.1:61730/bazarr"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "1.5.6"
+              },
+              {
+                "label": "Status",
+                "value": "51 want subtitles · 1 provider throttled"
+              },
+              {
+                "label": "In pal",
+                "value": "Subtitles"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Bazarr"
+            },
+            {
+              "id": "palette:bazarr",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:sab",
+          "name": "SABnzbd",
+          "subtitle": "v5.0.3 · 4.4 MB/s, 2 queued · 259.6 G free",
+          "icon": {
+            "tile": {
+              "glyph": "󰇚",
+              "bg": "amber"
+            }
+          },
+          "keywords": [
+            "usenet",
+            "downloads",
+            "sabnzbd",
+            "sab"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/sab",
+                  "href": "http://127.0.0.1:61730/sab"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "5.0.3"
+              },
+              {
+                "label": "Status",
+                "value": "4.4 MB/s, 2 queued · 259.6 G free"
+              },
+              {
+                "label": "In pal",
+                "value": "Downloads, Download history"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open SABnzbd"
+            },
+            {
+              "id": "palette:downloads",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:downloads-history",
+              "title": "Download history"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:qbit",
+          "name": "qBittorrent",
+          "subtitle": "v5.2.1 · 2 downloading · 1.2 MB/s",
+          "icon": {
+            "tile": {
+              "glyph": "󰍇",
+              "bg": "blue"
+            }
+          },
+          "keywords": [
+            "torrents",
+            "downloads",
+            "qbittorrent",
+            "qbit"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/qbit",
+                  "href": "http://127.0.0.1:61730/qbit"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "5.2.1"
+              },
+              {
+                "label": "Status",
+                "value": "2 downloading · 1.2 MB/s"
+              },
+              {
+                "label": "In pal",
+                "value": "Downloads, Download history"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open qBittorrent"
+            },
+            {
+              "id": "palette:downloads",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:downloads-history",
+              "title": "Download history"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:navidrome",
+          "name": "Navidrome",
+          "subtitle": "v0.61.2 · 1 listening",
+          "icon": {
+            "tile": {
+              "glyph": "󰝚",
+              "bg": "blue"
+            }
+          },
+          "keywords": [
+            "music",
+            "subsonic",
+            "navidrome"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/navidrome",
+                  "href": "http://127.0.0.1:61730/navidrome"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "0.61.2"
+              },
+              {
+                "label": "Status",
+                "value": "1 listening"
+              },
+              {
+                "label": "In pal",
+                "value": "Now playing and recent, Search Navidrome"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Navidrome"
+            },
+            {
+              "id": "palette:navidrome",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:navidrome-search",
+              "title": "Search Navidrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:abs",
+          "name": "Audiobookshelf",
+          "subtitle": "v2.35.1 · 1 in progress",
+          "icon": {
+            "tile": {
+              "glyph": "󰋋",
+              "bg": "orange"
+            }
+          },
+          "keywords": [
+            "audiobooks",
+            "podcasts",
+            "abs"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/abs",
+                  "href": "http://127.0.0.1:61730/abs"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "2.35.1"
+              },
+              {
+                "label": "Status",
+                "value": "1 in progress"
+              },
+              {
+                "label": "In pal",
+                "value": "Continue listening, Search Audiobookshelf"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Audiobookshelf"
+            },
+            {
+              "id": "palette:abs",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:abs-search",
+              "title": "Search Audiobookshelf"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:kavita",
+          "name": "Kavita",
+          "subtitle": "v0.9.0.2 · 1 on deck",
+          "icon": {
+            "tile": {
+              "glyph": "󰗚",
+              "bg": "teal"
+            }
+          },
+          "keywords": [
+            "ebooks",
+            "read",
+            "comics",
+            "kavita"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/kavita",
+                  "href": "http://127.0.0.1:61730/kavita"
+                }
+              },
+              {
+                "label": "Version",
+                "value": "0.9.0.2"
+              },
+              {
+                "label": "Status",
+                "value": "1 on deck"
+              },
+              {
+                "label": "In pal",
+                "value": "Continue reading, Search Kavita"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Kavita"
+            },
+            {
+              "id": "palette:kavita",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "palette:kavita-search",
+              "title": "Search Kavita"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:shelfmark",
+          "name": "Shelfmark",
+          "subtitle": "1 downloading · 1 failed",
+          "icon": {
+            "tile": {
+              "glyph": "󰺄",
+              "bg": "teal"
+            }
+          },
+          "keywords": [
+            "books",
+            "getbooks",
+            "request",
+            "shelfmark"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "attention",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/shelfmark",
+                  "href": "http://127.0.0.1:61730/shelfmark"
+                }
+              },
+              {
+                "label": "Status",
+                "value": "1 downloading · 1 failed"
+              },
+              {
+                "label": "In pal",
+                "value": "Request a book"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Shelfmark"
+            },
+            {
+              "id": "palette:shelfmark",
+              "title": "Open in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:filebrowser",
+          "name": "Filebrowser",
+          "subtitle": "up",
+          "icon": {
+            "tile": {
+              "glyph": "󰉋",
+              "bg": "slate"
+            }
+          },
+          "keywords": [
+            "files",
+            "filebrowser"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/filebrowser",
+                  "href": "http://127.0.0.1:61730/filebrowser"
+                }
+              },
+              {
+                "label": "Status",
+                "value": "up"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Filebrowser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "service:homepage",
+          "name": "Homepage",
+          "subtitle": "up",
+          "icon": {
+            "tile": {
+              "glyph": "󰕮",
+              "bg": "slate"
+            }
+          },
+          "keywords": [
+            "dashboard",
+            "homepage"
+          ],
+          "section": "Services",
+          "accessories": [
+            {
+              "tag": "up",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "URL",
+                "link": {
+                  "text": "127.0.0.1:61730/homepage",
+                  "href": "http://127.0.0.1:61730/homepage"
+                }
+              },
+              {
+                "label": "Status",
+                "value": "up"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Homepage"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "jellyfin": {
+      "title": "Jellyfin",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "A title",
+      "live": true,
+      "items": [
+        {
+          "id": "item:aaa1",
+          "name": "Snatch",
+          "subtitle": "Movie · 2000 · 1 h 43 min",
+          "icon": {
+            "image": "http://127.0.0.1:61730/jellyfin/Items/aaa1/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t1"
+          },
+          "keywords": [
+            "Movie",
+            "Crime",
+            "Comedy"
+          ],
+          "section": "Continue Watching",
+          "accessories": [
+            {
+              "text": "7%"
+            },
+            {
+              "text": "★ 7.8"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Jellyfin"
+            },
+            {
+              "id": "play",
+              "title": "Play on a device",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "played",
+              "title": "Mark played / unplayed",
+              "shortcut": "cmd+shift+p"
+            },
+            {
+              "id": "favourite",
+              "title": "Favourite / unfavourite",
+              "shortcut": "cmd+f"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "item:bbb2",
+          "name": "Barry S1E4 · Chapter Four: Commit ... to YOU",
+          "subtitle": "Episode · 30 min",
+          "icon": {
+            "image": "http://127.0.0.1:61730/jellyfin/Items/ser1/Images/Primary?fillHeight=60&fillWidth=40&quality=85"
+          },
+          "keywords": [
+            "Barry",
+            "Episode"
+          ],
+          "section": "Continue Watching",
+          "accessories": [
+            {
+              "text": "50%"
+            },
+            {
+              "tag": "favourite",
+              "color": "pink"
+            },
+            {
+              "text": "★ 7.3"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Jellyfin"
+            },
+            {
+              "id": "play",
+              "title": "Play on a device",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "played",
+              "title": "Mark played / unplayed",
+              "shortcut": "cmd+shift+p"
+            },
+            {
+              "id": "favourite",
+              "title": "Favourite / unfavourite",
+              "shortcut": "cmd+f"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "item:ccc3",
+          "name": "Ted Lasso",
+          "subtitle": "Series · 2020",
+          "icon": {
+            "image": "http://127.0.0.1:61730/jellyfin/Items/ccc3/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t3"
+          },
+          "keywords": [
+            "Series"
+          ],
+          "section": "Latest",
+          "accessories": [
+            {
+              "text": "4 unplayed"
+            },
+            {
+              "text": "★ 8.3"
+            },
+            {
+              "date": "2026-09-10T10:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Jellyfin"
+            },
+            {
+              "id": "play",
+              "title": "Play on a device",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "played",
+              "title": "Mark played / unplayed",
+              "shortcut": "cmd+shift+p"
+            },
+            {
+              "id": "favourite",
+              "title": "Favourite / unfavourite",
+              "shortcut": "cmd+f"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "jellyfin-search": {
+      "title": "Search Jellyfin",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "A movie, series, episode, album or song",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search Jellyfin",
+            "subtitle": "Movies, series, episodes, albums and songs by title",
+            "icon": "󰿎",
+            "actions": []
+          }
+        ],
+        "totoro": [
+          {
+            "id": "item:ddd4",
+            "name": "My Neighbor Totoro",
+            "subtitle": "Movie · 1988 · 1 h 26 min",
+            "icon": {
+              "image": "http://127.0.0.1:61730/jellyfin/Items/ddd4/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t4"
+            },
+            "keywords": [
+              "Movie",
+              "Animation"
+            ],
+            "section": "Movies",
+            "accessories": [
+              {
+                "tag": "played",
+                "color": "green"
+              },
+              {
+                "text": "★ 8.1"
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Jellyfin"
+              },
+              {
+                "id": "play",
+                "title": "Play on a device",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "played",
+                "title": "Mark played / unplayed",
+                "shortcut": "cmd+shift+p"
+              },
+              {
+                "id": "favourite",
+                "title": "Favourite / unfavourite",
+                "shortcut": "cmd+f"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      },
+      "details": {
+        "item:ddd4": {
+          "markdown": "![poster](http://127.0.0.1:61730/jellyfin/Items/ddd4/Images/Primary?fillHeight=240&fillWidth=160&quality=85&tag=t4)\n\nTwo sisters and a forest spirit.",
+          "metadata": [
+            {
+              "label": "Type",
+              "value": "Movie"
+            },
+            {
+              "label": "Year",
+              "value": "1988"
+            },
+            {
+              "label": "Runtime",
+              "value": "1 h 26 min"
+            },
+            {
+              "label": "Rating",
+              "value": "★ 8.1"
+            },
+            {
+              "label": "Genres",
+              "value": "Animation"
+            },
+            {
+              "label": "Watched",
+              "value": "Yes, 12 h ago"
+            },
+            {
+              "label": "Added",
+              "value": "4 mo ago"
+            },
+            {
+              "label": "Jellyfin",
+              "link": {
+                "text": "Open",
+                "href": "http://127.0.0.1:61730/jellyfin/web/#/details?id=ddd4"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "seerr-requests": {
+      "title": "Requests",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "A title or who asked",
+      "live": true,
+      "items": [
+        {
+          "id": "req:11",
+          "name": "Dune (2021)",
+          "subtitle": "Movie requested by guest",
+          "icon": {
+            "image": "https://image.tmdb.org/t/p/w92/dune.jpg"
+          },
+          "keywords": [
+            "guest",
+            "movie",
+            "pending"
+          ],
+          "section": "Pending",
+          "accessories": [
+            {
+              "tag": "pending",
+              "color": "amber"
+            },
+            {
+              "date": "2026-09-15T09:00:00Z"
+            }
+          ],
+          "detail": {
+            "markdown": "![poster](https://image.tmdb.org/t/p/w342/dune.jpg)\n\nPaul Atreides.",
+            "metadata": [
+              {
+                "label": "Requested by",
+                "value": "guest"
+              },
+              {
+                "label": "When",
+                "value": "23 h ago"
+              },
+              {
+                "label": "Status",
+                "tags": [
+                  {
+                    "text": "pending",
+                    "color": "amber"
+                  },
+                  {
+                    "text": "requested",
+                    "color": "amber"
+                  }
+                ]
+              },
+              {
+                "label": "Jellyseerr",
+                "link": {
+                  "text": "Open",
+                  "href": "http://127.0.0.1:61730/seerr/movie/438631"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Jellyseerr"
+            },
+            {
+              "id": "approve",
+              "title": "Approve",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "decline",
+              "title": "Decline",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Decline this request?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "req:12",
+          "name": "Dune: Prophecy (2024)",
+          "subtitle": "Series requested by cagdas · 1 season",
+          "icon": {
+            "image": "https://image.tmdb.org/t/p/w92/prophecy.jpg"
+          },
+          "keywords": [
+            "cagdas",
+            "tv",
+            "approved"
+          ],
+          "section": "Earlier",
+          "accessories": [
+            {
+              "tag": "4K",
+              "color": "violet"
+            },
+            {
+              "tag": "approved",
+              "color": "blue"
+            },
+            {
+              "tag": "processing",
+              "color": "blue"
+            },
+            {
+              "date": "2026-09-10T09:00:00Z"
+            }
+          ],
+          "detail": {
+            "markdown": "![poster](https://image.tmdb.org/t/p/w342/prophecy.jpg)\n\nTen thousand years before.",
+            "metadata": [
+              {
+                "label": "Requested by",
+                "value": "cagdas"
+              },
+              {
+                "label": "When",
+                "value": "6 d ago"
+              },
+              {
+                "label": "Status",
+                "tags": [
+                  {
+                    "text": "approved",
+                    "color": "blue"
+                  },
+                  {
+                    "text": "processing",
+                    "color": "blue"
+                  }
+                ]
+              },
+              {
+                "label": "Jellyseerr",
+                "link": {
+                  "text": "Open",
+                  "href": "http://127.0.0.1:61730/seerr/tv/90228"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Jellyseerr"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "seerr-request": {
+      "title": "Request a title",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "A movie or a series",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Request a title",
+            "subtitle": "Type a movie or a series; Enter asks Jellyseerr for it",
+            "icon": "󰋻",
+            "actions": []
+          }
+        ],
+        "dune": [
+          {
+            "id": "result:movie:438631",
+            "name": "Dune (2021)",
+            "subtitle": "Paul Atreides.",
+            "icon": {
+              "image": "https://image.tmdb.org/t/p/w92/dune.jpg"
+            },
+            "keywords": [
+              "movie"
+            ],
+            "section": "Movies",
+            "accessories": [
+              {
+                "tag": "requested",
+                "color": "amber"
+              },
+              {
+                "text": "★ 7.8"
+              }
+            ],
+            "detail": {
+              "markdown": "![poster](https://image.tmdb.org/t/p/w342/dune.jpg)\n\nPaul Atreides.",
+              "metadata": [
+                {
+                  "label": "Type",
+                  "value": "Movie"
+                },
+                {
+                  "label": "Year",
+                  "value": "2021"
+                },
+                {
+                  "label": "Status",
+                  "tags": [
+                    {
+                      "text": "requested",
+                      "color": "amber"
+                    }
+                  ]
+                },
+                {
+                  "label": "TMDB",
+                  "link": {
+                    "text": "438631",
+                    "href": "https://www.themoviedb.org/movie/438631"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Jellyseerr"
+              },
+              {
+                "id": "request",
+                "title": "Request again",
+                "confirm": "Request Dune again?"
+              },
+              {
+                "id": "request4k",
+                "title": "Request in 4K",
+                "shortcut": "cmd+enter",
+                "confirm": "Request Dune in 4K?"
+              },
+              {
+                "id": "tmdb",
+                "title": "Copy TMDB link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "result:movie:693134",
+            "name": "Dune: Part Two (2024)",
+            "subtitle": "The mythic journey.",
+            "icon": {
+              "image": "https://image.tmdb.org/t/p/w92/dune2.jpg"
+            },
+            "keywords": [
+              "movie"
+            ],
+            "section": "Movies",
+            "accessories": [
+              {
+                "text": "★ 8.1"
+              }
+            ],
+            "detail": {
+              "markdown": "![poster](https://image.tmdb.org/t/p/w342/dune2.jpg)\n\nThe mythic journey.",
+              "metadata": [
+                {
+                  "label": "Type",
+                  "value": "Movie"
+                },
+                {
+                  "label": "Year",
+                  "value": "2024"
+                },
+                {
+                  "label": "TMDB",
+                  "link": {
+                    "text": "693134",
+                    "href": "https://www.themoviedb.org/movie/693134"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "request",
+                "title": "Request",
+                "confirm": "Request Dune: Part Two (2024) on Jellyseerr?"
+              },
+              {
+                "id": "request4k",
+                "title": "Request in 4K",
+                "shortcut": "cmd+enter",
+                "confirm": "Request Dune: Part Two in 4K?"
+              },
+              {
+                "id": "open",
+                "title": "Open in Jellyseerr",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "tmdb",
+                "title": "Copy TMDB link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sonarr": {
+      "title": "Sonarr",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "A title in the queue, or a command",
+      "live": true,
+      "items": [
+        {
+          "id": "cmd:sonarr:add",
+          "name": "Add a series",
+          "subtitle": "Look it up on Sonarr and add it with the default profile",
+          "icon": "󰐕",
+          "keywords": [
+            "new"
+          ],
+          "section": "Sonarr",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Add"
+            }
+          ]
+        },
+        {
+          "id": "cmd:sonarr:wanted",
+          "name": "Wanted episodes",
+          "subtitle": "Monitored, without a file",
+          "icon": "󰈈",
+          "keywords": [
+            "missing"
+          ],
+          "section": "Sonarr",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open"
+            }
+          ]
+        },
+        {
+          "id": "cmd:sonarr:history",
+          "name": "Sonarr history",
+          "subtitle": "Grabbed, imported, failed",
+          "icon": "󰋚",
+          "section": "Sonarr",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open"
+            }
+          ]
+        },
+        {
+          "id": "cmd:sonarr:sync",
+          "name": "Sync watchlist now",
+          "subtitle": "Run every import list (Trakt) now, without waiting for its interval",
+          "icon": "󰓦",
+          "keywords": [
+            "trakt",
+            "import"
+          ],
+          "section": "Sonarr",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Sync now"
+            }
+          ]
+        },
+        {
+          "id": "cmd:sonarr:open",
+          "name": "Open Sonarr",
+          "subtitle": "http://127.0.0.1:61730/sonarr",
+          "icon": "󰖟",
+          "section": "Sonarr",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open"
+            }
+          ]
+        },
+        {
+          "id": "health:sonarr:UpdateCheck",
+          "name": "New update is available",
+          "subtitle": "UpdateCheck",
+          "icon": {
+            "glyph": "󰗖",
+            "color": "amber"
+          },
+          "section": "Health",
+          "accessories": [
+            {
+              "tag": "warning",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "wiki",
+              "title": "What this means (wiki)"
+            }
+          ],
+          "url": "https://wiki/update"
+        },
+        {
+          "id": "queue:sonarr:902",
+          "name": "Ted Lasso S4E1 · Home",
+          "subtitle": "Ted.Lasso.S04E01.PROPER.1080p.WEB.h264-ETHEL · Episode file already imported at a higher quality",
+          "icon": {
+            "image": "https://img/lasso.jpg"
+          },
+          "keywords": [
+            "usenet",
+            "SABnzbd",
+            "needs a hand"
+          ],
+          "section": "Queue",
+          "accessories": [
+            {
+              "tag": "needs a hand",
+              "color": "amber"
+            },
+            {
+              "text": "usenet"
+            },
+            {
+              "text": "2.98 GB"
+            }
+          ],
+          "detail": {
+            "markdown": "![poster](https://img/lasso.jpg)\n\n**Ted Lasso S4E1 · Home**\n\nTed.Lasso.S04E01.PROPER.1080p.WEB.h264-ETHEL\n\n> Episode file already imported at a higher quality\n\n- Episode file already imported at a higher quality",
+            "metadata": [
+              {
+                "label": "State",
+                "tags": [
+                  {
+                    "text": "needs a hand",
+                    "color": "amber"
+                  }
+                ]
+              },
+              {
+                "label": "Progress",
+                "value": "100% of 2.98 GB"
+              },
+              {
+                "label": "Client",
+                "value": "SABnzbd (usenet)"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Sonarr"
+            },
+            {
+              "id": "remove",
+              "title": "Remove from queue",
+              "shortcut": "cmd+backspace",
+              "style": "destructive",
+              "confirm": "Remove Ted Lasso S4E1 · Home from the queue and the download client? It is not blocklisted."
+            },
+            {
+              "id": "copy",
+              "title": "Copy release title",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "cal:sonarr:1469",
+          "name": "Ted Lasso S4E8 · Follow the Anger",
+          "subtitle": "Airs Wed 23 Sep on Apple TV",
+          "icon": {
+            "image": "https://img/lasso.jpg"
+          },
+          "section": "Next 7 days",
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Sonarr"
+            }
+          ],
+          "url": "http://127.0.0.1:61730/sonarr/series/ted-lasso"
+        }
+      ]
+    },
+    "radarr-add": {
+      "title": "Add a movie",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "A movie",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:lookup:radarr",
+            "name": "Add a movie",
+            "subtitle": "Type a title; Enter adds it to Radarr with the default quality profile and root folder and searches",
+            "icon": "󰐕",
+            "actions": []
+          }
+        ],
+        "oppenheimer": [
+          {
+            "id": "hit:radarr:872585",
+            "name": "Oppenheimer (2023)",
+            "subtitle": "The bomb.",
+            "icon": {
+              "image": "https://img/opp.jpg"
+            },
+            "keywords": [
+              "movie"
+            ],
+            "accessories": [
+              {
+                "tag": "in library",
+                "color": "green"
+              }
+            ],
+            "detail": {
+              "markdown": "![poster](https://img/opp.jpg)\n\nThe bomb."
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Radarr"
+              },
+              {
+                "id": "ext",
+                "title": "Open on TMDB",
+                "shortcut": "cmd+o"
+              }
+            ],
+            "url": "https://www.themoviedb.org/movie/872585"
+          },
+          {
+            "id": "hit:radarr:1143770",
+            "name": "Oppenheimer After Trinity (2023)",
+            "icon": "󰟞",
+            "keywords": [
+              "movie"
+            ],
+            "accessories": [],
+            "detail": {
+              "markdown": "_No overview._"
+            },
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add and search",
+                "confirm": "Add Oppenheimer After Trinity (2023) to Radarr with the default profile and start a search?"
+              },
+              {
+                "id": "add-quiet",
+                "title": "Add without searching",
+                "shortcut": "cmd+enter",
+                "confirm": "Add Oppenheimer After Trinity (2023) to Radarr without searching?"
+              },
+              {
+                "id": "ext",
+                "title": "Open on TMDB",
+                "shortcut": "cmd+o"
+              }
+            ],
+            "url": "https://www.themoviedb.org/movie/1143770"
+          }
+        ]
+      }
+    },
+    "downloads": {
+      "title": "Downloads",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "A download, or a command",
+      "live": true,
+      "items": [
+        {
+          "id": "cmd:toggle",
+          "name": "Pause all",
+          "subtitle": "SABnzbd and qBittorrent stop fetching until resumed",
+          "icon": "󰏤",
+          "keywords": [
+            "pause",
+            "resume"
+          ],
+          "section": "Downloads",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Pause all"
+            }
+          ]
+        },
+        {
+          "id": "cmd:limit",
+          "name": "Set speed limit",
+          "subtitle": "No limit set",
+          "icon": "󰓅",
+          "keywords": [
+            "throttle",
+            "bandwidth"
+          ],
+          "section": "Downloads",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Set limit"
+            }
+          ]
+        },
+        {
+          "id": "dl:sab:SABnzbd_nzo_1",
+          "name": "Oppenheimer.2023.1080p.WEB-DL",
+          "subtitle": "movies · 4.4 MB/s · 13 min left · 7.45 GB",
+          "icon": {
+            "glyph": "󰇚",
+            "color": "blue"
+          },
+          "keywords": [
+            "SABnzbd",
+            "movies",
+            "downloading"
+          ],
+          "section": "SABnzbd",
+          "accessories": [
+            {
+              "tag": "downloading",
+              "color": "blue"
+            },
+            {
+              "text": "75%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open SABnzbd"
+            },
+            {
+              "id": "pause",
+              "title": "Pause",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+backspace",
+              "style": "destructive",
+              "confirm": "Delete Oppenheimer.2023.1080p.WEB-DL and its files from SABnzbd?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "dl:qbit:f7e9",
+          "name": "ted.lasso.s04e04.1080p.web.h264-cakes",
+          "subtitle": "tv-sonarr · 1.2 MB/s · 15 min left · 3.31 GB",
+          "icon": {
+            "glyph": "󰍇",
+            "color": "blue"
+          },
+          "keywords": [
+            "qBittorrent",
+            "tv-sonarr",
+            "downloading"
+          ],
+          "section": "qBittorrent",
+          "accessories": [
+            {
+              "tag": "downloading",
+              "color": "blue"
+            },
+            {
+              "text": "42%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open qBittorrent"
+            },
+            {
+              "id": "pause",
+              "title": "Pause",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+backspace",
+              "style": "destructive",
+              "confirm": "Delete ted.lasso.s04e04.1080p.web.h264-cakes and its files from qBittorrent?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "dl:sab:SABnzbd_nzo_2",
+          "name": "Ted.Lasso.S04E08.1080p.WEB",
+          "subtitle": "tv · 3.03 GB",
+          "icon": {
+            "glyph": "󰇚",
+            "color": "slate"
+          },
+          "keywords": [
+            "SABnzbd",
+            "tv",
+            "queued"
+          ],
+          "section": "SABnzbd",
+          "accessories": [
+            {
+              "tag": "queued",
+              "color": "grey"
+            },
+            {
+              "text": "0%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open SABnzbd"
+            },
+            {
+              "id": "pause",
+              "title": "Pause",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+backspace",
+              "style": "destructive",
+              "confirm": "Delete Ted.Lasso.S04E08.1080p.WEB and its files from SABnzbd?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "dl:qbit:a1b2",
+          "name": "Project Hail Mary.epub",
+          "subtitle": "books · 9.8 MB",
+          "icon": {
+            "glyph": "󰍇",
+            "color": "slate"
+          },
+          "keywords": [
+            "qBittorrent",
+            "books",
+            "stalled"
+          ],
+          "section": "qBittorrent",
+          "accessories": [
+            {
+              "tag": "stalled",
+              "color": "amber"
+            },
+            {
+              "text": "0%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open qBittorrent"
+            },
+            {
+              "id": "pause",
+              "title": "Pause",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+backspace",
+              "style": "destructive",
+              "confirm": "Delete Project Hail Mary.epub and its files from qBittorrent?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "prowlarr-search": {
+      "title": "Search indexers",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "A release title",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search the indexers",
+            "subtitle": "A release title, three characters at least; Prowlarr asks every enabled indexer (a few seconds)",
+            "icon": "󰐷",
+            "actions": []
+          }
+        ],
+        "ubuntu": [
+          {
+            "id": "rel:https://nzbgeek.info/geekseek.php?guid=1",
+            "name": "ubuntu-24.04-desktop-amd64",
+            "subtitle": "5.40 GB · 7 mo · PC",
+            "icon": {
+              "glyph": "󰇚",
+              "color": "amber"
+            },
+            "keywords": [
+              "NZBgeek",
+              "usenet",
+              "PC"
+            ],
+            "section": "NZBgeek",
+            "accessories": [
+              {
+                "tag": "NZBgeek",
+                "color": "amber"
+              },
+              {
+                "text": "93 grabs"
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Indexer",
+                  "value": "NZBgeek (usenet)"
+                },
+                {
+                  "label": "Size",
+                  "value": "5.40 GB"
+                },
+                {
+                  "label": "Age",
+                  "value": "7 mo ago"
+                },
+                {
+                  "label": "Grabs",
+                  "value": "93"
+                },
+                {
+                  "label": "Categories",
+                  "value": "PC"
+                },
+                {
+                  "label": "Page",
+                  "link": {
+                    "text": "Open",
+                    "href": "https://nzbgeek.info/geekseek.php?guid=1"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "grab",
+                "title": "Grab through Prowlarr",
+                "confirm": "Send ubuntu-24.04-desktop-amd64 to the download client through Prowlarr?"
+              },
+              {
+                "id": "page",
+                "title": "Open release page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy",
+                "title": "Copy download link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "rel:magnet:?xt=urn:btih:ABC",
+            "name": "Ubuntu 22.04 LTS",
+            "subtitle": "3.17 GB · 4.1 y · PC",
+            "icon": {
+              "glyph": "󰍇",
+              "color": "blue"
+            },
+            "keywords": [
+              "EZTV",
+              "torrent",
+              "PC"
+            ],
+            "section": "EZTV",
+            "accessories": [
+              {
+                "tag": "EZTV",
+                "color": "blue"
+              },
+              {
+                "text": "37 seeds"
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Indexer",
+                  "value": "EZTV (torrent)"
+                },
+                {
+                  "label": "Size",
+                  "value": "3.17 GB"
+                },
+                {
+                  "label": "Age",
+                  "value": "4.1 y"
+                },
+                {
+                  "label": "Peers",
+                  "value": "37 seeders, 2 leechers"
+                },
+                {
+                  "label": "Categories",
+                  "value": "PC"
+                },
+                {
+                  "label": "Page",
+                  "link": {
+                    "text": "Open",
+                    "href": "https://eztv/ubuntu"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "grab",
+                "title": "Grab through Prowlarr",
+                "confirm": "Send Ubuntu 22.04 LTS to the download client through Prowlarr?"
+              },
+              {
+                "id": "page",
+                "title": "Open release page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy",
+                "title": "Copy magnet link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "navidrome": {
+      "title": "Navidrome",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "An album",
+      "live": true,
+      "items": [
+        {
+          "id": "song:so1",
+          "name": "Chonks",
+          "subtitle": "cagdas · Symfonium · 1 min ago · Snarky Puppy",
+          "icon": {
+            "image": "http://127.0.0.1:61730/navidrome/rest/getCoverArt.view?id=al-al1&size=60&u=cagdas&t=9ff593cb4e6bd528727e5c17e0694698&s=gm4zb3kw&v=1.16.1&c=pal"
+          },
+          "keywords": [
+            "Snarky Puppy",
+            "Immigrance"
+          ],
+          "section": "Now playing",
+          "accessories": [
+            {
+              "tag": "starred",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open the album in Navidrome"
+            },
+            {
+              "id": "star",
+              "title": "Unstar",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "album:al1",
+          "name": "Immigrance",
+          "subtitle": "Snarky Puppy · 2019 · Fusion · 8 tracks",
+          "icon": {
+            "image": "http://127.0.0.1:61730/navidrome/rest/getCoverArt.view?id=al-al1&size=60&u=cagdas&t=9803e083443939b4ce7c4cf1d8f1bd9c&s=f2cma6qx&v=1.16.1&c=pal"
+          },
+          "keywords": [
+            "Snarky Puppy",
+            "Fusion"
+          ],
+          "section": "Recently added",
+          "accessories": [
+            {
+              "date": "2026-05-29T23:55:34Z"
+            }
+          ],
+          "detail": {
+            "markdown": "![cover](http://127.0.0.1:61730/navidrome/rest/getCoverArt.view?id=al-al1&size=300&u=cagdas&t=a459e0696fb5e859cec382a3398af072&s=xuppaemt&v=1.16.1&c=pal)",
+            "metadata": [
+              {
+                "label": "Artist",
+                "value": "Snarky Puppy"
+              },
+              {
+                "label": "Year",
+                "value": "2019"
+              },
+              {
+                "label": "Genre",
+                "value": "Fusion"
+              },
+              {
+                "label": "Tracks",
+                "value": "8 · 54 min"
+              },
+              {
+                "label": "Added",
+                "value": "4 mo ago"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Navidrome"
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "bazarr": {
+      "title": "Subtitles",
+      "icon": {
+        "tile": {
+          "glyph": "󰿎",
+          "bg": "red"
+        }
+      },
+      "placeholder": "A title wanting subtitles",
+      "items": [
+        {
+          "id": "cmd:search",
+          "name": "2 movies and 49 episodes want subtitles",
+          "subtitle": "Enter runs Bazarr's wanted search for all of them",
+          "icon": {
+            "glyph": "󰨖",
+            "color": "amber"
+          },
+          "keywords": [
+            "wanted",
+            "missing"
+          ],
+          "section": "Bazarr",
+          "actions": [
+            {
+              "id": "search-all",
+              "title": "Search missing subtitles",
+              "confirm": "Ask Bazarr to search subtitles for 51 items now?"
+            },
+            {
+              "id": "open",
+              "title": "Open Bazarr",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "provider:embeddedsubtitles",
+          "name": "embeddedsubtitles",
+          "subtitle": "Working",
+          "icon": {
+            "glyph": "󰨖",
+            "color": "green"
+          },
+          "section": "Providers",
+          "accessories": [
+            {
+              "tag": "ok",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open providers in Bazarr"
+            }
+          ]
+        },
+        {
+          "id": "provider:opensubtitlescom",
+          "name": "opensubtitlescom",
+          "subtitle": "Working",
+          "icon": {
+            "glyph": "󰨖",
+            "color": "green"
+          },
+          "section": "Providers",
+          "accessories": [
+            {
+              "tag": "ok",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open providers in Bazarr"
+            }
+          ]
+        },
+        {
+          "id": "provider:subf2m",
+          "name": "subf2m",
+          "subtitle": "Throttled, retry in 11 hours",
+          "icon": {
+            "glyph": "󰨖",
+            "color": "red"
+          },
+          "section": "Providers",
+          "accessories": [
+            {
+              "tag": "throttled",
+              "color": "red"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open providers in Bazarr"
+            }
+          ]
+        },
+        {
+          "id": "movie:48",
+          "name": "Sovereign",
+          "subtitle": "Wants Turkish · Sovereign.2025.1080p.WEB",
+          "icon": "󰟞",
+          "keywords": [
+            "movie",
+            "Turkish"
+          ],
+          "section": "Movies wanting subtitles",
+          "accessories": [
+            {
+              "tag": "tr",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Bazarr"
+            },
+            {
+              "id": "search",
+              "title": "Search subtitles now",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "hint:more-movies",
+          "name": "1 more movies on Bazarr's Wanted page",
+          "icon": "󰋽",
+          "section": "Movies wanting subtitles",
+          "actions": []
+        },
+        {
+          "id": "episode:1970",
+          "name": "The Venture Bros. 1x13 · Return to Spider-Skull Island",
+          "subtitle": "Wants Turkish",
+          "icon": "󰔂",
+          "keywords": [
+            "episode",
+            "The Venture Bros.",
+            "Turkish"
+          ],
+          "section": "Episodes wanting subtitles",
+          "accessories": [
+            {
+              "tag": "tr",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Bazarr"
+            },
+            {
+              "id": "search",
+              "title": "Search subtitles now",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "hint:more-episodes",
+          "name": "48 more episodes on Bazarr's Wanted page",
+          "icon": "󰋽",
+          "section": "Episodes wanting subtitles",
+          "actions": []
+        }
+      ]
+    }
+  },
+  "effects": {
+    "downloads/cmd:limit": {
+      "form": {
+        "id": "cmd:limit",
+        "title": "Download speed limit",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "sab",
+            "label": "SABnzbd",
+            "placeholder": "50 (percent), 2M, 500K, 0 for none",
+            "description": "A bare number is a percentage of the line speed; K or M an absolute rate; 0 lifts it."
+          },
+          {
+            "kind": "text",
+            "id": "qbit",
+            "label": "qBittorrent",
+            "placeholder": "2M, 500K, 0 for none",
+            "description": "An absolute rate; 0 lifts it."
+          }
+        ],
+        "submit": {
+          "id": "limit:save",
+          "title": "Set limit"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-theater": {
+      "palette": "theater",
+      "keys": [
+        "down*3",
+        "wait:300"
+      ]
+    },
+    "2-jellyfin": {
+      "palette": "jellyfin",
+      "keys": [
+        "down",
+        "cmd+i",
+        "wait:300"
+      ]
+    },
+    "3-requests": {
+      "palette": "seerr-requests",
+      "keys": [
+        "wait:300"
+      ]
+    },
+    "4-sonarr": {
+      "palette": "sonarr",
+      "keys": [
+        "down*6",
+        "wait:300"
+      ]
+    },
+    "5-downloads": {
+      "palette": "downloads",
+      "keys": [
+        "down*2",
+        "wait:300"
+      ]
+    },
+    "6-indexers": {
+      "palette": "prowlarr-search",
+      "keys": [
+        "type:ubuntu",
+        "wait:700"
+      ]
+    }
+  }
+}

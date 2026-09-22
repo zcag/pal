@@ -481,7 +481,7 @@
     },
     "requests": {
       "title": "Requests",
-      "description": "Pending Jellyseerr requests as the badge, hidden at zero; the popover lists them with the poster, a approves and d declines the focused one.",
+      "description": "Pending Jellyseerr requests as the badge, hidden at zero; the popover lists them with the poster; a approves and d declines the focused one.",
       "refresh": { "every": 300, "on": ["show", "wake", "network"] },
       "mocks": {
         "pending": { "title": "Two pending", "item": { "icon": "󰋻", "badge": 2, "tooltip": "2 pending requests" } },
