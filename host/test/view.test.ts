@@ -77,6 +77,12 @@ describe("checkView", () => {
     expect(checkView(one({ type: "stack", surface: "elevated", children: [] }))).toBeTruthy();
     expect(() => checkView(one({ type: "stack", surface: "glass", children: [] }))).toThrow('unknown surface "glass"');
     expect(() => checkView(one({ type: "stack", radius: 10, children: [] }))).toThrow("radius must be a boolean");
+    expect(checkView(one({ type: "stack", flex: 2.5, height: 300, children: [] }))).toBeTruthy();
+    expect(checkView(one({ type: "stack", width: 216, children: [] }))).toBeTruthy();
+    expect(() => checkView(one({ type: "stack", flex: 0, children: [] }))).toThrow("flex must be a positive number");
+    expect(() => checkView(one({ type: "stack", flex: "2", children: [] }))).toThrow("flex must be a positive number");
+    expect(() => checkView(one({ type: "stack", width: -4, children: [] }))).toThrow("width and height must be px");
+    expect(() => checkView(one({ type: "stack", height: "300px", children: [] }))).toThrow("width and height must be px");
   });
   test("the controls: a node's action names one of the view's actions and lets a hidden one go without a shortcut; selected is true; a hex surface and bar colour; slider, switch and an avatar's dot are checked", () => {
     const one = (node: unknown, actions = ok.actions): View => ({ ...ok, actions, tree: { type: "stack", children: [node as ViewNode] } });

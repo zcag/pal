@@ -11,7 +11,7 @@
 // could be and is the root's Clipboard section.
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { argsForm, bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type Arg, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { appName, argsForm, bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type Arg, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
 import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
 
@@ -41,14 +41,6 @@ const FILTERS = [
   { id: "links", title: "Links" },
   { id: "colors", title: "Colors" },
 ];
-
-/** Bundle id to something readable: a few known ones, else the last segment. */
-const APP_NAMES: Record<string, string> = {
-  "com.apple.Terminal": "Terminal", "com.apple.Safari": "Safari", "com.apple.TextEdit": "TextEdit", "com.apple.finder": "Finder",
-  "com.apple.Notes": "Notes", "com.apple.mail": "Mail", "com.apple.Preview": "Preview", "com.google.Chrome": "Chrome",
-  "net.kovidgoyal.kitty": "kitty", "com.googlecode.iterm2": "iTerm", "com.microsoft.VSCode": "VS Code", "com.tinyspeck.slackmacgap": "Slack",
-};
-const appName = (id: string) => APP_NAMES[id] ?? id.split(".").pop() ?? id;
 
 const basename = (p: string) => p.replace(/\/+$/, "").split("/").pop() || p;
 /** A text entry that is one url. */
@@ -124,6 +116,8 @@ const actions = (e: ClipboardEntry, primary: Settings["primary_action"], url?: s
   { id: "save-file", title: "Save as file…", shortcut: "cmd+s" },
   ...(e.kind === "text" ? [{ id: "snippet", title: "Save as snippet", shortcut: "cmd+shift+s" }] : []),
   ...(e.kind === "text" && e.text!.length <= QR_MAX ? [{ id: "qr", title: "Show as QR code", shortcut: "cmd+shift+k" }] : []),
+  // The Diff extension: one entry picks its other side there, two marked ones go straight to the diff.
+  ...(e.kind === "text" ? [{ id: "diff", title: "Diff with…", shortcut: "cmd+shift+f" }, { id: "diff-two", title: "Diff these two", shortcut: "cmd+shift+f", multi: true as const }] : []),
   { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?", multi: true },
   { id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." },
   { id: "clear", title: "Clear history", shortcut: "cmd+shift+d", style: "destructive", confirm: "Delete every entry, pinned ones included?" },
@@ -294,6 +288,11 @@ export default {
             const svg = e.kind === "text" ? qrSvg(e.text!, 10, QR_SHOW_PX) : undefined;
             if (!svg) return { keep: true, toast: { title: "Too long for a QR code", message: `Up to ${QR_MAX} characters`, style: "failure" } };
             return { show: { title: e.name ?? "QR code", markdown: `![](${svg})\n\n\`${e.text!.length > 200 ? e.text!.slice(0, 199) + "…" : e.text!}\`` } };
+          }
+          case "diff": return { push: { extension: "diff", palette: "pick", args: { left: entry }, title: `Diff ${title(await clipboard.get(entry))} with…` } };
+          case "diff-two": {
+            if (ids.length !== 2) return { keep: true, toast: { title: "Mark two text entries", message: `${ids.length} marked`, style: "failure" } };
+            return { push: { extension: "diff", palette: "diff", args: { left: { kind: "entry", id: ids[0] }, right: { kind: "entry", id: ids[1] } } } };
           }
           case "delete": for (const i of ids) await clipboard.delete(i); return { keep: true };
           case "delete-unpinned": { const n = await deleteUnpinned(); return { keep: true, toast: { title: `Deleted ${n} unpinned ${n === 1 ? "entry" : "entries"}` } }; }

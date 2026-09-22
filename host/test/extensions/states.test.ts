@@ -1,25 +1,15 @@
-// states: the helpers (a duration, the time-left text), then the palette
+// states: the time-left text, then the palette
 // over the wire against an in-memory table standing in for the core's
 // (`core/states.*`): the rows and their sources, the filters, Enter's
 // toggle, a hold for a while, the reset, New state's declare, the bar
 // item that shows only what is held; and `state.onChange` in an
 // extension of its own reached by the core's `states/changed`.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { duration, left } from "../../../extensions/states/index.ts";
+import { left } from "../../../extensions/states/index.ts";
 import type { BarItem, Item, StateEntry } from "../../../sdk/src/protocol.ts";
 import { API, Host, Root } from "../harness.ts";
 
 describe("helpers", () => {
-  test("duration: units chain, a bare number is minutes, junk is nothing", () => {
-    expect(duration("90s")).toBe(90);
-    expect(duration("25m")).toBe(1500);
-    expect(duration("1h30m")).toBe(5400);
-    expect(duration("1 h")).toBe(3600);
-    expect(duration("25")).toBe(1500);
-    expect(duration("1d")).toBe(86400);
-    expect(duration("soon")).toBeUndefined();
-    expect(duration("")).toBeUndefined();
-  });
   test("left: hours and minutes, minutes, seconds", () => {
     expect(left(2 * 3_600_000 + 40 * 60_000)).toBe("2 h 40 m");
     expect(left(12 * 60_000)).toBe("12 m");

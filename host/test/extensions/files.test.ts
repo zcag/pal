@@ -3,7 +3,8 @@
 // (Spotlight, fd and locate would not know a folder made a moment ago),
 // and `PAL_RECENT_XBEL` names a recently-used.xbel written here for the
 // recents (Spotlight's last-used dates would not know the folder either).
-// Skipped where `find` is missing.
+// The Finder selection is the canned `core/selection.files` (and the
+// `front_app` state for the reason row). Skipped where `find` is missing.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -14,7 +15,7 @@ import { contentArgv, parseQuery, snippet, snippetArgv } from "../../../extensio
 import { parseMdls } from "../../../extensions/files/meta.ts";
 import { archiveArgv, archiveName, copyForm, moveForm, renameForm } from "../../../sdk/src/files.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
-import type { Item } from "../../../sdk/src/index.ts";
+import type { Ctx, Item } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 
 const HAS_FIND = Bun.which("find") !== null;
@@ -170,11 +171,16 @@ beforeAll(async () => {
       "apps.for_file": (p: { path: string }) => (p.path.endsWith(".png") ? [] : APPS),
       "apps.open_with": (p: { path: string; app: string }) => { if (p.app.endsWith("Notes.app")) throw new Error("Notes refused"); opened.push(p); return null; },
       "dialog.current": () => dialogUp,
+      "selection.files": () => finder,
+      "states.get": (p: { name?: string }) => (p.name === "front_app" ? front : null),
     },
   });
 });
 /** What the canned `core/dialog.current` answers: the open panel in front, or none. */
 let dialogUp: { app: string; pid: number; kind: "open" | "save"; title?: string } | null = null;
+/** What the canned `core/selection.files` answers, and the `front_app` state behind the reason row. */
+let finder: string[] = [];
+let front = "com.google.Chrome";
 afterAll(() => { host?.kill(); if (dir) { rmSync(dir, { recursive: true, force: true }); rmSync(dir + "-ops", { recursive: true, force: true }); } if (tools) rmSync(tools, { recursive: true, force: true }); });
 
 const list = (q?: string) => host.list("files", "files", q);
@@ -203,6 +209,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(host.loaded().find((l) => l.extension === "files")!.palettes).toEqual([
       { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”", multi: true },
       { name: "browse", title: "Browse Folder", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Filter this folder", filters: [{ id: "name", title: "Name" }, { id: "date", title: "Date" }, { id: "size", title: "Size" }], detail: "lazy", multi: true },
+      { name: "selection", title: "Finder Selection", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Filter the selection", detail: "lazy", multi: true, suggest: true },
       { name: "recent", title: "Recent Files", live: true, input: false, icon: tile("slate", "\u{f024b}"), placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary", multi: true },
     ]);
   });
@@ -248,13 +255,13 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(alpha.actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     expect(alpha.actions!.at(-1)).toMatchObject({ id: "trash", style: "destructive", confirm: expect.any(String) });
     expect(alpha.actions!.find((a) => a.id === "copy-file")).toEqual({ id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true });
-    // Open, reveal, both copies and the trash take marked rows; Quick Look and Open with are one file's.
-    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy", "copy-file", "compress", "trash"]);
+    // Open, reveal, Quick Look, both copies, compress and the trash take marked rows; Open with is one file's.
+    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", ...(MAC ? ["quick-look"] : []), "copy", "copy-file", "compress", "trash"]);
     expect(alpha.actions!.filter((a) => ["terminal", "rename", "move", "copy-to", "compress"].includes(a.id)).map((a) => a.shortcut)).toEqual(["cmd+t", "cmd+shift+r", "cmd+m", "cmd+alt+c", "cmd+shift+z"]);
     // The bar's one field on every file row, a new name: only Rename reads it.
     expect(alpha.args).toEqual([{ id: "name", placeholder: "Rename to" }]);
     expect(alpha.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["rename"]);
-    if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" });
+    if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y", multi: true });
     expect(items.find((i) => i.name === "report-gamma.txt")!.subtitle).toBe(join(dir, "reports"));
     expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "󰉖", accessories: [{ date: expect.any(Number) }] });
     // A folder leads with Browse (Enter, and the right arrow from anywhere in the listing), Open second.
@@ -464,6 +471,83 @@ describe.skipIf(!HAS_FIND)("files", () => {
     if (!(MAC ? Bun.which("osascript") : Bun.which("gio"))) return;
     const r = await pick(join(dir, "no-such-file.txt"), "trash");
     expect(r).toMatchObject({ keep: true, toast: { title: "Could not move to Trash", style: "failure" } });
+  });
+});
+
+describe.skipIf(!HAS_FIND)("the Finder selection", () => {
+  const sel = (q?: string, ctx?: Ctx) => host.list("files", "selection", q, ctx);
+  const suggest = async () => (await host.request<{ extension: string; palette: string; items: Item[] }[]>("suggest")).find((s) => s.extension === "files" && s.palette === "selection")?.items;
+  const ALL_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "copy", "copy-file", "compress", "trash"];
+
+  test("nothing selected: no suggestion, and the palette says why (Finder in front or not; Linux has none)", async () => {
+    expect(await suggest()).toBeUndefined();
+    const why = (await sel())[0];
+    expect(why).toMatchObject({ id: "hint:Finder is not in front", actions: [] });
+    front = "com.apple.finder";
+    expect((await sel())[0]).toMatchObject({ id: "hint:Nothing is selected in Finder", subtitle: "Select files in Finder, then open pal", actions: [] });
+    front = "com.google.Chrome";
+    if (!MAC) expect(why.name).toBe("Not available on Linux");
+  });
+
+  test.skipIf(!MAC)("one file selected: its row alone, with the file actions, in the palette and under Selected in Finder at the root; a gone path is skipped", async () => {
+    const a = join(dir, "report-alpha.txt");
+    finder = [a, join(dir, "gone.txt")];
+    const rows = await sel();
+    expect(rows.map((r) => r.id)).toEqual([a]);
+    expect(rows[0]).toMatchObject({ name: "report-alpha.txt", subtitle: dir, accessories: [{ text: "29 B" }, { date: expect.any(Number) }] });
+    expect(rows[0].actions!.map((x) => x.id)).toEqual(FILE_ACTIONS);
+    expect(rows[0]).not.toHaveProperty("section");
+    const now = (await suggest())!;
+    expect(now.map((r) => r.id)).toEqual([a]);
+    expect(now[0].section).toBe("Selected in Finder");
+    expect(await host.pick("files", "selection", a, "copy")).toEqual({ copy: a });
+    expect((await host.detail("files", "selection", a)).metadata![0]).toEqual({ label: "Path", value: a });
+  });
+
+  test.skipIf(!MAC)("several: an N items row leads (names, total size, the multi actions over every item), the files follow with thumbnails for pictures, a selected dot file included; the query filters the files", async () => {
+    const a = join(dir, "report-alpha.txt"), png = join(dir, "photo.png"), dot = join(dir, ".report-hidden.txt"), folder = join(dir, "reports");
+    finder = [a, png, dot, folder];
+    const rows = await sel();
+    expect(rows.map((r) => r.id)).toEqual(["selection:all", a, png, dot, folder]);
+    expect(rows[0]).toMatchObject({ name: "4 items", subtitle: "report-alpha.txt, photo.png, .report-hidden.txt, reports", icon: "\u{f1032}", accessories: [{ text: "42 B" }] });
+    expect(rows[0].actions!.map((x) => x.id)).toEqual(ALL_ACTIONS);
+    expect(rows[0].actions!.map((x) => x.title)).toEqual(["Open all", "Reveal all in Finder", "Quick Look all", "Copy paths", "Copy files", "Compress together", "Move all to Trash"]);
+    expect(rows[0].actions!.at(-1)).toMatchObject({ confirm: "Move 4 items to the Trash?", style: "destructive" });
+    expect(rows[2].icon).toEqual({ image: `icon://localhost/file?path=${encodeURIComponent(png)}&size=24` });
+    expect(rows[4].actions![0].id).toBe("browse");
+    expect((await sel("report")).map((r) => r.id)).toEqual([a, dot, folder]);
+    // The all row's actions run on the whole selection, whatever was marked.
+    expect(await host.pick("files", "selection", "selection:all", "copy")).toEqual({ copy: finder.join("\n") });
+    expect(await host.pick("files", "selection", "selection:all", "copy-file")).toEqual({ copy_files: finder });
+    expect((await host.detail("files", "selection", "selection:all")).metadata!.slice(0, 3)).toEqual([{ label: "Items", value: "4" }, { label: "Size", value: "42 B" }, { label: "File", value: a }]);
+  });
+
+  test.skipIf(!MAC)("at the root: the N items row leads with Show in Finder Selection (a push of the palette), then at most four files under Selected in Finder", async () => {
+    const paths = ["report-alpha.txt", "Report-Beta.md", "photo.png", "notes.md", "scan.pdf", "reports"].map((n) => join(dir, n));
+    finder = paths;
+    const now = (await suggest())!;
+    expect(now.map((r) => r.id)).toEqual(["selection:all", ...paths.slice(0, 4)]);
+    expect(now.every((r) => r.section === "Selected in Finder")).toBe(true);
+    expect(now[0].actions!.map((x) => x.id)).toEqual(["show", ...ALL_ACTIONS]);
+    expect(await host.pick("files", "selection", "selection:all", "show")).toEqual({ push: { extension: "files", palette: "selection" } });
+    // Compress together: one zip named after the first, in its folder (an ops copy, so the search folder stays as it was).
+    const d = join(dir, "..", basename(dir) + "-ops");
+    mkdirSync(d, { recursive: true });
+    const first = join(d, "selected.txt");
+    writeFileSync(first, "s\n");
+    finder = [first, join(dir, "photo.png")];
+    expect(await host.pick("files", "selection", "selection:all", "compress")).toEqual({ keep: true, toast: { title: "Compressed", message: join(d, "selected.zip") } });
+    expect((await Bun.file(join(d, "selected.zip")).text()).trim().split("\n")).toEqual(finder);
+    finder = [];
+    expect(await host.pick("files", "selection", "selection:all", "copy")).toEqual({ keep: true, toast: { title: "Nothing is selected in Finder", message: "Select files in Finder, then open pal", style: "failure" } });
+  });
+
+  test.skipIf(!MAC)("open with from the selection pushes the selection palette with the file as args, and that level lists the apps", async () => {
+    const a = join(dir, "report-alpha.txt");
+    finder = [a];
+    expect(await host.pick("files", "selection", a, "open-with")).toEqual({ push: { extension: "files", palette: "selection", args: { open_with: a }, title: "Open report-alpha.txt with" } });
+    expect((await sel("", { args: { open_with: a } })).map((r) => r.name)).toEqual(["TextEdit", "kitty", "Notes"]);
+    finder = [];
   });
 });
 

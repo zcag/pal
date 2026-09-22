@@ -145,7 +145,7 @@ type NodeBase = { key?: string; transition?: Transition; action?: string; select
 export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type ViewNode =
-  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated" | HexColor; radius?: boolean; children: ViewNode[] })
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; flex?: number; width?: number; height?: number; minHeight?: number; surface?: "sunken" | "elevated" | HexColor; radius?: boolean; children: ViewNode[] })
   | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number" | "glyph"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
   | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: IconMask; alt?: string; dot?: TagColor })
   | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent" | HexColor; fill?: "solid" | "soft" | "outline" })

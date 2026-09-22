@@ -1,0 +1,134 @@
+{
+  "name": "immich",
+  "title": "Immich",
+  "description": "Your Immich photo library from the panel: a CLIP search (\"a receipt\", \"sunset over the sea\") as a grid of thumbnails, the newest uploads before you type, a detail pane with the EXIF, the place, the people and the albums, and the albums, the people and today's memories as palettes of their own. Enter opens the photo in Immich; copy the link or the picture, download the preview or the original, favourite it, add it to an album, Quick Look it.",
+  "version": "0.1.0",
+  "keywords": ["photos", "pictures", "immich"],
+  "icon": { "tile": { "glyph": "󰋹", "bg": "indigo" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "text", "id": "url", "label": "URL", "placeholder": "https://immich.example.com", "description": "Where the Immich API answers, scheme included; no trailing slash needed.", "default": "" },
+    { "kind": "secret", "id": "api_key", "label": "API key", "placeholder": "keychain:pal/immich-api_key", "description": "From Immich › Account Settings › API Keys. Reading needs asset.read, album.read, person.read, memory.read and asset.download; favouriting asset.update and adding to albums albumAsset.create. Stored as a keychain: or env: reference.", "default": "" },
+    { "kind": "text", "id": "web_url", "label": "Web address", "placeholder": "https://photos.example.com", "description": "Where Open in Immich and Copy link point when the site has another name than the API (a tailnet API behind a public site). Empty: the URL above.", "default": "" },
+    { "kind": "path", "id": "download_to", "label": "Download to", "pick": "folder", "placeholder": "~/Downloads", "description": "Where Download preview and Download original write, named `<date>_<file>`.", "default": "~/Downloads" }
+  ],
+  "store": {
+    "tagline": "Search your Immich photos by what is in them",
+    "category": "media",
+    "features": [
+      "A grid of thumbnails from Immich's CLIP search: type what is in the picture (\"a receipt\", \"dog on the beach\"); a file name (`DSC00500`, `IMG-2026…`) searches by name instead",
+      "The newest uploads before you type; `since:2025`, `before:2024-06`, `in:2023` and `in:Ataşehir` narrow by date and place; the dropdown limits to photos, videos, favourites or the archive; a More tile pages on",
+      "The detail pane (open by default): the preview large, when and where it was taken, the camera, lens and exposure, the size, the people on it and the albums it is in",
+      "`enter` opens the photo in Immich, `cmd+enter` copies its link, `cmd+shift+c` copies the picture itself, `cmd+s` downloads the preview and `cmd+shift+s` the original, `cmd+f` favourites, `cmd+shift+a` adds to an album (or a new one), `cmd+y` Quick Looks it",
+      "Albums as a list with their covers, counts and dates (a shared tag on the shared ones): Enter drills into the album's grid, where the search runs inside the album",
+      "People by face: Enter lists a person's photos; On this day lists today's memories, a row per year",
+      "The library's counts and size lead the Albums list when the key may read them",
+      "`pal://immich/search?q=…`, `pal://immich/album?name=…` and `pal://immich/person?name=…` open the grids from a script or a keybind",
+      "Thumbnails and previews are cached under the user cache directory (`~/Library/Caches/pal/immich`), bounded, so a second look fetches nothing"
+    ],
+    "permissions": ["network"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-recent.png", "caption": "Nothing typed: the newest uploads, the pane open on the first" },
+      { "file": "2-search.png", "caption": "A CLIP search: what is in the picture, the place and date on every tile" },
+      { "file": "3-actions.png", "caption": "What a photo can do: open, copy, download, favourite, add to an album, Quick Look" },
+      { "file": "4-albums.png", "caption": "Albums: the cover, the count, the dates, the library's numbers on top" },
+      { "file": "5-people.png", "caption": "People by face, favourites first" },
+      { "file": "6-memories.png", "caption": "On this day: a row per year with the places" },
+      { "file": "7-setup.png", "caption": "Without a URL or a key: one row that opens Settings" }
+    ],
+    "actions": [
+      { "title": "Open in Immich", "description": "The photo's page on the web address.", "keys": "enter" },
+      { "title": "Copy link", "keys": "cmd+enter" },
+      { "title": "Copy image", "description": "The preview onto the clipboard as a picture.", "keys": "cmd+shift+c" },
+      { "title": "Download preview", "description": "The 1440 px JPEG into `download_to`.", "keys": "cmd+s" },
+      { "title": "Download original", "description": "The file as uploaded (a HEIC, an ARW, a video).", "keys": "cmd+shift+s" },
+      { "title": "Favourite / Unfavourite", "keys": "cmd+f" },
+      { "title": "Add to album…", "description": "A picker of your albums, or a new one.", "keys": "cmd+shift+a" },
+      { "title": "Quick Look", "description": "The preview in Quick Look (macOS).", "keys": "cmd+y" }
+    ]
+  },
+  "palettes": {
+    "immich": {
+      "title": "Immich",
+      "kind": "grid",
+      "fallback": "Search Immich for “{query}”",
+      "description": "Type what is in the picture and Immich's CLIP search answers as a grid; a file name searches by name; nothing typed lists the newest uploads. since:, before:, in: narrow it; the dropdown picks photos, videos, favourites or the archive.",
+      "keys": [
+        { "keys": "enter", "title": "Open in Immich" },
+        { "keys": "cmd+enter", "title": "Copy link" },
+        { "keys": "cmd+shift+c", "title": "Copy image" },
+        { "keys": "cmd+s", "title": "Download preview" },
+        { "keys": "cmd+shift+s", "title": "Download original" },
+        { "keys": "cmd+f", "title": "Favourite or unfavourite" },
+        { "keys": "cmd+shift+a", "title": "Add to album…" },
+        { "keys": "cmd+y", "title": "Quick Look" },
+        { "keys": "cmd+i", "title": "The detail pane" },
+        { "keys": "tab", "title": "Photos, videos, favourites, archive" }
+      ],
+      "settings": [
+        { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in every grid.", "min": 3, "max": 10, "default": 6 }
+      ]
+    },
+    "albums": {
+      "title": "Immich Albums",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 300,
+      "description": "Every album with its cover, count and dates; Enter opens the album as a grid, cmd+enter opens it in Immich. The library's numbers lead the list.",
+      "keys": [
+        { "keys": "enter", "title": "Open the album" },
+        { "keys": "cmd+enter", "title": "Open in Immich" },
+        { "keys": "cmd+c", "title": "Copy link" }
+      ]
+    },
+    "people": {
+      "title": "Immich People",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 600,
+      "description": "The people Immich has named, favourites first, each with their face; Enter lists a person's photos as a grid.",
+      "keys": [
+        { "keys": "enter", "title": "The person's photos" },
+        { "keys": "cmd+enter", "title": "Open in Immich" },
+        { "keys": "cmd+c", "title": "Copy link" }
+      ]
+    },
+    "memories": {
+      "title": "On This Day",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 1800,
+      "description": "Immich's memories for today: a row per past year with the count and the places; Enter opens that year's photos as a grid.",
+      "keys": [
+        { "keys": "enter", "title": "That year's photos" },
+        { "keys": "cmd+enter", "title": "Open in Immich" }
+      ]
+    }
+  },
+  "links": {
+    "search": {
+      "description": "Open the Immich grid on a search",
+      "params": {
+        "q": { "description": "What to search for; empty lists the newest uploads. since:, before: and in: work here too" },
+        "filter": { "description": "photos, videos, favourites or archived" }
+      }
+    },
+    "album": {
+      "description": "Open an album as a grid",
+      "params": {
+        "name": { "description": "The album's name (case does not matter)" },
+        "id": { "description": "Or its id" }
+      }
+    },
+    "person": {
+      "description": "Open a person's photos as a grid",
+      "params": {
+        "name": { "description": "The person's name as Immich has it (case does not matter)" },
+        "id": { "description": "Or their id" }
+      }
+    }
+  }
+}

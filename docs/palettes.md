@@ -48,14 +48,22 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Named Colours](#colors-colors-picker-colors-colors-history-colors-convert) | `colors` | indexed, grid, catalog | Open in Picker |
 | [Colour History](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-history` | live, normal | Open in Picker (on the top row: pick from the screen) |
 | [Convert Colour](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-convert` | input, normal | Open in Picker |
+| [Diff](#diff-diff-diff-pick) | `diff` | view, normal | Copy the unified diff |
+| [Diff from History](#diff-diff-diff-pick) | `diff-pick` | input, normal | Pick the side (with two marked: diff them) |
+| [Disk Space](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space` | live, normal | Open the map of the root (scans first when there is none) |
+| [Disk Map](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-map` | view, normal | Zoom into the focused folder; open a file |
+| [Largest Files](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-largest` | live, normal | Open the file |
+| [Largest Folders](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-folders` | live, normal | Show in the map |
+| [Cleanup Suggestions](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space-cleanup` | live, normal | Show in the map |
 | [Docker Containers](#docker-docker-docker-images-docker-compose) | `docker` | live, normal | Stop a running container, start a stopped one |
 | [Docker Images](#docker-docker-docker-images-docker-compose) | `docker-images` | live, normal | Run, after a form for the name and ports |
 | [Compose Projects](#docker-docker-docker-images-docker-compose) | `docker-compose` | live, normal | Up |
 | [Downloads](#downloads-downloads) | `downloads` | live, primary | Open the file |
 | [Emoji](#emoji-emoji) | `emoji` | indexed, grid, catalog | Copy emoji |
-| [Files](#files-files-files-browse-files-recent) | `files` | input, normal | Open the file, browse a folder |
-| [Browse Folder](#files-files-files-browse-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
-| [Recent Files](#files-files-files-browse-files-recent) | `files-recent` | live, primary | Open the file |
+| [Files](#files-files-files-browse-files-selection-files-recent) | `files` | input, normal | Open the file, browse a folder |
+| [Browse Folder](#files-files-files-browse-files-selection-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
+| [Finder Selection](#files-files-files-browse-files-selection-files-recent) | `files-selection` | input, normal | Open the file, browse a folder |
+| [Recent Files](#files-files-files-browse-files-selection-files-recent) | `files-recent` | live, primary | Open the file |
 | [Generate](#generate-generate) | `generate` | input, normal | Copy the value (show the QR code on its row) |
 | [GIFs](#gifs-gifs-gifs-favourites) | `gifs` | indexed, grid, normal | Copy the GIF file |
 | [Favourite GIFs](#gifs-gifs-gifs-favourites) | `gifs-favourites` | indexed, grid, normal | Copy the GIF file |
@@ -84,6 +92,10 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Freedesktop icon names](#icons-icons-icons-freedesktop-icons-iconify) | `icons-freedesktop` | indexed, grid, catalog | Copy name |
 | [Iconify Icons](#icons-icons-icons-freedesktop-icons-iconify) | `icons-iconify` | input, grid | Copy SVG |
 | [Images](#images-images) | `images` | input, normal | Compress |
+| [Immich](#immich-immich-immich-albums-immich-people-immich-memories) | `immich` | input, grid | Open the photo in Immich |
+| [Immich Albums](#immich-immich-immich-albums-immich-people-immich-memories) | `immich-albums` | indexed, normal | Open the album as a grid |
+| [Immich People](#immich-immich-immich-albums-immich-people-immich-memories) | `immich-people` | indexed, normal | The person's photos as a grid |
+| [On This Day](#immich-immich-immich-albums-immich-people-immich-memories) | `immich-memories` | live, normal | That year's photos as a grid |
 | [Makefile Targets](#makefile-targets-make) | `make` | indexed, normal | Run the target |
 | [Maps](#maps-maps) | `maps` | input, normal | Open the place or the route |
 | [Now Playing](#now-playing-media) | `media` | live, normal | Play or pause |
@@ -135,6 +147,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Timers](#timer-timer-timers) | `timer-timers` | live, normal | Pause, resume or dismiss |
 | [Translate](#translate-translate-translate-history) | `translate` | input, normal | Copy the translation (on Swap: translate it back) |
 | [Translation History](#translate-translate-translate-history) | `translate-history` | live, normal | Copy the translation |
+| [Turkish](#turkish-turkish) | `turkish` | input, normal | Paste the converted text (over the selection it came from) |
 | [Unicode Characters](#unicode-characters-unicode) | `unicode` | indexed, grid, catalog | Copy character |
 | [Chats](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-chats` | live, primary | Open the chat (a group opens WhatsApp at the top) |
 | [Unread](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-unread` | live, normal | Open the chat |
@@ -919,7 +932,7 @@ Settings, `[extensions.ssh]`:
 | `include_known_hosts` | bool | `false` | List the names in `known_hosts` too, in a second section. |
 | `terminal` | `auto`, `kitty`, `Terminal`, `iTerm2`, `Ghostty`, `Alacritty` | `auto` | macOS only: which terminal Connect opens. |
 
-## Files (`files`, `files-browse`, `files-recent`)
+## Files (`files`, `files-browse`, `files-selection`, `files-recent`)
 
 An input palette over the operating system's own file index: what you type
 is a name search on every keystroke, never a walk pal indexes itself. A
@@ -999,9 +1012,10 @@ Actions:
 | Use in TextEdit's open panel | `⌘G` | only while the app in front has an Open or Save panel up: pal hides and types the path into it through its Go to Folder sheet (`ctrl+L` on a GTK chooser); listed first then, and the empty root leads with a "Dialog" hint into Files |
 
 Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open,
-Reveal, Copy path (the paths one per line), Copy file, Compress (one
-archive) and Move to Trash run over all of them as one pick; Quick Look,
-Open with…, the terminal and the three forms stay one file's.
+Reveal, Quick Look (one panel, arrows between them), Copy path (the paths
+one per line), Copy file, Compress (one archive) and Move to Trash run
+over all of them as one pick; Open with…, the terminal and the three
+forms stay one file's.
 
 ### Browsing folders
 
@@ -1053,6 +1067,33 @@ row.
 it gets a toast saying so). The clipboard history records it as a files
 entry like any copy.
 
+### The Finder selection
+
+Open pal over a Finder window (or the Desktop) with files marked and the
+empty root leads with a **Selected in Finder** section, nothing typed:
+each marked item as a file row with every action above, pictures with
+their thumbnails; with two or more, an **N items** row first (the names,
+the total size) whose actions run on all of them at once: Open all,
+Reveal all, Quick Look all, Copy paths, Copy files, Compress together,
+Move all to Trash (asks first), and whose `Enter` opens the palette with
+the whole selection. The root shows four item rows at most.
+
+**Finder Selection** (`files-selection`) is the same as a palette of its
+own, for a hotkey or `pal open files/selection`: the N items row, then
+every marked item, typing filters them by name, marks and the multi
+actions work as anywhere. With nothing to list it says why: "Nothing is
+selected in Finder" with Finder in front, "Finder is not in front"
+otherwise (the `front_app` state), "Not available on Linux" there, since
+no file manager exposes its selection.
+
+The selection is the core's `selection.files()` (Finder's `selection`
+over `osascript`, only while Finder is the app in front; ~190 ms, read
+once per panel show and cached), so it is what was marked when the panel
+came up: a folder shown with nothing marked is nothing, not the folder,
+and a selected dot file is listed whatever `show_hidden` says. The
+Images palette reads the same selection for its inputs, and `{files}` in
+a snippet or a quicklink fills in the paths.
+
 ### Recent files and Quick Look
 
 - Before you type, the Files palette lists the **recently used files**
@@ -1065,7 +1106,10 @@ entry like any copy.
 - **Recent Files** (`files-recent`) lists the same rows as a palette of
   its own: live (newest first is the order), listed again on a show once
   the listing is a minute old, with the same actions and detail pane.
-- **Quick Look** (`⌘Y`) on macOS opens the file in `qlmanage -p`.
+- **Quick Look** (`⌘Y`) on macOS opens the file in `qlmanage -p` (every
+  marked row in one panel). The System palette's "Quick Look Finder
+  Selection" row does the same for what is marked in Finder without
+  listing it first.
 
 Settings, `[extensions.files]`:
 
@@ -1086,13 +1130,14 @@ rename and move the same way.
 ## System (`system`)
 
 Sleep, lock, log out, restart, shut down, empty the trash, dark mode,
-volume, brightness, do not disturb, eject, show desktop, keep awake, quit
-or unhide every app, dismiss notifications. The
-rows are indexed, so `mute` or `sleep` at the root finds them (each
-carries keywords: `suspend`, `power off`, `bin`); live because the Keep
-Awake row flips to Allow Sleep while a keep-awake is running, and a live
-palette lists again on every show. pal hides the panel before running a
-command, so it lands on the desktop, not on pal.
+volume, brightness, do not disturb, eject, show desktop, keep awake (for a
+while, until a time, or while an app runs, with a countdown on the bar),
+quit or unhide every app, dismiss notifications. The rows are indexed, so
+`mute` or `sleep` at the root finds them (each carries keywords:
+`suspend`, `power off`, `bin`); live because the Keep Awake row reads
+Allow Sleep with the time left while a run is on, and a live palette lists
+again on every show. pal hides the panel before running a command, so it
+lands on the desktop, not on pal.
 
 Only commands this machine can run are listed:
 
@@ -1110,10 +1155,11 @@ Only commands this machine can run are listed:
 | Toggle Do Not Disturb | runs a Shortcut named "Toggle Do Not Disturb"; hidden until you create one (Focus has no CLI) | `swaync-client`, `makoctl` or `dunstctl`; hidden with none |
 | Eject All Disks | Finder | not available |
 | Show Desktop | Mission Control | not available |
-| Keep Awake / Allow Sleep | `caffeinate -d -i`, detached; running it again stops it | `systemd-inhibit --what=idle:sleep ... sleep infinity`, the same toggle |
+| Keep Awake / Allow Sleep | `caffeinate -i` (`-di` with the display), `-t` for the deadline, `-w` to follow an app; below | `systemd-inhibit --what=sleep` (`idle:sleep` with the display) around `sleep <secs>`, `tail --pid` or `timeout`; a hint row without `systemd-inhibit` |
 | Quit All Apps | System Events: every regular app but Finder and pal asked to quit, one by one, so an app with unsaved work still shows its sheet | not available |
 | Unhide All Apps | System Events: every hidden app made visible | not available |
 | Dismiss Notifications | Notification Center over Accessibility: the Clear All (else Close) action of every notification group; nothing on screen is nothing to do | `swaync-client --close-all`, `makoctl dismiss --all` or `dunstctl close-all`; hidden with none |
+| Quick Look Finder Selection | the Quick Look panel (`qlmanage -p`) over what is marked in Finder (the core's `selection.files()`, read once per show): the names as the subtitle, the count on the right; while nothing is marked, or Finder is not in front, the row is inert and its subtitle says which | not available |
 
 Log Out, Restart, Shut Down, Empty Trash and Quit All Apps are destructive: with
 `confirm_destructive` on, `Enter` asks "(command) now?" first. A command
@@ -1122,10 +1168,61 @@ that fails keeps the panel open with a toast carrying the tool's message.
 **Link**: `pal://system/run?id=<command>` runs one by its id (`sleep`,
 `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`,
 `volume-up`, `volume-down`, `volume-mute`, `brightness-up`,
-`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`, `quit-all`, `unhide-all`,
-`dismiss-notifications`);
-the route is declared with `confirm`, so a link always asks first
-([Links](links.md#extension-routes)).
+`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake` (the
+toggle), `quit-all`, `unhide-all`, `dismiss-notifications`, and on macOS
+`quick-look-selection`, the one for a Quick Look hotkey: the HUD says
+"nothing is selected in Finder" when there is nothing to show); the route
+is declared with `confirm`, so a link always asks first
+([Links](links.md#extension-routes)). `pal://system/awake?for=1h&display=1`
+is Keep Awake's own (below).
+
+### Keep Awake
+
+The row takes how long in the bar (`Item.args`): `45m`, `2h`, `1h30m`, a
+bare number of minutes, a clock time (`14:30`, `2pm`, `until 14:30`;
+tomorrow's when today's has passed), or `forever`; blank runs
+`awake_default` (an hour). A second field says whether the display stays
+up too (`awake_display` preselected). `Enter` starts it, the panel hides
+and the HUD says what it did (`Awake for 45 min`, `Awake until 14:30`,
+`Awake until turned off`); `cmd+enter` keeps awake until turned off;
+`cmd+u` opens a form with the same spelling, the display switch and an
+app to follow (one with a window open: the run ends when it quits,
+`caffeinate -w`). While a run is on the row reads **Allow Sleep** with the
+time left as a tag: `Enter` ends it (`Sleep allowed`), `Keep awake for…`
+takes the bar's fields for a new span, `cmd+d` flips the display; the
+row sits in the empty root's Now section meanwhile. A spelling that is
+neither a duration nor a time is a failure toast (under the field, in
+the form).
+
+`caffeinate` does the timing itself (`-t <secs>`), so a run ends on time
+whether or not pal is up. pal keeps one record of the run (pid, until,
+display, app) in its storage and checks it against the live process on
+every read (the pid alive, its command line `caffeinate`'s, the deadline
+not passed); the child is not killed with the host, so a restarted pal
+finds the same run back, and a record whose process is gone (or is
+something else after a reboot) is dropped silently. A run that ends while
+pal watches says so in the HUD (`Keep awake ended, sleep allowed`).
+
+**Bar item `system/awake`**: a coffee glyph and the countdown (`2h 40m`,
+`12m`, `45s`; `∞` without an end), a monitor mark after it when the
+display is kept awake too, amber in the last five minutes (the `ending`
+rule, over `system.awake_left`); hidden while off, and
+`[bar.items."system/awake"] show = "always"` keeps a muted coffee whose
+click still opens the popover. The popover: the run on a card (what it is,
+since when, the time left large, a bar), the presets (`awake_presets`) as
+tiles on the digits `1`..`5` (a new end from now, on or off), the display
+switch on `d` (a run is restarted with the other flag; off, it is the next
+run's), `u` a field for a spelling, `Enter` allows sleep while on and
+starts the default while off, `backspace` allows sleep, `o` the System
+palette. The ticks are pal's own: a push when the countdown's text next
+changes (every minute; every second under one, or while the popover is
+up). States published: `system/awake`, `system/awake_until` (unix ms,
+null without an end), `system/awake_left` (minutes, rounded up),
+`system/awake_display`.
+
+**Link**: `pal://system/awake?for=1h&display=1` (`until=14:30`,
+`app=Xcode`, `off=1`; bare toggles: the default duration, or off while
+on); `pal call system/awake for=2h` from a shell.
 
 ### Trash count and dark mode
 
@@ -1142,6 +1239,9 @@ Settings, `[extensions.system]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `confirm_destructive` | bool | `true` | Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app. |
+| `awake_default` | string | `"1h"` | What a bare Keep Awake runs for: a duration, a clock time, or `forever`. |
+| `awake_presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
+| `awake_display` | bool | `true` | Keep the display awake too (`caffeinate -d`); off, the display may sleep while the machine stays up. The row's field and the popover's switch override it per run. |
 
 ## Windows (`windows`)
 
@@ -2147,6 +2247,77 @@ media; the arrows move the cursor, a click sets it):
 | --- | --- | --- |
 | Cover on the bar (`bar_artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
 | Leave to another extension (`exclude`) | empty | players this extension leaves to another, by app name or player id (`Spotify`, `music`): the bar item and the root's Now row skip them; the palette still lists them |
+
+## Displays (`displays`, `displays/brightness`)
+
+Every display with its mode and brightness, from `extensions/displays/`.
+One row per display: its name (the Displays pane's, "Built-in Liquid
+Retina XDR Display", "DELL U2720Q"), the mode it is in as the subtitle
+(`2560×1440 @ 60 Hz · HiDPI`, the rotation, the connection), `main` and
+`mirror` / `mirrored` tags, and the brightness as the accessory where
+something can read it. The typed argument on the row takes a percent or
+a step (`40`, `+10`) for `⌘B`. Enter drills into the display:
+
+- **Brightness**, **Contrast**, **Volume** (the last two over DDC, on an
+  external monitor; Volume only when the monitor answers for it): a
+  slider view. `←` `→` move by the step setting, `⇧←` `⇧→` by 1 %, `1`…`9`
+  are 10…90 %, `0` is 100 %, `m` full, a click on the slider sets the
+  clicked fraction. The built-in panel never goes below 5 % from here,
+  so the screen stays readable. From the row, `⌘=` and `⌘-` step without
+  opening the slider and `⌘B` takes the percent typed in the bar.
+- **Input source**: HDMI 1 / 2, DisplayPort 1 / 2, USB-C (the VCP 60
+  codes; LG's alternate codes by the setting), or another code typed in.
+  `ddcctl` and `ddcutil` read which is active and tag it; `m1ddc` only
+  sets.
+- **Resolution & scaling**: every mode displayplacer lists, HiDPI ("looks
+  like") first, then native, each with its refresh rate, the current one
+  tagged. A mode that changes the resolution or the scaling asks first;
+  the arrangement before is kept as an **Undo** row at the palette's root
+  until it is used or forgotten.
+- **Rotation** (0 / 90 / 180 / 270; rotating the built-in screen asks,
+  with displayplacer's own warning), **Mirror with…** / **Stop
+  mirroring**, **Make main** (the origins shift so the display sits at
+  (0,0), the layout otherwise kept), **Sleep displays** (System's own
+  command).
+
+At the root too: **Night Shift** on / off when the `nightlight` CLI is
+installed, **Sleep displays**, and the **presets**: "Save current
+arrangement as…" keeps displayplacer's own reproduce line (one command
+per output on Linux) under a name; each preset is a row with Apply,
+Rename (`⌘R`), Overwrite with the current arrangement (`⌘S`) and Delete
+(`⌘⌫`), its commands in the detail pane. Live: read again on every show
+(the tool listings are cached for 20 s, `⌘R` reads afresh). What is
+missing for the displays there are is a Setup row each, Enter copying
+the install command.
+
+| tool | macOS | Linux | what it adds |
+| --- | --- | --- | --- |
+| nothing | `system_profiler` | `hyprctl` / `wlr-randr` / `xrandr`, whichever is there | the displays, their names, the current mode, main and mirror |
+| `displayplacer` (`brew install displayplacer`) | modes, rotation, mirroring, make main, presets | the compositor tool does these | arrangement |
+| `brightness` (`brew install --HEAD brightness`; the bottled 1.2 cannot read Apple Silicon panels) | the built-in display and Apple displays | `brightnessctl` | brightness |
+| `m1ddc` (Apple Silicon) / `ddcctl` (Intel) | external monitors over DDC/CI | `ddcutil` | brightness, contrast, volume, input source |
+| `nightlight` (`brew install smudge/smudge/nightlight`) | Night Shift | no | the toggle |
+
+| setting | default | what |
+| --- | --- | --- |
+| Brightness step (`step`) | 5 % | what the arrows, a scroll on the bar item and a `+10`-style link move by |
+| Display on the bar (`bar_display`) | the external display | whose level the bar item shows: `external`, `main` or `builtin` |
+| LG input codes (`input_alt`) | off | the alternate VCP 60 addressing LG (and some others) take |
+
+**Bar item `displays/brightness`**: the chosen display's brightness as a
+glyph (three steps of the same sun) and the percent; a scroll on the item
+moves it by the step. The popover is a card per display with its mode
+line and a slider (`↑` `↓` move between them, `←` `→` and the digits set
+the one the cursor is on, `n` Night Shift, Enter opens the display in
+pal, `p` the palette). Hidden by its rules (Settings > Bar) while only the
+built-in display is connected, whose keyboard keys already set it, and
+while nothing installed can set any display; `show = "always"` keeps it
+muted with the level.
+
+Routes: `pal://displays/brightness?value=50|+10|-10&display=main|external|builtin|<id>|<name>`
+(also `contrast`, `volume`), `pal://displays/input?source=hdmi1|hdmi2|dp1|dp2|usbc|<code>`,
+`pal://displays/mode?mode=<n>|1800x1169|1800x1169@60|2560x1440 hidpi|3024x1964 native`,
+`pal://displays/preset?name=<name>`, `pal://displays/night-shift?state=on|off|toggle`.
 
 ## Unicode Characters (`unicode`)
 
@@ -4104,3 +4275,473 @@ Settings, `[extensions.images]`:
 | `pad_color` | hex | `#ffffff` | What Pad to a square fills with. |
 | `tinypng_api_key` | secret | (none) | Adds Compress with TinyPNG. |
 | `tools` | list | every tool | The order the encoders are tried. |
+
+## Stats (`stats`, `stats/cpu`, `stats/memory`, `stats/disk`, `stats/network`, `stats/load`)
+
+CPU, memory, disk, network and load as five bar items off one sampler
+(every `interval` seconds, 3 by default; about 5 ms a tick, 27 ms while a
+process popover is open), each hidden by its rules while quiet and
+coloured past its thresholds, with a popover of the breakdown; the same
+facts as rows in the `Stats` palette. Detail: `extensions/stats/README.md`.
+
+| item | strip (the `*_label` setting) | quiet, hidden | amber | red |
+| --- | --- | --- | --- | --- |
+| `stats/cpu` | `42%`; `▂▃▅▇▆`; one bar per core; `42% · node` | under 70% | from 70% | from 90% |
+| `stats/memory` | `63%`; `24.2 GB`; `14.4 GB free`; sparkline | under 80% with no pressure | 80%, or pressure `warn` | 90%, or `critical` |
+| `stats/disk` | the startup volume's free space; share; used | over 20 GB free, every writable volume under 85% | 85% or 20 GB | 95% or 5 GB |
+| `stats/network` | `↓1.2M ↑80K`; `↓1.2M`; sparkline | under 1 MB/s either way | | (blue from 10 MB/s) |
+| `stats/load` | `3.26`; `3.26 3.25 2.91` | the 1 min load under the core count | from the cores | from twice them |
+
+The rules are the manifest's, edited by id in Settings > Bar or under
+`[bar.items."stats/cpu".rules.quiet]`; `show = "always"` keeps an item on
+the strip muted at rest, a `quiet` rule set to `when = "false"` keeps it in
+colour. The states every render publishes (`stats.cpu`, `stats.cpu_top`,
+`stats.cores`, `stats.memory`, `stats.memory_pressure`, `stats.swap`,
+`stats.disk`, `stats.disk_free` (GB), `stats.disk_worst`, `stats.net_down`
+and `stats.net_up` (KB/s), `stats.load1`, `load5`, `load15`) are what a
+rule of your own reads.
+
+The popovers, each with a sparkline of the last 60 samples in the theme's
+ink, a cursor ring the arrows (or `j`/`k`) and a click move, and `s` for
+the palette: **CPU** the share and level, cores / load / uptime, one bar
+per core, the five busiest processes (`Enter` Activity Monitor, `x` kill
+after a confirm, `c` copy, `p` Processes); **Memory** the segments bar
+(app, wired, compressed, cached, free) with a legend, the swap, the five
+largest, the same keys; **Disk** a card per volume with its bar, free
+space, mount point and a `read-only` badge (`Enter` reveals in Finder,
+`c` copies the path); **Network** the two rates, both in one sparkline,
+every interface with its kind, SSID, address and rates (`Enter` the
+Network palette, `c` copies the address); **Load** the three averages as
+tiles, the per-core figure.
+
+The palette is live (from the last sample, no tool runs; `⌘R` samples
+now) with the detail pane showing: Processor (CPU, load), Memory (memory,
+swap), Disks, Network (each interface, then the totals), Busiest and
+Largest processes, System (uptime). The value is the name.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Copy | `Enter` | the value: the share, the usage, a volume's mount point, an interface's address, a process's pid |
+| Open Activity Monitor | `⌘O` | the Processes palette on Linux |
+| Open bar popover | `⌘P` | the row's item, through `pal://bar/stats/<item>` |
+| Reveal in Finder | `⌘R` | a volume |
+| All addresses | `⌘A` | the Network palette |
+| Kill | `⌘⌫` | a process, after a confirm |
+
+Links: `pal://stats/cpu` (and `memory`, `disk`, `network`, `load`) opens
+the popover; `?palette=1` the palette on that section.
+
+Sources, no root: `os.cpus()` deltas, `os.loadavg()`, `vm_stat` and
+`sysctl` (Activity Monitor's arithmetic and the kernel's pressure level),
+`netstat -ibn`, `df -kP` and `mount` (every 60 s), `ps` (every 10 s, every
+tick while a process popover is open) on macOS; `/proc/meminfo` and
+`/proc/pressure/memory`, `/proc/net/dev` with `ip -j -br addr`,
+`/proc/mounts` on Linux. No temperature (a native reader or root on
+macOS).
+
+Settings, `[extensions.stats]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `interval` | number | `3` | Seconds between samples, 1 to 60. |
+| `cpu_label` | `percent`, `spark`, `bars`, `top` | `percent` | The CPU strip's label. |
+| `memory_label` | `percent`, `used`, `free`, `spark` | `percent` | The Memory strip's label. |
+| `disk_label` | `percent`, `free`, `used` | `free` | The Disk strip's label, for the startup volume. |
+| `network_label` | `rate`, `down`, `spark` | `rate` | The Network strip's label. |
+| `load_label` | `one`, `three` | `one` | The 1 minute average, or all three. |
+| `disk_hide` | list | `[]` | Mount points or volume names left out. |
+
+## odak (`odak`, `odak-add`, `odak-search`, `odak-done`, `odak/today`)
+
+One extension, four palettes and a bar item over an [odak](https://github.com/zcag/odak)
+server, signed in with its API key. Everything is the server's own REST
+API (`GET /todos` once, cached 60 s and shared by the palettes and the
+bar; `/sections`; the writes). `extensions/odak/README.md` has the
+endpoint list and the two model quirks worked around (an id is a hash of
+the line, so every edit gives a new one, computed here as odak does; a
+day cannot be cleared).
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Todos | `odak` | live, 60 s | completes the todo (Tab marks several) |
+| Add Todo | `odak-add` | input | adds the line as read |
+| Search Todos | `odak-search` | input | completes an open todo, reopens a completed one |
+| Completed | `odak-done` | live, 60 s | reopens |
+
+**Signing in.** `url` is the server (`http://host:8761`, the same origin
+as the web UI), `api_key` its `ODAK_API_KEY` (kept in the keychain).
+Without either, every palette is one hint row naming which and opening it
+in Settings; a refused key says so; a server that does not answer names
+the address and `⌘R`, and rows already fetched stay through an outage.
+
+**Todos.** Two commands (New todo, the text typed in the bar as an
+argument, `⌘Enter` into Add Todo; Open odak), then Overdue and Due today,
+then the file's sections in order, a subtask under its parent, Not yet at
+the end for a `[w:date]` still ahead. A row carries its tags and its day
+as chips (`overdue 3 d` red, `today` amber, `tomorrow` blue, `Fri` within
+the week, the date beyond), a red mark when urgent, the subtask count; the
+pane the subtasks as a task list and the metadata. Complete (`Enter`, a
+toast and an Undo row for a minute), Edit… (`⌘E`), Snooze to tomorrow
+(`⌘T`), Snooze… (`⌘S`: tomorrow, in 3 days, next Monday, next week, in a
+month, or a day typed), Move to section… (`⌘M`), Mark urgent (`⌘U`), Add
+subtask… (`⌘N`), Open link (`⌘L`), Open odak (`⌘O`), Copy text (`⌘C`),
+Copy link (`⌘⇧C`), Delete (`⌘D`, asks). The root's Now section shows what
+is overdue or due today.
+
+**Add Todo.** One line, read back as you type: `#tag`, a bare `!` for
+urgent, `/section` (a prefix of one of the file's), `d:day` / `w:day`, and
+a day in words at the end (`tomorrow`, `fri`, `next mon`, `in 3 days`,
+`20 sep`, `2026-10-01`, `by fri`; a time after it stays in the text).
+Enter adds and hides with the HUD line, `⌘Enter` keeps the line, `⌘⇧C`
+copies it. Before you type: what was just added (Undo deletes it), the
+selection and the clipboard as todos. A root query with no hit offers
+"Add “…” to odak". **Search Todos**: every word against text, tags and
+section, open by section then completed. **Completed**: what is checked
+off by section, with when for the ones completed from pal; Enter reopens.
+
+**The bar item** `odak/today`: the count of open todos due today or in
+`today_sections` plus the overdue, red while any is overdue (rule
+`overdue`), hidden at zero (rule `quiet`; `show = "always"` keeps the
+glyph), every 300 s and on show, wake, network; facts `odak/overdue`,
+`odak/today`, `odak/open`. The popover: the overdue first, then today's,
+a cursor the arrows move; `Enter`/`x` completes, `u` the flag, `t`
+tomorrow, `n` a field whose Enter adds, `o` odak, `p` the palette, `r`
+fetches again. `pal://odak/add?text=...` adds from outside (`section`,
+`due`, `tags`, `urgent` on top).
+
+Settings, `[extensions.odak]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `url` | text | (none) | The server's origin. |
+| `api_key` | secret | (none) | `ODAK_API_KEY`. |
+| `default_section` | text | `Inbox` | Where a todo lands unless the line names a section (one of the file's, else Inbox). |
+| `today_sections` | list | `["Focus", "Today"]` | What the bar item counts as today's, on top of what is due today. |
+
+For the tests, `PAL_ODAK_URL` and `PAL_ODAK_KEY` replace the two settings.
+
+## Grafana (`grafana`, `grafana-alerts`, `grafana-query`, `grafana/alerts`)
+
+Grafana over its HTTP API with a service account token (Viewer reads
+everything here; Editor is needed to silence or star); `multi`, so a
+second Grafana is `[instances."grafana@work"]` with its own `url` and
+`token` ([Config](config.md#instances)).
+
+**Grafana Dashboards** (`grafana`) is every dashboard the token can see,
+starred first, then as Grafana sorts them. A row is the title; the
+subtitle the description, or the folder when there is none; the folder
+is a blue tag and the first two tags follow it; the uid, the tags and
+the folder are keywords. `Enter` opens it in the browser with the
+`time_range` setting appended (`from=now-6h&to=now`) when set, `⌘Enter`
+asks for a range in a form (from, to, kiosk), `⌘F` opens it in kiosk
+mode, `⌘S` stars or unstars it (the token's own stars, which are what
+sort first here), `⌘C` copies the URL, `⌘U` the uid, `→` drills into the
+dashboard's folder. The filter (`Tab`) is All, Starred, Folders; Folders
+lists every folder with a dashboard in it and `Enter` drills in. Listed
+every 15 minutes. The detail pane (lazy) shows the description, the
+folder, the tags, the time range and refresh, the panels by type, and
+the first three time series panels (`sparklines`) drawn: as panel images
+when the image renderer plugin is installed (probed once per run), else
+as sparklines the extension draws from the panels' own queries in one
+`/api/ds/query` call over the dashboard's range, the first series' last
+value in the panel's unit as the caption.
+
+**Grafana Alerts** (`grafana-alerts`) is live: every alert instance
+firing or pending from the ruler's Prometheus-compatible API, marked
+where the Alertmanager says a silence covers it. Firing first, then by
+rule and labels. A row is the rule's name; the subtitle the rendered
+summary (else the labels); a red `firing` or amber `pending` tag, the
+severity, a `silenced` tag, since when. The pane has the summary and
+description, the rule (a link), the state, the labels, the value, the
+rule's health when it is not ok, the silence and the dashboard the rule
+points at. The filter is Firing and pending, Firing, Pending, Silenced
+(the covered instances, then the active silences, each with Expire).
+`Enter` opens the rule, `⌘Enter` its dashboard, `⌘S` / `⌘⇧S` / `⌘D`
+silence the instance for 1 hour / 4 hours / 1 day (asking first; the
+matchers are the rule's uid plus the instance's own labels), `⌘E` expires
+the silence, `⌘C` copies the summary, `⌘L` the labels. Listed on show,
+not twice within 30 s.
+
+**Grafana Query** (`grafana-query`) is an input palette: what you type
+runs as a PromQL instant query against the Prometheus datasource
+(`datasource` by uid or name, else Grafana's default), one row per
+series with Grafana's display name, the value on the right and the
+labels in the pane; a parse error is a calm hint with Prometheus's
+message. Before you type, the saved queries (`queries`, `Name = expr`
+lines): `Enter` runs one, `⌘⌫` removes it. On a result `Enter` copies
+the value, `⌘Enter` the series with its value, `⌘⇧A` every series, `⌘C`
+the expression, `⌘O` opens Explore with it, `⌘S` saves it under a name.
+
+**Bar item** `grafana/alerts`: the firing count in red and the pending
+count in amber, hidden by its rules while both are zero (a firing
+instance under a silence does not count); `grafana/firing` and
+`grafana/pending` as states. Refreshed every minute and on show, wake and
+the network back. The popover lists the instances by state with a colour
+rail: `Enter` opens the rule, `o` the dashboard, `s` / `f` / `d` silence
+for 1 hour / 4 hours / 1 day (asking first; `s` on a silenced one
+expires it), `c` copies the summary, `a` opens the alert list, `p` the
+palette, `r` refreshes.
+
+Links: `pal://grafana/query?expr=up%20%3D%3D%200` opens the prompt with
+the expression typed; `pal://grafana/open?uid=<uid>&from=now-24h&kiosk=1`
+opens a dashboard.
+
+When something is wrong every palette is one inert hint row that says
+what and where to fix it (Settings › Extensions › Grafana; the no-URL
+row's `Enter` opens it there): no URL, a URL without a scheme, no token,
+a `keychain:`/`env:` token that did not resolve, a rejected token (401),
+a host that did not answer within the timeout, or one that could not be
+reached. A redirecting URL is followed with the token kept and logged.
+A silence or a star a Viewer token may not make is a failure toast
+naming the role.
+
+Settings, `[extensions.grafana]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `url` | text | unset | Where Grafana answers, scheme included. |
+| `token` | secret | unset | A service account token. A `keychain:` or `env:` reference in the file. |
+| `time_range` | text | unset | Appended to a dashboard's URL as `from=…&to=now` when set; empty opens the dashboard's own range. |
+| `datasource` | text | unset | The Prometheus datasource the prompt runs against, by uid or name; empty is Grafana's default. |
+| `queries` | list | five `Name = expr` lines | The saved queries listed before you type. |
+| `sparklines` | number | `3` | How many time series panels the pane draws; `0` turns it off. |
+| `timeout` | number (s) | `8` | How long one request may take. |
+
+## Diff (`diff`, `diff-pick`)
+
+Diff what you copied, from `extensions/diff/`. A view palette: opened
+bare it compares the two newest text entries of the clipboard history,
+the older on the left, so the diff reads as what changed on the way to
+the newer copy. The header names both sides with when and where they
+were copied and carries the counts as badges (`+12` green, `−4` red,
+`whitespace only` amber, `no differences`); under it the lines on a
+sunken surface, unified by default: both line numbers, the sign, the
+text in monospace, removed lines on a red tint and added ones on a
+green one (consecutive lines of one kind share the block), the words
+that differ inside a changed pair on a stronger tint, a pair that
+differs in whitespace alone tagged. `s` lays the two sides out side by
+side. Runs of unchanged lines beyond the three of context fold to one
+row ("⋯ 16 unchanged lines"); `tab` walks the folds, `space` or a
+click expands one, `a` all. `w` ignores whitespace as `diff -w` does,
+`x` swaps the sides, `enter` copies the unified diff, `l` and `r` the
+left and right text, `o` opens the pair in an external tool (`tool`:
+VS Code, kitty's diff kitten, FileMerge, Meld, or a custom command with
+`{left}` and `{right}`; the sides written under the cache when they are
+not files). Other pairs: `n` the two newest copies again, `e` the
+clipboard against the selection in the app in front, `h` two entries
+picked from the history, `f` two files from a form (a missing file, a
+folder or a binary refused under its field; over 1 MB left to the tool).
+Nothing to diff (one copy in the history, nothing selected) is a view
+that says so and lists the ways in.
+
+Diff from History (`diff-pick`, input, `multi`): the history's text
+entries; `enter` on one takes it as the left side and lists the rest
+for the right, or two marked (`tab`, `x`) and `enter` diff at once. The
+Clipboard History palette has the same two actions on a text entry,
+`Diff with…` and `Diff these two` (`cmd+shift+f`).
+
+| keys | action |
+| --- | --- |
+| `enter` | Copy the unified diff |
+| `o`, `cmd+enter` | Open both sides in the external tool |
+| `s` | Side by side, or unified |
+| `w` | Ignore whitespace, or mind it |
+| `x` | Swap the sides |
+| `l`, `r` | Copy the left, the right text |
+| `tab`, `shift+tab`, `space`, `a` | Next fold, previous, expand it, expand all |
+| `n`, `e`, `h`, `f` | The newest copies, clipboard vs selection, pick from history, two files |
+
+Links: `pal://diff/clipboard`, `pal://diff/selection`,
+`pal://diff/files?left=&right=`, `pal://diff/text?left=&right=`
+(`left_label`, `right_label`), `pal://diff/history?left=<id>&right=<id>`.
+
+Settings, `[extensions.diff]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `tool` | `auto`, `code`, `kitty`, `opendiff`, `meld`, `custom` | `auto` | What `o` opens the sides in; auto is the first installed. |
+| `tool_command` | text | empty | With `custom`: the command line, `{left}` and `{right}` the two files. |
+
+The diff is jsdiff (`diff` on npm). For the tests, `PAL_DIFF_PATH` is
+searched for the tools and `PAL_DIFF_CACHE` takes the written sides.
+
+## Turkish (`turkish`)
+
+Turkish text tools, from `extensions/turkish/`. An input palette: what
+you type (with nothing typed, the selection in the app in front, else
+the clipboard's text) converted five ways, one row each, named by the
+result with the conversion and the count of characters it touched
+beside it (`unchanged` as a tag when none): Deasciified (`Turkce
+yazilmis bir cumle` → `Türkçe yazılmış bir cümle`, the letters decided
+by context: `sik` → `sık`, `kus` → `kuş`, `acik` → `açık`, `yas` →
+`yaş`; Deniz Yüret's Emacs turkish-mode pattern table in Mustafa Emre
+Acer's JavaScript port, the `turkish-deasciifier` package), Asciified
+(the reverse table), UPPERCASE and lowercase the Turkish way (`i` → `İ`,
+`ı` → `I` and back, the `tr` locale), Title Case (every word, a suffix
+after an apostrophe kept down: `İstanbul'da`). `enter` pastes the row
+into the app in front, over the selection when that is where the text
+came from; `cmd+c` (and `cmd+enter`) copies; `cmd+t` hands the row to
+Translate; `cmd+shift+c` copies the source. The detail pane holds the
+whole converted text over the source.
+
+| keys | action |
+| --- | --- |
+| `enter` | Paste (over the selection the rows came from) |
+| `cmd+enter`, `cmd+c` | Copy |
+| `cmd+t` | Translate the row |
+| `cmd+shift+c` | Copy the source text |
+
+Links: `pal://turkish/deasciify?text=…` (and `asciify`, `upper`,
+`lower`, `title`) copies the result, `paste=1` pastes it; without `text`
+the selection (else the clipboard) is converted and, from a selection,
+pasted over it: a keybind that fixes the letters of what was just typed.
+
+Settings, `[extensions.turkish]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `primary_action` | `paste`, `copy` | `paste` | What `enter` does on a row. |
+
+Not done: a `{turkish …}` snippet placeholder (`sdk/src/placeholders.ts`
+has a fixed grammar with no hook for an extension's source).
+
+## Immich (`immich`, `immich-albums`, `immich-people`, `immich-memories`)
+
+The Immich photo library from the panel, from `extensions/immich/`. An
+input grid over Immich's CLIP search: what is typed goes to
+`/search/smart` 300 ms after the last key ("a receipt", "dog on the
+beach"), a file name (`DSC00500`, `IMG-20260418-WA0021.jpg`) to
+`/search/metadata` by name, and nothing typed lists the newest uploads
+under a Recent section. Every tile is Immich's own thumbnail rendition
+(WebP, ~10 KB, fetched once into `~/Library/Caches/pal/immich`,
+`$XDG_CACHE_HOME/pal/immich`, and sent as a data url), captioned with
+the place and the day ("Serdivan · 3 May 2022"; a video leads with "▶"
+and its length). `since:2025`, `before:2024-06`, `in:2023`,
+`in:Ataşehir`, `type:video` and `is:favourite` / `is:archived` narrow
+either search; the dropdown (`Tab`) limits to photos, videos,
+favourites or the archive; a More tile pages on, 24 at a time. Every
+search sends `visibility`, since v3 lists archived and hidden assets
+when it is left out. The pane (open by default) is the preview
+rendition large over when and where (the place a link to the map), the
+camera, lens and exposure, the size, the file, the people, the albums
+it is in and the tags, fetched lazily per photo.
+
+`Enter` opens the photo on the web address (`web_url`, else `url`);
+`⌘Enter` copies the link; `⌘⇧C` copies the picture itself (the
+preview JPEG through `copyImage`, or as a file); `⌘Y` Quick Looks it
+(macOS); `⌘S` downloads the preview and `⌘⇧S` the original (fetched
+behind the panel, the HUD says when it landed) into `download_to` as
+`<day>_<name>`; `⌘F` favourites or unfavourites; `⌘⇧A` opens the albums
+as a picker (New album… first) and Enter there files the photos; `⌘⇧F`
+copies the file name. The downloads, Favourite and Add to album take
+marked rows (`⌘`-click, `⇧↑↓`). A root query nothing matched offers
+"Search Immich for …".
+
+**Immich Albums** (`immich-albums`, indexed, 5 minutes, lazy): every
+album with its cover, count, date range and a `shared` tag, the ones
+with photos first (changed last first), the empty ones last; `Enter`
+opens the album as the grid, where a search runs inside it; `⌘Enter`
+opens it in Immich, `⌘C` copies the link. A key that may read the
+statistics gets an "Immich library" row on top (photos, videos, bytes
+on disk). **Immich People** (`immich-people`, indexed, 10 minutes):
+the named people, favourites first, with their face; `Enter` lists
+their photos, a last row counts the faces without a name. **On This
+Day** (`immich-memories`, live, 30 minutes): Immich's memories for
+today, a row per past year with the count, the places and the first
+picture; `Enter` lists that year's photos.
+
+`pal://immich/search?q=…&filter=videos`, `pal://immich/album?name=…`
+(or `id=`) and `pal://immich/person?name=…` open the grids from a
+script or a keybind.
+
+| keys | action |
+| --- | --- |
+| `enter` | Open in Immich |
+| `cmd+enter` | Copy link |
+| `cmd+shift+c` | Copy image |
+| `cmd+y` | Quick Look (macOS) |
+| `cmd+s` | Download preview |
+| `cmd+shift+s` | Download original |
+| `cmd+f` | Favourite or unfavourite |
+| `cmd+shift+a` | Add to album… |
+| `cmd+shift+f` | Copy file name |
+| `cmd+i` | The detail pane |
+| `tab` | Photos, videos, favourites, archive |
+
+Settings, `[extensions.immich]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `url` | text | empty | Where the Immich API answers. |
+| `api_key` | secret | empty | An API key from Account Settings › API Keys. |
+| `web_url` | text | empty | Where links open when the site has another name than the API; empty: `url`. |
+| `download_to` | folder | `~/Downloads` | Where the downloads go. |
+
+`[palettes.immich.settings] columns` (3 to 10, default 6) is the tiles
+per row. Without `url` or `api_key` every palette is one row that opens
+Settings on the missing field; a refused key, a missing permission (a
+403 names it) and an unreachable server each say so in one row or a
+toast. For the tests, `PAL_IMMICH_CACHE` moves the cache directory and
+`PAL_COPY_IMAGE` stands in for the clipboard copy.
+## Disk Space (`space`, `space-map`, `space-largest`, `space-folders`, `space-cleanup`)
+
+A big file finder and cleanup, from `extensions/space/`. **Disk Space**
+lists where to look: Home, every mounted volume with its free space
+(`/Volumes/*` on macOS; `/`, `/home` and the media mounts on Linux),
+the folders scanned before with their size and age, `Scan a folder…`
+with the path as a typed argument in the bar, and Cleanup suggestions.
+Enter opens **Disk Map**, a view level: the root scanned (a parallel
+Bun walk, ~7 s for a million-file home, the map drawn live as it
+runs) and drawn as a squarified treemap of boxes inside boxes, area by
+size, a folder's own children faintly inside it, the same children as
+rows beside the board with size and share, the focused box described
+on a footer line. A scan is packed into storage when it lands (the
+biggest nodes under 56 KB per root, four roots), so the next open draws
+at once, marked "scanned 2 h ago"; a zoom into a folder the saved tree
+cut rescans that folder alone. Boxes are coloured by the kind that
+weighs most below them (the `colour` setting, or `c`: by depth instead),
+sizes are the blocks on disk (`sizes`, or `a`: apparent).
+
+| keys | action |
+| --- | --- |
+| `enter` | Zoom into the focused folder; open a file |
+| `cmd+enter` | Reveal in Finder / the file manager |
+| `backspace`, `-` | Zoom out |
+| `up` `down` `left` `right`, `hjkl` | Focus the box in that direction |
+| `tab`, `shift+tab` | Next / previous by size |
+| `m` | Mark or unmark for the trash |
+| `cmd+d` | Move to Trash: the focused box, or every marked one (asks, naming count and size) |
+| `space` | Quick Look (macOS) |
+| `cmd+o`, `cmd+c`, `i` | Open, Copy path, Info (a detail level: kind, sizes, count, share, modified, owner) |
+| `cmd+l` | Largest files under this folder |
+| `c`, `a` | Colour by kind or depth; sizes on disk or apparent |
+| `cmd+r` | Rescan this folder; while scanning, stop |
+
+A click on a box zooms into it (a file: focuses it), on a row focuses
+it, on a crumb zooms out to it. **Largest Files** and **Largest
+Folders** list the biggest under the last root (or the one a row or a
+link names), the kind as a tag and a filter by kind on the files;
+open, reveal, Quick Look (`cmd+y`), show in the map (`cmd+m`), copy
+path, info (`cmd+shift+i`), trash (`cmd+d`, marked rows together).
+**Cleanup Suggestions** measures what is usually safe to clear (user
+and package caches, Xcode's DerivedData, `node_modules` and cargo
+`target` folders untouched for `stale_days` from the scans in hand,
+downloads older than that, the Trash) and offers one destructive action
+per row (`cmd+d`), asked first, everything to the Trash (Empty Trash is
+the one final action, and says so). Trash is Finder's delete on macOS,
+`gio trash` on Linux; `PAL_SPACE_TRASH` names a stand-in for the tests.
+
+Links: `pal://space/scan?root=~/proj` (`rescan=1` scans again),
+`pal://space/largest?root=…`. No bar item: free space is the stats
+lane's. The research notes and the timings are in the extension's
+README.
+
+Settings, `[extensions.space]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `sizes` | `allocated`, `apparent` | `allocated` | What the boxes and rows measure. |
+| `colour` | `kind`, `depth` | `kind` | What colours a box. |
+| `cross_devices` | boolean | `false` | Walk into other file systems under the root (macOS firmlinks are always crossed). |
+| `largest` | 10 to 1000 | `100` | Rows in the Largest lists. |
+| `stale_days` | 1 to 365 | `30` | When a build folder or a download counts as stale. |

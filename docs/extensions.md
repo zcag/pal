@@ -547,7 +547,7 @@ The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key`,
 
 | node | fields | draws |
 | --- | --- | --- |
-| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`) or a hex colour of the extension's own (the box is that colour; black or white ink by contrast once its alpha is over 0.5, the panel's ink under a faint tint), `radius`, `children` | a flex box; with a hex surface a card in that colour: a room tile |
+| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `flex` (a weight: this share of the parent's free space against its `flex` siblings, so a row of weighted stacks divides the width in proportion at any panel width), `width` / `height` px (a box of that size), `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`) or a hex colour of the extension's own (the box is that colour; black or white ink by contrast once its alpha is over 0.5, the panel's ink under a faint tint), `radius`, `children` | a flex box; with a hex surface a card in that colour: a room tile. A weighted or sized stack clips what does not fit, as a tile does: Disk Space's treemap is a `height` board of `flex` strips of `flex` boxes |
 | `text` | `value`, `style` title/body/muted/mono/number/glyph, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`), `width` / `minWidth` px (a column that lines up; a run with a `width` clips instead of wrapping), `align` start/center/end inside it | one run of text; `glyph` draws the value in the bundled symbols font, so a Nerd Font glyph (`\u{f0369}`) stands in a popover or a card as a mark next to text, at the size of `size`, never wrapped (OTP's empty popover carries its message mark this way) |
 | `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt`, `dot` (a tag colour) | a picture the extension made or the app's icon scheme serves; with `dot` a presence dot on its bottom-right corner, ringed by the panel: an avatar (green active, grey away, red do not disturb) |
 | `tile` | `width`/`height` px, `text`, `sub` (small, under the text), `color` (tag palette, `neutral` (default), `accent`, or a hex colour of the extension's own: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`), `fill` `solid` (the colour, the panel's background as ink; solid neutral is paper, the elevated surface), `soft` (the tint, the colour as ink; default), `outline` | a rounded box with the tokens' colours, so it follows the theme: a game tile, a keycap of an on-screen keyboard, a stat. The type is tabular, scales with the box, gets heavier as it grows and shrinks to fit the text; under 44 px the box takes the control radius. A hex colour paints the box with itself whatever the fill (a hairline in it for `outline`), takes black or white ink by contrast, and shows a checker through a translucent one: a swatch |
@@ -1023,6 +1023,23 @@ arrows move and a click sets, and the strip untouched:
 - **States, `forced`** (`extensions/states/`): the states held by hand
   with the time left on the soonest to expire; hidden while none is.
   `on: ["state:*"]`, so a hold or a reset redraws it at once.
+- **Stats, `cpu`, `memory`, `disk`, `network`, `load`**
+  (`extensions/stats/`): five items off one 3 s sampler that pushes them
+  all (`bar.update`, the core's `every` floor being 10 s), each stating
+  its facts (`stats/cpu`, `stats/memory_pressure`, `stats/disk_free`,
+  `stats/net_down`, ...) and hidden by its manifest rules while quiet.
+  The popovers: per-core bars and the busiest processes with a Kill key,
+  the memory segments and the largest, a card per volume (`Enter`
+  reveals), every interface with its rates and address, the load tiles,
+  each with a sparkline of the last 60 samples as an SVG `image` in the
+  theme's ink. `ps` runs every tick only while a process popover is open.
+- **System, `awake`** (`extensions/system/`): a coffee and what is left
+  of a keep-awake run (`∞` without an end), hidden while off; the popover
+  a card with the time left and a bar, the presets as tiles on the
+  digits, the display switch, `u` a field for `45m` or `14:30`, Enter
+  allows sleep. Ticks at the moments the countdown's text changes. The
+  run is `caffeinate` with its own `-t`, found back by pid after a host
+  restart.
 
 ## States
 
@@ -1168,8 +1185,6 @@ to the core.
   and an install reopens the root with the name typed. What the Store
   palette is built on.
 - `selection.text()`: the text selected in the app in front, or null.
-- `dialog.current()`: the open or save panel in front, or null (the
-  `dialog` effect types a path into it).
   The accessibility API first (`AXSelectedText` of the focused element on
   macOS, the primary selection on Linux); when that answers nothing and
   `general.selection_snapshot` allows (the default), the copy shortcut is
@@ -1178,6 +1193,27 @@ to the core.
   prompt is shown once per run). Reading it from `pick` works: the panel
   does not take the selection from the app behind it. The Snippets
   palette fills `{selection}` with it.
+- `selection.files()`: the files selected in the file manager in front,
+  as absolute paths in its order (`string[]`, never rejects). macOS:
+  Finder's marked items, the front window's or the Desktop's, over
+  `osascript`, and only while Finder is the app in front; a folder shown
+  with nothing marked is nothing, not the folder. Empty otherwise, and on
+  Linux, where no file manager exposes its selection portably. Read once
+  per panel show and cached like `dialog.current()` (~190 ms on hornet,
+  1 ms when Finder is not in front), so a `suggest`, a listing on every
+  keystroke and a `pick` inside the palette share one read and all see
+  what was marked when the panel came up. The Files palette's
+  "Selected in Finder" section, System's Quick Look row and the Images
+  palette's inputs read it; `{files}` in a snippet or a quicklink fills
+  it in.
+- `textAtHand()`: what a palette opened with nothing typed should work
+  on: the selection (a failed read counts as none), else the clipboard's
+  text (`clipboard.current()`, or the newest text entry), trimmed, as
+  `{ text, where: "selection" | "clipboard" }` or null; one read per
+  `TEXT_AT_HAND_TTL_MS` (2 s) across calls, so an `input` palette may ask
+  on every empty listing. Translate and Turkish start from it.
+- `dialog.current()`: the open or save panel in front, or null (the
+  `dialog` effect types a path into it).
 - `permissions.status()` (`Permissions`: `accessibility`, `calendar`,
   `full_disk_access`, `input_monitoring`, `location`; a boolean or a
   `granted` / `denied` / `not_determined` / `restricted` / `unavailable`
@@ -1213,14 +1249,15 @@ to the core.
   `CONCEAL_SECONDS` (30) is the default clear.
 - `expand(text, sources)`: the placeholder grammar every text pal fills
   in shares (`sdk/src/placeholders.ts`): `{clipboard}`, `{selection}`,
-  `{date}`, `{time}`, `{datetime}` (each with `format=` over the tokens
-  `YYYY YY MM DD HH mm ss ddd MMM` and `offset=+1d` / `-2w` / `+3h` /
-  `-90m`), `{uuid}`, `{cursor}` (dropped), `{snippet name=...}` (one
-  level deep); anything else in braces stays. `sources`
+  `{files}` (the Finder selection's paths one per line, or joined by
+  `sep=`), `{date}`, `{time}`, `{datetime}` (each with `format=` over the
+  tokens `YYYY YY MM DD HH mm ss ddd MMM` and `offset=+1d` / `-2w` /
+  `+3h` / `-90m`), `{uuid}`, `{cursor}` (dropped), `{snippet name=...}`
+  (one level deep); anything else in braces stays. `sources`
   (`PlaceholderSources`): `clipboard()` (read once, only when asked),
-  `selection?()` (the clipboard when null or throwing), `now?()`,
-  `uuid?()`, `snippet?(name)`; each optional one absent leaves its
-  placeholder as written. `hasPlaceholders(text)`, `formatDate(d,
+  `selection?()` (the clipboard when null or throwing), `files?()` (empty
+  when throwing), `now?()`, `uuid?()`, `snippet?(name)`; each optional
+  one absent leaves its placeholder as written. `hasPlaceholders(text)`, `formatDate(d,
   format)`, `offsetDate(d, offset)`, `isoDate(d)`, `isoTime(d)`,
   `FORMAT_TOKENS`, `PLACEHOLDERS` come with it. Snippets pastes with it,
   Quicklinks fills a url with it (the values percent-encoded through the
@@ -1297,16 +1334,20 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   { action?, size? })`: keycaps then a muted caption, the footer line;
   `POPOVER_W` (396), the width a bar popover's view measures fixed widths
   against.
-- Text: `bytes(n)` ("3.2 KB", "1.5 MB"), `truncate(s, n)` (an ellipsis as the
+- Text: `bytes(n)` ("3.2 KB", "1.5 MB", "1.50 TB"), `truncate(s, n)` (an ellipsis as the
   last character), `oneLine(s)` (whitespace runs as one space, invisible
   characters such as a mail preheader's zero-width joiners out), `slug(s)`,
+  `appName(bundleId)` (`com.google.Chrome` as "Chrome": a small table, else
+  the last segment; what a clipboard entry's `source_app` reads as),
   `errorMessage(e)` (an Error's message, else the value as text),
   `mdEscape(text)` (plain text as markdown that reads as the text, links
   left whole).
 - Paths: `home(path)` above, and `tilde(path)`, its reverse for subtitles.
 - Time: `now()`, unix ms; `PAL_NOW` (`2026-09-16T10:30:00`, local to `TZ`)
   pins it, so a test fixes the day and the hour. Every read of the time in
-  an extension should go through it. Writing a moment: `clock(t)` (`14:05`,
+  an extension should go through it. Reading a duration: `parseDuration(s)`
+  (`90s`, `25m`, `1h30m`, `1d`, a bare number as minutes; seconds, or
+  `undefined`), what States' holds and System's Keep Awake read. Writing a moment: `clock(t)` (`14:05`,
   24 h), `dayName(t)` (`Fri 18 Sep`), `dayNameYear(t)`, `isoDay(t)`
   (`2026-09-18`), `when(t)` (the clock alone today, the day before it
   on another day, the year in another year) and `ago(t)` (`just now`,
@@ -1322,7 +1363,9 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
 - Processes: `exec(argv, { ms?, cwd?, stdin?, env? })`: `{ code, out, err,
   timedOut }`, killed after `ms` (`EXEC_MS`, 10 s); `run(argv, opts)`:
   stdout, or a throw with stderr, the exit code, or "<program> did not
-  finish in N s".
+  finish in N s". `listProcesses()`: the process table as `Proc[]` (`pid`,
+  `ppid`, `uid`, `cpu`, `rss` in KiB, `comm`, `name`) from one `ps`
+  (`PS_ARGV`, `parsePs(out)`); what Processes lists and Stats ranks.
 - Tokens: `parseToken(out, now?)`: the bearer token a command printed (a
   bare line, or JSON with `access_token` and its expiry) and when it stops
   being good; `mintToken(command, now?)` runs it through `sh -c`, a
@@ -1330,7 +1373,11 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   Gmail's accounts are built on it.
 - Pictures: `pngSize(head)`: `{ width, height }` off a PNG's first 24 bytes;
   `imageData(url)`: a picture on the web as a data url for an `image` node,
-  fetched once and kept (`forgetImages()` for tests).
+  fetched once and kept (`forgetImages()` for tests); `copyImage(path,
+  fmt?)`: a PNG or JPEG file onto the clipboard as an image (AppleScript's
+  `«class PNGf»` / `«class JPEG»` on macOS, `wl-copy` or `xclip` on
+  Linux), true when it landed, false for any other format so the caller
+  falls back to `copy_files`. Images and Immich copy pictures with it.
 - `terminal`: a terminal window: `terminal.open(cmd, want?, cwd?)` /
   `terminal.argv(...)` run a command in a fresh window (the app by name or
   found in /Applications, `$TERMINAL` or the first installed on Linux),
@@ -1338,7 +1385,8 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   folder; `terminal.linux()`, `terminal.linuxArgv()`, `terminal.quote()`.
 - `files`: the rename, move and copy forms and their submits
   (`renameForm`, `moveForm`, `copyForm`, `renamePick`, `intoFolderPick`,
-  `moveTo`, `copyTo`), `archive(paths)` (`ditto` / `zip`).
+  `moveTo`, `copyTo`), `archive(paths)` (`ditto` / `zip`),
+  `quickLook(paths)` (`qlmanage -p` detached, macOS; false elsewhere).
 - `md`: markdown to the view tree: `md.render(text, { width?, maxNodes?,
   padding?, shift?, dropTitle?, where? })`, `md.parseBlocks`, `md.inline`,
   `md.frontmatter`, `md.outline`, `md.plain`, `md.excerpt`.

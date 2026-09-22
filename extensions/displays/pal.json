@@ -1,0 +1,182 @@
+{
+  "name": "displays",
+  "title": "Displays",
+  "description": "Every display with its mode and brightness; resolution and HiDPI scaling, rotation, mirroring and the main display through displayplacer; brightness, contrast, volume and the input source of an external monitor over DDC; arrangement presets.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰍹",
+      "bg": "slate"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": ["screen", "monitor", "brightness", "resolution"],
+  "settings": [
+    {
+      "kind": "number",
+      "id": "step",
+      "label": "Brightness step",
+      "description": "What one press of the arrow keys, a scroll on the bar item or a `+10`-style link moves a level by, in percent. Shift with an arrow always moves 1%.",
+      "min": 1,
+      "max": 25,
+      "step": 1,
+      "unit": "%",
+      "default": 5
+    },
+    {
+      "kind": "select",
+      "id": "bar_display",
+      "label": "Display on the bar",
+      "description": "Whose brightness the bar item shows: the first external display (the built-in one has keys of its own), the main display, or the built-in one.",
+      "bar": "brightness",
+      "options": [
+        { "id": "external", "title": "The external display" },
+        { "id": "main", "title": "The main display" },
+        { "id": "builtin", "title": "The built-in display" }
+      ],
+      "default": "external"
+    },
+    {
+      "kind": "boolean",
+      "id": "input_alt",
+      "label": "LG input codes",
+      "text": "Use the alternate DDC input addressing (LG and some others)",
+      "description": "Most monitors take the standard VCP 60 codes for their inputs (DisplayPort 1 is 15, HDMI 1 is 17). LG's take 208 and 144 instead; turn this on if switching the input does nothing.",
+      "default": false
+    }
+  ],
+  "store": {
+    "tagline": "Resolution, brightness, rotation, mirroring and input source, plus arrangement presets",
+    "category": "system",
+    "features": [
+      "One row per display: its name, the mode it is in (resolution, refresh rate, HiDPI), rotation, main and mirror tags, the brightness as the accessory",
+      "Enter drills into the display: Brightness, Contrast and Volume as sliders with keys, the input source, every mode it can take (a confirm when the resolution changes, with Undo one row away), rotation, mirroring, Make main",
+      "Arrangement presets: save the current arrangement under a name, apply it from the palette, the bar or `pal://displays/preset?name=`",
+      "The built-in display through the `brightness` CLI, external monitors over DDC/CI (`m1ddc` on Apple Silicon, `ddcctl` on Intel, `ddcutil` on Linux); modes and arrangement through `displayplacer`; each optional, with a row that says what to install",
+      "A bar item with the external display's brightness, its popover a slider per display"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"],
+    "screenshots": [],
+    "actions": [
+      { "title": "Open", "description": "Drills into the display: its controls, modes and arrangement.", "keys": "enter" },
+      { "title": "Set brightness", "description": "The percent typed in the bar (or +10 / -10).", "keys": "cmd+b" },
+      { "title": "Make main", "description": "Moves the arrangement so this display is at (0,0).", "keys": "cmd+shift+m" }
+    ]
+  },
+  "palettes": {
+    "displays": {
+      "kind": "live",
+      "description": "Every display with its mode and brightness, the arrangement presets, Night Shift and Sleep displays; Enter drills into a display's controls.",
+      "keys": [
+        { "keys": "enter", "title": "Open the display, apply a preset, run a row" },
+        { "keys": "cmd+b", "title": "Set the brightness to the percent typed in the bar" },
+        { "keys": "cmd+shift+m", "title": "Make the display the main one" },
+        { "keys": "cmd+c", "title": "Copy the display's id, for links" },
+        { "keys": "cmd+r", "title": "Rename a preset" },
+        { "keys": "cmd+backspace", "title": "Delete a preset" }
+      ]
+    }
+  },
+  "links": {
+    "brightness": {
+      "description": "Set a display's brightness",
+      "params": {
+        "value": { "description": "A percent (50), or a step (+10, -5)", "required": true },
+        "display": { "description": "main, external, builtin, a display id or a name; the bar item's display otherwise" }
+      }
+    },
+    "contrast": {
+      "description": "Set an external monitor's contrast over DDC",
+      "params": {
+        "value": { "description": "A percent (50), or a step (+10, -5)", "required": true },
+        "display": { "description": "external, a display id or a name; the first external otherwise" }
+      }
+    },
+    "volume": {
+      "description": "Set an external monitor's speaker volume over DDC",
+      "params": {
+        "value": { "description": "A percent (50), or a step (+10, -5)", "required": true },
+        "display": { "description": "external, a display id or a name; the first external otherwise" }
+      }
+    },
+    "input": {
+      "description": "Switch an external monitor's input source over DDC",
+      "params": {
+        "source": { "description": "hdmi1, hdmi2, dp1, dp2, usbc, or a raw VCP 60 code", "required": true },
+        "display": { "description": "external, a display id or a name; the first external otherwise" }
+      }
+    },
+    "mode": {
+      "description": "Set a display's resolution (displayplacer, or the compositor on Linux)",
+      "params": {
+        "mode": { "description": "A mode number from the palette, or 1800x1169, 1800x1169@60, 2560x1440 hidpi, 3024x1964 native", "required": true },
+        "display": { "description": "main, external, builtin, a display id or a name; the main display otherwise" }
+      }
+    },
+    "preset": {
+      "description": "Apply a saved arrangement preset",
+      "params": {
+        "name": { "description": "The preset's name", "required": true }
+      }
+    },
+    "night-shift": {
+      "description": "Night Shift on, off or toggled (the nightlight CLI)",
+      "params": {
+        "state": { "description": "on, off or toggle; toggle otherwise" }
+      }
+    }
+  },
+  "states": {
+    "brightness": { "description": "The bar item's display's brightness, percent; unset while unreadable", "kind": "number" },
+    "external": { "description": "How many external displays are connected", "kind": "number" },
+    "count": { "description": "How many displays are online", "kind": "number" },
+    "settable": { "description": "Whether any display's brightness can be set from pal", "kind": "boolean" }
+  },
+  "bar": {
+    "brightness": {
+      "title": "Brightness",
+      "description": "The external display's brightness (or the main or built-in one's, by the setting), with a slider per display in the popover, a scroll on the item moving it by the step. Hidden while only the built-in display is there, whose keys already set it, and while nothing installed can set any display: its rules, which Settings > Bar lets you turn off to keep the item.",
+      "refresh": { "every": 60, "on": ["wake", "show"] },
+      "mocks": {
+        "laptop": {
+          "title": "Only the built-in display, hidden",
+          "item": {
+            "hidden": true,
+            "empty": { "icon": "󰃟", "title": "50%", "tooltip": "Built-in Retina Display · 50%" }
+          }
+        },
+        "external": {
+          "title": "An external display connected",
+          "item": { "icon": "󰃠", "title": "70%", "tooltip": "DELL U2720Q · 70% · 2560×1440 @ 60 Hz · HiDPI" }
+        },
+        "dim": {
+          "title": "Dimmed",
+          "item": { "icon": "󰃞", "title": "15%", "tooltip": "DELL U2720Q · 15% · 2560×1440 @ 60 Hz · HiDPI" }
+        },
+        "unreadable": {
+          "title": "External connected, no DDC tool",
+          "item": {
+            "hidden": true,
+            "empty": { "icon": "󰃟", "tooltip": "DELL U2720Q: install m1ddc to set its brightness" }
+          }
+        }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open the display in pal" },
+        { "keys": "up / down", "title": "Move between displays" },
+        { "keys": "left / right", "title": "Brightness down / up by the step" },
+        { "keys": "shift+left / shift+right", "title": "Brightness by 1%" },
+        { "keys": "1…9, 0", "title": "10…90%, 100%" },
+        { "keys": "n", "title": "Night Shift on / off" },
+        { "keys": "p", "title": "Open the Displays palette" }
+      ],
+      "rules": [
+        { "id": "laptop", "when": "displays.external == 0", "description": "Only the built-in display: its keyboard keys set it. Off, and the item stays with the built-in display's level.", "hidden": true },
+        { "id": "unsettable", "when": "not displays.settable", "description": "Nothing installed can set any display's brightness: nothing to open a slider on.", "hidden": true }
+      ]
+    }
+  }
+}

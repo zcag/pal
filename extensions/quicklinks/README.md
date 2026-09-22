@@ -9,11 +9,11 @@ field per placeholder name (`Query`, or the name given) after the query;
 Tab into them, and Enter opens the url with them filled in,
 percent-encoded. A pick that arrives without the
 values (`pal run`, an item hotkey) asks for them in a form with the same
-fields. `{selection}` and `{clipboard}` in a
-url are filled without asking (the text selected in the app in front, or
-the newest copy; the SDK's placeholders, `{date}` and the rest included,
-each percent-encoded), so `https://translate.google.com/?text={selection}`
-opens in one Enter. The row shows the placeholder as a tag, the browser
+fields. `{selection}`, `{clipboard}` and `{files}` in a
+url are filled without asking (the text selected in the app in front, the
+newest copy, or the paths selected in Finder; the SDK's placeholders,
+`{date}` and the rest included, each percent-encoded), so
+`https://translate.google.com/?text={selection}` opens in one Enter. The row shows the placeholder as a tag, the browser
 it opens with when one is named, and the url as its subtitle; the icon is
 the site's favicon; keywords are extra words the search matches.
 

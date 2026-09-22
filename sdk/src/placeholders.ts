@@ -1,21 +1,25 @@
 // Dynamic placeholders, one grammar for every text pal fills in before it
 // pastes, copies or opens it (a snippet, a quicklink's url, a note
-// appended to a page): `{clipboard}`, `{selection}`, `{date}`, `{time}`,
-// `{datetime}`, `{uuid}`, `{cursor}` and `{snippet name=...}`, with
-// `format=` and `offset=` on the date and time. Pure; the clipboard, the
-// selection, the clock, the ids and the other snippets come in as
-// `Sources`, so a test pins them and an extension decides what it has.
+// appended to a page): `{clipboard}`, `{selection}`, `{files}`, `{date}`,
+// `{time}`, `{datetime}`, `{uuid}`, `{cursor}` and `{snippet name=...}`,
+// with `format=` and `offset=` on the date and time and `sep=` on the
+// files. Pure; the clipboard, the selection, the Finder selection, the
+// clock, the ids and the other snippets come in as `Sources`, so a test
+// pins them and an extension decides what it has.
 
 /**
  * What a placeholder needs from outside: the clipboard's text (asked only
  * when `{clipboard}` occurs), the selected text (asked only for
  * `{selection}`; the clipboard stands in when it answers nothing or is
- * absent), the moment, fresh ids, and another snippet's text by name for
- * `{snippet name=...}` (left as written when absent or unknown).
+ * absent), the files selected in Finder (asked only for `{files}`; left
+ * as written when absent, empty when nothing is selected), the moment,
+ * fresh ids, and another snippet's text by name for `{snippet name=...}`
+ * (left as written when absent or unknown).
  */
 export type Sources = {
   clipboard: () => Promise<string> | string;
   selection?: () => Promise<string | null> | string | null;
+  files?: () => Promise<string[]> | string[];
   now?: () => Date;
   uuid?: () => string;
   snippet?: (name: string) => Promise<string | undefined> | string | undefined;
@@ -34,14 +38,17 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
  * The placeholders in the order they are looked for; `{datetime}` is date
  * and time with a space. `{selection}` is the text selected in the app in
  * front (`selection.text()`; Raycast's spelling), the clipboard when
- * nothing is selected or the read is refused. `{cursor}` is not one here:
+ * nothing is selected or the read is refused. `{files}` is the Finder
+ * selection (`selection.files()`), the paths one per line, or joined by
+ * `sep=` (`{files sep=" "}`); empty when Finder is not in front or
+ * nothing is marked. `{cursor}` is not one here:
  * a paste from the panel cannot place the caret, so `expand` drops it
  * from the text; expansion by keyword (the app's, macOS) moves the caret
  * back to it. `{snippet name=sig}` is another snippet's text, its own
  * placeholders filled, one level deep (a `{snippet}` inside it stays as
  * written).
  */
-export const PLACEHOLDERS = ["clipboard", "selection", "date", "time", "datetime", "uuid", "cursor", "snippet"] as const;
+export const PLACEHOLDERS = ["clipboard", "selection", "files", "date", "time", "datetime", "uuid", "cursor", "snippet"] as const;
 /**
  * `format=` tokens for `{date}` and `{time}`: `YYYY`, `YY`, `MM`, `DD`,
  * `HH`, `mm`, `ss`, `ddd` (Mon), `MMM` (Sep); anything else in the format
@@ -51,7 +58,7 @@ export const FORMAT_TOKENS = ["YYYY", "YY", "MM", "DD", "HH", "mm", "ss", "ddd",
 /** `offset=`: a signed count of days, weeks, hours or minutes (`+1d`, `-2w`, `+3h`, `-90m`), applied before the format. */
 const OFFSET_RE = /^([+-]?\d+)([dwhm])$/;
 /** `{name}` or `{name key=value key="a value"}`; the attributes are read by `attrs`. */
-const RE = /\{(clipboard|selection|date|time|datetime|uuid|cursor|snippet)((?:\s+[a-z]+=(?:"[^"]*"|[^\s}]+))*)\s*\}/g;
+const RE = /\{(clipboard|selection|files|date|time|datetime|uuid|cursor|snippet)((?:\s+[a-z]+=(?:"[^"]*"|[^\s}]+))*)\s*\}/g;
 
 /** True when the text has a placeholder to fill. */
 export const hasPlaceholders = (text: string) => new RegExp(RE.source).test(text);
@@ -96,14 +103,15 @@ export function formatDate(d: Date, format: string): string {
 }
 
 /**
- * Every placeholder replaced: `{clipboard}`, `{selection}`, `{date}`,
- * `{time}`, `{datetime}` (with `format=` and `offset=`), `{uuid}` (a
- * fresh one each), `{snippet name=...}`; `{cursor}` goes. The clipboard
- * and the selection are read once each and only when asked for; a
- * selection read that fails (no Accessibility) falls back to the
- * clipboard rather than failing the paste. Anything else in braces is
- * left as it is (a snippet of code has braces), a `{snippet}` with no
- * source or an unknown name too.
+ * Every placeholder replaced: `{clipboard}`, `{selection}`, `{files}`
+ * (with `sep=`), `{date}`, `{time}`, `{datetime}` (with `format=` and
+ * `offset=`), `{uuid}` (a fresh one each), `{snippet name=...}`;
+ * `{cursor}` goes. The clipboard, the selection and the files are read
+ * once each and only when asked for; a selection read that fails (no
+ * Accessibility) falls back to the clipboard rather than failing the
+ * paste, a files read that fails is no files. Anything else in braces is
+ * left as it is (a snippet of code has braces), a `{snippet}` or a
+ * `{files}` with no source or an unknown name too.
  */
 export async function expand(text: string, s: Sources, depth = 0): Promise<string> {
   if (!hasPlaceholders(text)) return text;
@@ -111,7 +119,9 @@ export async function expand(text: string, s: Sources, depth = 0): Promise<strin
   const uuid = s.uuid ?? (() => crypto.randomUUID());
   let selected: string | null | undefined;
   let clip: string | undefined;
+  let paths: string[] | undefined;
   const clipboard = async () => (clip ??= await s.clipboard());
+  const files = async () => (paths ??= await Promise.resolve(s.files!()).catch(() => []));
   const selection = async () => {
     if (selected === undefined) {
       try { selected = s.selection ? await s.selection() : null; } catch { selected = null; }
@@ -128,6 +138,7 @@ export async function expand(text: string, s: Sources, depth = 0): Promise<strin
     switch (m[1]) {
       case "clipboard": out += await clipboard(); break;
       case "selection": out += await selection(); break;
+      case "files": out += s.files ? (await files()).join(a.sep ?? "\n") : m[0]; break;
       case "date": out += a.format ? formatDate(at, a.format) : isoDate(at); break;
       case "time": out += a.format ? formatDate(at, a.format) : isoTime(at); break;
       case "datetime": out += a.format ? formatDate(at, a.format) : `${isoDate(at)} ${isoTime(at)}`; break;

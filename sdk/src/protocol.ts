@@ -236,9 +236,15 @@ export type ViewNode =
    * otherwise, so a faint tint keeps the panel's text; a room tile in
    * the room's colour); `radius` rounds it (`--pal-radius-tile`). A
    * surface without `padding` sits flush against its children, so give
-   * it some.
+   * it some. `flex` is a weight: the stack takes that share of its
+   * parent's free space against its `flex` siblings (`flex: n 1 0`), so a
+   * row of weighted stacks divides the width in proportion without px
+   * arithmetic, whatever the panel's width; `width` and `height` (px)
+   * make it a box of that size. A weighted or sized stack clips what
+   * does not fit (a label in a cell), as a `tile` does. A treemap is a
+   * `height` board of `flex` strips of `flex` boxes.
    */
-  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated" | HexColor; radius?: boolean; children: ViewNode[] })
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; flex?: number; width?: number; height?: number; minHeight?: number; surface?: "sunken" | "elevated" | HexColor; radius?: boolean; children: ViewNode[] })
   /**
    * One run of text. `style`: `title` (15 px semibold), `body` (13 px),
    * `muted` (13 px, muted colour), `mono` (12 px mono), `number` (tabular

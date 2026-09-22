@@ -535,6 +535,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__stack[data-justify="between"] { justify-content: space-between; }
 /* A grow node takes the free space of its parent, never less than its content: with a basis of 0 a column inside an auto-height parent (the bar popover's root, a nested column) collapsed to nothing and its children overflowed over their neighbours. */
 .pal-view__stack[data-grow] { flex: 1 1 auto; }
+/* A weighted (`flex`) or sized (`width`/`height`) stack is a box whose size is its parent's to give: it clips what does not fit, padding inside. */
+.pal-view__stack[data-box] { box-sizing: border-box; overflow: hidden; }
 /* Surfaces: a well behind a board, a card behind stats. A surface wants its own padding; without one it hugs its children. */
 .pal-view__stack[data-surface="sunken"] { background: var(--pal-bg-sunken, #141417); }
 .pal-view__stack[data-surface="elevated"] { background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, inset 0 1px 0 rgba(255, 255, 255, 0.07)); }
@@ -679,6 +681,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view .pal-view__stack[data-action]:active, .pal-view .pal-view__tile[data-action]:active { transform: scale(0.985); filter: brightness(0.96); }
 .pal-view .pal-view__stack[data-action][data-surface="custom"]:hover { filter: brightness(1.1); }
 .pal-view [data-selected] { box-shadow: 0 0 0 2px var(--pal-bg, #1c1c21), 0 0 0 4px var(--pal-accent, #9f97ff); }
+/* Inside a clipping box (a treemap's strips) the ring would be cut on the box's edges, so it goes inside instead. */
+.pal-view__stack[data-box] [data-selected] { box-shadow: inset 0 0 0 2px var(--pal-accent, #9f97ff), inset 0 0 0 4px var(--pal-bg, #1c1c21); }
 .pal-view .pal-view__stack[data-selected][data-surface="elevated"] { box-shadow: 0 0 0 2px var(--pal-bg, #1c1c21), 0 0 0 4px var(--pal-accent, #9f97ff); }
 .pal-view .pal-kbd, .pal-view .pal-tag { flex: none; }
 /* Entrances (brief's motion table): fade, the toast's rise and its three siblings (--pal-motion-slide), a horizontal unfold for a card turning over, a pop from 0.8 for a merged tile. `both` keeps a delayed node hidden until its turn. A `move` (View.tsx useMove) is a transform played by script over --pal-motion-move; a re-mounted mover has its entrance switched off inline. */

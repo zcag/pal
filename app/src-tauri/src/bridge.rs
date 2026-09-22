@@ -13,7 +13,7 @@
 //! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)
 //! - `core/media.{now_playing, control, artwork}` (media.rs)
 //! - `core/ocr.{image {path | data}, available}` (ocr.rs)
-//! - `core/selection.text` (selection.rs)
+//! - `core/selection.{text,files}` (selection.rs)
 //! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
 //! - `core/settings.{get {extension, manifest}, set {extension, palette?, values}}` (settings.rs)

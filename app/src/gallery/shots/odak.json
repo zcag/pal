@@ -1,0 +1,2591 @@
+{
+  "palettes": {
+    "odak": {
+      "title": "Todos",
+      "icon": {
+        "tile": {
+          "glyph": "󰄴",
+          "bg": "indigo"
+        }
+      },
+      "live": true,
+      "placeholder": "A todo, a tag, a section",
+      "items": [
+        {
+          "id": "cmd:add",
+          "name": "New todo",
+          "subtitle": "Typed in the bar: #tag, ! for urgent, /section, a day at the end",
+          "icon": "󰐕",
+          "keywords": [
+            "add",
+            "create",
+            "new"
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Todo",
+              "required": true
+            }
+          ],
+          "actions": [
+            {
+              "id": "add",
+              "title": "Add",
+              "args": true
+            },
+            {
+              "id": "palette",
+              "title": "Open Add Todo",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "cmd:open",
+          "name": "Open odak",
+          "subtitle": "127.0.0.1:50692",
+          "icon": "󰖟",
+          "keywords": [
+            "web",
+            "browser"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open odak"
+            }
+          ]
+        },
+        {
+          "id": "d74cc4c1",
+          "name": "Call the bank about the card",
+          "icon": "󰄰",
+          "keywords": [
+            "Today",
+            "personal",
+            "overdue"
+          ],
+          "section": "Overdue",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            },
+            {
+              "tag": "overdue 3 d",
+              "color": "red"
+            }
+          ],
+          "detail": {
+            "markdown": "**Call the bank about the card**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Today"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Due",
+                "value": "Sat 19 Sep 2026 (overdue 3 d)"
+              },
+              {
+                "label": "Id",
+                "value": "d74cc4c1"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "c1019507",
+          "name": "Review the parser PR https://github.com/example/pal/pull/42",
+          "icon": "󰄰",
+          "keywords": [
+            "Focus",
+            "work",
+            "today"
+          ],
+          "section": "Due today",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            },
+            {
+              "tag": "today",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "markdown": "**Review the parser PR https://github.com/example/pal/pull/42**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Focus"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  }
+                ]
+              },
+              {
+                "label": "Due",
+                "value": "Tue 22 Sep 2026 (today)"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "github.com/example/pal/pull/42",
+                  "href": "https://github.com/example/pal/pull/42"
+                }
+              },
+              {
+                "label": "Id",
+                "value": "c1019507"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "link",
+              "title": "Open link",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "2f801c41",
+          "name": "Ship the release notes",
+          "icon": {
+            "glyph": "󰀨",
+            "color": "red"
+          },
+          "keywords": [
+            "Focus",
+            "work",
+            "urgent"
+          ],
+          "section": "Focus",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            },
+            {
+              "text": "1 subtask"
+            }
+          ],
+          "detail": {
+            "markdown": "**Ship the release notes**\n\n- [ ] Write the changelog entry",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Focus"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  }
+                ]
+              },
+              {
+                "label": "Urgent",
+                "tags": [
+                  {
+                    "text": "urgent",
+                    "color": "red"
+                  }
+                ]
+              },
+              {
+                "label": "Subtasks",
+                "value": "1 open of 1"
+              },
+              {
+                "label": "Id",
+                "value": "2f801c41"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Not urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "752e0c39",
+          "name": "Write the changelog entry",
+          "subtitle": "↳ Ship the release notes",
+          "icon": "󰄰",
+          "keywords": [
+            "Focus",
+            "work"
+          ],
+          "section": "Focus",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            }
+          ],
+          "detail": {
+            "markdown": "**Write the changelog entry**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Focus"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  }
+                ]
+              },
+              {
+                "label": "Under",
+                "value": "Ship the release notes"
+              },
+              {
+                "label": "Id",
+                "value": "752e0c39"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "281e3eb4",
+          "name": "Book the dentist",
+          "icon": "󰄰",
+          "keywords": [
+            "Next",
+            "personal",
+            "Sat"
+          ],
+          "section": "Next",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            },
+            {
+              "tag": "Sat",
+              "color": "grey"
+            }
+          ],
+          "detail": {
+            "markdown": "**Book the dentist**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Next"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Due",
+                "value": "Sat 26 Sep 2026 (Sat)"
+              },
+              {
+                "label": "Id",
+                "value": "281e3eb4"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "7663ff46",
+          "name": "Pick a marketing project to start",
+          "icon": "󰄰",
+          "keywords": [
+            "Next",
+            "work"
+          ],
+          "section": "Next",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            }
+          ],
+          "detail": {
+            "markdown": "**Pick a marketing project to start**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Next"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  }
+                ]
+              },
+              {
+                "label": "Id",
+                "value": "7663ff46"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "3401f560",
+          "name": "Renew the passport before the trip",
+          "icon": "󰄰",
+          "keywords": [
+            "Next",
+            "personal",
+            "Thu"
+          ],
+          "section": "Next",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            },
+            {
+              "tag": "Thu",
+              "color": "grey"
+            }
+          ],
+          "detail": {
+            "markdown": "**Renew the passport before the trip**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Next"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Due",
+                "value": "Thu 24 Sep 2026 (Thu)"
+              },
+              {
+                "label": "Id",
+                "value": "3401f560"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "20d103a7",
+          "name": "Move the vault's flows to one page",
+          "icon": "󰄰",
+          "keywords": [
+            "Backlog",
+            "personal"
+          ],
+          "section": "Backlog",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            }
+          ],
+          "detail": {
+            "markdown": "**Move the vault's flows to one page**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Backlog"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Id",
+                "value": "20d103a7"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "67276f99",
+          "name": "Compare the two hosting quotes https://example.com/quotes",
+          "icon": "󰄰",
+          "keywords": [
+            "Backlog",
+            "work"
+          ],
+          "section": "Backlog",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            }
+          ],
+          "detail": {
+            "markdown": "**Compare the two hosting quotes https://example.com/quotes**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Backlog"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  }
+                ]
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "example.com/quotes",
+                  "href": "https://example.com/quotes"
+                }
+              },
+              {
+                "label": "Id",
+                "value": "67276f99"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "link",
+              "title": "Open link",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "c5ab5486",
+          "name": "Learn the accordion",
+          "icon": "󰄰",
+          "keywords": [
+            "Someday"
+          ],
+          "section": "Someday",
+          "accessories": [],
+          "detail": {
+            "markdown": "**Learn the accordion**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Someday"
+              },
+              {
+                "label": "Id",
+                "value": "c5ab5486"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "32f3eb5d",
+          "name": "Read the Dune sequels",
+          "icon": "󰄰",
+          "keywords": [
+            "Someday"
+          ],
+          "section": "Someday",
+          "accessories": [],
+          "detail": {
+            "markdown": "**Read the Dune sequels**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Someday"
+              },
+              {
+                "label": "Id",
+                "value": "32f3eb5d"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "35bc494b",
+          "name": "Check the alt text idea",
+          "icon": "󰄰",
+          "keywords": [
+            "Inbox",
+            "work",
+            "idea"
+          ],
+          "section": "Inbox",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            },
+            {
+              "tag": "idea",
+              "color": "green"
+            }
+          ],
+          "detail": {
+            "markdown": "**Check the alt text idea**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Inbox"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  },
+                  {
+                    "text": "idea",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "Id",
+                "value": "35bc494b"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "9ca6bcc7",
+          "name": "Ask Lina about the parser benchmark",
+          "icon": {
+            "glyph": "󰀨",
+            "color": "red"
+          },
+          "keywords": [
+            "Inbox",
+            "work",
+            "urgent"
+          ],
+          "section": "Inbox",
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "pink"
+            }
+          ],
+          "detail": {
+            "markdown": "**Ask Lina about the parser benchmark**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Inbox"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "work",
+                    "color": "pink"
+                  }
+                ]
+              },
+              {
+                "label": "Urgent",
+                "tags": [
+                  {
+                    "text": "urgent",
+                    "color": "red"
+                  }
+                ]
+              },
+              {
+                "label": "Id",
+                "value": "9ca6bcc7"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Not urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "543685da",
+          "name": "Visa appointment confirmation",
+          "icon": "󰄰",
+          "keywords": [
+            "Waiting",
+            "personal"
+          ],
+          "section": "Not yet",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            },
+            {
+              "tag": "from Sat 3 Oct",
+              "color": "grey"
+            }
+          ],
+          "detail": {
+            "markdown": "**Visa appointment confirmation**",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Waiting"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Waits until",
+                "value": "Sat 3 Oct 2026"
+              },
+              {
+                "label": "Id",
+                "value": "543685da"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "complete",
+              "title": "Complete",
+              "multi": true
+            },
+            {
+              "id": "edit",
+              "title": "Edit…",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "tomorrow",
+              "title": "Snooze to tomorrow",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "snooze",
+              "title": "Snooze…",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "move",
+              "title": "Move to section…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "urgent",
+              "title": "Mark urgent",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "subtask",
+              "title": "Add subtask…",
+              "shortcut": "cmd+n"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo? Its subtasks go with it.",
+              "multi": true
+            }
+          ]
+        }
+      ]
+    },
+    "add": {
+      "title": "Add Todo",
+      "icon": {
+        "tile": {
+          "glyph": "󰄴",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "placeholder": "Todo, #tag, !, /section, a day at the end",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:type",
+            "name": "Type a todo",
+            "subtitle": "Lands in Inbox; #tag, ! for urgent, /section, a day at the end: tomorrow, fri, next mon, in 3 days, 20 sep",
+            "icon": "󰐕",
+            "actions": []
+          }
+        ],
+        "call the bank about the card #personal ! fri": [
+          {
+            "id": "new:call the bank about the card #personal ! fri",
+            "name": "call the bank about the card",
+            "subtitle": "Inbox · due Fri 25 Sep · urgent",
+            "icon": {
+              "glyph": "󰀨",
+              "color": "red"
+            },
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              },
+              {
+                "tag": "Fri",
+                "color": "grey"
+              }
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add"
+              },
+              {
+                "id": "another",
+                "title": "Add and keep the line",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-line",
+                "title": "Copy the line",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          }
+        ]
+      },
+      "fallback": "Add “{query}” to odak"
+    },
+    "search": {
+      "title": "Search Todos",
+      "icon": {
+        "tile": {
+          "glyph": "󰄴",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "placeholder": "Words from the todo, a tag, a section",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search every todo",
+            "subtitle": "Words against the text, tags and section, open and completed alike",
+            "icon": "󰍉",
+            "actions": []
+          }
+        ],
+        "personal": [
+          {
+            "id": "20d103a7",
+            "name": "Move the vault's flows to one page",
+            "icon": "󰄰",
+            "keywords": [
+              "Backlog",
+              "personal"
+            ],
+            "section": "Backlog",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              }
+            ],
+            "detail": {
+              "markdown": "**Move the vault's flows to one page**",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Backlog"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Id",
+                  "value": "20d103a7"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "complete",
+                "title": "Complete",
+                "multi": true
+              },
+              {
+                "id": "edit",
+                "title": "Edit…",
+                "shortcut": "cmd+e"
+              },
+              {
+                "id": "tomorrow",
+                "title": "Snooze to tomorrow",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "snooze",
+                "title": "Snooze…",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "move",
+                "title": "Move to section…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "urgent",
+                "title": "Mark urgent",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "subtask",
+                "title": "Add subtask…",
+                "shortcut": "cmd+n"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy link",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo? Its subtasks go with it.",
+                "multi": true
+              }
+            ]
+          },
+          {
+            "id": "d74cc4c1",
+            "name": "Call the bank about the card",
+            "icon": "󰄰",
+            "keywords": [
+              "Today",
+              "personal",
+              "overdue"
+            ],
+            "section": "Today",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              },
+              {
+                "tag": "overdue 3 d",
+                "color": "red"
+              }
+            ],
+            "detail": {
+              "markdown": "**Call the bank about the card**",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Today"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Due",
+                  "value": "Sat 19 Sep 2026 (overdue 3 d)"
+                },
+                {
+                  "label": "Id",
+                  "value": "d74cc4c1"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "complete",
+                "title": "Complete",
+                "multi": true
+              },
+              {
+                "id": "edit",
+                "title": "Edit…",
+                "shortcut": "cmd+e"
+              },
+              {
+                "id": "tomorrow",
+                "title": "Snooze to tomorrow",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "snooze",
+                "title": "Snooze…",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "move",
+                "title": "Move to section…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "urgent",
+                "title": "Mark urgent",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "subtask",
+                "title": "Add subtask…",
+                "shortcut": "cmd+n"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy link",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo? Its subtasks go with it.",
+                "multi": true
+              }
+            ]
+          },
+          {
+            "id": "281e3eb4",
+            "name": "Book the dentist",
+            "icon": "󰄰",
+            "keywords": [
+              "Next",
+              "personal",
+              "Sat"
+            ],
+            "section": "Next",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              },
+              {
+                "tag": "Sat",
+                "color": "grey"
+              }
+            ],
+            "detail": {
+              "markdown": "**Book the dentist**",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Next"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Due",
+                  "value": "Sat 26 Sep 2026 (Sat)"
+                },
+                {
+                  "label": "Id",
+                  "value": "281e3eb4"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "complete",
+                "title": "Complete",
+                "multi": true
+              },
+              {
+                "id": "edit",
+                "title": "Edit…",
+                "shortcut": "cmd+e"
+              },
+              {
+                "id": "tomorrow",
+                "title": "Snooze to tomorrow",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "snooze",
+                "title": "Snooze…",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "move",
+                "title": "Move to section…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "urgent",
+                "title": "Mark urgent",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "subtask",
+                "title": "Add subtask…",
+                "shortcut": "cmd+n"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy link",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo? Its subtasks go with it.",
+                "multi": true
+              }
+            ]
+          },
+          {
+            "id": "3401f560",
+            "name": "Renew the passport before the trip",
+            "icon": "󰄰",
+            "keywords": [
+              "Next",
+              "personal",
+              "Thu"
+            ],
+            "section": "Next",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              },
+              {
+                "tag": "Thu",
+                "color": "grey"
+              }
+            ],
+            "detail": {
+              "markdown": "**Renew the passport before the trip**",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Next"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Due",
+                  "value": "Thu 24 Sep 2026 (Thu)"
+                },
+                {
+                  "label": "Id",
+                  "value": "3401f560"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "complete",
+                "title": "Complete",
+                "multi": true
+              },
+              {
+                "id": "edit",
+                "title": "Edit…",
+                "shortcut": "cmd+e"
+              },
+              {
+                "id": "tomorrow",
+                "title": "Snooze to tomorrow",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "snooze",
+                "title": "Snooze…",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "move",
+                "title": "Move to section…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "urgent",
+                "title": "Mark urgent",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "subtask",
+                "title": "Add subtask…",
+                "shortcut": "cmd+n"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy link",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo? Its subtasks go with it.",
+                "multi": true
+              }
+            ]
+          },
+          {
+            "id": "543685da",
+            "name": "Visa appointment confirmation",
+            "icon": "󰄰",
+            "keywords": [
+              "Waiting",
+              "personal"
+            ],
+            "section": "Waiting",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              },
+              {
+                "tag": "from Sat 3 Oct",
+                "color": "grey"
+              }
+            ],
+            "detail": {
+              "markdown": "**Visa appointment confirmation**",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Waiting"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Waits until",
+                  "value": "Sat 3 Oct 2026"
+                },
+                {
+                  "label": "Id",
+                  "value": "543685da"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "complete",
+                "title": "Complete",
+                "multi": true
+              },
+              {
+                "id": "edit",
+                "title": "Edit…",
+                "shortcut": "cmd+e"
+              },
+              {
+                "id": "tomorrow",
+                "title": "Snooze to tomorrow",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "snooze",
+                "title": "Snooze…",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "move",
+                "title": "Move to section…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "urgent",
+                "title": "Mark urgent",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "subtask",
+                "title": "Add subtask…",
+                "shortcut": "cmd+n"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy link",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo? Its subtasks go with it.",
+                "multi": true
+              }
+            ]
+          },
+          {
+            "id": "37499fa7",
+            "name": "Water the plants",
+            "icon": {
+              "glyph": "󰄴",
+              "color": "green"
+            },
+            "keywords": [
+              "Today",
+              "personal",
+              "done",
+              "completed"
+            ],
+            "section": "Completed",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              }
+            ],
+            "detail": {
+              "markdown": "~~Water the plants~~",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Today"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Id",
+                  "value": "37499fa7"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "reopen",
+                "title": "Reopen",
+                "multi": true
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo?",
+                "multi": true
+              }
+            ]
+          },
+          {
+            "id": "4c418508",
+            "name": "Renew the domain",
+            "icon": {
+              "glyph": "󰄴",
+              "color": "green"
+            },
+            "keywords": [
+              "Inbox",
+              "personal",
+              "done",
+              "completed"
+            ],
+            "section": "Completed",
+            "accessories": [
+              {
+                "tag": "personal",
+                "color": "violet"
+              }
+            ],
+            "detail": {
+              "markdown": "~~Renew the domain~~",
+              "metadata": [
+                {
+                  "label": "Section",
+                  "value": "Inbox"
+                },
+                {
+                  "label": "Tags",
+                  "tags": [
+                    {
+                      "text": "personal",
+                      "color": "violet"
+                    }
+                  ]
+                },
+                {
+                  "label": "Id",
+                  "value": "4c418508"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "reopen",
+                "title": "Reopen",
+                "multi": true
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open odak",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this todo?",
+                "multi": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "done": {
+      "title": "Completed",
+      "icon": {
+        "tile": {
+          "glyph": "󰄴",
+          "bg": "indigo"
+        }
+      },
+      "live": true,
+      "placeholder": "A completed todo",
+      "items": [
+        {
+          "id": "37499fa7",
+          "name": "Water the plants",
+          "icon": {
+            "glyph": "󰄴",
+            "color": "green"
+          },
+          "keywords": [
+            "Today",
+            "personal",
+            "done",
+            "completed"
+          ],
+          "section": "Today",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            }
+          ],
+          "detail": {
+            "markdown": "~~Water the plants~~",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Today"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Id",
+                "value": "37499fa7"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "reopen",
+              "title": "Reopen",
+              "multi": true
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "4c418508",
+          "name": "Renew the domain",
+          "icon": {
+            "glyph": "󰄴",
+            "color": "green"
+          },
+          "keywords": [
+            "Inbox",
+            "personal",
+            "done",
+            "completed"
+          ],
+          "section": "Inbox",
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "violet"
+            }
+          ],
+          "detail": {
+            "markdown": "~~Renew the domain~~",
+            "metadata": [
+              {
+                "label": "Section",
+                "value": "Inbox"
+              },
+              {
+                "label": "Tags",
+                "tags": [
+                  {
+                    "text": "personal",
+                    "color": "violet"
+                  }
+                ]
+              },
+              {
+                "label": "Id",
+                "value": "4c418508"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "reopen",
+              "title": "Reopen",
+              "multi": true
+            },
+            {
+              "id": "copy",
+              "title": "Copy text",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open odak",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this todo?",
+              "multi": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "odak/281e3eb4:snooze": {
+      "form": {
+        "id": "281e3eb4",
+        "title": "Snooze Book the dentist",
+        "fields": [
+          {
+            "kind": "select",
+            "id": "day",
+            "label": "Until",
+            "options": [
+              {
+                "id": "2026-09-23",
+                "title": "Tomorrow, Wed 23 Sep"
+              },
+              {
+                "id": "2026-09-25",
+                "title": "In 3 days, Fri 25 Sep"
+              },
+              {
+                "id": "2026-09-28",
+                "title": "Next Monday, Mon 28 Sep"
+              },
+              {
+                "id": "2026-09-29",
+                "title": "Next week, Tue 29 Sep"
+              },
+              {
+                "id": "2026-10-22",
+                "title": "In a month, Thu 22 Oct"
+              }
+            ],
+            "default": "2026-09-23"
+          },
+          {
+            "kind": "text",
+            "id": "typed",
+            "label": "Or a day",
+            "default": "",
+            "placeholder": "fri, 20 sep, in 2 weeks, 2026-10-01",
+            "description": "Typed here, it wins over the choice above."
+          }
+        ],
+        "submit": {
+          "id": "snooze:save",
+          "title": "Snooze"
+        }
+      }
+    },
+    "odak/281e3eb4:edit": {
+      "form": {
+        "id": "281e3eb4",
+        "title": "Edit Book the dentist",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "text",
+            "label": "Todo",
+            "required": true,
+            "default": "Book the dentist"
+          },
+          {
+            "kind": "select",
+            "id": "section",
+            "label": "Section",
+            "options": [
+              {
+                "id": "Focus",
+                "title": "Focus"
+              },
+              {
+                "id": "Today",
+                "title": "Today"
+              },
+              {
+                "id": "Next",
+                "title": "Next"
+              },
+              {
+                "id": "Waiting",
+                "title": "Waiting"
+              },
+              {
+                "id": "Backlog",
+                "title": "Backlog"
+              },
+              {
+                "id": "Someday",
+                "title": "Someday"
+              },
+              {
+                "id": "Inbox",
+                "title": "Inbox"
+              }
+            ],
+            "default": "Next"
+          },
+          {
+            "kind": "text",
+            "id": "tags",
+            "label": "Tags",
+            "default": "personal",
+            "placeholder": "work, personal",
+            "description": "Comma or space separated; # optional."
+          },
+          {
+            "kind": "text",
+            "id": "due",
+            "label": "Due",
+            "default": "2026-09-26",
+            "placeholder": "tomorrow, fri, next mon, in 3 days, 2026-10-01",
+            "description": "A day in words or as a date. odak keeps a day once set: it can be moved, not cleared."
+          },
+          {
+            "kind": "checkbox",
+            "id": "urgent",
+            "label": "Urgent",
+            "text": "Flag it",
+            "default": false
+          }
+        ],
+        "submit": {
+          "id": "edit:save",
+          "title": "Save"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-todos": {
+      "palette": "odak",
+      "keys": [
+        "down*2",
+        "wait:300"
+      ]
+    },
+    "2-add": {
+      "palette": "add",
+      "keys": [
+        "type:call the bank about the card #personal ! fri",
+        "wait:400"
+      ]
+    },
+    "3-snooze": {
+      "palette": "odak",
+      "keys": [
+        "type:dentist",
+        "wait:300",
+        "cmd+s",
+        "wait:400"
+      ]
+    },
+    "4-search": {
+      "palette": "search",
+      "keys": [
+        "type:personal",
+        "wait:400",
+        "down*3",
+        "wait:300"
+      ]
+    },
+    "5-edit": {
+      "palette": "odak",
+      "keys": [
+        "type:dentist",
+        "wait:300",
+        "cmd+e",
+        "wait:400"
+      ]
+    },
+    "6-completed": {
+      "palette": "done",
+      "keys": [
+        "wait:300"
+      ]
+    }
+  }
+}

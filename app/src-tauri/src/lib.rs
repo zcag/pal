@@ -51,6 +51,7 @@ mod windows;
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
 mod panel;
 mod permissions;
+mod pershow;
 mod pick;
 mod pop;
 
@@ -189,8 +190,8 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
     views::set_visible(app, WINDOW, true, !(keep && palette.is_none()));
     let held = hold.and(palette.clone());
     events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold: hold.is_some(), steps: hold.unwrap_or(0) });
-    // After the event: the live palettes list again off this thread; a file dialog in front is looked for once per show.
-    dialog::on_shown();
+    // After the event: the live palettes list again off this thread; a file dialog in front and the Finder selection are looked for once per show.
+    pershow::on_shown();
     index::on_shown(app, held.as_deref());
     bar::on_shown(app);
     states::on_panel(app, true);

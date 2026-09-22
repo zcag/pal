@@ -106,7 +106,7 @@ describe("clipboard", () => {
   test("actions: paste first by default, plain-text paste on text, open on a link, the file copy on an image, pin/unpin by state, destructive ones confirm", async () => {
     const [text, multi, image, files, url] = await list();
     const MANAGE = ["pin", "rename", "save-file"];
-    expect(text.actions!.map((a) => a.id)).toEqual(["paste", "copy", "paste-plain", "edit", ...MANAGE, "snippet", "qr", "delete", "delete-unpinned", "clear"]);
+    expect(text.actions!.map((a) => a.id)).toEqual(["paste", "copy", "paste-plain", "edit", ...MANAGE, "snippet", "qr", "diff", "diff-two", "delete", "delete-unpinned", "clear"]);
     const pin = (i: (typeof text)) => i.actions!.find((a) => a.id === "pin")!.title;
     expect(pin(text)).toBe("Pin");
     expect(pin(multi)).toBe("Unpin");
@@ -120,7 +120,7 @@ describe("clipboard", () => {
     expect(text.actions!.find((a) => a.id === "save-file")).toEqual({ id: "save-file", title: "Save as file…", shortcut: "cmd+s" });
     expect(text.actions!.find((a) => a.id === "snippet")).toEqual({ id: "snippet", title: "Save as snippet", shortcut: "cmd+shift+s" });
     expect(text.actions!.find((a) => a.id === "qr")).toEqual({ id: "qr", title: "Show as QR code", shortcut: "cmd+shift+k" });
-    expect(url.actions!.map((a) => a.id)).toEqual(["paste", "copy", "open", "paste-plain", "edit", ...MANAGE, "snippet", "qr", "delete", "delete-unpinned", "clear"]);
+    expect(url.actions!.map((a) => a.id)).toEqual(["paste", "copy", "open", "paste-plain", "edit", ...MANAGE, "snippet", "qr", "diff", "diff-two", "delete", "delete-unpinned", "clear"]);
     // Edit, snippet and QR are for text; an image and a file list keep the file save and the name.
     expect(image.actions!.map((a) => a.id)).toEqual(["paste", "copy", "copy-file", "copy-text", ...MANAGE, "delete", "delete-unpinned", "clear"]);
     expect(image.actions![3]).toEqual({ id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" });
@@ -128,7 +128,7 @@ describe("clipboard", () => {
     const del = text.actions!.find((a) => a.id === "delete")!;
     expect(del).toEqual({ id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?", multi: true });
     // Copy and Delete take marked rows; a paste is one entry.
-    expect(text.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "delete"]);
+    expect(text.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "diff-two", "delete"]);
     expect(text.actions!.find((a) => a.id === "delete-unpinned")).toEqual({ id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." });
     expect(text.actions!.find((a) => a.id === "clear")!.confirm).toMatch(/pinned ones included/);
   });

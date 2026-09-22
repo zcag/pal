@@ -111,6 +111,25 @@ describe("View", () => {
     expect(html).toContain('role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" data-color="grey" style="flex:none;width:96px"');
   });
 
+  it("weighs a stack with flex (a zero basis, so siblings split by weight) and sizes one with width and height; either is a clipping box", () => {
+    const html = render({
+      type: "stack", direction: "row", height: 300,
+      children: [
+        { type: "stack", flex: 3, surface: "#3967ff66", children: [{ type: "text", value: "big" }] },
+        { type: "stack", flex: 1.5, children: [] },
+        { type: "stack", width: 216, children: [] },
+        { type: "stack", flex: 0, children: [] },
+        { type: "stack", flex: -2, width: -1, children: [] },
+      ],
+    });
+    expect(html).toContain('data-direction="row" data-box="true" style="flex:none;height:300px"');
+    expect(html).toContain('data-box="true" data-surface="custom" style="background:#3967ff66;flex:3 1 0px"');
+    expect(html).toContain('data-box="true" style="flex:1.5 1 0px"');
+    expect(html).toContain('data-box="true" style="flex:none;width:216px"');
+    // A weight that is not positive, a size that is not px: an ordinary stack.
+    expect(html.match(/data-box/g)).toHaveLength(4);
+  });
+
   it("carries the new entrances (the slides, pop) as data-enter; a move node needs no data of its own", () => {
     const html = render({
       type: "stack",

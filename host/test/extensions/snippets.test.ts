@@ -44,6 +44,16 @@ describe("placeholders", () => {
     expect(await expand("<{selection}>", { ...pinned, selection: async () => { throw new Error("needs Accessibility"); } })).toBe("<from the clipboard>");
     expect(await expand("<{clipboard}>", { ...pinned, selection: () => { throw new Error("not asked"); } })).toBe("<from the clipboard>");
   });
+  test("{files} is the selected paths one per line (sep= joins them otherwise), read once; empty for none, a failed read is none, and left as written without a source", async () => {
+    let reads = 0;
+    const s = { ...pinned, files: () => { reads++; return ["/a b", "/c"]; } };
+    expect(await expand("{files} | {files sep=\", \"} | {files sep=;}", s)).toBe("/a b\n/c | /a b, /c | /a b;/c");
+    expect(reads).toBe(1);
+    expect(await expand("<{files}>", { ...pinned, files: () => [] })).toBe("<>");
+    expect(await expand("<{files}>", { ...pinned, files: async () => { throw new Error("no Finder"); } })).toBe("<>");
+    expect(await expand("<{files}>", pinned)).toBe("<{files}>");
+    expect(hasPlaceholders("{files}")).toBe(true);
+  });
   test("every {uuid} is a fresh one; the clipboard is read once and only when asked for", async () => {
     let n = 0, reads = 0;
     const s = { clipboard: () => { reads++; return "c"; }, uuid: () => `u${++n}` };
@@ -98,8 +108,10 @@ beforeAll(async () => {
     { id: "sig", name: "Signature", keyword: "sig", text: "Best,\nCagdas" },
     { id: "stamp", name: "Stamp", text: "Reviewed {date} {time}\n{clipboard}" },
   ]);
-  host = await Host.bundled({ core: { "selection.text": () => selected } });
+  host = await Host.bundled({ core: { "selection.text": () => selected, "selection.files": () => finder } });
 });
+/** What the canned `core/selection.files` answers: the Finder selection. */
+let finder: string[] = [];
 /** What the canned `core/selection.text` answers. */
 let selected: string | null = "the marked words";
 afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); delete process.env.PAL_NOW; });
@@ -200,5 +212,15 @@ describe("snippets", () => {
     selected = null;
     expect(await pick(quote.id, "copy")).toEqual({ copy: `> ${fixtures.clipboard[0].text}` });
     await pick(quote.id, "delete");
+  });
+  test("{files} is the Finder selection, one path per line or joined by sep=; empty when nothing is selected; never asked without it", async () => {
+    await pick("create", "save", { values: { name: "Attach", keyword: "", text: "see {files sep=\", \"}\n{files}" } });
+    const attach = (stored.get("snippets\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Attach")!;
+    finder = ["/Users/x/a b.txt", "/Users/x/c.png"];
+    expect(await pick(attach.id, "copy")).toEqual({ copy: "see /Users/x/a b.txt, /Users/x/c.png\n/Users/x/a b.txt\n/Users/x/c.png" });
+    expect(host.coreCalls.filter((c) => c.method === "selection.files")).toHaveLength(1);
+    finder = [];
+    expect(await pick(attach.id, "copy")).toEqual({ copy: "see \n" });
+    await pick(attach.id, "delete");
   });
 });

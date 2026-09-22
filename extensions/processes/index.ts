@@ -1,20 +1,16 @@
-// Processes: one `ps` per keystroke, since
+// Processes: one `ps` per keystroke (`listProcesses` in `@zcag/pal`), since
 // the set changes constantly; busiest first (CPU, then memory). The query
 // matches the name and the pid; `:3000` (or `:` alone) lists what listens
 // on a TCP port instead (ports.ts over `ss` or `lsof`). Kill sends SIGTERM,
 // Force kill SIGKILL, both after a confirm; the palette stays open and
 // lists again so the row is seen to go.
-import { exec, failed, hint, settings, type Accessory, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
+import { exec, failed, hint, listProcesses as ps, settings, type Accessory, type Action, type Detail, type Extension, type Item, type Proc } from "@zcag/pal";
 import { parseLsofListeners, parseSsListeners, portQuery } from "./ports.ts";
 
 /** `[extensions.processes]`, defaults in pal.json. */
 type Settings = { include_system: boolean };
 
-type Proc = { pid: number; ppid: number; uid: number; cpu: number; rss: number; comm: string; name: string };
-
 const LINUX = process.platform === "linux";
-// `comm` last: on macOS it is the full path and may contain spaces.
-const PS = LINUX ? ["ps", "-eo", "pid=,ppid=,uid=,%cpu=,%mem=,rss=,comm="] : ["ps", "-axo", "pid=,ppid=,uid=,%cpu=,%mem=,rss=,comm="];
 const SELF = process.pid;
 const UID = process.getuid?.() ?? -1;
 
@@ -40,19 +36,6 @@ const ACTIONS: Action[] = [
 /** `ss` where it is (Linux), else `lsof` (macOS ships it); neither is a hint row. */
 const PORTS = Bun.which("ss") ? ["ss", "-ltnpH"] : Bun.which("lsof") ? ["lsof", "-nP", "-iTCP", "-sTCP:LISTEN", "-F", "pcn"] : undefined;
 const PORTS_MS = 3000;
-
-async function ps(): Promise<Proc[]> {
-  const out = await new Response(Bun.spawn(PS, { stdout: "pipe", stderr: "ignore" }).stdout).text();
-  const procs: Proc[] = [];
-  for (const line of out.split("\n")) {
-    const m = line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(.*)$/);
-    if (!m) continue;
-    const comm = m[7].trim();
-    if (!comm) continue;
-    procs.push({ pid: +m[1], ppid: +m[2], uid: +m[3], cpu: +m[4], rss: +m[6], comm, name: comm.slice(comm.lastIndexOf("/") + 1) });
-  }
-  return procs;
-}
 
 /** ps reports rss in KiB. */
 const human = (kb: number) => (kb >= 1024 * 1024 ? `${(kb / 1024 / 1024).toFixed(1)} GB` : `${Math.round(kb / 1024)} MB`);

@@ -88,7 +88,8 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://quicklinks/open?name=<name>` | Open the quicklink by name or keyword; a `{query}` link opens the panel to fill it, or `&query=<text>` fills it from the link |
 | `pal://snippets/paste?name=<name>` | Paste the snippet by name or keyword, placeholders filled; `&copy=1` copies it instead |
 | `pal://window-management/layout?name=<layout>` | Move the focused window: `left_half`, `right_half`, `top_half`, `bottom_half`, `left_third`, `center_third`, `right_third`, `left_two_thirds`, `right_two_thirds`, the four `*_quarter`s, `maximize`, `almost_maximize`, `center`, `reasonable_size`, `next_display`, `previous_display`, `restore` |
-| `pal://system/run?id=<command>` | A system command: `sleep`, `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`, `volume-up`, `volume-down`, `volume-mute`, `brightness-up`, `brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`, `quit-all`, `unhide-all`, `dismiss-notifications` (always asks first) |
+| `pal://system/run?id=<command>` | A system command: `sleep`, `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`, `volume-up`, `volume-down`, `volume-mute`, `brightness-up`, `brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake` (the toggle below), `quit-all`, `unhide-all`, `dismiss-notifications` (always asks first) |
+| `pal://system/awake?for=1h` | Keep the machine awake for a while (`45m`, `2h`, `1h30m`), until a time (`until=14:30`, `for=2pm`), or `for=forever`; `&display=1` keeps the display up too (the setting otherwise), `&app=Xcode` follows that app (the run ends when it quits), `&off=1` allows sleep; bare, it toggles: on for the default duration, or off while a run is on |
 | `pal://timer/start?duration=25m&name=tea` | Start a timer (`&ring=1` rings the phone when it lands) |
 | `pal://clipboard/copy?index=0` | Put a history entry back on the clipboard, `0` the newest |
 | `pal://hue/toggle?room=<room>` | Toggle a room's lights (`&on=1` or `&on=0` sets them instead) |
@@ -99,6 +100,11 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://obsidian/append-today?text=<text>` | Append a line to today's daily note, created when missing |
 | `pal://whatsapp/open?chat=<name>` | Open a chat |
 | `pal://whatsapp/search?q=<text>` | Search the message archive |
+| `pal://displays/brightness?value=50&display=external` | Set a display's brightness: a percent or `+10` / `-10`; `display` is `main`, `external`, `builtin`, an id or a name (the bar item's display otherwise); `contrast` and `volume` the same for an external monitor over DDC |
+| `pal://displays/input?source=hdmi1` | Switch an external monitor's input: `hdmi1`, `hdmi2`, `dp1`, `dp2`, `usbc` or a VCP 60 code |
+| `pal://displays/mode?mode=2560x1440%20hidpi&display=<id>` | Set a display's resolution: a mode number from the palette, or `WxH`, `WxH@Hz`, with `hidpi` or `native` |
+| `pal://displays/preset?name=<name>` | Apply a saved arrangement preset |
+| `pal://displays/night-shift?state=toggle` | Night Shift `on`, `off` or `toggle` (the nightlight CLI) |
 
 A route an extension declares shows on its store page and in Settings >
 Extensions. `pal call timer/start duration=25m name=tea` is the command

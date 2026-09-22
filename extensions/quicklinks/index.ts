@@ -76,8 +76,8 @@ function openWith(url: string, app: string): Effect {
 
 /** The newest text on the clipboard, for `{clipboard}`; empty when there is none. */
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
-/** The SDK placeholders in a url (`{selection}`, `{clipboard}`, `{date}`...), each value percent-encoded as a url component. */
-const fillSilent = (url: string) => expand(url, { clipboard: async () => encodeURIComponent(await clipboardText()), selection: async () => { const t = await selection.text(); return t && encodeURIComponent(t); } });
+/** The SDK placeholders in a url (`{selection}`, `{clipboard}`, `{files}`, `{date}`...), each value percent-encoded as a url component. */
+const fillSilent = (url: string) => expand(url, { clipboard: async () => encodeURIComponent(await clipboardText()), selection: async () => { const t = await selection.text(); return t && encodeURIComponent(t); }, files: async () => (await selection.files()).map(encodeURIComponent) });
 
 /**
  * Open the link's url as the link says: a tab already on the page when

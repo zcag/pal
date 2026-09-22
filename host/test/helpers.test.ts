@@ -5,7 +5,7 @@
 // helpers moved here (polish round 3), so a move is proven equivalent.
 import { afterAll, describe, expect, test } from "bun:test";
 import { tilde } from "../../sdk/src/api.ts";
-import { ago } from "../../sdk/src/clock.ts";
+import { ago, parseDuration } from "../../sdk/src/clock.ts";
 import { EXEC_MS, exec, run } from "../../sdk/src/exec.ts";
 import { IMAGE_MISS_TTL, forgetImages, imageData } from "../../sdk/src/image.ts";
 import { pngSize } from "../../sdk/src/png.ts";
@@ -14,7 +14,7 @@ import { bytes, errorMessage, mdEscape, oneLine, slug, truncate } from "../../sd
 import { BARE_TOKEN_TTL, EXPIRY_MARGIN, TokenError, mintToken, parseToken } from "../../sdk/src/token.ts";
 
 describe("text", () => {
-  test("bytes: B, KB with a decimal under 10, MB, GB", () => {
+  test("bytes: B, KB with a decimal under 10, MB, GB, TB", () => {
     expect(bytes(0)).toBe("0 B");
     expect(bytes(512)).toBe("512 B");
     expect(bytes(1536)).toBe("1.5 KB");
@@ -24,6 +24,7 @@ describe("text", () => {
     expect(bytes(1.2 * 1024 ** 2)).toBe("1.2 MB");
     expect(bytes(25.3 * 1024 ** 2)).toBe("25.3 MB");
     expect(bytes(3 * 1024 ** 3)).toBe("3.00 GB");
+    expect(bytes(1.5 * 1024 ** 4)).toBe("1.50 TB");
   });
   test("truncate and oneLine", () => {
     expect(truncate("abcdef", 4)).toBe("abc…");
@@ -49,6 +50,17 @@ describe("text", () => {
 });
 
 describe("clock", () => {
+  test("parseDuration: units chain, a bare number is minutes, junk is nothing", () => {
+    expect(parseDuration("90s")).toBe(90);
+    expect(parseDuration("25m")).toBe(1500);
+    expect(parseDuration("1h30m")).toBe(5400);
+    expect(parseDuration("1 h")).toBe(3600);
+    expect(parseDuration("25")).toBe(1500);
+    expect(parseDuration("1d")).toBe(86400);
+    expect(parseDuration("soon")).toBeUndefined();
+    expect(parseDuration("2:30")).toBeUndefined();
+    expect(parseDuration("")).toBeUndefined();
+  });
   test("ago: just now, then s / min / h / d / w / mo / y, a future moment as in; short is the column form", () => {
     const now = Date.UTC(2026, 8, 16, 12, 0, 0);
     const back = (ms: number, short = false) => ago(now - ms, { now, short });

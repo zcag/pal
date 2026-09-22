@@ -1,0 +1,167 @@
+{
+  "name": "odak",
+  "title": "odak",
+  "description": "Your odak todos in the panel: what is open by section with the overdue and today's on top, a todo typed in one line with its tags, flag, section and a day in words, search across open and done, what you completed; a bar item that counts today's.",
+  "keywords": ["todo", "todos", "task", "tasks"],
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰄴",
+      "bg": "indigo"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "url",
+      "label": "Address",
+      "description": "The odak server: http://host:8761 on your network, or its public address.",
+      "placeholder": "http://host:8761",
+      "default": ""
+    },
+    {
+      "kind": "secret",
+      "id": "api_key",
+      "label": "API key",
+      "description": "The server's ODAK_API_KEY.",
+      "placeholder": "the key",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "default_section",
+      "label": "Section for new todos",
+      "description": "Where a todo lands unless the line names one with /section.",
+      "placeholder": "Inbox",
+      "default": "Inbox"
+    },
+    {
+      "kind": "list",
+      "id": "today_sections",
+      "label": "Today's sections",
+      "description": "Sections the bar item counts as today's work, on top of what is due today.",
+      "placeholder": "Focus",
+      "default": ["Focus", "Today"],
+      "bar": "today"
+    }
+  ],
+  "palettes": {
+    "odak": {
+      "title": "Todos",
+      "description": "Every open todo: the overdue and today's first, then the file's sections in order, subtasks under their parent, what waits for a day at the end. Add a todo from the first row, typed in the bar.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keys": [
+        { "keys": "enter", "title": "Complete (Tab marks several)" },
+        { "keys": "cmd+e", "title": "Edit: text, section, tags, due day, urgent" },
+        { "keys": "cmd+t", "title": "Snooze to tomorrow" },
+        { "keys": "cmd+s", "title": "Snooze: tomorrow, in 3 days, next Monday, next week, a day typed" },
+        { "keys": "cmd+m", "title": "Move to a section" },
+        { "keys": "cmd+u", "title": "Mark urgent, or not" },
+        { "keys": "cmd+n", "title": "Add a subtask" },
+        { "keys": "cmd+l", "title": "Open the link in the todo" },
+        { "keys": "cmd+o", "title": "Open odak" },
+        { "keys": "cmd+c", "title": "Copy the text" },
+        { "keys": "cmd+shift+c", "title": "Copy the link (the todo's, else odak's)" },
+        { "keys": "cmd+d", "title": "Delete (asks; subtasks go with it)" }
+      ]
+    },
+    "add": {
+      "title": "Add Todo",
+      "description": "A todo typed in one line: #tag, ! for urgent, /section, d:day or a day in words at the end (tomorrow, fri, next mon, in 3 days, 20 sep); the row reads it back as you type, Enter adds it. Before you type: the selected text and the clipboard as todos.",
+      "kind": "input",
+      "fallback": "Add “{query}” to odak",
+      "keys": [
+        { "keys": "enter", "title": "Add" },
+        { "keys": "cmd+enter", "title": "Add and type another" },
+        { "keys": "cmd+shift+c", "title": "Copy the line" }
+      ]
+    },
+    "search": {
+      "title": "Search Todos",
+      "description": "Every word typed against the text, tags and section of every todo, open and completed; a completed one reopens on Enter.",
+      "kind": "input",
+      "keys": [
+        { "keys": "enter", "title": "Complete an open todo; reopen a completed one" },
+        { "keys": "cmd+e", "title": "Edit" },
+        { "keys": "cmd+c", "title": "Copy the text" },
+        { "keys": "cmd+d", "title": "Delete (asks)" }
+      ]
+    },
+    "done": {
+      "title": "Completed",
+      "description": "What is checked off, by section, the ones completed from pal with when; Enter reopens.",
+      "kind": "live",
+      "lazy": true,
+      "ttl": 60,
+      "keys": [
+        { "keys": "enter", "title": "Reopen (Tab marks several)" },
+        { "keys": "cmd+c", "title": "Copy the text" },
+        { "keys": "cmd+o", "title": "Open odak" },
+        { "keys": "cmd+d", "title": "Delete (asks; Tab marks several)" }
+      ]
+    }
+  },
+  "bar": {
+    "today": {
+      "title": "Today",
+      "description": "How many todos are due today or sit in today's sections, red while any is overdue, hidden at zero; the popover lists them with a cursor, completes on Enter and adds from a field.",
+      "refresh": { "every": 300, "on": ["show", "wake", "network"] },
+      "mocks": {
+        "busy": { "title": "Three today, none overdue", "item": { "icon": "󰄴", "title": "3", "tooltip": "3 today" } },
+        "overdue": { "title": "One overdue (red by its rule)", "item": { "icon": "󰄴", "title": "4", "color": "red", "tooltip": "1 overdue, 3 today" } },
+        "clear": { "title": "Nothing due today", "item": { "hidden": true, "empty": { "icon": "󰄴", "tooltip": "Nothing due today" } } },
+        "out": { "title": "Signed out", "item": { "hidden": true } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Complete the focused todo (x too)" },
+        { "keys": "u", "title": "Mark the focused todo urgent, or not" },
+        { "keys": "t", "title": "Snooze the focused todo to tomorrow" },
+        { "keys": "n", "title": "A field: type a todo, Enter adds it" },
+        { "keys": "o", "title": "Open odak" },
+        { "keys": "p", "title": "Open the Todos palette" },
+        { "keys": "r", "title": "Fetch again" },
+        { "keys": "up, down", "title": "Move between the rows (j, k too; a click sets the cursor)" }
+      ],
+      "rules": [
+        { "id": "quiet", "when": "odak.today == 0 and odak.overdue == 0", "description": "Nothing due today and nothing in today's sections: off the strip, muted for anyone who keeps it.", "hidden": true, "color": "muted" },
+        { "id": "overdue", "when": "odak.overdue > 0", "description": "Something is past its day.", "color": "red" }
+      ]
+    }
+  },
+  "states": {
+    "overdue": { "description": "Open todos past their day", "kind": "number" },
+    "today": { "description": "Open todos due today or in today's sections (overdue ones aside)", "kind": "number" },
+    "open": { "description": "Open todos in all", "kind": "number" }
+  },
+  "links": {
+    "add": {
+      "description": "Add a todo; the text takes the add line's grammar (#tag, !, /section, a day at the end)",
+      "params": {
+        "text": { "description": "The todo", "required": true },
+        "section": { "description": "The section; the setting's default otherwise" },
+        "due": { "description": "A day: tomorrow, fri, next mon, in 3 days, 2026-10-01" },
+        "tags": { "description": "Tags, repeated", "type": "string[]" },
+        "urgent": { "description": "Flag it", "type": "boolean" }
+      }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "Your odak todos: today's on the bar, a line to add, sections, search",
+    "category": "productivity",
+    "features": [
+      "Todos by section with the overdue and today's on top, subtasks under their parent; Enter completes, with Undo on the next row",
+      "Add a todo in one line: #tag, ! for urgent, /section, a day in words at the end (tomorrow, fri, next mon, in 3 days, 20 sep), read back as you type; any root query with no hit offers to add it",
+      "Snooze to tomorrow, in 3 days, next Monday, next week or a day typed; move between sections; edit everything in a form",
+      "Search across open and completed todos; Completed lists what is checked off and reopens it",
+      "A bar item with today's count, red while anything is overdue, hidden at zero; the popover completes on Enter and adds from a field",
+      "pal://odak/add?text=... adds from a script or a keybind"
+    ],
+    "permissions": ["network", "token"],
+    "platforms": ["macos", "linux"]
+  }
+}
