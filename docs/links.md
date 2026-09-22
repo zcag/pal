@@ -105,6 +105,9 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://displays/mode?mode=2560x1440%20hidpi&display=<id>` | Set a display's resolution: a mode number from the palette, or `WxH`, `WxH@Hz`, with `hidpi` or `native` |
 | `pal://displays/preset?name=<name>` | Apply a saved arrangement preset |
 | `pal://displays/night-shift?state=toggle` | Night Shift `on`, `off` or `toggle` (the nightlight CLI) |
+| `pal://dpi/toggle`, `pal://dpi/on`, `pal://dpi/off` | The `dpi` script's censorship bypass on or off; the HUD says the script's line (`dpi on (Wi-Fi -> socks5://127.0.0.1:1080, ...)`) |
+| `pal://dpi/test` | The panel on the bypass test level, the test running |
+| `pal://dpi/status` | The DPI Bypass palette |
 
 A route an extension declares shows on its store page and in Settings >
 Extensions. `pal call timer/start duration=25m name=tea` is the command
