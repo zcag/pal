@@ -119,6 +119,8 @@ export function checkView(v: unknown, where = "view"): View {
       if (!Array.isArray(n.children)) throw new Error(`${where}: ${path} stack has no children`);
       if (n.surface !== undefined && !SURFACES.has(n.surface) && !(typeof n.surface === "string" && HEX_COLOR.test(n.surface))) throw new Error(`${where}: ${path} stack has an unknown surface "${n.surface}" (sunken, elevated or #hex)`);
       if (n.radius !== undefined && typeof n.radius !== "boolean") throw new Error(`${where}: ${path} stack radius must be a boolean`);
+      if (n.flex !== undefined && !(typeof n.flex === "number" && Number.isFinite(n.flex) && n.flex > 0)) throw new Error(`${where}: ${path} stack flex must be a positive number`);
+      if ((n.width !== undefined && !isPx(n.width)) || (n.height !== undefined && !isPx(n.height))) throw new Error(`${where}: ${path} stack width and height must be px`);
       const keys = new Set<string>();
       n.children.forEach((c, i) => {
         const k = (c as { key?: unknown })?.key;

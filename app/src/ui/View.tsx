@@ -200,6 +200,10 @@ function Node({ node }: { node: ViewNode }) {
       // A hex surface: the box is that colour; the ink by contrast once it is opaque enough to hide the panel, else the panel's own.
       const own = typeof node.surface === "string" && !["sunken", "elevated"].includes(node.surface) ? parseHex(node.surface) : undefined;
       const ownStyle: CSSProperties | undefined = own ? ({ background: node.surface, ...(own.a > 0.5 && { color: inkOn(node.surface as string), "--pal-fg-muted": "color-mix(in srgb, currentColor 72%, transparent)", "--pal-fg-faint": "color-mix(in srgb, currentColor 55%, transparent)" }) } as CSSProperties) : undefined;
+      // A weight: this share of the parent's free space against the flex siblings, from a zero basis so the split is exact. A px size: a box of that size. Either clips (`data-box`, ui.css).
+      const flex = typeof node.flex === "number" && Number.isFinite(node.flex) && node.flex > 0 ? node.flex : undefined;
+      const width = px(node.width), height = px(node.height);
+      const box = flex !== undefined || width !== undefined || height !== undefined;
       return (
         <div
           className="pal-view__node pal-view__stack"
@@ -207,10 +211,11 @@ function Node({ node }: { node: ViewNode }) {
           data-align={node.align}
           data-justify={node.justify}
           data-grow={node.grow || undefined}
+          data-box={box || undefined}
           data-surface={own ? "custom" : node.surface}
           data-radius={node.radius || undefined}
           {...motion}
-          style={{ ...mstyle, ...ownStyle, gap: space(node.gap), padding: space(node.padding), minHeight: node.minHeight }}
+          style={{ ...mstyle, ...ownStyle, gap: space(node.gap), padding: space(node.padding), minHeight: node.minHeight, ...(flex !== undefined ? { flex: `${flex} 1 0px` } : box ? { flex: "none" } : undefined), width, height }}
         >
           <Children nodes={Array.isArray(node.children) ? node.children : []} />
         </div>
