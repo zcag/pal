@@ -113,7 +113,16 @@ struct Sidebar {
     /// The pointer's y (logical, the display's space) when the show began:
     /// the window is centred on it and stays there while its height settles.
     anchor_y: Mutex<Option<f64>>,
+    /// A show waiting for the page's first `bar_size` of it (its generation,
+    /// engaged or not): the window is placed and made visible together,
+    /// once, at the height the rows need. Shown at the last height and
+    /// re-placed when the rows landed, it was seen to jump.
+    pending: Mutex<Option<(u64, bool)>>,
 }
+
+/// The most a show waits for the page's size before it appears anyway (an empty list, a slow page).
+const SHOW_WAIT: Duration = Duration::from_millis(80);
+static SHOWS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 /// Whether there is a sidebar to run: the platform has the window and the config names a palette.
 fn enabled(app: &AppHandle) -> bool {
@@ -267,16 +276,25 @@ fn show(app: &AppHandle, engaged: bool) {
     crate::views::set_visible(app, WINDOW, true, first);
     let payload = Payload::Show { key: KEY.into(), title, engaged, urgent: false, tooltip: None, menu: json!({ "palette": source.palette, "extension": source.extension }), item: json!({}), effect: None, sidebar: true };
     events::emit_to(app, WINDOW, events::BAR, payload);
+    // Placed now at the last height (the page's first `bar_size` re-places
+    // and shows it, `reveal`); shown again while up, at once.
+    let generation = SHOWS.fetch_add(1, Ordering::Relaxed);
+    *lock(&app.state::<Sidebar>().pending) = first.then_some((generation, engaged));
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         place_window(&handle);
-        panel::bar_show(&handle, WINDOW, engaged);
+        if !first {
+            panel::bar_show(&handle, WINDOW, engaged);
+        }
         if engaged {
             keys::stop(WINDOW);
         } else {
             keys::start(WINDOW, |app| feed(app, Input::Key), &handle);
         }
     });
+    if first {
+        popover::arm(app, SHOW_WAIT, move |app| reveal(app, generation, "timed out"));
+    }
     eprintln!("sidebar\t{}\t{key}", if engaged { "engaged" } else { "peek" });
     // The window in front when the sidebar came up: first in the windows palette, as on the panel's show (the bridge's `list` waits for the stamp).
     crate::windows::stamp_focused();
@@ -286,6 +304,10 @@ fn show(app: &AppHandle, engaged: bool) {
 fn engage(app: &AppHandle) {
     if let Some(s) = lock(&app.state::<Sidebar>().showing).as_mut() {
         *s = true;
+    }
+    // A show still waiting for its size appears engaged when it does.
+    if let Some(p) = lock(&app.state::<Sidebar>().pending).as_mut() {
+        p.1 = true;
     }
     events::emit_to(app, WINDOW, events::BAR, Payload::Engage { engage: true });
     let handle = app.clone();
@@ -297,6 +319,7 @@ fn engage(app: &AppHandle) {
 }
 
 fn hide_now(app: &AppHandle) {
+    *lock(&app.state::<Sidebar>().pending) = None;
     let was = lock(&app.state::<Sidebar>().showing).take();
     crate::views::set_visible(app, WINDOW, false, false);
     events::emit_to(app, WINDOW, events::BAR, Payload::Hide { hide: true });
@@ -412,10 +435,38 @@ pub fn is_visible(app: &AppHandle) -> bool {
 /// The page measured its content: the window follows, up to the work area.
 pub fn set_height(app: &AppHandle, height: f64) {
     *lock(&app.state::<Sidebar>().height) = height.max(MIN_HEIGHT);
-    if is_visible(app) {
-        let handle = app.clone();
-        let _ = app.run_on_main_thread(move || place_window(&handle));
+    let pending = lock(&app.state::<Sidebar>().pending).map(|(g, _)| g);
+    match pending {
+        Some(generation) => reveal(app, generation, "sized"),
+        None if is_visible(app) => {
+            let handle = app.clone();
+            let _ = app.run_on_main_thread(move || place_window(&handle));
+        }
+        None => {}
     }
+}
+
+/// The show `generation` appears: placed at the height now known and made
+/// visible in one main-thread turn. Nothing when that show has already
+/// appeared or ended.
+fn reveal(app: &AppHandle, generation: u64, why: &'static str) {
+    let engaged = {
+        let st = app.state::<Sidebar>();
+        let mut p = lock(&st.pending);
+        match *p {
+            Some((g, engaged)) if g == generation => { *p = None; engaged }
+            _ => return,
+        }
+    };
+    if !is_visible(app) {
+        return;
+    }
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        place_window(&handle);
+        panel::bar_show(&handle, WINDOW, engaged);
+        eprintln!("sidebar\tshown\t{why}");
+    });
 }
 
 /// `cmd+r` reaching the shell from the sidebar's own level: the palette lists again.

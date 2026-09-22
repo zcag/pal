@@ -1394,6 +1394,15 @@ The System palette's Keep Awake was a bare toggle in Rust (`core/src/system.rs`,
 - **The link**: one route, `pal://system/awake` with `for`/`until`/`display`/`app`/`off`; bare toggles. `pal://system/run?id=keep-awake` still lands on the toggle so old links work. `off=1` rather than a second route (`pal://system/sleep` would read as the sleep command).
 - **Left**: `core/src/system.rs` still carries the superseded toggle (`toggle_keep_awake`, `keep_awake_pid`, the `keep-awake` SPECS entry and its `available` arms); the extension leaves that id out of its listing and answers it itself, so the Rust is dead code reachable only through `system.run("keep-awake")`, which nothing calls. Remove it in a Rust pass (this lane did not run cargo). Linux is written to `systemd-inhibit`'s documented shape and unit-tested through `argv`, not run. Following an app finds its pid through `windows.list`, so a background process cannot be followed.
 
+## Sidebar: shown once, sized (2026-09-22)
+
+He saw a flicker: the window came up at the last height and jumped when the
+rows landed (a centred window's top moves with its height). A fresh show now
+places the window hidden, waits for the page's first `bar_size` of that
+show (`pending`, a generation) and places and reveals in one main-thread
+turn (`reveal`); `SHOW_WAIT` (80 ms) reveals anyway for an empty page. A
+show while up, and an engage, keep showing at once.
+
 ## Decided: odak (2026-09-22)
 
 - `extensions/odak`: four palettes (`odak` Todos, live and lazy with a 60 s ttl, `multi`; `add` input with the root fallback row; `search` input; `done` Completed, live) and the bar item `odak/today`, over one client (`api.ts`: the bearer, one REST call, an in-memory cache with `patch`/`peek`), one data layer (`data.ts`), the add grammar and the day words (`when.ts`, pure, 13 tests), the popover (`view.ts`, pure). No instances: odak is one file per server and the API has no workspaces.
