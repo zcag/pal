@@ -581,14 +581,16 @@ type PaletteBase = {
    */
   ttl?: number;
   /**
-   * The palette's first listing of a run waits for the first panel show
-   * rather than running at process start: its cached rows still restore
-   * into the root at startup, and from that show on `ttl` and `live`
-   * apply as usual. For a palette whose listing prompts (1Password asks
-   * per app) or reaches the network. The manifest's `lazy` wins over this
-   * one (`checkPalettes`).
+   * When the palette's first listing of a run runs. `true`: at the first
+   * panel show rather than at process start, for a listing that reaches
+   * the network. `"visit"`: the first time the user is inside the
+   * palette (or the sidebar shows it), for a listing that prompts
+   * (1Password authorises `op` per app): pal asks for nothing before the
+   * feature is used. Either way the cached rows restore into the root at
+   * startup, and from that listing on `ttl` and `live` apply as usual.
+   * The manifest's `lazy` wins over this one (`checkPalettes`).
    */
-  lazy?: boolean;
+  lazy?: boolean | "visit";
   /** The palette's tier at the root; the manifest may declare it instead. */
   tier?: Tier;
   /**
@@ -931,8 +933,8 @@ export type ManifestPalette = {
   settings?: SettingSpec[];
   /** See `Palette.ttl`; this value wins over the code's. */
   ttl?: number;
-  /** See `Palette.lazy`: the first listing waits for the first panel show; this value wins over the code's. */
-  lazy?: boolean;
+  /** See `Palette.lazy`: the first listing waits for the first panel show (`true`) or the first visit to the palette (`"visit"`); this value wins over the code's. */
+  lazy?: boolean | "visit";
   /** See `Palette.refresh` (a view palette): seconds between re-asks while open; this value wins over the code's. */
   refresh?: number;
   /** See `Palette.on`: the triggers that re-ask an open view; this value wins over the code's. */
@@ -1043,8 +1045,8 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   multi?: true;
   /** Extra words the palette's row at the root answers to: the manifest's `keywords` and the palette's own, once each. */
   keywords?: string[];
-  /** The first listing of a run waits for the first panel show (`Palette.lazy`); the cached rows restore either way. */
-  lazy?: true;
+  /** The first listing of a run waits for the first panel show (`true`) or the user's first visit to the palette (`"visit"`; `Palette.lazy`); the cached rows restore either way. */
+  lazy?: true | "visit";
   /** A view palette: seconds between re-asks of `view(ctx)` while its level is open (`Palette.refresh`, the manifest's first). */
   refresh?: number;
   /** A view palette: the triggers that re-ask it while open (`Palette.on`, the manifest's first). */

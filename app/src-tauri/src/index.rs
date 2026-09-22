@@ -51,7 +51,9 @@
 //! than it), held for the first panel show (`lazy` in its meta and the
 //! panel not shown yet this run: the cached rows stay at the root, the
 //! listing runs from `on_shown`, and from then on the palette is treated
-//! like any other), or queued for one sequential low-priority pass after
+//! like any other) or for the user's first visit to the palette (`lazy:
+//! "visit"`, a listing that prompts: `on_visit` from the page's query
+//! inside it or the sidebar showing it), or queued for one sequential low-priority pass after
 //! `host/ready` (`ttl` declared and exceeded). `load_plan` is that
 //! decision. `index_refresh` forces a listing at any time. `stale` on the
 //! wire is "a listing is pending for this source" and the footer says
@@ -78,7 +80,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, State};
 
 use crate::host::Host;
-use crate::registry::{palette_rows, palettes_source, synthetic_meta, Palettes, Registered};
+use crate::registry::{palette_rows, palettes_source, synthetic_meta, Lazy, Palettes, Registered};
 use crate::{cache, commands, effects, events, fallback, hotkey, lock, registry, settings, welcome};
 
 pub use crate::registry::{palette_id, PaletteMeta};
@@ -106,6 +108,16 @@ static REFRESHED: AtomicBool = AtomicBool::new(false);
 /// other, and an extension reloaded later lists at once.
 static SHOWN: AtomicBool = AtomicBool::new(false);
 
+/// The palettes the user has been inside this run (the page queried one
+/// as its only source, the sidebar showed it): a `lazy: "visit"` palette
+/// waits for its entry here the way a `lazy` one waits for [`SHOWN`], and
+/// survives a reload of its extension the same way.
+static VISITED: Mutex<Vec<Source>> = Mutex::new(Vec::new());
+
+fn visited(source: &Source) -> bool {
+    lock(&VISITED).contains(source)
+}
+
 /// What `sync_extension` does with one palette the host just reported.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Load {
@@ -115,22 +127,24 @@ enum Load {
     Fresh,
     /// A cached listing past its `ttl` at startup: the pass after `host/ready`.
     AfterReady,
-    /// A `lazy` palette before the first show: the cached rows stand until then.
+    /// A `lazy` palette before the first show, or a `lazy: "visit"` one
+    /// before the user's first visit: the cached rows stand until then.
     AfterShow,
 }
 
 /// The decision, pure: `stale` and `listed_at` describe the bucket the
 /// index has for it (a restored cache is stale with a `listed_at`), `now`
-/// unix seconds, `shown` and `refreshed` the two run-wide flags. A fresh
-/// cache stands whatever else is true; a lazy palette waits for the show
-/// before the expired-cache pass gets a say, since that pass is process
-/// start as far as a prompt or a network call is concerned.
-fn load_plan(m: &PaletteMeta, stale: bool, listed_at: Option<u64>, now: u64, shown: bool, refreshed: bool) -> Load {
+/// unix seconds, `shown` and `refreshed` the two run-wide flags, `visited`
+/// this palette's. A fresh cache stands whatever else is true; a lazy
+/// palette waits for the show (or the visit) before the expired-cache
+/// pass gets a say, since that pass is process start as far as a prompt
+/// or a network call is concerned.
+fn load_plan(m: &PaletteMeta, stale: bool, listed_at: Option<u64>, now: u64, shown: bool, visited: bool, refreshed: bool) -> Load {
     if m.input {
         Load::Now
     } else if m.fresh(listed_at, now) {
         Load::Fresh
-    } else if m.lazy && !shown {
+    } else if (m.lazy == Lazy::Show && !shown) || (m.lazy == Lazy::Visit && !visited) {
         Load::AfterShow
     } else if stale && m.ttl.is_some() && !refreshed {
         Load::AfterReady
@@ -353,7 +367,7 @@ async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title:
         }
         let info = with_index(&app, |ix| ix.source(&source));
         let (stale, listed_at) = info.as_ref().map_or((false, None), |i| (i.stale, i.listed_at));
-        match load_plan(&m, stale, listed_at, now, SHOWN.load(Ordering::SeqCst), REFRESHED.load(Ordering::SeqCst)) {
+        match load_plan(&m, stale, listed_at, now, SHOWN.load(Ordering::SeqCst), visited(&source), REFRESHED.load(Ordering::SeqCst)) {
             Load::Now => list_palette(&app, &host, &source, &m, "load").await,
             Load::Fresh => {
                 // The cached (or last) listing stands.
@@ -377,7 +391,7 @@ async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title:
                     }
                 });
                 set_awaits_show(&app, &source, true);
-                eprintln!("index\t{}/{}\tlazy, waits for a show", source.extension, source.palette);
+                eprintln!("index\t{}/{}\tlazy, waits for a {}", source.extension, source.palette, if m.lazy == Lazy::Visit { "visit" } else { "show" });
             }
         }
     }
@@ -507,7 +521,7 @@ pub fn on_shown(app: &AppHandle, held: Option<&str>) {
     // The welcome rows follow the permission and the marker; a no-op once hidden.
     welcome::sync(app);
     let waiting: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
-        reg.iter_mut().filter(|r| r.enabled && r.awaits_show).map(|r| { r.awaits_show = false; (r.source.clone(), r.meta.clone()) }).collect()
+        reg.iter_mut().filter(|r| r.enabled && r.awaits_show && r.meta.lazy != Lazy::Visit).map(|r| { r.awaits_show = false; (r.source.clone(), r.meta.clone()) }).collect()
     });
     let lazy_now: Vec<Source> = waiting.iter().map(|(s, _)| s.clone()).collect();
     if !waiting.is_empty() {
@@ -533,10 +547,39 @@ pub fn on_shown(app: &AppHandle, held: Option<&str>) {
     relist(app, live, held);
 }
 
+/// The user is inside `source` (the page's query names it as its one
+/// source, `query`): noted in [`VISITED`], and a `lazy: "visit"` palette
+/// still waiting for its first listing of the run gets it now, `why` =
+/// `visit`. Nothing for a palette the show already listed.
+pub fn on_visit(app: &AppHandle, source: &Source) {
+    {
+        let mut v = lock(&VISITED);
+        if v.contains(source) {
+            return;
+        }
+        v.push(source.clone());
+    }
+    let found = Palettes::with(app, |reg| {
+        reg.iter_mut().find(|r| r.enabled && &r.source == source && r.awaits_show).map(|r| {
+            r.awaits_show = false;
+            r.meta.clone()
+        })
+    });
+    if let Some(m) = found {
+        eprintln!("index\tfirst visit\tlisting {}/{}", source.extension, source.palette);
+        let (app, source) = (app.clone(), source.clone());
+        tauri::async_runtime::spawn(async move {
+            let host = app.state::<Arc<Host>>().inner().clone();
+            list_palette(&app, &host, &source, &m, "visit").await;
+        });
+    }
+}
+
 /// The sidebar is showing `key` (`extension/palette`, sidebar.rs): that
 /// palette alone goes the panel's way, its first listing of the run if
-/// it was waiting for a show, else the live relist above, past the gap
-/// like the switcher's (the sidebar shows to be read, so it reads fresh).
+/// it was waiting for a show or a visit (the sidebar showing it is one),
+/// else the live relist above, past the gap like the switcher's (the
+/// sidebar shows to be read, so it reads fresh).
 pub fn relist_live(app: &AppHandle, key: &str) {
     let found = Palettes::with(app, |reg| {
         reg.iter_mut().find(|r| r.enabled && palette_key(&r.source) == key).map(|r| {
@@ -545,6 +588,12 @@ pub fn relist_live(app: &AppHandle, key: &str) {
         })
     });
     let Some((source, m, waiting)) = found else { return eprintln!("index\tsidebar\t{key}\tno such palette to list") };
+    {
+        let mut v = lock(&VISITED);
+        if !v.contains(&source) {
+            v.push(source.clone());
+        }
+    }
     if waiting {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -889,7 +938,11 @@ pub fn query(
     palettes: State<'_, Palettes>,
 ) -> Vec<HitView> {
     static FIRST: Once = Once::new();
-    *lock(&SHOWING) = sources.as_ref().and_then(|s| (s.len() == 1).then(|| s[0].clone()));
+    let inside = sources.as_ref().and_then(|s| (s.len() == 1).then(|| s[0].clone()));
+    if let Some(s) = &inside {
+        on_visit(&app, s);
+    }
+    *lock(&SHOWING) = inside;
     // The registry first, then frecency, then the index (the module docs on lock order); nothing held across.
     // Tiers and titles in one pass: the titles serve the "more" rows, and
     // taking the registry again under the index guard would invert the order
@@ -1196,26 +1249,31 @@ mod tests {
 
     #[test]
     fn lazy_palette_waits_for_the_first_show_and_keeps_its_cached_rows() {
-        let lazy = PaletteMeta { name: "items".into(), title: "1Password".into(), lazy: true, ..Default::default() };
+        let lazy = PaletteMeta { name: "items".into(), title: "1Password".into(), lazy: Lazy::Show, ..Default::default() };
         // Before the first show: waits, cached rows or not, expired ttl or not.
-        assert_eq!(load_plan(&lazy, false, None, 100, false, false), Load::AfterShow, "a first run: nothing cached, still no listing at start");
-        assert_eq!(load_plan(&lazy, true, Some(10), 100, false, false), Load::AfterShow, "a restored cache stands until the show");
+        assert_eq!(load_plan(&lazy, false, None, 100, false, false, false), Load::AfterShow, "a first run: nothing cached, still no listing at start");
+        assert_eq!(load_plan(&lazy, true, Some(10), 100, false, false, false), Load::AfterShow, "a restored cache stands until the show");
         let budgeted = PaletteMeta { ttl: Some(60.0), ..lazy.clone() };
-        assert_eq!(load_plan(&budgeted, true, Some(10), 100, false, false), Load::AfterShow, "past its ttl: the show, not the after-ready pass");
-        assert_eq!(load_plan(&budgeted, true, Some(90), 100, false, false), Load::Fresh, "within its ttl: the cache stands, lazy or not");
+        assert_eq!(load_plan(&budgeted, true, Some(10), 100, false, false, false), Load::AfterShow, "past its ttl: the show, not the after-ready pass");
+        assert_eq!(load_plan(&budgeted, true, Some(90), 100, false, false, false), Load::Fresh, "within its ttl: the cache stands, lazy or not");
         // After the first show it is any other palette: an extension reload lists at once.
-        assert_eq!(load_plan(&lazy, false, None, 100, true, true), Load::Now);
-        assert_eq!(load_plan(&budgeted, true, Some(10), 100, true, false), Load::AfterReady, "expired at startup once shown: the pass");
+        assert_eq!(load_plan(&lazy, false, None, 100, true, false, true), Load::Now);
+        assert_eq!(load_plan(&budgeted, true, Some(10), 100, true, false, false), Load::AfterReady, "expired at startup once shown: the pass");
+        // A visit palette (a listing that prompts) waits for its own visit, shows or not.
+        let visit = PaletteMeta { lazy: Lazy::Visit, ..lazy.clone() };
+        assert_eq!(load_plan(&visit, false, None, 100, true, false, true), Load::AfterShow, "shown, reloaded, still not visited: waits");
+        assert_eq!(load_plan(&visit, false, None, 100, false, true, false), Load::Now, "visited: lists like any other, shown or not");
+        assert_eq!(load_plan(&PaletteMeta { ttl: Some(60.0), ..visit.clone() }, true, Some(90), 100, false, false, false), Load::Fresh, "a fresh cache stands before the visit too");
         // The other kinds are as before.
         let plain = PaletteMeta { name: "p".into(), title: "P".into(), ..Default::default() };
-        assert_eq!(load_plan(&plain, true, Some(10), 100, false, false), Load::Now, "no ttl: listed on every load");
-        assert_eq!(load_plan(&PaletteMeta { ttl: Some(60.0), ..plain.clone() }, true, Some(10), 100, false, false), Load::AfterReady);
-        assert_eq!(load_plan(&PaletteMeta { input: true, lazy: true, ..plain.clone() }, false, None, 100, false, false), Load::Now, "an input palette's empty bucket costs nothing");
+        assert_eq!(load_plan(&plain, true, Some(10), 100, false, false, false), Load::Now, "no ttl: listed on every load");
+        assert_eq!(load_plan(&PaletteMeta { ttl: Some(60.0), ..plain.clone() }, true, Some(10), 100, false, false, false), Load::AfterReady);
+        assert_eq!(load_plan(&PaletteMeta { input: true, lazy: Lazy::Show, ..plain.clone() }, false, None, 100, false, false, false), Load::Now, "an input palette's empty bucket costs nothing");
         // The rows a restore put in the index answer a query while the palette waits, flagged stale.
         let mut ix = Index::new();
         let source = Source::new("onepassword", "items");
         ix.restore(source.clone(), vec![row("a", "Bank login", &[]), row("b", "Router", &[])], Some(10), false);
-        assert_eq!(load_plan(&lazy, true, Some(10), 100, false, false), Load::AfterShow);
+        assert_eq!(load_plan(&lazy, true, Some(10), 100, false, false, false), Load::AfterShow);
         let hits = ix.query("bank", QueryOpts::default()).hits;
         assert_eq!(hits.iter().map(|h| h.id.as_str()).collect::<Vec<_>>(), ["a"]);
         let info = ix.source(&source).unwrap();
@@ -1225,7 +1283,13 @@ mod tests {
         assert_eq!(serde_json::to_value(&lazy).unwrap()["lazy"], true);
         assert!(serde_json::to_value(&plain).unwrap().get("lazy").is_none());
         let parsed: PaletteMeta = serde_json::from_value(json!({ "name": "x", "title": "X", "live": true, "input": false, "lazy": true })).unwrap();
-        assert!(parsed.lazy && parsed.relists_on_show());
+        assert!(parsed.lazy == Lazy::Show && parsed.relists_on_show());
+        assert_eq!(serde_json::to_value(&visit).unwrap()["lazy"], "visit");
+        let parsed: PaletteMeta = serde_json::from_value(json!({ "name": "x", "title": "X", "live": false, "input": false, "lazy": "visit" })).unwrap();
+        assert_eq!(parsed.lazy, Lazy::Visit);
+        let parsed: PaletteMeta = serde_json::from_value(json!({ "name": "x", "title": "X", "live": false, "input": false, "lazy": false })).unwrap();
+        assert_eq!(parsed.lazy, Lazy::No);
+        assert!(serde_json::from_value::<PaletteMeta>(json!({ "name": "x", "title": "X", "live": false, "input": false, "lazy": "later" })).is_err());
     }
 
     #[test]

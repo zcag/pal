@@ -369,11 +369,20 @@ is left to the load-time check.
   From that first show on, `ttl` and `live` apply as for any palette, and
   an extension reloaded later lists at once. The only moment such a
   palette has no rows is a first run before the panel was ever shown. For
-  a listing that prompts (1Password authorises `op` per app, so every
-  start was a prompt), reaches the network (Slack, GitHub, Home Assistant,
+  a listing that reaches the network (Slack, GitHub, Home Assistant,
   tela, Hue) or reads something private (Messages for OTP). The core logs
   `index <ext>/<palette> lazy, waits for a show` at load and lists it on
   the show with `why` = `show`.
+- `lazy: "visit"`: the first listing waits for the user's first visit to
+  the palette (the panel inside it, or the sidebar showing it), not the
+  first show, and a reload before that visit still waits. For a listing
+  that **prompts**: 1Password authorises `op` per app with its own
+  window, and pal asks for nothing before the feature is used (the same
+  rule as its own permissions: nothing at launch, the ask at the
+  feature). The price is a fresh profile's root search not finding those
+  rows until the palette was opened once; the cache carries them from
+  then on. Logged `lazy, waits for a visit` at load, listed with `why` =
+  `visit`.
 - The root's sections a palette may take part in, all optional:
   - **Inline results**: `inline: true` with a `match` (a regex, a regex
     source, or a predicate `(query) => boolean`; the manifest may carry
@@ -1239,7 +1248,10 @@ to the core.
   the panel is). Ask lazily, from the listing that needs it, only while
   `not_determined`, and give the palette a hint row whose pick asks too,
   so a user who lands in the palette after the held-back listing has a
-  way in: the prompt is modal. What the Wi-Fi palette does for `location`.
+  way in: the prompt is modal. The hint row says what the permission is
+  for in pal's words ("Wi-Fi names need Location access: macOS shows
+  them only to an app with it"), since the system prompt says little and
+  pal asks nothing at launch. What the Wi-Fi palette does for `location`.
 - `calendar.permission()`, `request()` (the Calendars prompt on macOS),
   `openSettings()`, `calendars()` (`Calendar[]`: `id`, `title`, `color`,
   `source`, `writable`), `events(from, to, calendars?)` (unix ms;

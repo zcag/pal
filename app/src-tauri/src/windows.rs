@@ -48,6 +48,34 @@ fn err(e: windows::Error) -> String {
     e.to_string()
 }
 
+/// The core's answer to a call the user made (a pick: close, minimise, a
+/// frame, a space), with a refusal for want of Accessibility asking for
+/// it first (`permissions::ask`: the card once per run, named after what
+/// was refused) and reported as the error the extension shows.
+fn asked<T>(app: &AppHandle, r: windows::Result<T>) -> Result<T, String> {
+    if let Err(windows::Error::NeedsAccessibility(what)) = &r {
+        permissions::ask(app, "accessibility", &feature(what));
+    }
+    r.map_err(err)
+}
+
+/// A `NeedsAccessibility` payload ("close", "set_frame", "switching to an
+/// empty space") as a card title's subject: "Closing a window".
+fn feature(what: &str) -> String {
+    match what {
+        "close" => "Closing a window".into(),
+        "minimize" => "Minimising a window".into(),
+        "unminimize" => "Restoring a window".into(),
+        "fullscreen" => "Full screen".into(),
+        "set_frame" | "frame" => "Moving a window".into(),
+        "focus" => "Window switching".into(),
+        w => {
+            let mut c = w.chars();
+            c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
+        }
+    }
+}
+
 fn parse<T: serde::de::DeserializeOwned>(v: Value) -> Result<T, String> {
     serde_json::from_value(v).map_err(|e| format!("bad params: {e}"))
 }
@@ -143,23 +171,16 @@ pub fn stamp_space() {
 /// Bring a space in front; what the HUD says when it could not. The
 /// panel, if up, is hidden by the caller first.
 pub fn go_space(app: &AppHandle, id: &str) -> Result<(), String> {
-    match windows::go_space(id) {
-        Ok(()) => Ok(()),
-        Err(windows::Error::NeedsAccessibility(_)) => {
-            permissions::ask(app, "accessibility", "Switching to an empty space");
-            Err("switching to an empty space needs Accessibility".into())
-        }
-        Err(e) => Err(err(e)),
-    }
+    asked(app, windows::go_space(id))
 }
 
 /// Run a named layout; the core's `Applied` on success.
-pub fn apply_layout(p: &LayoutParams) -> Result<windows::Applied, String> {
+pub fn apply_layout(app: &AppHandle, p: &LayoutParams) -> Result<windows::Applied, String> {
     let l = layout::Layout::parse(&p.name).ok_or_else(|| format!("no layout {:?}", p.name))?;
-    windows::apply(p.id.as_deref(), l, &p.opts).map_err(err)
+    asked(app, windows::apply(p.id.as_deref(), l, &p.opts))
 }
 
-pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
+pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     match func {
         "list" => {
             await_stamp();
@@ -178,24 +199,24 @@ pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String
                 "unminimize" => windows::unminimize(&p.id),
                 _ => windows::fullscreen(&p.id),
             };
-            r.map_err(err).map(|_| Value::Null)
+            asked(app, r).map(|_| Value::Null)
         }
         "frame" => {
             let p: IdParams = parse(params)?;
-            Ok(serde_json::to_value(windows::frame(&p.id).map_err(err)?).unwrap())
+            Ok(serde_json::to_value(asked(app, windows::frame(&p.id))?).unwrap())
         }
         "set_frame" => {
             let p: FrameParams = parse(params)?;
-            windows::set_frame(&p.id, p.rect).map_err(err).map(|_| Value::Null)
+            asked(app, windows::set_frame(&p.id, p.rect)).map(|_| Value::Null)
         }
         "displays" => Ok(serde_json::to_value(windows::displays().map_err(err)?).unwrap()),
         "focused" => Ok(windows::focused().map_err(err)?.as_ref().map_or(Value::Null, row)),
-        "layout" => Ok(serde_json::to_value(apply_layout(&parse(params)?)?).unwrap()),
+        "layout" => Ok(serde_json::to_value(apply_layout(app, &parse(params)?)?).unwrap()),
         "spaces" => Ok(serde_json::to_value(windows::spaces().map_err(err)?).unwrap()),
         // From the host directly, with the panel wherever it is: `pal run` and a pick prefer the `space` effect.
         "go_space" => {
             let p: IdParams = parse(params)?;
-            go_space(_app, &p.id).map(|_| Value::Null)
+            go_space(app, &p.id).map(|_| Value::Null)
         }
         _ => Err(format!("unknown windows.{func}")),
     }
@@ -204,6 +225,14 @@ pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_refusal_names_what_was_refused_for_the_card() {
+        assert_eq!(feature("close"), "Closing a window");
+        assert_eq!(feature("set_frame"), "Moving a window");
+        assert_eq!(feature("switching to an empty space"), "Switching to an empty space", "the core's own phrase, capitalised");
+        assert_eq!(feature(""), "");
+    }
 
     #[test]
     fn focus_feedback_names_the_app_once_and_only_without_accessibility() {

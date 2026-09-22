@@ -42,8 +42,11 @@ carrying the CLI's message.
 Install the [1Password CLI](https://developer.1password.com/docs/cli/get-started/)
 (`brew install 1password-cli` on macOS) and turn on the desktop app
 integration (1Password, Settings, Developer, "Integrate with 1Password
-CLI"). The first call from pal makes 1Password ask whether to allow it;
-after that every call that needs the vault shows 1Password's own unlock
+CLI"). The first call from pal makes 1Password ask whether to allow it,
+which is why the palette lists only once you open it (`lazy: "visit"`):
+nothing is asked at pal's start or on its first show, and a reinstalled
+pal (a new signature) asks again the next time you open the palette.
+After that every call that needs the vault shows 1Password's own unlock
 prompt (Touch ID on a Mac), and pal waits up to a minute for it. A
 terminal's `eval $(op signin)` session is that shell's only and never
 reaches pal. `op` is looked up on PATH,

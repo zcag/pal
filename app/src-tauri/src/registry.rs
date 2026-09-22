@@ -16,6 +16,50 @@ use tauri::{AppHandle, Manager};
 
 use crate::{commands, lock, welcome};
 
+/// `PaletteMeta.lazy`: `true` on the wire is [`Lazy::Show`], `"visit"` is
+/// [`Lazy::Visit`], absent or `false` is [`Lazy::No`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Lazy {
+    #[default]
+    No,
+    Show,
+    Visit,
+}
+
+impl Lazy {
+    pub fn is_no(&self) -> bool {
+        *self == Lazy::No
+    }
+}
+
+impl Serialize for Lazy {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Lazy::No => s.serialize_bool(false),
+            Lazy::Show => s.serialize_bool(true),
+            Lazy::Visit => s.serialize_str("visit"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Lazy {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Bool(bool),
+            Str(String),
+        }
+        match Raw::deserialize(d)? {
+            Raw::Bool(false) => Ok(Lazy::No),
+            Raw::Bool(true) => Ok(Lazy::Show),
+            Raw::Str(s) if s == "visit" => Ok(Lazy::Visit),
+            Raw::Str(s) if s == "show" => Ok(Lazy::Show),
+            Raw::Str(s) => Err(serde::de::Error::custom(format!("lazy: expected true, false or \"visit\", got {s:?}"))),
+        }
+    }
+}
+
 /// A palette as the host describes it (`PaletteMeta` in sdk/src/protocol.ts).
 /// The optional fields ride to the UI untouched through `SourceView`.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
@@ -83,12 +127,14 @@ pub struct PaletteMeta {
     /// Tab (and a bare `x` with nothing typed) marks rows in it (`Palette.multi`); opaque here, the UI's.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub multi: bool,
-    /// The first listing of a run waits for the first panel show: the
-    /// cached rows restore at startup as for any palette, the refresh is
-    /// deferred from process start to that show, and from then on `ttl`
-    /// and `live` apply as usual (`index::load_plan`).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub lazy: bool,
+    /// When the first listing of a run runs: at process start (`No`), at
+    /// the first panel show (`Show`: a network palette), or the first time
+    /// the user is inside the palette (`Visit`: a listing that prompts,
+    /// 1Password's `op` authorising pal per app). The cached rows restore
+    /// at startup either way, and from that listing on `ttl` and `live`
+    /// apply as usual (`index::load_plan`).
+    #[serde(default, skip_serializing_if = "Lazy::is_no")]
+    pub lazy: Lazy,
     /// A view palette: seconds between re-asks of `view(ctx)` while its
     /// level is open; the page runs the timer (views.rs, Launcher.tsx).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -142,7 +188,8 @@ pub struct Registered {
     /// Its cached listing is past its `ttl`: waiting for `refresh_expired`.
     pub deferred: bool,
     /// A `lazy` palette not listed this run yet: waiting for the first
-    /// panel show (`index::on_shown`).
+    /// panel show (`index::on_shown`) or, `lazy: "visit"`, for the user
+    /// to come inside it (`index::on_visit`).
     pub awaits_show: bool,
     /// The tier the root ranks it by: the config's `tier` over the meta's,
     /// `normal` when neither says. Kept current by `apply_config`.

@@ -97,7 +97,7 @@
   "palettes": {
     "items": {
       "kind": "list",
-      "lazy": true,
+      "lazy": "visit",
       "description": "Every item you can see, favourites first.",
       "keys": [
         {

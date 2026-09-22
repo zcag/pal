@@ -153,6 +153,10 @@ describe("checkPalettes", () => {
     expect("lazy" in checkPalettes(man({ p: {} }), ext({ p: list })).metas[0]).toBe(false);
     // A lazy live palette is still live: it relists on show once its first listing has run.
     expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: live })).metas[0]).toMatchObject({ live: true, lazy: true });
+    // "visit" (a listing that prompts) rides through as itself, from either side.
+    expect(checkPalettes(man({ p: { lazy: "visit" } }), ext({ p: list })).metas[0].lazy).toBe("visit");
+    expect(checkPalettes(man({ p: {} }), ext({ p: { ...list, lazy: "visit" } })).metas[0].lazy).toBe("visit");
+    expect(checkPalettes(man({ p: { lazy: "visit" } }), ext({ p: { ...list, lazy: true } })).warnings).toEqual(["palettes.p: lazy true in the code, visit in pal.json; the manifest's is used, drop the code's"]);
   });
 
   test("refresh and on: a view palette's, from either side, the manifest's first; a difference is a warning; on a listing they are warned about and left off", () => {

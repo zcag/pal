@@ -108,7 +108,7 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     detail: typeof p.detail === "function" ? "lazy" : undefined,
     ttl: m?.ttl ?? p.ttl,
     tier: m?.tier ?? p.tier,
-    ...((m?.lazy ?? p.lazy) && { lazy: true as const }),
+    ...((m?.lazy ?? p.lazy) && { lazy: (m?.lazy ?? p.lazy) === "visit" ? ("visit" as const) : (true as const) }),
     ...(isViewPalette(p) && (m?.refresh ?? p.refresh) !== undefined && { refresh: m?.refresh ?? p.refresh }),
     ...(isViewPalette(p) && (m?.on ?? p.on)?.length && { on: m?.on ?? p.on }),
     ...(inlineOf(p, m) && { inline: true as const }),

@@ -184,8 +184,8 @@ pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Resul
         }
         // Hidden first so the focused window is the one the user was in.
         hide_first(app, window).await?;
-        let name = p.name.clone();
-        let r = blocking(move || windows::apply_layout(&p)).await;
+        let (name, handle) = (p.name.clone(), app.clone());
+        let r = blocking(move || windows::apply_layout(&handle, &p)).await;
         hud::show(app, &layout_feedback(&name, &r));
     }
     if let Some(path) = envelope.get("dialog").and_then(Value::as_str) {

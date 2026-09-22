@@ -113,6 +113,7 @@
     "tabs": {
       "tier": "primary",
       "kind": "live",
+      "lazy": true,
       "description": "Open tabs across Chrome, Safari and Firefox.",
       "keys": [
         {
