@@ -1033,6 +1033,13 @@ arrows move and a click sets, and the strip untouched:
   reveals), every interface with its rates and address, the load tiles,
   each with a sparkline of the last 60 samples as an SVG `image` in the
   theme's ink. `ps` runs every tick only while a process popover is open.
+- **System, `awake`** (`extensions/system/`): a coffee and what is left
+  of a keep-awake run (`∞` without an end), hidden while off; the popover
+  a card with the time left and a bar, the presets as tiles on the
+  digits, the display switch, `u` a field for `45m` or `14:30`, Enter
+  allows sleep. Ticks at the moments the countdown's text changes. The
+  run is `caffeinate` with its own `-t`, found back by pid after a host
+  restart.
 
 ## States
 
@@ -1330,7 +1337,9 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
 - Paths: `home(path)` above, and `tilde(path)`, its reverse for subtitles.
 - Time: `now()`, unix ms; `PAL_NOW` (`2026-09-16T10:30:00`, local to `TZ`)
   pins it, so a test fixes the day and the hour. Every read of the time in
-  an extension should go through it. Writing a moment: `clock(t)` (`14:05`,
+  an extension should go through it. Reading a duration: `parseDuration(s)`
+  (`90s`, `25m`, `1h30m`, `1d`, a bare number as minutes; seconds, or
+  `undefined`), what States' holds and System's Keep Awake read. Writing a moment: `clock(t)` (`14:05`,
   24 h), `dayName(t)` (`Fri 18 Sep`), `dayNameYear(t)`, `isoDay(t)`
   (`2026-09-18`), `when(t)` (the clock alone today, the day before it
   on another day, the year in another year) and `ago(t)` (`just now`,

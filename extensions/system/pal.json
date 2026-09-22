@@ -1,7 +1,7 @@
 {
   "name": "system",
   "title": "System",
-  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake, quit or unhide every app, dismiss notifications. Quick Look on the Finder selection.",
+  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake (for a while, until a time, or while an app runs, with a countdown on the bar), quit or unhide every app, dismiss notifications. Quick Look on the Finder selection.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -20,6 +20,36 @@
       "text": "Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app",
       "default": true,
       "description": "Log Out, Restart, Shut Down, Empty Trash and Quit All Apps show a confirmation first; off runs them at once."
+    },
+    {
+      "kind": "text",
+      "id": "awake_default",
+      "label": "Keep awake for",
+      "placeholder": "1h",
+      "default": "1h",
+      "description": "What a bare Keep Awake runs for: 45m, 2h, 1h30m, a clock time like 14:30, or forever."
+    },
+    {
+      "kind": "list",
+      "id": "awake_presets",
+      "label": "Awake presets",
+      "placeholder": "30m, 1h, 2h, forever",
+      "default": [
+        "30m",
+        "1h",
+        "2h",
+        "forever"
+      ],
+      "bar": "awake",
+      "description": "The durations on the popover's tiles and its digit keys, five at most: durations, clock times, or forever."
+    },
+    {
+      "kind": "boolean",
+      "id": "awake_display",
+      "label": "Display",
+      "text": "Keep the display awake too",
+      "default": true,
+      "description": "On: neither the machine nor the display sleeps (caffeinate -d -i). Off: the display may sleep while the machine stays up, for a download or a build. The row's Display field and the popover's switch override it per run."
     }
   ],
   "store": {
@@ -29,7 +59,8 @@
       "Indexed rows with keywords, so `mute`, `sleep` or `power off` at the root finds the command",
       "Only what this machine can run is listed: Brightness needs the `brightness` CLI on macOS, Do Not Disturb a Shortcut named \"Toggle Do Not Disturb\"",
       "Empty Trash shows what is in the Trash on the right (`3 items`, `empty`); Toggle Dark Mode carries the current appearance as a tag",
-      "Keep Awake runs `caffeinate` (or `systemd-inhibit`) detached and the row flips to Allow Sleep while it runs",
+      "Keep Awake takes how long in the bar (`45m`, `2h`, `14:30`, `forever`; blank is the default), `cmd+enter` keeps awake until turned off, `cmd+u` opens a form for a time, an app to follow and the display; the row reads Allow Sleep with the time left while a run is on",
+      "A bar item with a coffee glyph and the countdown (∞ without an end), hidden while off; its popover has the presets on the digits, the display switch and Allow sleep. `caffeinate` (or `systemd-inhibit`) does the timing itself, so the run ends on time even with pal down, and a restarted pal finds it again by its pid",
       "Quit All Apps closes every open app but Finder and pal (each asked the way its Quit menu asks, so unsaved work still prompts), Unhide All Apps brings hidden ones back, Dismiss Notifications clears what is on screen (Notification Center over Accessibility on macOS; the daemon's CLI on Linux)",
       "Log Out, Restart, Shut Down, Empty Trash and Quit All Apps ask first, unless `confirm_destructive` is off",
       "Quick Look Finder Selection (macOS): the Quick Look panel over what is marked in Finder, the names as the subtitle; the row is inert and says why while nothing is selected or Finder is not in front. `pal://system/run?id=quick-look-selection` for a hotkey",
@@ -66,6 +97,16 @@
         "title": "Run",
         "description": "The command; Log Out, Restart, Shut Down, Empty Trash and Quit All Apps ask first.",
         "keys": "enter"
+      },
+      {
+        "title": "Keep awake",
+        "description": "On Keep Awake: for what the bar's field says, else the default; cmd+enter until turned off; cmd+u the form (a time, an app to follow, the display).",
+        "keys": "enter"
+      },
+      {
+        "title": "Allow sleep",
+        "description": "On the row while a run is on; cmd+d flips whether the display is kept awake too.",
+        "keys": "enter"
       }
     ]
   },
@@ -75,8 +116,30 @@
       "confirm": true,
       "params": {
         "id": {
-          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake, quit-all, unhide-all, dismiss-notifications, quick-look-selection (macOS)",
+          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake (the toggle: the default duration, or off), quit-all, unhide-all, dismiss-notifications, quick-look-selection (macOS)",
           "required": true
+        }
+      }
+    },
+    "awake": {
+      "description": "Keep the machine awake, or let it sleep",
+      "params": {
+        "for": {
+          "description": "How long: 45m, 2h, 1h30m, or a clock time like 14:30, or forever; blank with nothing else toggles (the default duration, or off while on)"
+        },
+        "until": {
+          "description": "The same as for; a clock time reads best here (tomorrow's when today's has passed)"
+        },
+        "display": {
+          "description": "Keep the display awake too (the setting otherwise)",
+          "type": "boolean"
+        },
+        "app": {
+          "description": "An app with a window open: the run ends when it quits (caffeinate -w)"
+        },
+        "off": {
+          "description": "Allow sleep now",
+          "type": "boolean"
         }
       }
     }
@@ -85,11 +148,140 @@
     "system": {
       "tier": "primary",
       "kind": "live",
-      "description": "What this machine can do from here.",
+      "description": "What this machine can do from here; Keep Awake takes how long in the bar.",
       "keys": [
         {
           "keys": "enter",
-          "title": "Run the command"
+          "title": "Run the command; on Keep Awake, for what the bar says (the default when blank); Allow Sleep while a run is on"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "On Keep Awake: until turned off"
+        },
+        {
+          "keys": "cmd+u",
+          "title": "On Keep Awake: a form for a time, an app to follow and the display"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "On Allow Sleep: keep the display awake too, or let it sleep"
+        }
+      ]
+    }
+  },
+  "states": {
+    "awake": {
+      "description": "A keep-awake run is on",
+      "kind": "boolean"
+    },
+    "awake_until": {
+      "description": "When the run ends, unix ms; null without an end",
+      "kind": "number"
+    },
+    "awake_left": {
+      "description": "Minutes left, rounded up; null without an end",
+      "kind": "number"
+    },
+    "awake_display": {
+      "description": "The display is kept awake too",
+      "kind": "boolean"
+    }
+  },
+  "bar": {
+    "awake": {
+      "title": "Keep Awake",
+      "description": "A coffee glyph and what is left of the run (∞ without an end), a monitor mark when the display is kept awake too; hidden while off (`show = \"always\"` keeps a muted coffee). The popover: the run on a card with the time left and a bar, the presets as tiles on the digits, the display switch, Allow sleep on Enter; `u` opens a field for a time or a duration.",
+      "refresh": {
+        "every": 60,
+        "on": [
+          "wake"
+        ]
+      },
+      "rules": [
+        {
+          "id": "ending",
+          "when": "system.awake and system.awake_left <= 5",
+          "description": "Five minutes or less left.",
+          "color": "amber"
+        }
+      ],
+      "mocks": {
+        "off": {
+          "title": "Not kept awake",
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰛊",
+              "tooltip": "Not kept awake"
+            }
+          }
+        },
+        "left": {
+          "title": "25 minutes left",
+          "item": {
+            "icon": "󰛊",
+            "title": "25m",
+            "tooltip": "Awake until 14:55, 25 min left"
+          }
+        },
+        "forever": {
+          "title": "Until turned off",
+          "item": {
+            "icon": "󰛊",
+            "title": "∞",
+            "tooltip": "Awake until turned off"
+          }
+        },
+        "display": {
+          "title": "Display kept awake too",
+          "item": {
+            "icon": "󰛊",
+            "title": "1h 59m",
+            "segments": [
+              {
+                "id": "display",
+                "icon": "󰍹",
+                "color": "muted",
+                "tooltip": "Display kept awake too"
+              }
+            ],
+            "tooltip": "Awake until 16:29, 1 h 59 min left, display too"
+          }
+        },
+        "ending": {
+          "title": "Under five minutes",
+          "item": {
+            "icon": "󰛊",
+            "title": "4m",
+            "color": "amber",
+            "tooltip": "Awake until 14:34, 4 min left"
+          }
+        }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Allow sleep (while on); keep awake for the default (while off)"
+        },
+        {
+          "keys": "1",
+          "title": "Keep awake for a preset (1 to 5, the tiles)"
+        },
+        {
+          "keys": "d",
+          "title": "Keep the display awake too, or let it sleep"
+        },
+        {
+          "keys": "u",
+          "title": "A field for a time or a duration: 45m, 14:30, forever, then Enter"
+        },
+        {
+          "keys": "backspace",
+          "title": "Allow sleep"
+        },
+        {
+          "keys": "o",
+          "title": "Open the System palette"
         }
       ]
     }
