@@ -1,0 +1,3286 @@
+{
+  "palettes": {
+    "immich": {
+      "title": "Immich",
+      "icon": {
+        "tile": {
+          "glyph": "󰋹",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "view": "grid",
+      "columns": 6,
+      "placeholder": "What is in the picture (a file name, since:2025, in:Istanbul)",
+      "showDetail": true,
+      "filters": [
+        {
+          "id": "all",
+          "title": "All"
+        },
+        {
+          "id": "photos",
+          "title": "Photos"
+        },
+        {
+          "id": "videos",
+          "title": "Videos"
+        },
+        {
+          "id": "favourites",
+          "title": "Favourites"
+        },
+        {
+          "id": "archived",
+          "title": "Archived"
+        }
+      ],
+      "byQuery": {
+        "": [
+          {
+            "id": "00000001-0000-4000-8000-000000000000",
+            "name": "21 Sep 2026",
+            "subtitle": "IMG-20260921-WA0012.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvVA3YzFGYCNW4MYCFT6YpP7wpBytyoraxHlx9XzdTsf9cZyOf9Oryk2hXqPdb9BrtPsNelW5KdSryk2hXlVuCvWqclOoV5WbQr1Gu9+g12j3G/Qa7X6DXlVuCvWqclOoV5WbQr2q3BTqNdo9POj62YQHwYOydw0eZL5EeJBZp+BBZhWHB5k9Dh5kEgA8yOxx8CB4UJat4UEmPcKDTLaGB5mTBzwIHpQRD/pB8KCMrtEPggfRD1rKreFB8KDszgMeBA/K7svgQfAgeNDSm2h4EDwoS4/wIHgQPGipnn4QPChLAPSDzJdIPwgelGVr+kHwoCwB0A+CB2Xpkf/FTD6iHwQPys5l9IPgQdmZnv/FzB5HPwgelN150A+CB9EP+jqHPgFmi57+A3p40PF5Nt/SfR0NOIIc5AAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "21 Sep 2026 18:18"
+                },
+                {
+                  "label": "Size",
+                  "value": "946 × 2048 · 120 KB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG-20260921-WA0012.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvVA3YzFGYCNW4MYCFT6YpP7wpBytyoraxHlx9XzdTsf9cZyOf9Oryk2hXqPdb9BrtPsNelW5KdSryk2hXlVuCvWqclOoV5WbQr1Gu9+g12j3G/Qa7X6DXlVuCvWqclOoV5WbQr2q3BTqNdo9POj62YQHwYOydw0eZL5EeJBZp+BBZhWHB5k9Dh5kEgA8yOxx8CB4UJat4UEmPcKDTLaGB5mTBzwIHpQRD/pB8KCMrtEPggfRD1rKreFB8KDszgMeBA/K7svgQfAgeNDSm2h4EDwoS4/wIHgQPGipnn4QPChLAPSDzJdIPwgelGVr+kHwoCwB0A+CB2Xpkf/FTD6iHwQPys5l9IPgQdmZnv/FzB5HPwgelN150A+CB9EP+jqHPgFmi57+A3p40PF5Nt/SfR0NOIIc5AAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000002-0000-4000-8000-000000000000",
+            "name": "▶ 0:07 · 21 Sep 2026",
+            "subtitle": "20260921_103355.mp4",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wB6swFqswA0OyQYVE/SpHygDt6bXjiBD398M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6Qc/b65v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoAnqfn6APOYithJOBrYwAAAAASUVORK5CYII="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "21 Sep 2026 10:34",
+                  "tags": [
+                    {
+                      "text": "favourite",
+                      "color": "amber"
+                    },
+                    {
+                      "text": "video",
+                      "color": "blue"
+                    }
+                  ]
+                },
+                {
+                  "label": "Place",
+                  "link": {
+                    "text": "Ataşehir, Istanbul, Türkiye",
+                    "href": "https://www.google.com/maps/search/?api=1&query=40.9938,29.0597"
+                  }
+                },
+                {
+                  "label": "Size",
+                  "value": "1920 × 1080 · 10.5 MB · MP4"
+                },
+                {
+                  "label": "Length",
+                  "value": "0:07"
+                },
+                {
+                  "label": "File",
+                  "value": "20260921_103355.mp4"
+                },
+                {
+                  "label": "People",
+                  "tags": [
+                    {
+                      "text": "Ayşe",
+                      "color": "teal"
+                    }
+                  ]
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wB6swFqswA0OyQYVE/SpHygDt6bXjiBD398M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6Qc/b65v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoAnqfn6APOYithJOBrYwAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "unfav",
+                "title": "Unfavourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000003-0000-4000-8000-000000000000",
+            "name": "19 Sep 2026",
+            "subtitle": "DSC00500.ARW",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDaZQw71qEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zPxywr1FJc6i9AAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "19 Sep 2026 18:42"
+                },
+                {
+                  "label": "Camera",
+                  "value": "SONY ILCE-6700"
+                },
+                {
+                  "label": "Lens",
+                  "value": "Tamron 18-300mm F3.5-6.3 Di III-A VC VXD"
+                },
+                {
+                  "label": "Exposure",
+                  "value": "ƒ/4 · 1/160 s · ISO 320 · 18 mm"
+                },
+                {
+                  "label": "Size",
+                  "value": "6272 × 4168 · 27.3 MB · ARW"
+                },
+                {
+                  "label": "File",
+                  "value": "DSC00500.ARW"
+                },
+                {
+                  "label": "People",
+                  "tags": [
+                    {
+                      "text": "Ayşe",
+                      "color": "teal"
+                    },
+                    {
+                      "text": "Mehmet",
+                      "color": "teal"
+                    }
+                  ]
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDaZQw71qEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zPxywr1FJc6i9AAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000004-0000-4000-8000-000000000000",
+            "name": "19 Sep 2026",
+            "subtitle": "DSC00500.lume.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACCElEQVR4nO3Z91MPcBzH8W/0H4TqykzCaZN1iNJ0RHtpaZemthZdSmV3lfbee2kpZyYJ16KBHKmUoksZ9W/44fkvvO/zeY/XQ2AokmG0JtN4bbbJuhxT0VwzsTxz8XwLiQJLycKz64usNhRbbyyx2VRqu7nMbku5vVSFw9ZKR+kqp201zjK1LtvrXHfUu+1scN/VeF72nodck6d8s5dCi7diq49Sm6/yfb/d7f57OgJUHgTufRi071Hw/schB55cPPg09NCzsMOd4UeeR6h2RR59celY92W1l1HqPdHHX13ReB2j+SZWq/eqdl+cTn+87kDCicFrJ99eP/Xuht7QzdPDt86M3NYfvWPwPtHwQ5LRx2TjsRSTT3dNP6eafUkzH0+3+JphOZFpNZllPZVt8y3HdjrXbibv3Pd8+9kCh7kixx/FTj9LnOdLXRbKXH+Vuy1WuC9Vevyu8vxT7fW3xvtfrc9yna+g/oJQg9+qRv/VTQHCAgpEgXhBfDF6EE2aKcaYZw9iUWRRZJPm1OAW41jlmifuIA8iMCMwI1EkciWTJrRHNWAfXAw4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+Cw9z+BwxVl4lI/WI9SUAAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "19 Sep 2026 18:42"
+                },
+                {
+                  "label": "Camera",
+                  "value": "SONY ILCE-6700"
+                },
+                {
+                  "label": "Lens",
+                  "value": "Tamron 18-300mm F3.5-6.3 Di III-A VC VXD"
+                },
+                {
+                  "label": "Exposure",
+                  "value": "ƒ/4 · 1/160 s · ISO 320 · 18 mm"
+                },
+                {
+                  "label": "Size",
+                  "value": "4168 × 6240 · 2.7 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "DSC00500.lume.jpg"
+                },
+                {
+                  "label": "People",
+                  "tags": [
+                    {
+                      "text": "Ayşe",
+                      "color": "teal"
+                    }
+                  ]
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACCElEQVR4nO3Z91MPcBzH8W/0H4TqykzCaZN1iNJ0RHtpaZemthZdSmV3lfbee2kpZyYJ16KBHKmUoksZ9W/44fkvvO/zeY/XQ2AokmG0JtN4bbbJuhxT0VwzsTxz8XwLiQJLycKz64usNhRbbyyx2VRqu7nMbku5vVSFw9ZKR+kqp201zjK1LtvrXHfUu+1scN/VeF72nodck6d8s5dCi7diq49Sm6/yfb/d7f57OgJUHgTufRi071Hw/schB55cPPg09NCzsMOd4UeeR6h2RR59celY92W1l1HqPdHHX13ReB2j+SZWq/eqdl+cTn+87kDCicFrJ99eP/Xuht7QzdPDt86M3NYfvWPwPtHwQ5LRx2TjsRSTT3dNP6eafUkzH0+3+JphOZFpNZllPZVt8y3HdjrXbibv3Pd8+9kCh7kixx/FTj9LnOdLXRbKXH+Vuy1WuC9Vevyu8vxT7fW3xvtfrc9yna+g/oJQg9+qRv/VTQHCAgpEgXhBfDF6EE2aKcaYZw9iUWRRZJPm1OAW41jlmifuIA8iMCMwI1EkciWTJrRHNWAfXAw4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+Cw9z+BwxVl4lI/WI9SUAAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000005-0000-4000-8000-000000000000",
+            "name": "Serdivan · 3 May 2022",
+            "subtitle": "2024-11-23.heic",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRBz9cJezMBo3FigwgeT1B+elKNVWVGbOC+uXvfH6XjejtPxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hsAQjQkod/xcAAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "3 May 2022 22:13"
+                },
+                {
+                  "label": "Place",
+                  "link": {
+                    "text": "Serdivan, Sakarya, Türkiye",
+                    "href": "https://www.google.com/maps/search/?api=1&query=40.760042,30.364075"
+                  }
+                },
+                {
+                  "label": "Camera",
+                  "value": "Apple iPhone 13 mini"
+                },
+                {
+                  "label": "Lens",
+                  "value": "iPhone 13 mini back dual wide camera 5.1mm f/1.6"
+                },
+                {
+                  "label": "Exposure",
+                  "value": "ƒ/1.6 · 1/100 s · ISO 100 · 5.1 mm"
+                },
+                {
+                  "label": "Size",
+                  "value": "4032 × 3024 · 2.6 MB · HEIC"
+                },
+                {
+                  "label": "File",
+                  "value": "2024-11-23.heic"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRBz9cJezMBo3FigwgeT1B+elKNVWVGbOC+uXvfH6XjejtPxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hsAQjQkod/xcAAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000007-0000-4000-8000-000000000000",
+            "name": "Ataşehir · 22 Sep 2025",
+            "subtitle": "IMG-20250922-WA0001.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqDgxgA4OoQQQaeps2L+G8KZP/Z3c83730Xe9c+nafP3b/AYAAkiAV46CwREkaIAlSMQ4KS5SkAZIgFTvaQbUH1eYDBJAEqRgHkbQtZs1X7xR3EEASpGIcFJYoSQMUT1DtQbX5AAEkQSrGQSRti1nz1TvFHQSQBKkYB4UlStIAxRNUe1BtPkAASZCKcRBJ22LWfPVOcQcBJEEqxkFhiZI0QPEE1R5Umw8QQBKkYhxE0rbYPHXN/3NFuOgSBSfJAAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "22 Sep 2025 10:30"
+                },
+                {
+                  "label": "Place",
+                  "link": {
+                    "text": "Ataşehir, Istanbul, Türkiye",
+                    "href": "https://www.google.com/maps/search/?api=1&query=40.9938,29.0597"
+                  }
+                },
+                {
+                  "label": "Size",
+                  "value": "1600 × 657 · 89 KB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG-20250922-WA0001.jpg"
+                },
+                {
+                  "label": "People",
+                  "tags": [
+                    {
+                      "text": "Mehmet",
+                      "color": "teal"
+                    }
+                  ]
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqDgxgA4OoQQQaeps2L+G8KZP/Z3c83730Xe9c+nafP3b/AYAAkiAV46CwREkaIAlSMQ4KS5SkAZIgFTvaQbUH1eYDBJAEqRgHkbQtZs1X7xR3EEASpGIcFJYoSQMUT1DtQbX5AAEkQSrGQSRti1nz1TvFHQSQBKkYB4UlStIAxRNUe1BtPkAASZCKcRBJ22LWfPVOcQcBJEEqxkFhiZI0QPEE1R5Umw8QQBKkYhxE0rbYPHXN/3NFuOgSBSfJAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000008-0000-4000-8000-000000000000",
+            "name": "22 Sep 2021",
+            "subtitle": "IMG-20210922-WA0004.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACBUlEQVR4nO3Z9VYTYBjH8YncASEckFJEPIQiKOgRFSUEj4UIBgdEBayj2FeCIHI2mlEyRjdIj5KujU1qxNjoESq34R/fW3jO+z7x+wiMhPHGoq8mqQmmaYmH0r+ZZSSZZ363yEq2zBYeFousclKsc1Nt8tJs89PtCjKO/Mg8WphlL8k+JhU7FOccL8l1LM07UZbvVF7gXFHoUilxrSo6WS09VVPsVltyuq7Uvb7Mo6H8TGPF2aZKz+Yqr5bqc60159tqL7TXeXc0XJQ1Xur8ebmryae7+UpPy9XeVt9fbX597f79HQGDsmtDnYHDXUEj3ddHe26M9d4c77s10X9bPnBHMRg8OXRXORyiGrn3ezR0aixsevz+7MSDOflDteLR/GT4gjJiURW5NPVYMx21PPNEO/tUN/dsRR29Oh+zthC7vvh8Y+nFlualfvnVtvb1ju7N7srbvdW4P+vv/m68/7f5QbD18YD+k8H254M7Xwx3BRSIAvGC+GL0IJo0U4wxzx7EosiiyCbNqcEtxrHKNU/cQR5EYEZgRqJI5EomTWiPasA+uBhwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8Ch7D+Bw31jzTl4AidU7AAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "22 Sep 2021 15:00",
+                  "tags": [
+                    {
+                      "text": "favourite",
+                      "color": "amber"
+                    }
+                  ]
+                },
+                {
+                  "label": "Size",
+                  "value": "1200 × 900 · 205 KB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG-20210922-WA0004.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACBUlEQVR4nO3Z9VYTYBjH8YncASEckFJEPIQiKOgRFSUEj4UIBgdEBayj2FeCIHI2mlEyRjdIj5KujU1qxNjoESq34R/fW3jO+z7x+wiMhPHGoq8mqQmmaYmH0r+ZZSSZZ363yEq2zBYeFousclKsc1Nt8tJs89PtCjKO/Mg8WphlL8k+JhU7FOccL8l1LM07UZbvVF7gXFHoUilxrSo6WS09VVPsVltyuq7Uvb7Mo6H8TGPF2aZKz+Yqr5bqc60159tqL7TXeXc0XJQ1Xur8ebmryae7+UpPy9XeVt9fbX597f79HQGDsmtDnYHDXUEj3ddHe26M9d4c77s10X9bPnBHMRg8OXRXORyiGrn3ezR0aixsevz+7MSDOflDteLR/GT4gjJiURW5NPVYMx21PPNEO/tUN/dsRR29Oh+zthC7vvh8Y+nFlualfvnVtvb1ju7N7srbvdW4P+vv/m68/7f5QbD18YD+k8H254M7Xwx3BRSIAvGC+GL0IJo0U4wxzx7EosiiyCbNqcEtxrHKNU/cQR5EYEZgRqJI5EomTWiPasA+uBhwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8Ch7D+Bw31jzTl4AidU7AAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "unfav",
+                "title": "Unfavourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000009-0000-4000-8000-000000000000",
+            "name": "Serdivan · 3 Jun 2022",
+            "subtitle": "IMG_4956.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bMQ7CMBRDfSE2jsXG6Xo0Ni5Q4cEk9YcnZbQqK2oT58XV8/E6HffbcTr+Ta8qN4V6jXa/Qa/R7jfoVeWmUK8qN4V6Vbkp1KvKTaFeVW4K9RrtfoNeo91v0Gu0+w16Vbkp1KvKTaFeVW4K9apyU6jXaPfwoOtnEx4ED8reNXiQ+RLhQWadggeZVRweZPY4eJBJAPAgs8fBg+BBWbaGB5n0CA8y2RoeZE4e8CB4UEY86AfBgzK6Rj8IHkQ/aCm3hgfBg7I7D3gQPCi7L4MHwYPgQUtvouFB8KAsPcKD4EHwoKV6+kHwoCwB0A8yXyL9IHhQlq3pB8GDsgRAPwgelKVH/hcz+Yh+EDwoO5fRD4IHZWd6/hczexz9IHhQdudBPwgeRD/o6xz6BJgtevoP6OFBx+fZfAOINcVKnC74FQAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "3 Jun 2022 09:12"
+                },
+                {
+                  "label": "Place",
+                  "link": {
+                    "text": "Serdivan, Sakarya, Türkiye",
+                    "href": "https://www.google.com/maps/search/?api=1&query=40.760042,30.364075"
+                  }
+                },
+                {
+                  "label": "Camera",
+                  "value": "Apple iPhone 13 mini"
+                },
+                {
+                  "label": "Lens",
+                  "value": "iPhone 13 mini back dual wide camera 5.1mm f/1.6"
+                },
+                {
+                  "label": "Exposure",
+                  "value": "ƒ/1.6 · 1/100 s · ISO 100 · 5.1 mm"
+                },
+                {
+                  "label": "Size",
+                  "value": "4032 × 3024 · 2.6 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_4956.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bMQ7CMBRDfSE2jsXG6Xo0Ni5Q4cEk9YcnZbQqK2oT58XV8/E6HffbcTr+Ta8qN4V6jXa/Qa/R7jfoVeWmUK8qN4V6Vbkp1KvKTaFeVW4K9RrtfoNeo91v0Gu0+w16Vbkp1KvKTaFeVW4K9apyU6jXaPfwoOtnEx4ED8reNXiQ+RLhQWadggeZVRweZPY4eJBJAPAgs8fBg+BBWbaGB5n0CA8y2RoeZE4e8CB4UEY86AfBgzK6Rj8IHkQ/aCm3hgfBg7I7D3gQPCi7L4MHwYPgQUtvouFB8KAsPcKD4EHwoKV6+kHwoCwB0A8yXyL9IHhQlq3pB8GDsgRAPwgelKVH/hcz+Yh+EDwoO5fRD4IHZWd6/hczexz9IHhQdudBPwgeRD/o6xz6BJgtevoP6OFBx+fZfAOINcVKnC74FQAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000010-0000-4000-8000-000000000000",
+            "name": "▶ 3 Jun 2022",
+            "subtitle": "IMG_4957.MOV",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wB2syCFswGzOwQYVE/SpHygDt6bXjiBCv+9M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6QbfH+5v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoArqfn6APLneKCzMslsQAAAAASUVORK5CYII="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "3 Jun 2022 09:13",
+                  "tags": [
+                    {
+                      "text": "video",
+                      "color": "blue"
+                    }
+                  ]
+                },
+                {
+                  "label": "Size",
+                  "value": "1920 × 1080 · 2.9 MB · QUICKTIME"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_4957.MOV"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wB2syCFswGzOwQYVE/SpHygDt6bXjiBCv+9M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6QbfH+5v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoArqfn6APLneKCzMslsQAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000011-0000-4000-8000-000000000000",
+            "name": "15 Jan 2023",
+            "subtitle": "IMG_5011.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxUlEQVR4nO3WQQ2AMBAF0dqqG1CDM9QgAg29TZuXcN6Uyf+zO77nWvreey59u88fu/8AQABJkIpxUFiiJA2QBKkYB4UlStIASZCKHe2g2oNq8wECSIJUjINI2haz5qt3ijsIIAlSMQ4KS5SkAYonqPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW2yeuuZ/QVMzBo6/r1gAAAAASUVORK5CYII="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jan 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5011.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxUlEQVR4nO3WQQ2AMBAF0dqqG1CDM9QgAg29TZuXcN6Uyf+zO77nWvreey59u88fu/8AQABJkIpxUFiiJA2QBKkYB4UlStIASZCKHe2g2oNq8wECSIJUjINI2haz5qt3ijsIIAlSMQ4KS5SkAYonqPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW2yeuuZ/QVMzBo6/r1gAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000012-0000-4000-8000-000000000000",
+            "name": "15 Feb 2023",
+            "subtitle": "IMG_5012.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACCklEQVR4nO3Z9zMXcBzH8a/xHyTjRMNoXFYp0SFFSc5KWrqsMrL3ONopdSlZoSN7R/bem0JnJKXUtSQtFyL+DT88/4X3fT7v8XoIHJPXOKWIOaeudUkTd02XcMuQdM+U8siS9sxe55Uj450r65O33jd/g1/BRv/CTQFP5AKL5IOKFYJLFENKN4eWbQkr33qxYtulyu2Xq5SuVCtfrVG5Vqt6vU7tRv2O8IadNxvVbzXtimjefbtV407bnrvtmpEdWvc6997v0o7q1nnQoxvduy+mTy/22f645wfi+/UfDhgkDB5MfHEoacjw0fDh5BGjlNEjj18ap46ZpL0yTR83y3htnvnGImviaPZby5x3x3InrfLeH8//cKLg48nCT6eKPp8u/mL99OuZkqmzpd9syqZty7/bVczYV/5wqPp5rvrX+ZrfjrV/nOpmnev/ujTMXWiad21ecGv559G66Nm25NX+37tj2adT4Nsl5Nct7N8jEtArGiigQBSIF8QXowfRpJlijHn2IBZFFkU2aU4NbjGOVa554g7yIAIzAjMSRSJXMmlCe1QD9sHFgEPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDg1XCRyuAN31Su3TAtQ9AAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Feb 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5012.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACCklEQVR4nO3Z9zMXcBzH8a/xHyTjRMNoXFYp0SFFSc5KWrqsMrL3ONopdSlZoSN7R/bem0JnJKXUtSQtFyL+DT88/4X3fT7v8XoIHJPXOKWIOaeudUkTd02XcMuQdM+U8siS9sxe55Uj450r65O33jd/g1/BRv/CTQFP5AKL5IOKFYJLFENKN4eWbQkr33qxYtulyu2Xq5SuVCtfrVG5Vqt6vU7tRv2O8IadNxvVbzXtimjefbtV407bnrvtmpEdWvc6997v0o7q1nnQoxvduy+mTy/22f645wfi+/UfDhgkDB5MfHEoacjw0fDh5BGjlNEjj18ap46ZpL0yTR83y3htnvnGImviaPZby5x3x3InrfLeH8//cKLg48nCT6eKPp8u/mL99OuZkqmzpd9syqZty7/bVczYV/5wqPp5rvrX+ZrfjrV/nOpmnev/ujTMXWiad21ecGv559G66Nm25NX+37tj2adT4Nsl5Nct7N8jEtArGiigQBSIF8QXowfRpJlijHn2IBZFFkU2aU4NbjGOVa554g7yIAIzAjMSRSJXMmlCe1QD9sHFgEPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDg1XCRyuAN31Su3TAtQ9AAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000013-0000-4000-8000-000000000000",
+            "name": "15 Mar 2023",
+            "subtitle": "IMG_5013.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bMQ7CMBRDfSFuxtqjMXA0Ni5Q4cEk9YcnZbQqK2oT58XV/fU4HbfncTr+Ta8qN4V6jXa/Qa/R7jfoVeWmUK8qN4V6Vbkp1KvKTaFeVW4K9RrtfoNeo91v0Gu0+w16Vbkp1KvKTaFeVW4K9apyU6jXaPfwoOtnEx4ED8reNXiQ+RLhQWadggeZVRweZPY4eJBJAPAgs8fBg+BBWbaGB5n0CA8y2RoeZE4e8CB4UEY86AfBgzK6Rj8IHkQ/aCm3hgfBg7I7D3gQPCi7L4MHwYPgQUtvouFB8KAsPcKD4EHwoKV6+kHwoCwB0A8yXyL9IHhQlq3pB8GDsgRAPwgelKVH/hcz+Yh+EDwoO5fRD4IHZWd6/hczexz9IHhQdudBPwgeRD/o6xz6BJgtevoP6OFBx+fZfANgHa4zkBgwjAAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Mar 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5013.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bMQ7CMBRDfSFuxtqjMXA0Ni5Q4cEk9YcnZbQqK2oT58XV/fU4HbfncTr+Ta8qN4V6jXa/Qa/R7jfoVeWmUK8qN4V6Vbkp1KvKTaFeVW4K9RrtfoNeo91v0Gu0+w16Vbkp1KvKTaFeVW4K9apyU6jXaPfwoOtnEx4ED8reNXiQ+RLhQWadggeZVRweZPY4eJBJAPAgs8fBg+BBWbaGB5n0CA8y2RoeZE4e8CB4UEY86AfBgzK6Rj8IHkQ/aCm3hgfBg7I7D3gQPCi7L4MHwYPgQUtvouFB8KAsPcKD4EHwoKV6+kHwoCwB0A8yXyL9IHhQlq3pB8GDsgRAPwgelKVH/hcz+Yh+EDwoO5fRD4IHZWd6/hczexz9IHhQdudBPwgeRD/o6xz6BJgtevoP6OFBx+fZfANgHa4zkBgwjAAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000014-0000-4000-8000-000000000000",
+            "name": "15 Apr 2023",
+            "subtitle": "IMG_5014.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABD0lEQVR4nO3b2w3CMAwFUP+wBzt1GnaCHdkAIVG/ypEyQHt67TgixP14Wh8Egs5nAUCAfushEgRIglL3GSUGSIKUWOesrwcBWp2gx+v2zfq7EvvSZYJUbKHpYopdNPVMsVSnzCj26tQYxWqdAqPYrpNtFBfQSTWKa+jkGcVldJKMAJUDNcYnI0SAaoHa43N6iAABmpOg9srKqDJAgCRIielBmrRdzDZvDjIoGhRN0o4au89ic86rJ74RIECjEjShys59HUDlQH44BLQ2RBnV4HZHH5D7QVOMUr+xO4oDgNxy7TGq+bRu2g8D+jFN9Y/q3z6zgeYvQIAkSInpQd2dWJMGJEFKrL/dGBQBHecn6A3hA5qfHlK/6gAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Apr 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5014.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABD0lEQVR4nO3b2w3CMAwFUP+wBzt1GnaCHdkAIVG/ypEyQHt67TgixP14Wh8Egs5nAUCAfushEgRIglL3GSUGSIKUWOesrwcBWp2gx+v2zfq7EvvSZYJUbKHpYopdNPVMsVSnzCj26tQYxWqdAqPYrpNtFBfQSTWKa+jkGcVldJKMAJUDNcYnI0SAaoHa43N6iAABmpOg9srKqDJAgCRIielBmrRdzDZvDjIoGhRN0o4au89ic86rJ74RIECjEjShys59HUDlQH44BLQ2RBnV4HZHH5D7QVOMUr+xO4oDgNxy7TGq+bRu2g8D+jFN9Y/q3z6zgeYvQIAkSInpQd2dWJMGJEFKrL/dGBQBHecn6A3hA5qfHlK/6gAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000015-0000-4000-8000-000000000000",
+            "name": "15 May 2023",
+            "subtitle": "IMG_5015.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDd7w0gQviEBDb9PmJZw3ZfL/7I73/pa+55pL3+7zx+4/ABBAEqRiHBSWKEkDJEEqxkFhiZI0QBKkYkc7qPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW8yar94p7iCAJEjFOCgsUZIGKJ6g2oNq8wECSIJUjINI2habp675H+ogKW8AKtCUAAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 May 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5015.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDd7w0gQviEBDb9PmJZw3ZfL/7I73/pa+55pL3+7zx+4/ABBAEqRiHBSWKEkDJEEqxkFhiZI0QBKkYkc7qPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW8yar94p7iCAJEjFOCgsUZIGKJ6g2oNq8wECSIJUjINI2habp675H+ogKW8AKtCUAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000016-0000-4000-8000-000000000000",
+            "name": "15 Jun 2023",
+            "subtitle": "IMG_5016.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACBklEQVR4nO3Z5VIUYBiG4RU8A0IdERCVLmGXlJKupXN3pbtDQikFBoGDgCEVAx1B6RqTUmAMQgV1VETAgAFRgdPwx30K73zfG88lqFPQrFfUalDSblTWaTqk23xYr+WIfutRg6sqhteOGbWpGl9XM7mhbnrzuPCWhqj9hNntk+Z3Tlnc1bTs0LLq1La+p3Pmvq5Nl75tt4Fdj6F9r5FDn7Fj/2mnARPnQVOXIaHrsMhtxMz9gbnHQwvPR5Zej628n1iLn9r4jNr6jtn5jdv7TzgETp4NeuYY/NwpZMo5dNolbMY1/IWb5KW79JWH7LXnuVmviDlx5LxP1IJv9Bu/mLf+ce8C4hcDE5aCEt8HJ30ISf4YmvIpLPVzeNoXSfqyNOOrLHMlIutbZPZqVM5adO56TN732PwfcQU/4wt/JVzYSLy4mVS0lVy8nVLyO7V0J63sT8alv5mX/2WV72ZX7OVUCnKrDpy/IpdXLZ9fc7CgVkCBKBAviC9GD6JJM8UY8+xBLIosimzSnBrcYhyrXPPEHeRBBGYEZiSKRK5k0oT2qAbsg4sBh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcSv4TONwHiE9jtBTKw4IAAAAASUVORK5CYII="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jun 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5016.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACBklEQVR4nO3Z5VIUYBiG4RU8A0IdERCVLmGXlJKupXN3pbtDQikFBoGDgCEVAx1B6RqTUmAMQgV1VETAgAFRgdPwx30K73zfG88lqFPQrFfUalDSblTWaTqk23xYr+WIfutRg6sqhteOGbWpGl9XM7mhbnrzuPCWhqj9hNntk+Z3Tlnc1bTs0LLq1La+p3Pmvq5Nl75tt4Fdj6F9r5FDn7Fj/2mnARPnQVOXIaHrsMhtxMz9gbnHQwvPR5Zej628n1iLn9r4jNr6jtn5jdv7TzgETp4NeuYY/NwpZMo5dNolbMY1/IWb5KW79JWH7LXnuVmviDlx5LxP1IJv9Bu/mLf+ce8C4hcDE5aCEt8HJ30ISf4YmvIpLPVzeNoXSfqyNOOrLHMlIutbZPZqVM5adO56TN732PwfcQU/4wt/JVzYSLy4mVS0lVy8nVLyO7V0J63sT8alv5mX/2WV72ZX7OVUCnKrDpy/IpdXLZ9fc7CgVkCBKBAviC9GD6JJM8UY8+xBLIosimzSnBrcYhyrXPPEHeRBBGYEZiSKRK5k0oT2qAbsg4sBh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcSv4TONwHiE9jtBTKw4IAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000017-0000-4000-8000-000000000000",
+            "name": "15 Jul 2023",
+            "subtitle": "IMG_5017.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQnDMBRDtVA2636lixV66wKhOqh29NsHPoogTGLLz4pez9vpeNyP0/FvelW5KdRrtPsNeo12v0GvKjeFelW5KdSryk2hXlVuCvWqclOo12j3G/Qa7X6DXqPdb9Cryk2hXlVuCvWqclOoV5WbQr1Gu4cHXT+b8CB4UPauwYPMlwgPMusUPMis4vAgs8fBg0wCgAeZPQ4eBA/KsjU8yKRHeJDJ1vAgc/KAB8GDMuJBPwgelNE1+kHwIPpBS7k1PAgelN15wIPgQdl9GTwIHgQPWnoTDQ+CB2XpER4ED4IHLdXTD4IHZQmAfpD5EukHwYOybE0/CB6UJQD6QfCgLD3yv5jJR/SD4EHZuYx+EDwoO9Pzv5jZ4+gHwYOyOw/6QfAg+kFf59AnwGzR039ADw86Ps/mGzx1lxxckS1SAAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jul 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5017.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQnDMBRDtVA2636lixV66wKhOqh29NsHPoogTGLLz4pez9vpeNyP0/FvelW5KdRrtPsNeo12v0GvKjeFelW5KdSryk2hXlVuCvWqclOo12j3G/Qa7X6DXqPdb9Cryk2hXlVuCvWqclOoV5WbQr1Gu4cHXT+b8CB4UPauwYPMlwgPMusUPMis4vAgs8fBg0wCgAeZPQ4eBA/KsjU8yKRHeJDJ1vAgc/KAB8GDMuJBPwgelNE1+kHwIPpBS7k1PAgelN15wIPgQdl9GTwIHgQPWnoTDQ+CB2XpER4ED4IHLdXTD4IHZQmAfpD5EukHwYOybE0/CB6UJQD6QfCgLD3yv5jJR/SD4EHZuYx+EDwoO9Pzv5jZ4+gHwYOyOw/6QfAg+kFf59AnwGzR039ADw86Ps/mGzx1lxxckS1SAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000018-0000-4000-8000-000000000000",
+            "name": "15 Aug 2023",
+            "subtitle": "IMG_5018.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wBxOwHxOwDEOyQYVE/SpHygDt6bXjiBD398M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6Qc/b65v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoAnqfn6AP0LysZrw0nVcAAAAASUVORK5CYII="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Aug 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5018.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wBxOwHxOwDEOyQYVE/SpHygDt6bXjiBD398M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6Qc/b65v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoAnqfn6AP0LysZrw0nVcAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000019-0000-4000-8000-000000000000",
+            "name": "15 Sep 2023",
+            "subtitle": "IMG_5019.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDe5w0htOEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP/o1lW9PCcQ1AAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Sep 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5019.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDe5w0htOEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP/o1lW9PCcQ1AAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000020-0000-4000-8000-000000000000",
+            "name": "15 Oct 2023",
+            "subtitle": "IMG_5020.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACCElEQVR4nO3Z91MPcBzH8W/jP1DJpZKScbRoX9Ge197j2nvvyLhkhIxT0aJddhxFhLjSonkt7Tg0ROQkq3+jH57/wvs+n/d4PQSG64qNxEqMxctMJMpN11eYSVaab6iykKq23HjNSvq6tcwNG9mbtptu2cndtt98x0G+xlHhrtOWe86K9122PnDdVuu2vc59x0OPnY88d9V7KT32Vn7io9Lgq/rUT+2Z/+7nAXsaA9VfBGm8DNZsCtFqDtV+FabTEq7bGqHXFqnfHrW3I3rf61iDN3GGnfFGXQnG3YkmPUmmvclmfSnm/akWA/stBw9YDaVZDx+0eXvIduSw3egR+7F0h/GjjhMZTpPHnKeOu0yfcH130u19pvuHUx4fT3t+OuM1k+U9e9Zn7pzv/Hm/zxf8Fy4GfMkO/JoTtJgb/O1SyPfLoUt5YT/yw38WRCwXRv4qilq5EvP7auyf4ri/JfH/ShP+lycKKpKEKpOFq1JEqlNFBRSIAvGC+GL0IJo0U4wxzx7EosiiyCbNqcEtxrHKNU/cQR5EYEZgRqJI5EomTWiPasA+uBhwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8Bh/xqBw1X/aFfhPveUgwAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Oct 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5020.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACCElEQVR4nO3Z91MPcBzH8W/jP1DJpZKScbRoX9Ge197j2nvvyLhkhIxT0aJddhxFhLjSonkt7Tg0ROQkq3+jH57/wvs+n/d4PQSG64qNxEqMxctMJMpN11eYSVaab6iykKq23HjNSvq6tcwNG9mbtptu2cndtt98x0G+xlHhrtOWe86K9122PnDdVuu2vc59x0OPnY88d9V7KT32Vn7io9Lgq/rUT+2Z/+7nAXsaA9VfBGm8DNZsCtFqDtV+FabTEq7bGqHXFqnfHrW3I3rf61iDN3GGnfFGXQnG3YkmPUmmvclmfSnm/akWA/stBw9YDaVZDx+0eXvIduSw3egR+7F0h/GjjhMZTpPHnKeOu0yfcH130u19pvuHUx4fT3t+OuM1k+U9e9Zn7pzv/Hm/zxf8Fy4GfMkO/JoTtJgb/O1SyPfLoUt5YT/yw38WRCwXRv4qilq5EvP7auyf4ri/JfH/ShP+lycKKpKEKpOFq1JEqlNFBRSIAvGC+GL0IJo0U4wxzx7EosiiyCbNqcEtxrHKNU/cQR5EYEZgRqJI5EomTWiPasA+uBhwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8Bh/xqBw1X/aFfhPveUgwAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000021-0000-4000-8000-000000000000",
+            "name": "15 Nov 2023",
+            "subtitle": "IMG_5021.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQ3CMBRDvRCbMUE3g824sUCFDyapPzwpR6uyojZxXly97s/T8bgdp+Pf9KpyU6jXaPcb9BrtfoNeVW4K9apyU6hXlZtCvarcFOpV5aZQr9HuN+g12v0GvUa736BXlZtCvarcFOpV5aZQryo3hXqNdg8Pun424UHwoOxdgweZLxEeZNYpeJBZxeFBZo+DB5kEAA8yexw8CB6UZWt4kEmP8CCTreFB5uQBD4IHZcSDfhA8KKNr9IPgQfSDlnJreBA8KLvzgAfBg7L7MngQPAgetPQmGh4ED8rSIzwIHgQPWqqnHwQPyhIA/SDzJdIPggdl2Zp+EDwoSwD0g+BBWXrkfzGTj+gHwYOycxn9IHhQdqbnfzGzx9EPggdldx70g+BB9IO+zqFPgNmip/+AHh50fJ7NN2j/NUKbukUqAAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Nov 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5021.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQ3CMBRDvRCbMUE3g824sUCFDyapPzwpR6uyojZxXly97s/T8bgdp+Pf9KpyU6jXaPcb9BrtfoNeVW4K9apyU6hXlZtCvarcFOpV5aZQr9HuN+g12v0GvUa736BXlZtCvarcFOpV5aZQryo3hXqNdg8Pun424UHwoOxdgweZLxEeZNYpeJBZxeFBZo+DB5kEAA8yexw8CB6UZWt4kEmP8CCTreFB5uQBD4IHZcSDfhA8KKNr9IPgQfSDlnJreBA8KLvzgAfBg7L7MngQPAgetPQmGh4ED8rSIzwIHgQPWqqnHwQPyhIA/SDzJdIPggdl2Zp+EDwoSwD0g+BBWXrkfzGTj+gHwYOycxn9IHhQdqbnfzGzx9EPggdldx70g+BB9IO+zqFPgNmip/+AHh50fJ7NN2j/NUKbukUqAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000022-0000-4000-8000-000000000000",
+            "name": "15 Dec 2023",
+            "subtitle": "IMG_5022.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3byw3CQAwFQF/ogw5zpicaoSs6QEjEvzDSFpBMnr1escTzuFsfBILOZwFAgH7rIRIESIJS9xklBkiClFjnrK8HAVqdoNvr8c36uxL70mWCVGyh6WKKXTT1TLFUp8wo9urUGMVqnQKj2K6TbRQX0Ek1imvo5BnFZXSSjACVAzXGJyNEgGqB2uNzeogAAZqToPbKyqgyQIAkSInpQZq0Xcw2bw4yKBoUTdKOGrvPYnPOqye+ESBAoxI0ocrOfR1A5UB+OAS0NkQZ1eB2Rx+Q+0FTjFK/sTuKA4Dccu0xqvm0btoPA/oxTfWP6t8+s4HmL0CAJEiJ6UHdnViTBiRBSqy/3RgUAR3nJ+gNyJiOzF4vr7YAAAAASUVORK5CYII="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Dec 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5022.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3byw3CQAwFQF/ogw5zpicaoSs6QEjEvzDSFpBMnr1escTzuFsfBILOZwFAgH7rIRIESIJS9xklBkiClFjnrK8HAVqdoNvr8c36uxL70mWCVGyh6WKKXTT1TLFUp8wo9urUGMVqnQKj2K6TbRQX0Ek1imvo5BnFZXSSjACVAzXGJyNEgGqB2uNzeogAAZqToPbKyqgyQIAkSInpQZq0Xcw2bw4yKBoUTdKOGrvPYnPOqye+ESBAoxI0ocrOfR1A5UB+OAS0NkQZ1eB2Rx+Q+0FTjFK/sTuKA4Dccu0xqvm0btoPA/oxTfWP6t8+s4HmL0CAJEiJ6UHdnViTBiRBSqy/3RgUAR3nJ+gNyJiOzF4vr7YAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000023-0000-4000-8000-000000000000",
+            "name": "15 Jan 2023",
+            "subtitle": "IMG_5023.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqG06oQRdqEIGG3qbNSzhvyuT/2R3Pdy199zuXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP94+ugZnmx9MAAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jan 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5023.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqG06oQRdqEIGG3qbNSzhvyuT/2R3Pdy199zuXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP94+ugZnmx9MAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000024-0000-4000-8000-000000000000",
+            "name": "15 Feb 2023",
+            "subtitle": "IMG_5024.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACB0lEQVR4nO3Z9zMXcBzH8a/xHyR0pAjRlUhGORmlhBNSSjlllHkVit/VtZHGWWXvnfW198reI5uQlIQjKv6Nfnj+C+/7fN7j9RDsig6UiHm4O+6RZPxjqYQn0olP9yQ9k0l+LpvyYm/qS7m0oH3pwfszQuQzXylkhR7Ifq2Y80Yp961y3ruD+WEqBeGqhRGHiiIPC6OOFL9XK/lwtDRavSxGozz2WEWcZmX88aoErepE7Zoknbpk3frUEw1pJxvT9Zoy9JszT33KMmjJNmzNMWrLNW7/eLoj70xnvklXwdnuwnM9RaZ9wvP9JWYDpeaDZRZD5ZbDFRc+V1qNVFmPVtuM1Vwcr7WdqLs0WX95qsFuuvHKTNPV2Wb7uZZr863Xv7Y5LLQ7fuu4sdh583uX049u56Uel5+9rst9t371314ZcFsddF8b8lgf9twY8fo96r05dmdr/O6fiXt/J33+TfluT/sJZu6LfHkgOusvNhcgPi+gQBSIF8QXowfRpJlijHn2IBZFFkU2aU4NbjGOVa554g7yIAIzAjMSRSJXMmlCe1QD9sHFgEPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoX/CRzuAC3BQMqzp5dEAAAAAElFTkSuQmCC"
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Feb 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5024.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACB0lEQVR4nO3Z9zMXcBzH8a/xHyR0pAjRlUhGORmlhBNSSjlllHkVit/VtZHGWWXvnfW198reI5uQlIQjKv6Nfnj+C+/7fN7j9RDsig6UiHm4O+6RZPxjqYQn0olP9yQ9k0l+LpvyYm/qS7m0oH3pwfszQuQzXylkhR7Ifq2Y80Yp961y3ruD+WEqBeGqhRGHiiIPC6OOFL9XK/lwtDRavSxGozz2WEWcZmX88aoErepE7Zoknbpk3frUEw1pJxvT9Zoy9JszT33KMmjJNmzNMWrLNW7/eLoj70xnvklXwdnuwnM9RaZ9wvP9JWYDpeaDZRZD5ZbDFRc+V1qNVFmPVtuM1Vwcr7WdqLs0WX95qsFuuvHKTNPV2Wb7uZZr863Xv7Y5LLQ7fuu4sdh583uX049u56Uel5+9rst9t371314ZcFsddF8b8lgf9twY8fo96r05dmdr/O6fiXt/J33+TfluT/sJZu6LfHkgOusvNhcgPi+gQBSIF8QXowfRpJlijHn2IBZFFkU2aU4NbjGOVa554g7yIAIzAjMSRSJXMmlCe1QD9sHFgEPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoFD4BA4BA6BQ+AQOAQOgUPgEDgEDoX/CRzuAC3BQMqzp5dEAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000025-0000-4000-8000-000000000000",
+            "name": "15 Mar 2023",
+            "subtitle": "IMG_5025.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRB3hmIAVuto3FigwgeT1B+elKNVWVGbOC+uHs/X6bjdj9Pxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hvEyz7ZPcEjIgAAAABJRU5ErkJggg=="
+            },
+            "section": "Recent",
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Mar 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5025.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRB3hmIAVuto3FigwgeT1B+elKNVWVGbOC+uHs/X6bjdj9Pxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hvEyz7ZPcEjIgAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "more:100l9zo1lr2l3",
+            "name": "More…",
+            "subtitle": "24 shown",
+            "icon": "󰇘",
+            "section": "Recent",
+            "actions": [
+              {
+                "id": "more",
+                "title": "Load more"
+              }
+            ]
+          }
+        ],
+        "receipt": [
+          {
+            "id": "00000001-0000-4000-8000-000000000000",
+            "name": "21 Sep 2026",
+            "subtitle": "IMG-20260921-WA0012.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvVA3YzFGYCNW4MYCFT6YpP7wpBytyoraxHlx9XzdTsf9cZyOf9Oryk2hXqPdb9BrtPsNelW5KdSryk2hXlVuCvWqclOoV5WbQr1Gu9+g12j3G/Qa7X6DXlVuCvWqclOoV5WbQr2q3BTqNdo9POj62YQHwYOydw0eZL5EeJBZp+BBZhWHB5k9Dh5kEgA8yOxx8CB4UJat4UEmPcKDTLaGB5mTBzwIHpQRD/pB8KCMrtEPggfRD1rKreFB8KDszgMeBA/K7svgQfAgeNDSm2h4EDwoS4/wIHgQPGipnn4QPChLAPSDzJdIPwgelGVr+kHwoCwB0A+CB2Xpkf/FTD6iHwQPys5l9IPgQdmZnv/FzB5HPwgelN150A+CB9EP+jqHPgFmi57+A3p40PF5Nt/SfR0NOIIc5AAAAABJRU5ErkJggg=="
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "21 Sep 2026 18:18"
+                },
+                {
+                  "label": "Size",
+                  "value": "946 × 2048 · 120 KB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG-20260921-WA0012.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvVA3YzFGYCNW4MYCFT6YpP7wpBytyoraxHlx9XzdTsf9cZyOf9Oryk2hXqPdb9BrtPsNelW5KdSryk2hXlVuCvWqclOoV5WbQr1Gu9+g12j3G/Qa7X6DXlVuCvWqclOoV5WbQr2q3BTqNdo9POj62YQHwYOydw0eZL5EeJBZp+BBZhWHB5k9Dh5kEgA8yOxx8CB4UJat4UEmPcKDTLaGB5mTBzwIHpQRD/pB8KCMrtEPggfRD1rKreFB8KDszgMeBA/K7svgQfAgeNDSm2h4EDwoS4/wIHgQPGipnn4QPChLAPSDzJdIPwgelGVr+kHwoCwB0A+CB2Xpkf/FTD6iHwQPys5l9IPgQdmZnv/FzB5HPwgelN150A+CB9EP+jqHPgFmi57+A3p40PF5Nt/SfR0NOIIc5AAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000005-0000-4000-8000-000000000000",
+            "name": "Serdivan · 3 May 2022",
+            "subtitle": "2024-11-23.heic",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRBz9cJezMBo3FigwgeT1B+elKNVWVGbOC+uXvfH6XjejtPxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hsAQjQkod/xcAAAAABJRU5ErkJggg=="
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "3 May 2022 22:13"
+                },
+                {
+                  "label": "Place",
+                  "link": {
+                    "text": "Serdivan, Sakarya, Türkiye",
+                    "href": "https://www.google.com/maps/search/?api=1&query=40.760042,30.364075"
+                  }
+                },
+                {
+                  "label": "Camera",
+                  "value": "Apple iPhone 13 mini"
+                },
+                {
+                  "label": "Lens",
+                  "value": "iPhone 13 mini back dual wide camera 5.1mm f/1.6"
+                },
+                {
+                  "label": "Exposure",
+                  "value": "ƒ/1.6 · 1/100 s · ISO 100 · 5.1 mm"
+                },
+                {
+                  "label": "Size",
+                  "value": "4032 × 3024 · 2.6 MB · HEIC"
+                },
+                {
+                  "label": "File",
+                  "value": "2024-11-23.heic"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRBz9cJezMBo3FigwgeT1B+elKNVWVGbOC+uXvfH6XjejtPxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hsAQjQkod/xcAAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000011-0000-4000-8000-000000000000",
+            "name": "15 Jan 2023",
+            "subtitle": "IMG_5011.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxUlEQVR4nO3WQQ2AMBAF0dqqG1CDM9QgAg29TZuXcN6Uyf+zO77nWvreey59u88fu/8AQABJkIpxUFiiJA2QBKkYB4UlStIASZCKHe2g2oNq8wECSIJUjINI2haz5qt3ijsIIAlSMQ4KS5SkAYonqPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW2yeuuZ/QVMzBo6/r1gAAAAASUVORK5CYII="
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jan 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5011.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxUlEQVR4nO3WQQ2AMBAF0dqqG1CDM9QgAg29TZuXcN6Uyf+zO77nWvreey59u88fu/8AQABJkIpxUFiiJA2QBKkYB4UlStIASZCKHe2g2oNq8wECSIJUjINI2haz5qt3ijsIIAlSMQ4KS5SkAYonqPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW2yeuuZ/QVMzBo6/r1gAAAAASUVORK5CYII=)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000013-0000-4000-8000-000000000000",
+            "name": "15 Mar 2023",
+            "subtitle": "IMG_5013.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bMQ7CMBRDfSFuxtqjMXA0Ni5Q4cEk9YcnZbQqK2oT58XV/fU4HbfncTr+Ta8qN4V6jXa/Qa/R7jfoVeWmUK8qN4V6Vbkp1KvKTaFeVW4K9RrtfoNeo91v0Gu0+w16Vbkp1KvKTaFeVW4K9apyU6jXaPfwoOtnEx4ED8reNXiQ+RLhQWadggeZVRweZPY4eJBJAPAgs8fBg+BBWbaGB5n0CA8y2RoeZE4e8CB4UEY86AfBgzK6Rj8IHkQ/aCm3hgfBg7I7D3gQPCi7L4MHwYPgQUtvouFB8KAsPcKD4EHwoKV6+kHwoCwB0A8yXyL9IHhQlq3pB8GDsgRAPwgelKVH/hcz+Yh+EDwoO5fRD4IHZWd6/hczexz9IHhQdudBPwgeRD/o6xz6BJgtevoP6OFBx+fZfANgHa4zkBgwjAAAAABJRU5ErkJggg=="
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Mar 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5013.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bMQ7CMBRDfSFuxtqjMXA0Ni5Q4cEk9YcnZbQqK2oT58XV/fU4HbfncTr+Ta8qN4V6jXa/Qa/R7jfoVeWmUK8qN4V6Vbkp1KvKTaFeVW4K9RrtfoNeo91v0Gu0+w16Vbkp1KvKTaFeVW4K9apyU6jXaPfwoOtnEx4ED8reNXiQ+RLhQWadggeZVRweZPY4eJBJAPAgs8fBg+BBWbaGB5n0CA8y2RoeZE4e8CB4UEY86AfBgzK6Rj8IHkQ/aCm3hgfBg7I7D3gQPCi7L4MHwYPgQUtvouFB8KAsPcKD4EHwoKV6+kHwoCwB0A8yXyL9IHhQlq3pB8GDsgRAPwgelKVH/hcz+Yh+EDwoO5fRD4IHZWd6/hczexz9IHhQdudBPwgeRD/o6xz6BJgtevoP6OFBx+fZfANgHa4zkBgwjAAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000015-0000-4000-8000-000000000000",
+            "name": "15 May 2023",
+            "subtitle": "IMG_5015.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDd7w0gQviEBDb9PmJZw3ZfL/7I73/pa+55pL3+7zx+4/ABBAEqRiHBSWKEkDJEEqxkFhiZI0QBKkYkc7qPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW8yar94p7iCAJEjFOCgsUZIGKJ6g2oNq8wECSIJUjINI2habp675H+ogKW8AKtCUAAAAAElFTkSuQmCC"
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 May 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5015.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDd7w0gQviEBDb9PmJZw3ZfL/7I73/pa+55pL3+7zx+4/ABBAEqRiHBSWKEkDJEEqxkFhiZI0QBKkYkc7qPag2nyAAJIgFeMgkrbFrPnqneIOAkiCVIyDwhIlaYDiCao9qDYfIIAkSMU4iKRtMWu+eqe4gwCSIBXjoLBESRqgeIJqD6rNBwggCVIxDiJpW8yar94p7iCAJEjFOCgsUZIGKJ6g2oNq8wECSIJUjINI2habp675H+ogKW8AKtCUAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000017-0000-4000-8000-000000000000",
+            "name": "15 Jul 2023",
+            "subtitle": "IMG_5017.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQnDMBRDtVA2636lixV66wKhOqh29NsHPoogTGLLz4pez9vpeNyP0/FvelW5KdRrtPsNeo12v0GvKjeFelW5KdSryk2hXlVuCvWqclOo12j3G/Qa7X6DXqPdb9Cryk2hXlVuCvWqclOoV5WbQr1Gu4cHXT+b8CB4UPauwYPMlwgPMusUPMis4vAgs8fBg0wCgAeZPQ4eBA/KsjU8yKRHeJDJ1vAgc/KAB8GDMuJBPwgelNE1+kHwIPpBS7k1PAgelN15wIPgQdl9GTwIHgQPWnoTDQ+CB2XpER4ED4IHLdXTD4IHZQmAfpD5EukHwYOybE0/CB6UJQD6QfCgLD3yv5jJR/SD4EHZuYx+EDwoO9Pzv5jZ4+gHwYOyOw/6QfAg+kFf59AnwGzR039ADw86Ps/mGzx1lxxckS1SAAAAAElFTkSuQmCC"
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jul 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5017.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQnDMBRDtVA2636lixV66wKhOqh29NsHPoogTGLLz4pez9vpeNyP0/FvelW5KdRrtPsNeo12v0GvKjeFelW5KdSryk2hXlVuCvWqclOo12j3G/Qa7X6DXqPdb9Cryk2hXlVuCvWqclOoV5WbQr1Gu4cHXT+b8CB4UPauwYPMlwgPMusUPMis4vAgs8fBg0wCgAeZPQ4eBA/KsjU8yKRHeJDJ1vAgc/KAB8GDMuJBPwgelNE1+kHwIPpBS7k1PAgelN15wIPgQdl9GTwIHgQPWnoTDQ+CB2XpER4ED4IHLdXTD4IHZQmAfpD5EukHwYOybE0/CB6UJQD6QfCgLD3yv5jJR/SD4EHZuYx+EDwoO9Pzv5jZ4+gHwYOyOw/6QfAg+kFf59AnwGzR039ADw86Ps/mGzx1lxxckS1SAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000019-0000-4000-8000-000000000000",
+            "name": "15 Sep 2023",
+            "subtitle": "IMG_5019.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDe5w0htOEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP/o1lW9PCcQ1AAAAAElFTkSuQmCC"
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Sep 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5019.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDe5w0htOEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP/o1lW9PCcQ1AAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000021-0000-4000-8000-000000000000",
+            "name": "15 Nov 2023",
+            "subtitle": "IMG_5021.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQ3CMBRDvRCbMUE3g824sUCFDyapPzwpR6uyojZxXly97s/T8bgdp+Pf9KpyU6jXaPcb9BrtfoNeVW4K9apyU6hXlZtCvarcFOpV5aZQr9HuN+g12v0GvUa736BXlZtCvarcFOpV5aZQryo3hXqNdg8Pun424UHwoOxdgweZLxEeZNYpeJBZxeFBZo+DB5kEAA8yexw8CB6UZWt4kEmP8CCTreFB5uQBD4IHZcSDfhA8KKNr9IPgQfSDlnJreBA8KLvzgAfBg7L7MngQPAgetPQmGh4ED8rSIzwIHgQPWqqnHwQPyhIA/SDzJdIPggdl2Zp+EDwoSwD0g+BBWXrkfzGTj+gHwYOycxn9IHhQdqbnfzGzx9EPggdldx70g+BB9IO+zqFPgNmip/+AHh50fJ7NN2j/NUKbukUqAAAAAElFTkSuQmCC"
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Nov 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5021.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABO0lEQVR4nO2bwQ3CMBRDvRCbMUE3g824sUCFDyapPzwpR6uyojZxXly97s/T8bgdp+Pf9KpyU6jXaPcb9BrtfoNeVW4K9apyU6hXlZtCvarcFOpV5aZQr9HuN+g12v0GvUa736BXlZtCvarcFOpV5aZQryo3hXqNdg8Pun424UHwoOxdgweZLxEeZNYpeJBZxeFBZo+DB5kEAA8yexw8CB6UZWt4kEmP8CCTreFB5uQBD4IHZcSDfhA8KKNr9IPgQfSDlnJreBA8KLvzgAfBg7L7MngQPAgetPQmGh4ED8rSIzwIHgQPWqqnHwQPyhIA/SDzJdIPggdl2Zp+EDwoSwD0g+BBWXrkfzGTj+gHwYOycxn9IHhQdqbnfzGzx9EPggdldx70g+BB9IO+zqFPgNmip/+AHh50fJ7NN2j/NUKbukUqAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000023-0000-4000-8000-000000000000",
+            "name": "15 Jan 2023",
+            "subtitle": "IMG_5023.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqG06oQRdqEIGG3qbNSzhvyuT/2R3Pdy199zuXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP94+ugZnmx9MAAAAAElFTkSuQmCC"
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jan 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5023.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqG06oQRdqEIGG3qbNSzhvyuT/2R3Pdy199zuXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zP94+ugZnmx9MAAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000025-0000-4000-8000-000000000000",
+            "name": "15 Mar 2023",
+            "subtitle": "IMG_5025.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRB3hmIAVuto3FigwgeT1B+elKNVWVGbOC+uHs/X6bjdj9Pxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hvEyz7ZPcEjIgAAAABJRU5ErkJggg=="
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Mar 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5025.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRB3hmIAVuto3FigwgeT1B+elKNVWVGbOC+uHs/X6bjdj9Pxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hvEyz7ZPcEjIgAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000027-0000-4000-8000-000000000000",
+            "name": "15 May 2023",
+            "subtitle": "IMG_5027.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqCTRgAouoQQQaeps2L+G8KZP/Z3d8z730vddc+nafP3b/AYAAkiAV46CwREkaIAlSMQ4KS5SkAZIgFTvaQbUH1eYDBJAEqRgHkbQtZs1X7xR3EEASpGIcFJYoSQMUT1DtQbX5AAEkQSrGQSRti1nz1TvFHQSQBKkYB4UlStIAxRNUe1BtPkAASZCKcRBJ22LWfPVOcQcBJEEqxkFhiZI0QPEE1R5Umw8QQBKkYhxE0rbYPHXN/8GUP2gSZTZ6AAAAAElFTkSuQmCC"
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 May 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5027.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqCTRgAouoQQQaeps2L+G8KZP/Z3d8z730vddc+nafP3b/AYAAkiAV46CwREkaIAlSMQ4KS5SkAZIgFTvaQbUH1eYDBJAEqRgHkbQtZs1X7xR3EEASpGIcFJYoSQMUT1DtQbX5AAEkQSrGQSRti1nz1TvFHQSQBKkYB4UlStIAxRNUe1BtPkAASZCKcRBJ22LWfPVOcQcBJEEqxkFhiZI0QPEE1R5Umw8QQBKkYhxE0rbYPHXN/8GUP2gSZTZ6AAAAAElFTkSuQmCC)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          },
+          {
+            "id": "00000029-0000-4000-8000-000000000000",
+            "name": "15 Jul 2023",
+            "subtitle": "IMG_5029.jpg",
+            "icon": {
+              "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRBL9cxUbMFo3FigwgeT1B+elKNVWVGbOC+u7q/H6bg9j9Pxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hv3Ua0VwG1CfAAAAABJRU5ErkJggg=="
+            },
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Taken",
+                  "value": "15 Jul 2023 12:00"
+                },
+                {
+                  "label": "Size",
+                  "value": "3000 × 2000 · 1.4 MB · JPEG"
+                },
+                {
+                  "label": "File",
+                  "value": "IMG_5029.jpg"
+                }
+              ],
+              "markdown": "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvRBL9cxUbMFo3FigwgeT1B+elKNVWVGbOC+u7q/H6bg9j9Pxb3pVuSnUa7T7DXqNdr9Bryo3hXpVuSnUq8pNoV5Vbgr1qnJTqNdo9xv0Gu1+g16j3W/Qq8pNoV5Vbgr1qnJTqFeVm0K9RruHB10/m/AgeFD2rsGDzJcIDzLrFDzIrOLwILPHwYNMAoAHmT0OHgQPyrI1PMikR3iQydbwIHPygAfBgzLiQT8IHpTRNfpB8CD6QUu5NTwIHpTdecCD4EHZfRk8CB4ED1p6Ew0Pggdl6REeBA+CBy3V0w+CB2UJgH6Q+RLpB8GDsmxNPwgelCUA+kHwoCw98r+YyUf0g+BB2bmMfhA8KDvT87+Y2ePoB8GDsjsP+kHwIPpBX+fQJ8Bs0dN/QA8POj7P5hv3Ua0VwG1CfAAAAABJRU5ErkJggg==)"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Immich"
+              },
+              {
+                "id": "link",
+                "title": "Copy link"
+              },
+              {
+                "id": "image",
+                "title": "Copy image",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "download",
+                "title": "Download preview",
+                "shortcut": "cmd+s",
+                "multi": true
+              },
+              {
+                "id": "original",
+                "title": "Download original",
+                "shortcut": "cmd+shift+s",
+                "multi": true
+              },
+              {
+                "id": "fav",
+                "title": "Favourite",
+                "shortcut": "cmd+f",
+                "multi": true
+              },
+              {
+                "id": "album",
+                "title": "Add to album…",
+                "shortcut": "cmd+shift+a",
+                "multi": true
+              },
+              {
+                "id": "file",
+                "title": "Copy file name",
+                "shortcut": "cmd+shift+f"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "albums": {
+      "title": "Immich Albums",
+      "icon": {
+        "tile": {
+          "glyph": "󰋹",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "Search albums",
+      "live": false,
+      "items": [
+        {
+          "id": "library",
+          "name": "Immich library",
+          "subtitle": "60,123 photos · 2,345 videos · 1.12 TB",
+          "icon": "󰆼",
+          "keywords": [
+            "photos",
+            "stats"
+          ],
+          "actions": [
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            }
+          ]
+        },
+        {
+          "id": "a1",
+          "name": "Trip to Bolu",
+          "subtitle": "3 items · 10 Jul 2026 – 19 Sep 2026",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0drCDaZQw71qEIGG3qbNSzhvyuT/2R33+y191zOXvt3nj91/ACCAJEjFOCgsUZIGSIJUjIPCEiVpgCRIxY52UO1BtfkAASRBKsZBJG2LWfPVO8UdBJAEqRgHhSVK0gDFE1R7UG0+QABJkIpxEEnbYtZ89U5xBwEkQSrGQWGJkjRA8QTVHlSbDxBAEqRiHETStpg1X71T3EEASZCKcVBYoiQNUDxBtQfV5gMEkASpGAeRtC02T13zPxywr1FJc6i9AAAAAElFTkSuQmCC"
+          },
+          "keywords": [
+            "album"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open the album"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            },
+            {
+              "id": "link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "a2",
+          "name": "Receipts",
+          "subtitle": "4 items · 10 Jul 2026 – 19 Sep 2026 · For the accountant",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABPElEQVR4nO2bwQ3CMBRDvVA3YzFGYCNW4MYCFT6YpP7wpBytyoraxHlx9XzdTsf9cZyOf9Oryk2hXqPdb9BrtPsNelW5KdSryk2hXlVuCvWqclOoV5WbQr1Gu9+g12j3G/Qa7X6DXlVuCvWqclOoV5WbQr2q3BTqNdo9POj62YQHwYOydw0eZL5EeJBZp+BBZhWHB5k9Dh5kEgA8yOxx8CB4UJat4UEmPcKDTLaGB5mTBzwIHpQRD/pB8KCMrtEPggfRD1rKreFB8KDszgMeBA/K7svgQfAgeNDSm2h4EDwoS4/wIHgQPGipnn4QPChLAPSDzJdIPwgelGVr+kHwoCwB0A+CB2Xpkf/FTD6iHwQPys5l9IPgQdmZnv/FzB5HPwgelN150A+CB9EP+jqHPgFmi57+A3p40PF5Nt/SfR0NOIIc5AAAAABJRU5ErkJggg=="
+          },
+          "keywords": [
+            "album"
+          ],
+          "accessories": [
+            {
+              "tag": "shared",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open the album"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            },
+            {
+              "id": "link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "a3",
+          "name": "Family",
+          "subtitle": "1 item · 10 Jul 2026 – 19 Sep 2026",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAABEElEQVR4nO3b2w3CMAwFUP+wB6swFqswA0OyQYVE/SpHygDt6bXjiBD398M6EAg6xwKAAP3WQyQIkASl7jNKDJAEKbHOWV8PArQ6Qc/b65v1dyX2pcsEqdhC08UUu2jqmWKpTplR7NWpMYrVOgVGsV0n2yguoJNqFNfQyTOKy+gkGQEqB2qMT0aIANUCtcfn9BABAjQnQe2VlVFlgABJkBLTgzRpu5ht3hxkUDQomqQdNXafxeacV098I0CARiVoQpWd+zqAyoH8cAhobYgyqsHtjj4g94OmGKV+Y3cUBwC55dpjVPNp3bQfBvRjmuof1b99ZgPNX4AASZAS04O6O7EmDUiClFh/uzEoAnqfn6APOYithJOBrYwAAAAASUVORK5CYII="
+          },
+          "keywords": [
+            "album"
+          ],
+          "accessories": [
+            {
+              "tag": "shared",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open the album"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            },
+            {
+              "id": "link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "a4",
+          "name": "Untitled Album",
+          "subtitle": "0 items",
+          "icon": "󰋪",
+          "keywords": [
+            "album"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open the album"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            },
+            {
+              "id": "link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "people": {
+      "title": "Immich People",
+      "icon": {
+        "tile": {
+          "glyph": "󰋹",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "Search people",
+      "live": false,
+      "items": [
+        {
+          "id": "p1",
+          "name": "Ayşe",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAA60lEQVR4nO2asQ0CMRAEtyE6+4rohFbohAwRISxHSzBnaaQPNxj7fD6v9vO8Xtvvfntsv2n6jKIp9DmafrOAs+jXBeA0hT6jaAp9RtEU+oyiKfQZRVPoczT9Z5CNoin0OZp+XQBOU+gziqbQZxRNoc8omkKfo+n1AwNqpR+g+0Q/QN9R+gF6PugH6NmsH6DfRfoBbu+/FWC78E+9foCulfkA3SfmA/QdZT5AzwfzAXo2mw/Q7yLzAW7vfyqAn4Rarx+ga+X/QnSfmA/Qd5T5AD0fzAfo2Ww+QL+LzAe4vV8rwJ6EWq8fuOBavQGfifm0xfvh1wAAAABJRU5ErkJggg=="
+          },
+          "keywords": [
+            "person",
+            "people"
+          ],
+          "accessories": [
+            {
+              "tag": "favourite",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "The person's photos"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            },
+            {
+              "id": "link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "name": "Mehmet",
+          "subtitle": "Born 1990-04-01",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAA4klEQVR4nO2a2xGDMAwE9ZM+qCD9pYI0kyIpIDDjl3wS2hn/s3tnM7bBfsc79TA5AQLqCGlAHSENqCOkAXWENOATzOvz/R/RG7iEvhuxBLrQ12qYCn2VhsnpJx1Mjj6pYXHoxxwsFP2AQzGBDfS9DhaQvsuhjMBm+naHGgIS+kYHBGjAfQoJF0CLAwI0wBRiEUd/C7GVYC/EFMp/HniCQPoz8RME0t8LbXPo4qknkP522tVhgKTqF5q1DjMA5b9SDrcx2fziBhqnlseD+OnPp0AaUOdKA+pcaUCdKw0c+mgbxwnMuN51YppL8QAAAABJRU5ErkJggg=="
+          },
+          "keywords": [
+            "person",
+            "people"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "The person's photos"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            },
+            {
+              "id": "link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "unnamed",
+          "name": "2 faces without a name",
+          "subtitle": "Name them in Immich and they list here",
+          "icon": "󰡉",
+          "actions": [
+            {
+              "id": "web",
+              "title": "Open People in Immich"
+            }
+          ]
+        }
+      ]
+    },
+    "memories": {
+      "title": "On This Day",
+      "icon": {
+        "tile": {
+          "glyph": "󰋹",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "Search memories",
+      "live": true,
+      "items": [
+        {
+          "id": "m1",
+          "name": "A year ago, 2025",
+          "subtitle": "1 photo",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAAAxklEQVR4nO3WQQ2AMBAF0dqqDgxgA4OoQQQaeps2L+G8KZP/Z3c83730Xe9c+nafP3b/AYAAkiAV46CwREkaIAlSMQ4KS5SkAZIgFTvaQbUH1eYDBJAEqRgHkbQtZs1X7xR3EEASpGIcFJYoSQMUT1DtQbX5AAEkQSrGQSRti1nz1TvFHQSQBKkYB4UlStIAxRNUe1BtPkAASZCKcRBJ22LWfPVOcQcBJEEqxkFhiZI0QPEE1R5Umw8QQBKkYhxE0rbYPHXN/3NFuOgSBSfJAAAAAElFTkSuQmCC"
+          },
+          "keywords": [
+            "2025",
+            "memory",
+            "on this day"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "That year's photos"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            }
+          ]
+        },
+        {
+          "id": "m2",
+          "name": "5 years ago, 2021",
+          "subtitle": "1 photo",
+          "icon": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABICAIAAACGBWc0AAACBUlEQVR4nO3Z9VYTYBjH8YncASEckFJEPIQiKOgRFSUEj4UIBgdEBayj2FeCIHI2mlEyRjdIj5KujU1qxNjoESq34R/fW3jO+z7x+wiMhPHGoq8mqQmmaYmH0r+ZZSSZZ363yEq2zBYeFousclKsc1Nt8tJs89PtCjKO/Mg8WphlL8k+JhU7FOccL8l1LM07UZbvVF7gXFHoUilxrSo6WS09VVPsVltyuq7Uvb7Mo6H8TGPF2aZKz+Yqr5bqc60159tqL7TXeXc0XJQ1Xur8ebmryae7+UpPy9XeVt9fbX597f79HQGDsmtDnYHDXUEj3ddHe26M9d4c77s10X9bPnBHMRg8OXRXORyiGrn3ezR0aixsevz+7MSDOflDteLR/GT4gjJiURW5NPVYMx21PPNEO/tUN/dsRR29Oh+zthC7vvh8Y+nFlualfvnVtvb1ju7N7srbvdW4P+vv/m68/7f5QbD18YD+k8H254M7Xwx3BRSIAvGC+GL0IJo0U4wxzx7EosiiyCbNqcEtxrHKNU/cQR5EYEZgRqJI5EomTWiPasA+uBhwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8AhcAgcAofAIXAIHAKHwCFwCBwCh8Ch7D+Bw31jzTl4AidU7AAAAABJRU5ErkJggg=="
+          },
+          "keywords": [
+            "2021",
+            "memory",
+            "on this day"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "That year's photos"
+            },
+            {
+              "id": "web",
+              "title": "Open in Immich"
+            }
+          ]
+        }
+      ]
+    },
+    "setup": {
+      "title": "Immich",
+      "icon": {
+        "tile": {
+          "glyph": "󰋹",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "view": "grid",
+      "columns": 6,
+      "placeholder": "What is in the picture (a file name, since:2025, in:Istanbul)",
+      "showDetail": false,
+      "filters": [
+        {
+          "id": "all",
+          "title": "All"
+        },
+        {
+          "id": "photos",
+          "title": "Photos"
+        },
+        {
+          "id": "videos",
+          "title": "Videos"
+        },
+        {
+          "id": "favourites",
+          "title": "Favourites"
+        },
+        {
+          "id": "archived",
+          "title": "Archived"
+        }
+      ],
+      "byQuery": {
+        "": [
+          {
+            "id": "setup",
+            "name": "Set url and api_key under Settings › Extensions › Immich",
+            "subtitle": "Where Immich answers, and an API key from Account Settings › API Keys",
+            "icon": "󰒓",
+            "actions": [
+              {
+                "id": "settings",
+                "title": "Open Settings"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-recent": {
+      "palette": "immich",
+      "keys": []
+    },
+    "2-search": {
+      "palette": "immich",
+      "keys": [
+        "type:receipt",
+        "wait:400",
+        "right"
+      ]
+    },
+    "3-actions": {
+      "palette": "immich",
+      "keys": [
+        "type:receipt",
+        "wait:400",
+        "cmd+k"
+      ]
+    },
+    "4-albums": {
+      "palette": "albums",
+      "keys": [
+        "down"
+      ]
+    },
+    "5-people": {
+      "palette": "people",
+      "keys": []
+    },
+    "6-memories": {
+      "palette": "memories",
+      "keys": []
+    },
+    "7-setup": {
+      "palette": "setup",
+      "keys": []
+    }
+  }
+}
