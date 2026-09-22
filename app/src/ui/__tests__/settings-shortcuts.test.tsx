@@ -17,7 +17,7 @@ const chord = (key: string) => `${isMac ? "ctrl" : "cmd"}+${key}`;
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const config = (c: Partial<PaletteConfig> = {}): PaletteConfig => ({ enabled: true, settings: {}, ...c });
-const general: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true, appSwitcher: "alt+tab" };
+const general: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, appSwitcher: "alt+tab" };
 const windows: SettingsExtension = {
   name: "windows", key: "windows", title: "Windows", description: "Every window.", version: "1.0.0", repo: "bundled", bundled: true, settings: [], values: {}, loaded: true,
   palettes: [

@@ -23,7 +23,7 @@
 //! cmd, ctrl or alt that is not a navigation or function key). pal's own
 //! panel is invisible to a global monitor, so what is typed into pal is
 //! never drawn either. Starting asks for Input Monitoring once when it is
-//! missing (`permissions::request_once`), the way expansion does; the
+//! missing (`permissions::ask`: the card, then the prompt), the way expansion does; the
 //! extension's row says so and asks again on Enter.
 //!
 //! Settings are the extension's (`extensions/keycast/pal.json`, read the
