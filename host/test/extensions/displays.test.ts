@@ -431,7 +431,7 @@ describe("displays: macOS with nothing installed", () => {
     expect(sliders(v)).toHaveLength(0);
     expect(texts(v).some((t) => t.includes("brew install --HEAD brightness"))).toBe(true);
     await expect(host.request("link", { extension: "displays", route: "mode", params: { mode: "1920x1080" } })).rejects.toThrow("displayplacer is missing");
-    await expect(host.request("link", { extension: "displays", route: "brightness", params: { value: "50" } })).rejects.toThrow("needs m1ddc");
+    await expect(host.request("link", { extension: "displays", route: "brightness", params: { value: "50" } })).rejects.toThrow(`needs ${ddc}`);
   });
 });
 
