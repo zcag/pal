@@ -229,6 +229,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     crate::bar::apply_config(app, &prev, &loaded.config);
     crate::sidebar::apply_config(app, &prev, &loaded.config);
     crate::expansion::apply_config(app, &prev, &loaded.config);
+    crate::keycast::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);
     events::emit(app, events::CONFIG, &loaded);
@@ -919,6 +920,8 @@ pub struct View {
     /// Every display's name as the OS reports it, the primary first
     /// (`popover::displays`): what `[sidebar] display` may name.
     displays: Vec<String>,
+    /// The keycast overlay is on (keycast.rs): its Input Monitoring row on the Overview.
+    keycast: bool,
 }
 
 /// Off the main thread: `permissions::status` probes the OS (~85 ms on
@@ -942,6 +945,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         bar: bar_view(&app, &l.config),
         checks: lock(&st.checks).clone(),
         displays: crate::bar::popover::displays(&app).0.into_iter().map(|d| d.name).collect(),
+        keycast: crate::keycast::active(&app),
     }
 }
 

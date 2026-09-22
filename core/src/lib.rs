@@ -15,6 +15,7 @@ pub mod frecency;
 pub mod fs;
 pub mod icons;
 pub mod index;
+pub mod keycast;
 pub mod log;
 pub mod media;
 pub mod ocr;

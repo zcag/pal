@@ -6,7 +6,7 @@ import "./styles.css";
 
 // `?gallery` in a plain browser renders the component review page instead of
 // the launcher; `?settings` is the settings window, `?hud` the HUD window,
-// `?large` the Large Type window and `?bar` the bar items' popover (same
+// `?large` the Large Type window, `?keycast` the keycast overlay and `?bar` the bar items' popover (same
 // bundle, the other Tauri windows).
 // The other pages are their own chunks, imported before the render rather
 // than through `lazy` + `Suspense`: React holds a resolved lazy component
@@ -18,10 +18,11 @@ const settings = params.has("settings");
 const hud = params.has("hud");
 const large = params.has("large");
 const bar = params.has("bar");
+const keycast = params.has("keycast");
 
 if (!gallery) followTheme();
 
-const page: Promise<{ default: ComponentType }> = gallery ? import("./gallery/Gallery") : settings ? import("./Settings") : hud ? import("./HudPage") : large ? import("./LargePage") : bar ? import("./BarPage") : Promise.resolve({ default: App });
+const page: Promise<{ default: ComponentType }> = gallery ? import("./gallery/Gallery") : settings ? import("./Settings") : hud ? import("./HudPage") : large ? import("./LargePage") : keycast ? import("./KeycastPage") : bar ? import("./BarPage") : Promise.resolve({ default: App });
 page.then(({ default: Page }) => ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(<Page />));
 
 // An uncaught page error takes the React tree down to a blank window, and a release build has no devtools to see why: the message goes to pal's log as a `mark` line instead.

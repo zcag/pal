@@ -8,7 +8,8 @@
     "settings",
     "bar",
     "sidebar",
-    "large"
+    "large",
+    "keycast"
   ],
   "permissions": [
     "core:default",

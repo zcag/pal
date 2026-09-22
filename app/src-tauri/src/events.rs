@@ -30,6 +30,11 @@ pub const CLIPBOARD: &str = "pal://clipboard";
 pub const HUD: &str = "pal://hud";
 /// The Large Type window's text: `{ text }` (large.rs).
 pub const LARGE: &str = "pal://large";
+/// To the keycast overlay's page, tagged by `kind` (keycast.rs): `state`
+/// (`{ active, mode, settings }`), `keys` (`{ entries }`, the strip's feed
+/// after a key), `cursor` (`{ x, y }`, window CSS pixels) and `click`
+/// (`{ button, x, y, down }`).
+pub const KEYCAST: &str = "pal://keycast";
 /// A permission changed hands: `permissions::Status` (today: Accessibility
 /// was granted, seen by the poll in permissions.rs).
 pub const PERMISSIONS: &str = "pal://permissions";

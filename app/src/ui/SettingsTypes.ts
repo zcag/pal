@@ -229,7 +229,7 @@ export type PermissionRow = {
  * The permissions as rows. Every row is listed (the Overview and General
  * say what each is for); `unknown` is a probe with no answer, shown as such.
  */
-export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean; wifi?: boolean; /** `[extensions.snippets] expand = true`: keywords typed in other apps are watched for. */ expand?: boolean } = {}): PermissionRow[] {
+export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean; wifi?: boolean; /** `[extensions.snippets] expand = true`: keywords typed in other apps are watched for. */ expand?: boolean; /** The keycast overlay is on: the keys typed in other apps are drawn. */ keycast?: boolean } = {}): PermissionRow[] {
   if (!p) return [];
   const rows: PermissionRow[] = [
     { id: "accessibility", title: "Accessibility", granted: p.accessibility, state: p.accessibility ? "granted" : "missing", brief: "paste, window switching", needs: "Paste into the app in front, switch to a window, pal action type", where: "Privacy & Security > Accessibility" },
@@ -242,7 +242,13 @@ export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: b
   }
   if (p.input_monitoring !== undefined) {
     const peek = opts.bar ? "A bar peek closes on the next key press" : "A bar peek closes on the next key press (no bar items yet)";
-    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: opts.expand ? "snippet expansion, bar peeks" : "bar peeks", needs: opts.expand ? `Snippet expansion (a keyword typed in any app is watched for; Snippets > Expand as you type is on). ${peek}` : peek, where: "Privacy & Security > Input Monitoring" });
+    const uses = [...(opts.expand ? ["snippet expansion"] : []), ...(opts.keycast ? ["keycast"] : []), "bar peeks"];
+    const needs = [
+      ...(opts.expand ? ["Snippet expansion (a keyword typed in any app is watched for; Snippets > Expand as you type is on)"] : []),
+      ...(opts.keycast ? ["Keycast (the keys typed in other apps are drawn on screen; it is on)"] : []),
+      peek,
+    ];
+    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: uses.join(", "), needs: needs.join(". "), where: "Privacy & Security > Input Monitoring" });
   }
   if (p.location && p.location !== "unavailable") {
     rows.push({ id: "location", title: "Location", granted: p.location === "granted", state: p.location === "granted" ? "granted" : "missing", brief: "Wi-Fi network names", needs: opts.wifi ? "Wi-Fi network names (macOS shows them only to apps with Location access); asked the first time the Wi-Fi palette lists" : "Wi-Fi network names (the Wi-Fi extension, not installed)", where: p.location === "not_determined" ? "the system prompt, once" : "Privacy & Security > Location Services" });

@@ -29,6 +29,8 @@ mod hotkey;
 mod hud;
 mod icon;
 mod index;
+mod keycast;
+mod keytap;
 mod large;
 mod media;
 mod ocr;
@@ -358,6 +360,7 @@ pub fn run() {
             dialog::dialog_detect,
             large::large_hide,
             large::large_show,
+            keycast::keycast_state,
             theme::theme_current,
             theme::theme_status,
             theme::theme_open,
@@ -422,6 +425,7 @@ pub fn run() {
             clipboard::install(app.handle());
             storage::install(app.handle());
             expansion::install(app.handle());
+            keycast::install(app.handle());
             theme::install(app.handle());
             compact::install(app.handle());
             updater::install_checks(app.handle());

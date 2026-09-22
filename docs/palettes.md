@@ -4925,3 +4925,79 @@ Jellyseerr, the arrs, Prowlarr, NZBHydra2, Bazarr and SABnzbd;
 Audiobookshelf and Kavita; `jellyfin_user`, whose watched state the rows
 show. For the tests, `PAL_THEATER_<SERVICE>_<URL|KEY|USER|PASSWORD>`
 replaces any of them.
+## Keycast (`keycast`, `keycast/active`)
+
+Keystrokes and clicks drawn over the screen for a recording or a screen
+share (KeyCastr, Keyviz), macOS only. A live, normal palette: Start
+keycast / Stop keycast leads it (its subtitle the mode and the strip's
+corner; the row is in the root's Now section while it runs), then the
+three modes, Keys only, Cursor only, Keys and cursor (the one on tagged
+`current`, the default `default`), then Shortcuts only: on / off and
+Scroll and gestures: on / off, and, while the grant is missing, a
+Keycast needs Input Monitoring row that asks on Enter. Start and Stop hide the panel and the HUD says `Keycast
+on: keys and cursor`, so the panel is never in the recording.
+
+What it draws (`app/src-tauri/src/keycast.rs`, the overlay window; the
+caps and the feed are `pal_core::keycast`): the recent keys as the
+panel's own key caps at twice the size in a HUD capsule, `⌃ ⌥ ⇧ ⌘` as
+glyphs, a named key as its symbol (`↵ ⇥ ⌫ ⌦ ␣ esc ← ⇞ F5`), a typed key
+as what it typed and inside a combo as the key's face (`⌘⇧S`), a repeat
+within the hold folded into one cap with `×3`, a click with modifiers as
+`⌥ click`; each fading `hold` seconds after its last press, `max` kept.
+With `gestures` on the strip also names what the trackpad and the wheel
+do: `scroll ↓` (the arrow from the dominant axis of what has piled up,
+sized by how far in three steps, one entry per stretch that the momentum
+keeps on screen; a wheel's notches one way join the newest), `pinch out
++35%` and `rotate ↻ 12°` (one entry each counting up until the fingers
+lift), `swipe ←`, `smart zoom`; only what AppKit hands a global monitor,
+so the system's three- and four-finger swipes never show. A ring around
+the cursor in the `ring_color` (smaller while a button is down) and a
+ripple on every click, a filled disc for the left button, a hollow amber
+ring for the right, grey for the middle. The overlay is a
+full-screen pass-through window on the display under the cursor,
+following it across displays; the strip keeps clear of the menu bar and
+the Dock. Nothing typed shows while a secure text field has the keyboard
+(a password, `sudo`), nor what is typed into pal itself; with
+`shortcuts_only` plain typing stays off the screen and only a key with
+`cmd`, `ctrl` or `alt` or a function or navigation key shows.
+
+| keys | action |
+| --- | --- |
+| `enter` | Start or stop; on a mode row, start in (or switch to) that mode |
+| `cmd+enter` | Stop, from a mode row |
+| `cmd+shift+s` | Shortcuts only on or off |
+| `cmd+shift+g` | Scroll and gestures on or off |
+| `cmd+,` | Open the settings |
+
+`pal://keycast/toggle?mode=keys|cursor|both` (off to on in that mode,
+the default without one; on in that mode or with none named to off; on
+in another mode switches), `pal://keycast/start?mode=` and
+`pal://keycast/stop` are the keybind's routes. The shell publishes
+`keycast/active` and `keycast/mode` as states.
+
+The bar item `keycast/active`: a red record dot with the mode (`keys +
+cursor`) while it runs, hidden otherwise (a rule `on` colours it; `show
+= "always"` keeps a muted dot). The popover: the three modes as tiles
+(`k`, `c`, `b`), the shortcuts-only (`s`) and gestures (`g`) switches,
+`backspace` stops, `o` opens the palette.
+
+Input Monitoring: Start asks once when it is missing (as snippet
+expansion does; the two share one `NSEvent` global monitor), the
+Overview lists the permission while keycast is on. Linux: one row,
+"Keycast is not available here" (no portable input tap: Wayland hands
+input to the focused client only, and there is no X11 key backend).
+
+Settings, `[extensions.keycast]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `mode` | `both`, `keys`, `cursor` | `both` | What Start draws when no mode is named. |
+| `position` | `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` | `bottom-center` | The strip's corner of the work area. |
+| `scale` | 0.5 to 3 | `1` | The size of the caps and the ring. |
+| `hold` | 0.5 to 10 | `2` | Seconds a key stays after its last press. |
+| `max` | 1 to 12 | `5` | How many entries the strip keeps. |
+| `shortcuts_only` | boolean | `false` | Only combos and function or navigation keys show. |
+| `ring` | boolean | `true` | The ring around the cursor (clicks ripple either way). |
+| `ring_color` | tag colour | `blue` | The ring's and the left click's colour. |
+| `ripples` | boolean | `true` | A ripple on every click. |
+| `gestures` | boolean | `true` | Scrolls and trackpad gestures on the strip (keys and both modes). |
