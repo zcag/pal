@@ -7,6 +7,8 @@ import { tile } from "../../../sdk/src/icon.ts";
 import { Host, stored } from "../harness.ts";
 
 const RATES = { EUR: 1, USD: 1.1539, TRY: 56.126, GBP: 0.85578, JPY: 178.85, CHF: 0.9441, INR: 110.73 };
+const VARS = ["salary_hour = 54 usd", "salary_month = salary_hour * 2080 / 12", "rent = 42000 try", "height = 183 cm", "try = 5", "loop = loop + 1", "not a var"];
+const BASE = { home_currency: "TRY", vars: VARS };
 const seed = (date: string, fetched: number) => stored.set("calc\0rates", { base: "EUR", date, fetched, rates: RATES });
 
 let host: Host;
@@ -14,7 +16,7 @@ beforeAll(async () => {
   process.env.TZ = "UTC"; // bun test runs in UTC; the host it spawns must agree for the date expectations below
   process.env.PAL_CALC_OFFLINE = "1";
   seed("2026-09-15", Date.now());
-  host = await Host.bundled({ settings: { calc: { settings: { home_currency: "TRY" } } } });
+  host = await Host.bundled({ settings: { calc: { settings: BASE } } });
 });
 afterAll(() => { host.kill(); delete process.env.PAL_CALC_OFFLINE; stored.delete("calc\0rates"); });
 
@@ -119,20 +121,20 @@ describe("numbers", () => {
   test("precision: significant digits from the setting, integers never rounded", async () => {
     expect(await first("1/3")).toBe("0.3333333333");
     expect(await first("100/3")).toBe("33.33333333");
-    host.changeSettings("calc", { settings: { precision: 3, home_currency: "TRY" } });
+    host.changeSettings("calc", { settings: { ...BASE, precision: 3 } });
     expect(await first("1/3")).toBe("0.333");
     expect(await first("100/3")).toBe("33.3");
     expect(await first("123456789*1000")).toBe("123,456,789,000");
     expect(await first("72 f to c")).toBe("22.2 °C");
-    host.changeSettings("calc", { settings: { home_currency: "TRY" } });
+    host.changeSettings("calc", { settings: BASE });
   });
 
   test("locale: how numbers are read and written", async () => {
-    host.changeSettings("calc", { settings: { locale: "tr", home_currency: "TRY" } });
+    host.changeSettings("calc", { settings: { ...BASE, locale: "tr" } });
     expect(await first("1,5 + 2")).toBe("3,5");
     expect(await first("1.000.000 / 3")).toBe("333.333,3333");
     expect(await first("12 usd to try")).toBe("583,68 TRY");
-    host.changeSettings("calc", { settings: { home_currency: "TRY" } });
+    host.changeSettings("calc", { settings: BASE });
     expect(await first("1/3")).toBe("0.3333333333");
   });
 });
@@ -190,11 +192,11 @@ describe("currency", () => {
     expect((await calc("12 usd"))[0].subtitle).toBe("12 USD to TRY");
     expect(await first("$12")).toBe("583.68 TRY");
     expect((await calc("100 try"))[0].subtitle).toBe("100 TRY to USD");
-    host.changeSettings("calc", { settings: { home_currency: "gbp" } });
+    host.changeSettings("calc", { settings: { ...BASE, home_currency: "gbp" } });
     expect((await calc("12 usd"))[0].subtitle).toBe("12 USD to GBP");
-    host.changeSettings("calc", { settings: { home_currency: "" } });
+    host.changeSettings("calc", { settings: { ...BASE, home_currency: "" } });
     expect((await calc("12 usd"))[0].subtitle).toMatch(/^12 USD to [A-Z]{3}$/); // the time zone's
-    host.changeSettings("calc", { settings: { home_currency: "TRY" } });
+    host.changeSettings("calc", { settings: BASE });
   });
 
   test("a target still being typed answers for the source alone", async () => {
@@ -268,6 +270,35 @@ describe("dates and time", () => {
     expect((await calc("1700000000000 to date"))[0].name).toBe(rows[0].name);
     expect(Number(await first("unix"))).toBeCloseTo(Date.now() / 1000, -1);
     expect(await first("2026-01-01 12:00 to unix")).toBe(String(new Date(2026, 0, 1, 12).getTime() / 1000));
+  });
+});
+
+describe("variables", () => {
+  const rows = async (q: string) => (await calc(q)).map((r: any) => [r.name, r.subtitle, texts(r)]);
+  const dated = (r: string) => [r, "rates 2026-09-15"];
+
+  test("money: in the home currency with the query as values for a subtitle, then in the currency it was worked out in", async () => {
+    expect(await rows("salary_month")).toEqual([["455,272.87 TRY", "9,360.00 USD", dated("1 USD = 48.6403 TRY")], ["9,360.00 USD", "in US Dollar", []]]);
+    expect((await rows("salary_month * 12"))[1]).toEqual(["112,320.00 USD", "in US Dollar", []]);
+    expect((await rows("salary_month to eur"))[0]).toEqual(["8,111.62 EUR", "9,360.00 USD to eur", dated("1 USD = 0.866626 EUR")]);
+    expect((await rows("salary_month - rent"))[0]).toEqual(["413,272.87 TRY", "9,360.00 USD - 42,000.00 TRY", dated("1 USD = 48.6403 TRY")]);
+    expect(await rows("Rent*2")).toEqual([["84,000.00 TRY", "42,000.00 TRY*2", []]]); // already home: one row; names are case-blind
+  });
+
+  test("a ratio of two amounts is a number with its percentage; units and rates keep theirs", async () => {
+    expect(await rows("rent / salary_month")).toEqual([["0.09225236807", "42,000.00 TRY / 9,360.00 USD", ["9.225%"]]]);
+    expect(await rows("height to ft")).toEqual([["6.00394 ft", "183 cm to ft", []]]);
+    expect(await rows("salary_hour / h")).toEqual([["54 USD/h", "54.00 USD / h", []]]);
+  });
+
+  test("a loop, a currency's name and a malformed line are not variables", async () => {
+    expect(await calc("loop")).toEqual([]);
+    expect(await first("12 usd to try")).toBe("583.68 TRY");
+  });
+
+  test("at the root a variable answers inline without a digit", async () => {
+    const sections = await host.request<{ extension: string; items: { name: string }[] }[]>("inline", { query: "rent / salary_month" });
+    expect(sections.find((s) => s.extension === "calc")!.items[0].name).toBe("0.09225236807");
   });
 });
 

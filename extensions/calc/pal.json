@@ -31,6 +31,14 @@
       "description": "What a bare amount (12 usd) converts to. Empty: the time zone's currency.",
       "placeholder": "TRY",
       "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "vars",
+      "label": "Variables",
+      "description": "One line per variable, `name = value`, a value being anything calc reads: `salary_hour = 54 usd`, `rent = 42000 try`, `height = 183 cm`. A value may use other variables (`salary_day = salary_hour * 8`) and is written with a dot for decimals whatever the locale. A name is letters, digits and underscores, not a currency. Then `rent / salary_month`, `salary_year to eur`, `height to ft`; the row's subtitle says what each name stood for.",
+      "placeholder": "rent = 42000 try",
+      "default": []
     }
   ],
   "store": {
@@ -40,6 +48,7 @@
       "Arithmetic with precedence, percentages, powers, factorials and bases: `2^10`, `15% of 240`, `255 to hex`",
       "Units through mathjs plus the spellings people type: `5 km to miles`, `72 f to c`, `12 gb to mb`, `5 ft 3 in to cm`",
       "The 30 ECB currencies by code, symbol or name (`12 usd to try`, `€12 to $`, `1k usd`), rates fetched once a day and cached",
+      "Your own variables: `salary_hour = 54 usd`, `rent = 42000 try`, then `rent / salary_month` or `salary_year to eur`, currencies converted along the way",
       "Dates and durations: `today + 3 days`, `days until 2026-12-25`, `weeks between 2025-06-15 and 2026-01-01`",
       "Time zones by city, abbreviation or offset: `10:00 utc to tokyo`, `5pm ldn in sf`, `now in utc`",
       "A second row with the other form: the reverse conversion, a fraction, the hex and binary of an integer, the ISO date"

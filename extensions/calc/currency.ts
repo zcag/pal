@@ -56,6 +56,37 @@ const SPLIT = /\s+(?:to|in|as|→|->)\s+/i;
 
 export const code = (token: string): string => SYMBOLS.find(([s]) => s === token)?.[1] ?? WORDS[token.toLowerCase()];
 
+/** Whether a word is a currency (a variable may not be named one). */
+export const isCurrency = (word: string): boolean => !!WORDS[word.toLowerCase()];
+
+const PREFIXED = new RegExp(`(${SYM})\\s*(\\d[\\d.]*)`, "g");
+const TOKEN = new RegExp(CUR, "gi");
+const ANY = new RegExp(CUR, "i");
+
+/** Whether an expression names a currency anywhere in it. */
+export const hasCurrency = (expr: string): boolean => ANY.test(expr);
+
+/**
+ * An expression with amounts in currencies (`(54 usd) * 12 - 1000 try`)
+ * as one mathjs sum: each currency becomes `(rate MONEY)` in the first
+ * one's terms, so the result is money in `cur`, or a plain number when the
+ * currencies cancel (`rent / salary`). Undefined when it names none, or
+ * one without a rate.
+ */
+export function carry(expr: string, r: Rates, unit: string): { expr: string; cur: string } | undefined {
+  const s = expr.replace(PREFIXED, (_, sym: string, n: string) => `${n} ${code(sym)}`);
+  const first = s.match(TOKEN)?.[0];
+  if (!first) return;
+  const cur = code(first);
+  let missing = false;
+  const out = s.replace(TOKEN, (t) => {
+    const x = rate(r, code(t), cur);
+    if (x === undefined) missing = true;
+    return ` (${x} ${unit})`;
+  });
+  return missing ? undefined : { expr: out, cur };
+}
+
 /** The pieces of a currency query: the amount expression (`1` when absent), the source, the target when given. Undefined when the query is not one. */
 type CurrencyQuery = { amount: string; from: string; to?: string };
 

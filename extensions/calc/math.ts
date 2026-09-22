@@ -11,11 +11,15 @@ import type { MathJsInstance } from "mathjs";
 // ordinary queries away from here. A failed import surfaces from that
 // evaluation.
 let math: Promise<MathJsInstance> | undefined;
-const mathjs = () => (math ??= import("mathjs").then(({ create, all }) => create(all)));
+const mathjs = () => (math ??= import("mathjs").then(({ create, all }) => { const m = create(all); m.createUnit(MONEY); return m; }));
+
+/** The unit a currency amount is carried in through mathjs (`money.ts`), so `x usd * 12` stays money and `rent / salary` becomes a ratio. */
+export const MONEY = "MONEY";
 
 type MathResult =
   | { kind: "number"; value: number }
   | { kind: "unit"; value: number; unit: string }
+  | { kind: "money"; value: number }
   | { kind: "text"; text: string };
 
 /** Lower-cased spellings mathjs lacks (or reads as something else: `kb` is a kilobit there) to its unit names. */
@@ -75,6 +79,7 @@ export async function evaluate(q: string): Promise<MathResult | undefined> {
   if (typeof r === "boolean") return { kind: "text", text: String(r) };
   if (m.isUnit(r)) {
     if (r.value === null) return; // `km` alone: a unit, not a quantity
+    if (r.equalBase(m.unit(MONEY))) return { kind: "money", value: r.toNumber(MONEY) };
     const unit = r.formatUnits();
     try {
       const value = r.toNumber(unit);

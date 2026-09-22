@@ -370,6 +370,7 @@ What works (every line below is checked by `host/test/extensions/calc.test.ts`):
 | units | `5 km to miles`, `72 f to c`, `212 °F to °C`, `300 k to c`, `12 gb to mb`, `1 gib to mb`, `3 weeks to days`, `100 kph to mph`, `1 acre in m2`, `5 kg to lb`, `10 ft in m`, `1 hp to kw`, `5 ft 3 in to cm`, `2 hours + 30 minutes to minutes` | `3.10686 miles`, `22.2222 °C`, `100 °C`, `26.85 °C`, `12,000 MB`, `1,073.74 MB`, `21 days`, `62.1371 mph`, `4,046.86 m2`, `11.0231 lb`, `3.048 m`, `0.7457 kW`, `160.02 cm`, `150 minutes` |
 | currency | `12 usd to try`, `12 usd in eur`, `€12 to $`, `12 dollars in lira`, `£10 to ₺`, `1k usd`, `12*2 usd to try`, `usd try` | `583.68 TRY`, `10.40 EUR`, `13.85 USD`, `583.68 TRY`, `655.85 TRY`, `48,640.26 TRY`, `1,167.37 TRY`, `48.64 TRY` (at the test's canned rates) |
 | home currency | `12 usd`, `$12`, `100 try` | to `home_currency` (`12 USD to TRY`); the home currency itself goes to USD |
+| variables | `salary_month`, `salary_month to eur`, `rent / salary_month`, `height to ft` (with `vars` below) | `455,272.87 TRY` (+ a `9,360.00 USD` row), `8,111.62 EUR`, `0.09225236807` with `9.225%`, `6.00394 ft`; the subtitle is the query with each name as its value (`42,000.00 TRY / 9,360.00 USD`) |
 | dates | `today`, `tomorrow`, `today + 3 days`, `3 weeks from now`, `in 3 weeks`, `2 days ago`, `25 dec 2026`, `dec 25, 2026` | the date written out (`Saturday, September 19, 2026`), a relative accessory (`in 3 days`), an ISO row (`2026-09-19`) |
 | now | `now` | the time, with the date as accessory; ISO and unix rows |
 | counts | `days until 2026-12-25`, `weeks until 25 dec`, `months since 2025-06-15`, `2026-01-01 - 2025-06-15`, `2025-06-15 to 2026-01-01`, `weeks between 2025-06-15 and 2026-01-01` | `100 days` (with `14 weeks 2 days · 3 months 9 days`), `14.3 weeks`, `n months`, `200 days`, `200 days`, `28.6 weeks` |
@@ -455,6 +456,7 @@ Settings, `[extensions.calc]`:
 | `precision` | number, 2 to 20 | `10` | Significant digits in a result; integers are never rounded, units and rates show at most 6. |
 | `locale` | text | `en` | How numbers and dates are written and how a typed number is read (`en`: `1,234.5`; `tr`, `de`: `1.234,5`). |
 | `home_currency` | text | empty | What a bare amount (`12 usd`) converts to. Empty: the currency of the machine's time zone (`Europe/Istanbul` is TRY, `Europe/*` otherwise EUR, `America/*` USD, ...), then the locale's region, else USD. |
+| `vars` | list | `[]` | Variables, one `name = value` per line (`salary_hour = 54 usd`, `salary_month = salary_hour * 2080 / 12`, `rent = 42000 try`). A query naming one is expanded before it is read, so a value is anything calc reads and may use other variables; currencies in it are converted into the first one's terms, so money stays money and a ratio of two amounts is a number. Decimals with a dot whatever the locale; a name spelled like a currency is ignored. At the root a query naming a variable answers inline without a digit. |
 
 ## Clipboard History (`clipboard-history`)
 

@@ -69,6 +69,31 @@ Settings, `[extensions.calc]`:
 | `precision` | number, 2 to 20 | `10` | Significant digits in a result; integers are never rounded, units and rates show at most 6. |
 | `locale` | text | `en` | How numbers and dates are written and how a typed number is read (`en`: `1,234.5`; `tr`, `de`: `1.234,5`). |
 | `home_currency` | text | empty | What a bare amount (`12 usd`) converts to. Empty: the currency of the machine's time zone, then the locale's region, else USD. |
+| `vars` | list | `[]` | Variables, one `name = value` per line (below). |
+
+### Variables
+
+```toml
+[extensions.calc]
+vars = [
+  "salary_hour = 54 usd",
+  "salary_day = salary_hour * 8",
+  "salary_month = salary_hour * 2080 / 12",
+  "rent = 42000 try",
+  "height = 183 cm",
+]
+```
+
+A query naming one is expanded before it is read, each name to its value
+in parentheses, so a value is anything calc reads and may use other
+variables. Currencies inside are converted into the first one's terms at
+the day's rate, so `salary_month * 12` stays money (shown in the home
+currency, or `... to eur`) and `rent / salary_month` is a plain ratio
+(`0.2243`, with `22.43%` beside it). The subtitle is the query with each
+name replaced by its value: `42,000 TRY / 9,360 USD`. At the root a query
+naming a variable answers inline even without a digit. Values are written
+with a dot for decimals whatever the `locale`; a name is letters, digits
+and underscores, and one spelled like a currency (`try`, `usd`) is ignored.
 
 ## What it does not do
 
@@ -78,7 +103,7 @@ Settings, `[extensions.calc]`:
 - A trailing operator or an open parenthesis (`1 +`, `(1+2`): nothing
   until the expression closes.
 - Variables between keystrokes: `x = 5` shows `5`, but a later `x` is
-  undefined.
+  undefined; variables live in the `vars` setting.
 - `10x3` without spaces (`0x` would be hex); write `10 x 3` or `10*3`.
 - Half-hour offsets as `utc+5:30`; use the zone name (`india`).
 

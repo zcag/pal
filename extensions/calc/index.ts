@@ -7,14 +7,18 @@
 // reverse conversion). Nothing is listed while the query does not parse,
 // so typing never shows an error.
 import { hint as hintRow, settings, type Action, type Extension, type Item } from "@zcag/pal";
-import { ensureRates, homeCurrency, money, NAMES, parse as parseCurrency, rate, SOURCE } from "./currency.ts";
+import { carry, code, ensureRates, hasCurrency, homeCurrency, isCurrency, money, NAMES, parse as parseCurrency, rate, SOURCE } from "./currency.ts";
 import { dates } from "./dates.ts";
 import { normalizeNumbers, num, raw as rawNum } from "./format.ts";
-import { evaluate, fraction, inBase, toBase } from "./math.ts";
+import { evaluate, fraction, inBase, MONEY, toBase } from "./math.ts";
 import type { Row } from "./row.ts";
+import { expand, parseVars, usesVar } from "./vars.ts";
 
 /** `[extensions.calc]`, defaults in pal.json; `home_currency` empty means the time zone's. */
-type Settings = { precision: number; locale: string; home_currency: string };
+type Settings = { precision: number; locale: string; home_currency: string; vars?: string[] };
+
+/** The variables, less any named like a currency (`try = 5` would eat `12 usd to try`). */
+const varsOf = (s: Settings) => new Map([...parseVars(s.vars)].filter(([name]) => !isCurrency(name)));
 
 /** md-equal, the result mark on every row; the extension tile tints it. */
 const ICON = "\u{f01fc}";
@@ -47,17 +51,27 @@ const DATE_WORD = /\b(now|today|tomorrow|yesterday|noon|midnight|next|last)\b/i;
 export const matches = (q: string): boolean => {
   const t = q.trim();
   if (!t || /^[-+]?[\d.,]+$/.test(t)) return false;
-  return (/\d/.test(t) && /[-+*/^%=()]|[a-z]/i.test(t)) || DATE_WORD.test(t);
+  return (/\d/.test(t) && /[-+*/^%=()]|[a-z]/i.test(t)) || DATE_WORD.test(t) || namesVar(t);
 };
 
+/** A root query naming a variable (`salary`, `rent / salary`) answers too, digit or not. Outside a host (a unit test) there are none. */
+function namesVar(q: string): boolean {
+  try {
+    return usesVar(q, varsOf(settings.get<Settings>()));
+  } catch {
+    return false;
+  }
+}
+
 const squeeze = (q: string) => q.replace(/\s+/g, " ");
+const homeOf = (s: Settings) => s.home_currency?.toUpperCase() || homeCurrency();
 
 async function currency(q: string, s: Settings, locale: string): Promise<Row[] | undefined> {
   const c = parseCurrency(q);
   if (!c) return;
   const amount = await evaluate(c.amount);
   if (amount?.kind !== "number") return;
-  const home = s.home_currency?.toUpperCase() || homeCurrency();
+  const home = homeOf(s);
   const to = c.to ?? (c.from === home ? (home === "USD" ? "EUR" : "USD") : home);
   const expr = `${num(amount.value, s.precision, locale)} ${c.from} to ${to}`;
   const { rates, fetching } = await ensureRates();
@@ -110,6 +124,64 @@ async function arithmetic(q: string, s: Settings, locale: string): Promise<Row[]
   return rows;
 }
 
+/** A variable's or an expanded query's value: money in a currency, or what mathjs made of it. */
+type Value = { kind: "money"; value: number; cur: string } | Exclude<NonNullable<Awaited<ReturnType<typeof evaluate>>>, { kind: "money" }>;
+
+/** Evaluates an expanded expression; currencies in it are carried as money in the first one's terms. */
+async function resolve(x: string): Promise<Value | "no-rates" | undefined> {
+  if (!hasCurrency(x)) {
+    const r = await evaluate(x);
+    return r?.kind === "money" ? undefined : r; // MONEY typed by hand is not an amount
+  }
+  const { rates } = await ensureRates();
+  if (!rates) return "no-rates";
+  const c = carry(x, rates, MONEY);
+  if (!c) return;
+  const r = await evaluate(c.expr);
+  if (r?.kind === "money") return { ...r, cur: c.cur };
+  if (r?.kind === "unit") return { ...r, unit: r.unit.replace(MONEY, c.cur) }; // `salary_hour / h`: USD/h
+  return r;
+}
+
+const show = (v: Value, s: Settings, locale: string): string =>
+  v.kind === "money" ? money(v.value, v.cur, locale) : v.kind === "unit" ? `${num(v.value, Math.min(s.precision, 6), locale)} ${v.unit}` : v.kind === "number" ? num(v.value, s.precision, locale) : v.text;
+
+/**
+ * A query naming variables (`[extensions.calc] vars`): expanded, then
+ * answered like any other. The subtitle is the query with each name
+ * replaced by its value (`42,000 TRY / 9,360 USD`), so what a name stood
+ * for is on the row. Money goes through the currency rows (the home
+ * currency, or a trailing `to eur`); a ratio of two amounts is a number
+ * with its percentage.
+ */
+async function variables(q: string, s: Settings, locale: string): Promise<Row[] | undefined> {
+  const vars = varsOf(s);
+  const x = expand(q, vars);
+  if (!x) return;
+  const values = new Map<string, string>();
+  for (const w of new Set(q.match(/[a-z_][a-z0-9_]*/gi) ?? [])) {
+    const v = vars.has(w.toLowerCase()) ? await resolve(expand(w, vars) ?? "") : undefined;
+    if (v && v !== "no-rates") values.set(w, show(v, s, locale));
+  }
+  const subtitle = squeeze(q.replace(/[a-z_][a-z0-9_]*/gi, (w) => values.get(w) ?? w));
+  const target = x.match(/^(.*\S)\s+(?:to|in|as)\s+(\S+)$/i);
+  const to = target && isCurrency(target[2]) ? target[2] : undefined;
+  const v = await resolve(to ? target![1] : x);
+  if (v === "no-rates") return [{ id: "rates", name: "Fetching exchange rates…", subtitle, inert: true }];
+  if (!v) return;
+  if (v.kind === "money") {
+    // In the target (`to eur`, else the home currency), and in the currency it was worked out in when that differs.
+    const own: Row = { id: "result", name: money(v.value, v.cur, locale), subtitle, raw: money(v.value, v.cur, "en", false).split(" ")[0] };
+    const into = to ? code(to) : homeOf(s);
+    if (into === v.cur) return [own];
+    const [first] = (await currency(`${v.value} ${v.cur} to ${into}`, s, locale)) ?? [];
+    return first ? [{ ...first, subtitle }, { ...own, id: "source", subtitle: `in ${NAMES[v.cur] ?? v.cur}` }] : [own];
+  }
+  if (v.kind !== "number") return [{ id: "result", name: show(v, s, locale), subtitle, raw: show(v, s, "en") }];
+  const pct = { text: `${num(v.value * 100, 4, locale)}%` };
+  return [{ id: "result", name: num(v.value, s.precision, locale), subtitle, raw: rawNum(v.value, s.precision), accessories: [pct] }];
+}
+
 const item = (r: Row): Item => ({
   id: r.id,
   name: r.name,
@@ -136,7 +208,7 @@ export default {
         const s = settings.get<Settings>();
         const locale = s.locale || "en";
         const qn = normalizeNumbers(q, locale);
-        const rows = dates(qn, locale) ?? (await currency(qn, s, locale)) ?? (await arithmetic(qn, s, locale)) ?? [];
+        const rows = (await variables(qn, s, locale)) ?? dates(qn, locale) ?? (await currency(qn, s, locale)) ?? (await arithmetic(qn, s, locale)) ?? [];
         last.clear();
         for (const r of rows) if (!r.inert) last.set(r.id, { name: r.name, raw: r.raw ?? r.name, expr: r.subtitle });
         return rows.map(item);
