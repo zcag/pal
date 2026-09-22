@@ -10,7 +10,7 @@ const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: 
 import { permissionRows, sidebarDefaults, type GeneralConfig } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true };
 const noop = () => {};
 const page = (props: Partial<Parameters<typeof SettingsGeneral>[0]>) =>
   renderToStaticMarkup(<SettingsGeneral value={general} onChange={noop} file={{ path: "~/.config/pal/config.toml" }} {...props} />);
@@ -42,7 +42,8 @@ describe("SettingsGeneral permissions", () => {
     expect(html.match(/>Grant…<\/button>/g)?.length).toBe(4);
     expect(html).toContain(">Open…</button>");
     expect(html).toContain("Overview</button>");
-    expect(html).toContain("Ask on first launch");
+    expect(html).toContain("nothing is asked at launch");
+    expect(html).not.toContain("Ask on first launch");
   });
   it("has no buttons once everything is granted", () => {
     const html = page({ permissions: allGranted, onRequestPermission: noop, onOpenOverview: noop });
@@ -69,7 +70,7 @@ describe("SettingsGeneral permissions", () => {
     expect(find("dock")).toEqual(["Menu bar icon", "Sidebar", "Sidebar: edge"]);
     expect(find("crash")).toEqual(["Launch at login"]);
     expect(find("pop level")).toEqual(["Backspace goes back"]);
-    expect(find("welcome tips")).toEqual(["Ask on first launch"]);
+    expect(find("permissions grant")).toEqual(["Permissions"]);
     expect(find("comments")).toEqual(["Config file"]);
     expect(find("catppuccin")).toEqual(["Theme file"]);
     const html = page({ permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }, sidebar: { value: sidebarDefaults, onChange: noop } });

@@ -105,41 +105,48 @@ pal, Settings…, Restart extension host, Check for updates… and Quit pal;
 
 The first panel leads with a Welcome section: a few rows that explain the
 panel, name the window switcher's chord and the sidebar, open Settings and
-ask for the one permission most palettes need.
+offer the one permission most palettes need (offer: nothing is asked
+until you press Enter on it).
 The last row hides them ("Show tips again" in the ⌘K panel brings them
 back).
 
 ### Permissions on macOS
 
-Three palettes need the Accessibility permission: clipboard history
-(pasting into the app in front sends a synthesised ⌘V), windows (raise,
-close, minimise) and window management (move and resize); so does
-`pal action type`. macOS lists an app under Privacy &
-Security > Accessibility only once the app has asked, so pal asks: the
-first time the panel opens on a new profile (the system prompt, and System
-Settings opened on that pane; `ask_permissions_on_start = false` in the
-config turns that off), from the first row of the Welcome section, from
-Settings > General > Permissions (a granted / not granted dot and a Grant
-button), and the first time a paste, a window switch or a layout is refused (a
-toast says so). Flip the switch next to pal in that pane; pal sees it within a
-couple of seconds, no restart.
+pal asks for a permission the first time something needs it, never at
+launch, and says what for first. Three palettes need Accessibility:
+clipboard history (pasting into the app in front sends a synthesised ⌘V),
+windows (raise, close, minimise) and window management (move and resize);
+so does `pal action type`. The first paste, window switch or layout
+without it puts a card in the panel, "Paste needs Accessibility", with
+what pal does with the permission and where the switch is; Grant shows
+the system prompt, Cancel leaves it. The card comes once per run for each
+permission; after that a toast (or the HUD) names the switch. The Welcome
+section's first row and Settings > General > Permissions (a granted / not
+granted dot and a Grant button) ask whenever you press them. Flip the
+switch next to pal in the pane; pal sees it within a couple of seconds,
+no restart.
 
-Four more are asked for only by what needs them, never at first run, and
-never two at once: the Calendar extension asks for Calendars from its own
-row; the Wi-Fi palette asks for Location Services the first time it lists
+The system prompt is shown by macOS once per app (it is what lists pal
+under Privacy & Security > Accessibility): the first request is the prompt
+alone, which has its own Open System Settings button, and a later one
+opens System Settings on the pane instead, where the switch is.
+
+Four more are asked for only by what needs them, the same way and never
+two at once: the Calendar extension asks for Calendars from its own row;
+the Wi-Fi palette asks for Location Services the first time it lists
 while you are inside it (its "Wi-Fi names need Location access" row asks
 too), because macOS 15 and later show Wi-Fi network names only to an app
 with it (the prompt says so; say no and the palette still works, with the
 names hidden and that row opening the pane); the OTP palette needs Full
 Disk Access, which has no prompt (its row opens the pane, where pal is
-added by hand); Snippets' expansion asks for Input Monitoring when it is
-switched on (a bar peek's close-on-keypress wants it too, and does without:
-the peek closes when the pointer leaves). Settings > General > Permissions
-lists all five with what each is for. The Overview lists a permission only
-when nothing else will ask for it: Accessibility while it is missing, Full
-Disk Access, Input Monitoring once expansion is on, and Calendars or
-Location once their prompt was answered no; one the OS has not asked about
-yet is not a thing to fix.
+added by hand); Snippets' expansion and keycast ask for Input Monitoring
+when switched on (a bar peek's close-on-keypress wants it too, and does
+without: the peek closes when the pointer leaves). Settings > General >
+Permissions lists all five with what each is for. The Overview lists a
+permission only when nothing else will ask for it: Accessibility while it
+is missing, Full Disk Access, Input Monitoring once expansion is on, and
+Calendars or Location once their prompt was answered no; one the OS has
+not asked about yet is not a thing to fix.
 
 The grant is tied to the app's code signature, and pal's releases are
 ad-hoc signed, so every build carries a new one. After installing a rebuilt

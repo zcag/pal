@@ -43,9 +43,8 @@
 //! makes it.
 //!
 //! Security: a web page can emit any of these, so what acts shows a
-//! confirm card in the panel first ([`confirm`]: the page renders
-//! [`events::CONFIRM`] with its `Confirm` component and answers on
-//! [`events::CONFIRM_REPLY`]; 30 s, then no). `general.deeplink_confirm`
+//! confirm card in the panel first (`confirm::ask`, confirm.rs; 30 s,
+//! then no). `general.deeplink_confirm`
 //! (`pal_core::config::Confirm`) is `true`, `false`, or the extensions
 //! whose `run`/`form`/routes skip the card; `install`, `update` and
 //! `remove` fetch or delete code and always ask; a route declared with
@@ -53,27 +52,23 @@
 //! shelled: the spec goes to the store, the rest to the host.
 
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use pal_core::index::Source;
-use serde::Serialize;
 use serde_json::{json, Map, Value};
 use tauri::plugin::TauriPlugin;
 use tauri::webview::PageLoadEvent;
-use tauri::{AppHandle, Builder, Listener, Manager, Wry};
+use tauri::{AppHandle, Builder, Manager, Wry};
 use tauri_plugin_deep_link::DeepLinkExt;
-use tokio::sync::oneshot;
 
 use crate::host::Host;
-use crate::{commands, effects, events, hud, index, lock, panel, settings};
+use crate::confirm::ask as confirm;
+use crate::{commands, confirm, effects, events, hud, index, lock, panel, settings};
 
 /// Longer than this is refused unparsed: a query is a few words, a spec a
 /// path.
 pub const MAX_LEN: usize = 2048;
-/// How long a confirm card waits for an answer before it counts as no.
-const CONFIRM_TIMEOUT: Duration = Duration::from_secs(30);
 /// The scheme the page writes and the docs show; the bundle's may differ.
 pub const SCHEME: &str = "pal";
 
@@ -428,14 +423,7 @@ fn plugin() -> TauriPlugin<Wry> {
     tauri::plugin::Builder::new("pal-deeplink")
         .setup(|app, _| {
             app.manage(Mutex::new(Links::default()));
-            app.manage(Pending::default());
-            let handle = app.clone();
-            app.listen(events::CONFIRM_REPLY, move |e| {
-                let v: serde_json::Value = serde_json::from_str(e.payload()).unwrap_or_default();
-                if let Some(token) = v["token"].as_u64() {
-                    reply(&handle, token, v["ok"].as_bool().unwrap_or(false));
-                }
-            });
+            confirm::install(app);
             // A debug build is not installed, so nothing registered its
             // scheme; Linux can do it at runtime, macOS only through a
             // bundle (`lsregister`).
@@ -556,7 +544,7 @@ const RESHOW_AFTER: Duration = Duration::from_millis(250);
 /// link brings has landed (module docs), and again [`RESHOW_AFTER`] later
 /// if the panel is not up by then; at once when the app is already front
 /// or not being activated at all. Off macOS there is no such dance.
-fn settled(app: &AppHandle, f: impl Fn(&AppHandle) + Send + Sync + 'static) {
+pub(crate) fn settled(app: &AppHandle, f: impl Fn(&AppHandle) + Send + Sync + 'static) {
     #[cfg(not(target_os = "macos"))]
     on_main(app, f);
     #[cfg(target_os = "macos")]
@@ -990,68 +978,6 @@ pub async fn link_copy(app: AppHandle, link: String) -> Result<(), String> {
     let link = with_scheme(&link, &scheme(&app));
     on_main(&app, panel::hide);
     effects::apply(&app, json!({ "copy": link, "hud": format!("Copied {link}") })).await.map(|_| ())
-}
-
-// ---- confirm card ------------------------------------------------------------
-
-/// The one card that can be up: a new ask drops the previous sender, whose
-/// await then reads as no.
-#[derive(Default)]
-struct Pending(Mutex<Option<(u64, oneshot::Sender<bool>)>>);
-
-static TOKEN: AtomicU64 = AtomicU64::new(1);
-
-#[derive(Clone, Serialize)]
-struct Ask<'a> {
-    title: &'a str,
-    message: &'a str,
-    ok: &'a str,
-    cancel: &'a str,
-    token: u64,
-}
-
-/// Show the panel with the card and wait: `Some(true)` for Enter,
-/// `Some(false)` for Escape, the scrim or a newer card, `None` once
-/// [`CONFIRM_TIMEOUT`] passes with no answer (the page drops the card;
-/// the panel, which the user may be using by then, is left alone). On an
-/// answer the panel is still up: the caller hides it or moves on.
-async fn confirm(app: &AppHandle, title: &str, message: &str, ok: &str) -> Option<bool> {
-    let (tx, rx) = oneshot::channel();
-    let token = TOKEN.fetch_add(1, Ordering::Relaxed);
-    *lock(&app.state::<Pending>().0) = Some((token, tx));
-    let payload = json!(Ask { title, message, ok, cancel: "Cancel", token });
-    settled(app, move |app| {
-        crate::show(app);
-        events::emit_to(app, crate::WINDOW, events::CONFIRM, payload.clone());
-    });
-    let answer = match tokio::time::timeout(CONFIRM_TIMEOUT, rx).await {
-        Ok(Ok(yes)) => Some(yes),
-        // The sender went: a newer card took the slot, and the page shows that one.
-        Ok(Err(_)) => Some(false),
-        Err(_) => {
-            // Nobody answered: the page drops the card (a null ask).
-            events::emit_to(app, crate::WINDOW, events::CONFIRM, ());
-            None
-        }
-    };
-    let st = app.state::<Pending>();
-    let mut p = lock(&st.0);
-    if p.as_ref().is_some_and(|(t, _)| *t == token) {
-        *p = None;
-    }
-    answer
-}
-
-/// The page's answer for `token`; a stale token (a card already gone) is
-/// dropped.
-fn reply(app: &AppHandle, token: u64, ok: bool) {
-    let st = app.state::<Pending>();
-    let mut p = lock(&st.0);
-    if p.as_ref().is_some_and(|(t, _)| *t == token) {
-        if let Some((_, tx)) = p.take() {
-            let _ = tx.send(ok);
-        }
-    }
 }
 
 #[cfg(test)]

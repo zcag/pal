@@ -59,12 +59,15 @@ Settings › General › Permissions lists all five with a dot and a Grant
 button; the Overview lists the missing ones nothing else will ask for
 (Accessibility, Full Disk Access, Input Monitoring once expansion is on,
 Calendars and Location once refused). Each is a switch under System
-Settings › Privacy & Security.
+Settings › Privacy & Security. Nothing is asked at launch: the first
+feature that needs one puts a card in the panel saying what pal does with
+it, and Grant shows the system prompt (macOS shows it once per app; after
+that Grant opens the pane, where the switch is).
 
 | permission | what needs it | how pal asks | when it is missing |
 | --- | --- | --- | --- |
-| Accessibility | paste into the app in front (Clipboard History, Snippets, `pal paste`, `pal action type`), window focus, close, minimise and layouts, the selected text, Menu Bar Items, "Use in dialog", snippet expansion | the system prompt on the first panel show (`ask_permissions_on_start`), the Welcome row, Settings, and once per run when a paste or a layout is refused | a toast "Paste needs Accessibility" (or "Window layout", "Use in dialog"); focus falls back to activating the app with "Switched to `<app>`; per-window switching needs Accessibility" on the HUD; Menu Bar Items is one row saying so |
-| Input Monitoring | a bar peek closing on the next key press; snippet expansion (`[extensions.snippets] expand`) | when expansion is switched on, or from Settings; the bar never asks | the peek stays until the pointer leaves; expansion does not see keys |
+| Accessibility | paste into the app in front (Clipboard History, Snippets, `pal paste`, `pal action type`), window focus, close, minimise and layouts, the selected text, Menu Bar Items, "Use in dialog", snippet expansion | a card in the panel the first time a paste, a layout, a window switch or the selected text is refused ("Paste needs Accessibility": what pal does with it, Grant for the system prompt), once per run; the Welcome row and Settings whenever pressed. Never at launch | after the card, a toast "Paste needs Accessibility" (or "Window layout", "Use in dialog") naming the switch; focus falls back to activating the app with "Switched to `<app>`; per-window switching needs Accessibility" on the HUD; Menu Bar Items is one row saying so |
+| Input Monitoring | a bar peek closing on the next key press; snippet expansion (`[extensions.snippets] expand`); keycast; the app switcher's `cmd+tab` | a card when expansion is switched on, keycast starts or a `cmd+tab` chord is configured (a config reload; at startup the Overview lists it instead), or from Settings; the bar never asks | the peek stays until the pointer leaves; expansion does not see keys |
 | Location Services | Wi-Fi network names (macOS 15 and later show them only to an app with it) | the first time the Wi-Fi palette lists while you are inside it (a listing at startup or on a show is held back: `permissions<TAB>location<TAB>skipped` in the log), or Enter on its "Wi-Fi names need Location access" row | rows read "name hidden by macOS without Location access" and that row opens the pane |
 | Calendars | the Calendar extension | the extension's "Grant calendar access" row | "Calendar access denied" with a row that opens the pane |
 | Full Disk Access | Verification Codes (Messages' database), Safari bookmarks, the Trash count on Empty Trash | there is no prompt: the row opens the pane and you add pal by hand | "Full Disk Access needed" as the palette's one row; the Safari section is one inert row |

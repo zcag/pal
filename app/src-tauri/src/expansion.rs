@@ -152,8 +152,8 @@ fn apply(app: &AppHandle, s: Settings) {
     drop(m);
     eprintln!("expansion\t{}\tprefix {prefix:?}", if on { "on" } else { "off" });
     if on && !permissions::input_monitoring() {
-        // The prompt once (and the pane); the subscription is made either way and starts delivering on the grant.
-        permissions::request_once(app, "input_monitoring");
+        // The card once (skipped at startup: the Overview lists it); the subscription is made either way and starts delivering on the grant.
+        permissions::ask(app, "input_monitoring", "Snippet expansion");
     }
     if on {
         keytap::subscribe(app, "expansion", Wants { keys: true, ..Wants::default() }, on_event);
@@ -243,8 +243,9 @@ fn run(app: &AppHandle, hit: &Hit, snippet: &Snippet, flash: bool) {
         }
         Err(pal_core::clipboard::Error::NeedsAccessibility) => {
             eprintln!("expansion\trefused\tneeds Accessibility");
-            permissions::request_once(app, "accessibility");
-            hud::show(app, "Snippet expansion needs Accessibility");
+            if !permissions::ask(app, "accessibility", "Snippet expansion") {
+                hud::show(app, "Snippet expansion needs Accessibility");
+            }
         }
         Err(e) => eprintln!("expansion\tfailed\t{}\t{e}", snippet.name),
     }

@@ -648,7 +648,7 @@ mod tap {
         }
         if !permissions::input_monitoring() {
             eprintln!("switcher\t{label} needs Input Monitoring");
-            permissions::request_once(app, "input_monitoring");
+            permissions::ask(app, "input_monitoring", "The app switcher");
             remove(app);
             return true;
         }

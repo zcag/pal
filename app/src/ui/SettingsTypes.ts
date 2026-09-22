@@ -160,7 +160,6 @@ export type GeneralConfig = {
   menuBarIcon: boolean;
   position: "top" | "centre" | "last";
   /** macOS: ask for Accessibility on the panel's first show of a fresh profile. */
-  askPermissionsOnStart: boolean;
   /** `general.backspace_back`: Backspace with nothing typed goes back a level. */
   backspaceBack: boolean;
   /** `general.app_switcher`: macOS's own App Switcher on this Tab chord, through the event tap; unset is off. */

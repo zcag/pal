@@ -67,8 +67,7 @@ const positions = [
  */
 const text = {
   shortcuts: { anchor: "general:shortcuts", hint: "Every global key, on its own page", label: "Keyboard shortcuts", description: "The hotkey that shows pal, the window switcher chord, and every palette, row and bar item shortcut are on the Shortcuts page, with what each collides with.", keywords: "hotkey shortcut keys switcher chord" },
-  permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security.", keywords: "permissions grant privacy" },
-  ask: { anchor: "general:ask", hint: "Permissions", label: "Ask on first launch", description: "Show the Accessibility prompt the first time the panel opens on a new profile, while the Welcome tips are up.", keywords: "" },
+  permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security. pal asks for one the first time something needs it, with a card saying what for; nothing is asked at launch.", keywords: "permissions grant privacy ask" },
   theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
   themeFile: { anchor: "general:theme-file", hint: "Appearance", label: "Theme file", description: "Colours, radii and fonts from a TOML file, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.", keywords: "tokens accent" },
   position: { anchor: "general:position", hint: "Appearance", label: "Window position", description: "On the screen with the pointer.", keywords: "top centre center last" },
@@ -128,9 +127,6 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
             </ul>
             {onOpenOverview && missing.length > 0 && <button type="button" className="pal-button" data-small onClick={onOpenOverview}>What each is for: Overview</button>}
             </span>
-          </SettingsRow>
-          <SettingsRow anchor={text.ask.anchor} label={text.ask.label} description={text.ask.description}>
-            <SettingsSwitch checked={value.askPermissionsOnStart} onChange={(v) => set("askPermissionsOnStart", v)} label="Ask on first launch" />
           </SettingsRow>
         </SettingsGroup>
       )}

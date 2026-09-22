@@ -16,6 +16,7 @@ mod color;
 mod commands;
 mod compact;
 mod compat;
+mod confirm;
 mod crash;
 mod deeplink;
 mod dialog;
@@ -197,9 +198,7 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
     index::on_shown(app, held.as_deref());
     bar::on_shown(app);
     states::on_panel(app, true);
-    // A fresh profile's first show asks for Accessibility (once per run);
-    // a missing permission is watched for while the panel is up.
-    permissions::ask_on_first_show(app);
+    // A missing permission is watched for while the panel is up.
     permissions::watch(app);
 }
 
@@ -369,6 +368,7 @@ pub fn run() {
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
             if payload.event() == PageLoadEvent::Finished && webview.label() == WINDOW {
+                permissions::page_ready();
                 if let Some(cmd) = lock(&startup).take() {
                     cmd.run(webview.app_handle());
                 }

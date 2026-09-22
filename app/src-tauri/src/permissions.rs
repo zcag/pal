@@ -2,31 +2,48 @@
 //! Accessibility (paste sends a keystroke into the app in front, window
 //! switching raises another app's window, `pal action type`), Calendars
 //! (the calendar extension, EventKit), Full Disk Access (the OTP palette
-//! reads the Messages database), Input Monitoring (the bar popover's key
-//! monitor while a peek is up) and Location Services (macOS 15+ hands
-//! Wi-Fi network names only to an app with it: the wifi extension). macOS
-//! lists an app under Privacy & Security > Accessibility only after the
-//! app has called the trust check with the prompt once, so every ask here
-//! is both: the system prompt (`ax::request`, which adds pal to the list)
-//! and System Settings opened on that pane, where the switch is. Full
-//! Disk Access has no prompt at all (the pane is the only way), Input
-//! Monitoring, Calendars and Location prompt once. Off macOS every
+//! reads the Messages database), Input Monitoring (snippet expansion,
+//! keycast, the app switcher's chord, the bar popover's key monitor while
+//! a peek is up) and Location Services (macOS 15+ hands Wi-Fi network
+//! names only to an app with it: the wifi extension). Off macOS every
 //! permission is a given and `status` says so.
 //!
-//! Who asks: the panel's first show on a fresh profile (once per run,
-//! `general.ask_permissions_on_start`), the Welcome row (every time), an
-//! effect refused for want of it (once per run, `effects.rs`), an
-//! extension over `core/permissions.request` (the wifi palette asks for
-//! Location from a listing the user is looking at, inside the palette,
-//! or from its hint row's pick; never from the startup load or a relist on
-//! a show: [`call`], [`attended`]) and the Settings window's Grant
-//! buttons. One prompt at a time: the first show asks for Accessibility
-//! alone, since no palette is on screen then. Nothing polls the OS for
-//! a change; a grant is seen by [`watch`], which checks every [`POLL`]
-//! while a window is open and something was missing, and emits
-//! [`events::PERMISSIONS`] on a change (the Welcome row goes, Settings
-//! turns the dot green, an Input Monitoring grant re-applies the hotkeys
-//! for the switcher's `cmd+tab` tap).
+//! **When pal asks: at the feature, never at launch.** Nothing prompts
+//! on a fresh profile until the user runs something that needs a
+//! permission (a paste, a window switch, keycast, expansion switched
+//! on), the way Raycast and Maccy do and Apple's guidelines ask
+//! ("request permission only when your app clearly needs access"). The
+//! Welcome row and Settings > General > Permissions are the overview: what
+//! each is for, a dot, a Grant button.
+//!
+//! **What an ask is: pal's word first, then the system's.** [`ask`] puts
+//! a card in the panel, "Paste needs Accessibility", with what pal does
+//! with the permission ([`REASONS`]) and where the switch is; Grant is
+//! what runs [`request`], Cancel leaves everything as it was. The
+//! passing askers (a refused paste, keycast starting) get the card once
+//! per run and permission; their own toast or HUD line stands alone after
+//! that. The Welcome row, Settings and an extension's row are explicit
+//! (the row is the explanation) and call [`request`] directly.
+//!
+//! **What a request is: the prompt, or the pane, not both.** macOS lists
+//! an app under Privacy & Security > Accessibility (and Input Monitoring)
+//! only after the app has called the trust check with the prompt once,
+//! and shows that prompt once: a later call while the app is listed and
+//! off shows nothing. So the first request on this machine is the prompt
+//! alone (the prompt has its own Open System Settings button), and a
+//! request after that ([`prompted`], a marker under the app's data dir)
+//! opens System Settings on the pane, where the switch is; a marker gone
+//! stale (a rebuild under a new signature) costs one extra prompt.
+//! Calendars and Location prompt once and say so (`not_determined`); Full
+//! Disk Access has no prompt at all (the pane is the only way).
+//!
+//! Nothing polls the OS for a change; a grant is seen by [`watch`], which
+//! checks every [`POLL`] while a window is open and something was missing,
+//! and emits [`events::PERMISSIONS`] on a change (the Welcome row goes,
+//! Settings turns the dot green, an Input Monitoring grant re-applies the
+//! hotkeys for the switcher's `cmd+tab` tap). An extension asks over
+//! `core/permissions.request` only from a listing the user is looking at
+//! ([`call`], [`attended`]).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -40,6 +57,96 @@ use tauri::{AppHandle, Manager};
 use crate::{events, panel, settings, welcome};
 
 const POLL: Duration = Duration::from_secs(2);
+
+/// What pal does with a permission, in the words the card and the
+/// toasts use: the ids the SDK's `PermissionId` spells.
+pub struct Reason {
+    pub id: &'static str,
+    /// The pane's name, as System Settings spells it.
+    pub title: &'static str,
+    /// What pal uses it for, one or two sentences to the user.
+    pub uses: &'static str,
+    /// The switch: the pane under System Settings > Privacy & Security.
+    pub pane: &'static str,
+}
+
+pub const REASONS: [Reason; 5] = [
+    Reason { id: "accessibility", title: "Accessibility", uses: "pal uses it to paste into the app in front (a \u{2318}V keystroke), to raise, arrange and close other apps\u{2019} windows, and to read the selected text.", pane: "Accessibility" },
+    Reason { id: "input_monitoring", title: "Input Monitoring", uses: "pal uses it to see the keys typed in other apps: a snippet keyword, the keys keycast draws, the app switcher\u{2019}s chord, the key that closes a bar peek. The keys are read for those and nothing else.", pane: "Input Monitoring" },
+    Reason { id: "calendar", title: "Calendars", uses: "pal lists your upcoming events and can add or remove one from the panel.", pane: "Calendars" },
+    Reason { id: "full_disk_access", title: "Full Disk Access", uses: "pal reads the Messages database for verification codes, and Safari\u{2019}s bookmarks. macOS has no prompt for this one: add pal in the pane by hand.", pane: "Full Disk Access" },
+    Reason { id: "location", title: "Location", uses: "macOS shows Wi-Fi network names only to an app with Location access. pal reads the names and nothing about where you are.", pane: "Location Services" },
+];
+
+pub fn reason(which: &str) -> Option<&'static Reason> {
+    REASONS.iter().find(|r| r.id == which)
+}
+
+/// Where the switch is, for a toast or a HUD line: "System Settings >
+/// Privacy & Security > Accessibility".
+pub fn switch(which: &str) -> String {
+    format!("System Settings > Privacy & Security > {}", reason(which).map_or(which, |r| r.pane))
+}
+
+/// The card for `feature` needing `which`: the title names the feature,
+/// the message what pal does with the permission and what happens on
+/// Grant (the system prompt when the OS still has one to show, else the
+/// pane). `prompts`: [`prompts`], passed in so the text is testable.
+pub fn card(which: &str, feature: &str, prompts: bool) -> (String, String) {
+    let r = reason(which);
+    let title = format!("{feature} needs {}", r.map_or(which, |r| r.title));
+    let next = if prompts { "macOS asks next; the switch is under" } else { "System Settings opens on the switch, under" };
+    let message = format!("{}\n\n{next} Privacy & Security > {}.", r.map_or("", |r| r.uses), r.map_or(which, |r| r.pane));
+    (title, message)
+}
+
+/// The marker for the prompts already shown on this machine: one
+/// permission id per line under the app's data dir (not the profile's:
+/// the OS keys its list by the app, and every profile is the one app).
+fn prompted_file() -> std::path::PathBuf {
+    pal_core::fs::data_dir().join("prompted")
+}
+
+fn prompted(which: &str) -> bool {
+    prompted_in(&prompted_file(), which)
+}
+
+fn prompted_in(f: &std::path::Path, which: &str) -> bool {
+    std::fs::read_to_string(f).is_ok_and(|s| s.lines().any(|l| l == which))
+}
+
+fn note_prompted(which: &str) {
+    let f = prompted_file();
+    if let Err(e) = note_prompted_in(&f, which) {
+        eprintln!("permissions\t{which}\tcould not note the prompt in {}: {e}", f.display());
+    }
+}
+
+fn note_prompted_in(f: &std::path::Path, which: &str) -> std::io::Result<()> {
+    if prompted_in(f, which) {
+        return Ok(());
+    }
+    if let Some(dir) = f.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let mut s = std::fs::read_to_string(f).unwrap_or_default();
+    s.push_str(which);
+    s.push('\n');
+    std::fs::write(f, s)
+}
+
+/// Whether a request for `which` shows a system prompt (as against
+/// opening the pane): Accessibility and Input Monitoring until pal has
+/// prompted once on this machine, Calendars and Location while the OS
+/// says `not_determined`, Full Disk Access never.
+pub fn prompts(which: &str) -> bool {
+    match which {
+        "accessibility" | "input_monitoring" => !prompted(which),
+        "calendar" => pal_core::calendar::permission() == Permission::NotDetermined,
+        "location" => location::status() == Permission::NotDetermined,
+        _ => false,
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Status {
@@ -222,12 +329,18 @@ pub fn request(app: &AppHandle, which: &str) -> Result<Status, String> {
     }
     let pane = |e: std::io::Error| format!("could not open System Settings: {e}");
     match which {
+        // The prompt (which lists pal) the first time; the pane once the
+        // OS has shown it, since it shows it once. The prompt call is made
+        // either way: nothing when pal is listed, and the real prompt again
+        // after a rebuild under a new signature dropped pal from the list.
         "accessibility" => {
+            let again = !prompts(which);
             let trusted = pal_core::ax::request();
-            if !trusted {
+            if !trusted && again {
                 pal_core::ax::open_settings().map_err(pane)?;
             }
-            eprintln!("permissions\taccessibility\trequested\ttrusted={trusted}");
+            note_prompted(which);
+            eprintln!("permissions\taccessibility\trequested\ttrusted={trusted} pane={}", !trusted && again);
         }
         // The prompt when the OS still has one to show; the pane once it was answered no.
         "calendar" => {
@@ -240,14 +353,16 @@ pub fn request(app: &AppHandle, which: &str) -> Result<Status, String> {
         // No prompt exists for this one: the pane, with pal to be added by hand.
         "full_disk_access" => open_privacy_pane("Privacy_AllFiles").map_err(pane)?,
         "input_monitoring" => {
+            let again = !prompts(which);
             #[cfg(target_os = "macos")]
             let granted = unsafe { hid::IOHIDRequestAccess(hid::LISTEN_EVENT) };
             #[cfg(not(target_os = "macos"))]
             let granted = true;
-            if !granted {
+            if !granted && again {
                 open_privacy_pane("Privacy_ListenEvent").map_err(pane)?;
             }
-            eprintln!("permissions\tinput_monitoring\trequested\tgranted={granted}");
+            note_prompted(which);
+            eprintln!("permissions\tinput_monitoring\trequested\tgranted={granted} pane={}", !granted && again);
         }
         // The prompt while the OS still has one to show (asynchronous: the
         // answer reaches `watch`); the pane once it was answered no.
@@ -269,33 +384,54 @@ pub fn request(app: &AppHandle, which: &str) -> Result<Status, String> {
     Ok(status())
 }
 
-/// [`request`] at most once per run and permission across every caller
-/// that wants it only in passing (an effect refused, the first show): the
-/// prompt is a modal and a second one on the same run is noise.
-pub fn request_once(app: &AppHandle, which: &str) {
+/// The panel's page is up: a card can be shown. Set from the page load
+/// (lib.rs); an ask before it (a startup `hotkey::apply` for a `cmd+tab`
+/// switcher, `expansion::install`) is skipped and logged, and the Settings
+/// Overview lists what is missing.
+static READY: AtomicBool = AtomicBool::new(false);
+
+pub fn page_ready() {
+    READY.store(true, Ordering::Relaxed);
+}
+
+/// The ask for a `feature` that came across a missing `which` in passing
+/// (a refused paste, a window switch that could only activate, keycast
+/// starting, expansion switched on): the card in the panel, once per run
+/// and permission, and [`request`] on Grant. Returns whether the card
+/// went up this time; when not (asked already this run, the page not up
+/// yet, nothing to grant off macOS) the caller's own toast or HUD line is
+/// what the user sees. The answer is not waited for: after a grant the
+/// user redoes the action, and `watch` reports the grant to the windows.
+pub fn ask(app: &AppHandle, which: &str, feature: &str) -> bool {
     static ASKED: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    if !cfg!(target_os = "macos") {
+        return false;
+    }
+    if !READY.load(Ordering::Relaxed) {
+        eprintln!("permissions\t{which}\task for {feature} skipped\tthe panel is not up yet");
+        return false;
+    }
     let mut asked = ASKED.lock().unwrap_or_else(|e| e.into_inner());
     if asked.iter().any(|w| w == which) {
-        return;
+        return false;
     }
     asked.push(which.to_string());
     drop(asked);
-    if let Err(e) = request(app, which) {
-        eprintln!("permissions\t{which}\t{e}");
-    }
-}
-
-/// The panel's first show on a fresh profile (the Welcome tips still up):
-/// ask, once per run, when `general.ask_permissions_on_start` says so and
-/// the permission is missing. Raycast asks during its onboarding; this is
-/// pal's. Spawned: the prompt is the system's window and takes key focus,
-/// which hides the panel, so the show itself must not wait on it.
-pub fn ask_on_first_show(app: &AppHandle) {
-    if status().accessibility || !settings::config(app).general.ask_permissions_on_start || welcome::welcomed(&welcome::data_dir(app)) {
-        return;
-    }
-    let app = app.clone();
-    tauri::async_runtime::spawn_blocking(move || request_once(&app, "accessibility"));
+    let (title, message) = card(which, feature, prompts(which));
+    eprintln!("permissions\t{which}\tasked for {feature}");
+    let (app, which) = (app.clone(), which.to_string());
+    tauri::async_runtime::spawn(async move {
+        let yes = crate::confirm::ask(&app, &title, &message, "Grant").await;
+        eprintln!("permissions\t{which}\tcard\t{}", match yes { Some(true) => "granted", Some(false) => "cancelled", None => "no answer" });
+        if yes == Some(true) {
+            let handle = app.clone();
+            let r = tauri::async_runtime::spawn_blocking(move || request(&handle, &which)).await;
+            if let Ok(Err(e)) = r {
+                crate::hud::show(&app, &e);
+            }
+        }
+    });
+    true
 }
 
 /// Whether the user has a pal window in front of them: the panel or the
@@ -435,6 +571,51 @@ mod tests {
         }
         #[cfg(not(target_os = "macos"))]
         assert_eq!(location::status(), Permission::Unavailable);
+    }
+
+    #[test]
+    fn every_permission_id_has_a_reason_and_a_pane() {
+        for id in ["accessibility", "calendar", "full_disk_access", "input_monitoring", "location"] {
+            let r = reason(id).unwrap_or_else(|| panic!("{id} has no reason"));
+            assert!(r.uses.starts_with("pal ") || r.uses.starts_with("macOS "), "{id}: the reason says who does what");
+            assert!(switch(id).ends_with(r.pane), "{id}: the switch names the pane");
+        }
+        assert!(reason("screen_recording").is_none());
+        assert_eq!(switch("screen_recording"), "System Settings > Privacy & Security > screen_recording", "an unknown id falls back to itself");
+    }
+
+    #[test]
+    fn card_names_the_feature_the_reason_and_what_grant_does() {
+        let (title, message) = card("accessibility", "Paste", true);
+        assert_eq!(title, "Paste needs Accessibility");
+        assert!(message.starts_with("pal uses it to paste into the app in front"), "{message}");
+        assert!(message.ends_with("macOS asks next; the switch is under Privacy & Security > Accessibility."), "{message}");
+        let (_, message) = card("input_monitoring", "Keycast", false);
+        assert!(message.ends_with("System Settings opens on the switch, under Privacy & Security > Input Monitoring."), "{message}");
+        let (title, message) = card("full_disk_access", "Verification codes", false);
+        assert_eq!(title, "Verification codes needs Full Disk Access");
+        assert!(message.contains("add pal in the pane by hand"), "{message}");
+    }
+
+    #[test]
+    fn the_prompted_marker_lists_each_permission_once() {
+        let dir = std::env::temp_dir().join(format!("pal-prompted-{}", std::process::id()));
+        let f = dir.join("prompted");
+        assert!(!prompted_in(&f, "accessibility"), "no file, never prompted");
+        note_prompted_in(&f, "accessibility").unwrap();
+        note_prompted_in(&f, "accessibility").unwrap();
+        note_prompted_in(&f, "input_monitoring").unwrap();
+        assert!(prompted_in(&f, "accessibility"));
+        assert!(prompted_in(&f, "input_monitoring"));
+        assert!(!prompted_in(&f, "calendar"));
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "accessibility\ninput_monitoring\n", "one line each, no repeat");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn full_disk_access_never_prompts() {
+        assert!(!prompts("full_disk_access"));
+        assert!(!prompts("screen_recording"), "an unknown id opens nothing");
     }
 
     #[test]

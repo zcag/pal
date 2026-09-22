@@ -286,7 +286,7 @@ pub fn start(app: &AppHandle, mode: Option<Mode>) -> Result<Status, String> {
     };
     eprintln!("keycast\t{}\t{}", if was { "mode" } else { "start" }, mode.name());
     if !permissions::input_monitoring() {
-        permissions::request_once(app, "input_monitoring");
+        permissions::ask(app, "input_monitoring", "Keycast");
     }
     keytap::subscribe(app, "keycast", wants, on_event);
     tell_page(app);

@@ -120,7 +120,7 @@ pub fn raise(app: &AppHandle, id: &str) -> Result<(), String> {
     if let Some(text) = focus_feedback(false, !HINTED.swap(true, Ordering::Relaxed), &name) {
         hud::show(app, &text);
     }
-    permissions::request_once(app, "accessibility");
+    permissions::ask(app, "accessibility", "Window switching");
     Ok(())
 }
 
@@ -146,7 +146,7 @@ pub fn go_space(app: &AppHandle, id: &str) -> Result<(), String> {
     match windows::go_space(id) {
         Ok(()) => Ok(()),
         Err(windows::Error::NeedsAccessibility(_)) => {
-            permissions::request_once(app, "accessibility");
+            permissions::ask(app, "accessibility", "Switching to an empty space");
             Err("switching to an empty space needs Accessibility".into())
         }
         Err(e) => Err(err(e)),

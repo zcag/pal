@@ -157,7 +157,7 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
 import { lookDefaults, type BarConfig, type BarItem, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PermissionsStatus, type SettingSpec, type SettingsExtension } from "../ui/SettingsTypes";
 
-export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true };
+export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", backspaceBack: true };
 /** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
 /** Every entry's fate as the gallery's General page fakes it: ⌘Space is Spotlight's, anything else registers. */
 export const settingsHotkeyStatus = (hotkeys: string[]): HotkeyStatus => {
@@ -338,7 +338,7 @@ export const welcomeRows: Item[] = [
   tip("hotkey", "Change the hotkey", "⌃Space now; Enter opens the recorder in Settings", "\u{f030c}", "# Change the hotkey\n\npal opens with **⌃Space**. Enter opens the recorder under Settings › General: press another combination, or pick a preset. Every palette can have its own hotkey too, on its row under Settings › Palettes."),
   tip("extensions", "Add your own palettes", "A palette is a small TypeScript file; the guide is on GitHub", "\u{f0431}", "# Add your own palettes\n\nEvery palette in pal is an extension, the built-in ones included. An extension is a folder with a `pal.json` and an `index.ts` that lists rows and answers picks. The guide walks through one:\n\nhttps://github.com/zcag/pal/blob/main/docs/extensions.md"),
   tip("github", "Star or report an issue", "github.com/zcag/pal", "\u{f02a4}", "# pal on GitHub\n\nSource, releases and the issue tracker:\n\nhttps://github.com/zcag/pal\n\nA star helps others find it; an issue with what you expected and what happened helps fix it."),
-  tip("accessibility", "Grant Accessibility for paste and window switching", "macOS asks once; the switch is in System Settings", "\u{f0565}", "# Accessibility\n\nPasting a row into the app in front and switching to a window both drive another app, which macOS only allows to apps on its Accessibility list.\n\nEnter here shows the system prompt; the switch is under System Settings › Privacy & Security › Accessibility. pal reads nothing you type."),
+  tip("accessibility", "Grant Accessibility for paste and window switching", "Enter shows the system prompt; nothing is asked until you do", "\u{f0565}", "# Accessibility\n\nPasting a row into the app in front and switching to a window both drive another app, which macOS only allows to apps on its Accessibility list.\n\nEnter here shows the system prompt; the switch is under System Settings › Privacy & Security › Accessibility. pal reads nothing you type."),
   tip("hide", "Hide these tips", "Bring them back any time with “Show tips again” in ⌘K", "\u{f06d1}", "# Hide these tips\n\nThe Welcome section goes and the empty query starts with your palettes and apps. ⌘K at the root has “Show tips again”."),
 ];
 

@@ -21,7 +21,7 @@ const windows = (hold?: string, suggested: string | null = "alt+tab"): SettingsE
   name: "windows", key: "windows", title: "Windows", description: "Every window.", version: "1.0.0", repo: "bundled", bundled: true, settings: [], values: {}, loaded: true,
   palettes: [{ id: "windows", source: "windows/windows", title: "Windows", kind: "live", hold: suggested ?? undefined, settings: [], config: config(hold) }],
 });
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true };
 
 let root: Root, el: HTMLDivElement;
 beforeEach(() => {

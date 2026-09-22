@@ -473,7 +473,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-pop-centred var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-confirm__title { font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-medium, 500); }
-.pal-confirm__message { margin-top: calc(var(--pal-space-4, 16px) * -1 + var(--pal-space-1, 4px)); font-size: var(--pal-text-sm, 12px); color: var(--pal-fg-muted, #a3a4ae); overflow-wrap: anywhere; }
+/* pre-line: a permission card's message is two lines, the reason and what Grant does. */
+.pal-confirm__message { margin-top: calc(var(--pal-space-4, 16px) * -1 + var(--pal-space-1, 4px)); font-size: var(--pal-text-sm, 12px); color: var(--pal-fg-muted, #a3a4ae); overflow-wrap: anywhere; white-space: pre-line; }
 /* Scoped: settings.css has a text-coloured destructive button. */
 .pal-confirm .pal-button[data-destructive] { background: var(--pal-destructive, #ff6e66); color: var(--pal-accent-fg, #14141a); }
 

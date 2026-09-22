@@ -38,7 +38,7 @@ describe("applyThemeFile", () => {
   });
 });
 
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true };
 const status = (over: Partial<ThemeFileStatus> = {}): ThemeFileStatus => ({ setting: "", diagnostics: [], dir: "/cfg/pal/themes", themes: [{ name: "catppuccin-frappe", path: "/cfg/pal/themes/catppuccin-frappe.toml", title: "Catppuccin Frappé" }, { name: "mine", path: "/cfg/pal/themes/mine.toml", title: "mine" }], ...over });
 const page = (s: ThemeFileStatus) => renderToStaticMarkup(<SettingsGeneral value={general} onChange={() => {}} file={{ path: "~/.config/pal/config.toml" }} themeFile={{ status: s, onChange: () => {}, onEdit: () => {}, onOpenDir: () => {} }} />);
 

@@ -1,6 +1,7 @@
 //! First-run tips: one synthetic source, `pal/welcome`, whose rows lead the
-//! empty query until the user hides them. No wizard: the rows are ordinary
-//! rows (a pick opens Settings, a URL, the Accessibility prompt), the first
+//! empty query until the user hides them. No wizard, and no prompt until
+//! asked for: the rows are ordinary rows (a pick opens Settings, a URL,
+//! the Accessibility prompt from a row that says what it is for), the first
 //! one's detail explains the panel, and the last one writes the marker
 //! `<data dir>/pal/<profile>/welcomed` (an empty file) that keeps the
 //! source out of the index from then on. `pal:welcome` in the root action
@@ -144,9 +145,9 @@ pub fn rows(env: &Env) -> Vec<Item> {
         rows.push(row(
             ACCESSIBILITY,
             "Grant Accessibility for paste and window switching",
-            "Enter shows the system prompt and opens the switch in System Settings",
+            "Enter shows the system prompt; nothing is asked until you do",
             "\u{f0565}",
-            "# Accessibility\n\nPasting a row into the app in front and switching to a window both drive another app, which macOS only allows to apps on its Accessibility list.\n\nEnter here shows the system prompt (which puts pal on that list) and opens System Settings › Privacy & Security › Accessibility, where the switch is. pal reads nothing you type. This row goes as soon as the permission is there.".into(),
+            "# Accessibility\n\nPasting a row into the app in front and switching to a window both drive another app, which macOS only allows to apps on its Accessibility list.\n\nEnter here shows the system prompt (which puts pal on that list); once macOS has shown it, Enter opens System Settings › Privacy & Security › Accessibility instead, where the switch is. pal reads nothing you type. Skip this and pal asks the first time a paste or a window switch needs it, with a card saying so. This row goes as soon as the permission is there.".into(),
         ));
     }
     let mut about = row(
@@ -266,7 +267,7 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
         EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,
         GITHUB => effects::apply(app, json!({ "open": REPO })).await,
         ACCESSIBILITY => {
-            // The user asked: prompt and pane every time, not once per run.
+            // The user asked: the request every time (the prompt, or the pane once it has shown), not the once-per-run card.
             let status = permissions::request(app, "accessibility")?;
             if status.accessibility {
                 sync(app);

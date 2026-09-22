@@ -39,7 +39,7 @@ pub fn call(app: &AppHandle, func: &str, _params: Value) -> Result<Value, String
             match selection::text(snapshot) {
                 Ok(t) => Ok(json!(t)),
                 Err(selection::Error::NeedsAccessibility) => {
-                    permissions::request_once(app, "accessibility");
+                    permissions::ask(app, "accessibility", "Reading the selected text");
                     Err(selection::Error::NeedsAccessibility.to_string())
                 }
                 Err(e) => Err(e.to_string()),

@@ -1,10 +1,10 @@
 //! The effects a pick envelope asks the shell for (`Effect` in
 //! sdk/src/protocol.ts): what needs the OS runs here, the rest (hide, toast,
 //! keep) is the webview's. Returns the envelope the webview should see:
-//! usually the one given, a toast instead when a paste needs the
-//! Accessibility permission pal does not have (the first refusal per run
-//! also asks: the system prompt and the System Settings pane,
-//! `permissions::request_once`), or when a `copy_files` has no clipboard
+//! usually the one given, a permission card instead when a paste needs
+//! the Accessibility permission pal does not have (the first refusal per
+//! run: `permissions::ask`, the card naming the effect, Grant for the
+//! system prompt; a toast saying where the switch is after that), or when a `copy_files` has no clipboard
 //! to write to (Linux without X11 or wlr data-control). Feedback after the panel
 //! hides is the HUD's (hud.rs): "Copied" after a `copy` or `copy_files` that hides
 //! ("Copied, clears in N s" for a concealed copy with `clear_after`), an
@@ -30,14 +30,17 @@ use crate::{clipboard, hud, large, panel, permissions, windows};
 /// again, a few frames; short enough not to read as lag after Enter.
 const HIDE_SETTLE: Duration = Duration::from_millis(80);
 
-/// The toast to show instead of an effect that reaches into another app
-/// (paste) when pal lacks Accessibility; the ask (prompt and pane) happens
-/// once per run. `None` when the effect can go ahead.
+/// What to show instead of an effect that reaches into another app
+/// (paste) when pal lacks Accessibility: the panel kept up for the card
+/// (`permissions::ask`, once per run), the toast after that. `None` when
+/// the effect can go ahead.
 fn accessibility_blocked(app: &AppHandle, what: &str) -> Option<Value> {
     if pal_core::ax::trusted() {
         return None;
     }
-    permissions::request_once(app, "accessibility");
+    if permissions::ask(app, "accessibility", what) {
+        return Some(json!({ "keep": true }));
+    }
     Some(accessibility_toast(what))
 }
 
@@ -54,7 +57,7 @@ pub fn toast(title: &str, message: &str, style: &str) -> Value {
 
 /// The toast for a `what` that needs Accessibility, as an envelope.
 pub fn accessibility_toast(what: &str) -> Value {
-    toast(&format!("{what} needs Accessibility"), "Grant pal in System Settings > Privacy & Security > Accessibility", "failure")
+    toast(&format!("{what} needs Accessibility"), &format!("Grant pal under {}", permissions::switch("accessibility")), "failure")
 }
 
 /// The toast when the files could not go on the clipboard (no backend on

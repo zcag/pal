@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ActionPanel, Detail, Empty, Footer, Form, Grid, Hud, Icon, Kbd, List, Panel, Row, Search, Toast, View,
+  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, Hud, Icon, Kbd, List, Panel, Row, Search, Toast, View,
   grammar, groupBySection, useCursor, type Hit, type ToastSpec,
 } from "../ui";
 import type { FormValues, Item, ViewNode } from "../ui/types";
@@ -419,6 +419,9 @@ function GalleryPage() {
         </State>
         <State label="Toast">
           <Pair panel><Panel search={<Search value="" onChange={noop} />} footer={<Footer title="12 of 14719" primary={{ title: "Open" }} actions />} overlay={<Toast toast={toasts[0]} />}><DemoList items={mixed} /></Panel></Pair>
+        </State>
+        <State label="Permission card: the first paste without Accessibility (permissions::ask); the feature in the title, what pal does with it, what Grant does next">
+          <Pair panel><Panel search={<Search value="" onChange={noop} />} footer={<Footer title="12 of 14719" primary={{ title: "Paste" }} actions />} overlay={<Confirm title="Paste needs Accessibility" message={"pal uses it to paste into the app in front (a ⌘V keystroke), to raise, arrange and close other apps’ windows, and to read the selected text.\n\nmacOS asks next; the switch is under Privacy & Security > Accessibility."} action="Grant" onConfirm={noop} onCancel={noop} />}><DemoList items={mixed} /></Panel></Pair>
         </State>
       </Section>
 

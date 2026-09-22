@@ -126,12 +126,6 @@ pub struct General {
     /// replaces an earlier one. `~` is expanded. The host is restarted
     /// (`pal reload`) before a change here is seen.
     pub extension_dirs: Vec<String>,
-    /// macOS: ask for the Accessibility permission (the system prompt, and
-    /// System Settings on that pane) the first time the panel shows on a
-    /// profile that has not hidden the Welcome tips yet. Paste and window
-    /// switching need it; `false` leaves the ask to the Welcome row and to
-    /// Settings > General > Permissions.
-    pub ask_permissions_on_start: bool,
     /// When an app does not expose its selected text to the accessibility
     /// API (`selection.text()`, `{selection}` in a snippet), fall back to
     /// sending the copy shortcut and reading the clipboard, which is put
@@ -222,7 +216,6 @@ impl Default for General {
             position: Position::Top,
             check_updates: true,
             extension_dirs: Vec::new(),
-            ask_permissions_on_start: true,
             selection_snapshot: true,
             deeplink_confirm: Confirm::default(),
             root_caps: Caps::default(),
