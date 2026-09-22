@@ -100,9 +100,10 @@ impl Mode {
     }
 
     /// What the monitor has to deliver for the mode: keys and the clicks
-    /// that carry modifiers for the strip, clicks and moves for the ring.
-    fn wants(self) -> Wants {
-        Wants { keys: self.keys(), clicks: true, moves: self.cursor() }
+    /// that carry modifiers for the strip, clicks for the ripples, and the
+    /// moves only while there is a ring to ride them.
+    fn wants(self, ring: bool) -> Wants {
+        Wants { keys: self.keys(), clicks: true, moves: self.cursor() && ring }
     }
 }
 
@@ -225,10 +226,16 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     let Some(st) = app.try_state::<Keycast>() else { return };
     let mut s = lock(&st.0);
     s.feed.opts = after.options();
+    let ring_moved = before.ring != after.ring;
     s.settings = after;
     if s.active {
         let p = Payload::State { active: true, mode: s.mode, settings: &s.settings };
         events::emit_to(app, WINDOW, events::KEYCAST, p);
+        if ring_moved {
+            let wants = s.mode.wants(s.settings.ring);
+            drop(s);
+            keytap::subscribe(app, "keycast", wants, on_event);
+        }
     }
 }
 
@@ -265,7 +272,7 @@ pub fn start(app: &AppHandle, mode: Option<Mode>) -> Result<Status, String> {
         return Err(UNAVAILABLE.into());
     }
     let st = app.state::<Keycast>();
-    let (was, mode) = {
+    let (was, mode, wants) = {
         let mut s = lock(&st.0);
         let mode = mode.unwrap_or_else(|| s.settings.mode());
         let was = s.active;
@@ -273,13 +280,13 @@ pub fn start(app: &AppHandle, mode: Option<Mode>) -> Result<Status, String> {
         s.mode = mode;
         s.feed.clear();
         s.display = None;
-        (was, mode)
+        (was, mode, mode.wants(s.settings.ring))
     };
     eprintln!("keycast\t{}\t{}", if was { "mode" } else { "start" }, mode.name());
     if !permissions::input_monitoring() {
         permissions::request_once(app, "input_monitoring");
     }
-    keytap::subscribe(app, "keycast", mode.wants(), on_event);
+    keytap::subscribe(app, "keycast", wants, on_event);
     tell_page(app);
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
@@ -485,8 +492,9 @@ mod tests {
         assert_eq!(Mode::parse("keys"), Some(Mode::Keys));
         assert_eq!(Mode::parse(" both "), Some(Mode::Both));
         assert_eq!(Mode::parse("ring"), None);
-        assert_eq!(Mode::Keys.wants(), Wants { keys: true, clicks: true, moves: false }, "clicks with modifiers go on the strip");
-        assert_eq!(Mode::Cursor.wants(), Wants { keys: false, clicks: true, moves: true });
-        assert_eq!(Mode::Both.wants(), Wants { keys: true, clicks: true, moves: true });
+        assert_eq!(Mode::Keys.wants(true), Wants { keys: true, clicks: true, moves: false }, "clicks with modifiers go on the strip");
+        assert_eq!(Mode::Cursor.wants(true), Wants { keys: false, clicks: true, moves: true });
+        assert_eq!(Mode::Both.wants(true), Wants { keys: true, clicks: true, moves: true });
+        assert_eq!(Mode::Both.wants(false), Wants { keys: true, clicks: true, moves: false }, "no ring, no moves");
     }
 }
