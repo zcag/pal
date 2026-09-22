@@ -1,0 +1,8 @@
+{
+  "name": "pal-ext-turkish",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "turkish-deasciifier": "^1.0.0"
+  }
+}
