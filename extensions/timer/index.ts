@@ -151,10 +151,13 @@ async function startPhase(phase: Phase, round: number, of: number, sessionStart:
  * The phase after `s`: its timer stopped, the next one started, the HUD
  * told. One switch at a time (`advancing`): the watcher's push lands while
  * the old file is gone and the new one is not yet there, and must not read
- * that gap as the session ending.
+ * that gap as the session ending. `first` runs inside that one switch (the
+ * tally of a landed work round), so two reads that both saw the timer land
+ * count it once: the tick and the watcher raced to 2 on a slow runner.
  */
-function switchPhase(s: Session, line: (n: { phase: Phase; round: number }) => string): Promise<void> {
+function switchPhase(s: Session, line: (n: { phase: Phase; round: number }) => string, first?: () => Promise<void>): Promise<void> {
   advancing ??= (async () => {
+    await first?.();
     const n = nextPhase(s);
     await timer("stop", s.timerId).catch(() => {});
     try {
@@ -178,8 +181,9 @@ async function advance(ts: Timer[]): Promise<Timer[]> {
   const t = ts.find((x) => x.id === s.timerId);
   if (!t) { session = null; await saveSession(); return ts; }
   if (t.state !== "done") return ts;
-  if (s.phase === "work") { stats = tally(stats, dayOf(now())); await storage.set(STATS_KEY, stats, EXTENSION).catch(() => {}); }
-  await switchPhase(s, (n) => (n.phase === "work" ? `Round ${n.round} of ${s.of}: ${minutesOf("work", conf())} min` : `${n.phase === "long" ? "Long break" : "Break"}: ${minutesOf(n.phase, conf())} min`));
+  // No await between the `advancing` check above and this call: the switch is claimed before another read can see the same landing.
+  const count = s.phase === "work" ? async () => { stats = tally(stats, dayOf(now())); await storage.set(STATS_KEY, stats, EXTENSION).catch(() => {}); } : undefined;
+  await switchPhase(s, (n) => (n.phase === "work" ? `Round ${n.round} of ${s.of}: ${minutesOf("work", conf())} min` : `${n.phase === "long" ? "Long break" : "Break"}: ${minutesOf(n.phase, conf())} min`), count);
   return readTimers(dirOf());
 }
 
