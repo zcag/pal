@@ -14,7 +14,8 @@
 //! (KeycastPage.tsx) draws the key strip at the configured corner and the
 //! cursor ring with its click ripples; this side sends it the feed after
 //! every key (`pal://keycast`, `{ kind: "keys" }`), the cursor at most
-//! every [`MOVE_MS`] (`{ kind: "cursor" }`) and every click
+//! every [`MOVE_MS`] and once more after the last move it held back
+//! (`{ kind: "cursor" }`), and every click
 //! (`{ kind: "click" }`), all in the window's own CSS pixels.
 //!
 //! What is never shown: anything typed while a secure text field has the
@@ -38,6 +39,7 @@
 // Off macOS the window is never made and `start` refuses; the state and the settings still compile and their tests run.
 #![cfg_attr(not(target_os = "macos"), allow(dead_code))]
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -53,9 +55,13 @@ use crate::{events, lock, panel, permissions, settings};
 pub const WINDOW: &str = "keycast";
 /// Where the overlay can be drawn and the keys watched.
 pub const SUPPORTED: bool = cfg!(target_os = "macos");
-/// The cursor is sent to the page at most this often: 50 a second reads
-/// smooth under a CSS transition, and the monitor delivers far more.
-const MOVE_MS: Duration = Duration::from_millis(20);
+/// The cursor is sent to the page at most this often: a frame at 120 Hz.
+/// The ring is placed as it arrives, with no transition easing it there
+/// (at 20 ms and a 40 ms ease it trailed a fast cursor by a visible gap).
+const MOVE_MS: Duration = Duration::from_millis(8);
+/// A move held back by [`MOVE_MS`] has a send scheduled: the cursor's
+/// resting place always reaches the page, not the last move before it.
+static TRAILING: AtomicBool = AtomicBool::new(false);
 /// How often a move checks which display the cursor is on.
 const FOLLOW_MS: Duration = Duration::from_millis(250);
 const UNAVAILABLE: &str = "Keycast is not available on Linux: there is no portable input tap (Wayland hands input to the focused app only)";
@@ -369,6 +375,12 @@ fn cursor(app: &AppHandle) -> Option<(f64, f64)> {
     Some((((c.x - p.x as f64) / scale * 10.0).round() / 10.0, ((c.y - p.y as f64) / scale * 10.0).round() / 10.0))
 }
 
+fn send_cursor(app: &AppHandle) {
+    if let Some((x, y)) = cursor(app) {
+        events::emit_to(app, WINDOW, events::KEYCAST, Payload::Cursor { x, y });
+    }
+}
+
 /// The display under `cursor` (physical pixels) among `monitors`, by a
 /// hit test of our own: tauri's `monitor_from_point` answered none for
 /// a cursor plainly inside the one display on hornet (seen 2026-09-22,
@@ -471,7 +483,23 @@ fn on_event(app: &AppHandle, ev: &Event) {
             }
         }
         Kind::MouseMoved => {
-            if !mode.cursor() || s.last_move.elapsed() < MOVE_MS {
+            if !mode.cursor() {
+                return;
+            }
+            if s.last_move.elapsed() < MOVE_MS {
+                if !TRAILING.swap(true, Ordering::Relaxed) {
+                    let app = app.clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(MOVE_MS);
+                        TRAILING.store(false, Ordering::Relaxed);
+                        let st = app.state::<Keycast>();
+                        let s = lock(&st.0);
+                        if s.active && s.mode.cursor() {
+                            drop(s);
+                            send_cursor(&app);
+                        }
+                    });
+                }
                 return;
             }
             s.last_move = Instant::now();
@@ -480,9 +508,7 @@ fn on_event(app: &AppHandle, ev: &Event) {
             if refollow {
                 follow(app);
             }
-            if let Some((x, y)) = cursor(app) {
-                events::emit_to(app, WINDOW, events::KEYCAST, Payload::Cursor { x, y });
-            }
+            send_cursor(app);
         }
         // A scroll or a gesture on the strip: the same gates as a key (the strip drawn, no secure field), the feed decides whether anything moved.
         Kind::Scroll | Kind::Gesture(_) => {

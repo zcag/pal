@@ -139,7 +139,7 @@
 .pal-keycast__entry[data-level="3"] .pal-kbd kbd:last-child { font-size: 33px; }
 .pal-keycast__entry[data-kind="gesture"] .pal-kbd kbd { font-variant-numeric: tabular-nums; }
 
-/* The cursor layer spans the display; the ring rides the cursor (its transform is the position, 20 ms apart, eased between), shrinking while a button is down. */
+/* The cursor layer spans the display; the ring rides the cursor (its transform is the position, placed as it arrives: an ease between sends only adds lag), shrinking while a button is down. */
 .pal-keycast__cursor { position: absolute; inset: 0; }
 .pal-keycast__ring {
   position: absolute;
@@ -151,7 +151,7 @@
   border-radius: 50%;
   border: 2.5px solid var(--kc-ring, var(--pal-tag-blue, #4a8bf5));
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-  transition: transform 40ms linear, width var(--pal-dur-fast, 80ms) var(--pal-ease, ease), height var(--pal-dur-fast, 80ms) var(--pal-ease, ease), margin var(--pal-dur-fast, 80ms) var(--pal-ease, ease);
+  transition: width var(--pal-dur-fast, 80ms) var(--pal-ease, ease), height var(--pal-dur-fast, 80ms) var(--pal-ease, ease), margin var(--pal-dur-fast, 80ms) var(--pal-ease, ease);
   will-change: transform;
 }
 .pal-keycast__ring[data-down] { width: calc(26px * var(--kc-scale, 1)); height: calc(26px * var(--kc-scale, 1)); margin: calc(-13px * var(--kc-scale, 1)) 0 0 calc(-13px * var(--kc-scale, 1)); }
