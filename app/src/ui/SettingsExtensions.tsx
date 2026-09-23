@@ -1,21 +1,25 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Empty } from "./Empty";
 import { Icon } from "./Icon";
 import { BRAND } from "./icons";
 import { Tag } from "./Row";
 import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
-import { SettingsList } from "./SettingsList";
 import { ExtensionPalettes, type SettingsPalettesProps } from "./SettingsPalettes";
-import { badgedIcon, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
+import { badgedIcon, type BarItem, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
 import type { Brand } from "./types";
 import { relativeDate } from "./format";
 
 export type SettingsExtensionsProps = {
   /** One entry per instance key; the list shows one row per extension name and the pane every instance of it. */
   extensions: SettingsExtension[];
-  /** The selected extension's name. */
+  /** The extension whose page is open (its name); none is the page's home. */
   selected?: string;
-  onSelect: (name: string) => void;
+  onSelect: (name: string | undefined) => void;
+  /** The bar items, for what an extension has on the bar (its line on the home, its page's Bar items). */
+  bar?: BarItem[];
+  /** A bar item's pane on the Bar page. */
+  onOpenBarItem?: (key: string) => void;
+  /** "Get more extensions": the Store palette, or the website. */
+  onOpenStore?: () => void;
   /** The instance whose settings the pane shows (a key); the default when unset. */
   selectedInstance?: string;
   onSelectInstance?: (key: string) => void;
@@ -65,18 +69,54 @@ export const byName = (extensions: SettingsExtension[]): SettingsExtension[] => 
 
 const repoHref = (repo: string) => (repo === "bundled" || !repo.includes(".") ? undefined : `https://${repo.replace(/^https?:\/\//, "")}`);
 
+/** What an extension is set to, in a line: a couple of its values, its accounts, what it has on the bar, the words that open its palettes. */
+function factsOf(e: SettingsExtension, all: SettingsExtension[], bar: BarItem[]): string[] {
+  const short = (v: string) => (v.length > 34 ? `${v.slice(0, 33)}\u2026` : v);
+  const shown = (v: unknown) => (Array.isArray(v) ? (v.length ? `${v.slice(0, 3).join(", ")}${v.length > 3 ? ` +${v.length - 3}` : ""}` : "none") : typeof v === "boolean" ? (v ? "on" : "off") : String(v));
+  const facts = e.settings.filter((s) => s.kind !== "secret" && !/command/i.test(s.id) && e.values[s.id] !== undefined).slice(0, 2).map((s) => {
+    const v = e.values[s.id];
+    const label = s.kind === "select" ? (s.options.find((o) => o.id === v)?.title ?? String(v)) : shown(v);
+    return `${s.label.toLowerCase()} ${short(label)}`;
+  });
+  const n = instancesOf(e, all).length;
+  if (n > 1) facts.push(`${n} accounts`);
+  const onBar = bar.filter((b) => nameOf(b.extension) === e.name && b.config.enabled && b.source);
+  if (onBar.length) facts.push(`on the bar: ${onBar.map((b) => b.title).join(", ")}`);
+  const keyed = e.palettes.filter((p) => p.config.alias || p.config.hotkey);
+  if (keyed.length) facts.push(keyed.slice(0, 2).map((p) => `${p.config.alias ?? p.config.hotkey} opens ${p.title}`).join(", "));
+  return facts;
+}
+const nameOf = (key: string) => key.split("@")[0];
+
+/** Why an extension is in Needs you, and the one button that fixes it. */
+type Need = { e: SettingsExtension; tone: "bad" | "warn" | "update"; line: string; fix: string };
+function needOf(e: SettingsExtension, all: SettingsExtension[]): Need | undefined {
+  const inst = instancesOf(e, all);
+  const failed = inst.find((i) => i.error);
+  if (failed) return { e, tone: "bad", line: "Failed to load", fix: "Open" };
+  const setup = inst.find((i) => i.loaded !== false && needsSetup(i).length);
+  if (setup) return { e, tone: "warn", line: `Set ${needsSetup(setup).map((s) => s.label.toLowerCase()).join(", ")}${setup.key !== e.key ? ` (${setup.instance?.title ?? setup.key})` : ""}`, fix: "Set up" };
+  if (e.latest) return { e, tone: "update", line: `${e.latest} is out`, fix: "Update" };
+  if (inst.some((i) => i.warnings?.length)) return { e, tone: "warn", line: "Its manifest has warnings", fix: "Open" };
+  return undefined;
+}
+
 /**
- * The install field over the page; installed extensions on the left; the
- * selected one on the right as the store shows it (icon, tagline,
- * version, author, screenshots), then what needs attention, its settings,
- * its palettes, and Update and Remove in the pane's footer.
+ * Settings › Extensions: the page's home is ordered by what you come here
+ * to do. What needs you first (a failure, a missing token, an update,
+ * each with its one fix), then what is in use (set up, on the bar, or
+ * with more than one account; a line says what each is set to), then an
+ * index of the rest at their defaults, with a card to get more. An
+ * extension opens as a page of its own: the store's head, its accounts,
+ * its settings, its palettes, its bar items.
  */
-export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onInstall, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: SettingsExtensionsProps) {
+export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onInstall, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem, onOpenStore }: SettingsExtensionsProps) {
   const rows = byName(extensions);
   const current = rows.find((e) => e.name === selected);
   /** What the last button press is doing, per extension, and how it ended. */
   const [busy, setBusy] = useState<Record<string, "updating" | "removing">>({});
   const [failed, setFailed] = useState<Record<string, string>>({});
+  const [query, setQuery] = useState("");
   const act = async (name: string, what: "updating" | "removing", f?: (name: string) => Promise<void> | void) => {
     if (!f) return;
     setBusy((b) => ({ ...b, [name]: what }));
@@ -89,60 +129,98 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
       setBusy(({ [name]: _, ...rest }) => rest);
     }
   };
-  // The row's mark is the worst across the extension's instances: one failing instance is the extension's problem.
-  const attention = (e: SettingsExtension) => {
-    const all = instancesOf(e, extensions);
-    return all.some((i) => i.error) ? <Tag text="failed" color="red" /> : all.some((i) => i.loaded !== false && needsSetup(i).length) ? <Tag text="setup" color="amber" /> : e.latest ? <Tag text="update" color="amber" /> : all.some((i) => i.warnings?.length) ? <Tag text="warning" color="amber" /> : undefined;
-  };
+
+  if (current) {
+    return (
+      <div className="pal-settings-page pal-xpage">
+        <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"\u2039"} Extensions</button>
+        <ExtensionPane
+          key={current.name}
+          ext={current}
+          instances={instancesOf(current, extensions)}
+          selectedInstance={selectedInstance}
+          onSelectInstance={onSelectInstance}
+          busy={busy[current.name]}
+          failed={failed[current.name]}
+          onChange={onChange}
+          onUpdate={onUpdate && (() => act(current.name, "updating", onUpdate))}
+          onRemove={onRemove && (() => act(current.name, "removing", onRemove))}
+          onOpenLink={onOpenLink}
+          openPalette={openPalette}
+          onOpenPalette={onOpenPalette}
+          onPalette={onPalette}
+          paletteItems={paletteItems}
+          onInstanceAdd={onInstanceAdd}
+          onInstanceRename={onInstanceRename}
+          onInstanceRemove={onInstanceRemove}
+          onInstanceEnabled={onInstanceEnabled}
+          bar={bar.filter((b) => nameOf(b.extension) === current.name)}
+          onOpenBarItem={onOpenBarItem}
+        />
+      </div>
+    );
+  }
+
+  const needs = rows.map((e) => needOf(e, extensions)).filter((n): n is Need => !!n);
+  const needy = new Set(needs.map((n) => n.e.name));
+  const facts = new Map(rows.map((e) => [e.name, factsOf(e, extensions, bar)]));
+  const inUse = rows.filter((e) => !needy.has(e.name) && facts.get(e.name)!.length);
+  const used = new Set(inUse.map((e) => e.name));
+  const q = query.trim().toLowerCase();
+  const rest = rows.filter((e) => !needy.has(e.name) && !used.has(e.name) && (!q || `${e.extTitle ?? e.title} ${e.name} ${e.tagline ?? e.description}`.toLowerCase().includes(q)));
+  const title = (e: SettingsExtension) => e.extTitle ?? e.title;
+  const fix = (n: Need) => (n.fix === "Update" ? act(n.e.name, "updating", onUpdate) : (onSelect(n.e.name), undefined));
 
   return (
-    <div className="pal-extensions">
-      {onInstall && <InstallBar onInstall={onInstall} />}
-      <div className="pal-split">
-        <SettingsList
-          label="Installed extensions"
-          items={rows.map((e) => {
-            const n = instancesOf(e, extensions).length;
-            return {
-              id: e.name,
-              icon: badgedIcon(e.icon, undefined),
-              title: e.extTitle ?? e.title,
-              sub: [e.version, e.bundled ?? e.repo === "bundled" ? "built in" : undefined, n > 1 ? `${n} instances` : undefined].filter(Boolean).join(", "),
-              dim: instancesOf(e, extensions).every((i) => i.loaded === false),
-              accessory: attention(e),
-            };
-          })}
-          selected={selected}
-          onSelect={onSelect}
-        />
-        <div className="pal-split__pane">
-          {current ? (
-            <ExtensionPane
-              key={current.name}
-              ext={current}
-              instances={instancesOf(current, extensions)}
-              selectedInstance={selectedInstance}
-              onSelectInstance={onSelectInstance}
-              busy={busy[current.name]}
-              failed={failed[current.name]}
-              onChange={onChange}
-              onUpdate={onUpdate && (() => act(current.name, "updating", onUpdate))}
-              onRemove={onRemove && (() => act(current.name, "removing", onRemove))}
-              onOpenLink={onOpenLink}
-              openPalette={openPalette}
-              onOpenPalette={onOpenPalette}
-              onPalette={onPalette}
-              paletteItems={paletteItems}
-              onInstanceAdd={onInstanceAdd}
-              onInstanceRename={onInstanceRename}
-              onInstanceRemove={onInstanceRemove}
-              onInstanceEnabled={onInstanceEnabled}
-            />
-          ) : (
-            <Empty title={extensions.length ? "No extension selected" : "No extensions"} hint={extensions.length ? "Pick one on the left." : "Install one from GitHub above: user/repo, or the store's pal install line."} />
+    <div className="pal-settings-page pal-xhome">
+      {needs.length > 0 && (
+        <section className="pal-xhome__sec" aria-label="Needs you">
+          <h2 className="pal-xhome__h">Needs you<span>{needs.length}</span></h2>
+          <div className="pal-xhome__needs">
+            {needs.map((n) => (
+              <div key={n.e.name} className="pal-xneed" data-tone={n.tone} data-anchor={`extensions:${n.e.name}`}>
+                <button type="button" className="pal-xneed__open" onClick={() => onSelect(n.e.name)}>
+                  <Icon icon={badgedIcon(n.e.icon, undefined)} size="lg" />
+                  <span className="pal-xneed__text"><b>{title(n.e)}</b><span>{n.line}</span></span>
+                </button>
+                <button type="button" className="pal-button" data-small data-primary={n.tone === "update" || undefined} disabled={!!busy[n.e.name]} onClick={() => fix(n)}>{busy[n.e.name] === "updating" ? "Updating…" : n.fix}</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className="pal-xhome__sec" aria-label="In use">
+        <h2 className="pal-xhome__h">In use<span>{inUse.length ? `${inUse.length} set up, on the bar or with accounts` : "nothing set up yet"}</span></h2>
+        <div className="pal-xhome__used">
+          {inUse.map((e) => (
+            <button key={e.name} type="button" className="pal-xcard" data-anchor={`extensions:${e.name}`} onClick={() => onSelect(e.name)}>
+              <Icon icon={badgedIcon(e.icon, undefined)} size="lg" />
+              <span className="pal-xcard__text"><b>{title(e)}</b><span>{facts.get(e.name)!.join("; ")}</span></span>
+            </button>
+          ))}
+          {onOpenStore && (
+            <button type="button" className="pal-xcard pal-xcard--more" onClick={onOpenStore}>
+              <span className="pal-xcard__plus" aria-hidden>+</span>
+              <span className="pal-xcard__text"><b>Get more extensions</b><span>Browse the store, or install one from GitHub or a folder below</span></span>
+            </button>
           )}
         </div>
-      </div>
+      </section>
+      <section className="pal-xhome__sec" aria-label="Everything else">
+        <h2 className="pal-xhome__h">Everything else<span>{rest.length} at their defaults</span>
+          <input className="pal-field__input pal-xhome__find" type="search" placeholder="Find one" aria-label="Find an extension" value={query} spellCheck={false} onChange={(e) => setQuery(e.target.value)} />
+        </h2>
+        <div className="pal-xhome__rest">
+          {rest.map((e) => (
+            <button key={e.name} type="button" className="pal-xrest" data-anchor={`extensions:${e.name}`} data-dim={instancesOf(e, extensions).every((i) => i.loaded === false) || undefined} title={e.tagline ?? e.description} onClick={() => onSelect(e.name)}>
+              <Icon icon={badgedIcon(e.icon, undefined)} />
+              <span>{title(e)}</span>
+            </button>
+          ))}
+          {rest.length === 0 && <p className="pal-pane__none">{q ? `Nothing else matches "${query}".` : "Every extension is in use."}</p>}
+        </div>
+      </section>
+      {onInstall && <InstallBar onInstall={onInstall} />}
     </div>
   );
 }
@@ -211,9 +289,12 @@ type PaneProps = {
   onInstanceRename?: SettingsExtensionsProps["onInstanceRename"];
   onInstanceRemove?: SettingsExtensionsProps["onInstanceRemove"];
   onInstanceEnabled?: SettingsExtensionsProps["onInstanceEnabled"];
+  /** Its bar items (every instance's), for the page's Bar items section. */
+  bar?: BarItem[];
+  onOpenBarItem?: (key: string) => void;
 };
 
-function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, onChange, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: PaneProps) {
+function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, onChange, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem }: PaneProps) {
   const multi = !!ext.multi;
   // The instance whose settings show: the selected one when it is of this extension, else the default (or the first).
   const [localInstance, setLocalInstance] = useState<string | undefined>(undefined);
@@ -325,6 +406,22 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
           </ul>
         )}
       </section>
+
+      {bar.length > 0 && (
+        <section className="pal-xpane__section" aria-label="Bar items">
+          <h4 className="pal-xpane__h">Bar items<span className="pal-xpane__h-note">Settings › Bar has each one's place, look and settings</span></h4>
+          <ul className="pal-xpane__bar">
+            {bar.map((b) => (
+              <li key={b.key} data-off={!b.config.enabled || undefined}>
+                <Icon icon={b.extIcon} />
+                <span className="pal-xpane__bar-text"><b>{b.title}</b>{b.description && <span>{b.description}</span>}</span>
+                <span className="pal-xpane__bar-state">{!b.config.enabled ? "off" : b.state?.hidden ? "hidden now" : "on the bar"}</span>
+                {onOpenBarItem && <button type="button" className="pal-button" data-small onClick={() => onOpenBarItem(b.key)}>Open in Bar</button>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
       {(onUpdate || onRemove) && !bundled && (
         <footer className="pal-pane__foot">

@@ -121,11 +121,11 @@ describe("Extensions page with instances", () => {
   afterEach(() => { act(() => root.unmount()); el.remove(); });
   const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
-  it("lists one row per name and the pane's Instances section with every instance", () => {
+  it("the home says an extension's accounts once, under its own title; its page has the Instances section with every instance", () => {
+    const home = renderToStaticMarkup(<SettingsExtensions extensions={all} onSelect={() => {}} onChange={() => {}} />);
+    expect(home).toContain("<b>Gmail</b><span>Set token (Work)</span>"); // one card per extension, its own title, the instance that needs it named
+    expect(home).not.toContain("Gmail (Work)</b>");
     const html = renderToStaticMarkup(<SettingsExtensions extensions={all} selected="gmail" onSelect={() => {}} onChange={() => {}} onInstanceAdd={async () => {}} onInstanceRename={() => {}} onInstanceRemove={async () => {}} onInstanceEnabled={() => {}} />);
-    expect(html.match(/pal-settings-list__row/g)?.length ?? html.match(/role="option"/g)?.length).toBeTruthy();
-    expect(html).toContain("3 instances");
-    expect(html).not.toContain("Gmail (Work)</span>"); // the list row is the extension's own title
     const rows = el.ownerDocument.createElement("div");
     rows.innerHTML = html;
     const keys = [...rows.querySelectorAll(".pal-instances__key")].map((k) => k.textContent);

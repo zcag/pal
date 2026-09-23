@@ -346,18 +346,23 @@ and trackpad tweaks, keycast) are cards there too: [Features](features.md).
 ## Settings
 
 `⌘,` in the panel, `pal settings`, or Settings… in the menu bar icon's
-menu opens the Settings window: six pages across the top. **Overview**
+menu opens the Settings window: seven pages across the top. **Overview**
 is what needs attention (a hotkey that did not register, a missing
 permission, an extension that needs a token, a config file problem, an
-update) and the counts; **General** the hotkeys, the window switcher's
-chord, the sidebar, permissions, theme, position, startup, the config file
-and maintenance (reset the search history, restart the extension host,
-list everything again);
-**Palettes** every palette with its switch, alias, hotkey, icon, tier,
-item hotkeys and declared settings; **Extensions** every extension with
-its settings, its instances, load errors and warnings, and a box that
-installs one; **Bar** the bar items; **About** the version, the updater
-and the last crash. `/` focuses the window's search, which finds any
+update) and the counts; **General** theme, position, startup,
+permissions, the config file and maintenance (reset the search history,
+restart the extension host, list everything again); **Shortcuts** every
+hotkey in pal in one list; **Features** a card for each thing pal does on
+its own (clipboard history, text expansion, the window switcher, the
+sidebar, mouse and trackpad, keycast), its switch and its settings
+([Features](features.md)); **Extensions** what needs you first (a
+failure, a missing token, an update, each with its fix), then the
+extensions in use with a line saying what each is set to, then the rest,
+a card that opens the store and a field that installs from GitHub or a
+folder; an extension opens as a page of its own with its accounts,
+settings, palettes (each unfolding to its hotkeys, rank and settings)
+and bar items; **Bar** the bar items, each with its own settings;
+**About** the version, the updater and the last crash. `/` focuses the window's search, which finds any
 setting on any page; `Esc` hides the window.
 
 Every change the window makes is a write to the config file, and every
@@ -421,7 +426,7 @@ its link.
 
 pal's own housekeeping is in the root search too, as rows of a `pal`
 section, the way Raycast lists "Raycast Settings" or "Quit Raycast":
-Settings (and Settings › Extensions, › Palettes, › About), Extension Store,
+Settings (and Settings › Features, › Extensions, › About), Extension Store,
 Install Extension (a form: `github:user/repo`, a GitHub URL or a local
 directory), Reload Extensions (restarts the extension host), Refresh Index,
 Check for Updates (and Install Update, listed only while a newer release is

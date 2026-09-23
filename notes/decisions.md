@@ -1845,3 +1845,19 @@ Phases 3 to 5 of `docs/design/model.md`, the same day as the features.
   on (`why` in their specs), instead of `names.has("otp")` and friends.
 - Not done, as planned: one spelling of a palette id, the eight ways to
   hide a bar item, and the Extensions page redesign (to do with Cagdas).
+
+## Decided: the Extensions page (2026-09-23)
+
+Cagdas picked idea C of four mocks (bak.lan `pal-ext-{a,b,c,d}.html`:
+shelf and sheet, ledger, needs you first, rail and map), with a card that
+takes to the store. The page's home is ordered by why you open it:
+**Needs you** (a failed load, a missing required setting on any
+instance, an update, manifest warnings; one fix button each), **In use**
+(anything with a set value, more than one account, an item on the bar,
+or a palette alias or hotkey; a line of what it is set to, from
+`factsOf`), a **Get more extensions** card (`settings_open_store`: the
+Store palette in the panel when loaded, the website otherwise), then
+**Everything else** as a compact searchable index and the install field.
+An extension opens as its own page (the old pane, full width, with a way
+back, and a Bar items section that links to Settings › Bar). The list and
+pane layout is gone; `selected` undefined is the home.

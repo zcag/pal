@@ -393,7 +393,7 @@ export default function Settings() {
   // A selection that names nothing (first paint, or a removed extension) moves to the first entry.
   useEffect(() => {
     if (extensions.length === 0) return;
-    if (!extensions.some((e) => e.name === ext)) setExt(extensions[0].name);
+    if (ext && !extensions.some((e) => e.name === ext)) setExt(undefined);
   }, [extensions, ext]);
 
   /** The theme file picker's state (General): fetched and written by its own hook, since the file lives outside the config. */
@@ -651,7 +651,7 @@ export default function Settings() {
           open={feature?.split(":")[1]}
         />
       )}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} bar={barSupported ? barItems : []} onOpenBarItem={(key) => go("bar", `bar:${key}`)} onOpenStore={() => invoke("settings_open_store").catch(fail)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
       {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const b = barItems.find((x) => x.key === key); writeDeclared(["bar", "items", key, "settings", id], b?.settings?.find((x) => x.spec.id === id)?.spec, value as SettingValue, b?.settings?.find((x) => x.spec.id === id)?.base); }} />}
       {page === "about" && (
         <SettingsAbout

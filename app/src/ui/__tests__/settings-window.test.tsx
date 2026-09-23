@@ -9,6 +9,7 @@ import { SettingsWindow, settingsPages } from "../SettingsWindow";
 import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
 import { SettingsExtensions, extensionsIndex } from "../SettingsExtensions";
 import { SettingsAbout } from "../SettingsAbout";
+import { barItems } from "./settings-fixtures";
 import { settingsExtensions } from "../../gallery/data";
 import { homeAssistant } from "./settings-fixtures";
 
@@ -86,10 +87,10 @@ describe("ExtensionPalettes", () => {
 
 
 describe("SettingsExtensions", () => {
-  it("shows the store's hero, the settings, the palettes, and Update and Remove in the pane's footer", () => {
-    const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} onInstall={async () => {}} onUpdate={noop} onRemove={noop} onOpenLink={noop} onOpenPalette={noop} />);
-    expect(html).toContain('class="pal-install__field"');
-    expect(html).toContain(">Install</button>");
+  it("an extension's page: the way back, the store's hero, the settings, the palettes, its bar items, and Update and Remove at its foot", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} onInstall={async () => {}} onUpdate={noop} onRemove={noop} onOpenLink={noop} onOpenPalette={noop} bar={barItems} onOpenBarItem={noop} />);
+    expect(html).toContain("\u2039 Extensions</button>");
+    expect(html).not.toContain('class="pal-install__field"');
     expect(html).toContain('class="pal-xpane__hero"');
     expect(html).toContain('class="pal-xpane__title">GitHub</h3>');
     expect(html).toContain("v1.4.2");
@@ -100,6 +101,20 @@ describe("SettingsExtensions", () => {
     expect(html).toContain('class="pal-pane__foot"');
     expect(html).toContain("Update to 1.5.0");
     expect(html).toContain(">Remove</button>");
+    expect(html).toContain('aria-label="Bar items"');
+    expect(html).toContain(">Open in Bar</button>");
+  });
+  it("the home: what needs you with its fix, what is in use with what it is set to, the rest as an index, the store card and the install field", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={[...settingsExtensions, homeAssistant]} onSelect={noop} onChange={noop} onInstall={async () => {}} onUpdate={noop} onOpenStore={noop} bar={barItems} />);
+    const section = (name: string) => html.slice(html.indexOf(`aria-label="${name}"`), html.indexOf("</section>", html.indexOf(`aria-label="${name}"`)));
+    expect(section("Needs you")).toContain("<b>GitHub</b>");
+    expect(section("Needs you")).toContain("<b>Home Assistant</b>");
+    expect(section("Needs you")).toContain(">Update</button>");
+    expect(section("Needs you")).toContain(">Set up</button>");
+    expect(section("In use")).toContain("Get more extensions");
+    expect(section("Everything else")).toContain('placeholder="Find one"');
+    expect(html).toContain('class="pal-install__field"');
+    expect(html).not.toContain('class="pal-xpane__hero"');
   });
   it("gives a built-in extension no footer and a store link", () => {
     const exts = settingsExtensions.map((e) => (e.name === "apps" ? { ...e, storeUrl: "https://pal.cagdas.io/extensions/apps" } : e));
@@ -112,7 +127,6 @@ describe("SettingsExtensions", () => {
     const html = renderToStaticMarkup(<SettingsExtensions extensions={[homeAssistant]} selected="home-assistant" onSelect={noop} onChange={noop} />);
     expect(html).toContain("Nothing lists until url and token are set below.");
     expect(html).toContain('data-anchor="extensions:home-assistant:url" data-missing="true"');
-    expect(html).toContain('>setup</span>');
     const broken = { ...homeAssistant, loaded: false, error: "SyntaxError: unexpected token", warnings: ["palette main: kind says live, the code implies list"] };
     const html2 = renderToStaticMarkup(<SettingsExtensions extensions={[broken]} selected="home-assistant" onSelect={noop} onChange={noop} />);
     expect(html2).toContain("Failed to load.");
@@ -126,8 +140,10 @@ describe("SettingsExtensions", () => {
     expect(count(html, /class="pal-xpane__shot"/g)).toBe(1);
     expect(html).toContain("<figcaption>Pull Requests</figcaption>");
   });
-  it("has an empty state without extensions", () => {
-    expect(renderToStaticMarkup(<SettingsExtensions extensions={[]} onSelect={noop} onChange={noop} onInstall={async () => {}} />)).toContain("Install one from GitHub above");
+  it("says so when there is nothing but the store card", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={[]} onSelect={noop} onChange={noop} onInstall={async () => {}} onOpenStore={noop} />);
+    expect(html).toContain("nothing set up yet");
+    expect(html).toContain("Get more extensions");
   });
 });
 
