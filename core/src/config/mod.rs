@@ -241,8 +241,8 @@ pub const DEFAULT_FALLBACKS: [&str; 5] = ["web", "url", "quicklinks", "calc", "f
 pub const DEFAULT_ROOT_FIRST: [&str; 4] = ["browser-tabs/tabs", "windows/windows", "apps/apps", "pal/palettes"];
 /// `general.search_engine` when unset.
 pub const DEFAULT_SEARCH_ENGINE: &str = "https://www.google.com/search?q={query}";
-/// `general.now` when unset: the next event, the running timer, what plays, what is on the clipboard.
-pub const DEFAULT_NOW: [&str; 4] = ["calendar-today", "timer-timers", "media", "clipboard-rows"];
+/// `general.now` when unset: what plays (Spotify's row first: Enter is its lyrics), the next event, the running timer, what is on the clipboard.
+pub const DEFAULT_NOW: [&str; 5] = ["spotify-now-playing", "media", "calendar-today", "timer-timers", "clipboard-rows"];
 
 /// `general.pop_to_root`: `"always"`, `"never"`, or `"after 90s"` (any
 /// whole number of seconds; `"after 2m"` and `"after 1h"` are read too).

@@ -762,9 +762,10 @@
         },
         "now": {
           "default": [
+            "spotify-now-playing",
+            "media",
             "calendar-today",
             "timer-timers",
-            "media",
             "clipboard-rows"
           ],
           "description": "The palettes whose `suggest()` rows lead the empty root (\"Now\"), in\nthis order; suggesting palettes not named here follow in load order.",
@@ -1091,9 +1092,10 @@
         "launch_at_login": false,
         "menu_bar_icon": true,
         "now": [
+          "spotify-now-playing",
+          "media",
           "calendar-today",
           "timer-timers",
-          "media",
           "clipboard-rows"
         ],
         "pop_to_root": "after 90s",
