@@ -95,7 +95,10 @@ describe.skipIf(!MAC)("otp", () => {
   test("codes newest first, one row per message, Today then Earlier; no row for a sent message, a denied sender or a text without a code", async () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["1", "2", "8", "4", "7"]);
-    expect(items.map((i) => i.section)).toEqual(["Today", "Today", "Today", "Earlier", "Earlier"]);
+    // Today by the calendar, as the extension reads it: minutes-old fixtures land on yesterday in a run just after midnight.
+    const day = (id: string) => new Date(messages.find((m) => String(m[0]) === id)![2]).toDateString() === new Date().toDateString() ? "Today" : "Earlier";
+    expect(items.map((i) => i.section)).toEqual(items.map((i) => day(i.id)));
+    expect(items.slice(3).map((i) => i.section)).toEqual(["Earlier", "Earlier"]);
     expect(items.map((i) => i.accessories![0])).toEqual([
       { tag: "483920", color: "green" }, { tag: "712345", color: "green" }, { tag: "8765", color: "green" }, { tag: "1234", color: "green" }, { tag: "246810", color: "green" },
     ]);

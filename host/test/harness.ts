@@ -80,7 +80,9 @@ export class Host {
 
   private constructor(readonly opts: Options) {
     // TZ and PAL_NOW by hand: bun 1.3 kept a `process.env.TZ` assigned at runtime out of the spread (seen on 1.3.14; calc.test.ts sets it), and the tests pin both at runtime (PAL_NOW is the extensions' clock, calendar/clock.ts).
-    const pinned = Object.fromEntries(["TZ", "PAL_NOW"].filter((k) => process.env[k]).map((k) => [k, process.env[k]]));
+    // TZ always: `bun test` runs in UTC with TZ unset, and a host left on the machine's zone saw another date than the test between local
+    // midnight and the offset (wordle's "Daily #" one apart at 00:10 +03).
+    const pinned = { ...Object.fromEntries(["TZ", "PAL_NOW"].filter((k) => process.env[k]).map((k) => [k, process.env[k]])), TZ: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone };
     this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...pinned, NO_COLOR: "1" } });
     this.exited = this.proc.exited;
     this.read();
