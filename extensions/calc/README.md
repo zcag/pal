@@ -22,6 +22,7 @@ open it first (its row, an alias, or a hotkey), then type.
 | fractions | `1/3`, `0.375` | `0.3333333333` with a `1/3` row, `0.375` with a `3/8` row |
 | units | `5 km to miles`, `72 f to c`, `12 gb to mb`, `5 ft 3 in to cm` | `3.10686 miles`, `22.2222 °C`, `12,000 MB`, `160.02 cm` |
 | currency | `12 usd to try`, `€12 to $`, `1k usd`, `usd try` | the amount in the target currency, at the ECB's rate of the day |
+| thousands | `210k / 12`, `2k + 500`, `1.5m usd`, `$1.5k` | `k` is thousands anywhere; `m` and `b` are millions and billions before a currency (a bare `5m` is metres) |
 | home currency | `12 usd`, `$12` | to `home_currency`; the home currency itself goes to USD |
 | dates | `today + 3 days`, `3 weeks from now`, `25 dec 2026` | the date written out, `in 3 days` on the right, an ISO row |
 | counts | `days until 2026-12-25`, `weeks between 2025-06-15 and 2026-01-01` | `100 days` (with `14 weeks 2 days · 3 months 9 days`), `28.6 weeks` |

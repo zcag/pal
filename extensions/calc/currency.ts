@@ -59,8 +59,10 @@ export const code = (token: string): string => SYMBOLS.find(([s]) => s === token
 /** Whether a word is a currency (a variable may not be named one). */
 export const isCurrency = (word: string): boolean => !!WORDS[word.toLowerCase()];
 
-const PREFIXED = new RegExp(`(${SYM})\\s*(\\d[\\d.]*)`, "g");
+const PREFIXED = new RegExp(`(${SYM})\\s*(\\d[\\d.]*(?:[kmb]\\b)?)`, "gi");
 const TOKEN = new RegExp(CUR, "gi");
+/** `1.5m usd`, `210k try`: an amount with its scale, only before a currency (a bare `5m` is metres). */
+const SCALED = new RegExp(`(\\d\\s*[kmb])(?=\\s*${CUR})`, "gi");
 const ANY = new RegExp(CUR, "i");
 
 /** Whether an expression names a currency anywhere in it. */
@@ -74,7 +76,7 @@ export const hasCurrency = (expr: string): boolean => ANY.test(expr);
  * one without a rate.
  */
 export function carry(expr: string, r: Rates, unit: string): { expr: string; cur: string } | undefined {
-  const s = expr.replace(PREFIXED, (_, sym: string, n: string) => `${n} ${code(sym)}`);
+  const s = expr.replace(PREFIXED, (_, sym: string, n: string) => `${shorthand(n)} ${code(sym)}`).replace(SCALED, (_, n: string) => shorthand(n));
   const first = s.match(TOKEN)?.[0];
   if (!first) return;
   const cur = code(first);

@@ -308,6 +308,17 @@ describe("variables", () => {
     expect(await first("5 km in miles")).toBe("3.10686 miles");
   });
 
+  test("k is thousands everywhere, m and b millions and billions before a currency; a bare m is still metres", async () => {
+    expect(await first("210k / 12")).toBe("17,500");
+    expect(await first("2k + 500")).toBe("2,500");
+    expect((await rows("210k try - rent"))[0]).toEqual(["168,000.00 TRY", "210k try - 42,000.00 TRY", []]);
+    expect((await rows("210k try in salary"))[0]).toEqual(["79.95 hour", "210k try / 54.00 USD", ["7,995%"]]);
+    expect((await rows("$1.5k in salary_hour"))[0]).toEqual(["27.78 salary_hour", "$1.5k / 54.00 USD", ["2,778%"]]);
+    expect(await first("1.5m usd to try")).toBe("72,960,395.18 TRY");
+    expect(await first("5m to ft")).toBe("16.4042 ft");
+    expect(await first("300 k to c")).toBe("26.85 °C");
+  });
+
   test("a loop, a currency's name and a malformed line are not variables", async () => {
     expect(await calc("loop")).toEqual([]);
     expect(await first("12 usd to try")).toBe("583.68 TRY");

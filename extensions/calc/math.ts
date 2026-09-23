@@ -58,6 +58,8 @@ export function rewrite(q: string): string {
   // Temperature letters mean degrees only across a `to`: `72 f to c`, `300 k to c`.
   s = s.replace(/^(.*?\d)\s*(°?[fck]|deg[fc]|celsius|fahrenheit|kelvin)\s+to\s+(°?[fck]|deg[fc]|celsius|fahrenheit|kelvin)\s*$/i, (_, a: string, u1: string, u2: string) => `${a} ${TEMP[u1.toLowerCase()]} to ${TEMP[u2.toLowerCase()]}`);
   s = s.replace(/°\s*([cf])\b/gi, (_, u: string) => `deg${u.toUpperCase()}`);
+  // `210k` is thousands; after the temperatures, which have turned a kelvin `300k to c` into `300 K`.
+  s = s.replace(/(\d)[kK]\b/g, "$1e3");
   return s.replace(/\bfl\s+oz\b/gi, "floz").replace(/\b[a-z]+\b/gi, (w) => UNITS[w.toLowerCase()] ?? w);
 }
 
