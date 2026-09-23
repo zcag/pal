@@ -3,10 +3,15 @@
 // host's `core/*` requests from a table, and records what went by. One
 // `Host` per test file where the tests do not interfere; `Root` builds a
 // throwaway extension root under the OS temp dir.
+import { setDefaultTimeout } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewUpdate, Window } from "../../sdk/src/index.ts";
+
+// A test's own budget grows with its waits (`until` triples them on the CI runner): at bun's 5 s a test was killed while its 7.5 s wait
+// still ran, and that wait's error landed on whichever test came next.
+setDefaultTimeout(process.env.CI ? 15_000 : 5_000);
 
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
 /** The bundled extensions, for the integration tests. */

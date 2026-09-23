@@ -106,12 +106,21 @@ describe("timer", () => {
   test("pushes: a change in the directory is pushed; the 1 Hz tick runs while a timer runs and stops once none does", async () => {
     expect(await render()).toMatchObject({ hidden: true, empty: { icon: "\u{f0954}" } });
     put("tea", { state: "running", deadline: now() + 300 });
-    const first = await host.nextUpdate("timer", "timer", (i) => !i.hidden);
-    expect(["5:00", "4:59"]).toContain(first.title!);
-    const second = await host.nextUpdate("timer", "timer", (i) => i.title === "4:59", 2500);
-    expect(second.progress).toBeCloseTo((1500 - 299) / 1500, 3);
-    await host.nextUpdate("timer", "timer", (i) => i.title === "4:58", 2500);
-    unlinkSync(join(dir, "tea.state"));
+    // The tick moves the countdown on, a second at a time or two when a tick lands late; never an exact title: written at the end of a
+    // second the first push already reads 4:59, and a tick that slips past a boundary skips one (waiting on 4:59 then 4:58 failed both ways).
+    const secs = (i: BarItem) => { const [m, s] = i.title!.split(":").map(Number); return m * 60 + s; };
+    try {
+      const first = await host.nextUpdate("timer", "timer", (i) => !i.hidden);
+      expect(["5:00", "4:59"]).toContain(first.title!);
+      const second = await host.nextUpdate("timer", "timer", (i) => secs(i) < secs(first), 2500);
+      expect(secs(first) - secs(second)).toBeLessThanOrEqual(2);
+      expect(second.progress).toBeCloseTo((1500 - secs(second)) / 1500, 3);
+      const third = await host.nextUpdate("timer", "timer", (i) => secs(i) < secs(second), 2500);
+      expect(secs(second) - secs(third)).toBeLessThanOrEqual(2);
+    } finally {
+      // Left behind, a running timer keeps the tick pushing into the tests after this one.
+      if (existsSync(join(dir, "tea.state"))) unlinkSync(join(dir, "tea.state"));
+    }
     await host.nextUpdate("timer", "timer", (i) => i.hidden === true);
     const n = host.updates("timer", "timer").length;
     await Bun.sleep(1500);
