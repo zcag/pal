@@ -86,7 +86,7 @@ pub mod element {
     use std::ffi::c_void;
     use std::ptr::NonNull;
 
-    use objc2_core_foundation::{CFArray, CFBoolean, CFNumber, CFRetained, CFString, CFType, CGPoint, CGSize};
+    use objc2_core_foundation::{kCFRunLoopDefaultMode, CFArray, CFBoolean, CFNumber, CFRetained, CFRunLoop, CFRunLoopSource, CFString, CFType, CGPoint, CGSize};
 
     pub use crate::windows::Rect;
 
@@ -108,6 +108,11 @@ pub mod element {
         fn AXUIElementSetMessagingTimeout(element: *const CFType, timeout: f32) -> i32;
         fn AXValueGetValue(value: *const CFType, kind: u32, out: *mut c_void) -> bool;
         fn AXValueCreate(kind: u32, value: *const c_void) -> *mut CFType;
+        fn AXUIElementGetPid(element: *const CFType, pid: *mut i32) -> i32;
+        fn AXObserverCreate(pid: i32, callback: Callback, observer: *mut *mut CFType) -> i32;
+        fn AXObserverAddNotification(observer: *const CFType, element: *const CFType, notification: *const CFString, refcon: *mut c_void) -> i32;
+        fn AXObserverRemoveNotification(observer: *const CFType, element: *const CFType, notification: *const CFString) -> i32;
+        fn AXObserverGetRunLoopSource(observer: *const CFType) -> *mut CFRunLoopSource;
         static kCFBooleanTrue: &'static CFBoolean;
         static kCFBooleanFalse: &'static CFBoolean;
     }
@@ -184,6 +189,24 @@ pub mod element {
 
         fn ptr(&self) -> *const CFType {
             CFRetained::as_ptr(&self.0).as_ptr()
+        }
+
+        /// The process the element belongs to.
+        pub fn pid(&self) -> Option<i32> {
+            let mut pid = 0;
+            // SAFETY: element valid, `pid` a plain out value.
+            (unsafe { AXUIElementGetPid(self.ptr(), &mut pid) } == AX_SUCCESS).then_some(pid)
+        }
+
+        /// `AXRole` / `AXSubrole`: `AXWindow` and `AXStandardWindow` for a
+        /// document window, `AXDialog`, `AXFloatingWindow`, `AXSystemDialog`
+        /// for the others.
+        pub fn role(&self) -> Option<String> {
+            self.string("AXRole")
+        }
+
+        pub fn subrole(&self) -> Option<String> {
+            self.string("AXSubrole")
         }
 
         /// One attribute, raw: `None` when the app has no such attribute or
@@ -360,6 +383,80 @@ pub mod element {
             let key = CFString::from_str(action);
             // SAFETY: element and key are valid for the call.
             unsafe { AXUIElementPerformAction(self.ptr(), CFRetained::as_ptr(&key).as_ptr()) == AX_SUCCESS }
+        }
+    }
+
+    /// What an [`Observer`] calls: the element the notification is about
+    /// (borrowed: [`Element::borrowed`] takes a retain of its own) and the
+    /// notification's name.
+    pub type Callback = extern "C" fn(observer: *mut CFType, element: *mut CFType, notification: *const CFString, refcon: *mut c_void);
+
+    impl Element {
+        /// An element handed to a [`Callback`], with a retain of its own.
+        ///
+        /// # Safety
+        /// `p` is a live `AXUIElementRef` (what the callback receives).
+        pub unsafe fn borrowed(p: *mut CFType) -> Option<Element> {
+            NonNull::new(p).map(|p| Element(unsafe { CFRetained::retain(p) }))
+        }
+    }
+
+    /// One app's `AXObserver`, its run loop source on the main run loop
+    /// from [`Observer::new`] until drop. The callback runs there, on the
+    /// main thread. Make, use and drop it on the main thread.
+    pub struct Observer {
+        raw: CFRetained<CFType>,
+        source: CFRetained<CFRunLoopSource>,
+    }
+
+    impl Observer {
+        /// `None` when the app will not be observed (gone, or not
+        /// answering Accessibility yet: an app still launching).
+        pub fn new(pid: i32, callback: Callback) -> Option<Observer> {
+            let mut out: *mut CFType = std::ptr::null_mut();
+            // SAFETY: `out` receives a +1 observer or stays null.
+            if unsafe { AXObserverCreate(pid, callback, &mut out) } != AX_SUCCESS {
+                return None;
+            }
+            // SAFETY: on success `out` is an observer we own.
+            let raw = unsafe { CFRetained::from_raw(NonNull::new(out)?) };
+            // SAFETY: the observer is valid; the source is owned by it (get rule), so retain our own.
+            let source = unsafe { CFRetained::retain(NonNull::new(AXObserverGetRunLoopSource(CFRetained::as_ptr(&raw).as_ptr()))?) };
+            let run_loop = CFRunLoop::main()?;
+            // SAFETY: the mode is the framework's constant.
+            run_loop.add_source(Some(&source), unsafe { kCFRunLoopDefaultMode });
+            Some(Observer { raw, source })
+        }
+
+        fn ptr(&self) -> *const CFType {
+            CFRetained::as_ptr(&self.raw).as_ptr()
+        }
+
+        /// Watch `element` for `notification` (`AXWindowCreated` on the app
+        /// element, `AXWindowResized` on a window...). The AX error code
+        /// when refused: -25204 (`kAXErrorCannotComplete`) is an app not
+        /// ready yet, -25209 (`kAXErrorNotificationAlreadyRegistered`) no
+        /// harm.
+        pub fn add(&self, element: &Element, notification: &str) -> Result<(), i32> {
+            let name = CFString::from_str(notification);
+            // SAFETY: observer, element and name valid; no refcon.
+            let rc = unsafe { AXObserverAddNotification(self.ptr(), element.ptr(), CFRetained::as_ptr(&name).as_ptr(), std::ptr::null_mut()) };
+            if rc == AX_SUCCESS || rc == -25209 { Ok(()) } else { Err(rc) }
+        }
+
+        pub fn remove(&self, element: &Element, notification: &str) {
+            let name = CFString::from_str(notification);
+            // SAFETY: observer, element and name valid.
+            unsafe { AXObserverRemoveNotification(self.ptr(), element.ptr(), CFRetained::as_ptr(&name).as_ptr()) };
+        }
+    }
+
+    impl Drop for Observer {
+        fn drop(&mut self) {
+            if let Some(run_loop) = CFRunLoop::main() {
+                // SAFETY: the mode is the framework's constant.
+                run_loop.remove_source(Some(&self.source), unsafe { kCFRunLoopDefaultMode });
+            }
         }
     }
 }

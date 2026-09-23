@@ -38,7 +38,7 @@ describe("window-management", () => {
       { name: EXT, title: "Window Management", live: false, input: false, icon: tile("indigo", "\u{f10aa}"), placeholder: "Left half, maximize, center..." },
       { name: "arrange", title: "Arrange Window", live: false, input: true, icon: tile("indigo", "\u{f10aa}"), placeholder: "Which window?" },
     ]);
-    expect(l.manifest.settings?.map((s) => [s.id, s.default])).toEqual([["gap", 0], ["almost_maximize_percent", 90], ["reasonable_size_percent", 60], ["step", 32], ["cycle", false]]);
+    expect(l.manifest.settings?.map((s) => [s.id, s.default])).toEqual([["gap", 0], ["almost_maximize_percent", 90], ["reasonable_size_percent", 60], ["step", 32], ["cycle", false], ["keep_below_bar", false], ["bar_height", 0]]);
   });
 
   test("one static row per layout, in the core's order, a diagram icon, Focused window subtitle, Apply and Apply to", async () => {

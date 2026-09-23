@@ -42,6 +42,16 @@ way: Left Half, then Left Two Thirds, then Left Third, then the half again
 names the size the window landed on. Restore still goes back to where the
 run started.
 
+With `keep_below_bar` on (macOS, off by default), a bar drawn over a
+hidden menu bar (sketchybar) keeps its strip the way a menu bar would:
+macOS reserves nothing for it, so a window that opens there, zooms to the
+whole screen, or is dragged up under it is moved down clear of it, its
+bottom edge kept (a drag or a resize by hand is let go of first). The
+layouts leave the strip free too. The strip is `bar_height`, or
+sketchybar's own height when that is `0`. It watches every app's windows
+through Accessibility, which it asks for when switched on; full-screen
+windows, sheets, panels and pal's own windows are left alone.
+
 Two palettes:
 
 - **Window Management** (`window-management`) is the layouts, indexed, so
@@ -137,12 +147,16 @@ Settings, `[extensions.window-management]`:
 | `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills. |
 | `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
 | `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
+| `cycle` | boolean | `false` | A half applied again steps to two thirds, then a third, then the half. |
+| `keep_below_bar` | boolean | `false` | macOS: keep windows out from under a bar drawn over a hidden menu bar. |
+| `bar_height` | number (px) | `0` | The strip `keep_below_bar` keeps free; `0` asks sketchybar. |
 
 ## What it does not do
 
 - No custom layouts: the thirty-one above are the set; `gap`, `step` and
   the two percentages are the knobs. Larger and Smaller are a fixed 10%.
-- No tiling or snapping as you drag; every move is a pick or a hotkey.
+- No tiling or snapping as you drag; every move is a pick or a hotkey
+  (`keep_below_bar` is the one thing that moves a window on its own).
 - Restore forgets when pal quits: the frames are kept in memory only.
 - Sway and X11 are written to the tools' documented shapes and unit-tested
   on fixtures, not run against a live session yet.

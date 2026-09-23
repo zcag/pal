@@ -462,11 +462,25 @@ pub fn resync(app: &AppHandle) {
     reprobe(app, "sync");
 }
 
+/// `--query bar`: the bar's properties and item names; `None` when no bar answers.
+fn query_bar() -> Option<serde_json::Value> {
+    let out = Command::new(bin()).args(["--query", "bar"]).output().ok().filter(|o| o.status.success())?;
+    serde_json::from_slice(&out.stdout).ok()
+}
+
 /// The bar's item names (`--query bar`).
 fn bar_items() -> Vec<String> {
-    let Ok(out) = Command::new(bin()).args(["--query", "bar"]).output() else { return Vec::new() };
-    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap_or_default();
+    let v = query_bar().unwrap_or_default();
     v["items"].as_array().map(|a| a.iter().filter_map(|s| s.as_str().map(str::to_string)).collect()).unwrap_or_default()
+}
+
+/// How far down the bar reaches at the top of a display: its height plus
+/// a positive `y_offset`; 0 for a bar at the bottom or hidden, `None` when
+/// no bar answers.
+pub fn top_height() -> Option<f64> {
+    let v = query_bar()?;
+    let shown = v["position"] == "top" && v["hidden"] != "on" && v["drawing"] != "off";
+    Some(if shown { v["height"].as_f64().unwrap_or(0.0) + v["y_offset"].as_f64().unwrap_or(0.0).max(0.0) } else { 0.0 })
 }
 
 /// The item's `bounding_rects` (`--query <name>`): the first display's, in

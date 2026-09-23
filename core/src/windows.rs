@@ -72,6 +72,7 @@ use std::sync::{LazyLock, Mutex};
 use std::time::Instant;
 
 pub mod layout;
+pub mod reserve;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -265,9 +266,12 @@ pub fn set_frame(id: &str, rect: Rect) -> Result<()> {
     platform::set_frame(id, rect)
 }
 
-/// Every display, the primary first.
+/// Every display, the primary first, the [`reserve`] strip taken off
+/// each `visible_frame` while there is one.
 pub fn displays() -> Result<Vec<Display>> {
-    platform::displays()
+    let top = reserve::get();
+    let ds = platform::displays()?;
+    Ok(if top > 0.0 { ds.into_iter().map(|d| reserve::apply(d, top)).collect() } else { ds })
 }
 
 /// The window with keyboard focus: the frontmost app's focused window on

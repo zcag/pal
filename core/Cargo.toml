@@ -47,7 +47,7 @@ objc2-app-kit = { version = "0.3", default-features = false, features = ["std", 
 # clipboard paste: synthesise Cmd+V; windows: the window list
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGError", "CGWindow", "CGColor"] }
 # windows: the AXUIElement C API speaks CF types
-objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFArray", "CFString", "CFNumber", "CFCGTypes"] }
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFArray", "CFString", "CFNumber", "CFCGTypes", "CFRunLoop"] }
 # audio: the CoreAudio HAL (devices, defaults, volume, mute) without a tool to install
 objc2-core-audio = { version = "0.3", default-features = false, features = ["std", "AudioHardware"] }
 # bluetooth: IOBluetoothDevice for connect/disconnect (the list is system_profiler's)
