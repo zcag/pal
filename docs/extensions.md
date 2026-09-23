@@ -1362,6 +1362,12 @@ to the core.
   overlay (`app/src-tauri/src/keycast.rs`) and answer the same status.
   The shell publishes `keycast/active` and `keycast/mode` as states.
   Off macOS `available` is false and `start` rejects with the reason.
+- Mouse & Trackpad, through the raw bridge (the bundled `mouse`
+  extension is its one caller): `core.call("mouse.status")` answers
+  `{ available, reason?, accessibility, running, devices, settings }`,
+  `running` whether the event tap is in and `devices` how many touch
+  devices are read (`app/src-tauri/src/mouse.rs`). The switches are the
+  extension's settings; the app follows them on every config reload.
 
 ### Shared helpers
 

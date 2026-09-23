@@ -12,6 +12,7 @@
 //! - `core/effects.run` (effects.rs)
 //! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)
 //! - `core/media.{now_playing, control, artwork}` (media.rs)
+//! - `core/mouse.status` (mouse.rs)
 //! - `core/ocr.{image {path | data}, available}` (ocr.rs)
 //! - `core/keycast.{status, start {mode?}, stop, toggle {mode?}}` (keycast.rs)
 //! - `core/selection.{text,files}` (selection.rs)
@@ -50,6 +51,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "effects" => crate::effects::call(app, func, params),
         "extensions" => extensions::call(app, func, params),
         "media" => crate::media::call(app, func, params),
+        "mouse" => crate::mouse::call(app, func, params),
         "menubar" => menubar::call(app, func, params),
         "permissions" => crate::permissions::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),

@@ -1,0 +1,138 @@
+{
+  "name": "mouse",
+  "title": "Mouse & Trackpad",
+  "description": "A three-finger tap or click on the trackpad as a middle click, and scrolling reversed for the trackpad, the mouse or both, the vertical and horizontal axes apart (what MiddleClick and Scroll Reverser do). The switches are this extension's settings; the palette flips them.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰍽",
+      "bg": "slate"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "mouse",
+    "trackpad",
+    "middle click",
+    "scroll",
+    "reverse",
+    "natural scrolling",
+    "three finger"
+  ],
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "middle_click",
+      "label": "Middle click",
+      "text": "A three-finger click on the trackpad is a middle click",
+      "default": false,
+      "description": "Three fingers resting on the trackpad as it is pressed: the click is a middle one. Needs Accessibility."
+    },
+    {
+      "kind": "boolean",
+      "id": "middle_click_tap",
+      "label": "Tap too",
+      "text": "A three-finger tap is a middle click too",
+      "default": true,
+      "description": "With Middle click on, three fingers tapped and lifted together, without moving, click the middle button at the cursor. Turn off System Settings > Trackpad > Look up with three fingers so the two do not fight."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_trackpad",
+      "label": "Reverse trackpad",
+      "text": "Reverse scrolling on the trackpad",
+      "default": false,
+      "description": "Scrolling with the trackpad goes the other way from System Settings' natural scrolling. Needs Accessibility."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_mouse",
+      "label": "Reverse mouse",
+      "text": "Reverse scrolling on the mouse",
+      "default": false,
+      "description": "Scrolling with a mouse wheel (or a Magic Mouse) goes the other way from System Settings' natural scrolling, which macOS otherwise applies to the mouse and the trackpad alike. Needs Accessibility."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_vertical",
+      "label": "Vertical",
+      "text": "Reverse up and down",
+      "default": true,
+      "description": "The reversed devices scroll the other way up and down."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_horizontal",
+      "label": "Horizontal",
+      "text": "Reverse left and right",
+      "default": true,
+      "description": "The reversed devices scroll the other way left and right."
+    }
+  ],
+  "links": {
+    "toggle": {
+      "description": "Flip one of the switches",
+      "params": {
+        "setting": {
+          "description": "middle_click, middle_click_tap, reverse_trackpad, reverse_mouse, reverse_vertical or reverse_horizontal"
+        }
+      }
+    }
+  },
+  "palettes": {
+    "mouse": {
+      "title": "Mouse & Trackpad",
+      "description": "The middle click and scroll reversal switches, flipped with Enter; the row that asks for Accessibility when it is missing.",
+      "kind": "live",
+      "tier": "normal",
+      "keywords": [
+        "mouse",
+        "trackpad",
+        "middle click",
+        "scroll",
+        "reverse"
+      ],
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Flip the switch"
+        },
+        {
+          "keys": "cmd+,",
+          "title": "Open the settings"
+        }
+      ]
+    }
+  },
+  "store": {
+    "tagline": "Three-finger middle click and scroll reversal per device",
+    "category": "system",
+    "features": [
+      "A three-finger click on the trackpad is a middle click, its drag a middle drag; a three-finger tap (down and up together, not moved) clicks the middle button at the cursor",
+      "Scrolling reversed for the trackpad, the mouse or both, the vertical and horizontal axes apart: natural scrolling on the trackpad and a wheel that goes the old way, as Scroll Reverser does",
+      "Each switch a row: Enter flips it, `pal://mouse/toggle?setting=reverse_mouse` for a keybind",
+      "Fingers are read over macOS's MultitouchSupport, so a Magic Trackpad paired later and a wake are picked up again"
+    ],
+    "permissions": [
+      "Accessibility"
+    ],
+    "platforms": [
+      "macos"
+    ],
+    "screenshots": [],
+    "actions": [
+      {
+        "title": "Flip",
+        "description": "The row's switch on or off.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open settings",
+        "description": "The extension's settings.",
+        "keys": "cmd+,"
+      }
+    ]
+  }
+}

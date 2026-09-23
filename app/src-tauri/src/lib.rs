@@ -34,6 +34,7 @@ mod keycast;
 mod keytap;
 mod large;
 mod media;
+mod mouse;
 mod ocr;
 mod registry;
 mod reserve;
@@ -428,6 +429,7 @@ pub fn run() {
             expansion::install(app.handle());
             keycast::install(app.handle());
             reserve::install(app.handle());
+            mouse::install(app.handle());
             theme::install(app.handle());
             compact::install(app.handle());
             updater::install_checks(app.handle());

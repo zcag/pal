@@ -24,7 +24,7 @@ three ways past it.
   answered inline, and a query nothing matches falls back to the web, a
   quicklink or a palette ([Getting
   started](docs/getting-started.md#the-root-inline-answers-fallbacks-and-the-empty-list)).
-- **Close to two hundred palettes bundled** in sixty-nine extensions, from
+- **Close to two hundred palettes bundled** in seventy extensions, from
   Applications and Clipboard History
   to GitHub, Slack, Gmail, Spotify, Hue, Docker, Obsidian, 1Password, your
   todos, photos, Grafana and home media stack, a disk map and

@@ -231,6 +231,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     crate::expansion::apply_config(app, &prev, &loaded.config);
     crate::keycast::apply_config(app, &prev, &loaded.config);
     crate::reserve::apply_config(app, &prev, &loaded.config);
+    crate::mouse::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);
     events::emit(app, events::CONFIG, &loaded);

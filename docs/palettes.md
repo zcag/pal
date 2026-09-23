@@ -5077,6 +5077,47 @@ Settings, `[extensions.keycast]`:
 | `ripples` | boolean | `true` | A ripple on every click. |
 | `gestures` | boolean | `true` | Scrolls and trackpad gestures on the strip (keys and both modes). |
 
+## Mouse & Trackpad (`mouse`)
+
+A three-finger tap or click on the trackpad as a middle click, and
+scrolling reversed for the trackpad, the mouse or both, each axis apart
+(MiddleClick, Scroll Reverser), macOS only. A live, normal palette with
+one row per switch, its state as an `on` / `off` tag (muted when the
+switch has nothing to act on, as Three-finger tap with Middle click off),
+and, while the grant is missing, a Mouse & Trackpad needs Accessibility
+row that asks on Enter. Enter flips the row's switch.
+
+The work is the app's (`app/src-tauri/src/mouse.rs`): an active event
+tap on a thread of its own turns a left click made with three fingers on
+the trackpad into a middle click (its drag and release follow) and
+negates the scroll deltas on the reversed axes; MultitouchSupport counts
+the fingers and tells a tap (three fingers down and up within 0.3 s, not
+moved, no fourth, no press) from a swipe. A scroll is the mouse's when it
+comes in a wheel's notches or under fewer than two fingers (a Magic
+Mouse); momentum keeps the source of the scroll it follows. Devices are
+listed again every 3 s, so a trackpad paired later and a wake are picked
+up. Turning a switch on asks for Accessibility when it is missing and
+starts on the grant.
+
+| keys | action |
+| --- | --- |
+| `enter` | Flip the switch |
+| `cmd+,` | Open the settings |
+
+`pal://mouse/toggle?setting=<id>` flips one from a keybind. Linux: one
+row, "Mouse & Trackpad is not available here".
+
+Settings, `[extensions.mouse]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `middle_click` | boolean | `false` | A three-finger click on the trackpad is a middle click. |
+| `middle_click_tap` | boolean | `true` | With `middle_click`, a three-finger tap is one too. |
+| `reverse_trackpad` | boolean | `false` | The trackpad scrolls against System Settings' direction. |
+| `reverse_mouse` | boolean | `false` | The mouse scrolls against System Settings' direction. |
+| `reverse_vertical` | boolean | `true` | Reversed devices flip up and down. |
+| `reverse_horizontal` | boolean | `true` | Reversed devices flip left and right. |
+
 ## DPI Bypass (`dpi`, `dpi-test`, `dpi/bypass`)
 
 The owner's `dpi` script (`~/.local/bin/dpi`: byedpi as a SOCKS proxy
