@@ -2,7 +2,8 @@
 // speaks the stdio protocol (protocol.ts) from the core's side, answers the
 // host's `core/*` requests from a table, and records what went by. One
 // `Host` per test file where the tests do not interfere; `Root` builds a
-// throwaway extension root under the OS temp dir.
+// throwaway extension root under the OS temp dir. README.md has the rules a test
+// keeps (writeTool for fakes, no waiting on the real clock, the time budget).
 import { setDefaultTimeout } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

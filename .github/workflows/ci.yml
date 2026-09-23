@@ -120,7 +120,8 @@ jobs:
         working-directory: host
         run: |
           bunx tsc --noEmit
-          bun test --parallel
+          bun test --parallel --reporter=junit --reporter-outfile="$RUNNER_TEMP/host-tests.xml"
+          bun test/budget.ts "$RUNNER_TEMP/host-tests.xml"
       # The published package: its declarations build, and the tarball
       # holds only what `files` lists.
       - name: sdk build and pack

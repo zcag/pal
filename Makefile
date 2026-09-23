@@ -3,15 +3,15 @@
 # Rust workspace, the SDK's declarations (the app's typecheck reads them),
 # the app's typecheck and vitest, the host's typecheck (which covers the
 # extensions and the examples) and bun test, the SDK's pack. The host's
-# files run in parallel workers, one per core up to 8 (CI: one per core):
-# past 8 on hornet the stand-in tools and ticks began missing their waits.
+# files run in parallel workers, one per core up to 8 (CI: one per core),
+# and host/test/budget.ts fails a file over its time budget: host/test/README.md.
 .PHONY: test
 test:
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
 	npm --prefix sdk run build
 	cd app && npx tsc --noEmit && npx vitest run
-	cd host && bunx tsc --noEmit && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 )))
+	cd host && bunx tsc --noEmit && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
 	cd sdk && npm pack --dry-run
 
 # Sets one version everywhere it is written (tauri.conf.json is what the
