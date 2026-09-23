@@ -346,21 +346,50 @@ pub use keycast::{hide as keycast_hide, install as keycast_install, show as keyc
 /// The keycast ring (keycast.rs): a panel of its own the size of the ring,
 /// click-through on every Space above the overlay, holding two Core
 /// Animation layers (the ring in its colour over a thin dark outline, the
-/// figures keycast.css had). A move sets the panel's origin to the mouse,
-/// on the main thread inside the monitor's handler: no WebKit between the
-/// event and the screen, which drew the ring at its own frame rate two to
-/// four frames behind a fast cursor (measured 2026-09-23: 11 ms p50, 34
-/// max from emit to paint, against ~1 ms for the event to reach pal).
+/// figures keycast.css had). No WebKit between the pointer and the screen:
+/// the page drew the ring two to four frames behind a fast cursor
+/// (measured 2026-09-23: 11 ms p50, 34 max from emit to paint, against
+/// ~1 ms for the event to reach pal). The panel's origin follows the mouse
+/// once per display refresh, off the view's display link (macOS 14+): set
+/// per mouse event instead, the moves fell unevenly across frames (two in
+/// one, none in the next) and the ring jittered. Before 14, per event.
 /// Main thread only; every entry point is a no-op off it.
 mod ring {
     use std::cell::RefCell;
+    use std::time::{Duration, Instant};
 
     use objc2::rc::Retained;
-    use objc2::runtime::{AnyClass, AnyObject};
-    use objc2::{msg_send, MainThreadMarker, MainThreadOnly};
+    use objc2::runtime::{AnyClass, AnyObject, NSObject, NSObjectProtocol};
+    use objc2::{define_class, msg_send, sel, MainThreadMarker, MainThreadOnly};
     use objc2_app_kit::{NSBackingStoreType, NSColor, NSEvent, NSPanel, NSStatusWindowLevel, NSView, NSWindowCollectionBehavior, NSWindowStyleMask};
     use objc2_core_graphics::CGColor;
+    use objc2_core_foundation::kCFRunLoopCommonModes;
     use objc2_foundation::{NSPoint, NSRect, NSSize};
+
+    define_class!(
+        // SAFETY: NSObject has no subclassing requirements; no ivars, no Drop.
+        #[unsafe(super(NSObject))]
+        #[thread_kind = MainThreadOnly]
+        #[name = "PalRingTicker"]
+        struct Ticker;
+
+        unsafe impl NSObjectProtocol for Ticker {}
+
+        impl Ticker {
+            /// A display refresh: the ring to where the mouse is now.
+            #[unsafe(method(tick:))]
+            fn tick(&self, _link: &AnyObject) {
+                RING.with(|slot| {
+                    if let Some(r) = slot.borrow_mut().as_mut() {
+                        if r.ticked.replace(Instant::now()).is_none() {
+                            eprintln!("keycast\tring\tdisplay link ticking");
+                        }
+                        place(r);
+                    }
+                });
+            }
+        }
+    );
 
     /// The ring's diameter up and with a button down, and its stroke, in points before the scale.
     const UP: f64 = 36.0;
@@ -375,6 +404,12 @@ mod ring {
         outline: Retained<AnyObject>,
         scale: f64,
         down: bool,
+        /// The view's `CADisplayLink`, paused while hidden; made once the panel is on screen (a view's link is its window's screen's), never before macOS 14.
+        link: Option<Retained<AnyObject>>,
+        /// The link's last tick: a move places the ring itself when the link has gone quiet, so a link that never ticks cannot strand it.
+        ticked: Option<Instant>,
+        /// Where the panel was last put, so a still mouse costs no move.
+        at: NSPoint,
     }
 
     thread_local! {
@@ -415,7 +450,37 @@ mod ring {
             let _: () = msg_send![&*root, addSublayer: &*ring];
         }
         panel.setContentView(Some(&view));
-        Ring { panel, ring, outline, scale: 0.0, down: false }
+        Ring { panel, ring, outline, scale: 0.0, down: false, link: None, ticked: None, at: NSPoint::new(f64::NAN, f64::NAN) }
+    }
+
+    /// How long the link may go without a tick before moves place the ring again.
+    const QUIET: Duration = Duration::from_millis(100);
+
+    /// The view's display link calling a [`Ticker`] every refresh of the display the panel is on; None where there is none (before macOS 14).
+    fn link(mtm: MainThreadMarker, view: &NSView) -> Option<Retained<AnyObject>> {
+        // SAFETY: a selector query on a live view.
+        let has: bool = unsafe { msg_send![view, respondsToSelector: sel!(displayLinkWithTarget:selector:)] };
+        if !has {
+            return None;
+        }
+        let ticker: Retained<Ticker> = unsafe { msg_send![Ticker::alloc(mtm), init] };
+        // SAFETY: `-[NSView displayLinkWithTarget:selector:]` (macOS 14) retains the target; `tick:` takes the link. Added to the main run
+        // loop in the common modes so it ticks through a drag or a menu's tracking too. The mode is CoreFoundation's own constant, bridged:
+        // the run loop knows the common modes by that pointer, and an equal string of our own named a mode nothing runs (the link never fired).
+        unsafe {
+            let link: Retained<AnyObject> = msg_send![view, displayLinkWithTarget: &*ticker, selector: sel!(tick:)];
+            let rl: Retained<AnyObject> = msg_send![AnyClass::get(c"NSRunLoop")?, mainRunLoop];
+            let common = &*(kCFRunLoopCommonModes? as *const _ as *const AnyObject);
+            let _: () = msg_send![&link, addToRunLoop: &*rl, forMode: common];
+            Some(link)
+        }
+    }
+
+    fn pause(r: &Ring, paused: bool) {
+        if let Some(l) = &r.link {
+            // SAFETY: CADisplayLink's `paused` setter, on the main thread.
+            let _: () = unsafe { msg_send![&**l, setPaused: paused] };
+        }
     }
 
     /// The layers laid out for the scale and the button, animated over the
@@ -439,10 +504,14 @@ mod ring {
         }
     }
 
-    fn place(r: &Ring) {
+    fn place(r: &mut Ring) {
         let p = NSEvent::mouseLocation();
         let h = side(r.scale) / 2.0;
-        r.panel.setFrameOrigin(NSPoint::new(p.x - h, p.y - h));
+        let at = NSPoint::new(p.x - h, p.y - h);
+        if at != r.at {
+            r.at = at;
+            r.panel.setFrameOrigin(at);
+        }
     }
 
     /// Shown at `scale` in `rgba` at the mouse, or hidden (None).
@@ -452,6 +521,7 @@ mod ring {
             let mut slot = slot.borrow_mut();
             let Some((scale, [red, green, blue, alpha])) = look else {
                 if let Some(r) = slot.as_ref() {
+                    pause(r, true);
                     r.panel.orderOut(None);
                 }
                 return;
@@ -464,17 +534,23 @@ mod ring {
                 r.scale = scale;
                 let s = side(scale);
                 r.panel.setContentSize(NSSize::new(s, s));
+                r.at = NSPoint::new(f64::NAN, f64::NAN);
                 layout(r, false);
             }
             place(r);
             r.panel.orderFrontRegardless();
+            if r.link.is_none() {
+                r.link = r.panel.contentView().and_then(|v| link(mtm, &v));
+                eprintln!("keycast\tring\tdisplay link {}", if r.link.is_some() { "on" } else { "unavailable: moves place it" });
+            }
+            pause(r, false);
         });
     }
 
-    /// The ring to the mouse (a move).
+    /// The ring to the mouse on a move, where no display link is doing it every frame.
     pub fn follow() {
         RING.with(|slot| {
-            if let Some(r) = slot.borrow().as_ref().filter(|r| r.panel.isVisible()) {
+            if let Some(r) = slot.borrow_mut().as_mut().filter(|r| r.panel.isVisible() && r.ticked.is_none_or(|t| t.elapsed() > QUIET)) {
                 place(r);
             }
         });
@@ -486,7 +562,6 @@ mod ring {
             if let Some(r) = slot.borrow_mut().as_mut().filter(|r| r.down != down) {
                 r.down = down;
                 layout(r, true);
-                place(r);
             }
         });
     }
