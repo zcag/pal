@@ -7,7 +7,7 @@ import { tile } from "../../../sdk/src/icon.ts";
 import { Host, stored } from "../harness.ts";
 
 const RATES = { EUR: 1, USD: 1.1539, TRY: 56.126, GBP: 0.85578, JPY: 178.85, CHF: 0.9441, INR: 110.73 };
-const VARS = ["salary_hour = 54 usd", "salary_month = salary_hour * 2080 / 12", "rent = 42000 try", "height = 183 cm", "try = 5", "loop = loop + 1", "not a var"];
+const VARS = ["salary_hour = 54 usd", "salary_day = salary_hour * 8", "salary_month = salary_hour * 2080 / 12", "lap_pool = 50 m", "lap_track = 400 m", "rent = 42000 try", "height = 183 cm", "try = 5", "loop = loop + 1", "not a var"];
 const BASE = { home_currency: "TRY", vars: VARS };
 const seed = (date: string, fetched: number) => stored.set("calc\0rates", { base: "EUR", date, fetched, rates: RATES });
 
@@ -289,6 +289,23 @@ describe("variables", () => {
     expect(await rows("rent / salary_month")).toEqual([["0.09225236807", "42,000.00 TRY / 9,360.00 USD", ["9.225%"]]]);
     expect(await rows("height to ft")).toEqual([["6.00394 ft", "183 cm to ft", []]]);
     expect(await rows("salary_hour / h")).toEqual([["54 USD/h", "54.00 USD / h", []]]);
+  });
+
+  test("`X in <variable>`: how many fit, labelled with its name; a prefix answers per member, the largest count first", async () => {
+    expect(await rows("1500 usd in salary_hour")).toEqual([["27.78 salary_hour", "1500 usd / 54.00 USD", ["2,778%"]]]);
+    expect(await rows("1500 usd in salary")).toEqual([
+      ["27.78 hour", "1500 usd / 54.00 USD", ["2,778%"]],
+      ["3.472 day", "1500 usd / 432.00 USD", ["347.2%"]],
+      ["0.1603 month", "1500 usd / 9,360.00 USD", ["16.03%"]],
+    ]);
+    expect(await rows("salary_month in rent")).toEqual([["10.84 rent", "9,360.00 USD / 42,000.00 TRY", ["1,084%"]]]);
+    expect(await rows("5 km in lap")).toEqual([["100 pool", "5 km / 50 m", ["10,000%"]], ["12.5 track", "5 km / 400 m", ["1,250%"]]]);
+    expect(await rows("5 kg in lap_pool")).toEqual([["0.1 kg/m per lap_pool", "5 kg / 50 m", []]]); // no cancel: the quotient, per the name
+  });
+
+  test("an `in` naming no variable or prefix is the conversion it was", async () => {
+    expect(await first("12 usd in eur")).toBe("10.40 EUR");
+    expect(await first("5 km in miles")).toBe("3.10686 miles");
   });
 
   test("a loop, a currency's name and a malformed line are not variables", async () => {

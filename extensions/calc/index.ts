@@ -146,6 +146,43 @@ async function resolve(x: string): Promise<Value | "no-rates" | undefined> {
 const show = (v: Value, s: Settings, locale: string): string =>
   v.kind === "money" ? money(v.value, v.cur, locale) : v.kind === "unit" ? `${num(v.value, Math.min(s.precision, 6), locale)} ${v.unit}` : v.kind === "number" ? num(v.value, s.precision, locale) : v.text;
 
+/** The query with each variable in it written as its value: `42,000.00 TRY / 9,360.00 USD`. */
+async function described(q: string, vars: Map<string, string>, s: Settings, locale: string): Promise<string> {
+  const values = new Map<string, string>();
+  for (const w of new Set(q.match(/[a-z_][a-z0-9_]*/gi) ?? [])) {
+    const v = vars.has(w.toLowerCase()) ? await resolve(expand(w, vars) ?? "") : undefined;
+    if (v && v !== "no-rates") values.set(w, show(v, s, locale));
+  }
+  return squeeze(q.replace(/[a-z_][a-z0-9_]*/gi, (w) => values.get(w) ?? w));
+}
+
+/**
+ * `X in <variable>`: how many of it fit in X, X divided by it, labelled
+ * with its name (`1500 usd in salary_hour`: `27.78 salary_hour`). A word
+ * that is no variable but the prefix of some (`salary` for `salary_hour`,
+ * `salary_day`, ...) answers once per member, labelled with the rest of
+ * its name, the largest count first: `27.78 hour`, `3.472 day`, ... An
+ * `in` naming neither is the conversion it always was.
+ */
+async function measured(q: string, vars: Map<string, string>, s: Settings, locale: string): Promise<Row[] | undefined> {
+  const m = q.match(/^(.*\S)\s+in\s+([a-z_][a-z0-9_]*)\s*$/i);
+  if (!m) return;
+  const name = m[2].toLowerCase();
+  const members = vars.has(name) ? [[name, name]] : [...vars.keys()].filter((k) => k.startsWith(`${name}_`)).map((k) => [k, k.slice(name.length + 1)]);
+  if (!members.length) return;
+  const left = await described(m[1], vars, s, locale);
+  const rows: (Row & { n: number })[] = [];
+  for (const [key, label] of members) {
+    const v = await resolve(expand(`(${m[1]}) / ${key}`, vars) ?? "");
+    if (v === "no-rates") return [{ id: "rates", name: "Fetching exchange rates…", subtitle: squeeze(q), inert: true }];
+    if (!v) continue;
+    const subtitle = `${left} / ${await described(key, vars, s, locale)}`;
+    if (v.kind !== "number") { rows.push({ id: `in-${key}`, name: `${show(v, s, locale)} per ${label}`, subtitle, raw: show(v, s, "en"), n: 0 }); continue; }
+    rows.push({ id: `in-${key}`, name: `${num(v.value, 4, locale)} ${label}`, subtitle, raw: rawNum(v.value, s.precision), accessories: [{ text: `${num(v.value * 100, 4, locale)}%` }], n: v.value });
+  }
+  return rows.sort((a, b) => b.n - a.n).map(({ n: _, ...r }) => r);
+}
+
 /**
  * A query naming variables (`[extensions.calc] vars`): expanded, then
  * answered like any other. The subtitle is the query with each name
@@ -156,14 +193,11 @@ const show = (v: Value, s: Settings, locale: string): string =>
  */
 async function variables(q: string, s: Settings, locale: string): Promise<Row[] | undefined> {
   const vars = varsOf(s);
+  const per = await measured(q, vars, s, locale);
+  if (per) return per;
   const x = expand(q, vars);
   if (!x) return;
-  const values = new Map<string, string>();
-  for (const w of new Set(q.match(/[a-z_][a-z0-9_]*/gi) ?? [])) {
-    const v = vars.has(w.toLowerCase()) ? await resolve(expand(w, vars) ?? "") : undefined;
-    if (v && v !== "no-rates") values.set(w, show(v, s, locale));
-  }
-  const subtitle = squeeze(q.replace(/[a-z_][a-z0-9_]*/gi, (w) => values.get(w) ?? w));
+  const subtitle = await described(q, vars, s, locale);
   const target = x.match(/^(.*\S)\s+(?:to|in|as)\s+(\S+)$/i);
   const to = target && isCurrency(target[2]) ? target[2] : undefined;
   const v = await resolve(to ? target![1] : x);

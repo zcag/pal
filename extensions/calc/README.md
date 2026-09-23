@@ -91,7 +91,14 @@ the day's rate, so `salary_month * 12` stays money (shown in the home
 currency, or `... to eur`) and `rent / salary_month` is a plain ratio
 (`0.2243`, with `22.43%` beside it). The subtitle is the query with each
 name replaced by its value: `42,000 TRY / 9,360 USD`. At the root a query
-naming a variable answers inline even without a digit. Values are written
+naming a variable answers inline even without a digit. `X in <variable>`
+says how many of it fit in X (`1500 usd in salary_hour`: `27.78
+salary_hour`), and a word that is not a variable but the prefix of some
+answers once per member, labelled with the rest of the name and the
+largest count first: `1500 usd in salary` is `27.78 hour`, `3.472 day`,
+`0.1603 month`; `5 km in lap` with `lap_pool = 50 m` and `lap_track =
+400 m` is `100 pool`, `12.5 track`. An `in` naming neither converts as
+before (`12 usd in eur`). Values are written
 with a dot for decimals whatever the `locale`; a name is letters, digits
 and underscores, and one spelled like a currency (`try`, `usd`) is ignored.
 
