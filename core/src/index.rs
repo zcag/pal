@@ -637,8 +637,8 @@ impl Index {
 /// | catalog, scattered | -150 | 50 |
 ///
 /// The app adds a small ladder on top of a few primary sources it wants
-/// first among equals (`[general] root_first`: tabs, windows, apps, the
-/// palette rows, at most 120), which orders rows of one band and never
+/// first among equals (`[general] root_first`: tabs, windows, pal's own
+/// commands, apps, the palette rows, at most 125), which orders rows of one band and never
 /// crosses one.
 ///
 /// "Has the word": every query word starts a word of the name or a

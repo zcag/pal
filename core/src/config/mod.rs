@@ -147,15 +147,16 @@ pub struct General {
     /// and a palette's own level are never capped.
     pub root_caps: Caps,
     /// Palettes whose rows lead the others of their band at the root, in
-    /// this order: `["browser-tabs/tabs", "windows/windows", "apps/apps",
-    /// "pal/palettes"]` (a tab over a window over an app over a palette
-    /// row, all over the rest). Each gets
+    /// this order: `["browser-tabs/tabs", "windows/windows", "pal/commands",
+    /// "apps/apps", "pal/palettes"]` (a tab over a window over one of pal's
+    /// own commands over an app over a palette row, all over the rest:
+    /// `sett` is pal's Settings before System Settings). Each gets
     /// `root_first_step` more than the next, on top of its tier, which
     /// orders rows of equal standing and never lifts a row that only
     /// scatters the letters over one that has the typed word.
     pub root_first: Vec<String>,
-    /// Points between two `root_first` palettes; `30` keeps the whole
-    /// ladder under the word bonus (300) and the tier spread (150).
+    /// Points between two `root_first` palettes; `25` keeps the whole
+    /// ladder (five rungs) under the word bonus (300) and the tier spread (150).
     pub root_first_step: f64,
     /// At the root, a palette with a row that has the typed word shows
     /// only those rows: `spo` is Spotify, not Spotify and six apps that
@@ -220,7 +221,7 @@ impl Default for General {
             deeplink_confirm: Confirm::default(),
             root_caps: Caps::default(),
             root_first: DEFAULT_ROOT_FIRST.iter().map(|s| s.to_string()).collect(),
-            root_first_step: 30.0,
+            root_first_step: 25.0,
             root_cut: true,
             fallbacks: DEFAULT_FALLBACKS.iter().map(|s| s.to_string()).collect(),
             fallbacks_always: false,
@@ -238,7 +239,7 @@ impl Default for General {
 /// `general.fallbacks` when unset: the shell's two rows, then the bundled palettes that opt in.
 pub const DEFAULT_FALLBACKS: [&str; 5] = ["web", "url", "quicklinks", "calc", "files"];
 /// `[general] root_first` unset: what is open, then what can be opened.
-pub const DEFAULT_ROOT_FIRST: [&str; 4] = ["browser-tabs/tabs", "windows/windows", "apps/apps", "pal/palettes"];
+pub const DEFAULT_ROOT_FIRST: [&str; 5] = ["browser-tabs/tabs", "windows/windows", "pal/commands", "apps/apps", "pal/palettes"];
 /// `general.search_engine` when unset.
 pub const DEFAULT_SEARCH_ENGINE: &str = "https://www.google.com/search?q={query}";
 /// `general.now` when unset: what plays (Spotify's row first: Enter is its lyrics), the next event, the running timer, what is on the clipboard.

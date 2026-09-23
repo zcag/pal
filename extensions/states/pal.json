@@ -29,7 +29,7 @@
       "description": "Every state with its value and source; set one by hand, reset it, declare a new one.",
       "kind": "live",
       "tier": "normal",
-      "keywords": ["state", "variable", "working", "set"],
+      "keywords": ["state", "variable", "working"],
       "keys": [
         { "keys": "enter", "title": "Toggle a boolean, or set the typed value" },
         { "keys": "cmd+r", "title": "Reset the manual value" },

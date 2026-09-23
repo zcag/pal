@@ -1,6 +1,7 @@
 //! What the root would answer for a query, against a real index cache:
 //! every cached palette as a source with its manifest tier, a
-//! `pal/palettes` row per palette, the `root_first` ladder and the
+//! `pal/palettes` row per palette, pal's Settings commands, the
+//! `root_first` ladder and the
 //! profile's frecency, so a ranking question can be asked without the app.
 //!
 //! `cargo run -p pal-core --example query -- "mail inbox" "tod address"`
@@ -15,9 +16,8 @@ use pal_core::frecency::Frecency;
 use pal_core::index::{Caps, Index, Item, QueryOpts, Source, Tier};
 use serde_json::Value;
 
-/// `general.root_first` as the app defaults it, and its step.
-const FIRST: [&str; 4] = ["browser-tabs/tabs", "windows/windows", "apps/apps", "pal/palettes"];
-const STEP: f32 = 30.0;
+/// `general.root_first_step` as the app defaults it (the ladder is `pal_core::config::DEFAULT_ROOT_FIRST`).
+const STEP: f32 = 25.0;
 
 fn profile() -> PathBuf {
     if let Ok(p) = std::env::var("PAL_PROFILE") {
@@ -104,13 +104,27 @@ fn main() {
     let palettes = Source::new("pal", "palettes");
     ix.replace(palettes.clone(), rows);
     tiers.insert(palettes, Tier::Primary);
+    // pal's own rows the ranking questions are about (`commands::rows` in the app has them all), primary like the palettes.
+    let commands = Source::new("pal", "commands");
+    let command = |id: &str, name: &str, keywords: &[&str]| Item { id: id.into(), name: name.into(), subtitle: None, keywords: std::iter::once("pal").chain(keywords.iter().copied()).map(String::from).collect(), icon: None, section: None, extra: Default::default() };
+    ix.replace(
+        commands.clone(),
+        vec![
+            command("settings", "Settings", &["preferences", "options", "config"]),
+            command("settings-extensions", "Settings › Extensions", &["settings", "preferences", "extensions"]),
+            command("settings-palettes", "Settings › Palettes", &["settings", "preferences", "palettes"]),
+            command("config-open", "Open Config File", &["config", "edit", "toml", "settings"]),
+        ],
+    );
+    tiers.insert(commands, Tier::Primary);
     let fre = Frecency::open_in(&profile);
     eprintln!("{} items in {} sources, {} frecency entries ({})", ix.len(), ix.sources().len(), fre.len(), profile.display());
 
     let tier = |s: &Source| tiers.get(s).copied().unwrap_or_default();
     for q in &args {
         let fre_boost = fre.boost(q, SystemTime::now());
-        let boost = |s: &Source, id: &str| FIRST.iter().position(|f| *f == format!("{}/{}", s.extension, s.palette)).map_or(0.0, |i| STEP * (FIRST.len() - i) as f32) + fre_boost(s, id);
+        let first = pal_core::config::DEFAULT_ROOT_FIRST;
+        let boost = |s: &Source, id: &str| first.iter().position(|f| *f == format!("{}/{}", s.extension, s.palette)).map_or(0.0, |i| STEP * (first.len() - i) as f32) + fre_boost(s, id);
         let t0 = std::time::Instant::now();
         let r = ix.query(q, QueryOpts { boost: Some(&boost), tier: Some(&tier), caps: Some(Caps::default()), ..Default::default() });
         let took = t0.elapsed();

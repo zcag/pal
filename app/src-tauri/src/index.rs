@@ -857,7 +857,7 @@ pub struct Ranking {
 
 impl Default for Ranking {
     fn default() -> Self {
-        Self { first: pal_core::config::DEFAULT_ROOT_FIRST.iter().filter_map(|k| k.split_once('/').map(|(e, p)| Source::new(e, p))).collect(), step: 30.0, cut: true }
+        Self { first: pal_core::config::DEFAULT_ROOT_FIRST.iter().filter_map(|k| k.split_once('/').map(|(e, p)| Source::new(e, p))).collect(), step: 25.0, cut: true }
     }
 }
 
@@ -1365,7 +1365,7 @@ mod tests {
         let (max_frecency, exact, word) = (pal_core::frecency::MAX_SCORE * pal_core::frecency::BOOST_SCALE, pal_core::index::EXACT_BONUS, pal_core::index::WORD_BONUS);
         let r = Ranking::default();
         let top = r.bonus(&Source::new("browser-tabs", "tabs"));
-        assert_eq!((top, r.bonus(&Source::new("windows", "windows")), r.bonus(&Source::new("apps", "apps")), r.bonus(&palettes_source()), r.bonus(&Source::new("files", "files"))), (120.0, 90.0, 60.0, 30.0, 0.0));
+        assert_eq!((top, r.bonus(&Source::new("windows", "windows")), r.bonus(&commands::source()), r.bonus(&Source::new("apps", "apps")), r.bonus(&palettes_source()), r.bonus(&Source::new("files", "files"))), (125.0, 100.0, 75.0, 50.0, 25.0, 0.0));
         assert!(Tier::Primary.bonus() + word + top + max_frecency < exact);
         assert!(top < word && top < Tier::Primary.bonus(), "a rung never lifts a scattered row over one that has the word, nor a normal row over a primary");
         // Off the ladder, the palette row and the app tie on the bonuses and the shorter name leads.
