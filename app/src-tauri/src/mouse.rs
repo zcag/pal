@@ -25,8 +25,8 @@
 //!   new event, so WebKit's momentum follows: `tap::scroll`). The source ([`Source`]):
 //!   a wheel's notches (not continuous) are the mouse; a continuous scroll is
 //!   the trackpad when two fingers or more are down on a device as it
-//!   begins (a Magic Mouse scrolls under one), and its momentum keeps the
-//!   source of the scroll it follows.
+//!   begins (a Magic Mouse scrolls under one), and the rest of the gesture
+//!   and its momentum keep the source it began with.
 //!
 //! The tap needs Accessibility: turning a feature on asks when it is missing
 //! (the card, then the prompt) and starts on the grant, polling for it every
@@ -96,15 +96,23 @@ pub enum Source {
     Mouse,
 }
 
+/// `kCGScrollPhaseBegan` and `kCGScrollPhaseMayBegin`: a gesture's first events, the only ones the fingers are read at.
+const BEGAN: i64 = 1;
+const MAY_BEGIN: i64 = 128;
+
 /// The source of a scroll event: `continuous` (pixels, not a wheel's
-/// notches), `phased` (a trackpad-style Began/Changed/Ended, not momentum),
+/// notches), `phase` its `kCGScrollPhase` (0 for none, as in momentum),
 /// `fingers` the most down on any device (None when the fingers are not
-/// read), `last` the source of the scroll before it (what momentum keeps).
-pub fn source(continuous: bool, phased: bool, momentum: bool, fingers: Option<usize>, last: Source) -> Source {
+/// read), `last` the source of the scroll before it. The fingers decide at
+/// the gesture's start only: the rest of it and its momentum keep `last`.
+/// Read on every event, the lift raced the gesture's last Changed/Ended
+/// (0 fingers counted before it arrived), which read as the mouse and
+/// reversed the trackpad's coast after it.
+pub fn source(continuous: bool, phase: i64, momentum: bool, fingers: Option<usize>, last: Source) -> Source {
     if !continuous {
         return Source::Mouse;
     }
-    if momentum && !phased {
+    if momentum || (phase != 0 && phase != BEGAN && phase != MAY_BEGIN) {
         return last;
     }
     match fingers {
@@ -332,11 +340,11 @@ mod tap {
     fn scroll(e: &CGEvent) -> Option<CFRetained<CGEvent>> {
         let int = |f| CGEvent::integer_value_field(Some(e), f);
         let continuous = int(CGEventField::ScrollWheelEventIsContinuous) != 0;
-        let phased = int(CGEventField::ScrollWheelEventScrollPhase) != 0;
+        let phase = int(CGEventField::ScrollWheelEventScrollPhase);
         let momentum = int(CGEventField::ScrollWheelEventMomentumPhase) != 0;
         let fingers = super::touch::reading().then(|| touches(|t| t.most()));
         let mut last = lock(&LAST);
-        let src = source(continuous, phased, momentum, fingers, *last);
+        let src = source(continuous, phase, momentum, fingers, *last);
         *last = src;
         drop(last);
         let (v, h) = current().reverse(src);
@@ -693,12 +701,17 @@ mod tests {
     #[test]
     fn a_scroll_is_the_trackpads_or_the_mouses() {
         use Source::*;
-        assert_eq!(source(false, false, false, Some(2), Trackpad), Mouse, "a wheel's notches");
-        assert_eq!(source(true, true, false, Some(2), Mouse), Trackpad);
-        assert_eq!(source(true, true, false, Some(1), Trackpad), Mouse, "a Magic Mouse scrolls under one finger");
-        assert_eq!(source(true, false, true, Some(0), Trackpad), Trackpad, "momentum keeps the scroll's source");
-        assert_eq!(source(true, false, true, Some(0), Mouse), Mouse);
-        assert_eq!(source(true, true, false, None, Mouse), Trackpad, "fingers unread: continuous is the trackpad");
+        const CHANGED: i64 = 2;
+        const ENDED: i64 = 4;
+        assert_eq!(source(false, 0, false, Some(2), Trackpad), Mouse, "a wheel's notches");
+        assert_eq!(source(true, BEGAN, false, Some(2), Mouse), Trackpad);
+        assert_eq!(source(true, MAY_BEGIN, false, Some(2), Mouse), Trackpad);
+        assert_eq!(source(true, BEGAN, false, Some(1), Trackpad), Mouse, "a Magic Mouse scrolls under one finger");
+        assert_eq!(source(true, CHANGED, false, Some(1), Trackpad), Trackpad, "a finger lifting mid-gesture keeps its source");
+        assert_eq!(source(true, ENDED, false, Some(0), Trackpad), Trackpad, "the lift counted before the gesture's end");
+        assert_eq!(source(true, 0, true, Some(0), Trackpad), Trackpad, "momentum keeps the scroll's source");
+        assert_eq!(source(true, 0, true, Some(0), Mouse), Mouse);
+        assert_eq!(source(true, BEGAN, false, None, Mouse), Trackpad, "fingers unread: continuous is the trackpad");
     }
 
     #[test]
