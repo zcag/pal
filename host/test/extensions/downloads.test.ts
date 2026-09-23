@@ -7,13 +7,13 @@
 // trash (`PAL_DOWNLOADS_TRASH`) that moves into a folder of its own, so
 // nothing touches the real Downloads or the real Trash.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { browserDirsFrom, finalName, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, SUGGEST_MS } from "../../../extensions/downloads/scan.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Form, Item } from "../../../sdk/src/protocol.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 
@@ -70,9 +70,9 @@ const cache = join(root, "cache");
 const openLog = join(root, "open.log");
 mkdirSync(folder); mkdirSync(bin); mkdirSync(trashDir);
 // The opener the extension spawns for the rest of a multi pick: `open` on macOS, `xdg-open` on Linux.
-for (const opener of ["open", "xdg-open"]) { writeFileSync(join(bin, opener), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); chmodSync(join(bin, opener), 0o755); }
-writeFileSync(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
-chmodSync(join(bin, "trash"), 0o755);
+for (const opener of ["open", "xdg-open"]) { writeTool(join(bin, opener), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); }
+writeTool(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
+
 // A 1 by 1 red PNG, for the thumbnail.
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==", "base64");
 const DAY = 86400e3;

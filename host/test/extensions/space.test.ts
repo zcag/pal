@@ -8,7 +8,7 @@
 // marking and trashing with a stand-in trash, the persisted tree, the
 // lists, the links.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, linkSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { group, neighbour, squarify, worst, type Rect } from "../../../extensions/space/layout.ts";
@@ -18,7 +18,7 @@ import { FILES_PER_DIR, KINDS, chain, detach, dominant, find, kindOf, largestDir
 import { tile } from "../../../sdk/src/icon.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 const MB = 1024 ** 2;
@@ -410,9 +410,9 @@ writeFileSync(join(root, "Movies/clip.mp4"), Buffer.alloc(50 * 1024));
 writeFileSync(join(root, "proj/pal/node_modules/x.node"), Buffer.alloc(120 * 1024));
 writeFileSync(join(root, "proj/pal/README.md"), "# pal");
 writeFileSync(join(root, "notes.txt"), "hi");
-for (const opener of ["open", "xdg-open", "qlmanage", "osascript"]) { writeFileSync(join(bin, opener), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); chmodSync(join(bin, opener), 0o755); }
-writeFileSync(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
-chmodSync(join(bin, "trash"), 0o755);
+for (const opener of ["open", "xdg-open", "qlmanage", "osascript"]) { writeTool(join(bin, opener), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); }
+writeTool(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
+
 
 let host: Host;
 const oldPath = process.env.PATH;

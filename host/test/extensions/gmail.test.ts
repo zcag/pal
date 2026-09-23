@@ -7,13 +7,13 @@
 // work instance refusing each write it must not do, the bar item and its
 // popover, the shared inbox, the token failures, a 401 re-mint, a 429.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
 import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
 import type { Item, PaletteMeta, View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 import { GmailMock, personal } from "./gmail-mock.ts";
 
 const P = "gmail";
@@ -121,10 +121,9 @@ describe("gmail", () => {
     dir = mkdtempSync(join(tmpdir(), "pal-gmail-"));
     mock = new GmailMock();
     writeFileSync(join(dir, "token.txt"), personalToken);
-    writeFileSync(join(dir, "tok-personal.sh"), `#!/bin/sh\nprintf x >> "${dir}/personal.runs"\ncat "${dir}/token.txt"\necho\n`);
-    writeFileSync(join(dir, "tok-work.sh"), `#!/bin/sh\nprintf x >> "${dir}/work.runs"\necho '{"access_token": "tok-work", "expires_in": 3385, "policy": "read and mark-read only"}'\n`);
-    writeFileSync(join(dir, "tok-broken.sh"), `#!/bin/sh\necho "curl: (7) Failed to connect to 127.0.0.1 port 8776" >&2\nexit 7\n`);
-    for (const f of ["tok-personal.sh", "tok-work.sh", "tok-broken.sh"]) chmodSync(join(dir, f), 0o755);
+    writeTool(join(dir, "tok-personal.sh"), `#!/bin/sh\nprintf x >> "${dir}/personal.runs"\ncat "${dir}/token.txt"\necho\n`);
+    writeTool(join(dir, "tok-work.sh"), `#!/bin/sh\nprintf x >> "${dir}/work.runs"\necho '{"access_token": "tok-work", "expires_in": 3385, "policy": "read and mark-read only"}'\n`);
+    writeTool(join(dir, "tok-broken.sh"), `#!/bin/sh\necho "curl: (7) Failed to connect to 127.0.0.1 port 8776" >&2\nexit 7\n`);
     process.env.PAL_GMAIL_API = mock.url;
     process.env.PAL_GMAIL_AVATARS = mock.avatarsUrl;
     host = await Host.bundled({

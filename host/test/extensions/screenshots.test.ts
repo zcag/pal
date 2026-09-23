@@ -6,13 +6,13 @@
 // (`PAL_SCREENSHOTS_TRASH`) moving into a folder of its own, so nothing
 // touches the real screen, Desktop or Trash.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 
@@ -66,9 +66,9 @@ const trashDir = join(root, "trash");
 const captureLog = join(root, "capture.log");
 mkdirSync(folder); mkdirSync(bin); mkdirSync(trashDir);
 // The stand-in screencapture: logs its arguments, sleeps a beat like the real one, writes the file it was given (none for -c).
-writeFileSync(join(bin, "screencapture"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${captureLog}"\nlast=""\nfor a in "$@"; do last="$a"; done\ncase "$*" in *" -c"*|*"-c "*) exit 0;; esac\nprintf 'PNG' > "$last"\n`);
-writeFileSync(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
-chmodSync(join(bin, "screencapture"), 0o755); chmodSync(join(bin, "trash"), 0o755);
+writeTool(join(bin, "screencapture"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${captureLog}"\nlast=""\nfor a in "$@"; do last="$a"; done\ncase "$*" in *" -c"*|*"-c "*) exit 0;; esac\nprintf 'PNG' > "$last"\n`);
+writeTool(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
+
 const at = (msAgo: number) => new Date(Date.now() - msAgo);
 const one = join(folder, "Screenshot 2026-09-17 at 14.03.22.png");
 const two = join(folder, "Screenshot 2026-09-16 at 09.15.00.png");
@@ -93,7 +93,7 @@ beforeAll(async () => {
   process.env.PAL_SCREENCAPTURE_BIN = join(bin, "screencapture");
   process.env.PAL_SCREENSHOTS_TRASH = join(bin, "trash");
   // Off macOS the capture rows need grim and slurp on PATH; stand-ins keep the three rows on a Linux runner.
-  for (const t of ["grim", "slurp", "wl-copy"]) { writeFileSync(join(bin, t), "#!/bin/sh\nexit 0\n"); chmodSync(join(bin, t), 0o755); }
+  for (const t of ["grim", "slurp", "wl-copy"]) { writeTool(join(bin, t), "#!/bin/sh\nexit 0\n"); }
   PATH0 = process.env.PATH;
   process.env.PATH = `${bin}:${process.env.PATH}`;
   host = await Host.bundled({

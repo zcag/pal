@@ -7,7 +7,7 @@
 // PATH and again forced to the Bun scan; a third host finds the vault
 // through a fake `obsidian.json`.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { paneMarkdown } from "../../../extensions/obsidian/index.ts";
@@ -15,7 +15,7 @@ import { dailyConfig, excluded, fileName, fillTemplate, firstVault, formatDate, 
 import { parseRg, rgArgv } from "../../../extensions/obsidian/vault.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/index.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 
 const HAS_RG = Bun.which("rg") !== null;
 const NOTE_ACTIONS = ["obsidian", "editor", "copy-link", "read", "backlinks", "outgoing", "copy-path", "append"];
@@ -158,8 +158,8 @@ w("templates/note.md", "# {{title}}\n\nCreated {{date}}.\n");
 w("drafts/secret.md", "# secret\n\nnot listed\n");
 const editorLog = join(scratch, "editor.log");
 const editor = join(scratch, "fake-editor");
-writeFileSync(editor, `#!/bin/sh\necho "$@" > "${editorLog}"\n`);
-chmodSync(editor, 0o755);
+writeTool(editor, `#!/bin/sh\necho "$@" > "${editorLog}"\n`);
+
 
 const SETTINGS = { vault, exclude: ["templates/**", "drafts/**"], editor, template: "templates/note" };
 let host: Host;

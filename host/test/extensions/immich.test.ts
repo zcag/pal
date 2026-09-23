@@ -8,14 +8,14 @@
 // to an album, a new album), albums, people, memories, the links, and the
 // missing, refused and read-only keys.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { clientOf, clip, downloadName, durationOf, exposureOf, isoCeiling, isoFloor, looksLikeFile, parseAsset, parseQuery, permissionOf, placeOf, takenClock, takenDay } from "../../../extensions/immich/api.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Effect, Item } from "../../../sdk/src/protocol.ts";
 import { picture } from "../png.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 import { ALBUMS, startMock } from "./immich-mock.ts";
 
 describe("api", () => {
@@ -88,8 +88,8 @@ const dir = mkdtempSync(join(tmpdir(), "pal-immich-"));
 const cache = join(dir, "cache"), downloads = join(dir, "Downloads");
 /** A stand-in for the clipboard's image copy: logs the path and the format. */
 const copyLog = join(dir, "copy.log");
-writeFileSync(join(dir, "copy-image"), `#!/bin/sh\necho "$1 $2" >> ${JSON.stringify(copyLog)}\n`);
-chmodSync(join(dir, "copy-image"), 0o755);
+writeTool(join(dir, "copy-image"), `#!/bin/sh\necho "$1 $2" >> ${JSON.stringify(copyLog)}\n`);
+
 const effectsRun: Effect[] = [];
 
 let host: Host;

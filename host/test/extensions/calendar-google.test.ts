@@ -9,12 +9,12 @@
 // detail's text, the bar item, the token cache and a 401 re-mint, one
 // account failing and both failing.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isConference, joinLink, links, parseAccounts, text, toEvent } from "../../../extensions/calendar/google.ts";
 import type { CalendarEvent } from "../../../sdk/src/index.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 import fixture from "./calendar-google.fixture.json" with { type: "json" };
 
 const E = "calendar";
@@ -52,11 +52,11 @@ beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "pal-gcal-"));
   writeFileSync(join(dir, "token.txt"), personalToken);
   // Bare token on stdout, a line of noise on stderr, one byte per run in a counter file.
-  writeFileSync(join(dir, "tok-personal.sh"), `#!/bin/sh\nprintf x >> "${dir}/personal.runs"\necho "warning: nothing" >&2\ncat "${dir}/token.txt"\necho\n`);
+  writeTool(join(dir, "tok-personal.sh"), `#!/bin/sh\nprintf x >> "${dir}/personal.runs"\necho "warning: nothing" >&2\ncat "${dir}/token.txt"\necho\n`);
   // The JSON an OAuth endpoint answers.
-  writeFileSync(join(dir, "tok-work.sh"), `#!/bin/sh\nprintf x >> "${dir}/work.runs"\necho '{"access_token": "tok-work", "expires_in": 3385, "token_type": "Bearer"}'\n`);
-  chmodSync(join(dir, "tok-personal.sh"), 0o755);
-  chmodSync(join(dir, "tok-work.sh"), 0o755);
+  writeTool(join(dir, "tok-work.sh"), `#!/bin/sh\nprintf x >> "${dir}/work.runs"\necho '{"access_token": "tok-work", "expires_in": 3385, "token_type": "Bearer"}'\n`);
+
+
   process.env.PAL_GOOGLE_API = `http://127.0.0.1:${server.port}`;
   host = await Host.bundled({ settings: { [E]: { settings: { accounts: [`personal = ${join(dir, "tok-personal.sh")}`, { name: "work", token_command: join(dir, "tok-work.sh"), calendars: ["primary"] }] } } } });
 });

@@ -3,17 +3,17 @@
 // on `run` records its arguments and writes an output file. On Linux the
 // palette is one Unavailable row and the rest is skipped.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Form } from "../../../sdk/src/protocol.ts";
-import { Host, fixtures } from "../harness.ts";
+import { Host, fixtures, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 const dir = mkdtempSync(join(tmpdir(), "pal-shortcuts-"));
 const bin = join(dir, "shortcuts");
 const log = join(dir, "runs.log");
-writeFileSync(bin, `#!/bin/bash
+writeTool(bin, `#!/bin/bash
 # list --folders | list --show-identifiers --folder-name X | run <id> [-o out] [-i in]
 if [ "$1" = list ]; then
   if [ "$2" = --folders ]; then printf 'Home\\nWork\\n'; exit 0; fi
@@ -38,7 +38,7 @@ if [ "$1" = run ]; then
 fi
 exit 2
 `);
-chmodSync(bin, 0o755);
+
 
 let host: Host;
 beforeAll(async () => {
@@ -137,8 +137,8 @@ describe("shortcuts", () => {
 
   test.skipIf(!MAC)("a tool that fails to list is one hint row naming the error and cmd+r", async () => {
     const bad = join(dir, "bad-shortcuts");
-    writeFileSync(bad, "#!/bin/bash\necho 'Error: no access' >&2\nexit 1\n");
-    chmodSync(bad, 0o755);
+    writeTool(bad, "#!/bin/bash\necho 'Error: no access' >&2\nexit 1\n");
+
     process.env.PAL_SHORTCUTS_BIN = bad;
     const h = await Host.bundled();
     const items = await h.list("shortcuts", "shortcuts");

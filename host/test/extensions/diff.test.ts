@@ -8,7 +8,7 @@
 // `code`, the links, the pick palette, and the Diff actions the Clipboard
 // History palette gained.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compute, CONTEXT, fold, sideBySide, summary, unified, wordSpans, type Line } from "../../../extensions/diff/diff.ts";
@@ -17,7 +17,7 @@ import { actions, NODE_BUDGET, render, renderEmpty, size, TINT } from "../../../
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Effect, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView, MAX_NODES } from "../../../sdk/src/view.ts";
-import { fixtures, Host, stored } from "../harness.ts";
+import { fixtures, Host, stored, writeTool } from "../harness.ts";
 
 const A = ["import x from 'y';", "", "function hello(name) {", "  return 'Hello, ' + name;", "}", ...Array.from({ length: 20 }, (_, i) => `line ${i}`), "const a = 1;", "const b = 2;", "end"].join("\n");
 const B = ["import x from 'y';", "", "function hello(name, greeting) {", "  return greeting + ', ' + name;", "}", ...Array.from({ length: 20 }, (_, i) => `line ${i}`), "const a = 1;", "const  b = 2;", "end", "one more"].join("\n");
@@ -185,8 +185,8 @@ const dir = mkdtempSync(join(tmpdir(), "pal-diff-"));
 const bin = join(dir, "bin"), cache = join(dir, "cache"), argvLog = join(dir, "argv.log");
 mkdirSync(bin);
 /** A stand-in `code` on PAL_DIFF_PATH that logs its argv. */
-writeFileSync(join(bin, "code"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${argvLog}"\n`);
-chmodSync(join(bin, "code"), 0o755);
+writeTool(join(bin, "code"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${argvLog}"\n`);
+
 const before = join(dir, "before.txt"), after = join(dir, "after.txt");
 writeFileSync(before, A);
 writeFileSync(after, B);

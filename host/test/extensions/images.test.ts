@@ -17,7 +17,7 @@ import { ASPECTS, cropped, fmtOf, geomFormat, ICONSET, isImage, outputFor, outpu
 import type { Item, View, ViewNode } from "../../../sdk/src/index.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import { bytes } from "../../../sdk/src/text.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 import { chunk, flat, gradient, png, text } from "./images-png.ts";
 
 const MAC = process.platform === "darwin";
@@ -297,7 +297,7 @@ beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "pal-images-"));
   bin = join(dir, "bin");
   mkdirSync(bin);
-  for (const t of TOOLS) writeFileSync(join(bin, t), STAND_IN, { mode: 0o755 });
+  for (const t of TOOLS) writeTool(join(bin, t), STAND_IN);
   writeFileSync(P("photo.png"), png(1200, 900, gradient));
   // The "JPEG" is the same PNG bytes under a .jpg name: the stand-ins read the header, the plans read the extension.
   writeFileSync(P("photo.jpg"), png(1200, 900, gradient));

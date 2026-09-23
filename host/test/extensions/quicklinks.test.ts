@@ -8,14 +8,14 @@
 // `tabs.active`/`tabs.find`); `PAL_QUICKLINKS_BROWSERS` names the installed
 // browsers and `PAL_QUICKLINKS_OPEN` a stand-in for `open -a` that logs.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LIBRARY } from "../../../extensions/quicklinks/library.ts";
 import { asLinks, badUrl, fill, fillNamed, fromJson, placeholder, placeholders, splitKeywords } from "../../../extensions/quicklinks/links.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import type { Item } from "../../../sdk/src/index.ts";
-import { Host, fixtures, stored } from "../harness.ts";
+import { Host, fixtures, stored, writeTool } from "../harness.ts";
 
 describe("links", () => {
   test("placeholder: {query}, {argument}, a named argument, or none", () => {
@@ -81,8 +81,8 @@ const importFile = join(dir, "links.json");
 writeFileSync(importFile, JSON.stringify([{ name: "Grafana", url: "http://grafana.lan", keywords: ["graphs"] }, { url: "http://bare" }, { name: "no url" }]));
 
 const openLog = join(dir, "open.log");
-writeFileSync(join(dir, "open"), `#!/bin/sh\necho "$1|$2" >> ${JSON.stringify(openLog)}\n`);
-chmodSync(join(dir, "open"), 0o755);
+writeTool(join(dir, "open"), `#!/bin/sh\necho "$1|$2" >> ${JSON.stringify(openLog)}\n`);
+
 const opened = () => { try { return readFileSync(openLog, "utf8").trim().split("\n"); } catch { return []; } };
 
 let host: Host;

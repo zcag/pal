@@ -1,10 +1,10 @@
 // power: OS battery gauge plus the optional measured-power watcher state.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { tile } from "../../../sdk/src/icon.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 // `printf` and not `cat`: the fake binaries run with a PATH of just this bin
 // directory and bun's, so anything in /bin is unreachable and only builtins work.
@@ -17,8 +17,8 @@ beforeAll(async () => {
   const bin = join(dir, "bin");
   Bun.spawnSync(["mkdir", "-p", bin]);
   pmset = join(bin, "pmset");
-  writeFileSync(pmset, script("31%; discharging; 2:57 remaining"));
-  chmodSync(pmset, 0o755);
+  writeTool(pmset, script("31%; discharging; 2:57 remaining"));
+
   state = join(dir, "state.json");
   writeFileSync(state, JSON.stringify(STATE));
   const saved = process.env.PATH;
@@ -45,20 +45,20 @@ describe("power", () => {
   test("bar: the glyph ramps with the level, and time left takes the slot the culprit had", async () => {
     // 31% is above the ETA cutoff, so the strip above names the culprit instead.
     // Below it the answer is how long, and four fields do not fit a bar.
-    writeFileSync(pmset, script("23%; discharging; 2:59 remaining"));
+    writeTool(pmset, script("23%; discharging; 2:59 remaining"));
     expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f007b}", title: "23% · 2:59 · 7.2W" });
-    writeFileSync(pmset, script("8%; discharging; 0:22 remaining"));
+    writeTool(pmset, script("8%; discharging; 0:22 remaining"));
     expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f007a}", title: "8% · 0:22 · 7.2W", states: { level: 8, charging: false } });
-    writeFileSync(pmset, script("96%; charging; 1:12 remaining", "AC Power"));
+    writeTool(pmset, script("96%; charging; 1:12 remaining", "AC Power"));
     expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f0084}", title: "96% · 7.2W · background-burn", states: { level: 96, charging: true, alert: "warn" } });
   });
 
   test("bar: a recalculating 0:00 defers to the watcher rather than showing a zero", async () => {
     // pmset answers 0:00 for minutes after a plug change and whenever the load
     // swings; the watcher's 10934s is the estimate worth printing.
-    writeFileSync(pmset, script("18%; discharging; 0:00 remaining"));
+    writeTool(pmset, script("18%; discharging; 0:00 remaining"));
     expect(await host.render("power", "battery")).toMatchObject({ title: "18% · 3:02 · 7.2W", tooltip: expect.stringContaining("3h 02m remaining") });
-    writeFileSync(pmset, script("31%; discharging; 2:57 remaining"));
+    writeTool(pmset, script("31%; discharging; 2:57 remaining"));
   });
 
   test("palette: gauge, draw, warning, attribution and wake lock are separate useful rows", async () => {
@@ -74,7 +74,7 @@ describe("power", () => {
 
   test("a healthy battery renders its facts and the empty shape; hiding it is the manifest's `fine` rule, not the render's", async () => {
     writeFileSync(state, JSON.stringify({ ...STATE, ts: Math.floor(Date.now() / 1000), alerts: [], w: 7.21 }));
-    writeFileSync(pmset, script("82%; discharging; 6:10 remaining"));
+    writeTool(pmset, script("82%; discharging; 6:10 remaining"));
     const item = await host.render("power", "battery");
     expect(item).toMatchObject({ title: "82%", states: { level: 82, charging: false, draw: 7.21, alert: null }, empty: { title: "82%", tooltip: expect.stringContaining("Battery Power · Discharging · 6:10 remaining") } });
     expect(item).not.toHaveProperty("hidden");

@@ -6,14 +6,14 @@
 // `view.update`, the timeout, the confirm on a destructive command, the
 // terminal action against a stand-in `open`/terminal, the history.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CAP, commandsOf, duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv } from "../../../extensions/shell/run.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 
@@ -76,7 +76,7 @@ const real = realpathSync(dir);
 const openLog = join(dir, "open.log");
 // A stand-in `open` (macOS) / terminal (Linux) on PATH that logs its argv.
 const bin = join(dir, "bin");
-const stub = (name: string) => { const p = join(bin, name); writeFileSync(p, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); chmodSync(p, 0o755); };
+const stub = (name: string) => { const p = join(bin, name); writeTool(p, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); };
 mkdirSync(bin);
 stub("open"); stub("osascript"); stub("x-terminal-emulator");
 const opened = () => (existsSync(openLog) ? readFileSync(openLog, "utf8").trim().split("\n") : []);

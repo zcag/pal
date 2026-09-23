@@ -7,14 +7,14 @@
 // channels palette and a channel's videos, Watch Later, the refusals,
 // the debounce, the inline ask.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { age, count, duration, isoSeconds, parseApiChannels, parseApiVideos, parseInvChannels, parseInvVideos } from "../../../extensions/youtube/api.ts";
 import { matches, playerArgv } from "../../../extensions/youtube/index.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 import { CHANNELS, startMock, VIDEOS } from "./youtube-mock.ts";
 
 describe("api.ts", () => {
@@ -51,8 +51,8 @@ const { server, requests, base } = startMock();
 const dir = mkdtempSync(join(tmpdir(), "pal-youtube-"));
 const bins = join(dir, "bin"), played = join(dir, "played.log");
 mkdirSync(bins);
-writeFileSync(join(bins, "mpv"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${played}"\n`);
-chmodSync(join(bins, "mpv"), 0o755);
+writeTool(join(bins, "mpv"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${played}"\n`);
+
 const playedLog = () => (existsSync(played) ? readFileSync(played, "utf8").trim().split("\n") : []);
 
 let host: Host;

@@ -5,7 +5,7 @@
 // palette, the filters, the lazy detail, an ETag hit on re-list, the
 // mutations, the create forms, and the hint when nothing can sign in.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tinted } from "../../../sdk/src/icon.ts";
@@ -13,7 +13,7 @@ import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { REASONS, render as renderNotifs, renderIssues, renderPrs, shown, shownIssues, shownPrs } from "../../../extensions/github/view.ts";
 import type { Issue as GhIssue, Notification, PR as GhPR } from "../../../extensions/github/data.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 
 // ---- fixtures ---------------------------------------------------------------
 
@@ -155,8 +155,8 @@ mkdirSync(join(dir, "pal"));
 const fakeGh = (name: string, script: string) => {
   const bin = join(dir, name);
   mkdirSync(bin, { recursive: true });
-  writeFileSync(join(bin, "gh"), script);
-  chmodSync(join(bin, "gh"), 0o755);
+  writeTool(join(bin, "gh"), script);
+
   return bin;
 };
 const ghLog = join(dir, "gh.log");

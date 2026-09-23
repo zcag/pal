@@ -5,14 +5,14 @@
 // running view pushed through `view.update` as the stand-in prints, the
 // finished view, Stop, the history and its trend, the other two tools.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { argv, detect, feed, finish, ms, speed, start, summary, noteLine } from "../../../extensions/speedtest/tools.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Effect, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 
 const OOKLA_LINES = [
   `{"type":"testStart","timestamp":"2026-09-17T08:00:00Z","isp":"Turk Telekom","interface":{"internalIp":"10.0.0.5","name":"en0","macAddr":"aa","isVpn":false,"externalIp":"85.1.2.3"},"server":{"id":1234,"host":"speedtest.example.net:8080","port":8080,"name":"Example Net","location":"Istanbul","country":"Türkiye","ip":"1.2.3.4"}}`,
@@ -86,7 +86,7 @@ describe("tools.ts", () => {
 const dir = mkdtempSync(join(tmpdir(), "pal-speedtest-"));
 const bins = join(dir, "bin"), log = join(dir, "argv.log");
 mkdirSync(bins);
-const standIn = (name: string, body: string) => { const p = join(bins, name); writeFileSync(p, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${log}"\n${body}`); chmodSync(p, 0o755); };
+const standIn = (name: string, body: string) => { const p = join(bins, name); writeTool(p, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${log}"\n${body}`); };
 const emit = (lines: string[], delay = 0.08) => lines.map((l) => `sleep ${delay}; printf '%s\\n' '${l.replace(/'/g, `'\\''`)}'`).join("\n");
 const ookla = (delay?: number, tail = "") => `if [ "$1" = "--version" ]; then echo "Speedtest by Ookla 1.2.0.84 (ea6b6773cf) Darwin/arm64"; exit 0; fi\n${emit(OOKLA_LINES.slice(0, 5), delay)}\n${tail}\n${emit(OOKLA_LINES.slice(5), delay)}`;
 const argvLog = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n") : []);

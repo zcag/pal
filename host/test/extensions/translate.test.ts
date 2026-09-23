@@ -6,14 +6,14 @@
 // that logs what it was asked to say. Turkish and English are the pair
 // throughout.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { googleAlternatives, parseGoogle, parseVoices, voiceFor } from "../../../extensions/translate/backends.ts";
 import { deeplSource, deeplTarget, fromDeepl, langOf, matches, nameOf, otherEnd, parse, systemLanguage } from "../../../extensions/translate/lang.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 import { HELLO_JA, HELLO_TR, MERHABA_EN, startMock } from "./translate-mock.ts";
 
 describe("lang", () => {
@@ -114,8 +114,8 @@ describe("backends", () => {
 const dir = mkdtempSync(join(tmpdir(), "pal-translate-"));
 const sayLog = join(dir, "say.log");
 const say = join(dir, "say");
-writeFileSync(say, `#!/bin/sh\nprintf '%s\\t%s\\n' "$1" "$2" >> "${sayLog}"\n`);
-chmodSync(say, 0o755);
+writeTool(say, `#!/bin/sh\nprintf '%s\\t%s\\n' "$1" "$2" >> "${sayLog}"\n`);
+
 const spoken = () => (existsSync(sayLog) ? readFileSync(sayLog, "utf8").trim().split("\n") : []);
 
 const { server, requests, base } = startMock();

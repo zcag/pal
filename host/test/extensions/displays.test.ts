@@ -2,7 +2,7 @@
 // the palette, bar item and routes against fake tools on PATH (shell
 // scripts that print the fixtures and log what they were asked to set).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { INPUTS, findMode, formatPlacements, levelFrom, mergeMac, parseBrightnessCli, parseDdcctl, parseDdcutilDetect, parseDdcutilVcp, parseDisplayplacer, parseHyprctl, parseInput, parseM1ddcList, parsePlacement, parseProfiler, parseWlrRandr, parseXrandr, withMain, withMirror, withMode, withoutMirror, type Screen } from "../../../extensions/displays/model.ts";
@@ -10,7 +10,7 @@ import { popover, sliderView } from "../../../extensions/displays/view.ts";
 import { resolveScreen } from "../../../extensions/displays/index.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 import { BRIGHTNESS_L, BUILTIN, DDCCTL, DDCUTIL_DETECT, DELL, DISPLAYPLACER, DISPLAYPLACER_MIRRORED, HYPRCTL, M1DDC_LIST, PROFILER, WLR_RANDR, XRANDR } from "./displays-fixtures.ts";
 
 const walk = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(walk) : [])];
@@ -149,8 +149,8 @@ type Fakes = { dir: string; bin: string; log: string };
 /** A sh script at `bin/<name>`: fixtures by `cat`, what it was asked logged as one line per call. */
 function fake(f: Fakes, name: string, body: string) {
   const p = join(f.bin, name);
-  writeFileSync(p, `#!/bin/sh\nDIR="${f.dir}"\nLOG="${f.log}"\n${body}\n`);
-  chmodSync(p, 0o755);
+  writeTool(p, `#!/bin/sh\nDIR="${f.dir}"\nLOG="${f.log}"\n${body}\n`);
+
 }
 function fakes(): Fakes {
   const dir = mkdtempSync(join(tmpdir(), "pal-displays-"));

@@ -16,7 +16,7 @@ import { parseMdls } from "../../../extensions/files/meta.ts";
 import { archiveArgv, archiveName, copyForm, moveForm, renameForm } from "../../../sdk/src/files.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
 import type { Ctx, Item } from "../../../sdk/src/index.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const HAS_FIND = Bun.which("find") !== null;
 const HAS_GREP = Bun.which("grep") !== null;
@@ -158,7 +158,7 @@ beforeAll(async () => {
   writeFileSync(join(dir, "scan.pdf"), "%PDF-1.4\n");
   // Stand-ins: a "zip" that writes the archive's name and its sources, a "terminal" that logs the folder, an "mdls" answering a fixed raw record.
   tools = mkdtempSync(join(tmpdir(), "pal-files-tools-"));
-  const tool = (name: string, body: string) => { const p = join(tools, name); writeFileSync(p, `#!/bin/sh\n${body}\n`, { mode: 0o755 }); return p; };
+  const tool = (name: string, body: string) => { const p = join(tools, name); writeTool(p, `#!/bin/sh\n${body}\n`); return p; };
   process.env.PAL_FILES_ZIP = tool("zip", 'out="$1"; shift; printf "%s\\n" "$@" > "$out"');
   process.env.PAL_FILES_TERMINAL = tool("term", `printf "%s\\n" "$1" >> "${join(tools, "terminal.log")}"`);
   process.env.PAL_FILES_MDLS = tool("mdls", `case "$8" in *.png) printf '640\\000480\\000(\\n    "Red\\\\n6",\\n    "Work"\\n)';; *) printf '(null)\\000(null)\\000(null)';; esac`);

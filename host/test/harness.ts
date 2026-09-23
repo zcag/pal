@@ -4,7 +4,7 @@
 // `Host` per test file where the tests do not interfere; `Root` builds a
 // throwaway extension root under the OS temp dir.
 import { setDefaultTimeout } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewUpdate, Window } from "../../sdk/src/index.ts";
@@ -22,6 +22,36 @@ export const PROTOCOL = resolve(import.meta.dir, "../../sdk/src/protocol.ts");
 
 export type Kind = "request" | "notification" | "response";
 /** protocol.ts: a `method` makes a request (with id) or a notification (without); no method is a response. */
+/**
+ * The one executable every stand-in tool runs (`writeTool`), made once per machine and content. macOS checks a new executable file on its
+ * first run (0.15-0.3 s each, measured 2026-09-24), and the tests wrote hundreds of fresh ones: the network file alone spent 20 of its
+ * 33 s on it. A link to this stub is not a new executable, so only the stub's own first run pays. It runs the script beside the link
+ * (`<tool>.tool`) under the script's own shebang; a shell script is sourced so its `$0` is still the tool's path (a fake that re-runs itself).
+ */
+const STUB = `#!/bin/sh
+IFS= read -r l < "$0.tool"
+case "$l" in
+  '#!'*sh) exec \${l#??} -c '. "$0.tool"' "$0" "$@" ;;
+  '#!'*) exec \${l#??} "$0.tool" "$@" ;;
+  *) exec /bin/sh -c '. "$0.tool"' "$0" "$@" ;;
+esac
+`;
+const stubPath = join(tmpdir(), `pal-test-tool-${Bun.hash(STUB).toString(36)}`);
+if (!existsSync(stubPath)) {
+  const tmp = `${stubPath}.${process.pid}`;
+  writeFileSync(tmp, STUB, { mode: 0o755 });
+  renameSync(tmp, stubPath);
+}
+
+/** A stand-in executable at `path` that runs `body` (a script, `#!` line optional: sh without one); written again, it runs the new body. Returns `path`. */
+export function writeTool(path: string, body: string): string {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(`${path}.tool`, body);
+  rmSync(path, { force: true });
+  symlinkSync(stubPath, path);
+  return path;
+}
+
 export const kind = (m: any): Kind => (m.method === undefined ? "response" : m.id === undefined ? "notification" : "request");
 
 export type CoreHandler = (params: any) => unknown;

@@ -3,10 +3,10 @@
 // it to "daemon down"; `PAL_TERMINAL_LOG` catches the Shell action's argv
 // instead of opening a terminal.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-docker-"));
 const calls = join(dir, "calls");
@@ -24,7 +24,7 @@ const COMPOSE = [
   { Name: "theater", Status: "running(35)", ConfigFiles: "/home/someone/srv/theater/compose.yml" },
   { Name: "lab", Status: "exited(2)", ConfigFiles: "/home/someone/proj/lab/compose.yml,/home/someone/proj/lab/compose.override.yml" },
 ];
-writeFileSync(join(dir, "docker"), `#!/bin/sh
+writeTool(join(dir, "docker"), `#!/bin/sh
 printf '%s\\n' "$*" >> "${calls}"
 if [ "$(cat "${dir}/mode" 2>/dev/null)" = down ]; then echo "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?" >&2; exit 1; fi
 case "$1 $2" in
@@ -39,7 +39,7 @@ case "$1 $2" in
   *) echo "$2" ;;
 esac
 `);
-chmodSync(join(dir, "docker"), 0o755);
+
 writeFileSync(join(dir, "ps.jsonl"), PS.map((r) => JSON.stringify(r)).join("\n") + "\n");
 writeFileSync(join(dir, "images.jsonl"), IMAGES.map((r) => JSON.stringify(r)).join("\n") + "\n");
 writeFileSync(join(dir, "compose.json"), JSON.stringify(COMPOSE) + "\n");

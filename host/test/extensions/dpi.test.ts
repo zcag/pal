@@ -5,7 +5,7 @@
 // `curl` that answers a code per host, and, for Linux, a fake `sudo` whose
 // answer a file decides.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { tile } from "../../../sdk/src/icon.ts";
@@ -17,7 +17,7 @@ import { curlArgv, parseTargets, summary as testSummary, type Result } from "../
 import { renderPopover, renderTest } from "../../../extensions/dpi/view.ts";
 import manifest from "../../../extensions/dpi/pal.json" with { type: "json" };
 import ext from "../../../extensions/dpi/index.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const MAC_ON = "proxy   : up (pid 4242, :1080)\nservice : Wi-Fi\ndns     : 1.1.1.1 9.9.9.9 \nsocks   : 127.0.0.1:1080\n";
 const MAC_OFF = "proxy   : down\nservice : Wi-Fi\ndns     : There aren't any DNS Servers set on Wi-Fi. \nsocks   : off\n";
@@ -150,7 +150,7 @@ const asked = () => (existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\
 const cmds = () => asked().filter((l) => !/^status$|--max-time/.test(l));
 const DPI_LOG = join(dir, "dpi.log");
 const setState = (s: string) => writeFileSync(STATE, s);
-writeFileSync(join(bin, "dpi"), `#!/bin/sh
+writeTool(join(bin, "dpi"), `#!/bin/sh
 PATH=/usr/bin:/bin:$PATH
 echo "$*" >> ${JSON.stringify(LOG)}
 state=$(cat ${JSON.stringify(STATE)})
@@ -179,7 +179,7 @@ case "$1" in
 esac
 `);
 // The fake curl: the url is the last argument; `codes` maps a host to `code delay`. The fakes reach /bin themselves: the host runs with a PATH of the fake bin and bun's alone.
-writeFileSync(join(bin, "curl"), `#!/bin/sh
+writeTool(join(bin, "curl"), `#!/bin/sh
 PATH=/usr/bin:/bin:$PATH
 for u; do :; done
 echo "$*" >> ${JSON.stringify(LOG)}
@@ -189,8 +189,7 @@ code=\${line#* }; delay=\${code#* }; code=\${code%% *}
 [ -n "$delay" ] && [ "$delay" != "$code" ] && sleep "$delay"
 printf '%s 0.%s' "\${code:-000}" "\${delay:-1}"
 `);
-writeFileSync(join(bin, "sudo"), `#!/bin/sh\n[ -f ${JSON.stringify(SUDO)} ]\n`);
-for (const f of ["dpi", "curl", "sudo"]) chmodSync(join(bin, f), 0o755);
+writeTool(join(bin, "sudo"), `#!/bin/sh\n[ -f ${JSON.stringify(SUDO)} ]\n`);
 writeFileSync(CODES, "discord.com 200 1\nroblox.com 000 3\nenpara.com 200 1\nexample.com 200 2\n");
 setState("off");
 

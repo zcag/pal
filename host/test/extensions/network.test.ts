@@ -4,10 +4,10 @@
 // one runs on a Mac too.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { Host, type CoreTable } from "../harness.ts";
+import { Host, writeTool, type CoreTable } from "../harness.ts";
 
 const IFCONFIG = `lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
 \tinet 127.0.0.1 netmask 0xff000000
@@ -83,9 +83,7 @@ Link 3 (wlan0): 1.1.1.1 9.9.9.9
 function fakeBin(tools: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), "pal-net-bin-"));
   for (const [name, body] of Object.entries(tools)) {
-    const p = join(dir, name);
-    writeFileSync(p, `#!/bin/sh\n${body}\n`);
-    chmodSync(p, 0o755);
+    writeTool(join(dir, name), `#!/bin/sh\n${body}\n`);
   }
   return dir;
 }

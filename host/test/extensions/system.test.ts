@@ -9,14 +9,14 @@
 // tested directly.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SystemCommand, View } from "../../../sdk/src/index.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { argv, describe as describeRun, fmtClock, fmtLeft, fmtSpan, nextTick, parseTarget, reconcile, summary, type Awake } from "../../../extensions/system/awake.ts";
 import { actions, render, type PopoverState } from "../../../extensions/system/view.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 const COMMANDS: SystemCommand[] = [
@@ -37,13 +37,13 @@ const WITH_AWAKE = [...COMMANDS.slice(0, 5), KEEP_AWAKE, ...COMMANDS.slice(5)];
 const fake = mkdtempSync(join(tmpdir(), "pal-awake-"));
 const CLI = join(fake, "caffeinate");
 const LOG = join(fake, "log");
-writeFileSync(CLI, `#!/bin/sh
+writeTool(CLI, `#!/bin/sh
 echo "$*" >> ${JSON.stringify(LOG)}
 t=""
 while [ $# -gt 0 ]; do case "$1" in -t) t="$2"; shift ;; esac; shift; done
 if [ -n "$t" ]; then sleep "$t"; else while :; do sleep 1; done; fi
 `);
-chmodSync(CLI, 0o755);
+
 const asked = () => (existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\n") : []);
 // A freshly written script takes a beat to start (macOS checks a new executable on its first run), so the log is polled for the next line rather than read at once.
 let seen = 0;
@@ -72,7 +72,7 @@ const IDS = ["sleep", "shutdown", "empty-trash", "dark-mode", "quit-all", "unhid
 beforeAll(async () => {
   process.env.PAL_TRASH_DIR = trash;
   const ql = join(tools, "ql");
-  writeFileSync(ql, `#!/bin/sh\nprintf "%s\\n" "$@" >> "${qlLog}"\n`, { mode: 0o755 });
+  writeTool(ql, `#!/bin/sh\nprintf "%s\\n" "$@" >> "${qlLog}"\n`);
   process.env.PAL_FILES_QUICKLOOK = ql;
   process.env.PAL_AWAKE_TOOL = CLI;
   host = await Host.bundled({ core: {

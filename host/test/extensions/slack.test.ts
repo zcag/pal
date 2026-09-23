@@ -9,13 +9,13 @@
 // rules and menu, the rate-limit back-off, the re-extraction on
 // `invalid_auth`, and the token mode's fallback.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { derive } from "../../../extensions/slack/cookies.ts";
 import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, HostError, stored } from "../harness.ts";
+import { Host, HostError, stored, writeTool } from "../harness.ts";
 import { buildAppDir } from "./slack-fixtures.ts";
 
 // ---- fixtures ---------------------------------------------------------------
@@ -145,8 +145,8 @@ buildAppDir(appDir, { teams: { T1: { id: "T1", name: "Acme", domain: "acme", tok
 const bin = join(dir, "bin");
 mkdirSync(bin);
 const securityLog = join(dir, "security.log");
-writeFileSync(join(bin, "security"), `#!/bin/sh\necho "$*" >> ${JSON.stringify(securityLog)}\ncase "$*" in *"Slack Safe Storage"*) echo ${PASSWORD};; *) exit 1;; esac\n`);
-chmodSync(join(bin, "security"), 0o755);
+writeTool(join(bin, "security"), `#!/bin/sh\necho "$*" >> ${JSON.stringify(securityLog)}\ncase "$*" in *"Slack Safe Storage"*) echo ${PASSWORD};; *) exit 1;; esac\n`);
+
 const asks = () => { try { return readFileSync(securityLog, "utf8").trim().split("\n").filter(Boolean).length; } catch { return 0; } };
 // On Linux the key is the fixed "peanuts" one: no keychain is asked, so the ask counts hold on macOS only.
 const KEYCHAIN = process.platform === "darwin";

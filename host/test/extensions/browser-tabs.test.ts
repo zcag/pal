@@ -7,10 +7,10 @@
 // decoder's copy path runs). The real :9222 is never touched.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 const dir = mkdtempSync(join(tmpdir(), "pal-tabs-"));
@@ -88,7 +88,7 @@ const safari = [
 ];
 writeFileSync(osaState, "ok");
 writeFileSync(osaLog, "");
-writeFileSync(join(dir, "osascript"), `#!/bin/bash
+writeTool(join(dir, "osascript"), `#!/bin/bash
 # osascript -l JavaScript -e <script> <mode> <args...>
 shift 4
 echo "$*" >> "${osaLog}"
@@ -100,7 +100,7 @@ case "$1" in
   focus|close) echo ok ;;
 esac
 `);
-chmodSync(join(dir, "osascript"), 0o755);
+
 const osa = () => readFileSync(osaLog, "utf8").split("\n").filter(Boolean);
 
 // ---- Firefox session, compressed by hand ----------------------------------------------

@@ -3,7 +3,7 @@
 // asked and edits the files the way the real one would. The bar item's
 // pushes (fs.watch and the 1 Hz tick) are real, so this test takes seconds.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -11,13 +11,13 @@ import { checkView } from "../../../sdk/src/view.ts";
 import { fmt, parseNew, readTimers, unquote } from "../../../extensions/timer/index.ts";
 import { asSession, next, tally, type Session } from "../../../extensions/timer/pomodoro.ts";
 import { DEFAULT_RECENT, actions, render as renderPopover, type PopoverState, type Timer } from "../../../extensions/timer/view.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-timer-"));
 const dir = join(base, "state");
 const log = join(base, "cli.log");
 const cli = join(base, "timer");
-writeFileSync(cli, `#!/bin/sh
+writeTool(cli, `#!/bin/sh
 echo "$*" >> ${JSON.stringify(log)}
 case "$1" in
   stop) rm -f "$TIMER_DIR/$2.state" ;;
@@ -29,7 +29,7 @@ case "$1" in
   *) id=$(printf '%s' "\${2:-$1}" | tr ' ' '-'); printf 'id=%s\\nname=%s\\ntotal=1500\\ndeadline=%s\\nleft=1500\\nstate=running\\nring=0\\nquiet=0\\nauto=0\\npid=0\\nfired=0\\n' "$id" "\${2:-$1}" $(( $(date +%s) + 1500 )) > "$TIMER_DIR/$id.state"; echo "$id started" ;;
 esac
 `);
-chmodSync(cli, 0o755);
+
 
 const now = () => Math.floor(Date.now() / 1000);
 type Spec = { state: "running" | "paused" | "done"; total?: number; deadline?: number; left?: number; fired?: number; auto?: boolean; name?: string };

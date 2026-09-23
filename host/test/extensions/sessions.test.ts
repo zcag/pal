@@ -7,7 +7,7 @@
 // /proc the Linux cwd lookup reads, mirroring the lsof answer. The `blocked?`
 // test waits the real two seconds the idle check takes on a first sight.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -17,7 +17,7 @@ import { claude, codex, copilot, ps } from "../../../extensions/sessions/fixture
 import { agentOf, ancestors, appOf, cputime, kittyCandidates, kittyListenOn, kittyPids, kittyWindowOf, stepsFor, tool, ttyOf } from "../../../extensions/sessions/procs.ts";
 import { actions, render as renderPopover, shown, type Session } from "../../../extensions/sessions/view.ts";
 import { CAP, PAGE } from "../../../extensions/sessions/transcript.ts";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-sessions-"));
 const MAC = process.platform === "darwin";
@@ -25,7 +25,7 @@ const home = join(base, "home"), bin = join(base, "bin"), out = join(base, "out"
 for (const d of [home, bin, out]) mkdirSync(d, { recursive: true });
 
 // The stand-ins: `<name> <args>` appended to the log, stdout from `out/<name>.out` (tmux and kitten pick a file by subcommand).
-const stub = (name: string, body: string) => { writeFileSync(join(bin, name), `#!/bin/sh\necho "${name} $*" >> ${JSON.stringify(log)}\n${body}\n`); chmodSync(join(bin, name), 0o755); };
+const stub = (name: string, body: string) => { writeTool(join(bin, name), `#!/bin/sh\necho "${name} $*" >> ${JSON.stringify(log)}\n${body}\n`); };
 const canned = (name: string, text: string) => {
   writeFileSync(join(out, `${name}.out`), text);
   // Linux reads `/proc/<pid>/cwd` where macOS asks lsof: the same answer as links under a stand-in root (`PAL_PROC`).

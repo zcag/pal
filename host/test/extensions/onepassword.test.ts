@@ -4,10 +4,10 @@
 // every call, so the cache and the arguments can be checked.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host } from "../harness.ts";
+import { Host, writeTool } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-op-"));
 const state = join(dir, "state");
@@ -22,7 +22,7 @@ const items = [
 writeFileSync(join(dir, "items.json"), JSON.stringify(items));
 writeFileSync(state, "out");
 writeFileSync(log, "");
-writeFileSync(join(dir, "op"), `#!/bin/bash
+writeTool(join(dir, "op"), `#!/bin/bash
 echo "$*" >> "${log}"
 if [ "$(cat "${state}")" = out ]; then
   echo "[ERROR] 2026/09/16 12:00:00 You are not currently signed in. Please run \\\`op signin --help\\\` for instructions" >&2
@@ -42,7 +42,7 @@ case "$1 $2" in
   *) echo "unknown: $*" >&2; exit 2 ;;
 esac
 `);
-chmodSync(join(dir, "op"), 0o755);
+
 
 const calls = () => readFileSync(log, "utf8").split("\n").filter(Boolean);
 
