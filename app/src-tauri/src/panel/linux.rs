@@ -223,6 +223,11 @@ pub fn bar_hide(app: &AppHandle, label: &'static str) {
     }
 }
 
+// No keycast on Linux, so no ring either.
+pub fn ring_set(_look: Option<(f64, [f64; 4])>) {}
+pub fn ring_follow() {}
+pub fn ring_press(_down: bool) {}
+
 // ---- sidebar strip ---------------------------------------------------------
 //
 // No sidebar on Linux yet (sidebar.rs builds nothing there), so the strip

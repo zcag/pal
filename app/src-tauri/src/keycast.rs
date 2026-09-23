@@ -12,11 +12,12 @@
 //! Space, above everything, kept alive hidden), sized to the whole display
 //! under the cursor and moved to another when the cursor crosses. The page
 //! (KeycastPage.tsx) draws the key strip at the configured corner and the
-//! cursor ring with its click ripples; this side sends it the feed after
-//! every key (`pal://keycast`, `{ kind: "keys" }`), the cursor at most
-//! every [`MOVE_MS`] and once more after the last move it held back
-//! (`{ kind: "cursor" }`), and every click
-//! (`{ kind: "click" }`), all in the window's own CSS pixels.
+//! click ripples; this side sends it the feed after every key
+//! (`pal://keycast`, `{ kind: "keys" }`) and every click (`{ kind: "click" }`),
+//! in the window's own CSS pixels. The cursor ring is native
+//! (`panel::ring_*`), moved to the mouse inside the monitor's handler, so
+//! it keeps up with a fast cursor where the page could not; the page only
+//! resolves its colour from the theme (`keycast_ring_color`).
 //!
 //! What is never shown: anything typed while a secure text field has the
 //! keyboard (`Event::secure`, `IsSecureEventInputEnabled`: a password
@@ -39,7 +40,6 @@
 // Off macOS the window is never made and `start` refuses; the state and the settings still compile and their tests run.
 #![cfg_attr(not(target_os = "macos"), allow(dead_code))]
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -55,13 +55,6 @@ use crate::{events, lock, panel, permissions, settings};
 pub const WINDOW: &str = "keycast";
 /// Where the overlay can be drawn and the keys watched.
 pub const SUPPORTED: bool = cfg!(target_os = "macos");
-/// The cursor is sent to the page at most this often: a frame at 120 Hz.
-/// The ring is placed as it arrives, with no transition easing it there
-/// (at 20 ms and a 40 ms ease it trailed a fast cursor by a visible gap).
-const MOVE_MS: Duration = Duration::from_millis(8);
-/// A move held back by [`MOVE_MS`] has a send scheduled: the cursor's
-/// resting place always reaches the page, not the last move before it.
-static TRAILING: AtomicBool = AtomicBool::new(false);
 /// How often a move checks which display the cursor is on.
 const FOLLOW_MS: Duration = Duration::from_millis(250);
 const UNAVAILABLE: &str = "Keycast is not available on Linux: there is no portable input tap (Wayland hands input to the focused app only)";
@@ -158,13 +151,53 @@ struct State {
     mode: Mode,
     settings: Settings,
     feed: Feed,
-    last_move: Instant,
     last_follow: Instant,
+    /// The ring's colour as the page resolved `ring_color` from the theme (sRGB, 0..1).
+    ring_rgba: [f64; 4],
     /// The display the window covers, by name; `None` until placed.
     display: Option<String>,
 }
 
 pub struct Keycast(Mutex<State>);
+
+/// tokens.css's `--pal-tag-blue`, until the page says what the theme makes of `ring_color`.
+const BLUE: [f64; 4] = [0x24 as f64 / 255.0, 0x57 as f64 / 255.0, 0xB0 as f64 / 255.0, 1.0];
+
+/// The ring shown or hidden for the state (main thread, from any).
+fn ring(app: &AppHandle) {
+    let look = {
+        let st = app.state::<Keycast>();
+        let s = lock(&st.0);
+        (s.active && s.mode.cursor() && s.settings.ring).then_some((s.settings.scale, s.ring_rgba))
+    };
+    let _ = app.run_on_main_thread(move || panel::ring_set(look));
+}
+
+/// A canvas-normalised CSS colour (`#rrggbb`, or `rgba(r, g, b, a)` for a translucent one) as sRGB 0..1.
+fn parse_rgba(c: &str) -> Option<[f64; 4]> {
+    let c = c.trim();
+    if let Some(hex) = c.strip_prefix('#').filter(|h| h.len() == 6) {
+        let v = u32::from_str_radix(hex, 16).ok()?;
+        return Some([(v >> 16) as f64 / 255.0, (v >> 8 & 0xff) as f64 / 255.0, (v & 0xff) as f64 / 255.0, 1.0]);
+    }
+    let inner = c.strip_prefix("rgba(").or_else(|| c.strip_prefix("rgb("))?.strip_suffix(')')?;
+    let n: Vec<f64> = inner.split(',').map(|p| p.trim().parse().ok()).collect::<Option<_>>()?;
+    match n[..] {
+        [r, g, b] => Some([r / 255.0, g / 255.0, b / 255.0, 1.0]),
+        [r, g, b, a] => Some([r / 255.0, g / 255.0, b / 255.0, a]),
+        _ => None,
+    }
+}
+
+/// The page's resolution of `ring_color` under the current theme, sent on
+/// load and whenever the theme or the setting changes.
+#[tauri::command]
+pub fn keycast_ring_color(app: AppHandle, color: String) {
+    let Some(rgba) = parse_rgba(&color) else { return eprintln!("keycast	ring colour unread	{color}") };
+    let st = app.state::<Keycast>();
+    lock(&st.0).ring_rgba = rgba;
+    ring(&app);
+}
 
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
@@ -188,7 +221,6 @@ pub struct Status {
 enum Payload<'a> {
     State { active: bool, mode: Mode, settings: &'a Settings },
     Keys { entries: Vec<Entry> },
-    Cursor { x: f64, y: f64 },
     Click { button: &'static str, x: f64, y: f64, down: bool },
     /// The display the window now covers: the work area's insets from its
     /// edges (top, right, bottom, left; the menu bar, the Dock), CSS pixels,
@@ -200,7 +232,7 @@ enum Payload<'a> {
 pub fn install(app: &AppHandle) {
     let settings = Settings::from(&settings::config(app));
     let now = Instant::now();
-    let st = State { active: false, mode: settings.mode(), feed: Feed::new(settings.options()), settings, last_move: now, last_follow: now, display: None };
+    let st = State { active: false, mode: settings.mode(), feed: Feed::new(settings.options()), settings, last_follow: now, ring_rgba: BLUE, display: None };
     app.manage(Keycast(Mutex::new(st)));
     if !SUPPORTED {
         eprintln!("keycast\tnot available off macOS (no portable input tap)");
@@ -236,13 +268,17 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     s.feed.opts = after.options();
     let wants = (s.mode.wants(&before), s.mode.wants(&after));
     s.settings = after;
-    if s.active {
+    let active = s.active;
+    if active {
         let p = Payload::State { active: true, mode: s.mode, settings: &s.settings };
         events::emit_to(app, WINDOW, events::KEYCAST, p);
         if wants.0 != wants.1 {
             drop(s);
             keytap::subscribe(app, "keycast", wants.1, on_event);
         }
+    }
+    if active {
+        ring(app);
     }
 }
 
@@ -296,6 +332,7 @@ pub fn start(app: &AppHandle, mode: Option<Mode>) -> Result<Status, String> {
     }
     keytap::subscribe(app, "keycast", wants, on_event);
     tell_page(app);
+    ring(app);
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         follow(&handle);
@@ -318,6 +355,7 @@ pub fn stop(app: &AppHandle) -> Status {
         eprintln!("keycast\tstop");
         keytap::unsubscribe(app, "keycast");
         tell_page(app);
+        ring(app);
         let handle = app.clone();
         let _ = app.run_on_main_thread(move || panel::keycast_hide(&handle));
         publish(app, false, mode);
@@ -373,12 +411,6 @@ fn cursor(app: &AppHandle) -> Option<(f64, f64)> {
     let p = w.outer_position().ok()?;
     let scale = w.scale_factor().unwrap_or(1.0);
     Some((((c.x - p.x as f64) / scale * 10.0).round() / 10.0, ((c.y - p.y as f64) / scale * 10.0).round() / 10.0))
-}
-
-fn send_cursor(app: &AppHandle) {
-    if let Some((x, y)) = cursor(app) {
-        events::emit_to(app, WINDOW, events::KEYCAST, Payload::Cursor { x, y });
-    }
 }
 
 /// The display under `cursor` (physical pixels) among `monitors`, by a
@@ -477,38 +509,23 @@ fn on_event(app: &AppHandle, ev: &Event) {
                 events::emit_to(app, WINDOW, events::KEYCAST, Payload::Keys { entries });
             }
             if mode.cursor() {
+                panel::ring_press(down);
                 if let Some((x, y)) = cursor(app) {
                     events::emit_to(app, WINDOW, events::KEYCAST, Payload::Click { button: b.name(), x, y, down });
                 }
             }
         }
+        // The monitor's handler is on the main thread: the ring moves here, with nothing between the event and the screen.
         Kind::MouseMoved => {
             if !mode.cursor() {
                 return;
             }
-            if s.last_move.elapsed() < MOVE_MS {
-                if !TRAILING.swap(true, Ordering::Relaxed) {
-                    let app = app.clone();
-                    std::thread::spawn(move || {
-                        std::thread::sleep(MOVE_MS);
-                        TRAILING.store(false, Ordering::Relaxed);
-                        let st = app.state::<Keycast>();
-                        let s = lock(&st.0);
-                        if s.active && s.mode.cursor() {
-                            drop(s);
-                            send_cursor(&app);
-                        }
-                    });
-                }
-                return;
-            }
-            s.last_move = Instant::now();
             let refollow = s.last_follow.elapsed() >= FOLLOW_MS;
             drop(s);
+            panel::ring_follow();
             if refollow {
                 follow(app);
             }
-            send_cursor(app);
         }
         // A scroll or a gesture on the strip: the same gates as a key (the strip drawn, no secure field), the feed decides whether anything moved.
         Kind::Scroll | Kind::Gesture(_) => {
@@ -677,6 +694,15 @@ pub fn bar_action(app: &AppHandle, action: &str) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_pages_ring_colour_reads() {
+        assert_eq!(parse_rgba("#2457b0"), Some(BLUE));
+        assert_eq!(parse_rgba("rgba(255, 0, 51, 0.5)"), Some([1.0, 0.0, 0.2, 0.5]));
+        assert_eq!(parse_rgba("rgb(0, 0, 0)"), Some([0.0, 0.0, 0.0, 1.0]));
+        assert_eq!(parse_rgba("oklch(0.5 0.1 200)"), None);
+        assert_eq!(parse_rgba("#fff"), None);
+    }
 
     #[test]
     fn manifest_defaults_fit_the_overlay() {

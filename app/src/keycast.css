@@ -139,22 +139,8 @@
 .pal-keycast__entry[data-level="3"] .pal-kbd kbd:last-child { font-size: 33px; }
 .pal-keycast__entry[data-kind="gesture"] .pal-kbd kbd { font-variant-numeric: tabular-nums; }
 
-/* The cursor layer spans the display; the ring rides the cursor (its transform is the position, placed as it arrives: an ease between sends only adds lag), shrinking while a button is down. */
+/* The ripples' layer spans the display (the ring itself is native: keycast.rs). */
 .pal-keycast__cursor { position: absolute; inset: 0; }
-.pal-keycast__ring {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: calc(36px * var(--kc-scale, 1));
-  height: calc(36px * var(--kc-scale, 1));
-  margin: calc(-18px * var(--kc-scale, 1)) 0 0 calc(-18px * var(--kc-scale, 1));
-  border-radius: 50%;
-  border: 2.5px solid var(--kc-ring, var(--pal-tag-blue, #4a8bf5));
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-  transition: width var(--pal-dur-fast, 80ms) var(--pal-ease, ease), height var(--pal-dur-fast, 80ms) var(--pal-ease, ease), margin var(--pal-dur-fast, 80ms) var(--pal-ease, ease);
-  will-change: transform;
-}
-.pal-keycast__ring[data-down] { width: calc(26px * var(--kc-scale, 1)); height: calc(26px * var(--kc-scale, 1)); margin: calc(-13px * var(--kc-scale, 1)) 0 0 calc(-13px * var(--kc-scale, 1)); }
 
 /* A ripple: a disc in the click's colour growing from the point (`left`/`top` are the click, the animation owns the transform) and fading; a right click's is a hollow ring so the two tell apart without the colour. */
 .pal-keycast__ripple {
@@ -176,6 +162,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pal-keycast__entry { animation-duration: 0.01ms; transition: none; }
   .pal-keycast__text[data-live]::after { animation: none; }
-  .pal-keycast__ring { transition: none; }
   .pal-keycast__ripple { animation-duration: 200ms; }
 }

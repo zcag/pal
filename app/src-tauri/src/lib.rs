@@ -364,6 +364,7 @@ pub fn run() {
             large::large_hide,
             large::large_show,
             keycast::keycast_state,
+            keycast::keycast_ring_color,
             theme::theme_current,
             theme::theme_status,
             theme::theme_open,

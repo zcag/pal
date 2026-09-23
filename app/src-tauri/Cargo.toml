@@ -54,7 +54,7 @@ objc2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSEvent", "NSWorkspace", "NSRunningApplication", "NSResponder", "NSWindow", "NSPanel", "NSScreen", "NSGraphics", "NSColor", "NSColorSampler", "NSColorSpace", "objc2-core-foundation", "block2"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSNotification", "NSDistributedNotificationCenter", "NSString", "NSGeometry", "NSOperation", "block2"] }
 # states: `idle` reads the seconds since the last input event (states.rs); hotkeys: the event tap for cmd+tab (hotkey.rs)
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGColor", "CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation"] }
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFBase", "CFMachPort", "CFRunLoop", "CFString"] }
 block2 = "0.6"
 # permissions: CoreLocation for the Location Services prompt that unlocks Wi-Fi network names (permissions.rs)

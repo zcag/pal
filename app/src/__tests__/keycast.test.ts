@@ -9,24 +9,19 @@ describe("keycast page: the reducer", () => {
     let s = on();
     s = reduce(s, { kind: "display", inset: [37, 0, 70, 0] });
     s = reduce(s, { kind: "keys", entries: [entry(1, 1000)] });
-    s = reduce(s, { kind: "cursor", x: 10, y: 20 });
     s = reduce(s, { kind: "click", button: "left", x: 10, y: 20, down: true });
     expect(s.entries).toHaveLength(1);
     expect(s.ripples).toHaveLength(1);
-    expect(s.down).toBe(true);
     const off = reduce(s, { kind: "state", active: false, mode: "keys", settings: { ...DEFAULTS, scale: 2 } });
-    expect(off).toMatchObject({ active: false, entries: [], cursor: null, down: false, ripples: [], inset: [37, 0, 70, 0], mode: "keys" });
+    expect(off).toMatchObject({ active: false, entries: [], ripples: [], inset: [37, 0, 70, 0], mode: "keys" });
     expect(off.settings?.scale).toBe(2);
   });
 
-  it("a click moves the cursor, marks the button down until its up, and ripples only while the setting is on", () => {
+  it("a click ripples on its down, and only while the setting is on", () => {
     let s = on({ ripples: false });
     s = reduce(s, { kind: "click", button: "right", x: 5, y: 6, down: true });
-    expect(s.cursor).toEqual({ x: 5, y: 6 });
-    expect(s.down).toBe(true);
     expect(s.ripples).toEqual([]);
-    s = reduce(s, { kind: "click", button: "right", x: 5, y: 6, down: false });
-    expect(s.down).toBe(false);
+    expect(reduce(on(), { kind: "click", button: "right", x: 5, y: 6, down: false }).ripples).toEqual([]);
     s = reduce(on(), { kind: "click", button: "right", x: 5, y: 6, down: true });
     expect(s.ripples).toMatchObject([{ x: 5, y: 6, button: "right" }]);
     const id = s.ripples[0].id;

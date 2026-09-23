@@ -341,6 +341,159 @@ mod keycast {
 
 pub use keycast::{hide as keycast_hide, install as keycast_install, show as keycast_show};
 
+// ---- keycast cursor ring ----------------------------------------------------
+
+/// The keycast ring (keycast.rs): a panel of its own the size of the ring,
+/// click-through on every Space above the overlay, holding two Core
+/// Animation layers (the ring in its colour over a thin dark outline, the
+/// figures keycast.css had). A move sets the panel's origin to the mouse,
+/// on the main thread inside the monitor's handler: no WebKit between the
+/// event and the screen, which drew the ring at its own frame rate two to
+/// four frames behind a fast cursor (measured 2026-09-23: 11 ms p50, 34
+/// max from emit to paint, against ~1 ms for the event to reach pal).
+/// Main thread only; every entry point is a no-op off it.
+mod ring {
+    use std::cell::RefCell;
+
+    use objc2::rc::Retained;
+    use objc2::runtime::{AnyClass, AnyObject};
+    use objc2::{msg_send, MainThreadMarker, MainThreadOnly};
+    use objc2_app_kit::{NSBackingStoreType, NSColor, NSEvent, NSPanel, NSStatusWindowLevel, NSView, NSWindowCollectionBehavior, NSWindowStyleMask};
+    use objc2_core_graphics::CGColor;
+    use objc2_foundation::{NSPoint, NSRect, NSSize};
+
+    /// The ring's diameter up and with a button down, and its stroke, in points before the scale.
+    const UP: f64 = 36.0;
+    const DOWN: f64 = 26.0;
+    const STROKE: f64 = 2.5;
+    /// The outline's width either side of the stroke.
+    const OUTLINE: f64 = 1.0;
+
+    struct Ring {
+        panel: Retained<NSPanel>,
+        ring: Retained<AnyObject>,
+        outline: Retained<AnyObject>,
+        scale: f64,
+        down: bool,
+    }
+
+    thread_local! {
+        static RING: RefCell<Option<Ring>> = const { RefCell::new(None) };
+    }
+
+    fn side(scale: f64) -> f64 {
+        UP * scale + 2.0 * OUTLINE
+    }
+
+    fn layer() -> Retained<AnyObject> {
+        let class = AnyClass::get(c"CALayer").expect("QuartzCore's CALayer");
+        // SAFETY: `+[CALayer layer]` returns a new autoreleased layer.
+        unsafe { msg_send![class, layer] }
+    }
+
+    fn make(mtm: MainThreadMarker) -> Ring {
+        let frame = NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(side(1.0), side(1.0)));
+        let panel = NSPanel::initWithContentRect_styleMask_backing_defer(NSPanel::alloc(mtm), frame, NSWindowStyleMask::Borderless | NSWindowStyleMask::NonactivatingPanel, NSBackingStoreType::Buffered, false);
+        // SAFETY: a panel made and kept on the main thread; `releasedWhenClosed` off so the Retained here is its one owner.
+        unsafe { panel.setReleasedWhenClosed(false) };
+        panel.setLevel(NSStatusWindowLevel + 1);
+        panel.setCollectionBehavior(NSWindowCollectionBehavior::CanJoinAllSpaces | NSWindowCollectionBehavior::FullScreenAuxiliary | NSWindowCollectionBehavior::Stationary | NSWindowCollectionBehavior::IgnoresCycle);
+        panel.setOpaque(false);
+        panel.setBackgroundColor(Some(&NSColor::clearColor()));
+        panel.setHasShadow(false);
+        panel.setHidesOnDeactivate(false);
+        panel.setIgnoresMouseEvents(true);
+        let view = NSView::initWithFrame(NSView::alloc(mtm), frame);
+        view.setWantsLayer(true);
+        let (ring, outline) = (layer(), layer());
+        let dark = CGColor::new_srgb(0.0, 0.0, 0.0, 0.25);
+        // SAFETY: plain CALayer property setters on layers this module owns.
+        unsafe {
+            let root: Retained<AnyObject> = msg_send![&view, layer];
+            let _: () = msg_send![&outline, setBorderColor: &*dark];
+            let _: () = msg_send![&*root, addSublayer: &*outline];
+            let _: () = msg_send![&*root, addSublayer: &*ring];
+        }
+        panel.setContentView(Some(&view));
+        Ring { panel, ring, outline, scale: 0.0, down: false }
+    }
+
+    /// The layers laid out for the scale and the button, animated over the
+    /// overlay's fast duration (`--pal-dur-fast`) or placed at once.
+    fn layout(r: &Ring, animate: bool) {
+        let d = if r.down { DOWN } else { UP } * r.scale;
+        let c = side(r.scale) / 2.0;
+        let rect = |d: f64| NSRect::new(NSPoint::new(c - d / 2.0, c - d / 2.0), NSSize::new(d, d));
+        let tx = AnyClass::get(c"CATransaction").expect("QuartzCore's CATransaction");
+        // SAFETY: CATransaction's class methods and CALayer setters, on the main thread.
+        unsafe {
+            let _: () = msg_send![tx, begin];
+            let _: () = msg_send![tx, setDisableActions: !animate];
+            let _: () = msg_send![tx, setAnimationDuration: 0.08f64];
+            for (l, d, w) in [(&r.outline, d + 2.0 * OUTLINE, STROKE + 2.0 * OUTLINE), (&r.ring, d, STROKE)] {
+                let _: () = msg_send![&**l, setFrame: rect(d)];
+                let _: () = msg_send![&**l, setCornerRadius: d / 2.0];
+                let _: () = msg_send![&**l, setBorderWidth: w];
+            }
+            let _: () = msg_send![tx, commit];
+        }
+    }
+
+    fn place(r: &Ring) {
+        let p = NSEvent::mouseLocation();
+        let h = side(r.scale) / 2.0;
+        r.panel.setFrameOrigin(NSPoint::new(p.x - h, p.y - h));
+    }
+
+    /// Shown at `scale` in `rgba` at the mouse, or hidden (None).
+    pub fn set(look: Option<(f64, [f64; 4])>) {
+        let Some(mtm) = MainThreadMarker::new() else { return };
+        RING.with(|slot| {
+            let mut slot = slot.borrow_mut();
+            let Some((scale, [red, green, blue, alpha])) = look else {
+                if let Some(r) = slot.as_ref() {
+                    r.panel.orderOut(None);
+                }
+                return;
+            };
+            let r = slot.get_or_insert_with(|| make(mtm));
+            let color = CGColor::new_srgb(red, green, blue, alpha);
+            // SAFETY: a CALayer setter on a layer this module owns.
+            let _: () = unsafe { msg_send![&*r.ring, setBorderColor: &*color] };
+            if r.scale != scale {
+                r.scale = scale;
+                let s = side(scale);
+                r.panel.setContentSize(NSSize::new(s, s));
+                layout(r, false);
+            }
+            place(r);
+            r.panel.orderFrontRegardless();
+        });
+    }
+
+    /// The ring to the mouse (a move).
+    pub fn follow() {
+        RING.with(|slot| {
+            if let Some(r) = slot.borrow().as_ref().filter(|r| r.panel.isVisible()) {
+                place(r);
+            }
+        });
+    }
+
+    /// A button down shrinks the ring, its up restores it.
+    pub fn press(down: bool) {
+        RING.with(|slot| {
+            if let Some(r) = slot.borrow_mut().as_mut().filter(|r| r.down != down) {
+                r.down = down;
+                layout(r, true);
+                place(r);
+            }
+        });
+    }
+}
+
+pub use ring::{follow as ring_follow, press as ring_press, set as ring_set};
+
 // ---- bar popover and sidebar ----------------------------------------------
 
 /// The bar popover's panel (bar/popover.rs), and the sidebar's (sidebar.rs,

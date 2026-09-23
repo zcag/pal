@@ -13,8 +13,9 @@ const TICK_MS = 100;
  * The `keycast` window's page (`index.html?keycast`): the overlay the shell
  * shows over the whole display under the cursor (keycast.rs). Everything
  * it draws arrives on `pal://keycast`: the strip's entries after every key,
- * the cursor's position and clicks, the display's insets, and the state
- * with the settings. Nothing else runs here: no list, no host.
+ * the clicks, the display's insets, and the state with the settings. The
+ * cursor ring is a native window of the shell's; the page only tells it
+ * the ring's colour. Nothing else runs here: no list, no host.
  */
 export default function KeycastPage() {
   const [st, dispatch] = useReducer(reduce, undefined, initial);
@@ -24,6 +25,24 @@ export default function KeycastPage() {
     invoke<{ active: boolean; mode: State["mode"]; settings: State["settings"] }>("keycast_state").then((s) => s.settings && dispatch({ kind: "state", active: s.active, mode: s.mode, settings: s.settings })).catch(() => {});
     return () => { un.then((f) => f()); };
   }, []);
+  // The ring is native (keycast.rs); what the theme makes of its colour is only known here, so the page resolves it (a canvas normalises any CSS colour to #rrggbb or rgba()) and says so on load, on a new colour, on a theme or scheme change.
+  const ringColor = st.settings?.ring_color;
+  useEffect(() => {
+    if (!ringColor) return;
+    const send = () => {
+      const ctx = document.createElement("canvas").getContext("2d");
+      const v = getComputedStyle(document.documentElement).getPropertyValue(`--pal-tag-${ringColor}`).trim();
+      if (!ctx || !v) return;
+      ctx.fillStyle = v;
+      invoke("keycast_ring_color", { color: ctx.fillStyle }).catch(() => {});
+    };
+    send();
+    const mo = new MutationObserver(send);
+    mo.observe(document.documentElement, { attributes: true });
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    mq.addEventListener("change", send);
+    return () => { mo.disconnect(); mq.removeEventListener("change", send); };
+  }, [ringColor]);
   // Entries leave the DOM once their hold has ended; a keys payload puts the shell's pruned list back anyway.
   const hold = (st.settings ?? DEFAULTS).hold;
   const [now, setNow] = useState(() => Date.now());
@@ -51,7 +70,6 @@ export default function KeycastPage() {
       )}
       {showsCursor(st.mode) && (
         <div className="pal-keycast__cursor" aria-hidden>
-          {s.ring && st.cursor && <i className="pal-keycast__ring" data-down={st.down || undefined} style={{ transform: `translate(${st.cursor.x}px, ${st.cursor.y}px)` }} />}
           {st.ripples.map((r) => <RippleMark key={r.id} ripple={r} ring={s.ring_color} onDone={() => dispatch({ kind: "ripple-done", id: r.id })} />)}
         </div>
       )}

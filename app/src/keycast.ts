@@ -15,7 +15,6 @@ export type Ripple = { id: number; x: number; y: number; button: Button };
 export type Payload =
   | { kind: "state"; active: boolean; mode: Mode; settings: Settings }
   | { kind: "keys"; entries: Entry[] }
-  | { kind: "cursor"; x: number; y: number }
   | { kind: "click"; button: Button; x: number; y: number; down: boolean }
   | { kind: "display"; inset: [number, number, number, number] };
 
@@ -24,8 +23,6 @@ export type State = {
   mode: Mode;
   settings: Settings | null;
   entries: Entry[];
-  cursor: { x: number; y: number } | null;
-  down: boolean;
   ripples: Ripple[];
   /** The work area's insets from the window's edges: top, right, bottom, left. */
   inset: [number, number, number, number];
@@ -33,7 +30,7 @@ export type State = {
 
 export const DEFAULTS: Settings = { mode: "both", position: "bottom-center", scale: 1, hold: 2, max: 5, shortcuts_only: false, ring: true, ring_color: "blue", ripples: true, gestures: true };
 
-export const initial = (): State => ({ active: false, mode: "both", settings: null, entries: [], cursor: null, down: false, ripples: [], inset: [0, 0, 0, 0] });
+export const initial = (): State => ({ active: false, mode: "both", settings: null, entries: [], ripples: [], inset: [0, 0, 0, 0] });
 
 /** How many ripples may be mid-flight; a click storm past it drops the oldest. */
 export const MAX_RIPPLES = 12;
@@ -49,12 +46,9 @@ export function reduce(s: State, p: PageAction): State {
       return p.active ? { ...s, active: true, mode: p.mode, settings: p.settings } : { ...initial(), settings: p.settings, mode: p.mode, inset: s.inset };
     case "keys":
       return { ...s, entries: p.entries };
-    case "cursor":
-      return { ...s, cursor: { x: p.x, y: p.y } };
     case "click": {
-      const next = { ...s, cursor: { x: p.x, y: p.y }, down: p.down };
-      if (!p.down || !(s.settings ?? DEFAULTS).ripples) return next;
-      return { ...next, ripples: [...s.ripples, { id: ++ripple, x: p.x, y: p.y, button: p.button }].slice(-MAX_RIPPLES) };
+      if (!p.down || !(s.settings ?? DEFAULTS).ripples) return s;
+      return { ...s, ripples: [...s.ripples, { id: ++ripple, x: p.x, y: p.y, button: p.button }].slice(-MAX_RIPPLES) };
     }
     case "display":
       return { ...s, inset: p.inset };
