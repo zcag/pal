@@ -120,7 +120,7 @@ jobs:
         working-directory: host
         run: |
           bunx tsc --noEmit
-          bun test
+          bun test --parallel
       # The published package: its declarations build, and the tarball
       # holds only what `files` lists.
       - name: sdk build and pack
