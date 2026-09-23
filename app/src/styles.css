@@ -3,4 +3,6 @@
   -webkit-font-smoothing: antialiased;
 }
 html, body, #root { height: 100%; margin: 0; background: transparent; }
+/* Every window is a fixed frame, never a page: no rubber band on a scroll past it (WebKit bounces the root by default); the lists inside scroll as before. */
+html, body { overscroll-behavior: none; }
 * { box-sizing: border-box; }
