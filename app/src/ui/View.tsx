@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef, type CSSProperties, type MouseEvent, type Ref } from "react";
+import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type Ref } from "react";
 import { Kbd } from "./Kbd";
 import { Tag } from "./Row";
 import { Presence, reduced } from "./presence";
@@ -174,8 +174,63 @@ function tileType(width: number, height: number, text: string, sub: boolean): CS
 /** Fired on the node's element when a keyed node mounts (`detail` is the key): a kept key never fires again, which is what a tracer of an in-place update counts (core.ts). */
 export const MOUNT_EVENT = "pal:view-mount";
 
-/** The fraction along a control's width a click landed at, 0..1 (a slider's new value). */
+/** The fraction along a control's width the pointer is at, 0..1, clamped (a slider's new value; a captured drag past an end is that end). */
 const fractionOf = (e: { currentTarget: HTMLElement; clientX: number }) => { const r = e.currentTarget.getBoundingClientRect(); return r.width > 0 ? Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) : 0; };
+
+/** How long a released slider keeps drawing its own value when the extension's never comes back to it (a floor, a step). */
+const SLIDER_HOLD = 1500;
+
+/**
+ * A slider: a press anywhere on it (or just past an end) sets it, and a
+ * drag follows the pointer, captured so it may leave the track, an end
+ * being reached by overshooting it. Each move with a new value sends the
+ * action (the Launcher keeps one of them waiting while another runs); the
+ * slider draws the value it sent until the extension's catches up.
+ */
+function Slider({ value, label, color, action, motion, style }: { value: number; label?: string; color?: string; action?: string; motion: object; style: CSSProperties }) {
+  const onAction = useContext(ActionContext);
+  const [held, setHeld] = useState<number>();
+  const [drag, setDrag] = useState(false);
+  // The press as of this event, not the last render: moves arrive before the state lands.
+  const pressed = useRef(false);
+  const sent = useRef<string>(undefined), timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => { if (!drag && held !== undefined && Math.abs(held - value) < 0.01) setHeld(undefined); }, [value, drag]);
+  const send = (e: PointerEvent<HTMLElement>) => {
+    const f = fractionOf(e), v = f.toFixed(3);
+    setHeld(f);
+    if (v !== sent.current) { sent.current = v; onAction?.(action!, { value: v }); }
+  };
+  const end = (e: PointerEvent<HTMLElement>) => {
+    if (!pressed.current) return;
+    pressed.current = false;
+    setDrag(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    timer.current = setTimeout(() => setHeld(undefined), SLIDER_HOLD);
+  };
+  const controls = action && {
+    onPointerDown: (e: PointerEvent<HTMLElement>) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      clearTimeout(timer.current);
+      sent.current = undefined;
+      pressed.current = true;
+      setDrag(true);
+      send(e);
+    },
+    onPointerMove: (e: PointerEvent<HTMLElement>) => { if (pressed.current) send(e); },
+    onPointerUp: end,
+    onPointerCancel: end,
+  };
+  const pct = (held ?? value) * 100;
+  return (
+    <div className="pal-view__node pal-view__slider" {...motion} {...controls} role="slider" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} data-color={color} data-drag={drag || undefined} style={style}>
+      <span style={{ width: `${pct}%` }} />
+      <i className="pal-view__thumb" style={{ left: `${pct}%` }} aria-hidden />
+    </div>
+  );
+}
 
 function Node({ node }: { node: ViewNode }) {
   const t = node.transition;
@@ -191,7 +246,7 @@ function Node({ node }: { node: ViewNode }) {
     "data-enter": t?.enter,
     "data-action": action,
     "data-selected": node.selected ? "" : undefined,
-    ...(action && { role: "button", onClick: (e: MouseEvent<HTMLElement>) => { e.stopPropagation(); onAction?.(action, node.type === "slider" ? { value: fractionOf(e).toFixed(3) } : undefined); } }),
+    ...(action && { role: "button", onClick: (e: MouseEvent<HTMLElement>) => { e.stopPropagation(); if (node.type !== "slider") onAction?.(action); } }),
   };
   /** The staggered entrance, merged into each node's own style. */
   const mstyle: CSSProperties | undefined = delay ? { animationDelay: `calc(var(--pal-dur-fast, 80ms) * ${delay})` } : undefined;
@@ -286,24 +341,15 @@ function Node({ node }: { node: ViewNode }) {
       return <span className="pal-view__node pal-view__spacer" aria-hidden {...motion} style={{ ...mstyle, ...(node.size ? { flex: "none", width: node.size, height: node.size } : undefined) }} />;
     case "progress":
     case "slider": {
-      const pct = Math.round(Math.min(1, Math.max(0, Number(node.value) || 0)) * 100);
       // A tag colour by name; a hex colour of the extension's own as the bar variable.
       const own = typeof node.color === "string" && !TAG_COLORS.has(node.color) ? parseHex(node.color) : undefined;
-      const color = own ? "custom" : node.color;
-      const ownStyle: CSSProperties | undefined = own ? ({ "--bar": node.color } as CSSProperties) : undefined;
-      const slider = node.type === "slider";
+      const style: CSSProperties = { ...mstyle, ...(own && ({ "--bar": node.color } as CSSProperties)), ...(node.width ? { flex: "none", width: node.width } : undefined) };
+      const value = Math.min(1, Math.max(0, Number(node.value) || 0));
+      if (node.type === "slider") return <Slider value={value} label={node.label} color={own ? "custom" : node.color} action={action} motion={motion} style={style} />;
+      const pct = Math.round(value * 100);
       return (
-        <div
-          className={slider ? "pal-view__node pal-view__slider" : "pal-view__node pal-view__progress"}
-          {...motion}
-          role={slider ? "slider" : "progressbar"}
-          aria-label={slider ? node.label : undefined}
-          aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}
-          data-color={color}
-          style={{ ...mstyle, ...ownStyle, ...(node.width ? { flex: "none", width: node.width } : undefined) }}
-        >
+        <div className="pal-view__node pal-view__progress" {...motion} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} data-color={own ? "custom" : node.color} style={style}>
           <span style={{ width: `${pct}%` }} />
-          {slider && <i className="pal-view__thumb" style={{ left: `${pct}%` }} aria-hidden />}
         </div>
       );
     }

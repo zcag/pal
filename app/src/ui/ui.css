@@ -649,8 +649,11 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__stack:not([data-direction="row"]) > .pal-view__slider, .pal-view__stack:not([data-direction="row"]) > div:not(.pal-view__node) > .pal-view__slider { flex: 0 0 auto; }
 .pal-view__slider > span { display: block; height: 100%; border-radius: inherit; background: var(--bar, var(--pal-accent, #9f97ff)); transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
 .pal-view__thumb { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3); transition: left var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
-.pal-view__slider[data-action] { cursor: pointer; }
-.pal-view__slider[data-action]::before { content: ""; position: absolute; inset: -8px 0; }
+.pal-view__slider[data-action] { cursor: pointer; touch-action: none; }
+/* The grab room: 8 px above and below, and the thumb's radius past each end, so a press just beyond the track is that end (0 or 100%). */
+.pal-view__slider[data-action]::before { content: ""; position: absolute; inset: -8px -7px; }
+/* A drag draws where the pointer is, not a beat behind it. */
+.pal-view__slider[data-drag] > span, .pal-view__slider[data-drag] > .pal-view__thumb { transition: none; }
 /* A switch: the system's pill, 26 by 16, the knob sliding over; the accent (or a tag colour) once on, the strong line off. */
 .pal-view__switch { --sw: var(--pal-accent, #9f97ff); position: relative; flex: none; display: inline-block; width: 26px; height: 16px; border-radius: 8px; background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); transition: background var(--pal-dur-base, 120ms) var(--pal-ease, ease); }
 .pal-view__switch > i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform var(--pal-dur-base, 120ms) var(--pal-ease, ease); }

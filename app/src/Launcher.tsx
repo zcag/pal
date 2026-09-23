@@ -824,13 +824,20 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
    * actions, a modifier combo the action carrying it, and with
    * `keys: "actions"` a bare key (`h`, `space`, `backspace`, `up`) too, any
    * of an action's shortcuts matching. While a pick is in flight the key
-   * waits in `queue` (`VIEW_QUEUE` at most, the rest dropped) and is run by
+   * waits in `queue` (`VIEW_QUEUE` at most, the rest dropped; a control's
+   * action replaces its own waiting one) and is run by
    * the effect below once the reply's tree is in. Declined (`false`) when
    * no action carries the key.
    */
   const viewCommand = (cmd: ViewCommand): boolean | void => {
     if (view.kind !== "view" || !view.spec) return false;
-    if (busy) { if (queue.current.length < VIEW_QUEUE) queue.current.push(cmd); return; }
+    if (busy) {
+      // A control's action already waiting takes the newer values in its place: a slider's drag leaves one set, its latest, not a queue full of stale ones with the last dropped.
+      const same = cmd.type === "action" && cmd.values ? queue.current.findIndex((q) => q.type === "action" && !!q.values && q.id === cmd.id) : -1;
+      if (same >= 0) queue.current[same] = cmd;
+      else if (queue.current.length < VIEW_QUEUE) queue.current.push(cmd);
+      return;
+    }
     const inp = view.spec.input;
     if (inp) {
       // The field's Enter and Escape are picks carrying the text; a key that queued before the field opened is typed into it (`space` and `backspace` included), so the first letters after a mode key are not lost.

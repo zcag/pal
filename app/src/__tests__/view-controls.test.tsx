@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // The view's controls (View.tsx): a node carrying `action` is a button
 // whose click runs that action, a hidden one included, a slider's click
-// carries the fraction as `values.value`, a switch draws its state, a hex
+// carries the fraction as `values.value` and a drag sends each new one, a switch draws its state, a hex
 // surface paints the stack and picks its ink, an avatar wears its dot,
 // and `selected` marks the cursor.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -17,6 +17,8 @@ import type { ViewNode, ViewSpec } from "../ui/types";
 let root: Root, el: HTMLDivElement;
 beforeEach(() => { el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); });
 afterEach(() => { act(() => root.unmount()); el.remove(); });
+/** A primary-button pointer (or click) event at `clientX`. */
+const press = (target: HTMLElement, type: string, clientX: number) => target.dispatchEvent(new (type === "click" ? MouseEvent : PointerEvent)(type, { bubbles: true, clientX, button: 0, pointerId: 1 }));
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
 
 const tree: ViewNode = {
@@ -65,10 +67,25 @@ describe("view controls", () => {
     expect(got).toEqual([["toggle", undefined]]);
     const slider = el.querySelector<HTMLElement>(".pal-view__slider")!;
     slider.getBoundingClientRect = () => ({ left: 100, width: 200, top: 0, height: 6, right: 300, bottom: 6, x: 100, y: 0, toJSON: () => ({}) });
-    await act(async () => { slider.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 250 })); });
+    await act(async () => { press(slider, "pointerdown", 250); press(slider, "pointerup", 250); press(slider, "click", 250); });
     expect(got[1]).toEqual(["level", { value: "0.750" }]);
     await act(async () => { el.querySelector<HTMLElement>('[data-action="join"]')!.click(); });
     expect(got[2]).toEqual(["join", undefined]);
+  });
+
+  it("a slider drags: each new value sends, past the end is the end, the thumb draws the held value without a transition", async () => {
+    const got: [string, Record<string, string> | undefined][] = [];
+    await act(async () => { root.render(<View tree={tree} onAction={(id, v) => got.push([id, v])} />); });
+    const slider = el.querySelector<HTMLElement>(".pal-view__slider")!;
+    slider.getBoundingClientRect = () => ({ left: 100, width: 200, top: 0, height: 6, right: 300, bottom: 6, x: 100, y: 0, toJSON: () => ({}) });
+    await act(async () => { press(slider, "pointerdown", 150); });
+    expect(slider.hasAttribute("data-drag")).toBe(true);
+    await act(async () => { press(slider, "pointermove", 200); press(slider, "pointermove", 200); press(slider, "pointermove", 340); });
+    expect(slider.querySelector<HTMLElement>(".pal-view__thumb")!.style.left).toBe("100%");
+    await act(async () => { press(slider, "pointerup", 340); press(slider, "pointermove", 120); });
+    expect(got.map(([, v]) => v!.value)).toEqual(["0.250", "0.500", "1.000"]);
+    expect(slider.hasAttribute("data-drag")).toBe(false);
+    expect(slider.getAttribute("aria-valuenow")).toBe("100");
   });
 
   it("through the Launcher a click is a pick of that action, a hidden one included, with the slider's value on the ctx", async () => {
@@ -86,7 +103,7 @@ describe("view controls", () => {
     await flush();
     const slider = el.querySelector<HTMLElement>(".pal-view__slider")!;
     slider.getBoundingClientRect = () => ({ left: 0, width: 100, top: 0, height: 6, right: 100, bottom: 6, x: 0, y: 0, toJSON: () => ({}) });
-    await act(async () => { slider.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 25 })); });
+    await act(async () => { press(slider, "pointerdown", 25); press(slider, "pointerup", 25); press(slider, "click", 25); });
     await flush();
     expect(picks).toEqual([["toggle", undefined], ["level", { value: "0.250" }]]);
   });
