@@ -1169,7 +1169,7 @@ display is kept awake too, amber in the last five minutes (the `ending`
 rule, over `system.awake_left`); hidden while off, and
 `[bar.items."system/awake"] show = "always"` keeps a muted coffee whose
 click still opens the popover. The popover: the run on a card (what it is,
-since when, the time left large, a bar), the presets (`awake_presets`) as
+since when, the time left large, a bar), the presets (the item's `presets` setting) as
 tiles on the digits `1`..`5` (a new end from now, on or off), the display
 switch on `d` (a run is restarted with the other flag; off, it is the next
 run's), `u` a field for a spelling, `Enter` allows sleep while on and
@@ -1200,8 +1200,13 @@ Settings, `[extensions.system]`:
 | --- | --- | --- | --- |
 | `confirm_destructive` | bool | `true` | Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app. |
 | `awake_default` | string | `"1h"` | What a bare Keep Awake runs for: a duration, a clock time, or `forever`. |
-| `awake_presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
 | `awake_display` | bool | `true` | Keep the display awake too (`caffeinate -d`); off, the display may sleep while the machine stays up. The row's field and the popover's switch override it per run. |
+
+`awake` item settings, `[bar.items."system/awake".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
 
 ## Windows (`windows`, `windows-spaces`)
 
@@ -1928,6 +1933,12 @@ Settings, `[extensions.github]`:
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
 
+`prs` item settings, `[bar.items."github/prs".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `review_requests` | boolean | `false` | Count the reviews asked of you on the Pull requests strip; off, the strip is your own pull requests and a review sits in the popover alone. |
+
 For the tests, `PAL_GITHUB_API` points the extension at another base url
 (a local server) and `PAL_GITHUB_TOKEN` is used as the token without
 asking gh.
@@ -2123,7 +2134,11 @@ the one row says which tool is missing.
 | Set Volume… | `⌘⇧V` | drills into a level of presets, 0 / 25 / 50 / 75 / 100 %, the current one tagged; a pick sets it and the HUD says so |
 | Mute / Unmute | `⌘M` | toggles mute and stays in the list |
 
-No settings.
+No extension settings. `volume` item settings, `[bar.items."audio/volume".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `level` | select | `flash` | where the bar's percentage lives: `flash` for three seconds after a change, `always`, or `never` |
 
 ## Bluetooth (`bluetooth`)
 
@@ -2148,7 +2163,11 @@ adapter the one row says so.
 | Connect / Disconnect | `Enter` | toggles, on the state read back from the OS at that moment; Disconnect asks first; the HUD says which happened |
 | Copy Address | `⌘C` | copies `AA:BB:CC:DD:EE:FF` |
 
-No settings.
+No extension settings. `battery` item settings, `[bar.items."bluetooth/battery".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `low_threshold` | number (%) | `25` | a connected device at or below this level counts as low: named on the bar item, and its rules show the item |
 
 ## Wi-Fi (`wifi`)
 
@@ -2266,10 +2285,17 @@ media; the arrows move the cursor, a click sets it):
 | `c` | Copy artist - title (cmd+c too) |
 | `o` | Open the track in its player (cmd+o too) |
 
+Settings, `[extensions.media]`:
+
 | setting | default | what |
 | --- | --- | --- |
-| Cover on the bar (`bar_artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
 | Leave to another extension (`exclude`) | empty | players this extension leaves to another, by app name or player id (`Spotify`, `music`): the bar item and the root's Now row skip them; the palette still lists them |
+
+`now-playing` item settings, `[bar.items."media/now-playing".settings]`:
+
+| setting | default | what |
+| --- | --- | --- |
+| Cover on the bar (`artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
 
 ## Displays (`displays`, `displays/brightness`)
 
@@ -2321,11 +2347,18 @@ the install command.
 | `m1ddc` (Apple Silicon) / `ddcctl` (Intel) | external monitors over DDC/CI | `ddcutil` | brightness, contrast, volume, input source |
 | `nightlight` (`brew install smudge/smudge/nightlight`) | Night Shift | no | the toggle |
 
+Settings, `[extensions.displays]`:
+
 | setting | default | what |
 | --- | --- | --- |
 | Brightness step (`step`) | 5 % | what the arrows, a scroll on the bar item and a `+10`-style link move by |
-| Display on the bar (`bar_display`) | the external display | whose level the bar item shows: `external`, `main` or `builtin` |
 | LG input codes (`input_alt`) | off | the alternate VCP 60 addressing LG (and some others) take |
+
+`brightness` item settings, `[bar.items."displays/brightness".settings]`:
+
+| setting | default | what |
+| --- | --- | --- |
+| Display on the bar (`display`) | the external display | whose level the bar item shows: `external`, `main` or `builtin`; a `pal://displays/brightness` link naming no display acts on it too |
 
 **Bar item `displays/brightness`**: the chosen display's brightness as a
 glyph (three steps of the same sun) and the percent; a scroll on the item
@@ -2615,6 +2648,7 @@ Settings, `[extensions.network]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
+| `networks` | list | `[]` | One line per network, `SSID = kind label:Name icon:X` (or `gateway = ...`): `hide` drops the `network/status` item, `hotspot` and `public` mark it, `label:` renames it on the bar, `icon:` replaces its glyph there and on the interface's rows here. An extension setting, since the palette's rows read the icon too. |
 
 ## Timer (`timer-timers`)
 
@@ -2885,11 +2919,17 @@ Settings, `[extensions.calendar]`:
 | `calendars` | list | `[]` | Calendar names (or ids, `work:primary` for Google) to list; empty is every calendar. Also narrows the filter dropdown. |
 | `days` | number | `7` | How many days from today My Schedule lists. |
 | `hide_declined` | boolean | `true` | Leave out invitations you declined. |
-| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
-| `warn_minutes` | number | `15` | The bar item turns amber this many minutes before the event. |
-| `urgent_minutes` | number | `5` | The bar item turns red this many minutes before the event. |
-| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
+| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours (the root's Now row too). |
+| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only (the root's Now row too). |
 | `default_length` | number, 5 to 480 | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
+
+`upcoming` item settings, `[bar.items."calendar/upcoming".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `near_minutes` | number | `60` | The item's `near` phase starts this many minutes before the event. |
+| `warn_minutes` | number | `15` | The item turns amber (`warning`) this many minutes before the event. |
+| `urgent_minutes` | number | `5` | The item turns red (`critical`) this many minutes before the event. |
 
 Not built: accept and decline (EventKit has no public API to change a
 participant's status; Raycast does it through the private
@@ -3067,7 +3107,12 @@ Settings, `[extensions.slack]`:
 | `workspace` | text | (none) | The workspace when the app is signed in to several (id or domain); empty lists every one. |
 | `statuses` | list | five presets | `:emoji: text (expiry)` per line; expiry `30m`, `2h`, `1d`, `today`, or none. |
 | `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away): one `users.getPresence` per person, remembered a minute; off makes no such call. |
-| `refresh` | number (s) | `120` | Seconds between bar refreshes, 10 at least. |
+
+`unreads` item settings, `[bar.items."slack/unreads".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `refresh` | number (s) | `120` | Seconds between refreshes of the item, 10 at least. |
 
 For the tests, `PAL_SLACK_API` replaces the API host, `PAL_SLACK_APP_DIR`
 the app's directory and `PAL_SLACK_TOKEN` the token setting.
@@ -3372,8 +3417,8 @@ Entertainment** (`hue-entertainment`, live): the areas; Enter starts
 streaming, `⌘Enter` stops.
 
 **The bar item** (`hue/home`): the main room's colour as a dot (a PNG; the
-`main_room` setting, else the room with most lights on) and `N on`; the
-popover toggles every room, plays the scenes (`bar_scenes`, else the main
+item's `main_room` setting, else the room with most lights on) and `N on`; the
+popover toggles every room, plays the scenes (the item's `scenes`, else the main
 room's), opens pal, turns everything off. Rendered every 60 s and on show,
 wake and network, pushed on every stream event (at most every 300 ms).
 
@@ -3408,9 +3453,14 @@ Settings, `[extensions.hue]`:
 | `application_key` | secret | unset | The key for `bridge`, a `keychain:` or `env:` reference. |
 | `insecure` | boolean | `false` | Skip the certificate check (a bridge behind a proxy). |
 | `transition` | number (ms) | `400` | How long a change from a row or a link takes; the view cycles its own with `d`. |
-| `main_room` | text | unset | The bar dot's room and the popover's scenes. |
-| `bar_scenes` | list | `[]` | Scene names or ids in the popover, in order. |
 | `timeout` | number (s) | `5` | One request's limit. |
+
+`home` item settings, `[bar.items."hue/home".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `main_room` | text | unset | The bar dot's room and the popover's scenes. |
+| `scenes` | list | `[]` | Scene names or ids in the popover, in order. |
 
 ## Spotify (`spotify-now-playing`, `spotify-search`, `spotify-playlists`, `spotify-library`, `spotify-devices`, `spotify-queue`, `spotify-commands`, `spotify/playing`)
 
@@ -3462,8 +3512,8 @@ locally patched state, and the view follows the song while it is open:
 the tree is pushed every second while something plays (the lines slide
 up on time), with a re-ask every 5 s as the safety net.
 
-**The bar item** (`spotify/playing`): the track, or with `bar_lyrics`
-the lyric line playing; hidden while nothing plays. The popover is the
+**The bar item** (`spotify/playing`): the track, or with its `lyrics`
+setting the lyric line playing; hidden while nothing plays. The popover is the
 lyrics view in a compact layout (the cover top-left, a slim progress
 bar, the line playing with one before and two after, the transport and
 the like/device/queue row as keycap hints), pushed every second while
@@ -3494,8 +3544,10 @@ network, media; the arrows move the cursor, a click sets it):
 | `cmd+o` | Open in Spotify |
 
 Settings, `[extensions.spotify]`: `client_id` (text), `redirect_port`
-(number, `27182`), `bar_lyrics` (boolean, `true`), `pinned` (list of
-playlist names or `spotify:playlist:` links). A `429` is waited out
+(number, `27182`), `pinned` (list of playlist names or
+`spotify:playlist:` links). `playing` item settings,
+`[bar.items."spotify/playing".settings]`: `lyrics` (boolean, `true`, the
+lyric line on the strip instead of the track name). A `429` is waited out
 under two seconds and otherwise refused locally until its `Retry-After`;
 offline, no device and Premium-required states are one line each.
 
@@ -4307,7 +4359,7 @@ process popover is open), each hidden by its rules while quiet and
 coloured past its thresholds, with a popover of the breakdown; the same
 facts as rows in the `Stats` palette. Detail: `extensions/stats/README.md`.
 
-| item | strip (the `*_label` setting) | quiet, hidden | amber | red |
+| item | strip (its `label` setting) | quiet, hidden | amber | red |
 | --- | --- | --- | --- | --- |
 | `stats/cpu` | `42%`; `▂▃▅▇▆`; one bar per core; `42% · node` | under 70% | from 70% | from 90% |
 | `stats/memory` | `63%`; `24.2 GB`; `14.4 GB free`; sparkline | under 80% with no pressure | 80%, or pressure `warn` | 90%, or `critical` |
@@ -4367,12 +4419,18 @@ Settings, `[extensions.stats]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `interval` | number | `3` | Seconds between samples, 1 to 60. |
-| `cpu_label` | `percent`, `spark`, `bars`, `top` | `percent` | The CPU strip's label. |
-| `memory_label` | `percent`, `used`, `free`, `spark` | `percent` | The Memory strip's label. |
-| `disk_label` | `percent`, `free`, `used` | `free` | The Disk strip's label, for the startup volume. |
-| `network_label` | `rate`, `down`, `spark` | `rate` | The Network strip's label. |
-| `load_label` | `one`, `three` | `one` | The 1 minute average, or all three. |
-| `disk_hide` | list | `[]` | Mount points or volume names left out. |
+| `disk_hide` | list | `[]` | Mount points or volume names left out of the disk item and the palette. |
+
+Each item's settings, `[bar.items."stats/<item>".settings]` (`cpu`,
+`memory`, `disk`, `network`, `load` item settings): `label`, what the strip says.
+
+| item | `label` | default |
+| --- | --- | --- |
+| `cpu` | `percent`, `spark`, `bars`, `top` | `percent` |
+| `memory` | `percent`, `used`, `free`, `spark` | `percent` |
+| `disk` | `percent`, `free`, `used` (the startup volume) | `free` |
+| `network` | `rate`, `down`, `spark` | `rate` |
+| `load` | `one`, `three` | `one` |
 
 ## odak (`odak`, `odak-add`, `odak-search`, `odak-done`, `odak/today`)
 
@@ -4423,7 +4481,7 @@ section, open by section then completed. **Completed**: what is checked
 off by section, with when for the ones completed from pal; Enter reopens.
 
 **The bar item** `odak/today`: the count of open todos due today or in
-`today_sections` plus the overdue, red while any is overdue (rule
+its `today_sections` plus the overdue, red while any is overdue (rule
 `overdue`), hidden at zero (rule `quiet`; `show = "always"` keeps the
 glyph), every 300 s and on show, wake, network; facts `odak/overdue`,
 `odak/today`, `odak/open`. The popover: the overdue first, then today's,
@@ -4439,7 +4497,12 @@ Settings, `[extensions.odak]`:
 | `url` | text | (none) | The server's origin. |
 | `api_key` | secret | (none) | `ODAK_API_KEY`. |
 | `default_section` | text | `Inbox` | Where a todo lands unless the line names a section (one of the file's, else Inbox). |
-| `today_sections` | list | `["Focus", "Today"]` | What the bar item counts as today's, on top of what is due today. |
+
+`today` item settings, `[bar.items."odak/today".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `today_sections` | list | `["Focus", "Today"]` | What the item counts as today's, on top of what is due today. |
 
 For the tests, `PAL_ODAK_URL` and `PAL_ODAK_KEY` replace the two settings.
 

@@ -733,6 +733,9 @@ pub struct BarItemView {
     description: Option<String>,
     /// The code has a `render` for it; `false` is declared only, never drawn.
     source: bool,
+    /// The item's own settings as its manifest declares them (`bar.<id>.settings`), for its pane.
+    #[serde(skip_serializing_if = "Value::is_null")]
+    settings_specs: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     refresh_every: Option<f64>,
     /// Unix seconds of the last successful render; `None` while it never has.
@@ -897,6 +900,7 @@ fn bar_view(app: &AppHandle, config: &Config) -> BarView {
                     title: e.manifest.title.clone(),
                     description: e.manifest.description.clone(),
                     source: e.manifest.source,
+                    settings_specs: e.manifest.settings.clone(),
                     refresh_every: e.manifest.refresh.as_ref().and_then(|r| r.every),
                     rendered_at: e.rendered_unix,
                     stale: e.stale,

@@ -61,5 +61,6 @@
       "default": true,
       "description": "The reversed devices scroll the other way left and right."
     }
-  ]
+  ],
+  "why": "rewrites clicks and scrolls"
 }

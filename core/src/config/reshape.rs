@@ -26,6 +26,30 @@ const KEYS: &[(&str, &str, &str, &str)] = &[
     ("window-management", "keep_below_bar", "reserve", "enabled"),
     ("window-management", "bar_height", "reserve", "bar_height"),
 ];
+/// Extension settings that became a bar item's own (`bar.<id>.settings`):
+/// `[extensions.<ext>] <key>` to `[bar.items."<ext>/<item>".settings] <new>`,
+/// for the default instance and every `<ext>@<suffix>` table alike.
+const ITEM_KEYS: &[(&str, &str, &str, &str)] = &[
+    ("audio", "level", "volume", "level"),
+    ("bluetooth", "low_threshold", "battery", "low_threshold"),
+    ("calendar", "near_minutes", "upcoming", "near_minutes"),
+    ("calendar", "warn_minutes", "upcoming", "warn_minutes"),
+    ("calendar", "urgent_minutes", "upcoming", "urgent_minutes"),
+    ("displays", "bar_display", "brightness", "display"),
+    ("github", "review_requests", "prs", "review_requests"),
+    ("hue", "main_room", "home", "main_room"),
+    ("hue", "bar_scenes", "home", "scenes"),
+    ("media", "bar_artwork", "now-playing", "artwork"),
+    ("odak", "today_sections", "today", "today_sections"),
+    ("slack", "refresh", "unreads", "refresh"),
+    ("spotify", "bar_lyrics", "playing", "lyrics"),
+    ("stats", "cpu_label", "cpu", "label"),
+    ("stats", "memory_label", "memory", "label"),
+    ("stats", "disk_label", "disk", "label"),
+    ("stats", "network_label", "network", "label"),
+    ("stats", "load_label", "load", "label"),
+    ("system", "awake_presets", "awake", "presets"),
+];
 /// Palettes that are gone: their `[palettes.<id>]` tables go too.
 const GONE_PALETTES: &[&str] = &["mouse", "keycast"];
 
@@ -63,6 +87,22 @@ fn move_key(doc: &mut DocumentMut, from: &[&str], key: &str, id: &str, to: &str,
     notes.push(format!("{}.{key}\tfeatures.{id}.{to}", from.join(".")));
 }
 
+/// Move `[extensions.<table>] <key>` to `[bar.items."<item>".settings] <to>`, keeping its comment; a key already set there wins.
+fn move_item_key(doc: &mut DocumentMut, table: &str, key: &str, item: &str, to: &str, notes: &mut Vec<String>) {
+    let Some((k, value)) = doc.get_mut("extensions").and_then(Item::as_table_mut).and_then(|e| e.get_mut(table)).and_then(Item::as_table_mut).and_then(|t| t.remove_entry(key)) else { return };
+    let implicit = |t: &mut Table| { t.set_implicit(true); };
+    let bar = doc.entry("bar").or_insert_with(|| { let mut t = Table::new(); implicit(&mut t); Item::Table(t) }).as_table_mut().expect("bar is a table");
+    let items = bar.entry("items").or_insert_with(|| { let mut t = Table::new(); implicit(&mut t); Item::Table(t) }).as_table_mut().expect("bar.items is a table");
+    let entry = items.entry(item).or_insert_with(|| Item::Table(Table::new())).as_table_mut().expect("a bar item is a table");
+    let settings = entry.entry("settings").or_insert_with(|| { let mut t = Table::new(); implicit(&mut t); Item::Table(t) }).as_table_mut().expect("settings is a table");
+    let from = format!("extensions.{table}.{key}");
+    if settings.contains_key(to) {
+        return notes.push(format!("{from}\tdropped: bar.items.\"{item}\".settings.{to} is set"));
+    }
+    settings.insert_formatted(&toml_edit::Key::new(to).with_leaf_decor(k.leaf_decor().clone()), value);
+    notes.push(format!("{from}\tbar.items.\"{item}\".settings.{to}"));
+}
+
 /// Drop `[<parent>.<name>]` when nothing is left in it.
 fn drop_empty(doc: &mut DocumentMut, parent: &str, name: &str) {
     if let Some(p) = doc.get_mut(parent).and_then(Item::as_table_mut) {
@@ -93,6 +133,13 @@ pub fn plan(text: &str) -> Result<Option<(String, Vec<String>)>, toml_edit::Toml
         drop_empty(&mut doc, "extensions", ext);
     }
     move_key(&mut doc, &["general"], "app_switcher", "switcher", "app_switcher", &mut notes);
+    let instances: Vec<String> = doc.get("extensions").and_then(Item::as_table).map(|t| t.iter().map(|(k, _)| k.to_string()).collect()).unwrap_or_default();
+    for (ext, key, item, to) in ITEM_KEYS {
+        for table in instances.iter().filter(|k| super::instance::name_of(k) == *ext) {
+            move_item_key(&mut doc, table, key, &format!("{table}/{item}"), to, &mut notes);
+            drop_empty(&mut doc, "extensions", table);
+        }
+    }
     if let Some(Item::Table(t)) = doc.remove("sidebar") {
         let dest = feature(&mut doc, "sidebar");
         for (k, v) in t.into_iter() {
@@ -182,6 +229,23 @@ reverse_mouse = true
         assert!(out.contains("enabled = true   # off the strip"), "{out}");
         assert_eq!(notes.len(), 7, "{notes:?}");
         assert_eq!(plan(&out).unwrap(), None, "a second run has nothing to do");
+    }
+
+    #[test]
+    fn bar_item_settings_move_to_their_item() {
+        let text = "[extensions.stats]\ninterval = 2\ncpu_label = \"none\"   # quiet\n\n[extensions.system]\nawake_presets = [\"1h\"]\n\n[bar.items.\"stats/cpu\"]\norder = 3\n";
+        let (out, notes) = plan(text).unwrap().unwrap();
+        let (c, d) = super::super::parse(&out).unwrap();
+        assert!(d.is_empty(), "{d:?}\n{out}");
+        assert_eq!(c.bar.items["stats/cpu"].settings["label"].as_str(), Some("none"));
+        assert_eq!(c.bar.items["stats/cpu"].order, Some(3), "the item's own table keeps what it had");
+        assert_eq!(c.extensions["stats"]["interval"].as_integer(), Some(2), "the palette's setting stays");
+        assert!(!c.extensions["stats"].contains_key("cpu_label"));
+        assert_eq!(c.bar.items["system/awake"].settings["presets"].as_array().map(|a| a.len()), Some(1));
+        assert!(!c.extensions.contains_key("system"), "an emptied table goes");
+        assert!(out.contains("label = \"none\"   # quiet"), "{out}");
+        assert_eq!(notes.len(), 2, "{notes:?}");
+        assert_eq!(plan(&out).unwrap(), None);
     }
 
     #[test]

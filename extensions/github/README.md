@@ -111,6 +111,11 @@ Settings, `[extensions.github]`:
 | `clone_protocol` | `ssh` / `https` | `ssh` | What Copy clone URL copies. |
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
+
+`prs` item settings, `[bar.items."github/prs".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
 | `review_requests` | boolean | `false` | Count the reviews asked of you on the Pull requests strip; off, the strip is your own pull requests and a review sits in the popover alone. |
 
 Each bar item is hidden at zero; `show = "always"` under its

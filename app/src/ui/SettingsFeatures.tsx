@@ -19,6 +19,9 @@ export type SettingsFeature = {
   on: boolean;
   /** On, and waiting on this permission. */
   needs?: PermissionId;
+  /** The permission it uses (its spec's `permission`) and what for (`why`), for the Overview. */
+  permission?: PermissionId;
+  why?: string;
   /** More than on or off: "Showing keys", "No trackpad is being read". */
   note?: string;
   /** The spec's `toggle`: the setting the card's switch writes. */

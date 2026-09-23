@@ -6,7 +6,7 @@ afterEach(() => vi.useRealTimers());
 // Icon glyphs read `window` at import; no DOM is needed for markup checks.
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
 import { SettingsWindow, settingsPages } from "../SettingsWindow";
-import { SettingsPalettes, palettesIndex } from "../SettingsPalettes";
+import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
 import { SettingsExtensions, extensionsIndex } from "../SettingsExtensions";
 import { SettingsAbout } from "../SettingsAbout";
 import { settingsExtensions } from "../../gallery/data";
@@ -16,12 +16,12 @@ const noop = () => {};
 const count = (html: string, re: RegExp) => html.match(re)?.length ?? 0;
 
 describe("SettingsWindow", () => {
-  it("puts the eight pages on the toolbar as tabs, the current one selected", () => {
-    const html = renderToStaticMarkup(<SettingsWindow page="palettes" onPage={noop}><p>body</p></SettingsWindow>);
-    expect(settingsPages.map((p) => p.id)).toEqual(["overview", "general", "shortcuts", "features", "palettes", "extensions", "bar", "about"]);
-    expect(count(html, /role="tab"/g)).toBe(8);
+  it("puts the seven pages on the toolbar as tabs, the current one selected", () => {
+    const html = renderToStaticMarkup(<SettingsWindow page="extensions" onPage={noop}><p>body</p></SettingsWindow>);
+    expect(settingsPages.map((p) => p.id)).toEqual(["overview", "general", "shortcuts", "features", "extensions", "bar", "about"]);
+    expect(count(html, /role="tab"/g)).toBe(7);
     expect(count(html, /aria-selected="true"/g)).toBe(1);
-    expect(html).toContain('data-nav="palettes" tabindex="0"');
+    expect(html).toContain('data-nav="extensions" tabindex="0"');
     expect(html).toContain("data-tauri-drag-region");
     expect(html).toContain("body");
     // No sidebar, no page heading: the tab is the title.
@@ -51,52 +51,39 @@ describe("SettingsWindow", () => {
     expect(pr?.keywords).toContain("pr");
     expect(idx.find((e) => e.label === "Mine only")?.anchor).toBe("palettes:github-prs:mine");
     expect(idx.find((e) => e.page === "extensions" && e.label === "Token")?.anchor).toBe("extensions:github:token");
-    const html = renderToStaticMarkup(<SettingsPalettes extensions={settingsExtensions} selected="github-prs" onSelect={noop} onChange={noop} />);
+    const html = renderToStaticMarkup(<ExtensionPalettes ext={settingsExtensions.find((e) => e.key === "github")!} open="github-prs" onOpen={noop} onChange={noop} />);
     expect(html).toContain('data-anchor="palettes:github-prs"');
     expect(html).toContain('data-anchor="palettes:github-prs:mine"');
   });
 });
 
-describe("SettingsPalettes", () => {
-  const page = (selected?: string) => renderToStaticMarkup(<SettingsPalettes extensions={settingsExtensions} selected={selected} onSelect={noop} onChange={noop} onOpenExtension={noop} />);
-  it("lists every palette under its extension's header, the row reading extension › palette; a lone palette is one row", () => {
-    const html = page("github-prs");
-    // Applications and Clipboard have one palette each: no header, the tagline under the row's name. GitHub's two instances are two groups.
-    expect(count(html, /class="pal-ptable__head"/g)).toBe(3);
-    expect(html).toContain('data-anchor="palettes:ext:github@work"');
-    expect(html).toContain('<span class="pal-ptable__name-ext">GitHub › </span>Pull requests (Work)');
-    expect(html).toContain('<span class="pal-ptable__name-ext">Clipboard › </span>Clipboard history');
-    expect(html).toContain('data-solo="true"');
-    expect(html).toContain('<span class="pal-ptable__sub">Installed apps and system settings panes, with their real icons.</span>');
-    expect(count(html, /data-palette-row=/g)).toBe(10);
-    expect(html).toContain('data-palette-row="github-prs" data-anchor="palettes:github-prs" data-active="true"');
-    expect(html).toContain('<span class="pal-ptable__name-ext">GitHub › </span>Pull requests (Personal)');
-    expect(html).toContain("Pull requests, issues and repositories you can see with the token you give it.");
-    expect(html).toContain("10 of 10");
+describe("ExtensionPalettes", () => {
+  const github = settingsExtensions.find((e) => e.key === "github")!;
+  const table = (open?: string, ext = github) => renderToStaticMarkup(<ExtensionPalettes ext={ext} open={open} onOpen={noop} onChange={noop} />);
+  it("lists the extension's palettes, a row each with on, alias, hotkey and icon", () => {
+    const html = table();
+    expect(count(html, /data-palette-row=/g)).toBe(github.palettes.length);
+    expect(html).toContain('data-palette-row="github-prs" data-anchor="palettes:github-prs"');
     for (const col of ["Palette", "On", "Alias", "Hotkey", "Icon"]) expect(html).toContain(`<span>${col}</span>`);
+    expect(html).not.toContain("pal-ppane");
   });
-  it("puts the selected palette in the pane: crumb, description, id, rank, and its declared settings", () => {
-    const html = page("github-prs");
-    expect(html).toContain('class="pal-ppane__crumb"');
-    expect(html).toContain('class="pal-ppane__title">Pull requests (Personal)</h3>');
+  it("unfolds the open palette under its row: description, id, rank, and its declared settings", () => {
+    const html = table("github-prs");
+    expect(html).toContain('data-palette-row="github-prs" data-anchor="palettes:github-prs" data-active="true"');
     expect(html).toContain("Open pull requests across the organisation, newest first.");
     expect(html).toContain("<code>github-prs</code>");
     expect(html).toContain("At the root");
     expect(html).toContain('value="normal"');
     expect(html).toContain("palettes.github-prs.settings");
     expect(html).toContain("Mine only");
-    expect(page("github-issues")).toContain("GitHub declares none for this palette.");
+    expect(table("github-issues")).toContain("GitHub declares none for this palette.");
   });
   it("says an off palette is off", () => {
-    expect(page("tabs")).toContain("Off: no rows at the root");
-  });
-  it("selects the first palette when nothing is selected", () => {
-    expect(page()).toContain('data-palette-row="apps" data-anchor="palettes:apps" data-active="true"');
-  });
-  it("has an empty state without extensions", () => {
-    expect(renderToStaticMarkup(<SettingsPalettes extensions={[]} onSelect={noop} onChange={noop} />)).toContain("No extensions");
+    const tabs = settingsExtensions.find((e) => e.palettes.some((p) => p.id === "tabs"))!;
+    expect(table("tabs", tabs)).toContain("Off: no rows at the root");
   });
 });
+
 
 describe("SettingsExtensions", () => {
   it("shows the store's hero, the settings, the palettes, and Update and Remove in the pane's footer", () => {

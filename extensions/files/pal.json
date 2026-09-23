@@ -199,6 +199,7 @@
   },
   "palettes": {
     "files": {
+      "dialog": true,
       "kind": "input",
       "inline": true,
       "match": "^\\s*(~|/)",

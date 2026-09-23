@@ -61,7 +61,9 @@ row's id (the address):
 
 ## Setup
 
-Nothing to install. **Low battery alert** (`low_threshold`, 25) is the
+Nothing to install, and no extension settings. **Low battery alert**
+(`low_threshold`, 25) is the `battery` item's setting,
+`[bar.items."bluetooth/battery".settings]` (Settings > Bar): the
 percentage at which connected, battery-reporting devices become visible on
 the bar. When the strip is drawn is the item's rules (`none`, `fine`,
 `low`, `critical` under Settings > Bar): turn `fine`'s Hidden off to keep

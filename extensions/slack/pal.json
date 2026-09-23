@@ -69,16 +69,6 @@
       "text": "A dot on each direct message row: green while the person is active, grey while away",
       "description": "One users.getPresence per person among the unread direct messages, remembered a minute; off makes no such call, for a workspace where many direct messages are open at once.",
       "default": true
-    },
-    {
-      "kind": "number",
-      "id": "refresh",
-      "label": "Refresh",
-      "description": "Seconds between refreshes of the bar item; it also refreshes when the panel shows, after a wake and when the network is back.",
-      "min": 10,
-      "max": 3600,
-      "unit": "s",
-      "default": 120
     }
   ],
   "palettes": {
@@ -194,6 +184,18 @@
           "network"
         ]
       },
+      "settings": [
+        {
+          "kind": "number",
+          "id": "refresh",
+          "label": "Refresh",
+          "description": "Seconds between refreshes of the item; it also refreshes when the panel shows, after a wake and when the network is back.",
+          "min": 10,
+          "max": 3600,
+          "unit": "s",
+          "default": 120
+        }
+      ],
       "mocks": {
         "mentions": {
           "title": "Mentions and thread replies",

@@ -13,7 +13,7 @@ export const REQUEST_MS = 8_000;
 export const log = (...a: unknown[]) => console.error("[odak]", ...a);
 
 /** `[extensions.odak]`, defaults in pal.json. */
-export type Settings = { url: string; api_key: string; default_section: string; today_sections: string[] };
+export type Settings = { url: string; api_key: string; default_section: string };
 export const conf = () => settings.get<Settings>(EXTENSION);
 
 /** The server's origin, no trailing slash; empty when unset. */
@@ -21,8 +21,6 @@ export const baseUrl = () => (process.env.PAL_ODAK_URL || conf().url || "").trim
 const key = () => (process.env.PAL_ODAK_KEY || conf().api_key || "").trim();
 /** The section a new todo lands in unless the line says: the setting, else odak's own default. */
 export const defaultSection = () => (conf().default_section || "").trim() || "Inbox";
-/** The sections the bar item counts as today's work, on top of what is due today. */
-export const todaySections = () => (Array.isArray(conf().today_sections) ? conf().today_sections : []).map((s) => String(s).trim().toLowerCase()).filter(Boolean);
 
 /** Nothing to sign in with: `which` says what is missing. */
 export class AuthError extends Error {

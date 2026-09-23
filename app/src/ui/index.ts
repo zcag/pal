@@ -36,7 +36,7 @@ export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type Ove
 export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
 export { SettingsShortcuts, shortcutsIndex, bindings, clashOf, type Binding } from "./SettingsShortcuts";
 export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
-export { SettingsPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";
+export { ExtensionPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";
 export { SettingsSidebar, sidebarIndex, sidebarSummary, SIDEBAR_HELP, type SettingsSidebarProps } from "./SettingsSidebar";
 export { SettingsFeatures, featuresIndex, type SettingsFeature, type SettingsFeaturesProps } from "./SettingsFeatures";
 export { SettingsExtensions, extensionsIndex, byName } from "./SettingsExtensions";
@@ -45,7 +45,7 @@ export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type Cra
 export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsDisclosure, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
-export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permissionRows } from "./SettingsTypes";
+export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permissionRows, permissionUsers, storePermissions, type PermissionUser } from "./SettingsTypes";
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
   GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, PromptPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,

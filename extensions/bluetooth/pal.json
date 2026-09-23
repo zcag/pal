@@ -12,19 +12,6 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "settings": [
-    {
-      "kind": "number",
-      "id": "low_threshold",
-      "bar": "battery",
-      "label": "Low battery alert",
-      "description": "A connected device at or below this level counts as low: named on the bar item, and its rules show the item. At 20% or below (or this level when lower) the tint is red.",
-      "min": 1,
-      "max": 100,
-      "unit": "%",
-      "default": 25
-    }
-  ],
   "store": {
     "tagline": "Connect and disconnect paired devices, battery in view",
     "category": "system",
@@ -213,6 +200,18 @@
           "when": "bluetooth.low > 0 and bluetooth.lowest <= 20",
           "description": "Act now.",
           "color": "red"
+        }
+      ],
+      "settings": [
+        {
+          "kind": "number",
+          "id": "low_threshold",
+          "label": "Low battery alert",
+          "description": "A connected device at or below this level counts as low: named on the bar item, and its rules show the item. At 20% or below (or this level when lower) the tint is red.",
+          "min": 1,
+          "max": 100,
+          "unit": "%",
+          "default": 25
         }
       ]
     }

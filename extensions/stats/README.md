@@ -41,11 +41,11 @@ user edits by id (`[bar.items."stats/cpu".rules.quiet] when = "..."`):
 
 | item | strip | hidden while (`quiet`) | amber | red |
 | --- | --- | --- | --- | --- |
-| `cpu` | `42%`, or `▂▃▅▇▆` (last eight samples), one bar per core, `42% · node` (`cpu_label`) | `stats.cpu < 70` | from 70% | from 90% |
-| `memory` | `63%`, `24.2 GB`, `14.4 GB free`, or the sparkline (`memory_label`) | under 80% and the kernel reports no pressure | from 80%, or pressure `warn` | from 90%, or pressure `critical` |
-| `disk` | the startup volume's free space, share or used (`disk_label`) | over 20 GB free and every writable volume under 85% | from 85% used or 20 GB free | from 95% or 5 GB |
-| `network` | `↓1.2M ↑80K`, `↓1.2M`, or the download sparkline (`network_label`) | under 1 MB/s either way | (blue from 10 MB/s) | |
-| `load` | `3.26`, or all three (`load_label`) | the 1 minute load under the core count | from the core count | from twice it |
+| `cpu` | `42%`, or `▂▃▅▇▆` (last eight samples), one bar per core, `42% · node` (its `label`) | `stats.cpu < 70` | from 70% | from 90% |
+| `memory` | `63%`, `24.2 GB`, `14.4 GB free`, or the sparkline (its `label`) | under 80% and the kernel reports no pressure | from 80%, or pressure `warn` | from 90%, or pressure `critical` |
+| `disk` | the startup volume's free space, share or used (its `label`) | over 20 GB free and every writable volume under 85% | from 85% used or 20 GB free | from 95% or 5 GB |
+| `network` | `↓1.2M ↑80K`, `↓1.2M`, or the download sparkline (its `label`) | under 1 MB/s either way | (blue from 10 MB/s) | |
+| `load` | `3.26`, or all three (its `label`) | the 1 minute load under the core count | from the core count | from twice it |
 
 Two ways to keep an item on the strip at rest: `[bar.items."stats/cpu"]
 show = "always"` draws the same figure muted (the core's `empty` shape), or
@@ -116,12 +116,17 @@ manifest's (`stats.net_down >= 51200`).
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `interval` | number | 3 | Seconds between samples (1..60). |
-| `cpu_label` | `percent` / `spark` / `bars` / `top` | `percent` | The CPU strip's label. |
-| `memory_label` | `percent` / `used` / `free` / `spark` | `percent` | The Memory strip's label. |
-| `disk_label` | `percent` / `free` / `used` | `free` | The Disk strip's label, for the startup volume. |
-| `network_label` | `rate` / `down` / `spark` | `rate` | The Network strip's label. |
-| `load_label` | `one` / `three` | `one` | The 1 minute average, or all three. |
 | `disk_hide` | list | `[]` | Mount points or volume names left out of the item and the palette. |
+
+Each item's own settings, `[bar.items."stats/<item>".settings]` (Settings › Bar, on the item's pane): one key, `label`, what the strip says.
+
+| item | `label` | default | what |
+| --- | --- | --- | --- |
+| `cpu` | `percent` / `spark` / `bars` / `top` | `percent` | The share, a sparkline, one bar per core, or the share and the busiest process. |
+| `memory` | `percent` / `used` / `free` / `spark` | `percent` | The share, the used or free size, or a sparkline. |
+| `disk` | `percent` / `free` / `used` | `free` | The startup volume's share, free or used size. |
+| `network` | `rate` / `down` / `spark` | `rate` | Both rates, the download rate, or its sparkline. |
+| `load` | `one` / `three` | `one` | The 1 minute average, or all three. |
 
 ## Tests
 

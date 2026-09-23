@@ -45,7 +45,7 @@ const pick = (id: string, action?: string, values?: Record<string, string | bool
 describe("clipboard", () => {
   test("meta: live input palette that opens with the detail pane, six kind filters", () => {
     expect(host.loaded().find((l) => l.extension === "clipboard")!.palettes).toEqual([
-      { name: "history", title: "Clipboard History", live: true, input: true, icon: tile("violet", "\u{f014d}"), placeholder: "Search clipboard history", showDetail: true,
+      { name: "history", title: "Clipboard History", live: true, input: true, icon: tile("violet", "\u{f014d}"), placeholder: "Search clipboard history", showDetail: true, on: ["clipboard"],
         filters: [{ id: "all", title: "All" }, { id: "text", title: "Text" }, { id: "image", title: "Images" }, { id: "files", title: "Files" }, { id: "links", title: "Links" }, { id: "colors", title: "Colors" }] },
       // What is on the clipboard now (now.ts): an input palette that suggests the root's Clipboard section.
       { name: "rows", title: "Clipboard", live: false, input: true, icon: tile("violet", "\u{f014d}"), placeholder: "What is on the clipboard", suggest: true },

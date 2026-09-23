@@ -83,39 +83,6 @@
       "default": 10
     },
     {
-      "kind": "number",
-      "id": "near_minutes",
-      "label": "Near from",
-      "description": "Inside this many minutes, Upcoming uses its near appearance. Warning and critical cutoffs below still take precedence.",
-      "min": 1,
-      "max": 720,
-      "step": 1,
-      "unit": "min",
-      "default": 60
-    },
-    {
-      "kind": "number",
-      "id": "warn_minutes",
-      "label": "Warning from",
-      "description": "The bar item uses its warning appearance this many minutes before the event.",
-      "min": 1,
-      "max": 120,
-      "step": 1,
-      "unit": "min",
-      "default": 15
-    },
-    {
-      "kind": "number",
-      "id": "urgent_minutes",
-      "label": "Critical from",
-      "description": "The bar item uses its critical appearance this many minutes before the event.",
-      "min": 0,
-      "max": 60,
-      "step": 1,
-      "unit": "min",
-      "default": 5
-    },
-    {
       "kind": "boolean",
       "id": "hide_all_day",
       "label": "Skip all-day events on the bar",
@@ -502,6 +469,41 @@
           "when": "calendar.phase == 'running'",
           "description": "Under way: what is left of it.",
           "color": "green"
+        }
+      ],
+      "settings": [
+        {
+          "kind": "number",
+          "id": "near_minutes",
+          "label": "Near from",
+          "description": "Inside this many minutes, Upcoming uses its near appearance. Warning and critical cutoffs below still take precedence.",
+          "min": 1,
+          "max": 720,
+          "step": 1,
+          "unit": "min",
+          "default": 60
+        },
+        {
+          "kind": "number",
+          "id": "warn_minutes",
+          "label": "Warning from",
+          "description": "The bar item uses its warning appearance this many minutes before the event.",
+          "min": 1,
+          "max": 120,
+          "step": 1,
+          "unit": "min",
+          "default": 15
+        },
+        {
+          "kind": "number",
+          "id": "urgent_minutes",
+          "label": "Critical from",
+          "description": "The bar item uses its critical appearance this many minutes before the event.",
+          "min": 0,
+          "max": 60,
+          "step": 1,
+          "unit": "min",
+          "default": 5
         }
       ]
     }

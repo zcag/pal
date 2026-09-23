@@ -406,11 +406,11 @@ export default {
   });
 
   test("bar/action and bar/open reach the handlers with the action and ctx; a throw is an error reply; a bad effect is refused; no handler answers {}", async () => {
-    expect(await host.barAction("ext", "a", "one", { reason: "open", anchor: "sketchybar" })).toEqual({ action: "one", ctx: { reason: "open", anchor: "sketchybar" } });
+    expect(await host.barAction("ext", "a", "one", { reason: "open", anchor: "sketchybar" })).toEqual({ action: "one", ctx: { reason: "open", anchor: "sketchybar", settings: {} } });
     expect((await host.call("bar/action", { extension: "ext", id: "a", action: "throw", ctx: { reason: "open" } })).error).toBe("nope");
     expect((await host.call("bar/action", { extension: "ext", id: "a", action: "view", ctx: { reason: "open" } })).error).toMatch(/action view view: action id "pal:x"/);
     expect(await host.barAction("ext", "b", "x")).toEqual({});
-    expect(await host.barOpen("ext", "a", { reason: "open", anchor: "hotkey" })).toEqual({ open: "https://x", ctx: { reason: "open", anchor: "hotkey" } });
+    expect(await host.barOpen("ext", "a", { reason: "open", anchor: "hotkey" })).toEqual({ open: "https://x", ctx: { reason: "open", anchor: "hotkey", settings: {} } });
     expect(await host.barOpen("ext", "b")).toEqual({});
   });
 

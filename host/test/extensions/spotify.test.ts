@@ -185,7 +185,8 @@ describe("spotify", () => {
       id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true,
       mocks: expect.objectContaining({ lyrics: expect.objectContaining({ title: "Synced lyric line" }), track: expect.objectContaining({ title: "No synced lyrics" }), paused: expect.objectContaining({ item: { hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Nothing playing" } } }) }),
     })]);
-    expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["pinned", "list"]]);
+    expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["pinned", "list"]]);
+    expect(host.manifests.get("spotify")!.bar!.playing!.settings!.map((s) => [s.id, s.kind])).toEqual([["lyrics", "boolean"]]);
   });
 
   describe("sign-in", () => {
@@ -533,7 +534,7 @@ describe("spotify, signed in", () => {
   });
 
   describe("the bar item", () => {
-    test("the strip shows the lyric line playing, the popover is the compact view, and the render asks to come back at the next line; hidden while paused; the track name without bar_lyrics", async () => {
+    test("the strip shows the lyric line playing, the popover is the compact view, and the render asks to come back at the next line; hidden while paused; the track name with the item's lyrics off", async () => {
       await pick("now-playing", "now", "retry");
       const item = await h.render("spotify", "playing", { reason: "show" });
       expect(item).toMatchObject({ icon: "\u{f04c7}", title: "Your eyes", tooltip: "Radiohead - Weird Fishes/ Arpeggi (hornet)", scroll: { up: "next", down: "previous" } });
@@ -578,11 +579,8 @@ describe("spotify, signed in", () => {
       expect(texts((none.empty!.menu as { view: any }).view.tree)).toContain("Nothing playing");
       expect((none.empty!.menu as { view: any }).view.actions[0]).toMatchObject({ id: "open-app" });
       state.player = { ...held, is_playing: true };
-      h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_lyrics: false } });
-      await Bun.sleep(50);
-      expect((await h.render("spotify", "playing", { reason: "update" })).title).toBe("Weird Fishes/ Arpeggi · Radiohead");
-      h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_lyrics: true } });
-      await Bun.sleep(50);
+      expect((await h.render("spotify", "playing", { reason: "update", settings: { lyrics: false } })).title).toBe("Weird Fishes/ Arpeggi · Radiohead");
+      expect((await h.render("spotify", "playing", { reason: "update" })).title).toBe("Your eyes");
     });
 
     test("the strip owns a timestamped lyric ticker while closed, and a media render resynchronises its next boundary", async () => {

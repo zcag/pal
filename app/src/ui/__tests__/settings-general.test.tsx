@@ -58,7 +58,7 @@ describe("SettingsGeneral permissions", () => {
     expect(html).not.toContain("Full Disk Access");
     const html2 = page({ permissions: { accessibility: true, full_disk_access: undefined, input_monitoring: true }, onRequestPermission: noop });
     expect(html2).not.toContain("nothing to probe");
-    expect(permissionRows({ accessibility: true, input_monitoring: true }, { otp: true }).find((r) => r.id === "full_disk_access")?.state).toBe("unknown");
+    expect(permissionRows({ accessibility: true, input_monitoring: true }, { users: { full_disk_access: [{ who: "OTP", why: "reads the Messages database" }] } }).find((r) => r.id === "full_disk_access")?.state).toBe("unknown");
   });
   it("gives every row an anchor for the search", () => {
     const html = page({ onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop });

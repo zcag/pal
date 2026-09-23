@@ -1809,3 +1809,39 @@ extension's manifest in any more.
   control on the card's face, settings and command hotkeys unfolding in
   place; the sidebar's card left General and the Bar page. cmd+1..8 now
   reaches every page (the regex stopped at 6 with seven pages).
+
+## Decided: bar item settings, Settings IA, special cases (2026-09-23)
+
+Phases 3 to 5 of `docs/design/model.md`, the same day as the features.
+
+- **Bar items own their settings.** `bar.<id>.settings` in the manifest,
+  `[bar.items."<key>".settings]` in the file (`BarItemConfig.settings`,
+  `Bar::item_settings`: defaults, then the default instance's item, then
+  the item's own), `ctx.settings` on every bar request (the core resolves,
+  the host fills the declared defaults for a harness). A settings change
+  renders the item. The `bar` tag and the `bar_` prefix are gone;
+  `checkBarSettings` warns on either. Three agents audited the 25
+  extensions with bar items (who reads each setting), 19 settings moved
+  (the list is in model.md and `reshape.rs` `ITEM_KEYS`), the rest stayed
+  because a palette reads them. Code with no ctx at hand (a ticker's push)
+  keeps the last `ctx.settings` in a module variable: spotify, stats,
+  system, audio, displays, hue, media.
+- **Settings IA.** The Palettes page is gone: an extension's pane has its
+  palettes as a table (on, alias, hotkey, icon) and a palette unfolds
+  under its row (rank, keys, switcher chord, row hotkeys, its settings).
+  `palettes:<id>` anchors and `?page=palettes` land there. Shortcuts gained
+  a Commands table (the features' command hotkeys, ranked between item
+  hotkeys and the sidebar's, as hotkey.rs registers them). The "Settings ›
+  Palettes" command row is "Settings › Features" now. The welcome rows
+  pointed at General for the hotkey, the switcher and the sidebar; they
+  open Shortcuts and Features.
+- **Special cases.** Manifest palette flags `tap` (Windows) and `dialog`
+  (Files) replace `windows/windows` in switcher.rs and `files/files` in
+  Launcher.tsx; `on` works on any palette (a listing re-lists), so the
+  clipboard's record is the `clipboard` trigger and App.tsx has no
+  extension name; `restore_cache` orders by `root_first`. The Overview's
+  permission rows read who uses each one: `store.permissions` (already
+  the store's list, so no second declaration) and the features that are
+  on (`why` in their specs), instead of `names.has("otp")` and friends.
+- Not done, as planned: one spelling of a palette id, the eight ways to
+  hide a bar item, and the Extensions page redesign (to do with Cagdas).

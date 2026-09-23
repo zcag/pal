@@ -345,9 +345,11 @@ slack, bluetooth and audio with its own option names, weather's band,
   microphone (`input`; live/muted/missing), network (`icon_only` gone:
   `show_title = false` was already the core's).
 - Kept as settings, on purpose: what shapes content rather than
-  presentation (`media.bar_artwork`, `spotify.bar_lyrics`, the calendar's
-  `near/warn/urgent_minutes` that define the phase, bluetooth's
-  `low_threshold`, hue's `main_room`).
+  presentation. Since 2026-09-23 (`docs/design/model.md`) they are the
+  items' own, `bar.<id>.settings`: the now-playing item's `artwork`,
+  Spotify's playing item's `lyrics`, the calendar upcoming item's
+  `near/warn/urgent_minutes` that define the phase, the bluetooth battery
+  item's `low_threshold`, the hue home item's `main_room`.
 
 ## Settings
 

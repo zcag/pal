@@ -1,9 +1,11 @@
 # The model: features, extensions, surfaces
 
 Design spec, 2026-09-23. Where each thing in pal belongs, and the reshape
-that gets the code there. Status: agreed with Cagdas 2026-09-23. Phases 1 and 2 built the same
-day (features, their commands and hotkeys, the Features page, the
-migration); the rest below as planned.
+that gets the code there. Status: agreed with Cagdas 2026-09-23 and built the same day, all five
+phases; what was decided on the way is under each (and in
+`notes/decisions.md`, "Decided: features" and "Decided: bar item settings,
+Settings IA, special cases"). Open: the Extensions page's redesign (with
+Cagdas), and the two passes under "Not in scope".
 
 ## Why
 
@@ -136,12 +138,20 @@ special cases).
 - Settings › Extensions stops listing item settings; Settings › Bar has
   them on the item's pane, the only place.
 
-The settings that move (audited per extension in phase 3):
-bluetooth `low_threshold`, displays `bar_display`, github
-`review_requests`, hue `main_room`/`bar_scenes`, media `bar_artwork`,
-network `networks`, odak `today_sections`, otp `hours`, sessions
-`agents`/`stale_minutes`, spotify `bar_lyrics`, stats `*_label`/`disk_hide`,
-system `awake_presets`; window-management `bar_height` goes to `reserve`.
+What moved, after reading who reads each (every extension with a bar
+item audited, the untagged settings too): audio `level`, bluetooth
+`low_threshold`, calendar `near/warn/urgent_minutes`, displays
+`bar_display` (as `display`), github `review_requests`, hue `main_room`
+and `bar_scenes` (`scenes`), media `bar_artwork` (`artwork`), odak
+`today_sections`, slack `refresh`, spotify `bar_lyrics` (`lyrics`), stats
+`*_label` (each item's `label`), system `awake_presets` (`presets`);
+window-management `bar_height` went to `reserve`. What stayed, because a
+palette reads it too: network `networks`, otp `hours` (its tag was
+wrong: only the palette reads it), sessions `agents`/`stale_minutes`,
+stats `disk_hide` and `interval`, calendar `horizon_hours` and
+`hide_all_day` (the root's Now row shares them). The config moves them
+once (`config::reshape`, `ITEM_KEYS`); `checkBarSettings` warns an
+extension that still spells one the old way.
 
 ## Settings window
 
@@ -195,10 +205,17 @@ file kept as `config.pre-model.toml`):
    above, Settings › Bar the only place; `bar:`/`bar_` removed.
 4. **Settings IA.** Palettes into Extensions; Shortcuts as the full list.
    Then the Extensions page redesign, with Cagdas.
-5. **Leftover special cases.** `media.rs`'s `"media"` trigger, the
-   `calendar` permission id (a manifest `permissions` list), `store`'s
-   palette in `commands.rs`, `Launcher.tsx`'s push to `files/files`,
-   `index.rs` putting `apps` first.
+5. **Leftover special cases.** Done: the switcher's quick tap is the
+   manifest's `tap` (Windows sets it), the file dialog hint's palette its
+   `dialog` (Files), the clipboard palette re-lists on the `clipboard`
+   trigger through `on` (no name check in App.tsx), the cold cache order
+   is `root_first`'s, and the Overview asks for an OS permission only
+   while something uses it: an extension whose `store.permissions`
+   names it, or a feature that is on (its spec's `permission` and
+   `why`). Left, on purpose: `media` is an OS event's trigger name, not an
+   extension's; `calendar` is the OS permission's id; pal's own Extension
+   Store command pushes the bundled store palette and falls back to the
+   website without it.
 
 Not in scope, noted: one spelling of a palette's id (`github-prs` in the
 file, `github/prs` everywhere else) is a large migration with little

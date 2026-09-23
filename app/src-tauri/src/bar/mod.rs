@@ -350,6 +350,11 @@ pub struct ManifestBar {
     /// overrides one by id (`Bar::rules_of`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rules: Vec<ManifestBarRule>,
+    /// The item's own settings (`SettingSpec[]`, `bar.<id>.settings`):
+    /// values in `[bar.items."<key>".settings]`, handed to every render and
+    /// action as `ctx.settings` ([`settings_of`]).
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub settings: Value,
 }
 
 /// One `ManifestBar.rules[]` entry: a `BarRule` with its id.
@@ -374,7 +379,7 @@ fn yes() -> bool {
 
 impl Default for ManifestBar {
     fn default() -> Self {
-        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new(), rules: Vec::new() }
+        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new(), rules: Vec::new(), settings: Value::Null }
     }
 }
 
@@ -410,6 +415,14 @@ pub fn next_poll(manifest_every: Option<f64>, item_refresh: Option<f64>) -> Opti
         return None;
     }
     Some(Duration::from_secs_f64(secs.max(MIN_EVERY)))
+}
+
+/// The item's settings as its code sees them (`ctx.settings`): the
+/// manifest's defaults under `[bar.items."<key>".settings]`
+/// (`Bar::item_settings`), as JSON.
+pub fn settings_of(app: &AppHandle, key: &str) -> Value {
+    let specs = entry(app, key).map(|e| e.manifest.settings).unwrap_or(Value::Null);
+    serde_json::to_value(settings::config(app).bar.item_settings(key, &specs)).unwrap_or_else(|_| json!({}))
 }
 
 /// `extension/id` from the two names; the key every table here uses.
@@ -801,7 +814,7 @@ async fn render_now(app: AppHandle, key: String, reason: &'static str) {
         return;
     };
     let t0 = Instant::now();
-    let params = json!({ "extension": ext, "id": id, "ctx": { "reason": reason, "compact": true } });
+    let params = json!({ "extension": ext, "id": id, "ctx": { "reason": reason, "compact": true, "settings": settings_of(&app, &key) } });
     let r = tokio::time::timeout(RENDER_TIMEOUT, host.request("bar/render", params)).await;
     let item = match r {
         // A limit the host checks (`checkBarItem`) comes back as `{ id, error }`.
@@ -1067,7 +1080,8 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     let keys: Vec<String> = Bar::with(app, |e| e.keys().cloned().collect());
     for key in &keys {
         let (was, now) = (draws(app, prev, key), draws(app, next, key));
-        if !was && now {
+        let settings_moved = || prev.bar.items.get(key).map(|i| &i.settings) != next.bar.items.get(key).map(|i| &i.settings);
+        if (!was && now) || (now && settings_moved()) {
             render(app, key, "settings");
         } else if was && !now {
             schedule(app, key);
@@ -1149,7 +1163,7 @@ pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, wind
         tauri::async_runtime::spawn_blocking(move || crate::features::bar_action(&app, &key, &action)).await.map_err(|e| e.to_string())??
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
-        let mut ctx = json!({ "reason": "open", "anchor": anchor, "compact": true });
+        let mut ctx = json!({ "reason": "open", "anchor": anchor, "compact": true, "settings": settings_of(app, key) });
         // What a control in the popover read (`BarCtx.values`): the view's text field on Enter, a form's fields, a slider's fraction.
         if let Some(v) = values.filter(|v| v.is_object()) {
             ctx["values"] = v;
@@ -1173,7 +1187,7 @@ pub async fn open(app: &AppHandle, key: &str, anchor: &str, rect: Option<Rect>) 
         json!({ "hud": format!("{key}: open") })
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
-        host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "anchor": anchor, "compact": true } })).await?
+        host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "anchor": anchor, "compact": true, "settings": settings_of(app, key) } })).await?
     };
     let r = effects::apply_from(app, r, popover::WINDOW).await?;
     if effects::stays_open(&r) {
@@ -1192,8 +1206,9 @@ pub fn shown(app: &AppHandle, key: &str) {
         return;
     }
     let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
+    let settings = settings_of(app, key);
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = host.notify("bar/shown", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "compact": true } })).await {
+        if let Err(e) = host.notify("bar/shown", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "compact": true, "settings": settings } })).await {
             eprintln!("bar\t{ext}/{id}\tshown notify failed\t{e}");
         }
     });

@@ -60,7 +60,9 @@ export function state(e: Pick<CalendarEvent, "start" | "end" | "all_day">, now: 
 export const stateColor = (s: State): "green" | "blue" | "grey" => (s.kind === "now" ? "green" : s.kind === "over" ? "grey" : "blue");
 
 export type BarRules = { horizon_hours: number; warn_minutes: number; urgent_minutes: number; hide_declined: boolean; hide_all_day: boolean };
-type PresentationRules = BarRules & { near_minutes: number };
+/** The upcoming item's settings, `[bar.items."calendar/upcoming".settings]`: where its phases start. The horizon and the all-day and declined filters stay the extension's, since the root's Now row shares them. */
+export type ItemSettings = { near_minutes: number; warn_minutes: number; urgent_minutes: number };
+type PresentationRules = BarRules & ItemSettings;
 
 /** The strip's time-state vocabulary, also used by Settings' mock picker. */
 export type UpcomingPhase = "far" | "near" | "warning" | "critical" | "running";
@@ -68,7 +70,7 @@ export type UpcomingPhase = "far" | "near" | "warning" | "critical" | "running";
 const number = (value: unknown, fallback: number) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
 /** Settings normalised once, so the root suggestion and the bar share every eligibility boundary. */
-export function barRules(s: Settings): PresentationRules {
+export function barRules(s: Settings & Partial<ItemSettings>): PresentationRules {
   return {
     horizon_hours: number(s.horizon_hours, 10),
     near_minutes: number(s.near_minutes, 60),
@@ -115,7 +117,7 @@ export function escalation(e: Pick<CalendarEvent, "start" | "end">, now: number,
  * `near_minutes`, `near`, `warning` inside `warn_minutes`, `critical`
  * inside `urgent_minutes`, `running` once started.
  */
-export function phaseOf(e: Pick<CalendarEvent, "start" | "end">, now: number, s: Settings): UpcomingPhase {
+export function phaseOf(e: Pick<CalendarEvent, "start" | "end">, now: number, s: Settings & Partial<ItemSettings>): UpcomingPhase {
   const r = barRules(s);
   const mins = (e.start - now) / MIN;
   return e.start <= now ? "running" : mins <= r.urgent_minutes ? "critical" : mins <= r.warn_minutes ? "warning" : mins <= r.near_minutes ? "near" : "far";
@@ -151,7 +153,7 @@ export function nextWords(e: CalendarEvent | undefined, now: number): string {
 }
 
 /**
- * The strip for `events` at `now` under the settings' rules: the name as
+ * The strip for `events` at `now` under the settings' rules (the extension's and the item's together): the name as
  * the title, the time as a `when` segment in the item's colour (`in 12m`,
  * `25m left`). While an event runs and another is due under the same
  * rules, a `next` segment follows in that event's own escalation colour,
@@ -162,7 +164,7 @@ export function nextWords(e: CalendarEvent | undefined, now: number): string {
  * is the error behind a cache kept past a failed fetch (the strip muted,
  * the popover says so).
  */
-export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, stale?: string | false, st: PopoverState = freshPopover()): BarItem {
+export function upcomingItem(events: CalendarEvent[], now: number, s: Settings & Partial<ItemSettings>, stale?: string | false, st: PopoverState = freshPopover()): BarItem {
   const rules = barRules(s);
   const list = eligible(events, now, rules);
   const e = list[0];
@@ -170,7 +172,7 @@ export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, 
   const next = e.start <= now ? list.find((x) => x.start > now) : undefined;
   const phase = phaseOf(e, now, s);
   const segments: BarSegment[] = [{ id: "when", text: barWhen(e, now) }];
-  if (next) segments.push({ id: "next", text: barWhen(next, now), color: escalation(next, now, barRules(s).warn_minutes, barRules(s).urgent_minutes), tooltip: about(next) });
+  if (next) segments.push({ id: "next", text: barWhen(next, now), color: escalation(next, now, rules.warn_minutes, rules.urgent_minutes), tooltip: about(next) });
   // No colour of its own: the manifest's rules tint the item by `calendar.phase` (muted far and near, amber, red, green), which the user overrides by id.
   return {
     icon: ICON,

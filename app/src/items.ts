@@ -67,8 +67,10 @@ export type SourceInfo = Source & {
   multi?: true;
   /** A view palette: seconds between re-asks of `view(ctx)` while its level is on top (the pull half of a live view). */
   refresh?: number;
-  /** A view palette: the triggers (`pal://trigger` names) that re-ask it while on top. */
+  /** The triggers (`pal://trigger` names) that re-ask a view on top, or list a palette again while it shows. */
   on?: string[];
+  /** Serves file dialogs (the manifest's `dialog`): the root's Dialog hint opens it. */
+  dialog?: true;
   count: number;
   /** The rows are a restored (or expired) listing and a fresh one is pending: "updating" in the footer. */
   stale: boolean;

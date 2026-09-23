@@ -207,7 +207,7 @@ describe.skipIf(!HAS_FIND)("files at the root", () => {
 describe.skipIf(!HAS_FIND)("files", () => {
   test("meta: an input palette with lazy detail, and the live Recent Files palette with a ttl", () => {
     expect(host.loaded().find((l) => l.extension === "files")!.palettes).toEqual([
-      { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”", multi: true },
+      { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”", multi: true , dialog: true },
       { name: "browse", title: "Browse Folder", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Filter this folder", filters: [{ id: "name", title: "Name" }, { id: "date", title: "Date" }, { id: "size", title: "Size" }], detail: "lazy", multi: true },
       { name: "selection", title: "Finder Selection", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Filter the selection", detail: "lazy", multi: true, suggest: true },
       { name: "recent", title: "Recent Files", live: true, input: false, icon: tile("slate", "\u{f024b}"), placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary", multi: true },

@@ -13,14 +13,6 @@
   "repo": "bundled",
   "settings": [
     {
-      "kind": "boolean",
-      "id": "bar_artwork",
-      "label": "Cover on the bar",
-      "text": "Show the cover instead of the note on the menu bar strip",
-      "description": "Only a square cover; a 24 pt picture of anything else is a smudge. The popover shows the cover either way.",
-      "default": false
-    },
-    {
       "kind": "list",
       "id": "exclude",
       "label": "Leave to another extension",
@@ -83,6 +75,16 @@
           "media"
         ]
       },
+      "settings": [
+        {
+          "kind": "boolean",
+          "id": "artwork",
+          "label": "Cover on the bar",
+          "text": "Show the cover instead of the note on the menu bar strip",
+          "description": "Only a square cover; a 24 pt picture of anything else is a smudge. The popover shows the cover either way.",
+          "default": false
+        }
+      ],
       "mocks": {
         "track": {
           "title": "A track playing",

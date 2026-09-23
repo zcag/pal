@@ -30,20 +30,6 @@
       "description": "What a bare Keep Awake runs for: 45m, 2h, 1h30m, a clock time like 14:30, or forever."
     },
     {
-      "kind": "list",
-      "id": "awake_presets",
-      "label": "Awake presets",
-      "placeholder": "30m, 1h, 2h, forever",
-      "default": [
-        "30m",
-        "1h",
-        "2h",
-        "forever"
-      ],
-      "bar": "awake",
-      "description": "The durations on the popover's tiles and its digit keys, five at most: durations, clock times, or forever."
-    },
-    {
       "kind": "boolean",
       "id": "awake_display",
       "label": "Display",
@@ -282,6 +268,21 @@
         {
           "keys": "o",
           "title": "Open the System palette"
+        }
+      ],
+      "settings": [
+        {
+          "kind": "list",
+          "id": "presets",
+          "label": "Presets",
+          "placeholder": "30m, 1h, 2h, forever",
+          "default": [
+            "30m",
+            "1h",
+            "2h",
+            "forever"
+          ],
+          "description": "The durations on the popover's tiles and its digit keys, five at most: durations, clock times, or forever."
         }
       ]
     }

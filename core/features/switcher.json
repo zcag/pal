@@ -17,5 +17,6 @@
       "description": "macOS's own App Switcher (Cmd+Tab's) on another Tab chord, alt+tab, for when the window switcher has taken cmd+tab; its shift+ variant steps back. macOS only.",
       "default": null
     }
-  ]
+  ],
+  "why": "takes cmd+tab from the Dock when that is the chord"
 }

@@ -340,6 +340,9 @@ function prBarState(lists: PRLists): PrState {
   return st;
 }
 
+/** The prs item's settings, `[bar.items."github/prs".settings]`, defaults in pal.json. */
+type PrSettings = { review_requests: boolean };
+
 /** A small, stateful PR strip: red needs intervention, amber is active, green can merge, muted is waiting. */
 async function prsItem(ctx: BarCtx): Promise<BarItem> {
   let lists: PRLists;
@@ -350,7 +353,7 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
   const { list, buckets } = prBuckets(lists);
   const [blocked, active, ready, waiting, reviews] = buckets.map((b) => b.rows);
   // `review_requests` off (the default): the strip is my own pull requests, the ones whose state is mine to act on. A review asked of me is still in the popover's bucket, and never the reason the item is on the strip.
-  const withReviews = !!conf().review_requests;
+  const withReviews = (ctx.settings as PrSettings).review_requests;
   const counted = withReviews ? list : list.filter((pr) => !reviews.includes(pr));
   // Nothing open: hidden, the glyph and the popover offered for a `show = "always"` config.
   if (!counted.length) return { hidden: true, empty: { icon: ICON.prs, tooltip: "No open pull requests", menu: { view: renderPrs(prBarState(lists)) } } };

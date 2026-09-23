@@ -340,8 +340,8 @@ export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: str
  */
 export type ViewInput = { value?: string; placeholder?: string; submit: string; cancel?: string };
 
-/** What re-asks an open view (`Palette.on`): a track or player change, wake from sleep, the network back, the panel shown with the level kept. */
-export type ViewTrigger = "media" | "wake" | "network" | "show";
+/** What re-asks an open view or re-lists an open palette (`Palette.on`): a track or player change, wake from sleep, the network back, the panel shown with the level kept, a copy recorded by Clipboard history. */
+export type ViewTrigger = "media" | "wake" | "network" | "show" | "clipboard";
 
 /**
  * Which view a push or a lifecycle notification is about: a view
@@ -647,6 +647,7 @@ type PaletteBase = {
    * views"). The manifest's win over these (`checkPalettes`).
    */
   refresh?: number;
+  /** A view: the triggers that re-ask it while open (above). A list palette: the triggers that list it again while it is showing (`clipboard` on the clipboard history). */
   on?: ViewTrigger[];
   /** `id` is the picked row, or the first marked one with `ctx.ids` carrying them all (`Action.multi`). */
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
@@ -808,7 +809,7 @@ export type StatesChanged = { states: Record<string, StateValue> };
  */
 export type ManifestBarRule = { id: string; when: string; description?: string; hidden?: boolean; urgent?: boolean; color?: string; urgent_color?: string; size?: number; icon_size?: number; text_size?: number; dim?: number; opacity?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; badge_color?: string; badge_style?: "count" | "dot" | "none"; width?: number; font?: "system" | "mono"; max_chars?: number; position?: string };
 
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[]; /** The item's presentation rules, in order (`ManifestBarRule`). */ rules?: ManifestBarRule[] };
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[]; /** The item's presentation rules, in order (`ManifestBarRule`). */ rules?: ManifestBarRule[]; /** The item's own settings: Settings › Bar shows them on its pane, the file keeps them in `[bar.items."<key>".settings]`, and every render and action gets them resolved as `ctx.settings`. What the extension's palettes read too stays an extension setting. */ settings?: SettingSpec[] };
 
 /**
  * Why `render` runs, and what a popover-opening click carried. `compact`:
@@ -817,7 +818,7 @@ export type ManifestBar = { title: string; description?: string; refresh?: BarRe
  * out for that width; the core sets it on every bar call today, since
  * the popover is the only surface a bar item draws on.
  */
-export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "state" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo };
+export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "state" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo; /** The item's own settings (`ManifestBar.settings`) as they apply: the declared defaults under `[bar.items."<key>".settings]`. The host always fills it, falling back to the declared defaults key by key; a test calling `render` directly may leave it out. */ settings?: Record<string, unknown> };
 
 /**
  * Which instance of a `multi` extension the code runs as (`instance()` in
@@ -887,8 +888,7 @@ export type LinkHandler = (route: string, params: LinkParams) => Effect | void |
 export type SettingOption = { id: string; title: string };
 
 /** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. */
-/** `bar`: the setting is about that bar item (its id), so Settings > Bar shows it on the item's pane too; an id starting `bar_` with no `bar` is shown on every item of the extension. */
-type SettingBase = { id: string; label: string; description?: string; scope?: "instance"; bar?: string };
+type SettingBase = { id: string; label: string; description?: string; scope?: "instance" };
 
 /** One setting an extension declares, with its default. */
 export type SettingSpec = SettingBase &
@@ -952,6 +952,10 @@ export type ManifestPalette = {
   keywords?: string[];
   /** The switcher chord to suggest (`alt+tab`): applied when `palettes.<id>.hold` is unset in the config; `""` there turns it off. */
   hold?: string;
+  /** The rows are windows, most recent first: the switcher's quick tap (a release before the show) switches to the window before without painting, and the Window switcher feature is this palette's chord. Windows sets it. */
+  tap?: boolean;
+  /** Serves file dialogs: while an open or save panel is in front, the empty root's hint opens this palette (its rows carry Use in dialog). Files sets it. */
+  dialog?: boolean;
 };
 
 /**
@@ -1054,4 +1058,8 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   on?: ViewTrigger[];
   /** The switcher chord the manifest suggests (`ManifestPalette.hold`); the config's `hold` wins. */
   hold?: string;
+  /** `ManifestPalette.tap`: the switcher's quick tap is this palette's. */
+  tap?: true;
+  /** `ManifestPalette.dialog`: the file dialog hint opens this palette. */
+  dialog?: true;
 };

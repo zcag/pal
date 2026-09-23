@@ -333,5 +333,6 @@
         }
       ]
     }
-  }
+  },
+  "why": "draws the keys typed in other apps"
 }

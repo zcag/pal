@@ -139,6 +139,8 @@ export type SettingsExtension = {
   palettes: SettingsPalette[];
   /** Extension-level settings the extension declared. */
   settings: SettingSpec[];
+  /** The OS permissions it uses, read from its store listing's `permissions` (`calendars`, `full-disk-access`, `location`…; `storePermissions`): the Overview asks for one only when something uses it. */
+  permissions?: PermissionId[];
   /** `extensions.<name>` in the file. */
   values: SettingValues;
   /** False while the code fails to load; `error` says why. The manifest still lists it. */
@@ -230,29 +232,57 @@ export type PermissionRow = {
  * The permissions as rows. Every row is listed (the Overview and General
  * say what each is for); `unknown` is a probe with no answer, shown as such.
  */
-export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean; wifi?: boolean; /** `[extensions.snippets] expand = true`: keywords typed in other apps are watched for. */ expand?: boolean; /** The keycast overlay is on: the keys typed in other apps are drawn. */ keycast?: boolean } = {}): PermissionRow[] {
+/** Who uses a permission and what for: an extension that declares it (its manifest's `permissions`), a feature that is on (its spec's `permission` and `why`). */
+export type PermissionUser = { who: string; why?: string };
+
+/** The store listing's words for the OS permissions (`store.permissions` in a manifest, next to `network`, `token` and the tools it runs). */
+const STORE_PERMISSION: Record<string, PermissionId> = { accessibility: "accessibility", calendars: "calendar", "full-disk-access": "full_disk_access", "input-monitoring": "input_monitoring", location: "location" };
+
+/** The OS permissions among a store listing's `permissions`. */
+export const storePermissions = (listed: unknown): PermissionId[] => (Array.isArray(listed) ? [...new Set(listed.map((w) => STORE_PERMISSION[String(w)]).filter((p): p is PermissionId => !!p))] : []);
+
+/**
+ * Who uses each permission: every extension whose store listing names it
+ * (by title, once per name), and every feature that is on with a
+ * `permission` and its `why`.
+ */
+export function permissionUsers(extensions: SettingsExtension[], features: { title: string; on: boolean; permission?: PermissionId; why?: string }[] = []): Partial<Record<PermissionId, PermissionUser[]>> {
+  const out: Partial<Record<PermissionId, PermissionUser[]>> = {};
+  const add = (id: PermissionId, u: PermissionUser) => { const list = (out[id] ??= []); if (!list.some((x) => x.who === u.who)) list.push(u); };
+  for (const e of extensions) for (const id of e.permissions ?? []) add(id, { who: e.extTitle ?? e.title });
+  for (const f of features) if (f.on && f.permission && f.why) add(f.permission, { who: f.title, why: f.why });
+  return out;
+}
+
+/** "Calendar: My Schedule and Create Event. Keycast: the keys typed…", or `none` when nothing installed uses it. */
+const usedBy = (users: PermissionUser[] | undefined, none: string) => (users?.length ? users.map(line).join(". ") : none);
+const line = (u: PermissionUser) => (u.why ? `${u.who}: ${u.why}` : `${u.who} uses it`);
+
+/**
+ * The permissions as rows. Every row is listed (the Overview and General
+ * say what each is for); `unknown` is a probe with no answer, shown as such.
+ * `users` is what the installed extensions and the features that are on
+ * use each one for; `bar` whether any bar item is registered.
+ */
+export function permissionRows(p: PermissionsStatus | undefined, opts: { users?: Partial<Record<PermissionId, PermissionUser[]>>; bar?: boolean } = {}): PermissionRow[] {
   if (!p) return [];
+  const u = opts.users ?? {};
+  const brief = (id: PermissionId, fallback: string) => (u[id]?.length ? u[id]!.map((x) => x.who).join(", ") : fallback);
   const rows: PermissionRow[] = [
-    { id: "accessibility", title: "Accessibility", granted: p.accessibility, state: p.accessibility ? "granted" : "missing", brief: "paste, window switching", needs: "Paste into the app in front, switch to a window, pal action type", where: "Privacy & Security > Accessibility" },
+    { id: "accessibility", title: "Accessibility", granted: p.accessibility, state: p.accessibility ? "granted" : "missing", brief: ["paste", "window switching", ...(u.accessibility ?? []).map((x) => x.who)].join(", "), needs: ["Paste into the app in front, switch to a window, pal action type", ...(u.accessibility ?? []).map(line)].join(". "), where: "Privacy & Security > Accessibility" },
   ];
   if (p.calendar && p.calendar !== "unavailable") {
-    rows.push({ id: "calendar", title: "Calendars", granted: p.calendar === "granted", state: p.calendar === "granted" ? "granted" : "missing", brief: "the Calendar extension", needs: opts.calendar ? "The Calendar extension: My Schedule, Create Event" : "The Calendar extension (not installed)", where: p.calendar === "not_determined" ? "the system prompt, once" : "Privacy & Security > Calendars" });
+    rows.push({ id: "calendar", title: "Calendars", granted: p.calendar === "granted", state: p.calendar === "granted" ? "granted" : "missing", brief: brief("calendar", "nothing installed"), needs: usedBy(u.calendar, "Nothing installed reads your calendars"), where: p.calendar === "not_determined" ? "the system prompt, once" : "Privacy & Security > Calendars" });
   }
-  if (p.full_disk_access !== undefined || opts.otp) {
-    rows.push({ id: "full_disk_access", title: "Full Disk Access", granted: p.full_disk_access === true, state: p.full_disk_access === true ? "granted" : p.full_disk_access === false ? "missing" : "unknown", brief: "verification codes", needs: "Verification codes (the OTP palette reads the Messages database)", where: "Privacy & Security > Full Disk Access; add pal there by hand" });
+  if (p.full_disk_access !== undefined || u.full_disk_access?.length) {
+    rows.push({ id: "full_disk_access", title: "Full Disk Access", granted: p.full_disk_access === true, state: p.full_disk_access === true ? "granted" : p.full_disk_access === false ? "missing" : "unknown", brief: brief("full_disk_access", "nothing installed"), needs: usedBy(u.full_disk_access, "Nothing installed reads protected files"), where: "Privacy & Security > Full Disk Access; add pal there by hand" });
   }
   if (p.input_monitoring !== undefined) {
     const peek = opts.bar ? "A bar peek closes on the next key press" : "A bar peek closes on the next key press (no bar items yet)";
-    const uses = [...(opts.expand ? ["snippet expansion"] : []), ...(opts.keycast ? ["keycast"] : []), "bar peeks"];
-    const needs = [
-      ...(opts.expand ? ["Snippet expansion (a keyword typed in any app is watched for; Snippets > Expand as you type is on)"] : []),
-      ...(opts.keycast ? ["Keycast (the keys typed in other apps are drawn on screen; it is on)"] : []),
-      peek,
-    ];
-    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: uses.join(", "), needs: needs.join(". "), where: "Privacy & Security > Input Monitoring" });
+    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: [...(u.input_monitoring ?? []).map((x) => x.who), "bar peeks"].join(", "), needs: [...(u.input_monitoring ?? []).map(line), peek].join(". "), where: "Privacy & Security > Input Monitoring" });
   }
   if (p.location && p.location !== "unavailable") {
-    rows.push({ id: "location", title: "Location", granted: p.location === "granted", state: p.location === "granted" ? "granted" : "missing", brief: "Wi-Fi network names", needs: opts.wifi ? "Wi-Fi network names (macOS shows them only to apps with Location access); asked the first time the Wi-Fi palette lists" : "Wi-Fi network names (the Wi-Fi extension, not installed)", where: p.location === "not_determined" ? "the system prompt, once" : "Privacy & Security > Location Services" });
+    rows.push({ id: "location", title: "Location", granted: p.location === "granted", state: p.location === "granted" ? "granted" : "missing", brief: brief("location", "Wi-Fi network names"), needs: usedBy(u.location, "Wi-Fi network names (macOS shows them only to apps with Location access); nothing installed asks for them"), where: p.location === "not_determined" ? "the system prompt, once" : "Privacy & Security > Location Services" });
   }
   return rows;
 }
@@ -273,7 +303,7 @@ export type Diagnostic = {
   message: string;
 };
 
-export type SettingsPage = "overview" | "general" | "shortcuts" | "features" | "palettes" | "extensions" | "bar" | "about";
+export type SettingsPage = "overview" | "general" | "shortcuts" | "features" | "extensions" | "bar" | "about";
 
 /**
  * One searchable entry: a page, the setting's label, where on the page it
@@ -442,11 +472,11 @@ export type BarItem = {
   /** The facts the item publishes, what its rules read. */
   states?: BarStateView[];
   config: BarItemConfig;
-  /** The extension's settings about this item (`SettingSpec.bar`, or a `bar_` id): shown on the pane, written to the extension's table. */
+  /** The item's own settings (its manifest's `bar.<id>.settings`): shown on its pane, written to `[bar.items."<key>".settings]`. */
   settings?: BarItemSetting[];
 };
 
-/** One extension setting as the bar pane shows it: the spec, its current value, and what an instance inherits (SettingsExtensions draws the same row). */
+/** One item setting as the bar pane shows it: the spec, its current value, and what an instance's item inherits from the default instance's (SettingsExtensions draws the same row). */
 export type BarItemSetting = { spec: SettingSpec; value: SettingValue | undefined; base?: SettingValue; note?: string };
 
 /**

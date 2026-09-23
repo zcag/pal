@@ -46,9 +46,10 @@ describe("bluetooth", () => {
     const original = devices;
     try {
       expect(await host.render("bluetooth", "battery")).toMatchObject({ icon: "\u{f00b1}", empty: { icon: "\u{f00b1}" }, states: { low: 0, lowest: 55, connected: 2 } });
-      host.changeSettings("bluetooth", { settings: { low_threshold: 100 } });
+      // The threshold is the item's setting, through the ctx as the core sends it.
+      const at = (low_threshold: number) => ({ reason: "load", settings: { low_threshold } }) as const;
       devices = devices.map((d) => d.name === "Corne" ? { ...d, connected: true } : d);
-      const item = await host.render("bluetooth", "battery");
+      const item = await host.render("bluetooth", "battery", at(100));
       expect(item).toMatchObject({ icon: "\u{f0083}", title: "2 low", states: { low: 2, lowest: 55 }, tooltip: "Bluetooth battery · Pebble M350s 55% · AirPods Pro 75% (L 80% · R 75% · Case 90%)", click: "open" });
       const v = viewOf(item);
       expect(v).toMatchObject({ id: "battery", title: "2 low Bluetooth batteries", keys: "actions" });
@@ -61,22 +62,20 @@ describe("bluetooth", () => {
       expect(keycaps(v)).toEqual(["enter", "c", "s", "r", "up", "down"]);
       expect(v.actions!.filter((a) => !a.hidden).map((a) => [a.id, a.shortcut, a.confirm])).toEqual([["disconnect", "enter", "Disconnect Pebble M350s?"], ["copy", "c", undefined], ["settings", "s", undefined], ["refresh", "r", undefined]]);
       expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:D4:83:5A:8E:D0:B9", "focus:14:28:76:8B:AE:C8", "focus:E6:E6:EA:DB:E7:18"]);
-      expect(viewOf(await host.barAction("bluetooth", "battery", "focus:14:28:76:8B:AE:C8"))).toMatchObject({ id: "battery" });
+      expect(viewOf(await host.barAction("bluetooth", "battery", "focus:14:28:76:8B:AE:C8", at(100)))).toMatchObject({ id: "battery" });
       const before = calls.length;
-      expect(await host.barAction("bluetooth", "battery", "disconnect")).toMatchObject({ keep: true, hud: "Disconnected AirPods Pro", view: { id: "battery" } });
+      expect(await host.barAction("bluetooth", "battery", "disconnect", at(100))).toMatchObject({ keep: true, hud: "Disconnected AirPods Pro", view: { id: "battery" } });
       expect(calls.slice(before)).toEqual(["disconnect 14:28:76:8B:AE:C8"]);
-      host.changeSettings("bluetooth", { settings: { low_threshold: 60 } });
-      expect(await host.render("bluetooth", "battery")).toMatchObject({ title: "Pebble M350s 55%", states: { low: 1 }, tooltip: "Bluetooth battery · Pebble M350s 55%" });
+      expect(await host.render("bluetooth", "battery", at(60))).toMatchObject({ title: "Pebble M350s 55%", states: { low: 1 }, tooltip: "Bluetooth battery · Pebble M350s 55%" });
       devices = original.map((d) => d.address === "14:28:76:8B:AE:C8" ? { ...d, battery: 12, battery_detail: "L 16% · R 12% · Case 90%" } : d);
-      const critical = await host.render("bluetooth", "battery");
+      const critical = await host.render("bluetooth", "battery", at(60));
       expect(critical).toMatchObject({ title: "2 low", states: { low: 2, lowest: 12 }, tooltip: "Bluetooth battery · AirPods Pro 12% (L 16% · R 12% · Case 90%) · Pebble M350s 55%" });
       expect(nodes(viewOf(critical).tree).filter((n): n is Extract<ViewNode, { type: "progress" }> => n.type === "progress").map((p) => [p.value, p.color])).toEqual([[0.12, "red"], [0.55, "amber"]]);
       devices = devices.map((d) => ({ ...d, connected: false }));
-      expect(await host.render("bluetooth", "battery")).toMatchObject({ icon: "\u{f00af}", states: { connected: 0, low: 0, lowest: null }, empty: { icon: "\u{f00af}" } });
+      expect(await host.render("bluetooth", "battery", at(60))).toMatchObject({ icon: "\u{f00af}", states: { connected: 0, low: 0, lowest: null }, empty: { icon: "\u{f00af}" } });
     } finally {
       devices = original;
       calls.length = 0;
-      host.changeSettings("bluetooth", { settings: { low_threshold: 25 } });
     }
   });
 

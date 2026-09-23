@@ -86,15 +86,6 @@
         }
       ],
       "default": "merge"
-    },
-    {
-      "kind": "boolean",
-      "id": "review_requests",
-      "label": "Review requests on the strip",
-      "text": "Count the pull requests waiting on your review",
-      "description": "Off (the default) keeps the Pull requests item to your own PRs, whose checks and reviews are yours to act on; a review asked of you is someone else's work and sits in the popover's own bucket either way.",
-      "default": false,
-      "bar": "prs"
     }
   ],
   "palettes": {
@@ -277,6 +268,16 @@
         }
       },
       "refresh": { "every": 300, "on": ["show", "wake", "network"] },
+      "settings": [
+        {
+          "kind": "boolean",
+          "id": "review_requests",
+          "label": "Review requests on the strip",
+          "text": "Count the pull requests waiting on your review",
+          "description": "Off (the default) keeps the Pull requests item to your own PRs, whose checks and reviews are yours to act on; a review asked of you is someone else's work and sits in the popover's own bucket either way.",
+          "default": false
+        }
+      ],
       "keys": [
         {
           "keys": "enter",

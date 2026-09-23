@@ -137,6 +137,7 @@
       "kind": "live",
       "description": "What is open right now, most recently used first.",
       "hold": "alt+tab",
+      "tap": true,
       "keys": [
         {
           "keys": "enter",

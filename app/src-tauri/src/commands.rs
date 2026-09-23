@@ -50,7 +50,7 @@ pub const RELEASES: &str = "https://github.com/zcag/pal/releases/latest";
 
 pub const SETTINGS: &str = "settings";
 pub const SETTINGS_EXTENSIONS: &str = "settings-extensions";
-pub const SETTINGS_PALETTES: &str = "settings-palettes";
+pub const SETTINGS_FEATURES: &str = "settings-features";
 pub const SETTINGS_ABOUT: &str = "settings-about";
 pub const STORE_ROW: &str = "store";
 pub const INSTALL: &str = "install";
@@ -178,8 +178,8 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Faile
     }
     rows.extend([
         row(SETTINGS, "Settings", "Hotkey, theme, palettes, extensions", &["preferences", "options", "config"], &icon),
-        row(SETTINGS_EXTENSIONS, "Settings › Extensions", "Installed extensions, updates, the store", &["settings", "preferences", "extensions"], &icon),
-        row(SETTINGS_PALETTES, "Settings › Palettes", "Enable, alias and hotkey per palette", &["settings", "preferences", "palettes"], &icon),
+        row(SETTINGS_EXTENSIONS, "Settings › Extensions", "Installed extensions and their palettes, updates, the store", &["settings", "preferences", "extensions", "palettes"], &icon),
+        row(SETTINGS_FEATURES, "Settings › Features", "Clipboard history, text expansion, the switcher, mouse, keycast", &["settings", "preferences", "features"], &icon),
         row(SETTINGS_ABOUT, "Settings › About", "Version, links, the last crash", &["settings", "preferences", "about", "version"], &icon),
         row(STORE_ROW, "Extension Store", "Browse and install in the panel; the website is a level away", &["extensions", "store", "browse", "marketplace"], &icon),
         row(INSTALL, "Install Extension", "From GitHub, a URL or a local directory", &["extension", "add", "github"], &icon),
@@ -318,7 +318,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
     match id {
         SETTINGS => Plan::Settings(None),
         SETTINGS_EXTENSIONS => Plan::Settings(Some("extensions")),
-        SETTINGS_PALETTES => Plan::Settings(Some("palettes")),
+        SETTINGS_FEATURES => Plan::Settings(Some("features")),
         SETTINGS_ABOUT => Plan::Settings(Some("about")),
         _ if id.starts_with(FAILED) => Plan::SettingsExtension(id[FAILED.len()..].to_string()),
         STORE_ROW => Plan::Store,
@@ -688,7 +688,7 @@ mod tests {
         assert_eq!(plan("gone", None, None), Plan::Nothing);
         assert_eq!(plan(SETTINGS, None, None), Plan::Settings(None));
         assert_eq!(plan(SETTINGS_EXTENSIONS, None, None), Plan::Settings(Some("extensions")));
-        assert_eq!(plan(SETTINGS_PALETTES, None, None), Plan::Settings(Some("palettes")));
+        assert_eq!(plan(SETTINGS_FEATURES, None, None), Plan::Settings(Some("features")));
         assert_eq!(plan(SETTINGS_ABOUT, None, None), Plan::Settings(Some("about")));
         assert_eq!(plan(STORE_ROW, None, None), Plan::Store);
         assert_eq!(plan(DOCS_ROW, None, None), Plan::Open(DOCS));

@@ -70,5 +70,6 @@
       "text": "Show \"Expanded <name>\" in the HUD after an expansion",
       "default": true
     }
-  ]
+  ],
+  "why": "watches the keys typed in other apps for a keyword"
 }

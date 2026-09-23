@@ -17,8 +17,7 @@ export const log = (msg: string) => console.error(`[calendar] ${msg}`);
 export type SourceName = "auto" | "system" | "google";
 export type Settings = {
   source: SourceName; accounts: unknown[]; calendars: string[]; days: number; hide_declined: boolean; hide_all_day: boolean;
-  horizon_hours: number; near_minutes?: number; warn_minutes: number; urgent_minutes: number; default_length: number;
-  /** The bar's five time states: colour, size and sketchybar placement. */
+  horizon_hours: number; default_length: number;
 };
 export type Loaded = { events: CalendarEvent[]; at: number; stale: boolean; error?: string };
 

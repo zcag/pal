@@ -4,7 +4,7 @@
 // other actions set the volume to the percent typed in the search bar
 // (a form for a pick without it) or toggle mute without leaving the
 // palette. Live: the defaults and volumes are read again on every show.
-import { argsForm, audio, bar, errorMessage, failed, hint, settings, xdg, type Accessory, type Action, type Arg, type AudioDevice, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { argsForm, audio, bar, errorMessage, failed, hint, xdg, type Accessory, type Action, type Arg, type AudioDevice, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { PRESETS as VIEW_PRESETS, render as renderBar, type BarKind, type BarState } from "./view.ts";
 
 export const PRESETS = VIEW_PRESETS;
@@ -30,8 +30,12 @@ const VOLUME_ITEM = "volume";
 /** How long the level stays up after a change, his `VOL_FLASH_SEC`. */
 const FLASH_MS = 3000;
 
-/** `[extensions.audio]`, defaults in pal.json. */
-type Settings = { level: "flash" | "always" | "never" };
+/** The volume item's settings, `[bar.items."audio/volume".settings]`, defaults in pal.json. */
+type VolumeSettings = { level: "flash" | "always" | "never" };
+
+/** The volume item's settings as its last render or action had them: the microphone's actions flash the volume's level too, and they carry the microphone's settings, not these. */
+let volumeSettings: VolumeSettings = { level: "flash" };
+const remember = (ctx?: BarCtx) => { if (ctx?.settings) volumeSettings = ctx.settings as VolumeSettings; };
 
 let flashUntil = 0;
 let collapse: ReturnType<typeof setTimeout> | undefined;
@@ -59,7 +63,7 @@ async function barState(kind: BarKind): Promise<BarState> {
  * times as long as it should be.
  */
 function flash(): void {
-  if (settings.get<Settings>().level !== "flash") return;
+  if (volumeSettings.level !== "flash") return;
   flashUntil = Date.now() + FLASH_MS;
   clearTimeout(collapse);
   collapse = setTimeout(() => { flashUntil = 0; bar.refresh(VOLUME_ITEM).catch(() => {}); }, FLASH_MS);
@@ -115,7 +119,7 @@ function outputBar(d: AudioDevice | undefined, menu: View): BarItem {
   // reading: permanently on screen it is one you stop seeing. It appears for the
   // moment after a change and then collapses back to a one-glyph item; the
   // standing answer is the popover, against the device it applies to.
-  const level = settings.get<Settings>().level;
+  const level = volumeSettings.level;
   const showLevel = d.volume !== null && (level === "always" || (level === "flash" && Date.now() < flashUntil));
   return {
     icon: outputGlyph(d),
@@ -130,7 +134,8 @@ function outputBar(d: AudioDevice | undefined, menu: View): BarItem {
 }
 
 /** The main volume strip, or hidden when the audio backend is unavailable. */
-async function renderVolume(): Promise<BarItem> {
+async function renderVolume(ctx?: BarCtx): Promise<BarItem> {
+  remember(ctx);
   try { const st = await barState("output"); return outputBar(st.devices.find((d) => d.default), renderBar(st)); } catch { return { hidden: true }; }
 }
 
@@ -214,7 +219,7 @@ async function deviceAction(kind: BarKind, action: string, ctx?: BarCtx): Promis
   } catch (e) { return failed(kind === "output" ? "change volume" : "change the microphone", e); }
 }
 
-const volumeAction = (action: string, ctx?: BarCtx) => deviceAction("output", action, ctx);
+const volumeAction = (action: string, ctx?: BarCtx) => { remember(ctx); return deviceAction("output", action, ctx); };
 const micBarAction = (action: string, ctx?: BarCtx) => deviceAction("input", action, ctx);
 
 /** A direct click on the muted-microphone strip: bring it back, which is the only reason that strip is there. */

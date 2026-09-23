@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Empty } from "./Empty";
+import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
-import { Tag } from "./Row";
 import { SettingsField, SettingsHotkey, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { holdOf, type PaletteConfig, type PaletteTier, type SettingsExtension, type SettingsIndexEntry, type SettingsPalette, type SettingValue } from "./SettingsTypes";
 import type { Icon as IconSpec } from "./types";
@@ -11,13 +9,6 @@ import type { Icon as IconSpec } from "./types";
 export type PaletteItem = { id: string; name: string };
 
 export type SettingsPalettesProps = {
-  extensions: SettingsExtension[];
-  /** Selected palette id. */
-  selected?: string;
-  onSelect: (id: string | undefined) => void;
-  onChange: (id: string, config: PaletteConfig) => void;
-  /** The Extensions page for the palette's extension. */
-  onOpenExtension?: (name: string) => void;
   /** The palette's rows as indexed now (its cached listing), for the item hotkeys' picker; absent, the id is typed. */
   items?: (palette: SettingsPalette) => Promise<PaletteItem[]>;
 };
@@ -29,10 +20,10 @@ export const paletteIcon = (p: SettingsPalette, ext: SettingsExtension): IconSpe
 /** The search index, per instance key (`palettes:gmail@work-inbox`): an instance's group reads "Gmail (Work) › Inbox (Work)". */
 export const palettesIndex = (extensions: SettingsExtension[]): SettingsIndexEntry[] =>
   extensions.flatMap((e) => [
-    ...e.palettes.map((p) => ({ page: "palettes" as const, label: p.title === e.title ? p.title : `${e.extTitle ?? e.title} › ${p.title}`, hint: p.description ?? `${e.title} palette`, anchor: `palettes:${p.id}`, keywords: `${p.config.alias ?? ""} ${p.config.hotkey ?? ""} ${holdOf(p) ?? ""} ${p.id} ${e.key} ${e.title} palette` })),
+    ...e.palettes.map((p) => ({ page: "extensions" as const, label: p.title === e.title ? p.title : `${e.extTitle ?? e.title} › ${p.title}`, hint: p.description ?? `${e.title} palette`, anchor: `palettes:${p.id}`, keywords: `${p.config.alias ?? ""} ${p.config.hotkey ?? ""} ${holdOf(p) ?? ""} ${p.id} ${e.key} ${e.title} palette` })),
     // The switcher chord, for the palettes where it means something now: one suggested or written, not fifty rows for "chord".
-    ...e.palettes.filter((p) => p.hold || p.config.hold !== undefined).map((p) => ({ page: "palettes" as const, label: "Switcher chord", hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:hold`, keywords: `hold switcher ${holdOf(p) ?? "off"} alt tab cmd tab ${p.title}` })),
-    ...e.palettes.flatMap((p) => p.settings.map((s) => ({ page: "palettes" as const, label: s.label, hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:${s.id}`, keywords: s.description }))),
+    ...e.palettes.filter((p) => p.hold || p.config.hold !== undefined).map((p) => ({ page: "extensions" as const, label: "Switcher chord", hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:hold`, keywords: `hold switcher ${holdOf(p) ?? "off"} alt tab cmd tab ${p.title}` })),
+    ...e.palettes.flatMap((p) => p.settings.map((s) => ({ page: "extensions" as const, label: s.label, hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:${s.id}`, keywords: s.description }))),
   ]);
 
 /** The Switcher chord row's description, on the palette pane and the General card alike. */
@@ -66,7 +57,6 @@ const tiers: { id: PaletteTier; title: string }[] = [
 
 const kinds: Record<string, string> = { list: "List, cached", live: "Live, relisted on every show", input: "Input, answers as you type", view: "View" };
 
-const count = (n: number) => (n === 1 ? "1 palette" : `${n} palettes`);
 
 /**
  * Every palette of every extension as one table: an extension with several
@@ -79,131 +69,60 @@ const count = (n: number) => (n === 1 ? "1 palette" : `${n} palettes`);
  * item hotkeys and the settings it declared. Arrows move the selection;
  * Tab walks the row's controls.
  */
-export function SettingsPalettes({ extensions, selected, onSelect, onChange, onOpenExtension, items }: SettingsPalettesProps) {
-  const [filter, setFilter] = useState("");
-  const table = useRef<HTMLDivElement>(null);
-  const q = filter.trim().toLowerCase();
-  // One group per instance key (an entry per key comes in): "Gmail (Work)" with the badged tile over its palettes.
-  const groups = useMemo(() => extensions.map((e) => ({ ext: e, palettes: q ? e.palettes.filter((p) => `${e.title} ${e.key} ${p.title} ${p.config.alias ?? ""} ${p.description ?? ""}`.toLowerCase().includes(q)) : e.palettes })).filter((g) => g.palettes.length), [extensions, q]);
-  const all = extensions.flatMap((e) => e.palettes.map((p) => ({ p, ext: e })));
-  const current = all.find((x) => x.p.id === selected) ?? all[0];
-  const visible = groups.flatMap((g) => g.palettes.map((p) => p.id));
+/**
+ * One extension's (one instance's) palettes on its Extensions pane: a row
+ * each with what is set most (on, alias, hotkey, icon), and the rest of
+ * the palette (where its rows sort, its keys, the switcher chord, row
+ * hotkeys, its declared settings) unfolding under the row it belongs to.
+ * `open` is the unfolded palette's id; clicking a row's name folds and
+ * unfolds it.
+ */
+export function ExtensionPalettes({ ext, onChange, items, open, onOpen }: { ext: SettingsExtension; onChange: (id: string, config: PaletteConfig) => void; items?: SettingsPalettesProps["items"]; open?: string; onOpen: (id: string | undefined) => void }) {
   const set = (p: SettingsPalette, patch: Partial<PaletteConfig>) => onChange(p.id, { ...p.config, ...patch });
   const setSetting = (p: SettingsPalette, id: string, v: SettingValue) => set(p, { settings: { ...p.config.settings, [id]: v } });
-
-  const onTableKey = (e: KeyboardEvent) => {
-    const dir = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
-    if (!dir || !visible.length) return;
-    const target = e.target as HTMLElement;
-    if (target.tagName === "INPUT" || target.tagName === "SELECT") return;
-    e.preventDefault();
-    const i = visible.indexOf(current?.p.id ?? "");
-    const next = visible[Math.max(0, Math.min(visible.length - 1, i + dir))];
-    onSelect(next);
-    table.current?.querySelector<HTMLElement>(`[data-palette-row="${CSS.escape(next)}"]`)?.focus();
-  };
-
-  if (!extensions.length) return <Empty title="No extensions" hint="Install one on the Extensions page; its palettes list here." />;
-
   return (
-    <div className="pal-split pal-palettes">
-      <div className="pal-palettes__left">
-        <div className="pal-palettes__filter">
-          <input className="pal-field__input" type="search" placeholder="Filter palettes" aria-label="Filter palettes" value={filter} spellCheck={false} onChange={(e) => setFilter(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape" && filter) { e.stopPropagation(); setFilter(""); } }} />
-          <span className="pal-palettes__count">{visible.length} of {all.length}</span>
-        </div>
-        <div className="pal-ptable__cols" role="presentation" aria-hidden>
-          <span>Palette</span><span>On</span><span>Alias</span><span>Hotkey</span><span>Icon</span>
-        </div>
-        <div className="pal-palettes__scroll" ref={table} onKeyDown={onTableKey}>
-          {groups.length === 0 && <p className="pal-settings__none">No palette matches "{filter}".</p>}
-          {groups.map(({ ext, palettes }) => {
-            // One palette: the row stands for the extension too (tagline under the name), no header.
-            const solo = ext.palettes.length === 1;
-            return (
-            <section key={ext.key} className="pal-ptable" data-solo={solo || undefined} aria-label={ext.title} data-anchor={`palettes:ext:${ext.key}`}>
-              {!solo && (
-                <header className="pal-ptable__head">
-                  <Icon icon={ext.icon} />
-                  <span className="pal-ptable__ext">
-                    <span className="pal-ptable__ext-title">{ext.title}{ext.loaded === false && <Tag text="failed" color="red" />}</span>
-                    <span className="pal-ptable__ext-sub">{ext.tagline ?? ext.description}</span>
-                  </span>
-                  <span className="pal-ptable__ext-count">{count(ext.palettes.length)}</span>
-                </header>
-              )}
-              {palettes.map((p) => {
-                const active = p.id === current?.p.id;
-                return (
-                  <div
-                    key={p.id}
-                    role="row"
-                    tabIndex={active ? 0 : -1}
-                    aria-selected={active}
-                    data-palette-row={p.id}
-                    data-anchor={`palettes:${p.id}`}
-                    data-active={active || undefined}
-                    data-disabled={!p.config.enabled || undefined}
-                    className="pal-ptable__row"
-                    onClick={() => onSelect(p.id)}
-                    onFocus={(e) => { if (e.target === e.currentTarget) onSelect(p.id); }}
-                  >
-                    <span className="pal-ptable__cell pal-ptable__cell--name">
-                      <Icon icon={paletteIcon(p, ext)} />
-                      <span className="pal-ptable__text">
-                        <span className="pal-ptable__name">{p.title !== ext.title && <span className="pal-ptable__name-ext">{ext.extTitle ?? ext.title} › </span>}{p.title}{solo && ext.loaded === false && <Tag text="failed" color="red" />}</span>
-                        {solo && <span className="pal-ptable__sub">{ext.tagline ?? ext.description}</span>}
-                      </span>
-                    </span>
-                    <span className="pal-ptable__cell">
-                      <SettingsSwitch checked={p.config.enabled} onChange={(v) => set(p, { enabled: v })} label={`${p.title} enabled`} />
-                    </span>
-                    <span className="pal-ptable__cell pal-ptable__cell--alias">
-                      <input
-                        className="pal-inline"
-                        type="text"
-                        value={p.config.alias ?? ""}
-                        placeholder="alias"
-                        aria-label={`${p.title} alias`}
-                        spellCheck={false}
-                        size={5}
-                        onChange={(e) => set(p, { alias: e.target.value || undefined })}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }}
-                      />
-                    </span>
-                    <span className="pal-ptable__cell">
-                      <SettingsHotkey compact value={p.config.hotkey} onChange={(v) => set(p, { hotkey: v })} label={`${p.title} hotkey`} />
-                    </span>
-                    <span className="pal-ptable__cell">
-                      <IconPick p={p} ext={ext} onChange={(icon) => set(p, { icon })} />
-                    </span>
-                  </div>
-                );
-              })}
-            </section>
-            );
-          })}
-        </div>
+    <div className="pal-ptable pal-ptable--inline" role="table" aria-label={`${ext.title} palettes`}>
+      <div className="pal-ptable__cols" role="presentation" aria-hidden>
+        <span>Palette</span><span>On</span><span>Alias</span><span>Hotkey</span><span>Icon</span>
       </div>
-
-      <aside className="pal-palettes__pane" aria-label="Selected palette">
-        {current ? <PalettePane key={current.p.id} p={current.p} ext={current.ext} onChange={(patch) => set(current.p, patch)} onSetting={(id, v) => setSetting(current.p, id, v)} onOpenExtension={onOpenExtension} items={items} /> : <Empty title="No palette selected" />}
-      </aside>
+      {ext.palettes.map((p) => {
+        const unfolded = p.id === open;
+        return (
+          <div key={p.id} className="pal-ptable__entry" data-open={unfolded || undefined}>
+            <div role="row" data-palette-row={p.id} data-anchor={`palettes:${p.id}`} data-active={unfolded || undefined} data-disabled={!p.config.enabled || undefined} className="pal-ptable__row">
+              <span className="pal-ptable__cell pal-ptable__cell--name">
+                <button type="button" className="pal-ptable__fold" aria-expanded={unfolded} onClick={() => onOpen(unfolded ? undefined : p.id)} title={p.description}>
+                  <span className="pal-feature__chevron" aria-hidden><svg viewBox="0 0 10 14"><path d="M3.5 2.5L7 7l-3.5 4.5" /></svg></span>
+                  <Icon icon={paletteIcon(p, ext)} />
+                  <span className="pal-ptable__name">{p.title}</span>
+                </button>
+              </span>
+              <span className="pal-ptable__cell">
+                <SettingsSwitch checked={p.config.enabled} onChange={(v) => set(p, { enabled: v })} label={`${p.title} enabled`} />
+              </span>
+              <span className="pal-ptable__cell pal-ptable__cell--alias">
+                <input className="pal-inline" type="text" value={p.config.alias ?? ""} placeholder="alias" aria-label={`${p.title} alias`} spellCheck={false} size={5} onChange={(e) => set(p, { alias: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} />
+              </span>
+              <span className="pal-ptable__cell">
+                <SettingsHotkey compact value={p.config.hotkey} onChange={(v) => set(p, { hotkey: v })} label={`${p.title} hotkey`} />
+              </span>
+              <span className="pal-ptable__cell">
+                <IconPick p={p} ext={ext} onChange={(icon) => set(p, { icon })} />
+              </span>
+            </div>
+            {unfolded && <PalettePane p={p} ext={ext} onChange={(patch) => set(p, patch)} onSetting={(id, v) => setSetting(p, id, v)} items={items} embedded />}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function PalettePane({ p, ext, onChange, onSetting, onOpenExtension, items }: { p: SettingsPalette; ext: SettingsExtension; onChange: (patch: Partial<PaletteConfig>) => void; onSetting: (id: string, v: SettingValue) => void; onOpenExtension?: (name: string) => void; items?: SettingsPalettesProps["items"] }) {
+/** A palette's pane, under its row on the extension's pane (`embedded`: no head, the row is it). */
+function PalettePane({ p, ext, onChange, onSetting, items }: { p: SettingsPalette; ext: SettingsExtension; onChange: (patch: Partial<PaletteConfig>) => void; onSetting: (id: string, v: SettingValue) => void; items?: SettingsPalettesProps["items"]; embedded?: boolean }) {
   const tier = p.config.tier ?? p.tier ?? "normal";
   return (
-    <div className="pal-ppane">
-      <header className="pal-ppane__head">
-        <Icon icon={paletteIcon(p, ext)} size="lg" />
-        <div className="pal-ppane__titles">
-          <span className="pal-ppane__crumb">{onOpenExtension ? <button type="button" className="pal-link" onClick={() => onOpenExtension(ext.key)}>{ext.title}</button> : ext.title} ›</span>
-          <h3 className="pal-ppane__title">{p.title}</h3>
-        </div>
-      </header>
+    <div className="pal-ppane pal-ppane--embedded">
       {p.description && <p className="pal-ppane__desc">{p.description}</p>}
       {!p.config.enabled && <p className="pal-ppane__note">Off: no rows at the root and no row for the palette itself. Its hotkey and alias stay written down.</p>}
 
@@ -239,7 +158,7 @@ function PalettePane({ p, ext, onChange, onSetting, onOpenExtension, items }: { 
       <section className="pal-ppane__section" aria-label="Settings">
         <h4 className="pal-ppane__h">Settings <span className="pal-ppane__h-note">palettes.{p.id}.settings</span></h4>
         {p.settings.length === 0 ? (
-          <p className="pal-ppane__none">{ext.extTitle ?? ext.title} declares none for this palette.{ext.settings.length > 0 && onOpenExtension ? <> Its own are on <button type="button" className="pal-link" onClick={() => onOpenExtension(ext.key)}>Extensions</button>.</> : null}</p>
+          <p className="pal-ppane__none">{ext.extTitle ?? ext.title} declares none for this palette.{ext.settings.length > 0 ? " Its own settings are above." : ""}</p>
         ) : (
           <div className="pal-ppane__fields">
             {p.settings.map((s) => {

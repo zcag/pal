@@ -148,7 +148,7 @@ out), `cmd+enter` stops.
 `hue/home`: the main room's colour as a dot (a PNG, since the menu bar
 draws PNGs only) and `N on`; the bulb glyph, muted, with everything off;
 hidden until a bridge is paired; `stale` when a paired bridge does not
-answer. The main room is the `main_room` setting, else the room with most
+answer. The main room is the item's `main_room` setting, else the room with most
 lights on. Rendered every 60 s and on show, wake and network; pushed on
 every stream event, so the popover follows a switch or the Hue app too.
 
@@ -159,7 +159,7 @@ the rooms and zones as a grid of tiles two a row, each in its lit colour
 shaded by the brightness with its name, a switch, the count and
 brightness and a thin brightness bar (an off room is a plain card), then
 the scenes as five-swatch tiles with their digit (the opened room's,
-else `bar_scenes` by name or id, else the main room's, nine at most; the
+else the item's `scenes` by name or id, else the main room's, nine at most; the
 one playing is a card with its name in the accent), and the key hints. A
 tap on a tile toggles the room, the switch too; the chevron opens the
 room: its lights inline, each a swatch, the name, a brightness slider
@@ -194,9 +194,14 @@ palette), `pal://hue/off`. Rooms and scenes go by name, slug or id.
 | `application_key` | secret | unset | The key for `bridge`: pairing puts it in the keychain (`keychain:pal/hue-application_key`); an `env:` reference works too. |
 | `insecure` | boolean | `false` | Skip the certificate check. |
 | `transition` | number (ms) | `400` | How long a change from a row or a link takes. |
-| `main_room` | text | unset | The bar dot's room. |
-| `bar_scenes` | list | `[]` | Scenes in the bar popover. |
 | `timeout` | number (s) | `5` | One request's limit. |
+
+`home` item settings, `[bar.items."hue/home".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `main_room` | text | unset | The room the tooltip names and whose scenes the popover lists; unset, the room with most lights on. |
+| `scenes` | list | `[]` | Scenes in the popover, by name or id, in this order; empty, the main room's. |
 
 ## What it does not do
 

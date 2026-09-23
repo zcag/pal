@@ -23,8 +23,6 @@ pub const CONFIG: &str = "pal://config";
 /// A notification from the extension host, as it sent it
 /// (`{ method, params }`), plus `{ method: "host/exit" }` when it went down.
 pub const HOST: &str = "pal://host";
-/// The clipboard recorded a copy: `{ id, kind }`.
-pub const CLIPBOARD: &str = "pal://clipboard";
 /// The HUD window's text: `{ text }`; the page shows it with the brief's
 /// motion (hud.rs).
 pub const HUD: &str = "pal://hud";

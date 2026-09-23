@@ -17,7 +17,7 @@ export const isViewPalette = (p: Palette): p is ViewPalette => typeof p.view ===
 
 export const PALETTE_KINDS: readonly PaletteKind[] = ["list", "live", "input", "grid", "view"];
 /** What may re-ask an open view (`Palette.on`). */
-export const VIEW_TRIGGERS: readonly ViewTrigger[] = ["media", "wake", "network", "show"];
+export const VIEW_TRIGGERS: readonly ViewTrigger[] = ["media", "wake", "network", "show", "clipboard"];
 
 /**
  * The kind the code implies, first match wins: `view` for a `view()`
@@ -110,12 +110,14 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     tier: m?.tier ?? p.tier,
     ...((m?.lazy ?? p.lazy) && { lazy: (m?.lazy ?? p.lazy) === "visit" ? ("visit" as const) : (true as const) }),
     ...(isViewPalette(p) && (m?.refresh ?? p.refresh) !== undefined && { refresh: m?.refresh ?? p.refresh }),
-    ...(isViewPalette(p) && (m?.on ?? p.on)?.length && { on: m?.on ?? p.on }),
+    ...((m?.on ?? p.on)?.length && { on: m?.on ?? p.on }),
     ...(inlineOf(p, m) && { inline: true as const }),
     ...(matchSource(p, m) !== undefined && { match: matchSource(p, m) }),
     ...(fallbackOf(p, m)),
     ...(typeof p.suggest === "function" && { suggest: true as const }),
     ...(typeof m?.hold === "string" && m.hold.trim() && { hold: m.hold.trim() }),
+    ...(m?.tap === true && { tap: true as const }),
+    ...(m?.dialog === true && { dialog: true as const }),
     ...(p.multi === true && { multi: true as const }),
     ...(keywords.length && { keywords }),
   };
@@ -254,7 +256,6 @@ export function checkPalettes(manifest: Manifest, ext: Extension, inst?: Instanc
       }
     }
     if (kind !== "view" && (m?.refresh ?? p.refresh) !== undefined) warnings.push(`palettes.${name}: refresh is for a view palette (a re-ask of view(ctx) while it is open); a listing has ttl and live`);
-    if (kind !== "view" && (m?.on ?? p.on) !== undefined) warnings.push(`palettes.${name}: on is for a view palette (the triggers that re-ask view(ctx) while it is open)`);
     const on = m?.on ?? p.on;
     if (on !== undefined && (!Array.isArray(on) || !on.every((t) => VIEW_TRIGGERS.includes(t)))) warnings.push(`palettes.${name}: on must be a list of ${VIEW_TRIGGERS.join(", ")}`);
     if (!manifest.multi && PLACEHOLDER.test(m?.title ?? p.title ?? "")) warnings.push(`palettes.${name}: the title uses {instance} but pal.json does not declare "multi": true; nothing fills it`);
@@ -308,6 +309,22 @@ export function checkBarRules(manifest: Manifest): string[] {
     }
   }
   return warnings;
+}
+
+/**
+ * Settings still spelled the way bar items borrowed them before they had
+ * their own (`docs/design/model.md`): a `bar` attribute on an extension
+ * setting, or a `bar_` id with bar items declared. Neither reaches an item
+ * any more; its settings are `bar.<id>.settings`, read as `ctx.settings`.
+ */
+export function checkBarSettings(manifest: Manifest): string[] {
+  const items = Object.keys(manifest.bar ?? {});
+  return (manifest.settings ?? []).flatMap((s) => {
+    const tagged = typeof (s as { bar?: unknown }).bar === "string";
+    if (!tagged && !(items.length && s.id.startsWith("bar_"))) return [];
+    const item = tagged ? (s as unknown as { bar: string }).bar : "<item>";
+    return [`settings.${s.id}: ${tagged ? `"bar" no longer puts a setting on an item` : `a bar_ id no longer puts a setting on every item`}; declare it under bar.${item}.settings and read ctx.settings (an extension setting the palettes read stays here, without it)`];
+  });
 }
 
 export function checkLinks(manifest: Manifest, ext: Extension): string[] {

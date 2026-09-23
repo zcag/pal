@@ -140,7 +140,12 @@ stale bar item) instead of piling onto the limit.
 | `workspace` | text | (none) | The workspace when the app is signed in to several, by id (`T...`) or domain; empty lists every one (status and search on the first). |
 | `statuses` | list | five presets | One per line as `:emoji: text (expiry)`; the expiry is `30m`, `2h`, `1d` or `today`, or left out. Common Slack shortcodes are drawn as the emoji. |
 | `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away), one `users.getPresence` per person, remembered a minute; off makes no such call. |
-| `refresh` | number (s) | `120` | Seconds between refreshes of the bar item (10 at least). |
+
+`unreads` item settings, `[bar.items."slack/unreads".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `refresh` | number (s) | `120` | Seconds between refreshes of the item (10 at least). |
 
 When the bar item is drawn and whether a direct message makes it urgent are its rules (`quiet`, `dm`) under Settings > Bar: narrow `quiet` to `slack.attention == 0 and slack.channels == 0` to keep the glyph while a channel is merely unread, turn `dm`'s Urgent off for a plain count. Keeping it at all times is the core's `show = "always"` under `[bar.items."slack/unreads"]` (docs/config.md).
 
@@ -149,7 +154,7 @@ When the bar item is drawn and whether a direct message makes it urgent are its 
 **Unreads** (`slack/unreads`): the count of what is addressed to you
 (direct messages + mentions + thread replies) as the badge, hidden at
 zero, urgent while a direct message waits. Refreshed every `refresh`
-seconds and when the panel shows, after a wake and when the network is
+seconds (its item setting) and when the panel shows, after a wake and when the network is
 back. The popover is a view of the item's own: a section per kind with
 every row (the popover scrolls), each the sender's picture (an initial in a colour
 while it is not fetched), the conversation, the message on one line,

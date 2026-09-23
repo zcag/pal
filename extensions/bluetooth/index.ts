@@ -3,11 +3,12 @@
 // as an accessory. Enter toggles the connection (Disconnect asks first),
 // ⌘C copies the address. Live: the connected state is read again on
 // every show; the list is the OS's, connected first then by name.
-import { bluetooth, errorMessage, failed, hint, settings, toast, truncate, xdg, type Accessory, type Action, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
+import { bluetooth, errorMessage, failed, hint, toast, truncate, xdg, type Accessory, type Action, type BarCtx, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
 import { GLYPH, KIND, batteries, render as renderBattery, rows as batteryRows, type BarState } from "./view.ts";
 
-type Settings = { low_threshold: number };
-const EXTENSION = "bluetooth";
+/** The battery item's settings, `[bar.items."bluetooth/battery".settings]`, defaults in pal.json. */
+type ItemSettings = { low_threshold: number };
+const thresholdOf = (ctx: BarCtx) => (ctx.settings as ItemSettings).low_threshold;
 const MAC = process.platform === "darwin";
 const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.BluetoothSettings";
 const LINUX_SETTINGS: string[][] = [["gnome-control-center", "bluetooth"], ["systemsettings", "kcm_bluetooth"], ["blueman-manager"]];
@@ -51,9 +52,9 @@ function barState(devices: BluetoothDevice[], threshold: number): BarState {
  * it amber, then red at 20%. The same glyph is the `empty` shape a
  * `show = "always"` config keeps between alerts.
  */
-async function batteryBar(): Promise<BarItem> {
+async function batteryBar(ctx: BarCtx): Promise<BarItem> {
   try {
-    const { low_threshold: threshold } = settings.get<Settings>(EXTENSION);
+    const threshold = thresholdOf(ctx);
     const devices = await bluetooth.devices();
     const low = batteries(devices).filter((d) => d.battery! <= threshold);
     const connected = devices.filter((d) => d.connected);
@@ -84,15 +85,12 @@ async function openBluetoothSettings(): Promise<Effect> {
   return { hide: true };
 }
 
-const redraw = async (): Promise<Effect> => {
-  const threshold = settings.get<Settings>(EXTENSION).low_threshold;
-  return { view: renderBattery(barState(await bluetooth.devices(), threshold)) };
-};
+const redraw = async (threshold: number): Promise<Effect> => ({ view: renderBattery(barState(await bluetooth.devices(), threshold)) });
 
-async function batteryAction(action: string): Promise<Effect> {
+async function batteryAction(action: string, ctx: BarCtx): Promise<Effect> {
   if (action === "settings") return openBluetoothSettings();
-  if (action === "refresh") return { keep: true, ...(await redraw()) };
-  const threshold = settings.get<Settings>(EXTENSION).low_threshold;
+  const threshold = thresholdOf(ctx);
+  if (action === "refresh") return { keep: true, ...(await redraw(threshold)) };
   const devices = await bluetooth.devices().catch(() => [] as BluetoothDevice[]);
   const st = barState(devices, threshold);
   const rows = batteryRows(st);
@@ -107,7 +105,7 @@ async function batteryAction(action: string): Promise<Effect> {
   if (action === "copy") return { copy: cur.address };
   if (action === "disconnect") {
     try { await bluetooth.disconnect(cur.address); } catch (e) { return failed(`disconnect ${cur.name}`, e); }
-    return { keep: true, hud: `Disconnected ${cur.name}`, ...(await redraw()) };
+    return { keep: true, hud: `Disconnected ${cur.name}`, ...(await redraw(threshold)) };
   }
   return { keep: true };
 }

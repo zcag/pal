@@ -20,7 +20,7 @@ export const freshPopover = (): PopoverState => ({ focus: "rooms", cursor: 0, li
 /** What the popover draws, from the model. */
 export type PopoverData = {
   rooms: Room[];
-  /** The scenes to offer: the opened room's, else the main room's (or the `bar_scenes` setting's). */
+  /** The scenes to offer: the opened room's, else the main room's (or the item's `scenes` setting's). */
   scenes: Scene[];
   /** Whose scenes they are. */
   scenesOf?: string;

@@ -25,8 +25,15 @@ export function barMetas(ext: Extension | undefined, manifest: Manifest): BarMet
   return ids.map((id) => ({ ...(declared[id] ?? { title: id }), id, source: typeof sources[id]?.render === "function" }));
 }
 
-/** The core's `ctx` as the extension sees it; a request without one gets `reason` (a first render, a popover opening); `instance` rides in for a `multi` extension. */
-const ctxOf = (p: any, instance: InstanceInfo | undefined, reason: BarCtx["reason"] = "load"): BarCtx => ({ ...(p?.ctx && typeof p.ctx === "object" && typeof p.ctx.reason === "string" ? p.ctx : { reason }), ...(instance && { instance }) });
+/** An item's declared settings' defaults (`bar.<id>.settings`), what `ctx.settings` falls back to key by key. */
+const itemDefaults = (manifest: Manifest | undefined, id: string): Record<string, unknown> =>
+  Object.fromEntries((manifest?.bar?.[id]?.settings ?? []).filter((s) => s.default !== undefined).map((s) => [s.id, s.default]));
+
+/** The core's `ctx` as the extension sees it; a request without one gets `reason` (a first render, a popover opening); `instance` rides in for a `multi` extension; `settings` is always there, the declared defaults under what the core resolved. */
+const ctxOf = (p: any, instance: InstanceInfo | undefined, manifest: Manifest | undefined, reason: BarCtx["reason"] = "load"): BarCtx => {
+  const given = p?.ctx && typeof p.ctx === "object" && typeof p.ctx.reason === "string" ? p.ctx : { reason };
+  return { ...given, settings: { ...itemDefaults(manifest, String(p?.id)), ...(given.settings ?? {}) }, ...(instance && { instance }) };
+};
 
 /**
  * `bar/render`, `bar/action`, `bar/open`, `bar/shown`; `lookup` throws the
@@ -35,7 +42,7 @@ const ctxOf = (p: any, instance: InstanceInfo | undefined, reason: BarCtx["reaso
  * on every ctx. An answered item's `menu` and an effect's `push` leave
  * spelled with the instance key (instances.ts).
  */
-export function barMethods(lookup: (name: string) => Extension, instanceOf: (key: string) => InstanceInfo | undefined = () => undefined): Record<string, (params: any) => unknown> {
+export function barMethods(lookup: (name: string) => Extension, instanceOf: (key: string) => InstanceInfo | undefined = () => undefined, manifestOf: (key: string) => Manifest | undefined = () => undefined): Record<string, (params: any) => unknown> {
   const key = (p: any) => `${p?.extension}/${p?.id}`;
   const source = (p: any): BarSource => {
     const s = lookup(String(p?.extension)).bar?.[p?.id];
@@ -43,7 +50,7 @@ export function barMethods(lookup: (name: string) => Extension, instanceOf: (key
     return s;
   };
   const run = <T>(p: any, f: () => T): T => context.run({ extension: String(p?.extension) }, f);
-  const ctx = (p: any, reason?: BarCtx["reason"]) => ctxOf(p, instanceOf(String(p?.extension)), reason);
+  const ctx = (p: any, reason?: BarCtx["reason"]) => ctxOf(p, instanceOf(String(p?.extension)), manifestOf(String(p?.extension)), reason);
   return {
     "bar/render": async (p) => rewriteBarItem(checkBarItem(await run(p, () => source(p).render(ctx(p))), `${key(p)}: render`), String(p?.extension)),
     // `{}` when the item has no handler or answers nothing: the popover stays as it is.

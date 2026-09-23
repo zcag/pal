@@ -38,8 +38,8 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 | `pal://hide` | `pal hide` | Hide it |
 | `pal://toggle` | `pal toggle` | One or the other (a keybind's link) |
 | `pal://settings` | `pal settings` | The settings window |
-| `pal://settings/<page>` | `pal settings <page>` | On `overview`, `general`, `shortcuts`, `palettes`, `extensions`, `bar` or `about` |
-| `...?anchor=<row>` | | Landing on a row of that page, lit as a search hit is: `extensions:<name>` selects an extension, `extensions:<name>:<setting>` its setting (`pal://settings/extensions?anchor=extensions:gmail:token` is what a "Set the token" hint row opens), `shortcuts:hotkey` the recorder, `palettes:<id>` a palette |
+| `pal://settings/<page>` | `pal settings <page>` | On `overview`, `general`, `shortcuts`, `features`, `extensions`, `bar` or `about` (`palettes`, from before the palettes moved onto their extensions, lands on `extensions`) |
+| `...?anchor=<row>` | | Landing on a row of that page, lit as a search hit is: `extensions:<name>` selects an extension, `extensions:<name>:<setting>` its setting (`pal://settings/extensions?anchor=extensions:gmail:token` is what a "Set the token" hint row opens), `shortcuts:hotkey` the recorder, `palettes:<id>` a palette (unfolded on its extension's pane), `features:<id>` a feature's card |
 | `pal://reload` | `pal reload` | Restart the extension host |
 | `pal://quit` | `pal quit` | Quit pal |
 | `pal://commands/<id>` | `pal command <id>` | One of pal's own rows, by id (below); `pal://run/pal/commands/<id>` spells the same |
@@ -72,7 +72,7 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 the extension's own, so a link keeps working across restarts.
 
 pal's own rows (`pal://commands/<id>`): `settings`, `settings-extensions`,
-`settings-palettes`, `settings-about`, `store`, `install` (the install
+`settings-features`, `settings-about`, `store`, `install` (the install
 form), `reload`, `refresh` (list every palette again), `updates` (check
 for updates), `install-update` (install the release the check found),
 `config-open`, `config-reveal`, `tips`, `docs`, `bug`, `diagnostics`

@@ -15,7 +15,6 @@
     {
       "kind": "number",
       "id": "hours",
-      "bar": "latest-code",
       "label": "Look back",
       "description": "How many hours of messages to scan for codes.",
       "min": 1,

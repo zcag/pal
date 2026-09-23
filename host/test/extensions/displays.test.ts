@@ -375,10 +375,10 @@ describe("displays: macOS with every tool", () => {
     expect(await host.barAction("displays", "brightness", "open")).toEqual({ push: { extension: "displays", palette: "displays", args: { display: "1" }, title: "Built-in Liquid Retina XDR Display" } });
     expect(await host.barAction("displays", "brightness", "open-pal")).toEqual({ push: { extension: "displays", palette: "displays" } });
     expect(await host.barAction("displays", "brightness", "night")).toMatchObject({ hud: "Night Shift off" });
-    // The setting picks the strip's display.
-    host.changeSettings("displays", { settings: { bar_display: "builtin" } });
-    expect(await host.render("displays", "brightness")).toMatchObject({ title: "55%", tooltip: expect.stringContaining("Built-in") });
-    host.changeSettings("displays", { settings: { bar_display: "external" } });
+    // The item's setting (through the render's ctx) picks the strip's display, and a brightness link naming none follows the last one rendered.
+    expect(await host.render("displays", "brightness", { reason: "load", settings: { display: "builtin" } })).toMatchObject({ title: "55%", tooltip: expect.stringContaining("Built-in") });
+    expect(await host.request<any>("link", { extension: "displays", route: "brightness", params: { value: "55" } })).toEqual({ hud: "Built-in Liquid Retina XDR Display 55%" });
+    expect(await host.render("displays", "brightness")).toMatchObject({ tooltip: expect.stringContaining("DELL") });
     await reset(f, host);
   });
 

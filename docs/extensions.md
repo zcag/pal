@@ -65,11 +65,9 @@ whose code fails to load.
 - `settings`: extension-level settings, `[extensions.<name>]` in the config
   file (`SettingSpec`). Every one has `id`, `label`, an optional
   `description` and a `default`; `"scope": "instance"` marks one that
-  identifies the account (below, "Instances"); `"bar": "<item id>"` marks
-  one that is about a bar item (when it shows, its thresholds, its
-  colours), so Settings > Bar lists it on that item's pane as well, and an
-  id starting `bar_` with no `bar` lands on every item of the extension.
-  The kinds and what each
+  identifies the account (below, "Instances"). A setting only a bar item
+  reads is that item's, declared under `bar.<id>.settings` (below, "Bar
+  items"); one the palettes read too stays here. The kinds and what each
   adds: `text` and `secret` (`placeholder`; a secret goes to the OS
   keychain, [Config](config.md#secrets)), `number` (`min`, `max`, `step`,
   `unit`), `boolean` (`text`, the line beside the switch), `select`
@@ -97,8 +95,15 @@ whose code fails to load.
   in the code's `palettes` object; what goes here and what goes in the
   code is the next section.
 - `bar.<id>`: a bar item's `title`, `description`, `refresh` schedule,
-  `keys`, optional Settings-only `mocks`, and its `rules` (below, "Bar
-  items"). The id is the key in the code's `bar` object.
+  `keys`, optional Settings-only `mocks`, its `rules` and its own
+  `settings` (below, "Bar items"). The id is the key in the code's `bar`
+  object.
+- `store.permissions`: what the store page lists the extension as
+  needing (`network`, `token`, the tools it runs). The OS permissions
+  among them (`accessibility`, `calendars`, `full-disk-access`,
+  `input-monitoring`, `location`) are also what the Overview reads: a
+  missing permission is a row there only while something installed uses
+  it.
 - `links.<route>`: a deep link route the code answers, with its
   `description`, `params` and `confirm` (below, "Links: routes of your
   own").
@@ -184,8 +189,14 @@ A palette is described in two files, and each fact has one home:
   does, as `[{ "keys": "cmd+c", "title": "Copy the link" }]`), `keywords`
   (the words the palette's root row answers to), `hold` (the switcher
   chord to suggest, `"alt+tab"` on Windows: applied while the user's
-  config has no `hold` line, [Keyboard](keyboard.md#switcher)), `rank`,
-  `settings`, and the extension's `icon` and `keywords`. The store and
+  config has no `hold` line, [Keyboard](keyboard.md#switcher)), `tap`
+  (the rows are windows, most recent first: the switcher's quick tap is
+  this palette's, and the Window switcher feature is its chord; Windows
+  sets it), `dialog` (serves file dialogs: while an open or save panel is
+  in front, the empty root's hint opens this palette; Files sets it),
+  `on` (the triggers that list it again while it shows: `clipboard`, a
+  copy recorded; a view's re-ask it), `rank`, `settings`, and the
+  extension's `icon` and `keywords`. The store and
   the settings window read these without running the code.
 - **The code holds the behaviour and what only it can know**: `list`,
   `pick`, `detail`, `view`, `filters`, `placeholder`, `showDetail`,
@@ -884,6 +895,23 @@ lists the item without running the code:
 }
 ```
 
+**Settings.** `settings` next to `refresh`: the item's own, the same
+`SettingSpec` list an extension declares, shown on the item's pane under
+Settings › Bar and kept in `[bar.items."<ext>/<id>".settings]`
+(docs/config.md). Every `render`, `onAction`, `onOpen` and `onShown` gets
+them resolved as `ctx.settings`: the declared defaults under what the file
+sets, an instance's item (`gmail@work/unread`) over the default
+instance's. A change renders the item again. What only the item reads
+belongs here (a threshold, a label, whether to show artwork); what the
+palettes read too stays an extension setting. Code that runs without a
+ctx (a ticker's `bar.update`) keeps the last `ctx.settings` it saw.
+
+```json
+"settings": [
+  { "kind": "select", "id": "label", "label": "Label", "default": "percent", "options": [{ "id": "percent", "title": "Percent" }, { "id": "none", "title": "None" }] }
+]
+```
+
 **Rules.** `rules` next to `refresh`: how the item draws by its facts,
 decided by the core at draw time and overridden by the user by id
 (docs/config.md, "Rules"). An item states what it knows in `states` and
@@ -957,7 +985,8 @@ export default defineExtension({
   `ctx.compact` that what the call answers is drawn in the popover (set
   on every bar call today: 420 px wide, so a `{ view }` lays out for that
   width; a `view(ctx)` or `pick` reached from the popover gets
-  `ctx.compact` on its `Ctx` the same way). The host
+  `ctx.compact` on its `Ctx` the same way), `ctx.settings` the item's own
+  settings as they apply (above). The host
   checks every answer (`checkBarItem`, the limits above, no `pal:` action
   ids, a `{ view }` menu through `checkView`); over the limits is an
   error the core marks the item `stale` with.

@@ -30,14 +30,6 @@
       "default": 27182
     },
     {
-      "kind": "boolean",
-      "id": "bar_lyrics",
-      "label": "Lyrics on the bar",
-      "text": "Show the lyric line playing instead of the track name",
-      "description": "Only when lrclib has synced lyrics for the track; the track name otherwise.",
-      "default": true
-    },
-    {
       "kind": "list",
       "id": "pinned",
       "label": "Pinned playlists",
@@ -294,7 +286,7 @@
   "bar": {
     "playing": {
       "title": "Spotify",
-      "description": "The track playing (or the lyric line, with \"Lyrics on the bar\"), hidden while nothing plays; the popover is the lyrics view in a compact layout with the transport keys and the queue's next two, ticking while it is up.",
+      "description": "The track playing (or the lyric line, with \"Lyrics\"), hidden while nothing plays; the popover is the lyrics view in a compact layout with the transport keys and the queue's next two, ticking while it is up.",
       "mocks": {
         "lyrics": {
           "title": "Synced lyric line",
@@ -406,6 +398,16 @@
           "description": "A loaded track that is paused: off the strip, muted for anyone who keeps it.",
           "hidden": true,
           "color": "muted"
+        }
+      ],
+      "settings": [
+        {
+          "kind": "boolean",
+          "id": "lyrics",
+          "label": "Lyrics",
+          "text": "Show the lyric line playing instead of the track name",
+          "description": "Only when lrclib has synced lyrics for the track; the track name otherwise.",
+          "default": true
         }
       ]
     }

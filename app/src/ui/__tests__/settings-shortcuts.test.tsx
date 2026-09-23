@@ -34,13 +34,15 @@ const otp: BarItem = { key: "otp/latest-code", extension: "otp", id: "latest-cod
 
 describe("bindings", () => {
   it("lists every chord the config asks for, ranked as hotkey.rs registers them", () => {
-    const all = bindings(general, [windows, wm], [timer, otp], { palette: "windows/windows", edge: "left", display: "cursor", width: 320, peek: true, delay: 250, grace: 400, hotkey: "ctrl+alt+s" });
+    const keycast = { id: "keycast", title: "Keycast", description: "", available: true, on: false, settings: [], values: {}, commands: [{ id: "toggle", title: "Toggle keycast" }, { id: "stop", title: "Stop keycast" }], hotkeys: { toggle: "ctrl+alt+k" } };
+    const all = bindings(general, [windows, wm], [timer, otp], { palette: "windows/windows", edge: "left", display: "cursor", width: 320, peek: true, delay: 250, grace: 400, hotkey: "ctrl+alt+s" }, [keycast]);
     expect(all.map((b) => [b.id, b.combo, b.rank])).toEqual([
-      ["root:0", "ctrl+space", 0], ["app-switcher", "alt+tab", 6], ["sidebar", "ctrl+alt+s", 5],
+      ["root:0", "ctrl+space", 0], ["app-switcher", "alt+tab", 7], ["sidebar", "ctrl+alt+s", 6],
       ["hold:windows", "cmd+tab", 2], ["item:windows-spaces:toggle", "ctrl+f", 4], ["item:windows-spaces:misc", "ctrl+3", 4],
       ["palette:window-management", "ctrl+alt+w", 1], ["item:window-management:maximize", "ctrl+3", 4],
-      ["bar:timer/timer", "ctrl+alt+t", 3],
+      ["bar:timer/timer", "ctrl+alt+t", 3], ["command:keycast.toggle", "ctrl+alt+k", 5],
     ]);
+    expect(all.find((b) => b.id === "command:keycast.toggle")?.label).toBe("Keycast › Toggle keycast");
     expect(all.find((b) => b.id === "hold:windows")?.label).toBe("Windows switcher");
     expect(all.find((b) => b.id === "item:windows-spaces:toggle")?.label).toBe("Windows › Spaces › toggle");
   });

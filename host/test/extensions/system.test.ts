@@ -390,6 +390,11 @@ describe("keep awake: the row, the bar item and the link", () => {
     expect(await h.barAction("system", "awake", "start", { reason: "open", values: { input: "nope" } })).toMatchObject({ toast: { title: "Not a duration or a time" } });
     expect(await h.barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
     expect(record()).toBeUndefined();
+    // The item's own `presets` setting is what the digits pick from; left out, the declared ones again.
+    expect(await h.barAction("system", "awake", "preset:0", { reason: "open", settings: { presets: ["10m"] } })).toEqual({ keep: true, hud: "Awake for 10 min" });
+    pids.push(record()!.pid);
+    expect(await h.barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
+    expect(h.manifests.get("system")!.bar!.awake!.settings!.map((s) => s.id)).toEqual(["presets"]);
     // Off: the switch remembers the choice for the next run without starting one.
     expect(await h.barAction("system", "awake", "display")).toEqual({ keep: true });
     expect(await h.barAction("system", "awake", "default")).toEqual({ keep: true, hud: "Awake for 1 h" });

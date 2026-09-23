@@ -149,6 +149,13 @@ pub struct PaletteMeta {
     /// (`hotkey::apply`, switcher.rs).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hold: Option<String>,
+    /// `tap` in the manifest: the switcher's quick tap is this palette's
+    /// (its rows are windows); switcher.rs, the Window switcher feature.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub tap: bool,
+    /// `dialog` in the manifest: the root's file dialog hint opens it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub dialog: bool,
 }
 
 impl PaletteMeta {
@@ -237,6 +244,18 @@ impl Palettes {
 /// (`pal_core::config::instance::palette_id`).
 pub fn palette_id(source: &Source) -> String {
     instance::palette_id(&source.extension, &source.palette)
+}
+
+/// The palette whose rows are windows (its manifest's `tap`), the one the
+/// switcher's quick tap and `pal switch` from idle are for; the first when
+/// two say so.
+pub fn tap_palette(app: &AppHandle) -> Option<Source> {
+    Palettes::with(app, |reg| reg.iter().find(|r| r.meta.tap).map(|r| r.source.clone()))
+}
+
+/// Whether `source` says its rows are windows (`tap`).
+pub fn taps(app: &AppHandle, source: &Source) -> bool {
+    Palettes::with(app, |reg| reg.iter().any(|r| r.source == *source && r.meta.tap))
 }
 
 /// Every palette the host reported, enabled or not, with its config id.

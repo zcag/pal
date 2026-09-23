@@ -3,9 +3,9 @@
 // the host says where they differ. `checkPalettes` as a table, the host
 // carrying its warnings on the wire, and the bundled extensions all clean.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { checkIcon, tile, tinted } from "../../sdk/src/icon.ts";
-import { checkPalettes, kindOf, paletteMeta } from "../../sdk/src/manifest.ts";
+import { checkBarSettings, checkPalettes, kindOf, paletteMeta } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest, ManifestPalette, Palette } from "../../sdk/src/protocol.ts";
 import { BUNDLED, Host, Root, manifest, simpleExt } from "./harness.ts";
 
@@ -159,7 +159,7 @@ describe("checkPalettes", () => {
     expect(checkPalettes(man({ p: { lazy: "visit" } }), ext({ p: { ...list, lazy: true } })).warnings).toEqual(["palettes.p: lazy true in the code, visit in pal.json; the manifest's is used, drop the code's"]);
   });
 
-  test("refresh and on: a view palette's, from either side, the manifest's first; a difference is a warning; on a listing they are warned about and left off", () => {
+  test("refresh and on: a view palette's, from either side, the manifest's first; a difference is a warning; on a listing refresh is warned about and left off, on lists it again", () => {
     expect(checkPalettes(man({ p: { refresh: 5, on: ["media", "show"] } }), ext({ p: view })).metas[0]).toMatchObject({ view: "view", refresh: 5, on: ["media", "show"] });
     expect(checkPalettes(man({ p: {} }), ext({ p: { ...view, refresh: 2, on: ["wake"] } })).metas[0]).toMatchObject({ refresh: 2, on: ["wake"] });
     expect(checkPalettes(man({ p: { refresh: 5, on: ["media"] } }), ext({ p: { ...view, refresh: 5, on: ["media"] } })).warnings).toEqual([]);
@@ -172,12 +172,10 @@ describe("checkPalettes", () => {
     const meta = checkPalettes(man({ p: {} }), ext({ p: view })).metas[0];
     expect("refresh" in meta || "on" in meta).toBe(false);
     const listed = checkPalettes(man({ p: { refresh: 5, on: ["media"] } }), ext({ p: list }));
-    expect(listed.warnings).toEqual([
-      "palettes.p: refresh is for a view palette (a re-ask of view(ctx) while it is open); a listing has ttl and live",
-      "palettes.p: on is for a view palette (the triggers that re-ask view(ctx) while it is open)",
-    ]);
-    expect("refresh" in listed.metas[0] || "on" in listed.metas[0]).toBe(false);
-    expect(checkPalettes(man({ p: { on: ["tuesday"] as never } }), ext({ p: view })).warnings).toEqual(["palettes.p: on must be a list of media, wake, network, show"]);
+    expect(listed.warnings).toEqual(["palettes.p: refresh is for a view palette (a re-ask of view(ctx) while it is open); a listing has ttl and live"]);
+    expect("refresh" in listed.metas[0]).toBe(false);
+    expect(listed.metas[0]).toMatchObject({ on: ["media"] });
+    expect(checkPalettes(man({ p: { on: ["tuesday"] as never } }), ext({ p: view })).warnings).toEqual(["palettes.p: on must be a list of media, wake, network, show, clipboard"]);
   });
 
   test("several disagreements on one palette are several warnings", () => {
@@ -308,4 +306,22 @@ describe("the bundled extensions", () => {
       host.kill();
     }
   }, 30_000);
+});
+
+describe("bar item settings", () => {
+  test("a bar tag or a bar_ id on an extension setting is a warning: an item's settings are its own", () => {
+    const m = { name: "x", version: "1", bar: { unread: { title: "Unread" } }, settings: [{ kind: "number", id: "limit", label: "Limit", bar: "unread" }, { kind: "boolean", id: "bar_dot", label: "Dot" }, { kind: "text", id: "token", label: "Token" }] } as unknown as Manifest;
+    const w = checkBarSettings(m);
+    expect(w).toHaveLength(2);
+    expect(w[0]).toStartWith("settings.limit: \"bar\" no longer puts a setting on an item; declare it under bar.unread.settings");
+    expect(w[1]).toStartWith("settings.bar_dot: a bar_ id no longer puts a setting on every item");
+    expect(checkBarSettings({ ...m, bar: undefined, settings: [{ kind: "boolean", id: "bar_dot", label: "Dot" }] } as unknown as Manifest)).toEqual([]);
+  });
+  test("no bundled extension still spells an item's setting the old way", () => {
+    for (const name of readdirSync(BUNDLED)) {
+      const file = `${BUNDLED}/${name}/pal.json`;
+      if (!existsSync(file)) continue;
+      expect(checkBarSettings(JSON.parse(readFileSync(file, "utf8")) as Manifest), name).toEqual([]);
+    }
+  });
 });

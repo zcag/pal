@@ -19,9 +19,9 @@ export default function App() {
   const prefs = usePrefs();
   const launcher = useRef<LauncherHandle>(null);
 
-  // A copy landed in history: re-list, but only when the clipboard palette is what is showing.
+  // A trigger (`pal://trigger`: a copy recorded, the network back) lists the palette showing again when it asks for that one under `on` (a view's are re-asked in the Launcher).
   useEffect(() => {
-    const un = listen("pal://clipboard", () => { if (showing.current?.extension === "clipboard") bump(); });
+    const un = listen<{ name: string }>("pal://trigger", (e) => { const s = showing.current; if (s && s.view !== "view" && s.on?.includes(e.payload.name)) bump(); });
     return () => {
       un.then((f) => f());
     };

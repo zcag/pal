@@ -10,12 +10,7 @@
   "keywords": ["stats", "cpu", "memory", "ram", "disk", "network", "load", "top", "htop"],
   "settings": [
     { "kind": "number", "id": "interval", "label": "Sampling interval", "description": "Seconds between samples; the bar items, their popovers and the sparklines follow it. A sample costs about 5 ms (the process table, 20 ms, is read every 10 s and every tick while a popover is open).", "min": 1, "max": 60, "step": 1, "unit": "s", "default": 3 },
-    { "kind": "select", "id": "cpu_label", "label": "CPU label", "description": "What the strip says: the share, a sparkline of the last eight samples, one bar per core, or the share and the busiest process.", "bar": "cpu", "options": [{ "id": "percent", "title": "42%" }, { "id": "spark", "title": "▂▃▅▇▆ (sparkline)" }, { "id": "bars", "title": "▁▃▇▂ (one bar per core)" }, { "id": "top", "title": "42% · node" }], "default": "percent" },
-    { "kind": "select", "id": "memory_label", "label": "Memory label", "bar": "memory", "options": [{ "id": "percent", "title": "63%" }, { "id": "used", "title": "24.2 GB" }, { "id": "free", "title": "14.4 GB free" }, { "id": "spark", "title": "▂▃▅▇▆ (sparkline)" }], "default": "percent" },
-    { "kind": "select", "id": "disk_label", "label": "Disk label", "description": "The startup volume's figure; the popover has every volume.", "bar": "disk", "options": [{ "id": "percent", "title": "19%" }, { "id": "free", "title": "1.5 TB (free)" }, { "id": "used", "title": "392 GB (used)" }], "default": "free" },
-    { "kind": "select", "id": "network_label", "label": "Network label", "bar": "network", "options": [{ "id": "rate", "title": "↓1.2M ↑80K" }, { "id": "down", "title": "↓1.2M" }, { "id": "spark", "title": "▂▃▅▇▆ (download sparkline)" }], "default": "rate" },
-    { "kind": "select", "id": "load_label", "label": "Load label", "bar": "load", "options": [{ "id": "one", "title": "3.26 (1 min)" }, { "id": "three", "title": "3.26 3.25 2.91" }], "default": "one" },
-    { "kind": "list", "id": "disk_hide", "label": "Hidden volumes", "description": "Mount points or volume names to leave out of the disk item and the palette (a backup disk that is always nearly full).", "bar": "disk", "placeholder": "/Volumes/Backup", "default": [] }
+    { "kind": "list", "id": "disk_hide", "label": "Hidden volumes", "description": "Mount points or volume names to leave out of the disk item and the palette (a backup disk that is always nearly full).", "placeholder": "/Volumes/Backup", "default": [] }
   ],
   "store": {
     "tagline": "CPU, memory, disk, network and load: quiet until they are not",
@@ -93,6 +88,9 @@
         { "id": "quiet", "when": "stats.cpu < 70", "description": "Under 70%: nothing to say.", "hidden": true },
         { "id": "high", "when": "stats.cpu >= 70", "description": "Busy.", "color": "amber" },
         { "id": "critical", "when": "stats.cpu >= 90", "description": "Pinned.", "color": "red" }
+      ],
+      "settings": [
+        { "kind": "select", "id": "label", "label": "Label", "description": "What the strip says: the share, a sparkline of the last eight samples, one bar per core, or the share and the busiest process.", "options": [{ "id": "percent", "title": "42%" }, { "id": "spark", "title": "▂▃▅▇▆ (sparkline)" }, { "id": "bars", "title": "▁▃▇▂ (one bar per core)" }, { "id": "top", "title": "42% · node" }], "default": "percent" }
       ]
     },
     "memory": {
@@ -116,6 +114,9 @@
         { "id": "quiet", "when": "stats.memory < 80 and stats.memory_pressure == 'normal'", "description": "Under 80% and no pressure: nothing to say.", "hidden": true },
         { "id": "high", "when": "stats.memory >= 80 or stats.memory_pressure == 'warn'", "description": "Filling up, or the kernel says so.", "color": "amber" },
         { "id": "critical", "when": "stats.memory >= 90 or stats.memory_pressure == 'critical'", "description": "Nearly out, or critical pressure.", "color": "red" }
+      ],
+      "settings": [
+        { "kind": "select", "id": "label", "label": "Label", "options": [{ "id": "percent", "title": "63%" }, { "id": "used", "title": "24.2 GB" }, { "id": "free", "title": "14.4 GB free" }, { "id": "spark", "title": "▂▃▅▇▆ (sparkline)" }], "default": "percent" }
       ]
     },
     "disk": {
@@ -137,6 +138,9 @@
         { "id": "quiet", "when": "stats.disk_free > 20 and stats.disk_worst < 85", "description": "Room on every volume: nothing to say.", "hidden": true },
         { "id": "filling", "when": "stats.disk_free <= 20 or stats.disk_worst >= 85", "description": "Filling up.", "color": "amber" },
         { "id": "full", "when": "stats.disk_free <= 5 or stats.disk_worst >= 95", "description": "Nearly full.", "color": "red" }
+      ],
+      "settings": [
+        { "kind": "select", "id": "label", "label": "Label", "description": "The startup volume's figure; the popover has every volume.", "options": [{ "id": "percent", "title": "19%" }, { "id": "free", "title": "1.5 TB (free)" }, { "id": "used", "title": "392 GB (used)" }], "default": "free" }
       ]
     },
     "network": {
@@ -157,6 +161,9 @@
       "rules": [
         { "id": "quiet", "when": "stats.net_down < 1024 and stats.net_up < 1024", "description": "Under 1 MB/s either way: nothing to say.", "hidden": true },
         { "id": "busy", "when": "stats.net_down >= 10240 or stats.net_up >= 10240", "description": "Past 10 MB/s.", "color": "blue" }
+      ],
+      "settings": [
+        { "kind": "select", "id": "label", "label": "Label", "options": [{ "id": "rate", "title": "↓1.2M ↑80K" }, { "id": "down", "title": "↓1.2M" }, { "id": "spark", "title": "▂▃▅▇▆ (download sparkline)" }], "default": "rate" }
       ]
     },
     "load": {
@@ -177,6 +184,9 @@
         { "id": "quiet", "when": "stats.load1 < stats.cores", "description": "Under the core count: nothing to say.", "hidden": true },
         { "id": "high", "when": "stats.load1 >= stats.cores", "description": "More runnable work than cores.", "color": "amber" },
         { "id": "critical", "when": "stats.load1 >= stats.cores * 2", "description": "Twice the cores.", "color": "red" }
+      ],
+      "settings": [
+        { "kind": "select", "id": "label", "label": "Label", "options": [{ "id": "one", "title": "3.26 (1 min)" }, { "id": "three", "title": "3.26 3.25 2.91" }], "default": "one" }
       ]
     }
   }

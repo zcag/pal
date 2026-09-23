@@ -25,7 +25,7 @@ import { calendar, errorMessage, failed, hint, now as clock, settings, tinted, v
 import { parseQuick, type Quick } from "./quick.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, log, permission, type Loaded, type Settings } from "./source.ts";
-import { barRules, duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
+import { barRules, duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem, type ItemSettings } from "./today.ts";
 import { focusable, freshPopover, listed, popover, rowId as viewRowId, words, type PopoverState } from "./view.ts";
 
 /** nf-md-calendar_check for a Today row, tinted with the calendar's colour; nf-md-calendar_blank for a clear day. */
@@ -449,7 +449,7 @@ async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
   if (ctx.reason === "open") pop = freshPopover(isGoogle());
   pop.google = isGoogle();
   if (!listed(l.events, now, s.hide_declined !== false).today.length) pop.expanded = true;
-  return upcomingItem(l.events, now, s, l.stale ? l.error ?? "The source did not answer" : undefined, pop);
+  return upcomingItem(l.events, now, { ...s, ...(ctx.settings as ItemSettings) }, l.stale ? l.error ?? "The source did not answer" : undefined, pop);
 }
 
 /** A direct bar click: join the event it currently speaks for, else open the day's calendar. Its menu still serves hover peeks. */

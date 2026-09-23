@@ -5,6 +5,7 @@ import { isMac } from "./keys";
 import { SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect } from "./SettingsField";
 import { comboLabel, hotkeyPresets, sameCombo } from "./SettingsGeneral";
 import { HoldControl, paletteIcon, type PaletteItem } from "./SettingsPalettes";
+import type { SettingsFeature } from "./SettingsFeatures";
 import { holdOf, MAX_ROOT_HOTKEYS, type BarItem, type BarItemConfig, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PermissionId, type PermissionsStatus, type RootHotkeyStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type SidebarConfig } from "./SettingsTypes";
 
 /**
@@ -39,6 +40,9 @@ export type SettingsShortcutsProps = {
   onBarItem?: (key: string, config: BarItemConfig) => void;
   /** `[sidebar]`, for its hotkey row; the rest of the card is General's. */
   sidebar?: { value: SidebarConfig; onChange: (value: SidebarConfig) => void };
+  /** The features, for their commands' hotkeys (`[features.<id>.hotkeys]`). */
+  features?: SettingsFeature[];
+  onFeatureHotkey?: (feature: string, command: string, combo: string | undefined) => void;
   /** A palette's rows as indexed now, for the row picker; absent, the id is typed. */
   items?: (palette: SettingsPalette) => Promise<PaletteItem[]>;
   /** Another page's row: the sidebar card, a palette's pane, a bar item. */
@@ -46,15 +50,16 @@ export type SettingsShortcutsProps = {
 };
 
 /** One chord pal registers, whoever asked for it. `rank` is who wins a clash, lowest first (hotkey.rs). */
-export type Binding = { id: string; kind: "root" | "palette" | "hold" | "item" | "bar" | "sidebar" | "app-switcher"; combo: string; label: string; rank: number };
+export type Binding = { id: string; kind: "root" | "palette" | "hold" | "item" | "bar" | "command" | "sidebar" | "app-switcher"; combo: string; label: string; rank: number };
 
-const RANK: Record<Binding["kind"], number> = { root: 0, palette: 1, hold: 2, bar: 3, item: 4, sidebar: 5, "app-switcher": 6 };
+/** Who wins a clash, lowest first: hotkey.rs registers in the reverse order, a later chord replacing an earlier one. */
+const RANK: Record<Binding["kind"], number> = { root: 0, palette: 1, hold: 2, bar: 3, item: 4, command: 5, sidebar: 6, "app-switcher": 7 };
 
 /** "Extension › Palette", or the title alone when the palette is the extension. */
 export const paletteTitle = (p: SettingsPalette, e: SettingsExtension) => (p.title === e.title ? p.title : `${e.title} › ${p.title}`);
 
 /** Every binding the config asks for, in the order the page lists them. */
-export function bindings(general: GeneralConfig, extensions: SettingsExtension[], bar: BarItem[] = [], sidebar?: SidebarConfig): Binding[] {
+export function bindings(general: GeneralConfig, extensions: SettingsExtension[], bar: BarItem[] = [], sidebar?: SidebarConfig, features: SettingsFeature[] = []): Binding[] {
   const out: Binding[] = general.hotkeys.map((combo, i) => ({ id: `root:${i}`, kind: "root", combo, label: "Show pal", rank: RANK.root }));
   if (general.appSwitcher?.trim()) out.push({ id: "app-switcher", kind: "app-switcher", combo: general.appSwitcher.trim(), label: "macOS App Switcher", rank: RANK["app-switcher"] });
   if (sidebar?.hotkey?.trim()) out.push({ id: "sidebar", kind: "sidebar", combo: sidebar.hotkey.trim(), label: "Sidebar", rank: RANK.sidebar });
@@ -68,6 +73,7 @@ export function bindings(general: GeneralConfig, extensions: SettingsExtension[]
     }
   }
   for (const b of bar) if (b.config.hotkey?.trim()) out.push({ id: `bar:${b.key}`, kind: "bar", combo: b.config.hotkey.trim(), label: `${b.extTitle} › ${b.title}`, rank: RANK.bar });
+  for (const f of features) for (const c of f.commands) { const combo = f.hotkeys[c.id]?.trim(); if (combo) out.push({ id: `command:${f.id}.${c.id}`, kind: "command", combo, label: `${f.title} › ${c.title}`, rank: RANK.command }); }
   return out;
 }
 
@@ -184,13 +190,14 @@ export const text = {
   sidebar: { anchor: "shortcuts:sidebar", hint: "Engage the sidebar", label: "Sidebar", description: "Engages the sidebar from any app: shown key from hidden, or a peek made key. Which palette it docks, and where, is on Features.", keywords: "sidebar edge hotkey engage" },
   palettes: { anchor: "shortcuts:palettes", hint: "Open a palette, or switch through it", label: "Open a palette", description: "Open: pal shows straight inside the palette. Switcher: tapped, the previous row (a window); held, the palette flat with the cursor on row 2, each press a step, letting go runs.", keywords: "palette hotkey open switcher hold chord" },
   items: { anchor: "shortcuts:items", hint: "Run one row without the panel", label: "Run a row", description: "A row's primary action runs as if you had pressed Enter on it, the panel down; what it shows after hiding (the HUD) still shows. Layouts, spaces, a script, a system command.", keywords: "item hotkeys row run layout space" },
+  commands: { anchor: "shortcuts:commands", hint: "Run a feature's command", label: "Run a command", description: "A feature's switch flipped (Reverse scrolling on the mouse), or its own action (Start keycast), from any app; the HUD says what it became. Every command is listed on its card under Features.", keywords: "command feature toggle hotkey keycast mouse expansion" },
   bar: { anchor: "shortcuts:bar", hint: "Open a bar item's popover", label: "Open a bar item", description: "Opens the item's popover engaged from any app, or runs its open action.", keywords: "bar item popover hotkey" },
 } as const;
 
 /** What the search finds on this page: the pal card's rows, the three tables, and every binding by its label and chord. */
-export const shortcutsIndex = (general: GeneralConfig, extensions: SettingsExtension[], bar: BarItem[] = [], sidebar?: SidebarConfig): SettingsIndexEntry[] => [
+export const shortcutsIndex = (general: GeneralConfig, extensions: SettingsExtension[], bar: BarItem[] = [], sidebar?: SidebarConfig, features: SettingsFeature[] = []): SettingsIndexEntry[] => [
   ...(Object.values(text) as (typeof text)[keyof typeof text][]).map((r): SettingsIndexEntry => ({ page: "shortcuts", label: r.label, hint: r.hint, anchor: r.anchor, keywords: `${r.label} ${r.description} ${r.keywords} shortcuts keys` })),
-  ...bindings(general, extensions, bar, sidebar).filter((b) => b.kind !== "root" && b.kind !== "app-switcher" && b.kind !== "sidebar").map((b): SettingsIndexEntry => ({ page: "shortcuts", label: b.label, hint: comboLabel(b.combo), anchor: `shortcuts:${b.id}`, keywords: `${b.combo} ${comboLabel(b.combo)} shortcut hotkey` })),
+  ...bindings(general, extensions, bar, sidebar, features).filter((b) => b.kind !== "root" && b.kind !== "app-switcher" && b.kind !== "sidebar").map((b): SettingsIndexEntry => ({ page: "shortcuts", label: b.label, hint: comboLabel(b.combo), anchor: `shortcuts:${b.id}`, keywords: `${b.combo} ${comboLabel(b.combo)} shortcut hotkey` })),
 ];
 
 /** Whether a row survives the filter: its label, id or chord contains the text. */
@@ -253,10 +260,11 @@ function AddForm({ kind, onKind, extensions, bar, items, onPalette, onBarItem, o
   );
 }
 
-export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, extensions, onPalette, bar = [], onBarItem, sidebar, items, onGo }: SettingsShortcutsProps) {
+export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, extensions, onPalette, bar = [], onBarItem, sidebar, items, onGo, features = [], onFeatureHotkey }: SettingsShortcutsProps) {
   const [filter, setFilter] = useState("");
   const [adding, setAdding] = useState<AddKind | undefined>(undefined);
-  const all = useMemo(() => bindings(general, extensions, bar, sidebar?.value), [general, extensions, bar, sidebar?.value]);
+  const all = useMemo(() => bindings(general, extensions, bar, sidebar?.value, features), [general, extensions, bar, sidebar?.value, features]);
+  const commandRows = features.flatMap((f) => f.commands.filter((c) => f.hotkeys[c.id]?.trim()).map((c) => ({ f, c, title: `${f.title} › ${c.title}` }))).filter((r) => matches(filter, r.title, r.f.hotkeys[r.c.id], comboLabel(r.f.hotkeys[r.c.id])));
   const windows = extensions.flatMap((e) => e.palettes).find((p) => p.id === "windows");
   const chord = windows ? holdOf(windows) : undefined;
   const needsGrant = !!chord && sameCombo(chord, "cmd+tab") && permissions?.input_monitoring === false;
@@ -334,7 +342,7 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
                 <li key={p.id} className="pal-itemkeys__row pal-shortcuts__row" data-anchor={`shortcuts:palette:${p.id}`}>
                   <span className="pal-itemkeys__item">
                     <Icon icon={paletteIcon(p, e)} />
-                    <button type="button" className="pal-shortcuts__name" title="The palette's pane" onClick={() => onGo?.("palettes", `palettes:${p.id}`)}>{title}</button>
+                    <button type="button" className="pal-shortcuts__name" title="The palette's pane" onClick={() => onGo?.("extensions", `palettes:${p.id}`)}>{title}</button>
                   </span>
                   <span className="pal-shortcuts__cell"><span className="pal-shortcuts__cell-label">Open</span><SettingsHotkey value={p.config.hotkey?.trim() || undefined} onChange={(hotkey) => onPalette(p.id, { ...p.config, hotkey })} label={`Open ${title}`} compact /></span>
                   {(p.hold !== undefined || p.config.hold !== undefined) && <span className="pal-shortcuts__cell"><span className="pal-shortcuts__cell-label">Switcher</span><HoldControl value={p.config.hold} suggested={p.hold} label={`${title} switcher chord`} onChange={(hold) => onPalette(p.id, { ...p.config, hold })} /></span>}
@@ -370,6 +378,29 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
           )}
         </SettingsRow>
       </SettingsGroup>
+
+      {onFeatureHotkey && (
+        <SettingsGroup title="Commands" note="features.<id>.hotkeys">
+          <SettingsRow anchor={text.commands.anchor} label={text.commands.label} description={text.commands.description} layout="stack">
+            {commandRows.length === 0 && <p className="pal-ppane__none">{filter ? "No command shortcut matches." : "None. A feature's card under Features lists its commands, each with a hotkey field."}</p>}
+            {commandRows.length > 0 && (
+              <ul className="pal-itemkeys pal-shortcuts__table" aria-label="Command shortcuts">
+                {commandRows.map(({ f, c, title }) => (
+                  <li key={`${f.id}.${c.id}`} className="pal-itemkeys__row pal-shortcuts__row" data-anchor={`shortcuts:command:${f.id}.${c.id}`}>
+                    <span className="pal-itemkeys__item">
+                      <Icon icon={f.icon} />
+                      <button type="button" className="pal-shortcuts__name" title="The feature's card" onClick={() => onGo?.("features", `features:${f.id}`)}>{title}</button>
+                    </span>
+                    <SettingsHotkey value={f.hotkeys[c.id]} onChange={(combo) => onFeatureHotkey(f.id, c.id, combo)} label={`${title} hotkey`} compact />
+                    <button type="button" className="pal-button" data-small aria-label={`Remove ${title} hotkey`} onClick={() => onFeatureHotkey(f.id, c.id, undefined)}>Remove</button>
+                    <span className="pal-shortcuts__clash">{at(`command:${f.id}.${c.id}`) && <ClashLine binding={at(`command:${f.id}.${c.id}`)!} all={all} />}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SettingsRow>
+        </SettingsGroup>
+      )}
 
       {bar.length > 0 && onBarItem && (
         <SettingsGroup title="Bar items" note="bar.items.<key>.hotkey">

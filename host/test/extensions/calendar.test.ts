@@ -16,7 +16,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
-import { barName, barWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, shortSpan, span, state, upcomingItem } from "../../../extensions/calendar/today.ts";
+import { barName, barWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, shortSpan, span, state, upcomingItem, type ItemSettings } from "../../../extensions/calendar/today.ts";
 import { parseLength, parseQuick, type Quick } from "../../../extensions/calendar/quick.ts";
 import { actions as popoverActions, focusable, freshPopover, listed, popover } from "../../../extensions/calendar/view.ts";
 import type { BarItem, Calendar, CalendarEvent, Form, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -280,7 +280,7 @@ describe("today helpers", () => {
     expect(nextWords(undefined, t0)).toBe("Nothing further in the days ahead");
   });
   test("upcomingItem: hidden, the name as the title with the time as a segment, the colours, the dot, stale", () => {
-    const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    const s: Settings & Partial<ItemSettings> = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
     expect(upcomingItem([], t0, s)).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
     const soon = ev("s", "Standup", t0 + 12 * MIN, t0 + 42 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const item = upcomingItem([soon], t0, s);
@@ -298,7 +298,7 @@ describe("today helpers", () => {
   });
 
   test("upcomingItem while an event runs: what is left, and the next one due as a second segment in its own colour with its name in the tooltip", () => {
-    const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    const s: Settings & Partial<ItemSettings> = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
     const cur = ev("c", "Weekly sync", t0 - 18 * MIN, t0 + 12 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const review = ev("r", "Design review", t0 + 20 * MIN, t0 + 80 * MIN, { calendar: cals[1] });
     // Alone: the name, `12m left` in the running colour, no second segment.
@@ -320,7 +320,7 @@ describe("today helpers", () => {
   });
 
   test("the phase is the item's state; the colour is the manifest's rules', not the render's", () => {
-    const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    const s: Settings & ItemSettings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
     const at = (minutes: number) => ev(`at-${minutes}`, "Review", t0 + minutes * MIN, t0 + (minutes + 30) * MIN);
     expect([120, 45, 12, 4, -1].map((m) => phaseOf(at(m), t0, s))).toEqual(["far", "near", "warning", "critical", "running"]);
     const item = upcomingItem([at(12)], t0, s);
@@ -778,24 +778,24 @@ describe("today palette and the upcoming bar item", () => {
   test("the bar item hides without permission and honours the horizon and the phase boundaries", async () => {
     status = "not_determined";
     try { expect(await host.render(E, "upcoming", { reason: "load" })).toMatchObject({ hidden: true }); } finally { status = "granted"; }
-    host.changeSettings(E, { settings: { days: 14, warn_minutes: 60, urgent_minutes: 30, hide_declined: false } });
+    host.changeSettings(E, { settings: { days: 14, hide_declined: false } });
     await Bun.sleep(50);
     try {
-      // With the running call gone from the fixture the next one is Dentist, 42 minutes out: amber under a 60-minute rule.
-      const h2 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 60, urgent_minutes: 45 } } } });
+      // With the running call gone from the fixture the next one is Dentist, 42 minutes out. The phase boundaries are the item's settings, through the render's ctx.
+      const item = (settings: Partial<ItemSettings>) => ({ reason: "load", settings }) as const;
+      const h2 = await Host.bundled({ core: core(events.slice(1)) });
       try {
-        expect(await h2.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "critical", minutes: 42 } });
+        expect(await h2.render(E, "upcoming", item({ warn_minutes: 60, urgent_minutes: 45 }))).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "critical", minutes: 42 } });
+        // The boundaries are inclusive: 42 minutes out is amber under warn 42 / urgent 41, red under urgent 42.
+        expect(await h2.render(E, "upcoming", item({ warn_minutes: 42, urgent_minutes: 41 }))).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "warning" } });
+        expect(await h2.render(E, "upcoming", item({ warn_minutes: 60, urgent_minutes: 42 }))).toMatchObject({ states: { phase: "critical" } });
       } finally { h2.kill(); }
-      const h3 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { horizon_hours: 1, warn_minutes: 15 } } } });
+      // The horizon is the extension's.
+      const h3 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { horizon_hours: 1 } } } });
       try {
         expect(await h3.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "near" } });
         expect((await h3.render(E, "upcoming", { reason: "load" }) as BarItem).badge).toBeUndefined();
       } finally { h3.kill(); }
-      // The boundaries are inclusive: 42 minutes out is amber under warn 42 / urgent 41, red under urgent 42.
-      const h4 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 42, urgent_minutes: 41 } } } });
-      try { expect(await h4.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "warning" } }); } finally { h4.kill(); }
-      const h5 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 60, urgent_minutes: 42 } } } });
-      try { expect(await h5.render(E, "upcoming", { reason: "load" })).toMatchObject({ states: { phase: "critical" } }); } finally { h5.kill(); }
       // The horizon is inclusive too: the Concert tomorrow at 19:00 is 32 h 30 min out.
       const h6 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32.5 } } } });
       try { expect(await h6.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Concert", segments: [{ id: "when", text: "in 32h 30m" }], states: { phase: "far" } }); } finally { h6.kill(); }
@@ -805,5 +805,5 @@ describe("today palette and the upcoming bar item", () => {
       host.changeSettings(E, { settings: { days: 14 } });
       await Bun.sleep(50);
     }
-  }, 20_000); // seven hosts in a row: past bun's 5 s on marko
+  }, 20_000); // four hosts in a row: past bun's 5 s on marko
 });

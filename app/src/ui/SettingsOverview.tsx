@@ -4,7 +4,7 @@ import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { comboLabel, combosLabel } from "./SettingsGeneral";
 import { installing, progressLine, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
-import { holdOf, needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
+import { holdOf, needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionUser, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
 import { relativeDate } from "./format";
 import type { Icon as IconSpec } from "./types";
 
@@ -45,10 +45,8 @@ export type OverviewInput = {
   switcher?: string;
   /** `[sidebar]` in one line (`sidebarSummary`): "Windows on the right edge", or "off"; absent where none is built. */
   sidebar?: string;
-  /** The keycast overlay is on (keycast.rs): Input Monitoring matters while it is. */
-  keycast?: boolean;
-  /** Text expansion is on (`[features.expansion] enabled`): it watches the keys typed in other apps. */
-  expand?: boolean;
+  /** Who uses each permission and what for: the extensions that declare it, the features that are on (`permissionUsers`). A missing permission is a row only when something uses it. */
+  users?: Partial<Record<PermissionId, PermissionUser[]>>;
 };
 
 /** One thing to do, or one fact, as a row with its action inline. */
@@ -102,24 +100,21 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
     items.push({ id: "hold", level: "attention", title: "Switcher", detail: `The switcher chord ${comboLabel(h.hold_blocked)} needs Input Monitoring. Switch it on under Privacy & Security > Input Monitoring.`, action: { label: "Grant…", permission: "input_monitoring" } });
   }
 
-  const names = new Set(v.extensions.map((e) => e.name));
-  // Snippet expansion watches the keys typed in other apps: Input Monitoring matters once it is on.
-  const expand = !!v.expand;
-  // A permission is a row when it is refused and nothing else will ask for
-  // it: Accessibility (asked on the first show; the one every paste needs),
-  // Full Disk Access (no prompt exists, so this row is the only telling),
-  // Input Monitoring once expansion or keycast is on (pal asked when it
-  // was switched on; a bar peek only degrades without it), and Calendars or Location
-  // once the prompt was answered no. One the OS has not asked about yet
-  // (`not_determined`) is not: the extension prompts from its own row the
-  // first time it is used, and a fresh install must not open on a list of
-  // grants for palettes never opened.
-  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi"), expand, keycast: v.keycast })) {
+  const users = v.users ?? {};
+  // A permission is a row when it is refused and something uses it
+  // (`users`): Accessibility always (asked on the first show; the one
+  // every paste needs), Full Disk Access (no prompt exists, so this row is
+  // the only telling), Input Monitoring once a feature that watches keys
+  // is on (pal asked when it was switched on; a bar peek only degrades
+  // without it), and Calendars or Location once the prompt was answered
+  // no. One the OS has not asked about yet (`not_determined`) is not: the
+  // extension prompts from its own row the first time it is used, and a
+  // fresh install must not open on a list of grants for palettes never
+  // opened.
+  for (const p of permissionRows(v.permissions, { users, bar: (v.bar?.length ?? 0) > 0 })) {
     if (p.state !== "missing") continue;
-    if (p.id === "full_disk_access" && !names.has("otp")) continue;
-    if (p.id === "calendar" && (!names.has("calendar") || v.permissions?.calendar === "not_determined")) continue;
-    if (p.id === "input_monitoring" && !expand && !v.keycast) continue;
-    if (p.id === "location" && (!names.has("wifi") || v.permissions?.location === "not_determined")) continue;
+    if (p.id !== "accessibility" && !users[p.id]?.length) continue;
+    if ((p.id === "calendar" || p.id === "location") && v.permissions?.[p.id] === "not_determined") continue;
     items.push({ id: `permission:${p.id}`, level: "attention", title: p.title, detail: `${p.needs}. ${p.where.startsWith("Privacy") ? `Switch it on under ${p.where}` : `Granted in ${p.where}`}.`, action: { label: p.id === "full_disk_access" ? "Open the pane" : "Grant…", permission: p.id } });
   }
 
@@ -211,7 +206,7 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
     ...(v.switcher === undefined ? [] : [{ label: "Switcher", value: v.switcher ? <span className="pal-overview__hotkeys" aria-label={comboLabel(v.switcher)}><Kbd shortcut={v.switcher} /></span> : "off", go: { page: "shortcuts" as const, anchor: "shortcuts:switcher" } }]),
     ...(v.sidebar === undefined ? [] : [{ label: "Sidebar", value: v.sidebar, go: { page: "features" as const, anchor: "features:sidebar" } }]),
     { label: "Extensions", value: `${plural(names.size - failedNames.size, "extension")} loaded${failedNames.size ? `, ${failedNames.size} failed` : ""}${instances ? `, ${plural(instances, "extra instance")}` : ""}`, go: { page: "extensions" } },
-    { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "palettes" } },
+    { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "extensions" } },
     ...(v.barSupported === false ? [] : [{ label: "Bar", value: v.bar?.length ? `${barOn} of ${plural(v.bar.length, "item")} on` : "no items declared", go: { page: "bar" as const } }]),
   ];
 }

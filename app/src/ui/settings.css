@@ -1089,3 +1089,11 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-feature__rows + .pal-feature__rows { border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-feature__sub { margin: var(--pal-space-2, 8px) var(--pal-space-4, 16px) 0; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-semibold, 600); }
 @media (max-width: 860px) { .pal-features__grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* An extension's palettes on its pane: the name folds the palette's pane open under its row */
+.pal-ptable__fold { display: flex; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; padding: 2px 4px; margin-left: -4px; border: 0; border-radius: var(--pal-radius-control, 6px); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pal-ptable__fold:hover .pal-ptable__name { color: var(--pal-fg, #ececf0); }
+.pal-ptable__fold:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-ptable__fold .pal-ptable__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-ptable__fold[aria-expanded="true"] .pal-feature__chevron { transform: rotate(90deg); }
+.pal-ptable--inline .pal-ppane--embedded { margin: var(--pal-space-1, 4px) 0 var(--pal-space-3, 12px) var(--pal-space-4, 16px); padding: 0 0 0 var(--pal-space-3, 12px); border-left: 2px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }

@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SettingsShortcuts } from "../SettingsShortcuts";
-import { SettingsPalettes, palettesIndex } from "../SettingsPalettes";
+import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
 import { holdOf, type GeneralConfig, type PaletteConfig, type SettingsExtension } from "../SettingsTypes";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); el.remove(); });
 
-const show = (ext: SettingsExtension, onChange: (id: string, c: PaletteConfig) => void) => act(() => { root.render(<SettingsPalettes extensions={[ext]} selected="windows" onSelect={() => {}} onChange={onChange} />); });
+const show = (ext: SettingsExtension, onChange: (id: string, c: PaletteConfig) => void) => act(() => { root.render(<ExtensionPalettes ext={ext} open="windows" onOpen={() => {}} onChange={onChange} />); });
 const section = () => el.querySelector<HTMLElement>('[aria-label="Switcher chord"]')!;
 const recorder = () => [...section().querySelectorAll<HTMLButtonElement>("button")].find((b) => b.getAttribute("aria-label")?.startsWith("Windows switcher chord"))!;
 const byText = (text: string, within: ParentNode = section()) => [...within.querySelectorAll("button")].find((b) => b.textContent === text);

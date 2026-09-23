@@ -224,6 +224,7 @@
       ]
     },
     "history": {
+      "on": ["clipboard"],
       "kind": "input",
       "description": "Every copy, pinned ones first, then newest.",
       "keys": [

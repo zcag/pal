@@ -57,7 +57,7 @@ opens the popover. Both poll every five seconds until the core has a
 native audio-change event. Their Bar settings offer representative mock
 states.
 
-Settings, `[extensions.audio]`:
+`volume` item settings, `[bar.items."audio/volume".settings]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |

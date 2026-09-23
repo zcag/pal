@@ -23,7 +23,9 @@ import { DURATIONS, EFFECTS, FOCUS, PRESETS, fresh, render, renderSetup, shown, 
 import { BRIGHTNESS_ARG, G, KELVIN_ARG, NAME, SET, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
 
 /** `[extensions.hue]`, defaults in pal.json. */
-type Settings = { bridge: string; application_key: string; insecure: boolean; timeout: number; main_room: string; bar_scenes: string[]; transition: number };
+type Settings = { bridge: string; application_key: string; insecure: boolean; timeout: number; transition: number };
+/** The `home` item's own settings (`[bar.items."hue/home".settings]`). */
+type HomeSettings = { main_room?: string; scenes?: string[] };
 type Args = { light?: string; room?: string; scenes?: string; lights?: string };
 
 const current = (): Settings => settings.get<Settings>(NAME);
@@ -473,13 +475,16 @@ function scheduleBar() {
 
 /** The popover's cursor: which room the keys are on, which is opened, which of its lights; kept while the popover is closed, so it reopens where it was. */
 let popover: PopoverState = freshPopover();
+/** The item's settings as the last render or action got them: `scheduleBar`'s push has no ctx. */
+let homeSettings: HomeSettings = {};
+const withSettings = (ctx: BarCtx | undefined) => { if (ctx?.settings) homeSettings = ctx.settings as HomeSettings; };
 
-/** The scenes the popover offers: the opened room's, else the `bar_scenes` setting's, else the main room's. */
+/** The scenes the popover offers: the opened room's, else the item's `scenes` setting's, else the main room's. */
 function popoverScenes(rooms: Room[]): { scenes: Scene[]; of?: string } {
   const scenes = scenesOf(home).filter((sc) => sc.kind === "scene");
   const open = popover.open ? rooms.find((r) => r.id === popover.open) : undefined;
   if (open) return { scenes: scenes.filter((sc) => sc.room?.id === open.id), of: open.name };
-  const wanted = (current().bar_scenes ?? []).map((x) => x.toLowerCase());
+  const wanted = (homeSettings.scenes ?? []).map((x) => x.toLowerCase());
   if (wanted.length) return { scenes: scenes.filter((sc) => wanted.includes(sc.name.toLowerCase()) || wanted.includes(sc.id)) };
   const main = mainRoom(rooms);
   return main ? { scenes: scenes.filter((sc) => sc.room?.id === main.id), of: main.name } : { scenes };
@@ -562,10 +567,10 @@ async function popoverAction(action: string, ctx?: BarCtx): Promise<Effect> {
   return { view: popoverView() };
 }
 
-/** The room the dot is coloured by: the `main_room` setting, else the room with most lights on. */
+/** The room the dot is coloured by: the item's `main_room` setting, else the room with most lights on. */
 function mainRoom(rooms: Room[]): Room | undefined {
-  const s = current();
-  const named = s.main_room?.trim() ? rooms.find((r) => r.name.toLowerCase() === s.main_room.trim().toLowerCase() || r.id === s.main_room.trim()) : undefined;
+  const want = homeSettings.main_room?.trim() ?? "";
+  const named = want ? rooms.find((r) => r.name.toLowerCase() === want.toLowerCase() || r.id === want) : undefined;
   return named ?? [...rooms].filter((r) => r.kind === "room").sort((a, b) => aggregate(b).on - aggregate(a).on)[0];
 }
 
@@ -811,9 +816,9 @@ export default {
   },
   bar: {
     home: {
-      render: async () => { try { await load(); } catch { /* hidden below */ } return barItem(); },
-      onAction: async (action, ctx) => { try { await load(); } catch { /* the view says the bridge is away */ } return popoverAction(action, ctx); },
-      onShown: () => load().catch(() => {}),
+      render: async (ctx) => { withSettings(ctx); try { await load(); } catch { /* hidden below */ } return barItem(); },
+      onAction: async (action, ctx) => { withSettings(ctx); try { await load(); } catch { /* the view says the bridge is away */ } return popoverAction(action, ctx); },
+      onShown: (ctx) => { withSettings(ctx); return load().catch(() => {}); },
     },
   },
   link: async (route: string, params: LinkParams): Promise<Effect | void> => {
@@ -843,6 +848,7 @@ export default {
 
 // The settings decide which bridges there are: a change to what `load` keys
 // on (the bridge, its key, insecure, timeout) reads them again and
-// reconnects; any other change (the bar's scenes, the main room) keeps the
-// streams and re-renders the bar.
+// reconnects; any other change keeps the streams and re-renders the bar.
+// The item's own settings (the main room, its scenes) come with the
+// core's re-render as `ctx.settings`.
 settings.onChange(() => { load().then(scheduleBar).catch((e) => console.error(`[hue] ${errorMessage(e)}`)); }, NAME);

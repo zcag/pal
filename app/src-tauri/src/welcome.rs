@@ -167,7 +167,7 @@ pub fn rows(env: &Env) -> Vec<Item> {
             "Change the hotkey",
             &format!("{hk} now; Enter opens the recorder in Settings"),
             "\u{f030c}",
-            format!("# Change the hotkey\n\npal opens with **{hk}**. Enter opens the recorder under Settings › General: press another combination, or pick a preset. Every palette can have its own hotkey too, on its row under Settings › Palettes."),
+            format!("# Change the hotkey\n\npal opens with **{hk}**. Enter opens the recorder under Settings › Shortcuts: press another combination, or pick a preset. Every palette can have its own hotkey too, on its row under its extension in Settings › Extensions."),
         ),
     ]);
     // The switcher: named by its chord while one applies, generic while off or not yet known.
@@ -180,15 +180,15 @@ pub fn rows(env: &Env) -> Vec<Item> {
         &name,
         &sub,
         "\u{f04e1}",
-        "# Switch windows\n\nTap the chord to go back to the window you were in. Hold its modifier and press again to step down the list (with Shift, up), let go to switch, type to filter. Windows lists most recently used first.\n\nEnter here opens the recorder under Settings › General › Window switcher, where the chord is changed or turned off. Any palette can be held the same way: Switcher chord under Settings › Palettes.".to_string(),
+        "# Switch windows\n\nTap the chord to go back to the window you were in. Hold its modifier and press again to step down the list (with Shift, up), let go to switch, type to filter. Windows lists most recently used first.\n\nEnter here opens the Window switcher's card under Settings › Features, where the chord is changed or turned off. Any palette can be held the same way: its Switcher chord, under its extension in Settings › Extensions.".to_string(),
     ));
     if env.sidebar {
         rows.push(row(
             SIDEBAR,
-            "A sidebar at the screen edge: Settings › General",
+            "A sidebar at the screen edge: Settings › Features",
             "One palette docked to an edge, every row numbered so a number chord runs it",
             "\u{f10ab}",
-            format!("# Sidebar\n\nA live palette docked to the left or right edge of a display. It peeks when the pointer rests at the edge; a click, a key or its hotkey engages it, and every row wears its number so **{}** runs row 3. Off until you switch it on: Enter here opens the switch under Settings › General › Sidebar.", hotkey_label("cmdorctrl+3")),
+            format!("# Sidebar\n\nA live palette docked to the left or right edge of a display. It peeks when the pointer rests at the edge; a click, a key or its hotkey engages it, and every row wears its number so **{}** runs row 3. Off until you switch it on: Enter here opens its card under Settings › Features.", hotkey_label("cmdorctrl+3")),
         ));
     }
     rows.extend([
@@ -257,11 +257,11 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
     match id {
         // Straight to the recorder, not the Overview: the row promised the hotkey.
         HOTKEY => {
-            settings::open_at(app, Some("general"), Some("general:hotkey"));
+            settings::open_at(app, Some("shortcuts"), Some("shortcuts:hotkey"));
             Ok(json!({ "hide": true }))
         }
         SWITCHER | SIDEBAR => {
-            settings::open_at(app, Some("general"), Some(if id == SWITCHER { "general:switcher" } else { "general:sidebar" }));
+            settings::open_at(app, Some("features"), Some(if id == SWITCHER { "features:switcher" } else { "features:sidebar" }));
             Ok(json!({ "hide": true }))
         }
         EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,
@@ -338,7 +338,7 @@ mod tests {
         assert!(off.subtitle.as_deref().unwrap().starts_with("Off now"), "{:?}", off.subtitle);
         assert!(name(None).subtitle.as_deref().unwrap().starts_with("Set one"));
         let sidebar = rows(&env(true)).into_iter().find(|r| r.id == SIDEBAR).unwrap();
-        assert!(sidebar.name.contains("Settings › General"));
+        assert!(sidebar.name.contains("Settings › Features"));
         assert!(sidebar.extra["detail"]["markdown"].as_str().unwrap().contains(&hotkey_label("cmdorctrl+3")));
     }
 

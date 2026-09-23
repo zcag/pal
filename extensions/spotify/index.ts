@@ -15,7 +15,7 @@
 // while something ticks, the position between reads from the local clock
 // (`positionOf`), and an action patches it optimistically (`hold`) so the
 // tree answers at once. The bar item `playing` renders that state: the
-// track (or, with `bar_lyrics`, the lyric line playing) on the strip, the
+// track (or, with the item's `lyrics` setting, the lyric line playing) on the strip, the
 // compact lyrics view as the popover. One 1 Hz loop (`tick`) serves both
 // live surfaces while they are open: the popover gets a `bar.update` of
 // the whole item every second (the lines slide, the bar ticks; from
@@ -324,6 +324,9 @@ let tickUntil = 0;
 let viewOpen = false;
 /** The wide tree last pushed, serialised: the next tick pushes only a different one. */
 let lastPushed: string | undefined;
+/** The item's `lyrics` setting as the last render or action got it (`ctx.settings`): the lyric ticker and the popover loop push with no ctx at hand. */
+let lyricsOn = true;
+const noteSettings = (ctx: BarCtx) => { if (ctx.settings) lyricsOn = ctx.settings.lyrics !== false; };
 
 /**
  * The strip and the popover for the state, and the facts
@@ -342,7 +345,7 @@ function barItem(l: Live, st: NowState): BarItem {
   if (!p || !t) return { hidden: true, empty, states: { playing: false, loaded: false } };
   if (!p.playing) return { icon: G.spotify, title: `${t.name} · ${t.artist}`.slice(0, 64), tooltip: `${trackText(t)}, paused`, scroll: { up: "next", down: "previous" }, menu, empty, states: { playing: false, loaded: true } };
   const synced = st.lyrics?.synced;
-  const line = synced?.length && conf().bar_lyrics !== false ? currentLine(synced, st.position) : undefined;
+  const line = synced?.length && lyricsOn ? currentLine(synced, st.position) : undefined;
   const title = (line ?? `${t.name} · ${t.artist}`).slice(0, 64);
   // The extension-owned ticker below is primary; this remains a safety net if
   // the worker restarts or a scheduled callback is lost.
@@ -365,7 +368,7 @@ function followLyrics(l: Live, st: NowState) {
   if (live !== l) return;
   stopLyricTick();
   const p = l.player, t = p?.track, lines = st.lyrics?.synced;
-  if (!p?.playing || !t || t.kind !== "track" || conf().bar_lyrics === false || !lines?.length) return;
+  if (!p?.playing || !t || t.kind !== "track" || !lyricsOn || !lines?.length) return;
   const next = lines.find((line) => line.at * 1000 > positionOf(p));
   if (!next) return;
   // A small margin avoids landing just before a fractional LRC timestamp.
@@ -409,6 +412,7 @@ async function quietItem(l: Live): Promise<BarItem> {
 }
 
 async function renderBar(ctx: BarCtx): Promise<BarItem> {
+  noteSettings(ctx);
   // The timer reads the clock; a `keep` after an action (`update`) takes the patched state; anything else (a show, a wake, the media trigger) asks the API afresh.
   const l = await readLive(ctx.reason === "every" ? SYNC_MS : 0, ctx.reason !== "update" && ctx.reason !== "every");
   if (!l.player?.playing) { stopTick(); stopLyricTick(); return quietItem(l); }
@@ -460,7 +464,8 @@ liveView.onHidden((ev) => {
 }, EXTENSION);
 
 /** A view action from the popover: the same handler; a new tree is a `keep` (the item renders again from the patched state). */
-async function barAction(action: string): Promise<Effect> {
+async function barAction(action: string, ctx: BarCtx): Promise<Effect> {
+  noteSettings(ctx);
   startPopover();
   const r = await act(action, "compact");
   if (r.view) { const { view: _v, ...rest } = r; return { ...rest, keep: true }; }
@@ -906,7 +911,7 @@ export default {
     [ITEM]: {
       render: renderBar,
       onAction: barAction,
-      onShown: async () => { startPopover(); },
+      onShown: async (ctx) => { noteSettings(ctx); startPopover(); },
     },
   },
   dispose: () => { stopTick(); stopLyricTick(); tickUntil = 0; viewOpen = false; stopListener(); },

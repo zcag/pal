@@ -415,16 +415,18 @@ describe("stats in the host", () => {
     expect(cores).toBe(cpus().length);
   });
 
-  test("bar: the label settings change what the strip says", async () => {
-    host.changeSettings("stats", { settings: { cpu_label: "spark", memory_label: "used", disk_label: "percent", network_label: "down", load_label: "three" } });
-    await new Promise((r) => setTimeout(r, 100));
-    expect((await host.render("stats", "cpu")).title).toMatch(/^[▁▂▃▄▅▆▇█]+$/);
-    expect((await host.render("stats", "memory")).title).toMatch(/^[\d.]+ [GM]B$/);
-    expect((await host.render("stats", "disk")).title).toMatch(/^\d+%$/);
-    expect((await host.render("stats", "network")).title).toMatch(/^↓\S+$/);
-    expect((await host.render("stats", "load")).title).toMatch(/^\d+\.\d+ \d+\.\d+ \d+\.\d+$/);
-    host.changeSettings("stats", { settings: {} });
-    await new Promise((r) => setTimeout(r, 100));
+  test("bar: each item's label setting changes what its strip says", async () => {
+    const label = (id: string, value: string) => host.render("stats", id, { reason: "settings", settings: { label: value } });
+    expect(host.manifests.get("stats")!.settings!.map((s) => s.id)).toEqual(["interval", "disk_hide"]);
+    expect(["cpu", "memory", "disk", "network", "load"].map((id) => host.manifests.get("stats")!.bar![id]!.settings!.map((s) => s.id))).toEqual([["label"], ["label"], ["label"], ["label"], ["label"]]);
+    expect((await label("cpu", "spark")).title).toMatch(/^[▁▂▃▄▅▆▇█]+$/);
+    expect((await label("memory", "used")).title).toMatch(/^[\d.]+ [GM]B$/);
+    expect((await label("disk", "percent")).title).toMatch(/^\d+%$/);
+    expect((await label("network", "down")).title).toMatch(/^↓\S+$/);
+    expect((await label("load", "three")).title).toMatch(/^\d+\.\d+ \d+\.\d+ \d+\.\d+$/);
+    // The declared defaults again when the ctx leaves them out.
+    expect((await host.render("stats", "disk")).title).toMatch(/^[\d.]+ [GMT]B$/);
+    for (const id of ["cpu", "memory", "network", "load"]) await host.render("stats", id);
   });
 
   test("popover keys: the cursor moves and wraps, a click focuses, copy answers the value, the palette and monitor open", async () => {

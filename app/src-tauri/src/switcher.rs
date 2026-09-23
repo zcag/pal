@@ -22,13 +22,14 @@
 //! come back to: its end tells `pop::forget`, so the next root hotkey
 //! lands at the root whatever `general.pop_to_root` says.
 //!
-//! The tap is the windows palette's (the one with windows to switch to);
-//! any other held palette shows at once, as a palette hotkey would.
+//! The tap is for a palette whose manifest says `tap` (its rows are
+//! windows: Windows); any other held palette shows at once, as a palette
+//! hotkey would.
 //!
 //! Linux has no global chord on Wayland, so the compositor drives the same
 //! machine over the CLI, `pal switch [next|prev|commit|cancel]` (cli.rs,
 //! [`cli`]): `next` begins when idle, for the palette with a hold chord
-//! (else Windows), with the same show delay, and never polls, since the
+//! (else the one with `tap`), with the same show delay, and never polls, since the
 //! keybind that ran it sends the `commit` (before the show: the tap; after
 //! it: the page's). The same works on macOS from a terminal or skhd.
 //!
@@ -81,11 +82,6 @@ fn key_of(s: &Source) -> String {
     format!("{}/{}", s.extension, s.palette)
 }
 
-/// Whether `source` is the windows palette, the one a tap switches for.
-fn taps(source: &Source) -> bool {
-    source.extension == "windows" && source.palette == "windows"
-}
-
 /// The chord (or `pal switch next|prev`) for `source`: idle, a hold begins;
 /// held, the cursor steps (`back`: up), on the page once it showed, else
 /// counted for the show or the tap. Another palette's chord while one is
@@ -113,7 +109,7 @@ pub fn press(app: &AppHandle, source: &Source, mods: Modifiers, back: bool) {
 fn begin(app: &AppHandle, source: Source, mods: Modifiers) {
     let generation = GENERATION.fetch_add(1, Ordering::Relaxed);
     let key = key_of(&source);
-    let tap = taps(&source);
+    let tap = crate::registry::taps(app, &source);
     *lock(&ACTIVE) = Some(Active { source, generation, steps: 0, shown: !tap });
     eprintln!("switcher\tbegin\t{key}\tmods={mods:?}");
     // The window the user is in: row 1 of what a tap reads and the show relists.
@@ -228,7 +224,9 @@ pub fn cli(app: &AppHandle, what: crate::cli::SwitchCmd) {
     use crate::cli::SwitchCmd::*;
     match what {
         Next | Prev => {
-            let source = crate::hotkey::hold_target(app).unwrap_or_else(|| Source::new("windows", "windows"));
+            let Some(source) = crate::hotkey::hold_target(app).or_else(|| crate::registry::tap_palette(app)) else {
+                return eprintln!("switcher\tpal switch\tno palette has a hold chord or lists windows (a manifest's tap)");
+            };
             press(app, &source, Modifiers::empty(), what == Prev);
         }
         Commit => commit(app),

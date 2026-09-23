@@ -31,7 +31,7 @@ const STORAGE_KEY = "auth";
 export const log = (...a: unknown[]) => console.error("[spotify]", ...a);
 
 /** `[extensions.spotify]`, defaults in pal.json. */
-export type Settings = { client_id: string; redirect_port: number; bar_lyrics: boolean; pinned: string[] };
+export type Settings = { client_id: string; redirect_port: number; pinned: string[] };
 export const conf = () => settings.get<Settings>(EXTENSION);
 
 /** Nobody is signed in: no client id yet, or no tokens (never signed in, signed out, or Spotify revoked the refresh token). */

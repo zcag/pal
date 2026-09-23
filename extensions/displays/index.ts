@@ -10,7 +10,9 @@ import { INPUTS, findMode, formatArgv, formatPlacements, levelFrom, modeText, pa
 import { BUILTIN_FLOOR, CONTROLS, MAC, apply, canArrange, changed as linuxChange, invalidate, nightShift, read, readInput, reproduce, setInput, setNightShift, settable, snapshot, write, type Control, type Snapshot, type Tools } from "./tools.ts";
 import { CONTROL_TITLE, GLYPH, brightnessGlyph, modeLine, popover, screenGlyph, sliderView, type PopoverState, type SliderState } from "./view.ts";
 
-type Settings = { step: number; bar_display: "external" | "main" | "builtin"; input_alt: boolean };
+type Settings = { step: number; input_alt: boolean };
+/** The brightness item's settings, `[bar.items."displays/brightness".settings]`, defaults in pal.json. */
+type ItemSettings = { display: "external" | "main" | "builtin" };
 /** One saved arrangement: the commands that reproduce it (`tools.reproduce`) and the screens it had, for the subtitle. */
 type Preset = { name: string; saved: number; argv: string[][]; displays: string[] };
 /** The arrangement before the last change, so Undo is one row. */
@@ -47,8 +49,11 @@ export function resolveScreen(screens: Screen[], spec: string | undefined, fallb
   return screens.find((s) => s.id === want || s.uuid?.toLowerCase() === want) ?? screens.find((s) => s.name.toLowerCase() === want) ?? screens.find((s) => s.name.toLowerCase().includes(want));
 }
 
-/** The screen the bar item speaks for, by the setting; the main one when the setting names a kind that is not there. */
-const barScreen = (snap: Snapshot): Screen | undefined => resolveScreen(snap.screens, undefined, settingsOf().bar_display) ?? snap.screens.find((s) => s.main) ?? snap.screens[0];
+/** The item's settings as its last render or action had them: a `pal://displays/brightness` link naming no display acts on the one the bar shows, and has no ctx of its own. */
+let itemSettings: ItemSettings = { display: "external" };
+const remember = (ctx?: BarCtx) => { if (ctx?.settings) itemSettings = ctx.settings as ItemSettings; };
+/** The screen the bar item speaks for, by its `display` setting; the main one when the setting names a kind that is not there. */
+const barScreen = (snap: Snapshot): Screen | undefined => resolveScreen(snap.screens, undefined, itemSettings.display) ?? snap.screens.find((s) => s.main) ?? snap.screens[0];
 
 /** One tool that is missing: which, what it would add, and which kind of screen it is about (`arrange` is about none). */
 type Gap = { id: keyof typeof INSTALL; what: string; about: "arrange" | "builtin" | "external" };
@@ -416,7 +421,8 @@ async function popoverState(snap: Snapshot): Promise<PopoverState> {
   return { screens, focus: at >= 0 ? at : Math.max(0, first), step: settingsOf().step, night: await nightShift(t), hint: gaps[0] ? `${gaps[0].what}: ${INSTALL[gaps[0].id]}` : undefined };
 }
 
-async function renderBar(): Promise<BarItem> {
+async function renderBar(ctx?: BarCtx): Promise<BarItem> {
+  remember(ctx);
   let snap: Snapshot;
   try { snap = await snapshot(); } catch { return { hidden: true, states: { brightness: null, external: 0, count: 0, settable: false } }; }
   const t = snap.tools;
@@ -432,6 +438,7 @@ async function renderBar(): Promise<BarItem> {
 }
 
 async function barAction(action: string, ctx?: BarCtx): Promise<Effect> {
+  remember(ctx);
   const snap = await snapshot();
   const t = snap.tools;
   const redraw = async (): Promise<Effect> => ({ view: popover(await popoverState(snap)) });
@@ -465,7 +472,7 @@ async function link(route: string, params: LinkParams): Promise<Effect | void> {
   const t = snap.tools;
   const spec = params.display === undefined ? undefined : String(params.display);
   if (route === "brightness" || route === "contrast" || route === "volume") {
-    const s = resolveScreen(snap.screens, spec, route === "brightness" ? settingsOf().bar_display : "external");
+    const s = resolveScreen(snap.screens, spec, route === "brightness" ? itemSettings.display : "external");
     if (!s) throw new Error(`no display ${spec ?? "connected"}`);
     const ddcTool = MAC ? (process.arch === "arm64" ? "m1ddc" : "ddcctl") : "ddcutil";
     if (!settable(s, route, t)) throw new Error(route !== "brightness" && s.builtin ? `${route} is a DDC control; ${s.name} is the built-in display` : `${route} on ${s.name} needs ${s.builtin ? (MAC ? "the brightness CLI (brew install --HEAD brightness)" : "brightnessctl") : ddcTool}`);

@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { SettingsPalettes } from "../SettingsPalettes";
+import { ExtensionPalettes } from "../SettingsPalettes";
 import type { PaletteConfig, SettingsExtension } from "../SettingsTypes";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -30,7 +30,7 @@ afterEach(() => { act(() => root.unmount()); el.remove(); });
 /** Renders, and lets the listing's promise land inside act. */
 const show = (itemHotkeys: Record<string, string> | undefined, onChange: (id: string, c: PaletteConfig) => void, items = async () => rows) =>
   act(async () => {
-    root.render(<SettingsPalettes extensions={[ext(itemHotkeys)]} selected="window-management" onSelect={() => {}} onChange={onChange} items={items} />);
+    root.render(<ExtensionPalettes ext={ext(itemHotkeys)} open="window-management" onOpen={() => {}} onChange={onChange} items={items} />);
     await Promise.resolve();
     await Promise.resolve();
   });
@@ -122,7 +122,7 @@ describe("item hotkeys table", () => {
   });
 
   it("without a listing the ids are typed: no picker, no names, nothing marked", async () => {
-    await act(() => { root.render(<SettingsPalettes extensions={[ext({ left_half: "ctrl+alt+left" })]} selected="window-management" onSelect={() => {}} onChange={() => {}} />); });
+    await act(() => { root.render(<ExtensionPalettes ext={ext({ left_half: "ctrl+alt+left" })} open="window-management" onOpen={() => {}} onChange={() => {}} />); });
     const t = table();
     expect(t.querySelector("datalist")).toBeNull();
     expect(t.querySelector(".pal-itemkeys__name")!.textContent).toBe("");

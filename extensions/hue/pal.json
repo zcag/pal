@@ -50,23 +50,6 @@
       "default": 400
     },
     {
-      "kind": "text",
-      "id": "main_room",
-      "bar": "home",
-      "label": "Main room",
-      "placeholder": "Living room",
-      "description": "The room whose colour the bar item's dot shows and whose scenes its popover lists. Empty: the room with most lights on.",
-      "default": ""
-    },
-    {
-      "kind": "list",
-      "id": "bar_scenes",
-      "label": "Bar scenes",
-      "placeholder": "Relax",
-      "description": "Scene names (or ids like scene:living-room/relax) listed in the bar item's popover, in this order. Empty: the main room's scenes.",
-      "default": []
-    },
-    {
       "kind": "number",
       "id": "timeout",
       "label": "Timeout",
@@ -468,6 +451,24 @@
           "network"
         ]
       },
+      "settings": [
+        {
+          "kind": "text",
+          "id": "main_room",
+          "label": "Main room",
+          "placeholder": "Living room",
+          "description": "The room the item's tooltip names and whose scenes its popover lists. Empty: the room with most lights on.",
+          "default": ""
+        },
+        {
+          "kind": "list",
+          "id": "scenes",
+          "label": "Scenes",
+          "placeholder": "Relax",
+          "description": "Scene names (or ids like scene:living-room/relax) listed in the popover, in this order. Empty: the main room's scenes.",
+          "default": []
+        }
+      ],
       "mocks": {
         "on": {
           "title": "Lights on, the main room's colour as a dot",

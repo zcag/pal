@@ -8,7 +8,7 @@
 // today's sections, red while anything is overdue, hidden at zero, with a
 // popover (view.ts) that completes and adds.
 import { ago, argsForm, bar, clipboard, dayName, dayNameYear, errorMessage, failed, hint, mdEscape, now, oneLine, selection, storage, tinted, toast, truncate, view, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type TagColor } from "@zcag/pal";
-import { ApiError, AuthError, EXTENSION, baseUrl, conf, log, todaySections, webUrl } from "./api.ts";
+import { ApiError, AuthError, EXTENSION, baseUrl, conf, log, webUrl } from "./api.ts";
 import { childrenOf, create, drop, find, isDueToday, isOverdue, isWaiting, move, remove, sectionNames, sections, todos, todosAtHand, toggle, update, type Todo } from "./data.ts";
 import { render as renderBar, type BarRow, type BarState } from "./view.ts";
 import { addDays, dayLabel, dayOf, due, isoDay, linkIn, parseAdd, parseWhen, waits } from "./when.ts";
@@ -456,11 +456,17 @@ async function doneRows(ctx?: Ctx): Promise<Item[]> {
 let barFocus: string | undefined;
 let barField = false;
 
+/** The sections the item counts as today's work, on top of what is due today: its `today_sections` setting (`[bar.items."odak/today".settings]`). */
+const todaySections = (ctx?: BarCtx) => {
+  const v = (ctx?.settings as { today_sections?: unknown } | undefined)?.today_sections;
+  return (Array.isArray(v) ? v : []).map((s) => String(s).trim().toLowerCase()).filter(Boolean);
+};
+
 /** The popover's rows from the todos at hand: the overdue first, then what is due today and what sits in today's sections. */
-function barState(all: Todo[], t0 = now()): BarState {
+function barState(all: Todo[], ctx?: BarCtx, t0 = now()): BarState {
   const open = all.filter((t) => !t.done && !isWaiting(t, t0));
   const overdue = open.filter((t) => isOverdue(t, t0)).sort((a, b) => (a.deadline ?? "").localeCompare(b.deadline ?? ""));
-  const secs = todaySections();
+  const secs = todaySections(ctx);
   const dueToday = open.filter((t) => isDueToday(t, t0));
   const today = [...dueToday, ...open.filter((t) => !isOverdue(t, t0) && !isDueToday(t, t0) && secs.includes(t.section.toLowerCase()))];
   const rows: BarRow[] = [...overdue, ...today].map((t) => ({ id: t.id, text: truncate(oneLine(t.text), 90), section: t.section, tags: t.tags ?? [], urgent: !!t.urgent, due: due(t.deadline, t0) }));
@@ -474,7 +480,7 @@ async function todayItem(ctx: BarCtx): Promise<BarItem> {
     if (e instanceof AuthError) return { hidden: true, states: { overdue: null, today: null, open: null } };
     throw e;
   }
-  const st = { ...barState(all), section: defaultSection(await sectionNames()) };
+  const st = { ...barState(all, ctx), section: defaultSection(await sectionNames()) };
   const states = { overdue: st.overdue, today: st.today, open: all.filter((t) => !t.done).length };
   const count = st.overdue + st.today;
   const tooltip = count ? [st.overdue ? `${st.overdue} overdue` : "", st.today ? `${st.today} today` : ""].filter(Boolean).join(", ") : "Nothing due today";
@@ -484,30 +490,30 @@ async function todayItem(ctx: BarCtx): Promise<BarItem> {
 }
 
 /** The popover drawn again from the todos at hand (no fetch): what a key that only moves the cursor answers. */
-const redrawBar = async (): Promise<Effect> => ({ view: renderBar({ ...barState(await todos()), section: defaultSection(await sectionNames()) }) });
+const redrawBar = async (ctx?: BarCtx): Promise<Effect> => ({ view: renderBar({ ...barState(await todos(), ctx), section: defaultSection(await sectionNames()) }) });
 
 async function todayAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: EXTENSION, palette: "odak" } };
   if (action === "open-odak") return { open: webUrl() };
   if (action === "refresh") { drop(); await todos(true).catch((e) => log(`refresh: ${errorMessage(e)}`)); return { keep: true }; }
-  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(); }
-  if (action === "new") { barField = true; return redrawBar(); }
-  if (action === "cancel") { barField = false; return redrawBar(); }
+  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(ctx); }
+  if (action === "new") { barField = true; return redrawBar(ctx); }
+  if (action === "cancel") { barField = false; return redrawBar(ctx); }
   if (action === "add") {
     const line = str(ctx?.values?.input).trim();
-    if (!line) return { ...(await redrawBar()), toast: { title: "Nothing to add", message: "Type the todo first", style: "failure" } };
+    if (!line) return { ...(await redrawBar(ctx)), toast: { title: "Nothing to add", message: "Type the todo first", style: "failure" } };
     const r = await addLine(line, undefined, "toast");
-    if (r.toast?.style === "failure") return { ...(await redrawBar()), toast: r.toast };
+    if (r.toast?.style === "failure") return { ...(await redrawBar(ctx)), toast: r.toast };
     barField = false;
     return { keep: true, toast: r.toast };
   }
-  const st = barState(await todos());
+  const st = barState(await todos(), ctx);
   const cur = st.rows[st.focus];
   switch (action) {
     case "down": case "up": {
-      if (!st.rows.length) return redrawBar();
+      if (!st.rows.length) return redrawBar(ctx);
       barFocus = st.rows[(st.focus + (action === "down" ? 1 : st.rows.length - 1)) % st.rows.length].id;
-      return redrawBar();
+      return redrawBar(ctx);
     }
     case "complete": {
       if (!cur) return { keep: true };

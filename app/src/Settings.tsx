@@ -10,8 +10,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
-  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsShortcuts, SettingsWindow,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, type SettingsFeature,
+  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsShortcuts, SettingsWindow,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, permissionUsers, storePermissions, type SettingsFeature,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
@@ -28,7 +28,7 @@ type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; hold?: s
 type RawSidebar = { palette?: string; edge?: SidebarEdge; display?: string; width?: number; peek?: boolean; delay?: number; grace?: number; hotkey?: string | null };
 /** core `BarLook` as the file spells it. */
 type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: number; text_size?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; color?: string; urgent_color?: string; badge_color?: string; badge_style?: BarBadgeStyle; width?: number; font?: BarFont; max_chars?: number };
-type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string };
+type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string; settings?: Record<string, unknown> };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
   general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean };
@@ -41,7 +41,7 @@ type RawConfig = {
   instances?: Record<string, RawInstance>;
 };
 type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; settings?: SettingSpec[] };
-type ManifestStore = { tagline?: string; screenshots?: { file: string; caption?: string; kind?: string }[] };
+type ManifestStore = { tagline?: string; permissions?: string[]; screenshots?: { file: string; caption?: string; kind?: string }[] };
 type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; multi?: boolean; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
 /** `PaletteMeta` (registry.rs): what the code said about a palette, `tier` already the manifest's over the code's (host.ts). */
 type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier; hold?: string };
@@ -59,10 +59,10 @@ type RawBarState = NonNullable<BarItem["state"]>;
 /** A rule's effect from the file's spelling: the look keys as the page names them, plus hidden, urgent and position. */
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
-type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
+type RawBarView = { key: string; extension: string; id: string; title: string; /** The manifest's `bar.<id>.settings`. */ settings_specs?: SettingSpec[]; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
 type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[] };
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
-type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
+type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
 type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicReport };
 
@@ -156,6 +156,7 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest: string
     installed: e.installed,
     palettes,
     settings: m.settings ?? [],
+    permissions: storePermissions(m.store?.permissions),
     values: (config.extensions[e.key] ?? {}) as SettingValues,
     loaded: e.loaded,
     error: e.error,
@@ -203,9 +204,12 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     rules: b.rules?.map((r) => ({ id: r.id, when: r.when, description: r.description, effect: ruleEffect(r.rule), default: r.default && { when: r.default.when ?? "", effect: ruleEffect(r.default) }, overridden: r.overridden, active: r.active })),
     states: b.states,
     config: { enabled: raw.enabled ?? true, show: raw.show === "always" ? "always" : undefined, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, showWhen: raw.show_when, hideWhen: raw.hide_when, look: lookOf(raw) },
-    settings: (ext?.settings ?? []).filter((s) => (s.bar ? s.bar === b.id : s.id.startsWith("bar_"))).map((spec) => {
-      const own = ext!.values[spec.id], inherited = ext!.inherited?.[spec.id];
-      return { spec, value: own ?? inherited ?? spec.default, base: ext!.inherited ? inherited : undefined, note: own === undefined && inherited !== undefined ? `From ${ext!.inheritedFrom ?? ext!.title}` : undefined };
+    // The item's own settings (`bar.<id>.settings`), `[bar.items."<key>".settings]`; an instance's item (`gmail@work/unread`) over the default instance's (`gmail/unread`).
+    settings: (b.settings_specs ?? []).map((spec) => {
+      const own = raw.settings?.[spec.id] as SettingValue | undefined;
+      const baseKey = b.extension.includes("@") ? `${nameOf(b.extension)}/${b.id}` : undefined;
+      const inherited = baseKey ? (config.bar?.items?.[baseKey]?.settings?.[spec.id] as SettingValue | undefined) : undefined;
+      return { spec, value: own ?? inherited ?? spec.default, base: baseKey ? inherited : undefined, note: own === undefined && inherited !== undefined ? `From ${ext?.inheritedFrom ?? baseKey}` : undefined };
     }),
   };
 }
@@ -262,6 +266,8 @@ mark("settings script");
 /** The page the window was opened on (settings.rs `create` puts it in the URL), else the Overview. */
 function startPage(): SettingsPage {
   const p = new URLSearchParams(location.search).get("page");
+  // `palettes` was a page of its own until the palettes moved onto their extensions' panes (a link from before lands there).
+  if (p === "palettes") return "extensions";
   return settingsPages.some((x) => x.id === p) ? (p as SettingsPage) : "overview";
 }
 /** The row the window was opened on (`settings::open_at`: a failed extension's root row), landed once the view is in. */
@@ -272,6 +278,7 @@ export default function Settings() {
   const [page, setPage] = useState<SettingsPage>(startPage);
   /** An anchor to land on once the view (and so the row) exists: from the URL at start, or a later `pal://settings`. */
   const [landing, setLanding] = useState<string | null>(startAnchor);
+  /** The palette unfolded on its extension's pane (`palettes:<id>` lands there). */
   const [palette, setPalette] = useState<string | undefined>(undefined);
   /** The Extensions page's selection: an extension name (one row per name, every instance in its pane), and the instance whose settings its pane shows. */
   const [ext, setExt] = useState<string | undefined>(undefined);
@@ -386,9 +393,8 @@ export default function Settings() {
   // A selection that names nothing (first paint, or a removed extension) moves to the first entry.
   useEffect(() => {
     if (extensions.length === 0) return;
-    if (!extensions.some((e) => e.palettes.some((p) => p.id === palette))) setPalette(extensions.flatMap((e) => e.palettes)[0]?.id);
     if (!extensions.some((e) => e.name === ext)) setExt(extensions[0].name);
-  }, [extensions, palette, ext]);
+  }, [extensions, ext]);
 
   /** The theme file picker's state (General): fetched and written by its own hook, since the file lives outside the config. */
   const themeFile = useThemeFile();
@@ -523,12 +529,11 @@ export default function Settings() {
     const { hotkeys: _h, ...values } = (config.features?.[spec.id] ?? {}) as Record<string, unknown>;
     const settings = spec.settings ?? [];
     const flips = settings.filter((s) => s.kind === "boolean" && (s as { command?: boolean }).command !== false).map((s) => ({ id: s.id, title: spec.toggle === s.id ? `Toggle ${spec.title}` : `Toggle: ${s.label}` }));
-    return { id: spec.id, title: spec.title, description: spec.description, icon: spec.icon ? iconOf(spec.icon, spec.title) : undefined, available, on, needs: needs ?? undefined, note: note ?? undefined, toggle: spec.toggle, settings, values: values as SettingValues, commands: [...flips, ...(spec.commands ?? [])], hotkeys: hotkeys ?? {} };
+    return { id: spec.id, title: spec.title, description: spec.description, icon: spec.icon ? iconOf(spec.icon, spec.title) : undefined, available, on, needs: needs ?? undefined, permission: spec.permission, why: spec.why, note: note ?? undefined, toggle: spec.toggle, settings, values: values as SettingValues, commands: [...flips, ...(spec.commands ?? [])], hotkeys: hotkeys ?? {} };
   });
   const onFeatureSetting = (id: string, key: string, value: SettingValue) => { const f = features.find((x) => x.id === id); writeDeclared(["features", id, key], f?.settings.find((s) => s.id === key), value); };
   const onFeatureHotkey = (id: string, command: string, combo: string | undefined) => write(["features", id, "hotkeys", command], combo || undefined);
   const onFeatureRun = (id: string, command: string) => invoke("feature_run", { id: `${id}.${command}` }).then(refresh, fail);
-  const featureOn = (id: string) => features.some((f) => f.id === id && f.on);
   const onBarItem = (key: string, next: BarItemConfig) => {
     const cur = barItems.find((b) => b.key === key)?.config;
     if (!cur) return;
@@ -550,7 +555,8 @@ export default function Settings() {
   /** A page, and a row on it lit once it is up: the Overview's actions and the cross-page links. */
   const go = (p: SettingsPage, anchor?: string) => {
     setPage(p);
-    if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; if (id !== "ext" && extensions.some((e) => e.palettes.some((x) => x.id === id))) setPalette(id); }
+    // `palettes:<id>[:<key>]`: the palette's extension (the instance it is of) selected, the palette unfolded under its row.
+    if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; const hit = extensions.find((e) => e.palettes.some((x) => x.id === id)); if (hit) { setPage("extensions"); setExt(hit.name); setExtInstance(hit.key); setPalette(id); } }
     // `extensions:<key>[:<setting>]`: the key's extension is the row, its instance the pane's settings.
     if (anchor?.startsWith("extensions:")) { const key = anchor.split(":")[1]; const hit = extensions.find((e) => e.key === key); const name = hit?.name ?? nameOf(key); if (extensions.some((e) => e.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); } }
     // `bar:<ext>/<item>[:<key>]` is an item's row; every other bar anchor lives on the Defaults pane, which the list selects the same way.
@@ -562,14 +568,14 @@ export default function Settings() {
   const openKeyboardShortcuts = () => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail);
 
   const barSupported = view.bar?.supported ?? isMac;
-  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
+  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
   /** A search hit selects what it names before the page lights its row. */
   const onJump = (entry: SettingsIndexEntry) => go(entry.page, entry.anchor);
   const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
   const fileName = view.path.split("/").pop() ?? "config.toml";
   // Off macOS every permission is a given (permissions.rs), so the rows have nothing to say.
   const permissions = isMac ? view.permissions : undefined;
-  const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update, keycast: featureOn("keycast"), expand: featureOn("expansion") }).length;
+  const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update, users: permissionUsers(extensions, features) }).length;
   const sidebarLine = barSupported ? sidebarSummary(sidebar, sidebarPalettes) : undefined;
 
   return (
@@ -588,8 +594,7 @@ export default function Settings() {
           checks={{ enabled: config.general.check_updates, checkedAt: checkedAt(view.checks), error: view.checks.app?.error ?? view.checks.extensions?.error, status: view.checks.app?.value?.status, busy: checking }}
           switcher={windows ? holdOf(windows) ?? "" : undefined}
           sidebar={sidebarLine}
-          keycast={featureOn("keycast")}
-          expand={featureOn("expansion")}
+          users={permissionUsers(extensions, features)}
           onCheckUpdates={() => check(true)}
           onInstallUpdate={() => installUpdate().catch(fail)}
           onGo={go}
@@ -630,6 +635,8 @@ export default function Settings() {
           sidebar={barSupported ? { value: sidebar, onChange: onSidebar } : undefined}
           items={paletteItems}
           onGo={go}
+          features={features}
+          onFeatureHotkey={onFeatureHotkey}
         />
       )}
       {page === "features" && (
@@ -644,9 +651,8 @@ export default function Settings() {
           open={feature?.split(":")[1]}
         />
       )}
-      {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
-      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const e = extensions.find((x) => x.key === key); if (e) onExtension(key, { ...e.values, [id]: value as SettingValue }); }} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const b = barItems.find((x) => x.key === key); writeDeclared(["bar", "items", key, "settings", id], b?.settings?.find((x) => x.spec.id === id)?.spec, value as SettingValue, b?.settings?.find((x) => x.spec.id === id)?.base); }} />}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

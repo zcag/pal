@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
 import { SettingsOverview, overviewFacts, overviewItems, updatesLine } from "../SettingsOverview";
 import { comboLabel } from "../SettingsGeneral";
-import { needsSetup } from "../SettingsTypes";
+import { needsSetup, permissionUsers, storePermissions } from "../SettingsTypes";
 import { settingsExtensions } from "../../gallery/data";
 import { allGranted, barItems, homeAssistant, nothingGranted, otp } from "./settings-fixtures";
 
@@ -50,21 +50,26 @@ describe("overviewItems", () => {
     expect(both.map((i) => i.id)).toEqual(["hotkey", "hotkey:2"]);
     expect(both.every((i) => !i.detail.includes("still opens"))).toBe(true);
   });
-  it("lists a missing permission only when something installed needs it and nothing else will ask", () => {
+  it("lists a missing permission only when something uses it and nothing else will ask", () => {
     const none = overviewItems({ ...ok, permissions: nothingGranted });
     expect(none.map((i) => i.id)).toEqual(["permission:accessibility"]);
-    // A fresh install with every bundled extension: Accessibility and Full Disk Access (no prompt exists for it), nothing the extensions prompt for themselves.
-    const withOtp = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, otp, { ...otp, name: "calendar" }, { ...otp, name: "wifi" }], bar: barItems });
+    // An extension that declares Full Disk Access (no prompt exists for it) makes it a row; what the extensions prompt for themselves is not.
+    const users = permissionUsers([...quiet, { ...otp, permissions: ["full_disk_access"] }, { ...otp, name: "calendar", title: "Calendar", permissions: ["calendar"] }]);
+    const withOtp = overviewItems({ ...ok, permissions: nothingGranted, extensions: quiet, bar: barItems, users });
     expect(withOtp.map((i) => i.id).filter((i) => i.startsWith("permission:"))).toEqual(["permission:accessibility", "permission:full_disk_access"]);
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.action).toEqual({ label: "Open the pane", permission: "full_disk_access" });
+    expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.detail).toContain(`${otp.title} uses it`);
+    expect(storePermissions(["network", "full-disk-access", "calendars", "osascript"])).toEqual(["full_disk_access", "calendar"]);
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.detail).toContain("Switch it on under Privacy & Security > Full Disk Access");
-    // Input Monitoring: a row once expansion is on (pal asked then), never for the bar's peeks alone.
-    const expanding = overviewItems({ ...ok, permissions: nothingGranted, extensions: quiet, expand: true });
-    expect(expanding.find((i) => i.id === "permission:input_monitoring")?.detail).toContain("Snippet expansion");
-    // Location is the wifi extension's, and a row only once the prompt was answered no; the same for Calendars.
+    // Input Monitoring: a row once a feature that watches keys is on (pal asked then), never for the bar's peeks alone.
+    expect(overviewItems({ ...ok, permissions: nothingGranted, extensions: quiet }).map((i) => i.id)).not.toContain("permission:input_monitoring");
+    const expanding = overviewItems({ ...ok, permissions: nothingGranted, extensions: quiet, users: permissionUsers([], [{ title: "Text expansion", on: true, permission: "input_monitoring", why: "watches the keys typed in other apps" }, { title: "Keycast", on: false, permission: "input_monitoring", why: "draws keys" }]) });
+    expect(expanding.find((i) => i.id === "permission:input_monitoring")?.detail).toContain("Text expansion: watches the keys");
+    expect(expanding.find((i) => i.id === "permission:input_monitoring")?.detail).not.toContain("Keycast");
+    // Location and Calendars: a row only once the prompt was answered no, and only with something using them.
     const denied = { ...nothingGranted, location: "denied" as const, calendar: "denied" as const };
-    expect(overviewItems({ ...ok, permissions: denied, extensions: [...quiet, otp] }).map((i) => i.id)).not.toContain("permission:location");
-    const withWifi = overviewItems({ ...ok, permissions: denied, extensions: [...quiet, { ...otp, name: "wifi" }, { ...otp, name: "calendar" }] });
+    expect(overviewItems({ ...ok, permissions: denied, extensions: quiet }).map((i) => i.id)).not.toContain("permission:location");
+    const withWifi = overviewItems({ ...ok, permissions: denied, extensions: quiet, users: permissionUsers([{ ...otp, name: "wifi", title: "Wi-Fi", permissions: ["location"] }, { ...otp, name: "calendar", title: "Calendar", permissions: ["calendar"] }]) });
     expect(withWifi.find((i) => i.id === "permission:location")).toMatchObject({ action: { label: "Grant…", permission: "location" } });
     expect(withWifi.find((i) => i.id === "permission:location")?.detail).toContain("Switch it on under Privacy & Security > Location Services");
     expect(withWifi.find((i) => i.id === "permission:calendar")?.detail).toContain("Switch it on under Privacy & Security > Calendars");

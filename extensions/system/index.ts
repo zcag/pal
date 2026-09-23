@@ -28,12 +28,12 @@
 // twin for a hotkey.
 import { readdir } from "node:fs/promises";
 import { basename } from "node:path";
-import { bar, effects, errorMessage, failed, files, home, hint, now, selection, settings, state, storage, system, toast, truncate, view as liveView, type Accessory, type Action, type Arg, type BarItem, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
+import { bar, effects, errorMessage, failed, files, home, hint, now, selection, settings, state, storage, system, toast, truncate, view as liveView, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
 import { TOOL, commandOf, describe, fmtLeft, kill, nextTick, parseTarget, pidOfApp, reconcile, spawn, summary, type Awake, type Target } from "./awake.ts";
 import { DISPLAY_GLYPH, GLYPH as COFFEE, MAX_PRESETS, render, type PopoverState } from "./view.ts";
 
 /** `[extensions.system]`, defaults in pal.json. */
-type Settings = { confirm_destructive: boolean; awake_default: string; awake_presets: string[]; awake_display: boolean };
+type Settings = { confirm_destructive: boolean; awake_default: string; awake_display: boolean };
 
 const EXTENSION = "system", PALETTE = "system", ITEM = "awake";
 /** The keep-awake row's id: the core's id for it, so `pal://system/run?id=keep-awake` and old links still land here. */
@@ -209,12 +209,15 @@ async function flipDisplay(a: Awake): Promise<Awake> {
 // popover leaves), and the display switch for the next run while none is on.
 const pop: { open: boolean; field: boolean; display?: boolean } = { open: false, field: false };
 
+/** The item's `presets` setting (`[bar.items."system/awake".settings]`) as its last render or action got it: the countdown's pushes and a palette's start push with no ctx at hand. */
+let presets: string[] = ["30m", "1h", "2h", "forever"];
+const noteSettings = (ctx: BarCtx) => { const p = ctx.settings?.presets; if (Array.isArray(p)) presets = p.map(String); };
 /** The presets the popover offers: the setting's, blanks out, five at most (the tiles' and the digits' index is the same). */
-const presetsOf = (s: Settings): string[] => s.awake_presets.map((p) => p.trim()).filter(Boolean).slice(0, MAX_PRESETS);
+const presetsOf = (): string[] => presets.map((p) => p.trim()).filter(Boolean).slice(0, MAX_PRESETS);
 
 function popoverState(a: Awake | null, t: number): PopoverState {
   const s = conf();
-  return { awake: a, now: t, presets: presetsOf(s), display: a ? a.display : pop.display ?? s.awake_display, defaultFor: s.awake_default, field: pop.field, tool: !!TOOL };
+  return { awake: a, now: t, presets: presetsOf(), display: a ? a.display : pop.display ?? s.awake_display, defaultFor: s.awake_default, field: pop.field, tool: !!TOOL };
 }
 
 /** The item for a run, or for none: hidden then, with the coffee and the popover as the `empty` shape a `show = "always"` config keeps. The facts ride as states (`system/awake`, `awake_until`, `awake_left`, `awake_display`). */
@@ -261,7 +264,8 @@ function hookViews() {
   liveView.onHidden((ev) => { if (ev.bar === ITEM) { pop.open = false; pop.field = false; load().then(follow).catch(() => {}); } }, EXTENSION);
 }
 
-async function renderBar(): Promise<BarItem> {
+async function renderBar(ctx: BarCtx): Promise<BarItem> {
+  noteSettings(ctx);
   hookViews();
   const a = await current();
   follow(a);
@@ -273,7 +277,8 @@ const targetOf = (input: string, t: number): Target | undefined => (input.trim()
 const NOT_A_TARGET = "45m, 2h, 14:30, 2pm, or forever";
 
 /** A key or a click in the popover: the run changed, the popover state patched, the item re-rendered (`keep`), which carries the new tree. */
-async function popoverAction(action: string, ctx: { values?: Record<string, string> }): Promise<Effect> {
+async function popoverAction(action: string, ctx: BarCtx): Promise<Effect> {
+  noteSettings(ctx);
   const a = await current();
   const s = conf();
   const display = a ? a.display : pop.display ?? s.awake_display;
@@ -289,7 +294,7 @@ async function popoverAction(action: string, ctx: { values?: Record<string, stri
   };
   if (action === "start") return begin(ctx.values?.input ?? "");
   if (action === "default") return begin("");
-  if (action.startsWith("preset:")) return begin(presetsOf(s)[Number(action.slice(7))] ?? "");
+  if (action.startsWith("preset:")) return begin(presetsOf()[Number(action.slice(7))] ?? "");
   if (action === "sleep") return { keep: true, hud: (await stop()) ? "Sleep allowed" : "Not kept awake" };
   if (action === "display") {
     if (!a) { pop.display = !display; return { keep: true }; }

@@ -7,13 +7,13 @@
 // `stats/memory_pressure`, `stats/disk_free`, `stats/net_down`, ...) and
 // the manifest's rules hide it while quiet and colour it past the
 // thresholds; the popovers are `view.ts`, the sources `sample.ts`.
-import { bar, hint, now, settings, state, toast, truncate, view as liveView, when, wifi, type BarItem, type Effect, type Extension, type Item, type LinkParams, type Metadata, type Proc, type View } from "@zcag/pal";
+import { bar, hint, now, settings, state, toast, truncate, view as liveView, when, wifi, type BarCtx, type BarItem, type Effect, type Extension, type Item, type LinkParams, type Metadata, type Proc, type View } from "@zcag/pal";
 import { CPU, diskLevel, History, levelOf, LOAD, MEMORY, Sampler, shownIface, type IfaceRate, type Memory, type Sample, type Volume } from "./sample.ts";
 import { colorOf, gb, INNER_W, load as loadText, MAC, memorySegments, pct, rate, rateShort, renderCpu, renderDisk, renderLoad, renderMemory, renderNetwork, sparkGlyphs, sparkline, topByCpu, topByMemory, uptimeText, type Iface, type SparkSeries, type Theme } from "./view.ts";
 
 type Label = { cpu: "percent" | "spark" | "bars" | "top"; memory: "percent" | "used" | "free" | "spark"; disk: "percent" | "free" | "used"; network: "rate" | "down" | "spark"; load: "one" | "three" };
 /** `[extensions.stats]`, defaults in pal.json. */
-type Settings = { interval: number; cpu_label: Label["cpu"]; memory_label: Label["memory"]; disk_label: Label["disk"]; network_label: Label["network"]; load_label: Label["load"]; disk_hide: string[] };
+type Settings = { interval: number; disk_hide: string[] };
 
 const EXTENSION = "stats";
 export const ITEMS = ["cpu", "memory", "disk", "network", "load"] as const;
@@ -45,6 +45,8 @@ let wifiInfo: { iface?: string; ssid?: string } = {};
 let wifiAt = 0;
 
 const cfg = () => settings.get<Settings>();
+/** Each item's `label` setting (`[bar.items."stats/<id>".settings]`) as its last render got it: the loop's `bar.update` pushes have no ctx at hand. Seeded with the manifest's defaults for a push ahead of an item's first render. */
+const labels: { [K in ItemId]: Label[K] } = { cpu: "percent", memory: "percent", disk: "free", network: "rate", load: "one" };
 const interval = () => Math.max(MIN_INTERVAL, Number(cfg().interval) || 3);
 
 // ---- the loop ---------------------------------------------------------------
@@ -142,7 +144,7 @@ function rowIds(id: ItemId, s: Sample): string[] {
 }
 
 function itemOf(id: ItemId, s: Sample): BarItem {
-  const c = cfg();
+  const c = labels;
   const face = (item: Omit<BarItem, "empty" | "menu">, states: BarItem["states"]): BarItem => {
     const menu = { view: popoverOf(id, s) };
     return { ...item, menu, empty: { icon: item.icon, title: item.title, tooltip: item.tooltip, menu }, states };
@@ -150,7 +152,7 @@ function itemOf(id: ItemId, s: Sample): BarItem {
   switch (id) {
     case "cpu": {
       const top = topOf(s);
-      const title = c.cpu_label === "spark" ? sparkGlyphs(history.get("cpu"), 100) : c.cpu_label === "bars" ? sparkGlyphs(s.cpu.cores.slice(0, BARS_MAX), 100, BARS_MAX) : c.cpu_label === "top" && top ? `${pct(s.cpu.total)} · ${truncate(top.name, 20)}` : pct(s.cpu.total);
+      const title = c.cpu === "spark" ? sparkGlyphs(history.get("cpu"), 100) : c.cpu === "bars" ? sparkGlyphs(s.cpu.cores.slice(0, BARS_MAX), 100, BARS_MAX) : c.cpu === "top" && top ? `${pct(s.cpu.total)} · ${truncate(top.name, 20)}` : pct(s.cpu.total);
       const tooltip = [`CPU ${pct(s.cpu.total)}`, `${s.cpu.cores.length} cores`, `load ${loadText(s.load[0])}`, top && `busiest ${top.name} ${top.cpu.toFixed(0)}%`].filter(Boolean).join(" · ");
       return face({ icon: GLYPH.cpu, title, tooltip }, { cpu: Math.round(s.cpu.total), cpu_top: top?.name ?? null, cores: s.cpu.cores.length });
     }
@@ -158,7 +160,7 @@ function itemOf(id: ItemId, s: Sample): BarItem {
       const m = s.memory;
       if (!m?.total) return { hidden: true, states: { memory: null, memory_pressure: null, swap: null } };
       const share = (m.used / m.total) * 100;
-      const title = c.memory_label === "used" ? gb(m.used) : c.memory_label === "free" ? `${gb(m.total - m.used)} free` : c.memory_label === "spark" ? sparkGlyphs(history.get("memory"), 100) : pct(share);
+      const title = c.memory === "used" ? gb(m.used) : c.memory === "free" ? `${gb(m.total - m.used)} free` : c.memory === "spark" ? sparkGlyphs(history.get("memory"), 100) : pct(share);
       const tooltip = [`Memory ${gb(m.used)} of ${gb(m.total)}`, `pressure ${m.pressure}`, m.swapTotal ? `swap ${gb(m.swapUsed)}` : undefined].filter(Boolean).join(" · ");
       return face({ icon: GLYPH.memory, title, tooltip }, { memory: Math.round(share), memory_pressure: m.pressure, swap: m.swapTotal ? Math.round((m.swapUsed / m.swapTotal) * 100) : 0 });
     }
@@ -167,27 +169,29 @@ function itemOf(id: ItemId, s: Sample): BarItem {
       const v = mainVolume(vols);
       if (!v) return { hidden: true, states: { disk: null, disk_free: null, disk_worst: null } };
       const share = (v.used / v.total) * 100;
-      const title = c.disk_label === "free" ? gb(v.free) : c.disk_label === "used" ? gb(v.used) : pct(share);
+      const title = c.disk === "free" ? gb(v.free) : c.disk === "used" ? gb(v.used) : pct(share);
       const more = vols.length - 1;
       const tooltip = [`${v.name}`, `${gb(v.used)} of ${gb(v.total)} used`, `${gb(v.free)} free`, more ? `${more} more ${more === 1 ? "volume" : "volumes"}` : undefined].filter(Boolean).join(" · ");
       const worst = Math.max(...vols.filter((x) => !x.readOnly && x.total).map((x) => (x.used / x.total) * 100), 0);
       return face({ icon: GLYPH.disk, title, tooltip }, { disk: Math.round(share), disk_free: roundTo(v.free / 1024 ** 3), disk_worst: Math.round(worst) });
     }
     case "network": {
-      const title = c.network_label === "down" ? `↓${rateShort(s.net.down)}` : c.network_label === "spark" ? sparkGlyphs(history.get("down"), Math.max(...history.get("down"), 1)) : `↓${rateShort(s.net.down)} ↑${rateShort(s.net.up)}`;
+      const title = c.network === "down" ? `↓${rateShort(s.net.down)}` : c.network === "spark" ? sparkGlyphs(history.get("down"), Math.max(...history.get("down"), 1)) : `↓${rateShort(s.net.down)} ↑${rateShort(s.net.up)}`;
       const busiest = ifaces(s)[0];
       const tooltip = [`↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, busiest && [busiest.name, busiest.kind, busiest.ssid, busiest.addr].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
       return face({ icon: GLYPH.network, title, tooltip }, { net_down: Math.round(s.net.down / 1024), net_up: Math.round(s.net.up / 1024) });
     }
     case "load": {
       const [l1, l5, l15] = s.load;
-      const title = c.load_label === "three" ? `${loadText(l1)} ${loadText(l5)} ${loadText(l15)}` : loadText(l1);
+      const title = c.load === "three" ? `${loadText(l1)} ${loadText(l5)} ${loadText(l15)}` : loadText(l1);
       return face({ icon: GLYPH.load, title, tooltip: `Load ${loadText(l1)} ${loadText(l5)} ${loadText(l15)} · ${s.cpu.cores.length} cores` }, { load1: roundTo(l1, 2), load5: roundTo(l5, 2), load15: roundTo(l15, 2), cores: s.cpu.cores.length });
     }
   }
 }
 
-async function render(id: ItemId): Promise<BarItem> {
+async function render(id: ItemId, ctx: BarCtx): Promise<BarItem> {
+  const label = ctx.settings?.label;
+  if (typeof label === "string") (labels as Record<ItemId, string>)[id] = label;
   start();
   const s = await ensure();
   return itemOf(id, s);
@@ -367,11 +371,11 @@ export default {
     },
   },
   bar: {
-    cpu: { render: () => render("cpu"), onAction: (a) => onAction("cpu", a) },
-    memory: { render: () => render("memory"), onAction: (a) => onAction("memory", a) },
-    disk: { render: () => render("disk"), onAction: (a) => onAction("disk", a) },
-    network: { render: () => render("network"), onAction: (a) => onAction("network", a) },
-    load: { render: () => render("load"), onAction: (a) => onAction("load", a) },
+    cpu: { render: (ctx) => render("cpu", ctx), onAction: (a) => onAction("cpu", a) },
+    memory: { render: (ctx) => render("memory", ctx), onAction: (a) => onAction("memory", a) },
+    disk: { render: (ctx) => render("disk", ctx), onAction: (a) => onAction("disk", a) },
+    network: { render: (ctx) => render("network", ctx), onAction: (a) => onAction("network", a) },
+    load: { render: (ctx) => render("load", ctx), onAction: (a) => onAction("load", a) },
   },
   link: (route: string, params: LinkParams) => {
     if (!isItem(route)) throw new Error(`no stats route "${route}"`);

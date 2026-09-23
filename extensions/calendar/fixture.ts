@@ -7,7 +7,7 @@
 import { writeFileSync } from "node:fs";
 import type { Calendar, CalendarEvent } from "@zcag/pal";
 import type { Settings } from "./source.ts";
-import { upcomingItem } from "./today.ts";
+import { upcomingItem, type ItemSettings } from "./today.ts";
 import { freshPopover, popover } from "./view.ts";
 
 /** Wed 16 Sep 2026, 10:00 local: the sync starts in twelve minutes. */
@@ -39,7 +39,7 @@ const events: CalendarEvent[] = [
   ev("gym", "Climbing", at(19, 0, 1), at(20, 30, 1), HOME),
 ];
 
-const settings: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+const settings: Settings & ItemSettings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
 const st = freshPopover(false, true);
 const item = upcomingItem(events, NOW, settings, undefined, st);
 const running = upcomingItem(events, at(10, 18), settings, undefined, st);

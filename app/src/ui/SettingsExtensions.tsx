@@ -5,7 +5,8 @@ import { BRAND } from "./icons";
 import { Tag } from "./Row";
 import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
 import { SettingsList } from "./SettingsList";
-import { badgedIcon, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
+import { ExtensionPalettes, type SettingsPalettesProps } from "./SettingsPalettes";
+import { badgedIcon, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
 import type { Brand } from "./types";
 import { relativeDate } from "./format";
 
@@ -34,8 +35,13 @@ export type SettingsExtensionsProps = {
   onRemove?: (name: string) => Promise<void> | void;
   /** Opens a URL in the browser; the source link is plain text without it. */
   onOpenLink?: (url: string) => void;
-  /** The Palettes page on one of this extension's palettes. */
-  onOpenPalette?: (id: string) => void;
+  /** The palette unfolded under its row on the pane (its id), and the fold. */
+  openPalette?: string;
+  onOpenPalette?: (id: string | undefined) => void;
+  /** A palette's `[palettes.<id>]` changed on the pane. */
+  onPalette?: (id: string, config: PaletteConfig) => void;
+  /** A palette's indexed rows, for its row hotkeys' picker. */
+  paletteItems?: SettingsPalettesProps["items"];
 };
 
 /** The search index: the extension once per name, its settings once per instance (`extensions:gmail@work:token`). */
@@ -65,7 +71,7 @@ const repoHref = (repo: string) => (repo === "bundled" || !repo.includes(".") ? 
  * version, author, screenshots), then what needs attention, its settings,
  * its palettes, and Update and Remove in the pane's footer.
  */
-export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onInstall, onUpdate, onRemove, onOpenLink, onOpenPalette, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: SettingsExtensionsProps) {
+export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onInstall, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: SettingsExtensionsProps) {
   const rows = byName(extensions);
   const current = rows.find((e) => e.name === selected);
   /** What the last button press is doing, per extension, and how it ended. */
@@ -123,7 +129,10 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
               onUpdate={onUpdate && (() => act(current.name, "updating", onUpdate))}
               onRemove={onRemove && (() => act(current.name, "removing", onRemove))}
               onOpenLink={onOpenLink}
+              openPalette={openPalette}
               onOpenPalette={onOpenPalette}
+              onPalette={onPalette}
+              paletteItems={paletteItems}
               onInstanceAdd={onInstanceAdd}
               onInstanceRename={onInstanceRename}
               onInstanceRemove={onInstanceRemove}
@@ -194,14 +203,17 @@ type PaneProps = {
   onUpdate?: () => void;
   onRemove?: () => void;
   onOpenLink?: (url: string) => void;
-  onOpenPalette?: (id: string) => void;
+  openPalette?: string;
+  onOpenPalette?: (id: string | undefined) => void;
+  onPalette?: SettingsExtensionsProps["onPalette"];
+  paletteItems?: SettingsExtensionsProps["paletteItems"];
   onInstanceAdd?: SettingsExtensionsProps["onInstanceAdd"];
   onInstanceRename?: SettingsExtensionsProps["onInstanceRename"];
   onInstanceRemove?: SettingsExtensionsProps["onInstanceRemove"];
   onInstanceEnabled?: SettingsExtensionsProps["onInstanceEnabled"];
 };
 
-function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, onChange, onUpdate, onRemove, onOpenLink, onOpenPalette, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: PaneProps) {
+function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, onChange, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: PaneProps) {
   const multi = !!ext.multi;
   // The instance whose settings show: the selected one when it is of this extension, else the default (or the first).
   const [localInstance, setLocalInstance] = useState<string | undefined>(undefined);
@@ -298,16 +310,16 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
 
       <section className="pal-xpane__section" aria-label="Palettes">
         <h4 className="pal-xpane__h">Palettes{multi && instances.length > 1 && <span className="pal-xpane__h-note">{inst.title}</span>}</h4>
-        {inst.palettes.length === 0 ? <p className="pal-pane__none">None{inst.error ? " while it fails to load" : inst.instance && !inst.instance.enabled ? " while the instance is off" : ""}.</p> : (
+        {inst.palettes.length === 0 ? <p className="pal-pane__none">None{inst.error ? " while it fails to load" : inst.instance && !inst.instance.enabled ? " while the instance is off" : ""}.</p> : onPalette ? (
+          <ExtensionPalettes ext={inst} onChange={onPalette} items={paletteItems} open={openPalette} onOpen={(id) => onOpenPalette?.(id)} />
+        ) : (
           <ul className="pal-xpane__palettes">
             {inst.palettes.map((p) => (
-              <li key={p.id}>
-                <button type="button" className="pal-xpane__palette" data-off={!p.config.enabled || undefined} onClick={() => onOpenPalette?.(p.id)} disabled={!onOpenPalette} title={p.description}>
-                  <Icon icon={p.config.icon ? { kind: "emoji", value: p.config.icon } : p.icon ?? inst.icon} />
-                  <span className="pal-xpane__palette-title">{p.title}</span>
-                  {p.config.alias && <code className="pal-xpane__palette-alias">{p.config.alias}</code>}
-                  {!p.config.enabled && <span className="pal-xpane__palette-off">off</span>}
-                </button>
+              <li key={p.id} className="pal-xpane__palette" data-off={!p.config.enabled || undefined} title={p.description}>
+                <Icon icon={p.config.icon ? { kind: "emoji", value: p.config.icon } : p.icon ?? inst.icon} />
+                <span className="pal-xpane__palette-title">{p.title}</span>
+                {p.config.alias && <code className="pal-xpane__palette-alias">{p.config.alias}</code>}
+                {!p.config.enabled && <span className="pal-xpane__palette-off">off</span>}
               </li>
             ))}
           </ul>

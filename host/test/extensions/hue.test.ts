@@ -261,7 +261,7 @@ describe("over the wire against the mock bridge", () => {
     expect(l.palettes.map((p) => p.name)).toEqual(["rooms", "lights", "scenes", "light", "setup", "sensors", "automations", "entertainment"]);
     expect(l.palettes.find((p) => p.name === "rooms")).toMatchObject({ live: true, tier: "primary", icon: { tile: { bg: "amber" } } });
     expect(l.palettes.find((p) => p.name === "light")).toMatchObject({ view: "view", input: true });
-    expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 60, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "x", title: "All off" }]), source: true }]);
+    expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 60, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "x", title: "All off" }]), settings: [expect.objectContaining({ id: "main_room", default: "" }), expect.objectContaining({ id: "scenes", default: [] })], source: true }]);
     expect(Object.keys(l.manifest.links!)).toEqual(["toggle", "scene", "off"]);
   });
 
@@ -645,11 +645,8 @@ describe("over the wire against the mock bridge", () => {
     // Off again, so the links test finds the living room off.
     await host.barAction(E, "home", "all_off", ctx);
     await Bun.sleep(1200);
-    // The main room setting picks the dot and the scenes the popover offers.
-    host.changeSettings(E, { settings: { timeout: 2, transition: 400, main_room: "Bedroom", bar_scenes: ["Relax", "scene:bedroom/bright"] } });
-    await host.until(() => host.updates(E, "home").length > 0 && true, 3000, "a render after the change");
-    await Bun.sleep(400);
-    const again = (await host.render(E, "home")).menu as { view: View };
+    // The item's settings pick the main room and the scenes the popover offers.
+    const again = (await host.render(E, "home", { reason: "settings", settings: { main_room: "Bedroom", scenes: ["Relax", "scene:bedroom/bright"] } })).menu as { view: View };
     expect(again.view.actions.filter((a) => a.id.startsWith("scene:")).map((a) => a.title)).toEqual(["Play Bright", "Play Relax"]);
   }, 15000);
 

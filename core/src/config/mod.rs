@@ -971,6 +971,12 @@ pub struct BarItemConfig {
     /// one of your own (`BarRule`).
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub rules: BTreeMap<String, BarRule>,
+    /// The settings the item declares (`bar.<id>.settings` in its
+    /// manifest), as written; [`Bar::item_settings`] reads them over the
+    /// declared defaults. The item's render gets them as `ctx.settings`.
+    #[serde(skip_serializing_if = "toml::Table::is_empty")]
+    #[schemars(with = "BTreeMap<String, serde_json::Value>")]
+    pub settings: toml::Table,
     /// This item's appearance, each key over the target's default.
     #[serde(flatten)]
     pub look: BarLookOverride,
@@ -981,11 +987,24 @@ pub struct BarItemConfig {
 
 impl Default for BarItemConfig {
     fn default() -> Self {
-        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, show_when: None, hide_when: None, rules: BTreeMap::new(), look: BarLookOverride::default(), extra: BTreeMap::new() }
+        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, show_when: None, hide_when: None, rules: BTreeMap::new(), settings: toml::Table::new(), look: BarLookOverride::default(), extra: BTreeMap::new() }
     }
 }
 
 impl Bar {
+    /// An item's declared settings as they apply: the manifest's defaults
+    /// (`specs`, its `bar.<id>.settings`), then, for an instance's item
+    /// (`gmail@work/unread`), the default instance's item's table
+    /// (`gmail/unread`), then the item's own. One level deep, a set key
+    /// replacing whole, as an extension's settings are.
+    pub fn item_settings(&self, key: &str, specs: &serde_json::Value) -> toml::Table {
+        let base = key.split_once('/').and_then(|(ext, id)| {
+            let name = instance::name_of(ext);
+            (name != ext).then(|| self.items.get(&format!("{name}/{id}")).map(|i| &i.settings)).flatten()
+        });
+        overlay(&overlay(&spec_defaults(specs), base), self.items.get(key).map(|i| &i.settings))
+    }
+
     /// One item's settings, defaults when the file has no entry for it.
     pub fn item(&self, key: &str) -> std::borrow::Cow<'_, BarItemConfig> {
         self.items.get(key).map_or_else(|| std::borrow::Cow::Owned(BarItemConfig::default()), std::borrow::Cow::Borrowed)

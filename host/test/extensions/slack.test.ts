@@ -177,9 +177,9 @@ describe("slack", () => {
     expect(loaded.palettes[1]).toMatchObject({ title: "Channels", ttl: 3600, tier: "catalog", live: false });
     expect(loaded.palettes[2]).toMatchObject({ title: "Search Slack", input: true });
     expect(loaded.palettes[3]).toMatchObject({ title: "Status", live: true });
-    expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), rules: [{ id: "quiet", when: "slack.attention == 0", description: expect.any(String), hidden: true, color: "muted" }, { id: "dm", when: "slack.dm > 0", description: expect.any(String), urgent: true }], source: true }]);
+    expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), rules: [{ id: "quiet", when: "slack.attention == 0", description: expect.any(String), hidden: true, color: "muted" }, { id: "dm", when: "slack.dm > 0", description: expect.any(String), urgent: true }], settings: [expect.objectContaining({ id: "refresh", default: 120 })], source: true }]);
     expect(loaded.bar[0].keys!.map((k) => k.keys)).toEqual(["enter", "up", "r", "m", "a", "o", "p", "cmd+shift+o", "cmd+c"]);
-    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["presence", "boolean"], ["refresh", "number"]]);
+    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["presence", "boolean"]]);
   });
 
   test("multi: a workspace is an instance; `workspace` and the token never inherit from the default", () => {
@@ -450,14 +450,10 @@ describe("slack", () => {
       expect(calls("conversations.mark").slice(before).map((c) => c.body.channel).sort()).toEqual(["C_ENG", "D_MARA"]);
     });
 
-    test("urgency is the manifest's dm rule over slack/dm, not the render's; a refresh setting under 10 s is clamped", async () => {
-      host.changeSettings("slack", { settings: { ...BASE, refresh: 3 } });
-      await Bun.sleep(50);
-      const item = await host.render("slack", "unreads", { reason: "cli" });
+    test("urgency is the manifest's dm rule over slack/dm, not the render's; the item's refresh setting under 10 s is clamped", async () => {
+      const item = await host.render("slack", "unreads", { reason: "cli", settings: { refresh: 3 } });
       expect(item).toMatchObject({ badge: 6, refresh: 10, states: { attention: 6, dm: 2, channels: 2 } });
       expect(item).not.toHaveProperty("urgent");
-      host.changeSettings("slack", { settings: BASE });
-      await Bun.sleep(50);
     });
 
     test("only channels unread renders with attention 0 (the manifest's quiet rule hides it) and the empty shape; the view of an emptied inbox is inbox zero", async () => {

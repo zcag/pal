@@ -147,7 +147,7 @@ describe("media", () => {
   describe("bar: now-playing", () => {
     test("meta and render: the playing track as the title, the popover a view with the titles, the progress row, the transport and copy/open as keycaps; the core's media trigger declared", async () => {
       // `as unknown`: `BarRefresh.on` in sdk/src/protocol.ts does not list the core's `media` trigger yet; the host passes any name through.
-      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), rules: [{ id: "paused", when: "not media.playing", description: expect.any(String), hidden: true, color: "muted" }], source: true }]);
+      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), rules: [{ id: "paused", when: "not media.playing", description: expect.any(String), hidden: true, color: "muted" }], settings: [expect.objectContaining({ id: "artwork", default: false })], source: true }]);
       const item = await host.render("media", "now-playing");
       expect(item).toMatchObject({ icon: "\uf001", title: "Blue Monday · New Order", tooltip: "New Order - Blue Monday (Spotify)" });
       const v = viewOf(item);
@@ -165,7 +165,7 @@ describe("media", () => {
       expect(nodes(v.tree).filter((n) => n.type === "badge").map((n) => (n as { text: string }).text)).toEqual(["Spotify"]);
     });
 
-    test("the stream's cover in the popover as the picture; the strip keeps the glyph unless bar_artwork is on and the cover is square", async () => {
+    test("the stream's cover in the popover as the picture; the strip keeps the glyph unless the item's artwork is on and the cover is square", async () => {
       np = { players: [chromeTitled], system_wide: true, stream: true };
       const item = await host.render("media", "now-playing");
       // The strip's title is cut at 40 characters, as before.
@@ -174,12 +174,10 @@ describe("media", () => {
       expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ type: "image", src: PNG, width: 96, height: 96, mask: "rounded", ...(MAC ? { action: "open" } : {}) });
       expect(texts(v).slice(0, 2)).toEqual(["Taylor Tomlinson (Full Episode)", "Team Coco"]);
       // The setting on: the square cover is the strip's icon, a wide one is not.
-      // The notification lands before the next request: the host reads its stdin in order.
-      host.changeSettings("media", { settings: { bar_artwork: true } });
-      expect((await host.render("media", "now-playing")).icon).toEqual({ image: PNG });
+      const on = { reason: "settings", settings: { artwork: true } } as const;
+      expect((await host.render("media", "now-playing", on)).icon).toEqual({ image: PNG });
       np = { players: [{ ...chromeTitled, artwork_id: "wide000000000000" } as MediaPlayer], system_wide: true, stream: true };
-      expect((await host.render("media", "now-playing")).icon).toBe("\uf001");
-      host.changeSettings("media", { settings: { bar_artwork: false } });
+      expect((await host.render("media", "now-playing", on)).icon).toBe("\uf001");
       np = { players: [spotify, music, idle], system_wide: true };
     });
 

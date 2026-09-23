@@ -1,7 +1,8 @@
 //! The clipboard capability: `pal_core::clipboard` opened at startup and
 //! watching, served to extensions over the bridge (`clipboard.list` and the
 //! rest), to the webview as `icon://localhost/clip` images, and to a pick
-//! as the `paste` effect. Every recorded copy is a `pal://clipboard` event.
+//! as the `paste` effect. Every recorded copy is the `clipboard` trigger (`pal://trigger`): a
+//! palette listing it under `on` lists again while it shows.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -41,8 +42,8 @@ pub fn install(app: &AppHandle) {
     };
     store.hide_apps(settings.exclude_apps.clone());
     let handle = app.clone();
-    let watch = store.start_watching(settings.exclude_apps, move |e| {
-        events::emit(&handle, events::CLIPBOARD, json!({ "id": e.id, "kind": e.kind }));
+    let watch = store.start_watching(settings.exclude_apps, move |_| {
+        events::emit(&handle, events::TRIGGER, json!({ "name": "clipboard" }));
     });
     app.manage(State { store, _watch: watch });
 }

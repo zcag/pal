@@ -376,7 +376,8 @@ fn dock_owned(s: &Shortcut) -> bool {
 /// rendered; its hotkey still opens it), the sidebar's while it has a
 /// palette. In a clash the root hotkeys win over a palette's, a
 /// palette's over a hold chord, a hold chord over a bar item's, a bar
-/// item's over a palette item's, any of them over the sidebar's; a hotkey
+/// item's over a palette item's, that over a feature command's
+/// (`[features.<id>.hotkeys]`), any of them over the sidebar's; a hotkey
 /// another app holds is reported and skipped, the rest still apply. A
 /// hold chord is the config's `hold`, else the one the manifest suggests;
 /// `""` in the config is off.

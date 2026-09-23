@@ -54,10 +54,10 @@ describe("odak", () => {
     expect(l.palettes.map((m) => [m.name, m.input, m.live, m.ttl, m.lazy, m.multi])).toEqual([["odak", false, true, 60, true, true], ["add", true, false, undefined, undefined, undefined], ["search", true, false, undefined, undefined, undefined], ["done", false, true, 60, true, true]]);
     expect(l.palettes[0]).toMatchObject({ title: "Todos", suggest: true });
     expect(l.palettes[1]).toMatchObject({ title: "Add Todo", fallback: "ask", fallbackTitle: "Add “{query}” to odak" });
-    expect(l.bar).toEqual([{ id: "today", title: "Today", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.any(Array), rules: [expect.objectContaining({ id: "quiet", hidden: true }), expect.objectContaining({ id: "overdue", color: "red" })], source: true }]);
+    expect(l.bar).toEqual([{ id: "today", title: "Today", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.any(Array), rules: [expect.objectContaining({ id: "quiet", hidden: true }), expect.objectContaining({ id: "overdue", color: "red" })], settings: [expect.objectContaining({ id: "today_sections", default: ["Focus", "Today"] })], source: true }]);
     expect(Object.keys(l.manifest.states!)).toEqual(["overdue", "today", "open"]);
     expect(Object.keys(l.manifest.links!.add.params!)).toEqual(["text", "section", "due", "tags", "urgent"]);
-    expect(host.manifests.get("odak")!.settings!.map((s) => [s.id, s.kind])).toEqual([["url", "text"], ["api_key", "secret"], ["default_section", "text"], ["today_sections", "list"]]);
+    expect(host.manifests.get("odak")!.settings!.map((s) => [s.id, s.kind])).toEqual([["url", "text"], ["api_key", "secret"], ["default_section", "text"]]);
   });
 
   describe("Todos", () => {
@@ -320,6 +320,10 @@ describe("odak", () => {
       expect(t.filter((x) => x === "\u{f0028}")).toHaveLength(1);
       expect(v.actions.map((a) => a.id).slice(0, 8)).toEqual(["complete", "urgent", "tomorrow", "new", "open-odak", "open-pal", "refresh", "down"]);
       expect(v.actions.find((a) => a.id === "complete")!.shortcut).toBe("x");
+      // The item's own today_sections: with none, only what is due today and the overdue count.
+      const bare = await host.render("odak", "today", { reason: "settings", settings: { today_sections: [] } });
+      expect(bare.states).toMatchObject({ overdue: 1 });
+      expect(bare.states!.today).toBeLessThan(3);
     });
 
     test("the keys: down moves the cursor, Enter completes the focused todo and the strip re-renders, u flips the flag, t snoozes, o and p open, r fetches again", async () => {

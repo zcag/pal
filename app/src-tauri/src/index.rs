@@ -205,14 +205,16 @@ fn cache_dir(app: &AppHandle) -> PathBuf {
 /// entry (enabled per the config), items in the index flagged stale, the
 /// palette rows, the palettes' hotkeys. Needs the settings installed. The
 /// order is the empty query's order until frecency has a say: the welcome
-/// rows (a fresh profile), the palette rows, then apps, then the rest by
-/// name.
+/// rows (a fresh profile), the palette rows, then the `root_first`
+/// palettes in that order (apps among them), then the rest by name.
 pub fn restore_cache(app: &AppHandle) {
     let t0 = Instant::now();
     let mut cached = cache::read_all(&cache_dir(app));
-    let rank = |s: &Source| (s.extension != "apps", s.extension.clone(), s.palette.clone());
-    cached.sort_by_key(|(s, _)| rank(s));
     let config = settings::config(app);
+    // `[general] root_first`'s palettes first, in its order (apps among them by default), then by name.
+    let first: Vec<&str> = config.general.root_first.iter().map(String::as_str).collect();
+    let rank = |s: &Source| (first.iter().position(|k| *k == format!("{}/{}", s.extension, s.palette)).unwrap_or(first.len()), s.extension.clone(), s.palette.clone());
+    cached.sort_by_key(|(s, _)| rank(s));
     let (mut sources, mut items) = (0, 0);
     welcome::sync(app);
     with_index(app, |ix| ix.replace(palettes_source(), Vec::new()));

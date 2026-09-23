@@ -115,8 +115,13 @@ Settings, `[extensions.system]`:
 | --- | --- | --- | --- |
 | `confirm_destructive` | bool | `true` | Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app. |
 | `awake_default` | string | `"1h"` | What a bare Keep Awake runs for: a duration, a clock time, or `forever`. |
-| `awake_presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
 | `awake_display` | bool | `true` | Keep the display awake too (`caffeinate -d`); off, the display may sleep while the machine stays up. The row's field and the popover's switch override it per run. |
+
+`awake` item settings, `[bar.items."system/awake".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `presets` | list of strings | `["30m", "1h", "2h", "forever"]` | The popover's tiles and digit keys, five at most. |
 
 ## What it does not do
 

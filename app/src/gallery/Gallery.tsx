@@ -16,7 +16,7 @@ import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
 import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
-  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsPalettes, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
+  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
   aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
@@ -646,10 +646,7 @@ function GalleryPage() {
         <State label="Features: a card per feature with its state and switch on its face; a card's settings and command hotkeys unfold in place">
           <WidePair>{(t) => <SettingsDemo key={t} page="features" />}</WidePair>
         </State>
-        <State label="Palettes, GitHub open: the table of pal's per-palette columns, the selected palette's declared settings under it">
-          <WidePair>{(t) => <SettingsDemo key={t} page="palettes" />}</WidePair>
-        </State>
-        <State label="Extensions, GitHub selected: update available, the declared settings, Update and Remove in the footer">
+        <State label="Extensions, GitHub selected: update available, the declared settings, its palettes with PRs unfolded, Update and Remove in the footer">
           <WidePair>{(t) => <SettingsDemo key={t} page="extensions" />}</WidePair>
         </State>
         <State label="Bar, the timer selected: the Defaults card over the items list, the pane with the preview strips, the mono width look of its own over the menu bar defaults">
@@ -747,8 +744,7 @@ function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage
       {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} />}
       {page === "shortcuts" && <SettingsShortcuts general={general} onGeneral={setGeneral} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} extensions={exts} onPalette={patchPalette} bar={barItems} onBarItem={patchBarItem} onGo={(p) => setPage(p)} />}
       {page === "features" && <SettingsFeatures features={features.map((f) => (f.id === "sidebar" ? { ...f, on: !!sidebar.palette } : f))} onSetting={patchFeature} onHotkey={(id, cmd, combo) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, hotkeys: { ...f.hotkeys, [cmd]: combo ?? "" } } : f)))} onRun={(id) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, on: !f.on, note: f.on ? undefined : f.note } : f)))} onRequestPermission={noop} sidebar={{ value: sidebar, onChange: setSidebar, palettes: [{ id: "windows/windows", title: "Windows" }, { id: "apps/apps", title: "Applications" }], displays: ["Built-in Retina Display"] }} switcher={{ hold: "cmd+tab", suggested: "alt+tab", onHold: noop, appSwitcher: "alt+tab", onAppSwitcher: noop }} open={open} />}
-      {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
-      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
+      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} openPalette={palette} onOpenPalette={setPalette} onPalette={patchPalette} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal" }} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>

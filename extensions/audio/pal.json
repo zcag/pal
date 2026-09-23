@@ -12,29 +12,6 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "settings": [
-    {
-      "kind": "select",
-      "id": "level",
-      "label": "Volume level in the bar",
-      "description": "The percentage changes only when you change it, so as a permanent fixture it is a number you stop reading. After a change it appears for three seconds as feedback and then collapses back to the glyph alone; the standing answer is the popover, where it sits against the device it applies to. Always keeps it on screen, Never leaves the glyph to speak.",
-      "options": [
-        {
-          "id": "flash",
-          "title": "For a moment after a change"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        },
-        {
-          "id": "never",
-          "title": "Never"
-        }
-      ],
-      "default": "flash"
-    }
-  ],
   "store": {
     "tagline": "Switch the output or input, set the volume, mute",
     "category": "system",
@@ -230,7 +207,30 @@
             }
           }
         }
-      }
+      },
+      "settings": [
+        {
+          "kind": "select",
+          "id": "level",
+          "label": "Volume level in the bar",
+          "description": "The percentage changes only when you change it, so as a permanent fixture it is a number you stop reading. After a change it appears for three seconds as feedback and then collapses back to the glyph alone; the standing answer is the popover, where it sits against the device it applies to. Always keeps it on screen, Never leaves the glyph to speak.",
+          "options": [
+            {
+              "id": "flash",
+              "title": "For a moment after a change"
+            },
+            {
+              "id": "always",
+              "title": "Always"
+            },
+            {
+              "id": "never",
+              "title": "Never"
+            }
+          ],
+          "default": "flash"
+        }
+      ]
     },
     "microphone": {
       "title": "Microphone",

@@ -310,7 +310,7 @@ Every palette has an id (`apps`, `clipboard-history`, `github-prs`) and
 a table `[palettes.<id>]` in the config file for what pal provides
 without the extension's say: `enabled`, `alias`, `hotkey`,
 `item_hotkeys`, `icon`, `tier`, and the palette's own `settings`
-([Config](config.md#palettesid)). Settings > Palettes edits the same.
+([Config](config.md#palettesid)). Settings › Extensions (a palette unfolded under its extension) edits the same.
 
 Two ways to make the panel yours: a theme file (`general.theme_file`,
 Settings > General > Theme file; two examples ship, Catppuccin Frappé and

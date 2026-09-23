@@ -183,7 +183,7 @@ tag and loads anyway
 In the order to check:
 
 1. **Switched off.** `[palettes.<id>] enabled = false` keeps the palette
-   known and lists nothing; Settings › Palettes has the switch. An
+   known and lists nothing; Settings › Extensions (a palette unfolded under its extension) has the switch. An
    instance that is off says "None while the instance is off."
 2. **Needs setup.** A required setting is empty: Settings › Extensions
    shows "Nothing lists until `<label>` is set below" and the Overview

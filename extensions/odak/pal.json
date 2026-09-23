@@ -36,15 +36,6 @@
       "description": "Where a todo lands unless the line names one with /section.",
       "placeholder": "Inbox",
       "default": "Inbox"
-    },
-    {
-      "kind": "list",
-      "id": "today_sections",
-      "label": "Today's sections",
-      "description": "Sections the bar item counts as today's work, on top of what is due today.",
-      "placeholder": "Focus",
-      "default": ["Focus", "Today"],
-      "bar": "today"
     }
   ],
   "palettes": {
@@ -110,6 +101,16 @@
       "title": "Today",
       "description": "How many todos are due today or sit in today's sections, red while any is overdue, hidden at zero; the popover lists them with a cursor, completes on Enter and adds from a field.",
       "refresh": { "every": 300, "on": ["show", "wake", "network"] },
+      "settings": [
+        {
+          "kind": "list",
+          "id": "today_sections",
+          "label": "Today's sections",
+          "description": "Sections the item counts as today's work, on top of what is due today.",
+          "placeholder": "Focus",
+          "default": ["Focus", "Today"]
+        }
+      ],
       "mocks": {
         "busy": { "title": "Three today, none overdue", "item": { "icon": "󰄴", "title": "3", "tooltip": "3 today" } },
         "overdue": { "title": "One overdue (red by its rule)", "item": { "icon": "󰄴", "title": "4", "color": "red", "tooltip": "1 overdue, 3 today" } },

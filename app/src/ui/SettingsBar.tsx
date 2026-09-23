@@ -25,8 +25,8 @@ export type SettingsBarProps = {
   onSelect?: (key: string) => void;
   /** The Extensions page for an item's extension. */
   onOpenExtension?: (name: string) => void;
-  /** One of the extension's own settings changed from an item's pane (`BarItem.settings`): written to the extension's table, as the Extensions page does. */
-  onSetting?: (extension: string, id: string, value: unknown) => void;
+  /** One of the item's own settings changed (`BarItem.settings`, its manifest's `bar.<id>.settings`): written to `[bar.items."<key>".settings]`. */
+  onSetting?: (key: string, id: string, value: unknown) => void;
 };
 
 type Target = "menubar" | "sketchybar";
@@ -324,7 +324,7 @@ const hovers = [{ id: "", title: "Default" }, { id: "on", title: "On" }, { id: "
 const shows: { id: BarShow; title: string }[] = [{ id: "auto", title: "When there is something" }, { id: "always", title: "Always" }];
 
 /** The selected item: description, preview, placement, appearance with inheritance, hotkey, peek, Reset. */
-function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSetting }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onRule?: (id: string, write: RuleWrite | null) => void; onOpenExtension?: (name: string) => void; onSetting?: (extension: string, id: string, value: unknown) => void }) {
+function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSetting }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onRule?: (id: string, write: RuleWrite | null) => void; onOpenExtension?: (name: string) => void; onSetting?: (key: string, id: string, value: unknown) => void }) {
   const c = b.config;
   const put = (patch: Partial<BarItemConfig>) => onItem({ ...c, ...patch });
   const eff = effectiveTarget(b, config, sketchybar);
@@ -377,11 +377,11 @@ function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSe
       {!!b.settings?.length && (
         // What the extension decides about this item (when it shows, its colours, its thresholds): the same rows as the Extensions page, written to the same table, so they are found where the item is.
         <section className="pal-ppane__section" aria-label="Item settings">
-          <h4 className="pal-ppane__h">Item settings <span className="pal-ppane__h-note">extensions.{b.extension}, the extension's own; the rest under {onOpenExtension ? <button type="button" className="pal-link" onClick={() => onOpenExtension(b.extension)}>{b.extTitle}</button> : b.extTitle}</span></h4>
+          <h4 className="pal-ppane__h">Item settings <span className="pal-ppane__h-note">bar.items."{b.key}".settings</span></h4>
           <div className="pal-settings-group__rows pal-xpane__fields">
             {b.settings.map((s) => (
-              <div key={s.spec.id} data-anchor={`extensions:${b.extension}:${s.spec.id}`} data-inherited={s.note ? "" : undefined}>
-                <SettingsField spec={s.spec} value={s.value} onChange={(v) => onSetting?.(b.extension, s.spec.id, v)} base={s.base} note={s.note} />
+              <div key={s.spec.id} data-anchor={`${anchor}:setting:${s.spec.id}`} data-inherited={s.note ? "" : undefined}>
+                <SettingsField spec={s.spec} value={s.value} onChange={(v) => onSetting?.(b.key, s.spec.id, v)} base={s.base} note={s.note} />
               </div>
             ))}
           </div>

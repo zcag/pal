@@ -202,6 +202,11 @@
           "description": "The item's rules by id: an extension's overridden key by key, or\none of your own (`BarRule`).",
           "type": "object"
         },
+        "settings": {
+          "additionalProperties": true,
+          "description": "The settings the item declares (`bar.<id>.settings` in its\nmanifest), as written; [`Bar::item_settings`] reads them over the\ndeclared defaults. The item's render gets them as `ctx.settings`.",
+          "type": "object"
+        },
         "show": {
           "$ref": "#/$defs/BarShow",
           "default": "auto",

@@ -99,7 +99,7 @@ with when, for the ones completed from pal; Enter reopens, `⌘D` deletes.
 ## The bar item
 
 `odak/today`: the count of open todos due today or in the sections named
-by `today_sections` (Focus and Today by default), plus the overdue ones,
+by its `today_sections` setting (Focus and Today by default), plus the overdue ones,
 every 300 s and on show, wake and network. Its facts are `odak/overdue`,
 `odak/today` and `odak/open`; the manifest's rules hide it at zero and
 colour it red while anything is overdue (`[bar.items."odak/today"] show =
@@ -126,7 +126,12 @@ and `urgent` come on top. The HUD says where it landed.
 | `url` | text | (none) | The server's origin. |
 | `api_key` | secret | (none) | `ODAK_API_KEY`. |
 | `default_section` | text | `Inbox` | Where a todo lands unless the line names a section; must be one of the file's (else Inbox, else the first). |
-| `today_sections` | list | `["Focus", "Today"]` | What the bar item counts as today's, on top of what is due today. |
+
+`today` item settings, `[bar.items."odak/today".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `today_sections` | list | `["Focus", "Today"]` | What the item counts as today's, on top of what is due today. |
 
 For the tests, `PAL_ODAK_URL` and `PAL_ODAK_KEY` replace the two settings.
 

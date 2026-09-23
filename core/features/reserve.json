@@ -32,5 +32,6 @@
       "unit": "px",
       "default": 0
     }
-  ]
+  ],
+  "why": "moves windows out from under the bar"
 }

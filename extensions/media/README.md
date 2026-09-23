@@ -33,10 +33,12 @@ actions.
 
 ## Setup
 
-Three settings. **Cover on the bar** (`bar_artwork`, off): the cover instead
-of the note on the menu bar strip, only when the cover is square (a 24 pt
-picture of anything else is a smudge); the popover shows the cover
-either way. **Leave to another extension** (`exclude`, empty): players
+One setting under `[extensions.media]`, one on the item. **Cover on the
+bar** (`artwork`, off, a `now-playing` item setting under
+`[bar.items."media/now-playing".settings]`): the cover instead of the note
+on the menu bar strip, only when the cover is square (a 24 pt picture of
+anything else is a smudge); the popover shows the cover either way.
+**Leave to another extension** (`exclude`, empty): players
 this extension leaves to another, by app name or player id (`Spotify`,
 `music`): the bar item and the root's Now row skip them (the Spotify
 extension shows its own); the palette still lists them. When the strip is

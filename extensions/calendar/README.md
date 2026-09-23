@@ -149,9 +149,8 @@ off it. A click joins the running event's call, not the next one's. Its
 state is `far` (outside `near_minutes`), `near`, `warning` (from
 `warn_minutes`), `critical` (from `urgent_minutes`) or `running`; the
 boundaries are inclusive. The default colours retain the original
-behaviour: `muted`, `muted`, `amber`, `red`, then `green`. Each state
-has a configurable colour, size and sketchybar position; zero/empty
-preserve the normal Bar appearance. `badge: "dot"` when there is a call.
+behaviour: `muted`, `muted`, `amber`, `red`, then `green`, each a
+manifest rule over `calendar.phase` that Settings > Bar overrides by id. `badge: "dot"` when there is a call.
 The tooltip is the title, the time range and the calendar. sketchybar
 draws the same colours through the bar module's map.
 
@@ -213,15 +212,17 @@ Settings, `[extensions.calendar]`:
 | `calendars` | list | `[]` | Calendar names (or ids, `work:primary` for Google) to list; empty is every calendar. Also narrows the filter dropdown. |
 | `days` | number | `7` | How many days from today My Schedule lists (two at least, so Today has tomorrow). |
 | `hide_declined` | boolean | `true` | Leave out invitations you declined, everywhere. |
-| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
-| `near_minutes` | number | `60` | The near state starts here; warning and critical still take precedence. |
-| `warn_minutes` | number | `15` | The bar item enters its warning state this many minutes before the event. |
-| `urgent_minutes` | number | `5` | The bar item enters its critical state this many minutes before the event. |
-| `bar_{far,near,warning,critical,running}_color` | select | `muted`, `muted`, `amber`, `red`, `green` | Colour for each Upcoming state. |
-| `bar_{far,near,attention}_size` | number | `0` | Point size for far, near, or warning/critical/running; zero keeps the normal item size. |
-| `bar_{far,near,attention}_position` | text | empty | Sketchybar position for the same states; empty keeps the normal item position. |
-| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
+| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours (the root's Now row too). |
+| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only (the root's Now row too). |
 | `default_length` | number | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
+
+`upcoming` item settings, `[bar.items."calendar/upcoming".settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `near_minutes` | number | `60` | The near state starts here; warning and critical still take precedence. |
+| `warn_minutes` | number | `15` | The item enters its warning state this many minutes before the event. |
+| `urgent_minutes` | number | `5` | The item enters its critical state this many minutes before the event. |
 
 ## What it does not do
 

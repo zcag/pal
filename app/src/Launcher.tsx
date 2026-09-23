@@ -20,11 +20,9 @@ import { paletteTitle } from "./fixtures";
 export const LIMIT = 200;
 /** `pal_core::dialog::Dialog`: the file panel in front, for the root's hint. */
 export type DialogInfo = { app: string; pid: number; kind: "open" | "save"; title?: string | null };
-/** The palette the Dialog hint opens: its rows carry "Use in dialog" while a panel is up. */
-const FILES = "files/files";
-/** The empty root's hint row while a file dialog is up: Enter opens Files (a push, nothing picked). */
-export const dialogHit = (d: DialogInfo): Hit => ({
-  item: { id: "pal:dialog", name: `Type a path for the ${d.kind} panel of ${d.app}`, subtitle: "Enter opens Files; a file or folder row there has Use in dialog", icon: { kind: "glyph", value: "\u{f0770}" }, palette: FILES, group: "Dialog", push: { extension: "files", palette: "files" } },
+/** The empty root's hint row while a file dialog is up: Enter opens the palette that serves dialogs (its manifest's `dialog`: Files, whose rows carry "Use in dialog"), a push, nothing picked. */
+export const dialogHit = (d: DialogInfo, to: SourceInfo): Hit => ({
+  item: { id: "pal:dialog", name: `Type a path for the ${d.kind} panel of ${d.app}`, subtitle: `Enter opens ${to.title}; a file or folder row there has Use in dialog`, icon: { kind: "glyph", value: "\u{f0770}" }, palette: sourceKey(to), group: "Dialog", push: { extension: to.extension, palette: to.palette } },
 });
 const GRID_COLUMNS = 8;
 const LIST_ID = "results";
@@ -494,7 +492,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (view.kind === "menu") return groupBySection(menuHits);
     if (view.kind !== "root") return hold ? found.map((h) => (h.item.section ? { ...h, item: { ...h.item, section: undefined } } : h)) : groupBySection(found);
     const fresh = extra.key === query && !!query.trim();
-    const now = query ? [] : [...(dialogUp && byKey.has(FILES) ? [dialogHit(dialogUp)] : []), ...suggested];
+    const dialogTo = dialogUp ? sources.find((s) => s.dialog) : undefined;
+    const now = query ? [] : [...(dialogUp && dialogTo ? [dialogHit(dialogUp, dialogTo)] : []), ...suggested];
     return groupBySection(rootHits(query.trim(), found, fresh ? extra.inline : [], fresh ? extra.fallback : [], now, prefs.fallbacksAlways, titleOf));
   }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold]);
 

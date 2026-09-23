@@ -26,19 +26,6 @@
       "default": 5
     },
     {
-      "kind": "select",
-      "id": "bar_display",
-      "label": "Display on the bar",
-      "description": "Whose brightness the bar item shows: the first external display (the built-in one has keys of its own), the main display, or the built-in one.",
-      "bar": "brightness",
-      "options": [
-        { "id": "external", "title": "The external display" },
-        { "id": "main", "title": "The main display" },
-        { "id": "builtin", "title": "The built-in display" }
-      ],
-      "default": "external"
-    },
-    {
       "kind": "boolean",
       "id": "input_alt",
       "label": "LG input codes",
@@ -140,6 +127,20 @@
       "title": "Brightness",
       "description": "The external display's brightness (or the main or built-in one's, by the setting), with a slider per display in the popover, a scroll on the item moving it by the step. Hidden while only the built-in display is there, whose keys already set it, and while nothing installed can set any display: its rules, which Settings > Bar lets you turn off to keep the item.",
       "refresh": { "every": 60, "on": ["wake", "show"] },
+      "settings": [
+        {
+          "kind": "select",
+          "id": "display",
+          "label": "Display on the bar",
+          "description": "Whose brightness the bar item shows: the first external display (the built-in one has keys of its own), the main display, or the built-in one.",
+          "options": [
+            { "id": "external", "title": "The external display" },
+            { "id": "main", "title": "The main display" },
+            { "id": "builtin", "title": "The built-in display" }
+          ],
+          "default": "external"
+        }
+      ],
       "mocks": {
         "laptop": {
           "title": "Only the built-in display, hidden",

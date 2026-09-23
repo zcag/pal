@@ -380,7 +380,8 @@ async function pickStatus(id: string, action?: string, ctx?: Ctx): Promise<Effec
  * signed in is hidden, not an error: the strip has no room for a hint. A
  * failed fetch throws, which the core draws as stale.
  */
-const refreshSecs = () => Math.max(10, Number(conf().refresh) || 120);
+/** The item's `refresh` setting (`[bar.items."slack/unreads".settings]`), in seconds. */
+const refreshSecs = (ctx: BarCtx) => Math.max(10, Number((ctx.settings as { refresh?: number } | undefined)?.refresh) || 120);
 /** The row the keys act on, and the one a reply is being typed for, across renders. */
 let barFocus: string | undefined, barReplying: string | undefined, barDraft: string | undefined;
 
@@ -406,11 +407,11 @@ async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
   // The panel showing fires both this render and the palette's relist: an inbox under INBOX_FRESH_MS serves both. Only a push from the CLI or `bar.refresh` insists.
   let i: Inbox;
   try { i = await loadInbox(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
-    if (e instanceof NotSignedIn) return { hidden: true, refresh: refreshSecs(), states: { attention: null, dm: null, channels: null } };
+    if (e instanceof NotSignedIn) return { hidden: true, refresh: refreshSecs(ctx), states: { attention: null, dm: null, channels: null } };
     throw e;
   }
   const attn = i.dm + i.mention + i.thread;
-  const refresh = refreshSecs();
+  const refresh = refreshSecs(ctx);
   const menu = { view: renderBar(await barState(i)) };
   // The facts (`slack/attention`, `slack/dm`, `slack/channels`): the manifest's rules hide the item with nothing addressed to you (keep the glyph for channels merely unread by narrowing that rule) and make a direct message urgent. The same glyph and popover are the `empty` shape a `show = "always"` config keeps.
   const states = { attention: attn, dm: i.dm, channels: i.channels };

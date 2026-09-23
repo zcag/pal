@@ -10,7 +10,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SettingsExtensions, byName, extensionsIndex } from "../SettingsExtensions";
-import { SettingsPalettes, palettesIndex } from "../SettingsPalettes";
+import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
 import { overviewItems } from "../SettingsOverview";
 import { badgedIcon, instanceBadge, instanceTint, instancesOf, leavesFile, needsSetup, resolveInstance, slugSuffix, suffixProblem, validSuffix, type SettingSpec, type SettingsExtension, type SettingsPalette, type SettingValues } from "../SettingsTypes";
 import { BRAND } from "../icons";
@@ -233,21 +233,19 @@ describe("Extensions page with instances", () => {
   });
 });
 
-describe("Palettes page with instances", () => {
-  it("groups per instance key with the instance's title and badged tile, and notes an inherited palette setting", () => {
-    const html = renderToStaticMarkup(<SettingsPalettes extensions={[personal, work]} selected="gmail@work-inbox" onSelect={() => {}} onChange={() => {}} />);
+describe("an instance's palettes on its pane", () => {
+  it("wear the instance's badged tile, and an inherited palette setting is noted", () => {
+    const html = renderToStaticMarkup(<ExtensionPalettes ext={work} open="gmail@work-inbox" onOpen={() => {}} onChange={() => {}} />);
     const doc = document.createElement("div");
     doc.innerHTML = html;
-    const groups = [...doc.querySelectorAll("section.pal-ptable")].map((s) => s.getAttribute("data-anchor"));
-    expect(groups).toEqual(["palettes:ext:gmail", "palettes:ext:gmail@work"]);
+    expect(doc.querySelector(".pal-ptable")?.getAttribute("aria-label")).toBe("Gmail (Work) palettes");
     const workRow = doc.querySelector('[data-anchor="palettes:gmail@work-inbox"]')!;
-    expect(workRow.querySelector(".pal-ptable__name")?.textContent).toBe("Gmail › Inbox (Work)");
-    expect(doc.querySelector('[data-anchor="palettes:ext:gmail@work"]')?.getAttribute("aria-label")).toBe("Gmail (Work)");
+    expect(workRow.querySelector(".pal-ptable__name")?.textContent).toBe("Inbox (Work)");
     expect(workRow.querySelector(".pal-icon")?.getAttribute("data-brand")).toBe("amber");
-    expect(doc.querySelector(".pal-ppane__crumb")?.textContent).toContain("Gmail (Work)");
     const columns = doc.querySelector('[data-anchor="palettes:gmail@work-inbox:columns"]')!;
     expect(columns.hasAttribute("data-inherited")).toBe(true);
     expect(columns.querySelector(".pal-setting__note")?.textContent).toBe("From Gmail (Personal)");
     expect((columns.querySelector("input") as HTMLInputElement).getAttribute("value")).toBe("2");
   });
 });
+

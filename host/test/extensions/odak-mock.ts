@@ -122,4 +122,4 @@ export const server = Bun.serve({
 });
 
 export const BASE = `http://127.0.0.1:${server.port}`;
-export const SETTINGS = { url: BASE, api_key: KEY, default_section: "Inbox", today_sections: ["Focus", "Today"] };
+export const SETTINGS = { url: BASE, api_key: KEY, default_section: "Inbox" };

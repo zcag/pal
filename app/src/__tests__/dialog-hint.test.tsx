@@ -12,7 +12,7 @@ import type { Hit } from "../ui";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const src = (extension: string, palette: string, title: string, more: Partial<SourceInfo> = {}): SourceInfo => ({ extension, palette, title, live: false, input: false, count: 1, stale: false, ...more });
-const SOURCES = [src("pal", "palettes", "Palettes"), src("files", "files", "Files", { input: true }), src("apps", "apps", "Applications")];
+const SOURCES = [src("pal", "palettes", "Palettes"), src("files", "files", "Files", { input: true, dialog: true }), src("apps", "apps", "Applications")];
 let root: Root, el: HTMLDivElement;
 const launcher: { current: LauncherHandle | null } = { current: null };
 const picks: string[] = [];
@@ -48,10 +48,16 @@ describe("dialog hint", () => {
     expect(el.querySelector(".pal-search__crumb")?.textContent).toBe("Files");
     expect(picks).toEqual([]);
   });
-  it("is absent with no panel; the row is a push into files", async () => {
+  it("is absent without a palette that serves dialogs", async () => {
+    panel = { app: "TextEdit", pid: 7, kind: "open" };
+    await act(async () => { root.render(<Launcher ref={launcher} sources={SOURCES.map((s) => ({ ...s, dialog: undefined }))} search={search} suggest={suggest} dialog={async () => panel} onPick={() => {}} onHide={() => {}} />); });
+    await flush();
+    expect(sections()).toEqual(["Now", "Applications"]);
+  });
+  it("is absent with no panel; the row is a push into the dialog palette", async () => {
     panel = null;
     await mount();
     expect(sections()).toEqual(["Now", "Applications"]);
-    expect(dialogHit({ app: "Preview", pid: 1, kind: "save" }).item).toMatchObject({ name: "Type a path for the save panel of Preview", group: "Dialog", push: { extension: "files", palette: "files" } });
+    expect(dialogHit({ app: "Preview", pid: 1, kind: "save" }, SOURCES[1]).item).toMatchObject({ name: "Type a path for the save panel of Preview", group: "Dialog", push: { extension: "files", palette: "files" } });
   });
 });

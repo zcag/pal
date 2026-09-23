@@ -196,7 +196,8 @@ describe("github", () => {
     expect(metas[2]).toMatchObject({ title: "Repositories", ttl: 300, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }] });
     expect(metas[3]).toMatchObject({ title: "Notifications", live: true, ttl: 60 });
     expect(metas[4]).toMatchObject({ title: "Search GitHub", input: true, detail: "lazy" });
-    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"], ["review_requests", "boolean"]]);
+    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"]]);
+    expect(host.manifests.get("github")!.bar!.prs.settings!.map((s) => [s.id, s.kind])).toEqual([["review_requests", "boolean"]]);
   });
 
   test("multi: two accounts are two instances; the token is per instance (a secret), the rest inherits; the lone default runs in a worker, unmarked", () => {
@@ -506,7 +507,7 @@ describe("github", () => {
   describe("bar: notifications", () => {
     test("meta: the manifest entry with its refresh, backed by the code", () => {
       expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual(expect.arrayContaining([
-        { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
+        { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), settings: [expect.objectContaining({ id: "review_requests", default: false })], source: true },
         { id: "issues", title: "Issues", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ assigned: expect.any(Object), mine: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
         { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true, empty: { icon: "", tooltip: "No unread notifications" } } } }), keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
       ]));
@@ -655,10 +656,9 @@ describe("github", () => {
     });
 
     test("review_requests: on, the reviews asked of me are a blue segment and count in the tooltip; off again, the strip is my own PRs", async () => {
-      host.changeSettings("github", { settings: { default_org: "acme", repos_root: dir, clone_protocol: "ssh", merged_days: 7, review_requests: true } });
-      const on = await host.render("github", "prs", { reason: "update" });
+      // The prs item's own setting, through the render's ctx.
+      const on = await host.render("github", "prs", { reason: "update", settings: { review_requests: true } });
       expect(on).toMatchObject({ tooltip: "3 open pull requests", segments: [{ id: "blocked" }, { id: "waiting" }, { id: "reviews", icon: "\uea70", text: "1", color: "blue" }] });
-      host.changeSettings("github", { settings: { default_org: "acme", repos_root: dir, clone_protocol: "ssh", merged_days: 7 } });
       const off = await host.render("github", "prs", { reason: "update" });
       expect(off.segments!.map((g) => g.id)).toEqual(["blocked", "waiting"]);
       // The review is still in the popover, where it is information rather than a count.

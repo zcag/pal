@@ -77,7 +77,6 @@ describe("audio", () => {
       expect(viewOf(none.empty!)).toMatchObject({ id: "volume", title: "No output" });
     } finally {
       devices = saved;
-      host.changeSettings("audio", { settings: { level: "flash" } });
     }
   });
 
@@ -142,14 +141,12 @@ describe("audio", () => {
   });
 
   test("the level is feedback, not furniture: Always keeps it, Never refuses it, and a flash collapses on its own", async () => {
-    // Never: not even straight after a change.
-    host.changeSettings("audio", { settings: { level: "never" } });
-    await host.barAction("audio", "volume", "up");
-    expect((await host.render("audio", "volume")).title).toBeUndefined();
-    host.changeSettings("audio", { settings: { level: "always" } });
-    expect((await host.render("audio", "volume")).title).toBe("56%");
-    // Flash: quiet again once an earlier one has lapsed, up on a change, gone by itself after.
-    host.changeSettings("audio", { settings: { level: "flash" } });
+    // The item's own setting, through the ctx as the core sends it. Never: not even straight after a change.
+    const never = { reason: "load", settings: { level: "never" } } as const;
+    await host.barAction("audio", "volume", "up", never);
+    expect((await host.render("audio", "volume", never)).title).toBeUndefined();
+    expect((await host.render("audio", "volume", { reason: "load", settings: { level: "always" } })).title).toBe("56%");
+    // Flash (the default): quiet again once an earlier one has lapsed, up on a change, gone by itself after.
     await Bun.sleep(4500);
     expect((await host.render("audio", "volume")).title).toBeUndefined();
     await host.barAction("audio", "volume", "down");

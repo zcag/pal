@@ -15,7 +15,7 @@
 // while nothing plays) with the cover, the titles, a ticking progress
 // bar and the transport as keycap hints in its popover (view.ts, a
 // `{ view }` menu). The strip keeps its glyph (a 24 pt cover is a smudge)
-// unless the `bar_artwork` setting is on and the cover is square. The
+// unless the item's `artwork` setting is on and the cover is square. The
 // core asks for it every 30 s and on its `media` trigger, which the
 // core's MediaRemote stream fires on every track, state or cover change
 // (`stream: true` on the reply); without that stream (Linux, the adapter
@@ -33,7 +33,7 @@
 // popover (`ARTWORK_MAX` bytes at most), since a view's image draws
 // `data:` and `icon://` only; the app's own icon stands in without one.
 import { readFile } from "node:fs/promises";
-import { bar, core, errorMessage, failed, hint, media, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
+import { bar, core, errorMessage, failed, hint, media, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
 import { clock, render, type MediaState } from "./view.ts";
 
 const MAC = process.platform === "darwin";
@@ -53,7 +53,9 @@ const ARTWORK_TIMEOUT_MS = 3000;
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
 type Playing = NowPlaying & { stream?: boolean };
-type Settings = { bar_artwork?: boolean; exclude?: string[] };
+type Settings = { exclude?: string[] };
+/** The `now-playing` item's own settings (`[bar.items."media/now-playing".settings]`). */
+type ItemSettings = { artwork?: boolean };
 /** `core/media.artwork`: the cover as a data url, and its own size (square or not). */
 type Artwork = { data: string; width: number; height: number };
 type Cover = { id: string; image: string; square: boolean };
@@ -205,7 +207,7 @@ const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.no
 
 /**
  * What the strip shows for a playing player: the track (else the app) as
- * the title and the glyph (the cover instead when `bar_artwork` is on and
+ * the title and the glyph (the cover instead when the item's `artwork` is on and
  * it is square), the popover's tree (view.ts) as the menu, and the facts
  * (`media/playing`, `media/state`, `media/app`; docs/design/states.md):
  * the manifest's `paused` rule hides a player that is not playing, muted
@@ -232,7 +234,9 @@ const signature = (p: Player | undefined) => (p ? `${p.id}\0${p.state}\0${p.titl
 let last = "";
 let poll: ReturnType<typeof setInterval> | undefined;
 
-const barArtwork = () => settings.get<Settings>(EXTENSION).bar_artwork === true;
+/** The item's settings as the last render got them: the poll's push has no ctx. */
+let itemSettings: ItemSettings = {};
+const barArtwork = () => itemSettings.artwork === true;
 
 /** The item for the strip's player, its cover fetched; the look remembered for the popover's tick. */
 async function playingItem(np: Playing): Promise<BarItem> {
@@ -283,7 +287,8 @@ function follow(np: Playing | undefined) {
   }, POLL_MS);
 }
 
-async function renderBar(): Promise<BarItem> {
+async function renderBar(ctx?: BarCtx): Promise<BarItem> {
+  if (ctx?.settings) itemSettings = ctx.settings as ItemSettings;
   listen();
   let np: Playing | undefined;
   try { np = await media.nowPlaying(); } catch { np = undefined; }

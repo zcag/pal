@@ -15,7 +15,7 @@ import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { isTileIcon } from "../../sdk/src/icon.ts";
-import { checkBarRules, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import { checkBarRules, checkBarSettings, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
 import type { BarMeta, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
@@ -148,7 +148,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
-    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest));
+    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
@@ -449,7 +449,7 @@ const methods: Record<string, (params: any) => unknown> = {
   inline: (p) => sections("inline", p?.query),
   fallback: (p) => sections("fallback", p?.query),
   suggest: () => sections("suggest", ""),
-  ...barMethods(extension),
+  ...barMethods(extension, undefined, (k) => manifests.get(k)),
   ...viewMethods,
   // Notification from the core: the resolved values of the named extensions (instance keys route to their workers' own tables).
   "settings/changed": (p: SettingsChanged) => {
