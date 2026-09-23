@@ -105,8 +105,7 @@ fn apply(app: &AppHandle, s: Settings) {
         if was {
             eprintln!("reserve\toff");
             pal_core::windows::reserve::set(0.0);
-            #[cfg(target_os = "macos")]
-            macos::stop(app);
+            stop(app);
         }
         return;
     }
@@ -115,7 +114,9 @@ fn apply(app: &AppHandle, s: Settings) {
     if was {
         return;
     }
-    if !pal_core::ax::trusted() {
+    if pal_core::ax::trusted() {
+        start(app);
+    } else {
         permissions::ask(app, "accessibility", "Keep windows below the bar");
         let app = app.clone();
         std::thread::spawn(move || {
@@ -124,14 +125,24 @@ fn apply(app: &AppHandle, s: Settings) {
             }
             if ON.load(Ordering::Relaxed) {
                 eprintln!("reserve\taccessibility granted");
-                #[cfg(target_os = "macos")]
-                macos::start(&app);
+                start(&app);
             }
         });
-        return;
     }
+}
+
+fn start(app: &AppHandle) {
     #[cfg(target_os = "macos")]
     macos::start(app);
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+}
+
+fn stop(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    macos::stop(app);
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
 }
 
 /// Set the strip from the setting, or from sketchybar when that is 0;
