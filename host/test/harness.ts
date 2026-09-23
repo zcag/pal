@@ -349,6 +349,9 @@ const CORE: CoreTable = {
   "storage.get": ({ extension, key }: { extension: string; key: string }) => stored.get(`${extension}\0${key}`) ?? null,
   "storage.set": ({ extension, key, value }: { extension: string; key: string; value: unknown }) => { stored.set(`${extension}\0${key}`, value); return null; },
   "storage.remove": ({ extension, key }: { extension: string; key: string }) => { stored.delete(`${extension}\0${key}`); return null; },
+  // The Text expansion feature's snippets (app expansion.rs), in the feature's storage.
+  "snippets.list": () => stored.get("expansion\0snippets") ?? [],
+  "snippets.set": ({ snippets }: { snippets: unknown[] }) => { stored.set("expansion\0snippets", snippets); return null; },
   "storage.keys": ({ extension }: { extension: string }) => [...stored.keys()].filter((k) => k.startsWith(`${extension}\0`)).map((k) => k.split("\0")[1]).sort(),
   "clipboard.list": ({ query = "", limit = 200 }: { query?: string; limit?: number } = {}) =>
     fixtures.clipboard.filter((e) => !query || `${e.text ?? e.files?.join(" ") ?? ""} ${e.name ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, limit),

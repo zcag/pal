@@ -24,12 +24,16 @@ three ways past it.
   answered inline, and a query nothing matches falls back to the web, a
   quicklink or a palette ([Getting
   started](docs/getting-started.md#the-root-inline-answers-fallbacks-and-the-empty-list)).
-- **Close to two hundred palettes bundled** in seventy extensions, from
+- **Close to two hundred palettes bundled** in sixty-nine extensions, from
   Applications and Clipboard History
   to GitHub, Slack, Gmail, Spotify, Hue, Docker, Obsidian, 1Password, your
   todos, photos, Grafana and home media stack, a disk map and
   a few games, each with its own actions, keys and settings
   ([Palettes](docs/palettes.md)).
+- **Features built in**: clipboard history, text expansion, a window
+  switcher on cmd+tab, a sidebar at the screen edge, mouse and trackpad
+  tweaks, keycast; each a card in Settings with its switch, and every
+  switch a command at the root ([Features](docs/features.md)).
 - **Extensions in TypeScript**, one directory with a manifest and an
   `index.ts`: rows and actions, forms, a drawn view (a board, a picker,
   a dashboard), items on the menu bar, deep-link routes, several

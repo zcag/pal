@@ -162,7 +162,7 @@ export type GeneralConfig = {
   /** macOS: ask for Accessibility on the panel's first show of a fresh profile. */
   /** `general.backspace_back`: Backspace with nothing typed goes back a level. */
   backspaceBack: boolean;
-  /** `general.app_switcher`: macOS's own App Switcher on this Tab chord, through the event tap; unset is off. */
+  /** `[features.switcher] app_switcher`: macOS's own App Switcher on this Tab chord, through the event tap; unset is off. */
   appSwitcher?: string;
 };
 
@@ -273,7 +273,7 @@ export type Diagnostic = {
   message: string;
 };
 
-export type SettingsPage = "overview" | "general" | "shortcuts" | "palettes" | "extensions" | "bar" | "about";
+export type SettingsPage = "overview" | "general" | "shortcuts" | "features" | "palettes" | "extensions" | "bar" | "about";
 
 /**
  * One searchable entry: a page, the setting's label, where on the page it
@@ -340,7 +340,7 @@ export function lookWrites(cur: BarLookOverride, next: BarLookOverride, base: Ba
   return out;
 }
 
-/** `[sidebar]` in the file (core::config::Sidebar): one live palette docked to a screen edge. */
+/** `[features.sidebar]` in the file (core::config::Sidebar): one live palette docked to a screen edge. */
 export type SidebarEdge = "left" | "right";
 export type SidebarConfig = {
   /** `extension/palette`; empty is no sidebar. */

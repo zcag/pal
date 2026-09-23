@@ -70,6 +70,8 @@ enum Target {
     Bar(String),
     Sidebar,
     Hold { source: Source, mods: Modifiers, back: bool },
+    /// A feature's command, `<feature>.<command>` (`[features.<id>.hotkeys]`).
+    Command(String),
 }
 
 /// One entry of `general.hotkey` and how its registration went.
@@ -222,6 +224,17 @@ pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
             tauri::async_runtime::spawn_blocking(move || crate::bar::popover::on_hotkey(&app, &key));
         }
         Some(Target::Sidebar) => crate::sidebar::on_hotkey(app),
+        Some(Target::Command(id)) => {
+            let app = app.clone();
+            tauri::async_runtime::spawn_blocking(move || match crate::features::run(&app, &id) {
+                Ok(r) => {
+                    if let Some(line) = r["hud"].as_str() {
+                        crate::hud::show(&app, line);
+                    }
+                }
+                Err(e) => eprintln!("hotkey\tcommand failed\t{id}\t{e}"),
+            });
+        }
         Some(Target::Item(source, id)) => {
             let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
             let app = app.clone();
@@ -376,9 +389,17 @@ pub fn apply(app: &AppHandle, config: &Config) {
             None
         }
     };
-    if let Some(h) = config.sidebar.hotkey.as_deref().filter(|h| !h.trim().is_empty() && config.sidebar.palette().is_some()) {
-        if let Some(s) = parse("sidebar.hotkey".into(), h) {
+    if let Some(h) = config.features.sidebar.hotkey.as_deref().filter(|h| !h.trim().is_empty() && config.features.sidebar.palette().is_some()) {
+        if let Some(s) = parse("features.sidebar.hotkey".into(), h) {
             wanted.insert(s, Target::Sidebar);
+        }
+    }
+    for spec in pal_core::features::all() {
+        let id = spec["id"].as_str().unwrap_or_default();
+        for (cmd, h) in config.feature_hotkeys(id) {
+            if let Some(s) = parse(format!("features.{id}.hotkeys.{cmd}"), &h) {
+                wanted.insert(s, Target::Command(format!("{id}.{cmd}")));
+            }
         }
     }
     let palettes = crate::registry::registered_palettes(app);
@@ -396,13 +417,14 @@ pub fn apply(app: &AppHandle, config: &Config) {
             }
         }
     }
-    // `general.app_switcher`: the chord the tap turns into the Dock's own
+    // `[features.switcher] app_switcher`: the chord the tap turns into the Dock's own
     // switcher (a Tab chord); a hold chord that is the same is dropped, the
     // App Switcher's claim on it being the point.
-    let system = config.general.app_switcher.as_deref().map(str::trim).filter(|h| !h.is_empty()).and_then(|h| parse("general.app_switcher".into(), h)).filter(|s| {
+    let app_switcher = config.feature_settings("switcher").get("app_switcher").and_then(|v| v.as_str()).map(str::to_string);
+    let system = app_switcher.as_deref().map(str::trim).filter(|h| !h.is_empty()).and_then(|h| parse("features.switcher.app_switcher".into(), h)).filter(|s| {
         let tab = s.key == Code::Tab && !s.mods.is_empty();
         if !tab {
-            eprintln!("hotkey	general.app_switcher	{s}	not a Tab chord with a modifier; ignored");
+            eprintln!("hotkey	features.switcher.app_switcher	{s}	not a Tab chord with a modifier; ignored");
         }
         tab
     });
@@ -413,7 +435,7 @@ pub fn apply(app: &AppHandle, config: &Config) {
         let Some(h) = p.hold.as_deref().or(suggested.as_deref()).map(str::trim).filter(|h| !h.is_empty()) else { continue };
         if let Some(s) = parse(format!("palettes.{id}.hold"), h) {
             if system.is_some_and(|sys| sys == s || shifted(&sys) == Some(s)) {
-                eprintln!("hotkey	palettes.{id}.hold	{h}	is general.app_switcher's; pal's switcher needs another chord");
+                eprintln!("hotkey	palettes.{id}.hold	{h}	is features.switcher.app_switcher's; pal's switcher needs another chord");
                 continue;
             }
             if dock_owned(&s) {
@@ -494,7 +516,7 @@ mod tap {
 
     /// The chords the tap swallows and hands to `pressed`; read on every key down.
     static WATCHED: Mutex<Vec<Shortcut>> = Mutex::new(Vec::new());
-    /// `general.app_switcher`: the chord (without shift) the tap turns into
+    /// `features.switcher.app_switcher`: the chord (without shift) the tap turns into
     /// the Dock's own switcher, and whether a Cmd is virtually down for it.
     static SYSTEM: Mutex<Option<Shortcut>> = Mutex::new(None);
     static FORWARDING: Mutex<bool> = Mutex::new(false);
@@ -533,7 +555,7 @@ mod tap {
         CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&e));
     }
 
-    /// The Dock's switcher driven from `general.app_switcher`: the first press
+    /// The Dock's switcher driven from `features.switcher.app_switcher`: the first press
     /// puts a Cmd down for the Dock (a `flagsChanged`), every press is a
     /// Cmd+Tab (Cmd+Shift+Tab for the chord's `shift+` variant), and the
     /// chord's modifiers coming up lets the Cmd up, which the Dock takes as

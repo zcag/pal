@@ -1,0 +1,15 @@
+{
+  "id": "sidebar",
+  "title": "Sidebar",
+  "description": "A live palette docked to a screen edge: it peeks the moment the pointer touches the edge and closes once it leaves; a click, a key or its hotkey engages it, and cmd+N runs row N.",
+  "icon": {
+    "tile": {
+      "glyph": "󰕰",
+      "bg": "teal"
+    }
+  },
+  "platforms": [
+    "macos"
+  ],
+  "settings": []
+}

@@ -41,16 +41,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
-use pal_core::config::{spec_defaults, Config};
+use pal_core::config::Config;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use tauri::AppHandle;
 
 use crate::{lock, permissions, settings};
 
-const MANIFEST: &str = include_str!("../../../extensions/mouse/pal.json");
 pub const SUPPORTED: bool = cfg!(target_os = "macos");
-const UNAVAILABLE: &str = "Not available on Linux: there is no portable input tap (Wayland hands input to the focused app only)";
 
 /// A tap is three fingers down and up within this long...
 const TAP_MAX: f64 = 0.3;
@@ -61,7 +58,7 @@ const POLL: Duration = Duration::from_secs(2);
 /// How often the devices are listed again.
 const RESCAN: Duration = Duration::from_secs(3);
 
-/// `[extensions.mouse]`.
+/// `[features.mouse]` (`core/features/mouse.json`).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Settings {
     pub middle_click: bool,
@@ -74,13 +71,7 @@ pub struct Settings {
 
 impl Settings {
     fn from(config: &Config) -> Settings {
-        let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
-        let defaults = spec_defaults(&manifest["settings"]);
-        let table = config.extension_settings("mouse", &defaults, &manifest["settings"]);
-        table.try_into().unwrap_or_else(|e| {
-            eprintln!("mouse\tbad settings\t{e}; off");
-            Settings::default()
-        })
+        config.feature("mouse")
     }
 
     /// Whether anything needs the tap.
@@ -198,6 +189,15 @@ fn current() -> Settings {
     *lock(&SETTINGS)
 }
 
+/// What the Features page says under the card: the middle click on with the tap running and no trackpad read.
+pub fn note() -> Option<&'static str> {
+    #[cfg(target_os = "macos")]
+    if current().middle_click && tap::running() && touch::devices() == 0 {
+        return Some("No trackpad is being read");
+    }
+    None
+}
+
 fn touches<R>(f: impl FnOnce(&mut Touches) -> R) -> R {
     f(lock(&TOUCHES).get_or_insert_with(Touches::default))
 }
@@ -264,26 +264,6 @@ fn stop() {
 
 /// `core/mouse.status`: whether it can run here, the grant, whether the tap
 /// is in and how many touch devices are read, and the settings.
-pub fn call(_app: &AppHandle, func: &str, _params: Value) -> Result<Value, String> {
-    match func {
-        "status" => {
-            #[cfg(target_os = "macos")]
-            let (running, devices) = (tap::running(), touch::devices());
-            #[cfg(not(target_os = "macos"))]
-            let (running, devices) = (false, 0usize);
-            Ok(json!({
-                "available": SUPPORTED,
-                "reason": (!SUPPORTED).then_some(UNAVAILABLE),
-                "accessibility": pal_core::ax::trusted(),
-                "running": running,
-                "devices": devices,
-                "settings": current(),
-            }))
-        }
-        _ => Err(format!("unknown mouse function {func}")),
-    }
-}
-
 /// The event tap: middle click from a three-finger click, reversed scrolls.
 #[cfg(target_os = "macos")]
 mod tap {
@@ -731,9 +711,8 @@ mod tests {
     }
 
     #[test]
-    fn the_manifest_defaults_read() {
-        let manifest: Value = serde_json::from_str(MANIFEST).unwrap();
-        let s: Settings = spec_defaults(&manifest["settings"]).try_into().unwrap();
+    fn the_spec_defaults_read() {
+        let s = Settings::from(&Config::default());
         assert_eq!(s, Settings { middle_click_tap: true, reverse_vertical: true, reverse_horizontal: true, ..Settings::default() });
     }
 }

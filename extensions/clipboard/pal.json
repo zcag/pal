@@ -14,37 +14,6 @@
   "license": "MIT",
   "settings": [
     {
-      "kind": "list",
-      "id": "exclude_apps",
-      "label": "Exclude apps",
-      "description": "Bundle ids (com.1password.1password) or names; copies made in these are not recorded, and none already recorded is listed.",
-      "placeholder": "com.1password.1password",
-      "default": [
-        "com.apple.keychainaccess",
-        "com.apple.Passwords"
-      ]
-    },
-    {
-      "kind": "number",
-      "id": "max_entries",
-      "label": "Keep entries",
-      "description": "How many unpinned entries history keeps; older ones past this are deleted on the next copy.",
-      "min": 1,
-      "max": 100000,
-      "unit": "entries",
-      "default": 1000
-    },
-    {
-      "kind": "number",
-      "id": "max_age_days",
-      "label": "Keep for",
-      "description": "Unpinned entries older than this are deleted on the next copy. 0 keeps them until the entry limit.",
-      "min": 0,
-      "max": 3650,
-      "unit": "days",
-      "default": 30
-    },
-    {
       "kind": "boolean",
       "id": "ocr_concealed",
       "label": "OCR copies are private",

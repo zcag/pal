@@ -532,6 +532,9 @@ pub struct Entry {
     pub timer_gen: u64,
     /// Seeded by `PAL_BAR_FIXTURE`: no host behind it.
     pub fixture: bool,
+    /// A feature's item (`crate::features`): rendered and answered in the
+    /// app, never asked of the host.
+    pub native: bool,
     /// Off every target by its `show_when`/`hide_when` (states.rs); the
     /// flip back renders rather than re-draws the last item.
     pub held: bool,
@@ -648,6 +651,22 @@ fn draws(app: &AppHandle, config: &Config, key: &str) -> bool {
 /// each. Nothing in the manifest: its items go. `instance` is the label
 /// the tooltips carry, see [`Entry::instance`].
 pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, instance: Option<String>) {
+    if pal_core::features::is(ext) {
+        if !bars.is_empty() {
+            eprintln!("bar\t{ext}\tan extension named like a feature; its items are not registered");
+        }
+        return;
+    }
+    register(app, ext, bars, instance, false);
+}
+
+/// A feature's items (its spec's `bar`), rendered by the app
+/// (`features::bar_item`); once, at startup.
+pub fn register_native(app: &AppHandle, feature: &str, bars: Vec<ManifestBar>) {
+    register(app, feature, bars, None, true);
+}
+
+fn register(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, instance: Option<String>, native: bool) {
     let config = settings::config(app);
     let (added, gone): (Vec<String>, Vec<String>) = Bar::with(app, |e| {
         let gone: Vec<String> = e.keys().filter(|k| k.starts_with(&format!("{ext}/")) && !bars.iter().any(|b| key_of(ext, &b.id) == **k)).cloned().collect();
@@ -657,7 +676,7 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, i
         let mut added = Vec::new();
         for m in bars {
             let key = key_of(ext, &m.id);
-            let entry = e.entry(key.clone()).or_insert_with(|| Entry { manifest: m.clone(), last: None, rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None });
+            let entry = e.entry(key.clone()).or_insert_with(|| Entry { manifest: m.clone(), last: None, rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, native, held: false, instance: None });
             entry.manifest = m;
             entry.fixture = false;
             entry.instance = instance.clone();
@@ -690,7 +709,7 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, i
 /// The extension errored or went: its items leave every target.
 pub fn remove_extension(app: &AppHandle, ext: &str) {
     let keys: Vec<String> = Bar::with(app, |e| {
-        let keys: Vec<String> = e.keys().filter(|k| k.starts_with(&format!("{ext}/"))).cloned().collect();
+        let keys: Vec<String> = e.iter().filter(|(k, en)| !en.native && k.starts_with(&format!("{ext}/"))).map(|(k, _)| k.clone()).collect();
         for k in &keys {
             e.remove(k);
         }
@@ -764,6 +783,18 @@ async fn render_now(app: AppHandle, key: String, reason: &'static str) {
     });
     if start.is_none() {
         return;
+    }
+    if entry(&app, &key).is_some_and(|e| e.native) {
+        let item = crate::features::bar_item(&app, &key).and_then(|v| serde_json::from_value::<BarItem>(v).map_err(|e| e.to_string()));
+        match item {
+            Ok(item) => set(&app, &key, item, false),
+            Err(e) => {
+                eprintln!("bar\t{key}\tfailed\t{e}");
+                set_stale(&app, &key);
+            }
+        }
+        Bar::with(&app, |e| e.get_mut(&key).map(|en| en.rendering = false));
+        return schedule(&app, &key);
     }
     let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else {
         Bar::with(&app, |e| e.get_mut(&key).map(|en| en.rendering = false));
@@ -1110,9 +1141,12 @@ pub fn on_settings_changed(app: &AppHandle, exts: &[String]) {
 /// envelope comes back for the page.
 pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, window: &str, values: Option<Value>) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
-    let fixture = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?.fixture;
-    let r = if fixture {
+    let e = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?;
+    let r = if e.fixture {
         json!({ "hud": format!("{key}: {action}") })
+    } else if e.native {
+        let (app, key, action) = (app.clone(), key.to_string(), action.to_string());
+        tauri::async_runtime::spawn_blocking(move || crate::features::bar_action(&app, &key, &action)).await.map_err(|e| e.to_string())??
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
         let mut ctx = json!({ "reason": "open", "anchor": anchor, "compact": true });
@@ -1134,8 +1168,8 @@ pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, wind
 /// in it opens the popover engaged with that level.
 pub async fn open(app: &AppHandle, key: &str, anchor: &str, rect: Option<Rect>) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
-    let fixture = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?.fixture;
-    let r = if fixture {
+    let e = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?;
+    let r = if e.fixture || e.native {
         json!({ "hud": format!("{key}: open") })
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
@@ -1154,7 +1188,7 @@ pub async fn open(app: &AppHandle, key: &str, anchor: &str, rect: Option<Rect>) 
 /// `bar/shown`: the popover opened on `key` (a peek counts).
 pub fn shown(app: &AppHandle, key: &str) {
     let Some((ext, id)) = split_key(key).map(|(e, i)| (e.to_string(), i.to_string())) else { return };
-    if entry(app, key).is_some_and(|e| e.fixture) {
+    if entry(app, key).is_some_and(|e| e.fixture || e.native) {
         return;
     }
     let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
@@ -1317,7 +1351,7 @@ mod fixture {
                 let Ok(item) = serde_json::from_value::<BarItem>(r["item"].clone()) else { continue };
                 let key = key_of(ext, id);
                 let manifest = ManifestBar { id: id.into(), title: r["title"].as_str().unwrap_or(id).into(), ..Default::default() };
-                e.insert(key.clone(), Entry { manifest, last: Some(item), rendered_at: Some(Instant::now()), rendered_unix: Some(unix_secs()), stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: true, held: false, instance: None });
+                e.insert(key.clone(), Entry { manifest, last: Some(item), rendered_at: Some(Instant::now()), rendered_unix: Some(unix_secs()), stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: true, native: false, held: false, instance: None });
                 keys.push(key);
             }
         });
@@ -1491,7 +1525,7 @@ mod tests {
     fn draw_carries_the_placement_and_hidden_reaches_the_target() {
         let (config, _) = pal_core::config::parse("[bar.menubar]\nsize = 12\n[bar.items.\"x/y\"]\norder = 5\nposition = \"left\"\nopen_on_hover = true\nbadge_style = \"dot\"\n").unwrap();
         let item: BarItem = serde_json::from_value(json!({ "hidden": true, "menu": { "palette": "apps" } })).unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
         let d = draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap();
         assert!(d.item.hidden, "a hidden item is handed over: the target takes its slot away, its timer keeps running");
         assert!(d.item.stale, "the registry's stale rides on the item");
@@ -1503,7 +1537,7 @@ mod tests {
         let none = Entry { last: None, ..entry };
         assert!(draw_for(&config, "x/y", &none, Kind::Menubar, &[]).is_none(), "nothing to draw before the first render");
         let (config, _) = pal_core::config::parse("").unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
         assert!(!draw_for(&config, "x/y", &entry, Kind::Sketchybar, &[]).unwrap().hover, "no target peeks by default");
         assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap().hover);
         let no_menu = Entry { last: Some(BarItem::default()), ..entry };
@@ -1516,7 +1550,7 @@ mod tests {
         let rule = |id: &str, json: serde_json::Value| ManifestBarRule { id: id.into(), rule: serde_json::from_value(json).unwrap() };
         let manifest = ManifestBar { rules: vec![rule("fine", json!({ "when": "power.level >= 50", "hidden": true })), rule("low", json!({ "when": "power.level < 20", "color": "amber", "urgent": true })), rule("critical", json!({ "when": "power.level < 10", "color": "red", "position": "q" }))], ..ManifestBar::default() };
         let item: BarItem = serde_json::from_value(json!({ "icon": "x", "title": "42%", "color": "muted", "empty": { "icon": "x" } })).unwrap();
-        let entry = Entry { manifest, last: Some(item), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let entry = Entry { manifest, last: Some(item), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
         let rules = rules_of(&config, "power/battery", &entry.manifest);
         assert_eq!(rules.iter().map(|(id, r)| (id.as_str(), r.when.as_deref().unwrap())).collect::<Vec<_>>(), [("fine", "power.level >= 50"), ("low", "power.level < 25"), ("critical", "power.level < 10"), ("focus", "not working")], "the manifest's in order with the file's when on top, then the file's own");
         assert_eq!(rules[1].1.look.size, Some(14.0), "a key the file adds to an extension's rule");
@@ -1555,7 +1589,7 @@ mod tests {
         assert!(framed.scroll.is_none() && framed.click.is_none(), "its actions do not: nothing to act on");
 
         let (config, _) = pal_core::config::parse("[bar.items.\"x/y\"]\nshow = \"always\"\n[bar.items.\"x/z\"]\nbadge_style = \"dot\"\n").unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(quiet.clone()), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, held: false, instance: None };
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(quiet.clone()), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
         let d = draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap();
         assert!(!d.item.hidden && d.item.muted(), "the config keeps it on the strip, dim");
         assert_eq!(d.tint(), Some("muted"));

@@ -123,6 +123,11 @@ fn unix_ms(t: SystemTime) -> u64 {
 /// built here: its page (a WebContent process, ~80 MB) is only paid for on
 /// the first `open`.
 pub fn install(app: &AppHandle, file: ConfigFile) {
+    // A file from before features existed moves their settings over once (the old text kept beside it).
+    match file.reshape() {
+        Ok(notes) => notes.iter().for_each(|n| eprintln!("config\treshaped\t{n}")),
+        Err(e) => eprintln!("config\treshape failed\t{e}"),
+    }
     let loaded = file.load();
     for d in &loaded.diagnostics {
         eprintln!("config\t{:?}\t{}\t{}", d.level, d.path, d.message);
@@ -234,6 +239,9 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     crate::mouse::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);
+    if prev.features != loaded.config.features || prev.palettes != loaded.config.palettes {
+        crate::features::sync(app);
+    }
     events::emit(app, events::CONFIG, &loaded);
     if let Some(host) = app.try_state::<Arc<Host>>() {
         tauri::async_runtime::spawn(index::apply_config(app.clone(), host.inner().clone(), prev, loaded.config));
@@ -922,8 +930,8 @@ pub struct View {
     /// Every display's name as the OS reports it, the primary first
     /// (`popover::displays`): what `[sidebar] display` may name.
     displays: Vec<String>,
-    /// The keycast overlay is on (keycast.rs): its Input Monitoring row on the Overview.
-    keycast: bool,
+    /// Every feature: its spec, whether it runs here, on or off, the permission it waits on (features.rs).
+    features: Vec<Value>,
 }
 
 /// Off the main thread: `permissions::status` probes the OS (~85 ms on
@@ -934,6 +942,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
     let exts = lock(&st.extensions).clone();
     let mut diagnostics = l.diagnostics.clone();
     diagnostics.extend(instance_warnings(&l.config, &exts));
+    let perms = permissions::status();
     View {
         config: l.config.clone(),
         diagnostics,
@@ -943,11 +952,11 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         extensions: exts,
         store: Store::locate().dir().to_path_buf(),
         hotkey: hotkey::outcome(&app),
-        permissions: permissions::status(),
+        permissions: perms,
         bar: bar_view(&app, &l.config),
         checks: lock(&st.checks).clone(),
         displays: crate::bar::popover::displays(&app).0.into_iter().map(|d| d.name).collect(),
-        keycast: crate::keycast::active(&app),
+        features: crate::features::view(&app, &l.config, &perms),
     }
 }
 

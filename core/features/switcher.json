@@ -1,0 +1,21 @@
+{
+  "id": "switcher",
+  "title": "Window switcher",
+  "description": "Cmd+Tab's shape over the Windows palette: hold the chord to step through the windows, let go to switch; a quick tap goes back to the window before. The chord is the Windows palette's hold. App switcher puts macOS's own switcher on another chord once the switcher has taken cmd+tab.",
+  "icon": {
+    "tile": {
+      "glyph": "󰖯",
+      "bg": "blue"
+    }
+  },
+  "permission": "input_monitoring",
+  "settings": [
+    {
+      "kind": "hotkey",
+      "id": "app_switcher",
+      "label": "App switcher",
+      "description": "macOS's own App Switcher (Cmd+Tab's) on another Tab chord, alt+tab, for when the window switcher has taken cmd+tab; its shift+ variant steps back. macOS only.",
+      "default": null
+    }
+  ]
+}

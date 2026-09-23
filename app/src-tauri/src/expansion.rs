@@ -1,6 +1,6 @@
 //! Snippet expansion, the watcher half (`pal_core::expansion` is the
-//! matcher, the plan and the injection): while `[extensions.snippets]
-//! expand = true`, the shared key monitor (keytap.rs: one `NSEvent`
+//! matcher, the plan and the injection): while `[features.expansion]
+//! enabled = true`, the shared key monitor (keytap.rs: one `NSEvent`
 //! global monitor for expansion and keycast alike; it observes without
 //! swallowing and fires only with the **Input Monitoring** grant) feeds
 //! every key typed in other apps to the matcher, and a keyword completed
@@ -9,7 +9,7 @@
 //! a `{cursor}`, then the HUD's "Expanded <name>".
 //!
 //! What never expands: pal's own windows (a global monitor does not see
-//! the active app's keys), the apps in `expand_exclude_apps` (terminals
+//! the active app's keys), the apps in `exclude_apps` (terminals
 //! and password managers by default), and any secure text field
 //! (`Event::secure`, `IsSecureEventInputEnabled`: a password prompt,
 //! `sudo`). A Cmd or Ctrl combo, an arrow, Enter, Tab or Escape empties
@@ -31,7 +31,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
-use pal_core::config::{spec_defaults, Config};
+use pal_core::config::Config;
 use pal_core::expansion::{Clock, Hit, Key, Matcher, Plan, Prefix, Snippet, Sources};
 use pal_core::storage::Storage;
 use serde::Deserialize;
@@ -41,34 +41,24 @@ use tauri::{AppHandle, Manager};
 use crate::keytap::{self, Event, Wants};
 use crate::{hud, lock, permissions, settings};
 
-/// The extension's manifest, compiled in: its `settings` defaults are the
-/// watcher's too, so a key absent from the file means what Settings shows.
-const MANIFEST: &str = include_str!("../../../extensions/snippets/pal.json");
-
-/// `[extensions.snippets]` as the watcher reads it.
+/// `[features.expansion]` as the watcher reads it (`core/features/expansion.json`).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Settings {
-    pub expand: bool,
-    pub expand_prefix: String,
-    pub expand_exclude_apps: Vec<String>,
-    pub expand_hud: bool,
+    pub enabled: bool,
+    pub prefix: String,
+    pub exclude_apps: Vec<String>,
+    pub hud: bool,
 }
 
 impl Settings {
     /// From a loaded config: the manifest's defaults under the file's
     /// keys; a value of the wrong type is logged and the defaults stand in.
     pub fn from(config: &Config) -> Settings {
-        let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
-        let defaults = spec_defaults(&manifest["settings"]);
-        let table = config.extension_settings("snippets", &defaults, &manifest["settings"]);
-        table.try_into().unwrap_or_else(|e| {
-            eprintln!("expansion\tbad settings\t{e}; using the defaults");
-            defaults.try_into().expect("manifest defaults fit Settings")
-        })
+        config.feature("expansion")
     }
 
-    fn prefix(&self) -> Prefix {
-        Prefix::parse(&self.expand_prefix)
+    fn prefix_of(&self) -> Prefix {
+        Prefix::parse(&self.prefix)
     }
 }
 
@@ -90,9 +80,15 @@ struct Cache {
 }
 static CACHE: Mutex<Option<Cache>> = Mutex::new(None);
 
-/// The stored list (`storage/snippets.json`, key `snippets`, the palette's
-/// `{ id, name, keyword?, text }` rows) as the matcher's snippets: only
-/// the ones with a keyword.
+/// Where the snippets live: the feature's storage (`storage/expansion.json`,
+/// key `snippets`), the palette's `{ id, name, keyword?, text }` rows.
+/// The Snippets palette reads and writes them through `core/snippets.*`
+/// ([`call`]); until 2026-09-23 they were that extension's own storage,
+/// moved over once by [`adopt`].
+const NS: &str = "expansion";
+const KEY: &str = "snippets";
+
+/// The stored list as the matcher's snippets: only the ones with a keyword.
 fn parse_snippets(v: &Value) -> Vec<Snippet> {
     v.as_array()
         .into_iter()
@@ -108,20 +104,49 @@ fn parse_snippets(v: &Value) -> Vec<Snippet> {
 /// The snippets, re-read when the storage file changed since (one `stat` per key typed).
 fn snippets(app: &AppHandle) -> Arc<Vec<Snippet>> {
     let store = app.state::<Storage>();
-    let mtime = std::fs::metadata(store.dir().join("snippets.json")).and_then(|m| m.modified()).ok();
+    let mtime = std::fs::metadata(store.dir().join(format!("{NS}.json"))).and_then(|m| m.modified()).ok();
     let mut guard = lock(&CACHE);
     let c = guard.get_or_insert_with(Cache::default);
     if !c.loaded || c.mtime != mtime {
         c.loaded = true;
         c.mtime = mtime;
-        c.snippets = Arc::new(store.get("snippets", "snippets").map(|v| parse_snippets(&v)).unwrap_or_default());
+        c.snippets = Arc::new(store.get(NS, KEY).map(|v| parse_snippets(&v)).unwrap_or_default());
         eprintln!("expansion\tsnippets\t{} with a keyword", c.snippets.len());
     }
     c.snippets.clone()
 }
 
-/// Startup: the settings as loaded, the subscription when they say so.
+/// The snippets the Snippets extension kept in its own storage, moved to the feature's once.
+fn adopt(store: &Storage) {
+    let old = store.get("snippets", KEY).unwrap_or(Value::Null);
+    if old.is_null() || !store.get(NS, KEY).unwrap_or(Value::Null).is_null() {
+        return;
+    }
+    match store.set(NS, KEY, old).and_then(|()| store.remove("snippets", KEY)) {
+        Ok(()) => eprintln!("expansion\tsnippets\tmoved from the snippets extension's storage"),
+        Err(e) => eprintln!("expansion\tsnippets\tmove failed\t{e}"),
+    }
+}
+
+/// `core/snippets.{list, set}`: the list as stored (`[]` when none), and
+/// the whole list replaced (`{ snippets: [...] }`). Every platform: the
+/// palette works where expansion does not.
+pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
+    let store = app.state::<Storage>();
+    match func {
+        "list" => Ok(store.get(NS, KEY).map_err(|e| e.to_string())?).map(|v| if v.is_null() { Value::Array(Vec::new()) } else { v }),
+        "set" => {
+            let list = params.get("snippets").filter(|v| v.is_array()).cloned().ok_or("snippets.set takes { snippets: [...] }")?;
+            store.set(NS, KEY, list).map_err(|e| e.to_string())?;
+            Ok(Value::Null)
+        }
+        _ => Err(format!("unknown snippets.{func}")),
+    }
+}
+
+/// Startup: the snippets adopted, the settings as loaded, the subscription when they say so.
 pub fn install(app: &AppHandle) {
+    adopt(&app.state::<Storage>());
     if !cfg!(target_os = "macos") {
         eprintln!("expansion\tnot available off macOS (no portable keyboard tap)");
         return;
@@ -141,8 +166,8 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
 }
 
 fn apply(app: &AppHandle, s: Settings) {
-    let on = s.expand;
-    let prefix = s.prefix();
+    let on = s.enabled;
+    let prefix = s.prefix_of();
     *lock(&CONF) = Some(s);
     let mut m = lock(&MATCHER);
     match m.as_mut() {
@@ -194,7 +219,7 @@ fn on_event(app: &AppHandle, ev: &Event) {
 /// Whether keys from `app` (a bundle id) may expand: not an excluded app,
 /// and never while a secure text field has the keyboard.
 fn allowed(conf: &Settings, app: Option<&str>, secure: bool) -> bool {
-    !secure && app.is_none_or(|a| !conf.expand_exclude_apps.iter().any(|x| x.eq_ignore_ascii_case(a)))
+    !secure && app.is_none_or(|a| !conf.exclude_apps.iter().any(|x| x.eq_ignore_ascii_case(a)))
 }
 
 /// One key: fed to the matcher; a hit runs its plan off the main thread.
@@ -203,7 +228,7 @@ fn on_key(app: &AppHandle, key: Key, front: Option<String>, secure: bool) {
         return;
     }
     let Some(conf) = lock(&CONF).clone() else { return };
-    if !conf.expand {
+    if !conf.enabled {
         return;
     }
     let snippets = if matches!(key, Key::Text(_)) { snippets(app) } else { Arc::default() };
@@ -221,7 +246,7 @@ fn on_key(app: &AppHandle, key: Key, front: Option<String>, secure: bool) {
     let app = app.clone();
     std::thread::Builder::new()
         .name("expansion".into())
-        .spawn(move || run(&app, &hit, &snippet, conf.expand_hud))
+        .spawn(move || run(&app, &hit, &snippet, conf.hud))
         .map(|_| ())
         .unwrap_or_else(|e| eprintln!("expansion\tthread\t{e}"));
 }
@@ -259,22 +284,22 @@ mod tests {
     #[test]
     fn manifest_defaults_fit_the_watcher_and_are_off() {
         let s = Settings::from(&Config::default());
-        assert!(!s.expand, "opt-in");
-        assert_eq!(s.prefix(), Prefix::Semicolon);
-        assert!(s.expand_hud);
-        assert!(s.expand_exclude_apps.iter().any(|a| a == "com.apple.Terminal"));
-        assert!(s.expand_exclude_apps.iter().any(|a| a.contains("1password")));
+        assert!(!s.enabled, "opt-in");
+        assert_eq!(s.prefix_of(), Prefix::Semicolon);
+        assert!(s.hud);
+        assert!(s.exclude_apps.iter().any(|a| a == "com.apple.Terminal"));
+        assert!(s.exclude_apps.iter().any(|a| a.contains("1password")));
     }
 
     #[test]
     fn the_file_overrides_the_defaults() {
         let mut c = Config::default();
-        let t: toml::Table = toml::from_str("expand = true\nexpand_prefix = \":\"\nexpand_exclude_apps = []").unwrap();
-        c.extensions.insert("snippets".into(), t);
+        let t: toml::Table = toml::from_str("enabled = true\nprefix = \":\"\nexclude_apps = []").unwrap();
+        c.features.tables.insert("expansion".into(), t);
         let s = Settings::from(&c);
-        assert!(s.expand);
-        assert_eq!(s.prefix(), Prefix::Colon);
-        assert!(s.expand_exclude_apps.is_empty());
+        assert!(s.enabled);
+        assert_eq!(s.prefix_of(), Prefix::Colon);
+        assert!(s.exclude_apps.is_empty());
     }
 
     #[test]
@@ -313,7 +338,7 @@ mod tests {
 
     #[test]
     fn excluded_apps_and_secure_input_never_expand() {
-        let conf = Settings { expand: true, expand_prefix: ";".into(), expand_exclude_apps: vec!["net.kovidgoyal.kitty".into()], expand_hud: true };
+        let conf = Settings { enabled: true, prefix: ";".into(), exclude_apps: vec!["net.kovidgoyal.kitty".into()], hud: true };
         assert!(allowed(&conf, Some("com.apple.TextEdit"), false));
         assert!(!allowed(&conf, Some("net.kovidgoyal.KITTY"), false), "case-insensitive");
         assert!(!allowed(&conf, Some("com.apple.TextEdit"), true), "a secure field");

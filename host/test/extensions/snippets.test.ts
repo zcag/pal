@@ -104,7 +104,7 @@ const dir = mkdtempSync(join(tmpdir(), "pal-sn-"));
 let host: Host;
 beforeAll(async () => {
   stored.clear();
-  stored.set("snippets\0snippets", [
+  stored.set("expansion\0snippets", [
     { id: "sig", name: "Signature", keyword: "sig", text: "Best,\nCagdas" },
     { id: "stamp", name: "Stamp", text: "Reviewed {date} {time}\n{clipboard}" },
   ]);
@@ -150,17 +150,17 @@ describe("snippets", () => {
     expect(form).toMatchObject({ id: "create", title: "Create Snippet", submit: { id: "save", title: "Create" } });
     expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["name", "text", true], ["keyword", "text", false], ["text", "textarea", true]]);
     expect(await pick("create", "save", { values: { name: "Shrug", keyword: "shrug", text: "¯\\_(ツ)_/¯" } })).toEqual({ keep: true, toast: { title: "Created", message: "Shrug" } });
-    const all = stored.get("snippets\0snippets") as { id: string; name: string; keyword?: string; text: string }[];
+    const all = stored.get("expansion\0snippets") as { id: string; name: string; keyword?: string; text: string }[];
     expect(all).toHaveLength(3);
     expect(all[2]).toMatchObject({ name: "Shrug", keyword: "shrug", text: "¯\\_(ツ)_/¯" });
     expect((await list()).map((i) => i.name)).toContain("Shrug");
   });
 
   test("a keyword with a space, or an empty text, is refused with the form again", async () => {
-    const before = JSON.stringify(stored.get("snippets\0snippets"));
+    const before = JSON.stringify(stored.get("expansion\0snippets"));
     const r = await pick("create", "save", { values: { name: "Bad", keyword: "two words", text: "  " } });
     expect((r.form as Form).errors).toEqual({ keyword: "One word, no spaces", text: "Required" });
-    expect(JSON.stringify(stored.get("snippets\0snippets"))).toBe(before);
+    expect(JSON.stringify(stored.get("expansion\0snippets"))).toBe(before);
   });
 
   test("edit answers the form filled in; its submit replaces the snippet in place, an emptied keyword is dropped", async () => {
@@ -168,7 +168,7 @@ describe("snippets", () => {
     expect(form).toMatchObject({ id: "sig", title: "Edit Signature", submit: { id: "save", title: "Save" } });
     expect(form.fields.map((f) => (f as { default?: unknown }).default)).toEqual(["Signature", "sig", "Best,\nCagdas"]);
     expect(await pick("sig", "save", { values: { name: "Sign-off", keyword: "", text: "Cheers" } })).toEqual({ keep: true, toast: { title: "Saved", message: "Sign-off" } });
-    const all = stored.get("snippets\0snippets") as { id: string; name: string; text: string }[];
+    const all = stored.get("expansion\0snippets") as { id: string; name: string; text: string }[];
     expect(all.map((s) => s.id)).toEqual(["sig", "stamp", all[2].id]);
     expect(all[0]).toEqual({ id: "sig", name: "Sign-off", text: "Cheers" });
   });
@@ -178,14 +178,14 @@ describe("snippets", () => {
     const form = (await pick("export", "export")).form as Form;
     expect(form).toMatchObject({ id: "export", title: "Export Snippets", submit: { id: "save", title: "Export" } });
     expect((form.fields[0] as { default?: string }).default).toBe("~/Downloads/pal-snippets.json");
-    const before = stored.get("snippets\0snippets") as { id: string; name: string; text: string; keyword?: string }[];
+    const before = stored.get("expansion\0snippets") as { id: string; name: string; text: string; keyword?: string }[];
     expect(await pick("export", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: `Exported ${before.length} snippets`, message: out } });
     const written = await Bun.file(out).json();
     expect(written).toEqual(before.map(({ id, ...s }) => s));
     expect(await pick("import", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: "Imported 0 snippets", message: `${before.length} already there` } });
     writeFileSync(out, JSON.stringify([...written, { name: "New", text: "hello", keyword: "hi" }]));
     expect(await pick("import", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: "Imported 1 snippet", message: `${before.length} already there` } });
-    const after = stored.get("snippets\0snippets") as { name: string; text: string; keyword?: string }[];
+    const after = stored.get("expansion\0snippets") as { name: string; text: string; keyword?: string }[];
     expect(after).toHaveLength(before.length + 1);
     expect(after.at(-1)).toMatchObject({ name: "New", text: "hello", keyword: "hi" });
     expect(((await pick("import", "save", { values: { path: join(dir, "missing.json") } })).form as Form).errors!.path).toMatch(/^Could not read/);
@@ -200,13 +200,13 @@ describe("snippets", () => {
   });
   test("{snippet name=} reads another snippet by name or keyword through the extension", async () => {
     await pick("create", "save", { values: { name: "Wrap", keyword: "", text: "<{snippet name=shrug}> <{snippet name=sign-off}>" } });
-    const wrap = (stored.get("snippets\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Wrap")!;
+    const wrap = (stored.get("expansion\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Wrap")!;
     expect(await pick(wrap.id, "copy")).toEqual({ copy: "<¯\\_(ツ)_/¯> <Cheers>" });
     await pick(wrap.id, "delete");
   });
   test("{selection} asks the core for the app in front's selected text, and takes the clipboard when nothing is selected", async () => {
     await pick("create", "save", { values: { name: "Quote", keyword: "", text: "> {selection}" } });
-    const quote = (stored.get("snippets\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Quote")!;
+    const quote = (stored.get("expansion\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Quote")!;
     expect(await pick(quote.id, "copy")).toEqual({ copy: "> the marked words" });
     expect(host.coreCalls.filter((c) => c.method === "selection.text")).toHaveLength(1);
     selected = null;
@@ -215,7 +215,7 @@ describe("snippets", () => {
   });
   test("{files} is the Finder selection, one path per line or joined by sep=; empty when nothing is selected; never asked without it", async () => {
     await pick("create", "save", { values: { name: "Attach", keyword: "", text: "see {files sep=\", \"}\n{files}" } });
-    const attach = (stored.get("snippets\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Attach")!;
+    const attach = (stored.get("expansion\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Attach")!;
     finder = ["/Users/x/a b.txt", "/Users/x/c.png"];
     expect(await pick(attach.id, "copy")).toEqual({ copy: "see /Users/x/a b.txt, /Users/x/c.png\n/Users/x/a b.txt\n/Users/x/c.png" });
     expect(host.coreCalls.filter((c) => c.method === "selection.files")).toHaveLength(1);

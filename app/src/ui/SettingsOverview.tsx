@@ -47,6 +47,8 @@ export type OverviewInput = {
   sidebar?: string;
   /** The keycast overlay is on (keycast.rs): Input Monitoring matters while it is. */
   keycast?: boolean;
+  /** Text expansion is on (`[features.expansion] enabled`): it watches the keys typed in other apps. */
+  expand?: boolean;
 };
 
 /** One thing to do, or one fact, as a row with its action inline. */
@@ -102,7 +104,7 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
 
   const names = new Set(v.extensions.map((e) => e.name));
   // Snippet expansion watches the keys typed in other apps: Input Monitoring matters once it is on.
-  const expand = v.extensions.some((e) => e.name === "snippets" && e.values?.expand === true);
+  const expand = !!v.expand;
   // A permission is a row when it is refused and nothing else will ask for
   // it: Accessibility (asked on the first show; the one every paste needs),
   // Full Disk Access (no prompt exists, so this row is the only telling),
@@ -207,7 +209,7 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
   return [
     { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "shortcuts", anchor: "shortcuts:hotkey" } },
     ...(v.switcher === undefined ? [] : [{ label: "Switcher", value: v.switcher ? <span className="pal-overview__hotkeys" aria-label={comboLabel(v.switcher)}><Kbd shortcut={v.switcher} /></span> : "off", go: { page: "shortcuts" as const, anchor: "shortcuts:switcher" } }]),
-    ...(v.sidebar === undefined ? [] : [{ label: "Sidebar", value: v.sidebar, go: { page: "general" as const, anchor: "general:sidebar" } }]),
+    ...(v.sidebar === undefined ? [] : [{ label: "Sidebar", value: v.sidebar, go: { page: "features" as const, anchor: "features:sidebar" } }]),
     { label: "Extensions", value: `${plural(names.size - failedNames.size, "extension")} loaded${failedNames.size ? `, ${failedNames.size} failed` : ""}${instances ? `, ${plural(instances, "extra instance")}` : ""}`, go: { page: "extensions" } },
     { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "palettes" } },
     ...(v.barSupported === false ? [] : [{ label: "Bar", value: v.bar?.length ? `${barOn} of ${plural(v.bar.length, "item")} on` : "no items declared", go: { page: "bar" as const } }]),

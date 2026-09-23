@@ -11,6 +11,7 @@ pub mod dialog;
 pub mod env;
 pub mod expansion;
 pub mod extensions;
+pub mod features;
 pub mod frecency;
 pub mod fs;
 pub mod icons;

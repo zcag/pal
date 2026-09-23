@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
-// The Sidebar card under General as used: the switch puts the Windows
-// palette there and takes it away with `""`, the select writes
-// `sidebar.palette`, the edge, display, width, peek and hotkey each write
-// their key, the display list is the OS's names after Cursor and Primary
-// (a name no longer connected kept), and the Bar page's row points here.
+// The Sidebar feature's card body as used (its on/off switch is the card's,
+// settings-features.test.tsx): the select writes `palette`, the edge,
+// display, width, peek and hotkey each write their key, the display list
+// is the OS's names after Cursor and Primary (a name no longer connected
+// kept), and the Bar page no longer lists it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -36,18 +36,6 @@ const set = (i: HTMLInputElement | HTMLSelectElement, value: string) => act(() =
 });
 
 describe("Sidebar card", () => {
-  it("the switch puts the Windows palette there and takes it away with an empty palette", async () => {
-    const onChange = vi.fn();
-    await show(sidebarDefaults, onChange);
-    expect(button("Sidebar")!.getAttribute("aria-checked")).toBe("false");
-    expect(el.querySelector("#pal-sidebar-palette"), "no select while off").toBeNull();
-    click(button("Sidebar"));
-    expect(onChange).toHaveBeenLastCalledWith({ ...sidebarDefaults, palette: SIDEBAR_WINDOWS });
-    await show(on, onChange);
-    expect(button("Sidebar")!.getAttribute("aria-checked")).toBe("true");
-    click(button("Sidebar"));
-    expect(onChange).toHaveBeenLastCalledWith({ ...on, palette: "" });
-  });
   it("the select writes sidebar.palette from the enabled palettes, keeping a name the list does not offer", async () => {
     const onChange = vi.fn();
     await show(on, onChange);
@@ -79,10 +67,15 @@ describe("Sidebar card", () => {
     await show({ ...on, display: "Studio Display" }, onChange, ["Built-in Retina Display"]);
     expect([...el.querySelector<HTMLSelectElement>("#pal-sidebar-display")!.options].map((o) => o.textContent)).toContain("Studio Display (not connected)");
   });
-  it("every row is indexed under General with an anchor on the card, and the summary reads as a line", async () => {
+  it("no palette select while off", async () => {
+    await show(sidebarDefaults, () => {});
+    expect(el.querySelector("#pal-sidebar-palette")).toBeNull();
+  });
+  it("every row is indexed under Features with an anchor on the card, and the summary reads as a line", async () => {
     await show({ ...on, edge: "left", display: "primary" }, () => {});
     for (const e of sidebarIndex) expect(el.querySelector(`[data-anchor="${e.anchor}"]`), e.label).toBeTruthy();
-    expect(sidebarIndex.map((e) => e.label)).toEqual(["Sidebar", "Sidebar: edge", "Sidebar: display", "Sidebar: width", "Sidebar: peek after", "Sidebar: stays for", "Sidebar: peek", "Sidebar: hotkey"]);
+    expect(sidebarIndex.every((e) => e.page === "features")).toBe(true);
+    expect(sidebarIndex.map((e) => e.label)).toEqual(["Sidebar: palette", "Sidebar: edge", "Sidebar: display", "Sidebar: width", "Sidebar: peek after", "Sidebar: stays for", "Sidebar: peek", "Sidebar: hotkey"]);
     expect(sidebarSummary(sidebarDefaults, palettes)).toBe("off");
     expect(sidebarSummary(on, palettes)).toBe("Windows on the right edge");
     expect(sidebarSummary({ ...on, edge: "left", display: "primary" }, palettes)).toBe("Windows on the left edge, primary display");
@@ -90,20 +83,11 @@ describe("Sidebar card", () => {
   });
 });
 
-describe("the Bar page's Sidebar row", () => {
+describe("the Bar page", () => {
   const config: BarConfig = { target: "auto", hoverDelay: 250, hoverGrace: 400, menubarHover: false, sketchybarHover: false, sketchybarPosition: "right", menubar: { ...lookDefaults }, sketchybar: { ...lookDefaults } };
-  const page = (props: Partial<Parameters<typeof SettingsBar>[0]> = {}) => renderToStaticMarkup(<SettingsBar config={config} onChange={() => {}} items={barItems} onItem={() => {}} sketchybar={false} {...props} />);
-  it("lists the sidebar with its state and points at General", () => {
-    const off = page({ sidebar: sidebarDefaults, sidebarPalettes: palettes, selected: "__sidebar__", onOpenSidebar: () => {} });
-    expect(off).toContain('data-item="__sidebar__" data-anchor="bar:sidebar" data-active="true" data-dim="true" data-divider="true"');
-    expect(off).toContain('<span class="pal-settings-list__sub">off</span>');
-    expect(off).toContain("Off.");
-    expect(off).toContain("Open General › Sidebar");
-    expect(off).toContain("every row wears its number");
-    const html = page({ sidebar: on, sidebarPalettes: palettes, selected: "__sidebar__" });
-    expect(html).toContain('<span class="pal-settings-list__sub">Windows on the right edge</span>');
-    expect(html).toContain("Windows on the right edge.");
-    expect(html).not.toContain("Open General");
-    expect(barIndex(barItems).find((e) => e.anchor === "bar:sidebar")?.label).toBe("Sidebar");
+  it("lists no sidebar row: the sidebar is a feature", () => {
+    const html = renderToStaticMarkup(<SettingsBar config={config} onChange={() => {}} items={barItems} onItem={() => {}} sketchybar={false} />);
+    expect(html).not.toContain("__sidebar__");
+    expect(barIndex(barItems).some((e) => e.anchor === "bar:sidebar")).toBe(false);
   });
 });

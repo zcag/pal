@@ -251,11 +251,11 @@ describe("clipboard", () => {
     expect(r.error).toBe("no entry 99");
   });
 
-  test("settings: primary_action copy reorders, exclude_apps drops rows; the retention keys are the recorder's, not a list filter", async () => {
-    host.changeSettings("clipboard", { settings: { primary_action: "copy", exclude_apps: ["com.google.Chrome", "safari"], max_entries: 1, max_age_days: 1 } });
+  test("settings: primary_action copy reorders; what is recorded and listed is the feature's (clipboard.list leaves excluded apps out), not a filter here", async () => {
+    host.changeSettings("clipboard", { settings: { primary_action: "copy" } });
     const items = await list();
     expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "", limit: 200 } });
-    expect(items.map((i) => i.id)).toEqual(["2", "3", "4", "6"]);
+    expect(items).toHaveLength(ENTRIES.length);
     expect(items[0].actions!.map((a) => a.id).slice(0, 2)).toEqual(["copy", "paste"]);
     host.changeSettings("clipboard", {});
     expect(await list()).toHaveLength(ENTRIES.length);

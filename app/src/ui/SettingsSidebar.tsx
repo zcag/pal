@@ -1,4 +1,4 @@
-import { SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { SIDEBAR_WINDOWS, type SettingOption, type SettingsIndexEntry, type SidebarConfig, type SidebarEdge } from "./SettingsTypes";
 import { isMac } from "./keys";
 
@@ -17,18 +17,18 @@ export const SIDEBAR_HELP = `A live palette docked to a screen edge; every row w
 const edges: { id: SidebarEdge; title: string }[] = [{ id: "left", title: "Left" }, { id: "right", title: "Right" }];
 
 const text = {
-  sidebar: { anchor: "general:sidebar", label: "Sidebar", keywords: "sidebar edge dock windows palette on off" },
-  edge: { anchor: "general:sidebar:edge", label: "Edge", description: "Which side of the screen it docks to, 8 px in from the edge and from the top.", keywords: "left right side" },
-  display: { anchor: "general:sidebar:display", label: "Display", description: "Cursor is whichever display the pointer is on at each show (a peek strip on every display); Primary the one with the menu bar; a name that display alone.", keywords: "monitor screen cursor primary" },
-  width: { anchor: "general:sidebar:width", label: "Width", description: "Points. The height follows the rows, up to the work area.", keywords: "size points" },
-  delay: { anchor: "general:sidebar:delay", label: "Peek after", description: "How long the pointer rests at the edge before the peek; 0 is the moment it touches.", keywords: "hover delay instant" },
-  grace: { anchor: "general:sidebar:grace", label: "Stays for", description: "How long a peek stays after the pointer has left the edge and the window.", keywords: "hover grace linger" },
-  peek: { anchor: "general:sidebar:peek", label: "Peek", description: "The pointer touching the edge peeks it, centred on the pointer. Off leaves the hotkey and nothing at the edge.", keywords: "hover strip pointer" },
-  hotkey: { anchor: "general:sidebar:hotkey", label: "Hotkey", description: "Engages it from any app: shown key from hidden, or a peek made key. The root, palette and bar item hotkeys win a clash.", keywords: "shortcut keys engage" },
+  sidebar: { anchor: "features:sidebar:palette", label: "Palette", keywords: "sidebar edge dock windows palette on off" },
+  edge: { anchor: "features:sidebar:edge", label: "Edge", description: "Which side of the screen it docks to, 8 px in from the edge and from the top.", keywords: "left right side" },
+  display: { anchor: "features:sidebar:display", label: "Display", description: "Cursor is whichever display the pointer is on at each show (a peek strip on every display); Primary the one with the menu bar; a name that display alone.", keywords: "monitor screen cursor primary" },
+  width: { anchor: "features:sidebar:width", label: "Width", description: "Points. The height follows the rows, up to the work area.", keywords: "size points" },
+  delay: { anchor: "features:sidebar:delay", label: "Peek after", description: "How long the pointer rests at the edge before the peek; 0 is the moment it touches.", keywords: "hover delay instant" },
+  grace: { anchor: "features:sidebar:grace", label: "Stays for", description: "How long a peek stays after the pointer has left the edge and the window.", keywords: "hover grace linger" },
+  peek: { anchor: "features:sidebar:peek", label: "Peek", description: "The pointer touching the edge peeks it, centred on the pointer. Off leaves the hotkey and nothing at the edge.", keywords: "hover strip pointer" },
+  hotkey: { anchor: "features:sidebar:hotkey", label: "Hotkey", description: "Engages it from any app: shown key from hidden, or a peek made key. The root, palette and bar item hotkeys win a clash.", keywords: "shortcut keys engage" },
 } as const;
 
-/** The card's rows for the settings search, under General. */
-export const sidebarIndex: SettingsIndexEntry[] = (Object.values(text) as (typeof text)[keyof typeof text][]).map((r) => ({ page: "general", label: r.label === "Sidebar" ? "Sidebar" : `Sidebar: ${r.label.toLowerCase()}`, hint: r.label === "Sidebar" ? SIDEBAR_HELP : "Sidebar", anchor: r.anchor, keywords: `${r.keywords} ${"description" in r ? r.description : SIDEBAR_HELP}` }));
+/** The card's rows for the settings search, under Features. */
+export const sidebarIndex: SettingsIndexEntry[] = (Object.values(text) as (typeof text)[keyof typeof text][]).map((r) => ({ page: "features", label: `Sidebar: ${r.label.toLowerCase()}`, hint: "Sidebar", anchor: r.anchor, keywords: `sidebar ${r.keywords} ${"description" in r ? r.description : SIDEBAR_HELP}` }));
 
 /** One line for the Overview and the Bar page: "Windows on the right edge", or "off". */
 export function sidebarSummary(c: SidebarConfig, palettes: SettingOption[] = []): string {
@@ -39,10 +39,9 @@ export function sidebarSummary(c: SidebarConfig, palettes: SettingOption[] = [])
 }
 
 /**
- * `[sidebar]` as one card: the switch (On puts the Windows palette there
- * when none is named, Off writes the palette away), the palette, the edge,
- * the display, the width, the peek and the hotkey. The whole table is
- * here; Settings › Bar points at it.
+ * `[features.sidebar]`, the body of its Features card (the card's switch
+ * turns it on and off): the palette, the edge, the display, the width,
+ * the peek and the hotkey.
  */
 export function SettingsSidebar({ value, onChange, palettes = [], displays = [] }: SettingsSidebarProps) {
   const set = <K extends keyof SidebarConfig>(k: K, v: SidebarConfig[K]) => onChange({ ...value, [k]: v });
@@ -53,12 +52,9 @@ export function SettingsSidebar({ value, onChange, palettes = [], displays = [] 
   const known: SettingOption[] = [{ id: "cursor", title: "Cursor" }, { id: "primary", title: "Primary" }, ...displays.filter((d) => d && d !== "cursor" && d !== "primary").map((d) => ({ id: d, title: d }))];
   const displayOptions = known.some((d) => d.id === value.display) ? known : [...known, { id: value.display, title: `${value.display} (not connected)` }];
   return (
-    <SettingsGroup title="Sidebar" note={isMac ? undefined : "macOS only; the table is read here, nothing is built"}>
-      <SettingsRow anchor={text.sidebar.anchor} label={text.sidebar.label} description={<>{SIDEBAR_HELP}{on ? " Peek it, click into it or press its hotkey; typing filters, Enter runs, Escape hides." : ` On shows the Windows palette (${SIDEBAR_WINDOWS}), the one built for it; pick another below.`}</>}>
-        <span className="pal-sidebar__on">
-          <SettingsSwitch checked={on} onChange={(v) => set("palette", v ? SIDEBAR_WINDOWS : "")} label="Sidebar" />
-          {on && <SettingsSelect id="pal-sidebar-palette" label="Sidebar palette" value={value.palette.trim()} options={options} onChange={(v) => set("palette", v)} />}
-        </span>
+    <div className="pal-feature__rows">
+      <SettingsRow anchor={text.sidebar.anchor} label={text.sidebar.label} description={on ? "Peek it, click into it or press its hotkey; typing filters, Enter runs, Escape hides." : `Off. The switch above shows the Windows palette (${SIDEBAR_WINDOWS}), the one built for it; any palette can be picked once it is on.`}>
+        {on && <SettingsSelect id="pal-sidebar-palette" label="Sidebar palette" value={value.palette.trim()} options={options} onChange={(v) => set("palette", v)} />}
       </SettingsRow>
       <SettingsRow anchor={text.edge.anchor} label={text.edge.label} description={text.edge.description}>
         <SettingsSegment value={value.edge} options={edges} onChange={(v) => set("edge", v as SidebarEdge)} label="Sidebar edge" />
@@ -81,6 +77,6 @@ export function SettingsSidebar({ value, onChange, palettes = [], displays = [] 
       <SettingsRow anchor={text.hotkey.anchor} label={text.hotkey.label} description={text.hotkey.description}>
         <SettingsHotkey value={value.hotkey} onChange={(v) => set("hotkey", v)} label="Sidebar hotkey" />
       </SettingsRow>
-    </SettingsGroup>
+    </div>
   );
 }

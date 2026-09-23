@@ -41,7 +41,7 @@
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use pal_core::config::{spec_defaults, Config};
+use pal_core::config::Config;
 use pal_core::keycast::{caps, click_caps, typed, Entry, Feed, KeyEvent, Options, Phase};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -59,10 +59,6 @@ const MOVE_MS: Duration = Duration::from_millis(20);
 /// How often a move checks which display the cursor is on.
 const FOLLOW_MS: Duration = Duration::from_millis(250);
 const UNAVAILABLE: &str = "Keycast is not available on Linux: there is no portable input tap (Wayland hands input to the focused app only)";
-
-/// The extension's manifest, compiled in: its `settings` defaults are the
-/// overlay's too, so a key absent from the file means what Settings shows.
-const MANIFEST: &str = include_str!("../../../extensions/keycast/pal.json");
 
 /// What the overlay draws: the key strip, the cursor ring, or both.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,6 +95,15 @@ impl Mode {
         }
     }
 
+    /// The mode's words, for a row or the HUD.
+    pub fn word(self) -> &'static str {
+        match self {
+            Mode::Keys => "keys",
+            Mode::Cursor => "cursor",
+            Mode::Both => "keys and cursor",
+        }
+    }
+
     /// What the monitor has to deliver for the mode and the settings: keys
     /// and the clicks that carry modifiers for the strip, clicks for the
     /// ripples, the moves only while there is a ring to ride them, and
@@ -109,7 +114,7 @@ impl Mode {
     }
 }
 
-/// `[extensions.keycast]` as the overlay reads it.
+/// `[features.keycast]` as the overlay reads it (`core/features/keycast.json`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Settings {
     pub mode: String,
@@ -128,13 +133,7 @@ impl Settings {
     /// From a loaded config: the manifest's defaults under the file's
     /// keys; a value of the wrong type is logged and the defaults stand in.
     pub fn from(config: &Config) -> Settings {
-        let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
-        let defaults = spec_defaults(&manifest["settings"]);
-        let table = config.extension_settings("keycast", &defaults, &manifest["settings"]);
-        table.try_into().unwrap_or_else(|e| {
-            eprintln!("keycast\tbad settings\t{e}; using the defaults");
-            defaults.try_into().expect("manifest defaults fit Settings")
-        })
+        config.feature("keycast")
     }
 
     fn options(&self) -> Options {
@@ -263,6 +262,7 @@ fn publish(app: &AppHandle, active: bool, mode: Mode) {
                 eprintln!("keycast\tstates\t{e}");
             }
         }
+        crate::features::sync(&app);
     });
 }
 
@@ -511,6 +511,143 @@ fn on_event(app: &AppHandle, ev: &Event) {
     }
 }
 
+// ---- the bar item ----------------------------------------------------------------
+
+/// nf-md-record: the red dot on the bar.
+const REC: &str = "\u{f044a}";
+/// The popover's content width (`POPOVER_W` in the SDK).
+const POPOVER_W: u64 = 396;
+const MODES: [Mode; 3] = [Mode::Keys, Mode::Cursor, Mode::Both];
+
+impl Mode {
+    /// The mode as the strip's short title.
+    fn short(self) -> &'static str {
+        match self {
+            Mode::Both => "keys + cursor",
+            m => m.name(),
+        }
+    }
+
+    /// The popover's tile: title, what it draws, its key, its action's title.
+    fn tile(self) -> (&'static str, &'static str, &'static str, &'static str) {
+        match self {
+            Mode::Keys => ("Keys", "caps", "k", "Keys only"),
+            Mode::Cursor => ("Cursor", "ring", "c", "Cursor only"),
+            Mode::Both => ("Both", "caps + ring", "b", "Keys and cursor"),
+        }
+    }
+}
+
+fn position_word(p: &str) -> &str {
+    match p {
+        "bottom-center" => "bottom centre",
+        "bottom-left" => "bottom left",
+        "bottom-right" => "bottom right",
+        "top-right" => "top right",
+        "top-left" => "top left",
+        p => p,
+    }
+}
+
+fn text(value: &str, extra: Value) -> Value {
+    let mut t = json!({ "type": "text", "value": value });
+    t.as_object_mut().unwrap().extend(extra.as_object().cloned().unwrap_or_default());
+    t
+}
+
+fn stack(direction: &str, children: Vec<Value>, extra: Value) -> Value {
+    let mut s = json!({ "type": "stack", "direction": direction, "gap": 2, "children": children });
+    if direction == "row" {
+        s["align"] = json!("center");
+    }
+    s.as_object_mut().unwrap().extend(extra.as_object().cloned().unwrap_or_default());
+    s
+}
+
+fn key_hint(keys: &[&str], what: &str, action: Option<&str>) -> Vec<Value> {
+    let mut out: Vec<Value> = keys.iter().map(|k| { let mut c = json!({ "type": "keycap", "keys": k }); if let Some(a) = action { c["action"] = json!(a); } c }).collect();
+    out.push(text(what, json!({ "style": "muted", "size": "xs" })));
+    out
+}
+
+fn switch_row(key: &str, title: &str, sub: &str, on: bool, action: &str) -> Value {
+    stack("row", vec![
+        stack("column", vec![text(title, json!({ "style": "body", "key": format!("{key}-title") })), text(sub, json!({ "style": "muted", "size": "xs", "key": format!("{key}-sub-{on}"), "transition": { "enter": "fade", "exit": "none" } }))], json!({ "key": format!("{key}-text"), "gap": 0, "grow": true })),
+        json!({ "type": "switch", "key": format!("{key}-switch"), "on": on, "action": action, "label": title }),
+    ], json!({ "key": key, "padding": 1, "minHeight": 32, "action": action }))
+}
+
+/// The popover: the three modes as tiles, a status line, the shortcuts-only and gestures switches, the key hints.
+fn popover(st: &Status) -> Value {
+    let s = &st.settings;
+    let tile_w = (POPOVER_W - 16) / 3;
+    let tiles = stack("row", MODES.iter().map(|m| {
+        let on = st.active && st.mode == *m;
+        let (title, sub, _, _) = m.tile();
+        let mut t = json!({ "type": "tile", "key": format!("mode-{}", m.name()), "width": tile_w, "height": 48, "text": title, "sub": sub, "color": if on { "accent" } else { "neutral" }, "fill": if on { "solid" } else { "soft" }, "action": format!("mode:{}", m.name()) });
+        if on { t["selected"] = json!(true); }
+        t
+    }).collect(), json!({ "key": "modes", "gap": 2, "minHeight": 48 }));
+    let line = if !st.available { st.reason.unwrap_or("Not available here").to_string() }
+        else if !st.input_monitoring { "Needs Input Monitoring: nothing typed reaches pal until it is granted".to_string() }
+        else if st.active { format!("Showing {} · strip at the {} · hold {} s", st.mode.word(), position_word(&s.position), s.hold) }
+        else { "Off · Enter starts in the default mode".to_string() };
+    let status = text(&line, json!({ "key": format!("status-{}-{}", st.active, st.input_monitoring), "style": "muted", "size": "xs", "width": POPOVER_W - 8, "transition": { "enter": "fade", "exit": "none" } }));
+    let mut hints = key_hint(&["k", "c", "b"], "mode", None);
+    hints.extend(key_hint(&["s"], "shortcuts", Some("shortcuts")));
+    hints.extend(key_hint(&["g"], "gestures", Some("gestures")));
+    hints.extend(if st.active { key_hint(&["backspace"], "stop", Some("toggle")) } else { key_hint(&["enter"], "start", Some("toggle")) });
+    hints.extend(key_hint(&["o"], "settings", Some("settings")));
+    let kids = if st.available {
+        vec![
+            tiles,
+            status,
+            switch_row("shortcuts", "Shortcuts only", if s.shortcuts_only { "Plain typing stays off the screen" } else { "Every key is shown" }, s.shortcuts_only, "shortcuts"),
+            switch_row("gestures", "Scroll and gestures", if s.gestures { "Scrolls, pinches, rotations and swipes on the strip" } else { "Keys and clicks only" }, s.gestures, "gestures"),
+            stack("row", hints, json!({ "key": "hints", "gap": 1, "minHeight": 22 })),
+        ]
+    } else {
+        vec![status]
+    };
+    let mut actions = vec![if st.active { json!({ "id": "toggle", "title": "Stop keycast", "shortcut": "backspace", "style": "destructive" }) } else { json!({ "id": "toggle", "title": "Start keycast" }) }];
+    actions.extend(MODES.iter().map(|m| {
+        let (_, _, key, title) = m.tile();
+        json!({ "id": format!("mode:{}", m.name()), "title": if st.active && st.mode == *m { format!("{title} (on)") } else { title.to_string() }, "shortcut": key })
+    }));
+    actions.push(json!({ "id": "shortcuts", "title": if s.shortcuts_only { "Show every key" } else { "Shortcuts only" }, "shortcut": "s" }));
+    actions.push(json!({ "id": "gestures", "title": if s.gestures { "Keys and clicks only" } else { "Scroll and gestures" }, "shortcut": "g" }));
+    actions.push(json!({ "id": "settings", "title": "Keycast settings", "shortcut": "o" }));
+    json!({ "tree": stack("column", kids, json!({ "key": "popover", "padding": 3, "gap": 2 })), "actions": actions, "title": if st.active { format!("Keycast: {}", st.mode.word()) } else { "Keycast".into() }, "id": "keycast", "keys": "actions" })
+}
+
+/// `keycast/active` as drawn: a red dot and the mode while on, hidden (its `empty` kept for `show = "always"`) while off.
+pub fn bar_item(app: &AppHandle) -> Value {
+    let st = status(app);
+    let menu = json!({ "view": popover(&st) });
+    if !st.active {
+        return json!({ "hidden": true, "empty": { "icon": REC, "tooltip": if st.available { "Keycast is off" } else { st.reason.unwrap_or_default() }, "menu": menu } });
+    }
+    let mut notes = String::new();
+    if st.settings.shortcuts_only { notes.push_str(" · shortcuts only"); }
+    if st.settings.gestures && st.mode != Mode::Cursor { notes.push_str(" · scroll and gestures"); }
+    json!({ "icon": REC, "title": st.mode.short(), "tooltip": format!("Keycast: {}{notes}", st.mode.word()), "menu": menu })
+}
+
+/// A key or a click in the popover: `keep` re-renders the item with the new tree; Stop hides the popover with the HUD's line.
+pub fn bar_action(app: &AppHandle, action: &str) -> Result<Value, String> {
+    let flip = |setting: &str| crate::features::run(app, &format!("keycast.{setting}")).map(|_| json!({ "keep": true }));
+    match action {
+        "settings" => Ok(json!({ "open": "pal://settings/features?anchor=features:keycast" })),
+        "shortcuts" => flip("shortcuts_only"),
+        "gestures" => flip("gestures"),
+        "toggle" => toggle(app, None).map(|st| if st.active { json!({ "keep": true }) } else { json!({ "hud": "Keycast off" }) }),
+        a => match a.strip_prefix("mode:").and_then(Mode::parse) {
+            Some(m) => start(app, Some(m)).map(|_| json!({ "keep": true })),
+            None => Ok(json!({ "keep": true })),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -531,7 +668,7 @@ mod tests {
     fn the_file_overrides_the_defaults_and_the_feed_options_are_clamped() {
         let mut c = Config::default();
         let t: toml::Table = toml::from_str("mode = \"keys\"\nhold = 0.05\nmax = 40\nshortcuts_only = true\nring_color = \"pink\"").unwrap();
-        c.extensions.insert("keycast".into(), t);
+        c.features.tables.insert("keycast".into(), t);
         let s = Settings::from(&c);
         assert_eq!(s.mode(), Mode::Keys);
         assert!(s.shortcuts_only);

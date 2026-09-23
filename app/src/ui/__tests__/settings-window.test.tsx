@@ -16,10 +16,10 @@ const noop = () => {};
 const count = (html: string, re: RegExp) => html.match(re)?.length ?? 0;
 
 describe("SettingsWindow", () => {
-  it("puts the seven pages on the toolbar as tabs, the current one selected", () => {
+  it("puts the eight pages on the toolbar as tabs, the current one selected", () => {
     const html = renderToStaticMarkup(<SettingsWindow page="palettes" onPage={noop}><p>body</p></SettingsWindow>);
-    expect(settingsPages.map((p) => p.id)).toEqual(["overview", "general", "shortcuts", "palettes", "extensions", "bar", "about"]);
-    expect(count(html, /role="tab"/g)).toBe(7);
+    expect(settingsPages.map((p) => p.id)).toEqual(["overview", "general", "shortcuts", "features", "palettes", "extensions", "bar", "about"]);
+    expect(count(html, /role="tab"/g)).toBe(8);
     expect(count(html, /aria-selected="true"/g)).toBe(1);
     expect(html).toContain('data-nav="palettes" tabindex="0"');
     expect(html).toContain("data-tauri-drag-region");

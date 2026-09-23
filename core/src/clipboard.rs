@@ -165,6 +165,9 @@ struct Inner {
     images: PathBuf,
     retention: Retention,
     fts: bool,
+    /// Bundle ids whose entries `list` leaves out: what was recorded from
+    /// an app before it went on the exclude list ([`Clipboard::hide_apps`]).
+    hidden: Mutex<Vec<String>>,
 }
 
 impl Inner {
@@ -261,11 +264,18 @@ impl Clipboard {
         migrate(&db)?;
         // The bundled SQLite has FTS5; a system one might not, and LIKE still works.
         let fts = db.execute_batch(SCHEMA_FTS).is_ok();
-        Ok(Self(Arc::new(Inner { db: Mutex::new(db), images: dir.join("clipboard"), retention, fts })))
+        Ok(Self(Arc::new(Inner { db: Mutex::new(db), images: dir.join("clipboard"), retention, fts, hidden: Mutex::new(Vec::new()) })))
     }
 
     pub fn retention(&self) -> Retention {
         self.0.retention
+    }
+
+    /// Leave entries from these apps (bundle ids) out of [`list`](Self::list):
+    /// the recorder's exclude list, so an app added to it takes its older
+    /// entries off the history as well as its next ones.
+    pub fn hide_apps(&self, apps: Vec<String>) {
+        *self.0.hidden.lock().unwrap_or_else(|e| e.into_inner()) = apps;
     }
 
     /// Record what the user copies until the handle is dropped. Copies made
@@ -389,11 +399,12 @@ impl Clipboard {
     pub fn list(&self, query: &str, kind: Option<Kind>, limit: usize, offset: usize) -> Result<Vec<Entry>> {
         let db = self.0.db();
         let kind = kind.map(Kind::as_str);
-        let order = "ORDER BY e.pinned DESC, e.at DESC LIMIT ?2 OFFSET ?3";
+        let order = "AND (e.source_app IS NULL OR e.source_app NOT IN (SELECT value FROM json_each(?6))) ORDER BY e.pinned DESC, e.at DESC LIMIT ?2 OFFSET ?3";
+        let hidden = serde_json::to_string(&*self.0.hidden.lock().unwrap_or_else(|e| e.into_inner())).unwrap_or_else(|_| "[]".into());
         let q = query.trim();
         let like = format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
         let (sql, needle) = if q.is_empty() {
-            (format!("SELECT {COLS} FROM entries e WHERE (?1 IS NULL OR e.kind = ?1) {order}"), None)
+            (format!("SELECT {COLS} FROM entries e WHERE (?1 IS NULL OR e.kind = ?1) {order}"), None::<String>)
         } else if self.0.fts {
             (
                 format!("SELECT {COLS} FROM entries e WHERE (e.id IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?4) OR e.name LIKE ?5 ESCAPE '\\') AND (?1 IS NULL OR e.kind = ?1) {order}"),
@@ -406,10 +417,8 @@ impl Clipboard {
             )
         };
         let mut stmt = db.prepare_cached(&sql)?;
-        let rows = match needle {
-            None => stmt.query_map(params![kind, limit as i64, offset as i64], row_entry)?,
-            Some(n) => stmt.query_map(params![kind, limit as i64, offset as i64, n, like], row_entry)?,
-        };
+        // Every statement names ?6, so SQLite counts six parameters and all six are bound; the empty query's leaves ?4 and ?5 unread.
+        let rows = stmt.query_map(params![kind, limit as i64, offset as i64, needle, like, hidden], row_entry)?;
         let entries: std::result::Result<Vec<_>, _> = rows.collect();
         Ok(entries?.into_iter().map(|e| self.resolve(e)).collect())
     }
@@ -1319,6 +1328,20 @@ mod tests {
         assert!(matches!(cb.get(999), Err(Error::NotFound(999))));
         assert!(cb.record(Content::Text(String::new()), None).unwrap().is_none(), "empty is skipped");
         assert!(dir.path().join("clipboard.db").is_file());
+    }
+
+    #[test]
+    fn hidden_apps_leave_the_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let cb = open(dir.path(), Retention::default());
+        let a = text(&cb, "alpha", 100);
+        let b = cb.record_at(Content::Text("secret".into()), Some("com.agilebits.onepassword7".into()), t(200)).unwrap().unwrap();
+        let c = cb.record_at(Content::Text("nowhere".into()), None, t(300)).unwrap().unwrap();
+        assert_eq!(ids(&cb.list("", None, 10, 0).unwrap()), [c.id, b.id, a.id]);
+        cb.hide_apps(vec!["com.agilebits.onepassword7".into()]);
+        assert_eq!(ids(&cb.list("", None, 10, 0).unwrap()), [c.id, a.id], "an entry with no app stays");
+        assert_eq!(ids(&cb.list("secret", None, 10, 0).unwrap()), Vec::<i64>::new(), "searched too");
+        assert_eq!(ids(&cb.list("", None, 1, 1).unwrap()), [a.id], "paged over what is shown");
     }
 
     #[test]

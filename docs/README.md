@@ -4,8 +4,11 @@
   in the order things come up: permissions, the hotkey, the panel, the
   root, the bar, Settings, the config file, the store, the CLI.
 - [Config](config.md): the config file key by key with its default:
-  `[general]`, the theme file, `[palettes]`, `[bar]`, `[extensions]`,
+  `[general]`, the theme file, `[palettes]`, `[bar]`, `[features]`, `[extensions]`,
   `[instances]`, secrets, live reload, diagnostics, profiles.
+- [Features](features.md): what pal does on its own (clipboard history,
+  text expansion, the window switcher, the sidebar, keeping windows below
+  a bar, mouse and trackpad, keycast), their settings and commands.
 - [Palettes](palettes.md): every bundled palette with its keys, actions,
   settings and links.
 - [Scripts and data files](scripts.md): the zero-code tier, a palette from

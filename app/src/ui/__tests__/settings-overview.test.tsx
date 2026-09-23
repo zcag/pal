@@ -59,8 +59,7 @@ describe("overviewItems", () => {
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.action).toEqual({ label: "Open the pane", permission: "full_disk_access" });
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.detail).toContain("Switch it on under Privacy & Security > Full Disk Access");
     // Input Monitoring: a row once expansion is on (pal asked then), never for the bar's peeks alone.
-    const snippets = { ...otp, name: "snippets", values: { expand: true } };
-    const expanding = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, snippets] });
+    const expanding = overviewItems({ ...ok, permissions: nothingGranted, extensions: quiet, expand: true });
     expect(expanding.find((i) => i.id === "permission:input_monitoring")?.detail).toContain("Snippet expansion");
     // Location is the wifi extension's, and a row only once the prompt was answered no; the same for Calendars.
     const denied = { ...nothingGranted, location: "denied" as const, calendar: "denied" as const };
@@ -151,7 +150,7 @@ describe("SettingsOverview", () => {
     expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
     // The switcher and the sidebar, as facts of their own when the page is told about them; a palette with a chord counts in the Palettes line.
     const both = overviewFacts({ ...ok, switcher: "alt+tab", sidebar: "Windows on the right edge" });
-    expect(both.map((f) => [f.label, f.go.anchor])).toEqual([["Hotkey", "shortcuts:hotkey"], ["Switcher", "shortcuts:switcher"], ["Sidebar", "general:sidebar"], ["Extensions", undefined], ["Palettes", undefined], ["Bar", undefined]]);
+    expect(both.map((f) => [f.label, f.go.anchor])).toEqual([["Hotkey", "shortcuts:hotkey"], ["Switcher", "shortcuts:switcher"], ["Sidebar", "features:sidebar"], ["Extensions", undefined], ["Palettes", undefined], ["Bar", undefined]]);
     expect(renderToStaticMarkup(<>{both[1].value}</>)).toContain(`aria-label="${comboLabel("alt+tab")}"`);
     expect(both[2].value).toBe("Windows on the right edge");
     expect(overviewFacts({ ...ok, switcher: "", sidebar: "off" })[1].value).toBe("off");

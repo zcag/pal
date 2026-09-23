@@ -686,6 +686,30 @@
       ],
       "type": "string"
     },
+    "Features": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "description": "`[features]`: one table per feature (`crate::features`). The sidebar\nis typed; every other feature's table is read over its spec's defaults\n([`Config::feature_settings`]).",
+      "properties": {
+        "sidebar": {
+          "$ref": "#/$defs/Sidebar",
+          "default": {
+            "delay": 0,
+            "display": "cursor",
+            "edge": "right",
+            "grace": 150,
+            "hotkey": null,
+            "palette": "",
+            "peek": true,
+            "width": 280.0
+          },
+          "description": "The sidebar: a live palette docked to a screen edge\n(`docs/design/switcher.md`)."
+        }
+      },
+      "type": "object"
+    },
     "General": {
       "additionalProperties": false,
       "properties": {
@@ -693,10 +717,6 @@
           "default": true,
           "description": "Typing a palette's alias (or its name, or its one-word title) and a\nspace at the root jumps into that palette with the rest typed:\n`calc 2+2`, `emoji cat`. `false` leaves the space as a character.",
           "type": "boolean"
-        },
-        "app_switcher": {
-          "description": "macOS's own App Switcher (Cmd+Tab's) on this chord, for when pal's\nswitcher has taken `cmd+tab`: `\"alt+tab\"`. Its `shift+` variant steps\nback. Goes through the same event tap as `cmd+tab` (Input\nMonitoring); unset is off.",
-          "type": "string"
         },
         "backspace_back": {
           "default": true,
@@ -1071,11 +1091,26 @@
       "description": "Extension settings, keyed by extension name, or by instance key\n(`[extensions.\"gmail@work\"]`, which inherits `[extensions.gmail]`\nexcept its secrets and `scope: \"instance\"` settings). Shape is\nwhatever the extension declared.",
       "type": "object"
     },
+    "features": {
+      "$ref": "#/$defs/Features",
+      "default": {
+        "sidebar": {
+          "delay": 0,
+          "display": "cursor",
+          "edge": "right",
+          "grace": 150,
+          "hotkey": null,
+          "palette": "",
+          "peek": true,
+          "width": 280.0
+        }
+      },
+      "description": "Features: what pal does on its own (`docs/design/model.md`,\n`crate::features`), one table each."
+    },
     "general": {
       "$ref": "#/$defs/General",
       "default": {
         "alias_space": true,
-        "app_switcher": null,
         "backspace_back": true,
         "check_updates": true,
         "compact": false,
@@ -1137,20 +1172,6 @@
       "default": {},
       "description": "Per-palette settings, keyed by palette id.",
       "type": "object"
-    },
-    "sidebar": {
-      "$ref": "#/$defs/Sidebar",
-      "default": {
-        "delay": 0,
-        "display": "cursor",
-        "edge": "right",
-        "grace": 150,
-        "hotkey": null,
-        "palette": "",
-        "peek": true,
-        "width": 280.0
-      },
-      "description": "The sidebar: a live palette docked to a screen edge\n(`docs/design/switcher.md`)."
     },
     "states": {
       "additionalProperties": {

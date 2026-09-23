@@ -204,9 +204,16 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Faile
     rows
 }
 
+/// pal's own rows and the features' commands (`features::rows`), what the index holds.
+fn all_rows(app: &AppHandle, update: Option<&updater::UpdateInfo>, failed: &[Failed]) -> Vec<Item> {
+    let mut rows = rows(&app.package_info().version.to_string(), update, failed);
+    rows.extend(crate::features::rows(app, &settings::config(app)));
+    rows
+}
+
 /// Put the rows in the index; once, at startup, after the cached palettes.
 pub fn install(app: &AppHandle) {
-    let rows = rows(&app.package_info().version.to_string(), None, &[]);
+    let rows = all_rows(app, None, &[]);
     let n = rows.len();
     index::with_index(app, |ix| ix.replace(source(), rows));
     eprintln!("commands\t{n} rows");
@@ -220,7 +227,7 @@ fn failed_now(app: &AppHandle) -> Vec<Failed> {
 /// The rows again with or without "Install Update", after a check
 /// (`updater::check`): the page re-queries on the index event.
 pub fn sync_update_row(app: &AppHandle, update: Option<&updater::UpdateInfo>) {
-    let rows = rows(&app.package_info().version.to_string(), update, &failed_now(app));
+    let rows = all_rows(app, update, &failed_now(app));
     let had = index::with_index(app, |ix| ix.get(&source(), INSTALL_UPDATE).is_some());
     let has = rows.iter().any(|r| r.id == INSTALL_UPDATE);
     if had == has {
@@ -243,9 +250,23 @@ pub fn sync_failed_rows(app: &AppHandle) {
         return;
     }
     let update = update.then(|| settings::last_app_check(app)).flatten();
-    let rows = rows(&app.package_info().version.to_string(), update.as_ref(), &failed);
+    let rows = all_rows(app, update.as_ref(), &failed);
     index::with_index(app, |ix| ix.replace(source(), rows));
     eprintln!("commands\tfailed rows\t{}", if want.is_empty() { "none".into() } else { want.join(",") });
+    crate::events::emit(app, crate::events::INDEX, ());
+}
+
+/// Every row again, when a feature's command row changed (a toggle's
+/// tag after a config reload, keycast's Start/Stop): nothing when the
+/// rows are the same; the page re-queries on the index event otherwise.
+pub fn sync(app: &AppHandle) {
+    let update = index::with_index(app, |ix| ix.get(&source(), INSTALL_UPDATE).is_some()).then(|| settings::last_app_check(app)).flatten();
+    let rows = all_rows(app, update.as_ref(), &failed_now(app));
+    let same = index::with_index(app, |ix| ix.snapshot(&source()).iter().map(|r| (&r.id, &r.name, r.extra.get("accessories"))).eq(rows.iter().map(|r| (&r.id, &r.name, r.extra.get("accessories")))));
+    if same {
+        return;
+    }
+    index::with_index(app, |ix| ix.replace(source(), rows));
     crate::events::emit(app, crate::events::INDEX, ());
 }
 
@@ -508,6 +529,10 @@ pub fn restart(app: &AppHandle) -> Result<(), String> {
 /// A pick on a command row: the envelope the page should see, as
 /// `index::pick` returns for a host row.
 pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Option<&Value>) -> Result<Value, String> {
+    if crate::features::split(id).is_some() {
+        let (app, id) = (app.clone(), id.to_string());
+        return tauri::async_runtime::spawn_blocking(move || crate::features::run(&app, &id)).await.map_err(|e| e.to_string())?;
+    }
     let hide = || Ok(json!({ "hide": true }));
     match plan(id, action, values) {
         Plan::Settings(page) => {

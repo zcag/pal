@@ -56,11 +56,13 @@ neither, paste fails and the toast says so.
 
 What is never recorded: anything a password manager marks as concealed or
 transient (the `org.nspasteboard` convention), copies over 10 MB, and
-copies made while an app in `exclude_apps` is in front. Copying something
+copies made while an app in the Clipboard history feature's
+`exclude_apps` is in front. Copying something
 already in history bumps it to the top instead of adding a duplicate.
 
-Retention runs after every copy: unpinned entries older than
-`max_age_days` are deleted, then the unpinned tail past `max_entries`.
+Retention runs after every copy: unpinned entries older than the
+feature's `max_age_days` are deleted, then the unpinned tail past its
+`max_entries`.
 Pinned entries never expire. A search lists at most 200 rows of what is
 left.
 
@@ -68,14 +70,12 @@ Settings, `[extensions.clipboard]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `exclude_apps` | list | `["com.apple.keychainaccess", "com.apple.Passwords"]` | Bundle ids (`com.1password.1password`) or readable names (`Slack`). The recorder skips copies made while one is in front, and entries already recorded from one are not listed. `[]` excludes nothing. |
-| `max_entries` | number, 1 to 100000 | `1000` | How many unpinned entries history keeps. |
-| `max_age_days` | number, 0 to 3650 | `30` | Unpinned entries older than this are deleted. `0` is no age limit. |
 | `primary_action` | `paste`, `copy` | `"paste"` | What `enter` does on an entry. |
 
-The recorder reads the three retention keys once, when pal starts, so a
-change to them takes effect at the next launch; `primary_action` applies
-live.
+What is recorded and kept (`exclude_apps`, `max_entries`,
+`max_age_days`) is the Clipboard history feature's, `[features.clipboard]`
+([Features](../../docs/features.md#clipboard-history)): the recorder is
+built into pal, and this extension is its palettes.
 
 ## What it does not do
 

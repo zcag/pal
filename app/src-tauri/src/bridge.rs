@@ -12,9 +12,9 @@
 //! - `core/effects.run` (effects.rs)
 //! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)
 //! - `core/media.{now_playing, control, artwork}` (media.rs)
-//! - `core/mouse.status` (mouse.rs)
 //! - `core/ocr.{image {path | data}, available}` (ocr.rs)
 //! - `core/keycast.{status, start {mode?}, stop, toggle {mode?}}` (keycast.rs)
+//! - `core/snippets.{list, set {snippets}}` (expansion.rs)
 //! - `core/selection.{text,files}` (selection.rs)
 //! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
@@ -51,13 +51,13 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "effects" => crate::effects::call(app, func, params),
         "extensions" => extensions::call(app, func, params),
         "media" => crate::media::call(app, func, params),
-        "mouse" => crate::mouse::call(app, func, params),
         "menubar" => menubar::call(app, func, params),
         "permissions" => crate::permissions::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
         "instances" => crate::settings::instances(app, func, params),
         "states" => crate::states::call(app, func, params),
         "storage" => crate::storage::call(app, func, params),
+        "snippets" => crate::expansion::call(app, func, params),
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),
         "ocr" => crate::ocr::call(app, func, params),

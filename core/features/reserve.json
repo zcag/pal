@@ -1,0 +1,36 @@
+{
+  "id": "reserve",
+  "title": "Keep below the bar",
+  "description": "Windows that would sit under a bar drawn over the top of the screen (sketchybar) are moved and sized to start below it.",
+  "icon": {
+    "tile": {
+      "glyph": "󱂪",
+      "bg": "indigo"
+    }
+  },
+  "platforms": [
+    "macos"
+  ],
+  "permission": "accessibility",
+  "toggle": "enabled",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "enabled",
+      "label": "Keep windows below the bar",
+      "text": "macOS: a window that opens, zooms or is dragged under a bar drawn over a hidden menu bar (sketchybar) is moved down clear of it, its bottom edge kept; the layouts leave the bar free too. Needs Accessibility",
+      "default": false
+    },
+    {
+      "kind": "number",
+      "id": "bar_height",
+      "label": "Bar height",
+      "description": "The strip kept free at the top of every display; 0 asks sketchybar for its own height.",
+      "min": 0,
+      "max": 200,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ]
+}

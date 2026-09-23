@@ -507,8 +507,8 @@ transient (the `org.nspasteboard` convention on macOS, the
 `x-kde-passwordManagerHint` type on Linux, read through `wl-paste` or
 `xclip`), pal's own concealed copies (a 1Password password, a
 verification code: marked the same way, and their clear-after restore),
-copies over 10 MB, and copies made while an app in `exclude_apps` is in
-front. Copying something already in history bumps it to the top instead
+copies over 10 MB, and copies made while an app in the feature's
+`exclude_apps` is in front. Copying something already in history bumps it to the top instead
 of adding a duplicate.
 
 Retention runs after every copy: unpinned entries older than
@@ -542,17 +542,12 @@ Settings, `[extensions.clipboard]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `exclude_apps` | list | `["com.apple.keychainaccess", "com.apple.Passwords"]` | Bundle ids (`com.1password.1password`) or readable names (`Slack`). The recorder skips copies made while one of them is in front, and entries already recorded from one are not listed. The default is Keychain Access and Passwords; `[]` excludes nothing. |
-| `max_entries` | number, 1 to 100000 | `1000` | How many unpinned entries history keeps. |
-| `max_age_days` | number, 0 to 3650 | `30` | Unpinned entries older than this are deleted. `0` is no age limit: entries stay until the count limit. |
 | `primary_action` | `paste`, `copy` | `"paste"` | What `Enter` does on an entry. |
 | `ocr_concealed` | bool | `false` | Text read from an image (Copy text from image) is copied concealed, so it never enters this history. |
 
-The recorder reads the three retention keys once, when pal starts, so a
-change to them takes effect at the next launch (`primary_action` applies
-live). On Linux the source app of a copy is not known (neither X11 nor the
-Wayland data-control protocol says who owns the selection), so
-`exclude_apps` has no effect there.
+What is recorded and for how long (`exclude_apps`, `max_entries`,
+`max_age_days`) is the Clipboard history feature's, `[features.clipboard]`
+([Features](features.md#clipboard-history)).
 
 ## Clipboard (`clipboard-rows`)
 
@@ -833,53 +828,13 @@ every config profile.
 
 ### Expansion: the keyword typed in any app
 
-On macOS, with `expand = true`, a snippet's keyword typed in any other app
-is replaced by its text in place: type `;sig` in a mail and the signature
-lands where the keyword was, placeholders filled, the clipboard left as
-it was. Off by default. How it works (`pal_core::expansion`,
-`app/src-tauri/src/expansion.rs`): pal watches the keys typed in other
-apps (an `NSEvent` global monitor, which needs **Input Monitoring** for
-pal; the Overview's row says so and grants it) and keeps the last 64
-characters typed in the app in front; when they end in the prefix and a
-keyword, it deletes what was typed with that many backspaces, puts the
-filled text on the pasteboard marked concealed (clipboard managers and
-pal's own history skip it), pastes it, moves the caret back for a
-`{cursor}`, and 300 ms later puts the previous clipboard back (the
-backspaces and the paste need **Accessibility**, like Paste). Then the
-HUD says "Expanded Signature".
-
-- **Prefix** (`expand_prefix`): `;sig` by default, `:sig`, or `none` for
-  the bare keyword at the start of a word (after a space, a bracket, the
-  start of the field; `design` never fires `sig`). The bare form fires
-  inside ordinary typing more often than you would like, which is why
-  the prefix is the default.
-- **Never in** (`expand_exclude_apps`): bundle ids where nothing expands.
-  Terminals (Terminal, kitty, iTerm, Warp, WezTerm, Alacritty, Ghostty)
-  and password managers (1Password, Bitwarden) by default. A secure text
-  field (a password field, `sudo` in a terminal; `IsSecureEventInputEnabled`)
-  never expands anywhere, and neither do pal's own windows.
-- The buffer empties on an arrow, Enter, Tab, Escape, a `⌘` or `⌃`
-  combination, a change of app, and after an expansion; Backspace takes
-  one character back, so a typo corrected still expands.
-- `{cursor}` in the text: the caret lands there after the paste
-  (`Dear {cursor},` leaves it before the comma). A paste from the panel
-  drops it. `{selection}` is left as written: the selection while a
-  keyword is being typed is the keyword.
-- A snippet saved or edited in the panel expands on the next keystroke:
-  the storage file is re-read when its mtime moves.
-- Linux: not available. Wayland hands key events to the focused client only and
-  X11 has no portable tap either, so nothing watches the keys; the palette's
-  Enter is the way to paste a snippet, and `pal://snippets/paste?name=sig` binds
-  one to a compositor key.
-
-Settings, `[extensions.snippets]`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `expand` | bool | `false` | Expand keywords typed in other apps (macOS). Needs Accessibility and Input Monitoring for pal. |
-| `expand_prefix` | `";"`, `":"`, `"none"` | `";"` | What comes before the keyword. |
-| `expand_exclude_apps` | list of bundle ids | terminals and password managers | Apps where nothing expands. |
-| `expand_hud` | bool | `true` | "Expanded `<name>`" in the HUD after an expansion. |
+On macOS a snippet's keyword typed in any other app can be replaced by its
+text in place: that is the Text expansion feature's, which keeps the
+snippets this palette edits ([Features](features.md#text-expansion)). A
+snippet saved here expands on the next keystroke. Linux has no expansion
+(no portable keyboard tap); the palette's Enter is the way to paste a
+snippet there, and `pal://snippets/paste?name=sig` binds one to a
+compositor key.
 
 ## SSH Hosts (`ssh`)
 
@@ -4993,131 +4948,6 @@ Jellyseerr, the arrs, Prowlarr, NZBHydra2, Bazarr and SABnzbd;
 Audiobookshelf and Kavita; `jellyfin_user`, whose watched state the rows
 show. For the tests, `PAL_THEATER_<SERVICE>_<URL|KEY|USER|PASSWORD>`
 replaces any of them.
-## Keycast (`keycast`, `keycast/active`)
-
-Keystrokes and clicks drawn over the screen for a recording or a screen
-share (KeyCastr, Keyviz), macOS only. A live, normal palette: Start
-keycast / Stop keycast leads it (its subtitle the mode and the strip's
-edge; the row is in the root's Now section while it runs), then the
-three modes, Keys only, Cursor only, Keys and cursor (the one on tagged
-`current`, the default `default`), then Shortcuts only: on / off and
-Scroll and gestures: on / off, and, while the grant is missing, a
-Keycast needs Input Monitoring row that asks on Enter. Start and Stop hide the panel and the HUD says `Keycast
-on: keys and cursor`, so the panel is never in the recording.
-
-What it draws (`app/src-tauri/src/keycast.rs`, the overlay window; the
-caps and the feed are `pal_core::keycast`): the recent entries as one
-row along the chosen edge, oldest on the left and newest on the right
-(the way KeyCastr and Keyviz read), each a frosted capsule. Plain typing
-runs together as text in the capsule as typed (`hello world`, a caret
-while the run still takes characters: the next character within a
-second joins it, up to 24, and a pause, a shortcut or a named key starts
-the next); a shortcut is caps with a lip, `⌃ ⌥ ⇧ ⌘` as glyphs drawn a
-shade lighter than the key they chord with (`⌘⇧S`); a named key its
-symbol (`↵ ⇥ ⌫ ⌦ esc ← ⇞ F5`); a repeat within the hold folded into one
-entry with a `×3` badge on its corner; a click with modifiers `⌥ click`.
-An entry fades and settles with age and is gone `hold` seconds after
-its last press, `max` kept; the far end of a row longer than the screen
-fades out under a mask.
-With `gestures` on the strip also names what the trackpad and the wheel
-do: `scroll ↓` (the arrow from the dominant axis of what has piled up,
-sized by how far in three steps, one entry per stretch that the momentum
-keeps on screen; a wheel's notches one way join the newest), `pinch out
-+35%` and `rotate ↻ 12°` (one entry each counting up until the fingers
-lift), `swipe ←`, `smart zoom`; only what AppKit hands a global monitor,
-so the system's three- and four-finger swipes never show. A ring around
-the cursor in the `ring_color` (smaller while a button is down) and a
-ripple on every click, a filled disc for the left button, a hollow amber
-ring for the right, grey for the middle. The overlay is a
-full-screen pass-through window on the display under the cursor,
-following it across displays; the strip keeps clear of the menu bar and
-the Dock. Nothing typed shows while a secure text field has the keyboard
-(a password, `sudo`), nor what is typed into pal itself; with
-`shortcuts_only` plain typing stays off the screen and only a key with
-`cmd`, `ctrl` or `alt` or a function or navigation key shows.
-
-| keys | action |
-| --- | --- |
-| `enter` | Start or stop; on a mode row, start in (or switch to) that mode |
-| `cmd+enter` | Stop, from a mode row |
-| `cmd+shift+s` | Shortcuts only on or off |
-| `cmd+shift+g` | Scroll and gestures on or off |
-| `cmd+,` | Open the settings |
-
-`pal://keycast/toggle?mode=keys|cursor|both` (off to on in that mode,
-the default without one; on in that mode or with none named to off; on
-in another mode switches), `pal://keycast/start?mode=` and
-`pal://keycast/stop` are the keybind's routes. The shell publishes
-`keycast/active` and `keycast/mode` as states.
-
-The bar item `keycast/active`: a red record dot with the mode (`keys +
-cursor`) while it runs, hidden otherwise (a rule `on` colours it; `show
-= "always"` keeps a muted dot). The popover: the three modes as tiles
-(`k`, `c`, `b`), the shortcuts-only (`s`) and gestures (`g`) switches,
-`backspace` stops, `o` opens the palette.
-
-Input Monitoring: Start asks once when it is missing (as snippet
-expansion does; the two share one `NSEvent` global monitor), the
-Overview lists the permission while keycast is on. Linux: one row,
-"Keycast is not available here" (no portable input tap: Wayland hands
-input to the focused client only, and there is no X11 key backend).
-
-Settings, `[extensions.keycast]`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `mode` | `both`, `keys`, `cursor` | `both` | What Start draws when no mode is named. |
-| `position` | `bottom-center`, `bottom-left`, `bottom-right`, `top-right`, `top-left` | `bottom-center` | The strip's edge of the work area; the row grows from that anchor. |
-| `scale` | 0.5 to 3 | `1` | The size of the caps and the ring. |
-| `hold` | 0.5 to 10 | `2` | Seconds a key stays after its last press. |
-| `max` | 1 to 12 | `5` | How many entries the strip keeps. |
-| `shortcuts_only` | boolean | `false` | Only combos and function or navigation keys show. |
-| `ring` | boolean | `true` | The ring around the cursor (clicks ripple either way). |
-| `ring_color` | tag colour | `blue` | The ring's and the left click's colour. |
-| `ripples` | boolean | `true` | A ripple on every click. |
-| `gestures` | boolean | `true` | Scrolls and trackpad gestures on the strip (keys and both modes). |
-
-## Mouse & Trackpad (`mouse`)
-
-A three-finger tap or click on the trackpad as a middle click, and
-scrolling reversed for the trackpad, the mouse or both, each axis apart
-(MiddleClick, Scroll Reverser), macOS only. A live, normal palette with
-one row per switch, its state as an `on` / `off` tag (muted when the
-switch has nothing to act on, as Three-finger tap with Middle click off),
-and, while the grant is missing, a Mouse & Trackpad needs Accessibility
-row that asks on Enter. Enter flips the row's switch.
-
-The work is the app's (`app/src-tauri/src/mouse.rs`): an active event
-tap on a thread of its own turns a left click made with three fingers on
-the trackpad into a middle click (its drag and release follow) and
-negates the scroll deltas on the reversed axes; MultitouchSupport counts
-the fingers and tells a tap (three fingers down and up within 0.3 s, not
-moved, no fourth, no press) from a swipe. A scroll is the mouse's when it
-comes in a wheel's notches or under fewer than two fingers (a Magic
-Mouse); momentum keeps the source of the scroll it follows. Devices are
-listed again every 3 s, so a trackpad paired later and a wake are picked
-up. Turning a switch on asks for Accessibility when it is missing and
-starts on the grant.
-
-| keys | action |
-| --- | --- |
-| `enter` | Flip the switch |
-| `cmd+,` | Open the settings |
-
-`pal://mouse/toggle?setting=<id>` flips one from a keybind. Linux: one
-row, "Mouse & Trackpad is not available here".
-
-Settings, `[extensions.mouse]`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `middle_click` | boolean | `false` | A three-finger click on the trackpad is a middle click. |
-| `middle_click_tap` | boolean | `true` | With `middle_click`, a three-finger tap is one too. |
-| `reverse_trackpad` | boolean | `false` | The trackpad scrolls against System Settings' direction. |
-| `reverse_mouse` | boolean | `false` | The mouse scrolls against System Settings' direction. |
-| `reverse_vertical` | boolean | `true` | Reversed devices flip up and down. |
-| `reverse_horizontal` | boolean | `true` | Reversed devices flip left and right. |
-
 ## DPI Bypass (`dpi`, `dpi-test`, `dpi/bypass`)
 
 The owner's `dpi` script (`~/.local/bin/dpi`: byedpi as a SOCKS proxy

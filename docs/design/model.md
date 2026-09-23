@@ -1,8 +1,9 @@
 # The model: features, extensions, surfaces
 
 Design spec, 2026-09-23. Where each thing in pal belongs, and the reshape
-that gets the code there. Status: agreed with Cagdas 2026-09-23, phase 1
-in progress.
+that gets the code there. Status: agreed with Cagdas 2026-09-23. Phases 1 and 2 built the same
+day (features, their commands and hotkeys, the Features page, the
+migration); the rest below as planned.
 
 ## Why
 
@@ -61,7 +62,7 @@ on; the direction is always extension → feature, never the reverse.
 
 ## Features
 
-A feature is a Rust module plus a spec, `app/src-tauri/features/<id>.json`:
+A feature is a Rust module plus a spec, `core/features/<id>.json`:
 
 ```json
 {
@@ -87,10 +88,16 @@ A feature is a Rust module plus a spec, `app/src-tauri/features/<id>.json`:
   a hotkey. `"command": false` on the setting opts out.
 - Declared `commands` are the feature's own actions, the same surfaces.
 - Hotkeys for a feature's commands: `[features.<id>.hotkeys] <command> = "…"`.
+- A command is a row of pal's own source (`pal/commands`, id
+  `<feature>.<command>`), so ranking, frecency, `pal command` and
+  `pal://commands/…` needed nothing new; extensions keep contributing
+  single actions as rows (and `item_hotkeys`), which is already the same
+  thing, so no extension-side command API was added.
 - States a feature publishes are `<id>/<name>`; the spec declares them for
   the States palette.
-- A bar item a feature declares is rendered by the feature (`bar::update`),
-  keyed `<id>/<item>` like an extension's.
+- A bar item a feature declares is rendered by the app, never the host
+  (`bar::register_native`, `features::bar_item`), keyed `<id>/<item>` like
+  an extension's.
 
 The features:
 
@@ -101,7 +108,7 @@ The features:
 | `mouse` Mouse & Trackpad | `extensions/mouse` | the six switches |
 | `keycast` Keycast | `extensions/keycast` | all ten, plus start/stop/toggle and mode commands, the `active` bar item, the `active`/`mode` states |
 | `reserve` Keep below bar | `keep_below_bar`, `bar_height` of `extensions/window-management` | `enabled`, `bar_height` |
-| `switcher` Window switcher | `[general] app_switcher`, the windows palette's `hold` | `app_switcher`, `quick_tap`; the chord stays the palette's `hold` (any palette can be held) |
+| `switcher` Window switcher | `[general] app_switcher`, the windows palette's `hold` | `app_switcher`; the chord stays the palette's `hold` (any palette can be held) |
 | `sidebar` Sidebar | `[sidebar]` | the table as it is |
 
 Extensions that go away: `mouse`, `keycast`. Extensions that shrink:
@@ -109,14 +116,15 @@ Extensions that go away: `mouse`, `keycast`. Extensions that shrink:
 `snippets` (keeps the palette), `window-management` (keeps layouts).
 
 **Snippets' data.** The snippets move from the extension's storage to the
-expansion feature's (`<data>/features/snippets.json`), and the feature
-exposes `core/snippets.{list, save, delete}`; the snippets extension is a
-palette over that capability. A replaced or removed snippets extension no
+expansion feature's (`storage/expansion.json`, key `snippets`, moved once
+at startup), and the feature exposes `core/snippets.{list, set}`; the
+snippets extension is a palette over that capability. A replaced or removed snippets extension no
 longer breaks expansion, and nothing reads another's storage.
 
 **Switcher.** The quick tap (release before the show, switch without
 painting) becomes a palette flag the windows palette sets (`tap: true` in
-its manifest), not `== "windows/windows"`.
+its manifest), not `== "windows/windows"` (phase 5, with the other
+special cases).
 
 ## Bar items own their settings
 

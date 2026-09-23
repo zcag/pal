@@ -1771,3 +1771,41 @@ Cagdas: "fuzzy match should also be able to match items paths as well as its tit
 - **The word bonus counts a path word like any other**, which is the point: the row is in the palette the user just named, so it is not "scattered". It follows that a source whose path answers the typed word keeps all its rows through `root_cut` and lets the cap choose the best; the heads of `spo`, `git`, `gh`, `ha`, `term`, `slack`, `chr`, `c` and `cast tv` are identical before and after, only the "N more" tails move.
 - **`mail inbox` was not a path case at all.** The Inbox row belongs to the synthetic `pal/palettes`, which has no path of its own; what sank it is that `mail` starts no word of `Gmail` or of its `email` keyword, so the row lost the word bonus and fell behind a bookmark and a tab that have both words (692, 681 against 419). The honest fix is the manifest saying what the product is called: `keywords: ["mail", "email"]` on gmail, after which the row leads at 748 with the work instance behind it at 711. A word-end rule ("mail" ends "Gmail") would have fixed it without a manifest edit and was rejected: it makes every compound name a false word, and the keyword list is exactly the place where "this is also called that" belongs.
 - Not done: `pal/palettes`, `pal/commands` and the other synthetic sources have no path (nothing would be gained: their rows already carry the extension's name as a keyword). The probe is kept as `core/examples/query.rs`, since every ranking question so far has been asked against the real cache and answered with a guess.
+
+## Decided: features (2026-09-23)
+
+The model in `docs/design/model.md`: what pal does on its own is a
+**feature**, built in, not an extension. Seven: clipboard (the recorder),
+expansion, switcher, sidebar, reserve (keep below the bar), mouse,
+keycast. Each is a spec compiled into the core (`core/features/<id>.json`:
+title, tile, platforms, permission, `settings` in the extensions'
+`SettingSpec` shape, commands, states, bar), values in
+`[features.<id>]` read over the spec's defaults (`Config::feature`,
+`feature_settings`). No app module reads `[extensions.*]` or compiles an
+extension's manifest in any more.
+
+- Commands are rows of `pal/commands` with id `<feature>.<command>`:
+  every boolean setting's flip (named after the feature for the spec's
+  `toggle`, its `text` else) and the spec's own (keycast's). The rows
+  follow the config and keycast's state (`commands::sync`). Hotkeys in
+  `[features.<id>.hotkeys]` (`Target::Command`). No extension-side command
+  API: a row with `item_hotkeys` already is one.
+- `extensions/mouse` and `extensions/keycast` are gone: the mouse palette
+  was rows flipping settings, keycast's too plus a bar item, which is now
+  the feature's own, rendered in the app (`bar::register_native`, an
+  `Entry.native` the registry answers without the host; the popover's
+  view tree is built in keycast.rs). An extension named like a feature
+  gets no bar items.
+- Snippets: the list is the expansion feature's (`storage/expansion.json`,
+  moved from the extension's storage once), exposed as
+  `core/snippets.{list, set}`, which the Snippets palette uses.
+- Clipboard: the exclude list hides older entries in `Clipboard::list`
+  (SQL, so paging is over what shows) instead of a filter in the
+  extension; bundle ids only now (readable names only ever hid, the
+  recorder never matched them).
+- The config is reshaped once at startup (`config::reshape`, toml_edit,
+  comments kept, the old file as `config.pre-features.toml`).
+- Settings › Features: cards two across, the state and the headline
+  control on the card's face, settings and command hotkeys unfolding in
+  place; the sidebar's card left General and the Bar page. cmd+1..8 now
+  reaches every page (the regex stopped at 6 with seven pages).

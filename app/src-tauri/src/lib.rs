@@ -23,6 +23,7 @@ mod dialog;
 mod effects;
 mod events;
 mod expansion;
+mod features;
 mod fallback;
 mod firstrun;
 mod host;
@@ -340,6 +341,7 @@ pub fn run() {
             settings::settings_check_updates,
             settings::settings_about,
             settings::settings_open_link,
+            features::feature_run,
             settings::settings_open,
             settings::settings_close,
             updater::check_updates,
@@ -437,6 +439,7 @@ pub fn run() {
             views::install(app.handle());
             states::install(app.handle());
             bar::install(app.handle());
+            features::install(app.handle());
             sidebar::install(app.handle());
             media::install(app.handle());
             host::Host::start(app.handle());

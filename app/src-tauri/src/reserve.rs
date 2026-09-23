@@ -1,5 +1,5 @@
-//! Keep windows below the bar: while `[extensions.window-management]
-//! keep_below_bar = true`, a window whose top lands under a bar pal does
+//! Keep windows below the bar (the `reserve` feature): while
+//! `[features.reserve] enabled = true`, a window whose top lands under a bar pal does
 //! not draw the frame of (sketchybar over a hidden menu bar, where macOS
 //! reserves nothing) is moved down clear of it, its bottom edge kept. The
 //! strip is `bar_height`, or sketchybar's own height when that is 0
@@ -39,14 +39,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use pal_core::config::{spec_defaults, Config};
+use pal_core::config::Config;
 use serde::Deserialize;
-use serde_json::Value;
 use tauri::AppHandle;
 
 use crate::{permissions, settings};
 
-const MANIFEST: &str = include_str!("../../../extensions/window-management/pal.json");
 
 /// How often the setting, on without Accessibility, looks for the grant.
 const POLL: Duration = Duration::from_secs(2);
@@ -59,23 +57,16 @@ const REQUERY: Duration = Duration::from_secs(30);
 /// A window found back under the strip this soon after pal moved it is the app's doing: let be.
 const GIVE_UP: Duration = Duration::from_secs(2);
 
-/// `[extensions.window-management]` as the watcher reads it.
+/// `[features.reserve]` as the watcher reads it (`core/features/reserve.json`).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Settings {
-    keep_below_bar: bool,
+    enabled: bool,
     bar_height: f64,
 }
 
 impl Settings {
     fn from(config: &Config) -> Settings {
-        let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
-        let defaults = spec_defaults(&manifest["settings"]);
-        let table = config.extension_settings("window-management", &defaults, &manifest["settings"]);
-        // The layouts' own keys ride in the same table; only these two are read here.
-        table.try_into().unwrap_or_else(|e| {
-            eprintln!("reserve\tbad settings\t{e}; off");
-            Settings { keep_below_bar: false, bar_height: 0.0 }
-        })
+        config.feature("reserve")
     }
 }
 
@@ -99,9 +90,9 @@ fn apply(app: &AppHandle, s: Settings) {
     if !cfg!(target_os = "macos") {
         return;
     }
-    let was = ON.swap(s.keep_below_bar, Ordering::Relaxed);
+    let was = ON.swap(s.enabled, Ordering::Relaxed);
     *crate::lock(&HEIGHT) = s.bar_height;
-    if !s.keep_below_bar {
+    if !s.enabled {
         if was {
             eprintln!("reserve\toff");
             pal_core::windows::reserve::set(0.0);

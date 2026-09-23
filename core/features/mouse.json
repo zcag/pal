@@ -1,0 +1,65 @@
+{
+  "id": "mouse",
+  "title": "Mouse & Trackpad",
+  "description": "A three-finger tap or click on the trackpad as a middle click, and scrolling reversed for the trackpad, the mouse or both, each axis apart (what MiddleClick and Scroll Reverser do).",
+  "icon": {
+    "tile": {
+      "glyph": "󰍽",
+      "bg": "slate"
+    }
+  },
+  "platforms": [
+    "macos"
+  ],
+  "permission": "accessibility",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "middle_click",
+      "label": "Middle click",
+      "text": "A three-finger click on the trackpad is a middle click",
+      "default": false,
+      "description": "Three fingers resting on the trackpad as it is pressed: the click is a middle one. Needs Accessibility."
+    },
+    {
+      "kind": "boolean",
+      "id": "middle_click_tap",
+      "label": "Tap too",
+      "text": "A three-finger tap is a middle click too",
+      "default": true,
+      "description": "With Middle click on, three fingers tapped and lifted together, without moving, click the middle button at the cursor. Turn off System Settings > Trackpad > Look up with three fingers so the two do not fight."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_trackpad",
+      "label": "Reverse trackpad",
+      "text": "Reverse scrolling on the trackpad",
+      "default": false,
+      "description": "Scrolling with the trackpad goes the other way from System Settings' natural scrolling. Needs Accessibility."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_mouse",
+      "label": "Reverse mouse",
+      "text": "Reverse scrolling on the mouse",
+      "default": false,
+      "description": "Scrolling with a mouse wheel (or a Magic Mouse) goes the other way from System Settings' natural scrolling, which macOS otherwise applies to the mouse and the trackpad alike. Needs Accessibility."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_vertical",
+      "label": "Vertical",
+      "text": "Reverse up and down",
+      "default": true,
+      "description": "The reversed devices scroll the other way up and down."
+    },
+    {
+      "kind": "boolean",
+      "id": "reverse_horizontal",
+      "label": "Horizontal",
+      "text": "Reverse left and right",
+      "default": true,
+      "description": "The reversed devices scroll the other way left and right."
+    }
+  ]
+}

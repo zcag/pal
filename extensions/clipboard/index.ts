@@ -15,8 +15,8 @@ import { appName, argsForm, bytes, clipboard, conceal, errorMessage, failed, hom
 import { rowsPalette } from "./now.ts";
 import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
 
-/** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
-type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy"; ocr_concealed: boolean };
+/** `[extensions.clipboard]`, defaults in pal.json. What is recorded and kept (the exclude list, the retention) is the Clipboard history feature's, `[features.clipboard]`: `clipboard.list` already leaves the excluded apps' entries out. */
+type Settings = { primary_action: "paste" | "copy"; ocr_concealed: boolean };
 
 /** Rows asked from the core per list; retention decides what exists, this only bounds one page. */
 const PAGE = 200;
@@ -206,20 +206,13 @@ async function deleteUnpinned(): Promise<number> {
   }
 }
 
-/** An entry recorded before its app went on the exclude list is hidden by bundle id or readable name. */
-function shown(e: ClipboardEntry, s: Settings): boolean {
-  const app = e.source_app;
-  return !app || !s.exclude_apps.some((x) => x === app || x.toLowerCase() === appName(app).toLowerCase());
-}
-
 export default {
   // `pal://clipboard/copy?index=2`: the nth newest entry (0 the newest) back on the clipboard.
   link: async (route: string, params: LinkParams): Promise<Effect | void> => {
     if (route !== "copy") return;
     const index = typeof params.index === "number" ? params.index : 0;
     if (!Number.isInteger(index) || index < 0) throw new Error(`index must be 0 or more, not ${index}`);
-    const s = settings.get<Settings>();
-    const entries = (await clipboard.list({ limit: index + 1 + s.exclude_apps.length * 4 })).filter((e) => shown(e, s));
+    const entries = await clipboard.list({ limit: index + 1 });
     const e = entries[index];
     if (!e) throw new Error(`no history entry ${index} (${entries.length} in history)`);
     await clipboard.copy(e.id);
@@ -236,7 +229,7 @@ export default {
       list: async (query = "", ctx) => {
         const s = settings.get<Settings>();
         const kind = kindOf(ctx?.filter);
-        return (await clipboard.list({ query, limit: PAGE, ...(kind && { kind }) })).filter((e) => shown(e, s) && passes(e, ctx?.filter)).map((e) => item(e, s.primary_action));
+        return (await clipboard.list({ query, limit: PAGE, ...(kind && { kind }) })).filter((e) => passes(e, ctx?.filter)).map((e) => item(e, s.primary_action));
       },
       pick: async (id, action, ctx) => {
         const entry = Number(id);

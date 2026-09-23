@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use pal_core::clipboard::{self as cb, Clipboard, Kind, Retention, WatchHandle};
-use pal_core::config::spec_defaults;
 use pal_core::icons;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -15,19 +14,13 @@ use tauri::{AppHandle, Manager};
 
 use crate::{events, settings};
 
-/// The extension's manifest, compiled in: its `settings` defaults are the
-/// recorder's too, so a key absent from the file means what the settings
-/// view shows for it.
-const MANIFEST: &str = include_str!("../../../extensions/clipboard/pal.json");
-
 pub struct State {
     store: Clipboard,
     _watch: WatchHandle,
 }
 
-/// `[extensions.clipboard]` over the manifest's defaults, the same values
-/// the extension gets. Read once at startup: retention and the exclude
-/// list are fixed for the run.
+/// `[features.clipboard]` (`core/features/clipboard.json`). Read once at
+/// startup: retention and the exclude list are fixed for the run.
 #[derive(Deserialize)]
 struct Settings {
     exclude_apps: Vec<String>,
@@ -35,17 +28,8 @@ struct Settings {
     max_age_days: u64,
 }
 
-/// From the loaded config (`settings::install` ran first). A value of the
-/// wrong type in the file (`max_entries = "many"`) is logged and the
-/// manifest's defaults stand in.
 fn settings(app: &AppHandle) -> Settings {
-    let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
-    let defaults = spec_defaults(&manifest["settings"]);
-    let table = settings::config(app).extension_settings("clipboard", &defaults, &serde_json::Value::Null);
-    table.try_into().unwrap_or_else(|e| {
-        eprintln!("clipboard\tbad settings\t{e}; using the defaults");
-        defaults.try_into().expect("manifest defaults fit Settings")
-    })
+    settings::config(app).feature("clipboard")
 }
 
 pub fn install(app: &AppHandle) {
@@ -55,6 +39,7 @@ pub fn install(app: &AppHandle) {
         Ok(s) => s,
         Err(e) => return eprintln!("clipboard\topen failed\t{e}"),
     };
+    store.hide_apps(settings.exclude_apps.clone());
     let handle = app.clone();
     let watch = store.start_watching(settings.exclude_apps, move |e| {
         events::emit(&handle, events::CLIPBOARD, json!({ "id": e.id, "kind": e.kind }));
@@ -234,8 +219,7 @@ mod tests {
 
     #[test]
     fn manifest_defaults_fit_the_recorder() {
-        let manifest: Value = serde_json::from_str(MANIFEST).unwrap();
-        let s: Settings = spec_defaults(&manifest["settings"]).try_into().unwrap();
+        let s: Settings = pal_core::config::Config::default().feature("clipboard");
         assert!(s.max_entries >= 1 && s.max_age_days >= 1);
         assert!(!s.exclude_apps.is_empty(), "password managers are excluded by default");
     }

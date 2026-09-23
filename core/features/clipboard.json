@@ -1,0 +1,44 @@
+{
+  "id": "clipboard",
+  "title": "Clipboard history",
+  "description": "Records what you copy (text, images, files, links, colours) so the Clipboard palette can find and paste it again. Runs from launch; nothing leaves the machine.",
+  "icon": {
+    "tile": {
+      "glyph": "󰅍",
+      "bg": "violet"
+    }
+  },
+  "settings": [
+    {
+      "kind": "list",
+      "id": "exclude_apps",
+      "label": "Exclude apps",
+      "description": "Bundle ids (com.1password.1password): copies made while one of these is in front are not recorded, and entries recorded from one before it was added are not listed. Read at launch.",
+      "placeholder": "com.1password.1password",
+      "default": [
+        "com.apple.keychainaccess",
+        "com.apple.Passwords"
+      ]
+    },
+    {
+      "kind": "number",
+      "id": "max_entries",
+      "label": "Keep entries",
+      "description": "How many unpinned entries history keeps; older ones past this are deleted on the next copy. Read at launch.",
+      "min": 1,
+      "max": 100000,
+      "unit": "entries",
+      "default": 1000
+    },
+    {
+      "kind": "number",
+      "id": "max_age_days",
+      "label": "Keep for",
+      "description": "Unpinned entries older than this are deleted on the next copy. 0 keeps them until the entry limit. Read at launch.",
+      "min": 0,
+      "max": 3650,
+      "unit": "days",
+      "default": 30
+    }
+  ]
+}

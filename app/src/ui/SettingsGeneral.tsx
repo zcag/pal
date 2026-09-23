@@ -1,7 +1,6 @@
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { ArmedButton, SettingsGroup, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
-import { SettingsSidebar, sidebarIndex, type SettingsSidebarProps } from "./SettingsSidebar";
 import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { permissionRows, type ConfigFileInfo, type GeneralConfig, type PermissionId, type PermissionsStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
@@ -24,8 +23,6 @@ export type SettingsGeneralProps = {
   onOpenOverview?: () => void;
   /** The theme file picker (`general.theme_file`), shown when given: `useThemeFile()` in Settings.tsx, a fixture in the gallery. */
   themeFile?: ThemeFileProps;
-  /** `[sidebar]`, the card shows when given (macOS: the only platform that builds one). */
-  sidebar?: SettingsSidebarProps;
   /** The Shortcuts page, where the hotkey and the switcher chord went: the pointer at the top of this one. */
   onOpenShortcuts?: () => void;
 };
@@ -89,11 +86,10 @@ export const generalIndex: SettingsIndexEntry[] = [
     anchor: r.anchor,
     keywords: `${r.label} ${r.description} ${r.keywords}`,
   })),
-  ...sidebarIndex,
 ];
 
-/** pal's own settings: the sidebar, how it looks, how it starts, what the OS lets it do, and the file behind all of it; the keys are the Shortcuts page's. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, permissions, onRequestPermission, onOpenOverview, themeFile, sidebar, onOpenShortcuts }: SettingsGeneralProps) {
+/** pal's own settings: how it looks, how it starts, what the OS lets it do, and the file behind all of it; the keys are the Shortcuts page's. */
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, permissions, onRequestPermission, onOpenOverview, themeFile, onOpenShortcuts }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -107,8 +103,6 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           </span>
         </SettingsRow>
       </SettingsGroup>
-
-      {sidebar && <SettingsSidebar {...sidebar} />}
 
       {permissions && (
         <SettingsGroup title="Permissions">

@@ -296,7 +296,7 @@ The root list is more than the index's hits.
 
 A palette is one list with its own actions: Applications, Clipboard
 History, Emoji, Files, Windows, Calculator and close to two hundred ship with
-pal, in seventy extensions.
+pal, in sixty-nine extensions.
 [Palettes](palettes.md) describes each with its keys and settings. Three
 kinds, which matter for what the root shows: an **indexed** palette is
 listed once and searched from the index (apps, bookmarks, emoji); a
@@ -334,12 +334,14 @@ read and the items are listed by `pal bar list`, but no item renders.
 
 The sidebar is the other thing at the edge of the screen (macOS), off
 until you ask for it: one live palette docked to an edge, `palette =
-"windows/windows"` under `[sidebar]` being the one built for it. Rest the
+"windows/windows"` under `[features.sidebar]` being the one built for it. Rest the
 pointer at the edge and it peeks; click into it, press a key, or press
 its hotkey and it is yours to type in; every row wears its number and
-`⌘1` to `⌘9` run that row outright. `[sidebar]` in
-[Config](config.md#sidebar) picks the palette, the edge, the display and
-the hotkey.
+`⌘1` to `⌘9` run that row outright. Its card under Settings › Features
+(`[features.sidebar]`, [Config](config.md#featuressidebar)) picks the
+palette, the edge, the display and the hotkey. The other things pal does
+on its own (clipboard history, text expansion, the window switcher, mouse
+and trackpad tweaks, keycast) are cards there too: [Features](features.md).
 
 ## Settings
 

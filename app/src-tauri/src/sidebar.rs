@@ -126,7 +126,7 @@ static SHOWS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1
 
 /// Whether there is a sidebar to run: the platform has the window and the config names a palette.
 fn enabled(app: &AppHandle) -> bool {
-    crate::bar::SUPPORTED && settings::config(app).sidebar.palette().is_some()
+    crate::bar::SUPPORTED && settings::config(app).features.sidebar.palette().is_some()
 }
 
 pub fn install(app: &AppHandle) {
@@ -144,10 +144,10 @@ pub fn install(app: &AppHandle) {
 /// (the palette or the edge may have moved; the next show is fresh) and
 /// applies the rest. The hotkey is `hotkey::apply`'s.
 pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
-    if prev.sidebar == next.sidebar || !crate::bar::SUPPORTED {
+    if prev.features.sidebar == next.features.sidebar || !crate::bar::SUPPORTED {
         return;
     }
-    eprintln!("sidebar\tconfig\t{}", next.sidebar.palette().unwrap_or("off"));
+    eprintln!("sidebar\tconfig\t{}", next.features.sidebar.palette().unwrap_or("off"));
     hide(app);
     apply(app);
 }
@@ -165,7 +165,7 @@ fn ensure_window(app: &AppHandle) {
     if app.get_webview_window(WINDOW).is_some() || BUILDING.swap(true, Ordering::SeqCst) {
         return;
     }
-    let width = settings::config(app).sidebar.width;
+    let width = settings::config(app).features.sidebar.width;
     let build = move |handle: &AppHandle| {
         WebviewWindowBuilder::new(handle, WINDOW, WebviewUrl::App("index.html?bar&sidebar".into()))
             .title("pal Sidebar")
@@ -236,11 +236,11 @@ fn feed(app: &AppHandle, input: Input) {
     for a in actions {
         match a {
             // The sidebar's own timings, not the bar's: a peek at the edge is instant by default (`delay = 0` feeds the machine straight back).
-            Action::ArmDelay(_, gen) => match settings::config(app).sidebar.delay {
+            Action::ArmDelay(_, gen) => match settings::config(app).features.sidebar.delay {
                 0 => feed(app, Input::Delay(gen)),
                 ms => popover::arm(app, Duration::from_millis(ms), move |app| feed(app, Input::Delay(gen))),
             },
-            Action::ArmGrace(gen) => popover::arm(app, Duration::from_millis(settings::config(app).sidebar.grace), move |app| feed(app, Input::Grace(gen))),
+            Action::ArmGrace(gen) => popover::arm(app, Duration::from_millis(settings::config(app).features.sidebar.grace), move |app| feed(app, Input::Grace(gen))),
             Action::Show(_, engaged) => show(app, engaged),
             Action::Engage(_) => engage(app),
             Action::Hide => hide_now(app),
@@ -258,7 +258,7 @@ fn palette_of(app: &AppHandle, key: &str) -> (Source, String) {
 }
 
 fn show(app: &AppHandle, engaged: bool) {
-    let cfg = settings::config(app).sidebar;
+    let cfg = settings::config(app).features.sidebar;
     let Some(key) = cfg.palette() else { return };
     let (source, title) = palette_of(app, key);
     let first = {
@@ -346,7 +346,7 @@ fn display(app: &AppHandle, cfg: &SidebarConfig) -> Option<Display> {
 /// Size and place the window for the config and the page's height (main thread).
 fn place_window(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
-    let cfg = settings::config(app).sidebar;
+    let cfg = settings::config(app).features.sidebar;
     let Some(d) = display(app, &cfg) else { return };
     let st = app.state::<Sidebar>();
     let (h, anchor) = (*lock(&st.height), *lock(&st.anchor_y));
@@ -357,7 +357,7 @@ fn place_window(app: &AppHandle) {
 
 /// The strips where the config wants them (none with `peek = false` or no palette).
 fn place_strips(app: &AppHandle) {
-    let cfg = settings::config(app).sidebar;
+    let cfg = settings::config(app).features.sidebar;
     if !cfg.peek || cfg.palette().is_none() {
         return panel::strip_remove(app);
     }
@@ -471,7 +471,7 @@ fn reveal(app: &AppHandle, generation: u64, why: &'static str) {
 
 /// `cmd+r` reaching the shell from the sidebar's own level: the palette lists again.
 pub fn refresh(app: &AppHandle) {
-    if let Some(key) = settings::config(app).sidebar.palette() {
+    if let Some(key) = settings::config(app).features.sidebar.palette() {
         index::relist_live(app, key);
     }
 }

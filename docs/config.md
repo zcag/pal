@@ -40,10 +40,16 @@ enabled = false            # no rows in the index, no palette row
 [palettes.emoji.settings]  # settings the extension declared for this palette
 columns = 8
 
+# Features: what pal does on its own, one table each (docs/features.md).
+[features.clipboard]
+exclude_apps = ["com.1password.1password"]
+
+[features.mouse]
+reverse_mouse = true
+
 # Extension settings, keyed by extension name. Shape is whatever the
 # extension declared in its pal.json.
 [extensions.clipboard]
-exclude_apps = ["com.1password.1password"]
 primary_action = "copy"
 
 [extensions.apps]
@@ -64,7 +70,6 @@ writes those two header lines and nothing else into the config directory.
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `hotkey` | string, or list of strings | `"ctrl+space"` | Global hotkey that shows pal, or several that all do: `hotkey = ["cmd+space", "ctrl+space"]`. Every entry registers; one another app or Spotlight holds is reported on its own row in Settings and costs the others nothing. Empty (`""` or `[]`) turns it off, for a compositor keybind that runs `pal toggle` instead. Settings writes back whichever spelling the file has, and turns a string into a list only when Add another gives it a second entry (up to three there; the file may hold more). The menu bar hint and the Welcome tips show the first. |
-| `app_switcher` | string | unset | macOS's own App Switcher (Cmd+Tab's) on another Tab chord, `"alt+tab"`, for when `palettes.windows.hold = "cmd+tab"` has taken cmd+tab: pal's event tap turns the chord into a held Cmd+Tab for the Dock (its `shift+` variant steps back), so it needs Input Monitoring like `cmd+tab` does. A `hold` chord equal to it is dropped with a log line. Settings › Shortcuts has it under the window switcher. macOS only. |
 | `theme` | `system`, `light`, `dark` | `"system"` | Follow the OS, or force one. Applied live to the panel and the Settings window. |
 | `theme_file` | string | `""` | A theme file overriding pal's colours, radii and fonts ([Theme file](#theme-file)): a name, looked up as `<config dir>/themes/<name>.toml` (`"catppuccin-frappe"`), or a path (`"~/dotfiles/pal-theme.toml"`). Its `[light]` and `[dark]` sections apply to whichever scheme `theme` (or the OS) picks; the file is watched and a save applies live. Settings > General > Theme file picks one from the folder. Empty is pal's own look. |
 | `compact` | bool | `false` | Compact mode: the panel 560 px wide with 32 px rows, no detail pane, and the footer folded into the search row (the primary action's hint on its right; `⌘K` still lists everything). `⌘⇧M` in the panel flips it and writes it here, so it is remembered per profile. The gallery shows both. |
@@ -351,7 +356,26 @@ published, else `default`. `pal state reset <name>` drops the manual value.
 The manual and published layers survive a relaunch (`states.json` under
 pal's data directory, next to `bar.json`); the built-ins are read afresh.
 
-## `[sidebar]`
+## `[features]`
+
+One table per feature, what pal does on its own
+([Features](features.md), each feature's keys there):
+`[features.clipboard]`, `[features.expansion]`, `[features.switcher]`,
+`[features.sidebar]` (below), `[features.reserve]`, `[features.mouse]`,
+`[features.keycast]`. Settings › Features writes them. A feature's
+commands take hotkeys in `[features.<id>.hotkeys]`, command id to chord
+(`reverse_mouse = "ctrl+alt+r"`). A table naming no feature, or a key its
+feature does not have, is a warning.
+
+A file from before features existed (settings under `[extensions.mouse]`,
+`[extensions.keycast]`, `[extensions.clipboard]`'s retention,
+`[extensions.snippets] expand*`, `[extensions.window-management]
+keep_below_bar`, `[general] app_switcher`, `[sidebar]`) is rewritten once
+when pal starts: the keys move to their feature's table with their
+comments, and the file as it was is kept next to it as
+`config.pre-features.toml`.
+
+### `[features.sidebar]`
 
 A live palette docked to a screen edge (the design in
 `docs/design/switcher.md`): it peeks the moment the pointer touches the edge (`delay`), centred on
@@ -363,7 +387,7 @@ the numbers on screen are the promise. One sidebar; macOS only for now:
 on Linux the table is read and validated, nothing is built.
 
 ```toml
-[sidebar]
+[features.sidebar]
 palette = "windows/windows"   # any palette; unset or "" = no sidebar (the default)
 edge = "right"                # left | right
 display = "cursor"            # cursor | primary | a display's name
@@ -385,11 +409,10 @@ hotkey = "ctrl+opt+tab"
 | `grace` | number, ms | `150` | How long after the pointer has left the edge and the window a peek stays before it closes. |
 | `hotkey` | string | unset | A global hotkey that engages it (shown key from hidden, or a peek made key). Same syntax as `general.hotkey`; the root, palette and bar item hotkeys win a clash. |
 
-Settings › General edits the whole table as its Sidebar card (the switch
+Settings › Features edits the whole table as the Sidebar card (the switch
 puts `windows/windows` in `palette` and Off writes `""`; the palette, the
 edge, the display by the names the OS reports, the width, the peek and the
-hotkey each write their key, a value at its default leaving the file);
-Settings › Bar lists the sidebar next to the bar items and points there.
+hotkey each write their key, a value at its default leaving the file).
 
 `show_when` / `hide_when` (the sidebar following a named state, as a bar
 item does) are not read yet.

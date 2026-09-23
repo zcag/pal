@@ -1,15 +1,13 @@
-// Snippets: short texts kept in the extension's storage and edited through
-// forms in the panel. Enter pastes one into the app in front with its
+// Snippets: short texts edited through forms in the panel. Enter pastes one into the app in front with its
 // placeholders filled (the SDK's placeholders module), cmd+c copies it instead. The
 // keyword is a row keyword, so typing `sig` finds the signature. The Import
-// and Export rows move snippets in and out as JSON files. Expansion (the
-// keyword typed in any other app, `expand = true`, macOS) is the app's:
-// it reads this extension's storage file and its settings directly
-// (app/src-tauri/src/expansion.rs), nothing here runs for it.
-import { clipboard, errorMessage, home, now, selection, storage, toast, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
+// and Export rows move snippets in and out as JSON files. The list is the
+// Text expansion feature's (the keyword typed in any other app, macOS;
+// app/src-tauri/src/expansion.rs), which keeps it and types it: this
+// palette reads and writes it through `core/snippets.{list, set}`.
+import { clipboard, core, errorMessage, home, now, selection, toast, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
-const KEY = "snippets";
 /** Material Design glyphs in the bundled Nerd Font: scissors for a snippet, plus, import, export for the command rows. */
 const ICON = "\u{f0190}";
 const ICON_CREATE = "\u{f0415}";
@@ -25,7 +23,8 @@ const COPY: Action = { id: "copy", title: "Copy", shortcut: "cmd+c" };
 const EDIT: Action = { id: "edit", title: "Edit", shortcut: "cmd+e" };
 const DELETE: Action = { id: "delete", title: "Delete", shortcut: "ctrl+x", style: "destructive", confirm: "Delete this snippet?" };
 
-const all = async () => asSnippets(await storage.get(KEY));
+const all = async () => asSnippets(await core.call("snippets.list"));
+const store = (snippets: Snippet[]) => core.call("snippets.set", { snippets });
 
 /** The newest text on the clipboard, for `{clipboard}`; empty when there is none. */
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
@@ -93,7 +92,7 @@ async function transfer(id: typeof IMPORT | typeof EXPORT, values: FormValues): 
   const have = new Set(snippets.map(key));
   const fresh: Snippet[] = [];
   for (const s of incoming) if (!have.has(key(s))) { have.add(key(s)); fresh.push(s); }
-  if (fresh.length) await storage.set(KEY, [...snippets, ...fresh]);
+  if (fresh.length) await store([...snippets, ...fresh]);
   return toast(`Imported ${fresh.length} ${fresh.length === 1 ? "snippet" : "snippets"}`, incoming.length > fresh.length ? `${incoming.length - fresh.length} already there` : undefined);
 }
 
@@ -110,7 +109,7 @@ async function save(id: string, values: FormValues): Promise<Effect> {
   if (bad) errors.keyword = bad;
   if (Object.keys(errors).length) return { form: form(before, errors) };
   const snippet: Snippet = { id: before?.id ?? crypto.randomUUID(), name, text, ...(keyword && { keyword }) };
-  await storage.set(KEY, before ? snippets.map((s) => (s.id === snippet.id ? snippet : s)) : [...snippets, snippet]);
+  await store(before ? snippets.map((s) => (s.id === snippet.id ? snippet : s)) : [...snippets, snippet]);
   return toast(before ? "Saved" : "Created", name);
 }
 
@@ -147,7 +146,7 @@ export default {
           case "copy": return { copy: await expand(s.text, SOURCES) };
           case "edit": return { form: form(s) };
           case "delete": {
-            await storage.set(KEY, (await all()).filter((x) => x.id !== id));
+            await store((await all()).filter((x) => x.id !== id));
             return toast("Deleted", s.name);
           }
           default: return { paste: { text: await expand(s.text, SOURCES) } };

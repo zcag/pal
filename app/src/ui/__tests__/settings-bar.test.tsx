@@ -53,10 +53,9 @@ describe("SettingsBar", () => {
   });
   it("lists the defaults row and then every item, each with only the state worth a tag", () => {
     const html = page();
-    // The pinned Defaults and Sidebar rows and the three items, in the shared list; the rule sits under the sidebar's.
-    expect(html.match(/data-item=/g)?.length).toBe(5);
-    expect(html).toContain('data-item="__defaults__" data-anchor="bar:defaults" data-active="true"');
-    expect(html).toContain('data-item="__sidebar__" data-anchor="bar:sidebar" data-dim="true" data-divider="true"');
+    // The pinned Defaults row and the three items, in the shared list; the rule sits under Defaults.
+    expect(html.match(/data-item=/g)?.length).toBe(4);
+    expect(html).toContain('data-item="__defaults__" data-anchor="bar:defaults" data-active="true" data-divider="true"');
     expect(html).toContain('data-anchor="bar:github/notifications"');
     expect(html).toContain('<span class="pal-settings-list__sub">GitHub</span>');
     // A healthy item wears nothing; only what is off, stale or missing gets a tag.

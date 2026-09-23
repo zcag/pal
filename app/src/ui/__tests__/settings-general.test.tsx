@@ -7,7 +7,7 @@ import { SettingsGeneral, generalIndex } from "../SettingsGeneral";
 import type { ThemeFileStatus } from "../SettingsTheme";
 
 const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: "~/.config/pal/themes", themes: [] };
-import { permissionRows, sidebarDefaults, type GeneralConfig } from "../SettingsTypes";
+import { permissionRows, type GeneralConfig } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
 const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true };
@@ -67,13 +67,13 @@ describe("SettingsGeneral permissions", () => {
   });
   it("is found by any word of a row's description, not only its label, and every indexed anchor is on the page", () => {
     const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);
-    expect(find("dock")).toEqual(["Menu bar icon", "Sidebar", "Sidebar: edge"]);
+    expect(find("dock")).toEqual(["Menu bar icon"]);
     expect(find("crash")).toEqual(["Launch at login"]);
     expect(find("pop level")).toEqual(["Backspace goes back"]);
     expect(find("permissions grant")).toEqual(["Permissions"]);
     expect(find("comments")).toEqual(["Config file"]);
     expect(find("catppuccin")).toEqual(["Theme file"]);
-    const html = page({ permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }, sidebar: { value: sidebarDefaults, onChange: noop } });
+    const html = page({ permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
   });
   it("Reset Ranking asks once before it forgets everything", () => {

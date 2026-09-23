@@ -9,14 +9,14 @@ import {
 } from "../ui";
 import type { FormValues, Item, ViewNode } from "../ui/types";
 import { Launcher } from "../Launcher";
-import { PALETTES, toView, type SourceInfo } from "../items";
+import { PALETTES, iconOf, toView, type SourceInfo } from "../items";
 import { toItem, type Raw } from "../fixtures";
 import { DEFAULTS, apply, newGame, type Action as Move, type State } from "../../../extensions/blackjack/game.ts";
 import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
 import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
-  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsShortcuts, SettingsWindow,
+  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsPalettes, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
   aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
@@ -315,7 +315,7 @@ function Solo({ what }: { what: string }) {
   }, []);
   return (
     <div className="g-solo" data-theme={theme}>
-      <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} />
+      <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} open={params.get("open") ?? undefined} />
     </div>
   );
 }
@@ -643,6 +643,9 @@ function GalleryPage() {
         <State label="Shortcuts: pal's own keys, then the palettes, rows and bar items with one, a doubled chord said on both rows">
           <WidePair>{(t) => <SettingsDemo key={t} page="shortcuts" />}</WidePair>
         </State>
+        <State label="Features: a card per feature with its state and switch on its face; a card's settings and command hotkeys unfold in place">
+          <WidePair>{(t) => <SettingsDemo key={t} page="features" />}</WidePair>
+        </State>
         <State label="Palettes, GitHub open: the table of pal's per-palette columns, the selected palette's declared settings under it">
           <WidePair>{(t) => <SettingsDemo key={t} page="palettes" />}</WidePair>
         </State>
@@ -693,8 +696,26 @@ function WidePair({ children }: { children: (theme: (typeof themes)[number]) => 
 }
 
 /** One settings window with its own state, opened on `page`. */
-function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diagnostics?: boolean }) {
+/** The features as the real specs describe them (`core/features/*.json`), a few switched on and keycast waiting on its permission. */
+const featureSpecs = Object.values(import.meta.glob("../../../core/features/*.json", { eager: true, import: "default" })) as { id: string; title: string; description: string; icon?: unknown; toggle?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }[];
+const FEATURE_ORDER = ["clipboard", "expansion", "switcher", "sidebar", "reserve", "mouse", "keycast"];
+const galleryFeatures: SettingsFeature[] = FEATURE_ORDER.map((id) => featureSpecs.find((f) => f.id === id)!).filter(Boolean).map((spec) => {
+  const settings = spec.settings ?? [];
+  const values: SettingValues = { expansion: { enabled: true }, reserve: { enabled: true }, mouse: { middle_click: true, reverse_mouse: true, reverse_horizontal: false } }[spec.id as "expansion"] ?? {};
+  const on = spec.id === "clipboard" || spec.id === "switcher" || spec.id === "keycast" || !!(spec.toggle && values[spec.toggle]) || (spec.id === "mouse");
+  return {
+    id: spec.id, title: spec.title, description: spec.description, icon: spec.icon ? iconOf(spec.icon, spec.title) : undefined, available: true, on,
+    needs: spec.id === "keycast" ? "input_monitoring" : undefined, note: spec.id === "keycast" ? "Showing keys and cursor" : undefined, toggle: spec.toggle, settings, values,
+    commands: [...settings.filter((s) => s.kind === "boolean").map((s) => ({ id: s.id, title: spec.toggle === s.id ? `Toggle ${spec.title}` : `Toggle: ${s.label}` })), ...(spec.commands ?? [])],
+    hotkeys: (spec.id === "keycast" ? { toggle: "ctrl+alt+k" } : {}) as Record<string, string>,
+  };
+});
+
+function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage; diagnostics?: boolean; /** A feature card to open (`&open=keycast`). */ open?: string }) {
   const [page, setPage] = useState<SettingsPage>(initial);
+  const [features, setFeatures] = useState(galleryFeatures);
+  const [sidebar, setSidebar] = useState<SidebarConfig>(sidebarDefaults);
+  const patchFeature = (id: string, key: string, value: SettingValue) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, values: { ...f.values, [key]: value }, on: f.toggle === key ? value === true : f.on } : f)));
   const [general, setGeneral] = useState(settingsGeneral);
   const [exts, setExts] = useState<SettingsExtension[]>(settingsExtensions);
   const [palette, setPalette] = useState<string | undefined>("github-prs");
@@ -719,12 +740,13 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const [barItems, setBarItems] = useState(settingsBarItems);
   const [barKey, setBarKey] = useState<string | undefined>("timer/timer");
   const patchBarItem = (key: string, config: BarItemConfig) => setBarItems((bs) => bs.map((b) => (b.key === key ? { ...b, config } : b)));
-  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...palettesIndex(exts), ...extensionsIndex(exts), ...barIndex(barItems), ...aboutIndex];
+  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts), ...barIndex(barItems), ...aboutIndex];
   const mac = /Mac/.test(navigator.platform);
   return (
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
       {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} />}
       {page === "shortcuts" && <SettingsShortcuts general={general} onGeneral={setGeneral} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} extensions={exts} onPalette={patchPalette} bar={barItems} onBarItem={patchBarItem} onGo={(p) => setPage(p)} />}
+      {page === "features" && <SettingsFeatures features={features.map((f) => (f.id === "sidebar" ? { ...f, on: !!sidebar.palette } : f))} onSetting={patchFeature} onHotkey={(id, cmd, combo) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, hotkeys: { ...f.hotkeys, [cmd]: combo ?? "" } } : f)))} onRun={(id) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, on: !f.on, note: f.on ? undefined : f.note } : f)))} onRequestPermission={noop} sidebar={{ value: sidebar, onChange: setSidebar, palettes: [{ id: "windows/windows", title: "Windows" }, { id: "apps/apps", title: "Applications" }], displays: ["Built-in Retina Display"] }} switcher={{ hold: "cmd+tab", suggested: "alt+tab", onHold: noop, appSwitcher: "alt+tab", onAppSwitcher: noop }} open={open} />}
       {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
       {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}

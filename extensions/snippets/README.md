@@ -79,7 +79,8 @@ An import file looks like this:
 
 ## Expansion: the keyword typed in any app (macOS)
 
-With `expand = true` in `[extensions.snippets]`, a keyword typed in any
+With the Text expansion feature on (`[features.expansion] enabled = true`,
+[Features](../../docs/features.md#text-expansion)), a keyword typed in any
 other app is replaced by its snippet in place: `;sig` becomes the
 signature where it was typed, placeholders filled (the plain forms:
 `format=`, `offset=` and `{snippet}` are the panel's, an expansion
@@ -88,8 +89,10 @@ the caret. Off by default. pal watches the
 keys typed in other apps (needs Input Monitoring) and types the
 replacement (needs Accessibility, like Paste). The prefix is a setting
 (`;`, `:`, or none for the bare keyword at a word start); terminals and
-password managers never expand (`expand_exclude_apps`), nor does a secure
-text field; the HUD says "Expanded <name>" (`expand_hud`). Not available
+password managers never expand (`exclude_apps`), nor does a secure
+text field; the HUD says "Expanded <name>" (`hud`). The snippets are the
+feature's: this palette reads and writes them through
+`core/snippets.{list, set}`. Not available
 on Linux, where no portable keyboard tap exists: the palette's Enter and
 `pal://snippets/paste?name=sig` are the ways there.
 

@@ -1,0 +1,74 @@
+{
+  "id": "expansion",
+  "title": "Text expansion",
+  "description": "A snippet's keyword typed in any app is replaced by its text as you type. The snippets are the Snippets palette's.",
+  "icon": {
+    "tile": {
+      "glyph": "󰆐",
+      "bg": "violet"
+    }
+  },
+  "platforms": [
+    "macos"
+  ],
+  "permission": "input_monitoring",
+  "toggle": "enabled",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "enabled",
+      "label": "Expand as you type",
+      "text": "Replace a keyword typed in any app with its snippet",
+      "description": "macOS only. Type the prefix and the keyword (`;sig`) in any text field and the snippet is pasted in its place, placeholders filled, `{cursor}` placing the caret. Needs Accessibility and Input Monitoring for pal. Off by default.",
+      "default": false
+    },
+    {
+      "kind": "select",
+      "id": "prefix",
+      "label": "Prefix",
+      "description": "What comes before the keyword: `;sig` (the default), `:sig`, or the bare keyword at the start of a word (`sig`, which also fires inside ordinary typing).",
+      "options": [
+        {
+          "id": ";",
+          "title": "; (semicolon)"
+        },
+        {
+          "id": ":",
+          "title": ": (colon)"
+        },
+        {
+          "id": "none",
+          "title": "None, the keyword alone"
+        }
+      ],
+      "default": ";"
+    },
+    {
+      "kind": "list",
+      "id": "exclude_apps",
+      "label": "Never expand in",
+      "description": "Bundle ids of apps where nothing expands: terminals (a keyword is a command there) and password managers by default. Secure text fields (a password field, sudo) never expand anywhere.",
+      "placeholder": "com.apple.Terminal",
+      "default": [
+        "com.apple.Terminal",
+        "net.kovidgoyal.kitty",
+        "com.googlecode.iterm2",
+        "dev.warp.Warp",
+        "com.github.wez.wezterm",
+        "org.alacritty",
+        "io.alacritty",
+        "com.mitchellh.ghostty",
+        "com.1password.1password",
+        "com.agilebits.onepassword7",
+        "com.bitwarden.desktop"
+      ]
+    },
+    {
+      "kind": "boolean",
+      "id": "hud",
+      "label": "Flash the HUD",
+      "text": "Show \"Expanded <name>\" in the HUD after an expansion",
+      "default": true
+    }
+  ]
+}

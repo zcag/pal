@@ -11,7 +11,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsShortcuts, SettingsWindow,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, BAR_SIDEBAR,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, type SettingsFeature,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
@@ -31,10 +31,11 @@ type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: numb
 type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
-  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean; app_switcher?: string | null };
+  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean };
   palettes: Record<string, RawPalette>;
   bar: RawBar;
-  sidebar?: RawSidebar;
+  /** `[features]`: the sidebar's typed table, every other feature's as written (`[features.mouse]`, with `hotkeys`). */
+  features?: { sidebar?: RawSidebar } & Record<string, Record<string, unknown> | undefined>;
   extensions: Record<string, Record<string, unknown>>;
   /** `[instances.<key>]` (core `Instance`): the configured copies of `multi` extensions, and the default's title once named. */
   instances?: Record<string, RawInstance>;
@@ -59,7 +60,9 @@ type RawBarState = NonNullable<BarItem["state"]>;
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
 type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** The keycast overlay is on (keycast.rs). */ keycast?: boolean };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[] };
+/** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
+type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
 type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicReport };
 
@@ -177,18 +180,19 @@ function parkedInstances(exts: Ext[], config: RawConfig): Ext[] {
   return out;
 }
 
-function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtension[]): BarItem {
+function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtension[], features: RawFeature[] = []): BarItem {
   const raw = config.bar?.items?.[b.key] ?? {};
-  // `b.extension` is the instance key: the entry's title carries the instance ("Gmail (Work)").
+  // `b.extension` is the instance key: the entry's title carries the instance ("Gmail (Work)"). A feature's own item (keycast's) is named after the feature.
   const ext = extensions.find((e) => e.key === b.extension);
+  const feature = ext ? undefined : features.find((f) => f.spec.id === b.extension)?.spec;
   return {
     key: b.key,
     extension: b.extension,
     id: b.id,
     title: b.title,
     description: b.description,
-    extTitle: ext?.title ?? b.extension,
-    extIcon: ext?.icon,
+    extTitle: ext?.title ?? feature?.title ?? b.extension,
+    extIcon: ext?.icon ?? (feature?.icon ? iconOf(feature.icon, feature.title) : undefined),
     source: b.source,
     refreshEvery: b.refresh_every,
     renderedAt: b.rendered_at,
@@ -273,6 +277,8 @@ export default function Settings() {
   const [ext, setExt] = useState<string | undefined>(undefined);
   const [extInstance, setExtInstance] = useState<string | undefined>(undefined);
   const [barKey, setBarKey] = useState<string | undefined>(undefined);
+  /** The feature card a link or a search hit opened (`features:<id>`). */
+  const [feature, setFeature] = useState<string | undefined>(undefined);
   /** The last failed command, shown in the title bar until a write succeeds. */
   const [error, setError] = useState<string | null>(null);
   const [about, setAbout] = useState<About>({ docs: "", repo: "" });
@@ -367,7 +373,7 @@ export default function Settings() {
     const enabled = (name: string) => all.filter((e) => e.name === name && view.config.instances?.[e.key]?.enabled !== false).length;
     return all.map((e) => toExtension(e, view.config, userRoot, latest[e.name], enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
   }, [view, userRoot, latest]);
-  const barItems = useMemo(() => (view?.bar ? view.bar.items.map((b) => toBarItem(b, view.config, extensions)) : []), [view, extensions]);
+  const barItems = useMemo(() => (view?.bar ? view.bar.items.map((b) => toBarItem(b, view.config, extensions, view.features)) : []), [view, extensions]);
   const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
   // The core forgets the extension's pending update (settings.rs); the re-read lands it.
   const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); refresh(); };
@@ -430,7 +436,7 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: config.general.app_switcher ?? undefined };
+  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined };
   const onGeneral = (next: GeneralConfig) => {
     // `general.hotkey` keeps the spelling the file has (a string stays a string) until a second entry needs the list.
     if (next.hotkeys.join("\n") !== general.hotkeys.join("\n")) write(["general", "hotkey"], Array.isArray(config.general.hotkey) || next.hotkeys.length > 1 ? next.hotkeys : (next.hotkeys[0] ?? ""));
@@ -439,7 +445,7 @@ export default function Settings() {
     if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);
     if (next.position !== general.position) write(["general", "position"], next.position);
     if (next.backspaceBack !== general.backspaceBack) write(["general", "backspace_back"], next.backspaceBack ? undefined : false);
-    if ((next.appSwitcher ?? "") !== (general.appSwitcher ?? "")) write(["general", "app_switcher"], next.appSwitcher || undefined);
+    if ((next.appSwitcher ?? "") !== (general.appSwitcher ?? "")) write(["features", "switcher", "app_switcher"], next.appSwitcher || undefined);
   };
   const fail = (e: unknown) => setError(String(e));
 
@@ -495,23 +501,34 @@ export default function Settings() {
     writeLook(["bar", "menubar"], bar.menubar, next.menubar, lookDefaults);
     writeLook(["bar", "sketchybar"], bar.sketchybar, next.sketchybar, lookDefaults);
   };
-  const rawSidebar = config.sidebar ?? {};
+  const rawSidebar = config.features?.sidebar ?? {};
   const sidebar: SidebarConfig = { palette: rawSidebar.palette ?? "", edge: rawSidebar.edge ?? sidebarDefaults.edge, display: rawSidebar.display ?? sidebarDefaults.display, width: rawSidebar.width ?? sidebarDefaults.width, peek: rawSidebar.peek ?? sidebarDefaults.peek, delay: rawSidebar.delay ?? sidebarDefaults.delay, grace: rawSidebar.grace ?? sidebarDefaults.grace, hotkey: rawSidebar.hotkey ?? undefined };
-  /** `[sidebar]`, one key per change; a key back at the core's default leaves the file, except `palette`, where `""` is Off said outright. */
+  /** `[features.sidebar]`, one key per change; a key back at the core's default leaves the file, except `palette`, where `""` is Off said outright. */
   const onSidebar = (next: SidebarConfig) => {
-    if (next.palette !== sidebar.palette) write(["sidebar", "palette"], next.palette);
-    if (next.edge !== sidebar.edge) write(["sidebar", "edge"], next.edge === sidebarDefaults.edge ? undefined : next.edge);
-    if (next.display !== sidebar.display) write(["sidebar", "display"], next.display === sidebarDefaults.display ? undefined : next.display);
-    if (next.width !== sidebar.width) write(["sidebar", "width"], next.width === sidebarDefaults.width ? undefined : next.width);
-    if (next.peek !== sidebar.peek) write(["sidebar", "peek"], next.peek === sidebarDefaults.peek ? undefined : next.peek);
-    if (next.delay !== sidebar.delay) write(["sidebar", "delay"], next.delay === sidebarDefaults.delay ? undefined : next.delay);
-    if (next.grace !== sidebar.grace) write(["sidebar", "grace"], next.grace === sidebarDefaults.grace ? undefined : next.grace);
-    if ((next.hotkey ?? "") !== (sidebar.hotkey ?? "")) write(["sidebar", "hotkey"], next.hotkey || undefined);
+    if (next.palette !== sidebar.palette) write(["features", "sidebar", "palette"], next.palette);
+    if (next.edge !== sidebar.edge) write(["features", "sidebar", "edge"], next.edge === sidebarDefaults.edge ? undefined : next.edge);
+    if (next.display !== sidebar.display) write(["features", "sidebar", "display"], next.display === sidebarDefaults.display ? undefined : next.display);
+    if (next.width !== sidebar.width) write(["features", "sidebar", "width"], next.width === sidebarDefaults.width ? undefined : next.width);
+    if (next.peek !== sidebar.peek) write(["features", "sidebar", "peek"], next.peek === sidebarDefaults.peek ? undefined : next.peek);
+    if (next.delay !== sidebar.delay) write(["features", "sidebar", "delay"], next.delay === sidebarDefaults.delay ? undefined : next.delay);
+    if (next.grace !== sidebar.grace) write(["features", "sidebar", "grace"], next.grace === sidebarDefaults.grace ? undefined : next.grace);
+    if ((next.hotkey ?? "") !== (sidebar.hotkey ?? "")) write(["features", "sidebar", "hotkey"], next.hotkey || undefined);
   };
   /** Every enabled palette as `extension/palette` with its title, what the sidebar's select offers. */
   const sidebarPalettes = extensions.flatMap((e) => e.palettes.filter((p) => p.config.enabled && p.source).map((p) => ({ id: p.source!, title: p.title === e.title ? p.title : `${e.title} › ${p.title}` })));
-  /** The Windows palette (`palettes.windows`), whose chord the General card and the Overview name. */
+  /** The Windows palette (`palettes.windows`), whose chord the switcher's card and the Overview name. */
   const windows = extensions.flatMap((e) => e.palettes).find((p) => p.id === "windows");
+  /** Every feature for its card: the spec flattened, `[features.<id>]` as written, its commands (the boolean settings' flips, then the declared ones). */
+  const features: SettingsFeature[] = (view.features ?? []).map(({ spec, available, on, needs, note, hotkeys }) => {
+    const { hotkeys: _h, ...values } = (config.features?.[spec.id] ?? {}) as Record<string, unknown>;
+    const settings = spec.settings ?? [];
+    const flips = settings.filter((s) => s.kind === "boolean" && (s as { command?: boolean }).command !== false).map((s) => ({ id: s.id, title: spec.toggle === s.id ? `Toggle ${spec.title}` : `Toggle: ${s.label}` }));
+    return { id: spec.id, title: spec.title, description: spec.description, icon: spec.icon ? iconOf(spec.icon, spec.title) : undefined, available, on, needs: needs ?? undefined, note: note ?? undefined, toggle: spec.toggle, settings, values: values as SettingValues, commands: [...flips, ...(spec.commands ?? [])], hotkeys: hotkeys ?? {} };
+  });
+  const onFeatureSetting = (id: string, key: string, value: SettingValue) => { const f = features.find((x) => x.id === id); writeDeclared(["features", id, key], f?.settings.find((s) => s.id === key), value); };
+  const onFeatureHotkey = (id: string, command: string, combo: string | undefined) => write(["features", id, "hotkeys", command], combo || undefined);
+  const onFeatureRun = (id: string, command: string) => invoke("feature_run", { id: `${id}.${command}` }).then(refresh, fail);
+  const featureOn = (id: string) => features.some((f) => f.id === id && f.on);
   const onBarItem = (key: string, next: BarItemConfig) => {
     const cur = barItems.find((b) => b.key === key)?.config;
     if (!cur) return;
@@ -537,21 +554,22 @@ export default function Settings() {
     // `extensions:<key>[:<setting>]`: the key's extension is the row, its instance the pane's settings.
     if (anchor?.startsWith("extensions:")) { const key = anchor.split(":")[1]; const hit = extensions.find((e) => e.key === key); const name = hit?.name ?? nameOf(key); if (extensions.some((e) => e.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); } }
     // `bar:<ext>/<item>[:<key>]` is an item's row; every other bar anchor lives on the Defaults pane, which the list selects the same way.
-    if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; setBarKey(key ?? (rest === "sidebar" ? BAR_SIDEBAR : BAR_DEFAULTS)); }
+    if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; setBarKey(key ?? BAR_DEFAULTS); }
+    if (anchor?.startsWith("features:")) setFeature(anchor);
     if (anchor) requestAnimationFrame(() => { if (!flashAnchor(anchor)) setTimeout(() => flashAnchor(anchor), 120); });
   };
   const requestPermission = (which: PermissionId) => invoke("permissions_request", { which }).then(refresh, fail);
   const openKeyboardShortcuts = () => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail);
 
   const barSupported = view.bar?.supported ?? isMac;
-  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined), ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
+  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
   /** A search hit selects what it names before the page lights its row. */
   const onJump = (entry: SettingsIndexEntry) => go(entry.page, entry.anchor);
   const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
   const fileName = view.path.split("/").pop() ?? "config.toml";
   // Off macOS every permission is a given (permissions.rs), so the rows have nothing to say.
   const permissions = isMac ? view.permissions : undefined;
-  const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update, keycast: view.keycast }).length;
+  const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update, keycast: featureOn("keycast"), expand: featureOn("expansion") }).length;
   const sidebarLine = barSupported ? sidebarSummary(sidebar, sidebarPalettes) : undefined;
 
   return (
@@ -570,7 +588,8 @@ export default function Settings() {
           checks={{ enabled: config.general.check_updates, checkedAt: checkedAt(view.checks), error: view.checks.app?.error ?? view.checks.extensions?.error, status: view.checks.app?.value?.status, busy: checking }}
           switcher={windows ? holdOf(windows) ?? "" : undefined}
           sidebar={sidebarLine}
-          keycast={view.keycast}
+          keycast={featureOn("keycast")}
+          expand={featureOn("expansion")}
           onCheckUpdates={() => check(true)}
           onInstallUpdate={() => installUpdate().catch(fail)}
           onGo={go}
@@ -593,7 +612,6 @@ export default function Settings() {
           onRequestPermission={requestPermission}
           onOpenOverview={() => go("overview", "overview:attention")}
           themeFile={themeFile}
-          sidebar={barSupported ? { value: sidebar, onChange: onSidebar, palettes: sidebarPalettes, displays: view.displays } : undefined}
           onOpenShortcuts={() => go("shortcuts", "shortcuts:hotkey")}
         />
       )}
@@ -614,9 +632,21 @@ export default function Settings() {
           onGo={go}
         />
       )}
+      {page === "features" && (
+        <SettingsFeatures
+          features={features}
+          onSetting={onFeatureSetting}
+          onHotkey={onFeatureHotkey}
+          onRun={onFeatureRun}
+          onRequestPermission={requestPermission}
+          sidebar={barSupported ? { value: sidebar, onChange: onSidebar, palettes: sidebarPalettes, displays: view.displays } : undefined}
+          switcher={windows && { hold: windows.config.hold, suggested: windows.hold, onHold: (hold) => onPalette(windows.id, { ...windows.config, hold }), appSwitcher: general.appSwitcher, onAppSwitcher: (appSwitcher) => onGeneral({ ...general, appSwitcher }) }}
+          open={feature?.split(":")[1]}
+        />
+      )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
       {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
-      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => go("extensions", `extensions:${key}`)} onSetting={(key, id, value) => { const e = extensions.find((x) => x.key === key); if (e) onExtension(key, { ...e.values, [id]: value as SettingValue }); }} sidebar={sidebar} sidebarPalettes={sidebarPalettes} onOpenSidebar={() => go("general", "general:sidebar")} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const e = extensions.find((x) => x.key === key); if (e) onExtension(key, { ...e.values, [id]: value as SettingValue }); }} />}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

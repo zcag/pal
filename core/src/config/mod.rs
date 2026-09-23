@@ -20,6 +20,7 @@
 mod edit;
 pub mod instance;
 pub mod migrate;
+pub mod reshape;
 pub mod schema;
 pub mod secrets;
 pub mod specs;
@@ -52,9 +53,9 @@ pub struct Config {
     pub palettes: BTreeMap<String, Palette>,
     /// Bar items: the menu bar and sketchybar strips (`docs/design/bar.md`).
     pub bar: Bar,
-    /// The sidebar: a live palette docked to a screen edge
-    /// (`docs/design/switcher.md`).
-    pub sidebar: Sidebar,
+    /// Features: what pal does on its own (`docs/design/model.md`,
+    /// `crate::features`), one table each.
+    pub features: Features,
     /// Instances of `multi` extensions, keyed `<name>@<suffix>`
     /// (`[instances."gmail@work"]`; the table existing is what makes the
     /// instance) or by the bare name to title the default one
@@ -86,11 +87,6 @@ pub struct General {
     /// shortcut is unticked under System Settings > Keyboard > Keyboard
     /// Shortcuts; pal says so in Settings and registers it once it is free.
     pub hotkey: Hotkeys,
-    /// macOS's own App Switcher (Cmd+Tab's) on this chord, for when pal's
-    /// switcher has taken `cmd+tab`: `"alt+tab"`. Its `shift+` variant steps
-    /// back. Goes through the same event tap as `cmd+tab` (Input
-    /// Monitoring); unset is off.
-    pub app_switcher: Option<String>,
     pub theme: Theme,
     /// A theme file overriding pal's colours, radii and fonts
     /// (`pal_core::theme`, docs/config.md "Theme file"): a name, looked up
@@ -208,7 +204,6 @@ impl Default for General {
     fn default() -> Self {
         Self {
             hotkey: Hotkeys::default(),
-            app_switcher: None,
             theme: Theme::System,
             theme_file: String::new(),
             compact: false,
@@ -609,6 +604,23 @@ impl Sidebar {
     pub fn palette(&self) -> Option<&str> {
         Some(self.palette.trim()).filter(|p| !p.is_empty())
     }
+}
+
+/// `[features]`: one table per feature (`crate::features`). The sidebar
+/// is typed; every other feature's table is read over its spec's defaults
+/// ([`Config::feature_settings`]).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct Features {
+    /// The sidebar: a live palette docked to a screen edge
+    /// (`docs/design/switcher.md`).
+    pub sidebar: Sidebar,
+    /// The other features' tables as written, keyed by feature id
+    /// (`[features.mouse]`, `[features.keycast]`): the shape is the spec's
+    /// `settings`, plus `hotkeys` (command id to chord).
+    #[serde(flatten)]
+    #[schemars(with = "BTreeMap<String, BTreeMap<String, serde_json::Value>>")]
+    pub tables: BTreeMap<String, toml::Table>,
 }
 
 /// `badge_style`: how a count badge is drawn.
@@ -1079,6 +1091,29 @@ impl Config {
         overlay(&overlay(manifest_defaults, base.as_ref()), self.extensions.get(key))
     }
 
+    /// `[features.<id>]` over the feature's spec defaults
+    /// (`crate::features`), one level deep like an extension's. The
+    /// sidebar's is its typed table, not this.
+    pub fn feature_settings(&self, id: &str) -> toml::Table {
+        overlay(&spec_defaults(crate::features::settings(id)), self.features.tables.get(id))
+    }
+
+    /// [`feature_settings`](Self::feature_settings) as the feature's own
+    /// type; a value of the wrong type in the file is logged and the
+    /// spec's defaults stand in.
+    pub fn feature<T: serde::de::DeserializeOwned>(&self, id: &str) -> T {
+        let defaults = spec_defaults(crate::features::settings(id));
+        overlay(&defaults, self.features.tables.get(id)).try_into().unwrap_or_else(|e| {
+            eprintln!("{id}\tbad settings\t{e}; using the defaults");
+            defaults.try_into().unwrap_or_else(|e| panic!("core/features/{id}.json defaults: {e}"))
+        })
+    }
+
+    /// A feature command's hotkeys, `[features.<id>.hotkeys]`: command id to chord.
+    pub fn feature_hotkeys(&self, id: &str) -> Vec<(String, String)> {
+        self.features.tables.get(id).and_then(|t| t.get("hotkeys")).and_then(|h| h.as_table()).map(|h| h.iter().filter_map(|(k, v)| Some((k.clone(), v.as_str()?.to_string()))).collect()).unwrap_or_default()
+    }
+
     /// The same for one palette's declared settings, over
     /// `[palettes.<id>].settings` with `id` from `instance::palette_id`; a
     /// non-default instance's palette inherits the default's
@@ -1135,7 +1170,15 @@ impl Config {
         for (key, d) in &self.states {
             out.extend(unknown(&format!("states.{key}."), &d.extra));
         }
-        out.extend(unknown("sidebar.", &self.sidebar.extra));
+        out.extend(unknown("features.sidebar.", &self.features.sidebar.extra));
+        for (id, t) in &self.features.tables {
+            if !crate::features::is(id) {
+                out.push(Diagnostic::warn(format!("features.{id}"), "no such feature"));
+                continue;
+            }
+            let declared: Vec<&str> = crate::features::settings(id).as_array().into_iter().flatten().filter_map(|s| s["id"].as_str()).collect();
+            out.extend(t.keys().filter(|k| *k != "hotkeys" && !declared.contains(&k.as_str())).map(|k| Diagnostic::warn(format!("features.{id}.{k}"), "unknown key")));
+        }
         for (key, i) in &self.instances {
             if !(instance::is_key(key) || instance::valid_name(key)) {
                 out.push(Diagnostic::warn(format!("instances.{key}"), "not an instance key: <name>@<suffix>, the suffix lowercase letters, digits, - and _ (not \"default\"), or a bare name for the default instance"));
@@ -1504,18 +1547,18 @@ show = "always"
     fn sidebar_defaults_and_overrides() {
         let (c, d) = parse("").unwrap();
         assert!(d.is_empty());
-        assert_eq!(c.sidebar.palette(), None, "off until a palette is named: a strip at the edge is opt-in");
-        assert_eq!((c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek, c.sidebar.hotkey), (Edge::Right, "cursor", 280.0, true, None));
-        assert_eq!((c.sidebar.delay, c.sidebar.grace), (0, 150), "a peek is instant and lingers a beat");
-        let (c, d) = parse("[sidebar]\npalette = \"apps/apps\"\nedge = \"left\"\ndisplay = \"primary\"\nwidth = 400\npeek = false\nhotkey = \"ctrl+alt+tab\"\n").unwrap();
+        assert_eq!(c.features.sidebar.palette(), None, "off until a palette is named: a strip at the edge is opt-in");
+        assert_eq!((c.features.sidebar.edge, c.features.sidebar.display.as_str(), c.features.sidebar.width, c.features.sidebar.peek, c.features.sidebar.hotkey), (Edge::Right, "cursor", 280.0, true, None));
+        assert_eq!((c.features.sidebar.delay, c.features.sidebar.grace), (0, 150), "a peek is instant and lingers a beat");
+        let (c, d) = parse("[features.sidebar]\npalette = \"apps/apps\"\nedge = \"left\"\ndisplay = \"primary\"\nwidth = 400\npeek = false\nhotkey = \"ctrl+alt+tab\"\n").unwrap();
         assert!(d.is_empty());
-        assert_eq!((c.sidebar.palette(), c.sidebar.edge, c.sidebar.display.as_str(), c.sidebar.width, c.sidebar.peek), (Some("apps/apps"), Edge::Left, "primary", 400.0, false));
-        assert_eq!(c.sidebar.hotkey.as_deref(), Some("ctrl+alt+tab"));
-        let (c, _) = parse("[sidebar]\npalette = \" \"\n").unwrap();
-        assert_eq!(c.sidebar.palette(), None, "blank is no sidebar");
-        assert!(parse("[sidebar]\nedge = \"top\"\n").is_err(), "left or right");
-        let (_, d) = parse("[sidebar]\nside = \"left\"\n").unwrap();
-        assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["sidebar.side"]);
+        assert_eq!((c.features.sidebar.palette(), c.features.sidebar.edge, c.features.sidebar.display.as_str(), c.features.sidebar.width, c.features.sidebar.peek), (Some("apps/apps"), Edge::Left, "primary", 400.0, false));
+        assert_eq!(c.features.sidebar.hotkey.as_deref(), Some("ctrl+alt+tab"));
+        let (c, _) = parse("[features.sidebar]\npalette = \" \"\n").unwrap();
+        assert_eq!(c.features.sidebar.palette(), None, "blank is no sidebar");
+        assert!(parse("[features.sidebar]\nedge = \"top\"\n").is_err(), "left or right");
+        let (_, d) = parse("[features.sidebar]\nside = \"left\"\n").unwrap();
+        assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["features.sidebar.side"]);
     }
 
     #[test]

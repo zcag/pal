@@ -101,7 +101,7 @@ describe("bundled extensions", () => {
     const calls: string[] = [];
     beforeAll(async () => {
       stored.set("quicklinks\0links", [{ id: "q1", name: "GitHub search", url: "https://github.com/search?q={query}", keywords: ["gh"] }, { id: "q2", name: "Docs", url: "https://pal.cagdas.io/docs" }]);
-      stored.set("snippets\0snippets", [{ id: "s1", name: "Signature", keyword: "sig", text: "Best,\nAda" }]);
+      stored.set("expansion\0snippets", [{ id: "s1", name: "Signature", keyword: "sig", text: "Best,\nAda" }]);
       // The timer CLI pointed at nothing: a real `timer` on PATH would start one on this machine.
       host = await Host.bundled({ settings: { timer: { settings: { command: "/nonexistent/pal-test-timer" } } }, core: { "system.run": ({ id }: { id: string }) => { calls.push(`run ${id}`); return null; }, "clipboard.copy": ({ id }: { id: number }) => { calls.push(`copy ${id}`); return null; } } });
     });

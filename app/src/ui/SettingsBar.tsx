@@ -5,9 +5,8 @@ import { Icon } from "./Icon";
 import { SettingsDisclosure, SettingsField, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { SettingsBarRules, type RuleWrite } from "./SettingsBarRules";
 import { SettingsList, type SettingsListItem } from "./SettingsList";
-import { SIDEBAR_HELP, sidebarSummary } from "./SettingsSidebar";
 import { Tag } from "./Row";
-import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarItemState, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type SettingOption, type SettingsIndexEntry, type SidebarConfig } from "./SettingsTypes";
+import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarItemState, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate } from "./format";
 
 export type SettingsBarProps = {
@@ -28,11 +27,6 @@ export type SettingsBarProps = {
   onOpenExtension?: (name: string) => void;
   /** One of the extension's own settings changed from an item's pane (`BarItem.settings`): written to the extension's table, as the Extensions page does. */
   onSetting?: (extension: string, id: string, value: unknown) => void;
-  /** `[sidebar]` as it stands, for the Sidebar row: the other thing at the screen edge, set up under General (`onOpenSidebar`). */
-  sidebar?: SidebarConfig;
-  /** The palettes the sidebar may show, for the summary's title. */
-  sidebarPalettes?: SettingOption[];
-  onOpenSidebar?: () => void;
 };
 
 type Target = "menubar" | "sketchybar";
@@ -40,8 +34,6 @@ type Group = "placement" | "text" | "colour" | "behaviour";
 
 /** The list row that selects the defaults rather than an item; never an item key, which is always `ext/item`. */
 export const BAR_DEFAULTS = "__defaults__";
-/** The list row for the sidebar: a pointer at its card under General, so it is found where the bar is. */
-export const BAR_SIDEBAR = "__sidebar__";
 
 /**
  * The config key worth printing next to a label. For most fields the key is
@@ -99,7 +91,6 @@ export const lookFields: LookField[] = [
 
 export const barIndex = (items: BarItem[], supported = true): SettingsIndexEntry[] => (supported ? [
   { page: "bar", label: "Where bar items are drawn", hint: "Bar › Defaults", anchor: "bar:target", keywords: "target menu bar sketchybar auto off" },
-  { page: "bar", label: "Sidebar", hint: "Bar › Sidebar", anchor: "bar:sidebar", keywords: `sidebar edge dock ${SIDEBAR_HELP}` },
   { page: "bar", label: "Hover delay", hint: "Bar › Defaults", anchor: "bar:hover", keywords: "peek grace popover" },
   { page: "bar", label: "Open on hover", hint: "Bar › Defaults", anchor: "bar:hover-targets", keywords: "peek menu bar sketchybar" },
   { page: "bar", label: "sketchybar position", hint: "Bar › Defaults", anchor: "bar:position", keywords: "left right center before after" },
@@ -486,35 +477,14 @@ function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSe
   );
 }
 
-/** The Sidebar row's pane: what it is, how it stands, and the way to its card under General, where every key of `[sidebar]` is. */
-function SidebarPane({ sidebar, palettes, onOpen }: { sidebar?: SidebarConfig; palettes?: SettingOption[]; onOpen?: () => void }) {
-  const summary = sidebar ? sidebarSummary(sidebar, palettes) : undefined;
-  return (
-    <div className="pal-ppane pal-bpane" data-anchor="bar:sidebar">
-      <header className="pal-ppane__head">
-        <Icon icon={{ kind: "glyph", value: "\u{f10ab}", tint: "slate" }} size="lg" />
-        <div className="pal-ppane__titles">
-          <span className="pal-ppane__crumb">Bar ›</span>
-          <h3 className="pal-ppane__title">Sidebar</h3>
-        </div>
-      </header>
-      <p className="pal-ppane__desc">{SIDEBAR_HELP}</p>
-      {summary && <p className="pal-bpane__state">{summary === "off" ? "Off." : `${summary[0].toUpperCase()}${summary.slice(1)}.`}</p>}
-      <p className="pal-ppane__note">Set up under General: the switch, the palette, the edge, the display, the width, the peek and the hotkey (<code>[sidebar]</code> in the file). The hover delay and grace it peeks with are the Defaults row's.</p>
-      {onOpen && <div className="pal-button-row"><button type="button" className="pal-button" data-small onClick={onOpen}>Open General › Sidebar</button></div>}
-    </div>
-  );
-}
-
 /**
  * One list, one pane, like Extensions and Palettes. The list is the
- * defaults row, the sidebar's pointer, and then every declared item; the
- * pane is whichever is selected: the defaults form, the sidebar's pointer,
- * or an item's description, a preview strip of its last render in both
+ * defaults row and then every declared item; the pane is whichever is
+ * selected: the defaults form, or an item's description, a preview strip of its last render in both
  * themes, its placement, its popover, and its departures from the
  * defaults folded away until it has some.
  */
-export function SettingsBar({ config, onChange, items, onItem, onRule, sketchybar, supported = true, selected, onSelect, onOpenExtension, onSetting, sidebar, sidebarPalettes, onOpenSidebar }: SettingsBarProps) {
+export function SettingsBar({ config, onChange, items, onItem, onRule, sketchybar, supported = true, selected, onSelect, onOpenExtension, onSetting }: SettingsBarProps) {
   const [local, setLocal] = useState<string | undefined>(undefined);
   const key = selected ?? local ?? BAR_DEFAULTS;
   const current = items.find((b) => b.key === key);
@@ -531,8 +501,7 @@ export function SettingsBar({ config, onChange, items, onItem, onRule, sketchyba
   }
 
   const rows: SettingsListItem[] = [
-    { id: BAR_DEFAULTS, icon: { kind: "glyph", value: "\u{f0493}", tint: "slate" }, title: "Defaults", sub: "every item, unless it says otherwise", anchor: "bar:defaults" },
-    { id: BAR_SIDEBAR, icon: { kind: "glyph", value: "\u{f10ab}", tint: "slate" }, title: "Sidebar", sub: sidebar ? sidebarSummary(sidebar, sidebarPalettes) : "a palette at the screen edge", dim: !sidebar?.palette.trim(), anchor: "bar:sidebar", divider: true },
+    { id: BAR_DEFAULTS, icon: { kind: "glyph", value: "\u{f0493}", tint: "slate" }, title: "Defaults", sub: "every item, unless it says otherwise", anchor: "bar:defaults", divider: true },
     ...items.map((b) => ({ id: b.key, icon: b.extIcon, title: b.title, sub: b.extTitle, accessory: rowTag(b), dim: !b.config.enabled || !b.source, anchor: `bar:${b.key}` })),
   ];
 
@@ -543,7 +512,6 @@ export function SettingsBar({ config, onChange, items, onItem, onRule, sketchyba
       <div className="pal-split__pane">
         {current
           ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onRule={onRule && ((id, w) => onRule(current.key, id, w))} onOpenExtension={onOpenExtension} onSetting={onSetting} />
-          : key === BAR_SIDEBAR ? <SidebarPane sidebar={sidebar} palettes={sidebarPalettes} onOpen={onOpenSidebar} />
           : <Defaults config={config} onChange={onChange} sketchybar={sketchybar} items={items} />}
       </div>
     </div>

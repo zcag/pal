@@ -19,7 +19,7 @@ import { layoutIcon } from "./icons.ts";
 
 /** `[extensions.window-management]`, defaults in pal.json. */
 /** The layouts' knobs, and the keep-below-bar watcher's two, which the app reads itself (reserve.rs). */
-type Settings = WindowLayoutOptions & { keep_below_bar: boolean; bar_height: number };
+type Settings = WindowLayoutOptions;
 
 /** A row of the palette: a core layout, or the resize form. */
 export type RowId = WindowLayout | typeof RESIZE;
@@ -80,7 +80,7 @@ const matches = (query: string, ...fields: (string | string[] | undefined)[]) =>
 
 /** The `layout` effect: the layout, the window (the focused one when absent), and the settings' knobs. */
 const effect = (name: WindowLayout, id?: string): Effect => {
-  const { keep_below_bar: _, bar_height: __, ...knobs } = settings.get<Settings>(EXT);
+  const knobs = settings.get<Settings>(EXT);
   return { layout: { name, id, ...knobs } };
 };
 
