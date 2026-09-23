@@ -21,7 +21,8 @@
 //!   own run loop, so a busy main thread never stalls the pointer. A left
 //!   down while three fingers rest on a device becomes a middle down, its
 //!   drags and its up follow; a scroll has its three delta pairs negated on
-//!   the axes the settings reverse for its source. The source ([`Source`]):
+//!   the axes the settings reverse for its source (a trackpad's rebuilt as a
+//!   new event, so WebKit's momentum follows: `tap::scroll`). The source ([`Source`]):
 //!   a wheel's notches (not continuous) are the mouse; a continuous scroll is
 //!   the trackpad when two fingers or more are down on a device as it
 //!   begins (a Magic Mouse scrolls under one), and its momentum keeps the
@@ -292,7 +293,7 @@ mod tap {
     use std::sync::Mutex;
 
     use objc2_core_foundation::{kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop};
-    use objc2_core_graphics::{CGEvent, CGEventField, CGEventMask, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType, CGMouseButton};
+    use objc2_core_graphics::{CGEvent, CGEventField, CGEventMask, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType, CGMouseButton, CGScrollEventUnit};
 
     use super::{current, source, touches, Source};
     use crate::lock;
@@ -319,7 +320,36 @@ mod tap {
         CGEvent::set_integer_value_field(Some(e), CGEventField::MouseEventButtonNumber, CGMouseButton::Center.0 as i64);
     }
 
-    fn scroll(e: &CGEvent) {
+    /// Axis 1 is vertical, axis 2 horizontal: each axis's integer delta, fixed-point delta and point delta.
+    const AXES: [[CGEventField; 3]; 2] = [
+        [CGEventField::ScrollWheelEventDeltaAxis1, CGEventField::ScrollWheelEventFixedPtDeltaAxis1, CGEventField::ScrollWheelEventPointDeltaAxis1],
+        [CGEventField::ScrollWheelEventDeltaAxis2, CGEventField::ScrollWheelEventFixedPtDeltaAxis2, CGEventField::ScrollWheelEventPointDeltaAxis2],
+    ];
+    /// What a rebuilt scroll keeps of the original besides the deltas: the phases WebKit and AppKit read, and whether it is continuous.
+    const KEPT: [CGEventField; 5] = [CGEventField::ScrollWheelEventIsContinuous, CGEventField::ScrollWheelEventScrollPhase, CGEventField::ScrollWheelEventMomentumPhase, CGEventField::ScrollWheelEventMomentumOptionPhase, CGEventField::ScrollWheelEventScrollCount];
+
+    /// Write `from`'s deltas into `to`, negated on the axes `flip` names. All
+    /// three are read before any is written: setting one can recompute the others.
+    fn deltas(from: &CGEvent, to: &CGEvent, flip: [bool; 2]) {
+        for (axis, on) in AXES.iter().zip(flip) {
+            let k = if on { -1 } else { 1 };
+            let [delta, fixed, point] = *axis;
+            let (d, f, p) = (CGEvent::integer_value_field(Some(from), delta), CGEvent::double_value_field(Some(from), fixed), CGEvent::integer_value_field(Some(from), point));
+            CGEvent::set_integer_value_field(Some(to), delta, k * d);
+            CGEvent::set_double_value_field(Some(to), fixed, k as f64 * f);
+            CGEvent::set_integer_value_field(Some(to), point, k * p);
+        }
+    }
+
+    /// A reversed scroll, or None to pass it as it is. A wheel's notch is
+    /// negated in place. A continuous one is rebuilt as a new event: the
+    /// original carries the HID event it came from, which field edits do
+    /// not reach, and WebKit drives its own momentum from that HID event's
+    /// deltas (measured in pal's Settings window, 2026-09-23: the fingers'
+    /// scroll went the reversed way and the coast after the lift the
+    /// original one). The new event has no HID event, so every reader sees
+    /// the one direction.
+    fn scroll(e: &CGEvent) -> Option<CFRetained<CGEvent>> {
         let int = |f| CGEvent::integer_value_field(Some(e), f);
         let continuous = int(CGEventField::ScrollWheelEventIsContinuous) != 0;
         let phased = int(CGEventField::ScrollWheelEventScrollPhase) != 0;
@@ -330,17 +360,22 @@ mod tap {
         *last = src;
         drop(last);
         let (v, h) = current().reverse(src);
-        let axes = [(v, CGEventField::ScrollWheelEventDeltaAxis1, CGEventField::ScrollWheelEventFixedPtDeltaAxis1, CGEventField::ScrollWheelEventPointDeltaAxis1), (h, CGEventField::ScrollWheelEventDeltaAxis2, CGEventField::ScrollWheelEventFixedPtDeltaAxis2, CGEventField::ScrollWheelEventPointDeltaAxis2)];
-        for (on, delta, fixed, point) in axes {
-            if !on {
-                continue;
-            }
-            // Read all three before writing any: setting one field can recompute the others.
-            let (d, f, p) = (int(delta), CGEvent::double_value_field(Some(e), fixed), int(point));
-            CGEvent::set_integer_value_field(Some(e), delta, -d);
-            CGEvent::set_double_value_field(Some(e), fixed, -f);
-            CGEvent::set_integer_value_field(Some(e), point, -p);
+        if !v && !h {
+            return None;
         }
+        if !continuous {
+            deltas(e, e, [v, h]);
+            return None;
+        }
+        let n = CGEvent::new_scroll_wheel_event2(None, CGScrollEventUnit::Pixel, 2, 0, 0, 0)?;
+        for f in KEPT {
+            CGEvent::set_integer_value_field(Some(&n), f, int(f));
+        }
+        deltas(e, &n, [v, h]);
+        CGEvent::set_location(Some(&n), CGEvent::location(Some(e)));
+        CGEvent::set_flags(Some(&n), CGEvent::flags(Some(e)));
+        CGEvent::set_timestamp(Some(&n), CGEvent::timestamp(Some(e)));
+        Some(n)
     }
 
     unsafe extern "C-unwind" fn callback(_proxy: CGEventTapProxy, ty: CGEventType, event: NonNull<CGEvent>, _info: *mut c_void) -> *mut CGEvent {
@@ -357,7 +392,8 @@ mod tap {
             return event.as_ptr();
         }
         match ty {
-            CGEventType::ScrollWheel => scroll(e),
+            // The system releases a returned new event with the original.
+            CGEventType::ScrollWheel => return scroll(e).map_or(event.as_ptr(), |n| CFRetained::into_raw(n).as_ptr()),
             CGEventType::LeftMouseDown => {
                 let three = current().middle_click && super::touch::reading() && touches(|t| {
                     let three = t.most() == 3;
