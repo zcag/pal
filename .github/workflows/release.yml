@@ -7,11 +7,23 @@
 # tauri.conf.json. The `manifest` job then checks that latest.json carries
 # all three platforms (the three jobs merge into one file in parallel) and
 # publishes.
+#
+# A push to main that changes the dependencies runs the same build without
+# bundling or releasing (`warm`): it saves the Rust cache, and a tag run can
+# restore only its own caches and main's. Without it every release compiled
+# every crate from nothing (~4 of the ~12 min a macOS job spends in cargo;
+# the rest is pal's crates and fat LTO, which no cache skips).
 name: release
 
 on:
   push:
     tags: ["v*"]
+    branches: [main]
+    paths: ["Cargo.lock", "**/Cargo.toml", ".github/workflows/release.yml"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -39,6 +51,7 @@ jobs:
           fetch-depth: 0  # every tag and the history: the notes step
 
       - name: Tag matches the app version
+        if: github.ref_type == 'tag'
         env:
           TAG: ${{ github.ref_name }}
         run: |
@@ -51,6 +64,7 @@ jobs:
       # requests, and this repo has none.
       - name: Release notes from the commits
         id: notes
+        if: github.ref_type == 'tag'
         env:
           TAG: ${{ github.ref_name }}
         run: |
@@ -83,9 +97,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.97.1
         with:
           targets: ${{ matrix.target }}
+      # Saved by main's warm runs only: a tag's cache is seen by that tag alone.
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+          save-if: ${{ github.ref_type != 'tag' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -136,6 +152,7 @@ jobs:
       # the env var).
       - name: Updater signing
         id: sign
+        if: github.ref_type == 'tag'
         env:
           KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
@@ -157,7 +174,7 @@ jobs:
       # A release is never ad-hoc: no secret, no build.
       - name: Code signing (pal-dev)
         id: codesign
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && github.ref_type == 'tag'
         env:
           P12: ${{ secrets.PAL_DEV_P12 }}
           PW: ${{ secrets.PAL_DEV_P12_PASSWORD }}
@@ -169,7 +186,14 @@ jobs:
           echo '{"bundle":{"macOS":{"signingIdentity":"pal-dev"}}}' > "$RUNNER_TEMP/codesign.json"
           echo "args=--config $RUNNER_TEMP/codesign.json" >> "$GITHUB_OUTPUT"
 
+      # main: the build alone, for the cache.
+      - name: Warm the Rust cache
+        if: github.ref_type != 'tag'
+        working-directory: app
+        run: npx tauri build --target ${{ matrix.target }} --no-bundle --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
       - uses: tauri-apps/tauri-action@v1
+        if: github.ref_type == 'tag'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -208,6 +232,7 @@ jobs:
   # platform's job, which merges its entry in again.
   manifest:
     needs: bundle
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
