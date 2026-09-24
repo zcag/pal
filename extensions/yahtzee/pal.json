@@ -1,0 +1,109 @@
+{
+  "name": "yahtzee",
+  "title": "Yahtzee",
+  "description": "Solo Yahtzee: five dice, three rolls a round, thirteen rounds. The card shows what every category would score with the dice as they lie; play with the mouse or one-handed on the arrows, Enter and space. The game in progress, the best score and the average persist.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰇎",
+      "bg": "amber"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "store": {
+    "tagline": "Solo Yahtzee with the scores in plain sight; mouse or one hand on the keys",
+    "category": "fun",
+    "features": [
+      "Five ivory dice that tumble when thrown (held ones stay put), a scorecard in two columns under them, the total at the bottom; everything fits the panel at once, compact included",
+      "The card shows what each open category would score with the dice as they lie, and the dice a category counts light up while its row is picked; the total shows what it would add (`+25`)",
+      "One-handed: `←` `→` pick a die and Enter holds it, `↑` or `space` rolls, `↓` lands on the category that adds most, the arrows move between the open ones and Enter scores; `1` to `5` hold and `R` rolls too",
+      "The upper bonus as a bar to 63, with the picked category's share in a lighter shade; greyed once it is out of reach",
+      "Hasbro's rules in full: 35 for 63 in the upper section, 100 for each further Yahtzee while the Yahtzee box holds 50, and the Joker rules for where it may go",
+      "A Yahtzee gets a banner and confetti, a score drops into its row while the total counts up, game over shows the final score with the best and the average",
+      "Escape leaves at any point; the game and the record are there when you come back, across restarts"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-roll.png",
+        "caption": "Mid-round: three fours held, each open category showing what it would score"
+      },
+      {
+        "file": "2-choose.png",
+        "caption": "Out of rolls: the cursor on the card, the dice it counts ringed, the total showing what it adds"
+      },
+      {
+        "file": "3-yahtzee.png",
+        "caption": "A second Yahtzee in the dark theme: 100 more, and as a Joker it fills a straight"
+      },
+      {
+        "file": "4-over.png",
+        "caption": "Game over: the final score with the best and the average"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Roll",
+        "description": "Up to three times a round; held dice stay.",
+        "keys": "space, up, r"
+      },
+      {
+        "title": "Hold a die",
+        "description": "Enter on the die under the cursor, or its number.",
+        "keys": "enter, 1-5"
+      },
+      {
+        "title": "Score a category",
+        "description": "cmd+k lists the ones the dice may go in, the one that adds most first.",
+        "keys": "enter"
+      },
+      {
+        "title": "New game",
+        "description": "Asks first mid-game; the record is kept.",
+        "keys": "n"
+      }
+    ]
+  },
+  "palettes": {
+    "yahtzee": {
+      "kind": "view",
+      "description": "The dice and the card. Escape leaves mid-game; it is there when you come back.",
+      "keys": [
+        {
+          "keys": "space",
+          "title": "Roll (also r; up on the dice)"
+        },
+        {
+          "keys": "left",
+          "title": "The die to the left (right, the one to the right); on the card, the other column"
+        },
+        {
+          "keys": "enter",
+          "title": "Hold or release the die; on the card, score the category; the first roll of a round"
+        },
+        {
+          "keys": "1",
+          "title": "Hold or release die 1 (2 to 5 likewise)"
+        },
+        {
+          "keys": "down",
+          "title": "To the card, on the category that adds most; then the next one down"
+        },
+        {
+          "keys": "up",
+          "title": "The category above; past the top, back to the dice; on the dice, roll"
+        },
+        {
+          "keys": "n",
+          "title": "New game, after a confirm mid-game"
+        }
+      ]
+    }
+  }
+}

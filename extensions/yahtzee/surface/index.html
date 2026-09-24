@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yahtzee</title>
+  <script src="/__pal/surface.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./main.ts"></script>
+</head>
+<body>
+  <section id="stage">
+    <div id="table">
+      <div id="tray"></div>
+      <button id="roll" type="button" tabindex="-1">
+        <span class="word">Roll</span>
+        <span class="left"><i></i><i></i><i></i></span>
+        <kbd class="cap">space</kbd>
+      </button>
+    </div>
+    <div id="result">
+      <div class="final"><span class="lbl">Final score</span><b id="final">0</b></div>
+      <div class="facts"><span id="newbest">New best</span><span id="facts"></span></div>
+      <button id="again" class="btn primary" type="button" tabindex="-1">New game <span class="keys"><kbd>⏎</kbd></span></button>
+    </div>
+    <div id="banner"></div>
+  </section>
+  <section id="card">
+    <div class="col" id="upper"><div class="head"><span>Upper</span><span class="sub" id="upper-sum"></span></div></div>
+    <div class="col" id="lower"><div class="head"><span>Lower</span><span class="sub" id="lower-sum"></span></div></div>
+  </section>
+  <footer id="foot">
+    <div id="hints"></div>
+    <div id="totals">
+      <span id="record"></span>
+      <span class="total"><span class="lbl">Total</span><b id="total">0</b><span id="delta"></span></span>
+    </div>
+  </footer>
+  <div id="fx" aria-hidden="true"></div>
+  <div id="confirm" role="dialog" aria-modal="true">
+    <div class="box">
+      <div>Start over? This game's card is lost.</div>
+      <div class="row">
+        <button class="btn" type="button" tabindex="-1" data-confirm="no">Keep playing <span class="keys"><kbd>←</kbd></span></button>
+        <button class="btn primary" type="button" tabindex="-1" data-confirm="yes">New game <span class="keys"><kbd>⏎</kbd></span></button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,405 @@
+/*
+ * Yahtzee's page: the dice on a tray with Roll beside them (what the eye
+ * hits first), the scorecard under them in two columns (upper, lower:
+ * seven rows each, the upper bonus as the seventh), the record and the
+ * total in a quiet line at the bottom. Everything is sized from the
+ * viewport (the body is about 720 by 390, 560 wide in compact), so it all
+ * fits with no scroll. Colours are the panel's tokens; the dice are ivory
+ * in both themes, as dice are.
+ */
+:root {
+  --die: clamp(46px, min(10.6vw, 16.5vh), 68px);
+  --gap: clamp(8px, 1.9vw, 14px);
+  --pad: clamp(12px, 2.4vw, 18px);
+  --ivory: #fbfaf6;
+  --ivory-2: #e9e6dd;
+  --ivory-edge: #cfcabd;
+  --pip: #1f2027;
+  --die-lift: 0 5px 12px rgba(0, 0, 0, 0.16);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --accent: var(--pal-accent, #4f46d6);
+  --green: var(--pal-tag-green, #1b6b40);
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --ivory: #f1efe8;
+  --ivory-2: #d9d5ca;
+  --ivory-edge: #9d988b;
+  --die-lift: 0 6px 14px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  background: var(--pal-bg, #f4f4f6);
+  color: var(--pal-fg, #1a1a1f);
+  font: 13px/1.25 var(--pal-font-ui, system-ui, sans-serif);
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  flex-direction: column;
+  padding: var(--pad) var(--pad) 0;
+  gap: var(--gap);
+  font-variant-numeric: tabular-nums;
+}
+button { font: inherit; color: inherit; }
+
+/* ---- the stage: the dice and Roll, or the final score ---- */
+#stage { position: relative; flex: none; display: grid; place-items: center; }
+#table, #result { grid-area: 1 / 1; transition: opacity 260ms, transform 360ms var(--ease); }
+#table { display: flex; align-items: center; gap: calc(var(--gap) + 4px); }
+#result { display: flex; align-items: center; gap: 22px; opacity: 0; transform: translateY(8px); pointer-events: none; }
+body.over #table { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+body.over #result { opacity: 1; transform: none; pointer-events: auto; }
+
+#tray {
+  display: flex;
+  gap: var(--gap);
+  padding: 8px calc(var(--gap) - 2px) 20px;
+  border-radius: 16px;
+  background: var(--pal-bg-sunken, #eaeaee);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+:root[data-theme="dark"] #tray { background: color-mix(in srgb, var(--pal-bg-sunken) 55%, var(--pal-bg));
+}
+
+/* A die: the button is the hit area and the slot, `.body` moves (tumbles, holds), `.face` is the ivory. */
+.die {
+  position: relative;
+  width: var(--die);
+  height: var(--die);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+.die .body { position: absolute; inset: 0; transition: transform 200ms var(--ease); will-change: transform; }
+.die .face {
+  position: absolute;
+  inset: 0;
+  border-radius: 22%;
+  background: linear-gradient(150deg, var(--ivory) 30%, var(--ivory-2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.07),
+    0 2px 0 var(--ivory-edge),
+    var(--die-lift);
+  transition: box-shadow 160ms, background 160ms;
+}
+/* The seven pip places on a 4x4 grid of quarters; a face shows its own. */
+.pip {
+  position: absolute;
+  width: 19%;
+  height: 19%;
+  margin: -9.5% 0 0 -9.5%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #4a4b55, var(--pip) 60%);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: none;
+}
+.pip.on { display: block; }
+.pip.tl { left: 27%; top: 27%; } .pip.tr { left: 73%; top: 27%; }
+.pip.ml { left: 27%; top: 50%; } .pip.c { left: 50%; top: 50%; } .pip.mr { left: 73%; top: 50%; }
+.pip.bl { left: 27%; top: 73%; } .pip.br { left: 73%; top: 73%; }
+.face.one .pip.c { width: 23%; height: 23%; margin: -11.5% 0 0 -11.5%; background: radial-gradient(circle at 40% 35%, #e0584e, #b3261e 60%); }
+
+/* Before the round's first roll: an empty slot. */
+.die.blank .face { background: transparent; box-shadow: inset 0 0 0 1.5px var(--pal-line-strong, rgba(0, 0, 0, 0.16)); }
+.die.blank { cursor: default; }
+
+/* Held: lifted off the tray's floor into a ring of the accent, the word under it. */
+.die .tag {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 140ms;
+  pointer-events: none;
+}
+.die.held .tag { opacity: 1; }
+.die.held .body { transform: translateY(-3px); }
+.die.held .face {
+  background: linear-gradient(150deg, var(--ivory) 30%, color-mix(in srgb, var(--accent) 14%, var(--ivory-2)));
+  box-shadow: 0 0 0 2.5px var(--accent), 0 2px 0 var(--ivory-edge), 0 8px 16px rgba(0, 0, 0, 0.18);
+}
+.die:not(.blank):not(.held):hover .body { transform: translateY(-2px); }
+.die.fixed { cursor: default; }
+.die.fixed:hover .body { transform: none; }
+/* The keyboard's die: a thin ring around the slot, shown once the keys are in use. */
+.die::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 26%;
+  border: 1.5px solid var(--pal-fg-muted, #5c5d66);
+  opacity: 0;
+  transition: opacity 120ms;
+  pointer-events: none;
+}
+body.keys .die.cur::after { opacity: 0.8; }
+/* The dice a box counts, while its row is picked. */
+.die.counts .face { box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 0 var(--ivory-edge), var(--die-lift); }
+.die.held.counts .face { box-shadow: 0 0 0 2.5px var(--accent), 0 2px 0 var(--ivory-edge), 0 8px 16px rgba(0, 0, 0, 0.18); }
+
+/* Roll: the primary control, as tall as a die; the dots are the rolls left. */
+#roll {
+  position: relative;
+  height: calc(var(--die) + 10px);
+  min-width: calc(var(--die) * 1.7);
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--pal-accent-fg, #fff);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 60%, #000), 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: transform 100ms, filter 120ms, background 200ms, box-shadow 200ms, color 200ms;
+}
+#roll .word { font-size: 17px; font-weight: 750; letter-spacing: 0.01em; }
+#roll .left { display: flex; gap: 5px; }
+#roll .left i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.95; transition: opacity 200ms, transform 200ms; }
+#roll .left i.used { opacity: 0.28; transform: scale(0.8); }
+#roll .cap { position: absolute; right: 6px; top: 6px; opacity: 0; }
+body.keys #roll .cap { opacity: 1; }
+#roll:hover { filter: brightness(1.08); }
+#roll:active, #roll.pressed { transform: translateY(2px); box-shadow: 0 0 0 color-mix(in srgb, var(--accent) 60%, #000), 0 3px 8px color-mix(in srgb, var(--accent) 30%, transparent); }
+#roll:disabled {
+  cursor: default;
+  background: var(--pal-bg-sunken, #eaeaee);
+  color: var(--pal-fg-faint, #6b6c76);
+  box-shadow: inset 0 0 0 1px var(--pal-line, rgba(0, 0, 0, 0.08));
+  filter: none;
+  transform: none;
+}
+#roll:disabled .word { font-size: 13px; font-weight: 600; }
+#roll.nudge { animation: nudge 360ms ease-in-out; }
+@keyframes nudge { 20% { transform: translateX(-4px); } 50% { transform: translateX(3px); } 80% { transform: translateX(-2px); } }
+
+/* Game over: the score, the record, New game. */
+#result .final { display: flex; flex-direction: column; align-items: flex-start; }
+#result .final .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pal-fg-muted); }
+#final { font-size: 46px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; }
+#result .facts { display: flex; flex-direction: column; gap: 6px; color: var(--pal-fg-muted); font-size: 12.5px; }
+#newbest {
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f9dc82, #d39a1c);
+  color: #3b2500;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: none;
+}
+body.newbest #newbest { display: inline-block; }
+
+/* The banner: Yahtzee!, with its bonus or as a Joker. */
+#banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 6px 20px;
+  border-radius: 999px;
+  background: rgba(20, 18, 30, 0.82);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  backdrop-filter: blur(4px);
+}
+#banner .word {
+  background: linear-gradient(100deg, #f7d77c 20%, #fff8dc 40%, #e0a526 60%, #f7d77c 80%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: glint 1.6s linear infinite;
+}
+@keyframes glint { to { background-position: -250% 0; } }
+
+/* ---- the scorecard ---- */
+#card { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--gap) + 4px); }
+.col {
+  display: grid;
+  grid-template-rows: auto repeat(7, minmax(0, 1fr));
+  min-height: 0;
+  padding: 2px 6px 4px;
+  border-radius: 12px;
+  background: var(--pal-bg-elevated, #fff);
+  box-shadow: 0 0 0 1px var(--pal-line, rgba(0, 0, 0, 0.08)), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 8px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pal-fg-faint, #6b6c76);
+}
+.head .sub { font-size: 11px; letter-spacing: 0; color: var(--pal-fg-muted); }
+.cat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 8px;
+  border-radius: 7px;
+  cursor: default;
+}
+.cat + .cat::before { content: ""; position: absolute; left: 8px; right: 8px; top: 0; border-top: 1px solid var(--pal-line, rgba(0, 0, 0, 0.08)); }
+.cat.cur::before, .cat.cur + .cat::before { border-color: transparent; }
+.cat .lbl { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.cat .mini { flex: none; width: 15px; height: 15px; border-radius: 4px; position: relative; background: var(--pal-bg-sunken); box-shadow: inset 0 0 0 1px var(--pal-line-strong); }
+.cat .mini i { position: absolute; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; background: var(--pal-fg-muted); }
+.cat .val { flex: none; min-width: 26px; text-align: right; font-size: 14px; font-weight: 650; }
+.cat .note { color: var(--pal-fg-faint); font-size: 11.5px; font-weight: 500; }
+.cat .enter { flex: none; display: none; }
+body.keys .cat.cur .enter { display: inline-grid; }
+
+/* A filled box: its score, the label quiet; an open one's label is the one to read. */
+.cat .lbl { font-weight: var(--pal-weight-medium, 500); }
+.cat.used .lbl { color: var(--pal-fg-muted); font-weight: var(--pal-weight-regular, 400); }
+.cat.used .mini { opacity: 0.55; }
+.cat.used .val { color: var(--pal-fg-muted); font-weight: 550; }
+body.over .cat.used .val { color: var(--pal-fg); font-weight: 650; }
+body.over .cat.used.zero .val { color: var(--pal-fg-faint); font-weight: 500; }
+.cat.used.zero .val { color: var(--pal-fg-faint); font-weight: 500; }
+/* An open box the dice may go in: what it would score, in the accent. */
+.cat.opt { cursor: pointer; }
+.cat.opt .val { color: var(--accent); }
+.cat.opt.zero .val { color: var(--pal-fg-faint); font-weight: 500; }
+.cat.opt:hover, .cat.cur { background: var(--pal-accent-soft, rgba(79, 70, 214, 0.12)); }
+.cat.cur .val { font-weight: 800; }
+.cat.cur.zero .val { color: var(--pal-fg-muted); }
+/* Open but not an option now (a Joker's forced box elsewhere). */
+.cat.shut .lbl { color: var(--pal-fg-faint); }
+.cat.shut .mini { opacity: 0.5; }
+/* The row just filled: its score drops in. */
+.cat.scored .val { animation: drop 520ms var(--ease) both; }
+.cat.scored { animation: flash 900ms ease-out both; }
+@keyframes drop { 0% { transform: translateY(-10px) scale(1.5); color: var(--accent); opacity: 0; } 55% { opacity: 1; transform: translateY(1px) scale(1.08); color: var(--accent); } }
+@keyframes flash { 0% { background: color-mix(in srgb, var(--accent) 26%, transparent); } }
+.ybonus.new { display: inline-block; animation: pop 600ms var(--ease) 200ms both; }
+@keyframes pop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.3); opacity: 1; } }
+.ybonus { margin-left: 6px; padding: 0 5px; border-radius: 4px; background: linear-gradient(135deg, #f9dc82, #d39a1c); color: #3b2500; font-size: 10.5px; font-weight: 800; }
+
+/* The upper bonus: how far to 63, and what the picked box would add. */
+.cat.bonus .bar { position: relative; flex: 1; height: 6px; border-radius: 3px; background: var(--pal-bg-sunken); overflow: hidden; box-shadow: inset 0 0 0 1px var(--pal-line); }
+.cat.bonus .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; transition: width 400ms var(--ease); }
+.cat.bonus .bar .fill { background: var(--accent); }
+.cat.bonus .bar .ghost { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.cat.bonus .lbl { flex: none; }
+.cat.bonus .of { flex: none; font-size: 11.5px; color: var(--pal-fg-muted); min-width: 38px; text-align: right; }
+.cat.bonus .val { color: var(--pal-fg-faint); font-weight: 500; }
+.cat.bonus.won .val { color: var(--green); font-weight: 750; }
+.cat.bonus.would .val { color: var(--accent); font-weight: 750; }
+.cat.bonus.won .bar .fill { background: var(--green); }
+.cat.bonus.lost .bar { opacity: 0.45; }
+.cat.bonus.won.scored .val { animation: drop 520ms var(--ease) both; }
+
+/* ---- the line at the bottom: keys, record, total ---- */
+#foot {
+  flex: none;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--pal-line, rgba(0, 0, 0, 0.08));
+  margin: 0 calc(var(--pad) * -1);
+  padding: 0 var(--pad);
+}
+#hints { flex: 1; min-width: 0; display: flex; gap: 12px; color: var(--pal-fg-faint); font-size: 11px; white-space: nowrap; overflow: hidden; }
+#hints .h { display: inline-flex; align-items: center; gap: 4px; }
+#totals { flex: none; display: flex; align-items: baseline; gap: 14px; }
+#record { color: var(--pal-fg-muted); font-size: 11.5px; }
+body.over #record { display: none; }
+.total { display: inline-flex; align-items: baseline; gap: 6px; }
+.total .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pal-fg-muted); }
+#total { font-size: 18px; font-weight: 800; min-width: 2ch; text-align: right; }
+#delta { font-size: 12px; font-weight: 700; color: var(--accent); min-width: 3ch; }
+
+/* ---- keys, buttons, the confirm ---- */
+.keys { display: inline-flex; gap: 2px; }
+kbd {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--pal-radius-kbd, 4px);
+  background: var(--pal-bg-sunken, #eaeaee);
+  color: var(--pal-fg-muted, #5c5d66);
+  box-shadow: inset 0 -1px 0 var(--pal-line-strong, rgba(0, 0, 0, 0.16));
+  font: 600 10.5px/1 var(--pal-font-ui, system-ui);
+}
+#roll kbd { background: rgba(255, 255, 255, 0.2); color: inherit; box-shadow: none; font-size: 9.5px; height: 15px; }
+#roll:disabled kbd { display: none; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 9px 0 12px;
+  border: 1px solid var(--pal-line-strong, rgba(0, 0, 0, 0.16));
+  border-radius: var(--pal-radius-control, 6px);
+  background: var(--pal-bg, #f4f4f6);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--pal-bg-sunken); }
+.btn.primary { background: var(--accent); border-color: transparent; color: var(--pal-accent-fg, #fff); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.primary kbd { background: rgba(255, 255, 255, 0.22); color: inherit; box-shadow: none; }
+#again { height: 40px; font-size: 14px; padding: 0 12px 0 16px; }
+
+#confirm { position: fixed; inset: 0; display: none; place-items: center; background: var(--pal-scrim, rgba(0, 0, 0, 0.35)); z-index: 50; }
+#confirm.open { display: grid; animation: fade 160ms ease both; }
+#confirm .box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: var(--pal-radius-popover, 12px);
+  background: var(--pal-bg-elevated, #fff);
+  box-shadow: var(--pal-shadow-popover, 0 10px 30px rgba(0, 0, 0, 0.3));
+}
+#confirm .row { display: flex; gap: 8px; }
+@keyframes fade { from { opacity: 0; } }
+
+/* Confetti: bits thrown from a point, drawn by main.ts's `burst`. */
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+#fx i { position: absolute; left: 0; top: 0; width: 7px; height: 7px; border-radius: 2px; }
+
+/* Narrower: the record drops the game count, then the key hints keep only the essentials. */
+@media (max-width: 760px) {
+  #record .games { display: none; }
+}
+@media (max-width: 620px) {
+  #hints .opt { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}

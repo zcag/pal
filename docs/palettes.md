@@ -161,6 +161,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Windows](#windows-windows-windows-spaces) | `windows` | live, primary | Focus the window |
 | [Spaces](#windows-windows-windows-spaces) | `windows-spaces` | live, normal | Bring the space in front |
 | [Wordle](#wordle-wordle) | `wordle` | view, normal | Submit the guess |
+| [Yahtzee](#yahtzee-yahtzee) | `yahtzee` | view (surface), normal | Hold the die, or score the category under the cursor; the first roll of a round |
 | [YouTube](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-search` | input, normal | Open in the browser |
 | [YouTube Channels](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-channels` | input, normal | Latest videos |
 | [Watch Later](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-later` | live, normal | Open in the browser |
@@ -3114,6 +3115,40 @@ room and tightens as it grows, never past where a card's rank shows.
 [extensions.solitaire]
 draw = "1"                    # or "3"
 ```
+
+## Yahtzee (`yahtzee`)
+
+Solo Yahtzee: five dice, three rolls a round, thirteen rounds. Enter on
+the palette's row (or its hotkey) opens the game as a view level whose
+body is the extension's own page (a `surface`): the dice on a tray with
+Roll beside them, the scorecard under them in two columns and the total
+at the bottom, all of it in view at once, compact included. The title
+line says the round and the roll ("Round 4 · Roll 2 of 3", "Choose a
+category"); ⌘K lists Roll and every category the dice may go in, the one
+that adds most first.
+
+- Every open category shows what it would score with the dice as they
+  lie. A picked row (hover, or the keys) rings the dice it counts, shows
+  on the total what it would add (bonuses included) and, for an upper
+  box, its share of the bar to 63.
+- The keys, one hand: `space` (or `R`, or `↑` on the dice) rolls; `←` `→`
+  pick a die and Enter holds it (`1` to `5` hold directly); `↓` goes to
+  the card, on the category that adds most, where the arrows move between
+  the open ones (`↑` past the top is back to the dice) and Enter scores.
+  After the third roll the cursor is on the card by itself. `N` starts a
+  new game, asking first mid-game.
+- The mouse: click a die to hold it, Roll to roll, a row to score it.
+- The dice tumble when thrown (held ones stay put), a score drops into
+  its row while the total counts up, a Yahtzee gets a banner and
+  confetti, and game over shows the final score with the best and the
+  average.
+- Escape leaves at any point; the game and the record (games, best,
+  average) persist in the extension's storage.
+
+Rules (Hasbro's): 35 for 63 or more in the upper section; a further
+Yahtzee pays 100 while the Yahtzee box holds 50, and plays as a Joker:
+its number's upper box if open, else any open lower box (a full house
+and the straights at full value), else an upper box for 0. No settings.
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
 
