@@ -503,21 +503,28 @@ fn relaunch_script(pid: u32, exe: &Path, bundle: Option<&Path>, env: &[(String, 
     format!("{}{launch}\n", autostart::wait_for_exit(pid))
 }
 
-/// Quit as the tray's Quit does, with a shell waiting to launch pal again
-/// once this process is gone (a new instance started before that would
-/// only hand over to this one and exit). The shell keeps our stdout and
-/// stderr, so an `exec`ed pal logs where this one did. From an AppImage
-/// the AppImage itself is launched (`APPIMAGE`), not the binary inside
-/// its mount, which is gone with the process; that is also where an
+/// Quit as the tray's Quit does, and come back. Under launchd or systemd
+/// the quit ends in [`crate::RESTART_EXIT`], which the agent relaunches
+/// (`KeepAlive.SuccessfulExit = false`, `Restart=on-failure`): a helper
+/// would not survive, the manager kills what is left in the job once pal
+/// exits. Otherwise a shell in its own process group waits for this
+/// process to be gone (a new instance started before that would only hand
+/// over to this one and exit) and launches pal again. The shell keeps our
+/// stdout and stderr, so an `exec`ed pal logs where this one did. From an
+/// AppImage the AppImage itself is launched (`APPIMAGE`), not the binary
+/// inside its mount, which is gone with the process; that is also where an
 /// update has just been written (updater.rs).
 pub fn restart(app: &AppHandle) -> Result<(), String> {
+    if autostart::supervised(app) {
+        eprintln!("restart	by the service manager, exit {}", crate::RESTART_EXIT);
+        crate::RESTARTING.store(true, std::sync::atomic::Ordering::SeqCst);
+        crate::quit(app);
+        return Ok(());
+    }
     let exe = std::env::var_os("APPIMAGE").map(PathBuf::from).or_else(autostart::program).ok_or("no path to this binary")?;
     let script = relaunch_script(std::process::id(), &exe, bundle_of(&exe).as_deref(), &autostart::carried_env());
     eprintln!("restart\t{}", script.lines().last().unwrap_or_default());
-    std::process::Command::new("sh")
-        .arg("-c")
-        .arg(&script)
-        .stdin(std::process::Stdio::null())
+    std::os::unix::process::CommandExt::process_group(std::process::Command::new("sh").arg("-c").arg(&script).stdin(std::process::Stdio::null()), 0)
         .spawn()
         .map_err(|e| format!("could not start the relaunch helper: {e}"))?;
     crate::quit(app);

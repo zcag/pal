@@ -72,6 +72,13 @@ pub fn apply(app: &AppHandle, config: &Config) {
     platform::apply(app, want);
 }
 
+/// Whether launchd or systemd runs this very process: it then relaunches
+/// pal after a non-zero exit, and kills whatever pal leaves behind in its
+/// job, so a restart is an exit rather than a helper (`commands::restart`).
+pub fn supervised(app: &AppHandle) -> bool {
+    !cfg!(debug_assertions) && platform::supervised(app)
+}
+
 /// The environment the agent must carry so a relaunch lands on the same
 /// profile and directories as the process that wrote it.
 pub(crate) fn carried_env() -> Vec<(String, String)> {
@@ -263,6 +270,10 @@ mod platform {
         }
     }
 
+    pub fn supervised(app: &AppHandle) -> bool {
+        Agent::new(app).is_some_and(|a| a.job() == Job::Running(std::process::id()))
+    }
+
     pub fn apply(app: &AppHandle, want: bool) {
         let Some(agent) = Agent::new(app) else { return };
         agent.sync_files(want);
@@ -427,6 +438,10 @@ mod platform {
                 handover(&helper(me, enabled, &program, &carried_env()), &dir.join("handover.log"));
             }
         }
+    }
+
+    pub fn supervised(_: &AppHandle) -> bool {
+        has_systemd() && unit_pid() == Some(std::process::id())
     }
 
     pub fn apply(app: &AppHandle, want: bool) {

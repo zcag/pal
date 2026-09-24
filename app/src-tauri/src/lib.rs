@@ -76,6 +76,10 @@ const WINDOW: &str = "main";
 
 /// When `run` began: the origin of the startup timing lines.
 static START: OnceLock<Instant> = OnceLock::new();
+/// The exit a supervised restart ends in (`commands::restart`): non-zero, so
+/// launchd and systemd relaunch pal; `EX_TEMPFAIL`.
+pub(crate) const RESTART_EXIT: i32 = 75;
+pub(crate) static RESTARTING: AtomicBool = AtomicBool::new(false);
 
 /// Seconds since the epoch, for the log's session marker (no chrono dependency here).
 fn chrono_free_now() -> String {
@@ -464,6 +468,9 @@ pub fn run() {
                 bar::remove_all(app);
                 index::flush(app);
                 eprintln!("quit\tflushed\t{:.1}ms since start", since_start_ms());
+                if RESTARTING.load(Ordering::SeqCst) {
+                    std::process::exit(RESTART_EXIT);
+                }
             }
         });
 }
