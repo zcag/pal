@@ -1925,7 +1925,11 @@ first), **Everywhere**, Users. A query naming its own `repo:`, `org:` or
 two palettes above are also matched loosely against the query, so a typo
 GitHub's word search misses (`directry`) still finds them under Involved.
 Each tier is its own request, sent together, so a search takes about as
-long as GitHub's slowest (2–3 s). Filters Everything, Issues and PRs,
+long as GitHub's slowest (about 2 s), and the search row's sweep runs
+until it lands. A pull request found this way comes without the fields
+GitHub computes per result (checks, review decision, conflicts, size,
+which tripled the wait); one that is also in your cached lists shows
+that copy, tags and all, and the pane fetches the checks by name. Filters Everything, Issues and PRs,
 Repositories, Users; a query carrying `is:`, `repo:`, `author:` or the
 like searches issues and pull requests only. The rows and actions are the
 palettes' above; users show their avatar and open their profile. A

@@ -493,6 +493,10 @@ describe("github", () => {
       expect(items.map((i) => i.section)).toEqual(["Involved", "Your organisations", "Repositories", "Repositories", "Everywhere", "Users"]);
       expect(items[5]).toMatchObject({ name: "jarred (Jarred)", subtitle: "Makes bun", icon: { image: "https://avatars.githubusercontent.com/jarred" } });
       expect(items[5].actions!.map((a) => a.id)).toEqual(["open", "copy", "repos"]);
+      // A search asks the light fields; #9 is also in the cached Review requested list, whose copy carries the tags.
+      expect(ops("Search").filter((s) => s.body.query.includes("fragment PR on PullRequest")).length).toBeGreaterThan(0);
+      expect(ops("Search").some((s) => s.body.query.includes("mergeable"))).toBe(false);
+      expect(tags(items[0])).toEqual(["checks ✗", "changes requested"]);
       // The account and its organisations (the setting's acme once) scope the middle tier.
       expect(qs).toEqual([
         "ISSUE parser", "ISSUE parser involves:@me", "ISSUE parser user:zcag org:acme org:serpapi",

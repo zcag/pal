@@ -29,8 +29,9 @@ export type PR = {
   draft: boolean;
   head: string;
   base: string;
-  additions: number;
-  deletions: number;
+  /** Absent on a search result (`PR_LITE_FRAGMENT`), as are the review decision, mergeable, checks and reviewers. */
+  additions?: number;
+  deletions?: number;
   /** `APPROVED`, `CHANGES_REQUESTED`, `REVIEW_REQUIRED`, or null. */
   review: string | null;
   /** `MERGEABLE`, `CONFLICTING`, `UNKNOWN`. */
@@ -109,11 +110,11 @@ type GqlPR = {
   id: string; number: number; title: string; url: string; isDraft: boolean; state: "OPEN" | "MERGED" | "CLOSED";
   updatedAt: string; createdAt: string; mergedAt: string | null;
   author: GqlActor; repository: { nameWithOwner: string };
-  headRefName: string; baseRefName: string; additions: number; deletions: number;
-  reviewDecision: string | null; mergeable: string;
+  headRefName: string; baseRefName: string; additions?: number; deletions?: number;
+  reviewDecision?: string | null; mergeable?: string;
   labels: GqlLabels;
-  reviewRequests: { nodes: { requestedReviewer: { login?: string; name?: string } | null }[] };
-  commits: { nodes: { commit: { statusCheckRollup: { state: string } | null } }[] };
+  reviewRequests?: { nodes: { requestedReviewer: { login?: string; name?: string } | null }[] };
+  commits?: { nodes: { commit: { statusCheckRollup: { state: string } | null } }[] };
 };
 type GqlIssue = {
   __typename?: "Issue";
@@ -136,6 +137,18 @@ const PR_FRAGMENT = `fragment PR on PullRequest {
   reviewRequests(first: 10) { nodes { requestedReviewer { ... on User { login } ... on Team { name } } } }
   commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
 }`;
+/**
+ * What a search asks of a pull request: the row without the fields GitHub
+ * computes per result (mergeable above all, then the checks rollup, the
+ * review requests and the size), which made three searches 4.6-5.7 s
+ * against 1.3-1.7 s without them. The pane fetches the checks by name anyway.
+ */
+const PR_LITE_FRAGMENT = `fragment PR on PullRequest {
+  id number title url isDraft state updatedAt createdAt mergedAt
+  author { login avatarUrl } repository { nameWithOwner }
+  headRefName baseRefName
+  labels(first: 10) { nodes { name color } }
+}`;
 const ISSUE_FRAGMENT = `fragment Issue on Issue {
   id number title url state updatedAt createdAt
   author { login avatarUrl } repository { nameWithOwner }
@@ -155,8 +168,8 @@ const toPR = (n: GqlPR): PR => {
     author: n.author?.login ?? "ghost", avatar: n.author?.avatarUrl ?? "",
     state: n.state === "MERGED" ? "merged" : n.state === "CLOSED" ? "closed" : "open", draft: n.isDraft,
     head: n.headRefName, base: n.baseRefName, additions: n.additions, deletions: n.deletions,
-    review: n.reviewDecision, mergeable: n.mergeable, checks: (n.commits.nodes[0]?.commit.statusCheckRollup?.state as Rollup) ?? undefined,
-    labels: n.labels.nodes, reviewers: n.reviewRequests.nodes.map((r) => r.requestedReviewer?.login ?? r.requestedReviewer?.name ?? "").filter(Boolean),
+    review: n.reviewDecision ?? null, mergeable: n.mergeable ?? "UNKNOWN", checks: (n.commits?.nodes[0]?.commit.statusCheckRollup?.state as Rollup) ?? undefined,
+    labels: n.labels.nodes, reviewers: (n.reviewRequests?.nodes ?? []).map((r) => r.requestedReviewer?.login ?? r.requestedReviewer?.name ?? "").filter(Boolean),
     updatedAt: n.updatedAt, createdAt: n.createdAt, mergedAt: n.mergedAt,
   };
 };
@@ -398,7 +411,7 @@ export async function search(q: string, kind: SearchKind): Promise<SearchResult>
   // One request per search, all at once: GitHub answers the aliases of one request one after another (about 2 s each),
   // and a tier that fails drops out rather than taking the others with it.
   const asks: { key: string; tier?: Tier; q: string; type: string; first: number; nodes: string; fragments: string }[] = [
-    ...(want.issues ? issueTiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `issues_${tier}`, tier, q: s, type: "ISSUE", first: 20, nodes: "__typename ...PR ...Issue", fragments: `${PR_FRAGMENT}\n${ISSUE_FRAGMENT}` })) : []),
+    ...(want.issues ? issueTiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `issues_${tier}`, tier, q: s, type: "ISSUE", first: 20, nodes: "__typename ...PR ...Issue", fragments: `${PR_LITE_FRAGMENT}\n${ISSUE_FRAGMENT}` })) : []),
     ...(want.repos ? tiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `repos_${tier}`, tier, q: s, type: "REPOSITORY", first: 10, nodes: "__typename ...Repo", fragments: REPO_FRAGMENT })) : []),
     ...(want.users ? [{ key: "users", q, type: "USER", first: 5, nodes: "__typename ...User ...Org", fragments: USER_FRAGMENT }] : []),
   ];

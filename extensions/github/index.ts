@@ -196,7 +196,7 @@ function prMetadata(pr: PR, more?: PRDetail): Metadata[] {
     repoLink(pr.repo),
     { label: "Author", value: pr.author },
     { label: "Branch", value: `${pr.head} → ${pr.base}` },
-    { label: "Size", value: `+${pr.additions} −${pr.deletions}` },
+    ...(pr.additions !== undefined ? [{ label: "Size", value: `+${pr.additions} −${pr.deletions}` }] : []),
     { label: "State", tags: [prState(pr)] },
     ...(more ? [more.checks.length ? { label: "Checks", tags: more.checks.map((c) => ({ text: c.name, color: CHECK_COLOR[c.state] })) } : { label: "Checks", value: "none" }] : []),
     ...(approvers.length ? [{ label: "Approved by", tags: approvers.map((text) => ({ text, color: "green" })) }] : []),
@@ -948,17 +948,10 @@ const loosely = (q: string, text: string) => {
   return q.toLowerCase().split(/\s+/).filter(Boolean).every((t) => words.some((w) => w[0] === t[0] && within(t, w)));
 };
 
-/**
- * The PR and issue lists already cached (all of them the viewer's own, kept
- * warm by the palettes and the bar) matched loosely, so a typo GitHub's word
- * search misses still finds them; never a fetch, which would hold the search
- * up. A query with a qualifier is taken as meant.
- */
-async function mineLoosely(q: string): Promise<(PR | Issue)[]> {
-  if (/\S:\S/.test(q)) return [];
+/** The PR and issue lists already cached (all of them the viewer's own, kept warm by the palettes and the bar); never a fetch, which would hold a search up. */
+async function cachedMine(): Promise<(PR | Issue)[]> {
   const [p, i] = await Promise.all([entry<PRLists>("prs"), entry<IssueLists>("issues")]);
-  const all = [...(p ? [p.data.mine, p.data.reviews, p.data.merged] : []), ...(i ? [i.data.assigned, i.data.mentioned, i.data.created] : [])].flat();
-  return [...new Map(all.filter((x) => loosely(q, `${x.title} ${x.repo} ${x.number}`)).map((x) => [x.id, x])).values()].slice(0, 10);
+  return [...(p ? [p.data.mine, p.data.reviews, p.data.merged] : []), ...(i ? [i.data.assigned, i.data.mentioned, i.data.created] : [])].flat();
 }
 
 async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
@@ -971,10 +964,14 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
-  const [r, local] = await Promise.all([search(q, kind), kind === "all" || kind === "issues" ? mineLoosely(q) : []]);
+  const [r, mine] = await Promise.all([search(q, kind), kind === "all" || kind === "issues" ? cachedMine() : []]);
+  // A result that is one of your cached PRs or issues shows that copy: a search's own has no checks, review or conflicts to tag.
+  const known = new Map(mine.map((x) => [x.id, x]));
   const got = new Set(r.issues.map((f) => f.item.id));
-  const involved = [...r.issues.filter((f) => f.tier === "involved").map((f) => f.item), ...local.filter((x) => !got.has(x.id))];
-  const issueRows = (xs: (PR | Issue)[], section: string) => xs.map((x) => (x.kind === "pr" ? prRow(x, section) : issueRow(x, section)));
+  // Your own matched loosely too, so a typo GitHub's word search misses still finds them; a query with a qualifier is taken as meant.
+  const loose = /\S:\S/.test(q) ? [] : [...new Map(mine.filter((x) => !got.has(x.id) && loosely(q, `${x.title} ${x.repo} ${x.number}`)).map((x) => [x.id, x])).values()].slice(0, 10);
+  const involved = [...r.issues.filter((f) => f.tier === "involved").map((f) => f.item), ...loose];
+  const issueRows = (xs: (PR | Issue)[], section: string) => xs.map((x) => known.get(x.id) ?? x).map((x) => (x.kind === "pr" ? prRow(x, section) : issueRow(x, section)));
   const rows = [
     ...issueRows(involved, "Involved"),
     ...issueRows(r.issues.filter((f) => f.tier === "near").map((f) => f.item), "Your organisations"),
