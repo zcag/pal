@@ -108,7 +108,7 @@ window.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === "y") play({ type: "new" }, true);
     return;
   }
-  document.body.classList.add("keys");
+  document.body.classList.add("typing");
   const k = e.key;
   const handled = () => e.preventDefault();
   if (st.ended) {
@@ -156,7 +156,7 @@ window.addEventListener("keydown", (e) => {
   }
 });
 // The keys' marks (the die ring, the Enter cap) show while the keys are in use; a mouse move hides them.
-window.addEventListener("mousemove", (e) => { if (e.movementX || e.movementY) document.body.classList.remove("keys"); });
+window.addEventListener("mousemove", (e) => { if (e.movementX || e.movementY) document.body.classList.remove("typing"); });
 
 pal.onAction((id) => { const m = moveOf(id); if (m) play(m, true); });
 pal.onTheme(() => board.render(st, cur));

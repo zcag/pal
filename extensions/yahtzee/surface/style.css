@@ -144,7 +144,7 @@ body.over #result { opacity: 1; transform: none; pointer-events: auto; }
   transition: opacity 120ms;
   pointer-events: none;
 }
-body.keys .die.cur::after { opacity: 0.8; }
+body.typing .die.cur::after { opacity: 0.8; }
 /* The dice a box counts, while its row is picked. */
 .die.counts .face { box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 0 var(--ivory-edge), var(--die-lift); }
 .die.held.counts .face { box-shadow: 0 0 0 2.5px var(--accent), 0 2px 0 var(--ivory-edge), 0 8px 16px rgba(0, 0, 0, 0.18); }
@@ -172,7 +172,7 @@ body.keys .die.cur::after { opacity: 0.8; }
 #roll .left i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.95; transition: opacity 200ms, transform 200ms; }
 #roll .left i.used { opacity: 0.28; transform: scale(0.8); }
 #roll .cap { position: absolute; right: 6px; top: 6px; opacity: 0; }
-body.keys #roll .cap { opacity: 1; }
+body.typing #roll .cap { opacity: 1; }
 #roll:hover { filter: brightness(1.08); }
 #roll:active, #roll.pressed { transform: translateY(2px); box-shadow: 0 0 0 color-mix(in srgb, var(--accent) 60%, #000), 0 3px 8px color-mix(in srgb, var(--accent) 30%, transparent); }
 #roll:disabled {
@@ -275,7 +275,7 @@ body.newbest #newbest { display: inline-block; }
 .cat .val { flex: none; min-width: 26px; text-align: right; font-size: 14px; font-weight: 650; }
 .cat .note { color: var(--pal-fg-faint); font-size: 11.5px; font-weight: 500; }
 .cat .enter { flex: none; display: none; }
-body.keys .cat.cur .enter { display: inline-grid; }
+body.typing .cat.cur .enter { display: inline-grid; }
 
 /* A filled box: its score, the label quiet; an open one's label is the one to read. */
 .cat .lbl { font-weight: var(--pal-weight-medium, 500); }
