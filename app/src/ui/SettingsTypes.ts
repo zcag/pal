@@ -20,6 +20,8 @@ export type SettingSpec = Base & {
   scope?: "instance";
   /** The bar item (its id) the setting is about: Settings > Bar shows it on that item's pane too. An id starting `bar_` with no `bar` is shown on every item of the extension. */
   bar?: string;
+  /** Read only while other settings hold these values (`{ "auth": "token" }`); otherwise an empty value is not missing. */
+  only?: Record<string, string>;
 } &
   (
     | { kind: "text"; placeholder?: string; default?: string }
@@ -486,10 +488,12 @@ export type BarItemSetting = { spec: SettingSpec; value: SettingValue | undefine
  * (the manifests' convention is to say "empty" when there is one).
  */
 export function needsSetup(ext: SettingsExtension): SettingSpec[] {
+  const value = (id: string) => ext.values[id] ?? ext.inherited?.[id] ?? ext.settings.find((s) => s.id === id)?.default;
   return ext.settings.filter((s) => {
     const v = ext.values[s.id] ?? ext.inherited?.[s.id];
     const empty = v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
     if (!empty) return false;
+    if (s.only && Object.entries(s.only).some(([id, want]) => value(id) !== want)) return false;
     if (s.required) return true;
     if (s.kind !== "secret" && !(s.kind === "text" && /url|host|endpoint/i.test(s.id))) return false;
     return !/empty|optional|leave/i.test(s.description ?? "") && !s.default;

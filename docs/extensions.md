@@ -65,7 +65,9 @@ whose code fails to load.
 - `settings`: extension-level settings, `[extensions.<name>]` in the config
   file (`SettingSpec`). Every one has `id`, `label`, an optional
   `description` and a `default`; `"scope": "instance"` marks one that
-  identifies the account (below, "Instances"). A setting only a bar item
+  identifies the account (below, "Instances"), and `"only": { "auth":
+  "token" }` one read only while other settings hold those values, so
+  the settings window does not call it missing otherwise. A setting only a bar item
   reads is that item's, declared under `bar.<id>.settings` (below, "Bar
   items"); one the palettes read too stays here. The kinds and what each
   adds: `text` and `secret` (`placeholder`; a secret goes to the OS

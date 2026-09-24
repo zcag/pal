@@ -887,8 +887,8 @@ export type LinkHandler = (route: string, params: LinkParams) => Effect | void |
 /** One choice of a `select` setting: `id` is the stored value, `title` what the window shows. */
 export type SettingOption = { id: string; title: string };
 
-/** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. */
-type SettingBase = { id: string; label: string; description?: string; scope?: "instance" };
+/** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. `only`: read only while other settings hold these values (`{ "auth": "token" }`), so an empty one is not "needs setup" otherwise. */
+type SettingBase = { id: string; label: string; description?: string; scope?: "instance"; only?: Record<string, string> };
 
 /** One setting an extension declares, with its default. */
 export type SettingSpec = SettingBase &

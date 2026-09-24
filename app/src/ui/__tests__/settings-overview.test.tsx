@@ -78,6 +78,9 @@ describe("overviewItems", () => {
     expect(needsSetup(homeAssistant).map((s) => s.id)).toEqual(["url", "token"]);
     // GitHub's token says "Leave empty to use the gh CLI's login": not required.
     expect(needsSetup({ ...settingsExtensions[2], values: {}, settings: [{ kind: "secret", id: "token", label: "Token", description: "Leave empty to use the gh CLI's login." }] })).toEqual([]);
+    const slack = (values: Record<string, string>) => needsSetup({ ...settingsExtensions[2], values, settings: [{ kind: "select", id: "auth", label: "Sign in", options: [], default: "app" }, { kind: "secret", id: "token", label: "Token", only: { auth: "token" } }] }).map((s) => s.id);
+    expect(slack({})).toEqual([]);
+    expect(slack({ auth: "token" })).toEqual(["token"]);
     // The fixture ships with pal: a fresh install lists no row for it.
     expect(overviewItems({ ...ok, extensions: [homeAssistant] })).toEqual([]);
     const installed = { ...homeAssistant, bundled: false, repo: "github.com/x/ha" };
