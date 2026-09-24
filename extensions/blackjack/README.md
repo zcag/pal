@@ -20,6 +20,10 @@ old place). The cards sit on a sunken well drawn with the app's tokens.
 - **Settled**: the result and the net for the hand, Enter for the next
   hand. `N` starts a new game (asks first) with a fresh bankroll and
   record.
+- **One-handed**: the arrows and Enter play a whole hand. `↑` `↓` set
+  the bet and Enter deals; then `↑` hit, `↓` stand, `→` double, `←`
+  split (Enter hits too); on insurance `↑` takes it, `↓` or Enter plays
+  on. The hints on the table show each letter with its arrow.
 - Escape leaves at any point; the hand, the bankroll and the record
   persist in the extension's storage after every move, so the table is
   as you left it next time, across restarts too.
@@ -47,13 +51,14 @@ primary one and `cmd+k` lists the rest.
 
 | keys | action | when |
 | --- | --- | --- |
-| `enter` | Deal; Next hand once settled; No insurance when asked | betting, settled, insurance |
-| `+`, `-` | Raise or lower the bet by the minimum | betting |
-| `h` | Hit | playing |
-| `s` | Stand | playing |
-| `d` | Double down | the first two cards of a hand |
-| `p` | Split | a pair, once per hand |
-| `i` | Take insurance | the dealer shows an ace and `insurance` is on |
+| `enter` | Deal; Hit; Next hand once settled; No insurance when asked | every phase |
+| `+`/`up`, `-`/`down` | Raise or lower the bet by the minimum | betting |
+| `h`, `up` | Hit | playing |
+| `s`, `down` | Stand | playing |
+| `d`, `right` | Double down | the first two cards of a hand |
+| `p`, `left` | Split | a pair, once per hand |
+| `i`, `up` | Take insurance | the dealer shows an ace and `insurance` is on |
+| `down` | No insurance | insurance |
 | `n` | New game: a fresh bankroll and record; asks first | any phase |
 | `cmd+k` | Every move with its key | |
 | `escape` | Leave the table; the hand waits | |

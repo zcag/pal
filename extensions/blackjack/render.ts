@@ -23,17 +23,20 @@ const signed = (n: number) => (n > 0 ? `+${money(n)}` : money(n));
 
 const MOVES: Record<Move, Action> = {
   deal: { id: "deal", title: "Deal", shortcut: "enter" },
-  hit: { id: "hit", title: "Hit", shortcut: "h" },
-  stand: { id: "stand", title: "Stand", shortcut: "s" },
-  double: { id: "double", title: "Double down", shortcut: "d" },
-  split: { id: "split", title: "Split", shortcut: "p" },
-  insure: { id: "insure", title: "Take insurance", shortcut: "i" },
-  decline: { id: "decline", title: "No insurance", shortcut: "enter" },
+  hit: { id: "hit", title: "Hit", shortcut: ["h", "up"] },
+  stand: { id: "stand", title: "Stand", shortcut: ["s", "down"] },
+  double: { id: "double", title: "Double down", shortcut: ["d", "right"] },
+  split: { id: "split", title: "Split", shortcut: ["p", "left"] },
+  insure: { id: "insure", title: "Take insurance", shortcut: ["i", "up"] },
+  decline: { id: "decline", title: "No insurance", shortcut: ["enter", "down"] },
   next: { id: "next", title: "Next hand", shortcut: "enter" },
-  "bet-up": { id: "bet-up", title: "Raise the bet", shortcut: "+" },
-  "bet-down": { id: "bet-down", title: "Lower the bet", shortcut: "-" },
+  "bet-up": { id: "bet-up", title: "Raise the bet", shortcut: ["+", "up"] },
+  "bet-down": { id: "bet-down", title: "Lower the bet", shortcut: ["-", "down"] },
   new: { id: "new", title: "New game", shortcut: "n", confirm: "Start over with a fresh bankroll and stats?", style: "destructive" },
 };
+
+/** A move's keys as caps, the letter then its arrow, for the hint rows. */
+const caps = (m: Move): ViewNode[] => [MOVES[m].shortcut ?? []].flat().map((keys) => ({ type: "keycap", keys }));
 
 const text = (value: string, extra: Partial<Extract<ViewNode, { type: "text" }>> = {}): ViewNode => ({ type: "text", value, ...extra });
 const row = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
@@ -112,7 +115,7 @@ export function render(st: State, s: Settings): View {
     title = "Insurance?";
     middle = [
       text(`Dealer shows an ace. Insurance costs ${money(st.hands[0].bet / 2)} and pays 2:1 on a dealer blackjack.`, { key: "ins", style: "body", transition: { enter: "fade" } }),
-      row([{ type: "keycap", keys: "i" }, text("take it", { style: "muted", size: "sm" }), { type: "keycap", keys: "enter" }, text("play on", { style: "muted", size: "sm" })], { key: "ins-keys", gap: 1 }),
+      row([...caps("insure"), text("take it", { style: "muted", size: "sm" }), ...caps("decline"), text("play on", { style: "muted", size: "sm" })], { key: "ins-keys", gap: 1 }),
     ];
   } else if (st.phase === "bet") {
     if (broke) {
@@ -122,9 +125,9 @@ export function render(st: State, s: Settings): View {
       title = "Place your bet";
       middle = [
         row([
-          { type: "keycap", keys: "-" },
+          row(caps("bet-down"), { gap: 1 }),
           text(money(st.bet), { key: "bet", style: "number", size: "xl" }),
-          { type: "keycap", keys: "+" },
+          row(caps("bet-up"), { gap: 1 }),
         ], { key: "bet-row", gap: 3, transition: { enter: "fade" } }),
         row([{ type: "keycap", keys: "enter" }, text("deal", { style: "muted", size: "sm" })], { key: "bet-keys", gap: 1 }),
       ];
@@ -132,9 +135,10 @@ export function render(st: State, s: Settings): View {
   } else {
     const h = st.hands[st.active];
     title = st.hands.length > 1 ? `Hand ${st.active + 1} of 2` : "Your turn";
-    const keys: ViewNode[] = [{ type: "keycap", keys: "h" }, text("hit", { style: "muted", size: "sm" }), { type: "keycap", keys: "s" }, text("stand", { style: "muted", size: "sm" })];
-    if (canDouble(st)) keys.push({ type: "keycap", keys: "d" }, text("double", { style: "muted", size: "sm" }));
-    if (canSplit(st)) keys.push({ type: "keycap", keys: "p" }, text("split", { style: "muted", size: "sm" }));
+    const hint = (m: Move, label: string): ViewNode[] => [...caps(m), text(label, { style: "muted", size: "sm" })];
+    const keys: ViewNode[] = [...hint("hit", "hit"), ...hint("stand", "stand")];
+    if (canDouble(st)) keys.push(...hint("double", "double"));
+    if (canSplit(st)) keys.push(...hint("split", "split"));
     middle = [row(keys, { key: `keys-${h.cards.length}-${st.active}`, gap: 1, transition: { enter: "fade" } })];
   }
 

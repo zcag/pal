@@ -192,7 +192,7 @@ describe("render", () => {
     const v = render(st, DEFAULTS);
     expect(v.keys).toBe("actions");
     expect(v.title).toBe("Your turn");
-    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["hit", "h"], ["stand", "s"], ["double", "d"], ["new", "n"]]);
+    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["hit", ["h", "up"]], ["stand", ["s", "down"]], ["double", ["d", "right"]], ["new", "n"]]);
     const images = find(v.tree, (n) => n.type === "image");
     expect(images).toHaveLength(4);
     expect(images.every((n) => n.type === "image" && n.src.startsWith("data:image/svg+xml") && n.width === 56 && n.height === 80)).toBe(true);
@@ -219,8 +219,8 @@ describe("render", () => {
   test("the bet phase shows the bet with its keys", () => {
     const v = render(newGame(DEFAULTS, () => 0.5), DEFAULTS);
     expect(v.title).toBe("Place your bet");
-    expect(find(v.tree, (n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["-", "+", "enter"]);
-    expect(v.actions.map((a) => a.shortcut)).toEqual(["enter", "+", "-", "n"]);
+    expect(find(v.tree, (n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["-", "down", "+", "up", "enter"]);
+    expect(v.actions.map((a) => a.shortcut)).toEqual(["enter", ["+", "up"], ["-", "down"], "n"]);
     expect(find(v.tree, (n) => n.type === "image")).toHaveLength(0);
     expect(find(v.tree, (n) => n.type === "progress")).toHaveLength(1);
   });
