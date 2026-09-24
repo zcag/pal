@@ -19,7 +19,7 @@ test:
 # app/package.json and sdk/package.json (`@zcag/pal` on npm, published by
 # hand: docs/releasing.md) follow, and their lockfiles; host/package.json
 # carries no version), commits that bump alone, tags v$(VERSION) and pushes
-# the branch and the tag, which starts release.yml. DRY_RUN=1 prints every
+# the branch and the tag, which starts release.yml (it publishes). DRY_RUN=1 prints every
 # step (`+ ...`) and runs none. Refuses a dirty tree (the commit would sweep
 # it up) and a tag that exists here or on origin. docs/releasing.md has the rest.
 .PHONY: release
@@ -38,7 +38,7 @@ release:
 	run git commit -qam "$$tag"; \
 	run git tag -a "$$tag" -m "$$tag"; \
 	run git push origin HEAD "$$tag"; \
-	echo "$$tag pushed: https://github.com/zcag/pal/actions/workflows/release.yml (a draft release; publish it by hand)"
+	echo "$$tag pushed: https://github.com/zcag/pal/actions/workflows/release.yml (published as the latest release once every bundle is on it)"
 
 # Builds the macOS app and installs it to /Applications, signed with the
 # local self-signed "pal-dev" identity when the login keychain has one (a

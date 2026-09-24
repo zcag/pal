@@ -1,11 +1,12 @@
 # A `v*` tag: bundle pal for every platform and put the bundles on a draft
 # GitHub release named after the tag, notes from the commit subjects since
-# the previous tag (there is no CHANGELOG; the draft is edited by hand).
-# Nothing is public until the draft is published by hand; docs/releasing.md
-# has the checklist. `make release VERSION=x.y.z` bumps the versions, commits,
+# the previous tag (there is no CHANGELOG). The draft is published, as the
+# latest release, only once every bundle is on it; docs/releasing.md has the
+# rest. `make release VERSION=x.y.z` bumps the versions, commits,
 # tags and pushes; the guard below refuses a tag that does not match
 # tauri.conf.json. The `manifest` job then checks that latest.json carries
-# all three platforms (the three jobs merge into one file in parallel).
+# all three platforms (the three jobs merge into one file in parallel) and
+# publishes.
 name: release
 
 on:
@@ -214,3 +215,7 @@ jobs:
           v=$(jq -r .version latest.json)
           [ "v$v" = "$TAG" ] || { echo "::error::latest.json says version $v, tag is $TAG"; fail=1; }
           exit "${fail:-0}"
+      # Only a complete release goes public, and always as the latest: the
+      # updater and the site's Download buttons both follow releases/latest.
+      - name: publish as the latest release
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

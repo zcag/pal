@@ -1,8 +1,8 @@
 # Releasing pal
 
 A release is a `v*` tag. `.github/workflows/release.yml` bundles it for
-every platform onto a **draft** GitHub release; publishing the draft by hand
-is what makes it public and what the in-app updater sees.
+every platform onto a draft GitHub release and publishes it, as the latest
+release, once every bundle is on it. Nothing is done by hand after the tag.
 
 ## Steps
 
@@ -25,22 +25,15 @@ is what makes it public and what the in-app updater sees.
    the three jobs merge into that one file in parallel, and a platform can
    be dropped when two finish at once. Re-run the missing platform's job;
    it merges its entry in again.
-4. Check the draft on GitHub:
-   - `pal_x.y.z_aarch64.dmg`, `pal_x.y.z_x64.dmg`
-   - `pal_x.y.z_amd64.AppImage`, `pal_x.y.z_amd64.deb`
-   - with the updater key set: `pal_x.y.z_aarch64.app.tar.gz` (+ `.sig`),
-     `..._x64.app.tar.gz` (+ `.sig`), `..._amd64.AppImage.sig`, and
-     `latest.json`
-   - the notes; edit them, the draft is yours until published.
-   Install one dmg and the AppImage somewhere real before publishing:
-   ad-hoc signed, so on macOS Gatekeeper refuses the first launch
-   ([Getting started](getting-started.md#macos) has the three ways past it).
-5. Publish the draft (`gh release edit vx.y.z --draft=false --latest`, or the
-   button on GitHub). `.github/workflows/latest.yml` marks every published
-   release that is not a pre-release as the latest, whatever the checkbox
-   said: `https://github.com/zcag/pal/releases/latest/download/latest.json`
-   follows whatever GitHub calls latest. Once it resolves to this release's
-   manifest, every running pal finds it on its next check.
+4. When every bundle is there (with the updater key set: both dmgs, the
+   AppImage and the deb, the `.app.tar.gz` and AppImage `.sig`s, and
+   `latest.json`), `manifest` publishes the draft with `--latest`. The repo's
+   older releases of the previous pal sort by version on their own, and
+   `https://github.com/zcag/pal/releases/latest/download/latest.json` (the
+   in-app updater) and pal.cagdas.io's Download buttons both follow whatever
+   GitHub calls latest; every running pal finds the release on its next
+   check, the site within its 10-minute cache. A failed `manifest` leaves
+   the draft unpublished: re-run the missing job, then `manifest`.
 
 ## The updater
 
