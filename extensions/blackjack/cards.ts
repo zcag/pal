@@ -2,7 +2,7 @@
 // assets: rank and suit indices in two corners (the bottom one turned), the
 // pips of a number card laid out as on a real deck, a letter card for the
 // courts, and a back with a hatch pattern. No host imports: the gallery
-// draws the same cards in a browser.
+// draws the same cards in a browser. Solitaire imports them from here too.
 //
 // The colours are the panel's own (tokens.css, light values): a card is
 // white paper in both themes, as real cards are next to a dark table, so
@@ -48,29 +48,42 @@ const PIPS: Record<string, [number, number, boolean][]> = {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const dataUrl = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg).replace(/%20/g, " ")}`;
+/**
+ * The top-left `width` by `height` of a card at full scale (the whole card
+ * by default): a covered card in a solitaire column is a strip of it, a
+ * fanned waste card a sliver. Cropped in the picture, since the view draws
+ * an image `object-fit: contain` and would shrink a whole card instead.
+ */
+export type Crop = { width?: number; height?: number };
+const svg = (body: string, { width: w = CARD_W, height: h = CARD_H }: Crop) => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
 const frame = (fill: string, p: Palette) => `<rect x="0.5" y="0.5" width="${CARD_W - 1}" height="${CARD_H - 1}" rx="6" fill="${fill}" stroke="${p.line}"/>`;
 
-/** A face-up card. */
-export function cardSvg(card: Card, p: Palette = PALETTE): string {
+/**
+ * A face-up card. `index: "row"` sets the corner index on one line (`10♥`,
+ * not the rank over the suit), so a 16 px strip of the card names it.
+ */
+export function cardSvg(card: Card, p: Palette = PALETTE, o: Crop & { index?: "column" | "row" } = {}): string {
   const rank = rankOf(card), suit = SUIT_GLYPH[suitOf(card)];
   const ink = isRed(card) ? p.red : p.ink;
-  const index = (turned: boolean) =>
-    `<g${turned ? ` transform="rotate(180 ${CARD_W / 2} ${CARD_H / 2})"` : ""}>` +
-    `<text x="5" y="13" font-family='${FONT}' font-size="11" font-weight="600" fill="${ink}">${esc(rank)}</text>` +
-    `<text x="5" y="24" font-family='${FONT}' font-size="10" fill="${ink}">${suit}</text></g>`;
+  const corner = o.index === "row"
+    ? `<text x="5" y="12" font-family='${FONT}' font-size="11" font-weight="600" fill="${ink}">${esc(rank)}<tspan dx="1" font-size="10" font-weight="400">${suit}</tspan></text>`
+    : `<text x="5" y="13" font-family='${FONT}' font-size="11" font-weight="600" fill="${ink}">${esc(rank)}</text>` +
+      `<text x="5" y="24" font-family='${FONT}' font-size="10" fill="${ink}">${suit}</text>`;
+  const index = (turned: boolean) => `<g${turned ? ` transform="rotate(180 ${CARD_W / 2} ${CARD_H / 2})"` : ""}>${corner}</g>`;
   const pips = PIPS[rank];
   const middle = pips
     ? pips.map(([x, y, turned]) => `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family='${FONT}' font-size="${rank === "A" ? 22 : 11}" fill="${ink}"${turned ? ` transform="rotate(180 ${x} ${y})"` : ""}>${suit}</text>`).join("")
     : `<rect x="16" y="24" width="24" height="32" rx="2" fill="none" stroke="${ink}" stroke-opacity="0.35"/>` +
       `<text x="${CARD_W / 2}" y="${CARD_H / 2}" text-anchor="middle" dominant-baseline="central" font-family='${FONT}' font-size="18" font-weight="600" fill="${ink}">${esc(rank)}</text>`;
-  return dataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}">${frame(p.paper, p)}${index(false)}${index(true)}${middle}</svg>`);
+  return dataUrl(svg(`${frame(p.paper, p)}${index(false)}${index(true)}${middle}`, o));
 }
 
 /** The back: the accent with a fine diagonal hatch inside a white border. */
-export function backSvg(p: Palette = PALETTE): string {
+export function backSvg(p: Palette = PALETTE, crop: Crop = {}): string {
   const hatch = `<pattern id="h" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="1.2"/></pattern>`;
-  return dataUrl(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}"><defs>${hatch}</defs>${frame(p.paper, p)}` +
-      `<rect x="4" y="4" width="${CARD_W - 8}" height="${CARD_H - 8}" rx="4" fill="${p.back}"/><rect x="4" y="4" width="${CARD_W - 8}" height="${CARD_H - 8}" rx="4" fill="url(#h)"/></svg>`,
-  );
+  return dataUrl(svg(
+    `<defs>${hatch}</defs>${frame(p.paper, p)}` +
+      `<rect x="4" y="4" width="${CARD_W - 8}" height="${CARD_H - 8}" rx="4" fill="${p.back}"/><rect x="4" y="4" width="${CARD_W - 8}" height="${CARD_H - 8}" rx="4" fill="url(#h)"/>`,
+    crop,
+  ));
 }
