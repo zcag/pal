@@ -3695,7 +3695,7 @@
               "mara/batch-index"
             ],
             "url": "https://github.com/acme/widgets/pull/142",
-            "section": "Pull requests",
+            "section": "Involved",
             "accessories": [
               {
                 "tag": "checks ✓",
@@ -3826,7 +3826,7 @@
               "mara/settings-names"
             ],
             "url": "https://github.com/acme/widgets/pull/139",
-            "section": "Pull requests",
+            "section": "Other matches",
             "accessories": [
               {
                 "tag": "draft",
@@ -3924,321 +3924,6 @@
         ],
         "widgets": [
           {
-            "id": "acme/widgets",
-            "name": "widgets",
-            "subtitle": "The widget service and its admin",
-            "icon": "",
-            "keywords": [
-              "acme/widgets",
-              "acme",
-              "TypeScript"
-            ],
-            "url": "https://github.com/acme/widgets",
-            "section": "Repositories",
-            "accessories": [
-              {
-                "tag": "private",
-                "color": "amber"
-              },
-              {
-                "tag": "TypeScript",
-                "color": "blue"
-              },
-              {
-                "text": "★ 3"
-              },
-              {
-                "date": "2026-09-16T10:37:26.847Z"
-              }
-            ],
-            "detail": {
-              "markdown": "# acme/widgets\n\nThe widget service and its admin",
-              "metadata": [
-                {
-                  "label": "Owner",
-                  "link": {
-                    "text": "acme",
-                    "href": "https://github.com/acme"
-                  }
-                },
-                {
-                  "label": "Language",
-                  "value": "TypeScript"
-                },
-                {
-                  "label": "Stars",
-                  "value": "3"
-                },
-                {
-                  "label": "Forks",
-                  "value": "0"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "14"
-                },
-                {
-                  "label": "Default branch",
-                  "value": "main"
-                },
-                {
-                  "label": "Clone",
-                  "value": "git@github.com:acme/widgets.git"
-                },
-                {
-                  "label": "Local clone",
-                  "value": "~/proj/widgets"
-                },
-                {
-                  "label": "Pushed",
-                  "value": "9/16/2026"
-                }
-              ]
-            },
-            "actions": [
-              {
-                "id": "open",
-                "title": "Open on GitHub"
-              },
-              {
-                "id": "editor",
-                "title": "Open in editor",
-                "shortcut": "cmd+e"
-              },
-              {
-                "id": "folder",
-                "title": "Open folder",
-                "shortcut": "cmd+o"
-              },
-              {
-                "id": "clone",
-                "title": "Copy clone URL",
-                "shortcut": "cmd+shift+c"
-              },
-              {
-                "id": "copy",
-                "title": "Copy URL",
-                "shortcut": "cmd+c"
-              },
-              {
-                "id": "name",
-                "title": "Copy owner/name"
-              },
-              {
-                "id": "issues",
-                "title": "Open issues"
-              },
-              {
-                "id": "pulls",
-                "title": "Open pull requests"
-              }
-            ]
-          },
-          {
-            "id": "acme/widgets#201",
-            "name": "Search loses the cursor when rows stream in",
-            "subtitle": "acme/widgets #201",
-            "icon": {
-              "glyph": "",
-              "color": "green"
-            },
-            "keywords": [
-              "widgets",
-              "acme/widgets",
-              "#201",
-              "lina",
-              "bug",
-              "ui"
-            ],
-            "url": "https://github.com/acme/widgets/issues/201",
-            "section": "Issues",
-            "accessories": [
-              {
-                "tag": "bug",
-                "color": "grey"
-              },
-              {
-                "tag": "ui",
-                "color": "grey"
-              },
-              {
-                "text": "4 comments"
-              },
-              {
-                "date": "2026-09-16T11:37:26.847Z"
-              }
-            ],
-            "detail": {
-              "metadata": [
-                {
-                  "label": "Repository",
-                  "link": {
-                    "text": "acme/widgets",
-                    "href": "https://github.com/acme/widgets"
-                  }
-                },
-                {
-                  "label": "Author",
-                  "value": "lina"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
-                },
-                {
-                  "label": "Labels",
-                  "tags": [
-                    {
-                      "text": "bug",
-                      "color": "grey"
-                    },
-                    {
-                      "text": "ui",
-                      "color": "grey"
-                    }
-                  ]
-                },
-                {
-                  "label": "Comments",
-                  "value": "4"
-                },
-                {
-                  "label": "Updated",
-                  "value": "9/16/2026"
-                }
-              ]
-            },
-            "actions": [
-              {
-                "id": "open",
-                "title": "Open"
-              },
-              {
-                "id": "copy",
-                "title": "Copy URL",
-                "shortcut": "cmd+c"
-              },
-              {
-                "id": "ref",
-                "title": "Copy reference"
-              },
-              {
-                "id": "close",
-                "title": "Close issue",
-                "shortcut": "cmd+shift+x",
-                "style": "destructive",
-                "confirm": "Close #201?"
-              }
-            ]
-          },
-          {
-            "id": "acme/widgets#188",
-            "name": "Add a dark icon set",
-            "subtitle": "acme/widgets #188",
-            "icon": {
-              "glyph": "",
-              "color": "green"
-            },
-            "keywords": [
-              "widgets",
-              "acme/widgets",
-              "#188",
-              "mara",
-              "design",
-              "good first issue"
-            ],
-            "url": "https://github.com/acme/widgets/issues/188",
-            "section": "Issues",
-            "accessories": [
-              {
-                "tag": "design",
-                "color": "grey"
-              },
-              {
-                "tag": "good first issue",
-                "color": "grey"
-              },
-              {
-                "text": "7 comments"
-              },
-              {
-                "date": "2026-09-10T13:37:26.847Z"
-              }
-            ],
-            "detail": {
-              "metadata": [
-                {
-                  "label": "Repository",
-                  "link": {
-                    "text": "acme/widgets",
-                    "href": "https://github.com/acme/widgets"
-                  }
-                },
-                {
-                  "label": "Author",
-                  "value": "mara"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
-                },
-                {
-                  "label": "Labels",
-                  "tags": [
-                    {
-                      "text": "design",
-                      "color": "grey"
-                    },
-                    {
-                      "text": "good first issue",
-                      "color": "grey"
-                    }
-                  ]
-                },
-                {
-                  "label": "Comments",
-                  "value": "7"
-                },
-                {
-                  "label": "Updated",
-                  "value": "9/10/2026"
-                }
-              ]
-            },
-            "actions": [
-              {
-                "id": "open",
-                "title": "Open"
-              },
-              {
-                "id": "copy",
-                "title": "Copy URL",
-                "shortcut": "cmd+c"
-              },
-              {
-                "id": "ref",
-                "title": "Copy reference"
-              },
-              {
-                "id": "close",
-                "title": "Close issue",
-                "shortcut": "cmd+shift+x",
-                "style": "destructive",
-                "confirm": "Close #201?"
-              }
-            ]
-          },
-          {
             "id": "acme/widgets#142",
             "name": "Batch the index writes on startup",
             "subtitle": "acme/widgets #142",
@@ -4255,7 +3940,7 @@
               "mara/batch-index"
             ],
             "url": "https://github.com/acme/widgets/pull/142",
-            "section": "Pull requests",
+            "section": "Involved",
             "accessories": [
               {
                 "tag": "checks ✓",
@@ -4366,6 +4051,321 @@
                 "title": "Merge",
                 "shortcut": "cmd+shift+m",
                 "confirm": "Merge #142 into main?"
+              }
+            ]
+          },
+          {
+            "id": "acme/widgets#201",
+            "name": "Search loses the cursor when rows stream in",
+            "subtitle": "acme/widgets #201",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
+            "keywords": [
+              "widgets",
+              "acme/widgets",
+              "#201",
+              "lina",
+              "bug",
+              "ui"
+            ],
+            "url": "https://github.com/acme/widgets/issues/201",
+            "section": "Involved",
+            "accessories": [
+              {
+                "tag": "bug",
+                "color": "grey"
+              },
+              {
+                "tag": "ui",
+                "color": "grey"
+              },
+              {
+                "text": "4 comments"
+              },
+              {
+                "date": "2026-09-16T11:37:26.847Z"
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Repository",
+                  "link": {
+                    "text": "acme/widgets",
+                    "href": "https://github.com/acme/widgets"
+                  }
+                },
+                {
+                  "label": "Author",
+                  "value": "lina"
+                },
+                {
+                  "label": "State",
+                  "tags": [
+                    {
+                      "text": "open",
+                      "color": "green"
+                    }
+                  ]
+                },
+                {
+                  "label": "Labels",
+                  "tags": [
+                    {
+                      "text": "bug",
+                      "color": "grey"
+                    },
+                    {
+                      "text": "ui",
+                      "color": "grey"
+                    }
+                  ]
+                },
+                {
+                  "label": "Comments",
+                  "value": "4"
+                },
+                {
+                  "label": "Updated",
+                  "value": "9/16/2026"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "ref",
+                "title": "Copy reference"
+              },
+              {
+                "id": "close",
+                "title": "Close issue",
+                "shortcut": "cmd+shift+x",
+                "style": "destructive",
+                "confirm": "Close #201?"
+              }
+            ]
+          },
+          {
+            "id": "acme/widgets#188",
+            "name": "Add a dark icon set",
+            "subtitle": "acme/widgets #188",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
+            "keywords": [
+              "widgets",
+              "acme/widgets",
+              "#188",
+              "mara",
+              "design",
+              "good first issue"
+            ],
+            "url": "https://github.com/acme/widgets/issues/188",
+            "section": "Your organisations",
+            "accessories": [
+              {
+                "tag": "design",
+                "color": "grey"
+              },
+              {
+                "tag": "good first issue",
+                "color": "grey"
+              },
+              {
+                "text": "7 comments"
+              },
+              {
+                "date": "2026-09-10T13:37:26.847Z"
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Repository",
+                  "link": {
+                    "text": "acme/widgets",
+                    "href": "https://github.com/acme/widgets"
+                  }
+                },
+                {
+                  "label": "Author",
+                  "value": "mara"
+                },
+                {
+                  "label": "State",
+                  "tags": [
+                    {
+                      "text": "open",
+                      "color": "green"
+                    }
+                  ]
+                },
+                {
+                  "label": "Labels",
+                  "tags": [
+                    {
+                      "text": "design",
+                      "color": "grey"
+                    },
+                    {
+                      "text": "good first issue",
+                      "color": "grey"
+                    }
+                  ]
+                },
+                {
+                  "label": "Comments",
+                  "value": "7"
+                },
+                {
+                  "label": "Updated",
+                  "value": "9/10/2026"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "ref",
+                "title": "Copy reference"
+              },
+              {
+                "id": "close",
+                "title": "Close issue",
+                "shortcut": "cmd+shift+x",
+                "style": "destructive",
+                "confirm": "Close #201?"
+              }
+            ]
+          },
+          {
+            "id": "acme/widgets",
+            "name": "widgets",
+            "subtitle": "The widget service and its admin",
+            "icon": "",
+            "keywords": [
+              "acme/widgets",
+              "acme",
+              "TypeScript"
+            ],
+            "url": "https://github.com/acme/widgets",
+            "section": "Repositories",
+            "accessories": [
+              {
+                "tag": "private",
+                "color": "amber"
+              },
+              {
+                "tag": "TypeScript",
+                "color": "blue"
+              },
+              {
+                "text": "★ 3"
+              },
+              {
+                "date": "2026-09-16T10:37:26.847Z"
+              }
+            ],
+            "detail": {
+              "markdown": "# acme/widgets\n\nThe widget service and its admin",
+              "metadata": [
+                {
+                  "label": "Owner",
+                  "link": {
+                    "text": "acme",
+                    "href": "https://github.com/acme"
+                  }
+                },
+                {
+                  "label": "Language",
+                  "value": "TypeScript"
+                },
+                {
+                  "label": "Stars",
+                  "value": "3"
+                },
+                {
+                  "label": "Forks",
+                  "value": "0"
+                },
+                {
+                  "label": "Open issues",
+                  "value": "14"
+                },
+                {
+                  "label": "Default branch",
+                  "value": "main"
+                },
+                {
+                  "label": "Clone",
+                  "value": "git@github.com:acme/widgets.git"
+                },
+                {
+                  "label": "Local clone",
+                  "value": "~/proj/widgets"
+                },
+                {
+                  "label": "Pushed",
+                  "value": "9/16/2026"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open on GitHub"
+              },
+              {
+                "id": "editor",
+                "title": "Open in editor",
+                "shortcut": "cmd+e"
+              },
+              {
+                "id": "folder",
+                "title": "Open folder",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "clone",
+                "title": "Copy clone URL",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "name",
+                "title": "Copy owner/name"
+              },
+              {
+                "id": "issues",
+                "title": "Open issues"
+              },
+              {
+                "id": "pulls",
+                "title": "Open pull requests"
               }
             ]
           },

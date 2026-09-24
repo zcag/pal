@@ -11,7 +11,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { argsForm, bar, clock, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
-import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit } from "./api.ts";
+import { ApiError, AuthError, conf, entry, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type User,
@@ -941,6 +941,26 @@ const searchCache = new Map<string, { at: number; rows: Item[] }>();
 let searchSeq = 0;
 let lastSearch: Item[] = [];
 
+/** Every word starts a word of the text and runs through it in order, letters skippable: `parsr` finds "Fix the parser", `api 9` finds acme/api#9. */
+const loosely = (q: string, text: string) => {
+  const words = text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const within = (t: string, w: string) => { let i = 0; for (const c of w) if (c === t[i]) i++; return i === t.length; };
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every((t) => words.some((w) => w[0] === t[0] && within(t, w)));
+};
+
+/**
+ * The PR and issue lists already cached (all of them the viewer's own, kept
+ * warm by the palettes and the bar) matched loosely, so a typo GitHub's word
+ * search misses still finds them; never a fetch, which would hold the search
+ * up. A query with a qualifier is taken as meant.
+ */
+async function mineLoosely(q: string): Promise<(PR | Issue)[]> {
+  if (/\S:\S/.test(q)) return [];
+  const [p, i] = await Promise.all([entry<PRLists>("prs"), entry<IssueLists>("issues")]);
+  const all = [...(p ? [p.data.mine, p.data.reviews, p.data.merged] : []), ...(i ? [i.data.assigned, i.data.mentioned, i.data.created] : [])].flat();
+  return [...new Map(all.filter((x) => loosely(q, `${x.title} ${x.repo} ${x.number}`)).map((x) => [x.id, x])).values()].slice(0, 10);
+}
+
 async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const q = query.trim(), kind = (ctx?.filter ?? "all") as SearchKind;
   if (q.length < 2) return [hint("search", "Search GitHub", "Text, repo:owner/name, is:pr, author:login, label:bug")];
@@ -951,10 +971,15 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
-  const r = await search(q, kind);
+  const [r, local] = await Promise.all([search(q, kind), kind === "all" || kind === "issues" ? mineLoosely(q) : []]);
+  const got = new Set(r.issues.map((f) => f.item.id));
+  const involved = [...r.issues.filter((f) => f.tier === "involved").map((f) => f.item), ...local.filter((x) => !got.has(x.id))];
+  const issueRows = (xs: (PR | Issue)[], section: string) => xs.map((x) => (x.kind === "pr" ? prRow(x, section) : issueRow(x, section)));
   const rows = [
-    ...r.issues.map((x) => (x.kind === "pr" ? prRow(x, "Pull requests") : issueRow(x, "Issues"))),
-    ...r.repos.map((x) => repoRow(x, "Repositories")),
+    ...issueRows(involved, "Involved"),
+    ...issueRows(r.issues.filter((f) => f.tier === "near").map((f) => f.item), "Your organisations"),
+    ...r.repos.map((f) => repoRow(f.item, "Repositories")),
+    ...issueRows(r.issues.filter((f) => f.tier === "rest").map((f) => f.item), r.scoped ? "Other matches" : "Everywhere"),
     ...r.users.map((x) => userRow(x, "Users")),
   ];
   const out = rows.length ? rows : [hint("empty", "No results", `Nothing on GitHub matches "${q}"`)];

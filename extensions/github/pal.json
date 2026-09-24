@@ -223,7 +223,7 @@
     },
     "search": {
       "title": "Search GitHub",
-      "description": "GitHub's search syntax over issues, pull requests, repositories and users.",
+      "description": "GitHub's search syntax over issues, pull requests, repositories and users, what you are involved in first.",
       "kind": "input",
       "keys": [
         {
@@ -420,7 +420,7 @@
       "The detail pane on a pull request or issue: the body, the latest comments and reviews, every check by name, who approved",
       "Repositories: yours, your organisation's recently pushed and your stars; `cmd+e` opens the local clone in the editor",
       "Notifications by reason, newest first; `enter` marks the thread read and opens it, `cmd+shift+a` marks all read",
-      "Search GitHub as you type: `repo:acme/widgets is:pr`, `author:mara`, `label:bug`, results sectioned by kind",
+      "Search GitHub as you type, nearest first: what you are involved in, then your organisations, then everywhere; `repo:acme/widgets is:pr`, `author:mara`, `label:bug` work as on GitHub",
       "Create issue and Create repository as forms; Checkout branch and Merge from the row"
     ],
     "permissions": [

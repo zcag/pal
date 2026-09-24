@@ -56,10 +56,14 @@ unread count. Enter marks the thread read and opens it, so the count is
 honest when you come back.
 
 **Search GitHub** takes GitHub's syntax as you type: free text,
-`repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Filters
-Everything, Issues and PRs, Repositories, Users; results come sectioned by
-kind with the same rows and actions as the palettes above, users with
-their avatar. A keystroke waits 300 ms for the next before asking.
+`repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Results come
+nearest first, each once: Involved (`involves:@me`), Your organisations
+(your account and your organisations), Repositories (yours first),
+Everywhere, Users. A query naming `repo:`, `org:` or `user:` skips the
+organisations tier. Your cached pull requests and issues are matched
+loosely too, so a typo still finds them. Filters Everything, Issues and
+PRs, Repositories, Users. Each tier is its own request, sent together; a
+keystroke waits 300 ms for the next before asking.
 
 ## Keyboard
 

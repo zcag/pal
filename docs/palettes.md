@@ -1915,12 +1915,23 @@ network; the arrows move the cursor, a click sets it):
 | `up` | Move between threads (or j and k) |
 
 **Search GitHub.** GitHub's own search syntax, typed: free text,
-`repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Filters
-Everything, Issues and PRs, Repositories, Users; a query carrying `is:`,
-`repo:`, `author:` or the like searches issues and pull requests only.
-Results come sectioned by kind with the same rows and actions as the
-palettes above; users show their avatar and open their profile. A
-keystroke waits 300 ms for the next before asking.
+`repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Results come
+nearest first, each once: **Involved** (`involves:@me`: you opened it, are
+assigned, were mentioned or commented), **Your organisations** (your
+account and every organisation you belong to), Repositories (yours
+first), **Everywhere**, Users. A query naming its own `repo:`, `org:` or
+`user:` skips the organisations tier, and its remaining matches are
+**Other matches**. Your pull requests and issues already cached by the
+two palettes above are also matched loosely against the query, so a typo
+GitHub's word search misses (`directry`) still finds them under Involved.
+Each tier is its own request, sent together, so a search takes about as
+long as GitHub's slowest (2–3 s). Filters Everything, Issues and PRs,
+Repositories, Users; a query carrying `is:`, `repo:`, `author:` or the
+like searches issues and pull requests only. The rows and actions are the
+palettes' above; users show their avatar and open their profile. A
+keystroke waits 300 ms for the next before asking. Give it an alias
+(`[palettes.github-search] alias = "gs"`) and `gs <text>` at the root
+lands in it with the text typed.
 
 Settings, `[extensions.github]`:
 

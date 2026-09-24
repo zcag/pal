@@ -365,28 +365,59 @@ export const markAllRead = () => rest("PUT", "/notifications", { body: { last_re
 // ---- search -------------------------------------------------------------
 
 export type SearchKind = "all" | "issues" | "repos" | "users";
-export type SearchResult = { issues: (PR | Issue)[]; repos: Repo[]; users: User[] };
+/** How near a result is to the viewer: something they took part in, something in their own account or organisations, or anywhere on GitHub. */
+export type Tier = "involved" | "near" | "rest";
+export type Found<T> = { tier: Tier; item: T };
+export type SearchResult = { issues: Found<PR | Issue>[]; repos: Found<Repo>[]; users: User[]; scoped: boolean };
 
-/** The GitHub search syntax goes through as typed; `is:pr`, `is:issue`, `repo:` and the like narrow "all" to issues and pull requests on their own. */
+export const myOrgs = () => cached<string[]>("orgs", ms(3600), false, restLoader<{ login: string }[], string[]>("/user/orgs?per_page=100", (raw) => (Array.isArray(raw) ? raw : []).map((o) => o.login)));
+
+/** The viewer's own account and organisations as search qualifiers (`user:zcag org:acme`), which GitHub ORs; empty when none is known. */
+async function nearScope(): Promise<string> {
+  const [me, orgs] = await Promise.all([viewer().catch(() => undefined), myOrgs().catch(() => [] as string[])]);
+  const owners = new Set(orgs), org = conf().default_org?.trim();
+  if (org) owners.add(org);
+  return [me ? `user:${me.login}` : "", ...[...owners].map((o) => `org:${o}`)].filter(Boolean).join(" ");
+}
+
+/**
+ * The GitHub search syntax goes through as typed, asked once per tier and
+ * deduplicated nearest first: `involves:@me` (authored, assigned,
+ * mentioned, commented), then the viewer's account and organisations, then
+ * everywhere. A query naming its own `repo:`, `org:` or `user:` skips the
+ * middle tier, and one naming `involves:` the first. `is:pr`, `repo:` and the
+ * like narrow "all" to issues and pull requests on their own.
+ */
 export async function search(q: string, kind: SearchKind): Promise<SearchResult> {
-  const issueOnly = /(^|\s)(is|repo|author|assignee|mentions|review-requested|label|state|type):/i.test(q);
+  const issueOnly = /(^|\s)(is|repo|author|assignee|mentions|involves|commenter|review-requested|label|state|type):/i.test(q);
+  const scoped = /(^|\s)-?(repo|org|user):/i.test(q);
   const want = { issues: kind === "all" || kind === "issues", repos: kind === "repos" || (kind === "all" && !issueOnly), users: kind === "users" || (kind === "all" && !issueOnly) };
-  const parts = [
-    want.issues ? `issues: search(query: $q, type: ISSUE, first: 20) { nodes { __typename ...PR ...Issue } }` : "",
-    want.repos ? `repos: search(query: $q, type: REPOSITORY, first: 10) { nodes { __typename ...Repo } }` : "",
-    want.users ? `users: search(query: $q, type: USER, first: 5) { nodes { __typename ...User ...Org } }` : "",
-  ].filter(Boolean).join("\n");
-  // GraphQL refuses a fragment that is defined and not used, so each alias brings its own.
-  const fragments = [want.issues ? `${PR_FRAGMENT}\n${ISSUE_FRAGMENT}` : "", want.repos ? REPO_FRAGMENT : "", want.users ? USER_FRAGMENT : ""].filter(Boolean).join("\n");
-  const d = await gql<{ issues?: { nodes: (GqlPR | GqlIssue)[] }; repos?: { nodes: GqlRepo[] }; users?: { nodes: GqlUser[] } }>("Search", `${fragments}
+  const near = scoped || !(want.issues || want.repos) ? "" : await nearScope();
+  const tiers: [Tier, string][] = [["near", near && `${q} ${near}`], ["rest", q]];
+  const issueTiers: [Tier, string][] = [["involved", /(^|\s)involves:/i.test(q) ? "" : `${q} involves:@me`], ...tiers];
+  // One request per search, all at once: GitHub answers the aliases of one request one after another (about 2 s each),
+  // and a tier that fails drops out rather than taking the others with it.
+  const asks: { key: string; tier?: Tier; q: string; type: string; first: number; nodes: string; fragments: string }[] = [
+    ...(want.issues ? issueTiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `issues_${tier}`, tier, q: s, type: "ISSUE", first: 20, nodes: "__typename ...PR ...Issue", fragments: `${PR_FRAGMENT}\n${ISSUE_FRAGMENT}` })) : []),
+    ...(want.repos ? tiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `repos_${tier}`, tier, q: s, type: "REPOSITORY", first: 10, nodes: "__typename ...Repo", fragments: REPO_FRAGMENT })) : []),
+    ...(want.users ? [{ key: "users", q, type: "USER", first: 5, nodes: "__typename ...User ...Org", fragments: USER_FRAGMENT }] : []),
+  ];
+  const answers = await Promise.allSettled(asks.map((a) => gql<{ found: { nodes: any[] } }>("Search", `${a.fragments}
 query Search($q: String!) {
-${parts}
+  found: search(query: $q, type: ${a.type}, first: ${a.first}) { nodes { ${a.nodes} } }
   rateLimit { remaining resetAt }
-}`, { q });
+}`, { q: a.q })));
+  if (!answers.some((r) => r.status === "fulfilled")) throw (answers[0] as PromiseRejectedResult).reason;
+  const d: Record<string, { nodes: any[] } | undefined> = Object.fromEntries(asks.map((a, i) => [a.key, answers[i].status === "fulfilled" ? answers[i].value.found : undefined]));
+  const seen = new Set<string>();
+  const found = <T extends { id: string }>(prefix: string, ok: (n: any) => boolean, map: (n: any) => T): Found<T>[] =>
+    asks.filter((a) => a.key.startsWith(prefix)).flatMap((a) => (d[a.key]?.nodes ?? []).filter((n) => n && ok(n)).map((n) => ({ tier: a.tier!, item: map(n) })))
+      .filter((f) => !seen.has(f.item.id) && !!seen.add(f.item.id));
   return {
-    issues: (d.issues?.nodes ?? []).filter((n) => n && "number" in n).map((n) => (n.__typename === "PullRequest" || "headRefName" in n ? toPR(n as GqlPR) : toIssue(n as GqlIssue))),
-    repos: (d.repos?.nodes ?? []).filter((n) => n && "nameWithOwner" in n).map(toRepoGql),
+    issues: found("issues_", (n) => "number" in n, (n) => (n.__typename === "PullRequest" || "headRefName" in n ? toPR(n as GqlPR) : toIssue(n as GqlIssue))),
+    repos: found("repos_", (n) => "nameWithOwner" in n, toRepoGql),
     users: (d.users?.nodes ?? []).filter((n) => n && "login" in n).map(toUser),
+    scoped,
   };
 }
 

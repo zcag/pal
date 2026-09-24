@@ -109,15 +109,21 @@ const server = Bun.serve({
         case "FindIssue": return json({ data: { repository: { issue: null } } });
         case "MarkReady": return json({ data: { markPullRequestReadyForReview: { pullRequest: { isDraft: false } } } });
         case "Search": {
+          // One search per request: its kind is the search's type, its tier what was added to the query.
           const q: string = body.variables.q;
-          const has = (k: string) => body.query.includes(`${k}: search(`);
-          if (q === "boom") return json({ errors: [{ message: "Something went wrong", type: "RATE_LIMITED" }] });
-          if (q.includes("nothing")) return json({ data: { ...(has("issues") && { issues: { nodes: [] } }), ...(has("repos") && { repos: { nodes: [] } }), ...(has("users") && { users: { nodes: [] } }) } });
-          return json({ data: {
-            ...(has("issues") ? { issues: { nodes: [{ __typename: "PullRequest", ...pr({ number: 9, repo: "acme/api", title: "Fix the parser" }) }, { __typename: "Issue", ...issue({ number: 8, repo: "acme/api", title: "Slow endpoint" }) }] } } : {}),
-            ...(has("repos") ? { repos: { nodes: [{ __typename: "Repository", nameWithOwner: "oven-sh/bun", name: "bun", owner: { login: "oven-sh" }, url: "https://github.com/oven-sh/bun", description: "Fast", primaryLanguage: { name: "Zig" }, stargazerCount: 80000, forkCount: 2000, issues: { totalCount: 4000 }, isPrivate: false, isFork: false, isArchived: false, defaultBranchRef: { name: "main" }, pushedAt: "2026-09-15T00:00:00Z", sshUrl: "git@github.com:oven-sh/bun.git" }] } } : {}),
-            ...(has("users") ? { users: { nodes: [{ __typename: "User", login: "jarred", name: "Jarred", url: "https://github.com/jarred", avatarUrl: "https://avatars.githubusercontent.com/jarred", bio: "Makes bun" }] } } : {}),
-          } });
+          if (q.startsWith("boom")) return json({ errors: [{ message: "Something went wrong", type: "RATE_LIMITED" }] });
+          const type = /type: (\w+)/.exec(body.query)![1];
+          const key = type === "USER" ? "users" : `${type === "ISSUE" ? "issues" : "repos"}_${q.includes("involves:@me") ? "involved" : q.includes("user:zcag") ? "near" : "rest"}`;
+          const PR9 = { __typename: "PullRequest", ...pr({ number: 9, repo: "acme/api", title: "Fix the parser" }) };
+          const answers: Record<string, unknown[]> = {
+            issues_involved: [PR9],
+            issues_near: [{ __typename: "Issue", ...issue({ number: 8, repo: "acme/api", title: "Slow endpoint" }) }, PR9],
+            issues_rest: [PR9, { __typename: "Issue", ...issue({ number: 7, repo: "far/away", title: "Parser on someone else's repo" }) }],
+            repos_near: [{ __typename: "Repository", nameWithOwner: "acme/parser", name: "parser", owner: { login: "acme" }, url: "https://github.com/acme/parser", description: "", primaryLanguage: null, stargazerCount: 1, forkCount: 0, issues: { totalCount: 0 }, isPrivate: true, isFork: false, isArchived: false, defaultBranchRef: { name: "main" }, pushedAt: "2026-09-15T00:00:00Z", sshUrl: "git@github.com:acme/parser.git" }],
+            repos_rest: [{ __typename: "Repository", nameWithOwner: "oven-sh/bun", name: "bun", owner: { login: "oven-sh" }, url: "https://github.com/oven-sh/bun", description: "Fast", primaryLanguage: { name: "Zig" }, stargazerCount: 80000, forkCount: 2000, issues: { totalCount: 4000 }, isPrivate: false, isFork: false, isArchived: false, defaultBranchRef: { name: "main" }, pushedAt: "2026-09-15T00:00:00Z", sshUrl: "git@github.com:oven-sh/bun.git" }],
+            users: [{ __typename: "User", login: "jarred", name: "Jarred", url: "https://github.com/jarred", avatarUrl: "https://avatars.githubusercontent.com/jarred", bio: "Makes bun" }],
+          };
+          return json({ data: { found: { nodes: /nothing|directry/.test(q) ? [] : answers[key] ?? [] } } });
         }
         default: return json({ errors: [{ message: `unknown operation ${body.operationName}` }] });
       }
@@ -132,6 +138,7 @@ const server = Bun.serve({
         case "/user/starred": return json(REPOS.starred);
         case "/orgs/acme/repos": return json(REPOS.org);
         case "/user": return json({ login: "zcag", avatar_url: "https://avatars.githubusercontent.com/zcag" });
+        case "/user/orgs": return json([{ login: "acme" }, { login: "serpapi" }]);
       }
     }
     if (req.method === "PATCH" && /^\/notifications\/threads\/\d+$/.test(url.pathname)) return new Response(null, { status: 205 });
@@ -472,25 +479,42 @@ describe("github", () => {
   });
 
   describe("search", () => {
-    test("a short query is a hint; results are typed by kind with their own actions; the query goes through as GitHub syntax", async () => {
+    /** The queries one listing sent, one request per search, in any order. */
+    const asked = async (query: string, filter?: string) => {
+      const from = ops("Search").length;
+      const items = await list("search", filter, query);
+      return { items, qs: ops("Search").slice(from).map((s) => `${/type: (\w+)/.exec(s.body.query)![1]} ${s.body.variables.q}`).sort() };
+    };
+
+    test("a short query is a hint; results come nearest first, each once, with their own actions", async () => {
       expect((await list("search", undefined, "a"))[0]).toMatchObject({ id: "hint:search", actions: [] });
-      const items = await list("search", undefined, "parser");
-      expect(ids(items)).toEqual(["acme/api#9", "acme/api#8", "oven-sh/bun", "@jarred"]);
-      expect(items.map((i) => i.section)).toEqual(["Pull requests", "Issues", "Repositories", "Users"]);
-      expect(items[3]).toMatchObject({ name: "jarred (Jarred)", subtitle: "Makes bun", icon: { image: "https://avatars.githubusercontent.com/jarred" } });
-      expect(items[3].actions!.map((a) => a.id)).toEqual(["open", "copy", "repos"]);
-      expect(ops("Search").at(-1)!.body.variables).toEqual({ q: "parser" });
+      const { items, qs } = await asked("parser");
+      expect(ids(items)).toEqual(["acme/api#9", "acme/api#8", "acme/parser", "oven-sh/bun", "far/away#7", "@jarred"]);
+      expect(items.map((i) => i.section)).toEqual(["Involved", "Your organisations", "Repositories", "Repositories", "Everywhere", "Users"]);
+      expect(items[5]).toMatchObject({ name: "jarred (Jarred)", subtitle: "Makes bun", icon: { image: "https://avatars.githubusercontent.com/jarred" } });
+      expect(items[5].actions!.map((a) => a.id)).toEqual(["open", "copy", "repos"]);
+      // The account and its organisations (the setting's acme once) scope the middle tier.
+      expect(qs).toEqual([
+        "ISSUE parser", "ISSUE parser involves:@me", "ISSUE parser user:zcag org:acme org:serpapi",
+        "REPOSITORY parser", "REPOSITORY parser user:zcag org:acme org:serpapi", "USER parser",
+      ]);
     });
 
-    test("is:pr narrows all to issues and pull requests; the filters pick the search types", async () => {
-      await list("search", undefined, "is:pr parser");
-      let q = ops("Search").at(-1)!.body.query as string;
-      expect(q).toContain("issues: search(");
-      expect(q).not.toContain("repos: search(");
-      expect(ids(await list("search", "repos", "bun"))).toEqual(["oven-sh/bun"]);
-      q = ops("Search").at(-1)!.body.query as string;
-      expect(q).toContain("repos: search(");
-      expect(q).not.toContain("issues: search(");
+    test("a typo GitHub misses still finds your own PRs and issues, once each; a qualifier turns that off", async () => {
+      const items = await list("search", undefined, "directry");
+      expect(ids(items)).toEqual(["acme/widgets#71"]);
+      expect(items[0].section).toBe("Involved");
+      expect((await list("search", undefined, "is:pr directry"))[0]).toMatchObject({ id: "hint:empty" });
+    });
+
+    test("a query naming its own scope skips that tier; is:pr narrows all to issues and pull requests; the filters pick the search types", async () => {
+      const scoped = await asked("repo:acme/api involves:@me parser");
+      expect(scoped.qs).toEqual(["ISSUE repo:acme/api involves:@me parser"]);
+      expect(scoped.items.map((i) => [i.id, i.section])).toEqual([["acme/api#9", "Other matches"]]);
+      expect((await asked("is:pr parser")).qs.map((q) => q.split(" ")[0])).toEqual(["ISSUE", "ISSUE", "ISSUE"]);
+      const repos = await asked("bun", "repos");
+      expect(ids(repos.items)).toEqual(["acme/parser", "oven-sh/bun"]);
+      expect(repos.qs.map((q) => q.split(" ")[0])).toEqual(["REPOSITORY", "REPOSITORY"]);
       expect(ids(await list("search", "users", "jarred"))).toEqual(["@jarred"]);
     });
 
