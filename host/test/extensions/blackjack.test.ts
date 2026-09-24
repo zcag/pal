@@ -1,12 +1,14 @@
-// Blackjack: the rules (game.ts, pure) with a rigged shoe, the tree
-// (render.ts), and the extension over the wire: a view palette's meta, its
-// opening tree, a pick that answers a tree and persists the state.
+// Blackjack: the rules (game.ts, pure) with a rigged shoe, the moves as
+// the table offers them (moves.ts, shared by the view and the page), and
+// the extension over the wire: a view palette's meta and its opening view,
+// one `surface` with the legal moves as actions. The page itself
+// (surface/) is browser code and is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import { DEFAULTS, RESHUFFLE_AT, actions, apply, canDouble, canSplit, isBlackjack, newGame, shoe, value, type Settings, type State } from "../../../extensions/blackjack/game.ts";
-import { backSvg, cardSvg, type Card } from "../../../extensions/blackjack/cards.ts";
-import { money, render } from "../../../extensions/blackjack/render.ts";
-import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
+import { type Card } from "../../../extensions/blackjack/game.ts";
+import { MAX_CHIPS, chipsFor, money, moveFor, titleOf, viewActions } from "../../../extensions/blackjack/moves.ts";
+import type { View } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
 /** A shoe that deals `order` in that order: the dealer pops from the end. */
@@ -175,54 +177,41 @@ describe("shoe, bets and moves out of turn", () => {
   });
 });
 
-const find = (n: ViewNode, pred: (n: ViewNode) => boolean, out: ViewNode[] = []): ViewNode[] => {
-  if (pred(n)) out.push(n);
-  if (n.type === "stack") n.children.forEach((c) => find(c, pred, out));
-  return out;
-};
-
-describe("render", () => {
+describe("the moves as the table offers them", () => {
   test("money formats whole dollars with a separator, cents only when there are any", () => {
     expect(money(1000)).toBe("$1,000");
     expect(money(22.5)).toBe("$22.50");
     expect(money(-10)).toBe("−$10");
   });
-  test("the tree: dealer's hole face down until revealed, keyed cards, the legal actions with their keys", () => {
-    const st = dealt(["5S", "9H", "7D", "6C"]);
-    const v = render(st, DEFAULTS);
-    expect(v.keys).toBe("actions");
-    expect(v.title).toBe("Your turn");
-    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["hit", ["h", "up"]], ["stand", ["s", "down"]], ["double", ["d", "right"]], ["new", "n"]]);
-    const images = find(v.tree, (n) => n.type === "image");
-    expect(images).toHaveLength(4);
-    expect(images.every((n) => n.type === "image" && n.src.startsWith("data:image/svg+xml") && n.width === 56 && n.height === 80)).toBe(true);
-    expect(images.map((n) => n.key)).toEqual(["d0-1", "d-hole-1", "p-5S-1", "p-7D-1"]);
-    expect(images[2].transition).toEqual({ enter: "slide-up", delay: 0, move: true });
-    expect(find(v.tree, (n) => n.key === "felt")[0]).toMatchObject({ surface: "sunken", radius: true, padding: 3 });
-    // A split carries the second card to the new hand under the same key, so it moves rather than re-enters; a same card again is numbered.
-    const pair = apply(dealt(["8S", "9H", "8S", "6C", "3D", "4D"]), "split");
-    expect(pair.hands.map((h) => h.cards)).toEqual([["8S", "3D"], ["8S", "4D"]]);
-    const keys = find(render(pair, DEFAULTS).tree, (n) => n.type === "image").map((n) => n.key);
-    expect(keys).toEqual(["d0-1", "d-hole-1", "p-8S-1", "p-3D-1", "p-8S#1-1", "p-4D-1"]);
-    expect(find(render(dealt(["8S", "9H", "8S", "6C"]), DEFAULTS).tree, (n) => n.type === "image").map((n) => n.key)).toEqual(["d0-1", "d-hole-1", "p-8S-1", "p-8S#1-1"]);
-    const hole = images[1] as Extract<ViewNode, { type: "image" }>;
-    expect(hole.src).toBe(backSvg());
-    expect(hole.transition).toEqual({ enter: "slide-up", exit: "none", delay: 3 });
-    const badges = find(v.tree, (n) => n.type === "badge").map((n) => (n as { text: string }).text);
-    expect(badges).toEqual(["9", "12"]);
-    const stood = render(apply(st, "stand"), DEFAULTS);
-    const flip = find(stood.tree, (n) => n.key === "d1-1")[0] as Extract<ViewNode, { type: "image" }>;
-    expect(flip.transition).toEqual({ enter: "flip", delay: 0 });
-    expect(flip.src).toBe(cardSvg("6C"));
-    expect(stood.actions[0].id).toBe("next");
+  test("a key makes the first legal move that lists it; Enter makes the first legal move", () => {
+    const bet = newGame(DEFAULTS, () => 0.5);
+    expect(["up", "down", "+", "-", "enter", "h"].map((k) => moveFor(k, bet, DEFAULTS))).toEqual(["bet-up", "bet-down", "bet-up", "bet-down", "deal", undefined]);
+    const play = dealt(["8S", "9H", "8D", "6C"]);
+    expect(["up", "down", "right", "left", "enter", "h", "s", "d", "p", "n"].map((k) => moveFor(k, play, DEFAULTS))).toEqual(["hit", "stand", "double", "split", "hit", "hit", "stand", "double", "split", "new"]);
+    const s = { ...DEFAULTS, insurance: true };
+    const ins = dealt(["5S", "AH", "7D", "6C"], s);
+    expect(["up", "i", "down", "enter"].map((k) => moveFor(k, ins, s))).toEqual(["insure", "insure", "decline", "decline"]);
+    expect(moveFor("enter", { ...bet, bankroll: 5 }, DEFAULTS)).toBe("new");
   });
-  test("the bet phase shows the bet with its keys", () => {
-    const v = render(newGame(DEFAULTS, () => 0.5), DEFAULTS);
-    expect(v.title).toBe("Place your bet");
-    expect(find(v.tree, (n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["-", "down", "+", "up", "enter"]);
-    expect(v.actions.map((a) => a.shortcut)).toEqual(["enter", ["+", "up"], ["-", "down"], "n"]);
-    expect(find(v.tree, (n) => n.type === "image")).toHaveLength(0);
-    expect(find(v.tree, (n) => n.type === "progress")).toHaveLength(1);
+  test("the view's actions are the legal moves with their keys, Enter's first; the title is the phase", () => {
+    const st = dealt(["5S", "9H", "7D", "6C"]);
+    expect(viewActions(st, DEFAULTS).map((a) => [a.id, a.shortcut])).toEqual([["hit", ["h", "up"]], ["stand", ["s", "down"]], ["double", ["d", "right"]], ["new", "n"]]);
+    expect(viewActions(st, DEFAULTS).some((a) => "label" in a)).toBe(false);
+    expect(viewActions(newGame(DEFAULTS, () => 0.5), DEFAULTS).find((a) => a.id === "new")).toMatchObject({ confirm: expect.any(String), style: "destructive" });
+    expect(titleOf(newGame(DEFAULTS, () => 0.5), DEFAULTS)).toBe("Place your bet");
+    expect(titleOf(st, DEFAULTS)).toBe("Your turn");
+    expect(titleOf(apply(dealt(["10S", "9H", "9D", "6C", "KS"]), "stand"), DEFAULTS)).toBe("Dealer busts");
+    expect(titleOf(dealt(["AS", "9H", "KD", "6C"]), DEFAULTS)).toBe("Blackjack!");
+    const split = apply(dealt(["8S", "9H", "8D", "8C", "3S", "5S"]), "split");
+    expect(titleOf(split, DEFAULTS)).toBe("Hand 1 of 2");
+    expect(titleOf(apply(apply(split, "stand"), "stand"), DEFAULTS)).toBe("Hand 1 loses, Hand 2 loses");
+    expect(titleOf({ ...newGame(DEFAULTS, () => 0.5), bankroll: 5 }, DEFAULTS)).toBe("Out of chips");
+  });
+  test("a stack's chips: largest first, at most a few, cents left to the amount", () => {
+    expect(chipsFor(10)).toEqual([5, 5]);
+    expect(chipsFor(37.5)).toEqual([25, 5, 5, 1, 1]);
+    expect(chipsFor(1130)).toEqual([1000, 100, 25, 5]);
+    expect(chipsFor(990)).toHaveLength(MAX_CHIPS);
   });
 });
 
@@ -235,25 +224,36 @@ describe("over the wire", () => {
     const l = host.loaded().find((l) => l.extension === "blackjack")!;
     expect(l.palettes).toEqual([{ name: "blackjack", title: "Blackjack", live: false, input: true, icon: tile("red", "\u{f18a1}"), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
   });
-  test("list is refused, view answers the opening tree", async () => {
+  test("list is refused; view answers the table: one surface, the legal moves, the phase", async () => {
     await expect(host.request("list", { extension: "blackjack", palette: "blackjack" })).rejects.toThrow("view palette has no list");
     const v = await host.request<View>("view", { extension: "blackjack", palette: "blackjack" });
+    expect(v.tree).toMatchObject({ type: "surface", src: "surface/index.html" });
     expect(v.title).toBe("Place your bet");
+    expect(v.actions.map((a) => a.id)).toEqual(["deal", "bet-up", "bet-down", "new"]);
     expect(v.actions[0]).toMatchObject({ id: "deal", shortcut: "enter" });
   });
-  test("a pick answers the next tree and persists the state; an unknown action is a no-op", async () => {
-    const r = await host.pick("blackjack", "blackjack", "view", "deal");
-    const v = r.view as View;
-    expect(["Your turn", "Blackjack!", "Dealer wins", "Push"]).toContain(v.title ?? "");
-    expect(find(v.tree, (n) => n.type === "image").length).toBeGreaterThanOrEqual(4);
-    const st = stored.get("blackjack\0state") as State;
-    expect(st.handNo).toBe(1);
-    const same = await host.pick("blackjack", "blackjack", "view", "hologram");
-    expect((same.view as View).title).toBe(v.title);
-    // The settings reach the game: a new game starts with the configured bankroll.
-    host.changeSettings("blackjack", { settings: { starting_bankroll: 500 } });
-    const fresh = await host.pick("blackjack", "blackjack", "view", "new");
-    expect((stored.get("blackjack\0state") as State).bankroll).toBe(500);
-    expect((fresh.view as View).title).toBe("Place your bet");
+  test("the view follows what the page saved: a hand in play, and settings for a fresh game", async () => {
+    // The page saves under "state" after every move; the view is built from it.
+    stored.set("blackjack\0state", dealt(["5S", "9H", "7D", "6C"]));
+    const v = await host.request<View>("view", { extension: "blackjack", palette: "blackjack" });
+    expect(v.title).toBe("Your turn");
+    expect(v.actions.map((a) => a.id)).toEqual(["hit", "stand", "double", "new"]);
+    stored.set("blackjack\0state", { from: "an older version" });
+    // A store this version cannot read starts a fresh game, with the settings: a bankroll under the minimum can only start over.
+    host.changeSettings("blackjack", { settings: { starting_bankroll: 10, min_bet: 25 } });
+    const fresh = await host.request<View>("view", { extension: "blackjack", palette: "blackjack" });
+    expect(fresh.title).toBe("Out of chips");
+    expect(fresh.actions.map((a) => a.id)).toEqual(["new"]);
+  });
+  // `host.surfaceSend` comes with the surface infra; until that is merged this one is skipped.
+  test.skipIf(!("surfaceSend" in Host.prototype))("the page's `moved` pushes the view's actions and title for the saved state", async () => {
+    stored.set("blackjack\0state", dealt(["8S", "9H", "8D", "6C"]));
+    const push = (host as unknown as { surfaceSend(ext: string, palette: string, msg: unknown): Promise<unknown> }).surfaceSend("blackjack", "blackjack", { moved: true });
+    const u = await host.nextViewUpdate("blackjack", { palette: "blackjack" });
+    await push;
+    const spec = u.spec as View;
+    expect(spec.title).toBe("Your turn");
+    expect(spec.actions.map((a) => a.id)).toEqual(["hit", "stand", "double", "split", "new"]);
+    expect(spec.tree).toMatchObject({ type: "surface", src: "surface/index.html" });
   });
 });

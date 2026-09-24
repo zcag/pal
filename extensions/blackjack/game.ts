@@ -6,7 +6,15 @@
 // get one card each), insurance offered on an ace when enabled. Every move
 // is `apply(state, action)`; a move the phase does not allow is a no-op,
 // which is what a key pressed a beat too late should be.
-import { RANKS, SUITS, rankOf, type Card } from "./cards.ts";
+
+export type Suit = "S" | "H" | "D" | "C";
+export type Rank = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K";
+/** `AS`, `10H`: rank then suit, as the shoe and the store carry them, and as the kit's card pictures are named (`/__pal/cards/10H.png`). */
+export type Card = `${Rank}${Suit}`;
+
+export const RANKS: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+export const SUITS: Suit[] = ["S", "H", "D", "C"];
+export const rankOf = (c: Card): Rank => c.slice(0, -1) as Rank;
 
 export type Settings = { decks: number; starting_bankroll: number; dealer_hits_soft_17: boolean; min_bet: number; insurance: boolean };
 export const DEFAULTS: Settings = { decks: 6, starting_bankroll: 1000, dealer_hits_soft_17: false, min_bet: 10, insurance: false };

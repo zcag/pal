@@ -115,11 +115,13 @@ jobs:
       # The root `bun install` links the workspace: host/, sdk/ and the
       # `@zcag/pal` name every extension imports (root package.json).
       # host/tsconfig.json includes ../sdk/src, ../extensions and
-      # ../examples, so this typechecks them all.
+      # ../examples, so this typechecks them all; tsconfig.surface.json
+      # the extensions' surface pages, which run in the webview (DOM).
       - name: host typecheck and tests
         working-directory: host
         run: |
           bunx tsc --noEmit
+          bunx tsc --noEmit -p tsconfig.surface.json
           bun test --parallel --reporter=junit --reporter-outfile="$RUNNER_TEMP/host-tests.xml"
           bun test/budget.ts "$RUNNER_TEMP/host-tests.xml"
       # The published package: its declarations build, and the tarball

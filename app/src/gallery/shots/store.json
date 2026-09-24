@@ -267,7 +267,7 @@
           {
             "id": "blackjack",
             "name": "Blackjack",
-            "subtitle": "Blackjack in the panel: H, S, D, P; the bankroll persists",
+            "subtitle": "Blackjack on felt, arrows or mouse; the bankroll persists",
             "icon": {
               "tile": {
                 "glyph": "󱢡",
