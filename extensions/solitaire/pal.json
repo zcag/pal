@@ -1,7 +1,7 @@
 {
   "name": "solitaire",
   "title": "Solitaire",
-  "description": "Klondike in the panel, one-handed: the arrows walk the piles, Enter picks up and drops, Enter twice sends a card where it goes. Draw one or three, unlimited passes, undo; the game and the record persist.",
+  "description": "Klondike on a felt table: drag the cards with the mouse, or play one-handed on the arrows and Enter (Enter twice sends a card where it goes). Draw one or three, unlimited passes, undo; the game and the record persist.",
   "version": "0.1.0",
   "icon": { "tile": { "glyph": "󱢯", "bg": "green" } },
   "author": "pal",
@@ -21,13 +21,15 @@
     }
   ],
   "store": {
-    "tagline": "Klondike on the arrows and Enter; the game and the record persist",
+    "tagline": "Klondike with real cards: drag and drop, or the arrows and Enter; the game and the record persist",
     "category": "fun",
     "features": [
-      "The table as a view level: the title says what the cursor is on (`Pile 4 · 9♣ 8♥`), what you carry (`Moving 7♥ and 2 more`) or why a drop was refused (`7♥ can't go on 9♠`)",
+      "A felt table filling the panel, the cards as large as it allows: a column fans out while it has room and tightens as it grows, never past where a card's rank shows",
+      "Drag a card or a run with the mouse: the piles it can go on light up, a drop anywhere else glides it back. Or click the cards, then where they go; a double-click sends a card home, a click on the stock draws",
       "One-handed: `←` `→` walk the stock, the waste, the foundations and the seven piles, `↑` `↓` take more or fewer cards of a face-up run (and past it, the row above or below), `Enter` picks up and drops",
       "`Enter` twice on the same card sends it where it goes: its foundation, else the first pile that takes it",
-      "Picked-up cards ride under the cursor and glide to where you drop them; a card turned over flips, the deal drops in column by column",
+      "Every card glides to where it goes and turns over with a flip; the deal goes out row by row from the stock, and a win bounces the cards off the foundations",
+      "The title line says what the cursor is on (`Pile 4 · 9♣ 8♥`), what you carry (`Moving 7♥ and 2 more`) or why a move was refused (`7♥ can't go on 9♠`)",
       "Draw one or three (a setting), unlimited passes through the stock, `U` or `Backspace` undoes (a hundred moves back)",
       "Once every card is face up the rest flies home by itself, one card at a time",
       "Moves, the time played (only while the table is open) and games won of played beside the table; Escape leaves at any point and the game is there when you come back"
@@ -44,26 +46,26 @@
       },
       {
         "file": "2-game.png",
-        "caption": "Forty moves in: covered cards fan as strips of their own picture, eight cards home"
+        "caption": "Forty moves in: the cursor holds three cards of a run, ready to pick up"
       },
       {
-        "file": "3-moving.png",
-        "caption": "Carrying a run: the picked-up cards ride under the cursor to the pile they go on"
+        "file": "3-drag.png",
+        "caption": "Dragging a run with the mouse: the pile it goes on lights up (dark theme)"
       },
       {
         "file": "4-won.png",
-        "caption": "Won: every card home, Enter deals again"
+        "caption": "Won: the cards bounce off the foundations, Enter deals again"
       }
     ],
     "actions": [
       {
         "title": "Pick up, drop",
-        "description": "Enter on a card picks it up (with the cards under it, as deep as ↑ reached); Enter on another pile drops them there. On the stock, draws.",
+        "description": "Enter on a card picks it up (with the cards under it, as deep as ↑ reached); Enter on another pile drops them there. On the stock, draws. With the mouse: drag, or click the cards and then the pile.",
         "keys": "enter"
       },
       {
         "title": "Send where it goes",
-        "description": "Enter again on the pile the cards came from: to the card's foundation, else to the first pile that takes them.",
+        "description": "Enter again on the pile the cards came from, or a double-click: to the card's foundation, else to the first pile that takes them.",
         "keys": "enter"
       },
       {

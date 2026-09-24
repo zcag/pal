@@ -3059,37 +3059,42 @@ difficulty = "beginner"       # intermediate (16x16, 40), expert (30x16, 99); fr
 
 ## Solitaire (`solitaire`)
 
-Klondike in the panel, played one-handed on the arrows and Enter. Enter
-on the palette's row (or its hotkey) opens the table as a view level: the
-search input gives way to what the cursor is on ("Pile 4 · 9♣ 8♥"), what
-you carry ("Moving 7♥ and 2 more") or why a drop was refused ("7♥ can't
-go on 9♠"), the footer shows what Enter does here, ⌘K lists every key.
+Klondike in the panel, by mouse or one-handed on the arrows and Enter.
+Enter on the palette's row (or its hotkey) opens the table as a view
+level whose body is the extension's own page (a `surface`): a felt with
+real cards, as large as the panel allows. The search input gives way to
+what the cursor is on ("Pile 4 · 9♣ 8♥"), what you carry ("Moving 7♥ and
+2 more") or why a move was refused ("7♥ can't go on 9♠"); ⌘K lists draw,
+undo, finish and new game.
 
+- The mouse: drag a card (and the cards under it) onto a pile; the piles
+  it can go on light up, a drop anywhere else glides it back. Or click
+  the cards, then the pile; a double-click sends a card where it goes, a
+  click on the stock draws.
 - The cursor: `←` `→` walk the stock, the waste, the foundations and the
   seven piles (wrapping; `h` `l` too); on a pile `↑` `↓` take more or
   fewer cards of its face-up run, and past it move to the row above or
   below (`k` `j` too).
-- Enter picks up what the cursor's ring holds; the cards ride under the
-  cursor, and Enter drops them where it is. An illegal drop puts them
-  back with the reason. Enter again on the pile they came from sends them
-  where they go: the card's foundation, else the first pile that takes
-  them. Any foundation takes a card onto its own suit's.
+- Enter picks up what the cursor's ring holds; the cards ride on the pile
+  under the cursor, and Enter drops them where it is. An illegal drop
+  puts them back with the reason. Enter again on the pile they came from
+  sends them where they go: the card's foundation, else the first pile
+  that takes them. Any foundation takes a card onto its own suit's.
 - Enter on the stock, or `space` (`d`) anywhere, turns one card (three
   with `draw = "3"`) onto the waste, and the waste back over once the
   stock is out; passes are unlimited. `U` or Backspace undoes (a hundred
   moves back, the turned-over card too), or puts down the cards held.
 - Once the stock and the waste are played out and every card is face up,
-  the rest flies home one card at a time (Enter finishes at once). `N`
-  deals a new game, asking first mid-game.
+  the rest flies home one card at a time (Enter finishes at once), and a
+  win bounces the cards off the foundations. `N` deals a new game,
+  asking first mid-game.
 - Escape leaves at any point; the game, the moves, the time and the
   record (games won of played) persist (in the extension's storage). The
   time counts only while the table is open.
 
-The cards are Blackjack's SVG, a covered card a strip cropped from the
-same picture with its index on one line (`10♥`), on a sunken well the app
-draws; every face-up card keeps its key while in play, so a drop, an undo,
-a carried run and the finish's cards going home glide from pile to pile,
-a card turned over flips in, the deal drops in column by column.
+Every card glides to where it goes and turns over with a flip, the deal
+goes out row by row from the stock, and a column fans out while it has
+room and tightens as it grows, never past where a card's rank shows.
 
 ```toml
 [extensions.solitaire]

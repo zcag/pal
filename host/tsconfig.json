@@ -26,5 +26,9 @@
     "../sdk/src",
     "../extensions",
     "../examples"
+  ],
+  "exclude": [
+    "../extensions/*/surface",
+    "../examples/*/surface"
   ]
 }

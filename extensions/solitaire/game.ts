@@ -12,9 +12,23 @@
 // one-handed: `select` (Enter) picks up the card or run under the cursor
 // and, pressed again, drops it where the cursor is; pressed again on the
 // pile it came from, it sends the card where it goes (a foundation, else
-// the first tableau pile that takes it). Every move keeps the table before
-// it, so `undo` steps back as far as `UNDO`.
-import { RANKS, SUITS, SUIT_GLYPH, isRed, rankOf, suitOf, type Card } from "../blackjack/cards.ts";
+// the first tableau pile that takes it). The pointer plays the same moves
+// through `play`: a drag, or a click on the cards and one where they go.
+// Every move keeps the table before it, so `undo` steps back as far as
+// `UNDO`. No DOM and no host imports: the extension's page (surface/)
+// imports this file as it is, and so do the host tests.
+export type Suit = "S" | "H" | "D" | "C";
+export type Rank = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K";
+/** `AS`, `10H`: rank then suit, as the kit's card pictures are named (`/__pal/cards/10H.png`). */
+export type Card = `${Rank}${Suit}`;
+
+export const RANKS: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+/** The foundations' order. */
+export const SUITS: Suit[] = ["S", "H", "D", "C"];
+export const SUIT_GLYPH: Record<Suit, string> = { S: "♠", H: "♥", D: "♦", C: "♣" };
+export const rankOf = (c: Card): Rank => c.slice(0, -1) as Rank;
+export const suitOf = (c: Card): Suit => c.slice(-1) as Suit;
+export const isRed = (c: Card) => suitOf(c) === "H" || suitOf(c) === "D";
 
 export type Settings = { draw: "1" | "3" };
 export const DEFAULTS: Settings = { draw: "1" };
@@ -240,6 +254,22 @@ function step(st: State, dir: "left" | "right" | "up" | "down"): State {
   return held.length === 1 ? { ...st, cursor: home(held[0]) } : st;
 }
 
+/**
+ * The top `count` cards of pile `from` to pile `to`, or where they go
+ * (`quickTarget`) when `to` is left out or is `from` itself: Enter's drop,
+ * a drag, a double click. A move the rules refuse changes nothing but the
+ * note saying why; either way nothing is held after.
+ */
+export function play(state: State, from: number, count: number, to?: number): State {
+  const st: State = { ...state, held: undefined, note: undefined, drawn: [] };
+  const cards = run(st, from, count);
+  if (st.won || !cards.length || cards.length < count) return st;
+  const dest = to === undefined || to === from ? quickTarget(st, from, count) : to;
+  if (dest === undefined) return { ...st, note: `No move for ${name(cards[0])}` };
+  const why = refusal(st, cards, dest);
+  return why ? { ...st, note: why } : move(st, from, count, dest);
+}
+
 /** Enter: draw on the stock, pick up, drop where the cursor is, or on the pile the cards came from, send them where they go. */
 function select(st: State): State {
   if (!st.held) {
@@ -247,12 +277,7 @@ function select(st: State): State {
     const cards = run(st, st.cursor, st.depth);
     return cards.length ? { ...st, held: { from: st.cursor, count: cards.length } } : { ...st, note: "Nothing to pick up here" };
   }
-  const { from, count } = st.held;
-  const cards = run(st, from, count);
-  const to = st.cursor === from ? quickTarget(st, from, count) : st.cursor;
-  if (to === undefined) return { ...st, held: undefined, note: `No move for ${name(cards[0])}` };
-  const why = refusal(st, cards, to);
-  return why ? { ...st, held: undefined, note: why } : move(st, from, count, to);
+  return play(st, st.held.from, st.held.count, st.cursor);
 }
 
 export function apply(state: State, action: Action, s: Settings = DEFAULTS, rng: Rng = Math.random): State {
@@ -287,4 +312,25 @@ export function isState(x: unknown): x is State {
   return !!s && typeof s === "object" && Array.isArray(s.stock) && Array.isArray(s.waste) && Array.isArray(s.foundations) && s.foundations.length === 4
     && Array.isArray(s.tableau) && s.tableau.length === 7 && s.tableau.every((p) => Array.isArray(p?.down) && Array.isArray(p?.up))
     && Array.isArray(s.history) && typeof s.cursor === "number" && typeof s.moves === "number" && (s.draw === 1 || s.draw === 3) && !!s.stats && typeof s.game === "number";
+}
+
+/** `3:07`, `1:02:45`. */
+export const clock = (ms: number): string => {
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, ss = String(s % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
+};
+
+/** The view's title line: what went wrong, what is held, else what the cursor is on. */
+export function headline(st: State): string {
+  if (st.won) return "You won";
+  if (canFinish(st)) return "Finishing…";
+  if (st.note) return st.note;
+  const held = st.held ? run(st, st.held.from, st.held.count) : [];
+  if (held.length) return `Moving ${name(held[0])}${held.length > 1 ? ` and ${held.length - 1} more` : ""}`;
+  const at = st.cursor;
+  if (at === STOCK) return st.stock.length ? `Stock · ${st.stock.length} left` : st.waste.length ? "Stock · Enter turns the waste over" : "Stock · empty";
+  if (at === WASTE) return st.waste.length ? `Waste · ${name(st.waste.at(-1)!)}` : "Waste · empty";
+  if (isFoundation(at)) return `${SUIT_GLYPH[SUITS[at - 2]]} foundation · ${st.foundations[at - 2].length} of 13`;
+  const cards = run(st, at, st.depth);
+  return `Pile ${at - 5} · ${cards.length ? cards.map(name).join(" ") : "empty"}`;
 }
