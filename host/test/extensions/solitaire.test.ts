@@ -1,16 +1,13 @@
 // Solitaire: the rules (game.ts, pure) on tables laid out by hand, the
-// tree (render.ts), and the extension over the wire: a view palette's
-// meta, its opening tree, a pick that answers a tree and persists the
-// state, the auto-finish's pushes and the clock that runs only while the
-// table is shown.
+// pointer's moves and the title line, the page's layout (surface/layout.ts,
+// pure: the fit at both panel widths), and the extension over the wire: a
+// view palette whose view is the page.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { RANKS, SUITS, type Card } from "../../../extensions/blackjack/cards.ts";
-import { DEFAULTS, F, STOCK, T, UNDO, WASTE, actions, apply, canFinish, finishStep, isState, newGame, quickTarget, type Action, type Pile, type State } from "../../../extensions/solitaire/game.ts";
-import { COLUMN_H, clock, render } from "../../../extensions/solitaire/render.ts";
-import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { DEFAULTS, F, RANKS, STOCK, T, UNDO, WASTE, actions, apply, canFinish, clock, finishStep, headline, isState, newGame, play as drag, quickTarget, type Action, type Card, type Pile, type State } from "../../../extensions/solitaire/game.ts";
+import { RATIO, geometry, layout } from "../../../extensions/solitaire/surface/layout.ts";
+import type { View } from "../../../sdk/src/protocol.ts";
+import { Host } from "../harness.ts";
 
 const pile = (down: Card[], up: Card[]): Pile => ({ down, up });
 const empty = (): Pile[] => Array.from({ length: 7 }, () => pile([], []));
@@ -193,134 +190,101 @@ describe("winning", () => {
   });
 });
 
-const find = (n: ViewNode, pred: (n: ViewNode) => boolean, out: ViewNode[] = []): ViewNode[] => {
-  if (pred(n)) out.push(n);
-  if (n.type === "stack") n.children.forEach((c) => find(c, pred, out));
-  return out;
-};
-const images = (v: View) => find(v.tree, (n) => n.type === "image") as Extract<ViewNode, { type: "image" }>[];
+describe("the pointer", () => {
+  test("play: a run dropped on a pile that takes it, a refusal with its note, where it goes when the pile is its own", () => {
+    const st = table({ tableau: tab(pile(["2C"], ["9H", "8S"]), pile([], ["10C"]), pile([], ["10H"])), held: { from: T(2), count: 1 } });
+    const moved = drag(st, T(0), 2, T(1));
+    expect(moved.tableau.slice(0, 2)).toEqual([pile([], ["2C"]), pile([], ["10C", "9H", "8S"])]);
+    expect(moved).toMatchObject({ moves: 1, held: undefined, history: [expect.anything()] });
+    expect(drag(st, T(0), 2, T(2))).toMatchObject({ note: "9♥ can't go on 10♥", held: undefined, moves: 0, tableau: st.tableau });
+    // Its own pile, or none: where Enter twice would send it.
+    expect(drag(st, T(0), 2).tableau[1].up).toEqual(["10C", "9H", "8S"]);
+    expect(drag(st, T(0), 2, T(0)).tableau[1].up).toEqual(["10C", "9H", "8S"]);
+    expect(drag(st, T(1), 1).note).toBe("No move for 10♣");
+    // More cards than the pile shows face up, or a won table: nothing happens.
+    expect(drag(st, T(0), 3).tableau).toBe(st.tableau);
+    expect(drag({ ...st, won: true }, T(0), 2, T(1)).tableau).toBe(st.tableau);
+  });
+});
 
-describe("render", () => {
+describe("the title line and the clock", () => {
   test("the clock reads minutes and seconds, hours when there are any", () => {
     expect(clock(0)).toBe("0:00");
     expect(clock(187_400)).toBe("3:07");
     expect(clock(3_765_000)).toBe("1:02:45");
   });
-  test("a deal: the legal keys with their shortcuts, backs and faces keyed, the columns drop in, the cursor on the stock", () => {
-    const st = newGame(DEFAULTS, () => 0.3);
-    const v = render(st);
-    expect(checkView(v, "test")).toBe(v);
-    expect(v.keys).toBe("actions");
-    expect(v.title).toBe("Stock · 24 left");
-    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([
-      ["select", "enter"], ["left", ["left", "h"]], ["right", ["right", "l"]], ["up", ["up", "k"]], ["down", ["down", "j"]], ["draw", ["space", "d"]], ["new", "n"],
-    ]);
-    expect(v.actions[0].title).toBe("Draw");
-    expect(v.actions.at(-1)!.confirm).toBeUndefined();
-    const imgs = images(v);
-    const faces = imgs.filter((n) => n.key!.startsWith("c-"));
-    expect(faces.map((n) => n.key)).toEqual(st.tableau.map((p) => `c-${p.up[0]}-${st.game}`));
-    expect(faces.every((n) => n.transition?.move && n.height === 80 && n.width === 56)).toBe(true);
-    expect(faces[6].transition).toMatchObject({ enter: "slide-down", delay: 6 });
-    expect(imgs.filter((n) => n.key!.startsWith("b-"))).toHaveLength(21);
-    expect(imgs.filter((n) => n.key!.startsWith("b-") && n.height === 5)).toHaveLength(21);
-    expect(find(v.tree, (n) => !!n.selected).map((n) => n.key)).toEqual([`stock-${st.game}`]);
-    expect(find(v.tree, (n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["left", "right", "up", "down", "enter", "space", "u", "n"]);
+  test("what the cursor is on, what is held, a note, the finish, the win", () => {
+    expect(headline(newGame(DEFAULTS, () => 0.3))).toBe("Stock · 24 left");
+    const st = table({ tableau: tab(pile(["2C"], ["9H", "8S", "7D"]), pile([], ["10C"])), cursor: T(0), started: true });
+    expect(headline(apply(st, "up"))).toBe("Pile 1 · 8♠ 7♦");
+    expect(headline(play(apply(st, "up"), "select"))).toBe("Moving 8♠ and 1 more");
+    expect(headline(drag(st, T(0), 1, T(1)))).toBe("7♦ can't go on 10♣");
+    expect(headline({ ...st, cursor: F(1), foundations: [[], upTo("H", 3), [], []] })).toBe("♥ foundation · 3 of 13");
+    expect(headline({ ...st, cursor: STOCK, stock: [], waste: ["2S"] })).toBe("Stock · Enter turns the waste over");
+    expect(headline({ ...st, stock: [], tableau: tab(pile([], ["KS"])) })).toBe("Finishing…");
+    expect(headline(play(lastCard(), "select", "select"))).toBe("You won");
   });
-  test("mid-game: covered cards are strips, the cursor rings the run it takes, held cards ride under it and leave their pile", () => {
-    const st = table({ tableau: tab(pile(["2C"], ["9H", "8S", "7D"]), pile([], ["10C"])), cursor: T(0), started: true, history: [table()] });
-    const deep = apply(st, "up");
-    const v = render(deep);
-    expect(v.title).toBe("Pile 1 · 8♠ 7♦");
-    expect(v.actions[0].title).toBe("Pick up 2 cards");
-    expect(v.actions.find((a) => a.id === "new")).toMatchObject({ confirm: "Deal a new game? This one counts as lost.", style: "destructive" });
-    const col = images(v).filter((n) => ["b-2C", "c-9H", "c-8S", "c-7D"].some((k) => n.key!.startsWith(k)));
-    expect(col.map((n) => n.height)).toEqual([5, 20, 20, 80]);
-    const ring = find(v.tree, (n) => !!n.selected)[0];
-    expect(find(ring, (n) => n.type === "image").map((n) => n.key!.split("-")[1])).toEqual(["8S", "7D"]);
-    const carried = render({ ...apply(deep, "select"), cursor: T(1) });
-    expect(carried.title).toBe("Moving 8♠ and 1 more");
-    expect(carried.actions[0].title).toBe("Drop here");
-    const ring2 = find(carried.tree, (n) => !!n.selected)[0];
-    expect(find(ring2, (n) => n.type === "image").map((n) => n.key!.split("-")[1])).toEqual(["8S", "7D"]);
-    expect(images(carried).filter((n) => n.key!.includes("8S"))).toHaveLength(1);
-    expect(checkView(carried, "test")).toBe(carried);
-    // A long run tightens, never under 16 px a card.
-    const long = render(table({ tableau: tab(pile(["2C", "3C", "4C", "5C", "6C", "7C"], ["KH", "QS", "JH", "10S", "9H", "8S", "7H", "6S", "5H", "4S", "3H", "2S"])) }));
-    const heights = images(long).map((n) => n.height!);
-    expect(Math.min(...heights.filter((h) => h > 5))).toBe(16);
-    expect(COLUMN_H).toBeGreaterThan(200);
-  });
-  test("a note, a draw flipping in, draw three fanned, the won table", () => {
-    const st = table({ waste: ["7H"], tableau: tab(pile([], ["9S"])), cursor: WASTE });
-    expect(render(play({ ...apply(st, "select"), cursor: T(0) }, "select")).title).toBe("7♥ can't go on 9♠");
-    const three = apply(table({ draw: 3, stock: ["2S", "3S", "4S", "5S"] }), "draw");
-    const fan = images(render(three)).filter((n) => n.key!.startsWith("c-"));
-    expect(fan.map((n) => [n.key!.split("-")[1], n.width, n.transition?.enter, n.transition?.delay])).toEqual([["5S", 24, "flip", 0], ["4S", 24, "flip", 1], ["3S", 56, "flip", 2]]);
-    const won = render(play(lastCard(), "select", "select"));
-    expect(won.title).toBe("You won");
-    expect(won.actions).toEqual([{ id: "new", title: "New game", shortcut: ["enter", "n"] }]);
-    expect(find(won.tree, (n) => !!n.selected)).toHaveLength(0);
-    expect(images(won).map((n) => n.key!.split("-")[1])).toEqual(SUITS.map((s) => `K${s}`));
+});
+
+describe("the page's layout", () => {
+  const inside = (b: { x: number; y: number; w: number; h: number }, o: { x: number; y: number; w: number; h: number }) =>
+    b.x >= o.x && b.y >= o.y && b.x + b.w <= o.x + o.w + 0.5 && b.y + b.h <= o.y + o.h + 0.5;
+  for (const [vw, vh] of [[720, 390], [560, 390]]) {
+    test(`${vw} by ${vh}: a deal and a long column fit the felt, every face-up card still shows its rank`, () => {
+      const deal = newGame(DEFAULTS, () => 0.3);
+      const g = geometry(vw, vh, deal);
+      expect(g.felt.x + g.felt.w).toBeLessThanOrEqual(g.rail.x);
+      expect(g.rail.x + g.rail.w).toBeLessThanOrEqual(vw);
+      expect(g.h / g.w).toBeCloseTo(RATIO, 1);
+      expect(g.w).toBeGreaterThanOrEqual(vw === 720 ? 70 : 54);
+      // The seven columns side by side, none over the next.
+      g.col.slice(1).forEach((x, i) => expect(x).toBeGreaterThan(g.col[i] + g.w));
+      const l = layout(deal, g);
+      expect(l.cards.size).toBe(52);
+      for (const p of l.cards.values()) expect(inside({ ...p, w: g.w, h: g.h }, g.felt)).toBe(true);
+
+      const up: Card[] = ["KH", "QS", "JH", "10S", "9H", "8S", "7H", "6S", "5H", "4S", "3H", "2S"];
+      const long = table({ tableau: tab(pile(["2C", "3C", "4C", "5C", "6C", "7C"], up)) });
+      const lg = geometry(vw, vh, long);
+      expect(lg.w).toBeGreaterThanOrEqual(48);
+      const ll = layout(long, lg);
+      const ys = up.map((c) => ll.cards.get(c)!.y);
+      expect(ys.at(-1)! + lg.h).toBeLessThanOrEqual(lg.bottom);
+      ys.slice(1).forEach((y, i) => expect(y - ys[i]).toBeGreaterThanOrEqual(Math.floor(lg.h * 0.19)));
+    });
+  }
+  test("held cards ride on the pile under the cursor, lifted and on top, the ring round them; draw three fans the waste", () => {
+    const st = table({ tableau: tab(pile(["2C"], ["9H", "8S"]), pile([], ["10C"])), cursor: T(0), depth: 2 });
+    const g = geometry(720, 390, st);
+    const riding = layout({ ...apply(st, "select"), cursor: T(1) }, g);
+    const ten = riding.cards.get("10C")!, nine = riding.cards.get("9H")!;
+    expect(nine).toMatchObject({ x: ten.x, lifted: true });
+    expect(nine.y).toBeGreaterThan(ten.y - g.h * 0.1);
+    expect(nine.z).toBeGreaterThan(1000);
+    expect(riding.ring).toMatchObject({ x: nine.x, y: nine.y, h: riding.cards.get("8S")!.y + g.h - nine.y });
+    // Before the pick-up the ring holds the two cards where they lie.
+    expect(layout(st, g).ring).toMatchObject({ y: layout(st, g).cards.get("9H")!.y });
+    const three = layout(apply(table({ draw: 3, stock: ["2S", "3S", "4S", "5S"] }), "draw"), g);
+    const xs = (["5S", "4S", "3S"] as Card[]).map((c) => three.cards.get(c)!.x);
+    expect(xs[1]).toBeGreaterThan(xs[0]);
+    expect(xs[2]).toBeGreaterThan(xs[1]);
+    expect(layout({ ...lastCard(), won: true }, g).ring).toBeUndefined();
   });
 });
 
 describe("over the wire", () => {
   let host: Host;
-  beforeAll(async () => {
-    stored.clear();
-    process.env.PAL_SOLITAIRE_FINISH_MS = "40";
-    process.env.PAL_SOLITAIRE_TICK_MS = "20";
-    host = await Host.bundled().finally(() => { delete process.env.PAL_SOLITAIRE_FINISH_MS; delete process.env.PAL_SOLITAIRE_TICK_MS; });
-  });
+  beforeAll(async () => { host = await Host.bundled(); });
   afterAll(() => host.kill());
 
   test("a view palette is input on the wire with view: view", () => {
     const l = host.loaded().find((l) => l.extension === "solitaire")!;
     expect(l.palettes).toEqual([{ name: "solitaire", title: "Solitaire", live: false, input: true, icon: tile("green", "\u{f18af}"), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
   });
-  test("view answers the deal, a pick the next tree with the state persisted; the draw setting applies from the next deal", async () => {
+  test("the view is the page, with the actions ⌘K hands it", async () => {
     const v = await host.request<View>("view", { extension: "solitaire", palette: "solitaire" });
-    expect(v.title).toBe("Stock · 24 left");
-    const r = await host.pick("solitaire", "solitaire", "view", "select");
-    expect((r.view as View).title).toBe("Stock · 23 left");
-    const st = stored.get("solitaire\0state") as State;
-    expect(st).toMatchObject({ moves: 1, started: true, stats: { played: 1, won: 0 } });
-    expect(st.waste).toHaveLength(1);
-    host.changeSettings("solitaire", { settings: { draw: "3" } });
-    await host.pick("solitaire", "solitaire", "view", "new");
-    const fresh = stored.get("solitaire\0state") as State;
-    expect(fresh).toMatchObject({ draw: 3, moves: 0, stats: { played: 1, won: 0 } });
-  });
-  test("once every card is face up the rest goes home a card at a time, each pushed", async () => {
-    // The king of spades carried to the empty fifth pile uncovers the last face-down card; six cards are left to go home.
-    const st = table({
-      foundations: [upTo("S", 11), upTo("H", 11), upTo("D", 12), upTo("C", 12)],
-      tableau: tab(pile(["QH"], ["KS"]), pile([], ["KH", "QS"]), pile([], ["KC"]), pile([], ["KD"])),
-      stock: [], held: { from: T(0), count: 1 }, cursor: T(4), started: true, stats: { played: 1, won: 0 },
-    });
-    stored.set("solitaire\0state", st);
-    const before = host.viewUpdates("solitaire", { palette: "solitaire" }).length;
-    const dropped = await host.pick("solitaire", "solitaire", "view", "select");
-    expect((dropped.view as View).title).toBe("Finishing…");
-    expect((dropped.view as View).actions.map((a) => a.id)).toEqual(["finish", "new"]);
-    const last = await host.nextViewUpdate("solitaire", { palette: "solitaire" }, (u) => (u.spec as View).title === "You won");
-    expect(host.viewUpdates("solitaire", { palette: "solitaire" }).length - before).toBe(6);
-    expect((last.spec as View).actions.map((a) => a.id)).toEqual(["new"]);
-    expect(stored.get("solitaire\0state")).toMatchObject({ won: true, stats: { played: 1, won: 1 } });
-  });
-  test("the clock runs only while the table is shown", async () => {
-    const st = { ...table({ stock: ["2S", "3S"] }), started: true, elapsed: 5000 };
-    stored.set("solitaire\0state", st);
-    await host.pick("solitaire", "solitaire", "view", "left");
-    expect((stored.get("solitaire\0state") as State).elapsed).toBe(5000);
-    const from = host.viewUpdates("solitaire", { palette: "solitaire" }).length;
-    host.viewShown("solitaire", { palette: "solitaire" });
-    await host.until(() => host.viewUpdates("solitaire", { palette: "solitaire" }).length > from, 3000, "a clock tick");
-    host.viewHidden("solitaire", { palette: "solitaire" });
-    await host.until(() => (stored.get("solitaire\0state") as State).elapsed > 5000, 3000, "the time folded in");
-    const at = (stored.get("solitaire\0state") as State).elapsed;
-    await host.pick("solitaire", "solitaire", "view", "right");
-    expect((stored.get("solitaire\0state") as State).elapsed).toBe(at);
+    expect(v.tree).toEqual({ type: "surface", src: "surface/index.html" } as unknown as View["tree"]);
+    expect(v.title).toBe("Solitaire");
+    expect(v.actions.map((a) => a.id)).toEqual(["draw", "undo", "finish", "new"]);
   });
 });
