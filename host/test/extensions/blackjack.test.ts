@@ -171,8 +171,8 @@ describe("shoe, bets and moves out of turn", () => {
   });
   test("the legal moves per phase are what the view offers, Enter first", () => {
     expect(actions(newGame(DEFAULTS, () => 0.5))).toEqual(["deal", "bet-up", "bet-down", "new"]);
-    expect(actions(dealt(["5S", "9H", "6D", "6C"]))).toEqual(["hit", "stand", "double", "new"]);
-    expect(actions(dealt(["8S", "9H", "8D", "6C"]))).toEqual(["hit", "stand", "double", "split", "new"]);
+    expect(actions(dealt(["5S", "9H", "6D", "6C"]))).toEqual(["stand", "hit", "double", "new"]);
+    expect(actions(dealt(["8S", "9H", "8D", "6C"]))).toEqual(["stand", "hit", "double", "split", "new"]);
     expect(actions(dealt(["AS", "9H", "KD", "6C"]))).toEqual(["next", "new"]);
   });
 });
@@ -187,7 +187,7 @@ describe("the moves as the table offers them", () => {
     const bet = newGame(DEFAULTS, () => 0.5);
     expect(["up", "down", "+", "-", "enter", "h"].map((k) => moveFor(k, bet, DEFAULTS))).toEqual(["bet-up", "bet-down", "bet-up", "bet-down", "deal", undefined]);
     const play = dealt(["8S", "9H", "8D", "6C"]);
-    expect(["up", "down", "right", "left", "enter", "h", "s", "d", "p", "n"].map((k) => moveFor(k, play, DEFAULTS))).toEqual(["hit", "stand", "double", "split", "hit", "hit", "stand", "double", "split", "new"]);
+    expect(["up", "down", "right", "left", "enter", "h", "s", "d", "p", "n"].map((k) => moveFor(k, play, DEFAULTS))).toEqual(["hit", "stand", "double", "split", "stand", "hit", "stand", "double", "split", "new"]);
     const s = { ...DEFAULTS, insurance: true };
     const ins = dealt(["5S", "AH", "7D", "6C"], s);
     expect(["up", "i", "down", "enter"].map((k) => moveFor(k, ins, s))).toEqual(["insure", "insure", "decline", "decline"]);
@@ -195,7 +195,7 @@ describe("the moves as the table offers them", () => {
   });
   test("the view's actions are the legal moves with their keys, Enter's first; the title is the phase", () => {
     const st = dealt(["5S", "9H", "7D", "6C"]);
-    expect(viewActions(st, DEFAULTS).map((a) => [a.id, a.shortcut])).toEqual([["hit", ["h", "up"]], ["stand", ["s", "down"]], ["double", ["d", "right"]], ["new", "n"]]);
+    expect(viewActions(st, DEFAULTS).map((a) => [a.id, a.shortcut])).toEqual([["stand", ["s", "down"]], ["hit", ["h", "up"]], ["double", ["d", "right"]], ["new", "n"]]);
     expect(viewActions(st, DEFAULTS).some((a) => "label" in a)).toBe(false);
     expect(viewActions(newGame(DEFAULTS, () => 0.5), DEFAULTS).find((a) => a.id === "new")).toMatchObject({ confirm: expect.any(String), style: "destructive" });
     expect(titleOf(newGame(DEFAULTS, () => 0.5), DEFAULTS)).toBe("Place your bet");
@@ -237,7 +237,7 @@ describe("over the wire", () => {
     stored.set("blackjack\0state", dealt(["5S", "9H", "7D", "6C"]));
     const v = await host.request<View>("view", { extension: "blackjack", palette: "blackjack" });
     expect(v.title).toBe("Your turn");
-    expect(v.actions.map((a) => a.id)).toEqual(["hit", "stand", "double", "new"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["stand", "hit", "double", "new"]);
     stored.set("blackjack\0state", { from: "an older version" });
     // A store this version cannot read starts a fresh game, with the settings: a bankroll under the minimum can only start over.
     host.changeSettings("blackjack", { settings: { starting_bankroll: 10, min_bet: 25 } });
@@ -252,7 +252,7 @@ describe("over the wire", () => {
     await push;
     const spec = u.spec as View;
     expect(spec.title).toBe("Your turn");
-    expect(spec.actions.map((a) => a.id)).toEqual(["hit", "stand", "double", "split", "new"]);
+    expect(spec.actions.map((a) => a.id)).toEqual(["stand", "hit", "double", "split", "new"]);
     expect(spec.tree).toMatchObject({ type: "surface", src: "surface/index.html" });
   });
 });

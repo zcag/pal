@@ -111,7 +111,8 @@ export function actions(st: State, s: Settings = DEFAULTS): Action[] {
     case "bet": return broke ? ["new"] : ["deal", "bet-up", "bet-down", "new"];
     case "insurance": return ["decline", "insure", "new"];
     case "play": {
-      const a: Action[] = ["hit", "stand"];
+      // Stand first: Enter runs the first move, and a stray Enter should not draw a card.
+      const a: Action[] = ["stand", "hit"];
       if (canDouble(st)) a.push("double");
       if (canSplit(st)) a.push("split");
       return [...a, "new"];

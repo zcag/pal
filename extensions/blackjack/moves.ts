@@ -26,7 +26,7 @@ export const keysOf = (m: Move): string[] => [MOVES[m].shortcut].flat();
 /**
  * The move a key makes now: the first legal move that lists it, so `up`
  * raises the bet, hits or takes insurance by phase; Enter is the first
- * legal move (Deal, Hit, Next hand, No insurance), as the footer says.
+ * legal move (Deal, Stand, Next hand, No insurance), as the footer says.
  */
 export function moveFor(key: string, st: State, s: Settings): Move | undefined {
   const legal = actions(st, s);

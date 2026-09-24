@@ -102,11 +102,11 @@
       },
       {
         "title": "Hit",
-        "description": "Enter hits too.",
         "keys": "up, h"
       },
       {
         "title": "Stand",
+        "description": "Enter stands too.",
         "keys": "down, s"
       },
       {
@@ -146,7 +146,7 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Deal, hit, or the next hand; declines insurance"
+          "title": "Deal, stand, or the next hand; declines insurance"
         },
         {
           "keys": "up",

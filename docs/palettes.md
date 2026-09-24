@@ -33,7 +33,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
 | [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
-| [Blackjack](#blackjack-blackjack) | `blackjack` | view (surface), normal | Deal, hit, or the next hand; declines insurance |
+| [Blackjack](#blackjack-blackjack) | `blackjack` | view (surface), normal | Deal, stand, or the next hand; declines insurance |
 | [Bluetooth](#bluetooth-bluetooth) | `bluetooth` | live, normal | Connect or disconnect |
 | [Bookmarks](#bookmarks-bookmarks-bookmarks-history) | `bookmarks` | indexed, primary | Open in the browser |
 | [Browser History](#bookmarks-bookmarks-bookmarks-history) | `bookmarks-history` | input | Open in the browser it came from |
@@ -235,7 +235,7 @@ footer the primary move, and ⌘K lists every legal move with its key.
   down.
 - Playing: `↑` or `H` hit, `↓` or `S` stand, `→` or `D` double down (first
   two cards, one card then stand), `←` or `P` split (a pair, once; split
-  aces take one card each; the hands slide apart). Enter hits too. Totals
+  aces take one card each; the hands slide apart). Enter stands too. Totals
   show on a badge over each hand ("Soft 17"); on stand the hole card turns
   over and the dealer draws to 17.
 - Settled: the result and the net for the hand; a win glows, a bust

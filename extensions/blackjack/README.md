@@ -15,7 +15,7 @@ move, and `cmd+k` lists every legal move with its key.
 - **Playing**: `↑` or `H` hit, `↓` or `S` stand, `→` or `D` double down
   (first two cards, one card then stand), `←` or `P` split (a pair, once;
   split aces take one card each; the pair slides apart into two hands).
-  Enter hits too. Each hand's total is on a badge over it (`Soft 17`);
+  Enter stands too. Each hand's total is on a badge over it (`Soft 17`);
   on stand the hole card turns over and the dealer draws to 17.
 - **Settled**: the result and the net for the hand. A win glows and its
   winnings come in from the dealer's tray beside the bet, a loss's chips
@@ -68,7 +68,7 @@ primary one and `cmd+k` lists the rest.
 
 | keys | action | when |
 | --- | --- | --- |
-| `enter` | Deal; Hit; Next hand once settled; No insurance when asked | every phase |
+| `enter` | Deal; Stand; Next hand once settled; No insurance when asked | every phase |
 | `up`/`+`, `down`/`-` | Raise or lower the bet by the minimum | betting |
 | `up`, `h` | Hit | playing |
 | `down`, `s` | Stand | playing |
