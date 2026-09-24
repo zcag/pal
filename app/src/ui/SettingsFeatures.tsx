@@ -147,7 +147,7 @@ function headlineOf(f: SettingsFeature, p: Pick<SettingsFeaturesProps, "onSettin
       return { control: chord ? <Kbd shortcut={chord} /> : undefined, status: chord ? "Hold the chord to switch windows" : "Off: no chord" };
     }
     case "mouse": {
-      const on = f.settings.filter((s) => s.kind === "boolean" && ["middle_click", "reverse_trackpad", "reverse_mouse"].includes(s.id) && (f.values[s.id] ?? s.default) === true).map((s) => s.label);
+      const on = f.settings.filter((s) => s.kind === "boolean" && ["middle_click", "reverse_trackpad", "reverse_mouse", "hide_pointer"].includes(s.id) && (f.values[s.id] ?? s.default) === true).map((s) => s.label);
       return { status: on.length ? on.join(" · ") : undefined };
     }
   }

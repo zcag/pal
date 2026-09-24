@@ -168,9 +168,16 @@ fn ring(app: &AppHandle) {
     let look = {
         let st = app.state::<Keycast>();
         let s = lock(&st.0);
-        (s.active && s.mode.cursor() && s.settings.ring).then_some((s.settings.scale, s.ring_rgba))
+        (s.active && s.mode.cursor() && s.settings.ring && !crate::mouse::pointer_hidden()).then_some((s.settings.scale, s.ring_rgba))
     };
     let _ = app.run_on_main_thread(move || panel::ring_set(look));
+}
+
+/// The pointer hidden or back (mouse.rs hides it while idle): the ring goes and comes with it.
+pub fn pointer_changed(app: &AppHandle) {
+    if app.try_state::<Keycast>().is_some() {
+        ring(app);
+    }
 }
 
 /// A canvas-normalised CSS colour (`#rrggbb`, or `rgba(r, g, b, a)` for a translucent one) as sRGB 0..1.

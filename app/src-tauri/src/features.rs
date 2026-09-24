@@ -42,7 +42,7 @@ fn on(app: &AppHandle, config: &Config, id: &str) -> bool {
         "keycast" => keycast::active(app),
         "sidebar" => config.features.sidebar.palette().is_some(),
         "switcher" => config.palette("windows").hold.as_deref().is_some_and(|h| !h.trim().is_empty()),
-        "mouse" => ["middle_click", "reverse_trackpad", "reverse_mouse"].iter().any(|s| flag(config, id, s)),
+        "mouse" => ["middle_click", "reverse_trackpad", "reverse_mouse", "hide_pointer"].iter().any(|s| flag(config, id, s)),
         _ => pal_core::features::spec(id).and_then(|s| s["toggle"].as_str()).is_some_and(|t| flag(config, id, t)),
     }
 }

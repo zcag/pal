@@ -1,7 +1,7 @@
 {
   "id": "mouse",
   "title": "Mouse & Trackpad",
-  "description": "A three-finger tap or click on the trackpad as a middle click, and scrolling reversed for the trackpad, the mouse or both, each axis apart (what MiddleClick and Scroll Reverser do).",
+  "description": "A three-finger tap or click on the trackpad as a middle click, scrolling reversed for the trackpad, the mouse or both, each axis apart (what MiddleClick and Scroll Reverser do), and the pointer hidden while it is idle.",
   "icon": {
     "tile": {
       "glyph": "󰍽",
@@ -60,7 +60,26 @@
       "text": "Reverse left and right",
       "default": true,
       "description": "The reversed devices scroll the other way left and right."
+    },
+    {
+      "kind": "boolean",
+      "id": "hide_pointer",
+      "label": "Hide pointer",
+      "text": "Hide the pointer while it is idle",
+      "default": false,
+      "description": "The pointer is hidden in every app once it has not moved for the delay below, while you type or read; the first move or click brings it back. Never while a button is held. Needs Accessibility."
+    },
+    {
+      "kind": "number",
+      "id": "hide_pointer_after",
+      "label": "Hide after",
+      "description": "How long the pointer stays still before it is hidden.",
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "s",
+      "default": 3
     }
   ],
-  "why": "rewrites clicks and scrolls"
+  "why": "rewrites clicks and scrolls, and sees the pointer move to bring it back"
 }

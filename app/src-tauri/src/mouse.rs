@@ -1,10 +1,11 @@
 //! Mouse & Trackpad: a three-finger tap or click on a trackpad is a middle
-//! click, and scrolling is reversed for the trackpad, the mouse or both, each
-//! axis on its own (what MiddleClick and Scroll Reverser do). The settings are
+//! click, scrolling is reversed for the trackpad, the mouse or both, each
+//! axis on its own (what MiddleClick and Scroll Reverser do), and the pointer
+//! is hidden while it is idle ([`hide`]). The settings are
 //! the `mouse` extension's (`extensions/mouse/pal.json`); the extension's rows
 //! flip them and read [`call`]'s `status`.
 //!
-//! Two sources, both started while any of it is on:
+//! Two sources, both started while the middle click or a reversal is on:
 //!
 //! - **The fingers**: MultitouchSupport, the private framework every
 //!   finger-counting tool reads (loaded with `dlopen`, so a macOS without it
@@ -38,7 +39,7 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use pal_core::config::Config;
@@ -67,6 +68,8 @@ pub struct Settings {
     pub reverse_mouse: bool,
     pub reverse_vertical: bool,
     pub reverse_horizontal: bool,
+    pub hide_pointer: bool,
+    pub hide_pointer_after: u32,
 }
 
 impl Settings {
@@ -74,9 +77,14 @@ impl Settings {
         config.feature("mouse")
     }
 
-    /// Whether anything needs the tap.
-    fn any(self) -> bool {
+    /// Whether the clicks or the scrolls are rewritten: the tap and the fingers.
+    fn rewrites(self) -> bool {
         self.middle_click || self.reverse_trackpad || self.reverse_mouse
+    }
+
+    /// Whether anything is on (all of it needs Accessibility).
+    fn any(self) -> bool {
+        self.rewrites() || self.hide_pointer
     }
 
     /// The axes to negate for a scroll from `source`: (vertical, horizontal).
@@ -188,7 +196,9 @@ fn centroid(f: &[(f32, f32)]) -> (f32, f32) {
     (x / n, y / n)
 }
 
-static SETTINGS: Mutex<Settings> = Mutex::new(Settings { middle_click: false, middle_click_tap: false, reverse_trackpad: false, reverse_mouse: false, reverse_vertical: false, reverse_horizontal: false });
+static SETTINGS: Mutex<Settings> = Mutex::new(Settings { middle_click: false, middle_click_tap: false, reverse_trackpad: false, reverse_mouse: false, reverse_vertical: false, reverse_horizontal: false, hide_pointer: false, hide_pointer_after: 0 });
+/// For telling keycast the pointer went or came back.
+static APP: OnceLock<AppHandle> = OnceLock::new();
 static TOUCHES: Mutex<Option<Touches>> = Mutex::new(None);
 /// On: some feature wants the tap. The grant poll checks it.
 static ON: AtomicBool = AtomicBool::new(false);
@@ -211,7 +221,22 @@ fn touches<R>(f: impl FnOnce(&mut Touches) -> R) -> R {
 }
 
 pub fn install(app: &AppHandle) {
+    let _ = APP.set(app.clone());
     apply(app, Settings::from(&settings::config(app)));
+}
+
+/// Whether pal has the pointer hidden now.
+pub fn pointer_hidden() -> bool {
+    #[cfg(target_os = "macos")]
+    return hide::hidden();
+    #[cfg(not(target_os = "macos"))]
+    false
+}
+
+fn pointer_changed() {
+    if let Some(app) = APP.get() {
+        crate::keycast::pointer_changed(app);
+    }
 }
 
 pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
@@ -234,12 +259,9 @@ fn apply(app: &AppHandle, s: Settings) {
         }
         return;
     }
-    if was {
-        return;
-    }
     if pal_core::ax::trusted() {
-        start();
-    } else {
+        sync();
+    } else if !was {
         permissions::ask(app, "accessibility", "Mouse & Trackpad");
         std::thread::spawn(|| {
             while ON.load(Ordering::Relaxed) && !pal_core::ax::trusted() {
@@ -247,17 +269,25 @@ fn apply(app: &AppHandle, s: Settings) {
             }
             if ON.load(Ordering::Relaxed) {
                 eprintln!("mouse\taccessibility granted");
-                start();
+                sync();
             }
         });
     }
 }
 
-fn start() {
+/// Each part running as the settings say; the tap and the hider read them live, so a change within a part needs nothing more.
+fn sync() {
     #[cfg(target_os = "macos")]
     {
-        tap::start();
-        touch::start();
+        let s = current();
+        if s.rewrites() {
+            tap::start();
+            touch::start();
+        } else if tap::running() {
+            tap::stop();
+            touch::stop();
+        }
+        hide::set(s.hide_pointer, s.hide_pointer_after);
     }
 }
 
@@ -266,12 +296,11 @@ fn stop() {
     {
         tap::stop();
         touch::stop();
+        hide::set(false, 0);
     }
     eprintln!("mouse\toff");
 }
 
-/// `core/mouse.status`: whether it can run here, the grant, whether the tap
-/// is in and how many touch devices are read, and the settings.
 /// The event tap: middle click from a three-finger click, reversed scrolls.
 #[cfg(target_os = "macos")]
 mod tap {
@@ -721,11 +750,192 @@ mod tests {
         assert_eq!(s.reverse(Source::Trackpad), (false, false));
         assert!(s.any());
         assert!(!Settings { reverse_vertical: true, ..Settings::default() }.any(), "the axes alone reverse nothing");
+        let hide = Settings { hide_pointer: true, ..Settings::default() };
+        assert!(hide.any() && !hide.rewrites(), "hiding the pointer alone starts no rewriting tap");
     }
 
     #[test]
     fn the_spec_defaults_read() {
         let s = Settings::from(&Config::default());
-        assert_eq!(s, Settings { middle_click_tap: true, reverse_vertical: true, reverse_horizontal: true, ..Settings::default() });
+        assert_eq!(s, Settings { middle_click_tap: true, reverse_vertical: true, reverse_horizontal: true, hide_pointer_after: 3, ..Settings::default() });
+    }
+}
+
+/// The pointer hidden while idle. `CGDisplayHideCursor` hides it only while
+/// pal is in front, unless pal's window-server connection is marked
+/// `SetsCursorInBackground` (private, what Cursorcerer does; checked on
+/// macOS 26, 2026-09-24). A thread sleeps until the pointer could have been
+/// still for the delay, hides it and parks; a listen-only tap, enabled only
+/// while it is hidden, brings it back on the first move or button down and
+/// wakes the thread. Nothing is read at the input rate while the pointer
+/// shows. A pal that exits leaves nothing hidden: the window server drops
+/// the hide with the connection.
+#[cfg(target_os = "macos")]
+pub mod hide {
+    use std::ffi::c_void;
+    use std::ptr::NonNull;
+    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+    use std::sync::Mutex;
+    use std::thread::Thread;
+    use std::time::Duration;
+
+    use objc2_core_foundation::{kCFRunLoopCommonModes, CFMachPort, CFRetained, CFRunLoop, CFString};
+    use objc2_core_graphics::{CGDisplayHideCursor, CGDisplayShowCursor, CGEvent, CGEventMask, CGEventSource, CGEventSourceStateID, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType, CGMainDisplayID, CGMouseButton};
+
+    use crate::lock;
+
+    extern "C" {
+        fn _CGSDefaultConnection() -> i32;
+        fn CGSSetConnectionProperty(cid: i32, target: i32, key: *const c_void, value: *const c_void) -> i32;
+        static kCFBooleanTrue: *const c_void;
+    }
+
+    /// The pointer in use: what resets the delay and what brings it back. A scroll is not: reading scrolls.
+    const USE: [CGEventType; 7] = [CGEventType::MouseMoved, CGEventType::LeftMouseDragged, CGEventType::RightMouseDragged, CGEventType::OtherMouseDragged, CGEventType::LeftMouseDown, CGEventType::RightMouseDown, CGEventType::OtherMouseDown];
+    /// The shortest sleep between two looks at the idle time.
+    const MIN_WAIT: Duration = Duration::from_millis(250);
+
+    static ON: AtomicBool = AtomicBool::new(false);
+    /// Bumped by every start: a thread from an earlier on ends even when it is on again.
+    static GEN: AtomicU32 = AtomicU32::new(0);
+    static AFTER: AtomicU32 = AtomicU32::new(3);
+    /// Hidden by pal; the lock keeps a hide and a show from interleaving.
+    static HIDDEN: Mutex<bool> = Mutex::new(false);
+    static HIDDEN_NOW: AtomicBool = AtomicBool::new(false);
+    /// The thread that hides, to wake.
+    static WORKER: Mutex<Option<Thread>> = Mutex::new(None);
+    struct Tap(CFRetained<CFRunLoop>, CFRetained<CFMachPort>);
+    // SAFETY: only `stop` and `tap_enable` are called across threads, both documented thread-safe.
+    unsafe impl Send for Tap {}
+    static TAP: Mutex<Option<Tap>> = Mutex::new(None);
+
+    pub fn hidden() -> bool {
+        HIDDEN_NOW.load(Ordering::Relaxed)
+    }
+
+    /// On with `after` seconds, or off (the pointer shown).
+    pub fn set(on: bool, after: u32) {
+        AFTER.store(after.max(1), Ordering::Relaxed);
+        let was = ON.swap(on, Ordering::Relaxed);
+        match (was, on) {
+            (false, true) => start(),
+            (true, false) => {
+                show();
+                if let Some(Tap(rl, port)) = lock(&TAP).take() {
+                    CGEvent::tap_enable(&port, false);
+                    port.invalidate();
+                    rl.stop();
+                }
+                eprintln!("mouse\thide\toff");
+            }
+            _ => {}
+        }
+        // A new delay counts from now; an off ends the thread.
+        if let Some(t) = &*lock(&WORKER) {
+            t.unpark();
+        }
+    }
+
+    /// Seconds since the pointer was last used.
+    fn idle() -> f64 {
+        USE.iter().map(|&t| CGEventSource::seconds_since_last_event_type(CGEventSourceStateID::CombinedSessionState, t)).fold(f64::INFINITY, f64::min)
+    }
+
+    fn held() -> bool {
+        [CGMouseButton::Left, CGMouseButton::Right, CGMouseButton::Center].into_iter().any(|b| CGEventSource::button_state(CGEventSourceStateID::CombinedSessionState, b))
+    }
+
+    fn hide() {
+        let mut h = lock(&HIDDEN);
+        if *h {
+            return;
+        }
+        CGDisplayHideCursor(CGMainDisplayID());
+        *h = true;
+        HIDDEN_NOW.store(true, Ordering::Relaxed);
+        drop(h);
+        if let Some(t) = &*lock(&TAP) {
+            CGEvent::tap_enable(&t.1, true);
+        }
+        super::pointer_changed();
+    }
+
+    fn show() {
+        let mut h = lock(&HIDDEN);
+        if !*h {
+            return;
+        }
+        CGDisplayShowCursor(CGMainDisplayID());
+        *h = false;
+        HIDDEN_NOW.store(false, Ordering::Relaxed);
+        drop(h);
+        if let Some(t) = &*lock(&TAP) {
+            CGEvent::tap_enable(&t.1, false);
+        }
+        if let Some(t) = &*lock(&WORKER) {
+            t.unpark();
+        }
+        super::pointer_changed();
+    }
+
+    unsafe extern "C-unwind" fn callback(_proxy: CGEventTapProxy, ty: CGEventType, event: NonNull<CGEvent>, _info: *mut c_void) -> *mut CGEvent {
+        if ty == CGEventType::TapDisabledByTimeout || ty == CGEventType::TapDisabledByUserInput {
+            if let (true, Some(t)) = (hidden(), &*lock(&TAP)) {
+                CGEvent::tap_enable(&t.1, true);
+            }
+            return event.as_ptr();
+        }
+        show();
+        event.as_ptr()
+    }
+
+    fn start() {
+        // SAFETY: private CoreGraphics calls on pal's own connection, with a CFString and a CFBoolean that outlive them.
+        let r = unsafe {
+            let cid = _CGSDefaultConnection();
+            let key = CFString::from_static_str("SetsCursorInBackground");
+            CGSSetConnectionProperty(cid, cid, CFRetained::as_ptr(&key).as_ptr() as *const c_void, kCFBooleanTrue)
+        };
+        if r != 0 {
+            eprintln!("mouse\thide\tSetsCursorInBackground refused ({r}): the pointer hides only while pal is in front");
+        }
+        std::thread::Builder::new()
+            .name("mouse-hide-tap".into())
+            .spawn(|| {
+                let mask: CGEventMask = USE.iter().fold(0, |m, t| m | (1 << t.0));
+                // SAFETY: the callback has the signature the tap expects and reads nothing from `user_info`.
+                let Some(port) = (unsafe { CGEvent::tap_create(CGEventTapLocation::SessionEventTap, CGEventTapPlacement::TailAppendEventTap, CGEventTapOptions::ListenOnly, mask, Some(callback), std::ptr::null_mut()) }) else {
+                    return eprintln!("mouse\thide\ttap refused (Accessibility?)");
+                };
+                let (Some(source), Some(rl)) = (CFMachPort::new_run_loop_source(None, Some(&port), 0), CFRunLoop::current()) else {
+                    return eprintln!("mouse\thide\tno run loop source");
+                };
+                // SAFETY: a CoreFoundation constant, read only.
+                rl.add_source(Some(&source), unsafe { kCFRunLoopCommonModes });
+                CGEvent::tap_enable(&port, hidden());
+                *lock(&TAP) = Some(Tap(rl, port));
+                CFRunLoop::run();
+            })
+            .expect("spawn the pointer tap thread");
+        let gen = GEN.fetch_add(1, Ordering::Relaxed) + 1;
+        let worker = std::thread::Builder::new()
+            .name("mouse-hide".into())
+            .spawn(move || {
+                eprintln!("mouse\thide\ton");
+                while ON.load(Ordering::Relaxed) && GEN.load(Ordering::Relaxed) == gen {
+                    if hidden() {
+                        std::thread::park();
+                        continue;
+                    }
+                    let (after, idle) = (AFTER.load(Ordering::Relaxed) as f64, idle());
+                    if idle >= after && !held() {
+                        hide();
+                        continue;
+                    }
+                    std::thread::park_timeout(Duration::from_secs_f64((after - idle).max(0.0)).max(MIN_WAIT));
+                }
+            })
+            .expect("spawn the pointer hide thread");
+        *lock(&WORKER) = Some(worker.thread().clone());
     }
 }

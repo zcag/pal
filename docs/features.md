@@ -148,7 +148,8 @@ alone (`app/src-tauri/src/reserve.rs`). Needs **Accessibility**.
 
 A three-finger tap or click on the trackpad as a middle click, and
 scrolling reversed for the trackpad, the mouse or both, each axis apart
-(what MiddleClick and Scroll Reverser do), macOS only.
+(what MiddleClick and Scroll Reverser do), and the pointer hidden while it
+is idle, macOS only.
 
 An active event tap on a thread of its own (`app/src-tauri/src/mouse.rs`)
 turns a left click made with three fingers on the trackpad into a middle
@@ -163,6 +164,16 @@ asks for **Accessibility** when it is missing and starts on the grant.
 The card says "No trackpad is being read" when the middle click is on
 and no trackpad is found.
 
+The pointer is hidden in every app once it has not moved or clicked for
+`hide_pointer_after` seconds, never while a button is held, and comes
+back on the first move or button down; a scroll does not bring it back.
+macOS hides the pointer only for the app in front, so pal marks its
+window-server connection `SetsCursorInBackground` (private, as Cursorcerer
+does). The idle time is read when it could have run out, not polled, and
+the tap that sees the pointer move is enabled only while it is hidden.
+Keycast's cursor ring hides with it. A pal that exits leaves nothing
+hidden.
+
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `middle_click` | bool | `false` | A three-finger click on the trackpad is a middle click. |
@@ -171,6 +182,8 @@ and no trackpad is found.
 | `reverse_mouse` | bool | `false` | The mouse scrolls against System Settings' direction. |
 | `reverse_vertical` | bool | `true` | Reversed devices flip up and down. |
 | `reverse_horizontal` | bool | `true` | Reversed devices flip left and right. |
+| `hide_pointer` | bool | `false` | Hide the pointer while it is idle. |
+| `hide_pointer_after` | number | `3` | Seconds still before it is hidden (1 to 60). |
 
 ## Keycast
 

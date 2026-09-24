@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn toggles_are_the_boolean_settings() {
         let ids: Vec<&str> = toggles("mouse").iter().filter_map(|s| s["id"].as_str()).collect();
-        assert_eq!(ids, ["middle_click", "middle_click_tap", "reverse_trackpad", "reverse_mouse", "reverse_vertical", "reverse_horizontal"]);
+        assert_eq!(ids, ["middle_click", "middle_click_tap", "reverse_trackpad", "reverse_mouse", "reverse_vertical", "reverse_horizontal", "hide_pointer"]);
         assert!(toggles("sidebar").is_empty());
         assert!(!is("github"));
     }
