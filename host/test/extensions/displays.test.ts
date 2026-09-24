@@ -169,7 +169,7 @@ function fakes(): Fakes {
   fake(f, "brightness", `case "$1" in -l) printf 'display 0: main, active, awake, online, built-in, ID 0x1\\ndisplay 0: brightness %s\\ndisplay 1: active, awake, online, external, ID 0x2\\n' "$(cat "$DIR/cli-level")";; -d) printf '%s' "$3" > "$DIR/cli-level"; printf 'brightness %s\\n' "$*" >> "$LOG";; esac`);
   fake(f, "m1ddc", `case "$*" in
   "display list detailed") cat "$DIR/m1ddc.txt";;
-  "display ${DELL} get luminance") cat "$DIR/ddc-luminance";;
+  "display ${DELL} get luminance") m=$(cat "$DIR/miss" 2>/dev/null || echo 0); if [ "$m" -gt 0 ]; then echo $((m - 1)) > "$DIR/miss"; echo 0; else cat "$DIR/ddc-luminance"; fi;;
   "display ${DELL} max luminance") echo 100;;
   "display ${DELL} get contrast") echo 75;;
   "display ${DELL} max contrast") echo 100;;
@@ -380,6 +380,19 @@ describe("displays: macOS with every tool", () => {
     expect(await host.request<any>("link", { extension: "displays", route: "brightness", params: { value: "55" } })).toEqual({ hud: "Built-in Liquid Retina XDR Display 55%" });
     expect(await host.render("displays", "brightness")).toMatchObject({ tooltip: expect.stringContaining("DELL") });
     await reset(f, host);
+  });
+
+  test("bar: a DDC read the monitor missed (m1ddc prints 0) is tried again, and never reported over a level already known", async () => {
+    const miss = join(f.dir, "miss");
+    try {
+      writeFileSync(miss, "3");
+      await host.list("displays", "displays", "", { refresh: true });
+      expect(await host.render("displays", "brightness")).toMatchObject({ title: "70%" });
+      await host.barAction("displays", "brightness", "set:2", { reason: "open", values: { value: "0.4" } });
+      writeFileSync(miss, "99");
+      await host.list("displays", "displays", "", { refresh: true });
+      expect(await host.render("displays", "brightness")).toMatchObject({ title: "40%" });
+    } finally { rmSync(miss, { force: true }); await reset(f, host); }
   });
 
   test("routes: brightness, contrast, volume, input, mode, night-shift", async () => {

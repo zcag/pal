@@ -132,6 +132,10 @@ async function linuxSnapshot(t: Tools): Promise<Omit<Snapshot, "tools" | "at">> 
 
 const levels = new Map<string, { at: number; value: number }>();
 const maxes = new Map<string, number>();
+/** Every level last read or written, kept through `invalidate()`: what an m1ddc read that only ever answered 0 falls back to. */
+const known = new Map<string, number>();
+/** How many times an m1ddc read is tried before its 0 is believed. */
+const M1DDC_TRIES = 5;
 /** The last snapshot's screens, so a bulk `brightness -l` can file every display's level. */
 let lastScreens: Screen[] = [];
 
@@ -145,15 +149,19 @@ export function settable(s: Screen, control: Control, t: Tools): boolean {
 }
 
 /** A DDC read: the current value and the maximum, through whichever tool is there. */
-async function ddcRead(s: Screen, control: Control, t: Tools): Promise<{ current: number; max: number } | undefined> {
+async function ddcRead(s: Screen, control: Control, t: Tools): Promise<{ current: number; max: number; missed?: boolean } | undefined> {
   if (!s.ddc) return;
   if (t.m1ddc) {
-    const cur = Number((await ok([t.m1ddc, "display", s.ddc, "get", M1DDC[control]])).trim());
-    if (!Number.isFinite(cur)) return;
+    // m1ddc zeroes its reply buffer and never checks the monitor's answer, so a read the monitor missed prints 0 and exits 0;
+    // a Dell U2724DE misses about two in three. A reading counts once it is in 1..max, and a 0 only after every try said so.
+    const m1 = async (verb: string, fits: (n: number) => boolean) => {
+      for (let i = 0; i < M1DDC_TRIES; i++) { const n = Number((await ok([t.m1ddc!, "display", s.ddc!, verb, M1DDC[control]])).trim()); if (fits(n)) return n; }
+    };
     const key = `${s.id}/${control}`;
     let max = maxes.get(key);
-    if (max === undefined) { max = Number((await out([t.m1ddc, "display", s.ddc, "max", M1DDC[control]], DDC_MS)).trim()) || 100; maxes.set(key, max); }
-    return { current: cur, max };
+    if (max === undefined) { max = await m1("max", (n) => n > 0); if (max !== undefined) maxes.set(key, max); }
+    const cur = await m1("get", (n) => n > 0 && n <= (max ?? 100));
+    return { current: cur ?? 0, max: max ?? 100, missed: cur === undefined };
   }
   if (t.ddcctl) return parseDdcctl(await out([t.ddcctl, "-d", s.ddc, DDCCTL[control], "?"], DDC_MS));
   if (t.ddcutil) return parseDdcutilVcp(await out([t.ddcutil, "getvcp", VCP[control].toString(16), "--brief", "--display", s.ddc], DDC_MS));
@@ -175,10 +183,11 @@ export async function read(s: Screen, control: Control, t: Tools): Promise<numbe
       value = parseBrightnessctl(await out([t.brightnessctl, "-m"], 3000));
     } else if (settable(s, control, t)) {
       const r = await ddcRead(s, control, t);
-      if (r && r.max > 0) value = Math.round((r.current / r.max) * 100);
+      if (r?.missed && known.has(key)) value = known.get(key);
+      else if (r && r.max > 0) value = Math.round((r.current / r.max) * 100);
     }
   } catch { value = undefined; }
-  if (value !== undefined) levels.set(key, { at: now(), value });
+  if (value !== undefined) { levels.set(key, { at: now(), value }); known.set(key, value); }
   return value;
 }
 
@@ -194,6 +203,7 @@ export async function write(s: Screen, control: Control, percent: number, t: Too
   else if (s.ddc && !MAC && t.ddcutil) await ok([t.ddcutil, "setvcp", VCP[control].toString(16), String(percent), "--display", s.ddc]);
   else throw new Error(`nothing installed can set ${control} on ${s.name}`);
   levels.set(key, { at: now(), value: percent });
+  known.set(key, percent);
 }
 
 /** The input source of `s` as a VCP code, where the tool can read it (ddcctl and ddcutil; m1ddc only sets). */
