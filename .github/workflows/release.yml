@@ -149,6 +149,26 @@ jobs:
             echo "args=--config $RUNNER_TEMP/no-updater.json" >> "$GITHUB_OUTPUT"
           fi
 
+      # Every macOS pal is signed with the one `pal-dev` identity (a local
+      # build too: `make app`), so an update keeps the Accessibility and
+      # other grants, which an ad-hoc signature (the build's own hash) lost
+      # each time. tauri's own APPLE_CERTIFICATE import only resolves Apple's
+      # certificate names, so the script imports it and the config names it.
+      # A release is never ad-hoc: no secret, no build.
+      - name: Code signing (pal-dev)
+        id: codesign
+        if: runner.os == 'macOS'
+        env:
+          P12: ${{ secrets.PAL_DEV_P12 }}
+          PW: ${{ secrets.PAL_DEV_P12_PASSWORD }}
+        run: |
+          [ -n "$P12" ] || { echo "::error::PAL_DEV_P12 is not set: a release is signed with pal-dev (docs/releasing.md)"; exit 1; }
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/pal-dev.p12"
+          app/scripts/signing-key.sh "$RUNNER_TEMP/pal-dev.p12" "$PW"
+          rm "$RUNNER_TEMP/pal-dev.p12"
+          echo '{"bundle":{"macOS":{"signingIdentity":"pal-dev"}}}' > "$RUNNER_TEMP/codesign.json"
+          echo "args=--config $RUNNER_TEMP/codesign.json" >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -162,10 +182,10 @@ jobs:
           # binary is stripped by the release profile (`strip = true`), so
           # skipping linuxdeploy's pass only removes a failure mode.
           NO_STRIP: ${{ runner.os == 'Linux' && 'true' || '' }}
-          # macOS stays ad-hoc signed (bundle.macOS.signingIdentity "-") until
-          # a Developer ID exists. Then: set signingIdentity to it (the env
-          # only applies when the config leaves it unset), hardenedRuntime
-          # true with entitlements for the bun sidecar's JIT, and uncomment:
+          # macOS is signed with pal-dev (above), not notarised. With a
+          # Developer ID: sign with it instead (the env only applies when the
+          # config leaves signingIdentity unset), hardenedRuntime true with
+          # entitlements for the bun sidecar's JIT, and uncomment:
           # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -178,7 +198,7 @@ jobs:
           releaseName: ${{ github.ref_name }}
           releaseDraft: true
           releaseBody: ${{ steps.notes.outputs.body }}
-          args: --target ${{ matrix.target }} ${{ steps.sign.outputs.args }}
+          args: --target ${{ matrix.target }} ${{ steps.sign.outputs.args }} ${{ steps.codesign.outputs.args }}
           uploadUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
 
   # The three jobs each download latest.json from the draft, add their

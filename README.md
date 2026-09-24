@@ -234,8 +234,8 @@ a dmg for Apple silicon and Intel Macs, an AppImage and a deb for Linux.
 The builds there today are the previous pal's (`v0.1.x` to `v0.2.1`, a
 different program); this pal's first release is coming and is not
 published yet. Until then, [build from source](#building-from-source).
-The macOS builds are ad-hoc signed, so Gatekeeper refuses the first
-launch once; [Getting started](docs/getting-started.md#macos) has the
+The macOS builds are signed with pal's own certificate, not notarised,
+so Gatekeeper refuses the first launch once; [Getting started](docs/getting-started.md#macos) has the
 three ways past it.
 
 ## Building from source
@@ -291,8 +291,9 @@ under `target/release/bundle/`:
 
 - macOS: `macos/pal.app` and `dmg/pal_0.1.0_aarch64.dmg`, ad-hoc signed
   (`bundle.macOS.signingIdentity: "-"`). `make app` builds and installs
-  it to `/Applications`, signed with a local `pal-dev` identity when the
-  keychain has one, which keeps the Accessibility grant across rebuilds.
+  it to `/Applications` signed with `pal-dev`, the certificate releases
+  are signed with, so it keeps the grants of the pal it replaces
+  ([Releasing](docs/releasing.md#macos-signing)).
 - Linux: `appimage/pal_0.1.0_amd64.AppImage`, `deb/pal_0.1.0_amd64.deb` and
   an rpm. The first build downloads `linuxdeploy` and its plugins into
   `~/.cache/tauri/`. On a distro with current binutils (Arch) run it as

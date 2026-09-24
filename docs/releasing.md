@@ -79,12 +79,34 @@ reason (`TAURI_SIGNING_PRIVATE_KEY=<contents or path>`); without one, build
 with the updater artifacts off:
 `npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false}}'`.
 
-## macOS signing, later
+## macOS signing
 
-Today: ad-hoc (`bundle.macOS.signingIdentity: "-"`, `hardenedRuntime: false`).
-Gatekeeper refuses the first launch of the downloaded app once per install (the
-dialogs and the ways past them: [Getting started](getting-started.md#macos)); no
-notarisation. For a signed and notarised build:
+Every macOS pal, a release or a local `make app`, is signed with one
+self-signed identity, `pal-dev`. macOS ties Accessibility, Input Monitoring
+and Full Disk Access to the signature's designated requirement: for pal that
+is `identifier "io.cagdas.pal" and certificate leaf = H"b4a22fbb…"`, the same
+across builds, so an update keeps its grants. An ad-hoc signature (what
+releases had up to v0.4.3) is the build's own hash, so each update dropped
+them and the switch in the list stayed on doing nothing.
+
+- The identity is a `.p12` in the Syncthing secrets
+  (`~/Sync/.secrets/pal/pal-dev.p12`, its password in `pal-dev.env` there;
+  valid to 2036). CI has it as the `PAL_DEV_P12` (base64) and
+  `PAL_DEV_P12_PASSWORD` secrets; `release.yml` fails a release without them
+  rather than ship an ad-hoc one.
+- `app/scripts/signing-key.sh` imports it: in CI into a keychain of its own
+  on the search list, locally into the login keychain. tauri's own
+  `APPLE_CERTIFICATE` import is not used: it only resolves Apple's
+  certificate names (`Developer ID Application:` and the like).
+- `tauri.conf.json` keeps `signingIdentity: "-"`, so a checkout without the
+  key still builds; `release.yml` and `make app` pass `pal-dev` over it.
+  `make app` imports the key when the keychain lacks it and refuses to build
+  when there is none.
+
+It is not notarised: Gatekeeper still refuses the first launch of a
+downloaded copy once per install (the dialogs and the ways past them:
+[Getting started](getting-started.md#macos)). For a Developer ID build,
+signed and notarised:
 
 1. A Developer ID Application certificate (Apple Developer Program). Export
    it as `.p12`; base64 of the file is `APPLE_CERTIFICATE`, its password
@@ -110,8 +132,8 @@ few minutes per build in `notarytool`, and needs the sidecar's entitlements to
 hold up under the hardened runtime, which is the part to test first with a local
 `npm run tauri build` and `spctl -a -vv` on the result.
 
-Until then, the dmg is what `README.md` says: ad-hoc signed, refused once by
-Gatekeeper on first launch.
+Until then, the dmg is what `README.md` says: signed with `pal-dev`, not
+notarised, refused once by Gatekeeper on first launch.
 
 ## CI
 

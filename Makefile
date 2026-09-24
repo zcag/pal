@@ -41,15 +41,20 @@ release:
 	echo "$$tag pushed: https://github.com/zcag/pal/actions/workflows/release.yml (published as the latest release once every bundle is on it)"
 
 # Builds the macOS app and installs it to /Applications, signed with the
-# local self-signed "pal-dev" identity when the login keychain has one (a
-# stable signature keeps macOS's Accessibility grant across rebuilds; ad-hoc
-# otherwise, which loses it on every build). Quits the running instance,
-# swaps the bundle, relaunches through LaunchServices.
+# "pal-dev" identity every release is signed with too (release.yml), so a
+# local build, a release and an update are one app to macOS and keep its
+# Accessibility and other grants. A keychain without it imports it from
+# PAL_DEV_P12 (default: the Syncthing secrets, the password beside it in
+# pal-dev.env); with neither, nothing is built: an ad-hoc pal would drop
+# every grant. Quits the running instance, swaps the bundle, relaunches
+# through LaunchServices.
+PAL_DEV_P12 ?= $(HOME)/Sync/.secrets/pal/pal-dev.p12
 .PHONY: app
 app:
-	@id=$$(security find-identity -v -p codesigning 2>/dev/null | grep -q '"pal-dev"' && echo pal-dev || echo -); \
-	echo "signing identity: $$id"; \
-	cd app && npm run tauri build -- --config "{\"bundle\":{\"createUpdaterArtifacts\":false,\"macOS\":{\"signingIdentity\":\"$$id\"}}}"
+	@security find-identity -p codesigning 2>/dev/null | grep -q '"pal-dev"' || { \
+		[ -f "$(PAL_DEV_P12)" ] || { echo "no pal-dev signing identity and no $(PAL_DEV_P12) to import it from (docs/releasing.md)"; exit 1; }; \
+		. "$(dir $(PAL_DEV_P12))pal-dev.env" && app/scripts/signing-key.sh "$(PAL_DEV_P12)" "$$PAL_DEV_P12_PASSWORD"; }
+	cd app && npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"pal-dev"}}}'
 	-pal quit 2>/dev/null; sleep 1
 	rm -rf /Applications/pal.app && cp -R target/release/bundle/macos/pal.app /Applications/pal.app
 	open -a /Applications/pal.app

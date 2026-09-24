@@ -84,11 +84,11 @@ launch: its rows are what the root search is for. "Automation permission
 needed" is the row when it was refused, and it opens that pane.
 
 **The switch is on and nothing works.** A grant is tied to the app's
-code signature, and a release is ad-hoc signed, so every build carries a
-new one: after a reinstall the old grant matches nothing. Remove pal from
-the list with the minus button and grant it again. A development build
-from `make app` is signed with a local `pal-dev` identity for this
-reason. pal polls the state every 2 s while one of its windows is open,
+code signature. Every pal since v0.4.4, a release or a `make app` build,
+is signed with the same `pal-dev` certificate, so a grant carries over;
+releases before that were ad-hoc signed, each build a new signature, and
+after an update from one the old grant matches nothing. Remove pal from
+the list with the minus button and grant it again, once. pal polls the state every 2 s while one of its windows is open,
 so a flipped switch is seen without a restart.
 
 ## The hotkey
@@ -209,12 +209,12 @@ at Settings › Extensions.
 
 ## Gatekeeper
 
-Releases are ad-hoc signed and not notarised, so macOS refuses the first
+Releases are signed with pal's own certificate and not notarised, so macOS refuses the first
 launch of a downloaded copy once, with one of three dialogs. pal does
 nothing about the quarantine mark itself; the three ways past it are in
 [Getting started](getting-started.md#macos), the quickest being
-`xattr -dr com.apple.quarantine /Applications/pal.app`. What a signed
-release would take is in [Releasing](releasing.md#macos-signing-later).
+`xattr -dr com.apple.quarantine /Applications/pal.app`. What a Developer ID
+release would take is in [Releasing](releasing.md#macos-signing).
 
 ## The config file
 

@@ -29,8 +29,8 @@ a release will carry:
 
 Open the dmg and drag pal to Applications. macOS 11 or newer.
 
-**The first launch is refused.** pal's releases are ad-hoc signed (no
-Apple Developer ID) and not notarised, and the browser marks the download
+**The first launch is refused.** pal's releases are signed with pal's own
+certificate, not an Apple Developer ID, and not notarised, and the browser marks the download
 as quarantined, so Gatekeeper blocks it. Which dialog you see depends on
 the macOS version: "Apple could not verify pal is free of malware" on
 macOS 15, "pal cannot be opened because the developer cannot be verified"
@@ -50,7 +50,7 @@ dialog. Any one of these gets past it, once per download:
   removed this shortcut.
 
 A signed and notarised release would install without any of this; what
-that takes is in [Releasing](releasing.md#macos-signing-later).
+that takes is in [Releasing](releasing.md#macos-signing).
 
 ### Linux
 
@@ -148,11 +148,12 @@ is missing, Full Disk Access, Input Monitoring once expansion is on, and
 Calendars or Location once their prompt was answered no; one the OS has
 not asked about yet is not a thing to fix.
 
-The grant is tied to the app's code signature, and pal's releases are
-ad-hoc signed, so every build carries a new one. After installing a rebuilt
-pal.app the switch can look on and still do nothing: remove pal from the
-list (the minus button) and grant it again. A Developer ID signature is
-what keeps a grant across updates; releases do not have one.
+The grant is tied to the app's code signature. Every pal is signed with
+the same certificate (a release, an update and a `make app` build), so a
+grant carries over. Up to v0.4.3 releases were ad-hoc signed, each build a
+new signature: coming from one of those, the switch can look on and still
+do nothing once. Remove pal from the list (the minus button) and grant it
+again; it stays granted after that.
 [Troubleshooting](troubleshooting.md#permissions-on-macos) has the rest.
 
 ## The hotkey
@@ -458,7 +459,7 @@ Install downloads the signed bundle, verifies it against the key built
 into pal, puts it in place and relaunches pal: the HUD says where it is
 ("Downloading pal 0.2.0: 40%", "Installing", "installed, restarting")
 and the About row says the same. macOS replaces `pal.app` where it is
-(the Accessibility grant is lost with the ad-hoc signature, as above).
+(the grants carry over: every release is signed with the same certificate).
 Linux replaces the AppImage where it is; the `.deb` and `.rpm` are the
 package manager's, so on those builds the row says so and points at the
 releases page (download the new package, `dpkg -i` or `rpm -U` it), and a
