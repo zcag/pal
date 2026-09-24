@@ -13,6 +13,7 @@
     {
       "kind": "text",
       "id": "url",
+      "required": true,
       "scope": "instance",
       "label": "URL",
       "placeholder": "https://grafana.example.com",
@@ -22,6 +23,7 @@
     {
       "kind": "secret",
       "id": "token",
+      "required": true,
       "label": "Token",
       "placeholder": "keychain:pal/grafana-token",
       "description": "A service account token (Administration › Service accounts): Viewer reads everything here, Editor is needed to silence alerts. Stored as a keychain: or env: reference.",

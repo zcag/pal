@@ -14,7 +14,7 @@
       { "id": "google", "title": "Google Translate (no key, unofficial)" },
       { "id": "deepl", "title": "DeepL (needs a key)" }
     ], "default": "google" },
-    { "kind": "secret", "id": "api_key", "label": "DeepL API key", "only": { "backend": "deepl" }, "description": "From deepl.com/your-account/keys; a free key ends in `:fx`. Only read when the backend is DeepL.", "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx", "default": "" },
+    { "kind": "secret", "id": "api_key", "required": true, "label": "DeepL API key", "only": { "backend": "deepl" }, "description": "From deepl.com/your-account/keys; a free key ends in `:fx`. Only read when the backend is DeepL.", "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx", "default": "" },
     { "kind": "boolean", "id": "speak", "label": "Speak on copy", "text": "Also read the translation aloud when Enter copies it (cmd+shift+s speaks either way)", "default": false }
   ],
   "store": {

@@ -19,7 +19,7 @@ import { BRAND } from "../icons";
 
 const specs: SettingSpec[] = [
   { kind: "text", id: "signature", label: "Signature", default: "" },
-  { kind: "secret", id: "token", label: "Token", description: "The API token." },
+  { kind: "secret", id: "token", label: "Token", required: true, description: "The API token." },
   { kind: "boolean", id: "send", label: "Send", default: false, scope: "instance" },
   { kind: "list", id: "labels", label: "Labels", default: [] },
 ];

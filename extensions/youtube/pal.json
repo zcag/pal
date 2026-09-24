@@ -8,7 +8,7 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "secret", "id": "api_key", "label": "Data API key", "description": "A Google Cloud API key with YouTube Data API v3 enabled on its project (console.cloud.google.com › APIs & Services › Enable APIs › YouTube Data API v3 › Credentials). Free; the daily quota of 10,000 units is about 100 searches. Wins over the Invidious instance when both are set.", "placeholder": "AIza…", "default": "" },
+    { "kind": "secret", "id": "api_key", "required": true, "only": { "invidious_url": "" }, "label": "Data API key", "description": "A Google Cloud API key with YouTube Data API v3 enabled on its project (console.cloud.google.com › APIs & Services › Enable APIs › YouTube Data API v3 › Credentials). Free; the daily quota of 10,000 units is about 100 searches. Wins over the Invidious instance when both are set.", "placeholder": "AIza…", "default": "" },
     { "kind": "text", "id": "invidious_url", "label": "Invidious instance", "description": "Searched without a key through `/api/v1`. Most public instances have turned the API off (only invidious.f5.si answered on 2026-09-17); a self-hosted one is the reliable choice.", "placeholder": "https://invidious.example.org", "default": "" },
     { "kind": "select", "id": "player", "label": "Player", "description": "What cmd+Enter plays the video in. Auto takes IINA, then mpv, then VLC, whichever is installed, else the browser. mpv and VLC need yt-dlp for YouTube.", "options": [
       { "id": "auto", "title": "Auto (IINA, mpv, VLC, else the browser)" },

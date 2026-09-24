@@ -16,6 +16,7 @@
     {
       "kind": "text",
       "id": "url",
+      "required": true,
       "label": "Address",
       "description": "The odak server: http://host:8761 on your network, or its public address.",
       "placeholder": "http://host:8761",
@@ -24,6 +25,7 @@
     {
       "kind": "secret",
       "id": "api_key",
+      "required": true,
       "label": "API key",
       "description": "The server's ODAK_API_KEY.",
       "placeholder": "the key",

@@ -8,7 +8,7 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "secret", "id": "giphy_api_key", "label": "Giphy API key", "description": "From developers.giphy.com › Create an App (API, not SDK). Free, with a rate limit.", "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "default": "" },
+    { "kind": "secret", "id": "giphy_api_key", "required": true, "label": "Giphy API key", "description": "From developers.giphy.com › Create an App (API, not SDK). Free, with a rate limit.", "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "default": "" },
     { "kind": "select", "id": "content_filter", "label": "Content filter", "description": "Giphy's `rating`: what the results may show.", "options": [
       { "id": "off", "title": "Off (R)" },
       { "id": "low", "title": "Low (PG-13)" },

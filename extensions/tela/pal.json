@@ -24,6 +24,7 @@
     {
       "kind": "secret",
       "id": "token",
+      "required": true,
       "label": "Token",
       "description": "A personal access token from Settings, API Keys on tela (tela_pat_...). Read scope lists and searches; write scope creates pages and comments.",
       "placeholder": "tela_pat_...",

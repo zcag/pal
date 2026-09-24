@@ -27,6 +27,7 @@
     {
       "kind": "secret",
       "id": "api_key",
+      "required": true,
       "label": "API key",
       "description": "A key from OpenWA's Settings, API keys, sent as x-api-key. Kept in the OS keychain; the file holds a reference.",
       "placeholder": "owa_...",

@@ -76,11 +76,15 @@ describe("overviewItems", () => {
   });
   it("flags an installed extension with nothing to work with, and what to fill in; a bundled one never touched is not a thing to fix", () => {
     expect(needsSetup(homeAssistant).map((s) => s.id)).toEqual(["url", "token"]);
-    // GitHub's token says "Leave empty to use the gh CLI's login": not required.
-    expect(needsSetup({ ...settingsExtensions[2], values: {}, settings: [{ kind: "secret", id: "token", label: "Token", description: "Leave empty to use the gh CLI's login." }] })).toEqual([]);
-    const slack = (values: Record<string, string>) => needsSetup({ ...settingsExtensions[2], values, settings: [{ kind: "select", id: "auth", label: "Sign in", options: [], default: "app" }, { kind: "secret", id: "token", label: "Token", only: { auth: "token" } }] }).map((s) => s.id);
+    // Only a declared `required` counts: an empty secret is often an optional extra (TinyPNG in images).
+    expect(needsSetup({ ...settingsExtensions[2], values: {}, settings: [{ kind: "secret", id: "token", label: "Token" }] })).toEqual([]);
+    const slack = (values: Record<string, string>) => needsSetup({ ...settingsExtensions[2], values, settings: [{ kind: "select", id: "auth", label: "Sign in", options: [], default: "app" }, { kind: "secret", id: "token", label: "Token", required: true, only: { auth: "token" } }] }).map((s) => s.id);
     expect(slack({})).toEqual([]);
     expect(slack({ auth: "token" })).toEqual(["token"]);
+    // Either of two: YouTube's key is needed only while no Invidious instance is set.
+    const youtube = (values: Record<string, string>) => needsSetup({ ...settingsExtensions[2], values, settings: [{ kind: "secret", id: "api_key", label: "Key", required: true, only: { invidious_url: "" } }, { kind: "text", id: "invidious_url", label: "Invidious", default: "" }] }).map((s) => s.id);
+    expect(youtube({})).toEqual(["api_key"]);
+    expect(youtube({ invidious_url: "https://yt.example" })).toEqual([]);
     // The fixture ships with pal: a fresh install lists no row for it.
     expect(overviewItems({ ...ok, extensions: [homeAssistant] })).toEqual([]);
     const installed = { ...homeAssistant, bundled: false, repo: "github.com/x/ha" };

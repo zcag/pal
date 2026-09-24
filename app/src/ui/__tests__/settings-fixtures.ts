@@ -15,8 +15,8 @@ export const homeAssistant: SettingsExtension = {
   repo: "bundled",
   bundled: true,
   settings: [
-    { kind: "text", id: "url", label: "URL", description: "Where Home Assistant answers, scheme included; no trailing slash needed.", placeholder: "http://homeassistant.local:8123", default: "" },
-    { kind: "secret", id: "token", label: "Token", description: "A long-lived access token (your profile in HA, Security, Long-lived access tokens). Stored in the keychain.", default: "" },
+    { kind: "text", id: "url", label: "URL", required: true, description: "Where Home Assistant answers, scheme included; no trailing slash needed.", placeholder: "http://homeassistant.local:8123", default: "" },
+    { kind: "secret", id: "token", label: "Token", required: true, description: "A long-lived access token (your profile in HA, Security, Long-lived access tokens). Stored in the keychain.", default: "" },
   ],
   values: {},
   palettes: [{ id: "home-assistant", title: "Home Assistant", settings: [], config: { enabled: true, settings: {} } }],

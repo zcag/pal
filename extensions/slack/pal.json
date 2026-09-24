@@ -34,6 +34,7 @@
     {
       "kind": "secret",
       "id": "token",
+      "required": true,
       "label": "Token",
       "only": { "auth": "token" },
       "description": "A user token (xoxp-...) with channels:read, groups:read, im:read, mpim:read, channels:history, groups:history, im:history, mpim:history, users:read, chat:write, search:read, users.profile:write, users:write, dnd:write. Only with Sign in set to token.",

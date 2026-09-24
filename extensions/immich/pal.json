@@ -9,8 +9,8 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "text", "id": "url", "label": "URL", "placeholder": "https://immich.example.com", "description": "Where the Immich API answers, scheme included; no trailing slash needed.", "default": "" },
-    { "kind": "secret", "id": "api_key", "label": "API key", "placeholder": "keychain:pal/immich-api_key", "description": "From Immich › Account Settings › API Keys. Reading needs asset.read, album.read, person.read, memory.read and asset.download; favouriting asset.update and adding to albums albumAsset.create. Stored as a keychain: or env: reference.", "default": "" },
+    { "kind": "text", "id": "url", "required": true, "label": "URL", "placeholder": "https://immich.example.com", "description": "Where the Immich API answers, scheme included; no trailing slash needed.", "default": "" },
+    { "kind": "secret", "id": "api_key", "required": true, "label": "API key", "placeholder": "keychain:pal/immich-api_key", "description": "From Immich › Account Settings › API Keys. Reading needs asset.read, album.read, person.read, memory.read and asset.download; favouriting asset.update and adding to albums albumAsset.create. Stored as a keychain: or env: reference.", "default": "" },
     { "kind": "text", "id": "web_url", "label": "Web address", "placeholder": "https://photos.example.com", "description": "Where Open in Immich and Copy link point when the site has another name than the API (a tailnet API behind a public site). Empty: the URL above.", "default": "" },
     { "kind": "path", "id": "download_to", "label": "Download to", "pick": "folder", "placeholder": "~/Downloads", "description": "Where Download preview and Download original write, named `<date>_<file>`.", "default": "~/Downloads" }
   ],
