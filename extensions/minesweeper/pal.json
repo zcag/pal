@@ -1,0 +1,114 @@
+{
+  "name": "minesweeper",
+  "title": "Minesweeper",
+  "description": "The mine-clearing game in the panel, keyboard only: the arrows move, Enter opens, F or / flags, N starts over. The board, the clock and the best times persist.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰚑", "bg": "slate" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "select",
+      "id": "difficulty",
+      "label": "Difficulty",
+      "description": "The board's size and mines. Applies to the next board, at once when nothing is open yet; a game in progress plays out first.",
+      "options": [
+        {
+          "id": "beginner",
+          "title": "Beginner: 9 by 9, 10 mines"
+        },
+        {
+          "id": "intermediate",
+          "title": "Intermediate: 16 by 16, 40 mines"
+        },
+        {
+          "id": "expert",
+          "title": "Expert: 30 by 16, 99 mines"
+        }
+      ],
+      "default": "beginner"
+    }
+  ],
+  "store": {
+    "tagline": "Minesweeper in the panel, one hand on the arrows",
+    "category": "fun",
+    "features": [
+      "The board as a view level: the title carries the mines left, the header the mine counter, the clock and the best time, `cmd+k` lists every move",
+      "One-handed: the arrows move the cursor, `Enter` opens, `/` (just above the arrows) flags; `hjkl`, `F` and `Space` do the same",
+      "The classic rules: the first open is always safe and opens an area, an empty cell floods open, `Enter` on a number whose flags are placed opens around it",
+      "Beginner 9 by 9, intermediate 16 by 16, expert 30 by 16 (a setting); a best time and a won count per level",
+      "An open ripples out from the cell, a lost game's mines ripple out from the one that went off; the numbers wear the classic colours on the panel's own hues",
+      "The clock runs from the first open and only while the board is on screen; Escape leaves at any point and the game is there when you come back, across restarts"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-board.png",
+        "caption": "Mid-game on beginner: the mine counter, the clock and the best time above the board, the keys under it"
+      },
+      {
+        "file": "2-won.png",
+        "caption": "Cleared: the mines left are flagged, the time, a new best"
+      },
+      {
+        "file": "3-lost.png",
+        "caption": "A mine went off: every mine shows, a wrong flag is crossed out"
+      },
+      {
+        "file": "4-expert.png",
+        "caption": "Expert, 30 by 16 with 99 mines, fits the panel"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Up, Down, Left, Right",
+        "description": "Move the cursor. `k`, `j`, `h`, `l` too.",
+        "keys": "up, down, left, right"
+      },
+      {
+        "title": "Open",
+        "description": "On a number whose flags are all placed, opens the cells around it (Open around).",
+        "keys": "enter"
+      },
+      {
+        "title": "Flag",
+        "description": "Or unflag. `/` and `space` too.",
+        "keys": "f"
+      },
+      {
+        "title": "New game",
+        "description": "A fresh board at the difficulty setting; asks first mid-game, and is Enter once the game is over.",
+        "keys": "n"
+      }
+    ]
+  },
+  "palettes": {
+    "minesweeper": {
+      "kind": "view",
+      "description": "The board. Escape leaves mid-game; the board and the clock wait for you.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Move (also down, left, right, and hjkl)"
+        },
+        {
+          "keys": "enter",
+          "title": "Open; on a satisfied number, open around it; a new game once the game is over"
+        },
+        {
+          "keys": "/",
+          "title": "Flag or unflag (also f, space)"
+        },
+        {
+          "keys": "n",
+          "title": "New game, asking first mid-game"
+        }
+      ]
+    }
+  }
+}

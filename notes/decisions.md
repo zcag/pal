@@ -1861,3 +1861,30 @@ Store palette in the panel when loaded, the website otherwise), then
 An extension opens as its own page (the old pane, full width, with a way
 back, and a Bar items section that links to Settings › Bar). The list and
 pane layout is gone; `selected` undefined is the home.
+
+## Minesweeper (2026-09-25)
+
+A fourth view game on the blackjack pattern (`extensions/minesweeper/`: pure `game.ts`, `render.ts` for the tree with types only
+from `@zcag/pal`, the state whole in storage after every pick, `fixture.ts` for the shots). What was decided:
+
+- **One-handed flag key: `/`.** Right shift is not a key a view can bind (a modifier alone never reaches it), and Enter is taken
+  by open; `/` sits just above the arrows on a laptop and arrives as a bare key. `f` and `space` carry the same action
+  (`shortcut: ["f", "/", "space"]`), so the flag is reachable by either hand. On a layout where that key types something else,
+  `f` and Space still work.
+- **Enter is open and chord in one action** (the footer says "Open around" on a satisfied number), and New game once the game is
+  over, so a whole game is arrows and Enter plus one key.
+- **The clock counts only while the board is on screen**: `view.onShown` resumes it (`since`), `view.onHidden` folds the run into
+  `ms`, and a run the panel never ended (a quit, a crash) is cut off at the last move (`seen`) on the next open. A pick also
+  starts a run when no resume came, so an app without the notifications still times the game. While a game runs on screen the
+  tree is pushed once a second (`view.update`); nothing is written to storage on a tick.
+- **Cells are boxes of `pitch` px holding one tile**, the gap the difference, since a stack's `gap` only steps by 4 px. The pitch
+  is the largest that fits 284 px of rows and 512 of columns, 30 at most: beginner 30, intermediate and expert 17, so the expert
+  board (526 px with the well) fits the 560 px compact panel. A box clips, so the cursor's `selected` ring is drawn inside the
+  tile. Under 44 px a tile takes the control radius, which makes 15 px tiles near-round; accepted rather than adding a radius
+  field.
+- **Tiles keyed by cell, look and board** (`h`, `o`, `f`, `m`, `x` + index + game), `exit: "none"`, so a cell never holds two
+  tiles. An open pops with a delay of its ring distance from the cell opened (0..8), a lost game's mines from the hit, a won
+  game's auto-flags from the last open.
+- Tests: `host/test/extensions/minesweeper.test.ts` (laying mines around the safe cell at every level, flood and flags, chord
+  and the wrong-flag chord, win/loss and the records, the clock's pause/resume/settle, the tree's keys and transitions, the
+  actions with their shortcuts and the hint keycaps, the wire with the push while shown and the pause on hidden).
