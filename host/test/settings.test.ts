@@ -84,4 +84,12 @@ describe("caller from the stack", () => {
     setRoots([]);
     expect(() => mod.later()).toThrow();
   });
+
+  test("a root with a space in its path (macOS's Application Support) still names it", async () => {
+    root.write("Application Support/spaced", "index.ts", `import { caller } from "${SETTINGS}";\nexport const who = caller();`);
+    setRoots([`${root.dir}/Application Support/`]);
+    const mod = await import(`${root.path("Application Support/spaced")}?t=${Date.now()}`);
+    expect(mod.who).toEqual({ extension: "spaced" });
+    setRoots([]);
+  });
 });

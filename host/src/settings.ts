@@ -23,14 +23,14 @@ const table = new Map<string, ResolvedSettings>();
 const listeners = new Map<string, Set<(s: ResolvedSettings) => void>>();
 let roots: string[] = [];
 
-/** The extension roots, for reading the caller off the stack; resolved, since stack frames carry real paths. */
-export const setRoots = (r: string[]) => { roots = r.map((x) => real(x).replace(/\/+$/, "") + "/"); };
+/** The extension roots, for reading the caller off the stack: resolved, since stack frames mostly carry real paths, and as given, since a path with a space came back unresolved (bun 1.4, a tmp dir under the `/var` link). */
+export const setRoots = (r: string[]) => { roots = [...new Set(r.flatMap((x) => [real(x), x]).map((x) => x.replace(/\/+$/, "") + "/"))]; };
 const real = (p: string) => { try { return realpathSync(p); } catch { return p; } };
 
-/** `<root>/<name>/...` frames on the stack name the extension. */
+/** `<root>/<name>/...` frames on the stack name the extension. A path may hold spaces (the store is under `Application Support` on macOS), so it runs from its first `/`. */
 function fromStack(): string | undefined {
   for (const line of (new Error().stack ?? "").split("\n")) {
-    const path = line.match(/\(?([^\s()]+?)(?:\?t=\d+)?:\d+:\d+\)?$/)?.[1];
+    const path = line.match(/(\/[^()]+?)(?:\?t=\d+)?:\d+:\d+\)?$/)?.[1];
     if (!path) continue;
     const root = roots.find((r) => path.startsWith(r));
     if (root) return path.slice(root.length).split("/")[0];
