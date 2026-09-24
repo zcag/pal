@@ -1916,3 +1916,22 @@ included, is `docs/design/game-surface.md`. What was decided:
 - **Keys**: the frame has focus while the level is up; Escape, ⌘K and any cmd combo the page leaves alone come back as the
   keydowns the panel would have had, so they behave as on any view. **Shown/hidden** come from views.rs's transitions, sent
   to the windows still holding the level.
+## Minesweeper on a surface (2026-09-25)
+
+The view-tree board (`render.ts`) is gone: the body is the extension's own page (`extensions/minesweeper/surface/`, a `surface`
+view node), which imports `game.ts` for every rule. What was decided:
+
+- **The page owns the game loop and the clock.** It applies moves, writes the state to storage (`pal.storage`, the same file the
+  host reads) after every move (a cursor move 400 ms later, so a held arrow is not a write per repeat), and pauses/resumes the
+  clock on `pal.onHidden`/`pal.onShown`. `index.ts` no longer pushes trees or listens to view lifecycle; it answers the surface
+  node, the actions for cmd+k (delivered to the page as `pal.onAction`), and `onMessage({ difficulty })`.
+- **The level picker writes the setting through the extension** (`pal.send` -> `settings.set`), not page storage, so the settings
+  page and the board agree and `adopt` (the setting on a board: a game in play plays out) stays one rule for both paths.
+- **DOM, not canvas**: 480 cells at most, diffed by look, so each change is a class and a `--d` delay (the ripple) with CSS
+  animations; a canvas overlay only for the blast and the confetti. Cells stay square (no radius), bevel 1-3 px by pitch.
+- **The confirm is in the page** (Enter yes, any other key no): Escape belongs to the panel, and a static action `confirm` would
+  ask before the first open too.
+- **Types**: `host/tsconfig.json` excludes `extensions/*/surface` (DOM code), `host/tsconfig.surface.json` checks them with the DOM
+  lib (Makefile, CI). `index.ts` casts the surface node and passes `onMessage` through a variable until the SDK types have both.
+- The gallery cannot render a surface, so the gallery fixture (`fixture.ts`, `shots/minesweeper.json`) is dropped; the store
+  screenshots are the page itself at 720x450, 2x, taken in headless Chrome against the browser stub of `surface.js`.
