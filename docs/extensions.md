@@ -498,7 +498,7 @@ a grid) are not tinted: they are what the palette lists.
 
 A palette can draw instead of list: give it `view(ctx)` in place of
 `list`, returning a `View`, and pal opens it as a **view level**. The
-bundled Blackjack, 2048 and Wordle are (`extensions/{blackjack,2048,wordle}/`).
+bundled Blackjack, 2048, Wordle and Solitaire are (`extensions/{blackjack,2048,wordle,solitaire}/`).
 The tree is built from a fixed vocabulary the app draws with its own
 tokens, never HTML, so a view looks like the rest of the panel in both
 themes.

@@ -123,6 +123,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Search Slack](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-search` | input, normal | Open the message in Slack |
 | [Status](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-status` | live, normal | Set it |
 | [Snippets](#snippets-snippets) | `snippets` | indexed, primary | Paste into the app in front |
+| [Solitaire](#solitaire-solitaire) | `solitaire` | view, normal | Pick up or drop the cards; twice on one card, send it where it goes; draw on the stock |
 | [Speedtest](#speedtest-speedtest-speedtest-history) | `speedtest` | view, normal | Start the test (stop it while it runs) |
 | [Speedtest History](#speedtest-speedtest-speedtest-history) | `speedtest-history` | live, normal | Copy the run (on Trend: show the bars) |
 | [Lyrics](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-now-playing` | view, normal | Play or pause |
@@ -3016,6 +3017,45 @@ guesses, 69 KB in all. Nothing is fetched.
 [extensions.wordle]
 daily = true
 hard_mode = false
+```
+
+## Solitaire (`solitaire`)
+
+Klondike in the panel, played one-handed on the arrows and Enter. Enter
+on the palette's row (or its hotkey) opens the table as a view level: the
+search input gives way to what the cursor is on ("Pile 4 · 9♣ 8♥"), what
+you carry ("Moving 7♥ and 2 more") or why a drop was refused ("7♥ can't
+go on 9♠"), the footer shows what Enter does here, ⌘K lists every key.
+
+- The cursor: `←` `→` walk the stock, the waste, the foundations and the
+  seven piles (wrapping; `h` `l` too); on a pile `↑` `↓` take more or
+  fewer cards of its face-up run, and past it move to the row above or
+  below (`k` `j` too).
+- Enter picks up what the cursor's ring holds; the cards ride under the
+  cursor, and Enter drops them where it is. An illegal drop puts them
+  back with the reason. Enter again on the pile they came from sends them
+  where they go: the card's foundation, else the first pile that takes
+  them. Any foundation takes a card onto its own suit's.
+- Enter on the stock, or `space` (`d`) anywhere, turns one card (three
+  with `draw = "3"`) onto the waste, and the waste back over once the
+  stock is out; passes are unlimited. `U` or Backspace undoes (a hundred
+  moves back, the turned-over card too), or puts down the cards held.
+- Once the stock and the waste are played out and every card is face up,
+  the rest flies home one card at a time (Enter finishes at once). `N`
+  deals a new game, asking first mid-game.
+- Escape leaves at any point; the game, the moves, the time and the
+  record (games won of played) persist (in the extension's storage). The
+  time counts only while the table is open.
+
+The cards are Blackjack's SVG, a covered card a strip cropped from the
+same picture with its index on one line (`10♥`), on a sunken well the app
+draws; every face-up card keeps its key while in play, so a drop, an undo,
+a carried run and the finish's cards going home glide from pile to pile,
+a card turned over flips in, the deal drops in column by column.
+
+```toml
+[extensions.solitaire]
+draw = "1"                    # or "3"
 ```
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)

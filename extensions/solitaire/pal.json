@@ -1,0 +1,128 @@
+{
+  "name": "solitaire",
+  "title": "Solitaire",
+  "description": "Klondike in the panel, one-handed: the arrows walk the piles, Enter picks up and drops, Enter twice sends a card where it goes. Draw one or three, unlimited passes, undo; the game and the record persist.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󱢯", "bg": "green" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "select",
+      "id": "draw",
+      "label": "Draw",
+      "description": "Cards turned from the stock at a time. Applies from the next deal.",
+      "options": [
+        { "id": "1", "title": "One card" },
+        { "id": "3", "title": "Three cards" }
+      ],
+      "default": "1"
+    }
+  ],
+  "store": {
+    "tagline": "Klondike on the arrows and Enter; the game and the record persist",
+    "category": "fun",
+    "features": [
+      "The table as a view level: the title says what the cursor is on (`Pile 4 · 9♣ 8♥`), what you carry (`Moving 7♥ and 2 more`) or why a drop was refused (`7♥ can't go on 9♠`)",
+      "One-handed: `←` `→` walk the stock, the waste, the foundations and the seven piles, `↑` `↓` take more or fewer cards of a face-up run (and past it, the row above or below), `Enter` picks up and drops",
+      "`Enter` twice on the same card sends it where it goes: its foundation, else the first pile that takes it",
+      "Picked-up cards ride under the cursor and glide to where you drop them; a card turned over flips, the deal drops in column by column",
+      "Draw one or three (a setting), unlimited passes through the stock, `U` or `Backspace` undoes (a hundred moves back)",
+      "Once every card is face up the rest flies home by itself, one card at a time",
+      "Moves, the time played (only while the table is open) and games won of played beside the table; Escape leaves at any point and the game is there when you come back"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-deal.png",
+        "caption": "A fresh deal: the cursor on the stock, the moves, the time and the record beside the table"
+      },
+      {
+        "file": "2-game.png",
+        "caption": "Forty moves in: covered cards fan as strips of their own picture, eight cards home"
+      },
+      {
+        "file": "3-moving.png",
+        "caption": "Carrying a run: the picked-up cards ride under the cursor to the pile they go on"
+      },
+      {
+        "file": "4-won.png",
+        "caption": "Won: every card home, Enter deals again"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Pick up, drop",
+        "description": "Enter on a card picks it up (with the cards under it, as deep as ↑ reached); Enter on another pile drops them there. On the stock, draws.",
+        "keys": "enter"
+      },
+      {
+        "title": "Send where it goes",
+        "description": "Enter again on the pile the cards came from: to the card's foundation, else to the first pile that takes them.",
+        "keys": "enter"
+      },
+      {
+        "title": "Previous pile, next pile",
+        "description": "Across the stock, the waste, the foundations and the seven piles, wrapping round. `h` and `l` too.",
+        "keys": "left, right"
+      },
+      {
+        "title": "More cards, fewer cards",
+        "description": "How deep into a face-up run to take; past it, the row above or below. `k` and `j` too.",
+        "keys": "up, down"
+      },
+      {
+        "title": "Draw",
+        "description": "From anywhere; turns the waste back over when the stock is out.",
+        "keys": "space"
+      },
+      {
+        "title": "Undo",
+        "description": "The last move back, or the cards you hold put back.",
+        "keys": "u"
+      },
+      {
+        "title": "New game",
+        "description": "Asks first mid-game; the game counts as lost.",
+        "keys": "n"
+      }
+    ]
+  },
+  "palettes": {
+    "solitaire": {
+      "kind": "view",
+      "description": "The table. Escape leaves mid-game; it is there when you come back.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Pick up, drop; twice on the same card, send it where it goes; draw on the stock"
+        },
+        {
+          "keys": "left",
+          "title": "Previous pile (also right, h, l)"
+        },
+        {
+          "keys": "up",
+          "title": "One more card of the run, then the row above (also down, k, j)"
+        },
+        {
+          "keys": "space",
+          "title": "Draw (also d)"
+        },
+        {
+          "keys": "u",
+          "title": "Undo (also backspace)"
+        },
+        {
+          "keys": "n",
+          "title": "New game, after a confirm mid-game"
+        }
+      ]
+    }
+  }
+}
