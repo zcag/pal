@@ -7,8 +7,9 @@
 // gone leaves for its sink (the discard, the dealer, the bankroll), so a
 // deal, a hit, a split, a settle and the sweep before the next hand are
 // the same diff. The deal's order is the real one: player, dealer,
-// player, hole. What depends on the cards having landed (the totals, the
-// result, the bankroll) is drawn once they have.
+// player, hole. A hand's total counts a card the moment its face shows in
+// the flip; what depends on the cards having landed (the result, the
+// bankroll) is drawn once they have.
 import { actions, isBlackjack, isBust, lastNet, value, type Action as Move, type Card, type Hand, type Settings, type State } from "../game.ts";
 import { MOVES, chipsFor, keysOf, money, signed, titleOf } from "../moves.ts";
 
@@ -16,6 +17,8 @@ import { MOVES, chipsFor, keysOf, money, signed, titleOf } from "../moves.ts";
 const STEP = 170;
 /** A card's flight, as `--fly` in table.css. */
 const FLY = 460;
+/** When a flip's face comes past edge-on: `.flip`'s 420 ms on `--ease` is half turned 55 ms in. */
+const FACE_AT = 55;
 const CARDS = "/__pal/cards/";
 const BACK = `${CARDS}back-blue2.png`;
 
@@ -85,9 +88,10 @@ export class Table {
   private timers: number[] = [];
   private shownBank?: number;
   private overlay = el("div", "overlay");
+  private labels = el("div", "overlay");
 
   constructor(private onMove: (m: Move) => void) {
-    $("#felt").append(this.overlay);
+    $("#felt").append(this.labels, this.overlay);
     // A button (or the corner's New game) runs its move; no button takes focus, so Enter stays the page's.
     document.addEventListener("mousedown", (e) => { if ((e.target as HTMLElement).closest("button")) e.preventDefault(); });
     document.addEventListener("click", (e) => {
@@ -172,14 +176,19 @@ export class Table {
     for (const p of spots) if (p.who === "d" && !delays.has(p.key) && !has(p.key)) { delays.set(p.key, at() + (flipping ? 260 : 0)); step++; }
     const land = prev && (delays.size || flipping) ? Math.max(flipAt, ...delays.values()) + FLY : 0;
     const flips: [HTMLElement, boolean, number][] = [];
+    /** When each card's face shows, per hand ("d", "0", "1"); a face-down card never. */
+    const shows = new Map<string, number[]>();
 
     for (const p of spots) {
       const delay = delays.get(p.key) ?? 0;
-      const { e } = put(p.key, () => this.cardEl(), p.pose, shoe, delay, p.z);
+      const { e, isNew } = put(p.key, () => this.cardEl(), p.pose, shoe, delay, p.z);
       const face = e.querySelector("img.face") as HTMLImageElement;
       if (p.up && !face.src.endsWith(`/${p.card}.png`)) face.src = `${CARDS}${p.card}.png`;
       // A new card turns face up in flight; the hole turns over where it lies.
-      flips.push([e.querySelector(".flip") as HTMLElement, p.up, p === hole && flipping ? flipAt : delay + 90]);
+      const flip = e.querySelector(".flip") as HTMLElement;
+      const flipDelay = p === hole && flipping ? flipAt : delay + 90;
+      if (p.up) (shows.get(p.hand) ?? shows.set(p.hand, []).get(p.hand)!).push(prev && (isNew || flip.classList.contains("down")) ? flipDelay + FACE_AT : 0);
+      flips.push([flip, p.up, flipDelay]);
       e.dataset.hand = p.hand;
     }
 
@@ -239,7 +248,11 @@ export class Table {
     // A bust shakes the hand once its last card is down; the dealer's too.
     st.hands.forEach((h, hi) => { if (prev && isBust(h.cards) && !(prev.hands[hi] && isBust(prev.hands[hi].cards) && prev.handNo === no)) this.shake(String(hi), land); });
     if (prev && st.revealed && isBust(st.dealer) && !(prev.revealed && prev.handNo === no)) this.shake("d", land);
-    // Last hand's result and the bet's amount go at once; the rest waits for the cards.
+    // The totals follow the faces as they show; last hand's result and the bet's amount go at once; the rest waits for the cards.
+    const count = (hand: string, t: number) => (shows.get(hand) ?? []).filter((at) => at <= t).length;
+    const totals = (t: number) => this.drawLabels(st, hands, count("d", t), (hi) => count(String(hi), t));
+    totals(0);
+    for (const t of new Set([...shows.values()].flat().filter((t) => t > 0))) this.timers.push(window.setTimeout(() => totals(t), t));
     if (land) this.overlay.querySelectorAll(".banner, .pill, .amount").forEach((e) => e.remove());
     this.timers.push(window.setTimeout(() => this.drawLanded(st, s, hands), Math.max(0, land - 120)));
   }
@@ -273,23 +286,42 @@ export class Table {
     );
   }
 
-  /** What waits for the cards: totals, the result (glow, dim, the pills, the banner), the bankroll. */
+  /**
+   * The hands' names and totals, counting only the cards whose face shows:
+   * `dealer` of the dealer's face-up cards, `player(hi)` of hand hi's. A
+   * hand with nothing showing yet has no label.
+   */
+  private drawLabels(st: State, hands: ReturnType<Table["handSpots"]>, dealer: number, player: (hi: number) => number) {
+    const g = this.geo;
+    const parts: string[] = [];
+    // The dealer's face-up cards are the first one and, once revealed, the rest; the hole shows after the first.
+    const up = st.revealed ? st.dealer : st.dealer.slice(0, 1);
+    if (dealer) {
+      const shown = up.slice(0, dealer);
+      const bj = shown.length === st.dealer.length && st.revealed && isBlackjack({ cards: st.dealer });
+      parts.push(`<div class="label" style="left:${g.W / 2}px;top:${g.dealerY - 22}px">Dealer <span class="total${isBust(shown) ? " bust" : bj ? " bj" : ""}">${totalText(shown, bj)}</span></div>`);
+    }
+    st.hands.forEach((h, hi) => {
+      const n = player(hi);
+      if (!n) return;
+      const shown = h.cards.slice(0, n);
+      const active = st.phase === "play" && hi === st.active && st.hands.length > 1;
+      const idle = st.phase === "play" && st.hands.length > 1 && hi !== st.active;
+      const bj = n === h.cards.length && isBlackjack(h);
+      const name = st.hands.length > 1 ? `Hand ${hi + 1}` : "You";
+      const tags = `${h.doubled ? '<span class="tag">×2</span>' : ""}${st.hands.length > 1 || h.doubled ? `<span>${money(h.bet)}</span>` : ""}`;
+      parts.push(`<div class="label${active ? " active" : ""}${idle ? " idle" : ""}" style="left:${hands[hi].centre}px;top:${g.playerY - 22}px">${name} <span class="total${isBust(shown) ? " bust" : bj ? " bj" : ""}">${totalText(shown, bj)}</span>${tags}</div>`);
+    });
+    const html = parts.join("");
+    if (this.labels.innerHTML !== html) this.labels.innerHTML = html;
+  }
+
+  /** What waits for the cards: the result (glow, dim, the pills, the banner), the bankroll. */
   private drawLanded(st: State, s: Settings, hands: ReturnType<Table["handSpots"]>) {
     const g = this.geo;
     const parts: string[] = [];
     const settled = st.phase === "settled";
-    if (st.dealer.length) {
-      const shown = st.revealed ? st.dealer : st.dealer.slice(0, 1);
-      const bj = st.revealed && isBlackjack({ cards: st.dealer });
-      parts.push(`<div class="label" style="left:${g.W / 2}px;top:${g.dealerY - 22}px">Dealer <span class="total${st.revealed && isBust(st.dealer) ? " bust" : bj ? " bj" : ""}">${totalText(shown, bj)}</span></div>`);
-    }
     st.hands.forEach((h, hi) => {
-      const active = st.phase === "play" && hi === st.active && st.hands.length > 1;
-      const idle = st.phase === "play" && st.hands.length > 1 && hi !== st.active;
-      const bj = isBlackjack(h);
-      const name = st.hands.length > 1 ? `Hand ${hi + 1}` : "You";
-      const tags = `${h.doubled ? '<span class="tag">×2</span>' : ""}${st.hands.length > 1 || h.doubled ? `<span>${money(h.bet)}</span>` : ""}`;
-      parts.push(`<div class="label${active ? " active" : ""}${idle ? " idle" : ""}" style="left:${hands[hi].centre}px;top:${g.playerY - 22}px">${name} <span class="total${isBust(h.cards) ? " bust" : bj ? " bj" : ""}">${totalText(h.cards, bj)}</span>${tags}</div>`);
       // A split's hands each get their result on the cards; one hand's is the banner.
       if (settled && h.outcome && st.hands.length > 1) {
         const net = (h.payout ?? 0) - h.bet;
