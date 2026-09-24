@@ -319,7 +319,9 @@ is left to the load-time check.
   the extension's own steps aside), or after `ttl` seconds at the next
   start.
   With `input: true` it runs on every keystroke inside the palette and the
-  root has only the palette's own row (a calculator).
+  root has only the palette's own row (a calculator); the search row
+  sweeps while the latest keystroke's listing is unanswered, and an
+  earlier one's late answer is dropped.
 - `pick(id, action?, ctx?)` returns an `Effect`: `copy` (text, or a
   `CopyText` for a secret, see the note below), `copy_files` (a
   list of paths: the files themselves, see the note below), `open` (url or

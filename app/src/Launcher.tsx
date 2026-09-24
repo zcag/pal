@@ -303,6 +303,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const [confirming, setConfirming] = useState<Action | null>(null);
   const [toast, setToast] = useState<ToastSpec | null>(null);
   const [found, setFound] = useState<Hit[]>([]);
+  /** An input palette's host is still answering the latest query: the search row's loading sweep says the rows below are the last query's. */
+  const [asking, setAsking] = useState(false);
   /** The switcher holds this level (`open` with `hold`): the rows stay flat, the cursor follows its row by id, Escape hides, `switch` steps and commits. */
   const [hold, setHold] = useState(false);
   /** Bumped by a hold's open, so the level's rows are searched afresh even where nothing else changed. */
@@ -358,7 +360,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const viewInput = spec?.input;
   const form = view.kind === "form" ? view : undefined;
   // A menu level's rows are its own: nothing is loading or updating there.
-  const loading = isView ? !spec || busy : isForm || isMenu ? busy : sources.length === 0 || updating;
+  const loading = isView ? !spec || busy : isForm || isMenu ? busy : sources.length === 0 || updating || asking;
   const total = scope ? scope.count : filterable.reduce((n, s) => n + s.count, 0);
   const args = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? view.args : undefined;
   const scopeFilter = view.kind === "palette" && scope?.filters?.length ? paletteFilter ?? scope.filters[0].id : undefined;
@@ -375,8 +377,10 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const indexVersion = scope?.input || ctx?.args !== undefined ? 0 : version;
   useEffect(() => {
     const n = ++seq.current;
-    if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu") return setFound([]);
-    search(query, scope, ctx).then((h) => { if (n === seq.current) setFound(h); });
+    if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu") { setAsking(false); return setFound([]); }
+    setAsking(!!scope?.input);
+    const done = () => { if (n === seq.current) setAsking(false); };
+    search(query, scope, ctx).then((h) => { if (n === seq.current) setFound(h); }).then(done, done);
   }, [search, query, scopeKey, view.kind, ctx, indexVersion, searchSeq]);
   // The root's inline and fallback sections: asked `ROOT_DEBOUNCE` after the
   // last keystroke, the local hits already painted; the next keystroke
