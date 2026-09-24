@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minesweeper</title>
+<script src="/__pal/surface.js"></script>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./main.ts"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true">
+  <symbol id="flag" viewBox="0 0 16 16">
+    <path d="M9.4 1.6 2.4 5.3l7 3.7z" class="cloth"/>
+    <rect x="8.4" y="2.2" width="1.6" height="9.4" class="ink"/>
+    <rect x="6.2" y="10.4" width="6" height="1.4" class="ink"/>
+    <rect x="4.4" y="11.6" width="9.6" height="1.8" class="ink"/>
+  </symbol>
+  <symbol id="mine" viewBox="0 0 16 16">
+    <path d="M8 1.6v12.8M1.6 8h12.8M3.5 3.5l9 9M12.5 3.5l-9 9" class="spikes" stroke-width="1.5"/>
+    <circle cx="8" cy="8" r="4.4" class="body"/>
+    <rect x="5.6" y="5.6" width="2" height="2" class="shine"/>
+  </symbol>
+  <symbol id="cross" viewBox="0 0 16 16">
+    <path d="M2.5 2.5l11 11M13.5 2.5l-11 11" class="x" stroke-width="2"/>
+  </symbol>
+</svg>
+<header id="bar">
+  <div id="levels" role="radiogroup" aria-label="Difficulty">
+    <button data-level="beginner" data-short="9×9">Beginner</button>
+    <button data-level="intermediate" data-short="16×16">Intermediate</button>
+    <button data-level="expert" data-short="30×16">Expert</button>
+  </div>
+  <div id="panel">
+    <output class="led" id="mines" title="Mines left">000</output>
+    <button id="face" data-mood="smile" title="New game" aria-label="New game">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill="#FFD23F" stroke="#2A2A30" stroke-width="1.3"/>
+        <g class="e-open"><circle cx="8.6" cy="9.4" r="1.4" fill="#2A2A30"/><circle cx="15.4" cy="9.4" r="1.4" fill="#2A2A30"/></g>
+        <g class="e-cool"><path d="M4.6 8.2h14.8l-.5 1.6-1.4 1.9h-3l-1.7-2.2h-1.6l-1.7 2.2h-3L5.1 9.8z" fill="#2A2A30"/></g>
+        <g class="e-dead" stroke="#2A2A30" stroke-width="1.4"><path d="M7.2 7.9l2.8 2.8M10 7.9l-2.8 2.8M14 7.9l2.8 2.8M16.8 7.9 14 10.7"/></g>
+        <path class="m-smile" d="M7.6 14.2q4.4 4.4 8.8 0" fill="none" stroke="#2A2A30" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse class="m-oh" cx="12" cy="15.6" rx="2" ry="2.3" fill="#2A2A30"/>
+        <path class="m-sad" d="M7.8 17q4.2-4 8.4 0" fill="none" stroke="#2A2A30" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <output class="led" id="time" title="Time">000</output>
+  </div>
+  <div id="record"></div>
+</header>
+<main id="stage">
+  <div id="frame"><div id="grid"></div><div id="cursor"></div></div>
+  <div id="toast" hidden></div>
+  <div id="prompt" hidden><p></p><div><button data-yes>New game <kbd>⏎</kbd></button><button data-no>Keep playing</button></div></div>
+</main>
+<footer id="hints">
+  <span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move</span>
+  <span><kbd>⏎</kbd> <em id="enter-hint">open</em></span>
+  <span><kbd>/</kbd><kbd>F</kbd> flag</span>
+  <span><kbd>N</kbd> new</span>
+  <span><kbd>D</kbd> level</span>
+</footer>
+<canvas id="fx"></canvas>
+</body>
+</html>

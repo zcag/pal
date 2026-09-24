@@ -100,7 +100,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Maps](#maps-maps) | `maps` | input, normal | Open the place or the route |
 | [Now Playing](#now-playing-media) | `media` | live, normal | Play or pause |
 | [Menu Bar Items](#menu-bar-items-menu-bar) | `menu-bar` | live, primary | Press the menu item |
-| [Minesweeper](#minesweeper-minesweeper) | `minesweeper` | view, normal | Open the cell (around a satisfied number); New game once over |
+| [Minesweeper](#minesweeper-minesweeper) | `minesweeper` | view (surface), normal | Open the cell (around a satisfied number); New game once over |
 | [Network](#network-network) | `network` | live, normal | Copy the value |
 | [Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-notes` | indexed, primary | Open in Obsidian (or the editor, per the setting) |
 | [Search Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-search` | input, normal | Open in Obsidian (or the editor, per the setting) |
@@ -3022,21 +3022,27 @@ hard_mode = false
 
 ## Minesweeper (`minesweeper`)
 
-The mine-clearing game in the panel, keyboard only. Enter on the
-palette's row (or its hotkey) opens the board as a view level: the search
-input gives way to the mines left ("7 mines left", "Cleared in 1:11"),
-the footer shows the primary key, ⌘K lists every move with its key.
+The mine-clearing game in the panel, by mouse or one hand on the keys.
+Enter on the palette's row (or its hotkey) opens the board as a view
+level whose body is the extension's own page (a `surface`): the search
+input gives way to the game's line ("7 mines left", "Cleared in 1:11"),
+⌘K lists the moves.
 
 - Moving: the arrows or `hjkl` move the cursor (the ringed cell).
-- Opening: Enter. The first open is always safe (the mines are laid after
-  it, never on it or around it) and opens an area; an empty cell floods
-  open. Enter on a number whose flags are all placed opens around it
-  (the chord, "Open around" in the footer).
-- Flagging: `F`, `/` or Space; the counter is the mines less the flags.
+- Opening: Enter or a click. The first open is always safe (the mines
+  are laid after it, never on it or around it) and opens an area; an
+  empty cell floods open. Enter or a click on a number whose flags are
+  all placed opens around it (the chord, "open around" in the hint line);
+  both buttons or the middle one do the same. A held button shows the
+  cells it would open pressed.
+- Flagging: `/`, `F` or Space, or a right-click; the counter is the mines
+  less the flags.
 - The end: won when every safe cell is open (the mines left are flagged),
-  lost on a mine, which shows red among the rest; a wrong flag is crossed
-  out. Enter starts a new game; `N` does at any time, asking first
-  mid-game.
+  lost on a mine, which goes off red among the rest; a wrong flag is
+  crossed out. Enter or the face starts a new game; `N` does at any time,
+  asking first mid-game.
+- The level: `D` opens the picker (left, right, Enter), or click a level;
+  it writes the `difficulty` setting.
 - One-handed: the arrows, Enter and `/` (just above the arrows) play a
   whole game.
 - Escape leaves at any point; the board, the clock, the best time and the
@@ -3044,17 +3050,17 @@ the footer shows the primary key, ⌘K lists every move with its key.
 
 The clock starts on the first open and counts only while the board is on
 screen: leaving the view pauses it, coming back resumes it, and a run pal
-never closed (a quit, a crash) is cut off at the last move. Cells are
-`tile` nodes on a sunken well drawn with the tokens: closed cells paper,
-flags amber, the numbers in the classic colours on the tag palette (1
-blue, 2 green, 3 red, 4 violet, 5 pink, 6 teal, 7 amber, 8 grey). An open
-ripples out ring by ring from the cell opened, a lost game's mines from
-the one that went off. Cells are 30 px on beginner and 17 px on
-intermediate and expert, so the 30 by 16 board fits the compact panel.
+never ended (a quit, a crash) is cut off at the last move. The board is
+the classic one redrawn: square raised cells that press flat, the classic
+number colours tuned per theme, an LED counter and clock around the face.
+An open lifts the caps ring by ring from the cell opened; a mine goes off
+with a blast before the rest pop out; a cleared board plants its flags
+under confetti. The cells scale to the page, so the 30 by 16 expert board
+fits the compact panel.
 
 ```toml
 [extensions.minesweeper]
-difficulty = "beginner"       # intermediate (16x16, 40), expert (30x16, 99); from the next board
+difficulty = "beginner"       # intermediate (16x16, 40), expert (30x16, 99); from the next board; D on the board too
 ```
 
 ## Solitaire (`solitaire`)

@@ -11,9 +11,9 @@
 //
 // The clock runs from the first open while the board is on screen: `since`
 // is when the current run started, `ms` what the earlier runs added up to.
-// index.ts pauses it when the view leaves and resumes it when it is back,
-// so time away is never counted; `seen` (the last move) is where a run the
-// panel never closed (a crash, a quit) is cut off.
+// The page (surface/main.ts) pauses it when the view leaves and resumes it
+// when it is back, so time away is never counted; `seen` (the last move) is
+// where a run the panel never closed (a crash, a quit) is cut off.
 export type Level = "beginner" | "intermediate" | "expert";
 export type Settings = { difficulty: Level };
 export const DEFAULTS: Settings = { difficulty: "beginner" };
@@ -100,6 +100,34 @@ export function layMines(w: number, h: number, mines: number, safe: number, rng:
     mine[free[k]] = true;
   }
   return mine;
+}
+
+/** The cursor put on cell `i`, where a pointer clicked: a no-op off the board, on the cursor already, or once the game is over. */
+export function pointAt(st: State, i: number): State {
+  if (st.phase === "won" || st.phase === "lost" || !Number.isInteger(i) || i < 0 || i >= st.w * st.h || i === st.cursor) return st;
+  return { ...st, cursor: i };
+}
+
+/** The difficulty setting on this board: a game in play keeps its level and plays out first, any other board takes it as a new one. */
+export const adopt = (st: State, level: Level): State => (st.phase === "play" || st.level === level ? st : newGame(level, st));
+
+/** Rings from cell `from` to cell `i` (0 on the cell itself): how far a ripple has travelled. */
+export const rings = (st: Pick<State, "w">, i: number, from: number): number =>
+  Math.max(Math.abs(Math.floor(i / st.w) - Math.floor(from / st.w)), Math.abs((i % st.w) - (from % st.w)));
+
+/** `0:07`, `12:34`: minutes and seconds, the minutes as many as it takes. */
+export const clockText = (ms: number): string => {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+/** The view's title line: what to do, the mines left, or how it ended. */
+export function status(st: State): string {
+  if (st.phase === "won") return `Cleared in ${clockText(st.clock.ms)}${st.records[st.level].best === st.clock.ms ? ", a new best" : ""}`;
+  if (st.phase === "lost") return "Boom";
+  if (st.phase === "ready") return "Open any cell";
+  const left = minesLeft(st);
+  return `${left} mine${left === 1 ? "" : "s"} left`;
 }
 
 /** Legal actions now, in the order the view lists them (first is Enter). */

@@ -1,90 +1,39 @@
-// Minesweeper: a view palette. The board is a render tree (render.ts)
-// built from a pure game state (game.ts); every key is a pick whose action
-// id is the move, and the reply is the next tree. The state persists whole
-// in the extension's storage after every move, so Escape mid-game loses
-// nothing and the records survive restarts.
-//
-// The clock counts only while the board is on screen: `view.onShown`
-// resumes it and pushes the tree once a second so the time moves,
-// `view.onHidden` pauses it and stops the pushes. A run the panel never
-// ended (a crash, a quit) is cut off at the last move on the next open.
-import { now, settings, storage, view, type Extension } from "@zcag/pal";
-import { DEFAULTS, apply, isState, levelOf, newGame, pause, resume, settle, type Action, type Settings, type State } from "./game.ts";
-import { render } from "./render.ts";
+// Minesweeper: a view palette whose body is the extension's own page
+// (surface/index.html, a `surface` node). The page runs the game: it
+// imports the rules from game.ts, keeps the state whole in the extension's
+// storage after every move (`pal.storage`, the same file `storage` reads
+// here), and pauses the clock while the view is away. This side only opens
+// the page, lists the moves for cmd+k (the page gets them as `pal.onAction`),
+// and writes the difficulty the page's level picker chooses, so the setting
+// stays the one the settings page shows.
+import { settings, type Action, type Extension, type View } from "@zcag/pal";
+import { LEVELS, type Level } from "./game.ts";
 
 const EXTENSION = "minesweeper";
-const PALETTE = "minesweeper";
-const KEY = "state";
-/** The clock's push while a game runs on screen; a test sets it short. */
-const TICK_MS = Number(process.env.PAL_MINESWEEPER_TICK_MS) || 1000;
 
-const current = (): Settings => ({ ...DEFAULTS, ...settings.get<Partial<Settings>>(EXTENSION) });
+export const ACTIONS: Action[] = [
+  { id: "open", title: "Open", shortcut: "enter" },
+  { id: "flag", title: "Flag", shortcut: ["/", "f", "space"] },
+  { id: "new", title: "New game", shortcut: "n" },
+  { id: "level", title: "Difficulty", shortcut: "d" },
+];
 
-/** The stored state, or a fresh board when there is none (or one this version cannot read). */
-async function load(s: Settings): Promise<State> {
-  const stored = await storage.get<unknown>(KEY, EXTENSION);
-  return isState(stored) ? stored : newGame(levelOf(s.difficulty));
-}
-const save = (st: State) => storage.set(KEY, st, EXTENSION);
-
-/** One read-change-write at a time: the clock's resume on show must not write over a move made meanwhile, nor a move over it. */
-let queue: Promise<unknown> = Promise.resolve();
-function serial<T>(f: () => Promise<T>): Promise<T> {
-  const run = queue.then(f, f);
-  queue = run.catch(() => {});
-  return run;
+/** The page's messages: `{ difficulty }` writes the setting and answers the level now set. */
+export async function message(msg: unknown): Promise<unknown> {
+  const level = (msg as { difficulty?: unknown } | null)?.difficulty;
+  if (typeof level !== "string" || !(level in LEVELS)) return undefined;
+  await settings.set("difficulty", level, EXTENSION);
+  return { difficulty: level as Level };
 }
 
-/** Opening the board: a stale run is cut off, and a board with nothing open yet (or a finished one) takes the difficulty setting. */
-async function open(): Promise<State> {
-  const s = current();
-  const before = await load(s);
-  let st = settle(before);
-  const level = levelOf(s.difficulty);
-  if (st.phase !== "play" && st.level !== level) st = newGame(level, st);
-  if (st !== before) await save(st);
-  return st;
-}
+// `surface` and `onMessage` are the game-surface contract, ahead of the SDK types: the node is cast, and the palette is a
+// variable so `onMessage` passes `satisfies` until `Palette` declares it.
+const minesweeper = {
+  title: "Minesweeper",
+  view: async () => ({ tree: { type: "surface", src: "surface/index.html" }, actions: ACTIONS, title: "Minesweeper" }) as unknown as View,
+  /** The moves reach the page as `pal.onAction`, never here. */
+  pick: () => {},
+  onMessage: message,
+};
 
-let tick: ReturnType<typeof setInterval> | undefined;
-const stopTick = () => { clearInterval(tick); tick = undefined; };
-
-view.onShown(async (ev) => {
-  if (ev.palette !== PALETTE) return;
-  await serial(async () => {
-    const st = await load(current());
-    const run = resume(st, now());
-    if (run !== st) await save(run);
-  });
-  tick ??= setInterval(async () => {
-    const st = await load(current());
-    if (st.phase === "play") await view.update(render(st, now()), { extension: EXTENSION, palette: PALETTE }).catch((e) => console.error(`minesweeper: push: ${e}`));
-  }, TICK_MS);
-}, EXTENSION);
-
-view.onHidden(async (ev) => {
-  if (ev.palette !== PALETTE) return;
-  stopTick();
-  await serial(async () => {
-    const st = await load(current());
-    const held = pause(st, now());
-    if (held !== st) await save(held);
-  });
-}, EXTENSION);
-
-export default {
-  palettes: {
-    minesweeper: {
-      title: "Minesweeper",
-      view: async () => render(await serial(open), now()),
-      pick: (_id, action) => serial(async () => {
-        const s = current();
-        const before = await load(s);
-        const after = action ? apply(before, action as Action, s, Math.random, now()) : before;
-        if (after !== before) await save(after);
-        return { view: render(after, now()) };
-      }),
-    },
-  },
-  dispose: () => stopTick(),
-} satisfies Extension;
+export default { palettes: { minesweeper } } satisfies Extension;

@@ -1,14 +1,13 @@
-// Minesweeper: the rules (game.ts, pure) on laid boards, the clock, the
-// tree (render.ts), and the extension over the wire: a view palette's
-// meta, its opening tree, picks that answer trees and persist the state,
-// the clock paused while the view is away and pushed while it is shown.
+// Minesweeper: the rules (game.ts, pure) on laid boards, the clock, what
+// the page (surface/main.ts) asks of them (a click's cell, the setting on
+// a board, the ripple's rings, the title line), and the extension over the
+// wire: a view palette whose body is its surface page, with the moves as
+// actions for cmd+k.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, LEVELS, apply, around, count, isChord, isState, layMines, minesLeft, newGame, pause, resume, settle, type Level, type State } from "../../../extensions/minesweeper/game.ts";
-import { FLAG, INK, MINE, clockText, pitchOf, render, tileOf } from "../../../extensions/minesweeper/render.ts";
-import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { DEFAULTS, LEVELS, adopt, apply, around, clockText, count, isChord, isState, layMines, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, type Level, type State } from "../../../extensions/minesweeper/game.ts";
+import type { View } from "../../../sdk/src/protocol.ts";
+import { Host } from "../harness.ts";
 
 /**
  * A board in play from a picture: `*` a mine, `.` closed, `o` open, `F` a
@@ -189,94 +188,40 @@ describe("a stored state", () => {
   });
 });
 
-const find = (n: ViewNode, pred: (n: ViewNode) => boolean, out: ViewNode[] = []): ViewNode[] => {
-  if (pred(n)) out.push(n);
-  if (n.type === "stack") n.children.forEach((c) => find(c, pred, out));
-  return out;
-};
-type TileNode = Extract<ViewNode, { type: "tile" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const tiles = (v: View) => (find(v.tree, (n) => n.type === "stack" && /^c\d+$/.test(n.key ?? "")) as Stack[]).map((c) => c.children[0] as TileNode);
-const keycaps = (v: View) => find(v.tree, (n) => n.type === "keycap").map((n) => (n as { keys: string }).keys);
-
-describe("render", () => {
-  test("the cells fit the panel at every level: 30 px on beginner, 17 on intermediate and expert", () => {
-    expect([pitchOf(LEVELS.beginner), pitchOf(LEVELS.intermediate), pitchOf(LEVELS.expert)]).toEqual([30, 17, 17]);
-    expect([tileOf(30), tileOf(17)]).toEqual([27, 15]);
-    // The expert well, 30 cells and its padding, inside the compact panel's 560 less the table's padding.
-    expect(30 * pitchOf(LEVELS.expert) + 16 + 24).toBeLessThanOrEqual(560);
-    const v = checkView(render(newGame("expert"), 0));
-    expect(tiles(v)).toHaveLength(480);
-  });
-  test("a board in play: keyed cells on a sunken well, the cursor selected, the numbers in their colours, a flag and the closed paper", () => {
-    const st = at(board(["*o.", "..f", "..."]), 1, 1);
-    const v = checkView(render(st, 3000));
-    expect(v.keys).toBe("actions");
-    expect(v.title).toBe("0 mines left");
-    expect(find(v.tree, (n) => n.key === "board")[0]).toMatchObject({ surface: "sunken", radius: true, padding: 2 });
-    const t = tiles(v);
-    expect(t).toHaveLength(9);
-    expect(t[1]).toMatchObject({ key: `o1-${st.game}`, text: "1", color: INK[1], fill: "soft", width: 27 });
-    expect(t[5]).toMatchObject({ key: `f5-${st.game}`, text: FLAG, color: "amber", fill: "solid" });
-    expect(t[0]).toMatchObject({ key: `h0-${st.game}`, color: "neutral", fill: "solid" });
-    expect(t.filter((x) => x.selected).map((x) => x.key)).toEqual([`h4-${st.game}`]);
-    expect(Object.values(INK)).toEqual(["blue", "green", "red", "violet", "pink", "teal", "amber", "grey"]);
-  });
-  test("an open ripples out from the cell opened, one step per ring", () => {
-    const st = apply(at(board(["....*", ".....", ".....", "....."]), 3, 0), "open");
-    const t = tiles(render(st));
-    expect(t[15].transition).toEqual({ exit: "none", enter: "pop", delay: 0 });
-    expect(t[10].transition).toEqual({ exit: "none", enter: "pop", delay: 1 });
-    expect(t[3].transition).toEqual({ exit: "none", enter: "pop", delay: 3 });
-    // An arrow keeps the last open: the same tree for the cells, the cursor moved.
-    const moved = apply(st, "up");
-    expect(tiles(render(moved))[15].transition).toEqual(t[15].transition);
-  });
-  test("a lost board: the hit in red, the other mines ripple out from it, a wrong flag crossed out, no cursor", () => {
-    const st = apply(board(["*...*", "f....", "....."]), "open");
-    expect(st.phase).toBe("lost");
-    const v = render(st);
-    expect(v.title).toBe("Boom");
-    const t = tiles(v);
-    expect(t[0]).toMatchObject({ text: MINE, color: "red", fill: "solid", transition: { enter: "pop", exit: "none", delay: 0 } });
-    expect(t[4]).toMatchObject({ text: MINE, color: "grey", transition: { enter: "pop", exit: "none", delay: 4 } });
-    expect(t[5]).toMatchObject({ text: "✕", color: "amber", fill: "outline" });
-    expect(t.some((x) => x.selected)).toBe(false);
-    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["new", "n"]]);
-    expect(keycaps(v)).toEqual(["enter"]);
-  });
-  test("a won board: the time in the title, a best-time badge, Enter for a new game", () => {
-    const won = apply(at(board(["*o", "o."], { clock: { ms: 0, since: 0 } }), 1, 1), "open", DEFAULTS, Math.random, 83_000);
-    const v = render(won, 99_000);
-    expect(v.title).toBe("Cleared in 1:23");
-    expect(find(v.tree, (n) => n.type === "badge").map((n) => (n as { text: string }).text)).toEqual(["best time"]);
-    expect(v.actions[0].id).toBe("new");
-  });
-  test("the actions carry their keys, Enter first: arrows and hjkl, f / space for the flag; titles follow the cell", () => {
+describe("what the page asks of the rules", () => {
+  test("a click puts the cursor on the cell; off the board, on the cursor or once over, the same state", () => {
     const st = at(board(["*o.", "...", "..."]), 0, 0);
-    const v = render(st);
-    expect(v.actions.map((a) => [a.id, a.title, a.shortcut])).toEqual([
-      ["open", "Open", "enter"],
-      ["flag", "Flag", ["f", "/", "space"]],
-      ["up", "Up", ["up", "k"]],
-      ["down", "Down", ["down", "j"]],
-      ["left", "Left", ["left", "h"]],
-      ["right", "Right", ["right", "l"]],
-      ["new", "New game", "n"],
-    ]);
-    expect(v.actions[6]).toMatchObject({ confirm: expect.any(String), style: "destructive" });
-    const chord = render(at(apply(st, "flag"), 0, 1));
-    expect(chord.actions.slice(0, 2).map((a) => a.title)).toEqual(["Open around", "Flag"]);
-    expect(render(apply(st, "flag")).actions[1].title).toBe("Unflag");
-    // The hint line: arrows, Enter, the flag's keys, n.
-    expect(keycaps(v)).toEqual(["up", "down", "left", "right", "enter", "f", "/", "space", "n"]);
-    // Before the first open New game does not ask.
-    expect(render(newGame()).actions.at(-1)).toEqual({ id: "new", title: "New game", shortcut: "n" });
+    expect(pointAt(st, 5).cursor).toBe(5);
+    for (const i of [0, -1, 9, 1.5]) expect(pointAt(st, i)).toBe(st);
+    const lost = apply(st, "open");
+    expect(pointAt(lost, 5)).toBe(lost);
+    // A click on a satisfied number opens around it, as Enter does.
+    const flagged = apply(st, "flag");
+    expect(apply(pointAt(flagged, 1), "open").phase).toBe("won");
   });
-  test("the header: the counter, the running clock, the best time", () => {
-    const st = board(["*..", "...", "..."], { clock: { ms: 60_000, since: 1000 }, records: { ...newGame().records, beginner: { played: 2, won: 1, best: 75_000 } } });
-    const texts = find(render(st, 8500).tree, (n) => n.type === "text").map((n) => (n as { value: string }).value);
-    expect(texts).toEqual(expect.arrayContaining(["Beginner", "1", "1:07", "1:15", "1 of 2 won"]));
+  test("the setting on a board: a game in play plays out, a fresh or finished board takes it", () => {
+    const fresh = newGame("beginner");
+    expect(adopt(fresh, "beginner")).toBe(fresh);
+    expect(adopt(fresh, "expert")).toMatchObject({ level: "expert", w: 30, h: 16, game: fresh.game + 1 });
+    const playing = board(["*..", "...", "..."]);
+    expect(adopt(playing, "expert")).toBe(playing);
+    const lost = apply(playing, "open");
+    expect(adopt(lost, "intermediate")).toMatchObject({ level: "intermediate", phase: "ready", records: lost.records });
+  });
+  test("rings: the ripple's distance, a diagonal one ring", () => {
+    const b = { w: 9 };
+    expect([rings(b, 40, 40), rings(b, 30, 40), rings(b, 50, 40), rings(b, 0, 40), rings(b, 8, 80)]).toEqual([0, 1, 1, 4, 8]);
+  });
+  test("the title line and the clock's text", () => {
+    expect(status(newGame())).toBe("Open any cell");
+    const st = board(["*..", "...", "*.."]);
+    expect(status(st)).toBe("2 mines left");
+    expect(status(apply(st, "flag"))).toBe("1 mine left");
+    expect(status(apply(st, "open"))).toBe("Boom");
+    const won = apply(at(board(["*o", "o."], { clock: { ms: 0, since: 0 } }), 1, 1), "open", DEFAULTS, Math.random, 83_000);
+    expect(status(won)).toBe("Cleared in 1:23, a new best");
+    const slower = apply(at(board(["*o", "o."], { clock: { ms: 0, since: 0 }, records: { ...newGame().records, beginner: { played: 1, won: 1, best: 60_000 } } }), 1, 1), "open", DEFAULTS, Math.random, 83_000);
+    expect(status(slower)).toBe("Cleared in 1:23");
     expect(clockText(0)).toBe("0:00");
     expect(clockText(3_599_999)).toBe("59:59");
   });
@@ -284,45 +229,17 @@ describe("render", () => {
 
 describe("over the wire", () => {
   let host: Host;
-  const tickWas = process.env.PAL_MINESWEEPER_TICK_MS;
-  beforeAll(async () => { stored.clear(); process.env.PAL_MINESWEEPER_TICK_MS = "30"; host = await Host.bundled(); });
-  afterAll(() => { host.kill(); if (tickWas === undefined) delete process.env.PAL_MINESWEEPER_TICK_MS; else process.env.PAL_MINESWEEPER_TICK_MS = tickWas; });
-  const state = () => stored.get("minesweeper\0state") as State;
+  beforeAll(async () => { host = await Host.bundled(); });
+  afterAll(() => host.kill());
 
   test("a view palette is input on the wire with view: view", () => {
     const l = host.loaded().find((l) => l.extension === "minesweeper")!;
     expect(l.palettes).toEqual([{ name: "minesweeper", title: "Minesweeper", live: false, input: true, icon: tile("slate", "\u{f0691}"), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
   });
-  test("view answers a fresh board; picks answer trees and persist; an unknown action is a no-op", async () => {
-    await expect(host.request("list", { extension: "minesweeper", palette: "minesweeper" })).rejects.toThrow("view palette has no list");
+  test("view answers the surface page and the moves for cmd+k, Enter first", async () => {
     const v = await host.request<View>("view", { extension: "minesweeper", palette: "minesweeper" });
-    expect(v.title).toBe("Open any cell");
-    expect(v.actions[0]).toMatchObject({ id: "open", shortcut: "enter" });
-    const moved = await host.pick("minesweeper", "minesweeper", "view", "left");
-    expect(tiles(moved.view as View).findIndex((t) => t.selected)).toBe(39);
-    expect(state().cursor).toBe(39);
-    const r = await host.pick("minesweeper", "minesweeper", "view", "open");
-    expect(state().phase === "play" || state().phase === "won").toBe(true);
-    expect(state().mine[39]).toBe(false);
-    expect((r.view as View).title).toMatch(/mines? left|Cleared/);
-    const same = await host.pick("minesweeper", "minesweeper", "view", "hologram");
-    expect((same.view as View).title).toBe((r.view as View).title);
-  });
-  test("shown, the clock runs and the tree is pushed; hidden, it pauses", async () => {
-    stored.set("minesweeper\0state", board(["*..", "...", "..."], { clock: { ms: 1000 } }));
-    host.viewShown("minesweeper", { palette: "minesweeper" });
-    const push = await host.nextViewUpdate("minesweeper", { palette: "minesweeper" });
-    expect((push.spec as View).title).toBe("1 mine left");
-    expect(state().clock.since).toBeNumber();
-    host.viewHidden("minesweeper", { palette: "minesweeper" });
-    await host.until(() => state().clock.since === undefined, 2000, "the clock paused");
-    expect(state().clock.ms).toBeGreaterThanOrEqual(1000);
-  });
-  test("the difficulty setting applies to a board with nothing open yet", async () => {
-    stored.set("minesweeper\0state", newGame("beginner"));
-    host.changeSettings("minesweeper", { settings: { difficulty: "expert" } });
-    const v = await host.request<View>("view", { extension: "minesweeper", palette: "minesweeper" });
-    expect(tiles(v)).toHaveLength(480);
-    expect(state().level).toBe("expert");
+    expect(v.tree as unknown).toEqual({ type: "surface", src: "surface/index.html" });
+    expect(v.title).toBe("Minesweeper");
+    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["open", "enter"], ["flag", ["/", "f", "space"]], ["new", "n"], ["level", "d"]]);
   });
 });

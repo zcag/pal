@@ -11,7 +11,7 @@ test:
 	cargo test --workspace
 	npm --prefix sdk run build
 	cd app && npx tsc --noEmit && npx vitest run
-	cd host && bunx tsc --noEmit && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
+	cd host && bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.surface.json && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
 	cd sdk && npm pack --dry-run
 
 # Sets one version everywhere it is written (tauri.conf.json is what the
