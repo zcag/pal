@@ -429,7 +429,8 @@ describe("keep awake: the row, the bar item and the link", () => {
     await h.until(() => huds().length > from, 3000, "the HUD");
     expect(huds().at(-1)).toBe("Keep awake ended, sleep allowed");
     expect(record()).toBeUndefined();
-    expect(h.updates("system", "awake").at(-1)).toMatchObject({ hidden: true });
+    // The bar is told apart from the HUD, and may land after it.
+    await h.until(() => (h.updates("system", "awake").at(-1) as any)?.hidden === true, 3000, "the bar hidden");
   });
 
   test("a record from a previous run whose process is gone (or is something else now) is dropped on load, silently", async () => {
