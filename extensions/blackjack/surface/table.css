@@ -1,0 +1,384 @@
+/*
+ * The table: a felt the game paints itself (green in both themes, deeper
+ * in dark), a rail under it in the panel's own tokens with the bankroll
+ * and the moves. Cards and chips are absolutely placed sprites (main.ts
+ * lays them out); every move is a transform transition, so the browser
+ * composites it and nothing reflows.
+ */
+:root {
+  --felt: #2a7a4b;
+  --felt-deep: #17512f;
+  --felt-ink: rgba(255, 246, 214, 0.5);
+  --felt-line: rgba(255, 246, 214, 0.22);
+  --gold: #f4c75a;
+  --win: #8ff0b0;
+  --lose: #ff9a90;
+  --rail-h: 50px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fly: 460ms;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --felt: #1d5a38;
+  --felt-deep: #0c2c1a;
+  --felt-ink: rgba(255, 246, 214, 0.38);
+  --felt-line: rgba(255, 246, 214, 0.14);
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --fly: 1ms; }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  background: var(--pal-bg, #f4f4f6);
+  color: var(--pal-fg, #1a1a1f);
+  font: 13px/1.3 var(--pal-font-ui, system-ui, sans-serif);
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- felt ---- */
+#felt {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 38%, transparent 55%, rgba(0, 0, 0, 0.28) 100%),
+    radial-gradient(90% 70% at 50% 45%, var(--felt) 0%, var(--felt-deep) 100%);
+}
+/* A faint weave, so the felt reads as cloth rather than a flat fill. */
+#felt::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background: repeating-linear-gradient(45deg, #000 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, #fff 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+#print { position: absolute; left: 0; width: 100%; pointer-events: none; overflow: visible; }
+#print text { fill: var(--felt-ink); font-weight: 700; letter-spacing: 0.18em; font-family: var(--pal-font-ui); }
+#print .small { font-weight: 500; letter-spacing: 0.12em; }
+#print path.edge { fill: none; stroke: var(--felt-line); stroke-width: 1.5; }
+
+.label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: left var(--fly) var(--ease), top var(--fly) var(--ease), opacity 200ms;
+}
+.label.active { color: #fff; }
+.label.idle { opacity: 0.55; }
+.total {
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.32);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.label.active .total { background: var(--pal-accent, #4f46d6); color: var(--pal-accent-fg, #fff); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+.total.bust { background: #c8342c; }
+.total.bj { background: linear-gradient(135deg, #f9dc82, #d39a1c); color: #3b2500; }
+.tag { font-size: 10px; padding: 1px 5px; border-radius: 4px; background: rgba(244, 199, 90, 0.9); color: #3b2500; letter-spacing: 0.04em; }
+
+/* ---- sprites: cards and chips; the overlay (labels, results) above them ---- */
+#sprites, .overlay { position: absolute; inset: 0; pointer-events: none; }
+#sprites { z-index: 10; }
+.overlay { z-index: 20; }
+#felt.betting .chip { pointer-events: auto; cursor: pointer; }
+#felt.betting .chip:hover { filter: brightness(1.12); }
+#print { transition: opacity 250ms; }
+#felt.banner-up #print { opacity: 0.15; }
+.sprite {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  transition: transform var(--fly) var(--ease) var(--delay, 0ms), opacity 300ms ease var(--delay, 0ms);
+}
+.instant, .instant * { transition: none !important; }
+.card { width: var(--cw); height: var(--ch); perspective: 900px; }
+.fx { width: 100%; height: 100%; border-radius: calc(var(--cw) * 0.07); transition: filter 400ms ease var(--after, 0ms); }
+.flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 420ms var(--ease) var(--flip-delay, 0ms);
+}
+.flip.down { transform: rotateY(180deg); }
+.flip img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: calc(var(--cw) * 0.07);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+.flip img.back { transform: rotateY(180deg); }
+.fx.dim { filter: brightness(0.72) saturate(0.7); }
+.fx.glow { animation: glow 1.8s ease-in-out var(--after, 0ms) infinite; }
+.fx.shake { animation: shake 460ms ease-in-out var(--after, 0ms) 1 both; }
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(244, 199, 90, 0.5), 0 0 10px 1px rgba(244, 199, 90, 0.35); }
+  50% { box-shadow: 0 0 0 2px rgba(244, 199, 90, 0.9), 0 0 22px 4px rgba(244, 199, 90, 0.55); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px) rotate(-2deg); }
+  35% { transform: translateX(5px) rotate(1.5deg); }
+  55% { transform: translateX(-4px) rotate(-1deg); }
+  75% { transform: translateX(2px); }
+}
+
+/* A chip seen from above: edge spots from a conic gradient, an inlay ring, the value; the shadow is its thickness. */
+.chip {
+  width: var(--chip);
+  height: var(--chip);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle, var(--c) 0 50%, transparent 51%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.85) 0 55%, transparent 56%),
+    radial-gradient(circle, var(--c) 0 62%, transparent 63%),
+    repeating-conic-gradient(from 11deg, var(--c) 0 30deg, var(--spot, #fff) 30deg 45deg);
+  box-shadow: 0 2px 0 var(--edge), 0 3px 4px rgba(0, 0, 0, 0.35);
+  color: var(--ink, #fff);
+  font-size: calc(var(--chip) * 0.27);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.chip.c1 { --c: #f2f2f2; --spot: #2f5bd3; --edge: #b9b9b9; --ink: #2f3a5a; }
+.chip.c5 { --c: #d23b33; --edge: #8c1f1a; }
+.chip.c25 { --c: #20935a; --edge: #11573a; }
+.chip.c100 { --c: #26262b; --edge: #000; --spot: #e9e2cf; }
+.chip.c500 { --c: #7d4bd1; --edge: #4a2a86; }
+.chip.c1000 { --c: #e6b43b; --edge: #9a7215; --ink: #3b2500; --spot: #fff7df; }
+.chip.cent { font-size: calc(var(--chip) * 0.22); }
+
+.amount {
+  position: absolute;
+  transform: translateX(-50%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  transition: left var(--fly) var(--ease), top var(--fly) var(--ease);
+}
+.amount.small { font-size: 11px; font-weight: 600; opacity: 0.85; }
+
+/* New game, in the felt's corner: out of the way of the moves. */
+.btn.corner {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  height: 24px;
+  gap: 6px;
+  padding: 0 5px 0 9px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 40;
+}
+.btn.corner:hover { background: rgba(0, 0, 0, 0.36); color: #fff; }
+.btn.corner kbd { background: rgba(255, 255, 255, 0.16); color: inherit; box-shadow: none; }
+
+/* ---- the shoe, top right ---- */
+#shoe { position: absolute; pointer-events: none; }
+#shoe .box {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px 8px 12px 12px;
+  background: linear-gradient(160deg, #3a3a42, #17171b);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+#shoe img { position: absolute; border-radius: 4px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+#shoe .left { position: absolute; left: 6px; right: 6px; bottom: 6px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+#shoe .left i { display: block; height: 100%; background: var(--gold); transition: width 400ms; }
+
+/* ---- messages over the middle of the felt ---- */
+.banner {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  animation: rise 360ms var(--ease) var(--after, 0ms) both;
+  pointer-events: none;
+}
+.banner .net { margin-left: 8px; font-variant-numeric: tabular-nums; }
+.banner.win .net { color: var(--win); }
+.banner.lose .net { color: var(--lose); }
+.banner.quiet { background: rgba(0, 0, 0, 0.25); font-weight: 600; font-size: 13px; }
+.banner.bj {
+  padding: 4px 18px;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  background: rgba(0, 0, 0, 0.5);
+  animation: flourish 800ms var(--ease) var(--after, 0ms) both;
+}
+.banner.bj .word {
+  background: linear-gradient(100deg, #f7d77c 20%, #fff8dc 40%, #e0a526 60%, #f7d77c 80%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: glint 2.4s linear calc(var(--after, 0ms) + 600ms) infinite;
+}
+.banner.bj::before, .banner.bj::after {
+  content: "✦";
+  position: absolute;
+  top: 50%;
+  color: var(--gold);
+  font-size: 14px;
+  animation: sparkle 1.4s ease-in-out calc(var(--after, 0ms) + 300ms) infinite;
+}
+.banner.bj::before { left: -18px; }
+.banner.bj::after { right: -18px; animation-delay: calc(var(--after, 0ms) + 1000ms); }
+@keyframes rise { from { opacity: 0; transform: translate(-50%, -20%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes flourish {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-6deg); }
+  60% { opacity: 1; transform: translate(-50%, -50%) scale(1.14) rotate(1deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes glint { to { background-position: -250% 0; } }
+@keyframes sparkle { 0%, 100% { opacity: 0.2; transform: translateY(-50%) scale(0.7); } 50% { opacity: 1; transform: translateY(-50%) scale(1.2); } }
+
+/* The per-hand result over its cards: +$25 in green, −$10 in red. */
+.pill {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  animation: pop 380ms var(--ease) var(--after, 0ms) both;
+  pointer-events: none;
+}
+.pill.win { background: #1f9d58; color: #fff; }
+.pill.bj { background: linear-gradient(135deg, #f9dc82, #d39a1c); color: #3b2500; }
+.pill.push { background: #e8e8ec; color: #333; }
+.pill.lose { background: #c8342c; color: #fff; }
+@keyframes pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 70% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+
+/* ---- the confirm for a new game ---- */
+#confirm {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+}
+#confirm.open { display: grid; animation: fade 160ms ease both; }
+#confirm .box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: var(--pal-radius-popover, 12px);
+  background: var(--pal-bg-elevated, #fff);
+  color: var(--pal-fg, #1a1a1f);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+#confirm .row { display: flex; gap: 8px; }
+@keyframes fade { from { opacity: 0; } }
+
+/* ---- the rail: bankroll and the moves ---- */
+#rail {
+  flex: none;
+  height: var(--rail-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 12px;
+  background: var(--pal-bg-elevated, #fff);
+  border-top: 1px solid var(--pal-line-strong, rgba(0, 0, 0, 0.16));
+}
+#bank { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+#bank .money { font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; transition: color 600ms; }
+#bank .money.up { color: var(--pal-tag-green, #1b6b40); transition: none; }
+#bank .money.down { color: var(--pal-tag-red, #b02925); transition: none; }
+#bank .record { color: var(--pal-fg-muted, #5c5d66); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#moves { display: flex; gap: 6px; flex: none; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 9px 0 11px;
+  border: 1px solid var(--pal-line-strong, rgba(0, 0, 0, 0.16));
+  border-radius: var(--pal-radius-control, 6px);
+  background: var(--pal-bg, #f4f4f6);
+  color: var(--pal-fg, #1a1a1f);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms, transform 120ms, box-shadow 120ms, border-color 120ms;
+}
+.btn:hover { background: var(--pal-bg-sunken, #eaeaee); border-color: var(--pal-fg-faint, #6b6c76); }
+.btn:active, .btn.pressed { transform: translateY(1px) scale(0.98); }
+.btn.primary { background: var(--pal-accent, #4f46d6); border-color: transparent; color: var(--pal-accent-fg, #fff); }
+.btn.primary:hover { filter: brightness(1.08); box-shadow: 0 2px 8px color-mix(in srgb, var(--pal-accent, #4f46d6) 45%, transparent); }
+.btn.danger { color: var(--pal-tag-red, #b02925); }
+.btn.icon { padding: 0 8px; }
+.keys { display: inline-flex; gap: 2px; }
+kbd {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--pal-radius-kbd, 4px);
+  background: var(--pal-bg-sunken, #eaeaee);
+  color: var(--pal-fg-muted, #5c5d66);
+  box-shadow: inset 0 -1px 0 var(--pal-line-strong, rgba(0, 0, 0, 0.16));
+  font: 600 10.5px/1 var(--pal-font-ui, system-ui);
+}
+.btn.primary kbd { background: rgba(255, 255, 255, 0.22); color: inherit; box-shadow: none; }
+:root[data-theme="dark"] .btn.primary kbd { background: rgba(0, 0, 0, 0.18); }
+
+/* Compact: the words shorten before the buttons do. */
+@media (max-width: 600px) {
+  #rail { gap: 6px; padding: 0 8px 0 10px; }
+  #moves { gap: 4px; }
+  .btn { gap: 5px; padding: 0 6px 0 8px; }
+  .btn .keys kbd.alt { display: none; }
+}

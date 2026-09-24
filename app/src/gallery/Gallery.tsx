@@ -2,18 +2,15 @@
  * Every component in every state, light and dark side by side. Opened with
  * `?gallery` in a normal browser against the Vite dev server.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, Hud, Icon, Kbd, List, Panel, Row, Search, Toast, View,
   grammar, groupBySection, useCursor, type Hit, type ToastSpec,
 } from "../ui";
 import type { FormValues, Item, ViewNode } from "../ui/types";
 import { Launcher } from "../Launcher";
-import { PALETTES, iconOf, toView, type SourceInfo } from "../items";
+import { iconOf } from "../items";
 import { toItem, type Raw } from "../fixtures";
-import { DEFAULTS, apply, newGame, type Action as Move, type State } from "../../../extensions/blackjack/game.ts";
-import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
-import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
   SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
@@ -123,13 +120,6 @@ const renameForm = (item: Item, errors?: Record<string, string>) => ({
   submit: { id: "save", title: "Rename" }, errors,
 });
 
-/** One live launcher at a time: both listen on the window, as the app's one does, so two would answer every key. */
-type Live = "playground" | "blackjack";
-function LiveSlot({ id, live, onLive, children }: { id: Live; live: Live; onLive: (id: Live) => void; children: ReactNode }) {
-  if (live === id) return <>{children}</>;
-  return <div className="g-frame g-frame--live g-frame--parked"><button type="button" onClick={() => onLive(id)}>Make this the live launcher</button><span className="g-note">The other live launcher has the keyboard; one at a time, as in the app.</span></div>;
-}
-
 function Playground({ items }: { items: Item[] }) {
   const [hud, setHud] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
@@ -176,7 +166,9 @@ function FormDemo() {
   );
 }
 
-/* View section: the vocabulary, and blackjack drawn by the extension's own render.ts. */
+/* View section: the vocabulary. */
+/** A picture an extension drew: a rounded card with a letter, as an SVG data url. */
+const drawn = (text: string, fill: string, w = 56, h = 80) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect x="0.5" y="0.5" width="${w - 1}" height="${h - 1}" rx="6" fill="${fill}" stroke="rgba(26,26,31,0.16)"/><text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="${Math.round(h / 3.5)}" font-weight="600" fill="#1A1A1F">${text}</text></svg>`)}`;
 const vocabulary: ViewNode = {
   type: "stack", padding: 4, gap: 3,
   children: [
@@ -227,13 +219,11 @@ const vocabulary: ViewNode = {
       ] },
     ] },
     { type: "stack", direction: "row", gap: 2, align: "end", children: [
-      { type: "image", src: cardSvg("AS"), width: 56, height: 80, alt: "ace of spades" },
-      { type: "image", src: cardSvg("QH"), width: 56, height: 80 },
-      { type: "image", src: cardSvg("10D"), width: 56, height: 80 },
-      { type: "image", src: cardSvg("7C"), width: 56, height: 80 },
-      { type: "image", src: backSvg(), width: 56, height: 80 },
-      { type: "image", src: cardSvg("KS"), width: 28, height: 40, mask: "rounded" },
-      { type: "image", src: cardSvg("2H"), width: 40, height: 40, mask: "circle" },
+      { type: "image", src: drawn("A", "#FFFFFF"), width: 56, height: 80, alt: "a card" },
+      { type: "image", src: drawn("Q", "#F4E7C8"), width: 56, height: 80 },
+      { type: "image", src: drawn("7", "#DCE6F9"), width: 56, height: 80 },
+      { type: "image", src: drawn("K", "#FFFFFF"), width: 28, height: 40, mask: "rounded" },
+      { type: "image", src: drawn("2", "#E4DCF6", 40, 40), width: 40, height: 40, mask: "circle" },
       { type: "text", value: "image: an SVG the extension drew, sized in px, rounded or circle mask", style: "muted", size: "xs" },
     ] },
     { type: "stack", direction: "row", gap: 2, children: [
@@ -245,48 +235,6 @@ const vocabulary: ViewNode = {
     ] },
   ],
 };
-
-/** A rigged shoe: the dealer pops from the end, so `order` lists player, dealer, player, hole, then draws. */
-const rigged = (order: string[], s = DEFAULTS): State => {
-  const st = newGame(s, () => 0.5);
-  return { ...st, shoe: [...st.shoe.slice(0, 200), ...[...order].reverse()] as State["shoe"] };
-};
-const midHand = apply(apply(rigged(["8S", "KH", "8D", "7C", "3S", "5S", "10S"]), "deal"), "split");
-const settledHand = (() => { let st = apply(rigged(["10S", "9H", "9D", "6C", "KS"]), "deal"); st = apply(st, "stand"); st.stats = { hands: 12, wins: 7, losses: 4, pushes: 1, blackjacks: 1, net: 85 }; return st; })();
-const betting = (() => { const st = newGame(DEFAULTS, () => 0.5); st.stats = { hands: 12, wins: 7, losses: 4, pushes: 1, blackjacks: 1, net: 85 }; st.bankroll = 1085; st.bet = 25; return st; })();
-
-const blackjackSource: SourceInfo = { extension: "", palette: "blackjack", title: "Blackjack", live: false, input: true, view: "view", icon: "🃏", count: 0, stale: false };
-
-/** A live view level: the root has one palette row; Enter on it asks `view`, every key is a pick whose reply is the next tree, exactly as the host does it. */
-function BlackjackDemo() {
-  const state = useRef<State>(newGame(DEFAULTS));
-  const [log, setLog] = useState<string[]>([]);
-  const search = useCallback(async (q: string, scope?: SourceInfo): Promise<Hit[]> => (scope || (q && !"blackjack".includes(q.toLowerCase())) ? [] : [{ item: { id: "blackjack", name: "Blackjack", subtitle: "Blackjack", icon: { kind: "emoji", value: "🃏" }, palette: PALETTES, keywords: ["blackjack"] } }]), []);
-  return (
-    <div className="g-playground">
-      <p className="g-note">Live: Enter on the row opens the view level. H hit, S stand, D double, P split, Enter deals, + / − set the bet, N starts over (asks first), ⌘K lists the moves, Escape leaves and the hand is still there when you come back. Every key is a pick answered with the next tree by the extension's own <code>render.ts</code>.</p>
-      <div className="g-frame g-frame--live">
-        <Launcher
-          sources={[blackjackSource]}
-          search={search}
-          view={async () => toView(renderTable(state.current, DEFAULTS))}
-          onPick={async (item, _q, action) => {
-            if (item.palette === PALETTES) return { keep: true };
-            // A host round trip's worth of latency, so the one-pick-at-a-time rule and the sweep can be seen.
-            await new Promise((r) => setTimeout(r, 120));
-            const move = action as Move | undefined;
-            const next = move ? apply(state.current, move, DEFAULTS) : state.current;
-            setLog((l) => [`pick ${item.id} (${action}) -> ${next.phase}`, ...l].slice(0, 4));
-            state.current = next;
-            return { view: toView(renderTable(next, DEFAULTS)) };
-          }}
-          onHide={() => setLog((l) => ["hide", ...l].slice(0, 4))}
-        />
-      </div>
-      <pre className="g-log">{log.join("\n") || " "}</pre>
-    </div>
-  );
-}
 
 const toasts: ToastSpec[] = [
   { style: "success", title: "Copied", message: "https://developers.raycast.com" },
@@ -335,7 +283,6 @@ export default function Gallery() {
 
 function GalleryPage() {
   const [raws, setRaws] = useState<Raw[]>([]);
-  const [live, setLive] = useState<Live>("playground");
   const [theme, setTheme] = useState<(typeof themes)[number]>(() => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
   useEffect(() => {
@@ -362,7 +309,7 @@ function GalleryPage() {
       </header>
 
       <Section id="playground" title="Playground">
-        <LiveSlot id="playground" live={live} onLive={setLive}>{raws.length ? <Playground items={all} /> : null}</LiveSlot>
+        {raws.length ? <Playground items={all} /> : null}
       </Section>
 
       <Section id="grammar" title="Keyboard grammar">
@@ -553,30 +500,6 @@ function GalleryPage() {
       <Section id="view" title="View">
         <p className="g-note">A view level: the extension sends a render tree from a fixed vocabulary (stack, text, image, tile, badge, divider, spacer, progress, keycap) and the app draws it with the tokens; the search input gives way to the view's title, the footer keeps the first action and ⌘K. A keyed node enters (fade, slide-up/down/left/right, flip, pop), exits, or with <code>move</code> slides from where its key was in the previous tree.</p>
         <State label="Vocabulary: every primitive in every style"><Pair surface><View tree={vocabulary} /></Pair></State>
-        <State label="Blackjack, mid-hand after a split: hand 1 is being played (blue), the hole card is face down">
-          <Pair panel>
-            <Panel search={<Search value="" onChange={noop} back={{ title: "Blackjack", icon: { kind: "emoji", value: "🃏" }, onBack: noop }} title="Hand 1 of 2" />} footer={<Footer icon={{ kind: "emoji", value: "🃏" }} title="Hand 1 of 2" primary={{ title: "Hit" }} actions />}>
-              <View tree={toView(renderTable(midHand, DEFAULTS)).tree} />
-            </Panel>
-          </Pair>
-        </State>
-        <State label="Blackjack, settled: the dealer drew and bust, the result line rose in, the bankroll and the record moved">
-          <Pair panel>
-            <Panel search={<Search value="" onChange={noop} back={{ title: "Blackjack", icon: { kind: "emoji", value: "🃏" }, onBack: noop }} title="Dealer busts" />} footer={<Footer icon={{ kind: "emoji", value: "🃏" }} title="Dealer busts" primary={{ title: "Next hand" }} actions />}>
-              <View tree={toView(renderTable(settledHand, DEFAULTS)).tree} />
-            </Panel>
-          </Pair>
-        </State>
-        <State label="Blackjack, placing a bet: the table is clear and the rows keep their height; ⌘K lists the moves with their keys">
-          <Pair panel>
-            <Panel search={<Search value="" onChange={noop} back={{ title: "Blackjack", icon: { kind: "emoji", value: "🃏" }, onBack: noop }} title="Place your bet" />} footer={<Footer icon={{ kind: "emoji", value: "🃏" }} title="Place your bet" primary={{ title: "Deal" }} actions />} overlay={<ActionPanel actions={toView(renderTable(betting, DEFAULTS)).actions} onRun={noop} onClose={noop} title="Place your bet" />}>
-              <View tree={toView(renderTable(betting, DEFAULTS)).tree} />
-            </Panel>
-          </Pair>
-        </State>
-        <State label="Live">
-          <LiveSlot id="blackjack" live={live} onLive={setLive}><BlackjackDemo /></LiveSlot>
-        </State>
       </Section>
 
       <Section id="detail" title="Detail">

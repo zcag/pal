@@ -33,7 +33,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
 | [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
-| [Blackjack](#blackjack-blackjack) | `blackjack` | view, normal | Deal, or the next hand; declines insurance |
+| [Blackjack](#blackjack-blackjack) | `blackjack` | view, normal | Deal, hit, or the next hand; declines insurance |
 | [Bluetooth](#bluetooth-bluetooth) | `bluetooth` | live, normal | Connect or disconnect |
 | [Bookmarks](#bookmarks-bookmarks-bookmarks-history) | `bookmarks` | indexed, primary | Open in the browser |
 | [Browser History](#bookmarks-bookmarks-bookmarks-history) | `bookmarks-history` | input | Open in the browser it came from |
@@ -224,32 +224,40 @@ Settings, `[extensions.apps]`:
 
 ## Blackjack (`blackjack`)
 
-A hand of blackjack in the panel, keyboard only. Enter on the palette's
-row (or its hotkey) opens the table as a view level: the search input
-gives way to the phase ("Place your bet", "Your turn", "Dealer busts"),
-the footer shows the primary key, ⌘K lists every move with its key.
+A hand of blackjack on a felt table. Enter on the palette's row (or its
+hotkey) opens the table as a view level: a `surface`, the extension's own
+page, with the Kenney deck dealt from a shoe in the corner. The title line
+shows the phase ("Place your bet", "Your turn", "Dealer busts"), the
+footer the primary move, and ⌘K lists every legal move with its key.
 
-- Betting: `+` and `-` move the bet by the minimum, Enter deals.
-- Playing: `H` hit, `S` stand, `D` double down (first two cards, one card
-  then stand), `P` split (a pair, once; split aces take one card each).
-  Totals show live next to each hand ("Soft 17"); the dealer's hole card
-  stays face down until you stand, then flips and the dealer draws to 17.
-- Settled: the result and the net for the hand, Enter for the next hand.
-  `N` starts a new game (asks first) with a fresh bankroll and record.
+- Betting: `↑` / `+` and `↓` / `-` move the bet by the minimum (or click
+  the chips), Enter deals: player, dealer, player, then the hole card face
+  down.
+- Playing: `↑` or `H` hit, `↓` or `S` stand, `→` or `D` double down (first
+  two cards, one card then stand), `←` or `P` split (a pair, once; split
+  aces take one card each; the hands slide apart). Enter hits too. Totals
+  show on a badge over each hand ("Soft 17"); on stand the hole card turns
+  over and the dealer draws to 17.
+- Settled: the result and the net for the hand; a win glows, a bust
+  shakes, a blackjack gets its own flourish, and the chips go to the
+  dealer or come back with the winnings. Enter for the next hand. `N`
+  starts a new game (asks first) with a fresh bankroll and record.
+- Every move is a button on the rail under the felt too, with its keys on
+  it; the arrows and Enter play a whole hand one-handed.
 - Escape leaves at any point; the hand, the bankroll and the record persist
   (in the extension's storage), so the table is as you left it next time.
 
 Rules: dealer stands on 17 (soft 17 too unless `dealer_hits_soft_17`),
 blackjack pays 3:2, a dealer blackjack is checked at once, doubling after a
 split is allowed, no surrender. The shoe is `decks` decks and is
-reshuffled before a deal once under a quarter of it is left (the status
-line's bar). Insurance is offered on an ace only with `insurance = true`
-(`i` takes it; Enter declines), costs half the bet and pays 2:1.
+reshuffled before a deal once under a quarter of it is left (the bar on
+the shoe). Insurance is offered on an ace only with `insurance = true`
+(`↑` or `i` takes it; `↓` or Enter declines), costs half the bet and pays
+2:1.
 
-Cards are drawn by the extension as SVG (rank and suit indices, pips laid
-out as on a real deck) so nothing is loaded from disk; they sit on a
-sunken well the app draws, and a split's card glides across to its new
-hand; the view vocabulary they ride on is in [Extensions](extensions.md).
+The page plays with the extension's own rules (`game.ts`, the file the
+host tests), so the table and the tests cannot disagree; the surface node
+it rides on is in [Extensions](extensions.md).
 
 ```toml
 [extensions.blackjack]

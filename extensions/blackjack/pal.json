@@ -1,9 +1,14 @@
 {
   "name": "blackjack",
   "title": "Blackjack",
-  "description": "A hand of blackjack in the panel, keyboard only: H hit, S stand, D double, P split, Enter deals; the arrows play it one-handed. The bankroll and the record persist.",
+  "description": "Blackjack on a felt table with a real deck: arrows and Enter play a hand one-handed (up hit, down stand), or click the moves. The bankroll and the record persist.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󱢡", "bg": "red" } },
+  "icon": {
+    "tile": {
+      "glyph": "󱢡",
+      "bg": "red"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -51,21 +56,20 @@
       "id": "insurance",
       "label": "Offer insurance",
       "text": "Ask when the dealer shows an ace",
-      "description": "I takes it for half the bet; Enter declines. Off, the hand plays on without the question.",
+      "description": "Up or I takes it for half the bet; down or Enter declines. Off, the hand plays on without the question.",
       "default": false
     }
   ],
   "store": {
-    "tagline": "Blackjack in the panel: H, S, D, P; the bankroll persists",
+    "tagline": "Blackjack on felt, arrows or mouse; the bankroll persists",
     "category": "fun",
     "features": [
-      "The table as a view level: the phase replaces the search input (`Place your bet`, `Your turn`, `Dealer busts`), the footer shows the primary key, `cmd+k` lists every move",
-      "`+` and `-` set the bet, `Enter` deals; `H` hit, `S` stand, `D` double down, `P` split a pair; totals show live (`Soft 17`)",
-      "One-handed on the arrows: `↑` `↓` set the bet, then `↑` hit, `↓` stand, `→` double, `←` split; `Enter` deals, hits and declines insurance",
+      "A casino table in the panel: the Kenney deck dealt from a shoe in the order a dealer deals (player, dealer, player, hole), the hole card turning over, a split's hands sliding apart, chips for the bet",
+      "One-handed: `up` and `down` set the bet and `Enter` deals; then `up` hit, `down` stand, `right` double, `left` split; letters `H S D P` too",
+      "Every move is a button with its keys on it, and `cmd+k` lists the legal ones; the title line says the phase (`Place your bet`, `Your turn`, `Dealer busts`)",
+      "A win glows, a bust shakes, a blackjack gets a flourish; the bankroll counts to its new value and totals read `Soft 17`",
       "Dealer stands on 17 (H17 by setting), blackjack pays 3:2, a dealer blackjack is checked at once, doubling after a split allowed, no surrender; insurance by setting",
-      "A shoe of 1 to 8 decks, reshuffled once under a quarter is left (the status line's bar)",
-      "Escape leaves at any point; the hand, the bankroll and the record are there when you come back, across restarts",
-      "Cards are SVG the extension draws itself, pips laid out as on a real deck"
+      "Escape leaves at any point; the hand, the bankroll and the record are there when you come back, across restarts"
     ],
     "permissions": [],
     "platforms": [
@@ -75,7 +79,7 @@
     "screenshots": [
       {
         "file": "1-bet.png",
-        "caption": "Placing a bet: + and - move it by the minimum, Enter deals"
+        "caption": "Placing a bet: the chips on the felt, up and down move it by the minimum, Enter deals"
       },
       {
         "file": "2-hand.png",
@@ -83,11 +87,11 @@
       },
       {
         "file": "3-settled.png",
-        "caption": "Settled: the dealer drew and bust, the net for the hand, the record moved"
+        "caption": "Settled: the dealer drew and bust, the winnings stacked on the bet, the bankroll moved"
       },
       {
-        "file": "4-moves.png",
-        "caption": "A pair of eights against a king: hit, stand, double down or split, each with its key"
+        "file": "4-blackjack.png",
+        "caption": "A blackjack in the dark theme: 3:2, and its flourish"
       }
     ],
     "actions": [
@@ -97,35 +101,36 @@
         "keys": "enter"
       },
       {
-        "title": "Hit (also up)",
-        "keys": "h"
+        "title": "Hit",
+        "description": "Enter hits too.",
+        "keys": "up, h"
       },
       {
-        "title": "Stand (also down)",
-        "keys": "s"
+        "title": "Stand",
+        "keys": "down, s"
       },
       {
-        "title": "Double down (also right)",
+        "title": "Double down",
         "description": "On the first two cards: one card, then stand.",
-        "keys": "d"
+        "keys": "right, d"
       },
       {
-        "title": "Split (also left)",
+        "title": "Split",
         "description": "A pair, once; split aces take one card each.",
-        "keys": "p"
+        "keys": "left, p"
       },
       {
-        "title": "Raise the bet (also up)",
-        "keys": "+"
+        "title": "Raise the bet",
+        "keys": "up, +"
       },
       {
-        "title": "Lower the bet (also down)",
-        "keys": "-"
+        "title": "Lower the bet",
+        "keys": "down, -"
       },
       {
-        "title": "Take insurance (also up)",
-        "description": "Offered on an ace with `insurance` on; Enter declines.",
-        "keys": "i"
+        "title": "Take insurance",
+        "description": "Offered on an ace with `insurance` on; down or Enter declines.",
+        "keys": "up, i"
       },
       {
         "title": "New game",
@@ -141,35 +146,51 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Deal, or the next hand; hits mid-hand; declines insurance"
+          "title": "Deal, hit, or the next hand; declines insurance"
+        },
+        {
+          "keys": "up",
+          "title": "Hit; raise the bet; take insurance"
+        },
+        {
+          "keys": "down",
+          "title": "Stand; lower the bet; no insurance"
+        },
+        {
+          "keys": "right",
+          "title": "Double down"
+        },
+        {
+          "keys": "left",
+          "title": "Split"
         },
         {
           "keys": "h",
-          "title": "Hit (also up)"
+          "title": "Hit"
         },
         {
           "keys": "s",
-          "title": "Stand (also down)"
+          "title": "Stand"
         },
         {
           "keys": "d",
-          "title": "Double down (also right)"
+          "title": "Double down"
         },
         {
           "keys": "p",
-          "title": "Split (also left)"
+          "title": "Split"
         },
         {
           "keys": "+",
-          "title": "Raise the bet (also up)"
+          "title": "Raise the bet"
         },
         {
           "keys": "-",
-          "title": "Lower the bet (also down)"
+          "title": "Lower the bet"
         },
         {
           "keys": "i",
-          "title": "Take insurance, when offered (also up)"
+          "title": "Take insurance, when offered"
         },
         {
           "keys": "n",
