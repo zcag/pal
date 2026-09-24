@@ -1,0 +1,111 @@
+{
+  "name": "snake",
+  "title": "Snake II",
+  "description": "Snake II exactly as the Nokia 3310 plays it, on the phone's own 84 by 48 screen: its menus, nine levels, five mazes, the bonus creatures, the split-second before a crash, the top score and its fireworks, the buzzer. Arrows steer (2 4 6 8), Enter is the phone's Menu and Select, Backspace its C.",
+  "version": "0.1.0",
+  "icon": { "tile": { "svg": "M2 9h7v2H2zM7 4h2v7H7zM7 4h6v2H7zM12.5 9.5h1.5V11h-1.5z", "bg": "green" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "tones",
+      "label": "Game tones",
+      "text": "The buzzer: the click on eating, the pips on a crash, the top score's jingle",
+      "description": "The phone's own \"Warning and game tones\". Also flipped with cmd+T on the game.",
+      "default": true
+    }
+  ],
+  "store": {
+    "tagline": "The Nokia 3310's Snake II, pixel for pixel and step for step",
+    "category": "fun",
+    "features": [
+      "The phone's firmware as the reference: every screen, sprite, maze, rule, delay and tone was read off the real 3310 firmware (v6.07) running in an emulator, and the tests replay 123 of its recorded runs frame by frame",
+      "The 84 by 48 screen drawn pixel for pixel in whole multiples, taller than wide as the 3310's are, lit green in the menus and unlit in play as the phone keeps its backlight",
+      "Its menus as the phone draws them: New game, Level with its nine bars, Mazes with the tick, Top score with the coin cup, Instructions, and Continue after a pause",
+      "Nine levels (656 ms a step down to 88 ms), No maze and Mazes 1 to 5, food worth the level, a bonus creature after every five foods with its countdown from 20",
+      "The split-second before a crash: a blocked step waits about 100 ms, so a late turn still saves the snake",
+      "Game over, the blink, and on a new top score the fireworks with the jingle; the phone's random numbers, so the first food after a power-on is where it was on the phone",
+      "Arrows as 2 4 6 8 (the phone's scroll keys in a menu), Enter as Menu and Select, Backspace as C, the digits, `*` and `#` as the keypad; Escape pauses and leaves, and Continue is there when you come back"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-play.png",
+        "caption": "Level 5, a bonus creature up with its countdown at the top right; unlit, as the phone keeps its backlight in play"
+      },
+      {
+        "file": "2-menu.png",
+        "caption": "The Snake II menu, lit, as the phone draws it"
+      },
+      {
+        "file": "3-maze.png",
+        "caption": "Maze 2 at level 5: the bulges of the food swallowed ride down the body"
+      },
+      {
+        "file": "4-topscore.png",
+        "caption": "The Top score screen, its coins falling into the cup"
+      }
+    ],
+    "actions": [
+      {
+        "title": "2 4 6 8",
+        "description": "Steer: up, left, right, down. The arrows while playing. 1 3 7 9 turn across the way the snake goes, `*` and `#` turn left and right.",
+        "keys": "up, left, right, down"
+      },
+      {
+        "title": "Menu, Select, OK, More",
+        "description": "The phone's left soft key. In play it pauses.",
+        "keys": "enter"
+      },
+      {
+        "title": "C",
+        "description": "Back; in play it pauses. On the Snake II menu it leaves the game.",
+        "keys": "backspace"
+      },
+      {
+        "title": "Scroll",
+        "description": "The phone's scroll keys: the arrows in a menu, Page Up and Page Down anywhere (they turn the snake left and right in play).",
+        "keys": "pageup, pagedown"
+      },
+      {
+        "title": "Game tones",
+        "description": "The buzzer on or off.",
+        "keys": "cmd+t"
+      }
+    ]
+  },
+  "palettes": {
+    "snake": {
+      "kind": "view",
+      "description": "The phone's screen. Escape pauses the game and leaves; Continue waits in the menu.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "2 4 6 8 in play (also down, left, right); the scroll keys in a menu"
+        },
+        {
+          "keys": "enter",
+          "title": "Menu, Select, OK, More (the left soft key)"
+        },
+        {
+          "keys": "backspace",
+          "title": "C: back, or pause in play"
+        },
+        {
+          "keys": "pageup",
+          "title": "Scroll up (in play: turn left); Page Down scrolls down (turn right)"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Game tones on or off"
+        }
+      ]
+    }
+  }
+}
