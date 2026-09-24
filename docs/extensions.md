@@ -498,9 +498,9 @@ a grid) are not tinted: they are what the palette lists.
 
 A palette can draw instead of list: give it `view(ctx)` in place of
 `list`, returning a `View`, and pal opens it as a **view level**. The
-bundled Blackjack, 2048, Wordle and Solitaire are
-(`extensions/{blackjack,2048,wordle,solitaire}/`); Minesweeper's body is
-its own page instead, a `surface` node (`extensions/minesweeper/surface/`).
+bundled 2048 and Wordle are (`extensions/{2048,wordle}/`); Blackjack,
+Minesweeper and Solitaire draw their own page instead, a `surface` node
+(`extensions/{blackjack,minesweeper,solitaire}/surface/`).
 The tree is built from a fixed vocabulary the app draws with its own
 tokens, never HTML, so a view looks like the rest of the panel in both
 themes. The one exception is a game's own page, a `surface` node (below,

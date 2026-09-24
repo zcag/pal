@@ -18,19 +18,9 @@
 // `settings.set`), so the settings page and the page agree.
 import { LEVELS, adopt, apply, around, count, elapsed, isChord, isState, levelOf, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, clockText, type Action, type Dir, type Level, type State } from "../game.ts";
 import { blast, confetti } from "./fx.ts";
+import type { SurfaceKit } from "@zcag/pal";
 
-type Pal = {
-  send(msg: unknown): Promise<unknown>;
-  onAction(fn: (id: string) => void): void;
-  storage: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
-  settings(): Promise<Record<string, unknown>>;
-  onSettings(fn: (s: Record<string, unknown>) => void): void;
-  title(text: string): void;
-  onShown(fn: () => void): void;
-  onHidden(fn: () => void): void;
-  ready(): void;
-};
-declare const pal: Pal;
+declare const pal: SurfaceKit;
 
 const KEY = "state";
 const ORDER: Level[] = ["beginner", "intermediate", "expert"];
@@ -265,7 +255,7 @@ face.addEventListener("click", restart);
 // ---- keys -------------------------------------------------------------------
 
 const DIRS: Record<string, Dir> = { ArrowUp: "up", k: "up", ArrowDown: "down", j: "down", ArrowLeft: "left", h: "left", ArrowRight: "right", l: "right" };
-addEventListener("keydown", (e) => {
+window.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.key === "Escape" || e.key === "Shift") return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   e.preventDefault();

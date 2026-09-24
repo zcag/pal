@@ -7,18 +7,9 @@
 import { DEFAULTS, RANKS, SUITS, apply, isState, newGame, type Action as Move, type Card, type Settings, type State } from "../game.ts";
 import { MOVES, moveFor, titleOf } from "../moves.ts";
 import { Table, preload } from "./table.ts";
+import type { SurfaceKit } from "@zcag/pal";
 
-/** What surface.js puts on `window.pal`, the parts this page uses. */
-type Pal = {
-  send(msg: unknown): Promise<unknown>;
-  onAction(fn: (id: string) => void): void;
-  storage: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
-  settings(): Promise<Record<string, unknown>>;
-  onSettings(fn: (s: Record<string, unknown>) => void): void;
-  title(text: string): void;
-  ready(): void;
-};
-const pal = (window as unknown as { pal: Pal }).pal;
+declare const pal: SurfaceKit;
 
 const KEY = "state";
 const settingsOf = (raw: Record<string, unknown>): Settings => ({ ...DEFAULTS, ...(raw as Partial<Settings>) });

@@ -15,8 +15,7 @@ const ACTIONS: Action[] = [
   { id: "new", title: "New game", shortcut: "n" },
 ];
 
-// The SDK's ViewNode does not list `surface` yet (the node lands with the app's frame): the one cast.
-const TABLE = { tree: { type: "surface", src: "surface/index.html" }, actions: ACTIONS, title: "Solitaire" } as unknown as View;
+const TABLE: View = { tree: { type: "surface", src: "surface/index.html" }, actions: ACTIONS, title: "Solitaire" };
 
 export default {
   palettes: {

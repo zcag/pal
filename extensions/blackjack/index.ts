@@ -21,13 +21,11 @@ async function load(s: Settings): Promise<State> {
   return isState(stored) ? stored : newGame(s);
 }
 
-// `surface` is not in the SDK's ViewNode yet (the surface contract); the cast goes once it is.
-const TABLE = { type: "surface", src: "surface/index.html", key: "table" } as unknown as ViewNode;
+const TABLE: ViewNode = { type: "surface", src: "surface/index.html", key: "table" };
 
 const table = (st: State, s: Settings): View => ({ tree: TABLE, actions: viewActions(st, s), title: titleOf(st, s) });
 
-// `onMessage` is not on the SDK's Palette yet either; a variable, not a literal, keeps `satisfies` from calling it excess.
-const blackjack: ViewPalette & { onMessage(msg: unknown): Promise<void> } = {
+const blackjack: ViewPalette = {
   title: "Blackjack",
   view: async () => table(await load(current()), current()),
   // A surface view's picks go to the page; nothing arrives here.

@@ -15,18 +15,9 @@
 // change and when it is hidden.
 import { DEFAULTS, F, RANKS, SUITS, SUIT_GLYPH, STOCK, WASTE, apply, canFinish, clock, finishStep, headline, isFoundation, isState, newGame, play, refusal, run, running, suitOf, type Action, type Card, type Settings, type State } from "../game.ts";
 import { dropBox, geometry, layout, overlap, slot, topBox, type Box, type Layout } from "./layout.ts";
+import type { SurfaceKit } from "@zcag/pal";
 
-/** The kit's `window.pal` (surface.js), the part this page uses. */
-declare const pal: {
-  onAction(fn: (id: string) => void): void;
-  storage: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
-  settings(): Promise<Record<string, unknown>>;
-  onSettings(fn: (s: Record<string, unknown>) => void): void;
-  title(text: string): void;
-  onShown(fn: () => void): void;
-  onHidden(fn: () => void): void;
-  ready(): void;
-};
+declare const pal: SurfaceKit;
 
 const KEY = "state";
 /** A card's glide (style.css `--move`); the deal's step between two cards; the finish's between two cards home. */

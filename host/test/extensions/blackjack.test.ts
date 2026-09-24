@@ -245,10 +245,9 @@ describe("over the wire", () => {
     expect(fresh.title).toBe("Out of chips");
     expect(fresh.actions.map((a) => a.id)).toEqual(["new"]);
   });
-  // `host.surfaceSend` comes with the surface infra; until that is merged this one is skipped.
-  test.skipIf(!("surfaceSend" in Host.prototype))("the page's `moved` pushes the view's actions and title for the saved state", async () => {
+  test("the page's `moved` pushes the view's actions and title for the saved state", async () => {
     stored.set("blackjack\0state", dealt(["8S", "9H", "8D", "6C"]));
-    const push = (host as unknown as { surfaceSend(ext: string, palette: string, msg: unknown): Promise<unknown> }).surfaceSend("blackjack", "blackjack", { moved: true });
+    const push = host.surfaceSend("blackjack", "blackjack", { moved: true });
     const u = await host.nextViewUpdate("blackjack", { palette: "blackjack" });
     await push;
     const spec = u.spec as View;

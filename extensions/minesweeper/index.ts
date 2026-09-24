@@ -6,7 +6,7 @@
 // the page, lists the moves for cmd+k (the page gets them as `pal.onAction`),
 // and writes the difficulty the page's level picker chooses, so the setting
 // stays the one the settings page shows.
-import { settings, type Action, type Extension, type View } from "@zcag/pal";
+import { settings, type Action, type Extension, type ViewPalette } from "@zcag/pal";
 import { LEVELS, type Level } from "./game.ts";
 
 const EXTENSION = "minesweeper";
@@ -26,11 +26,9 @@ export async function message(msg: unknown): Promise<unknown> {
   return { difficulty: level as Level };
 }
 
-// `surface` and `onMessage` are the game-surface contract, ahead of the SDK types: the node is cast, and the palette is a
-// variable so `onMessage` passes `satisfies` until `Palette` declares it.
-const minesweeper = {
+const minesweeper: ViewPalette = {
   title: "Minesweeper",
-  view: async () => ({ tree: { type: "surface", src: "surface/index.html" }, actions: ACTIONS, title: "Minesweeper" }) as unknown as View,
+  view: async () => ({ tree: { type: "surface", src: "surface/index.html" }, actions: ACTIONS, title: "Minesweeper" }),
   /** The moves reach the page as `pal.onAction`, never here. */
   pick: () => {},
   onMessage: message,

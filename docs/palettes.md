@@ -33,7 +33,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
 | [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
-| [Blackjack](#blackjack-blackjack) | `blackjack` | view, normal | Deal, hit, or the next hand; declines insurance |
+| [Blackjack](#blackjack-blackjack) | `blackjack` | view (surface), normal | Deal, hit, or the next hand; declines insurance |
 | [Bluetooth](#bluetooth-bluetooth) | `bluetooth` | live, normal | Connect or disconnect |
 | [Bookmarks](#bookmarks-bookmarks-bookmarks-history) | `bookmarks` | indexed, primary | Open in the browser |
 | [Browser History](#bookmarks-bookmarks-bookmarks-history) | `bookmarks-history` | input | Open in the browser it came from |
@@ -124,7 +124,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Search Slack](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-search` | input, normal | Open the message in Slack |
 | [Status](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-status` | live, normal | Set it |
 | [Snippets](#snippets-snippets) | `snippets` | indexed, primary | Paste into the app in front |
-| [Solitaire](#solitaire-solitaire) | `solitaire` | view, normal | Pick up or drop the cards; twice on one card, send it where it goes; draw on the stock |
+| [Solitaire](#solitaire-solitaire) | `solitaire` | view (surface), normal | Draw (in the page, Enter picks up or drops the cards; twice on one card, sends it where it goes) |
 | [Speedtest](#speedtest-speedtest-speedtest-history) | `speedtest` | view, normal | Start the test (stop it while it runs) |
 | [Speedtest History](#speedtest-speedtest-speedtest-history) | `speedtest-history` | live, normal | Copy the run (on Trend: show the bars) |
 | [Lyrics](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-now-playing` | view, normal | Play or pause |
