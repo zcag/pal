@@ -17,4 +17,4 @@ git log --no-merges --format='- %s' "${prev:+$prev..}$tag"
 echo
 echo "</details>"
 echo
-echo "Every release: https://pal.cagdas.io/changelog${prev:+?from=${prev#v}}. Download: https://pal.cagdas.io/#download"
+echo "Changelog: https://pal.cagdas.io/changelog · Download: https://pal.cagdas.io/#download"
