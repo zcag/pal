@@ -3072,6 +3072,44 @@ fits the compact panel.
 difficulty = "beginner"       # intermediate (16x16, 40), expert (30x16, 99); from the next board; D on the board too
 ```
 
+## Snake II (`snake`)
+
+Snake II as the Nokia 3310 plays it, on the phone's own 84 by 48 screen.
+Enter on the palette's row opens it as a view level whose body is the
+extension's own page (a `surface`): the SNAKE II splash, then the phone's
+menu (New game, Level, Mazes, Top score, Instructions), lit green, and the
+game unlit, as the phone keeps its backlight. Every screen, sprite, maze,
+rule, delay and tone comes from the real 3310 firmware (v6.07) run in an
+emulator, and the tests replay 123 runs recorded from it frame by frame.
+
+- Steering: the arrows are the phone's 2 4 6 8 while playing; the digits,
+  `*` and `#` are the keypad (1 3 7 9 turn across the way the snake goes,
+  `*` and `#` turn left and right). Only the last key before a step counts;
+  a key back the way the snake came is dropped.
+- Enter is the phone's left soft key (Menu, Select, OK, More), Backspace
+  its C; in a menu the up and down arrows are its scroll keys (Page Up and
+  Page Down anywhere).
+- Levels 1 to 9 (656 ms a step down to 88 ms), No maze and Mazes 1 to 5,
+  food worth the level, a bonus creature after every fifth food with its
+  countdown from 20, worth 5 x level + 5 + 2 x the countdown.
+- A step into a wall or the body waits about 100 ms and tries again with
+  any turn pressed meanwhile: a late turn still saves the snake.
+- Game over blinks the snake, then the score; a new top score gets the
+  fireworks and the jingle.
+- C or Menu in play pauses (Continue first in the menu); Escape and the
+  panel hiding pause too, and Continue is there next time, across
+  restarts. C on the Snake II menu, or a digit on any of its screens (the
+  phone's dialer), leaves the game and closes the view.
+- The level, the maze, the top score, a paused game and the phone's random
+  numbers persist in the extension's storage; the numbers start again
+  from 1 when pal starts (the phone's power-on), so the first food after
+  it is where the phone puts it.
+
+```toml
+[extensions.snake]
+tones = true                  # the buzzer: eating, a crash, the top score's jingle; cmd+T on the game
+```
+
 ## Solitaire (`solitaire`)
 
 Klondike in the panel, by mouse or one-handed on the arrows and Enter.

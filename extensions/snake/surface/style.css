@@ -1,0 +1,37 @@
+/*
+ * Snake II's page: the phone's 84 by 48 screen and nothing else of the
+ * phone. The canvas holds the LCD's own pixels; main.ts sizes it to whole
+ * multiples (6 across by 7 down at the panel's sizes: the 3310's pixels are
+ * about 1.2 times taller than wide), and `pixelated` keeps them crisp. The
+ * LCD's colours are its own in both themes; the bezel around it and the
+ * key hints follow the panel.
+ */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body {
+  background: var(--pal-bg, #F4F4F6);
+  color: var(--pal-fg-muted, #6B6B75);
+  font: var(--pal-text-xs, 11px) / 1.25 var(--pal-font-ui, system-ui, sans-serif);
+  display: flex; flex-direction: column;
+  user-select: none; -webkit-user-select: none;
+}
+#stage { flex: 1; display: grid; place-items: center; min-height: 0; }
+#bezel {
+  padding: 10px;
+  border-radius: 14px;
+  background: #23262B;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme="dark"] #bezel { background: #121417; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+#lcd { display: block; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 2px; }
+#hints {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px;
+  padding: 0 12px 10px;
+}
+#hints span { white-space: nowrap; }
+kbd {
+  display: inline-block; min-width: 16px; padding: 0 4px; margin-right: 2px;
+  border: 1px solid var(--pal-line, #DADAE0); border-radius: 4px;
+  background: var(--pal-bg-elevated, #FFFFFF); color: var(--pal-fg, #1A1A1F);
+  font: inherit; text-align: center;
+}
