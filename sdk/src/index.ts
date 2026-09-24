@@ -10,7 +10,7 @@ import type { Extension } from "./protocol.ts";
 
 export * from "./api.ts";
 export type * from "./protocol.ts";
-export { checkBarItem, checkEffect, checkForm, checkView, shortcutsOf, HEX_COLOR, IMAGE_SRC, MAX_BAR_MENU_NODES, MAX_BAR_SEGMENTS, MAX_BAR_SUBMENU_DEPTH, MAX_BAR_TITLE, MAX_DEPTH, MAX_NODES, SHELL_PREFIX } from "./view.ts";
+export { checkBarItem, checkEffect, checkForm, checkView, isSurfaceSrc, shortcutsOf, HEX_COLOR, IMAGE_SRC, MAX_BAR_MENU_NODES, MAX_BAR_SEGMENTS, MAX_BAR_SUBMENU_DEPTH, MAX_BAR_TITLE, MAX_DEPTH, MAX_NODES, SHELL_PREFIX } from "./view.ts";
 export { checkLinkEffect, checkLinkParams, checkLinks, checkPalettes, instanceTitle, stripInstance, isViewPalette, kindOf, LINK_EFFECT_REFUSED, LINK_PARAM_TYPES, PALETTE_KINDS, paletteMeta, VIEW_TRIGGERS } from "./manifest.ts";
 export type { ExtensionFor, ManifestLike, PaletteCheck, PaletteFor, PaletteKeys } from "./manifest.ts";
 export { xdg, XDG_ICONS } from "./icons.ts";

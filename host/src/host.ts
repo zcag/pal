@@ -1,6 +1,6 @@
 // The extension host: loads every extension under the given roots into this
 // one process, serves list/pick (and the bar items' render/action, bar.ts;
-// the view lifecycle notifications, views.ts) over stdio, re-imports an extension when its files change, and relays
+// the view lifecycle notifications, views.ts; a game surface's TypeScript, surface.ts) over stdio, re-imports an extension when its files change, and relays
 // extensions' capability calls to the core (bridge.ts). Logs go to stderr;
 // stdout is the protocol.
 //
@@ -24,6 +24,7 @@ import { bindSdk, SDK } from "./sdk.ts";
 import { describe, forgetDetails, log, paletteMethods, sections as sectionsOf, timeout, type Section, type SectionKind } from "./serve.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
 import { update as updateStates } from "./states.ts";
+import { transpile } from "./surface.ts";
 import { forget as forgetViews, viewMethods } from "./views.ts";
 
 const VERSION = "0.0.1";
@@ -451,6 +452,8 @@ const methods: Record<string, (params: any) => unknown> = {
   suggest: () => sections("suggest", ""),
   ...barMethods(extension, undefined, (k) => manifests.get(k)),
   ...viewMethods,
+  // A game surface's `*.ts` as JavaScript, for the app's `ext://` scheme (surface.ts).
+  "surface/transpile": (p) => transpile(String(p?.path)),
   // Notification from the core: the resolved values of the named extensions (instance keys route to their workers' own tables).
   "settings/changed": (p: SettingsChanged) => {
     const changed = p?.extensions ?? {};

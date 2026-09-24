@@ -306,7 +306,16 @@ export type ViewNode =
   /** A switch pill, `on` or off, in the accent (or `color`); with `action` a click flips it through that action. A room's power, a setting. */
   | (NodeBase & { type: "switch"; on: boolean; color?: TagColor; label?: string })
   /** A shortcut as key caps, in the `Action.shortcut` spelling (`h`, `cmd+k`, `up`). */
-  | (NodeBase & { type: "keycap"; keys: string });
+  | (NodeBase & { type: "keycap"; keys: string })
+  /**
+   * A game's own page, for games only (docs/design/game-surface.md): an
+   * HTML file of the extension's (`src`, relative to its folder, no `..`)
+   * run in a sandboxed frame that fills the view body. The page includes
+   * `/__pal/surface.js` and talks to the extension through `window.pal`
+   * (`Palette.onMessage`, `surface.post`); a view action picked goes to
+   * the page (`pal.onAction`), not to `pick`. One per view.
+   */
+  | (NodeBase & { type: "surface"; src: string });
 
 /**
  * A view level: the search input is hidden, the body is `tree`, the footer
@@ -364,6 +373,43 @@ export type ViewShown = ViewTarget & { id: string; compact?: true };
  * `View.id` matches.
  */
 export type ViewUpdate = ViewTarget & { id?: string; spec: View | { tree: ViewNode } };
+/**
+ * `core/view.post` (host to core) and `pal://view` (core to page): a
+ * message for the page of the open level's `surface` node, as the kit
+ * reads it (`{ pal: "message", data }` from `surface.post`, `{ pal:
+ * "settings", data }` from the host). Dropped like an update while no
+ * such level is open.
+ */
+export type ViewPost = ViewTarget & { id?: string; msg: { pal: "message" | "settings"; data: unknown } };
+/**
+ * `window.pal` in a game surface's page, as the kit sets it
+ * (`/__pal/surface.js`, docs/design/game-surface.md). A page's TypeScript
+ * declares it from the type alone: `import type { SurfaceKit } from
+ * "@zcag/pal"; declare const pal: SurfaceKit;`. Every `on*` returns its
+ * unsubscribe.
+ */
+export type SurfaceKit = {
+  /** To the palette's `onMessage`; resolves with what it returned (undefined for nothing), rejects with what it threw. */
+  send(msg: unknown): Promise<unknown>;
+  /** What the extension pushes with `surface.post`. */
+  on(fn: (msg: any) => void): () => void;
+  /** A view action picked from ⌘K or the footer, or its key pressed outside the page. */
+  onAction(fn: (id: string) => void): () => void;
+  /** The extension's own storage (`storage` in this SDK, the same file); `set` of null or undefined removes the key. */
+  storage: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
+  /** The extension's resolved settings, and every change after the first ask. */
+  settings(): Promise<Record<string, unknown>>;
+  onSettings(fn: (settings: Record<string, unknown>) => void): () => void;
+  /** The view's title line ("Your turn"); "" for the view's own. */
+  title(text: string): void;
+  /** The scheme after a flip (the tokens and `data-theme` are set already). */
+  onTheme(fn: (scheme: "light" | "dark") => void): () => void;
+  /** The panel shown again, or hidden (pause the loop). */
+  onShown(fn: () => void): () => void;
+  onHidden(fn: () => void): () => void;
+  /** The first frame is drawn: the app reveals the page. */
+  ready(): void;
+};
 
 // ---- form: a prompt with fields --------------------------------------------
 // An effect that asks: the UI pushes a form level drawn from these fields,
@@ -651,6 +697,13 @@ type PaletteBase = {
   on?: ViewTrigger[];
   /** `id` is the picked row, or the first marked one with `ctx.ids` carrying them all (`Action.multi`). */
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
+  /**
+   * A view palette with a `surface` node: what its page sends
+   * (`pal.send(msg)`), with the level's `ctx.args`. A value returned (not
+   * undefined) is the page's reply, what `pal.send` resolves with; a throw
+   * rejects it with the message.
+   */
+  onMessage?(msg: unknown, ctx?: Ctx): unknown | Promise<unknown>;
   /**
    * The detail pane's content for one item, asked when the pane is open and
    * the cursor rests on an item whose inline `detail` has no markdown (its

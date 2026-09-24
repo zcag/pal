@@ -1888,3 +1888,31 @@ from `@zcag/pal`, the state whole in storage after every pick, `fixture.ts` for 
 - Tests: `host/test/extensions/minesweeper.test.ts` (laying mines around the safe cell at every level, flood and flags, chord
   and the wrong-flag chord, win/loss and the records, the clock's pause/resume/settle, the tree's keys and transitions, the
   actions with their shortcuts and the hint keycaps, the wire with the push while shown and the pause on hidden).
+
+## Game surfaces: one sandboxed page, for games (2026-09-25)
+
+"UI as a render tree from a fixed component set, never HTML" (Extensions and protocol) stands, with one scoped exception: a
+`surface` view node runs a game's own HTML page in a sandboxed frame that fills the view body. The design, security model
+included, is `docs/design/game-surface.md`. What was decided:
+
+- **Games only.** The five bundled games read as menus on the vocabulary (a pick per key, no pointer, no drag, no frame
+  loop). Growing the vocabulary into an engine is the wrong direction; a page of the game's own is the small one. A palette
+  that shows data keeps using the tree, which follows the theme, the density and the keys by construction; the docs say so.
+- **One node, the level's shape kept.** `{ type: "surface", src }`, `src` inside the extension's folder, one per view
+  (`checkView`). Title, actions, ⌘K and the footer are the view's as ever, but a picked action goes to the page
+  (`pal.onAction`), not to `pick`: the page owns the game state, the extension keeps what outlives it (`storage`, a best).
+- **The app's IPC is what the sandbox protects**, not the user's machine from the extension (its `index.ts` already runs
+  with the user's rights). `sandbox="allow-scripts"` alone (opaque origin), a CSP on every `ext://` response (own origin,
+  no network, no eval, no inline script), a bridge that trusts a message only from its own frame's window and names the
+  extension itself. Tauri's API is main-frame only; the WebKit message handler every frame sees is stopped by the invoke key
+  (a custom scheme counts as a local origin to Tauri, so the key is the control, not the capability's origin). Checked in the
+  running app.
+- **TypeScript pages, transpiled per file by the host, no bundler.** A page imports `../game.ts`, so the rules the host tests
+  are the rules the page runs, and nothing new builds. `Bun.Transpiler` with `trimUnusedImports` (without it a type named in
+  a value import stays and the browser refuses the module); cached by mtime.
+- **The kit is served, not published**: `/__pal/surface.js` (`window.pal`, a browser stub outside pal), the Kenney deck (CC0)
+  and the app's own `tokens.css`, compiled in. `SurfaceKit` in `@zcag/pal` types `window.pal`; `host/tsconfig.surface.json`
+  typechecks pages against the DOM.
+- **Keys**: the frame has focus while the level is up; Escape, ⌘K and any cmd combo the page leaves alone come back as the
+  keydowns the panel would have had, so they behave as on any view. **Shown/hidden** come from views.rs's transitions, sent
+  to the windows still holding the level.

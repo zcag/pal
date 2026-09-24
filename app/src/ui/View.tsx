@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEff
 import { Kbd } from "./Kbd";
 import { Tag } from "./Row";
 import { Presence, reduced } from "./presence";
+import { Surface } from "./Surface";
 import type { ViewNode } from "./types";
 
 /** What an `image` node may load: the app's icon scheme, or a picture the extension made (an SVG data url). Anything else is not shown. */
@@ -68,6 +69,10 @@ const ActionContext = createContext<ViewActionHandler | null>(null);
 
 const ms = (v: string) => (v.trim().endsWith("ms") ? parseFloat(v) : parseFloat(v) * 1000) || 0;
 
+/** Whether `tree` holds a `surface` node: the level's actions then go to its page, not to the extension's `pick`. */
+export const hasSurface = (tree: ViewNode | undefined): boolean =>
+  !!tree && typeof tree === "object" && (tree.type === "surface" || (tree.type === "stack" && Array.isArray(tree.children) && tree.children.some(hasSurface)));
+
 /** Keys of the nodes in `tree` that carry `transition.move`. */
 function movingKeys(tree: ViewNode, into = new Set<string>()): Set<string> {
   if (tree && typeof tree === "object") {
@@ -80,7 +85,8 @@ function movingKeys(tree: ViewNode, into = new Set<string>()): Set<string> {
 /**
  * A render tree (`ViewNode`, mirrored from sdk/src/protocol.ts) drawn with
  * the tokens: a fixed vocabulary of stacks, text, images, tiles, badges,
- * dividers, spacers, progress bars, gradients and key caps, never HTML. A node of a
+ * dividers, spacers, progress bars, gradients and key caps, never HTML
+ * (a game's `surface` is the one page of its own, Surface.tsx). A node of a
  * type this build does not know is skipped, not thrown on, so a newer
  * extension still draws the rest. Keyed children of a stack animate in and
  * out per their `transition`: a new key enters (fade, a slide, flip, pop),
@@ -361,6 +367,9 @@ function Node({ node }: { node: ViewNode }) {
       );
     case "keycap":
       return <Kbd className="pal-view__node" shortcut={String(node.keys ?? "")} {...motion} style={mstyle} />;
+    case "surface":
+      // Keyed by the page: another `src` is another page, a fresh frame.
+      return typeof node.src === "string" ? <Surface key={node.src} src={node.src} /> : null;
     default:
       return null;
   }

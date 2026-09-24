@@ -1,7 +1,7 @@
 // A `View` (protocol.ts) checked before it leaves the host, so the UI only
 // ever sees a tree it can draw (a `Form` and a `BarItem` likewise): a node
 // count and depth it can lay out in one frame, action ids that cannot
-// shadow the shell's, image sources it may load. A node of an unknown type
+// shadow the shell's, image sources it may load, one surface page of its own. A node of an unknown type
 // is left in (the UI skips it, so an older app still draws the rest); a
 // tree over the limits is an error the extension sees, since a silently
 // trimmed board would mislead. The host runs these on every answer; an
@@ -27,6 +27,15 @@ const SURFACES = new Set(["sunken", "elevated"]);
 const ENTERS = new Set(["fade", "slide-up", "slide-down", "slide-left", "slide-right", "flip", "pop"]);
 const EXITS = new Set(["fade", "none"]);
 const ALIGNS = new Set(["start", "center", "end"]);
+
+/**
+ * A `surface` node's `src`: a file inside the extension's folder, as the
+ * app's `ext://` scheme serves it (app/src-tauri/src/surface.rs), which
+ * refuses anything else anyway: relative, no scheme, no empty, `.`, `..`
+ * or dotfile segment, no backslash.
+ */
+export const isSurfaceSrc = (src: unknown): src is string =>
+  typeof src === "string" && !/^[a-z][a-z0-9+.-]*:/i.test(src) && !src.includes("\\") && src.split("/").every((s) => s !== "" && !s.startsWith("."));
 
 const isPx = (x: unknown) => typeof x === "number" && Number.isFinite(x) && x >= 0;
 /** `Action.shortcut` as a list: one string, an array of them, or none. */
@@ -56,7 +65,7 @@ export function checkView(v: unknown, where = "view"): View {
     if (inp.value !== undefined && typeof inp.value !== "string") throw new Error(`${where}: input.value must be a string`);
     if (inp.placeholder !== undefined && typeof inp.placeholder !== "string") throw new Error(`${where}: input.placeholder must be a string`);
   }
-  let count = 0;
+  let count = 0, surfaces = 0;
   const moving = new Set<string>();
   /** Action ids some node runs on a click: a hidden action reached this way needs no shortcut. */
   const clicked = new Set<string>();
@@ -83,6 +92,10 @@ export function checkView(v: unknown, where = "view"): View {
       }
     }
     if (n.type === "image" && !IMAGE_SRC.test(n.src)) throw new Error(`${where}: ${path} image src must be icon:// or data:image/`);
+    if (n.type === "surface") {
+      if (++surfaces > 1) throw new Error(`${where}: ${path} is a second surface (one per view)`);
+      if (!isSurfaceSrc(n.src)) throw new Error(`${where}: ${path} surface src must be a path inside the extension's folder ("surface/index.html"): relative, no "..", no scheme`);
+    }
     if (n.type === "tile") {
       if (!isPx(n.width) || !isPx(n.height)) throw new Error(`${where}: ${path} tile needs width and height in px`);
       if (n.color !== undefined && !TILE_COLORS.has(n.color) && !(typeof n.color === "string" && HEX_COLOR.test(n.color))) throw new Error(`${where}: ${path} tile has an unknown color "${n.color}" (a tag colour, neutral, accent, or #hex)`);

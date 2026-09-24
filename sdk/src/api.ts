@@ -3,7 +3,7 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import type { BarItem, CopyText, Effect, InstanceInfo, ResolvedSettings, StateEntry, StateValue, View, ViewNode, ViewShown, ViewTarget, ViewUpdate, WindowLayoutRequest } from "./protocol.ts";
+import type { BarItem, CopyText, Effect, InstanceInfo, ResolvedSettings, StateEntry, StateValue, View, ViewNode, ViewPost, ViewShown, ViewTarget, ViewUpdate, WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 import { checkBarItem, checkView } from "./view.ts";
 
@@ -215,6 +215,25 @@ export const view = {
   onHidden: (cb: (ev: ViewShown) => void, extension?: string): (() => void) => runtime().onView(who(extension), (ev, shown) => { if (!shown) cb(ev); }),
   /** The extension's view levels open right now. */
   open: (extension?: string): ViewShown[] => runtime().views(who(extension)),
+};
+
+/**
+ * A game's page (a `surface` node, docs/design/game-surface.md), from the
+ * extension's side: `surface.post(msg)` reaches the page's `pal.on`
+ * handlers, any JSON value, in order. Addressed as `view.update` is (the
+ * palette in context, else `{ palette }`); dropped by the core while no
+ * such level is open. The page's way back is `pal.send`, answered by
+ * `Palette.onMessage`.
+ */
+export const surface = {
+  post: (msg: unknown, opts: ViewUpdateOptions = {}): Promise<null> => {
+    try {
+      const params: ViewPost = { ...targetOf(opts), ...(opts.id !== undefined && { id: opts.id }), msg: { pal: "message", data: msg } };
+      return call<null>("view.post", params);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  },
 };
 
 /**

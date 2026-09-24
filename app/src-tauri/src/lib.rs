@@ -1,7 +1,8 @@
 //! The shell: a hidden, pre-warmed panel toggled by the global hotkey or by
 //! `pal toggle` from a second process, the extension host and the item
 //! index behind it, the core capabilities the host calls back for
-//! (`bridge`), the `icon://` scheme, the menu bar icon, and timing marks.
+//! (`bridge`), the `icon://` and `ext://` schemes, the menu bar icon, and
+//! timing marks.
 
 mod apps;
 mod audio;
@@ -44,6 +45,7 @@ mod settings;
 mod sidebar;
 mod states;
 mod storage;
+mod surface;
 mod switcher;
 mod system;
 mod theme;
@@ -295,7 +297,7 @@ pub fn run() {
         }));
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
-    let builder = icon::register(builder).plugin(tauri_plugin_updater::Builder::new().build()).plugin(autostart::plugin());
+    let builder = surface::register(icon::register(builder)).plugin(tauri_plugin_updater::Builder::new().build()).plugin(autostart::plugin());
     let builder = deeplink::register(builder);
     // Size and position of the settings window only; the panel and the HUD place themselves.
     let builder = builder.plugin(tauri_plugin_window_state::Builder::new().with_state_flags(settings::STATE).with_filter(|label| label == settings::WINDOW).build());

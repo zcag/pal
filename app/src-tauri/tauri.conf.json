@@ -88,7 +88,8 @@
     "resources": {
       "resources/host": "host",
       "resources/sdk": "sdk",
-      "resources/extensions": "extensions"
+      "resources/extensions": "extensions",
+      "surface-kit": "surface-kit"
     },
     "macOS": {
       "signingIdentity": "-",

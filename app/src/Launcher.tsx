@@ -6,9 +6,9 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, Toast, View,
+  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, SurfaceContext, Toast, View,
   followCursor, groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
-  isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection,
+  hasSurface, isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection, type SurfaceHandle, type SurfaceHost,
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
@@ -151,8 +151,16 @@ const VIEW_ID = "view";
  * level by the item's id; `id` is the tree's `View.id` (`view` unless set).
  */
 export type ViewOpen = { extension: string; palette?: string; bar?: string; id: string };
-/** A push for an open view level (`ViewUpdate` in the SDK, `pal://view`): a whole `ViewSpec`, or `{ tree }` alone with the level's actions, title and input kept. */
-export type ViewUpdate = { extension: string; palette?: string | null; bar?: string | null; id?: string | null; spec: ViewSpec | { tree: ViewNode } };
+/**
+ * A push for an open view level (`pal://view`, views.rs): `spec`, a whole
+ * `ViewSpec` or `{ tree }` alone with the level's actions, title and input
+ * kept (`ViewUpdate` in the SDK); `post`, a message for the level's
+ * surface page (`ViewPost`); `shown`, the level shown or hidden with its
+ * window, for that page too.
+ */
+export type ViewUpdate = { extension: string; palette?: string | null; bar?: string | null; id?: string | null; spec?: ViewSpec | { tree: ViewNode }; post?: { pal: string; data?: unknown }; shown?: boolean };
+/** Where a surface page's calls go (App wires the host): its URL on the extension's `ext://` origin, and a call the host answers for that level. */
+export type SurfaceBridge = { url(extension: string, src: string): string; call(level: { extension: string; palette: string; args?: unknown }, method: string, params: Record<string, unknown>): Promise<unknown> };
 /** A bar item's own level (BarPage's `levelOf`) keys its `palette` as `bar:ext/item`: a source key is `ext/palette`, and an extension may name a bar item after one of its palettes (github's prs, issues, notifications), so the bare key would resolve to the palette and a pick would go there. */
 export const barKey = (key: string) => `bar:${key}`;
 /** The bar item a level's `palette` key names, when it is one. */
@@ -216,6 +224,8 @@ export type LauncherProps = {
   view?: (scope: SourceInfo, ctx?: Ctx) => Promise<ViewSpec>;
   /** The view level on top changed (pushed, popped, covered, its tree landed): what it is now, or null. The shell tells the extension (`view/shown`, `view/hidden`) and routes pushes by it. */
   onViewOpen?: (open: ViewOpen | null) => void;
+  /** A game surface's page and its calls; without it a `surface` node draws an empty body. */
+  surface?: SurfaceBridge;
   /** Bumped when the index or the ranking changed underneath; re-runs the search. */
   version?: number;
   /** The bottom level: the root, or (the bar popover) an item's level with no root under it. */
@@ -325,6 +335,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const list = useRef<ListHandle>(null);
   const show = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
+  /** The level's surface page while it is mounted (Surface.tsx attaches it): where its actions, posts and the focus go. */
+  const surfaceRef = useRef<SurfaceHandle | null>(null);
   const formEl = useRef<HTMLDivElement>(null);
   const submitKey = useSubmitKey(formEl);
   const keyAt = useRef(0);
@@ -365,6 +377,22 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const args = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? view.args : undefined;
   const scopeFilter = view.kind === "palette" && scope?.filters?.length ? paletteFilter ?? scope.filters[0].id : undefined;
   const ctx = useMemo<Ctx | undefined>(() => (scopeFilter !== undefined || args !== undefined ? { filter: scopeFilter, args } : undefined), [scopeFilter, args]);
+  /** A game surface's level (docs/design/game-surface.md): its actions go to the page, and the keys and the focus are the page's. */
+  const surfaceView = isView && hasSurface(spec?.tree);
+  const bridge = props.surface;
+  const viewPalette = view.kind === "view" ? view.palette : undefined;
+  const surfaceHost = useMemo<SurfaceHost | null>(() => {
+    const s = viewPalette !== undefined ? byKey.get(viewPalette) : undefined;
+    if (!s || !bridge) return null;
+    const at = { extension: s.extension, palette: s.palette, ...(args !== undefined && { args }) };
+    return {
+      url: (src) => bridge.url(s.extension, src),
+      call: (method, params) => bridge.call(at, method, params),
+      // `pal.title`: the level's title line, the view's own again for "".
+      title: (text) => { const top = level.current; if (top.kind === "view" && top.spec) nav.replace({ ...top, spec: { ...top.spec, title: text || undefined } }); },
+      attach: (h) => { surfaceRef.current = h; },
+    };
+  }, [viewPalette, byKey, args, bridge]);
 
   // Replies can land out of order (a slow one behind a fast one): only the
   // latest request's answer is shown. A show, view or form level has nothing
@@ -582,7 +610,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     return () => clearTimeout(id);
   }, [toast]);
 
-  const focus = () => input.current?.focus();
+  /** Keys back where they belong after an overlay: a surface's page when the level has one, else the search box. */
+  const focus = () => (surfaceRef.current ? surfaceRef.current.focus() : input.current?.focus());
 
   /**
    * Typed arguments (`Item.args`): while the cursor rests on a row that
@@ -706,19 +735,25 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (inPlace) return nav.patch((v, depth) => (depth !== 1 ? v : level.kind === "view" && v.kind === "view" && v.palette === level.palette ? { ...level, spec: level.spec ?? v.spec } : level));
     nav.restart(level); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setReportSeq((n) => n + 1); input.current?.focus();
   }, [nav.restart, nav.patch, cur.reset, byKey]);
-  /** A push lands on the level it names: the spec whole, or its tree alone into the level's spec (actions, title and input kept). */
+  /** Whether a push names this level, by its identity as `open` reports it: a source's palette, else a bar item's key; a palette and a bar item of one name never cross. */
+  const names = useCallback((v: Level, u: ViewUpdate): v is Extract<Level, { kind: "view" }> & { spec: ViewSpec } => {
+    if (v.kind !== "view" || !v.spec) return false;
+    const s = byKey.get(v.palette), b = s ? undefined : barOf(v.palette);
+    const hit = s ? !u.bar && u.extension === s.extension && u.palette === s.palette : !!b && !u.palette && u.extension === b.extension && u.bar === b.bar;
+    return hit && (u.id == null || (v.spec.id ?? VIEW_ID) === u.id);
+  }, [byKey]);
+  /** A push lands on the level it names: the spec whole, or its tree alone into the level's spec (actions, title and input kept); a message or the shown state goes to the surface page of the level on top. */
   const update = useCallback((u: ViewUpdate) => {
-    nav.patch((v) => {
-      if (v.kind !== "view" || !v.spec) return v;
-      // The level's identity as `open` reports it: a source's palette, else a bar item's key; a palette and a bar item of one name never cross.
-      const s = byKey.get(v.palette), b = s ? undefined : barOf(v.palette);
-      const hit = s ? !u.bar && u.extension === s.extension && u.palette === s.palette : !!b && !u.palette && u.extension === b.extension && u.bar === b.bar;
-      if (!hit) return v;
-      if (u.id != null && (v.spec.id ?? VIEW_ID) !== u.id) return v;
-      if (!u.spec || typeof u.spec !== "object" || !u.spec.tree) return v;
-      return { ...v, spec: "actions" in u.spec && Array.isArray(u.spec.actions) ? toView(u.spec) : { ...v.spec, tree: u.spec.tree } };
-    });
-  }, [nav.patch, byKey]);
+    if (u.post || typeof u.shown === "boolean") {
+      if (!names(level.current, u)) return;
+      if (u.post?.pal === "message" || u.post?.pal === "settings") surfaceRef.current?.post({ pal: u.post.pal, data: u.post.data });
+      if (typeof u.shown === "boolean") surfaceRef.current?.post({ pal: u.shown ? "shown" : "hidden" });
+      return;
+    }
+    const spec = u.spec;
+    if (!spec || typeof spec !== "object" || !spec.tree) return;
+    nav.patch((v) => (names(v, u) ? { ...v, spec: "actions" in spec && Array.isArray(spec.actions) ? toView(spec) : { ...v.spec, tree: spec.tree } } : v));
+  }, [nav.patch, names]);
   const trigger = useCallback((name: string) => { const top = level.current; if (top.kind === "view" && byKey.get(top.palette)?.on?.includes(name)) reask(name); }, [byKey, reask]);
   // Not memoised: `setQuery` reads this render's level, query and hold (a memo on it kept the first render's).
   const type = (q: string) => { setQuery(q); focus(); };
@@ -896,7 +931,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case BROWSE: if (current) push({ kind: "palette", palette: current.palette! }); break;
       case SUBMENU: if (current && view.kind === "menu") push(menuLevel(view.key, current.name, view.submenus[current.id] ?? [])); break;
       default:
-        if (view.kind === "view") return pickView(a);
+        // A surface's level: the page runs its actions (`pal.onAction`), the extension hears of them only if the page tells it.
+        if (view.kind === "view") return surfaceView ? surfaceRef.current?.post({ pal: "action", id: a.id }) : pickView(a);
         // The picker's answer: the marked ids, else the row's; the level is the CLI's, so nothing else runs.
         if (picker) {
           const ids = sel ? pickIds(sel, current) : current && !current.disabled ? [current.id] : [];
@@ -1088,7 +1124,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const body = view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : view.kind === "view"
-    ? (spec ? <View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} /> : null)
+    ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} /></SurfaceContext.Provider> : null)
     : form
     // The title is the search row's (as for a view), so the form draws none of its own.
     ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>

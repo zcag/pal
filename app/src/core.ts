@@ -14,7 +14,7 @@ import type { Hit } from "./ui";
 import { MOUNT_EVENT } from "./ui/View";
 import type { Detail, Item, ViewSpec } from "./ui/types";
 
-import { LIMIT, type DialogInfo, type LauncherHandle, type Prefs, type ViewOpen, type ViewUpdate } from "./Launcher";
+import { LIMIT, type DialogInfo, type LauncherHandle, type Prefs, type SurfaceBridge, type ViewOpen, type ViewUpdate } from "./Launcher";
 
 export const mark = (name: string, t: number) => invoke("mark", { name, t });
 
@@ -62,6 +62,29 @@ export function useLiveViews(launcher: { current: LauncherHandle | null }): (ope
   }, [launcher]);
   return useCallback((open: ViewOpen | null) => { invoke("view_open", { open }).catch(() => {}); }, []);
 }
+
+/** The `ext://` scheme's base (surface.rs), derived as `icon://`'s is (ui/icons.ts): `ext://localhost/` on macOS and Linux, `http://ext.localhost/` on Windows. */
+const extBase: string = (() => {
+  try {
+    return window.__TAURI_INTERNALS__?.convertFileSrc?.("", "ext") ?? "ext://localhost/";
+  } catch {
+    return "ext://localhost/";
+  }
+})();
+
+/**
+ * A game surface's page and calls (docs/design/game-surface.md): the page
+ * at `ext://<extension>/<src>` (an instance's is its extension's folder),
+ * a call as the host's `surface` request for the level, `send` resolving
+ * with the palette's reply alone.
+ */
+export const surface: SurfaceBridge = {
+  url: (extension, src) => {
+    const name = extension.split("@")[0];
+    return extBase.startsWith("ext:") ? `ext://${name}/${src}` : `${extBase}${name}/${src}`;
+  },
+  call: (level, method, data) => invoke<unknown>("host_request", { method: "surface", params: { ...level, call: method, data } }).then((r) => (method === "send" ? (r as { reply?: unknown } | null)?.reply : r)),
+};
 
 /** Counts the keyed view nodes that mount from now until `stop` (`MOUNT_EVENT`, View.tsx). */
 function traceMounts(): { mounted: () => string[]; stop: () => void } {

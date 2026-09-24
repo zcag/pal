@@ -502,7 +502,8 @@ bundled Blackjack, 2048, Wordle, Minesweeper and Solitaire are
 (`extensions/{blackjack,2048,wordle,minesweeper,solitaire}/`).
 The tree is built from a fixed vocabulary the app draws with its own
 tokens, never HTML, so a view looks like the rest of the panel in both
-themes.
+themes. The one exception is a game's own page, a `surface` node (below,
+"Game surfaces").
 
 ```ts
 export default {
@@ -596,6 +597,7 @@ The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key`,
 | `slider` | `value` 0..1, `width` px (else the free space), `color` as for `progress`, `label` (for a screen reader) | a level the user sets: a 6 px track with the fill and a round thumb at its end (`role="slider"`). The keys move it through the view's own actions; with `action`, a click runs that action with the clicked fraction as `ctx.values.value` ("0.620") |
 | `switch` | `on`, `color` (tag palette; else the accent), `label` | the system's switch pill, the knob slid over when on; with `action` a click runs it |
 | `keycap` | `keys` in the shortcut spelling (`h`, `cmd+k`, `up`) | key caps, as in the footer; with `action` a click runs what the cap names |
+| `surface` | `src`, a page in the extension's folder (`surface/index.html`; relative, no `..`) | games only: the page in a sandboxed frame that fills the body, one per view ("Game surfaces") |
 
 Two fields every node takes. **`action`**: the id of one of the view's
 `actions`; a click (a tap) on the node runs it as its key would, so a
@@ -623,6 +625,75 @@ its id slides across the board, a split's card glides to its new hand. A
 tokens'; reduced motion turns them all off. A row whose keyed children come
 and go wants a `minHeight` so the layout holds still; a cell whose tile
 moves out wants a stack of its own holding an `outline` tile meanwhile.
+
+## Game surfaces: a page of your own
+
+For a **game** only: a view whose body is the extension's own HTML page,
+for what a tree cannot do (a card under the pointer, a drag, 60 frames a
+second). Anything that shows data uses the vocabulary above, which
+follows the theme, the density and the keys by itself. The design,
+security model included, is `docs/design/game-surface.md`; the smallest
+one is `examples/surface-extension/`.
+
+```ts
+import { defineExtension, storage, surface } from "@zcag/pal";
+
+export default defineExtension({
+  palettes: {
+    snake: {
+      title: "Snake",
+      view: () => ({ title: "Snake", tree: { type: "surface", src: "surface/index.html" }, actions: [{ id: "new", title: "New game", shortcut: "cmd+n" }] }),
+      pick: () => {},
+      // `pal.send(msg)` from the page; a value returned is its reply.
+      onMessage: async (msg) => { const m = msg as { score: number }; await storage.set("best", m.score); return { best: m.score }; },
+    },
+  },
+});
+```
+
+```html
+<!-- surface/index.html -->
+<script src="/__pal/surface.js"></script>
+<script type="module" src="./main.ts"></script>
+```
+
+- **Files.** The page and what it loads come from the extension's folder
+  at `ext://<extension>/...`, so relative URLs work. A `*.ts` is served
+  as JavaScript (Bun's transpiler on that file, no bundling), so
+  `import { step } from "../game.ts"` runs the same rules your host tests
+  check; `import type` from `@zcag/pal` is fine, a runtime import from it
+  or a package is not. Every response carries a CSP: the page's own
+  origin only (no network, no eval, no inline `<script>`; inline style is
+  fine). A bundled extension ships `surface/` and the `*.ts` beside its
+  `index.ts` (`build-extensions.sh`).
+- **The kit** at `/__pal/` on every origin: `surface.js` (include it
+  first; it sets `window.pal`), the Kenney card deck
+  (`/__pal/cards/AS.png`, `10H.png`, `QD.png`, `joker.png`,
+  `back-blue2.png`; 420 by 570, draw at 14:19), and `tokens.css`.
+- **`window.pal`** (`SurfaceKit` in `@zcag/pal`: `declare const pal:
+  SurfaceKit`): `send(msg)` to `onMessage` and its reply, `on(fn)` for
+  `surface.post(msg)` from the extension, `onAction(fn)` for the view's
+  actions, `storage.get/set` (the extension's own storage), `settings()`
+  and `onSettings(fn)`, `title(text)` for the title line, `onTheme(fn)`,
+  `onShown(fn)` / `onHidden(fn)` (pause the loop), `ready()` once the
+  first frame is drawn (the app shows the page from then on). Every
+  `--pal-*` token is set on `:root` and `data-theme` on `<html>`, again on
+  every flip.
+- **Actions** keep their place: ⌘K lists them, the footer shows the
+  first. A picked action goes to the page's `onAction`, **not** to
+  `pick`; the page tells the extension what it needs to (`pal.send`).
+- **Keys** are the page's while the level is up (the frame has focus),
+  except Escape (leaves, as anywhere), ⌘K, and any cmd combo the page does
+  not `preventDefault`, which act as the panel's own. Play one-handed on
+  the arrows and Enter, with key hints on the page.
+- **Size.** About 720 by 390 CSS px, 560 wide in compact mode, and it can
+  change: fit the viewport, no page scroll, draw at `devicePixelRatio`.
+- **In a browser.** `bun host/src/surface.ts extensions/<name> [port]`
+  serves the folder the same way (`.ts` transpiled, the kit mapped), and
+  the kit runs as a stub outside pal: storage in `localStorage`, settings
+  from `?settings=<json>`, the theme from `?theme=dark|light` or the OS. A
+  page's TypeScript is typechecked against the DOM by
+  `host/tsconfig.surface.json` (`make test` runs it).
 
 ## Live views: push and pull
 
@@ -1337,6 +1408,10 @@ to the core.
   view level (above, "Live views"); `view.onShown(cb)` / `view.onHidden(cb)`:
   a level of yours came on top or left; `view.open()`: the levels open now;
   `VIEW_UPDATE_MIN_MS` (33): the coalescing window.
+- `surface.post(msg, { palette? })`: a message for the open game
+  surface's page (above, "Game surfaces"); `SurfaceKit` is the type of
+  the page's `window.pal`, `isSurfaceSrc(src)` what `checkView` accepts
+  as a `surface` node's `src`.
 - `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`,
   `checkEffect(effect)`, `checkIcon(icon)`: what the host runs on every
   answer (the limits above: `MAX_NODES`, `MAX_DEPTH`, `MAX_BAR_TITLE`,

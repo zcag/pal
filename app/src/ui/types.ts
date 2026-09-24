@@ -156,7 +156,9 @@ export type ViewNode =
   | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor | HexColor })
   | (NodeBase & { type: "slider"; value: number; width?: number; color?: TagColor | HexColor; label?: string })
   | (NodeBase & { type: "switch"; on: boolean; color?: TagColor; label?: string })
-  | (NodeBase & { type: "keycap"; keys: string });
+  | (NodeBase & { type: "keycap"; keys: string })
+  /** A game's own page in a sandboxed frame (Surface.tsx), `src` relative to the extension's folder. */
+  | (NodeBase & { type: "surface"; src: string });
 
 /** `View.input`: the search row as a text field the view reads on Enter (`submit`) and drops on Escape (`cancel`, else the level pops). */
 export type ViewInput = { value?: string; placeholder?: string; submit: string; cancel?: string };

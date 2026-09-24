@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/__pal/surface.js"></script>
+  <script type="module" src="./main.ts"></script>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body { display: grid; place-items: center; gap: var(--pal-space-2); font: var(--pal-text-md) var(--pal-font-ui); color: var(--pal-fg); background: var(--pal-bg-sunken); }
+    #board { display: grid; gap: 6px; }
+    .cell { width: min(9vw, 12vh); aspect-ratio: 1; border-radius: var(--pal-radius-tile); background: var(--pal-bg-elevated); box-shadow: 0 0 0 1px var(--pal-line); display: grid; place-items: center; }
+    .cell.goal::after { content: ""; width: 44%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 3px var(--pal-tag-green); }
+    .cell.dot::after { content: ""; width: 56%; aspect-ratio: 1; border-radius: 50%; background: var(--pal-accent); }
+    #hint { color: var(--pal-fg-muted); font-size: var(--pal-text-sm); }
+  </style>
+</head>
+<body>
+  <div id="board"></div>
+  <div id="hint">arrows move · reach the ring · ⌘K for actions</div>
+</body>
+</html>

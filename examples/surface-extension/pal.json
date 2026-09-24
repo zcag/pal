@@ -1,0 +1,12 @@
+{
+  "name": "dot",
+  "title": "Dot",
+  "description": "A game surface at its smallest: a page of the extension's own that draws and takes the keys.",
+  "version": "0.1.0",
+  "icon": "🟣",
+  "author": "pal",
+  "repo": "github.com/zcag/pal",
+  "palettes": {
+    "dot": { "kind": "view", "description": "Walk the dot to the ring with the arrows; the fewest steps is kept." }
+  }
+}

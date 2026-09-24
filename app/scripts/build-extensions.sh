@@ -11,6 +11,8 @@
 #                                          import is its own chunk beside it)
 #   resources/extensions/<name>/pal.json   its manifest: the host reads the
 #                                          settings defaults and title from it
+#   resources/extensions/<name>/surface/   a game's page, with the *.ts beside
+#                                          index.ts it imports (`ext://`)
 #
 # `bun build` inlines an extension's dependencies (emoji's data.json) and
 # its import of `@zcag/pal` (resolved through the root workspace, so `bun
@@ -44,6 +46,13 @@ for entry in "$root"/extensions/*/index.ts; do
   name=$(basename "$(dirname "$entry")")
   "$bun" build "$entry" --target bun --splitting --outdir "$tmp/extensions/$name" >/dev/null
   cp "$(dirname "$entry")/pal.json" "$tmp/extensions/$name/"
+  # A game surface's page loads its files by URL (`ext://`, surface.rs): the
+  # page as is, and the sources beside it it imports (`../game.ts`), which the
+  # bundle above inlined; never index.ts, which the host would load over index.js.
+  if [ -d "$(dirname "$entry")/surface" ]; then
+    cp -R "$(dirname "$entry")/surface" "$tmp/extensions/$name/"
+    find "$(dirname "$entry")" -maxdepth 1 -name '*.ts' ! -name index.ts -exec cp {} "$tmp/extensions/$name/" \;
+  fi
 done
 mkdir -p "$out"
 rsync -rc --delete "$tmp/" "$out/"

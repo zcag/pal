@@ -1,4 +1,4 @@
-// The palette side of serving one loaded extension: `list`, `pick`,
+// The palette side of serving one loaded extension: `list`, `pick`, `surface`,
 // `view`, `detail`, `link` and the root sections (inline, fallback,
 // suggest), each run inside the async context that tells the SDK which
 // extension (instance key) and palette is asking. Shaped like bar.ts's
@@ -7,7 +7,9 @@
 // the same code. An effect that leaves here has its `push` (and a bar
 // menu's `palette`) spelled with the instance key (instances.ts).
 import { checkLinkEffect, checkLinkParams, inlineMatches, isViewPalette as isView } from "../../sdk/src/manifest.ts";
-import type { Ctx, Extension, FormValues, Item, Manifest, Palette } from "../../sdk/src/protocol.ts";
+import { settings, storage } from "../../sdk/src/api.ts";
+import type { Ctx, Extension, FormValues, Item, Manifest, Palette, ViewPost } from "../../sdk/src/protocol.ts";
+import { runtime } from "../../sdk/src/runtime.ts";
 import { checkEffect, checkView } from "../../sdk/src/view.ts";
 import { tooLate } from "./bridge.ts";
 import { rewriteEffect } from "./instances.ts";
@@ -40,7 +42,7 @@ export function describe(e: unknown): string {
 }
 
 /** A palette request's params as the core sends them (index.rs): JSON off the wire, so every field is read as it may not be. */
-type Params = { extension?: string; palette?: string; id?: string; action?: string; query?: string; route?: string; params?: unknown; filter?: string; args?: unknown; refresh?: boolean; values?: FormValues | null; inline?: boolean; ids?: unknown[] };
+type Params = { extension?: string; palette?: string; id?: string; action?: string; call?: string; data?: unknown; query?: string; route?: string; params?: unknown; filter?: string; args?: unknown; refresh?: boolean; values?: FormValues | null; inline?: boolean; ids?: unknown[] };
 
 const paletteKey = (p: Params) => `${p.extension}/${p.palette}`;
 // The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
@@ -60,7 +62,16 @@ const inContext = <T>(p: Params, f: () => T): T => context.run({ extension: Stri
 const details = new Map<string, Map<string, Promise<unknown>>>();
 export const forgetDetails = (key: string) => { for (const k of details.keys()) if (k.startsWith(`${key}/`)) details.delete(k); };
 
-/** `list`, `pick`, `view`, `detail`, `link`, routed to the extension `params.extension` names through `lookup`. */
+/** The palettes whose surface asked for its settings: every later change is pushed to the page (`pal.onSettings`), once per palette. */
+const following = new Set<string>();
+function followSettings(extension: string, palette: string) {
+  const key = `${extension}/${palette}`;
+  if (following.has(key)) return;
+  following.add(key);
+  settings.onChange((s) => { runtime().call("view.post", { extension, palette, msg: { pal: "settings", data: s.settings } } satisfies ViewPost).catch((e) => log(`settings to the surface of ${key} failed: ${describe(e)}`)); }, extension);
+}
+
+/** `list`, `pick`, `view`, `detail`, `link`, `surface`, routed to the extension `params.extension` names through `lookup`. */
 export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<string, (params: Params) => unknown> {
   const palette = (p: Params) => {
     const pal = lookup(String(p.extension)).palettes[String(p.palette)];
@@ -100,6 +111,24 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
         r.catch(() => cache.delete(k));
       }
       return r;
+    },
+    // A game surface's page (docs/design/game-surface.md), relayed by the app with the level's extension and palette (never the page's say): `pal.send` to `onMessage`, the reply as `{ reply }` (none for undefined); the page's storage and settings are the extension's own.
+    surface: (p) => {
+      const pal = palette(p);
+      const d = (p.data ?? {}) as { msg?: unknown; key?: unknown; value?: unknown };
+      return inContext(p, async () => {
+        switch (p.call) {
+          case "send": {
+            if (typeof pal.onMessage !== "function") throw new Error(`${paletteKey(p)}: pal.send but the palette has no onMessage`);
+            const r = await pal.onMessage(d.msg, ctxOf(p));
+            return r === undefined ? {} : { reply: r };
+          }
+          case "storage.get": return storage.get(String(d.key));
+          case "storage.set": return storage.set(String(d.key), d.value ?? null);
+          case "settings": followSettings(String(p.extension), String(p.palette)); return settings.get();
+          default: throw new Error(`${paletteKey(p)}: no surface call ${p.call}`);
+        }
+      });
     },
     // `pal://<extension>/<route>?params` (deeplink.rs): the manifest's `links.<route>` gates it and types its params, the code's `link` answers; an effect is checked like a pick's, minus what needs a level.
     link: async (p) => {

@@ -201,6 +201,14 @@ export class Host {
   barOpen(extension: string, id: string, ctx: BarCtx = { reason: "open" }) {
     return this.request<Effect & Record<string, unknown>>("bar/open", { extension, id, ctx });
   }
+  /** A game surface's `pal.send(msg)` as the app relays it (the `surface` request): what the palette's `onMessage` returned, undefined for nothing; a throw there is a `HostError`. */
+  surfaceSend(extension: string, palette: string, msg: unknown, args?: unknown) {
+    return this.request<{ reply?: unknown }>("surface", { extension, palette, call: "send", data: { msg }, ...(args !== undefined && { args }) }).then((r) => r.reply);
+  }
+  /** The `core/view.post` messages the host sent to one palette's surface page, in order (`{ pal, data }`). */
+  surfacePosts(extension: string, palette: string): { pal: string; data: unknown }[] {
+    return this.coreCalls.filter((c) => c.method === "view.post" && (c.params as any)?.extension === extension && (c.params as any)?.palette === palette).map((c) => (c.params as any).msg);
+  }
   /** The `bar/shown` notification. */
   barShown(extension: string, id: string) { this.notify("bar/shown", { extension, id }); }
   /** The `view/shown` / `view/hidden` notifications (views.rs): a view palette's level, or a bar item's own (`{ bar }`). */

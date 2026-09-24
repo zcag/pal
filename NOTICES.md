@@ -17,6 +17,14 @@ the webview and a TTF for the menu bar renderer. MIT for the font and the
 patcher; the icon sets inside carry their own licenses, listed with the
 font in `app/src/assets/fonts/LICENSES`.
 
+## Kenney Boardgame pack v2
+
+The playing cards of the game surfaces' kit (`/__pal/cards/`,
+`app/src-tauri/surface-kit/cards/`), from the Boardgame pack v2 by Kenney
+Vleugels (https://www.kenney.nl), shipped in the app bundle's
+`Resources/surface-kit` with its license (`LICENSE-kenney.txt`). CC0 1.0
+(public domain dedication); credit is not required and is given here.
+
 ## mediaremote-adapter
 
 The system-wide Now Playing source on macOS is

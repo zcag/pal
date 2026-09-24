@@ -1,5 +1,6 @@
 //! Live views (docs/extensions.md, "Live views"): which view level each
-//! window has on top, so an extension's push (`core/view.update`) reaches
+//! window has on top, so an extension's push (`core/view.update`, and
+//! `core/view.post` for a game surface's page) reaches
 //! the page that draws it and the extension hears when to start and stop
 //! pushing (`view/shown`, `view/hidden` to the host).
 //!
@@ -93,6 +94,11 @@ impl Table {
         self.slots.iter().filter(|(_, s)| s.visible && s.open.as_ref().is_some_and(|o| o.takes(extension, palette, bar, id))).map(|(w, _)| w.clone()).collect()
     }
 
+    /// The windows whose page has `open` on top, shown or not, of the `compact` kind.
+    pub fn holding(&self, open: &Open, compact: bool) -> Vec<String> {
+        self.slots.iter().filter(|(w, s)| s.open.as_ref() == Some(open) && is_compact(w) == compact).map(|(w, _)| w.clone()).collect()
+    }
+
     /// Whether a drop for `target` is the first since a push landed there (worth a log line).
     pub fn note_drop(&mut self, target: &str) -> bool {
         self.dropped.insert(target.to_string())
@@ -142,7 +148,10 @@ fn shown_params(open: &Open, compact: bool) -> Value {
     v
 }
 
-/// The changes as `view/shown` / `view/hidden` notifications to the host, and a log line each.
+/// The changes as `view/shown` / `view/hidden` notifications to the host,
+/// and a log line each; the windows still holding the level (hidden with
+/// the window, not popped) hear it too, as `pal://view` with `shown`, for
+/// a surface's page (`pal.onShown`/`pal.onHidden`).
 fn announce(app: &AppHandle, changes: Vec<Change>) {
     if changes.is_empty() {
         return;
@@ -151,6 +160,9 @@ fn announce(app: &AppHandle, changes: Vec<Change>) {
     for c in changes {
         let target = c.open.palette.clone().or_else(|| c.open.bar.as_ref().map(|b| format!("bar:{b}"))).unwrap_or_default();
         eprintln!("view\t{}/{target}\t{}\t{}{}", c.open.extension, c.open.id, if c.shown { "shown" } else { "hidden" }, if c.compact { "\tcompact" } else { "" });
+        for w in with(app, |t| t.holding(&c.open, c.compact)) {
+            events::emit_to(app, &w, events::VIEW, json!({ "extension": c.open.extension, "palette": c.open.palette, "bar": c.open.bar, "id": c.open.id, "shown": c.shown }));
+        }
         let Some(host) = host.clone() else { continue };
         let method = if c.shown { "view/shown" } else { "view/hidden" };
         let params = shown_params(&c.open, c.compact);
@@ -182,26 +194,29 @@ pub fn resend(app: &AppHandle, extension: &str) {
 }
 
 /// `core/view.update {extension, palette | bar, id?, spec}` from the host (bridge.rs):
-/// to every window showing that level, else dropped.
+/// to every window showing that level, else dropped. `core/view.post
+/// {..., msg}` likewise, for the page of the level's `surface` node.
 pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
-    if func != "update" {
-        return Err(format!("unknown view function {func}"));
-    }
-    let ext = params["extension"].as_str().ok_or("view.update: no extension")?;
+    // The page reads a push as `spec` (a tree to draw) or `post` (a message for the surface).
+    let (what, from) = match func {
+        "update" if params["spec"].get("tree").is_none() => return Err("view.update: spec has no tree".into()),
+        "update" => ("spec", "spec"),
+        "post" if !params["msg"].is_object() => return Err("view.post: no msg".into()),
+        "post" => ("post", "msg"),
+        _ => return Err(format!("unknown view function {func}")),
+    };
+    let ext = params["extension"].as_str().ok_or_else(|| format!("view.{func}: no extension"))?;
     let (palette, bar) = (params["palette"].as_str(), params["bar"].as_str());
     if palette.is_none() == bar.is_none() {
-        return Err("view.update: one of palette or bar".into());
+        return Err(format!("view.{func}: one of palette or bar"));
     }
     let id = params["id"].as_str();
-    if params["spec"].get("tree").is_none() {
-        return Err("view.update: spec has no tree".into());
-    }
     let target = format!("{ext}/{}{}", palette.unwrap_or(""), bar.map(|b| format!("bar:{b}")).unwrap_or_default());
     let windows = with(app, |t| {
         let w = t.targets(ext, palette, bar, id);
         if w.is_empty() {
             if t.note_drop(&target) {
-                eprintln!("view\t{target}\tupdate dropped\tno such view open (logged once until one is)");
+                eprintln!("view\t{target}\t{func} dropped\tno such view open (logged once until one is)");
             }
         } else {
             t.note_landed(&target);
@@ -211,7 +226,7 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
     // `PAL_VIEW_TRACE`: the page logs what the update cost in DOM terms (core.ts).
     let trace = std::env::var_os("PAL_VIEW_TRACE").is_some_and(|v| !v.is_empty());
     for w in windows {
-        events::emit_to(app, &w, events::VIEW, json!({ "extension": ext, "palette": palette, "bar": bar, "id": id, "spec": params["spec"], "trace": trace }));
+        events::emit_to(app, &w, events::VIEW, json!({ "extension": ext, "palette": palette, "bar": bar, "id": id, (what): params[from], "trace": trace }));
     }
     Ok(Value::Null)
 }
@@ -271,6 +286,21 @@ mod tests {
         assert_eq!(t.report("bar", Some(popover.clone())), vec![Change { open: popover.clone(), compact: true, shown: true }]);
         assert_eq!(t.targets("spotify", None, Some("playing"), None), vec!["bar".to_string()]);
         assert!(t.targets("spotify", Some("playing"), None, None).is_empty());
+    }
+
+    #[test]
+    fn a_hidden_window_still_holds_its_level_a_popped_one_does_not() {
+        let mut t = Table::default();
+        t.set_visible("main", true, false);
+        t.report("main", Some(open("snake", "view")));
+        assert_eq!(t.holding(&open("snake", "view"), false), vec!["main".to_string()]);
+        assert!(t.holding(&open("snake", "view"), true).is_empty(), "not the compact kind");
+        // Hidden with the window: the page still has it (its surface hears `hidden`).
+        t.set_visible("main", false, false);
+        assert_eq!(t.holding(&open("snake", "view"), false), vec!["main".to_string()]);
+        // Popped: nothing holds it.
+        t.report("main", None);
+        assert!(t.holding(&open("snake", "view"), false).is_empty());
     }
 
     #[test]

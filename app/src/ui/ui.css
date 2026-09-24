@@ -525,6 +525,10 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 /* View level: a render tree (ui/View.tsx) in the body. The root stack fills it; everything inside is a flex box on the 4px grid. */
 .pal-view { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; overscroll-behavior: contain; outline: none; }
 .pal-view > .pal-view__stack { flex: 1 0 auto; }
+/* A game's page (ui/Surface.tsx): the frame fills the body (or its stack), borderless, and fades in once the page says it is drawn, so nothing flashes white before its first frame. */
+.pal-view__surface { flex: 1 1 auto; min-height: 0; display: flex; }
+.pal-view__surface > iframe { flex: 1; min-width: 0; border: 0; display: block; background: transparent; opacity: 0; transition: opacity var(--pal-dur-base, 120ms) var(--pal-ease, ease); }
+.pal-view__surface[data-ready] > iframe { opacity: 1; }
 .pal-view__stack { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; }
 .pal-view__stack[data-direction="row"] { flex-direction: row; align-items: center; }
 .pal-view__stack[data-align="start"] { align-items: flex-start; }

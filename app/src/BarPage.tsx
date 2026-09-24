@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { barKey, Launcher, menuLevel, type LauncherHandle, type Level } from "./Launcher";
 import { menuKind, type BarPayload, type BarShow } from "./bar";
-import { mark, useCore, useLiveViews } from "./core";
+import { mark, surface, useCore, useLiveViews } from "./core";
 import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
 import type { Item } from "./ui/types";
 
@@ -124,7 +124,7 @@ export default function BarPage() {
 
   return (
     <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} data-peek={sidebar && show && !show.engaged ? "" : undefined} title={show?.tooltip} onMouseDownCapture={engage}>
-      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} ordinals={sidebar} />
+      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} surface={surface} ordinals={sidebar} />
     </div>
   );
 }
