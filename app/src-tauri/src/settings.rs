@@ -156,7 +156,10 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
 /// builds, so `center` only places a window that has never been placed.
 /// A restored size under the minimum is the default from before the
 /// window grew (720 by 520 until 2026-09-16), not a choice: it gets the
-/// new default once, and the next hide saves that.
+/// new default once, and the next hide saves that. So does a saved frame
+/// that fits no display's work area: the plugin restores physical pixels,
+/// so 960 by 640 saved on a Retina screen (1920 by 1280) comes back twice
+/// the size on a 1x one, off centre and past its bottom edge.
 fn create(app: &AppHandle, page: Option<&str>, anchor: Option<&str>) -> tauri::Result<WebviewWindow> {
     let mut url = "index.html?settings".to_string();
     if let Some(p) = page {
@@ -179,10 +182,14 @@ fn create(app: &AppHandle, page: Option<&str>, anchor: Option<&str>) -> tauri::R
         .traffic_light_position(tauri::LogicalPosition::new(13.0, 20.0))
         .transparent(true);
     let w = builder.build()?;
-    if let (Some((pw, ph)), Ok(scale)) = (saved_size(app), w.scale_factor()) {
+    if let (Some((x, y, pw, ph)), Ok(scale)) = (saved_frame(app), w.scale_factor()) {
         let (lw, lh) = (f64::from(pw) / scale, f64::from(ph) / scale);
-        if lw < MIN_SIZE.0 || lh < MIN_SIZE.1 {
-            eprintln!("settings\twindow\tsaved {lw:.0}x{lh:.0}, under the minimum: the default");
+        let fits = w.available_monitors().unwrap_or_default().iter().any(|m| {
+            let a = m.work_area();
+            x >= a.position.x && y >= a.position.y && x + pw as i32 <= a.position.x + a.size.width as i32 && y + ph as i32 <= a.position.y + a.size.height as i32
+        });
+        if lw < MIN_SIZE.0 || lh < MIN_SIZE.1 || !fits {
+            eprintln!("settings\twindow\tsaved {pw}x{ph} at {x},{y}, {}: the default", if fits { "under the minimum" } else { "off every screen" });
             // Queued behind the plugin's own resize (tao applies both on the next run-loop turn), so this one lands.
             let _ = w.set_size(LogicalSize::new(SIZE.0, SIZE.1));
             let _ = w.center();
@@ -203,15 +210,16 @@ fn create(app: &AppHandle, page: Option<&str>, anchor: Option<&str>) -> tauri::R
     Ok(w)
 }
 
-/// The size the window-state plugin restores, physical, from its file
+/// The frame the window-state plugin restores (x, y, width, height), physical, from its file
 /// (`AppHandleExt::filename` under the app config dir). Read rather than
 /// asked of the window: the restore's resize is applied by tao on the next
 /// run-loop turn, so `inner_size` right after `build` still says the
 /// builder's.
-fn saved_size(app: &AppHandle) -> Option<(u32, u32)> {
+fn saved_frame(app: &AppHandle) -> Option<(i32, i32, u32, u32)> {
     let path = app.path().app_config_dir().ok()?.join(app.filename());
     let v: Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
-    Some((v[WINDOW]["width"].as_u64()? as u32, v[WINDOW]["height"].as_u64()? as u32))
+    let w = &v[WINDOW];
+    Some((w["x"].as_i64()? as i32, w["y"].as_i64()? as i32, w["width"].as_u64()? as u32, w["height"].as_u64()? as u32))
 }
 
 /// The watcher's callback, on its thread: store, re-apply, tell everyone.
