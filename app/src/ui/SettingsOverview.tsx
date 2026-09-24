@@ -165,7 +165,7 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
     if (v.update.installable) {
       items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: p || `You have ${v.version}. Install downloads it, verifies the signature and relaunches pal.`, link, action: { label: installing(v.progress) ? "Installing…" : "Install", installUpdate: true, disabled: installing(v.progress) } });
     } else {
-      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from the releases page."}`, link, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
+      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from pal.cagdas.io."}`, link, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
     }
   }
   const updates = new Set<string>();

@@ -2,7 +2,7 @@
 # A release's notes, as GitHub shows them: the version's section of
 # docs/changelog.md (written for users; make release refuses a version
 # without one), then every commit since the previous v* tag reachable from
-# this one, folded, and the compare link.
+# this one, folded, and the links to the site's changelog and downloads.
 #
 #   app/scripts/release-notes.sh v0.4.4
 set -euo pipefail
@@ -16,7 +16,5 @@ echo
 git log --no-merges --format='- %s' "${prev:+$prev..}$tag"
 echo
 echo "</details>"
-if [ -n "$prev" ]; then
-  echo
-  echo "Full changelog: https://github.com/zcag/pal/compare/$prev...$tag"
-fi
+echo
+echo "Every release: https://pal.cagdas.io/changelog${prev:+?from=${prev#v}}. Download: https://pal.cagdas.io/#download"

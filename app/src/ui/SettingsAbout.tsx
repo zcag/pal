@@ -135,7 +135,7 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, update, on
     if (check.kind === "error") return <span data-error>{check.message}</span>;
     if (!info) return "Checked once a day against the latest release.";
     if (!info.available) return info.status ? `${info.status[0].toUpperCase()}${info.status.slice(1)}.` : "You have the latest version.";
-    return info.installable ? `${info.version} is available. Install downloads it, verifies the signature and relaunches pal.` : `${info.version} is available${info.install_note ? `: ${info.install_note}` : " on the releases page"}.`;
+    return info.installable ? `${info.version} is available. Install downloads it, verifies the signature and relaunches pal.` : `${info.version} is available${info.install_note ? `: ${info.install_note}` : " on pal.cagdas.io"}.`;
   };
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
   const copyDiagnostics = async () => {

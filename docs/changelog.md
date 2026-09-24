@@ -1,9 +1,5 @@
 # Changelog
 
-What changed in each release of pal, newest first. In pal, **What's New**
-(a row in the palette, the update notice in Settings, Settings › About)
-opens this page at the version you have and shows only what came after it.
-
 ## 0.4.4 · 2026-09-24
 
 - **Hide the pointer while it is idle**: Settings › Features › Mouse & Trackpad hides it in every app after a delay you choose (3 s by default), and the first move or click brings it back (macOS).

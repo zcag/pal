@@ -147,8 +147,8 @@ pub fn support_for(debug: bool, linux: bool, bundle: Option<tauri::utils::config
     }
     if linux {
         match bundle {
-            Some(BundleType::Deb) => return Err("installed from the .deb: download the new package from the releases page and install it with dpkg".into()),
-            Some(BundleType::Rpm) => return Err("installed from the .rpm: download the new package from the releases page and install it with rpm".into()),
+            Some(BundleType::Deb) => return Err("installed from the .deb: download the new package from pal.cagdas.io and install it with dpkg".into()),
+            Some(BundleType::Rpm) => return Err("installed from the .rpm: download the new package from pal.cagdas.io and install it with rpm".into()),
             _ if !appimage => return Err("not running from an AppImage: replace the binary by hand".into()),
             _ => {}
         }

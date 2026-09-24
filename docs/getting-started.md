@@ -11,12 +11,9 @@ come up. Every section points at the page with the detail.
 
 ## Install
 
-Download from the [Releases page](https://github.com/zcag/pal/releases).
-The builds there today are the previous pal's (`v0.1.x` to `v0.2.1`, a
-different program); this pal's first release is not published yet. Until
-it is, build from source
-([README](https://github.com/zcag/pal#building-from-source)). The files
-a release will carry:
+Download from [pal.cagdas.io](https://pal.cagdas.io/#download); what
+changed in each release is on [its changelog](https://pal.cagdas.io/changelog).
+The files a release carries:
 
 | platform | file |
 | --- | --- |
@@ -467,8 +464,8 @@ into pal, puts it in place and relaunches pal: the HUD says where it is
 and the About row says the same. macOS replaces `pal.app` where it is
 (the grants carry over: every release is signed with the same certificate).
 Linux replaces the AppImage where it is; the `.deb` and `.rpm` are the
-package manager's, so on those builds the row says so and points at the
-releases page (download the new package, `dpkg -i` or `rpm -U` it), and a
+package manager's, so on those builds the row says so and points at
+[pal.cagdas.io](https://pal.cagdas.io/#download) (download the new package, `dpkg -i` or `rpm -U` it), and a
 bare binary you built yourself is not updated either. A development build
 never is.
 

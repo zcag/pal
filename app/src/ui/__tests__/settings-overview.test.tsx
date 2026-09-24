@@ -118,8 +118,8 @@ describe("overviewItems", () => {
     const failed = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: true }, progress: { phase: "failed", version: "0.2.0", error: "signature mismatch" } });
     expect(failed[0].detail).toBe("Installing 0.2.0 failed: signature mismatch");
     expect(failed[0].action).toMatchObject({ label: "Install", disabled: false });
-    const deb = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: false, install_note: "installed from the .deb: download the new package from the releases page and install it with dpkg" } });
-    expect(deb[0].detail).toBe("You have 0.1.0. Installed from the .deb: download the new package from the releases page and install it with dpkg.");
+    const deb = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: false, install_note: "installed from the .deb: download the new package from pal.cagdas.io and install it with dpkg" } });
+    expect(deb[0].detail).toBe("You have 0.1.0. Installed from the .deb: download the new package from pal.cagdas.io and install it with dpkg.");
     expect(deb[0].action).toEqual({ label: "About", go: { page: "about", anchor: "about:updates" } });
     // The button: primary, and disabled while installing.
     const onInstallUpdate = vi.fn();

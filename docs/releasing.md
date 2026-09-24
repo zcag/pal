@@ -69,7 +69,7 @@ no installed pal can update to a build signed with a new one** (they would
 need a manual reinstall).
 
 The Linux updater only handles AppImages; a `.deb` or `.rpm` install sees
-the update and is pointed at the releases page instead (the manifest
+the update and is pointed at pal.cagdas.io's download section instead (the manifest
 carries the AppImage only; the package manager updates those).
 
 ## Secrets

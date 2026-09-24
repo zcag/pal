@@ -118,7 +118,7 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
                 let line = match crate::updater::check(&app).await {
-                    Ok(crate::updater::UpdateInfo { available: true, version, installable, .. }) => format!("pal {} is available: {}", version.as_deref().unwrap_or("?"), if installable == Some(true) { "Settings > About installs it" } else { "see the releases page" }),
+                    Ok(crate::updater::UpdateInfo { available: true, version, installable, .. }) => format!("pal {} is available: {}", version.as_deref().unwrap_or("?"), if installable == Some(true) { "Settings > About installs it" } else { "download it from pal.cagdas.io" }),
                     Ok(crate::updater::UpdateInfo { status: Some(s), .. }) => format!("Nothing to update to: {s}"),
                     Ok(_) => "pal is up to date".into(),
                     Err(e) => format!("Update check failed: {e}"),

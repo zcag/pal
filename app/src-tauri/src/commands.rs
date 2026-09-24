@@ -46,7 +46,8 @@ use crate::{autostart, effects, hotkey, index, permissions, settings, updater, w
 pub const STORE: &str = "https://pal.cagdas.io/extensions";
 pub const DOCS: &str = "https://pal.cagdas.io/docs";
 pub const ISSUES: &str = "https://github.com/zcag/pal/issues/new";
-pub const RELEASES: &str = "https://github.com/zcag/pal/releases/latest";
+/// The site's download section: the latest release's files, each a direct link.
+pub const DOWNLOAD: &str = "https://pal.cagdas.io/#download";
 pub const CHANGELOG: &str = "https://pal.cagdas.io/changelog";
 
 /// The changelog from `version` on: the site shows only the releases after it.
@@ -168,7 +169,7 @@ pub fn failed_rows(failed: &[Failed]) -> Vec<Item> {
 /// frecency store skips. With `update` (a newer release the last check
 /// found), "Install Update" leads: installable here, it installs and
 /// relaunches; not installable (a deb, a development build), it opens the
-/// releases page and the subtitle says why. `failed` extensions lead
+/// download page and the subtitle says why. `failed` extensions lead
 /// everything ([`failed_rows`]).
 pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Failed]) -> Vec<Item> {
     let icon = mark();
@@ -179,7 +180,7 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Faile
         let subtitle = match (u.installable, &u.install_note) {
             (Some(true), _) => format!("pal {v} is available; downloads, installs and relaunches"),
             (_, Some(why)) => format!("pal {v} is available; {why}"),
-            _ => format!("pal {v} is available on the releases page"),
+            _ => format!("pal {v} is available on pal.cagdas.io"),
         };
         rows.push(row(INSTALL_UPDATE, "Install Update", &subtitle, &["update", "upgrade", "release", "version", "install"], &icon));
     }
@@ -408,8 +409,8 @@ pub fn updates_toast(r: &Result<updater::UpdateInfo, String>) -> Value {
             let v = version.as_deref().unwrap_or("?");
             match (installable, install_note) {
                 (Some(true), _) => toast(&format!("pal {v} is available"), "Install Update (a row here, or Settings > About) installs it and relaunches", "success"),
-                (_, Some(why)) => toast(&format!("pal {v} is available"), &format!("{}{}. It is on the Releases page on GitHub", why[..1].to_uppercase(), &why[1..]), "success"),
-                _ => toast(&format!("pal {v} is available"), "Download it from the Releases page on GitHub", "success"),
+                (_, Some(why)) => toast(&format!("pal {v} is available"), &format!("{}{}. Download it from pal.cagdas.io", why[..1].to_uppercase(), &why[1..]), "success"),
+                _ => toast(&format!("pal {v} is available"), "Download it from pal.cagdas.io", "success"),
             }
         }
         Ok(updater::UpdateInfo { status: Some(s), .. }) => toast("Nothing to update to", s, "success"),
@@ -613,10 +614,10 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
         Plan::CheckUpdates => Ok(updates_toast(&updater::check_updates(app.clone()).await)),
         Plan::InstallUpdate => match updater::install(app).await {
             Ok(()) => Ok(json!({ "hide": true })),
-            // Not installable here: the releases page, where the build for this platform is.
+            // Not installable here: the download page, where the build for this platform is.
             Err(e) if updater::support().is_err() => {
                 eprintln!("updater\tinstall refused\t{e}");
-                effects::apply(app, json!({ "open": RELEASES })).await
+                effects::apply(app, json!({ "open": DOWNLOAD })).await
             }
             Err(e) => Ok(toast("Could not install the update", &e, "failure")),
         },
@@ -709,8 +710,8 @@ mod tests {
         assert_eq!(with[1].id, WHATS_NEW, "What's New follows it");
         assert_eq!(with[1].subtitle.as_deref(), Some("What changed from your 0.1.0 to 0.2.0"));
         assert_eq!(with[2].id, SETTINGS, "Settings is next");
-        let deb = rows("0.1.0", Some(&up(Some(false), Some("installed from the .deb: download the new package from the releases page and install it with dpkg"))), &[]);
-        assert_eq!(deb[0].subtitle.as_deref(), Some("pal 0.2.0 is available; installed from the .deb: download the new package from the releases page and install it with dpkg"));
+        let deb = rows("0.1.0", Some(&up(Some(false), Some("installed from the .deb: download the new package from pal.cagdas.io and install it with dpkg"))), &[]);
+        assert_eq!(deb[0].subtitle.as_deref(), Some("pal 0.2.0 is available; installed from the .deb: download the new package from pal.cagdas.io and install it with dpkg"));
         let none = updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None };
         let plain = rows("0.1.0", Some(&none), &[]);
         assert_eq!(plain[0].id, SETTINGS, "a check that found nothing lists no row");
@@ -818,7 +819,7 @@ mod tests {
         assert_eq!(up["toast"]["style"], "success");
         assert!(up["toast"]["message"].as_str().unwrap().starts_with("Install Update"), "names the row that installs it");
         let deb = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(false), install_note: Some("installed from the .deb: use dpkg".into()) }));
-        assert_eq!(deb["toast"]["message"], "Installed from the .deb: use dpkg. It is on the Releases page on GitHub");
+        assert_eq!(deb["toast"]["message"], "Installed from the .deb: use dpkg. Download it from pal.cagdas.io");
         let same = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None }));
         assert_eq!(same["toast"]["title"], "pal is up to date");
         let none = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: Some("no release published yet".into()), installable: None, install_note: None }));

@@ -229,11 +229,9 @@ the setup for GNOME, KDE and Hyprland, and the Wayland hotkey caveat.
 
 ## Install
 
-Downloads will be on the [Releases page](https://github.com/zcag/pal/releases):
-a dmg for Apple silicon and Intel Macs, an AppImage and a deb for Linux.
-The builds there today are the previous pal's (`v0.1.x` to `v0.2.1`, a
-different program); this pal's first release is coming and is not
-published yet. Until then, [build from source](#building-from-source).
+Download from [pal.cagdas.io](https://pal.cagdas.io/#download): a dmg
+for Apple silicon and Intel Macs, an AppImage and a deb for Linux. What
+changed in each release: [the changelog](https://pal.cagdas.io/changelog).
 The macOS builds are signed with pal's own certificate, not notarised,
 so Gatekeeper refuses the first launch once; [Getting started](docs/getting-started.md#macos) has the
 three ways past it.
