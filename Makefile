@@ -30,6 +30,7 @@ release:
 	run() { echo "+ $$*"; [ -n "$(DRY_RUN)" ] || "$$@"; }; \
 	if git rev-parse -q --verify "refs/tags/$$tag" >/dev/null || git ls-remote --exit-code --tags origin "$$tag" >/dev/null 2>&1; then echo "$$tag exists already (here or on origin)"; exit 1; fi; \
 	[ -n "$(DRY_RUN)" ] || [ -z "$$(git status --porcelain)" ] || { echo "working tree is dirty: commit or stash first, the release commit is the version bump alone"; exit 1; }; \
+	grep -q "^## $(VERSION) · " docs/changelog.md || { echo "docs/changelog.md has no \"## $(VERSION) · <date>\" section: write what changed for users first (the release notes and pal.cagdas.io/changelog are made from it)"; exit 1; }; \
 	run perl -pi -e 's/^(  "version": ")[^"]*/$${1}$(VERSION)/' app/src-tauri/tauri.conf.json app/package.json sdk/package.json; \
 	run perl -pi -e 's/^(version = ")[^"]*/$${1}$(VERSION)/' app/src-tauri/Cargo.toml core/Cargo.toml; \
 	run cargo update --workspace --offline -q; \

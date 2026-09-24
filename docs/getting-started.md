@@ -431,7 +431,7 @@ Settings (and Settings › Features, › Extensions, › About), Extension Store
 Install Extension (a form: `github:user/repo`, a GitHub URL or a local
 directory), Reload Extensions (restarts the extension host), Refresh Index,
 Check for Updates (and Install Update, listed only while a newer release is
-known), Open Config File and Reveal Config File, Show Tips Again,
+known), What's New (the changelog after your version), Open Config File and Reveal Config File, Show Tips Again,
 Documentation, Report a Bug (a GitHub issue with your version and OS filled
 in), Copy Diagnostics (version, OS, config path, extensions, hotkey and
 permission status, onto the clipboard), Toggle Theme (light, dark, system),
@@ -454,6 +454,12 @@ Overview, where it is a row with Install inline; and the root, where an
 "Install Update" row appears under the `pal` section until it is
 installed (Check for Updates, on the About page, the menu bar icon or the
 root row, runs a check any time).
+
+**What's New** opens [pal.cagdas.io/changelog](https://pal.cagdas.io/changelog)
+at the version you run, listing only the releases after it, with every
+release a link away: a button on the Overview's update row and on About's
+Version row, and a root row that follows Install Update while one is
+waiting. The notes are [docs/changelog.md](changelog.md).
 
 Install downloads the signed bundle, verifies it against the key built
 into pal, puts it in place and relaunches pal: the HUD says where it is

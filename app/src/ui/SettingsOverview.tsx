@@ -43,6 +43,8 @@ export type OverviewInput = {
   checks?: OverviewChecks;
   /** The Windows palette's switcher chord as it applies (`holdOf`); `""` is off, absent means no Windows palette and no fact. */
   switcher?: string;
+  /** The changelog from this version on (`settings_about`), for the update row's What's New. */
+  changelog?: string;
   /** `[sidebar]` in one line (`sidebarSummary`): "Windows on the right edge", or "off"; absent where none is built. */
   sidebar?: string;
   /** Who uses each permission and what for: the extensions that declare it, the features that are on (`permissionUsers`). A missing permission is a row only when something uses it. */
@@ -58,6 +60,8 @@ export type OverviewItem = {
   title: string;
   /** What is wrong and what fixes it, one line. */
   detail: string;
+  /** A second, plain button: a page in the browser. */
+  link?: { label: string; url: string };
   /** The inline action. */
   action?: { label: string; go?: { page: SettingsPage; anchor?: string }; permission?: PermissionId; keyboardShortcuts?: boolean; updateExtension?: string; installUpdate?: boolean; disabled?: boolean };
 };
@@ -157,10 +161,11 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
 
   if (v.update?.available) {
     const p = progressLine(v.progress);
+    const link = v.changelog ? { label: "What's New", url: v.changelog } : undefined;
     if (v.update.installable) {
-      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: p || `You have ${v.version}. Install downloads it, verifies the signature and relaunches pal.`, action: { label: installing(v.progress) ? "Installing…" : "Install", installUpdate: true, disabled: installing(v.progress) } });
+      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: p || `You have ${v.version}. Install downloads it, verifies the signature and relaunches pal.`, link, action: { label: installing(v.progress) ? "Installing…" : "Install", installUpdate: true, disabled: installing(v.progress) } });
     } else {
-      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from the releases page."}`, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
+      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from the releases page."}`, link, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
     }
   }
   const updates = new Set<string>();
@@ -225,6 +230,8 @@ export type SettingsOverviewProps = OverviewInput & {
   onCheckUpdates?: () => void;
   /** The update row's Install. */
   onInstallUpdate?: () => void;
+  /** A row's `link`, in the browser. */
+  onOpenLink?: (url: string) => void;
 };
 
 /**
@@ -232,7 +239,7 @@ export type SettingsOverviewProps = OverviewInput & {
  * inline, and under it the facts (hotkey, what is loaded, what is on).
  * Nothing to do reads "Everything is set" with the version.
  */
-export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShortcuts, onUpdateExtension, onCheckUpdates, onInstallUpdate, ...v }: SettingsOverviewProps) {
+export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShortcuts, onUpdateExtension, onCheckUpdates, onInstallUpdate, onOpenLink, ...v }: SettingsOverviewProps) {
   const items = overviewItems(v);
   const facts = overviewFacts(v);
   const act = (a: NonNullable<OverviewItem["action"]>) => {
@@ -264,6 +271,7 @@ export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShor
                 <span className="pal-overview__item-title">{it.title}</span>
                 <span className="pal-overview__item-detail">{it.detail}</span>
               </span>
+              {it.link && onOpenLink && <button type="button" className="pal-button" data-small onClick={() => onOpenLink(it.link!.url)}>{it.link.label}</button>}
               {it.action && <button type="button" className="pal-button" data-small data-primary={it.action.permission || it.action.updateExtension || it.action.keyboardShortcuts || it.action.installUpdate ? "" : undefined} disabled={it.action.disabled} onClick={() => act(it.action!)}>{it.action.label}</button>}
             </li>
           ))}

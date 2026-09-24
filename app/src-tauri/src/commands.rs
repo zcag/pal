@@ -47,6 +47,12 @@ pub const STORE: &str = "https://pal.cagdas.io/extensions";
 pub const DOCS: &str = "https://pal.cagdas.io/docs";
 pub const ISSUES: &str = "https://github.com/zcag/pal/issues/new";
 pub const RELEASES: &str = "https://github.com/zcag/pal/releases/latest";
+pub const CHANGELOG: &str = "https://pal.cagdas.io/changelog";
+
+/// The changelog from `version` on: the site shows only the releases after it.
+pub fn changelog_url(version: &str) -> String {
+    format!("{CHANGELOG}?from={version}")
+}
 
 pub const SETTINGS: &str = "settings";
 pub const SETTINGS_EXTENSIONS: &str = "settings-extensions";
@@ -62,6 +68,7 @@ pub const CONFIG_OPEN: &str = "config-open";
 pub const CONFIG_REVEAL: &str = "config-reveal";
 pub const TIPS: &str = "tips";
 pub const DOCS_ROW: &str = "docs";
+pub const WHATS_NEW: &str = "whats-new";
 pub const BUG: &str = "bug";
 pub const DIAGNOSTICS: &str = "diagnostics";
 pub const THEME: &str = "theme";
@@ -176,6 +183,19 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Faile
         };
         rows.push(row(INSTALL_UPDATE, "Install Update", &subtitle, &["update", "upgrade", "release", "version", "install"], &icon));
     }
+    // With an update it follows Install Update; otherwise it sits by Check for Updates.
+    let update_found = update.is_some_and(|u| u.available);
+    let whats_new = match update.filter(|u| u.available) {
+        Some(u) => format!("What changed from your {version} to {}", u.version.as_deref().unwrap_or("the latest")),
+        None => format!("The changelog after pal {version}, every release a link away"),
+    };
+    let whats_new = row(WHATS_NEW, "What's New", &whats_new, &["changelog", "release notes", "changes", "update", "version"], &icon);
+    let whats_new = if update_found {
+        rows.push(whats_new);
+        None
+    } else {
+        Some(whats_new)
+    };
     rows.extend([
         row(SETTINGS, "Settings", "Hotkey, theme, palettes, extensions", &["preferences", "options", "config"], &icon),
         row(SETTINGS_EXTENSIONS, "Settings › Extensions", "Installed extensions and their palettes, updates, the store", &["settings", "preferences", "extensions", "palettes"], &icon),
@@ -198,6 +218,10 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Faile
         row(RESTART, "Restart pal", "Quit and launch again", &["relaunch", "reboot", "reopen"], &icon),
         row(VERSION, "pal Version", version, &["version", "about", "build"], &icon),
     ]);
+    if let Some(w) = whats_new {
+        let at = rows.iter().position(|r| r.id == UPDATES).map_or(rows.len(), |i| i + 1);
+        rows.insert(at, w);
+    }
     let actions = |rows: &mut [Item], id: &str, a: Value| rows.iter_mut().find(|r| r.id == id).expect("a listed row").extra.insert("actions".into(), a);
     actions(&mut rows, QUIT, json!([{ "id": QUIT, "title": "Quit pal", "style": "destructive", "confirm": "Quit pal? The extension host stops with it." }]));
     actions(&mut rows, VERSION, json!([{ "id": "copy", "title": "Copy Version" }]));
@@ -287,6 +311,8 @@ pub enum Plan {
     SettingsExtension(String),
     /// A URL in the browser.
     Open(&'static str),
+    /// The changelog from this build's version on.
+    WhatsNew,
     /// The store palette (`extensions/store`) as a pushed level; the website when it is not loaded.
     Store,
     /// The install form.
@@ -332,6 +358,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
         CONFIG_REVEAL => Plan::RevealConfig,
         TIPS => Plan::ShowTips,
         DOCS_ROW => Plan::Open(DOCS),
+        WHATS_NEW => Plan::WhatsNew,
         BUG => Plan::ReportBug,
         DIAGNOSTICS => Plan::CopyDiagnostics,
         THEME => Plan::ToggleTheme,
@@ -551,6 +578,7 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             hide()
         }
         Plan::Open(url) => effects::apply(app, json!({ "open": url })).await,
+        Plan::WhatsNew => effects::apply(app, json!({ "open": changelog_url(&app.package_info().version.to_string()) })).await,
         Plan::Store => {
             if settings::extensions(app).iter().any(|e| e.name == "store" && e.loaded) {
                 Ok(json!({ "push": { "extension": "store", "palette": "store" } }))
@@ -640,7 +668,7 @@ mod tests {
         assert_eq!(ids.len(), ids.iter().collect::<HashSet<_>>().len(), "no duplicate ids: {ids:?}");
         assert_eq!(ids[0], SETTINGS, "Settings leads");
         assert_eq!(ids[ids.len() - 1], VERSION, "the version row is last");
-        assert_eq!(ids.len(), 20);
+        assert_eq!(ids.len(), 21);
         for r in &rows {
             assert!(r.keywords.iter().any(|k| k == "pal"), "{}: `pal` is a keyword", r.id);
             assert!(r.subtitle.as_deref().is_some_and(|s| !s.is_empty()), "{}: a subtitle", r.id);
@@ -678,11 +706,17 @@ mod tests {
         assert_eq!(with[0].name, "Install Update");
         assert_eq!(with[0].subtitle.as_deref(), Some("pal 0.2.0 is available; downloads, installs and relaunches"));
         assert_eq!(with.len(), rows("0.1.0", None, &[]).len() + 1);
-        assert_eq!(with[1].id, SETTINGS, "Settings is next");
+        assert_eq!(with[1].id, WHATS_NEW, "What's New follows it");
+        assert_eq!(with[1].subtitle.as_deref(), Some("What changed from your 0.1.0 to 0.2.0"));
+        assert_eq!(with[2].id, SETTINGS, "Settings is next");
         let deb = rows("0.1.0", Some(&up(Some(false), Some("installed from the .deb: download the new package from the releases page and install it with dpkg"))), &[]);
         assert_eq!(deb[0].subtitle.as_deref(), Some("pal 0.2.0 is available; installed from the .deb: download the new package from the releases page and install it with dpkg"));
         let none = updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None };
-        assert_eq!(rows("0.1.0", Some(&none), &[])[0].id, SETTINGS, "a check that found nothing lists no row");
+        let plain = rows("0.1.0", Some(&none), &[]);
+        assert_eq!(plain[0].id, SETTINGS, "a check that found nothing lists no row");
+        let at = plain.iter().position(|r| r.id == WHATS_NEW).unwrap();
+        assert_eq!(plain[at - 1].id, UPDATES, "What's New sits by Check for Updates");
+        assert_eq!(changelog_url("0.4.4"), "https://pal.cagdas.io/changelog?from=0.4.4");
         assert_eq!(plan(INSTALL_UPDATE, None, None), Plan::InstallUpdate);
         assert!(!inert(&source(), INSTALL_UPDATE), "a remembered pick, like any row");
     }

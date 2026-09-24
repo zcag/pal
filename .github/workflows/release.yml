@@ -58,11 +58,11 @@ jobs:
           v=$(jq -r .version app/src-tauri/tauri.conf.json)
           [ "v$v" = "$TAG" ] || { echo "tag $TAG but tauri.conf.json says $v (run make release VERSION=...)"; exit 1; }
 
-      # One bullet per commit since the previous v* tag reachable from this
-      # one (every commit when there is none: the pali branch shares no
-      # history with the v1 tags). GitHub's own generated notes list pull
-      # requests, and this repo has none.
-      - name: Release notes from the commits
+      # This version's section of docs/changelog.md (what `make release`
+      # insists is written), then one bullet per commit since the previous
+      # v* tag reachable from this one, folded. GitHub's own generated notes
+      # list pull requests, and this repo has none.
+      - name: Release notes
         id: notes
         if: github.ref_type == 'tag'
         env:
@@ -71,7 +71,13 @@ jobs:
           prev=$(git describe --tags --abbrev=0 --match 'v*' "$TAG^" 2>/dev/null || true)
           {
             echo "body<<PAL_NOTES_EOF"
+            awk -v v="${TAG#v}" '/^## /{on = ($2 == v); next} on' docs/changelog.md
+            echo
+            echo "<details><summary>Commits</summary>"
+            echo
             git log --no-merges --format='- %s' "${prev:+$prev..}$TAG"
+            echo
+            echo "</details>"
             if [ -n "$prev" ]; then
               echo
               echo "Full changelog: https://github.com/${{ github.repository }}/compare/$prev...$TAG"

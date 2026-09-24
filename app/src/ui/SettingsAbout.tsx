@@ -51,7 +51,8 @@ export type SettingsAboutProps = {
   version: string;
   /** The config file's path. */
   file: string;
-  links: { docs: string; repo: string };
+  /** `changelog`: the changelog from this version on. */
+  links: { docs: string; repo: string; changelog?: string };
   /** One check against the release manifest; rejects with the reason (network, signature). */
   onCheckUpdates?: () => Promise<UpdateInfo>;
   /** The last check's answer, when one ran (the Overview's, the daily one); the row starts from it. */
@@ -173,6 +174,7 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, update, on
             {info?.available && info.installable && onInstallUpdate && (
               <button type="button" className="pal-button" data-small data-primary="" disabled={busy} onClick={install}>{busy ? progress?.phase === "downloading" ? "Downloading…" : progress?.phase === "installing" ? "Installing…" : "Restarting…" : `Install ${info.version}`}</button>
             )}
+            {links.changelog && onOpenLink && <button type="button" className="pal-button" data-small onClick={() => onOpenLink(links.changelog!)}>What's New</button>}
             {onCheckUpdates && <button type="button" className="pal-button" data-small disabled={check.kind === "busy" || busy} onClick={run}>{check.kind === "busy" ? "Checking…" : "Check for Updates"}</button>}
           </span>
         </SettingsRow>

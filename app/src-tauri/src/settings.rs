@@ -1275,13 +1275,16 @@ pub async fn instances_remove(app: AppHandle, key: String) -> Result<(), String>
 pub struct About {
     docs: &'static str,
     repo: &'static str,
+    /// The changelog from this version on (`commands::changelog_url`).
+    changelog: String,
     #[serde(flatten)]
     found: crash::Found,
 }
 
 #[tauri::command]
 pub fn settings_about(app: AppHandle) -> About {
-    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO, found: crash::found(&app) }
+    let changelog = crate::commands::changelog_url(&app.package_info().version.to_string());
+    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO, changelog, found: crash::found(&app) }
 }
 
 /// A link on the page, in the browser. The webview has no handler for

@@ -64,7 +64,7 @@ type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; change
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
 type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
-type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicReport };
+type About = { docs: string; repo: string; changelog?: string; report?: CrashReport; panic?: PanicReport };
 
 /** The store site, where every bundled extension has a page. */
 const STORE = "https://pal.cagdas.io/extensions";
@@ -601,6 +601,8 @@ export default function Settings() {
           onRequestPermission={requestPermission}
           onOpenKeyboardShortcuts={openKeyboardShortcuts}
           onUpdateExtension={(name) => onExtUpdate(name).catch(fail)}
+          changelog={about.changelog}
+          onOpenLink={openLink}
         />
       )}
       {page === "general" && (

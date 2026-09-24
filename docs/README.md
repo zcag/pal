@@ -24,5 +24,6 @@
 - [Troubleshooting](troubleshooting.md): the log, diagnostics,
   permissions, the hotkey, PATH, the extension host, a palette that lists
   nothing, Gatekeeper.
+- [Changelog](changelog.md): what changed in each release, newest first.
 - [Releasing](releasing.md): how a release is cut and how the updater
   works.
