@@ -35,12 +35,12 @@ is what makes it public and what the in-app updater sees.
    Install one dmg and the AppImage somewhere real before publishing:
    ad-hoc signed, so on macOS Gatekeeper refuses the first launch
    ([Getting started](getting-started.md#macos) has the three ways past it).
-5. Publish the draft, with **Set as the latest release** ticked: the repo's
-   older releases of the previous pal (`v0.2.1` is the current "latest") sort
-   above `v0.1.0` by version, and
-   `https://github.com/zcag/pal/releases/latest/download/latest.json` follows
-   whatever GitHub calls latest. Once it resolves to this release's manifest,
-   every running pal finds it on its next check.
+5. Publish the draft (`gh release edit vx.y.z --draft=false --latest`, or the
+   button on GitHub). `.github/workflows/latest.yml` marks every published
+   release that is not a pre-release as the latest, whatever the checkbox
+   said: `https://github.com/zcag/pal/releases/latest/download/latest.json`
+   follows whatever GitHub calls latest. Once it resolves to this release's
+   manifest, every running pal finds it on its next check.
 
 ## The updater
 

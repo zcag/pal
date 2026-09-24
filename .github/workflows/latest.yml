@@ -1,0 +1,21 @@
+# A published release is always the latest one. The in-app updater reads
+# releases/latest/download/latest.json, which follows whatever GitHub calls
+# latest, and publishing a draft leaves that to a checkbox that is easy to
+# miss. A pre-release is left alone.
+name: latest
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  latest:
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
