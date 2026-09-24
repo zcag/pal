@@ -1,6 +1,6 @@
 [package]
 name = "pal-core"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2021"
 description = "pal core: config, index, frecency, icons, clipboard, windows, system commands"
 
