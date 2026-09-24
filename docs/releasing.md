@@ -6,21 +6,33 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
 
 ## Steps
 
+0. Write the release's section at the top of `docs/changelog.md`,
+   `## x.y.z · yyyy-mm-dd` and a bullet per change a user would notice,
+   and commit it. `make release` refuses a version without one; the section
+   is the GitHub release's notes and what
+   [pal.cagdas.io/changelog](https://pal.cagdas.io/changelog) and pal's
+   What's New show.
 1. On a clean tree: `make release VERSION=x.y.z DRY_RUN=1` prints the steps;
    without `DRY_RUN` it sets the version in `app/src-tauri/tauri.conf.json`,
    `app/src-tauri/Cargo.toml`, `app/package.json`, `core/Cargo.toml`,
    `sdk/package.json` and the three lockfiles, commits that alone as `vx.y.z`,
-   tags `vx.y.z` and pushes the branch and the tag. It refuses a dirty tree and
+   tags `vx.y.z`, pushes the branch and the tag, and creates the draft
+   release with its notes (`app/scripts/release-notes.sh`: the changelog
+   section, then the commits since the previous tag, folded). The workflow's
+   token was refused creating a release for v0.4.4 (a 403 with
+   `contents: write`) while uploading to an existing draft worked, so the
+   draft is made here and the workflow only uploads. It refuses a dirty tree and
    a tag that already exists here or on origin (the previous pal's tags `v0.1.2`
    to `v0.2.1` are on origin).
 2. The tag push starts `release.yml`, which refuses a tag that does not match
    `tauri.conf.json`'s version.
 3. Three jobs run (`macos-latest` for aarch64 and, cross-compiled, x86_64;
-   `ubuntu-24.04` for x86_64) and upload to one draft release named after the
-   tag, one bullet per commit subject since the previous `v*` tag reachable
-   from it (every commit while the branch shares no history with the previous
-   pal's tags). ~15 to 25 min cold; the release profile is LTO with one codegen
-   unit. A fourth job, `manifest`, then reads `latest.json` back from the
+   `ubuntu-24.04` for x86_64) and upload to that draft. ~13 min each without
+   a cache, about 4 of it the dependencies: a push to `main` that changes
+   `Cargo.lock` or a `Cargo.toml` runs the same build without bundling
+   (`warm`) and saves the Rust cache, which a tag run restores (a tag sees
+   only its own caches and `main`'s). The rest is pal's crates under fat LTO
+   with one codegen unit, kept for the app's speed. A fourth job, `manifest`, then reads `latest.json` back from the
    draft and fails if any of the three platforms or any bundle is missing:
    the three jobs merge into that one file in parallel, and a platform can
    be dropped when two finish at once. Re-run the missing platform's job;

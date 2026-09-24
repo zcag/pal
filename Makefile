@@ -19,7 +19,10 @@ test:
 # app/package.json and sdk/package.json (`@zcag/pal` on npm, published by
 # hand: docs/releasing.md) follow, and their lockfiles; host/package.json
 # carries no version), commits that bump alone, tags v$(VERSION) and pushes
-# the branch and the tag, which starts release.yml (it publishes). DRY_RUN=1 prints every
+# the branch and the tag, which starts release.yml (it publishes), and
+# creates the draft release with its notes (app/scripts/release-notes.sh):
+# the workflow's token was refused creating one for v0.4.4 (403) while
+# uploading to one that exists works, so the workflow only uploads. DRY_RUN=1 prints every
 # step (`+ ...`) and runs none. Refuses a dirty tree (the commit would sweep
 # it up) and a tag that exists here or on origin. docs/releasing.md has the rest.
 .PHONY: release
@@ -39,6 +42,7 @@ release:
 	run git commit -qam "$$tag"; \
 	run git tag -a "$$tag" -m "$$tag"; \
 	run git push origin HEAD "$$tag"; \
+	run gh release create "$$tag" --draft --verify-tag --title "$$tag" --notes "$$(app/scripts/release-notes.sh "$$tag" 2>/dev/null || true)"; \
 	echo "$$tag pushed: https://github.com/zcag/pal/actions/workflows/release.yml (published as the latest release once every bundle is on it)"
 
 # Builds the macOS app and installs it to /Applications, signed with the
