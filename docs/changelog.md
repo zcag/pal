@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 · 2026-09-25
+
+- **Flashcards**: spaced repetition for the minute a build takes. A card on a stack: space flips it, → "Knew it" throws it right and ← "Didn't know" left (or drag it), and each answer says when the card comes back. Every answer is saved as you give it, so Escape at any moment loses nothing. Scheduled with FSRS, the algorithm Anki uses.
+- **Short sessions** of ten cards with a summary: the words you missed, the new ones and any you mastered, and how much of everyday Spanish your words now cover. `d` drills the misses until they stick.
+- **Learn Spanish out of the box** with Jeff Doozan's *6001 Spanish* (the most used words, each with an example sentence) and everyday phrases. Words come in both directions: recognise first, then type it, with a missing accent or article counted as close and shown where.
+- **Any Anki deck works**: drop an `.apkg` into the packs folder, and its native audio plays on Tab. **Browse Anki Decks** searches AnkiWeb's shared decks right in pal, with ratings and sample cards, and Enter adds one.
+- A daily goal and a streak, stats with a heatmap and the week ahead, ⌘E to fix a card's meaning, `?` for every key, and a row at the top of pal while cards are due.
+- **Typing**: a monkeytype-style typing test. Time, word-count or zen tests with punctuation and numbers, a smooth caret, and a result with wpm, accuracy and a second-by-second chart; personal bests, a stats page and history, and an optional pace caret to race.
+
 ## 0.5.0 · 2026-09-25
 
 - **Snake II**, the Nokia 3310's, pixel for pixel and step for step: the phone's screen, menus, levels, mazes, bonus creatures, tones and backlight, checked frame by frame against the real 3310 firmware. The top score sits in the title line, and a quick second turn is kept instead of lost (`queue_turns`, off plays exactly as the phone).
