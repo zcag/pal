@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 · 2026-09-25
+
+- **Snake II**, the Nokia 3310's, pixel for pixel and step for step: the phone's screen, menus, levels, mazes, bonus creatures, tones and backlight, checked frame by frame against the real 3310 firmware. The top score sits in the title line, and a quick second turn is kept instead of lost (`queue_turns`, off plays exactly as the phone).
+- **Yahtzee**: solo, thirteen rounds, every open category showing what it would score, full rules with the bonuses and Joker.
+- **Minesweeper**: the classic board with right-click flags, chording, a pressed look while you hold, beginner to expert, best times.
+- **Solitaire**: Klondike with real cards, drag and drop or one hand on the arrows and Enter, undo, draw 1 or 3, a win cascade.
+- **Blackjack rebuilt** as a felt table with real cards dealt from a shoe, chips, clickable moves; totals update as each card turns over, and Enter stands mid-hand so a stray press never draws a card.
+- **Games**: one row that lists every game you have, including ones installed from the store.
+- **Every game plays one-handed** on the arrows and Enter, as well as with the mouse.
+- **For extension authors**: a game can bring its own page (the `surface` view node), run in a sandboxed frame with keys, theme, storage and messages to the extension, and a standard card deck to use (docs: Game surfaces).
+- **GitHub search is faster**, about 2 s instead of 4 to 7, and lists what involves you first; the search row shows it is still searching while a slow search is out.
+- **Fixed**: an extension installed from the store could fail to load when it read its settings on start.
+
 ## 0.4.4 · 2026-09-24
 
 - **Hide the pointer while it is idle**: Settings › Features › Mouse & Trackpad hides it in every app after a delay you choose (3 s by default), and the first move or click brings it back (macOS).
