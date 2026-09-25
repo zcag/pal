@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Typing</title>
+  <script src="/__pal/surface.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./main.ts"></script>
+</head>
+<body>
+  <header id="bar">
+    <div class="group">
+      <button type="button" tabindex="-1" data-id="punctuation"><b>@</b>punctuation</button>
+      <button type="button" tabindex="-1" data-id="numbers"><b>#</b>numbers</button>
+    </div>
+    <i class="sep"></i>
+    <div class="group">
+      <button type="button" tabindex="-1" data-id="mode:time"><svg viewBox="0 0 16 16"><circle cx="8" cy="9" r="5.5"/><path d="M8 6v3l2 1.5M6.5 1.5h3"/></svg>time</button>
+      <button type="button" tabindex="-1" data-id="mode:words"><svg viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h11M2.5 12h7"/></svg>words</button>
+      <button type="button" tabindex="-1" data-id="mode:zen"><svg viewBox="0 0 16 16"><path d="M8 2.5c2.5 2 2.5 5 0 7-2.5-2-2.5-5 0-7zM2.5 9c1.8 3 3.8 4.2 5.5 4.5 1.7-.3 3.7-1.5 5.5-4.5"/></svg>zen</button>
+    </div>
+    <i class="sep"></i>
+    <div class="group" id="lengths"></div>
+    <i class="sep"></i>
+    <div class="group">
+      <button type="button" tabindex="-1" data-id="stats" title="Stats and history"><svg viewBox="0 0 16 16"><path d="M2.5 13.5h11M4.5 11V8M8 11V4M11.5 11V6.5"/></svg>stats</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <section id="test">
+      <div id="meta"><span id="counter"></span><span id="pb"></span></div>
+      <div id="words"><div id="inner"><div id="pace"></div><div id="caret"></div></div><div id="zenhint">type anything · enter when you are done</div></div>
+      <div id="focus"><svg viewBox="0 0 16 16"><path d="M6 2.5 11.5 8 6 13.5"/></svg>click or press any key to focus</div>
+    </section>
+
+    <section id="result">
+      <div id="big">
+        <div class="stat">
+          <div class="lbl">wpm <span id="newbest"><svg viewBox="0 0 16 16"><path d="M2 5.5 5 8l3-4.5L11 8l3-2.5-1.2 7H3.2z"/></svg>new best</span></div>
+          <div class="num" id="r-wpm">0</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">acc</div>
+          <div class="num" id="r-acc">0%</div>
+        </div>
+        <div id="r-note"></div>
+      </div>
+      <div id="chart"><svg id="plot"></svg><div id="tip"></div></div>
+      <div id="small">
+        <div class="stat"><div class="lbl">test type</div><div class="val" id="r-type"></div></div>
+        <div class="stat"><div class="lbl">raw</div><div class="val" id="r-raw"></div></div>
+        <div class="stat" title="correct / incorrect / extra / missed"><div class="lbl">characters</div><div class="val" id="r-chars"></div></div>
+        <div class="stat"><div class="lbl">consistency</div><div class="val" id="r-cons"></div></div>
+        <div class="stat"><div class="lbl">time</div><div class="val" id="r-time"></div></div>
+      </div>
+    </section>
+
+    <section id="stats">
+      <div id="kinds"></div>
+      <div id="nothing">No tests yet. Finish one and it shows up here.</div>
+      <div id="tiles"></div>
+      <div class="head"><span>progress</span><span class="note"><i class="k-dot"></i>each test <i class="k-line"></i>average of 10</span></div>
+      <div id="progress"><svg></svg><div id="ptip"></div></div>
+      <div class="head"><span>personal bests</span><span class="note" id="bests-dress"></span></div>
+      <div id="bests"></div>
+      <div class="head"><span>history</span><span class="note" id="list-count"></span></div>
+      <table id="list">
+        <thead><tr><th>date</th><th>test</th><th>wpm</th><th>raw</th><th>acc</th><th>consistency</th><th>time</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer id="hints"></footer>
+</body>
+</html>

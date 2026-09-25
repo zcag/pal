@@ -151,6 +151,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Translate](#translate-translate-translate-history) | `translate` | input, normal | Copy the translation (on Swap: translate it back) |
 | [Translation History](#translate-translate-translate-history) | `translate-history` | live, normal | Copy the translation |
 | [Turkish](#turkish-turkish) | `turkish` | input, normal | Paste the converted text (over the selection it came from) |
+| [Typing](#typing-typing) | `typing` | view (surface), normal | A new test (Tab) |
 | [Unicode Characters](#unicode-characters-unicode) | `unicode` | indexed, grid, catalog | Copy character |
 | [Chats](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-chats` | live, primary | Open the chat (a group opens WhatsApp at the top) |
 | [Unread](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-unread` | live, normal | Open the chat |
@@ -2972,7 +2973,7 @@ tagline, sorted by name, and Enter opens that game as its own level
 (Escape comes back to the list). Nothing is kept here: every open reads
 the installed extensions' manifests and lists each view palette of a
 loaded extension the store shelves under Fun, so today 2048, Blackjack,
-Minesweeper, Snake II, Solitaire, Wordle and Yahtzee, and a game
+Minesweeper, Snake II, Solitaire, Typing, Wordle and Yahtzee, and a game
 installed from the store as soon as it is. No settings.
 
 ## 2048 (`2048`)
@@ -3203,6 +3204,38 @@ Rules (Hasbro's): 35 for 63 or more in the upper section; a further
 Yahtzee pays 100 while the Yahtzee box holds 50, and plays as a Joker:
 its number's upper box if open, else any open lower box (a full house
 and the straights at full value), else an upper box for 0. No settings.
+
+## Typing (`typing`)
+
+A typing test in the manner of monkeytype. Enter on the palette's row
+opens it as a view level whose body is the extension's own page (a
+`surface`): the options on a bar at the top, three lines of common
+English words, a caret that glides from letter to letter. The title line
+names the test ("Typing · time 30"); ⌘K lists a new test, every length
+and mode, and the toggles.
+
+- Time (15, 30, 60, 120 seconds), words (10, 25, 50, 100) or zen (type
+  anything, Enter ends it), with punctuation and numbers on top; picked
+  on the bar, with the arrows before the first key, or from ⌘K.
+- Settings (also switched from ⌘K): `pace_caret` (`off`, `pb`,
+  `average`, `last`), a fainter second caret gliding at that speed to
+  race; `stop_on_error` (`off`, `letter`, `word`), which refuses a wrong
+  letter, or a space out of a wrong word.
+- The clock starts on the first key. Right letters turn full colour,
+  wrong ones red, extra ones trail, a word left wrong is underlined;
+  Backspace goes back into a word only if it was left wrong
+  (`alt+backspace` takes the whole word).
+- The result: wpm, accuracy, raw speed, consistency, the letters right,
+  wrong, extra and missed, and a chart of the test second by second; a
+  new personal best for that kind of test is marked, else the best and
+  the average of the last ten. Under 75% accuracy a test is not counted.
+- Stats and history (the `stats` button on the bar, `S` on the result, or
+  ⌘K): all tests or one kind, the totals and averages, a progress chart
+  with the average of ten, the bests for every length and the table of
+  past tests.
+- Tab starts a new test at any point, `R` on the result repeats the same
+  words. Escape leaves (a test in progress is dropped); the options and
+  the records persist in the extension's storage.
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
 

@@ -1,6 +1,6 @@
 // Games: one row that opens every game pal has. A game is a loaded
 // extension the store shelves under Fun with a view palette (2048,
-// Blackjack, Minesweeper, Snake II, Solitaire, Wordle, Yahtzee, and one
+// Blackjack, Minesweeper, Snake II, Solitaire, Typing, Wordle, Yahtzee, and one
 // installed from the store later), read from the manifests on every open,
 // so a new game is listed without a change here. Enter opens it.
 import { readFile } from "node:fs/promises";

@@ -1,0 +1,170 @@
+{
+  "name": "typing",
+  "title": "Typing",
+  "description": "A typing test in the manner of monkeytype: common English words, a smooth caret, a timed, a counted or a free (zen) test, a pace caret and stop on error, and a result with wpm, accuracy, raw speed, consistency and a chart of the test second by second. Personal bests per test kind and the history persist, with a stats page: progress chart, bests, every past test.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰌌",
+      "bg": "teal"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "store": {
+    "tagline": "Monkeytype-style typing test: wpm, accuracy, a chart, personal bests",
+    "category": "fun",
+    "features": [
+      "Common English words in three lines that scroll as you go, a caret that glides from letter to letter, the letters coloured as you type them: right, wrong, extra, and a word left wrong underlined",
+      "Time (15, 30, 60, 120 seconds), words (10, 25, 50, 100) or zen (type anything, Enter ends it), punctuation and numbers on top; picked on the bar above the words, with the arrows before you start, or from ⌘K",
+      "The clock starts on the first key; the bar and the hints fade while you type",
+      "A pace caret to race your best, your average or your last test; stop on error by letter or by word; both settings, also switched from ⌘K",
+      "The result: wpm and accuracy large, raw speed, consistency, the letters right, wrong, extra and missed, and a chart of the wpm, the raw speed and the mistakes second by second",
+      "Personal bests for every kind of test, a new one marked; the average of your last ten of that kind beside it",
+      "Stats and history: tests, time typing, highest and average wpm, accuracy and consistency, all tests or one kind; a progress chart with the average of ten; the bests for every length; every past test in a table",
+      "Tab starts a new test at any point, R on the result repeats the same words"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-typing.png",
+        "caption": "Mid-test: the caret on the current letter, a mistake in red, the seconds left above"
+      },
+      {
+        "file": "2-result.png",
+        "caption": "The result: wpm, accuracy and the test second by second"
+      },
+      {
+        "file": "3-dark.png",
+        "caption": "A new personal best in the dark theme"
+      },
+      {
+        "file": "4-stats.png",
+        "caption": "Stats: the figures, the progress chart, the bests and the history"
+      }
+    ],
+    "actions": [
+      {
+        "title": "New test",
+        "description": "New words, the same options; mid-test the test is dropped.",
+        "keys": "tab"
+      },
+      {
+        "title": "Repeat the test",
+        "description": "The same words again, from the result.",
+        "keys": "r"
+      },
+      {
+        "title": "Stats and history",
+        "description": "The stats button on the bar, S on the result, or cmd+k.",
+        "keys": "s"
+      },
+      {
+        "title": "Change the test",
+        "description": "Before the first key: up and down switch time and words, left and right the length.",
+        "keys": "up, down, left, right"
+      }
+    ]
+  },
+  "settings": [
+    {
+      "kind": "select",
+      "id": "pace_caret",
+      "label": "Pace caret",
+      "description": "A second, fainter caret that moves at a steady speed for you to race: your personal best, the average of your last ten or your last test of the same kind (time 30, words 50 with punctuation, and so on). Nothing to race until you have finished one of that kind; never in zen. Also switched from ⌘K.",
+      "options": [
+        {
+          "id": "off",
+          "title": "Off"
+        },
+        {
+          "id": "pb",
+          "title": "Personal best"
+        },
+        {
+          "id": "average",
+          "title": "Average of the last 10"
+        },
+        {
+          "id": "last",
+          "title": "Last test"
+        }
+      ],
+      "default": "off"
+    },
+    {
+      "kind": "select",
+      "id": "stop_on_error",
+      "label": "Stop on error",
+      "description": "Letter: a wrong letter is not typed, the caret waits for the right one. Word: a word with a mistake cannot be left with space until it is fixed. Either way the wrong key counts against accuracy. Also switched from ⌘K.",
+      "options": [
+        {
+          "id": "off",
+          "title": "Off"
+        },
+        {
+          "id": "letter",
+          "title": "Letter"
+        },
+        {
+          "id": "word",
+          "title": "Word"
+        }
+      ],
+      "default": "off"
+    }
+  ],
+  "palettes": {
+    "typing": {
+      "kind": "view",
+      "description": "The test. Type the words (in zen, anything; Enter ends it); Tab starts a new one; Escape leaves (a test in progress is dropped).",
+      "keys": [
+        {
+          "keys": "tab",
+          "title": "New test"
+        },
+        {
+          "keys": "enter",
+          "title": "Zen: finish"
+        },
+        {
+          "keys": "space",
+          "title": "The next word; the letters left in this one are missed"
+        },
+        {
+          "keys": "backspace",
+          "title": "Take back a letter; at the start of a word, back into the one before if it was left wrong"
+        },
+        {
+          "keys": "alt+backspace",
+          "title": "Take back the word (ctrl+backspace too)"
+        },
+        {
+          "keys": "left",
+          "title": "Before the first key: a shorter test (right, a longer one)"
+        },
+        {
+          "keys": "up",
+          "title": "Before the first key: time, words or zen (down too)"
+        },
+        {
+          "keys": "r",
+          "title": "On the result: the same words again"
+        },
+        {
+          "keys": "enter",
+          "title": "On the result: a new test"
+        },
+        {
+          "keys": "s",
+          "title": "On the result: stats and history (tab, enter or s again closes them)"
+        }
+      ]
+    }
+  }
+}
