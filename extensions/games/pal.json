@@ -1,0 +1,54 @@
+{
+  "name": "games",
+  "title": "Games",
+  "description": "Every game pal has in one list: the bundled ones (2048, Blackjack, Minesweeper, Snake II, Solitaire, Wordle, Yahtzee) and any installed from the store. Enter opens the game.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰊗",
+      "bg": "violet"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "play",
+    "fun",
+    "game"
+  ],
+  "store": {
+    "tagline": "All the games in one list, one Enter away",
+    "category": "fun",
+    "features": [
+      "One row per game with its tile and tagline, sorted by name; typing narrows the list",
+      "Found from the installed extensions on every open: a game from the store's Fun shelf is listed as soon as it is installed",
+      "Enter opens the game; Escape comes back to the list"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [],
+    "actions": [
+      {
+        "title": "Play",
+        "description": "Opens the game.",
+        "keys": "enter"
+      }
+    ]
+  },
+  "palettes": {
+    "games": {
+      "kind": "live",
+      "description": "Every installed game; Enter opens it.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Play"
+        }
+      ]
+    }
+  }
+}

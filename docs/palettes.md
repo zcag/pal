@@ -64,6 +64,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Browse Folder](#files-files-files-browse-files-selection-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
 | [Finder Selection](#files-files-files-browse-files-selection-files-recent) | `files-selection` | input, normal | Open the file, browse a folder |
 | [Recent Files](#files-files-files-browse-files-selection-files-recent) | `files-recent` | live, primary | Open the file |
+| [Games](#games-games) | `games` | live, normal | Play the game |
 | [Generate](#generate-generate) | `generate` | input, normal | Copy the value (show the QR code on its row) |
 | [GIFs](#gifs-gifs-gifs-favourites) | `gifs` | indexed, grid, normal | Copy the GIF file |
 | [Favourite GIFs](#gifs-gifs-gifs-favourites) | `gifs-favourites` | indexed, grid, normal | Copy the GIF file |
@@ -2963,6 +2964,16 @@ participant's status; Raycast does it through the private
 read-only), a second `calendars` palette toggling visibility
 (an extension cannot write its own settings), reminders, an OAuth flow
 of pal's own (a Google client id would have to ship with it).
+
+## Games (`games`)
+
+Every game pal has in one list: one row per game with its tile and
+tagline, sorted by name, and Enter opens that game as its own level
+(Escape comes back to the list). Nothing is kept here: every open reads
+the installed extensions' manifests and lists each view palette of a
+loaded extension the store shelves under Fun, so today 2048, Blackjack,
+Minesweeper, Snake II, Solitaire, Wordle and Yahtzee, and a game
+installed from the store as soon as it is. No settings.
 
 ## 2048 (`2048`)
 
