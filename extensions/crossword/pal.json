@@ -1,14 +1,55 @@
 {
   "name": "crossword",
   "title": "Crossword",
-  "description": "Mini crosswords in the panel, from Crosshare: today's daily mini first, then as many more as you like (the daily archive back to 2020 and the newest minis). Type to fill, Space turns, Tab walks the clues; check and reveal a square, a word or the grid; a clock that only runs while the grid is on screen; streaks and times. Every key is saved, so Escape anywhere loses nothing.",
+  "description": "Daily crosswords in the panel: Crosshare's English minis (today's daily mini first, then as many more as you like) and the Turkish papers' kare bulmaca from HaberTürk, Cumhuriyet and Sabah. Type to fill, Space turns, Tab walks the clues; check and reveal a square, a word or the grid; a clock that only runs while the grid is on screen; streaks and times per source. Every key is saved, so Escape anywhere loses nothing.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰄹", "bg": "amber" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰄹",
+      "bg": "amber"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["mini", "puzzle", "crosshare", "clues", "daily"],
+  "keywords": [
+    "mini",
+    "puzzle",
+    "crosshare",
+    "clues",
+    "daily",
+    "bulmaca",
+    "kare bulmaca",
+    "haberturk",
+    "cumhuriyet",
+    "sabah"
+  ],
   "settings": [
+    {
+      "kind": "select",
+      "id": "source",
+      "label": "Opens on",
+      "description": "Whose puzzle the first open shows (when nothing is left half-done), and whose puzzle of the day the Now row offers. Browse has every source as a tab either way.",
+      "options": [
+        {
+          "id": "crosshare",
+          "title": "Crosshare: English minis"
+        },
+        {
+          "id": "haberturk",
+          "title": "HaberTürk: günlük kare bulmaca"
+        },
+        {
+          "id": "cumhuriyet",
+          "title": "Cumhuriyet: günlük kare bulmaca"
+        },
+        {
+          "id": "sabah",
+          "title": "Sabah: kare bulmaca archive (2024 to 2025)"
+        }
+      ],
+      "default": "crosshare"
+    },
     {
       "kind": "boolean",
       "id": "autocheck",
@@ -27,54 +68,148 @@
     }
   ],
   "store": {
-    "tagline": "Mini crosswords from Crosshare: today's daily, then as many more as you like",
+    "tagline": "Daily crosswords: Crosshare's minis and the Turkish papers' kare bulmaca",
     "category": "fun",
     "features": [
-      "Today's daily mini from Crosshare the moment you open it, then Next (Enter on the finish) goes straight to another unplayed one: the daily archive back to 2020, then the newest minis",
+      "Today's daily mini from Crosshare, or the Turkish papers' kare bulmaca (HaberTürk since 2017, Cumhuriyet with its photo, Sabah's archive); Next (Enter on the finish) goes straight to another unplayed puzzle of the same source",
+      "Turkish letters as the papers check them: a US keyboard solves with plain letters (S for Ş), ' after a letter types the Turkish one (s' is ş), and the solved grid shows the answers' own letters",
+      "A wide newspaper grid gets the room it needs: the clue across the top and the lists beside it, or ⌘L for every clue when the panel is compact; the paper's photo on its squares, large on a click",
       "The NYT Mini's keys: type to fill (full squares skipped), Backspace steps back, an arrow across the word turns first, Space or a click on the square turns, Tab and Shift-Tab walk the clues",
       "The clue you are on large above the lists, the lists beside the grid with the crossing clue lit and finished clues greyed",
       "Check or reveal a square, a word or the whole grid, and clear a word or the grid; wrong letters get a slash, revealed ones a corner mark; autocheck if you like",
       "A clock that runs only while the grid is on screen, and a pause that hides the grid",
       "A wave across the grid when it is solved, your time and whether it is a best; a full grid with a mistake says Not quite without saying where",
-      "Browse a calendar of the daily minis month by month, or the newest minis, each marked solved, started or new",
-      "Stats: solved, best and average time, the daily streak and the best one, a chart of recent times, the history",
+      "Browse a calendar per source, month by month, and Crosshare's newest minis, each puzzle marked solved, started or new",
+      "Stats per source: solved, best and average time, the daily streak and the best one, a chart of recent times, the history",
       "Every key is saved as you type: Escape anywhere, the half-done puzzle is there next time; puzzles once opened play offline",
-      "Each puzzle credited to its constructor, with a link to it on crosshare.org"
+      "Each puzzle credited to its constructor or paper, with a link to it on their site"
     ],
-    "permissions": ["network"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-solving.png", "caption": "Today's mini mid-solve: the clue you are on above the lists, the crossing clue lit" },
-      { "file": "2-solved.png", "caption": "Solved: the time, a new best, the streak, Next puzzle on Enter" },
-      { "file": "3-browse.png", "caption": "The daily minis month by month, solved and started marked" },
-      { "file": "4-stats.png", "caption": "Stats: best and average, the streak, recent times" }
+      {
+        "file": "1-solving.png",
+        "caption": "Today's mini mid-solve: the clue you are on above the lists, the crossing clue lit"
+      },
+      {
+        "file": "2-solved.png",
+        "caption": "Solved: the time, a new best, the streak, Next puzzle on Enter"
+      },
+      {
+        "file": "3-browse.png",
+        "caption": "The daily minis month by month, solved and started marked"
+      },
+      {
+        "file": "4-stats.png",
+        "caption": "Stats: best and average, the streak, recent times"
+      },
+      {
+        "file": "5-kare-bulmaca.png",
+        "caption": "HaberTürk's kare bulmaca: Turkish letters, s' typed as ş"
+      },
+      {
+        "file": "6-wide.png",
+        "caption": "Cumhuriyet's 17 by 11 with its photo: the clue across the top, the lists beside the grid"
+      }
     ],
     "actions": [
-      { "title": "Next puzzle", "description": "Another unplayed mini: today's if it is still open, then back through the dailies, then the newest minis.", "keys": "cmd+n" },
-      { "title": "Browse puzzles", "description": "The daily minis by month, or the newest minis.", "keys": "cmd+o" },
-      { "title": "Stats", "description": "Times, streaks and the history.", "keys": "cmd+s" },
-      { "title": "Check word", "description": "Also the square (⌘⌥E) and the grid (⌘⇧E).", "keys": "cmd+e" },
-      { "title": "Reveal word", "description": "Also the square (⌘⌥U) and the grid (⌘⇧U).", "keys": "cmd+u" },
-      { "title": "Clear word", "description": "Also the grid (⌘⌥⌫).", "keys": "alt+backspace" },
-      { "title": "Pause", "description": "Stops the clock and hides the grid.", "keys": "cmd+p" }
+      {
+        "title": "Next puzzle",
+        "description": "Another unplayed mini: today's if it is still open, then back through the dailies, then the newest minis.",
+        "keys": "cmd+n"
+      },
+      {
+        "title": "Browse puzzles",
+        "description": "The daily minis by month, or the newest minis.",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Stats",
+        "description": "Times, streaks and the history.",
+        "keys": "cmd+s"
+      },
+      {
+        "title": "Check word",
+        "description": "Also the square (⌘⌥E) and the grid (⌘⇧E).",
+        "keys": "cmd+e"
+      },
+      {
+        "title": "Reveal word",
+        "description": "Also the square (⌘⌥U) and the grid (⌘⇧U).",
+        "keys": "cmd+u"
+      },
+      {
+        "title": "Clear word",
+        "description": "Also the grid (⌘⌥⌫).",
+        "keys": "alt+backspace"
+      },
+      {
+        "title": "Show every clue",
+        "description": "Over a wide grid with no room for the lists beside it.",
+        "keys": "cmd+l"
+      },
+      {
+        "title": "Pause",
+        "description": "Stops the clock and hides the grid.",
+        "keys": "cmd+p"
+      }
     ]
   },
   "palettes": {
     "crossword": {
       "kind": "view",
       "title": "Crossword",
-      "description": "Today's mini, or the one left half-done. Escape leaves at any point; every key is saved.",
+      "description": "The puzzle left half-done, else today's of the source you chose. Escape leaves at any point; every key is saved.",
       "keys": [
-        { "keys": "a", "title": "Type a letter: fills the square and moves on" },
-        { "keys": "backspace", "title": "Clear the square, or step back and clear" },
-        { "keys": "space", "title": "Turn: across or down" },
-        { "keys": "tab", "title": "Next clue (shift+tab the previous one)" },
-        { "keys": "up", "title": "Move (an arrow across the word turns first)" },
-        { "keys": "cmd+e", "title": "Check word (cmd+alt+e square, cmd+shift+e grid)" },
-        { "keys": "cmd+u", "title": "Reveal word (cmd+alt+u square, cmd+shift+u grid)" },
-        { "keys": "cmd+n", "title": "Next puzzle" },
-        { "keys": "cmd+o", "title": "Browse puzzles" },
-        { "keys": "?", "title": "Every key" }
+        {
+          "keys": "a",
+          "title": "Type a letter: fills the square and moves on"
+        },
+        {
+          "keys": "backspace",
+          "title": "Clear the square, or step back and clear"
+        },
+        {
+          "keys": "space",
+          "title": "Turn: across or down"
+        },
+        {
+          "keys": "tab",
+          "title": "Next clue (shift+tab the previous one)"
+        },
+        {
+          "keys": "up",
+          "title": "Move (an arrow across the word turns first)"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Check word (cmd+alt+e square, cmd+shift+e grid)"
+        },
+        {
+          "keys": "cmd+u",
+          "title": "Reveal word (cmd+alt+u square, cmd+shift+u grid)"
+        },
+        {
+          "keys": "cmd+n",
+          "title": "Next puzzle"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Browse puzzles"
+        },
+        {
+          "keys": "'",
+          "title": "After a letter, its Turkish form (s' is ş) on a Turkish puzzle"
+        },
+        {
+          "keys": "?",
+          "title": "Every key"
+        }
       ]
     }
   }

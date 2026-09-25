@@ -15,6 +15,7 @@
       <div id="under"></div>
       <div id="cursor"></div>
       <div id="over"></div>
+      <div id="media"></div>
     </div>
     <div id="cover"><div><svg viewBox="0 0 24 24"><rect x="7" y="5.5" width="3.2" height="13" rx="1"/><rect x="13.8" y="5.5" width="3.2" height="13" rx="1"/></svg><b>Paused</b><span>Enter to carry on</span></div></div>
   </div>
@@ -22,7 +23,7 @@
     <header id="head">
       <div id="who">
         <b id="ptitle"></b>
-        <button type="button" tabindex="-1" id="credit" title="Open on crosshare.org"></button>
+        <button type="button" tabindex="-1" id="credit"></button>
       </div>
       <button type="button" tabindex="-1" id="clock" title="Pause (⌘P)"><span id="time">0:00</span><svg viewBox="0 0 16 16"><rect x="4.5" y="3.5" width="2.2" height="9" rx=".6"/><rect x="9.3" y="3.5" width="2.2" height="9" rx=".6"/></svg></button>
     </header>
@@ -50,10 +51,7 @@
 
 <section id="browse" class="screen">
   <header class="bar">
-    <div class="tabs" role="tablist">
-      <button type="button" tabindex="-1" data-tab="daily">Daily minis</button>
-      <button type="button" tabindex="-1" data-tab="newest">Newest minis</button>
-    </div>
+    <div class="tabs" role="tablist"></div>
     <button type="button" tabindex="-1" class="back" data-back title="Back to the puzzle (⌘O)">Back <kbd>⌘O</kbd></button>
   </header>
   <div id="daily" class="pane">
@@ -74,6 +72,7 @@
 <section id="stats" class="screen">
   <header class="bar">
     <b class="heading">Stats</b>
+    <div class="tabs" role="tablist"></div>
     <button type="button" tabindex="-1" class="back" data-back title="Back to the puzzle (⌘S)">Back <kbd>⌘S</kbd></button>
   </header>
   <div id="stats-body">
@@ -109,6 +108,7 @@
       <dt><kbd>Tab</kbd><kbd>⇧Tab</kbd></dt><dd>Next, previous clue</dd>
       <dt><kbd>⏎</kbd></dt><dd>Next clue <small>solved: next puzzle</small></dd>
       <dt><kbd>⌘P</kbd></dt><dd>Pause</dd>
+      <dt class="tr"><kbd>'</kbd></dt><dd class="tr">After a letter: Ç Ğ İ Ö Ş Ü <small>s' is ş</small></dd>
     </dl>
     <dl>
       <dt><kbd>⌘E</kbd></dt><dd>Check word <small>⌥ square, ⇧ grid</small></dd>
@@ -117,12 +117,15 @@
       <dt><kbd>⌘N</kbd></dt><dd>Next puzzle</dd>
       <dt><kbd>⌘O</kbd></dt><dd>Browse puzzles</dd>
       <dt><kbd>⌘S</kbd></dt><dd>Stats</dd>
+      <dt><kbd>⌘L</kbd></dt><dd>Every clue <small>over a wide grid</small></dd>
       <dt><kbd>⌘K</kbd></dt><dd>Everything else</dd>
     </dl>
   </div>
   <p>Any key closes this</p>
 </div></div>
 
+<div id="photo" hidden><img alt="The puzzle's photo"></div>
+<div id="note" hidden></div>
 <div id="ask" hidden><div class="card"><p></p><div class="go"><button type="button" tabindex="-1" data-yes class="primary"></button><button type="button" tabindex="-1" data-no>Cancel</button></div></div></div>
 </body>
 </html>

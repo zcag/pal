@@ -1,10 +1,10 @@
 // The page's other screens, each drawn from what the extension answers:
-// Browse (a month of daily minis as a calendar with the day's puzzle beside
-// it, or the newest minis as a list), Stats (the figures, a chart of recent
-// times, the history) and the offline page. main.ts owns the keys' routing
+// Browse (a tab per source: its month as a calendar with the day's puzzle
+// beside it, and Crosshare's newest minis as a list), Stats (per source: the
+// figures, a chart of recent times, the history) and the offline page. main.ts owns the keys' routing
 // and hands each screen its own.
 import { clockText, type Puzzle } from "../game.ts";
-import type { Entry, MonthView, NewestView, Offline, StatsView } from "../index.ts";
+import type { Entry, MonthView, NewestView, Offline, SourcesView, StatsView } from "../index.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -38,8 +38,21 @@ type Send = <T>(msg: unknown) => Promise<T>;
 
 // ---- Browse ---------------------------------------------------------------------------------
 
+/** Tabs for the sources (`extra` goes in after Crosshare's): the buttons and a click that picks one. */
+function tabs(el: HTMLElement, sources: SourcesView, extra: { id: string; title: string }[], on: string, pick: (id: string) => void) {
+  const list = sources.sources.flatMap((s) => [{ id: s.id as string, title: s.title }, ...(s.id === "crosshare" ? extra : [])]);
+  el.innerHTML = list.map((t) => `<button type="button" tabindex="-1" data-tab="${t.id}" class="${t.id === on ? "on" : ""}">${esc(t.title)}</button>`).join("");
+  el.onclick = (e) => { const id = (e.target as HTMLElement).closest<HTMLElement>("[data-tab]")?.dataset.tab; if (id) pick(id); };
+  return list.map((t) => t.id);
+}
+
 export class Browse {
-  tab: "daily" | "newest" = "daily";
+  /** A source's id, or "newest" for Crosshare's newest minis. */
+  tab = "crosshare";
+  order: string[] = [];
+  sources?: SourcesView;
+  /** Where each source's calendar was left. */
+  at: Record<string, { year: number; month: number; day: number }> = {};
   year = 0;
   month = 0;
   view?: MonthView;
@@ -51,7 +64,6 @@ export class Browse {
   row = 0;
   seq = 0;
   constructor(private io: { send: Send; play: (id: string, date?: string) => void; back: () => void }) {
-    for (const b of document.querySelectorAll<HTMLElement>("#browse [data-tab]")) b.addEventListener("click", () => this.switchTo(b.dataset.tab as "daily" | "newest"));
     for (const b of document.querySelectorAll<HTMLElement>("#month-nav [data-step]")) b.addEventListener("click", () => void this.step(Number(b.dataset.step)));
     $("#cal").addEventListener("click", (e) => {
       const d = Number((e.target as HTMLElement).closest<HTMLElement>("[data-day]")?.dataset.day);
@@ -66,42 +78,53 @@ export class Browse {
     });
   }
 
-  /** Opens on the month of the puzzle being played (a daily), or the newest list after a newest mini. */
-  open(p?: Puzzle) {
-    const date = p?.date ?? new Date().toISOString().slice(0, 10);
-    this.tab = p && !p.date ? "newest" : "daily";
-    this.year = Number(date.slice(0, 4));
-    this.month = Number(date.slice(5, 7));
-    this.day = Number(date.slice(8, 10));
+  /** Opens on the source of the puzzle being played, at its month (Crosshare's newest list after a newest mini), else the default source. */
+  open(sources: SourcesView, p?: Puzzle) {
+    this.sources = sources;
+    const src = p?.source ?? sources.source;
+    if (p?.date) this.at[src] = { year: Number(p.date.slice(0, 4)), month: Number(p.date.slice(5, 7)), day: Number(p.date.slice(8, 10)) };
     this.row = 0;
-    this.drawTabs();
-    void this.loadMonth();
-    if (this.tab === "newest" || this.page < 0) void this.loadNewest(true);
+    this.switchTo(p && !p.date && src === "crosshare" ? "newest" : src);
   }
 
-  switchTo(tab: "daily" | "newest") {
+  switchTo(tab: string) {
+    if (this.tab !== "newest" && this.year) this.at[this.tab] = { year: this.year, month: this.month, day: this.day };
     this.tab = tab;
     this.drawTabs();
-    if (tab === "newest" && this.page < 0) void this.loadNewest(true);
+    if (tab === "newest") { if (this.page < 0) void this.loadNewest(true); return; }
+    const at = this.at[tab];
+    this.year = at?.year ?? 0;
+    this.month = at?.month ?? 0;
+    this.day = at?.day ?? 31;
+    this.view = undefined;
+    void this.loadMonth();
   }
   drawTabs() {
-    for (const b of document.querySelectorAll<HTMLElement>("#browse [data-tab]")) b.classList.toggle("on", b.dataset.tab === this.tab);
+    this.order = tabs($("#browse .tabs"), this.sources!, [{ id: "newest", title: "Newest" }], this.tab, (id) => this.switchTo(id));
     $("#browse").dataset.tab = this.tab;
-    $("#browse-keys").innerHTML = this.tab === "daily"
-      ? `<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> day</span><span><kbd>[</kbd><kbd>]</kbd> month</span><span><kbd>⏎</kbd> play</span><span><kbd>Tab</kbd> newest minis</span><span><kbd>⌫</kbd> back</span>`
-      : `<span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>⏎</kbd> play</span><span><kbd>Tab</kbd> daily minis</span><span><kbd>⌫</kbd> back</span>`;
+    const other = `<span><kbd>Tab</kbd> next source</span><span><kbd>⌫</kbd> back</span>`;
+    $("#browse-keys").innerHTML = this.tab !== "newest"
+      ? `<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> day</span><span class="long"><kbd>[</kbd><kbd>]</kbd> month</span><span><kbd>⏎</kbd> play</span>${other}`
+      : `<span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>⏎</kbd> play</span>${other}`;
   }
 
+  /** The month under the cursor; with none yet, the source's latest (today's month, or an archive's last). */
   async loadMonth() {
-    const seq = ++this.seq;
-    $("#month-name").textContent = `${MONTHS[this.month - 1]} ${this.year}`;
+    const seq = ++this.seq, tab = this.tab;
+    if (this.year) $("#month-name").textContent = `${MONTHS[this.month - 1]} ${this.year}`;
     $("#cal").classList.add("busy");
-    const v = await this.io.send<MonthView>({ op: "month", year: this.year, month: this.month }).catch((e) => ({ year: this.year, month: this.month, today: "", days: [], error: String(e) }) as MonthView);
-    if (seq !== this.seq) return;
+    const v = await this.io.send<MonthView>({ op: "month", source: tab, ...(this.year && { year: this.year, month: this.month }) })
+      .catch((e) => ({ source: tab, year: this.year, month: this.month, today: "", first: "", last: "", days: [], error: String(e) }) as MonthView);
+    if (seq !== this.seq || tab !== this.tab) return;
     this.view = v;
+    this.year = v.year;
+    this.month = v.month;
+    $("#month-name").textContent = `${MONTHS[this.month - 1]} ${this.year}`;
     $("#cal").classList.remove("busy");
     const last = new Date(Date.UTC(this.year, this.month, 0)).getUTCDate();
+    // Onto the newest puzzle when the day asked for has none (an archive, a month not full yet).
     this.day = Math.min(this.day, last);
+    if (!this.entryOn(this.day) && v.days.length && this.day >= Number(v.days[0].date!.slice(8, 10))) this.day = Number(v.days[0].date!.slice(8, 10));
     this.drawMonth(true);
   }
 
@@ -109,8 +132,8 @@ export class Browse {
     let m = this.month + by, y = this.year;
     if (m < 1) { m = 12; y--; }
     if (m > 12) { m = 1; y++; }
-    const now = new Date().toISOString().slice(0, 7);
-    if (`${y}-${pad(m)}` > now || y < 2020) return;
+    const key = `${y}-${pad(m)}`;
+    if (!this.view || (this.view.last && key > this.view.last) || (this.view.first && key < this.view.first)) return;
     this.year = y; this.month = m;
     this.day = day ?? 1;
     $("#cal").classList.remove("slide-l", "slide-r");
@@ -148,12 +171,12 @@ export class Browse {
     const peek = $("#peek");
     if (v.error && !v.days.length) { peek.innerHTML = `<div class="empty"><b>Couldn't load this month</b><span>${esc(v.error)}</span></div>`; return; }
     if (!e) {
-      peek.innerHTML = `<div class="empty"><span class="date">${dateLong(date)}</span><b>${date > v.today ? "Not out yet" : "No daily mini this day"}</b></div>`;
+      peek.innerHTML = `<div class="empty"><span class="date">${dateLong(date)}</span><b>${date > v.today ? "Not out yet" : "No puzzle this day"}</b></div>`;
       return;
     }
     peek.innerHTML = `<div class="date">${dateLong(date)}${date === v.today ? `<em>Today</em>` : ""}</div>
       <div class="ttl">${esc(e.title)}</div>
-      <div class="by">by ${esc(e.author || "a Crosshare constructor")}</div>
+      <div class="by">${e.author ? `by ${esc(e.author)}` : esc(this.sources?.sources.find((x) => x.id === e.source)?.title ?? "")}</div>
       <div class="facts"><span class="size">${e.w}×${e.h}</span><span class="st ${e.state}">${mark(e)}${stateLine(e)}</span></div>
       <button type="button" tabindex="-1" class="primary" data-play>${e.state === "solved" || e.state === "helped" ? "Look again" : e.state === "started" ? "Carry on" : "Play"} <kbd>⏎</kbd></button>`;
     peek.classList.remove("swap");
@@ -197,7 +220,7 @@ export class Browse {
   key(e: KeyboardEvent) {
     e.preventDefault();
     const k = e.key;
-    if (k === "Tab") return this.switchTo(this.tab === "daily" ? "newest" : "daily");
+    if (k === "Tab") { const i = this.order.indexOf(this.tab), n = this.order.length; return this.switchTo(this.order[(i + (e.shiftKey ? n - 1 : 1)) % n]); }
     if (k === "Backspace") return this.io.back();
     if (this.tab === "newest") {
       if (k === "Enter") return this.playRow();
@@ -221,7 +244,7 @@ export class Browse {
     }
     if (to > last) {
       const next = `${this.month === 12 ? this.year + 1 : this.year}-${pad(this.month === 12 ? 1 : this.month + 1)}`;
-      if (next > new Date().toISOString().slice(0, 7)) return;
+      if (this.view?.last && next > this.view.last) return;
       return void this.step(1, to - last);
     }
     this.day = to;
@@ -232,11 +255,18 @@ export class Browse {
 // ---- Stats ----------------------------------------------------------------------------------
 
 export class Stats {
+  source = "crosshare";
+  order: string[] = [];
+  sources?: SourcesView;
   constructor(private io: { send: Send; back: () => void }) {}
 
-  async open() {
-    const s = await this.io.send<StatsView>({ op: "stats" }).catch(() => null);
-    if (s) this.draw(s);
+  /** A source's stats (the one being played), its tab lit. */
+  async open(sources: SourcesView, source: string) {
+    this.sources = sources;
+    this.source = source;
+    this.order = tabs($("#stats .tabs"), sources, [], source, (id) => void this.open(sources, id));
+    const s = await this.io.send<StatsView>({ op: "stats", source }).catch(() => null);
+    if (s && s.source === this.source) this.draw(s);
   }
 
   draw(s: StatsView) {
@@ -246,7 +276,7 @@ export class Stats {
       tile("Solved", String(s.solved), s.solved > s.clean ? `${s.solved - s.clean} with help` : s.solved ? "all on your own" : ""),
       tile("Best time", t(s.best)),
       tile("Average", t(s.average), s.recent !== undefined ? `last ten ${t(s.recent)}` : ""),
-      tile("Streak", `${s.streak}<small>${s.streak === 1 ? "day" : "days"}</small>`, s.today ? "today's done" : s.streak ? "today's still open" : "daily minis on the day", s.streak ? "hot" : ""),
+      tile("Streak", `${s.streak}<small>${s.streak === 1 ? "day" : "days"}</small>`, s.today ? "today's done" : s.streak ? "today's still open" : "dailies solved on their day", s.streak ? "hot" : ""),
       tile("Best streak", `${s.bestStreak}<small>${s.bestStreak === 1 ? "day" : "days"}</small>`),
     ].join("");
     this.chart(s);
@@ -283,6 +313,7 @@ export class Stats {
   key(e: KeyboardEvent) {
     e.preventDefault();
     if (e.key === "Backspace" || e.key === "Enter") return this.io.back();
+    if (e.key === "Tab" && this.sources) { const i = this.order.indexOf(this.source), n = this.order.length; return void this.open(this.sources, this.order[(i + (e.shiftKey ? n - 1 : 1)) % n]); }
     const ol = $("#history ol");
     if (e.key === "ArrowDown") ol.scrollBy({ top: 60, behavior: "smooth" });
     if (e.key === "ArrowUp") ol.scrollBy({ top: -60, behavior: "smooth" });
@@ -292,9 +323,12 @@ export class Stats {
 // ---- Offline ---------------------------------------------------------------------------------
 
 export function showOffline(r: Offline) {
-  $("#offline-why").textContent = /fetch|network|timed? ?out|abort|connect|ENOTFOUND|resolve/i.test(r.error)
+  const none = /no .*puzzle|not found/i.test(r.error);
+  $("#offline b").textContent = none ? `No ${r.source} puzzle there yet` : `Couldn't reach ${r.source || "the puzzles"}`;
+  $("#offline").classList.toggle("none", none);
+  $("#offline-why").textContent = none ? "Try another day from Browse (⌘O), or come back later." : /fetch|network|timed? ?out|abort|connect|ENOTFOUND|resolve/i.test(r.error)
     ? "pal is offline, or Crosshare is down."
-    : /answered 5\d\d/.test(r.error) ? "Crosshare isn't answering right now." : r.error;
+    : /answered 5\d\d/.test(r.error) ? `${r.source} isn't answering right now.` : r.error;
   const list = $("#offline-list");
   list.innerHTML = r.opened.length
     ? `<span class="lbl">Puzzles you've opened still play:</span>` + r.opened.slice(0, 5).map((e, i) => `<button type="button" tabindex="-1" data-id="${esc(e.id)}" class="${i === 0 ? "hl" : ""}">${mark(e)}<span class="ttl">${esc(e.title)}</span><span class="by">${esc(e.author)}</span></button>`).join("")

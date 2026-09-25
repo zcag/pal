@@ -3301,23 +3301,29 @@ and mode, and the toggles.
 
 ## Crossword (`crossword`)
 
-Mini crosswords from Crosshare (crosshare.org), in the manner of the NYT
-Mini. Enter on the palette's row opens a view level whose body is the
-extension's own page (a `surface`): the grid on the left, as large as the
-panel allows; beside it the puzzle's title and constructor (a link to it
-on crosshare.org), the clock, the clue you are on in a bar of its own, and
+Daily crosswords: Crosshare's English minis (crosshare.org), in the manner
+of the NYT Mini, and the Turkish papers' kare bulmaca (HaberTürk,
+Cumhuriyet, Sabah). Enter on the palette's row opens a view level whose
+body is the extension's own page (a `surface`): the grid, as large as the
+panel allows; the puzzle's title and its constructor or paper (a link to
+it on their site), the clock, the clue you are on in a bar of its own, and
 the Across and Down lists. The title line says which puzzle it is
-("Crossword · Today's mini").
+("Crossword · Today's mini", "Crossword · HaberTürk, today").
 
+- **Sources.** Crosshare: its daily minis back to 2020 and its newest
+  minis. HaberTürk: one 8 by 8 a day since November 2017. Cumhuriyet: a 17
+  by 11 with a photo the clues point at (a click shows it large), since
+  February 2026. Sabah: 9 by 9s from an archive that stopped in April
+  2025. Each is fetched only when played or listed and kept; nothing of
+  theirs ships with pal. The papers' days are Istanbul's.
 - **Which puzzle.** The first open is the puzzle left half-done, else
-  today's daily mini. **Next** (⌘N, or Enter on the finish) goes straight
-  to an unplayed one: today's daily while it is open, then the daily
-  minis back from the one just played, then the newest minis tagged
-  `mini`; a puzzle solved or started, or bigger than 7 by 7, is skipped.
-  The next one is looked up and fetched while you solve, so it opens at
-  once. **Browse** (⌘O) has the daily minis as a calendar, month by month
-  back to 2020, each day marked solved, started or new, and the newest
-  minis as a list; Enter plays.
+  today's of the `source` setting. **Next** (⌘N, or Enter on the finish)
+  stays with the source: today's while it is open, then back through its
+  days (for Crosshare, its newest minis too); a puzzle solved or started
+  is skipped, and so are Crosshare's grids bigger than 7 by 7. The next one
+  is fetched while you solve, so it opens at once. **Browse** (⌘O) has a
+  tab per source: a calendar month by month, each day marked solved,
+  started or new, and Crosshare's newest minis as a list; Enter plays.
 - **The keys** are the NYT's: a letter fills the square and moves to the
   next empty one in the word (a full word typed over goes square by
   square; a finished word jumps to the next clue with a gap); Backspace
@@ -3326,12 +3332,20 @@ the Across and Down lists. The title line says which puzzle it is
   square turns; Tab and Shift-Tab (and Enter) walk the clues, skipping
   full ones; a click on a square or a clue goes there. `?` shows every
   key.
+- **Turkish letters.** A Turkish puzzle takes i as İ and ı as I, and a
+  letter counts with its diacritics folded (S for Ş, C for Ç), as the
+  papers' own players check: their grids cross Ç with C. A US keyboard
+  solves one with plain letters; `'` after a letter types its Turkish form
+  (s' is ş, i' is ı), and the solved grid shows the answers' own letters.
 - **Help.** Check (⌘E the word, ⌘⌥E the square, ⌘⇧E the grid) slashes
   wrong letters and turns right ones blue (they lock); reveal (⌘U, ⌘⌥U,
   ⌘⇧U, the grid asking first) fills in the answer with a corner mark;
   ⌥⌫ clears the word, ⌘⌥⌫ the grid. `autocheck` marks a wrong letter as
   it is typed. A reveal makes the solve "finished with help": it counts,
   but not for the best time or the streak.
+- **A wide grid** (Cumhuriyet's) puts the clue across the top and the
+  lists beside the grid; in the compact panel the lists give way, and ⌘L
+  lays every clue over the grid.
 - **The clock** runs only while the grid is on screen: it stops when the
   panel hides, on the other screens and while paused (⌘P, or a click on
   the clock), which covers the grid.
@@ -3339,21 +3353,22 @@ the Across and Down lists. The title line says which puzzle it is
   saying where. Solved, a wave of light runs across the grid, and the
   time shows with a new best or the streak, the constructor's note if
   there is one, and Next puzzle.
-- **Stats** (⌘S): solved, best and average time, the streak (daily minis
-  solved on their own day, in UTC, Crosshare's calendar) and the best
-  one, a chart of recent times, the history.
+- **Stats** (⌘S), per source: solved, best and average time, the streak
+  (the source's daily solved on its own day, on the source's calendar)
+  and the best one, a chart of recent times, the history.
 - Every key is saved as you type (`progress.json` in
   `~/Library/Application Support/pal/crossword/`, `~/.local/share/pal/crossword/`
-  on Linux), so Escape at any point loses nothing. Puzzles are fetched
-  only when played or listed and kept there (`cache/`), so one opened
-  before plays offline; offline, the page says so and lists them.
-- While today's mini is unsolved, a quiet row in the root's Now section
-  opens it, once you have solved a puzzle before (`suggest`).
+  on Linux), so Escape at any point loses nothing. A puzzle once opened
+  plays offline; offline, the page says so and lists them.
+- While today's puzzle of the `source` setting is unsolved, a quiet row in
+  the root's Now section opens it, once you have solved a puzzle before
+  (`suggest`).
 
 ```toml
 [extensions.crossword]
-autocheck = false   # mark a wrong letter as it is typed; also on ⌘K
-suggest = true      # today's mini in the root's Now section while unsolved
+source = "crosshare"   # what the first open and the Now row offer: haberturk, cumhuriyet, sabah
+autocheck = false      # mark a wrong letter as it is typed; also on ⌘K
+suggest = true         # today's puzzle in the root's Now section while unsolved
 ```
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)

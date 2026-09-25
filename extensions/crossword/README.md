@@ -1,50 +1,84 @@
 # Crossword
 
-Mini crosswords from [Crosshare](https://crosshare.org) in the panel, in
-the manner of the NYT Mini. Enter on the palette's row opens a view level
-whose body is the extension's own page (`surface/`, a `surface` view
-node): the grid on the left, as large as the panel's height allows; on the
-right the puzzle's title and constructor, the clock, the clue you are on
-in a bar of its own, and the Across and Down lists.
+Daily crosswords in the panel: Crosshare's English minis in the manner of
+the NYT Mini, and the Turkish papers' kare bulmaca (HaberTürk, Cumhuriyet,
+Sabah). Enter on the palette's row opens a view level whose body is the
+extension's own page (`surface/`, a `surface` view node): the grid, as
+large as the panel allows; the puzzle's title and source, the clock, the
+clue you are on in a bar of its own, and the Across and Down lists.
 
 The page plays the solve with `game.ts`, the same file the host tests, and
 hands every change to the extension (`pal.send`), which writes it to disk
 before the next key. The puzzles, the lists and the record live on the
 extension's side (`index.ts`).
 
-## Puzzles
+## Sources
 
-Crosshare is the one source. Three requests, each made only when a puzzle
-or a list is about to be shown (`crosshare.ts`):
+A source lists a month of its puzzles and fetches one as a puzzle
+(`sources.ts`); nothing else about it leaks out. Every request is made only
+when a puzzle or a list is about to be shown, and kept (`cache.ts`): a
+fetched puzzle for good under `cache/puzzles/`, so a replay or the archive
+never asks again and a puzzle once opened plays offline; a list while it
+is fresh. A failed request falls back to the cache, however old; offline,
+the page says so plainly and lists the puzzles opened before. Nothing of
+any source's ships with pal: the puzzles are their makers' work, fetched
+when you play and credited on the page with a link to the puzzle's own
+page. The tests and the screenshots use puzzles made for them
+(`host/test/extensions/crossword-fixtures.ts`, `crossword-tr-fixtures.ts`).
 
-- `/dailyminis/<year>/<month>`: a month of daily minis. A Next.js page,
-  the list in its `__NEXT_DATA__` as `[day, puzzle, constructor, patron]`,
-  newest first; the site's days are UTC and its props' month is 0-based
-  (the URL's is 1-based). Back to 2020.
-- `/tags/mini/page/<n>`: the newest puzzles tagged `mini`, 20 a page,
-  pages 0 to 9 (the site's own limit).
-- `/api/ipuz/<id>`: one puzzle as ipuz (`ipuz.ts` reads it: circles,
-  bars, the clue shapes the spec allows, the constructor's note).
+| Source | What | Archive | Size |
+| --- | --- | --- | --- |
+| Crosshare | daily minis, and the newest minis tagged `mini` | 2020 on | minis (Next plays up to 7 by 7) |
+| HaberTürk | günlük kare bulmaca | 25 November 2017 on, every day | 8 by 8 |
+| Cumhuriyet | günlük kare bulmaca, with a photo the clues point at | February 2026 on, most days | 17 by 11 |
+| Sabah | kare bulmaca, an archive that stopped | July 2024 to April 2025 | 9 by 9 |
 
-A fetched puzzle is kept for good under `cache/puzzles/`, so a replay or
-the archive never asks again and a puzzle once opened plays offline; a
-past month's list is kept for good too, the current month's and the
-newest pages are asked again after a while (sooner while today's mini is
-missing). A failed request falls back to the cache, however old.
-Offline, the page says so plainly and lists the puzzles opened before.
-Nothing of Crosshare's ships with pal: the puzzles are their
-constructors' work, fetched when you play and credited on the page ("by
-… · Crosshare", a link to the puzzle on crosshare.org). The tests and the
-screenshots use minis made for them (`host/test/extensions/crossword-fixtures.ts`).
+- **Crosshare** (`crosshare.ts`): `/dailyminis/<year>/<month>` is a
+  Next.js page with the month in its `__NEXT_DATA__` as `[day, puzzle,
+  constructor, patron]`, newest first; the days are UTC and the props'
+  month 0-based. `/tags/mini/page/<n>` has the newest minis, 20 a page,
+  pages 0 to 9 (the site's limit). `/api/ipuz/<id>` is one puzzle
+  (`ipuz.ts`: circles, bars, the clue shapes the spec allows, the
+  constructor's note).
+- **HaberTürk** (`turkish.ts`): `/bulmaca/gunluk/YYYY/MM/DD` carries the
+  puzzle as `var _data = [...]`, each answer with its clue, direction and
+  1-based start; `fromEntries` builds the grid from them (blocks where no
+  answer runs, numbered as the grid numbers, each clue on the word that
+  starts where its answer does; an answer that is not a word of the grid is
+  refused). Later days are up before their day; a day is played only once
+  it has come. There is no list: the calendar shows every day, and Next
+  passes by a day that turns out to have none.
+- **Cumhuriyet**: the game's own JSON on `cumhuriyet.lidyagames.com`:
+  `/api/list` for the archive, `/api/puzzle/YYYY-MM-DD` for a puzzle (the
+  rows, the clues by the grid's numbers, and a photo over a 5 by 5 block
+  as a data URL, drawn over its squares; a click shows it large).
+- **Sabah**: the month slider (`POST /bulmaca-coz/getsliderarticles`; the
+  site reads only the month of the date sent), then the article, then the
+  player page in its iframe (`isbh.tmgrup.com.tr`), which holds the puzzle
+  as base64 JSON in the same shape as HaberTürk's. A day with two puzzles
+  lists the first. The same player files come back under other dates, so
+  two days can be the same puzzle.
 
-**Which puzzle.** The first open is the puzzle left half-done, else
-today's daily mini. **Next** (⌘N, or Enter on the finish) goes to an
-unplayed one: today's daily while it is open; then, after a daily, the
-dailies back from its day (a month's list at a time, four months at most
-a step), then the newest minis; after a newest mini the other way round.
-Anything solved or started, or bigger than 7 by 7, is skipped. The next
-puzzle is looked up and fetched 1.5 s after one opens (`prefetch`), so
-Next is instant.
+The papers' days are Istanbul's (UTC+3), Crosshare's UTC.
+
+**Turkish letters.** On a Turkish puzzle (`lang: "tr"`) a key is upper-cased
+the Turkish way (i to İ, ı to I), and a letter matches its answer with the
+diacritics folded (Ç C, Ğ G, İ I, Ö O, Ş S, Ü U): the papers' grids cross Ç
+with C and Ü with U (Sabah's often), and their own players check that
+way. So a US keyboard solves one with plain letters, and the solved grid
+shows the answers' own letters. To type the Turkish letter itself: on a
+Turkish keyboard it is there; on any other, `'` right after a letter turns
+it into its Turkish form (s' is ş, c' is ç, i' is ı; again turns it back),
+and macOS's own ⌥c (ç) works as typed.
+
+**Which puzzle.** The first open is the puzzle left half-done, else today's
+puzzle of the `source` setting (an archive's newest). **Next** (⌘N, or
+Enter on the finish) stays with the puzzle's source and goes to an
+unplayed one: today's while it is open, then back from the puzzle's day, a
+month's list at a time (four months at most a step); for Crosshare, the
+newest minis too (first after a newest mini, last after a daily).
+Anything solved or started is skipped. The next puzzle is looked up and
+fetched 1.5 s after one opens (`prefetch`), so Next is instant.
 
 ## Playing
 
@@ -89,31 +123,53 @@ or the streak; checks are only noted.
 
 ## Browse and stats
 
-**Browse** (⌘O): the daily minis as a calendar, month by month (`[` `]`),
-each day marked solved (gold), solved with help (grey), started (a pie of
-how far) or new, with the day's puzzle beside it; Tab switches to the
-newest minis as a list. Enter plays, ⌫ goes back.
+**Browse** (⌘O): a tab per source (Tab walks them), Crosshare's newest
+minis as a list right after it. A source's tab is its calendar, month by
+month (`[` `]`, bounded by what it has), each day marked solved (gold),
+solved with help (grey), started (a pie of how far) or new, with the day's
+puzzle beside it. Enter plays, ⌫ goes back.
 
-**Stats** (⌘S): solved, best and average time (and the last ten), the
-streak and the best one, a chart of the recent clean times with the
-average, and the history. The streak counts daily minis solved without a
-reveal on their own day, in Crosshare's (UTC) days; it reads from
-yesterday until today's is solved.
+**Stats** (⌘S), per source (a tab each, the one being played lit): solved,
+best and average time (and the last ten), the streak and the best one, a
+chart of the recent clean times with the average, and the history. The
+streak counts the source's daily puzzles solved without a reveal on their
+own day, on the source's calendar; it reads from yesterday until today's
+is solved.
 
-**Now.** While today's mini is unsolved, a quiet row in the root's Now
-section opens it (only once you have solved a puzzle, so it never nags
-someone who does not play; `suggest` turns it off).
+**Now.** While today's puzzle of the `source` setting is unsolved, a quiet
+row in the root's Now section opens it (only once you have solved a
+puzzle, so it never nags someone who does not play; never for Sabah, an
+archive; `suggest` turns it off).
+
+## The page's arrangements
+
+The page picks whichever arrangement gives the squares the most room:
+
+- **side**: the grid on the left, the title, clock, clue bar and both lists
+  on the right (a mini, an 8 or 9 square kare bulmaca);
+- **top**: the clue bar across the top beside the clock, the grid under it,
+  the title and one column of lists beside the grid (a wide grid such as
+  Cumhuriyet's 17 by 11 at 720);
+- **top without lists**: when there is no room beside the grid either
+  (Cumhuriyet's in the compact panel), the title and the hint under the
+  grid, and ⌘L lays every clue over it.
+
+A small square gives its number the top-left corner and a smaller letter
+set lower, so the two never touch.
 
 ## Files
 
 - `game.ts`: the rules, pure: numbering, the keys, check, reveal, clear,
-  the finish, the saved form.
-- `ipuz.ts`: ipuz to a puzzle. `stats.ts`: bests, averages, streaks.
-- `crosshare.ts`: the pages, the cache, the next puzzle.
+  the finish, the saved form, the Turkish letters.
+- `ipuz.ts`: ipuz to a puzzle. `stats.ts`: bests, averages, streaks, per
+  source.
+- `sources.ts`: the sources, today's puzzle, Next. `crosshare.ts` and
+  `turkish.ts`: each site's pages. `cache.ts`: the requests and the disk.
 - `store.ts`: `progress.json` (every solve as it stands, the log of
   solves, each puzzle's name for the lists), written whole and atomically,
-  a burst of saves coalesced into one write. `PAL_CROSSWORD_DIR` moves it
-  (tests), `PAL_CROSSWORD_URL` points at a stand-in site.
+  a burst of saves coalesced into one write. `PAL_CROSSWORD_DIR` moves it;
+  `PAL_CROSSWORD_URL`, `PAL_CROSSWORD_HT_URL`, `PAL_CROSSWORD_CUM_URL` and
+  `PAL_CROSSWORD_SABAH_URL` point at stand-in sites (tests).
 - `surface/`: the page (`main.ts` the solve and the keys, `screens.ts`
   Browse, Stats and the offline page).
 
@@ -121,6 +177,7 @@ someone who does not play; `suggest` turns it off).
 
 ```toml
 [extensions.crossword]
-autocheck = false   # mark a wrong letter as it is typed; also on ⌘K
-suggest = true      # today's mini in the root's Now section while unsolved
+source = "crosshare"   # what the first open and the Now row offer: haberturk, cumhuriyet, sabah
+autocheck = false      # mark a wrong letter as it is typed; also on ⌘K
+suggest = true         # today's puzzle in the root's Now section while unsolved
 ```

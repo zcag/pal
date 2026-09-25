@@ -17,18 +17,18 @@
 import type { SurfaceKit } from "@zcag/pal";
 import {
   REVEALED, RIGHT, WRONG, arrow, backspace, check, clear, click, clockText, crossing, current, decode, del, encode, gridOf, isBlock, newPlay, nextWord, reveal,
-  selectWord, status, toggle, type, wordFull, wrongIn, type Arrow, type Grid, type Play, type Puzzle, type Scope,
+  proper, selectWord, status, toggle, type, variant, wordFull, wrongIn, type Arrow, type Grid, type Play, type Puzzle, type Scope,
 } from "../game.ts";
-import type { Offline, Opened, SolvedReply } from "../index.ts";
+import type { Offline, Opened, SolvedReply, SourcesView } from "../index.ts";
 import { Browse, Stats, showOffline, dateLong } from "./screens.ts";
 
 declare const pal: SurfaceKit;
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const body = document.body;
-const frame = $("#frame"), under = $("#under"), over = $("#over"), cursorEl = $("#cursor"), boardEl = $("#board");
+const frame = $("#frame"), under = $("#under"), over = $("#over"), mediaEl = $("#media"), cursorEl = $("#cursor"), boardEl = $("#board");
 const clueN = $("#clue-n"), clueText = $("#clue-text"), clueBar = $("#clue"), timeEl = $("#time");
-const doneEl = $("#done"), nearlyEl = $("#nearly"), hintEl = $("#hint"), helpEl = $("#help"), askEl = $("#ask");
+const doneEl = $("#done"), nearlyEl = $("#nearly"), hintEl = $("#hint"), helpEl = $("#help"), askEl = $("#ask"), photoEl = $("#photo"), noteEl = $("#note");
 const lists = { across: $("#lists [data-dir=across] ol"), down: $("#lists [data-dir=down] ol") };
 
 type Screen = "loading" | "play" | "browse" | "stats" | "offline";
@@ -74,14 +74,32 @@ addEventListener("pagehide", () => { syncClock(); save(); });
 let unders: HTMLElement[] = [], overs: HTMLElement[] = [];
 let looks: string[] = [];
 
-/** The square size that fits the grid in the board, and the board's width. */
+/**
+ * The arrangement and the square size: whichever of the three layouts (style.css, "The play
+ * screen") gives the squares the most room. Side needs a column of 230 px beside the grid (200
+ * compact), top one of 190 for its lists; top without lists needs nothing beside it.
+ */
 function fit() {
   if (!p) return;
-  const pad = 14, h = innerHeight - pad * 2, w = innerWidth;
-  const side = Math.min(h, w * (w < 640 ? 0.53 : 0.5));
-  const n = Math.max(p.w, p.h);
-  const c = Math.max(18, Math.min(104, Math.floor((side - 4 - (n - 1)) / n)));
+  const W = innerWidth, H = innerHeight, compact = W < 640;
+  const clueH = Math.min(18, Math.max(14, W * 0.02)) * 2.56 + 14;
+  const fits = (h: number, w: number) => Math.floor(Math.min((h - 4 - (p.h - 1)) / p.h, (w - 4 - (p.w - 1)) / p.w));
+  const modes = [
+    { top: false, lists: true, c: fits(H - 26, W - 30 - 20 - (compact ? 200 : 230)) },
+    { top: true, lists: true, c: fits(H - 26 - clueH - 10, W - 30 - 20 - 190) },
+    { top: true, lists: false, c: fits(H - 26 - clueH - 10 - 34, W - 30) },
+  ];
+  const best = modes.reduce((a, b) => (b.c > a.c + 1 ? b : a));
+  const c = Math.max(12, Math.min(104, best.c));
+  body.classList.toggle("top", best.top);
+  body.classList.toggle("nolists", !best.lists);
+  if (best.lists) body.classList.remove("clues-open");
+  const side = W - 30 - 20 - (c * p.w + p.w + 3);
+  body.classList.toggle("onecol", best.top || side < 300);
   document.documentElement.style.setProperty("--c", `${c}px`);
+  // A small square gives its number the top-left and its letter a little less size, set lower, so the two never touch.
+  document.documentElement.style.setProperty("--ls", String(c < 40 ? 0.54 : 0.6));
+  document.documentElement.style.setProperty("--lo", String(c < 40 ? 0.14 : 0.075));
   boardEl.style.width = `${c * p.w + p.w - 1 + 4}px`;
   moveCursor(true);
   fitClue();
@@ -109,6 +127,16 @@ function build() {
   }
   under.replaceChildren(uf);
   over.replaceChildren(of);
+  // A photo laid over its block of squares; a click shows it large.
+  mediaEl.replaceChildren(...(p.media ?? []).map((m) => {
+    const img = document.createElement("img");
+    img.src = m.src;
+    img.alt = "The puzzle's photo";
+    img.title = "Click to see it large";
+    for (const [k, v] of Object.entries({ "--r": m.row, "--k": m.col, "--rs": m.rows, "--ks": m.cols })) img.style.setProperty(k, String(v));
+    img.addEventListener("click", () => showPhoto(m.src));
+    return img;
+  }));
   buildLists();
   fit();
 }
@@ -253,7 +281,9 @@ async function finish() {
   syncClock();
   const ms = elapsed();
   since = undefined;
-  st = { ...st, ms, done: { ms, at: Date.now() } };
+  // A Turkish grid solved with plain letters shows the answers' own (S typed for Ş shows Ş).
+  st = { ...proper(g, st), ms, done: { ms, at: Date.now() } };
+  draw(st);
   tick();
   body.classList.add("solved");
   const wave = waveGrid();
@@ -295,6 +325,8 @@ function showDone(reply: SolvedReply | null, again = false) {
 
 // ---- keys ----------------------------------------------------------------------------
 
+/** The square the last letter was typed into, for the variant key. */
+let typedAt = -1;
 const ARROWS: Record<string, Arrow> = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
 
 function scoped(kind: "check" | "reveal", scope: Scope) {
@@ -320,6 +352,7 @@ function run(id: string) {
   if (!opened) return;
   if (screen !== "play") backToPlay();
   if (id === "pause") return setPaused(!paused);
+  if (id === "clues") { body.classList.toggle("clues-open"); return flash(body.classList.contains("nolists") ? "" : "Every clue is beside the grid already"); }
   if (paused) setPaused(false);
   const [kind, scope] = id.split("-") as [string, Scope];
   if (kind === "check" || kind === "reveal") return scoped(kind, scope);
@@ -345,7 +378,7 @@ const COMBOS: Record<string, string> = {
   "cmd+n": "next", "cmd+o": "browse", "cmd+s": "stats", "cmd+p": "pause", "cmd+shift+o": "site",
   "cmd+e": "check-word", "cmd+alt+e": "check-square", "cmd+shift+e": "check-puzzle",
   "cmd+u": "reveal-word", "cmd+alt+u": "reveal-square", "cmd+shift+u": "reveal-puzzle",
-  "alt+backspace": "clear-word", "cmd+alt+backspace": "clear-puzzle",
+  "alt+backspace": "clear-word", "cmd+alt+backspace": "clear-puzzle", "cmd+l": "clues",
 };
 function comboOf(e: KeyboardEvent): string {
   const key = e.code.startsWith("Key") ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
@@ -355,6 +388,7 @@ function comboOf(e: KeyboardEvent): string {
 window.addEventListener("keydown", (e) => {
   if (["Escape", "Shift", "Meta", "Alt", "Control"].includes(e.key)) return;
   if (!askEl.hidden) { e.preventDefault(); return answer(e.key === "Enter"); }
+  if (!photoEl.hidden && !e.metaKey && !e.ctrlKey) { e.preventDefault(); photoEl.hidden = true; return; }
   if (!helpEl.hidden) { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); closeHelp(); } return; }
   const combo = COMBOS[comboOf(e)];
   if (combo) { e.preventDefault(); return run(combo); }
@@ -370,7 +404,13 @@ window.addEventListener("keydown", (e) => {
     if (e.key === "Enter") return void goNext();
     return;
   }
-  if (/^[a-z0-9]$/i.test(e.key) && !e.altKey) return commit(type(g, st, e.key, autocheck), "type");
+  // Any letter: a Turkish keyboard's ş and ğ, or one the Option key makes (⌥c is ç on a US layout).
+  if (/^[\p{L}0-9]$/u.test(e.key) && (!e.altKey || /[^\x00-\x7f]/.test(e.key))) {
+    typedAt = st.done ? -1 : st.at;
+    return commit(type(g, st, e.key, autocheck), "type");
+  }
+  // The variant key: the letter just typed turned into its Turkish form (s' is ş, again is s).
+  if (e.key === "'" && p.lang === "tr" && typedAt >= 0) return commit(variant(g, st, typedAt, autocheck), "type");
   if (e.key === "Backspace") return commit(backspace(g, st));
   if (e.key === "Delete") return commit(del(g, st));
   if (ARROWS[e.key]) return commit(arrow(g, st, ARROWS[e.key]));
@@ -429,6 +469,24 @@ function answer(ok: boolean) {
 askEl.querySelector("[data-yes]")!.addEventListener("click", () => answer(true));
 askEl.querySelector("[data-no]")!.addEventListener("click", () => answer(false));
 
+/** The puzzle's photo large, over everything; any key or click puts it away. */
+function showPhoto(src: string) {
+  photoEl.querySelector("img")!.src = src;
+  photoEl.hidden = false;
+  replay(photoEl, "in");
+}
+photoEl.addEventListener("click", () => { photoEl.hidden = true; });
+
+let noteTimer: ReturnType<typeof setTimeout> | undefined;
+/** A line at the foot of whichever screen is up (a day with no puzzle, nothing left to play). */
+function note(text: string) {
+  clearTimeout(noteTimer);
+  noteEl.textContent = text;
+  noteEl.hidden = false;
+  replay(noteEl, "in");
+  noteTimer = setTimeout(() => { noteEl.hidden = true; }, 2600);
+}
+
 let flashTimer: ReturnType<typeof setTimeout> | undefined;
 /** A short line in place of the key hint (a check that found nothing, autocheck turned on). */
 function flash(text: string) {
@@ -439,9 +497,10 @@ function flash(text: string) {
 
 /** The one line of guidance: the main keys for a newcomer, just `?` once a few are solved. */
 function hint() {
+  const tr = p?.lang === "tr";
   hintEl.innerHTML = seasoned
-    ? `<span><kbd>?</kbd> every key</span>`
-    : `<span class="long">Type to fill</span><span class="long"><kbd>Space</kbd> turn</span><span><kbd>Tab</kbd> next clue</span><span><kbd>?</kbd> every key</span>`;
+    ? `${tr ? `<span class="long"><kbd>'</kbd> s → ş</span>` : ""}<span><kbd>?</kbd> every key</span>`
+    : `${tr ? `<span class="long"><kbd>'</kbd> after s: ş</span>` : `<span class="long">Type to fill</span><span class="long"><kbd>Space</kbd> turn</span>`}<span><kbd>Tab</kbd> next clue</span><span><kbd>?</kbd> every key</span>`;
 }
 
 let dealTimer: ReturnType<typeof setTimeout> | undefined;
@@ -470,19 +529,25 @@ function show(s: Screen) {
 }
 
 function titleLine() {
-  const what = screen === "browse" ? "Browse" : screen === "stats" ? "Stats" : screen !== "play" || !opened ? "" : opened.today ? "Today's mini" : p.date ? `Daily mini, ${dateLong(p.date, true)}` : "Mini";
+  const tr = opened?.puzzle.source !== undefined && opened.puzzle.source !== "crosshare";
+  const day = !opened ? "" : opened.today ? "today" : p.date ? dateLong(p.date, true) : "";
+  const what = screen === "browse" ? "Browse" : screen === "stats" ? "Stats" : screen !== "play" || !opened ? ""
+    : tr ? `${opened.credit}${day ? `, ${day}` : ""}` : opened.today ? "Today's mini" : p.date ? `Daily mini, ${day}` : "Mini";
   pal.title(what ? `Crossword · ${what}` : "");
 }
 
 const browse = new Browse({ send, play: (id, date) => void openPuzzle({ op: "open", id, date }), back: () => backToPlay() });
 const stats = new Stats({ send, back: () => backToPlay() });
+/** The sources, and the one the settings open on: Browse's and Stats' tabs. */
+let sources: SourcesView = { sources: [{ id: "crosshare", title: "Crosshare", archive: false }], source: "crosshare" };
+const currentSource = () => opened?.puzzle.source ?? sources.source;
 
 function openBrowse() {
-  browse.open(opened?.puzzle);
+  browse.open(sources, opened?.puzzle);
   show("browse");
 }
 async function openStats() {
-  await stats.open();
+  await stats.open(sources, currentSource());
   show("stats");
 }
 function backToPlay() {
@@ -516,21 +581,23 @@ let loadSeq = 0;
 const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 /** Asks the extension for a puzzle (`open`, `next`) and plays it; the skeleton shows only if it takes a moment. */
-async function openPuzzle(msg: { op: "open" | "next"; id?: string; date?: string; from?: string }) {
+async function openPuzzle(msg: { op: "open" | "next"; id?: string; date?: string; from?: string; source?: string }) {
   const seq = ++loadSeq;
   const leaving = screen === "play" && !!opened;
   if (opened) { syncClock(); save(); }
   if (leaving) body.classList.add("leaving");
   const slow = setTimeout(() => { if (seq === loadSeq) { body.classList.remove("leaving"); show("loading"); } }, leaving ? 420 : 160);
   const started = Date.now();
-  const r = await send<Opened | Offline | { none: true } | null>(msg).catch((e) => ({ error: String(e), opened: [] }) as Offline);
+  const r = await send<Opened | Offline | { none: true } | null>(msg).catch((e) => ({ error: String(e), source: "", opened: [] }) as Offline);
   clearTimeout(slow);
   if (seq !== loadSeq) return;
   // The old grid finishes leaving before the new one deals in.
   if (leaving) await wait(Math.max(0, 170 - (Date.now() - started)));
   body.classList.remove("leaving");
   if (!r) return;
-  if ("none" in r) { show(opened ? "play" : "offline"); return flash("No unplayed mini nearby: ⌘O browses the archive"); }
+  if ("none" in r) { show(opened ? "play" : "offline"); return note("Nothing unplayed nearby: ⌘O browses the archive"); }
+  // A day the paper had no puzzle is a note on the screen you are on, not the offline page.
+  if (isOffline(r) && /no .*puzzle|not found/i.test(r.error) && (opened || screen === "browse")) { if (screen === "loading") show(opened ? "play" : "browse"); return note(r.error === "not found" ? "No puzzle that day" : r.error); }
   if (isOffline(r)) {
     offlineItems = r.opened;
     offlineCursor = 0;
@@ -540,7 +607,7 @@ async function openPuzzle(msg: { op: "open" | "next"; id?: string; date?: string
   load(r);
 }
 
-const goNext = () => openPuzzle({ op: "next", from: opened?.puzzle.id });
+const goNext = () => openPuzzle({ op: "next", from: opened?.puzzle.id, source: currentSource() });
 
 function load(o: Opened) {
   opened = o;
@@ -555,7 +622,12 @@ function load(o: Opened) {
   nearlyEl.hidden = true;
   $("#ptitle").textContent = p.title;
   $("#ptitle").title = p.title;
-  $("#credit").innerHTML = `${p.author ? `by ${esc(p.author)} · ` : ""}<u>Crosshare</u><svg viewBox="0 0 16 16"><path d="M6 4h6v6M12 4 5 11"/></svg>`;
+  $("#credit").innerHTML = `${p.author ? `by ${esc(p.author)} · ` : ""}<u>${esc(o.credit)}</u><svg viewBox="0 0 16 16"><path d="M6 4h6v6M12 4 5 11"/></svg>`;
+  $("#credit").title = `Open it on ${o.credit}'s site`;
+  body.classList.toggle("tr", p.lang === "tr");
+  body.classList.remove("clues-open");
+  typedAt = -1;
+  hint();
   placed = false;
   build();
   draw();
@@ -578,7 +650,8 @@ pal.onSettings((s) => { autocheck = !!(s as { autocheck?: boolean }).autocheck; 
 
 async function start() {
   autocheck = !!((await pal.settings()) as { autocheck?: boolean }).autocheck;
-  const s = await send<{ solved?: number } | null>({ op: "stats" }).catch(() => null);
+  sources = (await send<SourcesView | null>({ op: "sources" }).catch(() => null)) ?? sources;
+  const s = await send<{ solved?: number } | null>({ op: "stats", source: sources.source }).catch(() => null);
   seasoned = (s?.solved ?? 0) >= 3;
   hint();
   // The first frame waits a moment for the puzzle (a cached one is there at once), else shows the skeleton.
