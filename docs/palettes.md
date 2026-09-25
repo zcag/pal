@@ -3092,6 +3092,11 @@ menu (New game, Level, Mazes, Top score, Instructions), lit green, and the
 game unlit, as the phone keeps its backlight. Every screen, sprite, maze,
 rule, delay and tone comes from the real 3310 firmware (v6.07) run in an
 emulator, and the tests replay 123 runs recorded from it frame by frame.
+The panel's title line keeps the top score in view ("Top score 213"),
+so it reads without the phone's Top score screen. That and a turn queue
+(`queue_turns`, on: a second turn pressed within one step waits for the
+next instead of being lost as on the phone) are pal's additions; the
+README lists every one under "Not the phone".
 
 - Steering: the arrows are the phone's 2 4 6 8 while playing; the digits,
   `*` and `#` are the keypad (1 3 7 9 turn across the way the snake goes,

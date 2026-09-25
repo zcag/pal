@@ -15,6 +15,10 @@
 // A blocked step takes its turn without moving and is tried again GRACE
 // later: a key in between is judged against that turn.
 //
+// EXTRA, not the firmware: with `queue` on (the `queue_turns` setting, on
+// by default; off in the replays, which stay firmware-exact) a quick second
+// key the firmware would lose waits one step instead. See `steer`.
+//
 // The board is 20 by 9 cells, row-major (`c = y * 20 + x`), and wraps at
 // every edge a maze leaves open.
 
@@ -83,6 +87,8 @@ export type Game = {
   /** The direction of the last move, and the turn waiting for the next step (null: none). */
   dir: Dir;
   want: Dir | null;
+  /** EXTRA, not the firmware: the second turn a `queue` steer keeps for the step after `want`'s. */
+  next?: Dir | null;
   food: number;
   bonus: Bonus | null;
   /** Foods eaten while no bonus creature was on screen (the count the next creature waits for). */
@@ -156,7 +162,7 @@ export function newGame(level: number, maze: number, r: Rng, t: number): Game {
 }
 
 /** A key during play, as it reaches the game: sets or cancels the turn for the next step. */
-export function steer(g: Game, k: Key) {
+export function steer(g: Game, k: Key, queue = false) {
   const d = g.dir;
   let to: Dir | null = null;
   switch (k) {
@@ -173,8 +179,16 @@ export function steer(g: Game, k: Key) {
     case "#": case "down": to = ((d + 1) % 4) as Dir; break;
     default: return;
   }
+  // EXTRA, not the firmware: with a turn pending, the key the firmware would drop (a reversal of the way the snake
+  // last moved) or treat as cancelling the turn (the way it is going) waits for the step after, when it is a turn from
+  // the pending one: moving right, up then left turns up, then left. The firmware loses the left (spec §6, i2 and i4).
+  if (queue && g.want !== null && (to === opposite(d) || to === d) && to !== opposite(g.want)) {
+    g.next = to;
+    return;
+  }
   if (to === opposite(d)) return;
   g.want = to === d ? null : to;
+  g.next = null;
 }
 
 /** Whether the head may enter `c` on this step: not a wall, not the body, except the tail's cell when the tail moves on. */
@@ -195,7 +209,8 @@ export function step(g: Game, r: Rng, ev: Event[]): boolean {
     if (!g.grace) {
       // The turn is taken though the snake stays: a key in the grace is judged against it (reversing it is dropped).
       g.dir = d;
-      g.want = null;
+      g.want = g.next ?? null; // EXTRA: a queued turn (`steer`); null on the firmware's path
+      g.next = null;
       g.grace = true;
       g.due = t + GRACE;
       return true;
@@ -205,7 +220,8 @@ export function step(g: Game, r: Rng, ev: Event[]): boolean {
   }
   g.grace = false;
   g.dir = d;
-  g.want = null;
+  g.want = g.next ?? null; // EXTRA: a queued turn (`steer`); null on the firmware's path
+  g.next = null;
   g.snake.unshift({ c: next, d });
   if (g.grow > 0) g.grow--;
   else g.snake.pop();

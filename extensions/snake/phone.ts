@@ -56,6 +56,8 @@ export type Phone = {
   lit: number;
   lightGrid: number;
   sounds: Sound[];
+  /** EXTRA, not the firmware: steer with game.ts's turn queue (the `queue_turns` setting; the page sets it). */
+  queue: boolean;
 };
 
 // ---- the clock, in units ---------------------------------------------------------------------------------
@@ -97,7 +99,7 @@ export function boot(t: number, saved: Partial<Memory> = {}): Phone {
   return {
     t, seed: saved.seed ?? 1, level: saved.level ?? 1, maze: saved.maze ?? 0, best: saved.best ?? 0,
     screen: { id: "splash", at: t }, list: { sel: 0, top: 0 }, game: saved.game ?? null,
-    keys: [], hold: null, light: true, lit: t, lightGrid: t, sounds: [],
+    keys: [], hold: null, light: true, lit: t, lightGrid: t, sounds: [], queue: false,
   };
 }
 
@@ -233,14 +235,14 @@ function apply(ph: Phone, k: Key, t: number) {
       return;
     case "play":
       if (k === "menu" || k === "c") return pause(ph, t);
-      steer(ph.game!, k);
+      steer(ph.game!, k, ph.queue);
       return;
     case "frozen": {
       const g = ph.game!;
       // A game paused as it died goes on to "Game over!".
       if (g.dead) return over(ph, t, false);
       ph.screen = { id: "play" };
-      if (k !== "menu" && k !== "c") steer(g, k);
+      if (k !== "menu" && k !== "c") steer(g, k, ph.queue);
       g.due = t + STEP[g.level - 1];
       return;
     }

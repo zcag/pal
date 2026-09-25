@@ -176,6 +176,38 @@ function step1Ahead(g: Game) {
   return cell((x + [0, 1, 0, -1][g.dir] + W) % W, (y + [-1, 0, 1, 0][g.dir] + 9) % 9);
 }
 
+describe("EXTRA, not the firmware: queue_turns", () => {
+  // Moving right from the start: 2 then 4 within one step.
+  const quick = (queue: boolean, first: Key, second: Key, dir: Dir = 1) => {
+    const { g, r } = play();
+    g.dir = dir;
+    steer(g, first, queue);
+    steer(g, second, queue);
+    const ev: Event[] = [];
+    step(g, r, ev);
+    const after1 = g.dir;
+    step(g, r, ev);
+    return [after1, g.dir];
+  };
+  test("off, the firmware: up then left while moving right turns up and loses the left", () => {
+    expect(quick(false, "2", "4")).toEqual([0, 0]);
+  });
+  test("on: up then left while moving right turns up, then left on the next step", () => {
+    expect(quick(true, "2", "4")).toEqual([0, 3]);
+  });
+  test("on: up then left while moving left (the firmware's cancel) turns up, then left", () => {
+    expect(quick(false, "2", "4", 3)).toEqual([3, 3]);
+    expect(quick(true, "2", "4", 3)).toEqual([0, 3]);
+  });
+  test("on, what the firmware keeps is unchanged: down then up turns up; a key across the way it moves replaces the pending turn", () => {
+    expect(quick(true, "8", "2")).toEqual([0, 0]);
+    const { g } = play();
+    steer(g, "2", true);
+    steer(g, "8", true);
+    expect([g.want, g.next ?? null]).toEqual([2, null]);
+  });
+});
+
 describe("the phone", () => {
   const at = (ph: Phone, keys: [Key, number][]) => {
     for (const [k, t] of keys) press(ph, k, t);

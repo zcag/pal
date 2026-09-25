@@ -3,7 +3,12 @@
   "title": "Snake II",
   "description": "Snake II exactly as the Nokia 3310 plays it, on the phone's own 84 by 48 screen: its menus, nine levels, five mazes, the bonus creatures, the split-second before a crash, the top score and its fireworks, the buzzer. Arrows steer (2 4 6 8), Enter is the phone's Menu and Select, Backspace its C.",
   "version": "0.1.0",
-  "icon": { "tile": { "svg": "M2 9h7v2H2zM7 4h2v7H7zM7 4h6v2H7zM12.5 9.5h1.5V11h-1.5z", "bg": "green" } },
+  "icon": {
+    "tile": {
+      "svg": "M2 9h7v2H2zM7 4h2v7H7zM7 4h6v2H7zM12.5 9.5h1.5V11h-1.5z",
+      "bg": "green"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -14,6 +19,14 @@
       "label": "Game tones",
       "text": "The buzzer: the click on eating, the pips on a crash, the top score's jingle",
       "description": "The phone's own \"Warning and game tones\". Also flipped with cmd+T on the game.",
+      "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "queue_turns",
+      "label": "Queue a quick second turn",
+      "text": "Keep a second turn pressed within one step (up then left) for the step after",
+      "description": "Not the phone: the real 3310 keeps one turn per step and loses a second key that reverses the way the snake last moved, or points the way it is going. On, that key waits one step instead. Off plays exactly as the firmware.",
       "default": true
     }
   ],

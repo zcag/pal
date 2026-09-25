@@ -131,10 +131,14 @@ function run() {
   advance(ph, t);
   for (const s of ph.sounds.splice(0)) sound(s.t, s.kind);
   save();
+  title();
   if (gone(ph) && !leaving) leave();
 }
 
-/** Snake II left (C on its menu, or a digit: the phone's dialer): the view closes, as Escape does; a plain tab enters it again. */
+/**
+ * EXTRA, not the firmware: Snake II left (C on its menu, or a digit: the phone's dialer), the view closes, as Escape
+ * does, where the phone would show its Games list or the dialer; opening it again enters Snake II.
+ */
 function leave() {
   leaving = true;
   held.clear();
@@ -155,7 +159,15 @@ function save() {
 
 // ---- the panel -------------------------------------------------------------------------------------------------
 
-/** The panel hidden or the view left: the phone pauses as C does in play (Continue waits in the menu). */
+/** EXTRA, not the firmware: the top score in the panel's title line, so it reads without the phone's Top score screen. */
+let shown = -1;
+function title() {
+  if (ph.best === shown) return;
+  shown = ph.best;
+  pal.title(`Top score ${ph.best}`);
+}
+
+/** EXTRA, not the firmware: the panel hidden or the view left pauses the game as C does in play (Continue waits in the menu). */
 pal.onHidden(() => {
   held.clear();
   if (!ph) return;
@@ -171,7 +183,7 @@ pal.onHidden(() => {
 pal.onAction((id) => {
   if (id === "tones") pal.send({ tones: !tones }).catch(() => {});
 });
-pal.onSettings((s) => { tones = s.tones !== false; });
+pal.onSettings((s) => { tones = s.tones !== false; if (ph) ph.queue = s.queue_turns !== false; });
 
 async function start() {
   const [saved, reply, s] = await Promise.all([
@@ -183,9 +195,11 @@ async function start() {
   const mem = isMemory(saved) ? saved : undefined;
   const powerOn = reply?.powerOn ?? true;
   ph = boot(now(), mem ? { ...mem, seed: powerOn ? 1 : mem.seed } : {});
+  ph.queue = s.queue_turns !== false; // EXTRA, not the firmware (game.ts `steer`)
   stored = JSON.stringify(memory(ph));
   fit();
   paint();
+  title();
   pal.ready();
   setInterval(run, U);
   const draw = () => { paint(); requestAnimationFrame(draw); };

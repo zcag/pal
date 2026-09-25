@@ -17,7 +17,9 @@ every backlight switch (see "How it was measured").
 Opening the view enters Snake II as picking it from the phone's Games menu
 does: the SNAKE II splash, then its menu (New game, Level, Mazes, Top
 score, Instructions). The screen is lit green in the menus and unlit in
-play, as the phone keeps its backlight.
+play, as the phone keeps its backlight. The panel's title line, above the
+phone, keeps the top score in view ("Top score 213"), so it reads without
+opening the Top score screen.
 
 - **Steering**: 2 4 6 8 (the arrows while playing) turn up, left, right
   and down. 1 3 7 9 turn across the way the snake goes (moving right, 1
@@ -89,6 +91,28 @@ Settings, `[extensions.snake]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `tones` | boolean | `true` | The buzzer: the click on eating, three pips on a crash, the jingle on a new top score (the phone's "Warning and game tones"). |
+| `queue_turns` | boolean | `true` | Not the phone: a second turn pressed within one step waits for the next step instead of being lost (below). Off plays exactly as the firmware. |
+
+## Not the phone
+
+Everything else is the firmware's; these are pal's additions, each marked
+`EXTRA, not the firmware` in the code, and none of them runs in the
+replays:
+
+- **Turn queue** (`queue_turns`, on by default). The 3310 keeps one turn
+  per step and judges a key against the way the snake last moved, so
+  moving right, up then left in one step turns up and loses the left
+  (the left reverses "right"); moving left, the left cancels the up. With
+  the queue on, that second key waits and turns on the next step. Keys the
+  firmware keeps behave as on the phone (down then up still turns up).
+- **Top score in the title line**, so it reads without the Top score
+  screen.
+- **Leaving the panel pauses** the game as C does; Continue waits in the
+  menu.
+- **Leaving Snake II closes the view**: C on its menu, or a digit (the
+  phone's dialer), where the phone would show its Games list.
+- **The keyboard map** (arrows for 2 4 6 8, Enter for the soft key,
+  Backspace for C) and cmd+T for the tones.
 
 ## How it was measured
 
