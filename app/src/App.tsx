@@ -102,7 +102,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onEnlarge={(on) => invoke("panel_enlarge", { on }).catch(() => {})} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

@@ -367,6 +367,7 @@ pub fn run() {
             deeplink::link_copy,
             pick::pick_reply,
             dialog::dialog_detect,
+            compact::panel_enlarge,
             large::large_hide,
             large::large_show,
             keycast::keycast_state,

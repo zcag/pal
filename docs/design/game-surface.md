@@ -198,3 +198,7 @@ action, a combo its action, exactly as for any view.
 The body is about 720 by 390 CSS px in the panel and 560 wide in compact
 mode, and can change: a page lays out to its own viewport, with no page
 scroll, and draws at `devicePixelRatio`.
+**⌘⇧F** ("Enlarge panel") grows the panel to 90% of the screen each way
+while the level is on top, for a game played from further back; leaving
+the level or hiding the panel puts it back (compact.rs). A page sees only
+a bigger viewport, so one that caps its sizes should leave room for it.

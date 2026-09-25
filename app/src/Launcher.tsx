@@ -29,7 +29,7 @@ const LIST_ID = "results";
 /** Fixture palettes (the gallery) best browsed as tiles; a real palette declares `view` itself. */
 const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
 /** The shell's own actions, kept apart from an item's by the prefix. */
-const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh", TIPS = "pal:welcome", LINK = "pal:link", FORGET = "pal:forget", CLEAR = "pal:clear", COMPACT = "pal:compact";
+const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh", TIPS = "pal:welcome", LINK = "pal:link", FORGET = "pal:forget", CLEAR = "pal:clear", COMPACT = "pal:compact", ENLARGE = "pal:enlarge";
 const OPEN: Action = { id: "open", title: "Open" };
 /** After the last keystroke at the root, before the inline and fallback sections are asked for (the local hits paint first; a keystroke inside this cancels the ask). */
 const ROOT_DEBOUNCE = 120;
@@ -247,6 +247,8 @@ export type LauncherProps = {
   onPickReply?: (token: number, ids: string[] | null) => void;
   /** Flips `general.compact` (cmd+shift+m, the "Compact mode" action); the action is only offered when given. */
   onCompact?: () => void;
+  /** Grows the panel to most of the screen (true) or back (false), on a game's level only (cmd+shift+f, the "Enlarge panel" action); the shell undoes it on hide. */
+  onEnlarge?: (on: boolean) => void;
   /** Sidebar mode: every row wears its number without cmd held, and cmd+N runs row N instead of moving the cursor to it (the number is the pick). */
   ordinals?: boolean;
   mark?: (name: string, t: number) => void;
@@ -297,7 +299,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, ordinals = false, mark } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onEnlarge, ordinals = false, mark } = props;
   const prefs = props.prefs ?? DEFAULT_PREFS;
   /** Compact: no detail pane (cmd+i is inert), the footer's primary hint sits in the search row instead. */
   const compact = prefs.compact;
@@ -379,6 +381,10 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const ctx = useMemo<Ctx | undefined>(() => (scopeFilter !== undefined || args !== undefined ? { filter: scopeFilter, args } : undefined), [scopeFilter, args]);
   /** A game surface's level (docs/design/game-surface.md): its actions go to the page, and the keys and the focus are the page's. */
   const surfaceView = isView && hasSurface(spec?.tree);
+  /** The panel enlarged for this game (`onEnlarge`): only while asked, off once the level goes. */
+  const [enlarged, setEnlarged] = useState(false);
+  useEffect(() => { if (!surfaceView) setEnlarged(false); }, [surfaceView]);
+  useEffect(() => { onEnlarge?.(enlarged); }, [enlarged]);
   const bridge = props.surface;
   const viewPalette = view.kind === "view" ? view.palette : undefined;
   const surfaceHost = useMemo<SurfaceHost | null>(() => {
@@ -664,7 +670,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   };
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
-  const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; setHold(false); }, []);
+  const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; setHold(false); setEnlarged(false); }, []);
   const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setHistIdx(-1); shown(); input.current?.focus(); }, [nav.reset, cur.reset, shown]);
   const openPalette = (palette: string, opts?: { hold?: boolean; steps?: number }) => {
     reset();
@@ -771,7 +777,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     // A view level's actions are the view's own, with their keys, plus the link (Escape leaves). A form has its submit and nothing else listed; ⌘⇧C still copies its link.
     const link: Action = { id: LINK, title: "Copy deep link", icon: { kind: "glyph", value: "⌘" }, shortcut: "cmd+shift+c", section: "Link" };
     const linkable = !!onLink && !!linkFor(view, current, query);
-    if (view.kind === "view") return [...(view.spec?.actions ?? []), ...(linkable ? [link] : [])];
+    const enlarge: Action = { id: ENLARGE, title: enlarged ? "Normal panel size" : "Enlarge panel", icon: { kind: "glyph", value: enlarged ? "⇲" : "⇱" }, shortcut: "cmd+shift+f", section: "pal" };
+    if (view.kind === "view") return [...(view.spec?.actions ?? []), ...(linkable ? [link] : []), ...(surfaceView && onEnlarge ? [enlarge] : [])];
     if (view.kind === "form") return linkable ? [{ ...link, hidden: true }] : [];
     // Rows marked: only what works on several (the marked row's `multi` actions), and the way out.
     if (sel) return [...multiActions(anchor?.actions), { id: CLEAR, title: "Clear selection", icon: { kind: "glyph", value: "×" }, section: "pal" }];
@@ -792,7 +799,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (onSettings && view.kind === "root") a.push({ id: SETTINGS, title: "Open Settings", icon: { kind: "glyph", value: "⚙" }, shortcut: "cmd+,", section: "pal" });
     if (onWelcome && view.kind === "root" && !byKey.has(WELCOME)) a.push({ id: TIPS, title: "Show tips again", icon: { kind: "glyph", value: "?" }, section: "pal" });
     return a;
-  }, [current, view, showDetail, byKey, onSettings, onRefresh, onWelcome, onLink, onForget, onCompact, compact, scope, args, query, sel, anchor]);
+  }, [current, view, showDetail, byKey, onSettings, onRefresh, onWelcome, onLink, onForget, onCompact, onEnlarge, enlarged, surfaceView, compact, scope, args, query, sel, anchor]);
   /** The actions on show: Enter and ⌘Enter are the first two of these, the footer and the panel list them; a `hidden` action only routes its key. */
   const listed = useMemo(() => actions.filter((a) => !a.hidden), [actions]);
 
@@ -921,6 +928,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case LINK: { const l = linkFor(view, current, query); if (l) onLink?.(l); break; }
       case DETAIL: setShowDetail((s) => !s); break;
       case COMPACT: onCompact?.(); break;
+      case ENLARGE: setEnlarged((e) => !e); break;
       case CLEAR: setSel(null); break;
       case FORGET:
         if (current && onForget) Promise.resolve(onForget(current)).then(
@@ -1084,6 +1092,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       shortcut: ({ combo }) => {
         if (combo === "cmd+," && onSettings) return onSettings();
         if (combo === "cmd+shift+m" && onCompact) return onCompact();
+        if (combo === "cmd+shift+f" && surfaceView && onEnlarge) return setEnlarged((e) => !e);
         if (view.kind === "view") return viewCommand({ type: "shortcut", combo });
         const a = actions.find((x) => hasShortcut(x, combo)) ?? menuShortcut(combo);
         if (a) return run(a);

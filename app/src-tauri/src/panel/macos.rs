@@ -139,6 +139,7 @@ fn hide_now(app: &AppHandle) {
     crate::views::set_visible(app, WINDOW, false, false);
     p.set_ignores_mouse_events(true);
     p.set_alpha_value(0.0);
+    crate::compact::on_hidden(app);
     // orderOut is what gives key focus back to the app in front; order
     // straight back in so WebKit keeps the page alive.
     p.hide(); // orderOut:

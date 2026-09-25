@@ -20,8 +20,8 @@ const UP = [0.31, 0.19];
 const UP_FLOOR = 0.12;
 /** Draw three: how much of a fanned waste card shows, of its width. */
 const FAN = 0.26;
-/** Wider than this reads as a poster, not a table. */
-const MAX_W = 104;
+/** Wider than this reads as a poster, not a table; the normal panel never gets near it, an enlarged one (cmd+shift+f) does. */
+const MAX_W = 180;
 /** Around the felt, and inside it. */
 const MARGIN = 8, PAD = 10;
 /** Held cards sit this much above where they would lie, of a height. */
