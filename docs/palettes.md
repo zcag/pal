@@ -48,6 +48,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Named Colours](#colors-colors-picker-colors-colors-history-colors-convert) | `colors` | indexed, grid, catalog | Open in Picker |
 | [Colour History](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-history` | live, normal | Open in Picker (on the top row: pick from the screen) |
 | [Convert Colour](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-convert` | input, normal | Open in Picker |
+| [Crossword](#crossword-crossword) | `crossword` | view (surface), normal | Next clue; Next puzzle once solved |
 | [Diff](#diff-diff-diff-pick) | `diff` | view, normal | Copy the unified diff |
 | [Diff from History](#diff-diff-diff-pick) | `diff-pick` | input, normal | Pick the side (with two marked: diff them) |
 | [Disk Space](#disk-space-space-space-map-space-largest-space-folders-space-cleanup) | `space` | live, normal | Open the map of the root (scans first when there is none) |
@@ -3034,7 +3035,7 @@ tagline, sorted by name, and Enter opens that game as its own level
 (Escape comes back to the list). Nothing is kept here: every open reads
 the installed extensions' manifests and lists each view palette of a
 loaded extension the store shelves under Fun, so today 2048, Blackjack,
-Minesweeper, Snake II, Solitaire, Typing, Wordle and Yahtzee, and a game
+Crossword, Minesweeper, Snake II, Solitaire, Typing, Wordle and Yahtzee, and a game
 installed from the store as soon as it is. No settings.
 
 ## 2048 (`2048`)
@@ -3297,6 +3298,63 @@ and mode, and the toggles.
 - Tab starts a new test at any point, `R` on the result repeats the same
   words. Escape leaves (a test in progress is dropped); the options and
   the records persist in the extension's storage.
+
+## Crossword (`crossword`)
+
+Mini crosswords from Crosshare (crosshare.org), in the manner of the NYT
+Mini. Enter on the palette's row opens a view level whose body is the
+extension's own page (a `surface`): the grid on the left, as large as the
+panel allows; beside it the puzzle's title and constructor (a link to it
+on crosshare.org), the clock, the clue you are on in a bar of its own, and
+the Across and Down lists. The title line says which puzzle it is
+("Crossword · Today's mini").
+
+- **Which puzzle.** The first open is the puzzle left half-done, else
+  today's daily mini. **Next** (⌘N, or Enter on the finish) goes straight
+  to an unplayed one: today's daily while it is open, then the daily
+  minis back from the one just played, then the newest minis tagged
+  `mini`; a puzzle solved or started, or bigger than 7 by 7, is skipped.
+  The next one is looked up and fetched while you solve, so it opens at
+  once. **Browse** (⌘O) has the daily minis as a calendar, month by month
+  back to 2020, each day marked solved, started or new, and the newest
+  minis as a list; Enter plays.
+- **The keys** are the NYT's: a letter fills the square and moves to the
+  next empty one in the word (a full word typed over goes square by
+  square; a finished word jumps to the next clue with a gap); Backspace
+  clears the square, or steps back and clears; an arrow along the word
+  moves (over blocks), across it turns first; Space or a click on the
+  square turns; Tab and Shift-Tab (and Enter) walk the clues, skipping
+  full ones; a click on a square or a clue goes there. `?` shows every
+  key.
+- **Help.** Check (⌘E the word, ⌘⌥E the square, ⌘⇧E the grid) slashes
+  wrong letters and turns right ones blue (they lock); reveal (⌘U, ⌘⌥U,
+  ⌘⇧U, the grid asking first) fills in the answer with a corner mark;
+  ⌥⌫ clears the word, ⌘⌥⌫ the grid. `autocheck` marks a wrong letter as
+  it is typed. A reveal makes the solve "finished with help": it counts,
+  but not for the best time or the streak.
+- **The clock** runs only while the grid is on screen: it stops when the
+  panel hides, on the other screens and while paused (⌘P, or a click on
+  the clock), which covers the grid.
+- **The finish.** A full grid with a mistake says "Not quite" without
+  saying where. Solved, a wave of light runs across the grid, and the
+  time shows with a new best or the streak, the constructor's note if
+  there is one, and Next puzzle.
+- **Stats** (⌘S): solved, best and average time, the streak (daily minis
+  solved on their own day, in UTC, Crosshare's calendar) and the best
+  one, a chart of recent times, the history.
+- Every key is saved as you type (`progress.json` in
+  `~/Library/Application Support/pal/crossword/`, `~/.local/share/pal/crossword/`
+  on Linux), so Escape at any point loses nothing. Puzzles are fetched
+  only when played or listed and kept there (`cache/`), so one opened
+  before plays offline; offline, the page says so and lists them.
+- While today's mini is unsolved, a quiet row in the root's Now section
+  opens it, once you have solved a puzzle before (`suggest`).
+
+```toml
+[extensions.crossword]
+autocheck = false   # mark a wrong letter as it is typed; also on ⌘K
+suggest = true      # today's mini in the root's Now section while unsolved
+```
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
 

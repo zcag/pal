@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crossword</title>
+<script src="/__pal/surface.js"></script>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./main.ts"></script>
+</head>
+<body class="loading">
+<main id="play" class="screen">
+  <div id="board">
+    <div id="frame">
+      <div id="under"></div>
+      <div id="cursor"></div>
+      <div id="over"></div>
+    </div>
+    <div id="cover"><div><svg viewBox="0 0 24 24"><rect x="7" y="5.5" width="3.2" height="13" rx="1"/><rect x="13.8" y="5.5" width="3.2" height="13" rx="1"/></svg><b>Paused</b><span>Enter to carry on</span></div></div>
+  </div>
+  <aside id="side">
+    <header id="head">
+      <div id="who">
+        <b id="ptitle"></b>
+        <button type="button" tabindex="-1" id="credit" title="Open on crosshare.org"></button>
+      </div>
+      <button type="button" tabindex="-1" id="clock" title="Pause (⌘P)"><span id="time">0:00</span><svg viewBox="0 0 16 16"><rect x="4.5" y="3.5" width="2.2" height="9" rx=".6"/><rect x="9.3" y="3.5" width="2.2" height="9" rx=".6"/></svg></button>
+    </header>
+    <div id="clue"><span id="clue-n"></span><p id="clue-text"></p></div>
+    <div id="lists">
+      <section data-dir="across"><h3>Across</h3><ol></ol></section>
+      <section data-dir="down"><h3>Down</h3><ol></ol></section>
+    </div>
+    <div id="done" hidden>
+      <div id="done-mark"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4 4 9-9.5"/></svg></div>
+      <div id="done-what"></div>
+      <div id="done-time"></div>
+      <div id="done-tags"></div>
+      <p id="done-note"></p>
+      <div id="done-go">
+        <button type="button" tabindex="-1" data-go="next" class="primary">Next puzzle <kbd>⏎</kbd></button>
+        <button type="button" tabindex="-1" data-go="browse">Browse <kbd>⌘O</kbd></button>
+        <button type="button" tabindex="-1" data-go="stats">Stats <kbd>⌘S</kbd></button>
+      </div>
+    </div>
+    <footer id="hint"></footer>
+    <div id="nearly" hidden><b>Not quite.</b><span class="long">A square or more is wrong; keep going.</span><span class="short">Keep going.</span></div>
+  </aside>
+</main>
+
+<section id="browse" class="screen">
+  <header class="bar">
+    <div class="tabs" role="tablist">
+      <button type="button" tabindex="-1" data-tab="daily">Daily minis</button>
+      <button type="button" tabindex="-1" data-tab="newest">Newest minis</button>
+    </div>
+    <button type="button" tabindex="-1" class="back" data-back title="Back to the puzzle (⌘O)">Back <kbd>⌘O</kbd></button>
+  </header>
+  <div id="daily" class="pane">
+    <div class="cal-col">
+      <div id="month-nav">
+        <button type="button" tabindex="-1" data-step="-1" title="Earlier month ([)"><svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+        <b id="month-name"></b>
+        <button type="button" tabindex="-1" data-step="1" title="Later month (])"><svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+      </div>
+      <div id="cal"></div>
+    </div>
+    <div id="peek"></div>
+  </div>
+  <div id="newest" class="pane"><ol id="newest-list"></ol></div>
+  <footer class="keys" id="browse-keys"></footer>
+</section>
+
+<section id="stats" class="screen">
+  <header class="bar">
+    <b class="heading">Stats</b>
+    <button type="button" tabindex="-1" class="back" data-back title="Back to the puzzle (⌘S)">Back <kbd>⌘S</kbd></button>
+  </header>
+  <div id="stats-body">
+    <div id="tiles"></div>
+    <div id="chart"><div class="head"><span>Recent solves</span><span class="note" id="chart-note"></span></div><svg id="plot"></svg></div>
+    <div id="history"><div class="head"><span>History</span><span class="note" id="history-note"></span></div><ol></ol></div>
+  </div>
+</section>
+
+<section id="offline" class="screen">
+  <div class="box">
+    <svg viewBox="0 0 24 24" class="glyph"><path d="M3.5 9.2a13 13 0 0 1 17 0M6.4 12.6a8.6 8.6 0 0 1 11.2 0M9.4 16a4.2 4.2 0 0 1 5.2 0"/><circle cx="12" cy="19.2" r="1"/><path d="M4 4l16 16" class="cut"/></svg>
+    <b>Couldn't reach Crosshare</b>
+    <p id="offline-why"></p>
+    <div id="offline-list"></div>
+    <div class="go"><button type="button" tabindex="-1" data-retry class="primary">Try again <kbd>R</kbd></button></div>
+  </div>
+</section>
+
+<section id="skeleton" class="screen">
+  <div class="sk-board"></div>
+  <div class="sk-side"><i></i><i class="w"></i><i class="bar"></i><i></i><i></i><i></i><i class="w"></i><span>Fetching the mini from Crosshare…</span></div>
+</section>
+
+<div id="help" hidden><div class="card">
+  <h2>Keys</h2>
+  <div class="cols">
+    <dl>
+      <dt>Letters</dt><dd>Fill, move on</dd>
+      <dt><kbd>⌫</kbd></dt><dd>Clear, or back and clear</dd>
+      <dt><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></dt><dd>Move <small>across the word: turn</small></dd>
+      <dt><kbd>Space</kbd></dt><dd>Turn: across, down</dd>
+      <dt><kbd>Tab</kbd><kbd>⇧Tab</kbd></dt><dd>Next, previous clue</dd>
+      <dt><kbd>⏎</kbd></dt><dd>Next clue <small>solved: next puzzle</small></dd>
+      <dt><kbd>⌘P</kbd></dt><dd>Pause</dd>
+    </dl>
+    <dl>
+      <dt><kbd>⌘E</kbd></dt><dd>Check word <small>⌥ square, ⇧ grid</small></dd>
+      <dt><kbd>⌘U</kbd></dt><dd>Reveal word <small>⌥ square, ⇧ grid</small></dd>
+      <dt><kbd>⌥⌫</kbd></dt><dd>Clear word <small>⌘⌥⌫ grid</small></dd>
+      <dt><kbd>⌘N</kbd></dt><dd>Next puzzle</dd>
+      <dt><kbd>⌘O</kbd></dt><dd>Browse puzzles</dd>
+      <dt><kbd>⌘S</kbd></dt><dd>Stats</dd>
+      <dt><kbd>⌘K</kbd></dt><dd>Everything else</dd>
+    </dl>
+  </div>
+  <p>Any key closes this</p>
+</div></div>
+
+<div id="ask" hidden><div class="card"><p></p><div class="go"><button type="button" tabindex="-1" data-yes class="primary"></button><button type="button" tabindex="-1" data-no>Cancel</button></div></div></div>
+</body>
+</html>

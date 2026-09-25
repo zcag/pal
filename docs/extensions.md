@@ -498,9 +498,9 @@ a grid) are not tinted: they are what the palette lists.
 
 A palette can draw instead of list: give it `view(ctx)` in place of
 `list`, returning a `View`, and pal opens it as a **view level**. The
-bundled 2048 and Wordle are (`extensions/{2048,wordle}/`); Blackjack,
+bundled 2048 and Wordle are (`extensions/{2048,wordle}/`); Blackjack, Crossword,
 Minesweeper, Snake II, Solitaire, Typing and Yahtzee draw their own page instead, a
-`surface` node (`extensions/{blackjack,minesweeper,snake,solitaire,typing,yahtzee}/surface/`),
+`surface` node (`extensions/{blackjack,crossword,minesweeper,snake,solitaire,typing,yahtzee}/surface/`),
 and so does Flashcards (`extensions/flashcards/surface/`).
 The tree is built from a fixed vocabulary the app draws with its own
 tokens, never HTML, so a view looks like the rest of the panel in both
@@ -635,7 +635,7 @@ for what a tree cannot do (a card under the pointer, a drag, 60 frames a
 second). Anything that shows data uses the vocabulary above, which
 follows the theme, the density and the keys by itself. The design,
 security model included, is `docs/design/game-surface.md`; the smallest
-one is `examples/surface-extension/`, and the bundled Blackjack,
+one is `examples/surface-extension/`, and the bundled Blackjack, Crossword,
 Minesweeper, Snake II, Solitaire, Typing and Yahtzee are full games on it.
 
 ```ts
