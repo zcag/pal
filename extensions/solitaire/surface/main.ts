@@ -22,7 +22,6 @@ declare const pal: SurfaceKit;
 const KEY = "state";
 /** A card's glide (style.css `--move`); the deal's step between two cards; the finish's between two cards home. */
 const MOVE = 240, DEAL_STEP = 34, FINISH_STEP = 110;
-const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const root = document.documentElement, body = document.body;
@@ -230,7 +229,7 @@ function deal() {
     at(el, s);
     el.style.zIndex = String(2000 + st.stock.indexOf(c));
   });
-  setTimeout(() => draw({ delays: dealOrder(), flipAfter: MOVE - 60 }), reduced ? 0 : 380);
+  setTimeout(() => draw({ delays: dealOrder(), flipAfter: MOVE - 60 }), 380);
 }
 
 /** Each tableau card's delay: dealt a row at a time, left to right. */
@@ -239,7 +238,7 @@ function dealOrder(): Map<Card, number> {
   let n = 0;
   for (let row = 0; row < 7; row++) for (let i = row; i < 7; i++) {
     const p = st.tableau[i];
-    out.set(row < p.down.length ? p.down[row] : p.up[row - p.down.length], reduced ? 0 : n++ * DEAL_STEP);
+    out.set(row < p.down.length ? p.down[row] : p.up[row - p.down.length], n++ * DEAL_STEP);
   }
   return out;
 }
@@ -414,7 +413,6 @@ function clear() {
 }
 
 function celebrate() {
-  if (reduced) return showWon();
   setTimeout(() => {
     if (!st.won) return;
     const dpr = devicePixelRatio || 1;

@@ -733,7 +733,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-hud .pal-icon { color: var(--pal-success, #4fc98a); }
-/* `pal://confetti`: 24 particles flung sideways from behind the capsule in a low arc (the HUD window is 480 by 72, so a tall burst would leave it at once), each on its own distance and colour (nth-child cycles the tag palette), fading as they fall; reduced motion zeroes --pal-dur-hud-hold, so they never fly. */
+/* `pal://confetti`: 24 particles flung sideways from behind the capsule in a low arc (the HUD window is 480 by 72, so a tall burst would leave it at once), each on its own distance and colour (nth-child cycles the tag palette), fading as they fall. */
 .pal-hud[data-celebrate] { position: relative; }
 .pal-hud__confetti { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: -1; }
 .pal-hud__confetti i {
@@ -771,12 +771,6 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-hud-page .pal-hud { max-width: 100%; }
 .pal-hud-page .pal-hud > span { overflow: hidden; text-overflow: ellipsis; }
 [data-exiting] > .pal-hud { animation: none; opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in); }
-
-/* tokens.css zeroes every --pal-dur-* under reduced motion; the loops here have their own durations. */
-@media (prefers-reduced-motion: reduce) {
-  .pal-search[data-loading]::after { animation: none; }
-  .pal-detail__skeleton > span { animation: none; }
-}
 
 /* ---- The sidebar (`index.html?bar&sidebar`, sidebar.rs) --------------------
    A strip of windows at the screen edge, not a launcher: rows only while it

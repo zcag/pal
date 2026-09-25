@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type Ref } from "react";
 import { Kbd } from "./Kbd";
 import { Tag } from "./Row";
-import { Presence, reduced } from "./presence";
+import { Presence } from "./presence";
 import { Surface } from "./Surface";
 import type { ViewNode } from "./types";
 
@@ -128,7 +128,7 @@ export function View({ tree, label, autoFocus, rootRef, onAction }: { tree: View
  * node re-mounted elsewhere, or its stack re-laid it) the node is played
  * from that box to its own with a transform, over `--pal-motion-move`.
  * A re-mounted mover skips its `enter` animation, since a slide is what
- * it does. Nothing under reduced motion, or without a key.
+ * it does. Nothing without a key.
  */
 function useMove(key: string | undefined, move: boolean | undefined): Ref<HTMLElement> {
   const moves = useContext(MoveContext);
@@ -146,7 +146,7 @@ function useMove(key: string | undefined, move: boolean | undefined): Ref<HTMLEl
     moves.anims.get(key)?.cancel();
     const box = el.getBoundingClientRect();
     moves.boxes.set(key, box);
-    if (from && !reduced()) {
+    if (from) {
       const dx = from.left - box.left, dy = from.top - box.top;
       if (fresh.current) el.style.animation = "none";
       const style = getComputedStyle(el);

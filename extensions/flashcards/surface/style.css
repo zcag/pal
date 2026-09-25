@@ -344,6 +344,3 @@ body.typing #typed:not(:empty) { display: block; }
   .figures { gap: 14px; }
   #stats .two { gap: 16px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
-}

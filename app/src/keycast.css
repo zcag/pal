@@ -158,9 +158,3 @@
   from { transform: scale(0.2); }
   to { transform: scale(1); opacity: 0; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .pal-keycast__entry { animation-duration: 0.01ms; transition: none; }
-  .pal-keycast__text[data-live]::after { animation: none; }
-  .pal-keycast__ripple { animation-duration: 200ms; }
-}

@@ -2,7 +2,7 @@
 // `Transition.move` (View.tsx useMove): a keyed node found at another box
 // in the previous tree is played from that box to its own, across parents
 // too, with the stack it left drawing no exit for it; a key new to the
-// tree enters instead; reduced motion plays nothing.
+// tree enters instead; the OS's reduced motion does not stop it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -78,11 +78,11 @@ describe("move", () => {
     expect(animations).toEqual([]);
   });
 
-  it("plays nothing under reduced motion; the node still lands in its new cell", async () => {
+  it("plays under reduced motion too", async () => {
     reduce = true;
     await show(board([1, null, null, null]));
     await show(board([null, null, null, 1]));
     expect(texts()).toEqual(["", "", "", "1"]);
-    expect(animations).toEqual([]);
+    expect(animations).toEqual([{ text: "1", from: "translate(-192px, 0px)", duration: 180 }]);
   });
 });

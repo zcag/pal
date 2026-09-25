@@ -624,7 +624,7 @@ cell or another parent, the node slides from that box to its new one
 entering, and the stack it left draws no exit for it; a 2048 tile keyed by
 its id slides across the board, a split's card glides to its new hand. A
 `move` key must be unique in the whole tree. Durations and easings are the
-tokens'; reduced motion turns them all off. A row whose keyed children come
+tokens'. A row whose keyed children come
 and go wants a `minHeight` so the layout holds still; a cell whose tile
 moves out wants a stack of its own holding an `outline` tile meanwhile.
 

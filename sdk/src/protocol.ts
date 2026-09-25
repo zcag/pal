@@ -187,7 +187,7 @@ export type GradientLayer = { stops: HexColor[]; direction?: "right" | "down" | 
  * instead of entering, and the old place shows nothing of it; a 2048 tile
  * keyed by its id slides across the board. A `move` key must be unique in
  * the whole tree, not only among its siblings (`checkView` refuses two).
- * Durations and easings are the tokens'; reduced motion turns them off.
+ * Durations and easings are the tokens'.
  */
 export type Transition = {
   enter?: "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right" | "flip" | "pop";

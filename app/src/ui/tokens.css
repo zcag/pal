@@ -360,17 +360,6 @@
   --pal-grid-tile: 44px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --pal-dur-fast: 0ms;
-    --pal-dur-base: 0ms;
-    --pal-dur-slow: 0ms;
-    --pal-dur-hud-out: 0ms;
-    --pal-motion-move: 0ms;
-    --pal-motion-pop: 0ms;
-  }
-}
-
 /* Settings window: its own window, shaped like a macOS preferences window.
    960 by 640 default (resizable, 800 by 560 minimum; settings.rs says the
    same); a 52px toolbar band holds the tabs; a form page sits at a 640px

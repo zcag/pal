@@ -28,7 +28,6 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const el = (tag: string, cls?: string, text?: string) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Icons drawn here: the page has no icon font (the panel's Nerd Font is not on its origin).
 const ICONS: Record<string, string> = {
@@ -168,7 +167,7 @@ function drawCard(r: Card & { undone?: string }, prev: Screen | null) {
   $("say2").hidden = !target(c).lang && !c.audio;
   const fresh = !(prev?.screen === "card" && prev.card.key === c.key) || !!r.undone;
   if (fresh) arrive(r.undone ? "back" : "stack");
-  if (c.type) setTimeout(() => input.focus(), REDUCED ? 0 : 60);
+  if (c.type) setTimeout(() => input.focus(), 60);
   shownAt = performance.now();
   drawFoot();
   if (ui.speak === "auto" && !c.reverse) sayTarget();
@@ -194,7 +193,7 @@ function arrive(from: "stack" | "back") {
   card.classList.remove("arrive-stack", "arrive-back");
   void card.offsetWidth;
   card.style.transition = "";
-  if (!REDUCED) card.classList.add(from === "back" ? "arrive-back" : "arrive-stack");
+  card.classList.add(from === "back" ? "arrive-back" : "arrive-stack");
   for (const s of card.querySelectorAll<HTMLElement>(".stamp")) s.style.opacity = "";
 }
 
@@ -364,7 +363,7 @@ function drawDone(d: Done) {
     was.style.width = `${before * 100}%`;
     now.style.left = `${before * 100}%`;
     now.style.width = "0";
-    setTimeout(() => { now.style.width = `${Math.max(0, gain) * 100}%`; }, REDUCED ? 0 : 500);
+    setTimeout(() => { now.style.width = `${Math.max(0, gain) * 100}%`; }, 500);
   }
   enter($("done"));
   drawFoot();
@@ -504,14 +503,14 @@ async function rate(r: number, fromDrag = false) {
   // Off it goes, from wherever a drag left it; the answer is saved while it flies.
   const x = fromDrag ? Number(card.dataset.dx || 0) : 0;
   card.classList.remove("arrive-stack", "arrive-back");
-  card.style.transition = REDUCED ? "none" : "transform 260ms cubic-bezier(0.4, 0, 0.9, 0.6), opacity 260ms ease-in";
+  card.style.transition = "transform 260ms cubic-bezier(0.4, 0, 0.9, 0.6), opacity 260ms ease-in";
   card.style.transform = `translateX(${right ? "" : "-"}${Math.max(130, Math.abs(x) / 3)}%) rotate(${right ? 16 : -16}deg)`;
   card.style.opacity = "0";
   card.querySelector<HTMLElement>(right ? ".stamp.yes" : ".stamp.no")!.style.opacity = "1";
   document.body.classList.add(right ? "went-yes" : "went-no");
   busy = true;
   // The answer takes ~5 ms; the next card comes as soon as this one is mostly off.
-  const [reply] = await Promise.all([ask({ op: "answer", key, rating: r, ms }), wait(REDUCED ? 0 : 170)]);
+  const [reply] = await Promise.all([ask({ op: "answer", key, rating: r, ms }), wait(170)]);
   busy = false;
   flying = false;
   document.body.classList.remove("went-yes", "went-no");
@@ -668,7 +667,6 @@ function toast(html: string) {
 }
 
 function confetti() {
-  if (REDUCED) return;
   const fx = $("fx");
   const colours = ["--pal-tag-violet", "--pal-tag-amber", "--pal-tag-green", "--pal-tag-blue", "--pal-tag-pink"];
   for (let i = 0; i < 70; i++) {

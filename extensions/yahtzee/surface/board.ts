@@ -26,7 +26,6 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?:
   return e;
 }
 const kbd = (k: string) => `<kbd>${k}</kbd>`;
-const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export class Board {
   private dice: HTMLButtonElement[] = [];
@@ -111,7 +110,7 @@ export class Board {
     });
     if (moving.length) this.tumble(moving, st);
     // Scored: the dice leave the tray and the empty slots settle in.
-    if (scored && !reduced()) this.dice.forEach((d, i) => (d.querySelector(".body") as HTMLElement).animate([{ opacity: 0, transform: "scale(0.85)" }, { opacity: 1, transform: "none" }], { duration: 260, delay: i * 30, easing: "ease-out", fill: "backwards" }));
+    if (scored) this.dice.forEach((d, i) => (d.querySelector(".body") as HTMLElement).animate([{ opacity: 0, transform: "scale(0.85)" }, { opacity: 1, transform: "none" }], { duration: 260, delay: i * 30, easing: "ease-out", fill: "backwards" }));
 
     // Roll: the dots are the rolls left.
     const left = st.ended ? 0 : 3 - st.rolls;
@@ -187,7 +186,7 @@ export class Board {
     if (to === this.total) return;
     const from = this.total;
     this.total = to;
-    if (!animate || reduced()) { $("total").textContent = String(to); return; }
+    if (!animate) { $("total").textContent = String(to); return; }
     this.countUp($("total"), from, to, 520);
   }
   private countUp(e: HTMLElement, from: number, to: number, ms: number) {
@@ -205,7 +204,6 @@ export class Board {
   /** The free dice thrown: each tumbles in from its side while its face flickers, and lands on the rolled value. */
   private tumble(which: number[], st: State) {
     const throwNo = ++this.throws;
-    if (reduced()) { which.forEach((i) => this.face(i, st.dice[i])); return; }
     let longest = 0;
     for (const i of which) {
       this.dice[i].classList.remove("blank");
@@ -258,12 +256,11 @@ export class Board {
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.22 },
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)", offset: 0.85 },
       { opacity: 0, transform: "translate(-50%, -60%) scale(0.96)" },
-    ], { duration: reduced() ? 1200 : 1900, easing: "ease-out" });
+    ], { duration: 1900, easing: "ease-out" });
   }
 
   /** Confetti thrown up from an element's centre, falling under gravity. */
   burst(from: HTMLElement, n = 46) {
-    if (reduced()) return;
     const fx = $("fx");
     const box = from.getBoundingClientRect();
     const x = box.left + box.width / 2, y = box.top + box.height / 2;

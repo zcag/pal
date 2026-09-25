@@ -400,6 +400,3 @@ kbd {
 @media (max-width: 620px) {
   #hints .opt { display: none; }
 }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
-}

@@ -25,9 +25,6 @@
   --felt-line: rgba(255, 246, 214, 0.14);
   color-scheme: dark;
 }
-@media (prefers-reduced-motion: reduce) {
-  :root { --fly: 1ms; }
-}
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }

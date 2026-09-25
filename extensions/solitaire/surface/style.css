@@ -18,7 +18,6 @@
   --slot: rgba(255, 255, 255, 0.2);
   --slot-ink: rgba(255, 255, 255, 0.3);
 }
-@media (prefers-reduced-motion: reduce) { :root { --move: 1ms; } }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }

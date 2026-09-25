@@ -2,18 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type Dur = "fast" | "base" | "slow" | "hud-out";
 
-/** The OS asks for reduced motion: exits and moves happen at once. */
-export const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const ms = (v: string) => (v.trim().endsWith("ms") ? parseFloat(v) : parseFloat(v) * 1000) || 0;
 
 /**
  * Keeps `children` mounted through their exit. When `show` turns false the
  * wrapper gets `data-exiting` (the exit rules in ui.css key on it) and `inert`,
  * and the last children stay rendered until the exit's transitionend or
- * animationend, or `--pal-dur-<dur>` plus a margin when no event comes. Under
- * reduced motion they leave at once. Without `className` the wrapper is
- * box-less (display: contents), so an absolutely positioned overlay keeps its
- * containing block. `onExited` fires once the children are gone.
+ * animationend, or `--pal-dur-<dur>` plus a margin when no event comes.
+ * Without `className` the wrapper is box-less (display: contents), so an
+ * absolutely positioned overlay keeps its containing block. `onExited` fires
+ * once the children are gone.
  */
 export function Presence({ show, dur = "fast", className, onExited, children }: { show: boolean; dur?: Dur; className?: string; /** After an exit has run its course and the children are gone. */ onExited?: () => void; children: ReactNode }) {
   const node = useRef<HTMLDivElement>(null);
@@ -21,10 +19,10 @@ export function Presence({ show, dur = "fast", className, onExited, children }: 
   if (show) last.current = children;
   const [state, setState] = useState({ show, exiting: false });
   // Derived from the flip, in render, so the closing frame already carries data-exiting.
-  if (state.show !== show) setState({ show, exiting: !show && !reduced() });
+  if (state.show !== show) setState({ show, exiting: !show });
   const { exiting } = state;
 
-  // Told once the children are gone: after the exit, or at once under reduced motion.
+  // Told once the children are gone: after the exit.
   const exited = useRef(onExited);
   exited.current = onExited;
   useEffect(() => { if (!show && !exiting) exited.current?.(); }, [show, exiting]);
