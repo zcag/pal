@@ -264,10 +264,17 @@ cmd("x.template.sh", `# @pal.title Template`, `echo no`);
 
 const cmds = () => host.list("scripts", "commands");
 const cpick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("scripts", "commands", id, action, ctx);
-const nextEffect = async () => {
-  const from = host.coreCalls.filter((c) => c.method === "effects.run").length;
-  await host.until(() => host.coreCalls.filter((c) => c.method === "effects.run").length > from, 3000, "effects.run");
-  return (host.coreCalls.filter((c) => c.method === "effects.run").pop()!.params as { effect: Record<string, unknown> }).effect;
+/**
+ * The pick's reply and the effect it runs afterwards (the HUD, the pushed output). The count is taken before the
+ * pick: a script that fails at once can run its effect before the reply is back, and a count taken after that
+ * waits for one more effect that never comes (red on the Linux runner, 2026-09-24/25).
+ */
+const pickThenEffect = async (pick: () => Promise<unknown>) => {
+  const runs = () => host.coreCalls.filter((c) => c.method === "effects.run");
+  const from = runs().length;
+  const reply = await pick();
+  await host.until(() => runs().length > from, 3000, "effects.run");
+  return { reply, effect: (runs()[from].params as { effect: Record<string, unknown> }).effect };
 };
 
 describe("script commands: the header", () => {
@@ -327,10 +334,8 @@ describe("script commands: the palette", () => {
 
   test("hud: Enter hides and the HUD then carries the first output line; a failure carries stderr's first line; silent says nothing unless it failed", async () => {
     await cmds();
-    expect(await cpick("ray.sh", "run", { values: { argument1: "Ada" } })).toEqual({ hide: true });
-    expect(await nextEffect()).toEqual({ hud: "Say hi: hi Ada from /" });
-    expect(await cpick("broken.sh")).toEqual({ hide: true });
-    expect(await nextEffect()).toEqual({ hud: "Broken: boom" });
+    expect(await pickThenEffect(() => cpick("ray.sh", "run", { values: { argument1: "Ada" } }))).toEqual({ reply: { hide: true }, effect: { hud: "Say hi: hi Ada from /" } });
+    expect(await pickThenEffect(() => cpick("broken.sh"))).toEqual({ reply: { hide: true }, effect: { hud: "Broken: boom" } });
     const before = host.coreCalls.filter((c) => c.method === "effects.run").length;
     expect(await cpick("quiet.sh")).toEqual({ hide: true });
     await Bun.sleep(300);
@@ -343,11 +348,9 @@ describe("script commands: the palette", () => {
     expect(f).toMatchObject({ id: "deploy.sh", title: "Deploy site", submit: { id: "run", title: "Run" } });
     expect(f.fields.map((x) => [x.id, x.label, x.kind, x.placeholder, !!x.required])).toEqual([["target", "Environment (staging or prod)", "text", "Environment (staging or prod)", true], ["note", "Release note (optional)", "text", "Release note (optional)", false]]);
     expect(((await cpick("deploy.sh", "run", { values: { target: " ", note: "x" } })).form as Form).errors).toEqual({ target: "Required" });
-    expect(await cpick("deploy.sh", "run", { values: { target: "prod", note: "v2" } })).toEqual({ hide: true });
-    expect(await nextEffect()).toEqual({ hud: "Deploy site: Deployed to prod (v2)" });
+    expect(await pickThenEffect(() => cpick("deploy.sh", "run", { values: { target: "prod", note: "v2" } }))).toEqual({ reply: { hide: true }, effect: { hud: "Deploy site: Deployed to prod (v2)" } });
     // The form's old submit id still lands (a saved hotkey may carry it).
-    expect(await cpick("deploy.sh", "run_args", { values: { target: "staging" } })).toEqual({ hide: true });
-    expect(await nextEffect()).toEqual({ hud: "Deploy site: Deployed to staging" });
+    expect(await pickThenEffect(() => cpick("deploy.sh", "run_args", { values: { target: "staging" } }))).toEqual({ reply: { hide: true }, effect: { hud: "Deploy site: Deployed to staging" } });
   });
 
   test("list: Enter pushes a level whose rows are what the script printed (JSON lines, a url row, a plain line); a row copies, opens, or runs the script again with PAL_PICK", async () => {
@@ -365,8 +368,8 @@ describe("script commands: the palette", () => {
 
   test("show: the whole output comes back as a level with the text in the detail pane and a copy action", async () => {
     await cmds();
-    expect(await cpick("show.sh")).toEqual({ hide: true });
-    const e = await nextEffect();
+    const { reply, effect: e } = await pickThenEffect(() => cpick("show.sh"));
+    expect(reply).toEqual({ hide: true });
     expect(e).toEqual({ push: { extension: "scripts", palette: "commands", args: { show: "show.sh", out: "line 1\nline 2\n" } } });
     const [row] = await host.list("scripts", "commands", "", { args: (e.push as { args: unknown }).args });
     expect(row).toMatchObject({ id: "out", name: "Whole output", detail: { markdown: "```\nline 1\nline 2\n\n```" } });
