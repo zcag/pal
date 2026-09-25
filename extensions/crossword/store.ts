@@ -19,7 +19,7 @@ import { join } from "node:path";
 import type { Saved } from "./game.ts";
 import type { Solve } from "./stats.ts";
 
-export type Meta = { title: string; author: string; date?: string; w: number; h: number };
+export type Meta = { title: string; author: string; date?: string; slug?: string; w: number; h: number };
 export type Data = { v: 1; progress: Record<string, Saved & { touched: number }>; solves: Solve[]; meta: Record<string, Meta>; last?: string };
 
 /** `PAL_CROSSWORD_DIR`, else pal's data directory. */

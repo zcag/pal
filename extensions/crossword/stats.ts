@@ -4,13 +4,18 @@
 // as a best or in the average; a replay (a puzzle solved before) is left
 // out of the times altogether, since the answers were known.
 //
-// The streak is Crosshare's daily mini, in Crosshare's days: a daily's date
-// is a UTC date (its listing runs on UTC), so a day counts when that day's
-// daily was solved, without a reveal, while it was still that day in UTC.
-// The streak runs back from today, or from yesterday while today's is not
-// solved yet, so it does not read 0 all morning.
+// The stats are per source (the page shows one source's at a time; a solve
+// without a source is Crosshare's, from before there were others). The
+// streak is the source's daily in the source's own days: Crosshare's dates
+// are UTC dates (its listing runs on UTC), the Turkish papers' Istanbul's.
+// A day counts when that day's daily was solved, without a reveal, while it
+// was still that day on that calendar. The streak runs back from today, or
+// from yesterday while today's is not solved yet, so it does not read 0 all
+// morning.
 export type Solve = {
   id: string;
+  /** The source (sources.ts); none is Crosshare. */
+  source?: string;
   title: string;
   author: string;
   /** The daily's date (YYYY-MM-DD) when it was a daily mini. */
@@ -28,15 +33,19 @@ export const DAY = 86_400_000;
 /** YYYY-MM-DD of a moment, in UTC. */
 export const utcDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const dayBefore = (d: string) => utcDay(Date.parse(`${d}T00:00:00Z`) - DAY);
+/** A calendar: a moment's date on it. */
+export type Day = (ms: number) => string;
+/** The solves of one source. */
+export const ofSource = (solves: Solve[], source: string) => solves.filter((s) => (s.source ?? "crosshare") === source);
 
 /** The dailies solved on their own day without a reveal. */
-export function onTheDay(solves: Solve[]): Set<string> {
-  return new Set(solves.flatMap((s) => (s.date && !s.helped && !s.replay && utcDay(s.at) === s.date ? [s.date] : [])));
+export function onTheDay(solves: Solve[], day: Day = utcDay): Set<string> {
+  return new Set(solves.flatMap((s) => (s.date && !s.helped && !s.replay && day(s.at) === s.date ? [s.date] : [])));
 }
 
-export function streaks(solves: Solve[], now: number): { streak: number; best: number } {
-  const days = onTheDay(solves);
-  let d = utcDay(now);
+export function streaks(solves: Solve[], now: number, day: Day = utcDay): { streak: number; best: number } {
+  const days = onTheDay(solves, day);
+  let d = day(now);
   if (!days.has(d)) d = dayBefore(d);
   let streak = 0;
   while (days.has(d)) { streak++; d = dayBefore(d); }
@@ -67,11 +76,11 @@ export type Summary = {
 
 const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : undefined);
 
-export function summary(solves: Solve[], now: number, chart = 24): Summary {
+export function summary(solves: Solve[], now: number, day: Day = utcDay, chart = 24): Summary {
   const firsts = solves.filter((s) => !s.replay);
   const clean = firsts.filter((s) => !s.helped).sort((a, b) => a.at - b.at);
   const ms = clean.map((s) => s.ms);
-  const { streak, best } = streaks(solves, now);
+  const { streak, best } = streaks(solves, now, day);
   return {
     solved: firsts.length,
     clean: clean.length,
@@ -80,7 +89,7 @@ export function summary(solves: Solve[], now: number, chart = 24): Summary {
     recent: clean.length >= 3 ? avg(ms.slice(-10)) : undefined,
     streak,
     bestStreak: best,
-    today: onTheDay(solves).has(utcDay(now)),
+    today: onTheDay(solves, day).has(day(now)),
     times: clean.slice(-chart).map((s) => ({ ms: s.ms, at: s.at, title: s.title })),
   };
 }

@@ -241,10 +241,10 @@ describe("Crosshare's pages", () => {
   test("a month of daily minis: the site's 0-based month read 1-based, each day a date, newest first", () => {
     const m = parseMonth(monthPage(2026, 9, [{ day: 24, id: "b", title: "B", author: "Y", w: 4, h: 4 }, { day: 25, id: "a", title: "A", author: "X" }]));
     expect(m).toMatchObject({ year: 2026, month: 9 });
-    expect(m.days).toEqual([{ id: "a", title: "A", author: "X", w: 5, h: 5, date: "2026-09-25", slug: "a" }, { id: "b", title: "B", author: "Y", w: 4, h: 4, date: "2026-09-24", slug: "b" }]);
+    expect(m.days).toEqual([{ id: "a", source: "crosshare", title: "A", author: "X", w: 5, h: 5, date: "2026-09-25", slug: "a" }, { id: "b", source: "crosshare", title: "B", author: "Y", w: 4, h: 4, date: "2026-09-24", slug: "b" }]);
   });
   test("a tag page and whether another follows", () => {
-    expect(parseTag(tagPage([{ id: "q", title: "Quick One", author: "Z" }], 2))).toEqual({ items: [{ id: "q", title: "Quick One", author: "Z", w: 5, h: 5, slug: "quick-one" }], more: true });
+    expect(parseTag(tagPage([{ id: "q", title: "Quick One", author: "Z" }], 2))).toEqual({ items: [{ id: "q", source: "crosshare", title: "Quick One", author: "Z", w: 5, h: 5, slug: "quick-one" }], more: true });
     expect(parseTag(tagPage([], null)).more).toBe(false);
     expect(() => parseTag("<html></html>")).toThrow("no page data");
   });
@@ -362,7 +362,7 @@ describe("the extension", () => {
 
   test("the puzzle's page on crosshare.org", async () => {
     await send({ op: "site", id: "tall" });
-    expect(opened).toEqual(["https://crosshare.org/crosswords/tall"]);
+    expect(opened).toEqual(["https://crosshare.org/crosswords/tall/standing-tall"]);
   });
 
   test("offline: a plain message and the puzzles opened before, which still play", async () => {
@@ -389,7 +389,7 @@ describe("the extension", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: "today", name: "Today's mini crossword" });
     expect(rows[0].subtitle).toContain("In progress");
-    expect(await host.pick("crossword", "crossword", "today")).toEqual({ push: { extension: "crossword", palette: "crossword", args: { date: "2026-09-25" } } });
+    expect(await host.pick("crossword", "crossword", "today")).toEqual({ push: { extension: "crossword", palette: "crossword", args: { date: "2026-09-25", source: "crosshare" } } });
     const byDate = await send<Opened>({ op: "open" }, { date: "2026-09-24" });
     expect(byDate.puzzle.id).toBe("dump");
   });

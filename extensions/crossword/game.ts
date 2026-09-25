@@ -36,6 +36,17 @@ export type Puzzle = {
   circles?: number[];
   /** Cells with a bar on their right side, and on their bottom side (a barred grid). */
   bars?: { right: number[]; below: number[] };
+  /** Where it came from (sources.ts) and its page there, for the credit. */
+  source?: string;
+  url?: string;
+  /**
+   * "tr": a Turkish puzzle. Letters are upper-cased the Turkish way (i to İ, ı to I), and a letter
+   * matches the answer with its diacritics folded (Ç C, Ğ G, İ I, Ö O, Ş S, Ü U): Turkish grids
+   * cross Ç with C and Ü with U, and the papers' own players check that way.
+   */
+  lang?: "tr";
+  /** A picture laid over blocks (Cumhuriyet's photo, which clues refer to): 0-based row and column, the size in squares. */
+  media?: { src: string; row: number; col: number; rows: number; cols: number }[];
 };
 
 export type Word = { dir: Dir; n: number; cells: number[]; clue: string };
@@ -131,8 +142,15 @@ export function crossing(g: Grid, st: Play): Word | undefined {
 
 const empty = (st: Play, i: number) => !st.fill[i];
 export const isFull = (g: Grid, st: Play) => g.p.solution.every((s, i) => !s || !!st.fill[i]);
-export const isRight = (g: Grid, st: Play, i: number) => st.fill[i] === g.p.solution[i];
-export const isSolved = (g: Grid, st: Play) => g.p.solution.every((s, i) => !s || st.fill[i] === s);
+const FOLD: Record<string, string> = { Ç: "C", Ğ: "G", İ: "I", Ö: "O", Ş: "S", Ü: "U" };
+/** A letter as a Turkish puzzle compares it, its diacritics folded. */
+export const fold = (s: string) => s.replace(/[ÇĞİÖŞÜ]/g, (c) => FOLD[c]);
+/** Is `letter` the answer `answer`: equal, or on a Turkish puzzle equal once folded. */
+export const same = (p: Puzzle, letter: string, answer: string) => letter === answer || (p.lang === "tr" && !!letter && fold(letter) === fold(answer));
+export const isRight = (g: Grid, st: Play, i: number) => same(g.p, st.fill[i], g.p.solution[i]);
+export const isSolved = (g: Grid, st: Play) => g.p.solution.every((s, i) => !s || same(g.p, st.fill[i], s));
+/** A key as the letter it types: upper case, the Turkish way on a Turkish puzzle. */
+export const letterOf = (p: Puzzle, key: string) => (p.lang === "tr" ? key.toLocaleUpperCase("tr") : key.toUpperCase());
 /** Where the solve stands: solved, full but wrong somewhere ("not quite"), or still open. */
 export const status = (g: Grid, st: Play): "solved" | "wrong" | "open" => (st.done || isSolved(g, st) ? "solved" : isFull(g, st) ? "wrong" : "open");
 export const wordFull = (st: Play, w: Word) => w.cells.every((i) => !empty(st, i));
@@ -212,14 +230,14 @@ function advance(g: Grid, st: Play, w: Word, wasFull: boolean): Play {
 export function type(g: Grid, st: Play, ch: string, autocheck = false): Play {
   const w = current(g, st);
   if (!w || st.done) return st;
-  const letter = ch.toUpperCase();
+  const letter = letterOf(g.p, ch);
   const wasFull = wordFull(st, w);
   let next: Play = { ...st, dir: w.dir };
   if (!locked(st, st.at)) {
     const fill = st.fill.slice(), mark = st.mark.slice();
     fill[st.at] = letter;
     mark[st.at] &= ~WRONG;
-    if (autocheck && letter !== g.p.solution[st.at]) mark[st.at] |= WRONG;
+    if (autocheck && !same(g.p, letter, g.p.solution[st.at])) mark[st.at] |= WRONG;
     next = { ...next, fill, mark, checked: st.checked || autocheck };
   }
   return advance(g, next, w, wasFull);
@@ -251,6 +269,22 @@ export function backspace(g: Grid, st: Play): Play {
 
 /** Delete: clears the square and stays. */
 export const del = (_g: Grid, st: Play): Play => (st.done ? st : clearAt(st, st.at));
+
+/** The Turkish forms and back: the variant key (') turns the letter in a square into the other. */
+const VARIANT: Record<string, string> = { C: "Ç", Ç: "C", G: "Ğ", Ğ: "G", I: "İ", İ: "I", O: "Ö", Ö: "O", S: "Ş", Ş: "S", U: "Ü", Ü: "U" };
+/** The letter in square `i` turned into its other form (S into Ş, Ş back into S); a locked or empty square, or a letter with none, stays. */
+export function variant(g: Grid, st: Play, i: number, autocheck = false): Play {
+  const other = VARIANT[st.fill[i]];
+  if (st.done || !other || locked(st, i)) return st;
+  const fill = st.fill.slice(), mark = st.mark.slice();
+  fill[i] = other;
+  mark[i] &= ~WRONG;
+  if (autocheck && !same(g.p, other, g.p.solution[i])) mark[i] |= WRONG;
+  return { ...st, fill, mark };
+}
+
+/** The grid as solved shows it: each letter as the answer writes it (a Turkish S typed for Ş shows Ş). */
+export const proper = (g: Grid, st: Play): Play => ({ ...st, fill: st.fill.map((f, i) => (f && g.p.solution[i] ? g.p.solution[i] : f)) });
 
 export type Scope = "square" | "word" | "puzzle";
 const cellsOf = (g: Grid, st: Play, scope: Scope): number[] =>
