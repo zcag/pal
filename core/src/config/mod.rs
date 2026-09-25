@@ -432,6 +432,19 @@ pub enum Theme {
     Dark,
 }
 
+/// How the panel sits while a game page is on top (`[palettes.<id>] panel`):
+/// its usual size, grown to most of the screen, or smaller in a corner.
+/// Set from the page's actions (cmd+shift+f, cmd+shift+j) and kept, so the
+/// game opens that way again (compact.rs in the app).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum PanelMode {
+    #[default]
+    Normal,
+    Big,
+    Corner,
+}
+
 /// Per-palette settings pal provides to every palette extension without it
 /// declaring them. A palette absent from the file gets the defaults.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -461,6 +474,10 @@ pub struct Palette {
     /// `primary` (reached by name, ranked up), `normal`, `catalog` (a big
     /// static list, ranked down and capped harder).
     pub tier: Option<Tier>,
+    /// A game page's panel: `normal`, `big` (most of the screen, centred) or
+    /// `corner` (smaller, in the bottom-right corner). Only a palette whose
+    /// view is a game page looks at it.
+    pub panel: Option<PanelMode>,
     /// Settings the extension declared for this palette.
     #[schemars(with = "BTreeMap<String, serde_json::Value>")]
     pub settings: toml::Table,
@@ -471,7 +488,7 @@ pub struct Palette {
 
 impl Default for Palette {
     fn default() -> Self {
-        Self { enabled: true, alias: None, hotkey: None, hold: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, settings: toml::Table::new(), extra: BTreeMap::new() }
+        Self { enabled: true, alias: None, hotkey: None, hold: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, panel: None, settings: toml::Table::new(), extra: BTreeMap::new() }
     }
 }
 
@@ -1138,7 +1155,7 @@ impl Config {
     /// non-default instance's palette inherits the default's
     /// (`[palettes.gmail-inbox]` under `[palettes."gmail@work-inbox"]`), the
     /// same secrets and `scope: "instance"` ids skipped. The pal-provided
-    /// keys (`enabled`, `alias`, `hotkey`, `hold`, `icon`, `tier`) never inherit.
+    /// keys (`enabled`, `alias`, `hotkey`, `hold`, `icon`, `tier`, `panel`) never inherit.
     pub fn palette_settings(&self, key: &str, palette: &str, manifest_defaults: &toml::Table, specs: &serde_json::Value) -> toml::Table {
         let name = instance::name_of(key);
         let base = if name == key { None } else { self.palettes.get(&instance::palette_id(name, palette)).map(|p| inheritable(&p.settings, specs)) };

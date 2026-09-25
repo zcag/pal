@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { Launcher, type LauncherHandle, type SurfaceBridge } from "../Launcher";
+import { Launcher, type LauncherHandle, type PanelMode, type SurfaceBridge } from "../Launcher";
 import type { SourceInfo } from "../items";
 import type { ViewSpec } from "../ui/types";
 
@@ -38,9 +38,9 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
 const frame = () => el.querySelector("iframe");
 /** What the app posted to the page, by `pal` kind. */
 let posted: Record<string, unknown>[] = [];
-const mount = async () => {
+const mount = async (onPanelMode?: (palette?: string, mode?: PanelMode) => Promise<PanelMode>) => {
   await act(async () => {
-    root.render(<Launcher ref={launcher} sources={[source]} search={async () => []} view={async () => spec} surface={bridge} onPick={(_i, _q, a) => { picks.push(a); return {}; }} onHide={() => { hides++; }} />);
+    root.render(<Launcher ref={launcher} sources={[source]} search={async () => []} view={async () => spec} surface={bridge} onPick={(_i, _q, a) => { picks.push(a); return {}; }} onHide={() => { hides++; }} onPanelMode={onPanelMode} />);
   });
   await flush();
   await act(() => { launcher.current!.open("snake/snake"); });
@@ -148,5 +148,26 @@ describe("surface level", () => {
     await act(() => { launcher.current!.update({ extension: "tetris", palette: "tetris", post: { pal: "message", data: 1 } }); });
     await act(() => { launcher.current!.update({ extension: "snake", palette: "snake", post: { pal: "action", data: "x" } }); });
     expect(posted.slice(2)).toEqual([{ pal: "hidden" }]);
+  });
+
+  it("the game's panel: its remembered mode on entering, ⌘⇧F and ⌘⇧J toggle big and corner (each remembered), normal on leaving", async () => {
+    const asked: [string | undefined, PanelMode | undefined][] = [];
+    await mount(async (palette, mode) => { asked.push([palette, mode]); return mode ?? (palette ? "corner" : "normal"); });
+    expect(asked).toEqual([[undefined, undefined], ["snake/snake", undefined]]);
+    await fromPage({ pal: "hello" });
+    const keys = async (key: string) => fromPage({ pal: "key", key, code: `Key${key.toUpperCase()}`, metaKey: true, ctrlKey: true, shiftKey: true });
+    await fromPage({ pal: "key", key: "k", code: "KeyK", metaKey: true, ctrlKey: true });
+    const titles = [...el.querySelectorAll(".pal-actions .pal-row__title, .pal-actions [role=option]")].map((n) => n.textContent ?? "");
+    expect(titles.join(" ")).toContain("Enlarge panel");
+    expect(titles.join(" ")).toContain("Normal panel size");
+    await act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); });
+    await flush();
+    await keys("f");
+    await keys("f");
+    await keys("j");
+    expect(asked.slice(2)).toEqual([["snake/snake", "big"], ["snake/snake", "normal"], ["snake/snake", "corner"]]);
+    await fromPage({ pal: "key", key: "Escape", code: "Escape" });
+    expect(frame()).toBeNull();
+    expect(asked.at(-1)).toEqual([undefined, undefined]);
   });
 });

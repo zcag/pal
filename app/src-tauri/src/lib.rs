@@ -146,16 +146,15 @@ static PLACED: AtomicBool = AtomicBool::new(false);
 /// rule places.
 pub(crate) fn place(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
+    // A game's big or corner panel has its own place (compact.rs).
+    if compact::place(app) {
+        return;
+    }
     let position = settings::config(app).general.position;
     if position == Position::Last && PLACED.load(Ordering::Relaxed) {
         return;
     }
-    let monitor = app
-        .cursor_position()
-        .ok()
-        .and_then(|c| app.monitor_from_point(c.x, c.y).ok().flatten())
-        .or_else(|| w.current_monitor().ok().flatten());
-    let (Some(m), Ok(size)) = (monitor, w.outer_size()) else { return };
+    let (Some(m), Ok(size)) = (monitor(app, &w), w.outer_size()) else { return };
     let area = m.work_area();
     let x = area.position.x + (area.size.width as i32 - size.width as i32) / 2;
     let y = match position {
@@ -164,6 +163,14 @@ pub(crate) fn place(app: &AppHandle) {
     };
     let _ = w.set_position(PhysicalPosition::new(x, y));
     PLACED.store(true, Ordering::Relaxed);
+}
+
+/// The monitor the panel shows on: the one under the cursor, else its own.
+pub(crate) fn monitor(app: &AppHandle, w: &tauri::WebviewWindow) -> Option<tauri::Monitor> {
+    app.cursor_position()
+        .ok()
+        .and_then(|c| app.monitor_from_point(c.x, c.y).ok().flatten())
+        .or_else(|| w.current_monitor().ok().flatten())
 }
 
 fn show(app: &AppHandle) {
@@ -193,6 +200,7 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
         if hold.is_none() {
             windows::stamp_focused();
         }
+        compact::on_show(app, keep && palette.is_none());
         place(app);
         panel::show(app);
     } else if palette.is_none() {
@@ -367,7 +375,7 @@ pub fn run() {
             deeplink::link_copy,
             pick::pick_reply,
             dialog::dialog_detect,
-            compact::panel_enlarge,
+            compact::panel_mode,
             large::large_hide,
             large::large_show,
             keycast::keycast_state,

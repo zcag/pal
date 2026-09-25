@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { Launcher, pickLevel, type LauncherHandle, type PickRow } from "./Launcher";
+import { Launcher, pickLevel, type LauncherHandle, type PanelMode, type PickRow } from "./Launcher";
 import { mark, surface, useCore, usePrefs, useLiveViews } from "./core";
 import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
@@ -102,7 +102,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onEnlarge={(on) => invoke("panel_enlarge", { on }).catch(() => {})} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

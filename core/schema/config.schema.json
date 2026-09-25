@@ -941,6 +941,17 @@
           "description": "Global hotkeys that run one of the palette's items without showing\nthe panel, keyed by item id: `left_half = \"ctrl+alt+left\"` under\n`[palettes.window-management.item_hotkeys]`. The item's primary\naction runs as if picked.",
           "type": "object"
         },
+        "panel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PanelMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A game page's panel: `normal`, `big` (most of the screen, centred) or\n`corner` (smaller, in the bottom-right corner). Only a palette whose\nview is a game page looks at it."
+        },
         "settings": {
           "additionalProperties": true,
           "default": {},
@@ -960,6 +971,15 @@
         }
       },
       "type": "object"
+    },
+    "PanelMode": {
+      "description": "How the panel sits while a game page is on top (`[palettes.<id>] panel`):\nits usual size, grown to most of the screen, or smaller in a corner.\nSet from the page's actions (cmd+shift+f, cmd+shift+j) and kept, so the\ngame opens that way again (compact.rs in the app).",
+      "enum": [
+        "normal",
+        "big",
+        "corner"
+      ],
+      "type": "string"
     },
     "Position": {
       "description": "`top`: a fifth of the way down, where Spotlight and Raycast sit.\n`centre`: centred. `last`: wherever it was last shown.",

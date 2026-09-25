@@ -57,6 +57,8 @@ without a key are reached through ⌘K.
 | `cmd+shift+b` | Browse (palette): drill into the palette a result came from | the root |
 | `cmd+i` | Show details / Hide details | everywhere but compact mode |
 | `cmd+shift+m` | Compact panel / Full panel: flips `general.compact` ([Config](config.md#general)) | the root, a palette |
+| `cmd+shift+f` | Enlarge panel / Normal panel size: 90% of the screen, centred; remembered per game ([Config](config.md#palettesid)) | a game page |
+| `cmd+shift+j` | Panel in the corner / Normal panel size: 560 by 380 in the screen's bottom-right corner; remembered per game | a game page |
 | `cmd+shift+c` | Copy deep link: the `pal://` link for what is under the cursor ([Links](links.md)) | every row, palette, view and form |
 | | Reset ranking for this item: its picks and the queries that found it are forgotten | an indexed or palette row |
 | | Clear selection | while rows are marked |

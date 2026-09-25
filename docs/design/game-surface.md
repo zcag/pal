@@ -198,7 +198,13 @@ action, a combo its action, exactly as for any view.
 The body is about 720 by 390 CSS px in the panel and 560 wide in compact
 mode, and can change: a page lays out to its own viewport, with no page
 scroll, and draws at `devicePixelRatio`.
-**⌘⇧F** ("Enlarge panel") grows the panel to 90% of the screen each way
-while the level is on top, for a game played from further back; leaving
-the level or hiding the panel puts it back (compact.rs). A page sees only
-a bigger viewport, so one that caps its sizes should leave room for it.
+**⌘⇧F** ("Enlarge panel") grows the panel to 90% of the screen each way,
+centred, for a game played from further back; **⌘⇧J** ("Panel in the
+corner") shrinks it to 560 by 380 in the bottom-right corner of the
+screen. The same key again goes back to the usual size. Each game
+remembers its mode (`panel` under its `[palettes.<id>]`, [Config](../config.md))
+and opens in it again. Leaving the level puts the panel back to its usual
+size; hiding it does not, so the hotkey that brings the game back (pop
+to root keeping the level) shows it the size it was (compact.rs). A page
+sees only a bigger or smaller viewport, so one that caps its sizes should
+leave room for it.

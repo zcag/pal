@@ -1003,6 +1003,13 @@ pub fn settings_set(st: State<'_, Settings>, key: String, value: Value) -> Resul
     retrying(|| st.file.set_json(&key, value.clone())).map_err(|e| format!("{key}: {e}"))
 }
 
+/// One key set (`Some`) or removed (`None`) from Rust, as the page's
+/// `settings_set` and `settings_unset` do it.
+pub fn write(app: &AppHandle, key: &str, value: Option<Value>) -> Result<(), String> {
+    let st = app.state::<Settings>();
+    retrying(|| st.file.set_many([(key.to_string(), value.clone())])).map_err(|e| format!("{key}: {e}"))
+}
+
 #[tauri::command(async)]
 pub fn settings_unset(st: State<'_, Settings>, key: String) -> Result<(), String> {
     retrying(|| st.file.unset(&key)).map_err(|e| format!("{key}: {e}"))
