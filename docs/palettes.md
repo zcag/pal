@@ -64,6 +64,10 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Browse Folder](#files-files-files-browse-files-selection-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
 | [Finder Selection](#files-files-files-browse-files-selection-files-recent) | `files-selection` | input, normal | Open the file, browse a folder |
 | [Recent Files](#files-files-files-browse-files-selection-files-recent) | `files-recent` | live, primary | Open the file |
+| [Flashcards](#flashcards-flashcards-flashcard-packs-flashcard-add) | `flashcards` | view (surface), normal | Show the meaning, then Knew it |
+| [Flashcard Packs](#flashcards-flashcards-flashcard-packs-flashcard-add) | `flashcard-packs` | live, normal | Study the pack |
+| [Add Flashcard](#flashcards-flashcards-flashcard-packs-flashcard-add) | `flashcard-add` | input, normal | Add the card to My cards |
+| [Browse Anki Decks](#flashcards-flashcards-flashcard-packs-flashcard-add) | `flashcard-anki` | input, normal | Add the deck to Flashcards (added: study it) |
 | [Games](#games-games) | `games` | live, normal | Play the game |
 | [Generate](#generate-generate) | `generate` | input, normal | Copy the value (show the QR code on its row) |
 | [GIFs](#gifs-gifs-gifs-favourites) | `gifs` | indexed, grid, normal | Copy the GIF file |
@@ -2965,6 +2969,63 @@ participant's status; Raycast does it through the private
 read-only), a second `calendars` palette toggling visibility
 (an extension cannot write its own settings), reminders, an OAuth flow
 of pal's own (a Google client id would have to ship with it).
+
+## Flashcards (`flashcards`, `flashcard-packs`, `flashcard-add`)
+
+Spaced repetition for the minute a build takes (`extensions/flashcards/`,
+its README has the detail). Enter on **Flashcards** opens a view level
+whose body is the extension's own page (a `surface`) on the next card due
+across every pack in practice; each answer is saved as it is given, so
+Escape at any point loses nothing. The first open asks what to learn.
+
+- A card on a stack: Space flips it to the meaning and an example
+  sentence; `→` (or Space) Knew it throws it right, `←` Didn't know left,
+  or drag it; each button says when the card comes back (four buttons
+  with `buttons`: Barely and Too easy too, `1`–`4`). FSRS schedules
+  (ts-fsrs, desired retention 90% by default).
+- Sessions of `session` answers (10) with a bar along the top, then a
+  summary: the words missed, new and mastered as chips, the share of
+  everyday speech the known words cover and what the session added;
+  Enter keeps going, `d` drills the misses, `s` the stats page (streak and
+  best, heatmap, the week ahead, each pack).
+- A pack with `reverse` makes the back-to-front card of a word once the
+  word is learned, and it is typed: case, punctuation and one of several
+  meanings are fine; a missing accent, article or one slip is close. Tab
+  gives a letter; `a'` types á, `n~` ñ.
+- New cards in pack order (`new_per_day`, 15), one after every three
+  reviews; the two cards of a word never on the same day; the day runs to
+  4 am. A noun's article is coloured by gender.
+- `?` lists the keys; Tab says the word (a deck's recording, else the best
+  system voice installed); ⌘Z undoes, from the summary too; ⌘E writes your own meaning; ⌘K: suspend,
+  learn more, the refresher (the cards missed this week, lapsed three
+  times or fading, drilled without touching the schedule), mute, the
+  packs folder. While cards are due, a row in the root's Now section.
+
+**Flashcard Packs** lists the bundled packs (Spanish: Jeff Doozan's 6001
+most common words with example sentences, everyday phrases) and the files in
+the packs folder (an Anki deck as .apkg, with its recordings; TSV, CSV, an
+Anki plain-text export, or JSON), what is
+practised first, each with mastered, learning and new; Enter studies one
+alone, ⌘Enter adds it to practice or takes it out, ⌘R its refresher.
+**Add Flashcard** takes `front = back` into My cards. **Browse Anki
+Decks** searches AnkiWeb's shared decks as you type (nothing typed: the
+language being learned): cards, audio, pictures, how many liked it; the
+description and sample cards in the pane; Enter downloads the deck in the
+background into practice, ⌘Enter opens it on AnkiWeb. The first open's
+`b`, a row in Flashcard Packs and ⌘K lead there.
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `new_per_day` | number | `15` | New cards a day across the packs in practice. |
+| `session` | number | `10` | Answers a session, then the summary; 0 runs until nothing is due. |
+| `goal` | number | `20` | Answers a day that fill the ring and keep the streak. |
+| `retention` | `0.8`, `0.85`, `0.9`, `0.95` | `0.9` | Desired retention: how much of what comes back you should still know. |
+| `typing` | `reverse`, `always`, `never` | `reverse` | Which cards are typed. |
+| `speak` | `auto`, `key`, `off` | `key` | Say the word when it shows, only on Tab, or never. |
+| `voice` | text | empty | A system voice by name; empty picks one for the pack's language. |
+| `buttons` | `two`, `four` | `two` | Didn't know and Knew it, or Barely and Too easy too. |
+| `sounds` | bool | `true` | A soft tone per answer and for the goal. |
+| `suggest` | bool | `true` | The due row in the root's Now section. |
 
 ## Games (`games`)
 

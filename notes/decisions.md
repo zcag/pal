@@ -1935,3 +1935,66 @@ view node), which imports `game.ts` for every rule. What was decided:
   lib (Makefile, CI). `index.ts` casts the surface node and passes `onMessage` through a variable until the SDK types have both.
 - The gallery cannot render a surface, so the gallery fixture (`fixture.ts`, `shots/minesweeper.json`) is dropped; the store
   screenshots are the page itself at 720x450, 2x, taken in headless Chrome against the browser stub of `surface.js`.
+
+## Flashcards (2026-09-25)
+
+Spaced repetition as a bundled extension (`extensions/flashcards/`), built for the minute a build takes: Enter lands on the next
+due card, every answer is saved before the next card comes, Escape anywhere loses nothing. What was decided:
+
+- **A surface, though it is not a game.** `docs/design/game-surface.md` keeps the node for games; a study session is the same
+  shape (a flip, typed input with a live diff, one-key grades, small animations and tones) and a view tree would make it a menu.
+  The data side stays in the vocabulary: Flashcard Packs is a list with a detail pane, Add Flashcard an input palette.
+- **The page holds no state.** Every call (`open`, `answer`, `undo`, `more`, the refresher) answers the whole screen from the
+  extension, which owns the scheduling (srs.ts) and the file (store.ts). ts-fsrs cannot load in the page (no packages there), and
+  one owner means the root suggestion and the page never disagree.
+- **FSRS via ts-fsrs**, not a hand-rolled SM-2: it is what Anki schedules with, has no dependencies (21 KB bundled), and gives
+  previews for the buttons. Steps 1m/10m, relearning 10m, fuzz on, desired retention a setting (0.9).
+- **Progress in its own file** (`<data dir>/pal/flashcards/progress.json`), not `storage`: the 256 KB cap is below a few thousand
+  cards plus the review log, and the log (kept whole) is what an FSRS optimiser would need later.
+- **Recognition before production** (Refold, Clozemaster): a pack's reverse card comes once the word is learned, never on the
+  day its sibling was answered, and is typed; the check forgives accents, articles and one slip as "close" (Duolingo's line).
+- **The refresher never reschedules** (Anki's filtered decks default the same way): early practice teaches FSRS nothing.
+- **The daily new limit counts per session scope**, so studying one pack alone is not blocked by another pack's new cards.
+- **Coverage, not just counts**: a frequency pack carries each word's share of the language (`weight`), and the summary says
+  how much of everyday speech the known words cover. It is the number that makes the next ten words feel worth it.
+- **Data**: the word pack is Jeff Doozan's *6001 Spanish* (converted by `tools/spanish.ts` from its last build, pinned),
+  CC BY-SA 4.0 in its own file (NOTICES.md). A first version joined the raw ingredients itself (doozan/spanish_data:
+  frequencies, Wiktionary, Tatoeba); Cagdas asked for a curated deck instead, and 6001 Spanish is those same ingredients with
+  a person's curation over them (lemmas, phrases, exclusions, reviewed sentence lists, short glosses marked). No other
+  redistributable Spanish deck was found; the copyrighted ones (anything from Davies' Frequency Dictionary, Fluent Forever,
+  Refold, AnkiWeb's unlicensed top-N decks) are out, and AnkiWeb decks come in through `.apkg` import instead. The phrases
+  are written for the pack; ManyThings' Tatoeba pairs were tried for them and dropped (slang picks: "Mornin'!").
+- **No bar item.** One was built (the due count, hidden at none) and dropped on Cagdas's first try: in rotation there is almost
+  always something due, so it sat on the bar for good. The way back in is the row in the root's Now section, shown only
+  while cards are due, and off with `suggest`.
+- **Plain words over Anki's.** The first try was Again/Hard/Good/Easy under "Show answer", and it read as jargon. The card asks
+  "Do you know what it means?", the answer "Did you know it?", and the buttons are Didn't know and Knew it, each saying when
+  the card comes back; four buttons (Barely, Too easy) are a setting. The first dozen answers ever get a line of explanation,
+  and the first open explains the loop in three steps. Speech is on Tab by default: saying every card aloud was unwelcome.
+- **A card you throw** (the second design): a raised card on a stack of two ghosts that thin as the session runs out, a 3D
+  flip, and a grade that throws it off the side it names (→ Knew it, ← Didn't know), draggable with the pointer, with a
+  stamp. The arrow keys already meant those two answers; the motion shows it. Everything else on the page got quieter.
+- **Short sessions** (`session`, 10 answers) with a bar and a summary, because an open-ended queue never has a "done" and
+  the unit of use is the wait for a build. The summary carries the session's misses as chips and drills them (`d`), which
+  is the "look back on your bad ones" loop at the moment it matters most; coverage shows what the session added, counting a
+  word once its last answer was a pass (a learning card past step 0), not only once it graduates.
+- **Your own meaning** (⌘E) is kept per word in `progress.json` (`edits`), over the pack's: generated glosses are sometimes
+  wrong, and fixing one should not mean editing a bundled file.
+- **Any Anki deck is a pack** (`apkg.ts`): curated decks beat a generated one, and thousands exist. Both formats (the older
+  SQLite collection with `col.models`, and 2.1.50+'s zstd-compressed `anki21b` with `notetypes`/`fields` tables and a protobuf
+  media index); fields matched by name; the front's recording extracted beside the progress file and played on Tab over the
+  system voice. fflate unzips; Bun has SQLite and zstd.
+- **Browse AnkiWeb in pal** (`ankiweb.ts`, `flashcard-anki`): AnkiWeb has no public API, but its SvelteKit site talks protobuf
+  to `/svc/shared/*` with no account for reading: `list-decks?search=` (rows), `item-info?sharedId=` (description, sample notes,
+  a short-lived `download_key`) and `download-deck/<id>?t=<key>` (the .apkg), which is what the Anki app itself downloads.
+  The message layouts were read from the site's bundle (`makeMessageType` field names), decoded with a schema-less reader
+  (`pb.ts`, shared with apkg.ts's media index). Downloads run after the pick answers (a 132 MB deck took 33 s) and report
+  through `effects.run({ hud })`; AnkiWeb rate-limits heavy downloading (a 429 after three large decks in minutes), said as
+  such. Checked live: 1050 decks for "spanish" in 330 ms; "9000 Spanish sentences … with native audio" read as 9263 cards,
+  every one with its recording, in under a second. Field roles gained two rules from real decks: bookkeeping fields (ids,
+  counts, difficulty) are never a side, and the sides are matched before the example ("SpanishSentence" is a sentence
+  deck's front).
+- **The answer round trip is not the bottleneck**: 5 ms per call in the app's log (10 ms in a bench with a year of history,
+  21,900 reviews), so nothing is cached or prefetched; the wait was the throw animation, now 170 ms before the next card, and a
+  flip pressed mid-throw is queued rather than dropped.
+- **Icons in the page are inline SVG**: the panel's Nerd Font is not on the frame's origin.

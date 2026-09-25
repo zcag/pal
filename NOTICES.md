@@ -25,6 +25,29 @@ Vleugels (https://www.kenney.nl), shipped in the app bundle's
 `Resources/surface-kit` with its license (`LICENSE-kenney.txt`). CC0 1.0
 (public domain dedication); credit is not required and is given here.
 
+## Flashcards' Spanish word pack
+
+`extensions/flashcards/packs/spanish-words.json`, bundled into the
+Flashcards extension, is CC BY-SA 4.0, not MIT: converted from 6001
+Spanish by Jeff Doozan (https://github.com/doozan/6001_Spanish), itself
+made of hermitdave/FrequencyWords (OpenSubtitles 2018, CC BY-SA 4.0),
+English Wiktionary's meanings (its contributors, CC BY-SA 4.0) and
+sentences from Tatoeba (https://tatoeba.org, CC BY 2.0 FR; contributors
+credited in 6001 Spanish's CREDITS). Detail:
+`extensions/flashcards/packs/LICENSE.md`.
+
+## fflate
+
+Flashcards reads Anki decks (.apkg, a zip) with fflate
+(https://github.com/101arrowz/fflate), bundled into the extension. MIT,
+Copyright (c) 2026 Arjun Barrett.
+
+## ts-fsrs
+
+Flashcards schedules with ts-fsrs
+(https://github.com/open-spaced-repetition/ts-fsrs), bundled into the
+extension. MIT, Copyright (c) 2026 Open Spaced Repetition.
+
 ## mediaremote-adapter
 
 The system-wide Now Playing source on macOS is

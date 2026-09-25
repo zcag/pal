@@ -1,0 +1,9 @@
+{
+  "name": "pal-ext-flashcards",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "ts-fsrs": "^5.4.2"
+  }
+}

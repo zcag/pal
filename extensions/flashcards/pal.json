@@ -1,0 +1,320 @@
+{
+  "name": "flashcards",
+  "title": "Flashcards",
+  "description": "Spaced repetition for the minute a build takes: a card on a stack, flip it, throw it right if you knew it and left if you did not. FSRS (Anki's scheduler) decides when each card comes back; every answer is saved as you give it. Starts with Spanish (Jeff Doozan's 6001 most common words, each with an example sentence, and everyday phrases), and takes any pack of your own as an Anki deck (.apkg) or a TSV, CSV or JSON file.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰘸",
+      "bg": "violet"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "learn",
+    "study",
+    "practice",
+    "cards",
+    "srs",
+    "anki",
+    "spanish",
+    "vocabulary"
+  ],
+  "store": {
+    "tagline": "Spaced-repetition flashcards: Spanish to start, any pack of your own",
+    "category": "productivity",
+    "features": [
+      "A card on a stack: space flips it, → Knew it throws it right and ← Didn't know left (or drag it), each saying when the card comes back",
+      "FSRS, the scheduler Anki uses, spaces what you know out to months; every answer is saved as you give it, so Escape at any point loses nothing",
+      "Sessions of ten with a bar along the top, then a summary: the words missed, new and mastered, and how much of everyday Spanish your words now cover",
+      "Drill a session's misses until each is right; a refresher for the cards you keep missing, without disturbing their schedule",
+      "Recognise a word first, then type it: checked kindly (an accent or the article missed counts, and shows where), Tab for a letter, a' for á",
+      "Articles coloured by gender, the word said aloud on Tab, an example sentence with the word marked, your own meaning with ⌘E",
+      "A daily goal ring and a streak; stats with your best streak, a heatmap, the week ahead and each pack's mastery",
+      "Browse AnkiWeb's shared decks from pal: search, see the rating, a preview of the cards and whether it has native audio, and add one with Enter",
+      "Your own packs: any Anki deck (.apkg, its recordings play on Tab), or a TSV, CSV or JSON file in the packs folder; Add Flashcard for one card at a time"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-card.png",
+        "caption": "A card turned over: the meaning, an example with the word marked, the article coloured by gender, and when each answer brings it back"
+      },
+      {
+        "file": "2-typed.png",
+        "caption": "The other way, typed: an accent left off counts, and shows where"
+      },
+      {
+        "file": "3-done.png",
+        "caption": "A session done: the words missed and new, and how much of everyday Spanish your words now cover"
+      },
+      {
+        "file": "4-stats.png",
+        "caption": "Stats: the streak, the heatmap, the week ahead, each pack"
+      }
+    ]
+  },
+  "settings": [
+    {
+      "kind": "number",
+      "id": "new_per_day",
+      "label": "New cards a day",
+      "description": "How many cards you have never seen come in each day, across every pack you practise. Fewer new cards means fewer reviews later; Learn more on the day's summary adds ten for today.",
+      "default": 15,
+      "min": 0,
+      "max": 200,
+      "step": 5
+    },
+    {
+      "kind": "number",
+      "id": "session",
+      "label": "Cards per session",
+      "description": "A session is this many answers, then a short summary with Keep going: a size that fits the wait for a build. 0 runs until nothing is due.",
+      "default": 10,
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "unit": "cards"
+    },
+    {
+      "kind": "number",
+      "id": "goal",
+      "label": "Daily goal",
+      "description": "Answers a day that fill the ring and keep the streak going.",
+      "default": 20,
+      "min": 1,
+      "max": 500,
+      "step": 5,
+      "unit": "cards"
+    },
+    {
+      "kind": "select",
+      "id": "retention",
+      "label": "Remember",
+      "description": "How much of what is due you should still remember when it comes back. Higher means more reviews: 90% is what FSRS recommends.",
+      "options": [
+        {
+          "id": "0.8",
+          "title": "80%: fewer reviews"
+        },
+        {
+          "id": "0.85",
+          "title": "85%"
+        },
+        {
+          "id": "0.9",
+          "title": "90% (recommended)"
+        },
+        {
+          "id": "0.95",
+          "title": "95%: many more reviews"
+        }
+      ],
+      "default": "0.9"
+    },
+    {
+      "kind": "select",
+      "id": "typing",
+      "label": "Type the answer",
+      "description": "Reverse cards (English to Spanish) ask you to type the answer, which is how a word moves from recognised to produced. Always types on every card; Never flips every card.",
+      "options": [
+        {
+          "id": "reverse",
+          "title": "On reverse cards"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        },
+        {
+          "id": "never",
+          "title": "Never: flip every card"
+        }
+      ],
+      "default": "reverse"
+    },
+    {
+      "kind": "select",
+      "id": "speak",
+      "label": "Say it aloud",
+      "description": "The word in the language you are learning, with the system's voice for it (macOS: say; Linux: spd-say or espeak-ng). Tab says it again whatever this is.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "When it shows"
+        },
+        {
+          "id": "key",
+          "title": "Only on Tab"
+        },
+        {
+          "id": "off",
+          "title": "Off"
+        }
+      ],
+      "default": "key"
+    },
+    {
+      "kind": "text",
+      "id": "voice",
+      "label": "Voice",
+      "description": "A voice by name (macOS: Mónica, Paulina; `say -v ?` lists them). Empty picks the system's first voice for the pack's language.",
+      "default": "",
+      "placeholder": "Automatic"
+    },
+    {
+      "kind": "select",
+      "id": "buttons",
+      "label": "Buttons",
+      "description": "Two: Didn't know and Knew it, which is all the scheduler needs. Four adds Barely and Too easy, as Anki's Hard and Easy.",
+      "options": [
+        {
+          "id": "two",
+          "title": "Didn't know, Knew it"
+        },
+        {
+          "id": "four",
+          "title": "Didn't know, Barely, Knew it, Too easy"
+        }
+      ],
+      "default": "two"
+    },
+    {
+      "kind": "boolean",
+      "id": "sounds",
+      "label": "Sounds",
+      "text": "A soft tone for each answer and for the goal",
+      "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "suggest",
+      "label": "On opening pal",
+      "text": "A row for the cards due at the top of the empty panel",
+      "default": true
+    }
+  ],
+  "palettes": {
+    "flashcards": {
+      "kind": "view",
+      "title": "Flashcards",
+      "description": "Study what is due across the packs you practise; the day's summary when you are done.",
+      "keywords": [
+        "flashcards",
+        "study",
+        "review",
+        "learn",
+        "practice"
+      ],
+      "keys": [
+        {
+          "keys": "?",
+          "title": "Every key, for where you are"
+        },
+        {
+          "keys": "space",
+          "title": "Flip the card; flipped, Knew it (or what the typed answer earned)"
+        },
+        {
+          "keys": "right",
+          "title": "Knew it: the card flies right, back later"
+        },
+        {
+          "keys": "left",
+          "title": "Didn't know: the card flies left, back in a minute"
+        },
+        {
+          "keys": "enter",
+          "title": "On a typed card: check it (empty: show the answer)"
+        },
+        {
+          "keys": "tab",
+          "title": "Say it; on a typed card, the next letter (shift+tab: the example)"
+        },
+        {
+          "keys": "cmd+z",
+          "title": "Undo the last answer"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Write your own meaning for this card"
+        },
+        {
+          "keys": "s",
+          "title": "Stats: streak, heatmap, the week ahead, each pack"
+        },
+        {
+          "keys": "d",
+          "title": "On the summary: drill this session's misses"
+        },
+        {
+          "keys": "1",
+          "title": "With four buttons: Didn't know, then 2 Barely, 3 Knew it, 4 Too easy"
+        }
+      ]
+    },
+    "flashcard-packs": {
+      "kind": "live",
+      "title": "Flashcard Packs",
+      "description": "Every pack with how much of it you have mastered: study one, add it to practice or take it out, drill its weak cards.",
+      "keywords": [
+        "flashcards",
+        "decks",
+        "packs"
+      ],
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Study this pack"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Add it to practice, or stop practising it (progress is kept)"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "The refresher for this pack"
+        }
+      ]
+    },
+    "flashcard-add": {
+      "kind": "input",
+      "title": "Add Flashcard",
+      "description": "Type front = back (gato = cat): the card goes into My cards, practised with the rest.",
+      "keywords": [
+        "flashcard",
+        "card",
+        "new"
+      ]
+    },
+    "flashcard-anki": {
+      "kind": "input",
+      "title": "Browse Anki Decks",
+      "description": "Search AnkiWeb's shared decks: rating, cards, audio and pictures on each row, the description and sample cards beside it; Enter downloads the deck into your practice.",
+      "keywords": [
+        "anki",
+        "ankiweb",
+        "decks",
+        "flashcards"
+      ],
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Add to Flashcards (downloads it, then it joins your practice); added: study it"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open the deck's page on AnkiWeb"
+        }
+      ]
+    }
+  }
+}

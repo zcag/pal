@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flashcards</title>
+  <script src="/__pal/surface.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./main.ts"></script>
+</head>
+<body>
+  <header id="top">
+    <span id="streak" title="Days in a row the daily goal was met"><span data-icon="flame"></span><b></b></span>
+    <div id="progress" title="This session"><div class="track"><i></i></div><span class="count"></span></div>
+    <span id="goal" title="Today's goal">
+      <svg viewBox="0 0 36 36" aria-hidden="true"><circle class="track" cx="18" cy="18" r="15"/><circle class="fill" cx="18" cy="18" r="15"/></svg>
+      <b></b>
+    </span>
+  </header>
+
+  <main id="stage">
+    <section id="study" class="view">
+      <div id="deck">
+        <div class="ghost g2"></div>
+        <div class="ghost g1"></div>
+        <div id="card">
+          <div class="flip">
+            <div class="face front">
+              <div class="tag" id="kind"></div>
+              <button class="say" id="say" type="button" tabindex="-1" title="Say it (tab)" data-icon="speaker"></button>
+              <div class="mid">
+                <div id="prompt" class="word"></div>
+                <div id="note" class="note"></div>
+                <div id="typing">
+                  <input id="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                  <div id="accents"></div>
+                </div>
+              </div>
+            </div>
+            <div class="face back">
+              <div class="tag" id="kind2"></div>
+              <button class="say" id="say2" type="button" tabindex="-1" title="Say it (tab)" data-icon="speaker"></button>
+              <div class="mid">
+                <div id="asked"></div>
+                <div id="typed"></div>
+                <div id="answer" class="word" spellcheck="false"></div>
+                <div id="example"><div class="es"></div><div class="en"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="stamp no">Didn't know</div>
+          <div class="stamp yes">Knew it</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="done" class="view">
+      <div class="burst" data-icon="check"></div>
+      <h1></h1>
+      <div id="facts"></div>
+      <div id="chips"></div>
+      <div id="coverage"><div class="line"></div><div class="bar"><i class="was"></i><i class="now"></i></div></div>
+    </section>
+
+    <section id="welcome" class="view">
+      <h1>What do you want to learn?</h1>
+      <ol class="how">
+        <li><b>See a word</b><span>and think what it means</span></li>
+        <li><b>Flip the card</b><span>and say if you knew it</span></li>
+        <li><b>It comes back</b><span>soon if you missed it, days later if you knew it</span></li>
+      </ol>
+      <div id="packs"></div>
+      <div class="own">Or <a id="browse" href="#">find a deck on AnkiWeb</a> <kbd>b</kbd>: thousands, many with native audio. Your own go in the <a id="folder" href="#">packs folder</a>.</div>
+    </section>
+
+    <section id="stats" class="view">
+      <div class="figures"></div>
+      <div class="two">
+        <div><div class="cap">Last 16 weeks</div><div id="heat"></div></div>
+        <div><div class="cap">Coming up</div><div id="forecast"></div></div>
+      </div>
+      <div id="packbars"></div>
+    </section>
+  </main>
+
+  <footer id="foot"></footer>
+  <div id="fx" aria-hidden="true"></div>
+</body>
+</html>
