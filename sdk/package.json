@@ -1,6 +1,6 @@
 {
   "name": "@zcag/pal",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "The extension API of pal, a keyboard launcher: the types an extension implements and the calls it makes.",
   "license": "MIT",
   "author": "Cagdas Salur",

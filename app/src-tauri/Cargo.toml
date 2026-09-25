@@ -1,6 +1,6 @@
 [package]
 name = "pal"
-version = "0.4.4"
+version = "0.5.0"
 description = "A launcher: one search box over apps, bookmarks, clipboard, emoji, a calculator and your own extensions"
 edition = "2021"
 publish = false
