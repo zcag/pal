@@ -1,7 +1,7 @@
 {
   "name": "games",
   "title": "Games",
-  "description": "Every game pal has in one list: the bundled ones (2048, Blackjack, Crossword, Minesweeper, Snake II, Solitaire, Typing, Wordle, Yahtzee) and any installed from the store. Enter opens the game.",
+  "description": "Every game pal has in one list: the bundled ones (2048, Blackjack, Crossword, Minesweeper, Snake II, Solitaire, Sudoku, Typing, Wordle, Yahtzee) and any installed from the store. Enter opens the game.",
   "version": "0.1.0",
   "icon": {
     "tile": {

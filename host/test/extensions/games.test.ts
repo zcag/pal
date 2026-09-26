@@ -9,7 +9,7 @@ import { Host } from "../harness.ts";
 
 const ROOT = join(import.meta.dir, "../../../extensions");
 const ext = (name: string, loaded = true) => ({ name, version: "0.1.0", root: ROOT, loaded, store: false, bundled: true });
-const INSTALLED = [...["games", "snake", "solitaire", "blackjack", "minesweeper", "yahtzee", "crossword", "2048", "gifs", "calc"].map((n) => ext(n)), ext("wordle", false), { ...ext("gone"), root: "/nowhere" }];
+const INSTALLED = [...["games", "snake", "solitaire", "blackjack", "minesweeper", "yahtzee", "crossword", "sudoku", "2048", "gifs", "calc"].map((n) => ext(n)), ext("wordle", false), { ...ext("gone"), root: "/nowhere" }];
 
 let host: Host;
 let installed = INSTALLED;
@@ -18,7 +18,7 @@ afterAll(() => host?.kill());
 
 test("one row per game: loaded, shelved under Fun, a view palette; by title, with the game's tile and tagline", async () => {
   const rows = await host.list("games", "games");
-  expect(rows.map((r) => r.id)).toEqual(["2048/2048", "blackjack/blackjack", "crossword/crossword", "minesweeper/minesweeper", "snake/snake", "solitaire/solitaire", "yahtzee/yahtzee"]);
+  expect(rows.map((r) => r.id)).toEqual(["2048/2048", "blackjack/blackjack", "crossword/crossword", "minesweeper/minesweeper", "snake/snake", "solitaire/solitaire", "sudoku/sudoku", "yahtzee/yahtzee"]);
   const snake = rows.find((r) => r.id === "snake/snake")!;
   expect(snake.name).toBe("Snake II");
   expect(snake.subtitle).toContain("3310");
