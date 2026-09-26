@@ -197,14 +197,15 @@ async function inboxRows(ctx?: Ctx): Promise<Item[]> {
 let searchSeq = 0;
 let lastSearch: Item[] = [];
 
-async function searchRows(query = ""): Promise<Item[]> {
+async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const q = query.trim();
   if (q.length < 2) return [hint("search", "Search Mail", "Text, from:name, subject:word, has:attachment, newer_than:7d, label:name", { icon: ICON.search })];
   // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
-  const found = await search(q);
+  // The hits show as their headers arrive, each with its initial; the answer brings the Gravatars.
+  const found = await search(q, (have) => { if (seq === searchSeq) ctx?.partial?.(have.map((m) => mailRow(m, sectionOf(m.labelIds, labelNames())))); });
   const names = labelNames();
   lastSearch = found.length ? found.map((m) => mailRow(m, sectionOf(m.labelIds, names))) : [hint("empty", "No messages found", `Nothing matches "${q}"`, { icon: ICON.search })];
   return lastSearch;
@@ -452,7 +453,7 @@ export default {
       title: "Search Mail ({instance})",
       input: true,
       placeholder: "Text, from:name, subject:word, has:attachment, newer_than:7d",
-      list: (query) => guard(() => searchRows(query)),
+      list: (query, ctx) => guard(() => searchRows(query, ctx)),
       pick: pickRow,
       detail: paneOf,
     },

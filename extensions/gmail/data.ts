@@ -40,6 +40,8 @@ export type Inbox = { at: number; unread: Mail[]; recent: Mail[]; extra: { label
 const LABELS_TTL_MS = 3_600_000;
 /** Opened messages kept whole. */
 const OPENED_MAX = 20;
+/** A search's first early rows: about what the panel shows without scrolling. */
+const EARLY_ROWS = 10;
 
 const mails = new Map<string, Mail>();
 const opened = new Map<string, Opened>();
@@ -71,11 +73,22 @@ export function toMail(m: Message): Mail {
 /** Gmail's snippet is HTML-escaped text; a newsletter's preheader pads it with invisible characters (`oneLine` drops them). */
 const decodeSnippet = (s: string) => oneLine(s.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[e]!));
 
-/** The `Mail` for each ref, the cache first, `messages.get` (metadata) for the rest, eight at a time. */
-export async function fetchMails(refs: api.Ref[]): Promise<Mail[]> {
-  const missing = refs.filter((r) => !mails.has(r.id));
-  const got = await api.pool(missing, (r) => api.metadata(r.id));
-  for (const m of got) mails.set(m.id, toMail(m));
+/**
+ * The `Mail` for each ref, the cache first, `messages.get` (metadata) for
+ * the rest, eight at a time. `early` hears the rows fetched so far in the
+ * refs' order (up to the first gap) twice at most: once a screenful is in,
+ * and once all are, so a caller can show them before their avatars.
+ */
+export async function fetchMails(refs: api.Ref[], early?: (have: Mail[]) => void): Promise<Mail[]> {
+  let next = Math.min(EARLY_ROWS, refs.length), shown = 0;
+  const report = () => {
+    if (!early || !refs.length) return;
+    const have: Mail[] = [];
+    for (const r of refs) { const m = mails.get(r.id); if (!m) break; have.push(m); }
+    if (have.length >= next && have.length > shown) { shown = have.length; next = refs.length; early(have); }
+  };
+  report();
+  await api.pool(refs.filter((r) => !mails.has(r.id)), async (r) => { const m = toMail(await api.metadata(r.id)); mails.set(m.id, m); report(); });
   return refs.flatMap((r) => mails.get(r.id) ?? []);
 }
 
@@ -180,9 +193,10 @@ export async function inbox(): Promise<Inbox> {
 
 // ---- search -------------------------------------------------------------------------------
 
-export async function search(q: string): Promise<Mail[]> {
+/** The hits, newest first, with their avatars; `early` hears them before the avatars are probed (see `fetchMails`). */
+export async function search(q: string, early?: (have: Mail[]) => void): Promise<Mail[]> {
   const [refs] = await Promise.all([api.list({ q }), labels().catch(() => [])]);
-  return withAvatars(await fetchMails(refs));
+  return withAvatars(await fetchMails(refs, early));
 }
 
 // ---- the opened message -------------------------------------------------------------------

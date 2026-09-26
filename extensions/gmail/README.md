@@ -11,7 +11,8 @@ palettes and a bar item over the Gmail API, one instance per account:
   attachments.
 - **Search Mail** (`gmail-search`): Gmail's own search as you type
   (`from:`, `to:`, `subject:`, `has:attachment`, `newer_than:7d`,
-  `label:`), the hits sectioned by label.
+  `label:`), the hits sectioned by label. The hits show as soon as
+  their headers are in, with the sender's initial; the Gravatars follow.
 - **Labels** (`gmail-labels`): yours, then Gmail's and the categories;
   Enter opens the label in Gmail, cmd+Enter searches it here.
 - **Compose** (`gmail-compose`) and **Drafts** (`gmail-drafts`): only for

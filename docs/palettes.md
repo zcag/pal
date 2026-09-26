@@ -4196,7 +4196,8 @@ box in a list palette, so they are `⌘E` and `⌘S`.
 `subject:`, `has:attachment`, `newer_than:7d`, `label:`), 50 at most, a
 keystroke waiting 300 ms for the next; the rows as Inbox's, sectioned by
 the first user label, else Inbox / Sent / Drafts / Spam / Trash /
-Archive.
+Archive. The hits show as their headers arrive (a screenful, then all),
+each with its initial, and the Gravatars join when the probes answer.
 
 **Labels.** `labels.list` once an hour, persisted in storage so a restart
 lists with no call; yours by name, then Inbox, Starred, Important, Sent,

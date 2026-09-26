@@ -303,6 +303,22 @@ describe("gmail", () => {
     expect(bodyText(mock.sent[0].raw)).toBe("Looking now.\n\nCagdas\n\nOn Wed, 16 Sep 2026 09:12:00 +0000, Mara Lind <mara@example.com> wrote:\n> Can you look at the parser before standup? The tests are green now & the diff is small.\n> \n> [quoted text folded]");
   });
 
+  test("search streams: the hits show with their initials before the Gravatar probe, the answer the same rows with it; a cached hit shows at once", async () => {
+    // Before the plain search test, so nothing has probed or fetched the sent message yet.
+    mock.known.add("someone@gmail.com");
+    try {
+      const r = await host.listStream(P, "search", "in:sent");
+      expect(r.partials).toHaveLength(1);
+      expect(r.partials[0].map((i) => [i.id, i.name, i.section])).toEqual(r.items.map((i) => [i.id, i.name, i.section]));
+      expect(r.partials[0][0].icon).toEqual(initialIcon("someone@gmail.com", "someone@gmail.com"));
+      expect(r.items[0].icon).toEqual({ image: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+\/[0-9a-f]{32}\?s=64&d=404$/) });
+    } finally { mock.known.delete("someone@gmail.com"); }
+    // The inbox fetched these already: the first partial is the whole answer, avatars and all.
+    const cached = await host.listStream(P, "search", "from:acme");
+    expect(cached.partials[0]).toEqual(cached.items);
+    expect((await host.listStream(P, "search", "zzzz")).partials).toEqual([]);
+  });
+
   test("search: a short query is the hint, Gmail's syntax goes through, hits sectioned by label, nothing found", async () => {
     expect((await list(P, "search", "a"))[0]).toMatchObject({ id: "hint:search", name: "Search Mail" });
     const rows = await list(P, "search", "from:acme");
