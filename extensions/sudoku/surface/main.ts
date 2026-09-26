@@ -52,6 +52,8 @@ let pick = 0;
 /** The digit last typed or clicked, where digit first starts. */
 let lastDigit = 0;
 let undos: Play[] = [], redos: Play[] = [];
+/** The mistakes the header shows; -1 before the first draw of a puzzle, so opening one with mistakes does not shake. */
+let shownSlips = -1;
 let check: Check = "conflicts";
 let clockOn = true;
 let paused = false, hidden = false;
@@ -211,7 +213,14 @@ function drawPad(counts: number[], clash: Set<number>, shown: number[]) {
   }
   for (const [t, on] of [["notes", notesMode], ["auto", autoOn], ["pick", !!pick]] as const) $(`[data-tool=${t}]`).classList.toggle("on", on);
   $("[data-tool=undo]").classList.toggle("off", !undos.length);
-  $("#slips").textContent = check === "mistakes" && st.mistakes ? `${st.mistakes} ${st.mistakes === 1 ? "mistake" : "mistakes"}` : "";
+  const slips = check === "mistakes" ? st.mistakes : 0, slipsEl = $("#slips");
+  if (slips !== shownSlips) {
+    slipsEl.textContent = slips ? `${slips} ${slips === 1 ? "mistake" : "mistakes"}` : "";
+    slipsEl.hidden = !slips;
+    // A new mistake shakes the pill, so it is noticed while the eye is on the board.
+    if (slips > shownSlips && shownSlips >= 0) replay(slipsEl, "bump");
+    shownSlips = slips;
+  }
 }
 
 /** Each key: the digit, a corner that writes it as a note, the bar of how many are down, a check for when all nine are. */
@@ -296,14 +305,14 @@ function input(d: number, how: "type" | "place" | "note") {
 
 /** The first cell two games differ in. */
 const changedCell = (a: Play, b: Play) => a.v.findIndex((d, i) => d !== b.v[i] || a.n[i] !== b.n[i] || a.x[i] !== b.x[i]);
-/** Back (undo) or forward (redo) one move: the board, the marks and the cells turned into notes, the clock and the counts left as they are. */
+/** Back (undo) or forward (redo) one move: the board, the marks and the cells turned into notes, and the mistake it made (an undone mistake is taken back); the clock and the hints left as they are. */
 function travel(from: Play[], to: Play[]) {
   const prev = from.pop();
   if (!prev || st.done) return;
   to.push(st);
   const cell = changedCell(st, prev);
   if (cell >= 0) at = cell;
-  settle(st, { ...st, v: prev.v, n: prev.n, x: prev.x, j: prev.j }, at);
+  settle(st, { ...st, v: prev.v, n: prev.n, x: prev.x, j: prev.j, mistakes: prev.mistakes }, at);
 }
 const undo = () => travel(undos, redos);
 const redo = () => travel(redos, undos);
@@ -802,6 +811,7 @@ async function openPuzzle(msg: { op: "open" | "new"; id?: string; date?: string;
 
 function load(o: Opened) {
   opened = o;
+  shownSlips = -1;
   givens = fromText(o.givens);
   solution = solve(givens) ?? givens;
   since = undefined;

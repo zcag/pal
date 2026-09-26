@@ -242,7 +242,15 @@ body.paused #time { visibility: hidden; }
 #head { grid-area: head; display: flex; align-items: center; gap: 8px; min-width: 0; }
 #who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
 #when { font-size: calc(12px * var(--ui)); color: var(--pal-fg-muted, #5c5c66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#slips { font-size: 11px; font-weight: 600; color: var(--bad); white-space: nowrap; }
+#slips {
+  display: inline-flex; align-items: center; gap: calc(5px * var(--ui)); height: calc(22px * var(--ui)); padding: 0 calc(9px * var(--ui)) 0 calc(7px * var(--ui)); border-radius: 999px;
+  font-size: calc(12px * var(--ui)); font-weight: 700; color: var(--bad); background: var(--bad-bg); white-space: nowrap;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bad) 30%, transparent);
+}
+#slips[hidden] { display: none; }
+#slips::before { content: "!"; display: grid; place-items: center; width: calc(14px * var(--ui)); height: calc(14px * var(--ui)); border-radius: 50%; background: var(--bad); color: var(--pal-bg-elevated, #fff); font-size: calc(10px * var(--ui)); font-weight: 800; }
+#slips.bump { animation: bump 420ms var(--spring); }
+@keyframes bump { 0% { transform: scale(1); } 20% { transform: scale(1.18) rotate(-4deg); } 40% { transform: scale(1.1) rotate(4deg); } 60% { transform: scale(1.05) rotate(-2deg); } 100% { transform: none; } }
 #clock {
   display: flex; align-items: center; gap: 5px; height: calc(26px * var(--ui)); padding: 0 6px 0 8px; margin-right: -6px; border-radius: 8px;
   font: 600 calc(14px * var(--ui)) / 1 var(--pal-font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; transition: background 120ms;

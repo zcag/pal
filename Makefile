@@ -22,7 +22,11 @@ test:
 # the branch and the tag, which starts release.yml (it publishes), and
 # creates the draft release with its notes (app/scripts/release-notes.sh):
 # the workflow's token was refused creating one for v0.4.4 (403) while
-# uploading to one that exists works, so the workflow only uploads. DRY_RUN=1 prints every
+# uploading to one that exists works, so the workflow only uploads. Then it
+# syncs pal.cagdas.io (`pal-site sync` on hermes) so /changelog carries the
+# new section at once: the landing's version comes from the releases API, the
+# changelog from the site's hourly repo sync, and the two disagreed for an
+# hour after v0.7.0. DRY_RUN=1 prints every
 # step (`+ ...`) and runs none. Refuses a dirty tree (the commit would sweep
 # it up) and a tag that exists here or on origin. docs/releasing.md has the rest.
 .PHONY: release
@@ -43,6 +47,7 @@ release:
 	run git tag -a "$$tag" -m "$$tag"; \
 	run git push origin HEAD "$$tag"; \
 	run gh release create "$$tag" --draft --verify-tag --title "$$tag" --notes "$$(app/scripts/release-notes.sh "$$tag" 2>/dev/null || true)"; \
+	run ssh -o ConnectTimeout=10 hermes /usr/local/bin/pal-site sync --data-dir /home/cagdas/.local/share/pal-site --ref main || echo "pal.cagdas.io not synced (its hourly sync picks the changelog up)"; \
 	echo "$$tag pushed: https://github.com/zcag/pal/actions/workflows/release.yml (published as the latest release once every bundle is on it)"
 
 # Builds the macOS app and installs it to /Applications, signed with the
