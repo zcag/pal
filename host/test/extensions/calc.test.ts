@@ -12,13 +12,21 @@ const BASE = { home_currency: "TRY", vars: VARS };
 const seed = (date: string, fetched: number) => stored.set("calc\0rates", { base: "EUR", date, fetched, rates: RATES });
 
 let host: Host;
+const env = { TZ: process.env.TZ, PAL_NOW: process.env.PAL_NOW };
 beforeAll(async () => {
-  process.env.TZ = "UTC"; // bun test runs in UTC; the host it spawns must agree for the date expectations below
+  // The clock is pinned: Wednesday 2026-09-16 10:30 in Istanbul (the SDK's clock.ts reads PAL_NOW, local to TZ), so every date below is a literal.
+  process.env.TZ = "Europe/Istanbul";
+  process.env.PAL_NOW = "2026-09-16T10:30:00";
   process.env.PAL_CALC_OFFLINE = "1";
   seed("2026-09-15", Date.now());
   host = await Host.bundled({ settings: { calc: { settings: BASE } } });
 });
-afterAll(() => { host.kill(); delete process.env.PAL_CALC_OFFLINE; stored.delete("calc\0rates"); });
+afterAll(() => {
+  host.kill();
+  delete process.env.PAL_CALC_OFFLINE;
+  for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+  stored.delete("calc\0rates");
+});
 
 const calc = (q: string) => host.list("calc", "calc", q);
 const first = async (q: string) => (await calc(q))[0]?.name;
@@ -29,9 +37,6 @@ const ACTIONS = [
   { id: "copy_both", title: "Copy expression = result", shortcut: "cmd+shift+e" },
 ];
 const texts = (r: any) => (r.accessories ?? []).map((a: any) => a.text);
-const pad = (n: number) => String(n).padStart(2, "0");
-const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const plusDays = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
 
 describe("calc", () => {
   test("meta: input palette with a placeholder", () => {
@@ -212,64 +217,149 @@ describe("currency", () => {
   });
 });
 
-describe("dates and time", () => {
+describe("dates and time (PAL_NOW: Wednesday 2026-09-16 10:30 in Europe/Istanbul)", () => {
+  const rows = async (q: string) => (await calc(q)).map((r: any) => [r.name, r.subtitle, texts(r)]);
+  const names = async (q: string) => (await calc(q)).map((r) => r.name);
+
   test("now, today, arithmetic, relative phrasings; an ISO row to copy", async () => {
-    const now = await calc("now");
-    expect(now.map((r) => r.id)).toEqual(["result", "iso", "unix"]);
-    expect(now[1].name).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
-    expect(Number(now[2].name)).toBeCloseTo(Date.now() / 1000, -1);
-    const today = await calc("today");
-    expect(today[0].subtitle).toBe("today");
-    expect(texts(today[0])).toEqual(["today"]);
-    expect(today[1]).toMatchObject({ id: "iso", name: isoDate(plusDays(0)), subtitle: "ISO 8601" });
-    const plus3 = await calc("today + 3 days");
-    expect(plus3[0].name).toBe(new Intl.DateTimeFormat("en", { dateStyle: "full" }).format(plusDays(3)));
-    expect(texts(plus3[0])).toEqual(["in 3 days"]);
-    expect(plus3[1].name).toBe(isoDate(plusDays(3)));
-    expect((await calc("3 weeks from now"))[1].name).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(texts((await calc("3 weeks from now"))[0])).toEqual(["in 3 weeks"]);
-    expect((await calc("in 3 weeks"))[1].name).toBe(isoDate(plusDays(21)));
-    expect((await calc("2 days ago"))[1].name).toBe(isoDate(plusDays(-2)));
-    expect((await calc("tomorrow"))[1].name).toBe(isoDate(plusDays(1)));
+    expect(await rows("now")).toEqual([
+      ["10:30", "now in Europe/Istanbul", ["Wednesday, September 16, 2026"]],
+      ["2026-09-16T10:30:00+03:00", "ISO 8601", []],
+      ["1789543800", "unix time", []],
+    ]);
+    expect(await rows("today")).toEqual([["Wednesday, September 16, 2026", "today", ["today"]], ["2026-09-16", "ISO 8601", []]]);
+    expect((await rows("today + 3 days"))[0]).toEqual(["Saturday, September 19, 2026", "today + 3 days", ["in 3 days"]]);
+    expect(await names("2026-10-14 + 45 days")).toEqual(["Saturday, November 28, 2026", "2026-11-28"]);
+    expect(await names("today + 3 weeks")).toEqual(["Wednesday, October 7, 2026", "2026-10-07"]);
+    expect(await rows("3 weeks from now")).toEqual([
+      ["Wednesday, October 7, 2026 at 10:30", "3 weeks from now", ["in 3 weeks"]],
+      ["2026-10-07T10:30:00+03:00", "ISO 8601", []],
+      ["1791358200", "unix time", []],
+    ]);
+    expect((await calc("now + 2 hours"))[0].name).toBe("Wednesday, September 16, 2026 at 12:30");
+    expect((await calc("in 90 days"))[1].name).toBe("2026-12-15");
+    expect((await calc("2 days ago"))[1].name).toBe("2026-09-14");
+    expect((await calc("tomorrow"))[1].name).toBe("2026-09-17");
     expect((await calc("25 dec 2026"))[1].name).toBe("2026-12-25");
     expect((await calc("dec 25, 2026"))[0].name).toBe("Friday, December 25, 2026");
-    expect((await calc("2026-02-30"))).toEqual([]);
+    expect(await calc("2026-02-30")).toEqual([]);
   });
 
-  test("counts and differences between dates", async () => {
-    const until = (await calc("days until 2026-12-25"))[0];
-    const days = Math.round((Date.UTC(2026, 11, 25) - Date.UTC(plusDays(0).getFullYear(), plusDays(0).getMonth(), plusDays(0).getDate())) / 86400e3);
-    expect(until.name).toBe(`${days} days`);
-    expect(until.subtitle).toBe("days until Friday, December 25, 2026");
+  test("weekdays: the coming one, next (after today), last (before today), this; next week and month; Turkish names", async () => {
+    expect(await rows("next friday")).toEqual([["Friday, September 18, 2026", "next friday", ["in 2 days"]], ["2026-09-18", "ISO 8601", []]]);
+    expect((await calc("friday"))[1].name).toBe("2026-09-18");
+    expect((await calc("wednesday"))[1].name).toBe("2026-09-16"); // today is one
+    expect((await calc("next wednesday"))[1].name).toBe("2026-09-23");
+    expect((await calc("last wednesday"))[1].name).toBe("2026-09-09");
+    expect((await calc("last friday"))[1].name).toBe("2026-09-11");
+    expect((await calc("this mon"))[1].name).toBe("2026-09-21");
+    expect((await calc("next week"))[1].name).toBe("2026-09-23");
+    expect((await calc("next month"))[1].name).toBe("2026-10-16");
+    expect((await calc("gelecek cuma"))[1].name).toBe("2026-09-18");
+    expect((await calc("geçen salı"))[1].name).toBe("2026-09-15");
+    expect((await calc("next friday + 1 week"))[1].name).toBe("2026-09-25");
+  });
+
+  test("Turkish month names, with or without their letters, any case", async () => {
+    for (const q of ["25 aralık", "25 Aralık", "25 aralik", "25. aralık 2026"]) expect((await calc(q))[1].name).toBe("2026-12-25");
+    expect((await calc("3 şubat 2027"))[1].name).toBe("2027-02-03");
+    expect((await calc("1 mart"))[1].name).toBe("2026-03-01");
+    expect((await calc("days until 25 aralık"))[0].name).toBe("100 days");
+  });
+
+  test("counts and differences between dates; workdays", async () => {
+    expect(await rows("days until 25 dec")).toEqual([["100 days", "days until Friday, December 25, 2026", ["14 weeks 2 days", "3 months 9 days"]]]);
+    expect(await first("days until 2026-12-25")).toBe("100 days");
+    expect(await first("days since 2026-08-31")).toBe("16 days");
+    expect(await first("weeks until 25 dec")).toBe("14.3 weeks");
+    expect(await first("months since 2025-06-15")).toBe("15 months");
+    expect(await first("days until friday")).toBe("2 days");
     expect(await calc("2026-01-01 - 2025-06-15")).toEqual([{ id: "result", name: "200 days", subtitle: "Sunday, June 15, 2025 → Thursday, January 1, 2026", icon: "\u{f01fc}", accessories: [{ text: "28 weeks 4 days" }, { text: "6 months 17 days" }], actions: ACTIONS }]);
     expect(await first("2025-06-15 to 2026-01-01")).toBe("200 days");
     expect(await first("weeks between 2025-06-15 and 2026-01-01")).toBe("28.6 weeks");
-    expect(await first("months since 2025-06-15 ")).toMatch(/^\d+ months$/);
+    expect(await first("between 1 mar and 14 oct")).toBe("227 days");
+    // Monday to Friday from today (counted) up to the day (not): Sep 16 to Dec 25 is 100 days, 72 of them weekdays.
+    expect(await rows("workdays until 25 dec")).toEqual([["72 workdays", "workdays until Friday, December 25, 2026", ["100 days", "Mon to Fri, holidays not counted"]]]);
+    expect(await first("working days until friday")).toBe("2 workdays");
+    expect(await first("business days between 2026-10-01 and 2026-11-01")).toBe("22 workdays");
+    expect(await first("workdays since 2026-09-07")).toBe("7 workdays");
   });
 
-  test("time zones: an explicit source, the local zone as the source, `time in`", async () => {
-    const rows = await calc("10:00 utc to tokyo");
-    expect(rows[0]).toMatchObject({ id: "result", name: "7:00 PM", subtitle: "10:00 UTC (UTC) → Tokyo (GMT+9)", accessories: [{ text: "Asia/Tokyo" }] });
-    expect(rows[1].subtitle).toBe("in Asia/Tokyo");
-    expect(texts((await calc("23:00 utc to tokyo"))[0])).toEqual(["Asia/Tokyo", "next day"]);
-    expect(await first("14:30 ist to cet")).toMatch(/^(12|1):30 PM$/); // Istanbul is UTC+3; CET is +1 or +2 by season
-    expect(await first("5pm ldn in sf")).toBe("9:00 AM");
-    expect(await first("10am new york to utc+3")).toMatch(/^(5|6):00 PM$/);
-    expect((await calc("10:00 in tokyo"))[0].subtitle).toMatch(/^10:00 .+ → Tokyo \(GMT\+9\)$/);
-    expect((await calc("now in utc"))[0].name).toBe(new Intl.DateTimeFormat("en", { timeStyle: "short", timeZone: "UTC" }).format(Date.now()));
-    expect((await calc("time in tokyo"))[0].accessories![0]).toEqual({ text: "Asia/Tokyo" }); // after 15:00 UTC a `next day` accessory follows
-    expect((await calc("tokyo time"))[0].accessories![0]).toEqual({ text: "Asia/Tokyo" });
-    expect((await calc("10:00 in Europe/Berlin"))[0].accessories).toEqual([{ text: "Europe/Berlin" }]);
+  test("weeks: the ISO week now, of a day, and a numbered week's days", async () => {
+    const now = [["Week 38", "this week: Mon 14 Sep to Sun 20 Sep", ["of 53 in 2026"]], ["2026-W38", "ISO 8601 week", []], ["2026-09-14", "its Monday", []]];
+    for (const q of ["what week is it", "what week is it?", "week number", "what's the week number", "week"]) expect(await rows(q)).toEqual(now);
+    expect((await rows("week of 25 dec"))[0]).toEqual(["Week 52", "the week of Fri 25 Dec: Mon 21 Dec to Sun 27 Dec", ["of 53 in 2026"]]);
+    expect((await calc("week number of 2027-01-01"))[1].name).toBe("2026-W53"); // 1 January 2027 is a Friday: ISO week 53 of 2026
+    expect((await rows("week 1 2027"))[0]).toEqual(["Week 1", "week 1 of 2027: Mon 4 Jan to Sun 10 Jan 2027", ["of 52 in 2027"]]);
+    expect((await calc("week 42"))[2].name).toBe("2026-10-12");
+    expect(await calc("week 54")).toEqual([]);
   });
 
-  test("unix time both ways", async () => {
-    const rows = await calc("unix 1700000000");
-    expect(rows[0].name).toBe(new Intl.DateTimeFormat("en", { dateStyle: "full", timeStyle: "short" }).format(1700000000000));
-    expect(rows[2]).toMatchObject({ id: "unix", name: "1700000000" });
-    expect((await calc("1700000000 to date"))[0].name).toBe(rows[0].name);
-    expect((await calc("1700000000000 to date"))[0].name).toBe(rows[0].name);
-    expect(Number(await first("unix"))).toBeCloseTo(Date.now() / 1000, -1);
-    expect(await first("2026-01-01 12:00 to unix")).toBe(String(new Date(2026, 0, 1, 12).getTime() / 1000));
+  test("what day a date is: the weekday first", async () => {
+    expect(await rows("what day is 2027-01-01")).toEqual([["Friday", "Friday, January 1, 2027", ["in 4 months"]], ["2027-01-01", "ISO 8601", []]]);
+    expect(await first("what day was 29 oct 1923")).toBe("Monday");
+    expect(await first("day of week 25 dec")).toBe("Friday");
+  });
+
+  test("time zones: the time there, how far ahead, the day when it is not today here; ISO and unix rows", async () => {
+    expect(await rows("time in tokyo")).toEqual([
+      ["16:30", "10:30 Istanbul (GMT+3) → Tokyo (GMT+9)", ["6 h ahead", "Asia/Tokyo"]],
+      ["Wednesday, September 16, 2026 at 16:30", "in Asia/Tokyo", []],
+      ["2026-09-16T16:30:00+09:00", "ISO 8601", []],
+      ["1789543800", "unix time", []],
+    ]);
+    for (const q of ["tokyo time", "what time is it in tokyo?", "now in tokyo", "time in Asia/Tokyo"]) expect(await first(q)).toBe("16:30");
+    expect((await rows("3pm in tokyo"))[0]).toEqual(["21:00", "15:00 Istanbul (GMT+3) → Tokyo (GMT+9)", ["6 h ahead", "Asia/Tokyo"]]);
+    expect((await rows("3pm istanbul to new york"))[0]).toEqual(["08:00", "15:00 Istanbul (GMT+3) → New York (EDT)", ["7 h behind", "America/New_York"]]);
+    expect((await rows("now in PST"))[0]).toEqual(["00:30", "10:30 Istanbul (GMT+3) → Los Angeles (PDT)", ["10 h behind", "America/Los_Angeles"]]);
+    // A time with a zone and no target is that zone's time here.
+    expect((await rows("3pm tokyo"))[0]).toEqual(["09:00", "15:00 Tokyo (GMT+9) → Istanbul (GMT+3)", ["6 h behind", "Europe/Istanbul"]]);
+    expect(await first("3pm tokyo time")).toBe("09:00");
+    expect((await rows("23:00 utc to tokyo"))[0]).toEqual(["tomorrow, 08:00", "23:00 UTC (UTC) → Tokyo (GMT+9)", ["9 h ahead", "Asia/Tokyo"]]);
+    expect(await first("1am istanbul to sf")).toBe("yesterday, 15:00");
+    expect(await first("10:00 in india")).toBe("12:30");
+    expect((await calc("10:00 in india"))[0].accessories![0]).toEqual({ text: "2 h 30 min ahead" });
+    expect(await first("14:30 ist to cet")).toBe("13:30");
+    expect(await first("5pm ldn in sf")).toBe("09:00");
+    expect(await first("10am new york to utc+3")).toBe("17:00");
+    expect(await first("noon in london")).toBe("10:00");
+    expect(await first("time in caracas")).toBe("03:30"); // a city the table lacks, from the IANA ids
+    expect(await first("time in londra")).toBe("08:30");
+    expect(await first("İstanbul time")).toBe("10:30");
+    expect((await calc("10:00 in Europe/Berlin"))[0].accessories).toEqual([{ text: "1 h behind" }, { text: "Europe/Berlin" }]);
+  });
+
+  test("unix time both ways; a 10-digit number from this century is one", async () => {
+    const moment = [
+      ["Saturday, September 27, 2025 at 22:06", "unix 1759000000", ["12 months ago"]],
+      ["2025-09-27T22:06:40+03:00", "ISO 8601", []],
+      ["1759000000", "unix time", []],
+    ];
+    for (const q of ["1759000000", "@1759000000", "unix 1759000000", "1759000000 to date"]) expect(await rows(q)).toEqual(moment);
+    expect((await rows("1759000000000"))[0][0]).toBe(moment[0][0]);
+    expect(await rows("unix time")).toEqual([["1789543800", "unix time now", ["Wednesday, September 16, 2026 at 10:30"]]]);
+    expect(await first("unix")).toBe("1789543800");
+    expect(await first("2026-01-01 12:00 to unix")).toBe("1767258000");
+    expect(await first("2026-01-01 to unix")).toBe("1767214800");
+    expect(await names("5321234567")).toEqual(["5,321,234,567", "0x13d2b9887"]); // a phone number stays a number
+  });
+
+  test("durations: sums of hours and minutes, and one in a unit", async () => {
+    expect(await rows("3h20m + 45m")).toEqual([["4 h 5 min", "3h20m + 45m", ["4:05"]], ["245 minutes", "in minutes", []], ["4.0833 hours", "in hours", []]]);
+    expect(await first("2 hours + 30 minutes")).toBe("2 h 30 min");
+    expect(await first("8h - 45 min - 30min")).toBe("6 h 45 min");
+    expect(await rows("90 min in hours")).toEqual([["1.5 hours", "90 min in hours", ["1 h 30 min"]], ["1:30", "hours:minutes", []]]);
+    expect(await first("1h30m to minutes")).toBe("90 minutes");
+    expect(await first("45m + 10m")).toBe("55 m"); // no hour beside it: metres, mathjs's
+    expect(await first("2 hours + 30 minutes to minutes")).toBe("150 minutes");
+  });
+
+  test("the root: date and time phrasings answer inline, words and app names do not", async () => {
+    const { matches } = await import("../../../extensions/calc/index.ts");
+    for (const yes of ["time in tokyo", "tokyo time", "3pm in tokyo", "next friday", "what week is it", "week number", "unix time", "unix", "1759000000", "@1759000000", "3h20m + 45m", "25 aralık", "gelecek cuma"]) expect([yes, matches(yes)]).toEqual([yes, true]);
+    for (const no of ["friday", "mon", "week", "time machine", "slack time", "screen time", "5321234567", "what is this"]) expect([no, matches(no)]).toEqual([no, false]);
+    const sections = await host.request<{ extension: string; items: { name: string }[] }[]>("inline", { query: "time in tokyo" });
+    expect(sections.find((s) => s.extension === "calc")!.items[0].name).toBe("16:30");
   });
 });
 

@@ -49,8 +49,9 @@
       "Units through mathjs plus the spellings people type: `5 km to miles`, `72 f to c`, `12 gb to mb`, `5 ft 3 in to cm`",
       "The 30 ECB currencies by code, symbol or name (`12 usd to try`, `€12 to $`, `1k usd`), rates fetched once a day and cached",
       "Your own variables: `salary_hour = 54 usd`, `rent = 42000 try`, then `rent / salary_month` or `salary_year to eur`, currencies converted along the way",
-      "Dates and durations: `today + 3 days`, `days until 2026-12-25`, `weeks between 2025-06-15 and 2026-01-01`",
-      "Time zones by city, abbreviation or offset: `10:00 utc to tokyo`, `5pm ldn in sf`, `now in utc`",
+      "Dates: `today + 3 days`, `next friday`, `days until 25 dec` (or `25 aralık`), `workdays until friday`, `what week is it`, `what day is 2027-01-01`",
+      "Time zones by city, abbreviation or offset: `time in tokyo`, `3pm istanbul to new york`, `now in pst`, with how far ahead and `tomorrow, ` when the day differs",
+      "Unix time both ways (`1759000000`, `@1759000000`, `2026-01-01 to unix`) and durations (`3h20m + 45m`, `90 min in hours`)",
       "A second row with the other form: the reverse conversion, a fraction, the hex and binary of an integer, the ISO date"
     ],
     "permissions": [
@@ -105,9 +106,9 @@
     "calc": {
       "kind": "input",
       "inline": true,
-      "match": "\\d[-+*/^%=()a-z\\s]|[-+*/^%=()a-z]\\s*\\d|\\b(now|today|tomorrow|yesterday|next|last)\\b",
+      "match": "\\d[-+*/^%=()a-z\\s]|[-+*/^%=()a-z]\\s*\\d|\\b(now|today|tomorrow|yesterday|next|last|unix|epoch)\\b|^time in |\\s+time$|\\bweek\\b|^@?1\\d{9}$",
       "fallback": true,
-      "description": "Type an expression; the result is the row. At the root, sums, conversions and dates answer inline under a Calculator section; a query that is none of those gets an Ask Calculator fallback row.",
+      "description": "Type an expression; the result is the row. At the root, sums, conversions, dates, times in other zones and unix times answer inline under a Calculator section; a query that is none of those gets an Ask Calculator fallback row.",
       "keys": [
         {
           "keys": "enter",

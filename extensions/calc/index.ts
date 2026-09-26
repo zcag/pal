@@ -6,9 +6,9 @@
 // another form when there is one (hex for an integer, a fraction, the
 // reverse conversion). Nothing is listed while the query does not parse,
 // so typing never shows an error.
-import { hint as hintRow, settings, type Action, type Extension, type Item } from "@zcag/pal";
+import { hint as hintRow, now, settings, type Action, type Extension, type Item } from "@zcag/pal";
 import { carry, code, ensureRates, hasCurrency, homeCurrency, isCurrency, money, NAMES, parse as parseCurrency, rate, SOURCE } from "./currency.ts";
-import { dates } from "./dates.ts";
+import { dates, isUnix } from "./dates.ts";
 import { normalizeNumbers, num, raw as rawNum } from "./format.ts";
 import { evaluate, fraction, inBase, MONEY, toBase } from "./math.ts";
 import type { Row } from "./row.ts";
@@ -32,7 +32,7 @@ const hint = (name: string, subtitle: string): Item => hintRow(name, name, subti
 const HINTS = [
   hint("Type an expression", "2+2 · sqrt 2 · 15% of 240 · 255 to hex"),
   hint("Convert", "12 usd to try · 5 km to miles · 72 f to c"),
-  hint("Dates and time", "today + 3 days · days until 2026-12-25 · 10:00 in tokyo"),
+  hint("Dates and time", "next friday · days until 25 dec · 3pm in tokyo · 3h20m + 45m"),
 ];
 
 /** The rows of the last listing by id: what `pick` copies (an Item comes back as its id only). */
@@ -41,17 +41,22 @@ const last = new Map<string, { name: string; raw: string; expr: string }>();
 /**
  * Whether a root query is worth evaluating inline (`match`): a digit next
  * to an operator, a unit or a word (`2+2`, `15% of 80`, `12 usd to try`,
- * `5 km to miles`, `3 days from now`), or a date word on its own (`today
- * + 3 days`, `now in tokyo`). A bare number is not (typing `1` should not
- * answer `1`), nor is a word with no digit in it, so app names and
- * bookmarks never wake the parser. What matches but does not parse lists
- * nothing, so a false positive costs a parse and shows no row.
+ * `5 km to miles`, `3 days from now`), a date word (`today + 3 days`, `now
+ * in tokyo`, `next friday`), a unix time (`@1759000000`, a bare
+ * `1759000000`), or words the date parser answers whole (`time in tokyo`,
+ * `tokyo time`, `what week is it`, `unix time`). A bare number is not
+ * (typing `1` should not answer `1`), nor a single word (`mon` is on the
+ * way to Monitor), so app names and bookmarks never wake the parser. What
+ * matches but does not parse lists nothing, so a false positive costs a
+ * parse and shows no row.
  */
 const DATE_WORD = /\b(now|today|tomorrow|yesterday|noon|midnight|next|last)\b/i;
 export const matches = (q: string): boolean => {
   const t = q.trim();
-  if (!t || /^[-+]?[\d.,]+$/.test(t)) return false;
-  return (/\d/.test(t) && /[-+*/^%=()]|[a-z]/i.test(t)) || DATE_WORD.test(t) || namesVar(t);
+  if (!t) return false;
+  if (isUnix(t)) return true;
+  if (/^[-+]?[\d.,]+$/.test(t)) return false;
+  return (/\d/.test(t) && /[-+*/^%=()]|[a-z]/i.test(t)) || DATE_WORD.test(t) || /^(?:unix|epoch)$/i.test(t) || (/\s/.test(t) && !!dates(t, "en", now())?.length) || namesVar(t);
 };
 
 /** A root query naming a variable (`salary`, `rent / salary`) answers too, digit or not. Outside a host (a unit test) there are none. */
@@ -242,7 +247,7 @@ export default {
         const s = settings.get<Settings>();
         const locale = s.locale || "en";
         const qn = normalizeNumbers(q, locale);
-        const rows = (await variables(qn, s, locale)) ?? dates(qn, locale) ?? (await currency(qn, s, locale)) ?? (await arithmetic(qn, s, locale)) ?? [];
+        const rows = (await variables(qn, s, locale)) ?? dates(qn, locale, now()) ?? (await currency(qn, s, locale)) ?? (await arithmetic(qn, s, locale)) ?? [];
         last.clear();
         for (const r of rows) if (!r.inert) last.set(r.id, { name: r.name, raw: r.raw ?? r.name, expr: r.subtitle });
         return rows.map(item);

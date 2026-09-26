@@ -42,10 +42,13 @@
         "10:00 utc to tokyo": [
           {
             "id": "result",
-            "name": "7:00 PM",
+            "name": "19:00",
             "subtitle": "10:00 UTC (UTC) → Tokyo (GMT+9)",
             "icon": "󰇼",
             "accessories": [
+              {
+                "text": "9 h ahead"
+              },
               {
                 "text": "Asia/Tokyo"
               }
@@ -73,8 +76,60 @@
           },
           {
             "id": "full",
-            "name": "Wednesday, September 16, 2026 at 7:00 PM",
+            "name": "Wednesday, September 16, 2026 at 19:00",
             "subtitle": "in Asia/Tokyo",
+            "icon": "󰇼",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          },
+          {
+            "id": "iso",
+            "name": "2026-09-16T19:00:00+09:00",
+            "subtitle": "ISO 8601",
+            "icon": "󰇼",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          },
+          {
+            "id": "unix",
+            "name": "1789552800",
+            "subtitle": "unix time",
             "icon": "󰇼",
             "actions": [
               {
@@ -286,7 +341,7 @@
           {
             "id": "hint:Dates and time",
             "name": "Dates and time",
-            "subtitle": "today + 3 days · days until 2026-12-25 · 10:00 in tokyo",
+            "subtitle": "next friday · days until 25 dec · 3pm in tokyo · 3h20m + 45m",
             "icon": "󰇼",
             "actions": []
           }
