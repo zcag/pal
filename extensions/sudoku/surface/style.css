@@ -176,6 +176,7 @@ body.picking .cell.fits:hover:not(:has(b:not(:empty)))::before {
 }
 body.picking .cell.fits:hover .marks { opacity: 0.25; }
 body.picking #cursor { opacity: 0.6; }
+body.idle #cursor { opacity: 0; transition: opacity 140ms; }
 body.picking .cell.at { background: var(--paper); }
 body.picking .cell.at.fits { background: var(--fits); }
 body.picking .cell.same { background: color-mix(in srgb, var(--acc) 30%, var(--paper)); }

@@ -52,6 +52,15 @@ let pick = 0;
 /** The digit last typed or clicked, where digit first starts. */
 let lastDigit = 0;
 let undos: Play[] = [], redos: Play[] = [];
+/** No cell selected: a click on the selected cell (or beside the board) lets go of it; the next key or click brings the cursor back where it was. */
+let idle = false;
+/** Brings the cursor back when nothing was selected; true when it did, so that key only wakes it (a digit typed into nothing places nothing). */
+function wake(): boolean {
+  if (!idle) return false;
+  idle = false;
+  draw();
+  return true;
+}
 /** The mistakes the header shows; -1 before the first draw of a puzzle, so opening one with mistakes does not shake. */
 let shownSlips = -1;
 let check: Check = "conflicts";
@@ -143,10 +152,11 @@ let tip: { h: Hint; stage: 1 | 2 } | undefined;
 
 /** Each cell's look worked out from the game, the cursor and the hint; only the cells that changed are touched. */
 function draw() {
-  const focus = pick || st.v[at];
+  body.classList.toggle("idle", idle);
+  const focus = pick || (idle ? 0 : st.v[at]);
   const clash = conflicts(st.v);
   const wrong = new Set(check === "mistakes" ? wrongCells(st.v, givens, solution) : []);
-  const zone = new Set(pick ? [] : UNITS_OF[at].flatMap((u) => UNITS[u]));
+  const zone = new Set(pick || idle ? [] : UNITS_OF[at].flatMap((u) => UNITS[u]));
   const shown = marks(st, autoOn), fits = pick ? candidates(st.v) : undefined;
   const h = tip?.h, stage2 = tip?.stage === 2;
   const area = new Set(h?.area), about = new Set(h ? (stage2 || h.kind !== "step" ? h.cells : []) : []), sources = new Set(stage2 ? h?.sources : []);
@@ -157,7 +167,7 @@ function draw() {
     const d = st.v[i], m = shown[i];
     const cls = [
       givens[i] ? "given" : d ? "mine" : "",
-      i === at ? "at" : zone.has(i) ? "zone" : "",
+      i === at && !idle ? "at" : zone.has(i) ? "zone" : "",
       focus && d === focus ? "same" : "",
       // A clash: the digit you placed underlined, the clue it runs into outlined.
       clash.has(i) ? (givens[i] ? "partner" : "clash") : "", wrong.has(i) ? "wrong" : "",
@@ -471,6 +481,8 @@ function nextPlay(): { title: string; go: () => void } {
 
 function run(id: string) {
   if (!helpEl.hidden) closeHelp();
+  if (id === "hint") idle = false;
+  if (id === "erase" && wake()) return;
   if (id === "play") return menuEl.hidden ? openMenu() : closeMenu();
   if (id === "browse") return screen === "browse" ? backToPlay() : openBrowse();
   if (id === "stats") return screen === "stats" ? backToPlay() : void openStats();
@@ -556,6 +568,8 @@ window.addEventListener("keydown", (e) => {
   }
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   const digit = /^(?:Digit|Numpad)([0-9])$/.exec(e.code)?.[1];
+  const mv0 = MOVES[e.key] ?? (!e.shiftKey ? MOVES[k] : undefined);
+  if ((digit && !pick) || mv0 || ["Backspace", "Delete", "Tab", "Enter"].includes(e.key) || k === "x") { if (wake()) return; }
   if (digit === "0") return run("erase");
   const mod = e.shiftKey || e.altKey;
   if (digit && pick && !mod) return setPick(Number(digit));
@@ -584,7 +598,16 @@ cellsEl.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   if (paused) return setPaused(false);
   if (pick) return stamp(i);
+  // The selected cell clicked again lets go of it.
+  idle = i === at && !idle;
   at = i;
+  draw();
+});
+// A click beside the board (not on a cell, the pad, the tools or a card) lets go of the cell too.
+document.addEventListener("pointerdown", (e) => {
+  const t = e.target as HTMLElement;
+  if (screen !== "play" || pick || idle || t.closest(".cell, #pad, #tools, #head, #tip, #done, #menu, #help, #ask, #cover, button")) return;
+  idle = true;
   draw();
 });
 /** A pad key: a plain click places (writes a note in notes mode), the corner, a right-click or ⌥-click writes a note; in digit first it picks the digit. */
@@ -594,6 +617,7 @@ function padPress(e: MouseEvent, alt: boolean) {
   e.preventDefault();
   if (paused || st.done) return;
   if (pick) return setPick(pick === d ? 0 : d);
+  if (wake()) return;
   input(d, t.closest(".nz") || notesMode !== (alt || e.altKey || e.shiftKey) ? "note" : "place");
 }
 padEl.addEventListener("click", (e) => padPress(e, false));
@@ -811,6 +835,7 @@ async function openPuzzle(msg: { op: "open" | "new"; id?: string; date?: string;
 
 function load(o: Opened) {
   opened = o;
+  idle = false;
   shownSlips = -1;
   givens = fromText(o.givens);
   solution = solve(givens) ?? givens;
