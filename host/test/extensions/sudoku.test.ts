@@ -9,14 +9,14 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  applyHint, clearNotes, decode, digitCounts, encode, erase, fillNotes, hint, newPlay, place, progressOf, toggleNote, unitsDone, wrongCells, type Play,
+  applyHint, clearNotes, decode, digitCounts, encode, enter, erase, fillNotes, hint, marks, newPlay, place, progressOf, toggleNote, unitsDone, wrongCells, type Play,
 } from "../../../extensions/sudoku/game.ts";
 import type { Entry, MonthView, Opened, SolvedReply, StatsView, TodayView } from "../../../extensions/sudoku/index.ts";
 import type { View } from "../../../sdk/src/protocol.ts";
 import { isBest, streaks, summary, type Solve } from "../../../extensions/sudoku/stats.ts";
 import type { Data } from "../../../extensions/sudoku/store.ts";
 import {
-  DIFFS, PEERS, UNITS, apply, bit, candidates, conflicts, countSolutions, findStep, fromText, generate, grade, rng, solve, toText, type Diff,
+  ALL, DIFFS, PEERS, UNITS, apply, bit, candidates, conflicts, countSolutions, findStep, fromText, generate, grade, rng, solve, toText, type Diff,
 } from "../../../extensions/sudoku/sudoku.ts";
 import { Host } from "../harness.ts";
 
@@ -145,6 +145,122 @@ describe("the moves and pencil marks", () => {
   });
 });
 
+describe("typing a digit: a second one makes notes", () => {
+  const a = P.findIndex((d) => !d); // row 1, column 3: the answer is 4
+  test("an empty cell takes it; a different digit over it turns the cell into notes holding both, and from then on digits toggle marks", () => {
+    let p = enter(newPlay(P), P, a, 4, A);
+    expect(p.v[a]).toBe(4);
+    expect(enter(p, P, a, 4, A)).toBe(p); // the same digit again
+    p = enter(p, P, a, 6, A);
+    expect(p.v[a]).toBe(0);
+    expect(p.n[a]).toBe(bit(4) | bit(6));
+    expect(p.j[a]).toBe(true);
+    p = enter(p, P, a, 2, A);
+    expect(p.n[a]).toBe(bit(2) | bit(4) | bit(6));
+    p = enter(enter(p, P, a, 6, A), P, a, 4, A);
+    expect(p.n[a]).toBe(bit(2));
+    expect(p.v[a]).toBe(0);
+    expect(p.mistakes).toBe(0);
+    // The last mark off: the cell is plain again and the next digit is placed.
+    p = enter(p, P, a, 2, A);
+    expect([p.n[a], p.j[a]]).toEqual([0, false]);
+    expect(enter(p, P, a, 1, A).v[a]).toBe(1);
+  });
+  test("Backspace clears the notes and the next digit is placed; a clue never changes; a done game takes nothing", () => {
+    let p = enter(enter(newPlay(P), P, a, 4, A), P, a, 6, A);
+    p = erase(p, P, a);
+    expect([p.v[a], p.n[a], p.j[a]]).toEqual([0, 0, false]);
+    expect(enter(p, P, a, 6, A).v[a]).toBe(6);
+    expect(enter(p, P, 0, 9, A)).toBe(p); // 0 is a clue
+    const done = { ...p, done: { ms: 1, at: 1 } };
+    expect(enter(done, P, a, 4, A)).toBe(done);
+  });
+  test("marks written with Shift (not by a second digit) still let a digit be placed over them", () => {
+    const p = enter(toggleNote(toggleNote(newPlay(P), P, a, 1), P, a, 2), P, a, 4, A);
+    expect([p.v[a], p.n[a]]).toEqual([4, 0]);
+  });
+  test("with mistakes shown a wrong digit is simply replaced and a right one stays", () => {
+    const wrong = enter(newPlay(P), P, a, 6, A, { mistakes: true });
+    expect(wrong.mistakes).toBe(1);
+    const fixed = enter(wrong, P, a, 4, A, { mistakes: true });
+    expect([fixed.v[a], fixed.j[a], fixed.mistakes]).toEqual([4, false, 1]);
+    expect(enter(fixed, P, a, 2, A, { mistakes: true })).toBe(fixed);
+  });
+  test("undo is exact: every move leaves the state before it untouched, and the notes cells survive a save", () => {
+    const before = place(toggleNote(newPlay(P), P, P.findIndex((d, i) => !d && i > a), 3), P, a, 4, A);
+    const copy = structuredClone(before);
+    const after = enter(before, P, a, 6, A);
+    expect(before).toEqual(copy);
+    expect(after).not.toEqual(before);
+    const s = encode(after);
+    expect(s.j).toEqual([a]);
+    expect(decode(s, P)).toEqual(after);
+    expect(encode(before).j).toBeUndefined();
+    expect(encode(place(after, P, a, 4, A)).j).toBeUndefined(); // placed again: plain
+  });
+});
+
+describe("auto notes", () => {
+  const a = P.findIndex((d) => !d), cand = candidates(P);
+  test("every empty cell shows what fits, and your own marks are left alone underneath", () => {
+    const own = toggleNote(newPlay(P), P, a, 9);
+    expect(marks(own, true)).toEqual(cand);
+    expect(marks(own, false)[a]).toBe(bit(9));
+  });
+  test("a mark taken out stays out as the board changes; only a digit that fits can come back", () => {
+    const d = Math.log2(cand[a] & -cand[a]) + 1; // the lowest digit that fits in a
+    let p = toggleNote(newPlay(P), P, a, d, true);
+    expect(marks(p, true)[a]).toBe(cand[a] & ~bit(d));
+    expect(p.n[a]).toBe(0); // your own layer untouched
+    // A peer takes d and gives it back: a's d stays out, the others see it again.
+    const peer = PEERS[a].find((j) => !P[j] && candidates(P)[j] & bit(d) && j !== a)!;
+    const q = erase(place(p, P, peer, d, A), P, peer, true);
+    expect(marks(q, true)[a] & bit(d)).toBe(0);
+    expect(marks(q, true)).toEqual(marks(p, true));
+    p = toggleNote(p, P, a, d, true); // back in
+    expect(marks(p, true)[a]).toBe(cand[a]);
+    const no = [1, 2, 3, 4, 5, 6, 7, 8, 9].find((x) => !(cand[a] & bit(x)))!;
+    expect(toggleNote(p, P, a, no, true)).toBe(p);
+  });
+  test("placing clears the peers without a trace; Backspace on an empty cell brings back what you took out", () => {
+    const d = Math.log2(cand[a] & -cand[a]) + 1;
+    let p = toggleNote(newPlay(P), P, a, d, true);
+    expect(erase(p, P, a, true).x[a]).toBe(0);
+    p = place(p, P, a, A[a], A);
+    for (const j of PEERS[a]) expect(marks(p, true)[j] & bit(A[a])).toBe(0);
+    expect(erase(p, P, a, true).v[a]).toBe(0);
+    expect(marks(erase(p, P, a, true), true)[a]).toBe(cand[a]); // placed and erased: every mark back
+  });
+  test("a second digit makes notes of the two, as the removals, and Backspace gives the cell its marks back", () => {
+    let p = enter(newPlay(P), P, a, 4, A, { auto: true });
+    p = enter(p, P, a, 2, A, { auto: true });
+    expect(p.x[a]).toBe(ALL & ~(bit(4) | bit(2)));
+    expect(marks(p, true)[a]).toBe(cand[a] & (bit(4) | bit(2)));
+    expect(p.n[a]).toBe(0);
+    p = enter(p, P, a, 2, A, { auto: true }); // toggles as a mark
+    expect(marks(p, true)[a]).toBe(cand[a] & bit(4));
+    p = erase(p, P, a, true);
+    expect([marks(p, true)[a], p.j[a]]).toEqual([cand[a], false]);
+  });
+  test("the removals are saved, and a board with only removals counts as started", () => {
+    const p = toggleNote(newPlay(P), P, a, Math.log2(cand[a] & -cand[a]) + 1, true);
+    const s = encode(p);
+    expect(s.x).toHaveLength(162);
+    expect(decode(s, P)).toEqual(p);
+    expect(progressOf(s, toText(P)).started).toBe(true);
+    expect(encode(newPlay(P)).x).toBeUndefined();
+  });
+  test("the hint reads the marks on show, and its eliminations are taken out", () => {
+    const m = made.get("hard")!;
+    let p = newPlay(m.givens), h = hint(m.givens, p, m.solution, true);
+    for (let k = 0; k < 81 && h.step?.place; k++) { p = applyHint(p, m.givens, h, m.solution, true); h = hint(m.givens, p, m.solution, true); }
+    expect(h.step?.elim?.length).toBeGreaterThan(0);
+    const q = applyHint(p, m.givens, h, m.solution, true);
+    for (const e of h.step!.elim!) expect(marks(q, true)[e.cell] & bit(e.digit)).toBe(0);
+    expect(q.n).toEqual(p.n);
+  });
+});
+
 describe("the hint", () => {
   test("a wrong digit comes first, pointing at the clash", () => {
     const a = P.findIndex((d) => !d); // row 1: 5 3 . . 7
@@ -214,7 +330,7 @@ describe("the extension", () => {
   test("the view is one surface with its actions", async () => {
     const v = await host.request<{ tree: unknown; actions: { id: string; shortcut?: unknown }[] }>("view", { extension: "sudoku", palette: "sudoku" });
     expect(v.tree).toEqual({ type: "surface", src: "surface/index.html" });
-    expect(v.actions.slice(0, 3).map((a) => [a.id, a.shortcut])).toEqual([["hint", "i"], ["notes", "n"], ["fill", "a"]]);
+    expect(v.actions.slice(0, 5).map((a) => [a.id, a.shortcut])).toEqual([["hint", "i"], ["notes", "n"], ["auto", "c"], ["pick", "d"], ["fill", "a"]]);
   });
 
   test("the first open is today's medium daily, made from the date, the same every time", async () => {
@@ -298,5 +414,17 @@ describe("the extension", () => {
     expect(clockAction(u.spec as View)?.shortcut).toBe("t");
     expect(await send<{ clock: boolean }>({ op: "clock", on: true })).toEqual({ clock: true });
     expect(host.written.get("sudoku")?.clock).toBeUndefined();
+  });
+
+  test("auto notes are off until the page turns them on (C): the setting written, the ⌘K title following", async () => {
+    const autoAction = (v: View) => v.actions.find((a) => a.id === "auto");
+    expect(autoAction(await host.request<View>("view", { extension: "sudoku", palette: "sudoku" }))?.shortcut).toBe("c");
+    const push = send<{ auto: boolean }>({ op: "auto", on: true });
+    const u = await host.nextViewUpdate("sudoku", { palette: "sudoku" }, (x) => autoAction(x.spec as View)?.title === "Turn auto notes off");
+    expect(await push).toEqual({ auto: true });
+    expect(host.written.get("sudoku")?.auto_notes).toBe(true);
+    expect(autoAction(u.spec as View)?.shortcut).toBe("c");
+    expect(await send<{ auto: boolean }>({ op: "auto", on: false })).toEqual({ auto: false });
+    expect(host.written.get("sudoku")?.auto_notes).toBeUndefined();
   });
 });

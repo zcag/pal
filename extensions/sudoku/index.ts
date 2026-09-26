@@ -19,10 +19,10 @@ import { DIFFS, generate, isDiff, toText, type Diff } from "./sudoku.ts";
 const EXT = "sudoku";
 
 export type Check = "conflicts" | "mistakes";
-type Config = { difficulty: Diff; check: Check; clock: boolean };
+type Config = { difficulty: Diff; check: Check; clock: boolean; auto_notes: boolean };
 const config = (): Config => {
   const c = settings.get<Partial<Config>>();
-  return { difficulty: isDiff(c.difficulty) ? c.difficulty : "medium", check: c.check === "mistakes" ? "mistakes" : "conflicts", clock: c.clock !== false };
+  return { difficulty: isDiff(c.difficulty) ? c.difficulty : "medium", check: c.check === "mistakes" ? "mistakes" : "conflicts", clock: c.clock !== false, auto_notes: c.auto_notes === true };
 };
 
 // ---- what the page gets ---------------------------------------------------------------
@@ -148,7 +148,8 @@ type Msg =
   | { op: "today" }
   | { op: "stats"; diff?: string }
   | { op: "check"; mode: Check }
-  | { op: "clock"; on: boolean };
+  | { op: "clock"; on: boolean }
+  | { op: "auto"; on: boolean };
 
 export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<unknown> {
   const m = raw as Msg;
@@ -199,6 +200,10 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       await settings.set("clock", !!m.on, EXT);
       await view.update(screen()).catch(() => {});
       return { clock: config().clock };
+    case "auto":
+      await settings.set("auto_notes", !!m.on, EXT);
+      await view.update(screen()).catch(() => {});
+      return { auto: config().auto_notes };
     default: throw new Error(`sudoku: unknown call ${JSON.stringify(raw)}`);
   }
 }
@@ -209,6 +214,8 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
 export const actions = (c = config()): Action[] => [
   { id: "hint", title: "Hint", shortcut: "i" },
   { id: "notes", title: "Pencil marks on or off", shortcut: "n" },
+  { id: "auto", title: c.auto_notes ? "Turn auto notes off" : "Auto notes: every cell's notes kept for you", shortcut: "c" },
+  { id: "pick", title: "Digit first: pick a digit, then click cells", shortcut: "d" },
   { id: "fill", title: "Fill in every pencil mark", shortcut: "a" },
   { id: "clear-notes", title: "Clear every pencil mark", shortcut: "shift+a" },
   { id: "undo", title: "Undo", shortcut: "cmd+z" },

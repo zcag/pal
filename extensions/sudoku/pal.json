@@ -51,6 +51,14 @@
       "text": "Show the time while you play",
       "description": "Off hides the running time. Your times still count for stats and show when you finish. Also T or ⌘K in the game.",
       "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "auto_notes",
+      "label": "Auto notes",
+      "text": "Keep every empty cell's notes filled in for me",
+      "description": "Each empty cell shows the digits that still fit, updated as you play; you only take out the ones you rule out, and they stay out. Off brings your own notes back. Also C or ⌘K in the game.",
+      "default": false
     }
   ],
   "store": {
