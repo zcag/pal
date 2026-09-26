@@ -20,7 +20,7 @@ export function samples(now = NOW) {
     const age = (now - t) / 60;
     const ac = age > 150 && age < 215;
     const build = age > 60 && age < 85;
-    const w = ac ? -38 : 5.2 + 1.6 * Math.sin(t / 700) + (build ? 14 + 6 * Math.sin(t / 90) : 0) + (age < 25 ? 6 : 0);
+    const w = ac ? -38 : 5.2 + 1.6 * Math.sin((age * 60) / 700) + (build ? 14 + 6 * Math.sin((age * 60) / 90) : 0) + (age < 25 ? 6 : 0);
     soc = ac ? Math.min(100, soc + 0.9) : Math.max(5, soc - w / 60 / 0.72);
     out.push({ ts: t, w: Math.round(w * 100) / 100, soc: Math.round(soc), ext: ac, chg: ac, wh: Math.round(soc * 0.72 * 10) / 10, cycles: 212, health: 91.4, thermal: "Nominal", btot: 100, blame: [["Google Chrome Helper (Renderer)", 38], ["WindowServer", 21], ["kitty", 12], ["Spotify", 8], ["mds_stores", 6], ["(short-lived processes)", 5]], why: [["Google Chrome Helper (Renderer)", 412, 880, 0, 240000], ["WindowServer", 180, 310, 0, 0], ["kitty", 96, 120, 0, 0], ["Spotify", 60, 90, 0, 180000]] });
   }
