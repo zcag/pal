@@ -1,7 +1,7 @@
 {
   "name": "power",
   "title": "Battery & Power",
-  "description": "Battery level and time remaining, plus measured power draw and culprits when the optional power watcher is installed.",
+  "description": "Battery level and time left, and with the optional power watcher everything about where the power goes: the draw over the last hours, what uses power now and why, and what used the battery today, this week and ever, in watt-hours.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -23,13 +23,15 @@
     }
   ],
   "store": {
-    "tagline": "Battery level, remaining time, and what is drawing it",
+    "tagline": "Battery level, and exactly what is draining it",
     "category": "system",
     "features": [
-      "Battery percentage, source, state and time remaining from macOS `pmset` or Linux `upower`",
-      "Optional measured draw, warnings, wake locks and top consumers from the existing `power` watcher state file",
-      "The bar stays quiet while healthy by default, then returns for a low battery, a warning, or unusual draw on battery",
-      "Click opens Battery settings; hover opens a compact explanation of level, draw, warnings and consumers"
+      "The level, where the power comes from and the time left, from macOS `pmset` or Linux `upower`, in one plain sentence (`Drawing 12 W · 1 h 48 min left`, `Charging at 38 W · full in 40 min`)",
+      "With the `power` watcher: six hours of draw as a chart, the stretches on the charger shaded and the charge level dashed over it, and today's watt-hours as a share of a full charge",
+      "Now: the watcher's warning in words, the draw split between the apps and chip and the screen and the rest, and the processes using power with their watts and why (CPU, wakeups, disk, network)",
+      "Today, 7 days and All time: what used the battery in watt-hours with each one's share, the screen and short-lived processes named plainly; a window spent on the charger ranks by activity instead",
+      "Battery health, cycle count and temperature as tiles; Enter finds the process in Processes, cmd+C copies its name",
+      "The bar stays quiet while healthy by default and returns for a low battery, a warning or a heavy draw; hover shows the popover (the level, the last hour, the warning, the top four), a click opens the palette"
     ],
     "permissions": [],
     "platforms": [
@@ -38,20 +40,20 @@
     ],
     "screenshots": [
       {
-        "file": "1-overview.png",
-        "caption": "The battery, measured draw, a watcher warning, top consumers and a wake lock"
+        "file": "1-now.png",
+        "caption": "Now: the level and six hours of draw on the left; the warning, where the watts go and what uses them on the right"
       },
       {
-        "file": "2-draw.png",
-        "caption": "The measured draw row selected, with its sample and temperature in the detail pane"
+        "file": "2-today.png",
+        "caption": "Today: what used the battery in watt-hours, with each one's share"
       },
       {
-        "file": "3-actions.png",
-        "caption": "The battery row can open Battery settings"
+        "file": "3-week.png",
+        "caption": "7 days, the screen and the rest explained under the cursor"
       },
       {
         "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: the battery level, live draw and the watcher rule that made it surface",
+        "caption": "On the menu bar: the level, the draw and the warning that made it surface",
         "kind": "bar"
       },
       {
@@ -61,7 +63,7 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens the popover: the level bar, source, time left, watcher warning and the top consumers",
+        "caption": "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now",
         "kind": "bar"
       },
       {
@@ -71,26 +73,64 @@
       },
       {
         "file": "bar-sketchybar.png",
-        "caption": "On sketchybar: the battery, draw and watcher rule as one strip",
+        "caption": "On sketchybar: the level, draw and warning as one strip",
         "kind": "bar"
       }
     ],
     "actions": [
       {
-        "title": "Open Battery settings",
-        "description": "Battery settings on macOS; the available power settings application on Linux.",
+        "title": "Find in Processes",
+        "description": "The process under the cursor, typed into the Processes palette (to quit it from there).",
         "keys": "enter"
+      },
+      {
+        "title": "Next / previous tab",
+        "description": "Now, Today, 7 days, All time; also 1 to 4.",
+        "keys": "tab"
+      },
+      {
+        "title": "Copy name",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Open Battery settings",
+        "keys": "s"
+      },
+      {
+        "title": "Refresh",
+        "description": "Re-reads the watcher and its windows now.",
+        "keys": "cmd+r"
       }
     ]
   },
   "palettes": {
     "power": {
-      "kind": "live",
-      "description": "The live battery gauge and, when available, the `power` watcher's measured draw, warnings, consumers and wake locks.",
+      "kind": "view",
+      "description": "The level, six hours of draw and the battery's health on the left; on the right, tabs for what uses power now and what used the battery today, this week and ever.",
       "keys": [
         {
           "keys": "enter",
+          "title": "Find the process in Processes (on a bookkeeping line: Battery settings)"
+        },
+        {
+          "keys": "tab",
+          "title": "Next tab (shift+tab, left, right, h, l; 1 to 4 pick one)"
+        },
+        {
+          "keys": "down",
+          "title": "Next row (up, j, k)"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the name"
+        },
+        {
+          "keys": "s",
           "title": "Open Battery settings"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Refresh"
         }
       ]
     }
@@ -116,7 +156,7 @@
   "bar": {
     "battery": {
       "title": "Battery",
-      "description": "Battery level, and the time left once that is the question being asked. Hidden while healthy by its rules: on battery from 50%, on the charger from 20%, unless the power watcher warns or measures a draw of 15 W. Amber at 20%, red at 10% or on a critical warning. Click opens Battery Settings; its popover explains the live draw and culprits when the power watcher is available.",
+      "description": "Battery level, and the time left once that is the question being asked. Hidden while healthy by its rules: on battery from 50%, on the charger from 20%, unless the power watcher warns or measures a draw of 15 W. Amber at 20%, red at 10% or on a critical warning. Hover shows the popover (the level, the last hour's draw, the warning, what uses power now, today's watt-hours); a click opens the Battery & Power palette.",
       "refresh": {
         "every": 30,
         "on": [
@@ -181,6 +221,10 @@
       "keys": [
         {
           "keys": "enter",
+          "title": "Open Battery & Power"
+        },
+        {
+          "keys": "s",
           "title": "Open Battery settings"
         }
       ],

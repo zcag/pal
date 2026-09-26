@@ -2,170 +2,2384 @@
   "palettes": {
     "power": {
       "title": "Battery & Power",
-      "live": true,
       "icon": {
         "tile": {
           "glyph": "󰁹",
           "bg": "green"
         }
       },
-      "placeholder": "Battery, draw, or a process",
-      "showDetail": true,
-      "items": [
-        {
-          "id": "battery",
-          "name": "31%",
-          "subtitle": "Battery Power · Discharging · 2:57 remaining",
-          "icon": "󰁽",
-          "accessories": [
+      "view": "view",
+      "tree": {
+        "title": "Battery 31% · Now",
+        "id": "dash",
+        "keys": "actions",
+        "actions": [
+          {
+            "id": "processes",
+            "title": "Find Google Chrome Helper (Renderer) in Processes",
+            "shortcut": "enter"
+          },
+          {
+            "id": "next",
+            "title": "Next tab",
+            "shortcut": [
+              "tab",
+              "right",
+              "l"
+            ]
+          },
+          {
+            "id": "prev",
+            "title": "Previous tab",
+            "shortcut": [
+              "shift+tab",
+              "left",
+              "h"
+            ]
+          },
+          {
+            "id": "tab:now",
+            "title": "Show Now",
+            "shortcut": "1"
+          },
+          {
+            "id": "tab:today",
+            "title": "Show Today",
+            "shortcut": "2"
+          },
+          {
+            "id": "tab:week",
+            "title": "Show 7 days",
+            "shortcut": "3"
+          },
+          {
+            "id": "tab:all",
+            "title": "Show All time",
+            "shortcut": "4"
+          },
+          {
+            "id": "copy",
+            "title": "Copy name",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "settings",
+            "title": "Open Battery settings",
+            "shortcut": "s"
+          },
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "shortcut": "cmd+r"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:0",
+            "title": "Focus row 1",
+            "hidden": true
+          },
+          {
+            "id": "focus:1",
+            "title": "Focus row 2",
+            "hidden": true
+          },
+          {
+            "id": "focus:2",
+            "title": "Focus row 3",
+            "hidden": true
+          },
+          {
+            "id": "focus:3",
+            "title": "Focus row 4",
+            "hidden": true
+          },
+          {
+            "id": "focus:4",
+            "title": "Focus row 5",
+            "hidden": true
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "row",
+          "align": "stretch",
+          "gap": 4,
+          "key": "dash",
+          "padding": 3,
+          "children": [
             {
-              "text": "2:57"
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "key": "left",
+              "width": 272,
+              "padding": 3,
+              "surface": "elevated",
+              "radius": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "head",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰁽",
+                      "key": "glyph",
+                      "style": "glyph",
+                      "size": "lg",
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "31%",
+                      "key": "percent",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "badge",
+                      "key": "state",
+                      "text": "on battery",
+                      "color": "grey"
+                    }
+                  ]
+                },
+                {
+                  "type": "progress",
+                  "key": "level",
+                  "value": 0.31,
+                  "color": "green"
+                },
+                {
+                  "type": "text",
+                  "value": "Drawing 12 W · 1 h 48 min left",
+                  "key": "sentence",
+                  "style": "body",
+                  "size": "sm"
+                },
+                {
+                  "type": "image",
+                  "key": "day-chart",
+                  "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22248%22%20height%3D%2296%22%20viewBox%3D%220%200%20248%2096%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20x%3D%2299.5%22%20y%3D%220%22%20width%3D%2245.40845070422535%22%20height%3D%2296%22%20fill%3D%22%233AA36A%22%20fill-opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%2295.5%22%20x2%3D%22248%22%20y2%3D%2295.5%22%20stroke%3D%22%2380808066%22%20stroke-width%3D%221%22%2F%3E%3Cpath%20d%3D%22M0.0%2C72.9%20L3.5%2C75.7%207.0%2C78.0%2010.5%2C79.3%2014.0%2C79.4%2017.5%2C78.2%2021.0%2C76.1%2024.5%2C73.3%2027.9%2C70.4%2031.4%2C68.0%2034.9%2C66.3%2038.4%2C65.8%2041.9%2C66.6%2045.4%2C68.4%2048.9%2C71.0%2052.4%2C73.9%2055.9%2C76.6%2059.4%2C78.6%2062.9%2C79.4%2066.4%2C79.1%2069.9%2C77.6%2073.4%2C75.2%2076.8%2C72.3%2080.3%2C69.5%2083.8%2C67.3%2087.3%2C66.0%2090.8%2C65.9%2094.3%2C67.1%2097.8%2C69.2%20V96%20H0.0%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%220.0%2C72.9%203.5%2C75.7%207.0%2C78.0%2010.5%2C79.3%2014.0%2C79.4%2017.5%2C78.2%2021.0%2C76.1%2024.5%2C73.3%2027.9%2C70.4%2031.4%2C68.0%2034.9%2C66.3%2038.4%2C65.8%2041.9%2C66.6%2045.4%2C68.4%2048.9%2C71.0%2052.4%2C73.9%2055.9%2C76.6%2059.4%2C78.6%2062.9%2C79.4%2066.4%2C79.1%2069.9%2C77.6%2073.4%2C75.2%2076.8%2C72.3%2080.3%2C69.5%2083.8%2C67.3%2087.3%2C66.0%2090.8%2C65.9%2094.3%2C67.1%2097.8%2C69.2%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M143.2%2C66.6%20L146.7%2C67.7%20150.2%2C70.1%20153.7%2C73.0%20157.2%2C75.8%20160.7%2C78.0%20164.2%2C79.3%20167.7%2C79.4%20171.2%2C78.2%20174.6%2C76.0%20178.1%2C73.3%20181.6%2C70.4%20185.1%2C67.9%20188.6%2C66.3%20192.1%2C1.0%20195.6%2C8.1%20199.1%2C9.6%20202.6%2C6.6%20206.1%2C27.9%20209.6%2C76.6%20213.1%2C78.6%20216.6%2C79.4%20220.1%2C79.1%20223.5%2C77.6%20227.0%2C75.2%20230.5%2C72.3%20234.0%2C43.7%20237.5%2C41.5%20241.0%2C40.2%20244.5%2C40.2%20248.0%2C41.3%20V96%20H143.2%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%22143.2%2C66.6%20146.7%2C67.7%20150.2%2C70.1%20153.7%2C73.0%20157.2%2C75.8%20160.7%2C78.0%20164.2%2C79.3%20167.7%2C79.4%20171.2%2C78.2%20174.6%2C76.0%20178.1%2C73.3%20181.6%2C70.4%20185.1%2C67.9%20188.6%2C66.3%20192.1%2C1.0%20195.6%2C8.1%20199.1%2C9.6%20202.6%2C6.6%20206.1%2C27.9%20209.6%2C76.6%20213.1%2C78.6%20216.6%2C79.4%20220.1%2C79.1%20223.5%2C77.6%20227.0%2C75.2%20230.5%2C72.3%20234.0%2C43.7%20237.5%2C41.5%20241.0%2C40.2%20244.5%2C40.2%20248.0%2C41.3%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%220.0%2C13.2%203.5%2C13.2%207.0%2C14.2%2010.5%2C14.2%2014.0%2C14.2%2017.5%2C15.1%2021.0%2C15.1%2024.5%2C16.0%2027.9%2C17.0%2031.4%2C17.0%2034.9%2C17.9%2038.4%2C18.9%2041.9%2C19.8%2045.4%2C19.8%2048.9%2C20.7%2052.4%2C21.7%2055.9%2C21.7%2059.4%2C22.6%2062.9%2C22.6%2066.4%2C22.6%2069.9%2C23.6%2073.4%2C23.6%2076.8%2C24.5%2080.3%2C25.4%2083.8%2C25.4%2087.3%2C26.4%2090.8%2C27.3%2094.3%2C28.3%2097.8%2C28.3%20101.3%2C24.5%20104.8%2C19.8%20108.3%2C16.0%20111.8%2C11.3%20115.3%2C7.6%20118.8%2C2.9%20122.3%2C1.0%20125.7%2C1.0%20129.2%2C1.0%20132.7%2C1.0%20136.2%2C1.0%20139.7%2C1.0%20143.2%2C1.0%20146.7%2C1.9%20150.2%2C2.9%20153.7%2C2.9%20157.2%2C3.8%20160.7%2C3.8%20164.2%2C4.8%20167.7%2C4.8%20171.2%2C4.8%20174.6%2C5.7%20178.1%2C6.6%20181.6%2C6.6%20185.1%2C7.6%20188.6%2C8.5%20192.1%2C10.4%20195.6%2C13.2%20199.1%2C15.1%20202.6%2C17.0%20206.1%2C18.9%20209.6%2C19.8%20213.1%2C19.8%20216.6%2C19.8%20220.1%2C20.7%20223.5%2C20.7%20227.0%2C21.7%20230.5%2C21.7%20234.0%2C23.6%20237.5%2C24.5%20241.0%2C26.4%20244.5%2C27.3%20248.0%2C29.2%22%20fill%3D%22none%22%20stroke%3D%22%23808088%22%20stroke-width%3D%221%22%20stroke-dasharray%3D%223%202%22%20stroke-opacity%3D%220.8%22%2F%3E%3C%2Fsvg%3E",
+                  "width": 248,
+                  "height": 96,
+                  "alt": "Draw over time"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "day-caption",
+                  "minHeight": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "last 6 h",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "text",
+                      "value": "avg 6.9 W · peak 27 W",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "value": "5 h on battery · shaded: charger",
+                  "key": "day-onbat",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "text",
+                  "value": "Today: 27 Wh on battery, 38% of a charge",
+                  "key": "today",
+                  "size": "sm",
+                  "weight": "medium"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "tiles",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "key": "tile-0",
+                      "width": 77,
+                      "height": 42,
+                      "text": "91%",
+                      "sub": "health",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "tile",
+                      "key": "tile-1",
+                      "width": 77,
+                      "height": 42,
+                      "text": "212",
+                      "sub": "cycles",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "tile",
+                      "key": "tile-2",
+                      "width": 77,
+                      "height": 42,
+                      "text": "33°",
+                      "sub": "temp",
+                      "color": "neutral",
+                      "fill": "soft"
+                    }
+                  ]
+                }
+              ]
             },
             {
-              "tag": "discharging",
-              "color": "amber"
-            }
-          ],
-          "section": "Battery",
-          "detail": {
-            "metadata": [
-              {
-                "label": "Level",
-                "value": "31%"
-              },
-              {
-                "label": "Power source",
-                "value": "Battery Power"
-              },
-              {
-                "label": "State",
-                "value": "Discharging"
-              },
-              {
-                "label": "Time remaining",
-                "value": "2:57 remaining"
-              },
-              {
-                "label": "Temperature",
-                "value": "30.4 °C"
-              }
-            ]
-          },
-          "actions": [
-            {
-              "id": "settings",
-              "title": "Open Battery settings"
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "key": "right-now",
+              "grow": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 3,
+                  "key": "tabs",
+                  "minHeight": 22,
+                  "children": [
+                    {
+                      "type": "badge",
+                      "key": "tab-now",
+                      "text": "Now",
+                      "color": "blue"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-today",
+                      "padding": 0,
+                      "action": "tab:today",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Today",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-week",
+                      "padding": 0,
+                      "action": "tab:week",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "7 days",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-all",
+                      "padding": 0,
+                      "action": "tab:all",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "All time",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "keycap",
+                      "keys": "tab"
+                    },
+                    {
+                      "type": "text",
+                      "value": "switch",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "alert-0-background-burn",
+                  "padding": 2,
+                  "radius": true,
+                  "surface": "#C98A2A24",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰀦",
+                      "style": "glyph",
+                      "color": "amber"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Google Chrome Helper (Renderer) is using power in the background",
+                      "size": "sm",
+                      "weight": "medium"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "h-split",
+                  "minHeight": 18,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Where the power goes",
+                      "size": "xs",
+                      "weight": "semibold",
+                      "color": "muted"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "text",
+                      "value": "12 W in all",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "stretch",
+                  "gap": 0,
+                  "key": "split-bar",
+                  "radius": true,
+                  "height": 10,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "key": "seg-chip",
+                      "flex": 5.5,
+                      "height": 10,
+                      "surface": "#8A6EE6d0",
+                      "children": []
+                    },
+                    {
+                      "type": "stack",
+                      "key": "seg-rest",
+                      "flex": 6.9,
+                      "height": 10,
+                      "surface": "#4F8AE8d0",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "split-legend",
+                  "minHeight": 16,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "",
+                          "style": "glyph",
+                          "size": "xs",
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Apps & chip 5.5 W (CPU 4.1 W, GPU 0.9 W)",
+                          "size": "xs",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 1,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "",
+                          "style": "glyph",
+                          "size": "xs",
+                          "color": "blue"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Screen & the rest 6.9 W",
+                          "size": "xs",
+                          "color": "muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "h-procs",
+                  "minHeight": 18,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Using power now",
+                      "size": "xs",
+                      "weight": "semibold",
+                      "color": "muted"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "text",
+                      "value": "share of the chip",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "procs",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "p-Google Chrome Helper (Renderer)",
+                      "padding": 1,
+                      "minHeight": 30,
+                      "radius": true,
+                      "action": "focus:0",
+                      "selected": true,
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Google Chrome Helper (Renderer)",
+                              "size": "sm",
+                              "weight": "semibold",
+                              "minWidth": 0
+                            },
+                            {
+                              "type": "text",
+                              "value": "background · 41% CPU · 880 wakeups/s",
+                              "style": "muted",
+                              "size": "xs",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 1,
+                          "width": 96,
+                          "color": "amber"
+                        },
+                        {
+                          "type": "text",
+                          "value": "2.1 W",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 50,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "p-WindowServer",
+                      "padding": 1,
+                      "minHeight": 30,
+                      "radius": true,
+                      "action": "focus:1",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "WindowServer",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            },
+                            {
+                              "type": "text",
+                              "value": "system · 18% CPU · 310 wakeups/s",
+                              "style": "muted",
+                              "size": "xs",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.5526315789473685,
+                          "width": 96,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "1.2 W",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 50,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "p-kitty",
+                      "padding": 1,
+                      "minHeight": 30,
+                      "radius": true,
+                      "action": "focus:2",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "kitty",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            },
+                            {
+                              "type": "text",
+                              "value": "in front · 10% CPU · 120 wakeups/s",
+                              "style": "muted",
+                              "size": "xs",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.3157894736842105,
+                          "width": 96,
+                          "color": "blue"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0.7 W",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 50,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "p-Spotify",
+                      "padding": 1,
+                      "minHeight": 30,
+                      "radius": true,
+                      "action": "focus:3",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Spotify",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            },
+                            {
+                              "type": "text",
+                              "value": "background · 6% CPU · 90 wakeups/s",
+                              "style": "muted",
+                              "size": "xs",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.21052631578947367,
+                          "width": 96,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0.4 W",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 50,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "p-mds_stores",
+                      "padding": 1,
+                      "minHeight": 30,
+                      "radius": true,
+                      "action": "focus:4",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "mds_stores",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.15789473684210525,
+                          "width": 96,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0.3 W",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 50,
+                          "align": "end"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "locks",
+                  "minHeight": 18,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰼶",
+                      "style": "glyph",
+                      "size": "sm",
+                      "color": "muted"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Kept awake by Spotify",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                }
+              ]
             }
           ]
-        },
-        {
-          "id": "draw",
-          "name": "7.2 W",
-          "subtitle": "Measured draw from the power watcher",
-          "icon": "󰤄",
-          "section": "Power",
-          "detail": {
-            "metadata": [
-              {
-                "label": "Draw",
-                "value": "7.21 W"
-              },
-              {
-                "label": "Sample",
-                "value": "10:37:43 PM"
-              },
-              {
-                "label": "Temperature",
-                "value": "30.4 °C"
-              }
-            ]
-          },
-          "actions": []
-        },
-        {
-          "id": "alert:0",
-          "name": "background-burn",
-          "subtitle": "Chrome is using power in the background",
-          "icon": "󰂃",
-          "section": "Attention",
-          "accessories": [
-            {
-              "tag": "warn",
-              "color": "amber"
-            }
-          ],
-          "actions": [
-            {
-              "id": "settings",
-              "title": "Open Battery settings"
-            }
-          ]
-        },
-        {
-          "id": "blame:0",
-          "name": "Google Chrome",
-          "subtitle": "Background process",
-          "icon": "󰓃",
-          "section": "Power",
-          "accessories": [
-            {
-              "text": "29%"
-            }
-          ],
-          "actions": []
-        },
-        {
-          "id": "blame:1",
-          "name": "WindowServer",
-          "subtitle": "Front app",
-          "icon": "󰓃",
-          "section": "Power",
-          "accessories": [
-            {
-              "text": "11%"
-            }
-          ],
-          "actions": []
-        },
-        {
-          "id": "blame:2",
-          "name": "backupd",
-          "subtitle": "System process",
-          "icon": "󰓃",
-          "section": "Power",
-          "accessories": [
-            {
-              "text": "8%"
-            }
-          ],
-          "actions": []
-        },
-        {
-          "id": "lock:0",
-          "name": "Google Chrome",
-          "subtitle": "PreventUserIdleSystemSleep",
-          "icon": "󰌾",
-          "section": "Wake locks",
-          "actions": []
         }
-      ]
+      }
+    },
+    "today": {
+      "title": "Battery & Power",
+      "icon": {
+        "tile": {
+          "glyph": "󰁹",
+          "bg": "green"
+        }
+      },
+      "view": "view",
+      "tree": {
+        "title": "Battery 31% · Today",
+        "id": "dash",
+        "keys": "actions",
+        "actions": [
+          {
+            "id": "settings",
+            "title": "Open Battery settings",
+            "shortcut": [
+              "enter",
+              "s"
+            ]
+          },
+          {
+            "id": "next",
+            "title": "Next tab",
+            "shortcut": [
+              "tab",
+              "right",
+              "l"
+            ]
+          },
+          {
+            "id": "prev",
+            "title": "Previous tab",
+            "shortcut": [
+              "shift+tab",
+              "left",
+              "h"
+            ]
+          },
+          {
+            "id": "tab:now",
+            "title": "Show Now",
+            "shortcut": "1"
+          },
+          {
+            "id": "tab:today",
+            "title": "Show Today",
+            "shortcut": "2"
+          },
+          {
+            "id": "tab:week",
+            "title": "Show 7 days",
+            "shortcut": "3"
+          },
+          {
+            "id": "tab:all",
+            "title": "Show All time",
+            "shortcut": "4"
+          },
+          {
+            "id": "copy",
+            "title": "Copy name",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "shortcut": "cmd+r"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:0",
+            "title": "Focus row 1",
+            "hidden": true
+          },
+          {
+            "id": "focus:1",
+            "title": "Focus row 2",
+            "hidden": true
+          },
+          {
+            "id": "focus:2",
+            "title": "Focus row 3",
+            "hidden": true
+          },
+          {
+            "id": "focus:3",
+            "title": "Focus row 4",
+            "hidden": true
+          },
+          {
+            "id": "focus:4",
+            "title": "Focus row 5",
+            "hidden": true
+          },
+          {
+            "id": "focus:5",
+            "title": "Focus row 6",
+            "hidden": true
+          },
+          {
+            "id": "focus:6",
+            "title": "Focus row 7",
+            "hidden": true
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "row",
+          "align": "stretch",
+          "gap": 4,
+          "key": "dash",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "key": "left",
+              "width": 272,
+              "padding": 3,
+              "surface": "elevated",
+              "radius": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "head",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰁽",
+                      "key": "glyph",
+                      "style": "glyph",
+                      "size": "lg",
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "31%",
+                      "key": "percent",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "badge",
+                      "key": "state",
+                      "text": "on battery",
+                      "color": "grey"
+                    }
+                  ]
+                },
+                {
+                  "type": "progress",
+                  "key": "level",
+                  "value": 0.31,
+                  "color": "green"
+                },
+                {
+                  "type": "text",
+                  "value": "Drawing 12 W · 1 h 48 min left",
+                  "key": "sentence",
+                  "style": "body",
+                  "size": "sm"
+                },
+                {
+                  "type": "image",
+                  "key": "day-chart",
+                  "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22248%22%20height%3D%2296%22%20viewBox%3D%220%200%20248%2096%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20x%3D%2299.5%22%20y%3D%220%22%20width%3D%2245.40845070422535%22%20height%3D%2296%22%20fill%3D%22%233AA36A%22%20fill-opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%2295.5%22%20x2%3D%22248%22%20y2%3D%2295.5%22%20stroke%3D%22%2380808066%22%20stroke-width%3D%221%22%2F%3E%3Cpath%20d%3D%22M0.0%2C72.9%20L3.5%2C75.7%207.0%2C78.0%2010.5%2C79.3%2014.0%2C79.4%2017.5%2C78.2%2021.0%2C76.1%2024.5%2C73.3%2027.9%2C70.4%2031.4%2C68.0%2034.9%2C66.3%2038.4%2C65.8%2041.9%2C66.6%2045.4%2C68.4%2048.9%2C71.0%2052.4%2C73.9%2055.9%2C76.6%2059.4%2C78.6%2062.9%2C79.4%2066.4%2C79.1%2069.9%2C77.6%2073.4%2C75.2%2076.8%2C72.3%2080.3%2C69.5%2083.8%2C67.3%2087.3%2C66.0%2090.8%2C65.9%2094.3%2C67.1%2097.8%2C69.2%20V96%20H0.0%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%220.0%2C72.9%203.5%2C75.7%207.0%2C78.0%2010.5%2C79.3%2014.0%2C79.4%2017.5%2C78.2%2021.0%2C76.1%2024.5%2C73.3%2027.9%2C70.4%2031.4%2C68.0%2034.9%2C66.3%2038.4%2C65.8%2041.9%2C66.6%2045.4%2C68.4%2048.9%2C71.0%2052.4%2C73.9%2055.9%2C76.6%2059.4%2C78.6%2062.9%2C79.4%2066.4%2C79.1%2069.9%2C77.6%2073.4%2C75.2%2076.8%2C72.3%2080.3%2C69.5%2083.8%2C67.3%2087.3%2C66.0%2090.8%2C65.9%2094.3%2C67.1%2097.8%2C69.2%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M143.2%2C66.6%20L146.7%2C67.7%20150.2%2C70.1%20153.7%2C73.0%20157.2%2C75.8%20160.7%2C78.0%20164.2%2C79.3%20167.7%2C79.4%20171.2%2C78.2%20174.6%2C76.0%20178.1%2C73.3%20181.6%2C70.4%20185.1%2C67.9%20188.6%2C66.3%20192.1%2C1.0%20195.6%2C8.1%20199.1%2C9.6%20202.6%2C6.6%20206.1%2C27.9%20209.6%2C76.6%20213.1%2C78.6%20216.6%2C79.4%20220.1%2C79.1%20223.5%2C77.6%20227.0%2C75.2%20230.5%2C72.3%20234.0%2C43.7%20237.5%2C41.5%20241.0%2C40.2%20244.5%2C40.2%20248.0%2C41.3%20V96%20H143.2%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%22143.2%2C66.6%20146.7%2C67.7%20150.2%2C70.1%20153.7%2C73.0%20157.2%2C75.8%20160.7%2C78.0%20164.2%2C79.3%20167.7%2C79.4%20171.2%2C78.2%20174.6%2C76.0%20178.1%2C73.3%20181.6%2C70.4%20185.1%2C67.9%20188.6%2C66.3%20192.1%2C1.0%20195.6%2C8.1%20199.1%2C9.6%20202.6%2C6.6%20206.1%2C27.9%20209.6%2C76.6%20213.1%2C78.6%20216.6%2C79.4%20220.1%2C79.1%20223.5%2C77.6%20227.0%2C75.2%20230.5%2C72.3%20234.0%2C43.7%20237.5%2C41.5%20241.0%2C40.2%20244.5%2C40.2%20248.0%2C41.3%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%220.0%2C13.2%203.5%2C13.2%207.0%2C14.2%2010.5%2C14.2%2014.0%2C14.2%2017.5%2C15.1%2021.0%2C15.1%2024.5%2C16.0%2027.9%2C17.0%2031.4%2C17.0%2034.9%2C17.9%2038.4%2C18.9%2041.9%2C19.8%2045.4%2C19.8%2048.9%2C20.7%2052.4%2C21.7%2055.9%2C21.7%2059.4%2C22.6%2062.9%2C22.6%2066.4%2C22.6%2069.9%2C23.6%2073.4%2C23.6%2076.8%2C24.5%2080.3%2C25.4%2083.8%2C25.4%2087.3%2C26.4%2090.8%2C27.3%2094.3%2C28.3%2097.8%2C28.3%20101.3%2C24.5%20104.8%2C19.8%20108.3%2C16.0%20111.8%2C11.3%20115.3%2C7.6%20118.8%2C2.9%20122.3%2C1.0%20125.7%2C1.0%20129.2%2C1.0%20132.7%2C1.0%20136.2%2C1.0%20139.7%2C1.0%20143.2%2C1.0%20146.7%2C1.9%20150.2%2C2.9%20153.7%2C2.9%20157.2%2C3.8%20160.7%2C3.8%20164.2%2C4.8%20167.7%2C4.8%20171.2%2C4.8%20174.6%2C5.7%20178.1%2C6.6%20181.6%2C6.6%20185.1%2C7.6%20188.6%2C8.5%20192.1%2C10.4%20195.6%2C13.2%20199.1%2C15.1%20202.6%2C17.0%20206.1%2C18.9%20209.6%2C19.8%20213.1%2C19.8%20216.6%2C19.8%20220.1%2C20.7%20223.5%2C20.7%20227.0%2C21.7%20230.5%2C21.7%20234.0%2C23.6%20237.5%2C24.5%20241.0%2C26.4%20244.5%2C27.3%20248.0%2C29.2%22%20fill%3D%22none%22%20stroke%3D%22%23808088%22%20stroke-width%3D%221%22%20stroke-dasharray%3D%223%202%22%20stroke-opacity%3D%220.8%22%2F%3E%3C%2Fsvg%3E",
+                  "width": 248,
+                  "height": 96,
+                  "alt": "Draw over time"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "day-caption",
+                  "minHeight": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "last 6 h",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "text",
+                      "value": "avg 6.9 W · peak 27 W",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "value": "5 h on battery · shaded: charger",
+                  "key": "day-onbat",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "text",
+                  "value": "Today: 27 Wh on battery, 38% of a charge",
+                  "key": "today",
+                  "size": "sm",
+                  "weight": "medium"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "tiles",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "key": "tile-0",
+                      "width": 77,
+                      "height": 42,
+                      "text": "91%",
+                      "sub": "health",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "tile",
+                      "key": "tile-1",
+                      "width": 77,
+                      "height": 42,
+                      "text": "212",
+                      "sub": "cycles",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "tile",
+                      "key": "tile-2",
+                      "width": 77,
+                      "height": 42,
+                      "text": "33°",
+                      "sub": "temp",
+                      "color": "neutral",
+                      "fill": "soft"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "key": "right-today",
+              "grow": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 3,
+                  "key": "tabs",
+                  "minHeight": 22,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-now",
+                      "padding": 0,
+                      "action": "tab:now",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Now",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "badge",
+                      "key": "tab-today",
+                      "text": "Today",
+                      "color": "blue"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-week",
+                      "padding": 0,
+                      "action": "tab:week",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "7 days",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-all",
+                      "padding": 0,
+                      "action": "tab:all",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "All time",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "keycap",
+                      "keys": "tab"
+                    },
+                    {
+                      "type": "text",
+                      "value": "switch",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "value": "27 Wh used on battery today.",
+                  "key": "summary-today",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "rows-today",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-(baseline)",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:0",
+                      "selected": true,
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Screen & the rest",
+                              "size": "sm",
+                              "weight": "semibold",
+                              "color": "muted",
+                              "minWidth": 0
+                            },
+                            {
+                              "type": "text",
+                              "value": "the display, Wi-Fi, memory and SSD: power no one process owns",
+                              "style": "muted",
+                              "size": "xs",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 1,
+                          "width": 110,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "14 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "52%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-Google Chrome Helper (Renderer)",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:1",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Google Chrome Helper (Renderer)",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.4295774647887324,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "6.1 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "22%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-rustc",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:2",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "rustc",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.16901408450704225,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "2.4 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "9%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-WindowServer",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:3",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "WindowServer",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.13380281690140844,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "1.9 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "7%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-Spotify",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:4",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Spotify",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.07746478873239437,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "1.1 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "4%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-(short-lived processes)",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:5",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Short-lived processes",
+                              "size": "sm",
+                              "weight": "medium",
+                              "color": "muted",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.05633802816901409,
+                          "width": 110,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0.8 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "3%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-kitty",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:6",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "kitty",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.04225352112676056,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "0.6 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "2%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "week": {
+      "title": "Battery & Power",
+      "icon": {
+        "tile": {
+          "glyph": "󰁹",
+          "bg": "green"
+        }
+      },
+      "view": "view",
+      "tree": {
+        "title": "Battery 31% · 7 days",
+        "id": "dash",
+        "keys": "actions",
+        "actions": [
+          {
+            "id": "settings",
+            "title": "Open Battery settings",
+            "shortcut": [
+              "enter",
+              "s"
+            ]
+          },
+          {
+            "id": "next",
+            "title": "Next tab",
+            "shortcut": [
+              "tab",
+              "right",
+              "l"
+            ]
+          },
+          {
+            "id": "prev",
+            "title": "Previous tab",
+            "shortcut": [
+              "shift+tab",
+              "left",
+              "h"
+            ]
+          },
+          {
+            "id": "tab:now",
+            "title": "Show Now",
+            "shortcut": "1"
+          },
+          {
+            "id": "tab:today",
+            "title": "Show Today",
+            "shortcut": "2"
+          },
+          {
+            "id": "tab:week",
+            "title": "Show 7 days",
+            "shortcut": "3"
+          },
+          {
+            "id": "tab:all",
+            "title": "Show All time",
+            "shortcut": "4"
+          },
+          {
+            "id": "copy",
+            "title": "Copy name",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "shortcut": "cmd+r"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:0",
+            "title": "Focus row 1",
+            "hidden": true
+          },
+          {
+            "id": "focus:1",
+            "title": "Focus row 2",
+            "hidden": true
+          },
+          {
+            "id": "focus:2",
+            "title": "Focus row 3",
+            "hidden": true
+          },
+          {
+            "id": "focus:3",
+            "title": "Focus row 4",
+            "hidden": true
+          },
+          {
+            "id": "focus:4",
+            "title": "Focus row 5",
+            "hidden": true
+          },
+          {
+            "id": "focus:5",
+            "title": "Focus row 6",
+            "hidden": true
+          },
+          {
+            "id": "focus:6",
+            "title": "Focus row 7",
+            "hidden": true
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "row",
+          "align": "stretch",
+          "gap": 4,
+          "key": "dash",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "key": "left",
+              "width": 272,
+              "padding": 3,
+              "surface": "elevated",
+              "radius": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "head",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰁽",
+                      "key": "glyph",
+                      "style": "glyph",
+                      "size": "lg",
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "31%",
+                      "key": "percent",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "badge",
+                      "key": "state",
+                      "text": "on battery",
+                      "color": "grey"
+                    }
+                  ]
+                },
+                {
+                  "type": "progress",
+                  "key": "level",
+                  "value": 0.31,
+                  "color": "green"
+                },
+                {
+                  "type": "text",
+                  "value": "Drawing 12 W · 1 h 48 min left",
+                  "key": "sentence",
+                  "style": "body",
+                  "size": "sm"
+                },
+                {
+                  "type": "image",
+                  "key": "day-chart",
+                  "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22248%22%20height%3D%2296%22%20viewBox%3D%220%200%20248%2096%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20x%3D%2299.5%22%20y%3D%220%22%20width%3D%2245.40845070422535%22%20height%3D%2296%22%20fill%3D%22%233AA36A%22%20fill-opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%220%22%20y1%3D%2295.5%22%20x2%3D%22248%22%20y2%3D%2295.5%22%20stroke%3D%22%2380808066%22%20stroke-width%3D%221%22%2F%3E%3Cpath%20d%3D%22M0.0%2C72.9%20L3.5%2C75.7%207.0%2C78.0%2010.5%2C79.3%2014.0%2C79.4%2017.5%2C78.2%2021.0%2C76.1%2024.5%2C73.3%2027.9%2C70.4%2031.4%2C68.0%2034.9%2C66.3%2038.4%2C65.8%2041.9%2C66.6%2045.4%2C68.4%2048.9%2C71.0%2052.4%2C73.9%2055.9%2C76.6%2059.4%2C78.6%2062.9%2C79.4%2066.4%2C79.1%2069.9%2C77.6%2073.4%2C75.2%2076.8%2C72.3%2080.3%2C69.5%2083.8%2C67.3%2087.3%2C66.0%2090.8%2C65.9%2094.3%2C67.1%2097.8%2C69.2%20V96%20H0.0%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%220.0%2C72.9%203.5%2C75.7%207.0%2C78.0%2010.5%2C79.3%2014.0%2C79.4%2017.5%2C78.2%2021.0%2C76.1%2024.5%2C73.3%2027.9%2C70.4%2031.4%2C68.0%2034.9%2C66.3%2038.4%2C65.8%2041.9%2C66.6%2045.4%2C68.4%2048.9%2C71.0%2052.4%2C73.9%2055.9%2C76.6%2059.4%2C78.6%2062.9%2C79.4%2066.4%2C79.1%2069.9%2C77.6%2073.4%2C75.2%2076.8%2C72.3%2080.3%2C69.5%2083.8%2C67.3%2087.3%2C66.0%2090.8%2C65.9%2094.3%2C67.1%2097.8%2C69.2%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M143.2%2C66.6%20L146.7%2C67.7%20150.2%2C70.1%20153.7%2C73.0%20157.2%2C75.8%20160.7%2C78.0%20164.2%2C79.3%20167.7%2C79.4%20171.2%2C78.2%20174.6%2C76.0%20178.1%2C73.3%20181.6%2C70.4%20185.1%2C67.9%20188.6%2C66.3%20192.1%2C1.0%20195.6%2C8.1%20199.1%2C9.6%20202.6%2C6.6%20206.1%2C27.9%20209.6%2C76.6%20213.1%2C78.6%20216.6%2C79.4%20220.1%2C79.1%20223.5%2C77.6%20227.0%2C75.2%20230.5%2C72.3%20234.0%2C43.7%20237.5%2C41.5%20241.0%2C40.2%20244.5%2C40.2%20248.0%2C41.3%20V96%20H143.2%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%22143.2%2C66.6%20146.7%2C67.7%20150.2%2C70.1%20153.7%2C73.0%20157.2%2C75.8%20160.7%2C78.0%20164.2%2C79.3%20167.7%2C79.4%20171.2%2C78.2%20174.6%2C76.0%20178.1%2C73.3%20181.6%2C70.4%20185.1%2C67.9%20188.6%2C66.3%20192.1%2C1.0%20195.6%2C8.1%20199.1%2C9.6%20202.6%2C6.6%20206.1%2C27.9%20209.6%2C76.6%20213.1%2C78.6%20216.6%2C79.4%20220.1%2C79.1%20223.5%2C77.6%20227.0%2C75.2%20230.5%2C72.3%20234.0%2C43.7%20237.5%2C41.5%20241.0%2C40.2%20244.5%2C40.2%20248.0%2C41.3%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%220.0%2C13.2%203.5%2C13.2%207.0%2C14.2%2010.5%2C14.2%2014.0%2C14.2%2017.5%2C15.1%2021.0%2C15.1%2024.5%2C16.0%2027.9%2C17.0%2031.4%2C17.0%2034.9%2C17.9%2038.4%2C18.9%2041.9%2C19.8%2045.4%2C19.8%2048.9%2C20.7%2052.4%2C21.7%2055.9%2C21.7%2059.4%2C22.6%2062.9%2C22.6%2066.4%2C22.6%2069.9%2C23.6%2073.4%2C23.6%2076.8%2C24.5%2080.3%2C25.4%2083.8%2C25.4%2087.3%2C26.4%2090.8%2C27.3%2094.3%2C28.3%2097.8%2C28.3%20101.3%2C24.5%20104.8%2C19.8%20108.3%2C16.0%20111.8%2C11.3%20115.3%2C7.6%20118.8%2C2.9%20122.3%2C1.0%20125.7%2C1.0%20129.2%2C1.0%20132.7%2C1.0%20136.2%2C1.0%20139.7%2C1.0%20143.2%2C1.0%20146.7%2C1.9%20150.2%2C2.9%20153.7%2C2.9%20157.2%2C3.8%20160.7%2C3.8%20164.2%2C4.8%20167.7%2C4.8%20171.2%2C4.8%20174.6%2C5.7%20178.1%2C6.6%20181.6%2C6.6%20185.1%2C7.6%20188.6%2C8.5%20192.1%2C10.4%20195.6%2C13.2%20199.1%2C15.1%20202.6%2C17.0%20206.1%2C18.9%20209.6%2C19.8%20213.1%2C19.8%20216.6%2C19.8%20220.1%2C20.7%20223.5%2C20.7%20227.0%2C21.7%20230.5%2C21.7%20234.0%2C23.6%20237.5%2C24.5%20241.0%2C26.4%20244.5%2C27.3%20248.0%2C29.2%22%20fill%3D%22none%22%20stroke%3D%22%23808088%22%20stroke-width%3D%221%22%20stroke-dasharray%3D%223%202%22%20stroke-opacity%3D%220.8%22%2F%3E%3C%2Fsvg%3E",
+                  "width": 248,
+                  "height": 96,
+                  "alt": "Draw over time"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "day-caption",
+                  "minHeight": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "last 6 h",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "text",
+                      "value": "avg 6.9 W · peak 27 W",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "value": "5 h on battery · shaded: charger",
+                  "key": "day-onbat",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "text",
+                  "value": "Today: 27 Wh on battery, 38% of a charge",
+                  "key": "today",
+                  "size": "sm",
+                  "weight": "medium"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "tiles",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "key": "tile-0",
+                      "width": 77,
+                      "height": 42,
+                      "text": "91%",
+                      "sub": "health",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "tile",
+                      "key": "tile-1",
+                      "width": 77,
+                      "height": 42,
+                      "text": "212",
+                      "sub": "cycles",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "tile",
+                      "key": "tile-2",
+                      "width": 77,
+                      "height": 42,
+                      "text": "33°",
+                      "sub": "temp",
+                      "color": "neutral",
+                      "fill": "soft"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "key": "right-week",
+              "grow": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 3,
+                  "key": "tabs",
+                  "minHeight": 22,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-now",
+                      "padding": 0,
+                      "action": "tab:now",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Now",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-today",
+                      "padding": 0,
+                      "action": "tab:today",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Today",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "badge",
+                      "key": "tab-week",
+                      "text": "7 days",
+                      "color": "blue"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "key": "tab-all",
+                      "padding": 0,
+                      "action": "tab:all",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "All time",
+                          "size": "xs",
+                          "weight": "medium",
+                          "color": "muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "keycap",
+                      "keys": "tab"
+                    },
+                    {
+                      "type": "text",
+                      "value": "switch",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "value": "221 Wh used on battery in the last 7 days, about 3.1 full charges.",
+                  "key": "summary-week",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "rows-week",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-(baseline)",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:0",
+                      "selected": true,
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Screen & the rest",
+                              "size": "sm",
+                              "weight": "semibold",
+                              "color": "muted",
+                              "minWidth": 0
+                            },
+                            {
+                              "type": "text",
+                              "value": "the display, Wi-Fi, memory and SSD: power no one process owns",
+                              "style": "muted",
+                              "size": "xs",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 1,
+                          "width": 110,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "121 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "55%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-Google Chrome Helper (Renderer)",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:1",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Google Chrome Helper (Renderer)",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.3181818181818182,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "39 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "17%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-rustc",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:2",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "rustc",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.17520661157024792,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "21 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "10%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-WindowServer",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:3",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "WindowServer",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.10578512396694216,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "13 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "6%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-Spotify",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:4",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Spotify",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.08016528925619834,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "9.7 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "4%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-(short-lived processes)",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:5",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Short-lived processes",
+                              "size": "sm",
+                              "weight": "medium",
+                              "color": "muted",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.0512396694214876,
+                          "width": 110,
+                          "color": "grey"
+                        },
+                        {
+                          "type": "text",
+                          "value": "6.2 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "3%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "u-zoom.us",
+                      "padding": 1,
+                      "minHeight": 28,
+                      "radius": true,
+                      "action": "focus:6",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "fade"
+                      },
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "zoom.us",
+                              "size": "sm",
+                              "weight": "medium",
+                              "minWidth": 0
+                            }
+                          ]
+                        },
+                        {
+                          "type": "progress",
+                          "value": 0.0487603305785124,
+                          "width": 110,
+                          "color": "violet"
+                        },
+                        {
+                          "type": "text",
+                          "value": "5.9 Wh",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56,
+                          "align": "end"
+                        },
+                        {
+                          "type": "text",
+                          "value": "3%",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 34,
+                          "align": "end"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   },
+  "effects": {},
   "shots": {
-    "1-overview": {
-      "palette": "power",
-      "keys": []
-    },
-    "2-draw": {
+    "1-now": {
       "palette": "power",
       "keys": [
-        "down"
+        "wait:300"
       ]
     },
-    "3-actions": {
-      "palette": "power",
+    "2-today": {
+      "palette": "today",
       "keys": [
-        "cmd+k"
+        "wait:300"
+      ]
+    },
+    "3-week": {
+      "palette": "week",
+      "keys": [
+        "down",
+        "wait:300"
       ]
     }
   }

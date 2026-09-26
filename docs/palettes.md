@@ -33,6 +33,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
 | [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
+| [Battery & Power](#battery--power-power) | `power` | view, normal | Find the process under the cursor in Processes |
 | [Blackjack](#blackjack-blackjack) | `blackjack` | view (surface), normal | Deal, stand, or the next hand; declines insurance |
 | [Bluetooth](#bluetooth-bluetooth) | `bluetooth` | live, normal | Connect or disconnect |
 | [Bookmarks](#bookmarks-bookmarks-bookmarks-history) | `bookmarks` | indexed, primary | Open in the browser |
@@ -4801,6 +4802,42 @@ Each item's settings, `[bar.items."stats/<item>".settings]` (`cpu`,
 | `disk` | `percent`, `free`, `used` (the startup volume) | `free` |
 | `network` | `rate`, `down`, `spark` | `rate` |
 | `load` | `one`, `three` | `one` |
+
+## Battery & Power (`power`)
+
+The battery and what drains it, from `extensions/power/`. The level comes
+from `pmset -g batt` (macOS) or `upower` (Linux); everything else from the
+optional `power` watcher: its `state.json`, the `samples.jsonl` ring buffer
+beside it and `power blame <window>` for watt-hours, so the apportioning is
+the watcher's and computed once. One view: on the left the level with a
+plain sentence (`Drawing 12 W · 1 h 48 min left`), six hours of draw (the
+charger's stretches shaded, the charge level dashed), today's watt-hours
+as a share of a full charge, and health, cycles and temperature as tiles.
+On the right four tabs: **Now** (the watcher's warning, the draw split
+between the apps and chip and the screen and the rest, the processes with
+their watts and why: CPU, wakeups, disk, network), **Today**, **7 days**
+and **All time** (watt-hours per process with each share; a window spent
+on the charger ranks by activity, since there is no draw to apportion).
+Re-read every 10 s while open. Without the watcher only the level and the
+time left show, and the view says what the watcher adds.
+
+| keys | action |
+| --- | --- |
+| `enter` | Find the process in Processes (on `Screen & the rest` and the other bookkeeping lines: Battery settings) |
+| `tab`, `shift+tab`, `left` `right`, `h` `l`, `1`–`4` | Switch tabs |
+| `up` `down`, `j` `k` | Move the cursor |
+| `cmd+c` | Copy the name |
+| `s` | Open Battery settings |
+| `cmd+r` | Refresh (drops the cached windows) |
+
+The `battery` bar item is hidden while healthy (its manifest rules over
+`power/level`, `power/charging`, `power/draw` and `power/alert`); hover
+shows the popover (the level, the last hour, the warning, the top four,
+today's watt-hours), a click opens the palette.
+
+| setting | type | default | what |
+| --- | --- | --- | --- |
+| `power_state_file` | path | `~/.local/share/power/state.json` | The watcher's state; `samples.jsonl` is read from beside it. A state older than 3 minutes is ignored. |
 
 ## odak (`odak`, `odak-add`, `odak-search`, `odak-done`, `odak/today`)
 

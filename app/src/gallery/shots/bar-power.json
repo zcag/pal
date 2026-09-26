@@ -3,9 +3,8 @@
   "title": "Battery",
   "item": {
     "icon": "󰁽",
-    "title": "31% · 7.2W · background-burn",
-    "color": "amber",
-    "tooltip": "Battery Power · Discharging · 2:57 remaining · 7.2 W draw · Chrome is using power in the background",
+    "title": "31% · 12.4W · background-burn",
+    "tooltip": "Battery Power · Discharging · 1:48 remaining · 12.4 W draw · Google Chrome Helper (Renderer) is using power in the background",
     "click": "open",
     "menu": {
       "view": {
@@ -14,9 +13,14 @@
         "keys": "actions",
         "actions": [
           {
+            "id": "palette",
+            "title": "Open Battery & Power",
+            "shortcut": "enter"
+          },
+          {
             "id": "settings",
             "title": "Open Battery settings",
-            "shortcut": "enter"
+            "shortcut": "s"
           }
         ],
         "tree": {
@@ -35,17 +39,18 @@
               "children": [
                 {
                   "type": "text",
-                  "value": "31%",
-                  "key": "percent",
-                  "style": "title",
-                  "size": "xl",
-                  "width": 66
+                  "value": "󰁽",
+                  "key": "glyph",
+                  "style": "glyph",
+                  "size": "lg",
+                  "color": "green"
                 },
                 {
                   "type": "text",
-                  "value": "Battery",
-                  "key": "title",
-                  "style": "body",
+                  "value": "31%",
+                  "key": "percent",
+                  "style": "number",
+                  "size": "xl",
                   "weight": "semibold"
                 },
                 {
@@ -53,9 +58,9 @@
                 },
                 {
                   "type": "badge",
-                  "key": "source",
+                  "key": "state",
                   "text": "on battery",
-                  "color": "amber"
+                  "color": "grey"
                 }
               ]
             },
@@ -63,148 +68,585 @@
               "type": "progress",
               "key": "level",
               "value": 0.31,
-              "color": "amber"
+              "color": "green"
             },
             {
               "type": "text",
-              "value": "Battery Power · Discharging · 2:57 remaining · 7.2 W draw",
-              "key": "details",
-              "style": "muted",
+              "value": "Drawing 12 W · 1 h 48 min left",
+              "key": "sentence",
+              "style": "body",
               "size": "sm"
             },
             {
-              "type": "stack",
-              "direction": "row",
-              "align": "center",
-              "gap": 1,
-              "key": "alerts",
-              "minHeight": 20,
-              "children": [
-                {
-                  "type": "badge",
-                  "key": "alert-background-burn",
-                  "text": "Chrome is using power in the background",
-                  "color": "amber"
-                }
-              ]
-            },
-            {
-              "type": "text",
-              "value": "Top consumers right now",
-              "key": "blame-title",
-              "style": "muted",
-              "size": "xs",
-              "weight": "semibold"
-            },
-            {
-              "type": "stack",
-              "direction": "row",
-              "align": "center",
-              "gap": 2,
-              "key": "blame-0",
-              "children": [
-                {
-                  "type": "text",
-                  "value": "Google Chrome",
-                  "key": "blame-name-0",
-                  "style": "body",
-                  "size": "sm",
-                  "width": 324
-                },
-                {
-                  "type": "text",
-                  "value": "29%",
-                  "key": "blame-share-0",
-                  "style": "number",
-                  "size": "xs",
-                  "width": 36,
-                  "align": "end"
-                }
-              ]
-            },
-            {
-              "type": "stack",
-              "direction": "row",
-              "align": "center",
-              "gap": 2,
-              "key": "blame-1",
-              "children": [
-                {
-                  "type": "text",
-                  "value": "WindowServer",
-                  "key": "blame-name-1",
-                  "style": "body",
-                  "size": "sm",
-                  "width": 324
-                },
-                {
-                  "type": "text",
-                  "value": "11%",
-                  "key": "blame-share-1",
-                  "style": "number",
-                  "size": "xs",
-                  "width": 36,
-                  "align": "end"
-                }
-              ]
-            },
-            {
-              "type": "stack",
-              "direction": "row",
-              "align": "center",
-              "gap": 2,
-              "key": "blame-2",
-              "children": [
-                {
-                  "type": "text",
-                  "value": "backupd",
-                  "key": "blame-name-2",
-                  "style": "body",
-                  "size": "sm",
-                  "width": 324
-                },
-                {
-                  "type": "text",
-                  "value": "8%",
-                  "key": "blame-share-2",
-                  "style": "number",
-                  "size": "xs",
-                  "width": 36,
-                  "align": "end"
-                }
-              ]
+              "type": "image",
+              "key": "hour-chart",
+              "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22396%22%20height%3D%2236%22%20viewBox%3D%220%200%20396%2036%22%20preserveAspectRatio%3D%22none%22%3E%3Cline%20x1%3D%220%22%20y1%3D%2235.5%22%20x2%3D%22396%22%20y2%3D%2235.5%22%20stroke%3D%22%2380808066%22%20stroke-width%3D%221%22%2F%3E%3Cpath%20d%3D%22M0.0%2C23.0%20L6.7%2C23.4%2013.4%2C23.7%2020.1%2C23.9%2026.8%2C24.2%2033.6%2C24.5%2040.3%2C24.7%2047.0%2C24.9%2053.7%2C25.0%2060.4%2C25.2%2067.1%2C25.3%2073.8%2C25.4%2080.5%2C25.4%2087.3%2C25.4%2094.0%2C25.4%20100.7%2C25.4%20107.4%2C25.3%20114.1%2C25.2%20120.8%2C25.1%20127.5%2C24.9%20134.2%2C24.7%20140.9%2C24.5%20147.7%2C24.2%20154.4%2C24.0%20161.1%2C23.7%20167.8%2C23.4%20174.5%2C23.1%20181.2%2C22.8%20187.9%2C22.4%20194.6%2C22.0%20201.4%2C21.7%20208.1%2C21.3%20214.8%2C21.0%20221.5%2C20.6%20228.2%2C20.2%20234.9%2C3.9%20241.6%2C3.6%20248.3%2C3.3%20255.1%2C3.0%20261.8%2C2.7%20268.5%2C2.4%20275.2%2C2.1%20281.9%2C1.9%20288.6%2C1.7%20295.3%2C1.5%20302.0%2C1.3%20308.7%2C1.2%20315.5%2C1.1%20322.2%2C1.1%20328.9%2C1.0%20335.6%2C1.0%20342.3%2C1.0%20349.0%2C1.1%20355.7%2C1.2%20362.4%2C1.3%20369.2%2C1.4%20375.9%2C1.6%20382.6%2C1.8%20389.3%2C2.0%20396.0%2C2.3%20V36%20H0.0%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%220.0%2C23.0%206.7%2C23.4%2013.4%2C23.7%2020.1%2C23.9%2026.8%2C24.2%2033.6%2C24.5%2040.3%2C24.7%2047.0%2C24.9%2053.7%2C25.0%2060.4%2C25.2%2067.1%2C25.3%2073.8%2C25.4%2080.5%2C25.4%2087.3%2C25.4%2094.0%2C25.4%20100.7%2C25.4%20107.4%2C25.3%20114.1%2C25.2%20120.8%2C25.1%20127.5%2C24.9%20134.2%2C24.7%20140.9%2C24.5%20147.7%2C24.2%20154.4%2C24.0%20161.1%2C23.7%20167.8%2C23.4%20174.5%2C23.1%20181.2%2C22.8%20187.9%2C22.4%20194.6%2C22.0%20201.4%2C21.7%20208.1%2C21.3%20214.8%2C21.0%20221.5%2C20.6%20228.2%2C20.2%20234.9%2C3.9%20241.6%2C3.6%20248.3%2C3.3%20255.1%2C3.0%20261.8%2C2.7%20268.5%2C2.4%20275.2%2C2.1%20281.9%2C1.9%20288.6%2C1.7%20295.3%2C1.5%20302.0%2C1.3%20308.7%2C1.2%20315.5%2C1.1%20322.2%2C1.1%20328.9%2C1.0%20335.6%2C1.0%20342.3%2C1.0%20349.0%2C1.1%20355.7%2C1.2%20362.4%2C1.3%20369.2%2C1.4%20375.9%2C1.6%20382.6%2C1.8%20389.3%2C2.0%20396.0%2C2.3%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%220.0%2C7.5%206.7%2C7.5%2013.4%2C7.5%2020.1%2C7.5%2026.8%2C7.8%2033.6%2C7.8%2040.3%2C7.8%2047.0%2C7.8%2053.7%2C7.8%2060.4%2C7.8%2067.1%2C7.8%2073.8%2C7.8%2080.5%2C7.8%2087.3%2C7.8%2094.0%2C7.8%20100.7%2C7.8%20107.4%2C8.1%20114.1%2C8.1%20120.8%2C8.1%20127.5%2C8.1%20134.2%2C8.1%20140.9%2C8.1%20147.7%2C8.1%20154.4%2C8.1%20161.1%2C8.1%20167.8%2C8.1%20174.5%2C8.1%20181.2%2C8.5%20187.9%2C8.5%20194.6%2C8.5%20201.4%2C8.5%20208.1%2C8.5%20214.8%2C8.5%20221.5%2C8.5%20228.2%2C8.5%20234.9%2C8.8%20241.6%2C8.8%20248.3%2C8.8%20255.1%2C9.2%20261.8%2C9.2%20268.5%2C9.2%20275.2%2C9.2%20281.9%2C9.5%20288.6%2C9.5%20295.3%2C9.5%20302.0%2C9.8%20308.7%2C9.8%20315.5%2C9.8%20322.2%2C9.8%20328.9%2C10.2%20335.6%2C10.2%20342.3%2C10.2%20349.0%2C10.5%20355.7%2C10.5%20362.4%2C10.5%20369.2%2C10.9%20375.9%2C10.9%20382.6%2C10.9%20389.3%2C10.9%20396.0%2C11.2%22%20fill%3D%22none%22%20stroke%3D%22%23808088%22%20stroke-width%3D%221%22%20stroke-dasharray%3D%223%202%22%20stroke-opacity%3D%220.8%22%2F%3E%3C%2Fsvg%3E",
+              "width": 396,
+              "height": 36,
+              "alt": "Draw over time"
             },
             {
               "type": "stack",
               "direction": "row",
               "align": "center",
               "gap": 1,
-              "key": "footer",
-              "minHeight": 20,
+              "key": "hour-caption",
+              "minHeight": 14,
               "children": [
                 {
-                  "type": "keycap",
-                  "keys": "enter",
-                  "action": "settings"
+                  "type": "text",
+                  "value": "last 1 h",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "spacer"
                 },
                 {
                   "type": "text",
-                  "value": "Battery Settings",
+                  "value": "avg 7.6 W · peak 13 W",
                   "style": "muted",
                   "size": "xs"
                 }
               ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "alert-0-background-burn",
+              "padding": 2,
+              "radius": true,
+              "surface": "#C98A2A24",
+              "transition": {
+                "enter": "fade",
+                "exit": "fade"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "value": "󰀦",
+                  "style": "glyph",
+                  "color": "amber"
+                },
+                {
+                  "type": "text",
+                  "value": "Google Chrome Helper (Renderer) is using power in the background",
+                  "size": "sm",
+                  "weight": "medium"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "h-procs",
+              "minHeight": 18,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Using power now",
+                  "size": "xs",
+                  "weight": "semibold",
+                  "color": "muted"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "pp-Google Chrome Helper (Renderer)",
+              "minHeight": 22,
+              "transition": {
+                "enter": "fade",
+                "exit": "fade"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Google Chrome Helper (Rendere…",
+                  "size": "sm",
+                  "weight": "medium",
+                  "minWidth": 0
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "progress",
+                  "value": 1,
+                  "width": 72,
+                  "color": "amber"
+                },
+                {
+                  "type": "text",
+                  "value": "2.1 W",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 44,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "pp-WindowServer",
+              "minHeight": 22,
+              "transition": {
+                "enter": "fade",
+                "exit": "fade"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "value": "WindowServer",
+                  "size": "sm",
+                  "weight": "medium",
+                  "minWidth": 0
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "progress",
+                  "value": 0.5526315789473685,
+                  "width": 72,
+                  "color": "grey"
+                },
+                {
+                  "type": "text",
+                  "value": "1.2 W",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 44,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "pp-kitty",
+              "minHeight": 22,
+              "transition": {
+                "enter": "fade",
+                "exit": "fade"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "value": "kitty",
+                  "size": "sm",
+                  "weight": "medium",
+                  "minWidth": 0
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "progress",
+                  "value": 0.3157894736842105,
+                  "width": 72,
+                  "color": "blue"
+                },
+                {
+                  "type": "text",
+                  "value": "0.7 W",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 44,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "pp-Spotify",
+              "minHeight": 22,
+              "transition": {
+                "enter": "fade",
+                "exit": "fade"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Spotify",
+                  "size": "sm",
+                  "weight": "medium",
+                  "minWidth": 0
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "progress",
+                  "value": 0.21052631578947367,
+                  "width": 72,
+                  "color": "grey"
+                },
+                {
+                  "type": "text",
+                  "value": "0.4 W",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 44,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "value": "Today: 27 Wh on battery · most by Google Chrome Helper … (6.1 Wh)",
+              "key": "today",
+              "style": "muted",
+              "size": "xs"
             }
           ]
         }
       }
+    },
+    "empty": {
+      "icon": "󰁽",
+      "title": "31% · 12.4W · background-burn",
+      "tooltip": "Battery Power · Discharging · 1:48 remaining · 12.4 W draw · Google Chrome Helper (Renderer) is using power in the background",
+      "menu": {
+        "view": {
+          "title": "Battery",
+          "id": "power",
+          "keys": "actions",
+          "actions": [
+            {
+              "id": "palette",
+              "title": "Open Battery & Power",
+              "shortcut": "enter"
+            },
+            {
+              "id": "settings",
+              "title": "Open Battery settings",
+              "shortcut": "s"
+            }
+          ],
+          "tree": {
+            "type": "stack",
+            "direction": "column",
+            "gap": 2,
+            "key": "power",
+            "padding": 3,
+            "children": [
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 2,
+                "key": "head",
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "󰁽",
+                    "key": "glyph",
+                    "style": "glyph",
+                    "size": "lg",
+                    "color": "green"
+                  },
+                  {
+                    "type": "text",
+                    "value": "31%",
+                    "key": "percent",
+                    "style": "number",
+                    "size": "xl",
+                    "weight": "semibold"
+                  },
+                  {
+                    "type": "spacer"
+                  },
+                  {
+                    "type": "badge",
+                    "key": "state",
+                    "text": "on battery",
+                    "color": "grey"
+                  }
+                ]
+              },
+              {
+                "type": "progress",
+                "key": "level",
+                "value": 0.31,
+                "color": "green"
+              },
+              {
+                "type": "text",
+                "value": "Drawing 12 W · 1 h 48 min left",
+                "key": "sentence",
+                "style": "body",
+                "size": "sm"
+              },
+              {
+                "type": "image",
+                "key": "hour-chart",
+                "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22396%22%20height%3D%2236%22%20viewBox%3D%220%200%20396%2036%22%20preserveAspectRatio%3D%22none%22%3E%3Cline%20x1%3D%220%22%20y1%3D%2235.5%22%20x2%3D%22396%22%20y2%3D%2235.5%22%20stroke%3D%22%2380808066%22%20stroke-width%3D%221%22%2F%3E%3Cpath%20d%3D%22M0.0%2C23.0%20L6.7%2C23.4%2013.4%2C23.7%2020.1%2C23.9%2026.8%2C24.2%2033.6%2C24.5%2040.3%2C24.7%2047.0%2C24.9%2053.7%2C25.0%2060.4%2C25.2%2067.1%2C25.3%2073.8%2C25.4%2080.5%2C25.4%2087.3%2C25.4%2094.0%2C25.4%20100.7%2C25.4%20107.4%2C25.3%20114.1%2C25.2%20120.8%2C25.1%20127.5%2C24.9%20134.2%2C24.7%20140.9%2C24.5%20147.7%2C24.2%20154.4%2C24.0%20161.1%2C23.7%20167.8%2C23.4%20174.5%2C23.1%20181.2%2C22.8%20187.9%2C22.4%20194.6%2C22.0%20201.4%2C21.7%20208.1%2C21.3%20214.8%2C21.0%20221.5%2C20.6%20228.2%2C20.2%20234.9%2C3.9%20241.6%2C3.6%20248.3%2C3.3%20255.1%2C3.0%20261.8%2C2.7%20268.5%2C2.4%20275.2%2C2.1%20281.9%2C1.9%20288.6%2C1.7%20295.3%2C1.5%20302.0%2C1.3%20308.7%2C1.2%20315.5%2C1.1%20322.2%2C1.1%20328.9%2C1.0%20335.6%2C1.0%20342.3%2C1.0%20349.0%2C1.1%20355.7%2C1.2%20362.4%2C1.3%20369.2%2C1.4%20375.9%2C1.6%20382.6%2C1.8%20389.3%2C2.0%20396.0%2C2.3%20V36%20H0.0%20Z%22%20fill%3D%22%234F8AE8%22%20fill-opacity%3D%220.18%22%2F%3E%3Cpolyline%20points%3D%220.0%2C23.0%206.7%2C23.4%2013.4%2C23.7%2020.1%2C23.9%2026.8%2C24.2%2033.6%2C24.5%2040.3%2C24.7%2047.0%2C24.9%2053.7%2C25.0%2060.4%2C25.2%2067.1%2C25.3%2073.8%2C25.4%2080.5%2C25.4%2087.3%2C25.4%2094.0%2C25.4%20100.7%2C25.4%20107.4%2C25.3%20114.1%2C25.2%20120.8%2C25.1%20127.5%2C24.9%20134.2%2C24.7%20140.9%2C24.5%20147.7%2C24.2%20154.4%2C24.0%20161.1%2C23.7%20167.8%2C23.4%20174.5%2C23.1%20181.2%2C22.8%20187.9%2C22.4%20194.6%2C22.0%20201.4%2C21.7%20208.1%2C21.3%20214.8%2C21.0%20221.5%2C20.6%20228.2%2C20.2%20234.9%2C3.9%20241.6%2C3.6%20248.3%2C3.3%20255.1%2C3.0%20261.8%2C2.7%20268.5%2C2.4%20275.2%2C2.1%20281.9%2C1.9%20288.6%2C1.7%20295.3%2C1.5%20302.0%2C1.3%20308.7%2C1.2%20315.5%2C1.1%20322.2%2C1.1%20328.9%2C1.0%20335.6%2C1.0%20342.3%2C1.0%20349.0%2C1.1%20355.7%2C1.2%20362.4%2C1.3%20369.2%2C1.4%20375.9%2C1.6%20382.6%2C1.8%20389.3%2C2.0%20396.0%2C2.3%22%20fill%3D%22none%22%20stroke%3D%22%234F8AE8%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%220.0%2C7.5%206.7%2C7.5%2013.4%2C7.5%2020.1%2C7.5%2026.8%2C7.8%2033.6%2C7.8%2040.3%2C7.8%2047.0%2C7.8%2053.7%2C7.8%2060.4%2C7.8%2067.1%2C7.8%2073.8%2C7.8%2080.5%2C7.8%2087.3%2C7.8%2094.0%2C7.8%20100.7%2C7.8%20107.4%2C8.1%20114.1%2C8.1%20120.8%2C8.1%20127.5%2C8.1%20134.2%2C8.1%20140.9%2C8.1%20147.7%2C8.1%20154.4%2C8.1%20161.1%2C8.1%20167.8%2C8.1%20174.5%2C8.1%20181.2%2C8.5%20187.9%2C8.5%20194.6%2C8.5%20201.4%2C8.5%20208.1%2C8.5%20214.8%2C8.5%20221.5%2C8.5%20228.2%2C8.5%20234.9%2C8.8%20241.6%2C8.8%20248.3%2C8.8%20255.1%2C9.2%20261.8%2C9.2%20268.5%2C9.2%20275.2%2C9.2%20281.9%2C9.5%20288.6%2C9.5%20295.3%2C9.5%20302.0%2C9.8%20308.7%2C9.8%20315.5%2C9.8%20322.2%2C9.8%20328.9%2C10.2%20335.6%2C10.2%20342.3%2C10.2%20349.0%2C10.5%20355.7%2C10.5%20362.4%2C10.5%20369.2%2C10.9%20375.9%2C10.9%20382.6%2C10.9%20389.3%2C10.9%20396.0%2C11.2%22%20fill%3D%22none%22%20stroke%3D%22%23808088%22%20stroke-width%3D%221%22%20stroke-dasharray%3D%223%202%22%20stroke-opacity%3D%220.8%22%2F%3E%3C%2Fsvg%3E",
+                "width": 396,
+                "height": 36,
+                "alt": "Draw over time"
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 1,
+                "key": "hour-caption",
+                "minHeight": 14,
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "last 1 h",
+                    "style": "muted",
+                    "size": "xs"
+                  },
+                  {
+                    "type": "spacer"
+                  },
+                  {
+                    "type": "text",
+                    "value": "avg 7.6 W · peak 13 W",
+                    "style": "muted",
+                    "size": "xs"
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 2,
+                "key": "alert-0-background-burn",
+                "padding": 2,
+                "radius": true,
+                "surface": "#C98A2A24",
+                "transition": {
+                  "enter": "fade",
+                  "exit": "fade"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "󰀦",
+                    "style": "glyph",
+                    "color": "amber"
+                  },
+                  {
+                    "type": "text",
+                    "value": "Google Chrome Helper (Renderer) is using power in the background",
+                    "size": "sm",
+                    "weight": "medium"
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 1,
+                "key": "h-procs",
+                "minHeight": 18,
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Using power now",
+                    "size": "xs",
+                    "weight": "semibold",
+                    "color": "muted"
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 2,
+                "key": "pp-Google Chrome Helper (Renderer)",
+                "minHeight": 22,
+                "transition": {
+                  "enter": "fade",
+                  "exit": "fade"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Google Chrome Helper (Rendere…",
+                    "size": "sm",
+                    "weight": "medium",
+                    "minWidth": 0
+                  },
+                  {
+                    "type": "spacer"
+                  },
+                  {
+                    "type": "progress",
+                    "value": 1,
+                    "width": 72,
+                    "color": "amber"
+                  },
+                  {
+                    "type": "text",
+                    "value": "2.1 W",
+                    "style": "number",
+                    "size": "xs",
+                    "width": 44,
+                    "align": "end"
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 2,
+                "key": "pp-WindowServer",
+                "minHeight": 22,
+                "transition": {
+                  "enter": "fade",
+                  "exit": "fade"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "WindowServer",
+                    "size": "sm",
+                    "weight": "medium",
+                    "minWidth": 0
+                  },
+                  {
+                    "type": "spacer"
+                  },
+                  {
+                    "type": "progress",
+                    "value": 0.5526315789473685,
+                    "width": 72,
+                    "color": "grey"
+                  },
+                  {
+                    "type": "text",
+                    "value": "1.2 W",
+                    "style": "number",
+                    "size": "xs",
+                    "width": 44,
+                    "align": "end"
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 2,
+                "key": "pp-kitty",
+                "minHeight": 22,
+                "transition": {
+                  "enter": "fade",
+                  "exit": "fade"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "kitty",
+                    "size": "sm",
+                    "weight": "medium",
+                    "minWidth": 0
+                  },
+                  {
+                    "type": "spacer"
+                  },
+                  {
+                    "type": "progress",
+                    "value": 0.3157894736842105,
+                    "width": 72,
+                    "color": "blue"
+                  },
+                  {
+                    "type": "text",
+                    "value": "0.7 W",
+                    "style": "number",
+                    "size": "xs",
+                    "width": 44,
+                    "align": "end"
+                  }
+                ]
+              },
+              {
+                "type": "stack",
+                "direction": "row",
+                "align": "center",
+                "gap": 2,
+                "key": "pp-Spotify",
+                "minHeight": 22,
+                "transition": {
+                  "enter": "fade",
+                  "exit": "fade"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Spotify",
+                    "size": "sm",
+                    "weight": "medium",
+                    "minWidth": 0
+                  },
+                  {
+                    "type": "spacer"
+                  },
+                  {
+                    "type": "progress",
+                    "value": 0.21052631578947367,
+                    "width": 72,
+                    "color": "grey"
+                  },
+                  {
+                    "type": "text",
+                    "value": "0.4 W",
+                    "style": "number",
+                    "size": "xs",
+                    "width": 44,
+                    "align": "end"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "Today: 27 Wh on battery · most by Google Chrome Helper … (6.1 Wh)",
+                "key": "today",
+                "style": "muted",
+                "size": "xs"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "states": {
+      "level": 31,
+      "charging": false,
+      "draw": 12.4,
+      "alert": "warn"
     }
   },
   "shots": {
     "bar-menubar-dark": {
       "target": "menubar",
       "theme": "dark",
-      "caption": "On the menu bar: the battery level, live draw and the watcher rule that made it surface"
+      "caption": "On the menu bar: the level, the draw and the warning that made it surface"
     },
     "bar-menubar-light": {
       "target": "menubar",
@@ -215,7 +657,7 @@
       "target": "menubar",
       "theme": "light",
       "popover": true,
-      "caption": "A click opens the popover: the level bar, source, time left, watcher warning and the top consumers"
+      "caption": "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now"
     },
     "bar-menubar-popover-dark": {
       "target": "menubar",
@@ -226,7 +668,7 @@
     "bar-sketchybar": {
       "target": "sketchybar",
       "theme": "dark",
-      "caption": "On sketchybar: the battery, draw and watcher rule as one strip"
+      "caption": "On sketchybar: the level, draw and warning as one strip"
     }
   }
 }
