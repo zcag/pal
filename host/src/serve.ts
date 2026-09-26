@@ -115,7 +115,7 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
       if (isView(pal)) throw new Error(`${paletteKey(p)}: a view palette has no list`);
       const stream = p.stream != null ? partials(p.stream, `list of ${paletteKey(p)}`) : undefined;
       const ctx = stream ? { ...ctxOf(p), partial: stream.partial } : ctxOf(p);
-      const items = await inContext(p, () => pal.list(p.query, ctx)).finally(() => stream?.close());
+      const items = await Promise.resolve(inContext(p, () => pal.list(p.query, ctx))).finally(() => stream?.close());
       if (!Array.isArray(items)) throw new Error(`${paletteKey(p)}: list returned ${items === null ? "null" : typeof items}, not an array`);
       return { items };
     },
