@@ -43,7 +43,7 @@ describe("backends", () => {
 
 // ---- the palette over the wire ------------------------------------------------------
 
-const { server, requests, base, titles } = startMock();
+const { server, requests, slow, base, titles } = startMock();
 const dir = mkdtempSync(join(tmpdir(), "pal-gifs-"));
 const cache = join(dir, "cache"), downloads = join(dir, "Downloads");
 /** The mock titles its GIFs in Title Case (plus a trailing "GIF", which the parser drops). */
@@ -75,6 +75,20 @@ describe("gifs", () => {
     expect(l.palettes.map((p) => p.name)).toEqual(["gifs", "favourites"]);
     expect(l.palettes[0]).toMatchObject({ title: "GIFs", input: true, view: "grid", columns: 6, fallback: "ask", fallbackTitle: "Search GIFs for “{query}”", icon: tile("pink", "\u{f0d78}") });
     expect(l.palettes[1]).toMatchObject({ title: "Favourite GIFs", live: true, view: "grid", columns: 6 });
+  });
+
+  test("streamed: the tiles show with the glyph as soon as the search answers, again once the top two rows have their previews, then whole; the same tiles in the same order; all cached, no early rows", async () => {
+    slow.from = 12;
+    try {
+      const { items, partials } = await host.listStream("gifs", "gifs", "");
+      expect(partials).toHaveLength(2);
+      for (const p of partials) expect(p.map((i) => i.id)).toEqual(items.map((i) => i.id));
+      expect(partials[0].every((i) => i.icon === "\u{f0d78}")).toBe(true);
+      expect(partials[1].slice(0, 12).every((i) => dataUrl(i).startsWith("data:"))).toBe(true);
+      expect(partials[1].slice(12).some((i) => typeof i.icon === "string")).toBe(true);
+      expect(items.every((i) => dataUrl(i).startsWith("data:"))).toBe(true);
+    } finally { slow.from = Infinity; }
+    expect((await host.listStream("gifs", "gifs", "")).partials).toEqual([]);
   });
 
   test("nothing typed is the trending list under a Trending section with the default rating, each tile an animated preview as a data url fetched into the cache", async () => {

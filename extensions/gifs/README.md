@@ -11,7 +11,7 @@ instead.
 
 | tile | what |
 | --- | --- |
-| a preview | Giphy's `fixed_height_small`, fetched once into the cache directory and sent as a data url, so the grid animates and a second look fetches nothing |
+| a preview | Giphy's `fixed_height_small`, fetched once into the cache directory and sent as a data url, so the grid animates and a second look fetches nothing; the tiles show with the GIF glyph as soon as Giphy answers, the top two rows' previews join first and the rest after |
 | the caption | the GIF's title, without its trailing "GIF" |
 | `cmd+i` | the detail pane: the preview larger, the size in pixels and bytes, the page |
 

@@ -3,7 +3,8 @@
 // documented ones, trimmed to the fields read, with the media urls
 // pointing back at the mock, which serves a generated picture for each
 // (`png.ts`). The key `good` is accepted; anything else is Giphy's 401.
-// `requests` records every call.
+// `requests` records every call; `slow.from` holds back the media from that
+// GIF on (by `slow.ms`), so a test sees the first previews land before the rest.
 import { picture } from "../png.ts";
 
 export type Seen = { path: string; q?: string; key?: string; filter?: string };
@@ -12,15 +13,17 @@ const TITLES = ["happy dance", "cat typing", "thumbs up", "mind blown", "facepal
 
 export function startMock() {
   const requests: Seen[] = [];
+  const slow = { from: Infinity, ms: 150 };
   const server = Bun.serve({
     port: 0,
-    fetch(req): Response {
+    async fetch(req): Promise<Response> {
       const url = new URL(req.url);
       const media = (n: number, kind: string): string => `${url.origin}/media/${n}/${kind}.gif`;
       if (url.pathname.startsWith("/media/")) {
         const [, , n, kind] = url.pathname.replace(/\.gif$/, "").split("/");
         // The full gif is the preview's picture at twice the size, so a download is told from a preview by its bytes.
         const big = kind === "original";
+        if (Number(n) >= slow.from) await Bun.sleep(slow.ms);
         return new Response(picture(Number(n), big ? 192 : 96, big ? 144 : 72), { headers: { "content-type": "image/gif" } });
       }
       const q = url.searchParams.get("q") ?? undefined;
@@ -39,5 +42,5 @@ export function startMock() {
       return new Response("no", { status: 404 });
     },
   });
-  return { server, requests, base: `http://127.0.0.1:${server.port}`, titles: TITLES };
+  return { server, requests, slow, base: `http://127.0.0.1:${server.port}`, titles: TITLES };
 }

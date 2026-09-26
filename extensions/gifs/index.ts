@@ -8,6 +8,7 @@
 // in the Favourites palette (storage), which is a grid of its own with the
 // same actions and Remove.
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { errorMessage, hint, home, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
@@ -110,11 +111,14 @@ const detailOf = (g: Gif): Detail => ({
   ],
 });
 
-async function item(g: Gif, actions: Action[]): Promise<Item> {
+/** A GIF's tile, the glyph standing in until (or when the fetch failed) the preview is there. */
+function tileOf(g: Gif, actions: Action[], thumb?: string, section?: string): Item {
   held.set(g.id, g);
-  const thumb = await preview(g);
-  return { id: g.id, name: g.title, icon: thumb ? { image: thumb } : GLYPH.gif, keywords: [g.backend], detail: detailOf(g), actions };
+  return { id: g.id, name: g.title, icon: thumb ? { image: thumb } : GLYPH.gif, keywords: [g.backend], ...(section && { section }), detail: detailOf(g), actions };
 }
+const item = async (g: Gif, actions: Action[]): Promise<Item> => tileOf(g, actions, await preview(g));
+/** Whether the preview is here already (memory or the cache directory), so the tile needs no fetch. */
+const local = (g: Gif) => previews.has(g.id) || existsSync(join(CACHE, `${sha(g.preview)}-preview.gif`));
 
 const RESULT_ACTIONS = [COPY, COPY_URL, OPEN, SAVE, FAV];
 const FAV_ACTIONS = [COPY, COPY_URL, OPEN, SAVE, UNFAV];
@@ -140,9 +144,20 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
     }
     if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
     if (!gifs.length) return [hint("none", `No GIFs for “${q}”`, SOURCE)];
-    const rows = await Promise.all(gifs.map((g) => item(g, RESULT_ACTIONS)));
-    if (!q) for (const r of rows) r.section = "Trending";
-    return rows;
+    const section = q ? undefined : "Trending";
+    const thumbs = gifs.map((g) => previews.get(g.id));
+    const rows = () => gifs.map((g, i) => tileOf(g, RESULT_ACTIONS, thumbs[i], section));
+    // Previews still to fetch: the tiles show first with their glyph, again once the top two rows (what the eye is on) have their pictures, and whole at the end.
+    const partial = gifs.every(local) ? undefined : ctx?.partial;
+    partial?.(rows());
+    const done = gifs.map(() => false), top = Math.min(gifs.length, 2 * settings.palette<PaletteSettings>("gifs").columns);
+    let early = !!partial;
+    await Promise.all(gifs.map(async (g, i) => {
+      thumbs[i] = await preview(g);
+      done[i] = true;
+      if (early && my === seq && done.slice(0, top).every(Boolean) && !done.every(Boolean)) { early = false; partial!(rows()); }
+    }));
+    return rows();
   } catch (e) {
     const ge = e instanceof GifError ? e : undefined;
     console.error(`[gifs] ${ge?.message ?? e}`);
