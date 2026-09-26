@@ -709,11 +709,14 @@ describe("today palette and the upcoming bar item", () => {
     expect(eventsCalls()).toBe(before + 2);
   });
 
-  test("the root's Now rows: a call about to start and one just begun, soonest first; Enter joins, ⌘C copies the link, the other action opens it; the lead is a setting; nothing with no call close", async () => {
+  test("the root's Now rows: a call about to start and one just begun, soonest first; Enter joins, ⌘C copies the link, the other action opens it; the lead is a setting; with no call close, the current or next event", async () => {
     type Suggested = { extension: string; palette: string; items: { id: string; name: string; subtitle?: string; section?: string; icon?: unknown; accessories?: unknown; actions?: { id: string; title: string; shortcut?: string }[] }[] }[];
     const suggested = (h: Host) => h.request<Suggested>("suggest").then((r) => r.filter((s) => s.extension === E).flatMap((s) => s.items));
-    // The shared day's only call started ten minutes ago: its row has gone.
-    expect(await suggested(host)).toEqual([]);
+    // The shared day's only call started ten minutes ago: no Join row, so the row is the event the strip speaks for, as a Today row.
+    const plain = await suggested(host);
+    expect(plain).toHaveLength(1);
+    expect(plain[0]).toMatchObject({ section: "Now", accessories: expect.arrayContaining([{ tag: expect.stringMatching(/^now|^in /), color: expect.any(String) }]) });
+    expect(plain[0].subtitle).not.toMatch(/starts in|started/);
     const MEET = "https://meet.google.com/abc-defg-hij";
     const soon = ev("soon", "Standup", now + 3 * MIN, now + 18 * MIN, { conference_url: ZOOM });
     const begun = ev("begun", "Design review", now - 4 * MIN, now + 56 * MIN, { conference_url: MEET, calendar: cals[1] });

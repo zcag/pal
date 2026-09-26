@@ -1,7 +1,7 @@
 {
   "name": "calendar",
   "title": "Calendar",
-  "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; a call about to start is a Join row at the top of pal; a form adds one, or one typed line (`standup tomorrow 10:00`). EventKit on macOS, khal on Linux.",
+  "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; the next event, or a call about to start as a Join row, at the top of pal; a form adds one, or one typed line (`standup tomorrow 10:00`). EventKit on macOS, khal on Linux.",
   "keywords": [
     "cal"
   ],
@@ -121,7 +121,7 @@
       "The bar item: the next event as `Standup in 12m` on the menu bar or sketchybar, `now` while it runs, hidden when nothing starts within 10 hours; muted far off, amber inside 15 minutes, red inside 5; a dot when there is a call. A click joins it, or opens Calendar; a hover peek opens Today",
       "Three sources: every account Calendar.app has (iCloud, Google, Exchange) through EventKit on macOS; `khal` on Linux; Google Calendar directly, per account, through a command that prints an access token (`gcloud auth application-default print-access-token`, a broker, a keychain lookup), so no secret ever sits in the config",
       "`enter` joins the call when the event has a Zoom, Meet, Teams or Webex link (Google's conferenceData first, then the location and the description), else opens it in Calendar or Google Calendar",
-      "A call about to start is a row at the top of pal before anything is typed, `Standup` over `starts in 3 min · Zoom · 10:00 – 10:30`: from five minutes before (a setting) until ten minutes in, both when two overlap, nothing otherwise; Enter joins, ⌘C copies the link, ⌘Enter opens the event",
+      "A call about to start is a row at the top of pal before anything is typed, `Standup` over `starts in 3 min · Zoom · 10:00 – 10:30`: from five minutes before (a setting) until ten minutes in, both when two overlap, otherwise the current or next event; Enter joins, ⌘C copies the link, ⌘Enter opens the event",
       "The calendar's colour on the row, the head count and a `Join` tag on the right; a filter per calendar",
       "The detail pane: the description as text, when, where, the organizer, every attendee with their reply, whether it repeats",
       "New event as a form (system calendar): title, a day in words (`fri`, `next mon`, `20 sep`), start and end, all-day, the calendar, a location, notes",

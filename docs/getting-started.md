@@ -268,7 +268,7 @@ The root list is more than the index's hits.
   are; Escape twice is back at the root. `general.alias_space = false`
   turns it off.
 - **The empty list.** Before you type: the Welcome tips on a fresh
-  install, then **Now** (a call about to start, with Join on
+  install, then **Now** (the next calendar event, a call about to start with Join on
   Enter, the running timer, what is playing), then **Clipboard** (what is
   on the clipboard, read as the things it could be: an address to open or
   show as a QR code, a colour for the picker, a path to reveal, an email,

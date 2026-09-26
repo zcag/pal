@@ -2803,12 +2803,14 @@ Settings, `[extensions.timer]`:
 
 Two live palettes, one input palette (Quick Add) and a bar item over one
 source and one cache; Today
-also suggests the empty root's Now section a row per call about to
-start (`Standup` over `starts in 3 min · Zoom · 10:00 – 10:30`, then
-`started 4 min ago`): from `call_lead` minutes before it (5 by default)
-until ten minutes in or its end, the earlier start first when two
-overlap, declined and all-day events never, nothing with no call that
-close; Enter joins, `⌘C` copies the link, `⌘Enter` opens the event.
+also suggests the empty root's Now section its row: the event the strip
+speaks for (the current one, else the next inside `horizon_hours`) as a
+Today row, Join first when it has a call; and in place of it, a row per
+call about to start (`Standup` over `starts in 3 min · Zoom · 10:00 –
+10:30`, then `started 4 min ago`): from `call_lead` minutes before it (5
+by default) until ten minutes in or its end, the earlier start first when
+two overlap, declined and all-day events never; Enter joins, `⌘C` copies
+the link, `⌘Enter` opens the event.
 Quiet (no sound, no notification), read against the clock on every show
 of the panel, the events from the cache when that is under a minute old
 (`extensions/calendar/source.ts`). The source is a setting: `system` is
@@ -2983,8 +2985,8 @@ Settings, `[extensions.calendar]`:
 | `calendars` | list | `[]` | Calendar names (or ids, `work:primary` for Google) to list; empty is every calendar. Also narrows the filter dropdown. |
 | `days` | number | `7` | How many days from today My Schedule lists. |
 | `hide_declined` | boolean | `true` | Leave out invitations you declined. |
-| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
-| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
+| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours (the root's Now row too). |
+| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only (the root's Now row too). |
 | `call_lead` | number, 1 to 30 | `5` | How many minutes before a call starts the root's Now row offers to join it (it stays until ten minutes in). |
 | `default_length` | number, 5 to 480 | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
 

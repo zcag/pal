@@ -385,10 +385,12 @@ function callRow(e: CalendarEvent, now: number): Item {
 
 /**
  * The empty root's "Now" rows: a call about to start, `call_lead` minutes
- * ahead until ten minutes in (`callsNow`), soonest first; nothing when no
- * call is that close. Asked on every show of the empty root, so `starts
- * in 3 min` is read against the clock each time; the events come from the
- * cache when it is under a minute old, so a show costs nothing.
+ * ahead until ten minutes in (`callsNow`), soonest first, as Join rows;
+ * otherwise the event the bar strip speaks for (the current one, else the
+ * next inside `horizon_hours`) as a Today row. Asked on every show of the
+ * empty root, so `starts in 3 min` is read against the clock each time;
+ * the events come from the cache when it is under a minute old, so a show
+ * costs nothing.
  */
 async function suggest(): Promise<Item[]> {
   if ((await permission()) !== "granted") return [];
@@ -398,7 +400,10 @@ async function suggest(): Promise<Item[]> {
   let l: Loaded;
   try { l = await load(from, to, await chosenIds(s, false), PALETTE_AGE); } catch { const c = cached(); if (!c) return []; l = { ...c, stale: true }; }
   const lead = Number.isFinite(Number(s.call_lead)) ? Number(s.call_lead) : 5;
-  return callsNow(l.events, now, lead, s.hide_declined !== false).map((e) => callRow(e, now));
+  const calls = callsNow(l.events, now, lead, s.hide_declined !== false);
+  if (calls.length) return calls.map((e) => callRow(e, now));
+  const e = nextEvent(l.events, now, barRules(s));
+  return e ? [todayRow(e, now, "Now")] : [];
 }
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
