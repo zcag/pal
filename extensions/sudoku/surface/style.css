@@ -289,11 +289,12 @@ body.solved #progress i { background: var(--gold); }
 #pad .nz {
   position: absolute; top: calc(4px * var(--ui)); right: calc(4px * var(--ui)); width: calc(20px * var(--ui)); height: calc(20px * var(--ui)); border-radius: calc(5px * var(--ui)); display: grid; place-items: center;
   font: 650 calc(11px * var(--ui)) / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal; color: var(--pal-fg-faint, #8e8e98);
-  box-shadow: inset 0 0 0 1px var(--track); opacity: 0.7; transition: background 120ms, color 120ms, opacity 120ms, box-shadow 120ms;
+  opacity: 0.3; transition: background 120ms, color 120ms, opacity 120ms, box-shadow 120ms;
 }
 /* The corner is small to look at but not to hit: its target reaches well past the box, down and left into the key. */
 #pad .nz::before { content: ""; position: absolute; top: calc(-4px * var(--ui)); right: calc(-4px * var(--ui)); width: calc(46px * var(--ui)); height: calc(38px * var(--ui)); }
-#pad button:hover .nz { opacity: 1; }
+/* Quiet until the pointer is on the key: then the corner shows its box, and lights under the pointer. */
+#pad button:hover .nz { opacity: 0.9; box-shadow: inset 0 0 0 1px var(--track); }
 #pad .nz:hover { background: color-mix(in srgb, var(--acc) 16%, transparent); color: var(--acc); opacity: 1; box-shadow: none; }
 #pad button.noted .nz { background: color-mix(in srgb, var(--acc) 18%, transparent); color: var(--acc); opacity: 1; box-shadow: none; }
 #pad .bar { position: absolute; left: 12px; right: 12px; bottom: calc(6px * var(--ui)); height: calc(3px * var(--ui)); border-radius: 2px; background: var(--track); overflow: hidden; }
