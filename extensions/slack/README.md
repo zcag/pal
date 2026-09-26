@@ -47,7 +47,9 @@ field (the same `chat.postMessage` a reply uses; a form when picked
 without it). Listed once an hour (`⌘R` for now). **Search Slack** sends what you type to
 `search.messages` as is, so Slack's own syntax works: free text,
 `from:@name`, `in:#channel`, `has:link`, `before:yesterday`, `on:` a
-date; rows are the message, who said it where, and when. **Status** lists
+date; rows are the message, who said it where, and when (the hits whose
+names are known show first, in order, while a sender the directory lacks
+is looked up). **Status** lists
 what is set now first (your status with its expiry, Do Not Disturb, your
 presence), then the presets from the `statuses` setting and a "Set a
 status…" row whose text, emoji and expiry are typed in the search bar,

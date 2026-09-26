@@ -347,16 +347,40 @@ export const webLink = (domain: string, cid: string, ts?: string) => `https://${
 
 type RawHit = { ts: string; text?: string; user?: string; username?: string; channel?: { id: string; name?: string; is_im?: boolean; is_mpim?: boolean }; permalink?: string; team?: string };
 
-/** `search.messages` with the query as typed (Slack's own syntax: `from:@x`, `in:#y`, `has:link`, `before:`), on the first workspace. */
-export async function search(q: string, count = 20): Promise<SearchHit[]> {
+/**
+ * `search.messages` with the query as typed (Slack's own syntax: `from:@x`,
+ * `in:#y`, `has:link`, `before:`), on the first workspace. The raw hit's
+ * text carries `<@U..>` ids, so a hit is shown only once its names are
+ * resolved; each resolves apart (a person the directory lacks is a
+ * `users.info` of its own), and `early` hears the hits resolved so far in
+ * Slack's order, up to the first still waiting, at most once per turn of
+ * the event loop: a search the directory answers whole says nothing early.
+ */
+export async function search(q: string, count = 20, early?: (have: SearchHit[]) => void): Promise<SearchHit[]> {
   const s = await primary();
   const r = await call<{ messages?: { matches?: RawHit[] } }>(s, "search.messages", { query: q, count, sort: "timestamp", sort_dir: "desc" });
-  return Promise.all((r.messages?.matches ?? []).map(async (m) => {
-    const u = m.user ? await user(s, m.user) : undefined;
-    const cid = m.channel?.id ?? "";
-    const where = m.channel?.is_im ? (await conversation(s, cid)).name : m.channel?.is_mpim ? mpimName(m.channel.name ?? cid) : `#${m.channel?.name ?? cid}`;
-    return { id: `${s.id}/${cid}/${m.ts}`, team: s.id, domain: s.domain, cid, where, who: u?.name ?? m.username ?? "", avatar: u?.avatar ?? "", text: await describe(s, m), ts: m.ts, permalink: m.permalink ?? webLink(s.domain, cid, m.ts) };
+  const matches = r.messages?.matches ?? [];
+  const done: (SearchHit | undefined)[] = matches.map(() => undefined);
+  let shown = 0, timer: ReturnType<typeof setTimeout> | undefined;
+  const report = () => {
+    timer = undefined;
+    const n = done.indexOf(undefined);
+    if (n > shown) { shown = n; early!(done.slice(0, n) as SearchHit[]); }
+  };
+  const hits = await Promise.all(matches.map(async (m, i) => {
+    done[i] = await searchHit(s, m);
+    if (early) timer ??= setTimeout(report, 0);
+    return done[i];
   }));
+  clearTimeout(timer);
+  return hits;
+}
+
+async function searchHit(s: Session, m: RawHit): Promise<SearchHit> {
+  const u = m.user ? await user(s, m.user) : undefined;
+  const cid = m.channel?.id ?? "";
+  const where = m.channel?.is_im ? (await conversation(s, cid)).name : m.channel?.is_mpim ? mpimName(m.channel.name ?? cid) : `#${m.channel?.name ?? cid}`;
+  return { id: `${s.id}/${cid}/${m.ts}`, team: s.id, domain: s.domain, cid, where, who: u?.name ?? m.username ?? "", avatar: u?.avatar ?? "", text: await describe(s, m), ts: m.ts, permalink: m.permalink ?? webLink(s.domain, cid, m.ts) };
 }
 
 // ---- status, presence, do not disturb -------------------------------------------------

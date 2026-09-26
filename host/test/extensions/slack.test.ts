@@ -82,6 +82,8 @@ type Seen = { method: string; body: Record<string, string>; auth: "app" | "token
 const seen: Seen[] = [];
 const calls = (method: string) => seen.filter((s) => s.method === method);
 let rejectOnce = false, limitOnce = false;
+/** `users.info` for U_LATE (a person `users.list` lacks) waits on this, so a streamed search's early rows are seen before it answers. */
+let lateGate: Promise<void> | undefined;
 let profile: Record<string, unknown> = { status_emoji: ":palm_tree:", status_text: "Out of office", status_expiration: 1789600000, status_emoji_display_info: [{ emoji_name: "palm_tree", unicode: "1f334" }] };
 let snoozeUntil = 0, away = false;
 
@@ -102,7 +104,7 @@ const server = Bun.serve({
       case "client.counts": return auth === "app" ? Response.json({ ok: true, ...counts }) : Response.json({ ok: false, error: "not_allowed_token_type" });
       case "users.conversations": return page(CONVS, "channels");
       case "users.list": return page(Object.keys(USERS).map(rawUser), "members");
-      case "users.info": return USERS[body.user] ? Response.json({ ok: true, user: rawUser(body.user) }) : Response.json({ ok: false, error: "user_not_found" });
+      case "users.info": if (body.user === "U_LATE") await lateGate; return USERS[body.user] ? Response.json({ ok: true, user: rawUser(body.user) }) : Response.json({ ok: false, error: "user_not_found" });
       case "conversations.info": {
         const c = CONVS.find((x) => x.id === body.channel);
         if (!c) return Response.json({ ok: false, error: "channel_not_found" });
@@ -115,7 +117,11 @@ const server = Bun.serve({
       }
       case "conversations.mark": return Response.json({ ok: true });
       case "chat.postMessage": return Response.json({ ok: true, ts: "1789590000.000001" });
-      case "search.messages": return Response.json({ ok: true, messages: { matches: body.query.includes("nothing") ? [] : [
+      case "search.messages": return Response.json({ ok: true, messages: { matches: body.query.includes("nothing") ? [] : body.query.includes("late") ? [
+        { ts: "1789570000.000100", user: "U_MARA", text: "the parser <@U_ME> asked about", channel: { id: "C_ENG", name: "eng" } },
+        { ts: "1789565000.000100", user: "U_LATE", text: "from someone the list lacks", channel: { id: "C_ENG", name: "eng" } },
+        { ts: "1789560000.000100", user: "U_TOM", text: "dm text", channel: { id: "D_TOM", name: "D_TOM", is_im: true } },
+      ] : [
         { ts: "1789570000.000100", user: "U_MARA", text: "the parser <@U_ME> asked about", channel: { id: "C_ENG", name: "eng" }, permalink: "https://acme.slack.com/archives/C_ENG/p1789570000000100" },
         { ts: "1789560000.000100", user: "U_TOM", text: "dm text", channel: { id: "D_TOM", name: "D_TOM", is_im: true } },
       ] } });
@@ -552,6 +558,21 @@ describe("slack", () => {
       expect(await pick("search", items[1].id, "browser")).toEqual({ open: "https://acme.slack.com/archives/D_TOM/p1789560000000100" });
       expect(await pick("search", items[0].id, "copy")).toEqual({ copy: "the parser @cagdas asked about" });
       expect((await list("search", "nothing here"))[0]).toMatchObject({ id: "hint:empty" });
+    });
+
+    test("streamed: the hits resolved in order show while a person the directory lacks is asked for; the answer adds the rest below", async () => {
+      let open!: () => void;
+      lateGate = new Promise((r) => (open = r));
+      const from = host.coreCalls.length;
+      const pending = host.listStream("slack", "search", "late hits");
+      await host.until(() => host.coreCalls.slice(from).some((c) => c.method === "list.partial"), 3000, "a partial");
+      open();
+      const r = await pending;
+      expect(r.partials.map((p) => p.map((i) => i.name))).toEqual([["the parser @cagdas asked about"]]);
+      expect(r.items.map((i) => i.name)).toEqual(["the parser @cagdas asked about", "from someone the list lacks", "dm text"]);
+      expect(r.partials[0][0]).toEqual(r.items[0]);
+      // The directory answers a search whole: nothing early.
+      expect((await host.listStream("slack", "search", "from:@mara parser")).partials).toEqual([]);
     });
   });
 

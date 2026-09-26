@@ -3570,7 +3570,9 @@ Copy link (`⌘C`).
 **Search Slack.** `search.messages` with the query as typed, Slack's
 syntax through (`from:@name`, `in:#channel`, `has:link`,
 `before:yesterday`), newest first; rows are the message, who said it
-where, the time. A keystroke waits 300 ms for the next. Actions: Open in
+where, the time. A keystroke waits 300 ms for the next. A hit shows once
+its names are resolved, in Slack's order: while a sender the directory
+lacks is asked for, the hits above it are already up. Actions: Open in
 Slack (at the message), Open in browser (the permalink), Copy text.
 
 **Status.** What is set now first (the status with its expiry, Do Not

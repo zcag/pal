@@ -255,14 +255,15 @@ function hitRow(h: SearchHit): Item {
   };
 }
 
-async function searchRows(query = ""): Promise<Item[]> {
+async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const q = query.trim();
   if (q.length < 2) return [hint("search", "Search Slack", "Text, from:@name, in:#channel, has:link, before:yesterday")];
   // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
-  const found = await search(q);
+  // The hits whose names are in show while a person the directory lacks is still being asked for.
+  const found = await search(q, undefined, (have) => { if (seq === searchSeq) ctx?.partial?.(have.map(hitRow)); });
   lastSearch = found.length ? found.map(hitRow) : [hint("empty", "No messages found", `Nothing in Slack matches "${q}"`)];
   return lastSearch;
 }
@@ -497,7 +498,7 @@ export default {
       title: "Search Slack",
       input: true,
       placeholder: "Text, from:@name, in:#channel, has:link",
-      list: (query) => guard(() => searchRows(query)),
+      list: (query, ctx) => guard(() => searchRows(query, ctx)),
       pick: (id, action) => {
         if (id.startsWith("hint:")) return pickHint(id);
         const h = hits.get(id);
