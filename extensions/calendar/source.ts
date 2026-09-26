@@ -17,7 +17,7 @@ export const log = (msg: string) => console.error(`[calendar] ${msg}`);
 export type SourceName = "auto" | "system" | "google";
 export type Settings = {
   source: SourceName; accounts: unknown[]; calendars: string[]; days: number; hide_declined: boolean; hide_all_day: boolean;
-  horizon_hours: number; default_length: number;
+  horizon_hours: number; default_length: number; call_lead: number;
 };
 export type Loaded = { events: CalendarEvent[]; at: number; stale: boolean; error?: string };
 

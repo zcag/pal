@@ -16,7 +16,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
-import { barName, barWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, shortSpan, span, state, upcomingItem, type ItemSettings } from "../../../extensions/calendar/today.ts";
+import { barName, barWhen, callsNow, callWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, service, shortSpan, span, state, upcomingItem, type ItemSettings } from "../../../extensions/calendar/today.ts";
 import { parseLength, parseQuick, type Quick } from "../../../extensions/calendar/quick.ts";
 import { actions as popoverActions, focusable, freshPopover, listed, popover } from "../../../extensions/calendar/view.ts";
 import type { BarItem, Calendar, CalendarEvent, Form, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -279,8 +279,33 @@ describe("today helpers", () => {
     expect(nextWords(ev("e", "E", addDays(t0, 3), addDays(t0, 4), { all_day: true }), t0)).toBe("Next: E, Sat 19 Sep");
     expect(nextWords(undefined, t0)).toBe("Nothing further in the days ahead");
   });
+  test("the root's call rows: from the lead until ten minutes in (or the end), calls only, soonest first, the words moving with the clock", () => {
+    const MEET = "https://meet.google.com/abc-defg-hij";
+    const call = ev("c", "Standup", t0 + 5 * MIN, t0 + 35 * MIN, { conference_url: ZOOM });
+    const short = ev("s", "Check-in", t0 + 5 * MIN, t0 + 12 * MIN, { conference_url: MEET });
+    const plain = ev("p", "Dentist", t0 + 2 * MIN, t0 + H);
+    const declined = ev("d", "Sales sync", t0 + 3 * MIN, t0 + H, { conference_url: ZOOM, my_status: "declined" });
+    const allDay = ev("a", "Offsite", startOfDay(t0), addDays(t0, 1), { all_day: true, conference_url: ZOOM });
+    const ids = (at: number, lead = 5, hide = true) => callsNow([call, short, plain, declined, allDay], at, lead, hide).map((e) => e.id);
+    // The window opens exactly `lead` before the start; nothing a second earlier.
+    expect(ids(t0 - 1000)).toEqual([]);
+    expect(ids(t0)).toEqual(["s", "c"]);
+    expect(ids(t0, 5, false)).toEqual(["d", "s", "c"]);
+    expect(ids(t0 - 5 * MIN, 10)).toEqual(["s", "c"]);
+    // It closes ten minutes in, or at the end when that is sooner.
+    expect(ids(t0 + 12 * MIN)).toEqual(["c"]);
+    expect(ids(t0 + 15 * MIN - 1000)).toEqual(["c"]);
+    expect(ids(t0 + 15 * MIN)).toEqual([]);
+    // Two that overlap: the one that started first leads.
+    const later = ev("l", "Design review", t0 + 8 * MIN, t0 + H, { conference_url: MEET });
+    expect(callsNow([later, call], t0 + 6 * MIN, 5, true).map((e) => e.id)).toEqual(["c", "l"]);
+    // The words at one clock and the next: rounded up before the start, down after.
+    const at = (m: number) => callWhen(call, t0 + m * MIN);
+    expect([at(0), at(2), at(2.5), at(4), at(4.9), at(5), at(5.9), at(6), at(9)]).toEqual(["starts in 5 min", "starts in 3 min", "starts in 3 min", "starts in 1 min", "starts in 1 min", "started just now", "started just now", "started 1 min ago", "started 4 min ago"]);
+    expect([ZOOM, MEET, "https://teams.microsoft.com/l/meetup-join/x", "https://acme.webex.com/meet/x", "https://whereby.com/acme", "nope"].map(service)).toEqual(["Zoom", "Meet", "Teams", "Webex", "whereby.com", "call"]);
+  });
   test("upcomingItem: hidden, the name as the title with the time as a segment, the colours, the dot, stale", () => {
-    const s: Settings & Partial<ItemSettings> = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    const s: Settings & Partial<ItemSettings> = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30, call_lead: 5 };
     expect(upcomingItem([], t0, s)).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
     const soon = ev("s", "Standup", t0 + 12 * MIN, t0 + 42 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const item = upcomingItem([soon], t0, s);
@@ -298,7 +323,7 @@ describe("today helpers", () => {
   });
 
   test("upcomingItem while an event runs: what is left, and the next one due as a second segment in its own colour with its name in the tooltip", () => {
-    const s: Settings & Partial<ItemSettings> = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    const s: Settings & Partial<ItemSettings> = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30, call_lead: 5 };
     const cur = ev("c", "Weekly sync", t0 - 18 * MIN, t0 + 12 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const review = ev("r", "Design review", t0 + 20 * MIN, t0 + 80 * MIN, { calendar: cals[1] });
     // Alone: the name, `12m left` in the running colour, no second segment.
@@ -320,7 +345,7 @@ describe("today helpers", () => {
   });
 
   test("the phase is the item's state; the colour is the manifest's rules', not the render's", () => {
-    const s: Settings & ItemSettings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    const s: Settings & ItemSettings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30, call_lead: 5 };
     const at = (minutes: number) => ev(`at-${minutes}`, "Review", t0 + minutes * MIN, t0 + (minutes + 30) * MIN);
     expect([120, 45, 12, 4, -1].map((m) => phaseOf(at(m), t0, s))).toEqual(["far", "near", "warning", "critical", "running"]);
     const item = upcomingItem([at(12)], t0, s);
@@ -682,6 +707,33 @@ describe("today palette and the upcoming bar item", () => {
     expect(eventsCalls()).toBe(before + 1);
     await host.render(E, "upcoming", { reason: "every" });
     expect(eventsCalls()).toBe(before + 2);
+  });
+
+  test("the root's Now rows: a call about to start and one just begun, soonest first; Enter joins, ⌘C copies the link, the other action opens it; the lead is a setting; nothing with no call close", async () => {
+    type Suggested = { extension: string; palette: string; items: { id: string; name: string; subtitle?: string; section?: string; icon?: unknown; accessories?: unknown; actions?: { id: string; title: string; shortcut?: string }[] }[] }[];
+    const suggested = (h: Host) => h.request<Suggested>("suggest").then((r) => r.filter((s) => s.extension === E).flatMap((s) => s.items));
+    // The shared day's only call started ten minutes ago: its row has gone.
+    expect(await suggested(host)).toEqual([]);
+    const MEET = "https://meet.google.com/abc-defg-hij";
+    const soon = ev("soon", "Standup", now + 3 * MIN, now + 18 * MIN, { conference_url: ZOOM });
+    const begun = ev("begun", "Design review", now - 4 * MIN, now + 56 * MIN, { conference_url: MEET, calendar: cals[1] });
+    const calls2 = [soon, begun, ev("later", "Retro", now + 20 * MIN, now + H, { conference_url: ZOOM }), ev("plain", "Dentist", now + MIN, now + H), ev("no", "Sales sync", now + 2 * MIN, now + H, { conference_url: ZOOM, my_status: "declined" })];
+    const h2 = await Host.bundled({ core: core(calls2) });
+    try {
+      const rows = await suggested(h2);
+      expect(rows.map((r) => r.id)).toEqual([rid(begun), rid(soon)]);
+      expect(rows[0]).toMatchObject({ name: "Design review", subtitle: "started 4 min ago · Meet · 10:26 – 11:26", section: "Now", icon: { glyph: "\u{f0567}", color: "#34aadc" }, accessories: [{ tag: "Join", color: "green" }] });
+      expect(rows[1]).toMatchObject({ name: "Standup", subtitle: "starts in 3 min · Zoom · 10:33 – 10:48" });
+      expect(rows[1].actions).toEqual([{ id: "join", title: "Join call" }, ...(MAC ? [{ id: "open", title: "Open in Calendar" }] : []), { id: "copy_link", title: "Copy call link", shortcut: "cmd+c" }]);
+      // The rows are Today's: its pick joins, copies, opens.
+      expect(await h2.pick(E, T, rows[1].id)).toEqual({ open: ZOOM });
+      expect(await h2.pick(E, T, rows[0].id, "copy_link")).toEqual({ copy: MEET });
+      // A lead of 25 minutes brings the Retro in too.
+      h2.changeSettings(E, { settings: { call_lead: 25 } });
+      let ids: string[] = [];
+      for (let i = 0; i < 60 && ids.length < 3; i++) ids = (await suggested(h2)).map((r) => r.id);
+      expect(ids).toEqual([rid(begun), rid(soon), rid(calls2[2])]);
+    } finally { h2.kill(); }
   });
 
   test("a direct bar click joins the next call, or opens Calendar when it has none", async () => {

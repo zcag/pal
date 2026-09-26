@@ -20,6 +20,8 @@ item over one source and one cache:
   inside five; a dot when there is a call to join. A
   click joins that call (or opens Calendar); a hover peek opens the day:
   the rows still to come, Join on the calls, tomorrow folded; Enter joins.
+- **Now** (the empty root): a call about to start, one Enter from
+  joining whenever pal opens (below).
 
 ## Sources
 
@@ -111,6 +113,23 @@ A call is Google's `conferenceData` video entry point (else
 GoTo meeting link in the location, then the description; the system
 source looks in the url, the location and the notes. Outlook safelinks
 are unwrapped; a Zoom marketing page or an agenda doc does not count.
+
+**The root's Now row.** Before anything is typed, pal's list leads with
+a row per call about to start: `Standup` over `starts in 3 min · Zoom ·
+10:00 – 10:30`, then `started 4 min ago` once it runs. A call gets its
+row `call_lead` minutes before it starts (5 by default) and keeps it
+until ten minutes in, or its end when sooner; two that overlap are both
+there, the earlier start first; declined invitations and all-day events
+never get one, and with no call that close there is no row. Quiet: no
+sound, no notification, only the row. The words are read against the
+clock on every show of the panel (the events from the minute-old cache),
+so each open says how long is left.
+
+| keys | action |
+| --- | --- |
+| `enter` | Join call |
+| `cmd+enter` | Open in Calendar (macOS) or Open in Google Calendar (a Google account) |
+| `cmd+c` | Copy the call link |
 
 **New event** (system calendar) is a form: a title, a day in words
 (`today`, `fri`, `next mon`, `2026-09-20`, `20 sep`), a start and an end
@@ -212,8 +231,9 @@ Settings, `[extensions.calendar]`:
 | `calendars` | list | `[]` | Calendar names (or ids, `work:primary` for Google) to list; empty is every calendar. Also narrows the filter dropdown. |
 | `days` | number | `7` | How many days from today My Schedule lists (two at least, so Today has tomorrow). |
 | `hide_declined` | boolean | `true` | Leave out invitations you declined, everywhere. |
-| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours (the root's Now row too). |
-| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only (the root's Now row too). |
+| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
+| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
+| `call_lead` | number | `5` | How many minutes before a call starts the root's Now row offers to join it (it stays until ten minutes in). |
 | `default_length` | number | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
 
 `upcoming` item settings, `[bar.items."calendar/upcoming".settings]`:

@@ -60,7 +60,7 @@ export function state(e: Pick<CalendarEvent, "start" | "end" | "all_day">, now: 
 export const stateColor = (s: State): "green" | "blue" | "grey" => (s.kind === "now" ? "green" : s.kind === "over" ? "grey" : "blue");
 
 export type BarRules = { horizon_hours: number; warn_minutes: number; urgent_minutes: number; hide_declined: boolean; hide_all_day: boolean };
-/** The upcoming item's settings, `[bar.items."calendar/upcoming".settings]`: where its phases start. The horizon and the all-day and declined filters stay the extension's, since the root's Now row shares them. */
+/** The upcoming item's settings, `[bar.items."calendar/upcoming".settings]`: where its phases start. The horizon and the all-day and declined filters stay the extension's settings. */
 export type ItemSettings = { near_minutes: number; warn_minutes: number; urgent_minutes: number };
 type PresentationRules = BarRules & ItemSettings;
 
@@ -69,7 +69,7 @@ export type UpcomingPhase = "far" | "near" | "warning" | "critical" | "running";
 
 const number = (value: unknown, fallback: number) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
-/** Settings normalised once, so the root suggestion and the bar share every eligibility boundary. */
+/** Settings normalised once, so the strip, its click and its popover share every eligibility boundary. */
 export function barRules(s: Settings & Partial<ItemSettings>): PresentationRules {
   return {
     horizon_hours: number(s.horizon_hours, 10),
@@ -131,6 +131,36 @@ export function phaseOf(e: Pick<CalendarEvent, "start" | "end">, now: number, s:
 export function barName(e: Pick<CalendarEvent, "title">): string {
   const title = (e.title || "(no title)").trim();
   return title.length > MAX_BAR_TITLE ? title.slice(0, MAX_BAR_TITLE - 1).trimEnd() + "…" : title;
+}
+
+/** How long after its start a call keeps its root row: late enough to join a meeting that began without you, not the whole hour. */
+export const CALL_TAIL_MIN = 10;
+
+/**
+ * The calls the root's Now section offers to join at `now`: events with a
+ * conference link, timed, not declined when `hide_declined`, from
+ * `lead` minutes before the start until `CALL_TAIL_MIN` in (or the end,
+ * when sooner). Soonest first, so two that overlap are both there.
+ */
+export function callsNow(events: CalendarEvent[], now: number, lead: number, hideDeclined: boolean): CalendarEvent[] {
+  return events
+    .filter((e) => e.conference_url && !e.all_day && !(hideDeclined && e.my_status === "declined") && e.start - lead * MIN <= now && now < Math.min(e.end, e.start + CALL_TAIL_MIN * MIN))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+}
+
+/** `starts in 3 min` (rounded up, so it never says 0 before the start), `started just now`, `started 4 min ago`. */
+export function callWhen(e: Pick<CalendarEvent, "start">, now: number): string {
+  if (e.start > now) return `starts in ${Math.ceil((e.start - now) / MIN)} min`;
+  const ago = Math.floor((now - e.start) / MIN);
+  return ago ? `started ${ago} min ago` : "started just now";
+}
+
+/** The call's service by its link's host: Zoom, Meet, Teams, Webex, else the bare host. */
+export function service(url: string): string {
+  let host = "";
+  try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { return "call"; }
+  const is = (d: string) => host === d || host.endsWith(`.${d}`);
+  return is("zoom.us") || is("zoom.com") || is("zoomgov.com") ? "Zoom" : host === "meet.google.com" ? "Meet" : is("teams.microsoft.com") || is("teams.live.com") ? "Teams" : is("webex.com") ? "Webex" : host;
 }
 
 /** The strip's time: `in 12m` before the event, `25m left` while it runs. */
