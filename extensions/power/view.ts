@@ -184,7 +184,7 @@ function splitBar(s: Snapshot, theme: Theme): ViewNode[] {
 }
 
 const focusable = (key: string, children: ViewNode[], focused: boolean, action: string, minHeight = 30): ViewNode =>
-  row(children, { key, padding: 1, gap: 2, minHeight, radius: true, action, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } });
+  row(children, { key, padding: 1, gap: 2, minHeight, radius: true, action, ...(focused && { selected: true }), transition: { enter: "fade", exit: "none" } });
 
 function procRow(p: Proc, max: number, focused: boolean, i: number, barW: number): ViewNode {
   const color: TagColor = p.kind === "bg" ? "amber" : p.kind === "front" ? "blue" : "grey";
@@ -315,7 +315,8 @@ export function dashActions(d: Dash): Action[] {
 export function renderDash(d: Dash): View {
   const s = d.snap, now = d.now ?? Date.now() / 1000;
   const body = d.tab === "now" ? nowBody(d, d.compact ? 70 : 96) : usageBody(d, d.compact ? 70 : 110);
-  const right = column([tabsRow(d.tab), ...body], { key: `right-${d.tab}`, gap: 2, grow: true });
+  // A tab's nodes leave at once: fading out beside the next tab's arriving ones, both would hold space and the column would jump.
+  const right = column([tabsRow(d.tab), ...body.map((n) => ({ ...n, transition: { ...n.transition, exit: "none" as const } }))], { key: "right", gap: 2, grow: true });
   const left = column([
     ...head(s),
     ...chart(d.history, { span: HISTORY_S, slots: SLOTS, width: LEFT_W - 2 * CARD_PAD, height: CHART_H, theme: d.theme, now, color: levelColor(s) === "green" ? "blue" : levelColor(s), key: "day" }),
