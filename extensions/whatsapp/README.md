@@ -44,7 +44,8 @@ when there are none. **Search WhatsApp** sends what you type to the
 gateway's `/api/search` (full-text over the archive, every message back
 to the first chat, `<mark>`-highlighted snippets), a keystroke waiting
 300 ms for the next; a row is the matching line, who said it where, and
-when; `Enter` opens the chat, `⌘C` copies the message, the pane is the
+when (the hits in chats already named show first, the rest once a chat
+the list lacks has its contact's name); `Enter` opens the chat, `⌘C` copies the message, the pane is the
 chat's conversation. **Contacts** is every saved contact (the ones the
 phone has a name for) with the number, one row per number; `Enter`
 opens a chat, `⌘C` copies the number, `⌘⇧C` copies a vCard 3.0

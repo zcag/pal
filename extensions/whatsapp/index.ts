@@ -242,7 +242,7 @@ function hitRow(h: Hit): Item {
   };
 }
 
-async function searchRows(query = ""): Promise<Item[]> {
+async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const q = query.trim();
   if (q.length < 2) return [hint("search", "Search WhatsApp", "Words from any message in the archive, back to the first chat", { icon: ICON.search })];
   // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
@@ -250,7 +250,7 @@ async function searchRows(query = ""): Promise<Item[]> {
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
   let found: Hit[];
-  try { found = await search(q); } catch (e) {
+  try { found = await search(q, (have) => { if (seq === searchSeq) ctx?.partial?.(have.map(hitRow)); }); } catch (e) {
     if (e instanceof ApiError && !e.auth) return (lastSearch = [hint("down", "WhatsApp search is unavailable", `${base()} answered ${e.status}: ${truncate(e.message, 80)}`, { icon: ICON.alert })]);
     throw e;
   }
@@ -446,7 +446,7 @@ export default {
       title: "Search WhatsApp",
       input: true,
       placeholder: "Words from any message",
-      list: (query) => guard(() => searchRows(query)),
+      list: (query, ctx) => guard(() => searchRows(query, ctx)),
       pick: (id, action) => {
         if (id.startsWith("hint:")) return pickHint(id);
         const h = hits.get(id);

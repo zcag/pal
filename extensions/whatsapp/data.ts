@@ -389,10 +389,29 @@ export type Hit = { id: string; chatId: string; chat: string; who: string; text:
 
 const STRIP_MARK = /<\/?mark>/g;
 
-/** The archive's hits for `q`, newest of equal rank first: the chat's name from the list, the sender's from what is known. */
-export async function search(q: string): Promise<Hit[]> {
-  const [r] = await Promise.all([apiSearch(q, SEARCH_LIMIT), loadChats().catch(() => [])]);
-  const hits = r.hits ?? [];
+/**
+ * The archive's hits for `q`, newest of equal rank first: the chat's name
+ * from the list, the sender's from what is known. `early` hears the hits
+ * whose chat is already named, in order up to the first that is not (a
+ * LID-era id reads as a wrong number until its contact answers): once when
+ * the search answers, if the chat list (the last one read, while a stale
+ * one refetches) names any, and once the list is in, if a chat still waits
+ * on its contact.
+ */
+export async function search(q: string, early?: (have: Hit[]) => void): Promise<Hit[]> {
+  let listed = false;
+  const chats = loadChats().catch(() => []).then(() => { listed = true; });
+  const hits = (await apiSearch(q, SEARCH_LIMIT)).hits ?? [];
+  let shown = 0;
+  const report = () => {
+    let n = 0;
+    while (n < hits.length && (byId.has(hits[n].chatId) || names.has(hits[n].chatId) || (listed && isGroupId(hits[n].chatId)))) n++;
+    // All named with the list in: the answer is now, nothing early.
+    if (early && n > shown && (n < hits.length || !listed)) { shown = n; early(hits.slice(0, n).map(hitOf)); }
+  };
+  report();
+  await chats;
+  report();
   await Promise.all(hits.map((h) => (byId.has(h.chatId) ? undefined : warmChatName(h.chatId))));
   return hits.map(hitOf);
 }

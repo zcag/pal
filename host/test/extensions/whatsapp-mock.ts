@@ -84,6 +84,9 @@ export class WhatsAppMock {
   limited = false;
   searchDown = false;
   status: string = "ready";
+  /** Archive rows only the search serves (a chat the list lacks), and what `/contacts/<id>` waits on before it answers: a test may set both. */
+  searchOnly: MockMsg[] = [];
+  contactGate: Promise<void> | undefined;
   /** The chat list served: a test may swap it. */
   chats: MockChat[] = chats.map((c) => ({ ...c }));
   readonly server: ReturnType<typeof Bun.serve>;
@@ -121,7 +124,7 @@ export class WhatsAppMock {
       const q = (query.q ?? "").trim();
       if (!q) return err(400, "q is required", "Bad Request");
       const limit = Number(query.limit ?? 50);
-      const hits = messages.filter((x) => x.body.toLowerCase().includes(q.toLowerCase())).sort((a, b) => b.at - a.at).slice(0, limit).map((x) => ({
+      const hits = [...messages, ...this.searchOnly].filter((x) => x.body.toLowerCase().includes(q.toLowerCase())).sort((a, b) => b.at - a.at).slice(0, limit).map((x) => ({
         messageId: `row-${x.id}`, waMessageId: x.id, sessionId: SESSION_ID, chatId: x.chatId, body: x.body, snippet: mark(x.body, q), timestamp: x.at, type: x.type, direction: x.fromMe ? "outgoing" : "incoming", from: x.fromMe ? "905550000000@c.us" : x.author ?? x.chatId, score: 0.5,
       }));
       return json({ hits, total: hits.length, tookMs: 3, provider: "builtin-fts" });
@@ -184,6 +187,7 @@ export class WhatsAppMock {
       return json({ contactId: id, phone });
     }
     if ((cm = sub.match(/^\/contacts\/([^/]+)$/))) {
+      await this.contactGate;
       const id = decodeURIComponent(cm[1]);
       const c = contacts.find((c) => c.id === id) ?? (this.chat(id)?.phone ? contacts.find((c) => c.number === this.chat(id)!.phone) : undefined);
       if (!c) return err(404, `Contact ${id} not found`, "Not Found");

@@ -4787,7 +4787,9 @@ messages then groups (the root's unread rows). **Search WhatsApp**:
 `/api/search?q=` (full-text over the archive, `<mark>` snippets), 300 ms
 after the last keystroke, 40 hits; the row is the matching line, who
 said it where (the chat's name from the list, a sender's from the
-contacts), when; `Enter` opens the chat, `⌘C` copies the message, the
+contacts), when; the hits whose chat is already named show as soon as
+the search answers, in order up to one whose chat waits on its contact;
+`Enter` opens the chat, `⌘C` copies the message, the
 pane is the chat's conversation; a provider that is down is one hint
 row with the status and the gateway's message. **Contacts**: `/contacts`
 a thousand a page (the first page, then five in parallel), the saved

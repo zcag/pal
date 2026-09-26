@@ -339,6 +339,28 @@ describe("whatsapp", () => {
     } finally { mock.searchDown = false; }
   });
 
+  test("search streams: the hits whose chat is named show while a chat the list lacks waits on its contact; the answer adds it and the rest below", async () => {
+    let open!: () => void;
+    mock.contactGate = new Promise((r) => (open = r));
+    mock.searchOnly = [
+      { id: "false_254011223344556@lid_Q1", chatId: "254011223344556@lid", fromMe: false, body: "quokka photos", type: "text", at: m(1) },
+      { id: "false_905554445566@c.us_Q2", chatId: "905554445566@c.us", fromMe: false, body: "a quokka at the ferry", type: "text", at: m(5) },
+      { id: "false_905557778899@c.us_Q3", chatId: "905557778899@c.us", fromMe: false, body: "quokka plush restocked", type: "text", at: m(10) },
+    ];
+    try {
+      const from = host.coreCalls.length;
+      const pending = host.listStream(X, "search", "quokka");
+      await host.until(() => host.coreCalls.slice(from).some((c) => c.method === "list.partial"), 3000, "a partial");
+      open();
+      const r = await pending;
+      expect(r.partials.map((p) => p.map((i) => [i.name, i.subtitle]))).toEqual([[["quokka photos", "Mara Lind"]]]);
+      expect(r.items.map((i) => [i.name, i.subtitle])).toEqual([["quokka photos", "Mara Lind"], ["a quokka at the ferry", "someone"], ["quokka plush restocked", "Acme Support"]]);
+      expect(r.partials[0][0]).toEqual(r.items[0]);
+      // Every chat named: nothing early.
+      expect((await host.listStream(X, "search", "parser")).partials).toEqual([]);
+    } finally { open(); mock.contactGate = undefined; mock.searchOnly = []; }
+  });
+
   test("contacts: the saved ones by name with the number, one per number (the LID twin folded), the pushName-only and nameless left out, a name without a letter or digit or that is the number itself as the number alone; open, copy number, copy vCard", async () => {
     const rows = await list("contacts");
     expect(rows.map((r) => [r.name, r.subtitle])).toEqual([["+90 555 222 33 44", undefined], ["+90 555 888 99 00", undefined], ["Acme Support", "+90 555 777 88 99"], ["Dana Ruiz", "+90 555 000 11 22"], ["Lina Kova", "+90 555 333 44 55"], ["Mara Lind", "+90 555 123 45 67"], ["Ola Berg", "+90 555 111 22 33"], ["Tomas Ruiz", "+90 555 987 65 43"]]);
