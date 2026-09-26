@@ -329,7 +329,7 @@ is left to the load-time check.
   before their pictures) and return the whole. It exists only inside the
   palette's own level (`ctx?.partial?.(items)`), and only the latest
   keystroke's rows are ever drawn, so a superseded listing's partials are
-  harmless.
+  harmless. When to use it and how: "Slow listings" below.
 - `pick(id, action?, ctx?)` returns an `Effect`: `copy` (text, or a
   `CopyText` for a secret, see the note below), `copy_files` (a
   list of paths: the files themselves, see the note below), `open` (url or
@@ -511,6 +511,39 @@ host checks every icon on load (`checkIcon`): a tile off the palette or
 with markup for its svg is a warning in Settings and the palette's own
 icon falls back to the manifest's. Glyphs listed as content (a catalog,
 a grid) are not tinted: they are what the palette lists.
+
+## Slow listings: show what is ready
+
+An `input` palette whose rows wait on anything slow (a web API, several
+requests, a subprocess, a picture per row) shows what it has early with
+`ctx.partial(items)` instead of making every keystroke wait for the
+slowest part. This is the default for a new palette, not an
+optimisation for later: if `list` awaits the network, it streams.
+
+- **What first**: cached or local rows (your own items, a recent list),
+  the fastest of several sources, rows before their pictures, avatars or
+  resolved names. One partial per stage that adds rows; the host folds a
+  burst into its latest anyway.
+- **Stable rows**: a row keeps its `id` from the first partial to the
+  answer, and later rows join below what is shown. A section that answers
+  early for a lower place waits for the ones above it, so nothing moves
+  under the cursor (the panel keeps the cursor on its row by id, but rows
+  jumping still reads as flicker). A placeholder icon that becomes a
+  thumbnail is fine; a title that changes is not.
+- **The answer is the last word**: return every row, the partials'
+  included. Nothing sent after `list` returns is drawn.
+- **Superseded keystrokes**: only the latest query's rows are drawn, but a
+  palette with its own debounce or sequence counter checks it before a
+  partial too, so a listing it already knows is stale sends nothing.
+- **Cost guards stay**: streaming changes when rows show, not what is
+  fetched. A paid API still waits for the query to rest (Google's results).
+- **Tests**: `host.listStream(ext, palette, query)` in the host harness
+  answers `{ items, partials }`; check the first partial is the fast part
+  and that each partial is a prefix of the answer.
+
+`extensions/github` (your cached items, then each search tier in order)
+and `extensions/files` (names, then the matches inside files a batch at a
+time) are the reference shapes.
 
 ## View palettes: a render tree
 

@@ -2046,3 +2046,20 @@ due card, every answer is saved before the next card comes, Escape anywhere lose
 - **Typing: the countdown hides too.** A time test is a race by nature, but monkeytype lets you hide the timer for the same
   reason; the test still ends on time. A words test's `12/25` is progress, not time, and stays. Games with no clock on
   screen (Snake, Blackjack, Yahtzee, 2048, Wordle, Flashcards, whose answer timing is never shown) are untouched.
+
+## Streaming lists (2026-09-27)
+
+- **Rule: an input palette whose `list` waits on anything slow streams** (`ctx.partial`), from its first version. Cagdas
+  (2026-09-27): "make sure this is used where appropriate with future extensions/features". The how is
+  `docs/extensions.md`, "Slow listings"; a brief for an agent building an extension names that section.
+- **Shape**: `ctx.partial(items)` replaces the rows shown; the answer replaces them all. Host `serve.ts` `partials()`: one
+  `core/list.partial` in flight, a burst folded into its latest, closed when `list` returns. The core stamps the list's
+  `stream` with the asking window (`host_request`, host.rs) and `partial` emits `pal://partial {n, items}` to it; core.ts keeps
+  a callback per request number until the answer lands, and the Launcher draws a partial only while its query is the latest
+  (`seq`). While one query's rows change the cursor follows its row by id (`onRow`, Launcher.tsx).
+- **Not streamed**: the root's sections (inline, fallback, suggest) and cached listings get no `partial` (`ctx.partial` is
+  undefined there). The root has its own answer to slowness: `lateFallback`.
+- **Used by** (first round, one lane each): files, github, and the lanes for gmail/slack/whatsapp, google/maps,
+  immich/gifs/navidrome/spotify. Google's results became rows under the suggestions, which was deferred at "Google Search"
+  above for want of this.
+
