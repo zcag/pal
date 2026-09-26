@@ -14,6 +14,11 @@ const INVISIBLE = /[\u200B-\u200D\u2060\uFEFF\u034F\u00AD]/g;
 /** Runs of whitespace (newlines included) as one space, invisible characters out, trimmed: a subtitle from a body. */
 export const oneLine = (s: string): string => s.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
 
+const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+/** An HTML fragment as one line of plain text: tags out (`<br>` a space), the common named entities and every numeric one decoded, whitespace collapsed. A search snippet's `<b>` marks, a suggestion's highlighting. */
+export const htmlText = (s: string): string =>
+  oneLine(s.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => (e[0] !== "#" ? ENTITIES[e.toLowerCase()] ?? m : String.fromCodePoint(/^#x/i.test(e) ? parseInt(e.slice(2), 16) : Number(e.slice(1))))));
+
 /** `Hello, Wörld!` as `hello-world`: lowercase ASCII words joined by hyphens, accents stripped. */
 export const slug = (s: string): string => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 

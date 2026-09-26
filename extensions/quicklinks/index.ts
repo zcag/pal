@@ -11,8 +11,7 @@
 // front (`tabs.active`). The library level offers ready-made
 // searches (library.ts); an `import` file adds read-only links; the
 // Import and Export rows move links in and out as JSON files.
-import { existsSync } from "node:fs";
-import { argsForm, clipboard, errorMessage, expand, failed, hasPlaceholders, home, selection, settings, storage, tabs, type Action, type Arg, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, browsers, clipboard, errorMessage, expand, hasPlaceholders, home, openUrl, selection, settings, storage, tabs, type Action, type Arg, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { LIBRARY, LIBRARY_ID, libraryEntry, libraryId } from "./library.ts";
 import { asLinks, badUrl, fill, fillNamed, fromJson, placeholder, placeholders, splitKeywords, type Link } from "./links.ts";
 
@@ -36,10 +35,6 @@ const EXTENSION = "quicklinks", PALETTE = "quicklinks";
 const EXPORT_DEFAULT = "~/Downloads/pal-quicklinks.json";
 /** md-link_plus, md-library_shelves, md-tray_arrow_down, md-tray_arrow_up: the Create, Browse library, Import and Export rows (a link row gets its favicon). */
 const ICON = { create: "\u{f0c94}", library: "\u{f0ba9}", import: "\u{f0120}", export: "\u{f011d}" };
-const MAC = process.platform === "darwin";
-/** The "Open with" choices, checked against the machine: the app names macOS's `open -a` takes, the commands Linux runs. `PAL_QUICKLINKS_BROWSERS` (a comma list) stands in for the check (the tests). */
-const BROWSERS_MAC = ["Safari", "Google Chrome", "Firefox", "Arc", "Brave Browser", "Microsoft Edge", "Chromium", "Vivaldi", "Zen"];
-const BROWSERS_LINUX = ["firefox", "google-chrome", "chromium", "brave", "microsoft-edge", "vivaldi", "zen"];
 /** The "Open with" choice that is no app: the OS opener. */
 const DEFAULT_APP = "default";
 
@@ -53,26 +48,6 @@ const SEARCH: Action = { id: "search", title: "Search with it" };
 
 const own = async () => asLinks(await storage.get(KEY));
 const conf = () => settings.get<Settings>();
-
-/** The browsers installed, in the fixed order; empty when none is found (the field then offers Default alone). */
-function browsers(): string[] {
-  const forced = process.env.PAL_QUICKLINKS_BROWSERS;
-  if (forced !== undefined) return forced.split(",").map((b) => b.trim()).filter(Boolean);
-  return MAC ? BROWSERS_MAC.filter((b) => existsSync(`/Applications/${b}.app`) || existsSync(home(`~/Applications/${b}.app`))) : BROWSERS_LINUX.filter((b) => Bun.which(b));
-}
-
-/**
- * The url in the app the link names: `open -a <app> <url>` on macOS, the
- * command on Linux (the core's `apps.open_with` takes a file that exists,
- * not a url). `PAL_QUICKLINKS_OPEN` names a stand-in taking `<app> <url>`
- * (the tests). Detached, so the panel never waits on the browser.
- */
-function openWith(url: string, app: string): Effect {
-  const argv = process.env.PAL_QUICKLINKS_OPEN ? [process.env.PAL_QUICKLINKS_OPEN, app, url] : MAC ? ["open", "-a", app, url] : [app, url];
-  try { Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref(); }
-  catch (e) { return failed(`open with ${app}`, e); }
-  return { hide: true };
-}
 
 /** The newest text on the clipboard, for `{clipboard}`; empty when there is none. */
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
@@ -91,7 +66,7 @@ async function openLink(l: Link, url = l.url): Promise<Effect> {
     const tab = await tabs.find(url).catch(() => undefined);
     if (tab) return tabs.focus(tab);
   }
-  return l.app ? openWith(url, l.app) : { open: url };
+  return openUrl(url, { app: l.app });
 }
 
 /** The `import` file's links, ids prefixed so they never collide with stored ones; a missing or broken file lists nothing and says so on stderr. */
