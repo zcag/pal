@@ -2,7 +2,7 @@
 // needed. Typed text gets a Search row, Directions rows from the current
 // location, home and work (the travel mode is the filter), the saved
 // places that match, and, with a Places API key, autocomplete rows as you
-// type. `home > work`, `here -> Kadıköy`, `istanbul to ankara` is a route
+// type, below the others (which show first, `ctx.partial`). `home > work`, `here -> Kadıköy`, `istanbul to ankara` is a route
 // with both ends. Nothing typed: home, work, the commute, the saved
 // places. `maps:` or `go:` before a query answers inline at the root.
 import { errorMessage, hint, settings, toast, type Action, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
@@ -129,6 +129,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   ];
   if (s.api_key?.trim() && !ctx?.inline) {
     const my = ++seq;
+    ctx?.partial?.(rows); // Search, the directions and the saved places show now; the places join below them after the debounce and Google's answer
     await Bun.sleep(DEBOUNCE_MS);
     if (my !== seq) return [...rows, hint("wait", "Looking up places…", q, { icon: GLYPH.wait })];
     try {

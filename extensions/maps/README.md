@@ -18,8 +18,8 @@ API key is set. An input palette.
 The **travel mode** is the filter (Tab cycles it): driving, transit,
 walking, cycling. It applies to every directions row and route.
 
-With `api_key` set, **Places autocomplete** rows follow the standing rows
-250 ms after the last key: the prediction's main text as the name, the
+With `api_key` set, the standing rows show at once and **Places
+autocomplete** rows join below them 250 ms after the last key: the prediction's main text as the name, the
 rest as the subtitle; Enter opens the search pinned to the place id
 (`query_place_id`), so it lands on that place and not a lookalike. The
 root's inline ask never waits on it.

@@ -181,6 +181,10 @@ describe("maps", () => {
     expect(ids(b).at(-1)).toBe("pred:ChIJm");
     expect(seen.slice(n).map((s) => s.input)).toEqual(["Moda"]);
     expect(ids(await list("go: x", { inline: true }))).not.toContain("pred:ChIJk");
+    // Streamed: the standing rows show first, the predictions join below them.
+    const r = await host.listStream("maps", "maps", "Kadıköy");
+    expect(r.partials.map(ids)).toEqual([ids(items).slice(0, -2)]);
+    expect(ids(r.items)).toEqual(ids(items));
     host.changeSettings("maps", { settings: { ...SETTINGS, api_key: "bad" } });
     const bad = await list("Taksim");
     expect(bad.at(-1)).toMatchObject({ id: "hint:failed", actions: [] });

@@ -4543,8 +4543,9 @@ typed lists Home, Work, the commute both ways and every saved place. The
 travel mode is the filter (driving, transit, walking, cycling; Tab cycles
 it). `go: coffee` or `maps: home > work` at the root answers inline.
 
-With `api_key` (a Google Cloud key with Places API (New) enabled), place
-predictions follow the rows 250 ms after the last key and open pinned to
+With `api_key` (a Google Cloud key with Places API (New) enabled), the
+rows show at once and place predictions join below them 250 ms after the
+last key (`ctx.partial`), opening pinned to
 their place id; the inline ask never waits on them. Google bills those
 requests past the monthly free credit, so they are debounced and cached
 per input.
