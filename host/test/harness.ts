@@ -185,6 +185,15 @@ export class Host {
   list(extension: string, palette: string, query?: string, ctx?: Ctx) {
     return this.request<{ items: Item[] }>("list", { extension, palette, query, ...ctx }).then((r) => r.items);
   }
+  /** A streamed `list`, as the panel asks an input palette: the answer, and the rows each `ctx.partial` showed before it, in order. */
+  async listStream(extension: string, palette: string, query?: string, ctx?: Ctx) {
+    const stream = { window: "test", n: ++this.streams };
+    const from = this.coreCalls.length;
+    const items = await this.request<{ items: Item[] }>("list", { extension, palette, query, ...ctx, stream }).then((r) => r.items);
+    const partials = this.coreCalls.slice(from).filter((c) => c.method === "list.partial" && JSON.stringify((c.params as any)?.stream) === JSON.stringify(stream)).map((c) => (c.params as any).items as Item[]);
+    return { items, partials };
+  }
+  private streams = 0;
   pick(extension: string, palette: string, id: string, action?: string, ctx?: Ctx, timeout?: number) {
     return this.request<Effect & Record<string, unknown>>("pick", { extension, palette, id, action, ...ctx }, timeout);
   }
@@ -392,6 +401,8 @@ export const stored = new Map<string, unknown>();
 
 /** Built-in answers for the OS capabilities; `settings.get` resolves the manifest, anything else is null. */
 const CORE: CoreTable = {
+  // A streamed list's early rows (app host.rs `partial`): recorded in `coreCalls`, nothing to answer.
+  "list.partial": () => null,
   "storage.get": ({ extension, key }: { extension: string; key: string }) => stored.get(`${extension}\0${key}`) ?? null,
   "storage.set": ({ extension, key, value }: { extension: string; key: string; value: unknown }) => { stored.set(`${extension}\0${key}`, value); return null; },
   "storage.remove": ({ extension, key }: { extension: string; key: string }) => { stored.delete(`${extension}\0${key}`); return null; },

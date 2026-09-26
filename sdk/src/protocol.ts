@@ -579,6 +579,16 @@ export type Ctx = {
   ids?: string[];
   /** The level is in the bar popover (420 px wide, `docs/extensions.md`, bar items): a `view` lays out for it, a `list` may cut its rows. Absent in the panel. */
   compact?: true;
+  /**
+   * On a `list` inside the palette's own level: show `items` now, while
+   * `list` is still working (an input palette whose rows come from a slow
+   * source, or from several: the cached or fast ones first). Each call
+   * replaces the rows shown; what `list` returns replaces them all. Only
+   * the latest query's rows are ever drawn, and the loading sweep keeps
+   * running until `list` returns. Absent where nothing streams (the root's
+   * sections, a cached listing), so call it as `ctx?.partial?.(items)`.
+   */
+  partial?: (items: Item[]) => void;
 };
 
 /**

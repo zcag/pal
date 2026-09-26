@@ -54,6 +54,10 @@ pub const BAR: &str = "pal://bar";
 /// (`ViewUpdate` in sdk/src/protocol.ts: `{ extension, palette | bar, id?,
 /// spec }`), applied in place (views.rs).
 pub const VIEW: &str = "pal://view";
+/// To the page that asked: rows a streaming `list` showed early
+/// (`ctx.partial`), `{ n, items }` with `n` the page's own request number
+/// (host.rs `partial`); the page drops them once that request answered.
+pub const PARTIAL: &str = "pal://partial";
 /// To every page: a trigger fired (`{ name }`: `media`, `wake`, `network`,
 /// `show`, `focus`, `minute`); a view level whose palette lists it under
 /// `on` asks for its tree again (bar/mod.rs `trigger`).

@@ -322,6 +322,14 @@ is left to the load-time check.
   root has only the palette's own row (a calculator); the search row
   sweeps while the latest keystroke's listing is unanswered, and an
   earlier one's late answer is dropped.
+  A listing that waits on something slow can show rows early:
+  `ctx.partial(items)` draws them while `list` keeps working, each call
+  replacing the last, and what `list` returns replaces them all. Show what
+  is ready first (cached rows, the fast one of several sources, rows
+  before their pictures) and return the whole. It exists only inside the
+  palette's own level (`ctx?.partial?.(items)`), and only the latest
+  keystroke's rows are ever drawn, so a superseded listing's partials are
+  harmless.
 - `pick(id, action?, ctx?)` returns an `Effect`: `copy` (text, or a
   `CopyText` for a secret, see the note below), `copy_files` (a
   list of paths: the files themselves, see the note below), `open` (url or

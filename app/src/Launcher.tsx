@@ -212,8 +212,8 @@ export type LauncherHandle = {
 export type LauncherProps = {
   /** Palettes in the index, load order; empty until the host has listed one. */
   sources?: SourceInfo[];
-  /** Top hits for `q`, over one palette or all of them; `ctx` is the level's filter and args. */
-  search?: (q: string, scope?: SourceInfo, ctx?: Ctx) => Promise<Hit[]>;
+  /** Top hits for `q`, over one palette or all of them; `ctx` is the level's filter and args. A host-listed level may show rows early through `onPartial` (`ctx.partial` in the palette) before the answer. */
+  search?: (q: string, scope?: SourceInfo, ctx?: Ctx, onPartial?: (h: Hit[]) => void) => Promise<Hit[]>;
   /** The root's inline rows for `q` (the palettes whose `match` accepts it), each row's `group` its palette's title; asked after the local hits, debounced. */
   inline?: (q: string) => Promise<Hit[]>;
   /** The root's fallback rows for `q`, ordered and grouped by the core; shown when nothing else matched (or always, `prefs.fallbacksAlways`). */
@@ -441,7 +441,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu") { setAsking(false); return setFound([]); }
     setAsking(!!scope?.input);
     const done = () => { if (n === seq.current) setAsking(false); };
-    search(query, scope, ctx).then((h) => { if (n === seq.current) setFound(h); }).then(done, done);
+    const show = (h: Hit[]) => { if (n === seq.current) setFound(h); };
+    search(query, scope, ctx, show).then(show).then(done, done);
   }, [search, query, scopeKey, view.kind, ctx, indexVersion, searchSeq]);
   // The root's inline and fallback sections: asked `ROOT_DEBOUNCE` after the
   // last keystroke, the local hits already painted; the next keystroke

@@ -42,7 +42,7 @@ export function describe(e: unknown): string {
 }
 
 /** A palette request's params as the core sends them (index.rs): JSON off the wire, so every field is read as it may not be. */
-type Params = { extension?: string; palette?: string; id?: string; action?: string; call?: string; data?: unknown; query?: string; route?: string; params?: unknown; filter?: string; args?: unknown; refresh?: boolean; values?: FormValues | null; inline?: boolean; ids?: unknown[] };
+type Params = { extension?: string; palette?: string; id?: string; action?: string; call?: string; data?: unknown; query?: string; route?: string; params?: unknown; filter?: string; args?: unknown; refresh?: boolean; values?: FormValues | null; inline?: boolean; ids?: unknown[]; stream?: unknown };
 
 const paletteKey = (p: Params) => `${p.extension}/${p.palette}`;
 // The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
@@ -50,6 +50,35 @@ const ctxOf = (p: Params): Ctx | undefined =>
   p.filter !== undefined || p.args != null || p.refresh || p.values != null || p.inline || Array.isArray(p.ids)
     ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }), ...(Array.isArray(p.ids) && { ids: p.ids.map(String) }) }
     : undefined;
+
+/**
+ * `ctx.partial` for a `list` the core asked to stream (`stream`, opaque,
+ * the window and request it came from): each call's rows go out as
+ * `core/list.partial`, one at a time, a burst folded into its latest
+ * snapshot; `close` when the list answers drops whatever is still queued,
+ * the answer being the last word.
+ */
+function partials(stream: unknown, what: string) {
+  let next: Item[] | undefined, busy = false, open = true;
+  const flush = async () => {
+    busy = true;
+    while (open && next) {
+      const items = next;
+      next = undefined;
+      await runtime().call("list.partial", { stream, items }).catch((e) => log(`${what}: partial failed: ${describe(e)}`));
+    }
+    busy = false;
+  };
+  return {
+    partial: (items: Item[]) => {
+      if (!open) return;
+      if (!Array.isArray(items)) throw new Error(`${what}: partial takes an array of items`);
+      next = items;
+      if (!busy) flush();
+    },
+    close: () => { open = false; },
+  };
+}
 
 /** Runs `f` knowing which palette it serves, so `settings.get()` in there needs no argument. */
 const inContext = <T>(p: Params, f: () => T): T => context.run({ extension: String(p.extension), palette: String(p.palette) }, f);
@@ -84,7 +113,9 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
       details.delete(paletteKey(p));
       const pal = palette(p);
       if (isView(pal)) throw new Error(`${paletteKey(p)}: a view palette has no list`);
-      const items = await inContext(p, () => pal.list(p.query, ctxOf(p)));
+      const stream = p.stream != null ? partials(p.stream, `list of ${paletteKey(p)}`) : undefined;
+      const ctx = stream ? { ...ctxOf(p), partial: stream.partial } : ctxOf(p);
+      const items = await inContext(p, () => pal.list(p.query, ctx)).finally(() => stream?.close());
       if (!Array.isArray(items)) throw new Error(`${paletteKey(p)}: list returned ${items === null ? "null" : typeof items}, not an array`);
       return { items };
     },

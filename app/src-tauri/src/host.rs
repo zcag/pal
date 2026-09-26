@@ -290,6 +290,12 @@ pub async fn host_request(
 ) -> Result<Value, String> {
     let t0 = Instant::now();
     let mut params = params.unwrap_or(Value::Null);
+    // A streaming list (`stream: n`, the page's request number) is told where its partials go: this window, that request.
+    if method == "list" {
+        if let Some(n) = params.get("stream").filter(|n| n.is_u64()).cloned() {
+            params["stream"] = json!({ "window": window.label(), "n": n });
+        }
+    }
     // From the bar popover or the sidebar, a listing or a tree is drawn compact (`Ctx.compact`); the pick's flag is set in index.rs.
     if crate::views::is_compact(window.label()) && matches!(method.as_str(), "list" | "view") {
         if let Value::Object(o) = &mut params {
@@ -301,3 +307,14 @@ pub async fn host_request(
     r
 }
 
+/// `core/list.partial {stream: {window, n}, items}` (bridge.rs): a
+/// streaming list's early rows, to the page that asked (`host_request`
+/// named the window); the page knows the request by `n`.
+pub fn partial(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
+    if func != "partial" {
+        return Err(format!("unknown list function {func}"));
+    }
+    let window = params["stream"]["window"].as_str().ok_or("list.partial: no stream")?;
+    events::emit_to(app, window, events::PARTIAL, json!({ "n": params["stream"]["n"], "items": params["items"] }));
+    Ok(Value::Null)
+}

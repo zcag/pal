@@ -110,6 +110,16 @@ export function useSources() {
   return { sources, version, bump };
 }
 
+/**
+ * The streaming lists in flight, by request number: `pal://partial`
+ * (host.rs `partial`, to this window) hands each its early rows; a number
+ * leaves when its answer lands, so a partial that trails the answer is
+ * dropped.
+ */
+const streams = new Map<number, (items: WireItem[]) => void>();
+let streamSeq = 0;
+listen<{ n: number; items: WireItem[] }>("pal://partial", (e) => streams.get(e.payload.n)?.(e.payload.items), { target: getCurrentWindow().label }).catch(() => {});
+
 export function useCore(hide: () => void) {
   const { sources, version, bump } = useSources();
   const infos = useRef(new Map<string, SourceInfo>());
@@ -120,12 +130,19 @@ export function useCore(hide: () => void) {
   // An input palette answers from the host, so does a level a `push` opened
   // (its args go with the list); everything else from the index, whose
   // bucket the core first swaps to the palette's chosen filter.
-  const search = useCallback(async (q: string, scope?: SourceInfo, ctx?: Ctx): Promise<Hit[]> => {
+  const search = useCallback(async (q: string, scope?: SourceInfo, ctx?: Ctx, onPartial?: (h: Hit[]) => void): Promise<Hit[]> => {
     showing.current = scope;
     const source = scope && { extension: scope.extension, palette: scope.palette };
     if (source && (scope.input || ctx?.args !== undefined)) {
-      const r = await invoke<{ items: WireItem[] }>("host_request", { method: "list", params: { ...source, query: q, filter: ctx?.filter, args: ctx?.args } });
-      return toLiveHits(source, r.items, scope);
+      // Streamed (`ctx.partial` in the palette): its early rows arrive as `pal://partial` under this request's number until the answer does.
+      const n = onPartial ? ++streamSeq : undefined;
+      if (n) streams.set(n, (items) => onPartial!(toLiveHits(source, items, scope)));
+      try {
+        const r = await invoke<{ items: WireItem[] }>("host_request", { method: "list", params: { ...source, query: q, filter: ctx?.filter, args: ctx?.args, stream: n } });
+        return toLiveHits(source, r.items, scope);
+      } finally {
+        if (n) streams.delete(n);
+      }
     }
     if (source && scope.filters?.length && ctx?.filter) await invoke("filter", { source, filter: ctx.filter });
     const wire = await invoke<WireHit[]>("query", { q, limit: LIMIT, sources: source && [source] });

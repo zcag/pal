@@ -26,6 +26,7 @@
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
 //! - `core/windows.{list, close, minimize, unminimize, fullscreen, frame, set_frame, displays, focused, layout, spaces, go_space}` (windows.rs)
 //! - `core/calendar.{permission, request, open_settings, calendars, events, create, delete, open}` (calendar.rs)
+//! - `core/list.partial {stream, items}` (host.rs: a streaming list's early rows)
 //! - `core/view.{update {extension, palette | bar, id?, spec}, post {..., msg}}` (views.rs)
 
 use serde_json::Value;
@@ -66,6 +67,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "windows" => crate::windows::call(app, func, params),
         "calendar" => calendar::call(app, func, params),
         "view" => crate::views::call(app, func, params),
+        "list" => crate::host::partial(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
     }
 }
