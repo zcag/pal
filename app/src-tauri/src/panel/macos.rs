@@ -143,6 +143,30 @@ fn hide_now(app: &AppHandle) {
     // straight back in so WebKit keeps the page alive.
     p.hide(); // orderOut:
     p.show(); // orderFrontRegardless
+    deactivate();
+}
+
+/// After a hide: pal active (its launch, the Settings window) is why a hide lost the keyboard. orderOut then
+/// hands key to the next key-capable pal window (the invisible Large Type panel, seen 2026-09-27 as
+/// WindowServer's ReleaseKeyFocus then StealKeyFocus, the keys going nowhere until a click or a Space
+/// switch) instead of the app in front; deactivating gives it back to the app that was active before.
+/// Not while a window you can see holds the keyboard: the panel also hides when Settings takes it.
+fn deactivate() {
+    use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send};
+    unsafe {
+        let nsapp: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+        let active: bool = msg_send![nsapp, isActive];
+        let key: *mut AnyObject = msg_send![nsapp, keyWindow];
+        let seen = !key.is_null() && {
+            let visible: bool = msg_send![key, isVisible];
+            let alpha: f64 = msg_send![key, alphaValue];
+            visible && alpha > 0.0
+        };
+        if active && !seen {
+            let _: () = msg_send![nsapp, deactivate];
+        }
+    }
 }
 
 // ---- HUD -----------------------------------------------------------------
@@ -277,6 +301,7 @@ mod large {
             p.set_alpha_value(0.0);
             p.hide();
             p.show();
+            super::deactivate();
         });
     }
 }
@@ -690,6 +715,7 @@ mod bar {
             p.set_alpha_value(0.0);
             p.hide();
             p.show();
+            super::deactivate();
         });
     }
 }
