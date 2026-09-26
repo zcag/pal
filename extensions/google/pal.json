@@ -1,0 +1,351 @@
+{
+  "name": "google",
+  "title": "Google Search",
+  "description": "Search Google from the panel: Google's suggestions as you type (no key; Tab puts one in the box), a Wikipedia card for a person, place or thing, and with a provider the web results and instant answers in the pane as you type or as rows on cmd+Enter (SerpApi for Google's own results, the Brave Search API, or your own SearXNG). At the root, when nothing matches, the first suggestions join Search the web.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰊭",
+      "bg": "blue"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "g",
+    "web",
+    "search"
+  ],
+  "settings": [
+    {
+      "kind": "select",
+      "id": "provider",
+      "label": "Results from",
+      "description": "Where the web results come from. Suggestions come from Google with no key whatever this says; no free keyless service gives results reliably (DuckDuckGo, Bing's feed, Qwant, Mojeek and Startpage refuse or answer poorly without a browser).",
+      "options": [
+        {
+          "id": "none",
+          "title": "Nowhere (suggestions only)"
+        },
+        {
+          "id": "serpapi",
+          "title": "SerpApi (Google's own results)"
+        },
+        {
+          "id": "brave",
+          "title": "Brave Search API"
+        },
+        {
+          "id": "searxng",
+          "title": "A SearXNG instance"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "kind": "secret",
+      "id": "serpapi_key",
+      "required": true,
+      "only": {
+        "provider": "serpapi"
+      },
+      "label": "SerpApi key",
+      "description": "From serpapi.com/manage-api-key. The free plan is 250 searches a month: with it, set Show results to When I ask. A query asked again within the hour is served from SerpApi's cache and costs nothing.",
+      "placeholder": "a1b2…",
+      "default": ""
+    },
+    {
+      "kind": "secret",
+      "id": "brave_key",
+      "required": true,
+      "only": {
+        "provider": "brave"
+      },
+      "label": "Brave Search API key",
+      "description": "From api-dashboard.search.brave.com (the Search plan).",
+      "placeholder": "BSA…",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "searxng_url",
+      "required": true,
+      "only": {
+        "provider": "searxng"
+      },
+      "label": "SearXNG instance",
+      "description": "Its address; `json` must be among the instance's search formats (settings.yml, search.formats).",
+      "placeholder": "https://searx.example.org",
+      "default": ""
+    },
+    {
+      "kind": "select",
+      "id": "results",
+      "label": "Show results",
+      "description": "As you type: the pane shows the answer and the first results for the row under the cursor, a moment after you stop (one request per query, cached). When I ask: only cmd+Enter searches.",
+      "options": [
+        {
+          "id": "typing",
+          "title": "As I type, in the pane"
+        },
+        {
+          "id": "ask",
+          "title": "When I ask (cmd+Enter)"
+        }
+      ],
+      "default": "typing"
+    },
+    {
+      "kind": "select",
+      "id": "language",
+      "label": "Language",
+      "description": "The language of the suggestions and results. Auto follows the system's.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "Auto (the system's)"
+        },
+        {
+          "id": "en",
+          "title": "English"
+        },
+        {
+          "id": "tr",
+          "title": "Türkçe"
+        },
+        {
+          "id": "de",
+          "title": "Deutsch"
+        },
+        {
+          "id": "fr",
+          "title": "Français"
+        },
+        {
+          "id": "es",
+          "title": "Español"
+        },
+        {
+          "id": "it",
+          "title": "Italiano"
+        },
+        {
+          "id": "nl",
+          "title": "Nederlands"
+        },
+        {
+          "id": "pt",
+          "title": "Português"
+        },
+        {
+          "id": "ru",
+          "title": "Русский"
+        },
+        {
+          "id": "ar",
+          "title": "العربية"
+        },
+        {
+          "id": "ja",
+          "title": "日本語"
+        },
+        {
+          "id": "zh-CN",
+          "title": "中文"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "kind": "text",
+      "id": "region",
+      "label": "Region",
+      "description": "A two-letter country code for what is local (tr, us, de); empty follows the system.",
+      "placeholder": "tr",
+      "default": ""
+    },
+    {
+      "kind": "boolean",
+      "id": "safe_search",
+      "label": "Safe search",
+      "text": "Filter explicit results",
+      "default": false
+    },
+    {
+      "kind": "select",
+      "id": "browser",
+      "label": "Open in",
+      "description": "The browser a search or a result opens in.",
+      "options": [
+        {
+          "id": "default",
+          "title": "The default browser"
+        },
+        {
+          "id": "Safari",
+          "title": "Safari"
+        },
+        {
+          "id": "Google Chrome",
+          "title": "Google Chrome"
+        },
+        {
+          "id": "Firefox",
+          "title": "Firefox"
+        },
+        {
+          "id": "Arc",
+          "title": "Arc"
+        },
+        {
+          "id": "Brave Browser",
+          "title": "Brave"
+        },
+        {
+          "id": "Microsoft Edge",
+          "title": "Microsoft Edge"
+        },
+        {
+          "id": "Chromium",
+          "title": "Chromium"
+        },
+        {
+          "id": "Vivaldi",
+          "title": "Vivaldi"
+        },
+        {
+          "id": "Zen",
+          "title": "Zen"
+        }
+      ],
+      "default": "default"
+    },
+    {
+      "kind": "boolean",
+      "id": "root",
+      "label": "At the root",
+      "text": "Suggestions under Search the web when nothing matches",
+      "description": "Asked only when nothing on the machine matched what you typed, so a query pal answered itself is never sent to Google.",
+      "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "history",
+      "label": "Recent searches",
+      "text": "Remember searches and list them while nothing is typed",
+      "default": true
+    }
+  ],
+  "store": {
+    "tagline": "Google's suggestions as you type, results and answers in the panel",
+    "category": "productivity",
+    "features": [
+      "Google's suggestions on every keystroke, no key needed: Enter searches, Tab puts a suggestion in the box, cmd+b searches in the background",
+      "A person, place or thing Google recognises shows its line and thumbnail, and its Wikipedia card in the pane",
+      "With a provider, the answer (the weather, a conversion, a definition) and the first results in the pane as you type; cmd+Enter lists them as rows to open, open in the background or copy",
+      "SerpApi for Google's own results, the Brave Search API, or your own SearXNG instance",
+      "At the root, when nothing matches, the first suggestions join Search the web; the query leaves the machine only then",
+      "Recent searches while nothing is typed; language, region, safe search and the browser in Settings"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Search Google",
+        "keys": "enter"
+      },
+      {
+        "title": "Results here",
+        "description": "The provider's answer and results as rows (with a provider set).",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Search in the background",
+        "keys": "cmd+b"
+      },
+      {
+        "title": "Copy text",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy search link",
+        "keys": "cmd+l"
+      },
+      {
+        "title": "Complete",
+        "description": "The suggestion into the search box.",
+        "keys": "tab"
+      },
+      {
+        "title": "Open in the background",
+        "description": "On a result row.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy as Markdown link",
+        "description": "On a result row.",
+        "keys": "cmd+shift+c"
+      }
+    ],
+    "screenshots": [
+      {
+        "file": "1-suggestions.png",
+        "caption": "kadıköy typed: Google's suggestions, the district's Wikipedia card in the pane"
+      },
+      {
+        "file": "2-preview.png",
+        "caption": "With SerpApi: the knowledge panel and the first results in the pane as you type"
+      },
+      {
+        "file": "3-results.png",
+        "caption": "cmd+Enter: the answer and the results as rows, each with its site"
+      },
+      {
+        "file": "4-actions.png",
+        "caption": "What a result can do: open, open in the background, copy the link or a Markdown link"
+      }
+    ]
+  },
+  "palettes": {
+    "google": {
+      "kind": "input",
+      "description": "Type to get Google's suggestions; Enter searches, Tab completes, cmd+Enter lists the results here with a provider. Nothing typed lists recent searches.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Search Google (on a result: open it)"
+        },
+        {
+          "keys": "tab",
+          "title": "Put the suggestion in the box"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Results here (on a result: open in the background)"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "Search in the background"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the text (on a result: the link)"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Copy the search link"
+        },
+        {
+          "keys": "ctrl+x",
+          "title": "Remove a recent search"
+        }
+      ]
+    }
+  }
+}

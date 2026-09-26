@@ -1,0 +1,738 @@
+{
+  "palettes": {
+    "google": {
+      "title": "Google Search",
+      "icon": {
+        "tile": {
+          "glyph": "󰊭",
+          "bg": "blue"
+        }
+      },
+      "input": true,
+      "placeholder": "Search Google",
+      "showDetail": true,
+      "byQuery": {
+        "kadıköy": [
+          {
+            "id": "q:kadıköy",
+            "name": "Search Google for “kadıköy”",
+            "subtitle": "İstanbul'da bir ilçe",
+            "icon": "󰍉",
+            "complete": "kadıköy",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:kadıköy vapur saatleri",
+            "name": "kadıköy vapur saatleri",
+            "icon": "󰍉",
+            "complete": "kadıköy vapur saatleri",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:kadıköy kahvaltı",
+            "name": "kadıköy kahvaltı",
+            "icon": "󰍉",
+            "complete": "kadıköy kahvaltı",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:kadıköy moda sahil",
+            "name": "kadıköy moda sahil",
+            "icon": "󰍉",
+            "complete": "kadıköy moda sahil",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:kadıköy çarşı",
+            "name": "kadıköy çarşı",
+            "icon": "󰍉",
+            "complete": "kadıköy çarşı",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:kadıköy boğa heykeli",
+            "name": "kadıköy boğa heykeli",
+            "icon": "󰍉",
+            "complete": "kadıköy boğa heykeli",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:kadıköy sinema",
+            "name": "kadıköy sinema",
+            "icon": "󰍉",
+            "complete": "kadıköy sinema",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          }
+        ],
+        "bun runtime": [
+          {
+            "id": "q:bun runtime",
+            "name": "Search Google for “bun runtime”",
+            "icon": "󰍉",
+            "complete": "bun runtime",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "results",
+                "title": "Results here",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:bun runtime vs node",
+            "name": "bun runtime vs node",
+            "icon": "󰍉",
+            "complete": "bun runtime vs node",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "results",
+                "title": "Results here",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:bun runtime install",
+            "name": "bun runtime install",
+            "icon": "󰍉",
+            "complete": "bun runtime install",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "results",
+                "title": "Results here",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:bun runtime benchmark",
+            "name": "bun runtime benchmark",
+            "icon": "󰍉",
+            "complete": "bun runtime benchmark",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "results",
+                "title": "Results here",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          },
+          {
+            "id": "s:bun runtime windows",
+            "name": "bun runtime windows",
+            "icon": "󰍉",
+            "complete": "bun runtime windows",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search Google"
+              },
+              {
+                "id": "results",
+                "title": "Results here",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "background",
+                "title": "Search in the background",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy search link",
+                "shortcut": "cmd+l"
+              }
+            ]
+          }
+        ]
+      },
+      "details": {
+        "q:kadıköy": {
+          "markdown": "**Kadıköy**\nİstanbul'un bir ilçesi\n\nKadıköy, İstanbul'un Anadolu yakasında, Marmara Denizi kıyısında bir ilçedir. Moda, Fenerbahçe ve Bahariye caddesiyle bilinir; Avrupa yakasına vapurla bağlanır.\n\n[Wikipedia](https://tr.wikipedia.org/wiki/Kad%C4%B1k%C3%B6y)"
+        },
+        "q:bun runtime": {
+          "markdown": "**Bun**\nJavaScript runtime\n\nA fast JavaScript runtime, package manager, bundler and test runner.\n\n[bun.sh](https://bun.sh/)\n\n---\n\n**[Bun: a fast all-in-one JavaScript runtime](https://bun.sh/)**\nbun.sh\nBundle, install and run JavaScript and TypeScript, all in one tool: a runtime, a package manager, a test runner and a bundler.\n\n**[Installation \\| Bun docs](https://bun.sh/docs/installation)**\nbun.sh\nBun ships as a single executable with no dependencies. Install it with curl, npm, Homebrew or Docker.\n\n**[Bun vs Node.js: what changes for a real project](https://blog.example.dev/bun-vs-node)**\nblog.example.dev\nWe moved a mid-sized API to Bun for a month. Startup, install times and the test runner, measured.\n\n**[oven-sh/bun on GitHub](https://github.com/oven-sh/bun)**\ngithub.com\nIncredibly fast JavaScript runtime, bundler, test runner, and package manager, all in one.\n\n**[Bun (software) - Wikipedia](https://en.wikipedia.org/wiki/Bun_(software))**\nen.wikipedia.org\nBun is a JavaScript runtime, package manager and test runner designed as a drop-in replacement for Node.js.\n\n*cmd+enter lists all 6 here*"
+        }
+      }
+    },
+    "google-results": {
+      "title": "bun runtime",
+      "icon": {
+        "tile": {
+          "glyph": "󰊭",
+          "bg": "blue"
+        }
+      },
+      "input": true,
+      "showDetail": true,
+      "items": [
+        {
+          "id": "a:bun runtime",
+          "name": "Bun",
+          "subtitle": "JavaScript runtime · A fast JavaScript runtime, package manager, bundler and test runner.",
+          "icon": "󰌶",
+          "detail": {
+            "markdown": "**Bun**\nJavaScript runtime\n\nA fast JavaScript runtime, package manager, bundler and test runner.\n\n[bun.sh](https://bun.sh/)"
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open the source"
+            },
+            {
+              "id": "copy",
+              "title": "Copy answer",
+              "shortcut": "cmd+c"
+            }
+          ],
+          "section": "Answer"
+        },
+        {
+          "id": "r:https://bun.sh/",
+          "name": "Bun: a fast all-in-one JavaScript runtime",
+          "subtitle": "Bundle, install and run JavaScript and TypeScript, all in one tool: a runtime, a package manager, a test runner and a bundler.",
+          "url": "https://bun.sh/",
+          "accessories": [
+            {
+              "text": "bun.sh"
+            }
+          ],
+          "detail": {
+            "markdown": "**Bun: a fast all-in-one JavaScript runtime**\n\nBundle, install and run JavaScript and TypeScript, all in one tool: a runtime, a package manager, a test runner and a bundler.",
+            "metadata": [
+              {
+                "label": "Site",
+                "value": "bun.sh"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "https://bun.sh/",
+                  "href": "https://bun.sh/"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "background",
+              "title": "Open in the background",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_md",
+              "title": "Copy as Markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "section": "Results from SerpApi"
+        },
+        {
+          "id": "r:https://bun.sh/docs/installation",
+          "name": "Installation | Bun docs",
+          "subtitle": "Bun ships as a single executable with no dependencies. Install it with curl, npm, Homebrew or Docker.",
+          "url": "https://bun.sh/docs/installation",
+          "accessories": [
+            {
+              "text": "bun.sh"
+            }
+          ],
+          "detail": {
+            "markdown": "**Installation \\| Bun docs**\n\nBun ships as a single executable with no dependencies. Install it with curl, npm, Homebrew or Docker.",
+            "metadata": [
+              {
+                "label": "Site",
+                "value": "bun.sh"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "https://bun.sh/docs/installation",
+                  "href": "https://bun.sh/docs/installation"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "background",
+              "title": "Open in the background",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_md",
+              "title": "Copy as Markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "section": "Results from SerpApi"
+        },
+        {
+          "id": "r:https://blog.example.dev/bun-vs-node",
+          "name": "Bun vs Node.js: what changes for a real project",
+          "subtitle": "We moved a mid-sized API to Bun for a month. Startup, install times and the test runner, measured.",
+          "url": "https://blog.example.dev/bun-vs-node",
+          "accessories": [
+            {
+              "text": "blog.example.dev"
+            }
+          ],
+          "detail": {
+            "markdown": "**Bun vs Node.js: what changes for a real project**\n\nWe moved a mid-sized API to Bun for a month. Startup, install times and the test runner, measured.",
+            "metadata": [
+              {
+                "label": "Site",
+                "value": "blog.example.dev"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "https://blog.example.dev/bun-vs-node",
+                  "href": "https://blog.example.dev/bun-vs-node"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "background",
+              "title": "Open in the background",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_md",
+              "title": "Copy as Markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "section": "Results from SerpApi"
+        },
+        {
+          "id": "r:https://github.com/oven-sh/bun",
+          "name": "oven-sh/bun on GitHub",
+          "subtitle": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager, all in one.",
+          "url": "https://github.com/oven-sh/bun",
+          "accessories": [
+            {
+              "text": "github.com"
+            }
+          ],
+          "detail": {
+            "markdown": "**oven-sh/bun on GitHub**\n\nIncredibly fast JavaScript runtime, bundler, test runner, and package manager, all in one.",
+            "metadata": [
+              {
+                "label": "Site",
+                "value": "github.com"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "https://github.com/oven-sh/bun",
+                  "href": "https://github.com/oven-sh/bun"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "background",
+              "title": "Open in the background",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_md",
+              "title": "Copy as Markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "section": "Results from SerpApi"
+        },
+        {
+          "id": "r:https://en.wikipedia.org/wiki/Bun_(software)",
+          "name": "Bun (software) - Wikipedia",
+          "subtitle": "Bun is a JavaScript runtime, package manager and test runner designed as a drop-in replacement for Node.js.",
+          "url": "https://en.wikipedia.org/wiki/Bun_(software)",
+          "accessories": [
+            {
+              "text": "en.wikipedia.org"
+            }
+          ],
+          "detail": {
+            "markdown": "**Bun (software) - Wikipedia**\n\nBun is a JavaScript runtime, package manager and test runner designed as a drop-in replacement for Node.js.",
+            "metadata": [
+              {
+                "label": "Site",
+                "value": "en.wikipedia.org"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "https://en.wikipedia.org/wiki/Bun_(software)",
+                  "href": "https://en.wikipedia.org/wiki/Bun_(software)"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "background",
+              "title": "Open in the background",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_md",
+              "title": "Copy as Markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "section": "Results from SerpApi"
+        },
+        {
+          "id": "r:https://bench.example.org/http",
+          "name": "Benchmarks: HTTP servers compared",
+          "subtitle": "Requests per second for the same handler across runtimes, on one machine, three runs each.",
+          "url": "https://bench.example.org/http",
+          "accessories": [
+            {
+              "text": "bench.example.org"
+            }
+          ],
+          "detail": {
+            "markdown": "**Benchmarks: HTTP servers compared**\n\nRequests per second for the same handler across runtimes, on one machine, three runs each.",
+            "metadata": [
+              {
+                "label": "Site",
+                "value": "bench.example.org"
+              },
+              {
+                "label": "Link",
+                "link": {
+                  "text": "https://bench.example.org/http",
+                  "href": "https://bench.example.org/http"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "background",
+              "title": "Open in the background",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_md",
+              "title": "Copy as Markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "section": "Results from SerpApi"
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-suggestions": {
+      "palette": "google",
+      "keys": [
+        "type:kadıköy",
+        "wait:400"
+      ]
+    },
+    "2-preview": {
+      "palette": "google",
+      "keys": [
+        "type:bun runtime",
+        "wait:400"
+      ]
+    },
+    "3-results": {
+      "palette": "google-results",
+      "keys": [
+        "down",
+        "wait:300"
+      ]
+    },
+    "4-actions": {
+      "palette": "google-results",
+      "keys": [
+        "down",
+        "cmd+k"
+      ]
+    }
+  }
+}

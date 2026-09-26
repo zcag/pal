@@ -99,6 +99,8 @@ export type Item = {
    * (`argsForm`), or run with the defaults.
    */
   args?: Arg[];
+  /** Tab puts this text in the search box (a suggestion completed into the query, which then lists again); without it Tab does what the level says (a filter, a mark). */
+  complete?: string;
   /**
    * Anything else rides along untouched (the core keeps unknown keys, the
    * UI ignores them). For a field of your own, a future version of the
@@ -668,6 +670,15 @@ type PaletteBase = {
    * picked through `pick` as any row. `general.fallbacks` orders them.
    */
   fallback?: true | string | ((query: string) => Item[] | Promise<Item[]>);
+  /**
+   * Rows that join the root's fallback section after it painted, under the
+   * "Search the web" row: for what needs the network (Google Search's
+   * suggestions), which `fallback` would make the whole section wait on.
+   * Asked only while that section shows (nothing else matched, or
+   * `general.fallbacks_always`), so a query the index answered never
+   * leaves the machine; a reply for a query that moved on is dropped.
+   */
+  lateFallback?: (query: string) => Item[] | Promise<Item[]>;
   /**
    * What is worth showing before anything is typed: a few rows for the
    * root's "Now" section (the next event, the running timer, what is

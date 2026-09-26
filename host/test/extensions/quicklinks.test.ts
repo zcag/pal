@@ -5,8 +5,8 @@
 // `{query}` link, `{selection}` filled without asking, the library, an
 // open tab preferred, and an import file's read-only rows. The browser
 // is a Bun server speaking the DevTools HTTP endpoints (the SDK's
-// `tabs.active`/`tabs.find`); `PAL_QUICKLINKS_BROWSERS` names the installed
-// browsers and `PAL_QUICKLINKS_OPEN` a stand-in for `open -a` that logs.
+// `tabs.active`/`tabs.find`); `PAL_BROWSERS` names the installed
+// browsers and `PAL_OPEN_URL` a stand-in for the SDK's `openUrl` that logs.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -95,14 +95,14 @@ beforeAll(async () => {
     { id: "ha", name: "Home Assistant", url: "http://ha.lan" },
     { id: "tr", name: "Translate selection", url: "https://translate.google.com/?text={selection}", app: "Firefox" },
   ]);
-  process.env.PAL_QUICKLINKS_BROWSERS = "Safari,Firefox";
-  process.env.PAL_QUICKLINKS_OPEN = join(dir, "open");
+  process.env.PAL_BROWSERS = "Safari,Firefox";
+  process.env.PAL_OPEN_URL = join(dir, "open");
   try {
     host = await Host.bundled({
       settings: { quicklinks: { settings: { import: importFile } }, "browser-tabs": { settings: { port: browser.port, apps: [], firefox: false } } },
       core: { "selection.text": () => selected },
     });
-  } finally { delete process.env.PAL_QUICKLINKS_BROWSERS; delete process.env.PAL_QUICKLINKS_OPEN; }
+  } finally { delete process.env.PAL_BROWSERS; delete process.env.PAL_OPEN_URL; }
 });
 afterAll(() => { host.kill(); browser.stop(true); rmSync(dir, { recursive: true, force: true }); });
 

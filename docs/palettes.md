@@ -84,6 +84,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Labels](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-labels` | indexed, catalog | Open the label in Gmail |
 | [Compose](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-compose` | indexed, normal | Open the form; on the form, send |
 | [Drafts](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-drafts` | live, normal | Open the draft in Gmail |
+| [Google Search](#google-search-google) | `google` | input, normal | Search Google (on a result row: open it) |
 | [Home Assistant](#home-assistant-home-assistant-entities-home-assistant-services-home-assistant-areas) | `home-assistant-entities` | live, normal | The domain's first action: toggle, activate, run, copy value |
 | [Home Assistant Services](#home-assistant-home-assistant-entities-home-assistant-services-home-assistant-areas) | `home-assistant-services` | indexed, normal | Open the form, then call |
 | [Home Assistant Areas](#home-assistant-home-assistant-entities-home-assistant-services-home-assistant-areas) | `home-assistant-areas` | indexed, normal | List the area's entities |
@@ -4369,6 +4370,72 @@ Settings, `[extensions.downloads]`:
 | `limit` | 10 to 2000 | `200` | At most this many files, the newest. |
 | `thumbnails` | boolean | `true` | Previews for images and PDFs. |
 | `clear_days` | 1 to 365 | `30` | The age the Clear row trashes. |
+
+## Google Search (`google`)
+
+Google from the panel, from `extensions/google/`. An input palette: every
+keystroke asks Google's suggest (the homepage's `gws-wiz` endpoint, which
+names the people, places and things it recognises; the documented
+`suggestqueries` one when that fails, decoded from the charset it names,
+ISO-8859-9 for Turkish), about 80 ms on a warm connection; a newer
+keystroke cancels the older request and answers are kept ten minutes. The
+first row is what was typed, then up to eight suggestions; an entity has
+its line ("Şarkıcı-şarkı yazarı") and thumbnail, and its Wikipedia card in
+the pane (the language's Wikipedia, else English). Tab puts the
+suggestion under the cursor in the box (`Item.complete`). Nothing typed
+lists the recent searches.
+
+Web results need a provider (`provider`): SerpApi (Google's own results,
+the answer box and the knowledge panel), the Brave Search API, or a
+SearXNG instance with `json` among its formats. No keyless service gives
+results reliably without a browser (tried 2026-09-26: DuckDuckGo's HTML and
+lite pages answer a 202 challenge, Bing's RSS feed ranks by the IP's region
+and returned Toyota for "react useEffect cleanup", Qwant and Ecosia 403,
+Mojeek a captcha, Startpage a proof-of-work page, Google's own page needs
+JavaScript). With `results = "typing"` the pane shows the answer and the
+first five results for the row under the cursor 250 ms after it rests
+there; cmd+Enter lists them as rows (the answer first, then each result
+with its favicon, snippet and site), and what is typed in that level
+narrows them. The preview and the level share one request per query.
+
+At the root, when nothing matched, the first three suggestions join the
+"Use “q” with" section under Search the web (`lateFallback`): the page asks
+for them only once that section shows, so the section paints at once and
+a query the index answered is never sent. Enter searches, cmd+Enter opens
+the palette with the suggestion typed, Tab completes it into the root's
+box. `google ` (or `goo `) jumps into the palette; `[palettes.google]
+alias = "g"` makes it `g `.
+
+| keys | action |
+| --- | --- |
+| `enter` | Search Google in the browser (`browser`); on a result, open it; on the answer, its source |
+| `tab` | Put the suggestion in the box |
+| `cmd+enter` | Results here (with a provider); on a result, open it in the background |
+| `cmd+b` | Search in the background |
+| `cmd+c` | Copy the text; on a result, the link; on the answer, the answer |
+| `cmd+l` | Copy the search link |
+| `cmd+shift+c` | On a result: copy it as a Markdown link |
+| `ctrl+x` | Remove a recent search (Clear recent searches is in `cmd+k`) |
+
+Settings, `[extensions.google]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `provider` | `none`, `serpapi`, `brave`, `searxng` | `none` | Where results come from; suggestions need nothing. |
+| `serpapi_key` | secret | empty | SerpApi key. The free plan is 250 searches a month: pair it with `results = "ask"`. |
+| `brave_key` | secret | empty | Brave Search API key. |
+| `searxng_url` | text | empty | The instance's address. |
+| `results` | `typing`, `ask` | `typing` | Results in the pane as you type, or only on cmd+Enter. |
+| `language` | `auto` or a code | `auto` | Suggestions' and results' language; auto is the system's. Set, it goes into the search url too. |
+| `region` | text | empty | Country code; empty is the system's. |
+| `safe_search` | bool | `false` | `safe=active`, Brave's strict, SearXNG's 2. |
+| `browser` | `default` or an app name | `default` | Where searches and results open (`open -a` on macOS, the command on Linux). |
+| `root` | bool | `true` | The suggestions under Search the web at the root. |
+| `history` | bool | `true` | Remember searches for the empty palette. |
+
+For the tests, `PAL_GOOGLE_BASE` routes every `https://host/path` to
+`<base>/host/path`, `PAL_GOOGLE_PREVIEW_MS` shortens the pane's wait and
+`PAL_OPEN_URL` stands in for the browser (the SDK's `openUrl`).
 
 ## GIFs (`gifs`, `gifs-favourites`)
 

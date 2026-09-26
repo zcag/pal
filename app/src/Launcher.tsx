@@ -83,6 +83,14 @@ export function aliasTarget(sources: SourceInfo[], word: string): SourceInfo | u
   return targets.size === 1 ? [...targets][0] : undefined;
 }
 
+/** The fallback rows with the late ones (`lateFallback`) under the "Search the web" row, else first, in the section the core named. */
+export function withLate(fallback: Hit[], late: Hit[]): Hit[] {
+  if (!late.length || !fallback.length) return fallback;
+  const group = fallback[0].item.group;
+  const at = fallback.findIndex((h) => h.item.palette === FALLBACK && h.item.id === "web") + 1;
+  return [...fallback.slice(0, at), ...late.map((h) => ({ ...h, item: { ...h.item, group } })), ...fallback.slice(at)];
+}
+
 /**
  * The root's rows in order. Typed: the inline sections (each under its
  * palette's title), the index's hits (under their palettes), then the
@@ -210,6 +218,8 @@ export type LauncherProps = {
   inline?: (q: string) => Promise<Hit[]>;
   /** The root's fallback rows for `q`, ordered and grouped by the core; shown when nothing else matched (or always, `prefs.fallbacksAlways`). */
   fallback?: (q: string) => Promise<Hit[]>;
+  /** The fallback rows that come later (the extensions' `lateFallback`, web suggestions): asked once the fallback section shows, placed under its "Search the web" row. */
+  lateFallback?: (q: string) => Promise<Hit[]>;
   /** The empty root's suggestions (the extensions' `suggest()`), each row's `group` its section; asked on every show of the empty root. */
   suggest?: (now: string[]) => Promise<Hit[]>;
   /** The search history, newest first, for Up at the top of an empty root. */
@@ -325,8 +335,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const [searchSeq, setSearchSeq] = useState(0);
   /** The marked rows (`selection.ts`): one palette's ids, kept across queries, dropped on a level change and after the pick that used them. */
   const [sel, setSel] = useState<Selection | null>(null);
-  /** The root's inline and fallback rows for `key` (the query they answer); stale for any other query. */
-  const [extra, setExtra] = useState<{ key: string; inline: Hit[]; fallback: Hit[] }>({ key: "", inline: [], fallback: [] });
+  /** The root's inline and fallback rows for `key` (the query they answer), and the late fallback rows once they came; stale for any other query. */
+  const [extra, setExtra] = useState<{ key: string; inline: Hit[]; fallback: Hit[]; late: Hit[] }>({ key: "", inline: [], fallback: [], late: [] });
+  /** The index's hits as the root's sections effect reads them when its answer lands (a state it does not re-run on). */
+  const foundRef = useRef<Hit[]>([]);
+  foundRef.current = found;
   /** The empty root's suggestions, asked on every show and whenever the query empties. */
   const [suggested, setSuggested] = useState<Hit[]>([]);
   const [suggestSeq, setSuggestSeq] = useState(0);
@@ -435,14 +448,21 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // cancels a pending ask and a late reply is dropped by its key. Both
   // requests go out together: the fallback rows only show when nothing
   // else came (`rootHits`), so waiting for the inline answer would only
-  // delay them.
+  // delay them. The late fallback rows are asked once that section shows,
+  // so a query the index or an inline palette answered never reaches them
+  // (web suggestions send it off the machine), and they join it in place.
   useEffect(() => {
     if (view.kind !== "root" || !query.trim() || (!props.inline && !props.fallback)) return;
     let live = true;
     const key = query;
     const t = setTimeout(() => {
       Promise.all([props.inline ? props.inline(key) : Promise.resolve([]), props.fallback ? props.fallback(key) : Promise.resolve([])]).then(
-        ([inline, fallback]) => { if (live) setExtra({ key, inline, fallback }); },
+        ([inline, fallback]) => {
+          if (!live) return;
+          setExtra({ key, inline, fallback, late: [] });
+          if (!props.lateFallback || !fallback.length || (!prefs.fallbacksAlways && (inline.length || foundRef.current.length))) return;
+          props.lateFallback(key).then((late) => { if (live && late.length) setExtra((e) => (e.key === key ? { ...e, late } : e)); }, () => {});
+        },
         () => {},
       );
     }, ROOT_DEBOUNCE);
@@ -546,7 +566,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const fresh = extra.key === query && !!query.trim();
     const dialogTo = dialogUp ? sources.find((s) => s.dialog) : undefined;
     const now = query ? [] : [...(dialogUp && dialogTo ? [dialogHit(dialogUp, dialogTo)] : []), ...suggested];
-    return groupBySection(rootHits(query.trim(), found, fresh ? extra.inline : [], fresh ? extra.fallback : [], now, prefs.fallbacksAlways, titleOf));
+    return groupBySection(rootHits(query.trim(), found, fresh ? extra.inline : [], fresh ? withLate(extra.fallback, extra.late) : [], now, prefs.fallbacksAlways, titleOf));
   }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold]);
 
   const cur = useCursor(hits.length);
@@ -682,6 +702,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     // Under a hold the cursor follows its row once the filtered rows arrive (the effect above); elsewhere it goes back to the top.
     if (!hold) cur.reset();
   };
+  /** Tab on a row that completes: its text in the box as if typed there, the level listing again (no jump into a palette: the text is the row's, not a word typed forward). */
+  const completeTo = (q: string) => { keyAt.current = performance.now(); setHistIdx(-1); nav.setQuery(q); if (!hold) cur.reset(); };
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
   const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; setHold(false); }, []);
@@ -1100,7 +1122,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       escape: () => (hold ? onHide() : view.kind === "view" && viewInput ? viewCommand({ type: "cancel" }) : sel ? setSel(null) : query ? setQuery("") : nav.depth > 1 ? pop() : picker ? onPickReply?.(picker.token, null) : onHide()),
       back: () => (query || nav.depth === 1 ? false : pop()),
       // Without a filter, Tab is still swallowed: it would otherwise walk focus out of the input. A view gets it as the bare key `tab` (and `shift+tab` as a combo), so a picker can move its focus.
-      filter: filterSpec ? ({ dir }) => {
+      // A row that completes (`Item.complete`, a web suggestion) puts its text in the box, ahead of the level's own Tab.
+      filter: current?.complete && view.kind !== "view" ? () => completeTo(current.complete!) : filterSpec ? ({ dir }) => {
         const o = filterSpec.options, i = o.findIndex((x) => x.id === filterSpec.value);
         filterSpec.onChange(o[(i + dir + o.length) % o.length].id);
       } : view.kind === "view" && !viewInput ? ({ dir }) => { viewCommand(dir === 1 ? { type: "key", key: "tab" } : { type: "shortcut", combo: "shift+tab" }); }

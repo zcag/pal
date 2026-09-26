@@ -19,7 +19,7 @@ export type { Sources as PlaceholderSources } from "./placeholders.ts";
 export { badged, checkIcon, isTileIcon, isTintedIcon, tile, tinted, MAX_BADGE, MAX_TILE_SVG, TILE_COLORS } from "./icon.ts";
 export type { Tile, TileColor, TileIcon, TileMark, TintedIcon } from "./icon.ts";
 export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W, row, text, toast } from "./rows.ts";
-export { appName, bytes, errorMessage, mdEscape, oneLine, slug, truncate } from "./text.ts";
+export { appName, bytes, errorMessage, htmlText, mdEscape, oneLine, slug, truncate } from "./text.ts";
 export { EXEC_MS, exec, run } from "./exec.ts";
 export type { Exec, ExecOptions } from "./exec.ts";
 export { listProcesses, parsePs, PS_ARGV, PS_MS } from "./procs.ts";
@@ -36,6 +36,7 @@ export * as files from "./files.ts";
 export * as md from "./md.ts";
 export * as colors from "./color.ts";
 export * as tabs from "./tabs.ts";
+export { BROWSERS, browsers, openUrl } from "./browsers.ts";
 
 /**
  * Type-checks an extension's default export where it is written, keeping

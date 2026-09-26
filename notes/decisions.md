@@ -1998,3 +1998,34 @@ due card, every answer is saved before the next card comes, Escape anywhere lose
   21,900 reviews), so nothing is cached or prefetched; the wait was the throw animation, now 170 ms before the next card, and a
   flip pressed mid-throw is queued rather than dropped.
 - **Icons in the page are inline SVG**: the panel's Nerd Font is not on the frame's origin.
+
+## Google Search (2026-09-26)
+
+- **Suggestions from Google's homepage endpoint** (`complete/search?client=gws-wiz`), falling back to the documented
+  `suggestqueries?client=firefox`: the first names entities (`zh`, `zi`, `zs`: "Tarkan", "Şarkıcı-şarkı yazarı", a
+  thumbnail), the second is plain strings. Both measured at 70-100 ms on a warm connection from Istanbul (the first request
+  of a run pays ~300 ms for TLS). The documented one answers ISO-8859-9 for `hl=tr` with `client=chrome` (ISO-8859-1
+  elsewhere), so every reply is decoded by the charset its Content-Type names (`decode`, google.ts).
+- **Per keystroke, no debounce, cancelled**: an input palette's `list` answers once per keystroke and the page drops a
+  stale answer; the extension aborts the older request itself (one AbortController) so a burst costs nothing, and keeps
+  answers ten minutes. That is Chrome's own omnibox behaviour.
+- **No keyless results provider**, measured 2026-09-26: DuckDuckGo's html/lite pages and `d.js` answer a 202 challenge,
+  Bing's RSS feed ranks by the IP's country and returned Toyota for "react useEffect cleanup" (and nothing with `cc=us`),
+  Qwant and Ecosia 403, Mojeek a captcha, Startpage an Anubis proof-of-work, Yahoo a 500, Google's page needs JavaScript;
+  Brave's HTML page works but is a 300 KB Svelte page scraped against its terms. So results are keyed and optional:
+  SerpApi (Google's own, with the answer box and knowledge graph), the Brave Search API, a SearXNG instance. Google's Custom
+  Search JSON API is closed to new customers.
+- **Results in the pane, not in the list**: without streaming (still deferred), a list that waited on results would hold
+  the suggestions (80 ms) behind SerpApi (1-3 s). The detail pane is asked separately, so it previews the answer and five
+  results for the row under the cursor after it rests 250 ms; cmd+Enter pushes them as rows. The preview and the level share
+  one cached request per query, and `results = "ask"` keeps a 250-a-month SerpApi plan from being spent while typing.
+- **The root: `lateFallback`, a new palette hook.** A function `fallback` holds the whole "Use “q” with" section, Search the
+  web included, and it is asked for every root query (hits or not), which would send what is typed at the root (file
+  names, snippets) to Google. The page now asks the host's `fallback/late` only once the fallback section shows and places
+  the rows under Search the web (`withLate`, Launcher.tsx); the section paints as before. No Rust: `host_request` forwards
+  the method.
+- **Tab completes** (`Item.complete`): the Launcher's Tab did nothing in a level without filters or marking; a row with
+  `complete` now puts it in the box (ahead of the level's own Tab), at the root too.
+- **`openUrl` in the SDK** (browsers.ts): Quicklinks' `browsers()` and `openWith` moved there with a background flag
+  (`open -g`), since Google Search needed both; `PAL_QUICKLINKS_*` became `PAL_BROWSERS` / `PAL_OPEN_URL`.
+

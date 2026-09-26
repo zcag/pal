@@ -146,8 +146,8 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
 
 /** One root section's answer from one palette: `{ extension, palette, items }`, or nothing when it had none, failed or was too slow (logged). */
 export type Section = { extension: string; palette: string; items: Item[] };
-/** The three root sections an extension answers in code (`inline`, `fallback`, `suggest` requests). */
-export type SectionKind = "inline" | "fallback" | "suggest";
+/** The root sections an extension answers in code (`inline`, `fallback`, `fallback/late`, `suggest` requests). */
+export type SectionKind = "inline" | "fallback" | "fallback/late" | "suggest";
 
 /** What one palette answers for a section kind, or nothing when it does not take part. */
 function sectionOf(kind: SectionKind, pal: Palette, m: Manifest | undefined, palette: string, q: string): (() => Item[] | Promise<Item[]>) | undefined {
@@ -156,6 +156,8 @@ function sectionOf(kind: SectionKind, pal: Palette, m: Manifest | undefined, pal
     case "inline": return !isView(pal) && inlineMatches(pal, m?.palettes?.[palette], q) ? () => pal.list(q, { inline: true }) : undefined;
     // The root's fallback rows from the palettes that answer them in code (`fallback(query)`); the "Ask" rows are the core's.
     case "fallback": return typeof pal.fallback === "function" ? () => (pal.fallback as (q: string) => Item[] | Promise<Item[]>)(q) : undefined;
+    // Rows that join the fallback section after it painted (`lateFallback(query)`): the page asks only while that section shows.
+    case "fallback/late": return typeof pal.lateFallback === "function" ? () => pal.lateFallback!(q) : undefined;
     // The empty root's "Now" section: every palette's `suggest()`.
     case "suggest": return typeof pal.suggest === "function" ? () => pal.suggest!() : undefined;
   }
