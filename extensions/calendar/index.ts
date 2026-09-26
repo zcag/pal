@@ -25,12 +25,14 @@ import { calendar, errorMessage, failed, hint, now as clock, settings, tinted, v
 import { parseQuick, type Quick } from "./quick.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, log, permission, type Loaded, type Settings } from "./source.ts";
-import { barRules, duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem, type ItemSettings } from "./today.ts";
+import { barRules, callsNow, callWhen, duration, ICON, ITEM, nextEvent, nextWords, onDay, service, state, stateColor, TODAY, upcomingItem, type ItemSettings } from "./today.ts";
 import { focusable, freshPopover, listed, popover, rowId as viewRowId, words, type PopoverState } from "./view.ts";
 
 /** nf-md-calendar_check for a Today row, tinted with the calendar's colour; nf-md-calendar_blank for a clear day. */
 const ROW = "\u{f00ee}";
 const CLEAR = "\u{f00ef}";
+/** nf-md-video: a call's root row, tinted with the calendar's colour. */
+const CALL = "\u{f0567}";
 const NEW = "new";
 const QUICK = "quick";
 const GRANT = "grant";
@@ -364,12 +366,29 @@ async function todayRows(_query: string | undefined, ctx?: Ctx): Promise<Item[]>
   return rows;
 }
 
+/** A call's root row: the name, when it starts (or started), the service and the time; Enter joins, ⌘Enter opens the event, ⌘C copies the link. */
+function callRow(e: CalendarEvent, now: number): Item {
+  const id = rowId(e);
+  table.set(id, e);
+  const c = e.calendar.color;
+  const open = isGoogle() ? "Open in Google Calendar" : MAC ? "Open in Calendar" : undefined;
+  return {
+    id,
+    name: e.title || "(no title)",
+    subtitle: [callWhen(e, now), service(e.conference_url!), timeRange(e)].join(" · "),
+    icon: c && /^#[0-9a-f]{6}$/i.test(c) ? tinted(CALL, c as `#${string}`) : CALL,
+    section: "Now",
+    accessories: [{ tag: "Join", color: "green" }],
+    actions: [{ id: "join", title: "Join call" }, ...(open ? [{ id: "open", title: open }] : []), { id: "copy_link", title: "Copy call link", shortcut: "cmd+c" }],
+  };
+}
+
 /**
- * The empty root's "Now" row: the event the bar strip speaks for (the
- * current one, else the next inside `horizon_hours`, the strip's rules),
- * as a Today row with Join first when it has a call. From the cache when
- * it is under a minute old, so a show costs nothing; nothing without the
- * permission or with a clear day.
+ * The empty root's "Now" rows: a call about to start, `call_lead` minutes
+ * ahead until ten minutes in (`callsNow`), soonest first; nothing when no
+ * call is that close. Asked on every show of the empty root, so `starts
+ * in 3 min` is read against the clock each time; the events come from the
+ * cache when it is under a minute old, so a show costs nothing.
  */
 async function suggest(): Promise<Item[]> {
   if ((await permission()) !== "granted") return [];
@@ -378,9 +397,8 @@ async function suggest(): Promise<Item[]> {
   const { from, to } = window(s, now);
   let l: Loaded;
   try { l = await load(from, to, await chosenIds(s, false), PALETTE_AGE); } catch { const c = cached(); if (!c) return []; l = { ...c, stale: true }; }
-  const rules = barRules(s);
-  const e = nextEvent(l.events, now, rules);
-  return e ? [todayRow(e, now, "Now")] : [];
+  const lead = Number.isFinite(Number(s.call_lead)) ? Number(s.call_lead) : 5;
+  return callsNow(l.events, now, lead, s.hide_declined !== false).map((e) => callRow(e, now));
 }
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
@@ -553,7 +571,7 @@ export default {
       lazy,
       placeholder: "Search today's events",
       list: todayRows,
-      // The empty root's Now section: the current or next event, Join on Enter.
+      // The empty root's Now section: a call about to start, Join on Enter.
       suggest,
       pick,
       detail,
