@@ -11,6 +11,7 @@
  */
 :root {
   --s: 38px;
+  --ui: 1;
   --acc: var(--pal-accent, #4F46D6);
   --paper: #FFFFFF;
   --thin: #DCDFE7;
@@ -88,8 +89,8 @@ kbd + kbd { margin-left: 2px; }
 #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 
 .chip {
-  display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+  display: inline-flex; align-items: center; height: calc(20px * var(--ui)); padding: 0 calc(8px * var(--ui)); border-radius: calc(10px * var(--ui));
+  font-size: calc(11px * var(--ui)); font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
 }
 .chip.easy { color: var(--easy); background: var(--easy-bg); }
 .chip.medium { color: var(--medium); background: var(--medium-bg); }
@@ -235,19 +236,19 @@ body.paused #time { visibility: hidden; }
 /* ---- the side ---- */
 #side {
   flex: 1; min-width: 0; display: grid; position: relative; align-self: center; height: calc(var(--s) * 9 + 16px);
-  grid-template-rows: 26px 4px 22px minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr); row-gap: 10px;
-  grid-template-areas: "head" "progress" "hint" "." "pad" "tools";
+  grid-template-rows: calc(26px * var(--ui)) calc(4px * var(--ui)) auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); row-gap: 10px;
+  grid-template-areas: "head" "progress" "hint" "pad" "tools";
 }
 #head { grid-area: head; display: flex; align-items: center; gap: 8px; min-width: 0; }
 #who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
-#when { font-size: 12px; color: var(--pal-fg-muted, #5c5c66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#when { font-size: calc(12px * var(--ui)); color: var(--pal-fg-muted, #5c5c66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #slips { font-size: 11px; font-weight: 600; color: var(--bad); white-space: nowrap; }
 #clock {
-  display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 6px 0 8px; margin-right: -6px; border-radius: 8px;
-  font: 600 14px / 1 var(--pal-font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; transition: background 120ms;
+  display: flex; align-items: center; gap: 5px; height: calc(26px * var(--ui)); padding: 0 6px 0 8px; margin-right: -6px; border-radius: 8px;
+  font: 600 calc(14px * var(--ui)) / 1 var(--pal-font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; transition: background 120ms;
 }
 #time { min-width: 3ch; text-align: right; }
-#clock svg { width: 14px; height: 14px; fill: currentColor; stroke: none; opacity: 0.35; transition: opacity 120ms; }
+#clock svg { width: calc(14px * var(--ui)); height: calc(14px * var(--ui)); fill: currentColor; stroke: none; opacity: 0.35; transition: opacity 120ms; }
 #clock:hover { background: var(--pal-bg-sunken, #EAEAEE); }
 #clock:hover svg { opacity: 0.8; }
 body.solved #clock { pointer-events: none; }
@@ -265,32 +266,32 @@ body.noclock #clock { display: none; }
 body.solved #progress i { background: var(--gold); }
 
 /* the pad: slim keys, a bar of how many are down under each digit, a corner that writes the note */
-#pad { grid-area: pad; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; transition: filter 200ms, opacity 200ms, transform 220ms var(--ease); }
+#pad { grid-area: pad; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 6px; min-height: 0; transition: filter 200ms, opacity 200ms, transform 220ms var(--ease); }
 #pad button {
-  position: relative; height: 60px; border-radius: 10px; background: var(--pal-bg-elevated, #fff);
+  position: relative; height: 100%; min-height: 40px; border-radius: 10px; background: var(--pal-bg-elevated, #fff);
   box-shadow: 0 0 0 1px var(--pal-line, #e2e2e8), 0 1px 1px color-mix(in srgb, #000 5%, transparent);
   display: grid; place-items: center; transition: background 120ms, transform 100ms, box-shadow 140ms, opacity 200ms;
 }
 #pad button:hover { background: color-mix(in srgb, var(--acc) 7%, var(--pal-bg-elevated, #fff)); }
 #pad button:active { transform: scale(0.95); }
 #pad b {
-  font: 550 21px / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--mine); font-variant-numeric: tabular-nums;
+  font: 550 clamp(18px, calc(var(--s) * 0.5), 48px) / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--mine); font-variant-numeric: tabular-nums;
   translate: 0 -2px; transition: color 150ms, font-size 160ms var(--ease);
 }
 #pad .nz {
-  position: absolute; top: 4px; right: 4px; width: 17px; height: 17px; border-radius: 5px; display: grid; place-items: center;
-  font: 650 10px / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal; color: var(--pal-fg-faint, #8e8e98);
+  position: absolute; top: calc(4px * var(--ui)); right: calc(4px * var(--ui)); width: calc(17px * var(--ui)); height: calc(17px * var(--ui)); border-radius: calc(5px * var(--ui)); display: grid; place-items: center;
+  font: 650 calc(10px * var(--ui)) / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal; color: var(--pal-fg-faint, #8e8e98);
   box-shadow: inset 0 0 0 1px var(--track); opacity: 0.7; transition: background 120ms, color 120ms, opacity 120ms, box-shadow 120ms;
 }
 #pad button:hover .nz { opacity: 1; }
 #pad .nz:hover { background: color-mix(in srgb, var(--acc) 16%, transparent); color: var(--acc); opacity: 1; box-shadow: none; }
 #pad button.noted .nz { background: color-mix(in srgb, var(--acc) 18%, transparent); color: var(--acc); opacity: 1; box-shadow: none; }
-#pad .bar { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
+#pad .bar { position: absolute; left: 12px; right: 12px; bottom: calc(6px * var(--ui)); height: calc(3px * var(--ui)); border-radius: 2px; background: var(--track); overflow: hidden; }
 #pad .bar::after {
   content: ""; position: absolute; inset: 0; border-radius: 2px; background: var(--acc); opacity: 0.8;
   transform-origin: left; transform: scaleX(var(--f, 0)); transition: transform 360ms var(--ease), background 200ms;
 }
-#pad svg { pointer-events: none; position: absolute; top: 5px; right: 5px; width: 13px; height: 13px; stroke-width: 2.4; color: var(--easy); opacity: 0; transform: scale(0.4); transition: opacity 160ms, transform 240ms var(--spring); }
+#pad svg { pointer-events: none; position: absolute; top: calc(5px * var(--ui)); right: calc(5px * var(--ui)); width: calc(13px * var(--ui)); height: calc(13px * var(--ui)); stroke-width: 2.4; color: var(--easy); opacity: 0; transform: scale(0.4); transition: opacity 160ms, transform 240ms var(--spring); }
 #pad button.focus { box-shadow: 0 0 0 2px var(--ring); }
 #pad button.picked { background: var(--acc); box-shadow: 0 0 0 1px var(--acc), 0 6px 14px -6px color-mix(in srgb, var(--acc) 70%, transparent); }
 #pad button.picked b { color: var(--pal-accent-fg, #fff); }
@@ -310,19 +311,20 @@ body.solved #progress i { background: var(--gold); }
 /* the tools: one row of icons, their keys in the tooltips and under ? */
 #tools { grid-area: tools; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; transition: filter 200ms, opacity 200ms, transform 220ms var(--ease); }
 #tools button {
-  position: relative; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  position: relative; height: calc(34px * var(--ui)); border-radius: 9px; display: grid; place-items: center;
   color: var(--pal-fg-muted, #5c5c66); transition: background 120ms, color 120ms, transform 100ms;
 }
 #tools button:hover { background: var(--pal-bg-sunken, #EAEAEE); color: var(--pal-fg, #1A1A1F); }
 #tools button:active { transform: scale(0.92); }
-#tools svg { width: 19px; height: 19px; }
+#tools svg { width: calc(19px * var(--ui)); height: calc(19px * var(--ui)); }
 #tools .dots circle { fill: currentColor; stroke: none; }
 #tools button.off { opacity: 0.4; }
 #tools button.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 13%, transparent); }
 #tools button.on::after { content: ""; position: absolute; bottom: 3px; left: calc(50% - 2px); width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 
 /* under the progress: a newcomer's line, digit first's, or a moment's message */
-#hint { grid-area: hint; align-self: start; min-height: 22px; display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 1; white-space: nowrap; font-size: 11.5px; color: var(--pal-fg-faint, #8e8e98); }
+#hint:empty { display: none; }
+#hint { grid-area: hint; align-self: start; min-height: calc(22px * var(--ui)); display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 1; white-space: nowrap; font-size: calc(11.5px * var(--ui)); color: var(--pal-fg-faint, #8e8e98); }
 #hint > span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 #hint > span:only-child { flex: 1; }
 #hint .short { display: none; }
@@ -343,17 +345,17 @@ body.solved #progress i { background: var(--gold); }
 
 /* the hint card, over the pad and the tools */
 #tip {
-  grid-row: 4 / 6; grid-column: 1; z-index: 4; align-self: end; padding: 11px 13px 12px; border-radius: 12px;
+  grid-row: 4 / 6; grid-column: 1; z-index: 4; align-self: end; padding: calc(11px * var(--ui)) calc(13px * var(--ui)) calc(12px * var(--ui)); border-radius: 12px;
   background: var(--pal-bg-elevated, #fff); box-shadow: 0 0 0 1px color-mix(in srgb, var(--lit-edge) 45%, transparent), 0 10px 26px -12px color-mix(in srgb, #000 35%, transparent);
   display: flex; flex-direction: column; gap: 6px;
 }
 body.tipping #pad, body.tipping #tools { opacity: 0.25; }
 .tip-head { display: flex; align-items: center; gap: 8px; }
-.tip-head b { flex: 1; font-size: 11px; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in srgb, var(--lit-edge) 75%, var(--pal-fg, #000)); }
+.tip-head b { flex: 1; font-size: calc(11px * var(--ui)); font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in srgb, var(--lit-edge) 75%, var(--pal-fg, #000)); }
 #tip-close { width: 20px; height: 20px; border-radius: 6px; font-size: 16px; line-height: 1; color: var(--pal-fg-faint, #8e8e98); }
 #tip-close:hover { background: var(--pal-bg-sunken, #EAEAEE); color: var(--pal-fg, #1A1A1F); }
-#tip p { margin: 0; font-size: 13.5px; line-height: 1.42; font-weight: 500; }
-#tip-go { align-self: flex-start; margin-top: 4px; height: 28px; padding: 0 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; }
+#tip p { margin: 0; font-size: calc(13.5px * var(--ui)); line-height: 1.42; font-weight: 500; }
+#tip-go { align-self: flex-start; margin-top: 4px; height: calc(28px * var(--ui)); padding: 0 calc(10px * var(--ui)); border-radius: 8px; display: inline-flex; align-items: center; gap: 7px; font-size: calc(12px * var(--ui)); font-weight: 600; }
 #tip.in { animation: pop-card 220ms var(--ease); }
 #tip.swap p, #tip.swap .tip-head, #tip.swap #tip-go { animation: swap 220ms var(--ease) both; }
 
@@ -391,7 +393,7 @@ body.finished #hint { visibility: hidden; }
 body.compact #play { gap: 14px; padding-right: 14px; }
 body.compact #when { display: none; }
 body.compact #pad { gap: 5px; }
-body.compact #pad button { height: 48px; border-radius: 9px; }
+body.compact #pad button { border-radius: 9px; }
 body.compact #pad b { font-size: 18px; }
 body.compact #pad .nz { top: 3px; right: 3px; width: 14px; height: 14px; font-size: 9px; border-radius: 4px; }
 body.compact #pad svg { top: 4px; right: 4px; width: 11px; height: 11px; }

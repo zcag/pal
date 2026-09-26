@@ -120,6 +120,8 @@ function fit() {
   const side = compact ? 166 : 272, gap = compact ? 14 : 20;
   const s = Math.floor(Math.max(24, Math.min((H - 20 - 16) / 9, (W - 28 - gap - side - 16) / 9)));
   document.documentElement.style.setProperty("--s", `${s}px`);
+  // The side's chrome (the header, the tools, the key corners) grows with the board past the regular panel's cell, up to 1.7 times on the big one.
+  document.documentElement.style.setProperty("--ui", String(Math.min(1.7, Math.max(1, s / 44))));
   body.classList.toggle("compact", compact);
   moveCursor(true);
 }
