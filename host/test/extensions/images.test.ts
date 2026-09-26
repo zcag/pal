@@ -311,6 +311,9 @@ beforeAll(async () => {
   mkdirSync(P("clipdir"));
   writeFileSync(P("clipdir/pasted.png"), png(200, 100, gradient));
   process.env.PAL_IMAGES_PATH = bin;
+  // The clipboard copy logs instead of writing the real pasteboard.
+  writeTool(join(bin, "copy-image"), `#!/bin/sh\necho "$1 $2" >> ${JSON.stringify(P("copy.log"))}\n`);
+  process.env.PAL_COPY_IMAGE = join(bin, "copy-image");
   process.env.PAL_IMAGES_SELECTION = `${P("photo.png")}\n${P("photo.jpg")}\n${P("notes.txt")}\n${P("shots")}`;
   process.env.PAL_IMAGES_CACHE = P("cache");
   // TinyPNG: a mock that answers a 1000-byte "compressed" file for anything posted.
@@ -332,7 +335,7 @@ beforeAll(async () => {
     },
   });
 });
-afterAll(() => { host?.kill(); server?.stop(true); if (dir) rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host?.kill(); server?.stop(true); if (dir) rmSync(dir, { recursive: true, force: true }); delete process.env.PAL_COPY_IMAGE; });
 
 const list = (q = "", ctx?: object) => host.list("images", "images", q, ctx);
 const pick = (id: string, action?: string, ctx?: object) => host.pick("images", "images", id, action, ctx);
@@ -507,7 +510,7 @@ describe("images: the palette (stand-in tools)", () => {
     await Bun.sleep(50);
   });
 
-  test("a clipboard image's result goes to the cache's clipboard folder and the image itself is what gets copied (or the file, where nothing can write the pasteboard)", async () => {
+  test("a clipboard image's result goes to the cache's clipboard folder and the image itself is what gets copied", async () => {
     clip = { kind: "image", image: P("clipdir/pasted.png") };
     await list("", { refresh: true });
     const e = await pick(P("clipdir/pasted.png"), "gray");
@@ -515,7 +518,8 @@ describe("images: the palette (stand-in tools)", () => {
     expect(out).toHaveLength(1);
     expect(out[0]).toMatch(/^clipboard-\d\d-\d\d-\d\d-gray\.png$/);
     expect(existsSync(P("clipdir/pasted-gray.png"))).toBe(false);
-    expect(e.hud).toMatch(/^Converted to grayscale the clipboard image: .*, sips · (image|path) copied$/);
+    expect(e.hud).toMatch(/^Converted to grayscale the clipboard image: .*, sips · image copied$/);
+    expect(readFileSync(P("copy.log"), "utf8")).toBe(`${join(P("cache/clipboard"), out[0])} png\n`);
     clip = null;
   });
 
