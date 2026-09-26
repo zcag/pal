@@ -83,7 +83,11 @@ let looks: string[] = [];
  */
 function fit() {
   if (!p) return;
-  const W = innerWidth, H = innerHeight, compact = W < 640;
+  // The big panel scales the whole page, so the lists, the clue and the chrome grow with the grid instead of the grid alone
+  // filling it: laid out at the regular panel's size, then zoomed (1 up to the regular 760 by 420, at most 1.8).
+  const ui = Math.min(1.8, Math.max(1, Math.min(innerWidth / 760, innerHeight / 420)));
+  document.documentElement.style.zoom = String(ui);
+  const W = innerWidth / ui, H = innerHeight / ui, compact = W < 640;
   const clueH = Math.min(18, Math.max(14, W * 0.02)) * 2.56 + 14;
   const fits = (h: number, w: number) => Math.floor(Math.min((h - 4 - (p.h - 1)) / p.h, (w - 4 - (p.w - 1)) / p.w));
   const modes = [

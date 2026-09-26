@@ -313,8 +313,8 @@ export class Stats {
 
   chart(s: StatsView) {
     const svg = $("#plot") as unknown as SVGSVGElement;
-    const box = svg.getBoundingClientRect();
-    const W = Math.max(200, box.width || 600), H = Math.max(60, box.height || 90);
+    // The layout size, not the drawn one: the big panel zooms the page, and the text in the chart must zoom with it.
+    const W = Math.max(200, svg.clientWidth || 600), H = Math.max(60, svg.clientHeight || 90);
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const xs = s.times;
     $("#chart-note").textContent = xs.length ? `the last ${xs.length} without help${s.average !== undefined ? `, average ${clockText(s.average)}` : ""}` : "";
