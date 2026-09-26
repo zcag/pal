@@ -592,6 +592,17 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (idx !== cur.cursor) cur.set(idx);
     holdRows.current = { found, id: hits[idx]?.item.id, placed: placed || hits.length > 0, answered: true, steps, at: idx, commit: t?.commit ?? false };
   }, [hold, found, hits, cur.cursor, query]);
+  // A streamed palette's rows change under one query (`ctx.partial`, then the answer): the cursor stays on its row by id, not on an index that another row may take.
+  const onRow = useRef<{ query: string; id?: string }>({ query });
+  useEffect(() => {
+    const was = onRow.current;
+    if (!hold && view.kind === "palette" && was.query === query && was.id !== undefined && hits[cur.cursor]?.item.id !== was.id) {
+      const i = followCursor(hits, was.id, cur.cursor);
+      if (i !== cur.cursor) cur.set(i);
+    }
+  }, [found]);
+  // After the follow above: what the next change of rows is compared against.
+  useEffect(() => { onRow.current = { query, id: hits[cur.cursor]?.item.id }; });
   const current: Item | undefined = hits[cur.cursor]?.item;
   /** A list level: rows to mark and pick (the root, a palette, a menu). */
   const isList = view.kind === "root" || view.kind === "palette" || view.kind === "menu";
