@@ -142,6 +142,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Spotify](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-commands` | indexed, primary | Run |
 | [SSH Hosts](#ssh-hosts-ssh) | `ssh` | indexed, primary | Connect in a terminal |
 | [Store](#store-store) | `store` | input, primary | Install, update, or open the store page |
+| [Sudoku](#sudoku-sudoku) | `sudoku` | view (surface), normal | Place the digit (in the page); the next puzzle once solved |
 | [System](#system-system) | `system` | live, primary | Run the command |
 | [Search tela](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-search` | input, normal | Open the page in tela |
 | [Ask tela](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-research` | input, normal | Ask; on a source, open it in tela |
@@ -3035,7 +3036,7 @@ tagline, sorted by name, and Enter opens that game as its own level
 (Escape comes back to the list). Nothing is kept here: every open reads
 the installed extensions' manifests and lists each view palette of a
 loaded extension the store shelves under Fun, so today 2048, Blackjack,
-Crossword, Minesweeper, Snake II, Solitaire, Typing, Wordle and Yahtzee, and a game
+Crossword, Minesweeper, Snake II, Solitaire, Sudoku, Typing, Wordle and Yahtzee, and a game
 installed from the store as soon as it is. No settings.
 
 ## 2048 (`2048`)
@@ -3371,6 +3372,67 @@ the Across and Down lists. The title line says which puzzle it is
 source = "crosshare"   # what the first open and the Now row offer: haberturk, cumhuriyet, sabah
 autocheck = false      # mark a wrong letter as it is typed; also on ⌘K
 suggest = true         # today's puzzle in the root's Now section while unsolved
+```
+
+## Sudoku (`sudoku`)
+
+Sudoku made on your machine, never fetched. Enter on the palette's row
+opens a view level whose body is the extension's own page (a `surface`):
+the board on the left, as tall as the panel allows; beside it the
+difficulty and the clock, a number pad showing how many of each digit are
+left (a check once a digit is done), and Undo, Erase, Notes and Hint. The
+title line says which puzzle it is ("Sudoku · Hard, today's").
+
+- **Which puzzle.** A daily for each of Easy, Medium, Hard and Expert,
+  made from the date, so it is the same on every machine that day, and a
+  new puzzle of any difficulty whenever you like. The first open is the
+  game left half-done, else today's daily of the `difficulty` setting.
+  ⌘N opens a menu of the four: today's puzzle (Play, Carry on or Done) or
+  a new one. **Browse** (⌘O) has every half-done game (Enter carries on)
+  and a calendar of each difficulty's dailies, month by month, marked
+  solved, started or new.
+- **The grades** come from solving the puzzle the way a person would, the
+  simplest technique first, and taking the hardest one it needed: Easy is
+  singles you can spot without notes, Medium needs a cell with only one
+  digit left, Hard needs locked candidates or a pair or triple, Expert an
+  X-wing, a swordfish or an XY-wing (and a few such steps). Every puzzle
+  has one answer.
+- **Keys.** 1 to 9 place a digit; Shift or Option with a digit writes a
+  pencil mark instead, and N (or Space) switches the pad to marks, where
+  the modifier places. Marks sit in a 3 by 3 inside the cell; a placed
+  digit clears its mark from every cell it sees. A fills in every mark
+  (marks you wrote are only trimmed, so your own eliminations stay),
+  Shift-A clears them. Backspace or 0 erases, U or ⌘Z undoes, Shift-U or
+  ⌘⇧Z redoes, the arrows or `hjkl` move, Tab goes to the next empty cell.
+  A click on a cell or the pad works too. `?` shows every key.
+- **Clarity.** The cursor's row, column and box are lit, every copy of its
+  digit is lit and that digit's marks are circled. A digit twice in a row,
+  column or box shows red; with `check = "mistakes"` any digit that is not
+  the answer does too, and the mistakes are counted.
+- **Hints** (I) come in three presses: where to look ("Look at row 4"),
+  then why, in plain words, with the digit ("Only this cell in the top box
+  can take a 9: every other empty cell sees a 9 already", the 9s circled),
+  then the move (the digit placed, a wrong digit erased, or the marks
+  updated). A wrong digit is always the first hint.
+- **The clock** runs only while the board is on screen: it stops when the
+  panel hides, on the other screens and while paused (P or ⌘P), which
+  covers the board.
+- **The finish.** A completed row, column or box sweeps with light; a
+  digit's ninth copy makes all nine pulse; the solved board ripples out
+  from the last digit under confetti, with the time, a new best, the
+  streak, Flawless (no hint, no mistake), and today's next daily or a new
+  puzzle on Enter.
+- **Stats** (⌘S), per difficulty: solved, best and average time (solves
+  without a hint), the streak (that difficulty's daily solved on its own
+  day, local time) and the best one, a chart of recent times, the history.
+- Every move is saved (`progress.json` in
+  `~/Library/Application Support/pal/sudoku/`, `~/.local/share/pal/sudoku/`
+  on Linux), so Escape at any point loses nothing.
+
+```toml
+[extensions.sudoku]
+difficulty = "medium"   # whose daily the first open shows: easy, medium, hard, expert
+check = "conflicts"     # or "mistakes": mark a digit that is not the answer as you place it; also on ⌘K
 ```
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
