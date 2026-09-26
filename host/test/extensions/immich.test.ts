@@ -151,6 +151,17 @@ describe("immich", () => {
     expect(requests.length).toBe(n);
   });
 
+  test("streamed: the search's tiles show before their thumbnails, a cached one with its picture and the rest with the glyph, the same tiles in the same order; all cached, no early rows", async () => {
+    const { items, partials } = await host.listStream("immich", "immich", "receipt scan");
+    expect(partials).toHaveLength(1);
+    expect(partials[0].map((i) => i.id)).toEqual(items.map((i) => i.id));
+    expect(partials[0].map((i) => i.name)).toEqual(names(items));
+    expect(dataUrl(partials[0][0])).toBe(dataUrl(items[0]));
+    expect(partials[0].some((i) => typeof i.icon === "string")).toBe(true);
+    expect(items.every((i) => dataUrl(i).startsWith("data:"))).toBe(true);
+    expect((await host.listStream("immich", "immich", "receipt scan")).partials).toEqual([]);
+  });
+
   test("More pages on: the next page is appended, no More once the library is out; cmd+r starts over", async () => {
     let items = await list("");
     await pick(items.at(-1)!.id);

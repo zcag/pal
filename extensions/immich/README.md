@@ -12,7 +12,7 @@ into the same grid, scoped.
 
 | tile | what |
 | --- | --- |
-| the picture | Immich's own `thumbnail` rendition (WebP, ~10 KB), fetched once into the cache directory and sent as a data url |
+| the picture | Immich's own `thumbnail` rendition (WebP, ~10 KB), fetched once into the cache directory and sent as a data url; the tiles show with the photo or video glyph as soon as the search answers, and the pictures join once they are fetched |
 | the caption | the place and the day ("Serdivan · 3 May 2022"); a video leads with "▶" and its length |
 | the pane (`cmd+i`, open by default) | the `preview` rendition (1440 px), when and where it was taken (the place a link to the map), the camera, lens and exposure, the pixel size, bytes and format, the file name, the people on it, the albums it is in, the tags |
 

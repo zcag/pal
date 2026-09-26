@@ -11,6 +11,7 @@
 // pushes the same grid scoped to them (`ctx.args`), so a search there runs
 // inside the album or the person. `pal://immich/search`, `/album` and
 // `/person` open the grids from outside.
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { bytes, copyImage, effects, errorMessage, hint, home, settings, thumbnailUrl, tilde, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
@@ -132,11 +133,18 @@ const held = new Map<string, Asset>();
 /** "Serdivan · 3 May 2022" on a photo (the place first: a narrow cell cuts the caption, and the town tells the pictures apart where the day does not; the footer shows the whole line on the selected tile); "▶ 0:31 · 13 May 2026" on a video, which has no room left for the place. */
 const titleOf = (a: Asset): string => (a.kind === "video" ? `▶ ${[a.duration !== undefined ? clip(a.duration) : "", takenDay(a.taken)].filter(Boolean).join(" · ")}` : [a.place?.split(",")[0], takenDay(a.taken)].filter(Boolean).join(" · "));
 
-async function tile(c: Client, a: Asset, section?: string): Promise<Item> {
+/** A photo's tile, its glyph standing in until (or when the fetch failed) the thumbnail is there. */
+function tileOf(a: Asset, pic?: string, section?: string): Item {
   held.set(a.id, a);
-  const pic = await thumb(c, "thumbs", a.id);
   // Nothing of an input palette is indexed, so the tile carries no keywords; the subtitle names the file in the action panel.
   return { id: a.id, name: titleOf(a), subtitle: a.file, icon: pic ? { image: pic } : a.kind === "video" ? GLYPH.video : GLYPH.photo, ...(section && { section }), detail: { metadata: metadataOf(a) }, actions: assetActions(a) };
+}
+
+/** The tiles with their thumbnails, then `tail`. When a thumbnail has to come from the server, the tiles show first with what is already here (the rest keep their glyph) while the fetches run. */
+async function tiles(c: Client, assets: Asset[], section: string | undefined, ctx: Ctx | undefined, tail: Item[] = []): Promise<Item[]> {
+  const known = (a: Asset) => thumbs.get(`thumbs:${a.id}`);
+  if (ctx?.partial && assets.some((a) => !known(a) && !existsSync(join(CACHE, "thumbs", `${a.id}.webp`)))) ctx.partial([...assets.map((a) => tileOf(a, known(a), section)), ...tail]);
+  return [...(await pool(assets, async (a) => tileOf(a, await thumb(c, "thumbs", a.id), section))), ...tail];
 }
 
 /** The pane's facts from what the listing knows; `detail(id)` adds the people, the albums and the picture. */
@@ -199,7 +207,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
     if (!m) return [hint("gone", "Open On This Day again", "The memory's photos are listed from it", { icon: GLYPH.memory })];
     const words = [q.text, q.file].filter(Boolean).join(" ").toLowerCase();
     const rows = m.assets.filter((a) => (!scope.type || a.kind === (scope.type === "VIDEO" ? "video" : "image")) && (!scope.favorite || a.favorite) && (!words || `${a.file} ${a.place ?? ""} ${a.people.join(" ")}`.toLowerCase().includes(words)));
-    return rows.length ? pool(rows, (a) => tile(c, a)) : [hint("none", "Nothing matches", args.title, { icon: GLYPH.none })];
+    return rows.length ? tiles(c, rows, undefined, ctx) : [hint("none", "Nothing matches", args.title, { icon: GLYPH.none })];
   }
   const my = ++seq;
   if ((q.text || q.file) && !ctx?.inline) {
@@ -223,13 +231,13 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   const assets = got.pages.flat();
   if (!assets.length) return [hint("none", q.text ? `Nothing looks like “${q.text}”` : q.file ? `No file named like “${q.file}”` : "No photos here", args?.title ?? (scope.archived ? "The archive" : "Immich"), { icon: GLYPH.none })];
   const section = !q.text && !q.file && !args ? "Recent" : undefined;
-  const rows = await pool(assets, (a) => tile(c, a, section));
+  const more: Item[] = [];
   if (got.more) {
     const id = `more:${Bun.hash(key).toString(36)}`;
     moreKeys.set(id, key);
-    rows.push({ id, name: "More…", subtitle: `${assets.length} shown`, icon: GLYPH.more, ...(section && { section }), actions: [MORE] });
+    more.push({ id, name: "More…", subtitle: `${assets.length} shown`, icon: GLYPH.more, ...(section && { section }), actions: [MORE] });
   }
-  return rows;
+  return tiles(c, assets, section, ctx, more);
 }
 
 /** The asset a pick names: the listing's, else fetched (a pick after a restart, a link). */
