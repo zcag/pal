@@ -82,6 +82,8 @@ export type Item = {
   actions?: Action[];
   /** Typed arguments drawn after the query while the cursor is on the row (`Item.args` in the SDK); `ctx.values` carries them to the actions that take them. */
   args?: Arg[];
+  /** Tab puts this in the search box (`Item.complete` in the SDK: a suggestion completed into the query). */
+  complete?: string;
   /** Drawn greyed; a pick on it does nothing (a menu row). */
   disabled?: boolean;
   /** Drawn muted but live: the "N more in ..." row after a capped section at the root. */

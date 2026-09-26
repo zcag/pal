@@ -266,7 +266,7 @@ async function stopInstances(name: string, keep: string[] = []) {
 }
 
 /** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
-const HOST_LEVEL = new Set(["hello", "inline", "fallback", "suggest", "settings/changed", "instances/changed", "states/changed"]);
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed"]);
 
 /** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
 const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
@@ -449,6 +449,7 @@ const methods: Record<string, (params: any) => unknown> = {
   ...paletteMethods(extension, (k) => manifests.get(k)),
   inline: (p) => sections("inline", p?.query),
   fallback: (p) => sections("fallback", p?.query),
+  "fallback/late": (p) => sections("fallback/late", p?.query),
   suggest: () => sections("suggest", ""),
   ...barMethods(extension, undefined, (k) => manifests.get(k)),
   ...viewMethods,

@@ -152,6 +152,15 @@ export function useCore(hide: () => void) {
     return sectionHits(r);
   }, []);
 
+  // The fallback rows that come after the section painted (host `fallback/late`, the palettes' `lateFallback`): the Launcher asks once the section shows and places them.
+  const lateFallback = useCallback(async (q: string): Promise<Hit[]> => {
+    if (!q.trim()) return [];
+    const t0 = performance.now();
+    const r = await invoke<Section[]>("host_request", { method: "fallback/late", params: { query: q } });
+    mark(`late fallback "${q}" (${r.reduce((n, s) => n + s.items.length, 0)}) ms`, performance.now() - t0);
+    return sectionHits(r);
+  }, []);
+
   // The root's fallback rows for a query the index has nothing for (fallback.rs): the core orders them and names the section.
   const fallback = useCallback(async (q: string): Promise<Hit[]> => {
     if (!q.trim()) return [];
@@ -207,5 +216,5 @@ export function useCore(hide: () => void) {
   // Past any ttl; the core flags the targets stale (the footer says "updating") and each landing bumps the index.
   const refresh = useCallback((scope?: SourceInfo) => invoke("index_refresh", { source: scope && { extension: scope.extension, palette: scope.palette } }), []);
 
-  return { sources, version, bump, showing, search, inline, fallback, suggest, history, dialog, forget, detail, view, pick, refresh };
+  return { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick, refresh };
 }

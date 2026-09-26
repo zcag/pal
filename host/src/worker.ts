@@ -93,7 +93,7 @@ async function init(id: number, i: WorkerInit) {
     ext = loaded;
     const manifestOf = () => i.manifest;
     methods = { ...paletteMethods(lookup, manifestOf), ...barMethods(lookup, () => info, manifestOf), ...viewMethods };
-    for (const kind of ["inline", "fallback", "suggest"] as const) methods[kind] = (p) => sections([[key, loaded]], manifestOf, kind, p?.query, rootTimeout);
+    for (const kind of ["inline", "fallback", "fallback/late", "suggest"] as const) methods[kind] = (p) => sections([[key, loaded]], manifestOf, kind, p?.query, rootTimeout);
     // The manifest against the code, with the instance's title and mark on every meta.
     const check = checkPalettes(i.manifest, loaded, instanceMeta(i.inst, i.alone));
     check.warnings.push(...checkLinks(i.manifest, loaded), ...checkBarRules(i.manifest), ...checkBarSettings(i.manifest));

@@ -257,6 +257,7 @@ export function toItem(hit: WireHit, palette: PaletteInfo): Item {
     // The core's "N more in X" row after a capped section (`more_row` in src-tauri/src/index.rs): muted, Enter opens the palette.
     muted: w.more === true ? true : undefined,
     group: hit.group,
+    complete: typeof w.complete === "string" && w.complete ? w.complete : undefined,
     push: w.push && typeof w.push === "object" && typeof w.push.extension === "string" && typeof w.push.palette === "string" ? { extension: w.push.extension, palette: w.push.palette, args: w.push.args, query: typeof w.push.query === "string" ? w.push.query : undefined } : undefined,
   };
 }

@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { Launcher, aliasTarget, rootHits, type LauncherHandle, type Prefs } from "../Launcher";
+import { Launcher, aliasTarget, rootHits, withLate, type LauncherHandle, type Prefs } from "../Launcher";
 import type { SourceInfo } from "../items";
 import type { Hit } from "../ui";
 import type { Item } from "../ui/types";
@@ -60,6 +60,16 @@ describe("rootHits", () => {
   });
 });
 
+describe("withLate", () => {
+  it("the late rows go under Search the web, in the core's section; first without it; nothing without fallback rows", () => {
+    const fallback = [hit("pal/fallback", "web", "Search the web", { group: "Use “x” with" }), hit("pal/fallback", "url", "Open as URL", { group: "Use “x” with" })];
+    const late = [hit("google/google", "s:x y", "x y"), hit("google/google", "s:x z", "x z")];
+    expect(names(rootHits("x", [], [], withLate(fallback, late), [], false, titleOf))).toEqual(["Use “x” with:Search the web", "Use “x” with:x y", "Use “x” with:x z", "Use “x” with:Open as URL"]);
+    expect(withLate(fallback.slice(1), late).map((h) => h.item.name)).toEqual(["x y", "x z", "Open as URL"]);
+    expect(withLate([], late)).toEqual([]);
+  });
+});
+
 describe("aliasTarget", () => {
   it("the alias, else the palette name, else a one-word title, each only when one palette answers; never a shell source or a view palette", () => {
     expect(aliasTarget(SOURCES, "em")!.palette).toBe("emoji");
@@ -94,15 +104,17 @@ const search = async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
   if (!q) return [hit("pal/palettes", "apps/apps", "Applications"), hit("apps/apps", "slack", "Slack")];
   return q.startsWith("sl") ? [hit("apps/apps", "slack", "Slack")] : [];
 };
+const lateAsks: string[] = [];
+const lateFallback = async (q: string): Promise<Hit[]> => { lateAsks.push(q); return q === "tarkan" ? [hit("google/google", "s:tarkan konseri", "tarkan konseri", { complete: "tarkan konseri" })] : []; };
 const fallback = async (q: string): Promise<Hit[]> => [hit("calc/calc", "pal:ask", "Ask Calculator", { group: `Use “${q}” with`, push: { extension: "calc", palette: "calc", query: q } })];
 const mount = async (prefs?: Partial<Prefs>) => {
   await act(async () => {
-    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} fallback={fallback} history={async () => history} prefs={{ aliasSpace: true, backspaceBack: true, fallbacksAlways: false, searchHistory: true, now: [], compact: false, ...prefs }} onPick={(i) => { picks.push(i.id); }} onHide={() => {}} onForget={async (i) => { forgets.push(i.id); return true; }} />);
+    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} fallback={fallback} lateFallback={lateFallback} history={async () => history} prefs={{ aliasSpace: true, backspaceBack: true, fallbacksAlways: false, searchHistory: true, now: [], compact: false, ...prefs }} onPick={(i) => { picks.push(i.id); }} onHide={() => {}} onForget={async (i) => { forgets.push(i.id); return true; }} />);
   });
   await flush();
 };
 beforeEach(() => {
-  el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); searches.length = 0; picks.length = 0; forgets.length = 0; history = [];
+  el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); searches.length = 0; lateAsks.length = 0; picks.length = 0; forgets.length = 0; history = [];
   // happy-dom lays nothing out: give the list a viewport so the virtualiser draws rows.
   HTMLElement.prototype.getBoundingClientRect = function () { return { left: 0, top: 0, right: 600, bottom: 400, width: 600, height: 400, x: 0, y: 0, toJSON: () => ({}) } as DOMRect; };
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 400 });
@@ -183,6 +195,28 @@ describe("search history", () => {
     await mount({ searchHistory: false });
     await key("ArrowUp"); await flush(); await flush();
     expect(field().value).toBe("");
+  });
+});
+
+describe("late fallback rows and Tab", () => {
+  it("asked once the fallback section shows, never for a query the index answered; Tab puts a row's completion in the box", async () => {
+    vi.useFakeTimers();
+    await mount();
+    await type("sl"); await flush();
+    await act(async () => { vi.advanceTimersByTime(150); }); await flush();
+    expect(rowNames()).toEqual(["Slack"]);
+    expect(lateAsks).toEqual([]);
+    await type("tarkan"); await flush();
+    await act(async () => { vi.advanceTimersByTime(150); }); await flush(); await flush();
+    expect(lateAsks).toEqual(["tarkan"]);
+    expect(rowNames()).toEqual(["tarkan konseri", "Ask Calculator"]);
+    await key("Tab"); await flush();
+    expect(field().value).toBe("tarkan konseri");
+    // A row without a completion: Tab leaves the box alone.
+    await act(async () => { vi.advanceTimersByTime(150); }); await flush(); await flush();
+    expect(rowNames()).toEqual(["Ask Calculator"]);
+    await key("Tab"); await flush();
+    expect(field().value).toBe("tarkan konseri");
   });
 });
 
