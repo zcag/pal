@@ -4436,11 +4436,14 @@ results reliably without a browser (tried 2026-09-26: DuckDuckGo's HTML and
 lite pages answer a 202 challenge, Bing's RSS feed ranks by the IP's region
 and returned Toyota for "react useEffect cleanup", Qwant and Ecosia 403,
 Mojeek a captcha, Startpage a proof-of-work page, Google's own page needs
-JavaScript). With `results = "typing"` the pane shows the answer and the
-first five results for the row under the cursor 250 ms after it rests
-there; cmd+Enter lists them as rows (the answer first, then each result
-with its favicon, snippet and site), and what is typed in that level
-narrows them. The preview and the level share one request per query.
+JavaScript). With `results = "typing"` the suggestions show first
+(`ctx.partial`), and once the query has rested 350 ms the answer and the
+top five results join below them, so a query typed straight through
+spends one search; the pane previews a suggestion's results 250 ms after
+the cursor rests on it. cmd+Enter lists them all as rows (the answer
+first, then each result with its favicon, snippet and site), and what is
+typed in that level narrows them. The list, the preview and the level
+share one request per query.
 
 At the root, when nothing matched, the first three suggestions join the
 "Use “q” with" section under Search the web (`lateFallback`): the page asks
@@ -4469,7 +4472,7 @@ Settings, `[extensions.google]`:
 | `serpapi_key` | secret | empty | SerpApi key. The free plan is 250 searches a month: pair it with `results = "ask"`. |
 | `brave_key` | secret | empty | Brave Search API key. |
 | `searxng_url` | text | empty | The instance's address. |
-| `results` | `typing`, `ask` | `typing` | Results in the pane as you type, or only on cmd+Enter. |
+| `results` | `typing`, `ask` | `typing` | Results under the suggestions as you type, or only on cmd+Enter. |
 | `language` | `auto` or a code | `auto` | Suggestions' and results' language; auto is the system's. Set, it goes into the search url too. |
 | `region` | text | empty | Country code; empty is the system's. |
 | `safe_search` | bool | `false` | `safe=active`, Brave's strict, SearXNG's 2. |

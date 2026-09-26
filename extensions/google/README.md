@@ -10,7 +10,7 @@ at the root when nothing on the machine matched.
 | --- | --- |
 | nothing typed | a one-line tip, then your recent searches |
 | `kadıköy` | Search Google for “kadıköy”, then up to eight suggestions; one Google recognises (a person, place, thing) has its line and thumbnail, and its Wikipedia card in the pane |
-| with a provider | the pane previews the answer and the first five results for the row under the cursor; cmd+Enter lists them as rows |
+| with a provider | the suggestions show first; once the query rests 350 ms the answer and the top five results join below them. The pane previews a suggestion's results; cmd+Enter lists them all as rows |
 | the root, nothing matched | up to three suggestions under Search the web |
 
 Suggestions come from Google's homepage suggest endpoint on every
@@ -36,8 +36,11 @@ it `g `.
 
 There is no keyless option: on 2026-09-26 DuckDuckGo, Bing's RSS feed,
 Qwant, Ecosia, Mojeek, Startpage and Yahoo all refused a program or
-answered badly, and Google's page needs JavaScript. The pane's preview
-and the results level share one cached request per query.
+answered badly, and Google's page needs JavaScript. The list, the pane's
+preview and the results level share one cached request per query, and the
+list asks only once the query has rested 350 ms, so a query typed straight
+through spends one search, not one per letter. `results = "ask"` keeps
+the list to the suggestions.
 
 ## Keyboard
 

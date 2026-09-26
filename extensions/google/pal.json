@@ -1,7 +1,7 @@
 {
   "name": "google",
   "title": "Google Search",
-  "description": "Search Google from the panel: Google's suggestions as you type (no key; Tab puts one in the box), a Wikipedia card for a person, place or thing, and with a provider the web results and instant answers in the pane as you type or as rows on cmd+Enter (SerpApi for Google's own results, the Brave Search API, or your own SearXNG). At the root, when nothing matches, the first suggestions join Search the web.",
+  "description": "Search Google from the panel: Google's suggestions as you type (no key; Tab puts one in the box), a Wikipedia card for a person, place or thing, and with a provider the web results and instant answers under the suggestions as you type or all of them on cmd+Enter (SerpApi for Google's own results, the Brave Search API, or your own SearXNG). At the root, when nothing matches, the first suggestions join Search the web.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -83,11 +83,11 @@
       "kind": "select",
       "id": "results",
       "label": "Show results",
-      "description": "As you type: the pane shows the answer and the first results for the row under the cursor, a moment after you stop (one request per query, cached). When I ask: only cmd+Enter searches.",
+      "description": "As you type: the answer and the top five results join the list under the suggestions once you pause, and the pane previews a suggestion's (one request per query, cached). When I ask: only cmd+Enter searches.",
       "options": [
         {
           "id": "typing",
-          "title": "As I type, in the pane"
+          "title": "As I type"
         },
         {
           "id": "ask",
@@ -243,7 +243,7 @@
     "features": [
       "Google's suggestions on every keystroke, no key needed: Enter searches, Tab puts a suggestion in the box, cmd+b searches in the background",
       "A person, place or thing Google recognises shows its line and thumbnail, and its Wikipedia card in the pane",
-      "With a provider, the answer (the weather, a conversion, a definition) and the first results in the pane as you type; cmd+Enter lists them as rows to open, open in the background or copy",
+      "With a provider, the answer (the weather, a conversion, a definition) and the top results join the list under the suggestions as you type; cmd+Enter lists them all as rows to open, open in the background or copy",
       "SerpApi for Google's own results, the Brave Search API, or your own SearXNG instance",
       "At the root, when nothing matches, the first suggestions join Search the web; the query leaves the machine only then",
       "Recent searches while nothing is typed; language, region, safe search and the browser in Settings"

@@ -1,8 +1,10 @@
 // Google Search: an input palette over Google's suggestions (no key),
 // fetched on every keystroke (a newer one cancels the request, answers are
 // kept ten minutes), and web results from a provider when one is set
-// (SerpApi for Google's own, the Brave Search API, a SearXNG instance): in
-// the detail pane as you type, or as rows on cmd+Enter. A suggestion Google
+// (SerpApi for Google's own, the Brave Search API, a SearXNG instance): the
+// answer and the top results join the list below the suggestions once the
+// query rests (`ctx.partial` shows the suggestions first), the pane previews
+// a suggestion's, and cmd+Enter lists them all. A suggestion Google
 // marks as a person, place or thing shows its Wikipedia card there. Tab
 // puts a suggestion in the search box (`Item.complete`). At the root, when
 // nothing matched, the first suggestions join the "Use “q” with" section
@@ -42,6 +44,8 @@ const CACHE_MS = 10 * 60_000, CACHE_MAX = 300;
 /** After the pane rests on a row, before its results are asked for: arrowing through the suggestions asks for none of the rows passed. */
 const PREVIEW_MS = Number(process.env.PAL_GOOGLE_PREVIEW_MS) || 250;
 const PREVIEW_RESULTS = 5;
+/** After a keystroke, before the list asks for its results: a query typed straight through asks for none of the prefixes it passed (a SerpApi search counts against its plan). */
+const RESULTS_MS = Number(process.env.PAL_GOOGLE_RESULTS_MS) || 350;
 const S = () => settings.get<Settings>();
 
 // ---- caches ---------------------------------------------------------------------------
@@ -74,15 +78,15 @@ async function suggestions(q: string, loc: Locale): Promise<Suggestion[]> {
 
 const found = new Map<string, { at: number; v: Found }>();
 const pending = new Map<string, Promise<Found>>();
-/** The results for `q`, cached and shared: the pane's preview and the results level never ask twice for one query (a SerpApi search counts against its plan). */
+const resultsKey = (q: string, s: Settings) => { const loc = localeOf(s); return [s.provider, loc.hl, loc.gl, s.safe_search, q.toLowerCase()].join("|"); };
+/** The results for `q`, cached and shared: the list, the pane's preview and the results level never ask twice for one query (a SerpApi search counts against its plan). */
 function results(q: string, s: Settings): Promise<Found> {
-  const loc = localeOf(s);
-  const key = [s.provider, loc.hl, loc.gl, s.safe_search, q.toLowerCase()].join("|");
+  const key = resultsKey(q, s);
   const hit = fresh(found, key);
   if (hit) return Promise.resolve(hit);
   let p = pending.get(key);
   if (!p) {
-    p = search(q, s, loc).then((f) => { remember(found, key, f); return f; }).finally(() => pending.delete(key));
+    p = search(q, s, localeOf(s)).then((f) => { remember(found, key, f); return f; }).finally(() => pending.delete(key));
     pending.set(key, p);
   }
   return p;
@@ -175,6 +179,32 @@ async function resultRows(q: string, filter: string, s: Settings): Promise<Item[
   return rows.length ? rows : [hint("none", t ? `Nothing matches “${filter.trim()}”` : `No results for “${q}”`, PROVIDER_NAME[s.provider])];
 }
 
+/** The palette's listings so far: a typed query's results wait on being the latest (any listing after it, an emptied box too, supersedes it). */
+let typed = 0;
+/**
+ * The typed query's rows as the palette lists them: the suggestions at once
+ * (a partial), then, with results as you type and a streaming panel, the
+ * answer and the top results below them once the query has rested
+ * `RESULTS_MS` (at once when cached). Without `ctx.partial` the list would
+ * hold the suggestions behind the provider, so it keeps to the suggestions.
+ */
+async function typedRows(q: string, s: Settings, my: number, ctx?: Ctx): Promise<Item[]> {
+  const live = ready(s) && s.results === "typing" && ctx?.partial;
+  const rest = live && !fresh(found, resultsKey(q, s)) ? Bun.sleep(RESULTS_MS) : undefined;
+  const rows = await queryRows(q, s);
+  if (!live || my !== typed) return rows;
+  if (rest) { ctx!.partial!(rows); await rest; if (my !== typed) return rows; } // the suggestions show while the query rests and the provider answers
+  const section = `Results from ${PROVIDER_NAME[s.provider]}`;
+  let f: Found;
+  try { f = await results(q, s); } catch (e) {
+    console.error(`[google] ${s.provider}: ${errorMessage(e)}`);
+    return [...rows, hint("failed", "Could not search", errorMessage(e), { icon: GLYPH.alert, section })];
+  }
+  // The top ones, as the pane previews them; cmd+Enter on the query lists them all.
+  const more = [...(f.answer ? [answerRow(q, f.answer)] : []), ...f.results.slice(0, PREVIEW_RESULTS).map((r) => ({ ...resultRow(r), section }))];
+  return [...rows, ...(more.length ? more : [hint("none", `No results for “${q}”`, PROVIDER_NAME[s.provider], { section })])];
+}
+
 // ---- the detail pane ------------------------------------------------------------------
 
 function answerMd(a: Answer): string {
@@ -205,7 +235,8 @@ async function detail(id: string): Promise<Detail> {
   if (kind === "r" || kind === "a") return {};
   const s = S();
   const e = entities.get(text.toLowerCase());
-  if (ready(s) && s.results === "typing") {
+  // The query's own results are in the list below it, so its pane keeps to the card or the tip; a suggestion's are previewed.
+  if (ready(s) && s.results === "typing" && kind !== "q") {
     const my = ++previewSeq;
     await Bun.sleep(PREVIEW_MS);
     if (my !== previewSeq) return {};
@@ -214,8 +245,8 @@ async function detail(id: string): Promise<Detail> {
   if (e) return { markdown: await entityMd(e, s) };
   return {
     markdown: kind === "q" && !ready(s)
-      ? `Enter searches Google for **${mdEscape(text)}**.\n\nResults can show here as you type: pick a provider under Settings, Extensions, Google Search (SerpApi for Google's own results, Brave Search, or your own SearXNG).`
-      : `Enter searches Google for **${mdEscape(text)}**; Tab puts it in the search box.`,
+      ? `Enter searches Google for **${mdEscape(text)}**.\n\nResults can show as you type: pick a provider under Settings, Extensions, Google Search (SerpApi for Google's own results, Brave Search, or your own SearXNG).`
+      : `Enter searches Google for **${mdEscape(text)}**; Tab puts it in the search box.${ready(s) ? " cmd+Enter lists every result here." : ""}`,
     metadata: [{ label: "Opens", link: { text: truncate(searchUrl(text, s).replace(/^https:\/\/www\./, ""), 48), href: searchUrl(text, s) } }],
   };
 }
@@ -263,11 +294,11 @@ export default {
       placeholder: "Search Google",
       showDetail: true,
       list: async (query = "", ctx?: Ctx): Promise<Item[]> => {
-        const s = S();
+        const s = S(), my = ++typed;
         const args = ctx?.args as { results?: string } | undefined;
         if (typeof args?.results === "string") return resultRows(args.results, query, s);
         const q = query.trim();
-        return q ? queryRows(q, s) : emptyRows(s);
+        return q ? typedRows(q, s, my, ctx) : emptyRows(s);
       },
       // At the root, once Search the web shows (nothing matched): the first suggestions under it; the query itself and an address are left alone.
       lateFallback: async (query: string): Promise<Item[]> => {

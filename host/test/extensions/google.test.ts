@@ -5,8 +5,9 @@
 // (served in ISO-8859-9, as Google does for Turkish), SerpApi, the Brave
 // Search API, a SearXNG instance, Wikipedia. The suggestions and Tab's
 // `complete`, a newer keystroke cancelling an older request, the root's
-// late fallback rows, the pane's entity card and results preview, the
-// results level, recent searches, and the picks through `PAL_OPEN_URL`.
+// late fallback rows, the streamed results under the suggestions, the
+// pane's entity card and results preview, the results level, recent
+// searches, and the picks through `PAL_OPEN_URL`.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -94,9 +95,10 @@ beforeAll(async () => {
   writeTool(join(dir, "open"), `echo "$@" >> "${opened}"`);
   process.env.PAL_GOOGLE_BASE = `http://127.0.0.1:${server.port}`;
   process.env.PAL_GOOGLE_PREVIEW_MS = "1";
+  process.env.PAL_GOOGLE_RESULTS_MS = "60";
   process.env.PAL_OPEN_URL = join(dir, "open");
   try { host = await Host.bundled({ settings: { google: { settings: BASE } } }); }
-  finally { for (const k of ["PAL_GOOGLE_BASE", "PAL_GOOGLE_PREVIEW_MS", "PAL_OPEN_URL"]) delete process.env[k]; }
+  finally { for (const k of ["PAL_GOOGLE_BASE", "PAL_GOOGLE_PREVIEW_MS", "PAL_GOOGLE_RESULTS_MS", "PAL_OPEN_URL"]) delete process.env[k]; }
 });
 afterAll(() => { host.kill(); server.stop(true); rmSync(dir, { recursive: true, force: true }); });
 
@@ -168,7 +170,9 @@ describe("google", () => {
     settle({ provider: "serpapi", serpapi_key: "good" });
     const rows = await list("2+2");
     expect(rows[0].actions!.map((a) => a.id)).toContain("results");
-    const d = await host.detail("google", "google", "q:2+2");
+    // A suggestion's pane previews its results; the query's own are in the list, so its pane keeps to its card (the stand-in names every query an entity).
+    expect((await host.detail("google", "google", "q:2+2")).markdown).toContain("Tarkan is a singer.");
+    const d = await host.detail("google", "google", "s:2+2");
     expect(d.markdown).toContain("### 4");
     expect(d.markdown).toContain("**[2+2 5](https://site5.com/5)**");
     expect(d.markdown).not.toContain("site6");
@@ -186,6 +190,38 @@ describe("google", () => {
     settle({ provider: "serpapi", serpapi_key: "bad" });
     const bad = await list("", { args: { results: "other" } });
     expect(bad[0]).toMatchObject({ id: "hint:failed", subtitle: "SerpApi answered 401: Invalid API key." });
+    settle({});
+  });
+
+  test("streamed with results as you type: the suggestions first, then the answer and five results below them, once per query", async () => {
+    settle({ provider: "serpapi", serpapi_key: "good" });
+    const serp = () => seen.filter((s) => s.startsWith("/serpapi"));
+    const n = serp().length;
+    const r = await host.listStream("google", "google", "bun");
+    const sugg = ["q:bun", "s:bun konseri", "s:bun & sezen"];
+    expect(r.partials.map(ids)).toEqual([sugg]);
+    expect(ids(r.items)).toEqual([...sugg, "a:bun", ...[1, 2, 3, 4, 5].map((i) => `r:https://site${i}.com/${i}`)]);
+    expect(r.items[4]).toMatchObject({ section: "Results from SerpApi", url: "https://site1.com/1" });
+    expect(await pick("r:https://site1.com/1", "copy_link")).toEqual({ copy: "https://site1.com/1" });
+    // Again: the cached results join at once, no partial, no second search.
+    const again = await host.listStream("google", "google", "bun");
+    expect(again.partials).toEqual([]);
+    expect(ids(again.items)).toEqual(ids(r.items));
+    expect(serp().length).toBe(n + 1);
+    // A keystroke before the query rested: the earlier query is never searched.
+    const [a, b] = await Promise.all([host.listStream("google", "google", "bu1"), host.listStream("google", "google", "bu2")]);
+    expect(ids(a.items)).not.toContain("a:bu1");
+    expect(ids(b.items)).toContain("a:bu2");
+    expect(serp().map((s) => s.split(" ")[1])).not.toContain("bu1");
+    // Results when asked: the suggestions alone, nothing searched.
+    settle({ provider: "serpapi", serpapi_key: "good", results: "ask" });
+    const ask = await host.listStream("google", "google", "deno");
+    expect(ask.partials).toEqual([]);
+    expect(ids(ask.items)).toEqual(["q:deno", "s:deno konseri", "s:deno & sezen"]);
+    expect(serp().length).toBe(n + 2);
+    // A bad key: the suggestions stay, a row under them says so.
+    settle({ provider: "serpapi", serpapi_key: "bad" });
+    expect((await host.listStream("google", "google", "node")).items.at(-1)).toMatchObject({ id: "hint:failed", section: "Results from SerpApi" });
     settle({});
   });
 
