@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 · 2026-09-26
+
+- **Sudoku**: puzzles made on your Mac, a daily one per difficulty from Easy to Expert, graded by the techniques a person needs. Pencil marks without a mode: type a second digit over one you placed and the cell becomes notes, or right-click a pad key. Auto notes (C) keeps every cell's candidates up to date while you only take marks out, digit first (D) lights every cell a digit can still go, and hints come in three steps: where to look, why in plain words, then the move.
+- **Crossword**: daily minis from Crosshare in the manner of the NYT Mini, and the Turkish papers' kare bulmaca (HaberTürk, Cumhuriyet, Sabah) with Turkish letters typed on any keyboard. Browse opens on every half-done puzzle.
+- **Battery & Power**: one view of what drains the battery. Six hours of draw with the time on the charger shaded, what uses power now with the watts and why (CPU, wakeups, disk, network), and what used the battery today, this week and ever, in watt-hours, with the power watcher installed. The bar popover shows the last hour and the top four.
+- **Google Search**: suggestions as you type, Tab to complete, a Wikipedia card for people and places, and up to three suggestions at the root when nothing on your Mac matched. Results from SerpApi, Brave Search or your own SearXNG with a key.
+- **Dates and times in the calculator**: `3pm in tokyo`, `next friday`, `days until 25 dec`, `workdays until 25 dec`, `what week is it`, `@1759000000`, `3h20m + 45m`; Turkish month and day names work too.
+- **Join a call from the top of pal**: the root's Now row shows your next event, and five minutes before a call it turns into a Join row (Enter joins).
+- **Hide the clock** in every timed game (Sudoku, Crossword, Minesweeper, Solitaire, Typing): a setting, or T while playing. Your times still count.
+- **Bigger game panels**: ⌘⇧F plays a game at 90% of the screen, ⌘⇧J in a small panel in the corner, and each game remembers how you left it.
+- Animations always play, whatever the system's reduce motion setting says.
+
 ## 0.6.0 · 2026-09-25
 
 - **Flashcards**: spaced repetition for the minute a build takes. A card on a stack: space flips it, → "Knew it" throws it right and ← "Didn't know" left (or drag it), and each answer says when the card comes back. Every answer is saved as you give it, so Escape at any moment loses nothing. Scheduled with FSRS, the algorithm Anki uses.
