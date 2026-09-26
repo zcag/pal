@@ -429,6 +429,13 @@ is left to the load-time check.
     `{query}` link filled in), picked through `pick` like any row. The
     manifest may declare `true` or the title. `general.fallbacks` orders
     the rows; `general.fallbacks_always` shows them under the hits too.
+  - **Late fallback rows** (`lateFallback: (query) => Item[]`): rows
+    that join the fallback section after it painted, under Search the
+    web, for what needs the network (Google Search's suggestions), which
+    a `fallback` function would make the whole section wait on. The page
+    asks the host's `fallback/late` only once the section shows (nothing
+    matched, or `fallbacks_always`), so a query the index answered never
+    reaches it, and drops a reply for a query that moved on.
   - **Suggestions** (`suggest: () => Item[]`): a few rows for the empty
     root's "Now" section, asked on every show of the empty root and after
     every pick from it (the next
@@ -445,7 +452,10 @@ is left to the load-time check.
   a link over to be saved.
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
-  ⌘Enter; an empty list is an inert hint row). Any other key rides
+  ⌘Enter; an empty list is an inert hint row), `complete` (Tab puts that
+  text in the search box and the level lists again: a suggestion
+  completed into the query, at the root too; it wins over the level's
+  own Tab). Any other key rides
   through untouched (a `section` for the empty root, whatever the
   extension wants to keep on the row) and `pick` does not get it back.
   An accessory is right-aligned on the row: `{ text }`, `{ tag, color? }`
@@ -1551,6 +1561,13 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   `color`.
 - `tabs`: the browsers' open tabs: `tabs.active()`, `tabs.find(url)`,
   `tabs.focus(tab)`.
+- `openUrl(url, { app?, background? })`: a web address in a named
+  browser (`open -a` on macOS, its command on Linux) and/or behind the app
+  in front (`open -g`; the panel stays, with a toast); with neither, the
+  plain `{ open }`. `browsers()` lists the ones installed, `BROWSERS` all
+  it knows. Quicklinks' Open with and Google Search's Open in.
+- `htmlText(s)`: an HTML fragment (a snippet's `<b>`, `&amp;`) as one line
+  of plain text.
 
 The protocol's types ride along: `Extension`, `Palette`, `Item`,
 `Accessory`, `Metadata`, `Action`, `Icon`, `TileIcon`, `TintedIcon`,

@@ -22,7 +22,7 @@ line says what the Raycast one does and how it would fit pal. Status:
 | [YouTube](https://www.raycast.com/tonka3000/youtube) | Search videos and channels | todo | Search rows with thumbnails, open; needs an API key or Invidious |
 | [Pomodoro](https://www.raycast.com/asubbotin/pomodoro) | Focus intervals with a menu bar countdown | have | Timer's pomodoro mode (2026-09-17): work/break/long-break cycle on the CLI's timers, skip and stop, a per-day count |
 | [Timers](https://www.raycast.com/ThatNerd/timers) | Named timers, presets, alarms | have | Timer extension |
-| [Google Search](https://www.raycast.com/mblode/google-search) | Suggestions as you type, open | todo | Fallback row exists (pit 2); suggestions API adds live rows |
+| [Google Search](https://www.raycast.com/mblode/google-search) | Suggestions as you type, open | done | `extensions/google`: suggestions per keystroke, Tab completes, results with SerpApi/Brave/SearXNG, root suggestions under Search the web (`lateFallback`) |
 | [Obsidian](https://www.raycast.com/marcjulian/obsidian) | Search notes, daily note, append | todo | Vault at ~/Sync/vault; search, open in Obsidian or editor, append to daily, create |
 | [Speedtest](https://www.raycast.com/tonka3000/speedtest) | Run a speed test in the panel | todo | Network extension: `speedtest-cli`/Ookla CLI with a live view |
 | [Slack](https://www.raycast.com/mommertf/slack) | Unreads, search, status, presence | have | Slack extension (2026-09-16) |
