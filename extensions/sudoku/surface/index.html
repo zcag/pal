@@ -30,14 +30,17 @@
       <span id="slips" title="Digits placed that were not the answer"></span>
       <button type="button" tabindex="-1" id="clock" title="Pause (P)"><span id="time">0:00</span><svg viewBox="0 0 16 16"><rect x="4.5" y="3.5" width="2.2" height="9" rx=".6"/><rect x="9.3" y="3.5" width="2.2" height="9" rx=".6"/></svg></button>
     </header>
+    <div id="progress" title="Cells filled"><i></i></div>
 
     <div id="pad"></div>
 
     <div id="tools">
-      <button type="button" tabindex="-1" data-tool="undo" title="Undo (U)"><svg viewBox="0 0 20 20"><path d="M7.5 5 4 8.5 7.5 12"/><path d="M4.5 8.5h7.2a4 4 0 0 1 0 8H9"/></svg><span>Undo</span></button>
-      <button type="button" tabindex="-1" data-tool="erase" title="Erase (⌫)"><svg viewBox="0 0 20 20"><path d="M8 4.5h8.5v11H8L3.5 10z"/><path d="m10.2 7.8 4.4 4.4M14.6 7.8l-4.4 4.4"/></svg><span>Erase</span></button>
-      <button type="button" tabindex="-1" data-tool="notes" title="Pencil marks (N or Space)"><svg viewBox="0 0 20 20"><path d="M12.8 3.9 16.1 7.2 7.6 15.7 3.6 16.4 4.3 12.4z"/><path d="m11 5.7 3.3 3.3"/></svg><span>Notes</span><i class="pill">Off</i></button>
-      <button type="button" tabindex="-1" data-tool="hint" title="Hint (I)"><svg viewBox="0 0 20 20"><path d="M7.3 13.6c0-1.6-2.3-2.6-2.3-5.4a5 5 0 0 1 10 0c0 2.8-2.3 3.8-2.3 5.4z"/><path d="M7.8 16.4h4.4"/></svg><span>Hint</span></button>
+      <button type="button" tabindex="-1" data-tool="undo" title="Undo (U)"><svg viewBox="0 0 20 20"><path d="M7.5 5 4 8.5 7.5 12"/><path d="M4.5 8.5h7.2a4 4 0 0 1 0 8H9"/></svg></button>
+      <button type="button" tabindex="-1" data-tool="erase" title="Erase (⌫)"><svg viewBox="0 0 20 20"><path d="M8 4.5h8.5v11H8L3.5 10z"/><path d="m10.2 7.8 4.4 4.4M14.6 7.8l-4.4 4.4"/></svg></button>
+      <button type="button" tabindex="-1" data-tool="notes" title="Notes mode: digits write notes (N)"><svg viewBox="0 0 20 20"><path d="M12.8 3.9 16.1 7.2 7.6 15.7 3.6 16.4 4.3 12.4z"/><path d="m11 5.7 3.3 3.3"/></svg></button>
+      <button type="button" tabindex="-1" data-tool="auto" title="Auto notes: every empty cell shows what still fits (C)"><svg viewBox="0 0 20 20"><rect x="3.5" y="3.5" width="13" height="13" rx="3"/><g class="dots"><circle cx="7.2" cy="7.2" r="1"/><circle cx="10" cy="7.2" r="1"/><circle cx="12.8" cy="7.2" r="1"/><circle cx="7.2" cy="10" r="1"/><circle cx="12.8" cy="10" r="1"/><circle cx="7.2" cy="12.8" r="1"/><circle cx="10" cy="12.8" r="1"/></g></svg></button>
+      <button type="button" tabindex="-1" data-tool="pick" title="Digit first: pick a digit, then click cells (D)"><svg viewBox="0 0 20 20"><path d="M7.6 9.6 7 7.1a3 3 0 1 1 6 0l-.6 2.5"/><path d="M4.5 12.3c0-1.5 1.2-2.7 2.7-2.7h5.6c1.5 0 2.7 1.2 2.7 2.7v.7h-11z"/><path d="M5 16.2h10"/></svg></button>
+      <button type="button" tabindex="-1" data-tool="hint" title="Hint (I)"><svg viewBox="0 0 20 20"><path d="M7.3 13.6c0-1.6-2.3-2.6-2.3-5.4a5 5 0 0 1 10 0c0 2.8-2.3 3.8-2.3 5.4z"/><path d="M7.8 16.4h4.4"/></svg></button>
     </div>
 
     <div id="tip" hidden>
@@ -55,7 +58,7 @@
     </div>
 
     <footer id="hint"></footer>
-    <div id="nearly" hidden><b>Not quite.</b><span>The red digits clash.</span></div>
+    <div id="nearly" hidden><b>Not quite.</b><span>The underlined digits clash.</span></div>
   </aside>
 </main>
 
@@ -102,19 +105,22 @@
 
 <div id="help" hidden><div class="card">
   <h2>Keys</h2>
+  <p class="lead">Type a digit to place it. Type a different one in the same cell and it turns into notes holding both; <kbd>⌫</kbd> clears it.</p>
   <div class="cols">
     <dl>
-      <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>Place a digit <small>a new one replaces it</small></dd>
-      <dt><kbd>⇧</kbd> <kbd>1</kbd>–<kbd>9</kbd></dt><dd>Pencil mark <small>also ⌥</small></dd>
-      <dt><kbd>N</kbd> <kbd>Space</kbd></dt><dd>Pencil marks mode</dd>
+      <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>Place, or a second: notes</dd>
+      <dt><kbd>⇧</kbd> <kbd>1</kbd>–<kbd>9</kbd></dt><dd>A note <small>also ⌥, or right-click the pad</small></dd>
+      <dt><kbd>N</kbd></dt><dd>Notes mode <small>or Space</small></dd>
+      <dt><kbd>C</kbd></dt><dd>Auto notes <small>you only take out</small></dd>
+      <dt><kbd>D</kbd></dt><dd>Digit first <small>pick, then click cells</small></dd>
       <dt><kbd>⌫</kbd> <kbd>0</kbd></dt><dd>Erase</dd>
       <dt><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></dt><dd>Move <small>or H J K L</small></dd>
       <dt><kbd>Tab</kbd></dt><dd>Next empty cell <small>⇧ back</small></dd>
-      <dt><kbd>U</kbd> <kbd>⌘Z</kbd></dt><dd>Undo <small>⇧U redo</small></dd>
     </dl>
     <dl>
+      <dt><kbd>U</kbd> <kbd>⌘Z</kbd></dt><dd>Undo <small>⇧U redo</small></dd>
       <dt><kbd>I</kbd></dt><dd>Hint <small>again: why, then do it</small></dd>
-      <dt><kbd>A</kbd></dt><dd>Fill in pencil marks <small>⇧A clear</small></dd>
+      <dt><kbd>A</kbd></dt><dd>Fill in notes <small>⇧A clear</small></dd>
       <dt><kbd>P</kbd></dt><dd>Pause <small>T hides the clock</small></dd>
       <dt><kbd>⌘N</kbd></dt><dd>New game, today's puzzles</dd>
       <dt><kbd>⌘O</kbd></dt><dd>Browse the dailies</dd>

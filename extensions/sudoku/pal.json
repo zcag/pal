@@ -1,7 +1,7 @@
 {
   "name": "sudoku",
   "title": "Sudoku",
-  "description": "Sudoku in the panel, made on your machine: a daily puzzle for each of Easy, Medium, Hard and Expert (the same for everyone on that day) and a new one whenever you like, graded by the techniques it takes, not the clue count. Pencil marks with Shift and a digit or a mode, marks cleared as you place, auto-fill; hints that say where to look, then why, in plain words; undo, a clock, streaks and times per difficulty. Every move is saved, so Escape anywhere loses nothing.",
+  "description": "Sudoku in the panel, made on your machine: a daily puzzle for each of Easy, Medium, Hard and Expert (the same for everyone on that day) and a new one whenever you like, graded by the techniques it takes, not the clue count. Notes without an extra step (a second digit in a cell turns it into notes), auto notes that keep every cell's options for you, a digit-first mode; hints that say where to look, then why, in plain words; undo, a clock, streaks and times per difficulty. Every move is saved, so Escape anywhere loses nothing.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -51,20 +51,31 @@
       "text": "Show the time while you play",
       "description": "Off hides the running time. Your times still count for stats and show when you finish. Also T or ⌘K in the game.",
       "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "auto_notes",
+      "label": "Auto notes",
+      "text": "Keep every empty cell's notes filled in for me",
+      "description": "Each empty cell shows the digits that still fit, updated as you play; you only take out the ones you rule out, and they stay out. Off brings your own notes back. Also C or ⌘K in the game.",
+      "default": false
     }
   ],
   "store": {
-    "tagline": "Daily sudoku in four difficulties, pencil marks that stay out of the way, hints that explain",
+    "tagline": "Daily sudoku in four difficulties, notes without an extra step, hints that explain",
     "category": "fun",
     "features": [
       "A daily puzzle per difficulty, the same on every machine that day, and a new one of any difficulty on ⌘N; nothing is fetched",
       "Graded by how a person solves it: Easy takes only singles you can spot, Medium a cell with one digit left, Hard pairs and locked candidates, Expert X-wings, swordfish and XY-wings",
-      "Pencil marks in a 3 by 3 inside the cell: Shift or Option with a digit, or N (Space) to switch the pad to marks; a placed digit clears itself from the marks it sees; A fills every mark in, Shift-A clears them",
-      "The cursor's row, column and box lit, every copy of its digit lit, the marks of that digit circled",
-      "A pad with how many of each digit are left, a check once a digit is done",
-      "Clashes in red, or every mistake as you make it (a setting)",
+      "Notes without an extra step: type a different digit over one you placed and the cell turns into notes holding both; Backspace clears it",
+      "Auto notes (C, a setting): every empty cell shows the digits that still fit, updated as you play; you only take out the ones you rule out, and they stay out",
+      "Digit first (D): pick a digit, every cell it can still go in lights up, and each click places it",
+      "A pad of slim keys: a click places, a right-click, ⌥-click or the key's corner writes the note; a bar under each digit for how many are down, a check once all nine are",
+      "Notes in a 3 by 3 inside the cell, also Shift or Option with a digit or N for notes mode; a placed digit clears itself from the notes it sees; A fills every note in, Shift-A clears them",
+      "Clues solid, your digits in the accent colour; the cursor's row, column and box lit, every copy of its digit lit, that digit's notes circled across the board",
+      "A clash is a red line under your digit with the clue it runs into ringed; every mistake in red as you make it if you want (a setting)",
       "Hints in three presses: where to look, then why in plain words (\"Only this cell in row 4 can take a 7\"), then the move; the cells that explain it are circled",
-      "Undo and redo, erase, Tab to the next empty cell, arrows or H J K L, and a click on a cell or the pad",
+      "Undo and redo, erase, Tab to the next empty cell, arrows or H J K L, one row of tools, a line filling as the cells do",
       "A sweep of light when a row, column or box is done, a ripple and confetti for the board",
       "A clock that runs only while the board is on screen, and a pause that hides it; T hides the clock if it rushes you (times still count)",
       "Browse every daily by month and every half-done game; stats per difficulty: best and average time, the streak, a chart, the history"
@@ -75,17 +86,21 @@
       "linux"
     ],
     "screenshots": [
-      { "file": "1-solving.png", "caption": "Mid-game: the zone and the digit in focus lit, pencil marks, the pad's counts" },
-      { "file": "2-hint.png", "caption": "A hint: where to look, why, and the move" },
-      { "file": "3-solved.png", "caption": "Solved: the time, the streak, Flawless" },
-      { "file": "4-new.png", "caption": "⌘N: today's puzzle or a new one, per difficulty" },
-      { "file": "5-browse.png", "caption": "The dailies month by month" },
-      { "file": "6-stats.png", "caption": "Stats per difficulty" }
+      { "file": "1-solving.png", "caption": "Mid-game: the digit in focus and its notes lit across the board, the pad's bars" },
+      { "file": "2-digit-first.png", "caption": "Digit first: pick a 4, every cell it can still go in lights up" },
+      { "file": "3-auto-notes.png", "caption": "Auto notes: every cell's options kept for you" },
+      { "file": "4-hint.png", "caption": "A hint: where to look, why, and the move" },
+      { "file": "5-solved.png", "caption": "Solved: the time, the streak, Flawless" },
+      { "file": "6-new.png", "caption": "⌘N: today's puzzle or a new one, per difficulty" },
+      { "file": "7-browse.png", "caption": "The dailies month by month" },
+      { "file": "8-stats.png", "caption": "Stats per difficulty" }
     ],
     "actions": [
       { "title": "Hint", "description": "Where to look; again for why; again for the move.", "keys": "i" },
-      { "title": "Pencil marks", "description": "The pad writes marks instead of digits. Shift with a digit does one without switching.", "keys": "n" },
-      { "title": "Fill in pencil marks", "description": "Every empty cell gets what fits; marks you wrote are only trimmed. Shift-A clears them.", "keys": "a" },
+      { "title": "Notes mode", "description": "Digits write notes instead. Shift with a digit writes one without switching, and a second digit over a placed one makes notes anyway.", "keys": "n" },
+      { "title": "Auto notes", "description": "Every empty cell shows what still fits; you only take notes out. Again to bring your own back.", "keys": "c" },
+      { "title": "Digit first", "description": "Pick a digit, then click the cells it goes in. Again to leave.", "keys": "d" },
+      { "title": "Fill in notes", "description": "Every empty cell gets what fits; notes you wrote are only trimmed. Shift-A clears them.", "keys": "a" },
       { "title": "Undo", "description": "Shift-U or ⌘⇧Z redoes.", "keys": "u" },
       { "title": "New game", "description": "Today's puzzle or a new one, per difficulty.", "keys": "cmd+n" },
       { "title": "Browse", "description": "The dailies by month, and every half-done game.", "keys": "cmd+o" },
@@ -100,9 +115,11 @@
       "title": "Sudoku",
       "description": "The game left half-done, else today's daily. Escape leaves at any point; every move is saved.",
       "keys": [
-        { "keys": "1", "title": "Place a digit (1 to 9)" },
-        { "keys": "shift+1", "title": "Pencil mark (shift or alt with a digit)" },
-        { "keys": "n", "title": "Pencil marks mode (or space)" },
+        { "keys": "1", "title": "Place a digit (1 to 9); a different one over it makes notes" },
+        { "keys": "shift+1", "title": "A note (shift or alt with a digit)" },
+        { "keys": "n", "title": "Notes mode (or space)" },
+        { "keys": "c", "title": "Auto notes" },
+        { "keys": "d", "title": "Digit first: pick a digit, click cells" },
         { "keys": "backspace", "title": "Erase" },
         { "keys": "up", "title": "Move (or h j k l)" },
         { "keys": "i", "title": "Hint: where, why, then the move" },

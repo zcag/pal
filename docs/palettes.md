@@ -3420,10 +3420,12 @@ suggest = true         # today's puzzle in the root's Now section while unsolved
 
 Sudoku made on your machine, never fetched. Enter on the palette's row
 opens a view level whose body is the extension's own page (a `surface`):
-the board on the left, as tall as the panel allows; beside it the
-difficulty and the clock, a number pad showing how many of each digit are
-left (a check once a digit is done), and Undo, Erase, Notes and Hint. The
-title line says which puzzle it is ("Sudoku · Hard, today's").
+the board on the left, as tall as the panel allows; beside it a slim side:
+the difficulty and the clock, a line filling as the cells do, a number pad
+of slim keys (a bar under each digit for how many are down, dimmed with a
+check once all nine are), and one row of tools: Undo, Erase, Notes, Auto
+notes, Digit first and Hint. The title line says which puzzle it is
+("Sudoku · Hard, today's").
 
 - **Which puzzle.** A daily for each of Easy, Medium, Hard and Expert,
   made from the date, so it is the same on every machine that day, and a
@@ -3439,18 +3441,41 @@ title line says which puzzle it is ("Sudoku · Hard, today's").
   digit left, Hard needs locked candidates or a pair or triple, Expert an
   X-wing, a swordfish or an XY-wing (and a few such steps). Every puzzle
   has one answer.
-- **Keys.** 1 to 9 place a digit; Shift or Option with a digit writes a
-  pencil mark instead, and N (or Space) switches the pad to marks, where
-  the modifier places. Marks sit in a 3 by 3 inside the cell; a placed
-  digit clears its mark from every cell it sees. A fills in every mark
-  (marks you wrote are only trimmed, so your own eliminations stay),
-  Shift-A clears them. Backspace or 0 erases, U or ⌘Z undoes, Shift-U or
-  ⌘⇧Z redoes, the arrows or `hjkl` move, Tab goes to the next empty cell.
-  A click on a cell or the pad works too. `?` shows every key.
-- **Clarity.** The cursor's row, column and box are lit, every copy of its
-  digit is lit and that digit's marks are circled. A digit twice in a row,
-  column or box shows red; with `check = "mistakes"` any digit that is not
-  the answer does too, and the mistakes are counted.
+- **Keys.** 1 to 9 place a digit. A different digit typed over one you
+  placed turns the cell into notes holding both, and from then on digits
+  toggle notes there until Backspace clears the cell (changing your mind
+  never loses the first guess; Backspace then the digit replaces it). With
+  `check = "mistakes"` the answer is no secret, so a wrong digit is simply
+  replaced and a right one stays. Shift or Option with a digit writes a
+  note, and N (or Space) switches digits to notes, where the modifier
+  places. Notes sit in a 3 by 3 inside the cell; a placed digit clears its
+  note from every cell it sees. A fills in every note (notes you wrote are
+  only trimmed, so your own eliminations stay), Shift-A clears them.
+  Backspace or 0 erases, U or ⌘Z undoes, Shift-U or ⌘⇧Z redoes, the arrows
+  or `hjkl` move, Tab goes to the next empty cell. `?` shows every key, and
+  a newcomer (fewer than three solves) gets one line about the second
+  digit until a few digits are down.
+- **The pad** (the mouse): a click places the digit on the cursor's cell
+  (a note in notes mode); a right-click or ⌥-click writes the note instead,
+  and so does each key's small corner, which lights when the cursor's cell
+  has that note.
+- **Auto notes** (C, or `auto_notes = true`): every empty cell shows the
+  digits that still fit, updated as you play; you only take notes out
+  (Shift with a digit, the corner), and what you take out stays out as the
+  board changes. Backspace on an empty cell brings its notes back, and
+  turning auto notes off brings back your own notes as they were.
+- **Digit first** (D): pick a digit (1 to 9 or the pad) and every cell it
+  can still go in is lit; a click places it (a note in notes mode), a click
+  on it takes it out again, a click on another digit picks that one. Enter
+  places it on the cursor's cell, Tab goes to the next lit cell, and once
+  all nine are in it moves on to the next digit. D again leaves (Escape
+  stays the panel's: it closes the game).
+- **Clarity.** Clues solid, your digits in the accent colour. The cursor's
+  row, column and box are lit, every copy of its digit is lit and that
+  digit's notes are circled across the board. A digit twice in a row,
+  column or box gets a red line under it, with the clue it runs into
+  ringed; with `check = "mistakes"` any digit that is not the answer shows
+  in red, and the mistakes are counted.
 - **Hints** (I) come in three presses: where to look ("Look at row 4"),
   then why, in plain words, with the digit ("Only this cell in the top box
   can take a 9: every other empty cell sees a 9 already", the 9s circled),
@@ -3478,6 +3503,7 @@ title line says which puzzle it is ("Sudoku · Hard, today's").
 difficulty = "medium"   # whose daily the first open shows: easy, medium, hard, expert
 check = "conflicts"     # or "mistakes": mark a digit that is not the answer as you place it; also on ⌘K
 clock = true            # false hides the running time while you play (times still count); also T
+auto_notes = false      # true keeps every empty cell's notes filled in; you only take them out; also C
 ```
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
