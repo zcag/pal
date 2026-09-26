@@ -14,7 +14,7 @@ import { argsForm, bar, clock, errorMessage, failed, hint, home, run, storage, t
 import { ApiError, AuthError, conf, entry, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
-  type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type User,
+  type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type SearchResult, type Tier, type User,
 } from "./data.ts";
 import { render as renderNotifs, renderIssues, renderPrs, shown as shownNotifs, shownIssues, shownPrs, type IssueState, type NotifState, type PrBucketed, type PrState } from "./view.ts";
 
@@ -31,7 +31,8 @@ const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.
 const REASON: Record<string, string> = { review_requested: "Review requested", mention: "Mentioned", team_mention: "Mentioned", assign: "Assigned", author: "Your threads", comment: "Comments", subscribed: "Subscribed", state_change: "State changed", ci_activity: "CI", security_alert: "Security" };
 const REASON_ORDER = ["Review requested", "Mentioned", "Assigned", "Your threads", "Comments", "State changed", "CI", "Security", "Subscribed"];
 const CHECKOUT_MS = 60_000;
-const SEARCH_WAIT_MS = 300;
+// Tunable so the tests do not wait out the real debounce.
+const SEARCH_WAIT_MS = Number(process.env.PAL_GITHUB_SEARCH_WAIT_MS ?? 300);
 const CREATE = "create", SUMMARY = "summary";
 
 // ---- rows the palettes share ------------------------------------------------
@@ -960,25 +961,33 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const key = `${kind}\0${q}`;
   const c = searchCache.get(key);
   if (c && Date.now() - c.at < TTL * 1000) return c.rows;
-  // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
   const seq = ++searchSeq;
-  await Bun.sleep(SEARCH_WAIT_MS);
-  if (seq !== searchSeq) return lastSearch;
-  const [r, mine] = await Promise.all([search(q, kind), kind === "all" || kind === "issues" ? cachedMine() : []]);
+  const mine = kind === "all" || kind === "issues" ? await cachedMine() : [];
   // A result that is one of your cached PRs or issues shows that copy: a search's own has no checks, review or conflicts to tag.
   const known = new Map(mine.map((x) => [x.id, x]));
-  const got = new Set(r.issues.map((f) => f.item.id));
   // Your own matched loosely too, so a typo GitHub's word search misses still finds them; a query with a qualifier is taken as meant.
-  const loose = /\S:\S/.test(q) ? [] : [...new Map(mine.filter((x) => !got.has(x.id) && loosely(q, `${x.title} ${x.repo} ${x.number}`)).map((x) => [x.id, x])).values()].slice(0, 10);
-  const involved = [...r.issues.filter((f) => f.tier === "involved").map((f) => f.item), ...loose];
+  // They lead Involved, drawn at once while GitHub is asked, so what it finds joins below them.
+  const loose = /\S:\S/.test(q) ? [] : [...new Map(mine.filter((x) => loosely(q, `${x.title} ${x.repo} ${x.number}`)).map((x) => [x.id, x])).values()].slice(0, 10);
+  const shown = new Set(loose.map((x) => x.id));
   const issueRows = (xs: (PR | Issue)[], section: string) => xs.map((x) => known.get(x.id) ?? x).map((x) => (x.kind === "pr" ? prRow(x, section) : issueRow(x, section)));
-  const rows = [
-    ...issueRows(involved, "Involved"),
-    ...issueRows(r.issues.filter((f) => f.tier === "near").map((f) => f.item), "Your organisations"),
-    ...r.repos.map((f) => repoRow(f.item, "Repositories")),
-    ...issueRows(r.issues.filter((f) => f.tier === "rest").map((f) => f.item), r.scoped ? "Other matches" : "Everywhere"),
-    ...r.users.map((x) => userRow(x, "Users")),
-  ];
+  const toRows = (r: SearchResult) => {
+    const tier = (t: Tier) => r.issues.filter((f) => f.tier === t && !shown.has(f.item.id)).map((f) => f.item);
+    return [
+      ...issueRows([...loose, ...tier("involved")], "Involved"),
+      ...issueRows(tier("near"), "Your organisations"),
+      ...r.repos.map((f) => repoRow(f.item, "Repositories")),
+      ...issueRows(tier("rest"), r.scoped ? "Other matches" : "Everywhere"),
+      ...r.users.map((x) => userRow(x, "Users")),
+    ];
+  };
+  // Rows so far, only while this keystroke is the latest and only when more came (search hands over its answers in row order).
+  let drawn = 0;
+  const partial = (rows: Item[]) => { if (seq === searchSeq && rows.length > drawn) { drawn = rows.length; ctx?.partial?.(rows); } };
+  partial(toRows({ issues: [], repos: [], users: [], scoped: false }));
+  // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
+  await Bun.sleep(SEARCH_WAIT_MS);
+  if (seq !== searchSeq) return lastSearch;
+  const rows = toRows(await search(q, kind, (r) => partial(toRows(r))));
   const out = rows.length ? rows : [hint("empty", "No results", `Nothing on GitHub matches "${q}"`)];
   searchCache.set(key, { at: Date.now(), rows: out });
   if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value!);

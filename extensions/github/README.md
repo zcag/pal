@@ -61,10 +61,12 @@ nearest first, each once: Involved (`involves:@me`), Your organisations
 (your account and your organisations), Repositories (yours first),
 Everywhere, Users. A query naming `repo:`, `org:` or `user:` skips the
 organisations tier. Your cached pull requests and issues are matched
-loosely too, so a typo still finds them. Filters Everything, Issues and
-PRs, Repositories, Users. Each tier is its own request, sent together; a
-keystroke waits 300 ms for the next before asking, and the search row's
-sweep runs until the answer lands (about 2 s). Other people's pull
+loosely too, so a typo still finds them; they show at once, at the top of
+Involved. Filters Everything, Issues and PRs, Repositories, Users. Each
+tier is its own request, sent together; a keystroke waits 300 ms for the
+next before asking, each tier's rows join below as soon as the tiers above
+them are in, and the search row's sweep runs until the last lands (about
+2 s). Other people's pull
 requests come without the checks, review and conflicts tags, which GitHub
 computes per result; yours carry them from the cached lists.
 

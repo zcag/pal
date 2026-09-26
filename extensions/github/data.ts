@@ -399,38 +399,58 @@ async function nearScope(): Promise<string> {
  * mentioned, commented), then the viewer's account and organisations, then
  * everywhere. A query naming its own `repo:`, `org:` or `user:` skips the
  * middle tier, and one naming `involves:` the first. `is:pr`, `repo:` and the
- * like narrow "all" to issues and pull requests on their own.
+ * like narrow "all" to issues and pull requests on their own. `onPart` gets
+ * the result so far whenever the answers in hand, from the first search on,
+ * reach further down the rows: never one a later answer would reorder.
  */
-export async function search(q: string, kind: SearchKind): Promise<SearchResult> {
+export async function search(q: string, kind: SearchKind, onPart?: (r: SearchResult) => void): Promise<SearchResult> {
   const issueOnly = /(^|\s)(is|repo|author|assignee|mentions|involves|commenter|review-requested|label|state|type):/i.test(q);
   const scoped = /(^|\s)-?(repo|org|user):/i.test(q);
   const want = { issues: kind === "all" || kind === "issues", repos: kind === "repos" || (kind === "all" && !issueOnly), users: kind === "users" || (kind === "all" && !issueOnly) };
-  const near = scoped || !(want.issues || want.repos) ? "" : await nearScope();
-  const tiers: [Tier, string][] = [["near", near && `${q} ${near}`], ["rest", q]];
-  const issueTiers: [Tier, string][] = [["involved", /(^|\s)involves:/i.test(q) ? "" : `${q} involves:@me`], ...tiers];
+  // Only the middle tier waits for the owners (cached an hour, but a cold start asks two endpoints first).
+  const near = scoped || !(want.issues || want.repos) ? "" : nearScope().then((s) => s && `${q} ${s}`);
+  type Ask = { key: string; tier?: Tier; q: string | Promise<string>; type: string; first: number; nodes: string; fragments: string };
+  const issues = (tier: Tier, s: Ask["q"]): Ask => ({ key: `issues_${tier}`, tier, q: s, type: "ISSUE", first: 20, nodes: "__typename ...PR ...Issue", fragments: `${PR_LITE_FRAGMENT}\n${ISSUE_FRAGMENT}` });
+  const repos = (tier: Tier, s: Ask["q"]): Ask => ({ key: `repos_${tier}`, tier, q: s, type: "REPOSITORY", first: 10, nodes: "__typename ...Repo", fragments: REPO_FRAGMENT });
   // One request per search, all at once: GitHub answers the aliases of one request one after another (about 2 s each),
-  // and a tier that fails drops out rather than taking the others with it.
-  const asks: { key: string; tier?: Tier; q: string; type: string; first: number; nodes: string; fragments: string }[] = [
-    ...(want.issues ? issueTiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `issues_${tier}`, tier, q: s, type: "ISSUE", first: 20, nodes: "__typename ...PR ...Issue", fragments: `${PR_LITE_FRAGMENT}\n${ISSUE_FRAGMENT}` })) : []),
-    ...(want.repos ? tiers.filter(([, s]) => s).map(([tier, s]) => ({ key: `repos_${tier}`, tier, q: s, type: "REPOSITORY", first: 10, nodes: "__typename ...Repo", fragments: REPO_FRAGMENT })) : []),
+  // and a tier that fails drops out rather than taking the others with it. Listed in the order their rows show, nearest
+  // first within a kind (the first copy of a result wins), so the answers of any first few are already final.
+  const asks: Ask[] = [
+    ...(want.issues ? [issues("involved", /(^|\s)involves:/i.test(q) ? "" : `${q} involves:@me`), issues("near", near)] : []),
+    ...(want.repos ? [repos("near", near), repos("rest", q)] : []),
+    ...(want.issues ? [issues("rest", q)] : []),
     ...(want.users ? [{ key: "users", q, type: "USER", first: 5, nodes: "__typename ...User ...Org", fragments: USER_FRAGMENT }] : []),
   ];
-  const answers = await Promise.allSettled(asks.map((a) => gql<{ found: { nodes: any[] } }>("Search", `${a.fragments}
+  // Each answer once it is in: the nodes, the error, or neither for a tier the query skips.
+  const answers: ({ found?: { nodes: any[] }; error?: unknown } | undefined)[] = asks.map(() => undefined);
+  const result = (upto: number): SearchResult => {
+    const d = Object.fromEntries(asks.slice(0, upto).map((a, i) => [a.key, answers[i]?.found]));
+    const seen = new Set<string>();
+    const found = <T extends { id: string }>(prefix: string, ok: (n: any) => boolean, map: (n: any) => T): Found<T>[] =>
+      asks.filter((a) => a.key.startsWith(prefix)).flatMap((a) => (d[a.key]?.nodes ?? []).filter((n) => n && ok(n)).map((n) => ({ tier: a.tier!, item: map(n) })))
+        .filter((f) => !seen.has(f.item.id) && !!seen.add(f.item.id));
+    return {
+      issues: found("issues_", (n) => "number" in n, (n) => (n.__typename === "PullRequest" || "headRefName" in n ? toPR(n as GqlPR) : toIssue(n as GqlIssue))),
+      repos: found("repos_", (n) => "nameWithOwner" in n, toRepoGql),
+      users: (d.users?.nodes ?? []).filter((n) => n && "login" in n).map(toUser),
+      scoped,
+    };
+  };
+  let ready = 0;
+  await Promise.all(asks.map(async (a, i) => {
+    try {
+      const s = await a.q;
+      answers[i] = s ? { found: (await gql<{ found: { nodes: any[] } }>("Search", `${a.fragments}
 query Search($q: String!) {
   found: search(query: $q, type: ${a.type}, first: ${a.first}) { nodes { ${a.nodes} } }
   rateLimit { remaining resetAt }
-}`, { q: a.q })));
-  if (!answers.some((r) => r.status === "fulfilled")) throw (answers[0] as PromiseRejectedResult).reason;
-  const d: Record<string, { nodes: any[] } | undefined> = Object.fromEntries(asks.map((a, i) => [a.key, answers[i].status === "fulfilled" ? answers[i].value.found : undefined]));
-  const seen = new Set<string>();
-  const found = <T extends { id: string }>(prefix: string, ok: (n: any) => boolean, map: (n: any) => T): Found<T>[] =>
-    asks.filter((a) => a.key.startsWith(prefix)).flatMap((a) => (d[a.key]?.nodes ?? []).filter((n) => n && ok(n)).map((n) => ({ tier: a.tier!, item: map(n) })))
-      .filter((f) => !seen.has(f.item.id) && !!seen.add(f.item.id));
-  return {
-    issues: found("issues_", (n) => "number" in n, (n) => (n.__typename === "PullRequest" || "headRefName" in n ? toPR(n as GqlPR) : toIssue(n as GqlIssue))),
-    repos: found("repos_", (n) => "nameWithOwner" in n, toRepoGql),
-    users: (d.users?.nodes ?? []).filter((n) => n && "login" in n).map(toUser),
-    scoped,
-  };
+}`, { q: s })).found } : {};
+    } catch (error) { answers[i] = { error }; }
+    const was = ready;
+    while (ready < asks.length && answers[ready]) ready++;
+    if (ready > was && ready < asks.length) onPart?.(result(ready));
+  }));
+  if (!answers.some((r) => r?.found)) throw answers.find((r) => r?.error)!.error;
+  return result(asks.length);
 }
 

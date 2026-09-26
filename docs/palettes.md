@@ -1970,10 +1970,12 @@ first), **Everywhere**, Users. A query naming its own `repo:`, `org:` or
 `user:` skips the organisations tier, and its remaining matches are
 **Other matches**. Your pull requests and issues already cached by the
 two palettes above are also matched loosely against the query, so a typo
-GitHub's word search misses (`directry`) still finds them under Involved.
-Each tier is its own request, sent together, so a search takes about as
-long as GitHub's slowest (about 2 s), and the search row's sweep runs
-until it lands. A pull request found this way comes without the fields
+GitHub's word search misses (`directry`) still finds them at the top of
+Involved, shown as you type, before GitHub is asked. Each tier is its own
+request, sent together, and each shows as soon as the ones above it are
+in, below what is already there; the whole search takes about as long as
+GitHub's slowest (about 2 s), and the search row's sweep runs until it
+lands. A pull request found this way comes without the fields
 GitHub computes per result (checks, review decision, conflicts, size,
 which tripled the wait); one that is also in your cached lists shows
 that copy, tags and all, and the pane fetches the checks by name. Filters Everything, Issues and PRs,

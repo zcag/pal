@@ -123,6 +123,8 @@ const server = Bun.serve({
             repos_rest: [{ __typename: "Repository", nameWithOwner: "oven-sh/bun", name: "bun", owner: { login: "oven-sh" }, url: "https://github.com/oven-sh/bun", description: "Fast", primaryLanguage: { name: "Zig" }, stargazerCount: 80000, forkCount: 2000, issues: { totalCount: 4000 }, isPrivate: false, isFork: false, isArchived: false, defaultBranchRef: { name: "main" }, pushedAt: "2026-09-15T00:00:00Z", sshUrl: "git@github.com:oven-sh/bun.git" }],
             users: [{ __typename: "User", login: "jarred", name: "Jarred", url: "https://github.com/jarred", avatarUrl: "https://avatars.githubusercontent.com/jarred", bio: "Makes bun" }],
           };
+          // "thing" holds the everywhere tier back, so what comes before it streams first.
+          if (/thing/.test(q) && key === "issues_rest") await Bun.sleep(200);
           return json({ data: { found: { nodes: /nothing|directry/.test(q) ? [] : answers[key] ?? [] } } });
         }
         default: return json({ errors: [{ message: `unknown operation ${body.operationName}` }] });
@@ -176,9 +178,10 @@ beforeAll(async () => {
   process.env.PAL_GITHUB_API = `http://127.0.0.1:${server.port}`;
   process.env.PAL_GITHUB_TOKEN = "test-token";
   process.env.PATH = `${ghBin}:${PATH0}`;
+  process.env.PAL_GITHUB_SEARCH_WAIT_MS = "0";
   host = await Host.bundled({ settings: { github: { settings: { default_org: "acme", repos_root: dir, clone_protocol: "ssh", merged_days: 7 } } } });
 });
-afterAll(() => { host.kill(); server.stop(true); process.env.PATH = PATH0; rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); server.stop(true); process.env.PATH = PATH0; delete process.env.PAL_GITHUB_SEARCH_WAIT_MS; rmSync(dir, { recursive: true, force: true }); });
 
 const list = (palette: string, filter?: string, query?: string, refresh?: boolean) => host.list("github", palette, query, filter || refresh ? { ...(filter && { filter }), ...(refresh && { refresh }) } : undefined);
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("github", palette, id, action, ctx);
@@ -509,6 +512,21 @@ describe("github", () => {
       expect(ids(items)).toEqual(["acme/widgets#71"]);
       expect(items[0].section).toBe("Involved");
       expect((await list("search", undefined, "is:pr directry"))[0]).toMatchObject({ id: "hint:empty" });
+    });
+
+    test("streams: your own loose matches at once, then each tier as the ones above it are in, never reordered", async () => {
+      const { items, partials } = await host.listStream("github", "search", "thing");
+      expect(items.map((i) => [i.id, i.section])).toEqual([
+        ["zcag/pal#72", "Involved"], ["acme/api#9", "Involved"], ["acme/api#8", "Your organisations"],
+        ["acme/parser", "Repositories"], ["oven-sh/bun", "Repositories"], ["far/away#7", "Everywhere"], ["@jarred", "Users"],
+      ]);
+      // Draft thing is a cached PR of yours that GitHub's word search does not return.
+      expect(ids(partials[0])).toEqual(["zcag/pal#72"]);
+      expect(ids(partials.at(-1)!)).toEqual(["zcag/pal#72", "acme/api#9", "acme/api#8", "acme/parser", "oven-sh/bun"]);
+      // Each view starts with the one before it, and the answer with the last, so no row moves under the cursor.
+      const views = [...partials, items];
+      for (let i = 1; i < views.length; i++) expect(ids(views[i]).slice(0, views[i - 1].length)).toEqual(ids(views[i - 1]));
+      expect(partials.flat().map((i) => i.section)).not.toContain("Everywhere");
     });
 
     test("a query naming its own scope skips that tier; is:pr narrows all to issues and pull requests; the filters pick the search types", async () => {
