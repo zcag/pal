@@ -21,7 +21,7 @@
 //              cross Ç with C, Ü with U: letters compare folded (game.ts `same`).
 //              A day with two puzzles lists the first.
 import { cached, get, kept } from "./cache.ts";
-import { gridOf, type Puzzle } from "./game.ts";
+import { fold, gridOf, type Puzzle } from "./game.ts";
 import type { Listed, Source } from "./sources.ts";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -49,7 +49,6 @@ export function fromEntries(entries: Entry[], base: Omit<Puzzle, "w" | "h" | "so
   const h = Math.max(...es.map((e) => e.y - 1 + (e.across ? 1 : e.answer.length)));
   if (w > 30 || h > 30 || es.some((e) => e.x < 1 || e.y < 1)) throw new Error("a grid out of shape");
   const solution = Array<string>(w * h).fill("");
-  const fold = (c: string) => c.replace(/[ÇĞİÖŞÜ]/g, (x) => ({ Ç: "C", Ğ: "G", İ: "I", Ö: "O", Ş: "S", Ü: "U" })[x]!);
   for (const e of [...es.filter((x) => !x.across), ...es.filter((x) => x.across)]) {
     [...e.answer].forEach((ch, k) => {
       const i = (e.y - 1 + (e.across ? 0 : k)) * w + e.x - 1 + (e.across ? k : 0);

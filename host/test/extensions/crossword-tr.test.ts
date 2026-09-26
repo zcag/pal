@@ -1,5 +1,5 @@
 // Crossword's Turkish sources: the Turkish letters in game.ts (upper case
-// the Turkish way, folded comparison, the variant key, the solved grid's own
+// the Turkish way, folded comparison, a matching plain letter shown as the answer's own, the solved grid's own
 // letters), a grid from placed answers (turkish.ts `fromEntries`), each
 // paper's format (HaberTürk's day page, Cumhuriyet's JSON with its photo,
 // Sabah's slider and player), and the extension over the wire against a
@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { check, fold, gridOf, letterOf, newPlay, proper, same, select, status, type, variant, WRONG, type Play } from "../../../extensions/crossword/game.ts";
+import { check, fold, gridOf, letterOf, newPlay, proper, same, select, status, type, WRONG, type Play } from "../../../extensions/crossword/game.ts";
 import type { MonthView, Opened, SolvedReply, SourcesView, StatsView } from "../../../extensions/crossword/index.ts";
 import { cumhuriyetPuzzle, fromEntries, istanbulDay, parseHaberturk, parseSabahMonth, parseSabahPlayer } from "../../../extensions/crossword/turkish.ts";
 import type { Data } from "../../../extensions/crossword/store.ts";
@@ -44,15 +44,16 @@ describe("Turkish letters", () => {
     expect(check(g, st, "puzzle").mark.some((m) => m & WRONG)).toBe(false);
     expect(proper(g, st).fill.join("")).toBe(ht.solution.join(""));
   });
-  test("the variant key turns the letter just typed into its Turkish form and back; a locked square stays", () => {
-    let st = type(g, select(g, newPlay(g), 0), "s");
-    expect(st.fill[0]).toBe("S");
-    st = variant(g, st, 0);
-    expect(st.fill[0]).toBe("Ş");
-    expect(variant(g, st, 0).fill[0]).toBe("S");
-    expect(variant(g, type(g, select(g, newPlay(g), 0), "k"), 0).fill[0]).toBe("K");
-    const locked = check(g, { ...newPlay(g), fill: ht.solution.map((_s, i) => (i === 0 ? "T" : "")) }, "square");
-    expect(variant(g, locked, 0)).toBe(locked);
+  test("a plain letter that matches shows the answer's own; a wrong one stays as typed", () => {
+    const at = ht.solution.findIndex((c) => /[ÇĞİÖŞÜ]/.test(c));
+    const want = ht.solution[at];
+    const st = type(g, select(g, newPlay(g), at), fold(want).toLowerCase());
+    expect(st.fill[at]).toBe(want);
+    const wrong = fold(want) === "Z" ? "y" : "z";
+    expect(type(g, select(g, newPlay(g), at), wrong).fill[at]).toBe(wrong.toUpperCase());
+    // i where a dotless I goes shows I, and where İ goes İ.
+    const plain = { ...ht, solution: ht.solution.map((c, i) => (i === at ? "I" : c)) };
+    expect(type(gridOf(plain), select(gridOf(plain), newPlay(gridOf(plain)), at), "i").fill[at]).toBe("I");
   });
 });
 

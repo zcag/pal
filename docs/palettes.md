@@ -3321,9 +3321,11 @@ the Across and Down lists. The title line says which puzzle it is
   stays with the source: today's while it is open, then back through its
   days (for Crosshare, its newest minis too); a puzzle solved or started
   is skipped, and so are Crosshare's grids bigger than 7 by 7. The next one
-  is fetched while you solve, so it opens at once. **Browse** (⌘O) has a
-  tab per source: a calendar month by month, each day marked solved,
-  started or new, and Crosshare's newest minis as a list; Enter plays.
+  is fetched while you solve, so it opens at once. **Browse** (⌘O) has
+  **In progress** first, every half-done puzzle from any source, the last
+  played on top; then a tab per source: a calendar month by month, each
+  day marked solved, started or new, and Crosshare's newest minis as a
+  list; Enter plays (a half-done one where it was left).
 - **The keys** are the NYT's: a letter fills the square and moves to the
   next empty one in the word (a full word typed over goes square by
   square; a finished word jumps to the next clue with a gap); Backspace
@@ -3335,8 +3337,8 @@ the Across and Down lists. The title line says which puzzle it is
 - **Turkish letters.** A Turkish puzzle takes i as İ and ı as I, and a
   letter counts with its diacritics folded (S for Ş, C for Ç), as the
   papers' own players check: their grids cross Ç with C. A US keyboard
-  solves one with plain letters; `'` after a letter types its Turkish form
-  (s' is ş, i' is ı), and the solved grid shows the answers' own letters.
+  solves one with plain letters, each shown as the answer's own once it
+  matches (c typed where Ç goes shows Ç).
 - **Help.** Check (⌘E the word, ⌘⌥E the square, ⌘⇧E the grid) slashes
   wrong letters and turns right ones blue (they lock); reveal (⌘U, ⌘⌥U,
   ⌘⇧U, the grid asking first) fills in the answer with a corner mark;

@@ -1,6 +1,6 @@
 // The page's other screens, each drawn from what the extension answers:
 // Browse (a tab per source: its month as a calendar with the day's puzzle
-// beside it, and Crosshare's newest minis as a list), Stats (per source: the
+// beside it; Crosshare's newest minis and every half-done puzzle as lists), Stats (per source: the
 // figures, a chart of recent times, the history) and the offline page. main.ts owns the keys' routing
 // and hands each screen its own.
 import { clockText, type Puzzle } from "../game.ts";
@@ -38,16 +38,20 @@ type Send = <T>(msg: unknown) => Promise<T>;
 
 // ---- Browse ---------------------------------------------------------------------------------
 
-/** Tabs for the sources (`extra` goes in after Crosshare's): the buttons and a click that picks one. */
-function tabs(el: HTMLElement, sources: SourcesView, extra: { id: string; title: string }[], on: string, pick: (id: string) => void) {
-  const list = sources.sources.flatMap((s) => [{ id: s.id as string, title: s.title }, ...(s.id === "crosshare" ? extra : [])]);
+type Tab = { id: string; title: string };
+/** Tabs for the sources (`lead` before them, `extra` after Crosshare's): the buttons and a click that picks one. */
+function tabs(el: HTMLElement, sources: SourcesView, extra: Tab[], on: string, pick: (id: string) => void, lead: Tab[] = []) {
+  const list = [...lead, ...sources.sources.flatMap((s) => [{ id: s.id as string, title: s.title }, ...(s.id === "crosshare" ? extra : [])])];
   el.innerHTML = list.map((t) => `<button type="button" tabindex="-1" data-tab="${t.id}" class="${t.id === on ? "on" : ""}">${esc(t.title)}</button>`).join("");
   el.onclick = (e) => { const id = (e.target as HTMLElement).closest<HTMLElement>("[data-tab]")?.dataset.tab; if (id) pick(id); };
   return list.map((t) => t.id);
 }
 
+/** Browse's tabs that are lists rather than a source's calendar. */
+const LISTS = new Set(["progress", "newest"]);
+
 export class Browse {
-  /** A source's id, or "newest" for Crosshare's newest minis. */
+  /** A source's id, "newest" for Crosshare's newest minis, or "progress" for every half-done puzzle. */
   tab = "crosshare";
   order: string[] = [];
   sources?: SourcesView;
@@ -59,6 +63,7 @@ export class Browse {
   /** The day of the month under the cursor. */
   day = 1;
   newest: Entry[] = [];
+  progress: Entry[] = [];
   page = -1;
   more = true;
   row = 0;
@@ -71,10 +76,10 @@ export class Browse {
       if (d === this.day) this.playDay(); else { this.day = d; this.drawMonth(); }
     });
     $("#peek").addEventListener("click", (e) => { if ((e.target as HTMLElement).closest("[data-play]")) this.playDay(); });
-    $("#newest-list").addEventListener("click", (e) => {
+    $("#rows").addEventListener("click", (e) => {
       const i = Number((e.target as HTMLElement).closest<HTMLElement>("[data-row]")?.dataset.row);
       if (!Number.isInteger(i)) return;
-      if (i === this.row) this.playRow(); else { this.row = i; this.drawNewest(); }
+      if (i === this.row) this.playRow(); else { this.row = i; this.drawList(); }
     });
   }
 
@@ -88,10 +93,12 @@ export class Browse {
   }
 
   switchTo(tab: string) {
-    if (this.tab !== "newest" && this.year) this.at[this.tab] = { year: this.year, month: this.month, day: this.day };
+    if (!LISTS.has(this.tab) && this.year) this.at[this.tab] = { year: this.year, month: this.month, day: this.day };
+    if (this.tab !== tab && LISTS.has(tab)) this.row = 0;
     this.tab = tab;
     this.drawTabs();
-    if (tab === "newest") { if (this.page < 0) void this.loadNewest(true); return; }
+    if (tab === "progress") return void this.loadProgress();
+    if (tab === "newest") { if (this.page < 0) void this.loadNewest(true); else this.drawList(); return; }
     const at = this.at[tab];
     this.year = at?.year ?? 0;
     this.month = at?.month ?? 0;
@@ -100,10 +107,10 @@ export class Browse {
     void this.loadMonth();
   }
   drawTabs() {
-    this.order = tabs($("#browse .tabs"), this.sources!, [{ id: "newest", title: "Newest" }], this.tab, (id) => this.switchTo(id));
+    this.order = tabs($("#browse .tabs"), this.sources!, [{ id: "newest", title: "Newest" }], this.tab, (id) => this.switchTo(id), [{ id: "progress", title: "In progress" }]);
     $("#browse").dataset.tab = this.tab;
     const other = `<span><kbd>Tab</kbd> next source</span><span><kbd>⌫</kbd> back</span>`;
-    $("#browse-keys").innerHTML = this.tab !== "newest"
+    $("#browse-keys").innerHTML = !LISTS.has(this.tab)
       ? `<span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> day</span><span class="long"><kbd>[</kbd><kbd>]</kbd> month</span><span><kbd>⏎</kbd> play</span>${other}`
       : `<span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>⏎</kbd> play</span>${other}`;
   }
@@ -193,28 +200,44 @@ export class Browse {
     if (reset) { this.page = -1; this.newest = []; this.more = true; this.row = 0; }
     if (!this.more) return;
     const page = this.page + 1;
-    $("#newest").classList.add("busy");
+    $("#list").classList.add("busy");
     const r = await this.io.send<NewestView>({ op: "newest", page }).catch((e) => ({ page, items: [], more: false, error: String(e) }) as NewestView);
-    $("#newest").classList.remove("busy");
+    $("#list").classList.remove("busy");
     this.page = page;
     this.more = r.more;
     const seen = new Set(this.newest.map((x) => x.id));
     this.newest.push(...r.items.filter((x) => !seen.has(x.id)));
-    this.drawNewest(r.error);
+    if (this.tab === "newest") this.drawList(r.error);
   }
 
-  drawNewest(error?: string) {
-    const ol = $("#newest-list");
-    if (!this.newest.length) { ol.innerHTML = `<li class="empty">${error ? `Couldn't load the newest minis: ${esc(error)}` : "Nothing here yet"}</li>`; return; }
-    ol.innerHTML = this.newest.map((e, i) => `<li data-row="${i}" class="${i === this.row ? "cur" : ""}${e.big ? " big" : ""}">${mark(e)}<span class="ttl">${esc(e.title)}</span><span class="by">${esc(e.author)}</span><span class="size">${e.w}×${e.h}</span><span class="st">${e.state === "new" ? "" : e.state === "started" ? `${e.filled}/${e.total}` : clockText(e.ms ?? 0)}</span></li>`).join("")
-      + (this.more ? `<li class="more">More as you scroll</li>` : "");
-    const cur = ol.querySelector<HTMLElement>(".cur");
-    cur?.scrollIntoView({ block: "nearest" });
+  /** Every half-done puzzle, asked afresh each time the tab opens. */
+  async loadProgress() {
+    $("#list").classList.add("busy");
+    const r = await this.io.send<Entry[]>({ op: "progress" }).catch(() => [] as Entry[]);
+    $("#list").classList.remove("busy");
+    this.progress = r;
+    this.row = Math.min(this.row, Math.max(0, r.length - 1));
+    if (this.tab === "progress") this.drawList();
+  }
+
+  get rows() { return this.tab === "progress" ? this.progress : this.newest; }
+
+  /** The list tab's rows: a newest mini by its constructor, a half-done puzzle by its source and day. */
+  drawList(error?: string) {
+    const ol = $("#rows"), rows = this.rows, progress = this.tab === "progress";
+    const title = (id: string) => this.sources?.sources.find((s) => s.id === id)?.title ?? id;
+    if (!rows.length) {
+      ol.innerHTML = `<li class="empty">${progress ? "Nothing half-done. A puzzle you leave partway waits here." : error ? `Couldn't load the newest minis: ${esc(error)}` : "Nothing here yet"}</li>`;
+      return;
+    }
+    ol.innerHTML = rows.map((e, i) => `<li data-row="${i}" class="${i === this.row ? "cur" : ""}${e.big && !progress ? " big" : ""}">${mark(e)}<span class="ttl">${esc(e.title)}</span><span class="by">${esc(progress ? [title(e.source), e.date && dateLong(e.date, true)].filter(Boolean).join(" · ") : e.author)}</span><span class="size">${e.w}×${e.h}</span><span class="st">${e.state === "new" ? "" : e.state === "started" ? `${e.filled}/${e.total}` : clockText(e.ms ?? 0)}</span></li>`).join("")
+      + (!progress && this.more ? `<li class="more">More as you scroll</li>` : "");
+    ol.querySelector<HTMLElement>(".cur")?.scrollIntoView({ block: "nearest" });
   }
 
   playRow() {
-    const e = this.newest[this.row];
-    if (e) this.io.play(e.id);
+    const e = this.rows[this.row];
+    if (e) this.io.play(e.id, e.date);
   }
 
   key(e: KeyboardEvent) {
@@ -222,12 +245,12 @@ export class Browse {
     const k = e.key;
     if (k === "Tab") { const i = this.order.indexOf(this.tab), n = this.order.length; return this.switchTo(this.order[(i + (e.shiftKey ? n - 1 : 1)) % n]); }
     if (k === "Backspace") return this.io.back();
-    if (this.tab === "newest") {
+    if (LISTS.has(this.tab)) {
       if (k === "Enter") return this.playRow();
       if (k === "ArrowDown" || k === "ArrowUp") {
-        this.row = Math.max(0, Math.min(this.newest.length - 1, this.row + (k === "ArrowDown" ? 1 : -1)));
-        this.drawNewest();
-        if (this.row >= this.newest.length - 3) void this.loadNewest();
+        this.row = Math.max(0, Math.min(this.rows.length - 1, this.row + (k === "ArrowDown" ? 1 : -1)));
+        this.drawList();
+        if (this.tab === "newest" && this.row >= this.newest.length - 3) void this.loadNewest();
       }
       return;
     }

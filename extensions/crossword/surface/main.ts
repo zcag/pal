@@ -17,7 +17,7 @@
 import type { SurfaceKit } from "@zcag/pal";
 import {
   REVEALED, RIGHT, WRONG, arrow, backspace, check, clear, click, clockText, crossing, current, decode, del, encode, gridOf, isBlock, newPlay, nextWord, reveal,
-  proper, selectWord, status, toggle, type, variant, wordFull, wrongIn, type Arrow, type Grid, type Play, type Puzzle, type Scope,
+  proper, selectWord, status, toggle, type, wordFull, wrongIn, type Arrow, type Grid, type Play, type Puzzle, type Scope,
 } from "../game.ts";
 import type { Offline, Opened, SolvedReply, SourcesView } from "../index.ts";
 import { Browse, Stats, showOffline, dateLong } from "./screens.ts";
@@ -325,8 +325,6 @@ function showDone(reply: SolvedReply | null, again = false) {
 
 // ---- keys ----------------------------------------------------------------------------
 
-/** The square the last letter was typed into, for the variant key. */
-let typedAt = -1;
 const ARROWS: Record<string, Arrow> = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
 
 function scoped(kind: "check" | "reveal", scope: Scope) {
@@ -406,11 +404,8 @@ window.addEventListener("keydown", (e) => {
   }
   // Any letter: a Turkish keyboard's ş and ğ, or one the Option key makes (⌥c is ç on a US layout).
   if (/^[\p{L}0-9]$/u.test(e.key) && (!e.altKey || /[^\x00-\x7f]/.test(e.key))) {
-    typedAt = st.done ? -1 : st.at;
     return commit(type(g, st, e.key, autocheck), "type");
   }
-  // The variant key: the letter just typed turned into its Turkish form (s' is ş, again is s).
-  if (e.key === "'" && p.lang === "tr" && typedAt >= 0) return commit(variant(g, st, typedAt, autocheck), "type");
   if (e.key === "Backspace") return commit(backspace(g, st));
   if (e.key === "Delete") return commit(del(g, st));
   if (ARROWS[e.key]) return commit(arrow(g, st, ARROWS[e.key]));
@@ -499,8 +494,8 @@ function flash(text: string) {
 function hint() {
   const tr = p?.lang === "tr";
   hintEl.innerHTML = seasoned
-    ? `${tr ? `<span class="long"><kbd>'</kbd> s → ş</span>` : ""}<span><kbd>?</kbd> every key</span>`
-    : `${tr ? `<span class="long"><kbd>'</kbd> after s: ş</span>` : `<span class="long">Type to fill</span><span class="long"><kbd>Space</kbd> turn</span>`}<span><kbd>Tab</kbd> next clue</span><span><kbd>?</kbd> every key</span>`;
+    ? `<span><kbd>?</kbd> every key</span>`
+    : `${tr ? `<span class="long">Plain letters: c turns ç where it is one</span>` : `<span class="long">Type to fill</span><span class="long"><kbd>Space</kbd> turn</span>`}<span><kbd>Tab</kbd> next clue</span><span><kbd>?</kbd> every key</span>`;
 }
 
 let dealTimer: ReturnType<typeof setTimeout> | undefined;
@@ -626,7 +621,6 @@ function load(o: Opened) {
   $("#credit").title = `Open it on ${o.credit}'s site`;
   body.classList.toggle("tr", p.lang === "tr");
   body.classList.remove("clues-open");
-  typedAt = -1;
   hint();
   placed = false;
   build();

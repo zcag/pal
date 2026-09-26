@@ -65,11 +65,10 @@ The papers' days are Istanbul's (UTC+3), Crosshare's UTC.
 the Turkish way (i to İ, ı to I), and a letter matches its answer with the
 diacritics folded (Ç C, Ğ G, İ I, Ö O, Ş S, Ü U): the papers' grids cross Ç
 with C and Ü with U (Sabah's often), and their own players check that
-way. So a US keyboard solves one with plain letters, and the solved grid
-shows the answers' own letters. To type the Turkish letter itself: on a
-Turkish keyboard it is there; on any other, `'` right after a letter turns
-it into its Turkish form (s' is ş, c' is ç, i' is ı; again turns it back),
-and macOS's own ⌥c (ç) works as typed.
+way. So a US keyboard solves one with plain letters, and a plain letter that
+matches shows as the answer's own (c typed where Ç goes shows Ç, i where I
+goes shows I). A Turkish keyboard's letters, and macOS's ⌥c (ç), type as
+they are.
 
 **Which puzzle.** The first open is the puzzle left half-done, else today's
 puzzle of the `source` setting (an archive's newest). **Next** (⌘N, or
@@ -123,8 +122,10 @@ or the streak; checks are only noted.
 
 ## Browse and stats
 
-**Browse** (⌘O): a tab per source (Tab walks them), Crosshare's newest
-minis as a list right after it. A source's tab is its calendar, month by
+**Browse** (⌘O): **In progress** first, every half-done puzzle from any
+source, the last played on top (Enter picks it up where it was left); then
+a tab per source (Tab walks them), Crosshare's newest minis as a list right
+after it. A source's tab is its calendar, month by
 month (`[` `]`, bounded by what it has), each day marked solved (gold),
 solved with help (grey), started (a pie of how far) or new, with the day's
 puzzle beside it. Enter plays, ⌫ goes back.

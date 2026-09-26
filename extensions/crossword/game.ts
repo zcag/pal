@@ -235,7 +235,8 @@ export function type(g: Grid, st: Play, ch: string, autocheck = false): Play {
   let next: Play = { ...st, dir: w.dir };
   if (!locked(st, st.at)) {
     const fill = st.fill.slice(), mark = st.mark.slice();
-    fill[st.at] = letter;
+    // A plain letter that matches shows the answer's own (c typed for Ç shows Ç).
+    fill[st.at] = same(g.p, letter, g.p.solution[st.at]) ? g.p.solution[st.at] : letter;
     mark[st.at] &= ~WRONG;
     if (autocheck && !same(g.p, letter, g.p.solution[st.at])) mark[st.at] |= WRONG;
     next = { ...next, fill, mark, checked: st.checked || autocheck };
@@ -269,19 +270,6 @@ export function backspace(g: Grid, st: Play): Play {
 
 /** Delete: clears the square and stays. */
 export const del = (_g: Grid, st: Play): Play => (st.done ? st : clearAt(st, st.at));
-
-/** The Turkish forms and back: the variant key (') turns the letter in a square into the other. */
-const VARIANT: Record<string, string> = { C: "Ç", Ç: "C", G: "Ğ", Ğ: "G", I: "İ", İ: "I", O: "Ö", Ö: "O", S: "Ş", Ş: "S", U: "Ü", Ü: "U" };
-/** The letter in square `i` turned into its other form (S into Ş, Ş back into S); a locked or empty square, or a letter with none, stays. */
-export function variant(g: Grid, st: Play, i: number, autocheck = false): Play {
-  const other = VARIANT[st.fill[i]];
-  if (st.done || !other || locked(st, i)) return st;
-  const fill = st.fill.slice(), mark = st.mark.slice();
-  fill[i] = other;
-  mark[i] &= ~WRONG;
-  if (autocheck && !same(g.p, other, g.p.solution[i])) mark[i] |= WRONG;
-  return { ...st, fill, mark };
-}
 
 /** The grid as solved shows it: each letter as the answer writes it (a Turkish S typed for Ş shows Ş). */
 export const proper = (g: Grid, st: Play): Play => ({ ...st, fill: st.fill.map((f, i) => (f && g.p.solution[i] ? g.p.solution[i] : f)) });

@@ -109,12 +109,16 @@ async function first(d: Data): Promise<Opened> {
   }
 }
 
-/** The puzzles opened before, most recently touched first: what plays without the network. */
-function openedBefore(d: Data): Entry[] {
+/** Puzzles opened before, most recently touched first. */
+function recent(d: Data, keep: (id: string) => boolean = () => true, limit = Infinity): Entry[] {
   const touched = (id: string) => d.progress[id]?.touched ?? 0;
-  return Object.entries(d.meta).sort(([a], [b]) => touched(b) - touched(a)).slice(0, 30)
-    .map(([id, m]: [string, Meta]) => entry(d, { id, source: sourceOf(id).id, title: m.title, author: m.author, w: m.w, h: m.h, ...(m.date && { date: m.date }) }));
+  return Object.entries(d.meta).filter(([id]) => keep(id)).sort(([a], [b]) => touched(b) - touched(a)).slice(0, limit)
+    .map(([id, m]: [string, Meta]) => entry(d, { id, source: sourceOf(id).id, title: m.title, author: m.author, w: m.w, h: m.h, ...(m.date && { date: m.date }), ...(m.slug && { slug: m.slug }) }));
 }
+/** What plays without the network: the last 30 opened. */
+const openedBefore = (d: Data) => recent(d, undefined, 30);
+/** Every puzzle left half-done, from any source: Browse's In progress. */
+const inProgress = (d: Data) => recent(d, (id) => stateOf(d, id).state === "started");
 
 const offline = (d: Data, e: unknown, src: Source): Offline => ({ error: (e as Error).message || String(e), source: src.title, opened: openedBefore(d) });
 
@@ -160,6 +164,7 @@ type Msg =
   | { op: "restart"; id: string }
   | { op: "month"; source?: string; year?: number; month?: number }
   | { op: "newest"; page?: number }
+  | { op: "progress" }
   | { op: "stats"; source?: string }
   | { op: "sources" }
   | { op: "site"; id: string }
@@ -225,6 +230,7 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       try { const r = await crosshare.newest(page, now()); return { page, items: r.items.map((l) => entry(d, l)), more: r.more && page < 9 } satisfies NewestView; }
       catch (e) { return { page, items: [], more: false, error: (e as Error).message } satisfies NewestView; }
     }
+    case "progress": return inProgress(d);
     case "stats": return statsView(d, sourceId(m.source));
     case "sources": return { sources: ORDER.map((id) => ({ id, title: SOURCES[id].title, ...(SOURCES[id].lang && { lang: SOURCES[id].lang }), archive: !!SOURCES[id].last })), source: config().source } satisfies SourcesView;
     case "site": {

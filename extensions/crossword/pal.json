@@ -72,7 +72,7 @@
     "category": "fun",
     "features": [
       "Today's daily mini from Crosshare, or the Turkish papers' kare bulmaca (HaberTürk since 2017, Cumhuriyet with its photo, Sabah's archive); Next (Enter on the finish) goes straight to another unplayed puzzle of the same source",
-      "Turkish letters as the papers check them: a US keyboard solves with plain letters (S for Ş), ' after a letter types the Turkish one (s' is ş), and the solved grid shows the answers' own letters",
+      "Turkish letters as the papers check them: plain letters on a US keyboard, each shown as the answer's own (c typed where Ç goes shows Ç)",
       "A wide newspaper grid gets the room it needs: the clue across the top and the lists beside it, or ⌘L for every clue when the panel is compact; the paper's photo on its squares, large on a click",
       "The NYT Mini's keys: type to fill (full squares skipped), Backspace steps back, an arrow across the word turns first, Space or a click on the square turns, Tab and Shift-Tab walk the clues",
       "The clue you are on large above the lists, the lists beside the grid with the crossing clue lit and finished clues greyed",
@@ -201,10 +201,6 @@
         {
           "keys": "cmd+o",
           "title": "Browse puzzles"
-        },
-        {
-          "keys": "'",
-          "title": "After a letter, its Turkish form (s' is ş) on a Turkish puzzle"
         },
         {
           "keys": "?",

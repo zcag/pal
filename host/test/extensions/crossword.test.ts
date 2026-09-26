@@ -360,6 +360,14 @@ describe("the extension", () => {
     expect((await send<MonthView>({ op: "month", year: 2031, month: 1 })).days).toEqual([]);
   });
 
+  test("In progress: every half-done puzzle and nothing else, the last played first", async () => {
+    const p = await send<Entry[]>({ op: "progress" });
+    expect(p.map((e) => e.id).sort()).toEqual(["cart", "dump"]);
+    expect(p.every((e) => e.state === "started" && e.filled! > 0)).toBe(true);
+    const touched = (id: string) => saved().progress[id].touched;
+    expect(touched(p[0].id)).toBeGreaterThanOrEqual(touched(p[1].id));
+  });
+
   test("the puzzle's page on crosshare.org", async () => {
     await send({ op: "site", id: "tall" });
     expect(opened).toEqual(["https://crosshare.org/crosswords/tall/standing-tall"]);
