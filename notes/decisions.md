@@ -2059,7 +2059,10 @@ due card, every answer is saved before the next card comes, Escape anywhere lose
   (`seq`). While one query's rows change the cursor follows its row by id (`onRow`, Launcher.tsx).
 - **Not streamed**: the root's sections (inline, fallback, suggest) and cached listings get no `partial` (`ctx.partial` is
   undefined there). The root has its own answer to slowness: `lateFallback`.
-- **Used by** (first round, one lane each): files, github, and the lanes for gmail/slack/whatsapp, google/maps,
-  immich/gifs/navidrome/spotify. Google's results became rows under the suggestions, which was deferred at "Google Search"
-  above for want of this.
-
+- **Used by** (first round, 2026-09-27): files (names, then the matches inside files a batch at a time), github (your cached
+  items, then each tier in order), google (suggestions, then the answer and top results once the query rests 350 ms, never with
+  `results = "ask"`), maps (local rows, then Places), gmail (hits as their headers land, Gravatars after), slack (hits up to the
+  first sender still being looked up), whatsapp (hits in chats already named, the rest after the contact lookup), immich and
+  gifs (tiles with a glyph, pictures after), spotify (rows before the like state and playlists). Skipped: navidrome (covers are
+  URLs the webview loads, rows already show on `search3`). Google's results as rows were deferred at "Google Search" above for
+  want of this.
