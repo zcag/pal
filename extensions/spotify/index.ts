@@ -608,7 +608,7 @@ let searchSeq = 0;
 let lastSearch: Item[] = [];
 const searchCache = new Map<string, { at: number; rows: Item[] }>();
 
-async function searchRows(query = ""): Promise<Item[]> {
+async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const q = query.trim();
   if (q.length < 2) return [hint("search", "Search Spotify", "Tracks, artists, albums, playlists, podcasts", { icon: G.search })];
   const c = searchCache.get(q);
@@ -616,10 +616,10 @@ async function searchRows(query = ""): Promise<Item[]> {
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
-  const r = await withPlaylists(apiSearch(q));
+  const lists = playlistsOf().catch(() => undefined);
+  const r = await apiSearch(q);
   const ids = r.tracks.map((t) => t.id).filter((id) => !likes.has(id));
-  if (ids.length) try { (await contains(ids)).forEach((v, i) => likes.set(ids[i], v)); } catch {}
-  const rows = [
+  const rows = () => [
     ...r.tracks.map((t) => trackRow(t, "Tracks")),
     ...r.artists.map((a) => artistRow(a, "Artists")),
     ...r.albums.map((a) => albumRow(a, "Albums")),
@@ -627,7 +627,13 @@ async function searchRows(query = ""): Promise<Item[]> {
     ...r.shows.map((s) => showRow(s, "Podcasts")),
     ...r.episodes.map((e) => trackRow(e, "Episodes")),
   ];
-  const out = rows.length ? rows : [hint("empty", "No results", `Nothing on Spotify matches "${q}"`, { icon: G.search })];
+  // The rows are whole without the like state (only the Like/Unlike title waits on it) and the playlists (the select says it is loading): they show while both are asked.
+  const waiting = ids.length > 0 || !listsCache || Date.now() - listsCache.at > PLAYLISTS_MS;
+  const early = waiting && seq === searchSeq ? rows() : [];
+  if (early.length) ctx?.partial?.(early);
+  await Promise.all([lists, ids.length && contains(ids).then((v) => v.forEach((x, i) => likes.set(ids[i], x)), () => {})]);
+  const all = rows();
+  const out = all.length ? all : [hint("empty", "No results", `Nothing on Spotify matches "${q}"`, { icon: G.search })];
   searchCache.set(q, { at: Date.now(), rows: out });
   if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value!);
   lastSearch = out;
@@ -864,7 +870,7 @@ export default {
       icon: G.search,
       input: true,
       placeholder: "A track, an artist, an album, a playlist, a podcast",
-      list: (q) => guard(() => searchRows(q)),
+      list: (q, ctx) => guard(() => searchRows(q, ctx)),
       pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickEntity(id, action, ctx)),
     },
     playlists: {

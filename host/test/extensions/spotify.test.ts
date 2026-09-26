@@ -275,8 +275,11 @@ describe("spotify, signed in", () => {
   });
 
   describe("search", () => {
-    test("sections in order with cover art icons, a null playlist skipped, the like state fetched once, the actions per kind", async () => {
-      const items = await list("search", "radiohead");
+    test("sections in order with cover art icons, a null playlist skipped, the like state fetched once, the actions per kind; the rows show before the like state, the same rows in the same order", async () => {
+      const { items, partials } = await host.listStream("spotify", "search", "radiohead");
+      expect(partials).toHaveLength(1);
+      expect(ids(partials[0])).toEqual(ids(items));
+      expect(partials[0][1].actions![2].title).toBe("Like");
       expect(items.map((i) => i.section)).toEqual(["Tracks", "Tracks", "Artists", "Albums", "Playlists", "Podcasts", "Episodes"]);
       expect(ids(items)).toEqual(["track:t1", "track:t2", "artist:ar1", "album:al1", "playlist:p1", "show:s1", "episode:e1"]);
       const [weird, nude, artist, album, playlist, show, episode] = items;

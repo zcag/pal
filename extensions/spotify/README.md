@@ -28,7 +28,9 @@ opens it in Spotify, `cmd+c` copies the link. A playlist or album:
 `enter` plays it, `cmd+enter` lists its tracks (a level whose rows play
 from that point inside the playlist, so the rest follows), `cmd+s` plays
 a playlist shuffled. The search waits 300 ms for the typing to settle
-and asks Spotify once per query.
+and asks Spotify once per query; the rows show as soon as the results
+arrive, while which tracks you like (the Like or Unlike action) and your
+playlists are still being asked.
 
 **Add to playlist** is on every track row (search, a playlist's or
 album's tracks, the library, the queue and its Now playing row) as a
