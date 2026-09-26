@@ -4,10 +4,9 @@
 // its ink picked for the theme), then the breakdown: cores, the memory
 // segments, the volumes, the interfaces, the top processes. Rows the keys
 // act on carry the accent ring and a click moves it (`focus:<id>`).
-import { bytes, column, keyHint, POPOVER_W, row, text, type Action, type Proc, type TagColor, type View, type ViewNode } from "@zcag/pal";
+import { bytes, column, ink, keyHint, POPOVER_W, row, sparkline, text, type Action, type SparkSeries, type Theme, type Proc, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import { diskLevel, levelOf, CPU, LOAD, MEMORY, type Cpu, type IfaceRate, type Level, type Memory, type Volume } from "./sample.ts";
 
-export type Theme = "dark" | "light" | undefined;
 /** What every popover shares: the theme for the sparkline's ink, the sampling interval for its caption, the row the keys are on. */
 type Base = { theme?: Theme; interval: number; focus: number };
 export type CpuPopover = Base & { cpu: Cpu; load: [number, number, number]; uptime: number; history: number[]; procs: Proc[] };
@@ -52,36 +51,7 @@ export const sparkGlyphs = (values: number[], max: number, n = 8): string => {
 
 // ---- the sparkline ---------------------------------------------------------
 
-/** The tag palette's ink per theme (`app/src/ui/tokens.css`); with no theme known, a shade that reads on both. */
-const INK: Record<"light" | "dark" | "any", Record<TagColor, string>> = {
-  light: { blue: "#2457B0", amber: "#874C00", red: "#B02925", green: "#1B6B40", grey: "#55565F", violet: "#5B39C2", pink: "#A0286A", teal: "#0B6664" },
-  dark: { blue: "#7FB0FF", amber: "#F0B25A", red: "#FF8A82", green: "#5CCB8E", grey: "#A3A4AE", violet: "#B39DFF", pink: "#F08CC0", teal: "#5FCFCB" },
-  any: { blue: "#4F8AE8", amber: "#C98A2A", red: "#D9534F", green: "#3AA36A", grey: "#808088", violet: "#8A6EE6", pink: "#D0609A", teal: "#2E9E9A" },
-};
-export const ink = (color: TagColor, theme: Theme) => INK[theme ?? "any"][color];
-
-export type SparkSeries = { values: number[]; color: TagColor };
-/**
- * An SVG area chart of the last `HISTORY` values as a `data:` url for an
- * `image` node: each series a filled polyline under a stroke, the ink
- * from the theme's tag palette so it reads on the panel, a faint
- * baseline that reads on either. `max` fixes the scale (100 for a
- * percent); otherwise the series' own peak, never below `floor`.
- */
-export function sparkline(series: SparkSeries[], o: { width: number; height: number; theme?: Theme; max?: number; floor?: number; slots?: number }): string {
-  const { width: w, height: h } = o;
-  const slots = Math.max(2, o.slots ?? Math.max(...series.map((s) => s.values.length), 2));
-  const peak = o.max ?? Math.max(o.floor ?? 1, ...series.flatMap((s) => s.values));
-  const step = w / (slots - 1);
-  const paths = series.filter((s) => s.values.length > 1).map((s) => {
-    const first = slots - s.values.length;
-    const pts = s.values.map((v, i) => `${((first + i) * step).toFixed(1)},${(h - 1 - (Math.min(v, peak) / peak) * (h - 2)).toFixed(1)}`);
-    const c = ink(s.color, o.theme);
-    return `<path d="M${pts[0]} L${pts.slice(1).join(" ")} V${h} H${pts[0].split(",")[0]} Z" fill="${c}" fill-opacity="0.18"/><polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/>`;
-  });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line x1="0" y1="${h - 0.5}" x2="${w}" y2="${h - 0.5}" stroke="#80808066" stroke-width="1"/>${paths.join("")}</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
+export { ink, sparkline, type SparkSeries, type Theme };
 
 const spark = (series: SparkSeries[], st: Base, o: { max?: number; floor?: number; caption: string }): ViewNode[] => {
   const span = Math.max(...series.map((s) => s.values.length)) * st.interval;

@@ -28,6 +28,8 @@ export { BARE_TOKEN_TTL, EXPIRY_MARGIN, mintToken, parseToken, TOKEN_CMD_MS, Tok
 export type { Token } from "./token.ts";
 export { pngSize } from "./png.ts";
 export { ago, clock, dayName, dayNameYear, isoDay, now, parseDuration, when } from "./clock.ts";
+export { ink, sparkline } from "./spark.ts";
+export type { SparkBand, SparkSeries, Theme } from "./spark.ts";
 export { copyImage, forgetImages, IMAGE_MISS_TTL, IMAGE_MS, imageData, MAX_IMAGE } from "./image.ts";
 export * as terminal from "./terminal.ts";
 export * as files from "./files.ts";
