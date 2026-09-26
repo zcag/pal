@@ -8,19 +8,24 @@
 // The board is 81 cells laid out absolutely over nine box plates, so a box
 // edge is a thicker line than a cell edge; one ring (the cursor) glides over
 // them. Every draw works out each cell's look (digit, marks, the lit zone,
-// the digit in focus, clashes, a hint) and touches only the cells whose look
-// changed.
+// the digit in focus, clashes, a hint, where a picked digit fits) and
+// touches only the cells whose look changed.
+//
+// Three ways in besides a digit on the cursor: a digit typed over another
+// turns the cell into notes (game.ts `enter`); auto notes (C, the
+// `auto_notes` setting) show what fits everywhere, the player only taking
+// marks out; digit first (D) picks a digit and then every click places it.
 //
 // The clock runs while the board is on screen, unsolved, not paused and not
 // hidden (`pal.onHidden`); the time so far rides in every save. The `clock`
 // setting (T, ⌘K) only hides it: the time still counts for the stats.
 import type { SurfaceKit } from "@zcag/pal";
 import {
-  applyHint, clearNotes, clockText, decode, digitCounts, encode, erase, fillNotes, hint, isFull, isSolved, newPlay, place, toggleNote, unitsDone, wrongCells,
+  applyHint, clearNotes, clockText, decode, digitCounts, encode, enter, erase, fillNotes, hint, isFull, isSolved, marks, newPlay, place, toggleNote, unitsDone, wrongCells,
   type Hint, type Play,
 } from "../game.ts";
 import type { Check, Opened, SolvedReply, TodayView } from "../index.ts";
-import { DIFFS, DIFF_TITLE, UNITS, UNITS_OF, colOf, conflicts, fromText, has, rowOf, solve, type Diff, type Tech } from "../sudoku.ts";
+import { DIFFS, DIFF_TITLE, UNITS, UNITS_OF, candidates, colOf, conflicts, fromText, has, rowOf, solve, type Diff, type Tech } from "../sudoku.ts";
 import { confetti } from "./fx.ts";
 import { Browse, Stats, dateLong, esc } from "./screens.ts";
 
@@ -29,7 +34,7 @@ declare const pal: SurfaceKit;
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const body = document.body;
 const frame = $("#frame"), cellsEl = $("#cells"), boxesEl = $("#boxes"), cursorEl = $("#cursor");
-const padEl = $("#pad"), timeEl = $("#time"), tipEl = $("#tip"), doneEl = $("#done"), hintEl = $("#hint"), nearlyEl = $("#nearly");
+const padEl = $("#pad"), progressEl = $("#progress"), timeEl = $("#time"), tipEl = $("#tip"), doneEl = $("#done"), hintEl = $("#hint"), nearlyEl = $("#nearly");
 const helpEl = $("#help"), askEl = $("#ask"), menuEl = $("#menu"), noteEl = $("#note");
 
 type Screen = "loading" | "play" | "browse" | "stats";
@@ -40,10 +45,18 @@ let solution: number[] = new Array(81).fill(0);
 let st: Play = newPlay(givens);
 let at = 40;
 let notesMode = false;
+/** Auto notes (the setting): every empty cell shows what fits, less what the player took out. */
+let autoOn = false;
+/** Digit first: the digit every click places, 0 when off. */
+let pick = 0;
+/** The digit last typed or clicked, where digit first starts. */
+let lastDigit = 0;
 let undos: Play[] = [], redos: Play[] = [];
 let check: Check = "conflicts";
 let clockOn = true;
-let paused = false, hidden = false, seasoned = false;
+let paused = false, hidden = false;
+/** Three solves or more (unknown until the stats arrive): no newcomer line, no notes flash. */
+let seasoned: boolean | undefined;
 
 // ---- the extension -----------------------------------------------------------------
 
@@ -101,11 +114,11 @@ function buildBoard() {
 }
 buildBoard();
 
-/** The cell size that fits: the board as tall as the panel, leaving the side its room (less when compact). */
+/** The cell size that fits: the board as tall as the panel, leaving the slim side its room (less when compact). */
 function fit() {
   const W = innerWidth, H = innerHeight, compact = W < 640;
-  const side = compact ? 178 : 280;
-  const s = Math.floor(Math.max(24, Math.min((H - 28 - 16) / 9, (W - 30 - 18 - side - 16) / 9)));
+  const side = compact ? 166 : 272, gap = compact ? 14 : 20;
+  const s = Math.floor(Math.max(24, Math.min((H - 20 - 16) / 9, (W - 28 - gap - side - 16) / 9)));
   document.documentElement.style.setProperty("--s", `${s}px`);
   body.classList.toggle("compact", compact);
   moveCursor(true);
@@ -126,22 +139,25 @@ let tip: { h: Hint; stage: 1 | 2 } | undefined;
 
 /** Each cell's look worked out from the game, the cursor and the hint; only the cells that changed are touched. */
 function draw() {
-  const focus = st.v[at];
+  const focus = pick || st.v[at];
   const clash = conflicts(st.v);
   const wrong = new Set(check === "mistakes" ? wrongCells(st.v, givens, solution) : []);
-  const zone = new Set(UNITS_OF[at].flatMap((u) => UNITS[u]));
+  const zone = new Set(pick ? [] : UNITS_OF[at].flatMap((u) => UNITS[u]));
+  const shown = marks(st, autoOn), fits = pick ? candidates(st.v) : undefined;
   const h = tip?.h, stage2 = tip?.stage === 2;
   const area = new Set(h?.area), about = new Set(h ? (stage2 || h.kind !== "step" ? h.cells : []) : []), sources = new Set(stage2 ? h?.sources : []);
   const gone = new Map<number, number>();
   if (stage2) for (const e of h?.step?.elim ?? []) gone.set(e.cell, (gone.get(e.cell) ?? 0) | (1 << (e.digit - 1)));
   const counts = digitCounts(st.v);
   for (let i = 0; i < 81; i++) {
-    const d = st.v[i], m = d ? 0 : st.n[i];
+    const d = st.v[i], m = shown[i];
     const cls = [
       givens[i] ? "given" : d ? "mine" : "",
       i === at ? "at" : zone.has(i) ? "zone" : "",
       focus && d === focus ? "same" : "",
-      clash.has(i) ? "clash" : wrong.has(i) ? "wrong" : "",
+      // A clash: the digit you placed underlined, the clue it runs into outlined.
+      clash.has(i) ? (givens[i] ? "partner" : "clash") : "", wrong.has(i) ? "wrong" : "",
+      fits && has(fits[i], pick) ? "fits" : "",
       area.has(i) ? "lit" : "", about.has(i) ? "about" : "", sources.has(i) ? "source" : "",
       tip && h?.cell === i && stage2 ? "target" : "",
     ].filter(Boolean).join(" ");
@@ -166,29 +182,39 @@ function draw() {
     });
   }
   moveCursor();
-  drawPad(counts, clash);
+  drawPad(counts, clash, shown);
+  const empty = givens.filter((g) => !g).length;
+  progressEl.style.setProperty("--p", String(empty ? st.v.filter((d, i) => d && !givens[i]).length / empty : 1));
+  body.classList.toggle("picking", !!pick);
+  cellsEl.style.setProperty("--pick", String(pick));
+  hintLine();
 }
 
-function drawPad(counts: number[], clash: Set<number>) {
+/** A digit is done when all nine are on the board and none of them clashes. */
+const doneDigit = (d: number, counts = digitCounts(st.v), clash = conflicts(st.v)) => counts[d] >= 9 && ![...clash].some((i) => st.v[i] === d);
+
+/** The pad: each key's bar fills as its digit goes down, a done one dims with a check; the corner lights when the cursor's cell has that note. */
+function drawPad(counts: number[], clash: Set<number>, shown: number[]) {
   const focus = st.v[at];
   padEl.classList.toggle("notes", notesMode);
   for (let d = 1; d <= 9; d++) {
-    const b = padEl.children[d - 1] as HTMLElement, left = 9 - counts[d];
-    const done = left <= 0 && ![...clash].some((i) => st.v[i] === d);
-    b.classList.toggle("done", done);
-    b.classList.toggle("focus", focus === d);
-    b.classList.toggle("over", left < 0);
-    b.querySelector("small")!.textContent = done ? "" : String(Math.abs(left));
+    const b = padEl.children[d - 1] as HTMLElement;
+    b.classList.toggle("done", doneDigit(d, counts, clash));
+    b.classList.toggle("focus", !pick && focus === d);
+    b.classList.toggle("picked", pick === d);
+    b.classList.toggle("over", counts[d] > 9);
+    b.classList.toggle("noted", has(shown[at], d));
+    b.style.setProperty("--f", String(Math.min(9, counts[d]) / 9));
+    b.title = counts[d] >= 9 ? `All nine ${d}s are in` : `${9 - counts[d]} left`;
   }
-  const notesBtn = $("[data-tool=notes]");
-  notesBtn.classList.toggle("on", notesMode);
-  notesBtn.querySelector(".pill")!.textContent = notesMode ? "On" : "Off";
+  for (const [t, on] of [["notes", notesMode], ["auto", autoOn], ["pick", !!pick]] as const) $(`[data-tool=${t}]`).classList.toggle("on", on);
   $("[data-tool=undo]").classList.toggle("off", !undos.length);
   $("#slips").textContent = check === "mistakes" && st.mistakes ? `${st.mistakes} ${st.mistakes === 1 ? "mistake" : "mistakes"}` : "";
 }
 
+/** Each key: the digit, a corner that writes it as a note, the bar of how many are down, a check for when all nine are. */
 function buildPad() {
-  padEl.innerHTML = Array.from({ length: 9 }, (_, k) => `<button type="button" tabindex="-1" data-d="${k + 1}" style="--nx:${k % 3};--ny:${(k / 3) | 0}"><b>${k + 1}</b><small></small><svg viewBox="0 0 16 16"><path d="M4.2 8.4l2.6 2.5 5-5.4"/></svg></button>`).join("");
+  padEl.innerHTML = Array.from({ length: 9 }, (_, k) => `<button type="button" tabindex="-1" data-d="${k + 1}"><b>${k + 1}</b><i class="nz" title="A note ${k + 1} (right-click or ⌥-click the key too)">${k + 1}</i><i class="bar"></i><svg viewBox="0 0 16 16"><path d="M4.2 8.4l2.6 2.5 5-5.4"/></svg></button>`).join("");
 }
 buildPad();
 
@@ -206,7 +232,7 @@ function commit(next: Play, cell = at) {
 /** From `prev` to `next`: the hint closes, a unit or a digit completed lights up, a full board is judged. */
 function settle(prev: Play, next: Play, cell: number) {
   st = next;
-  if (tip && (prev.v.some((d, i) => d !== next.v[i]) || prev.n.some((m, i) => m !== next.n[i]))) closeTip(false);
+  if (tip && (prev.v !== next.v || prev.n !== next.n || prev.x !== next.x)) closeTip(false);
   draw();
   const placedNow = next.v[cell] && next.v[cell] !== prev.v[cell];
   const full = isFull(st.v);
@@ -244,42 +270,80 @@ function showNearly(on: boolean) {
   else { replay(nearlyEl, "out", ["in"]); setTimeout(() => { if (!nearlyShown) nearlyEl.hidden = true; }, 200); }
 }
 
-function input(d: number, note: boolean) {
+/**
+ * A digit at the cursor. `type`: a key with no modifier (game.ts `enter`: placed, or a second digit
+ * turns the cell into notes); `place`: the pad's plain click, which always places; `note`: a mark.
+ */
+function input(d: number, how: "type" | "place" | "note") {
   if (st.done || paused) return;
+  lastDigit = d;
   if (givens[at]) return flash(`That ${givens[at]} is a clue`);
-  if (note) {
-    if (st.v[at]) return flash("Erase the digit first to pencil in marks");
-    return commit(toggleNote(st, givens, at, d));
+  const was = st.v[at];
+  if (how === "note") {
+    // A note over a digit you placed does what a second digit does: notes holding both.
+    if (was) return was === d ? flash(`${d} is already here`) : commit(enter(st, givens, at, d, solution, { auto: autoOn }));
+    const next = toggleNote(st, givens, at, d, autoOn);
+    return next === st ? flash(`A ${d} can't go here: there's one in its row, column or box`) : commit(next);
   }
-  commit(place(st, givens, at, d, solution));
+  if (how === "place") return commit(place(st, givens, at, d, solution));
+  const next = enter(st, givens, at, d, solution, { auto: autoOn, mistakes: check === "mistakes" });
+  if (next === st && was && was !== d) return flash(`That ${was} is right`);
+  commit(next);
+  if (was && !st.v[at] && seasoned === false) flash(`Notes now: ${was} and ${d}. ⌫ clears the cell`);
 }
 
-function undo() {
-  const prev = undos.pop();
+/** The first cell two games differ in. */
+const changedCell = (a: Play, b: Play) => a.v.findIndex((d, i) => d !== b.v[i] || a.n[i] !== b.n[i] || a.x[i] !== b.x[i]);
+/** Back (undo) or forward (redo) one move: the board, the marks and the cells turned into notes, the clock and the counts left as they are. */
+function travel(from: Play[], to: Play[]) {
+  const prev = from.pop();
   if (!prev || st.done) return;
-  redos.push(st);
-  const cell = st.v.findIndex((d, i) => d !== prev.v[i]);
+  to.push(st);
+  const cell = changedCell(st, prev);
   if (cell >= 0) at = cell;
-  settle(st, { ...st, v: prev.v, n: prev.n }, at);
+  settle(st, { ...st, v: prev.v, n: prev.n, x: prev.x, j: prev.j }, at);
 }
-function redo() {
-  const next = redos.pop();
-  if (!next || st.done) return;
-  undos.push(st);
-  const cell = st.v.findIndex((d, i) => d !== next.v[i]);
-  if (cell >= 0) at = cell;
-  settle(st, { ...st, v: next.v, n: next.n }, at);
+const undo = () => travel(undos, redos);
+const redo = () => travel(redos, undos);
+
+// ---- digit first -----------------------------------------------------------------------------
+
+/** Digit first on `d` (0 leaves it); a digit that is done hands over to the next one left. */
+function setPick(d: number) {
+  pick = d;
+  if (d) lastDigit = d;
+  draw();
+}
+function togglePick() {
+  if (pick) return setPick(0);
+  const left = [st.v[at], lastDigit, 1, 2, 3, 4, 5, 6, 7, 8, 9].find((d) => d && !doneDigit(d));
+  if (!left) return flash("Every digit is in");
+  setPick(left);
+}
+/** A click in digit first: an empty cell takes the digit (a note in notes mode), the digit clicked again comes out, another digit is picked up instead. */
+function stamp(i: number) {
+  at = i;
+  const d = st.v[i];
+  if (d && d !== pick) return setPick(d);
+  if (d) return givens[i] ? draw() : commit(erase(st, givens, i, autoOn), i);
+  commit(notesMode ? toggleNote(st, givens, i, pick, autoOn) : place(st, givens, i, pick, solution), i);
+  if (pick && doneDigit(pick) && !st.done) {
+    const next = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => ((pick + k - 1) % 9) + 1).find((k) => !doneDigit(k));
+    flash(next ? `All nine ${pick}s are in, on to ${next}` : `All nine ${pick}s are in`);
+    setPick(next ?? 0);
+  }
 }
 
 function move(dr: number, dc: number) {
   at = ((rowOf(at) + dr + 9) % 9) * 9 + ((colOf(at) + dc + 9) % 9);
   draw();
 }
-/** The next (or previous) empty cell in reading order. */
+/** The next (or previous) empty cell in reading order; in digit first, the next one the digit fits. */
 function nextEmpty(by: 1 | -1) {
+  const fits = pick ? candidates(st.v) : undefined;
   for (let k = 1; k <= 81; k++) {
     const i = (at + by * k + 81 * 2) % 81;
-    if (!st.v[i]) { at = i; return draw(); }
+    if (!st.v[i] && (!fits || has(fits[i], pick))) { at = i; return draw(); }
   }
 }
 
@@ -295,7 +359,7 @@ const TITLES: Record<Tech, string> = {
 function hintKey() {
   if (st.done || paused) return;
   if (!tip) {
-    tip = { h: hint(givens, st, solution), stage: 1 };
+    tip = { h: hint(givens, st, solution, autoOn), stage: 1 };
     // A wrong digit or a stuck board goes straight to the reason.
     if (tip.h.kind !== "step") tip.stage = 2;
   } else if (tip.stage === 1) tip.stage = 2;
@@ -303,7 +367,7 @@ function hintKey() {
     const h = tip.h;
     closeTip(false);
     if (h.cell !== undefined) at = h.cell;
-    return commit(applyHint(st, givens, h, solution), h.cell ?? at);
+    return commit(applyHint(st, givens, h, solution, autoOn), h.cell ?? at);
   }
   if (tip.stage === 2) {
     st = { ...st, hints: st.hints + 1 };
@@ -405,6 +469,11 @@ function run(id: string) {
     showClock(r?.clock ?? !clockOn);
     flash(clockOn ? "The clock is back" : "The clock is hidden, T brings it back");
   });
+  if (id === "auto") return void send<{ auto: boolean }>({ op: "auto", on: !autoOn }).then((r) => {
+    autoOn = r?.auto ?? !autoOn;
+    if (opened) draw();
+    flash(autoOn ? "Auto notes on: take out the ones you rule out" : "Auto notes off, your own notes are back");
+  });
   if (id === "check") return void send<{ check: Check }>({ op: "check", mode: check === "mistakes" ? "conflicts" : "mistakes" }).then((r) => {
     check = r?.check ?? check;
     draw();
@@ -418,11 +487,13 @@ function run(id: string) {
   if (st.done) return;
   if (id === "hint") return hintKey();
   if (id === "notes") { notesMode = !notesMode; return draw(); }
-  if (id === "fill") { const n = fillNotes(st); if (n === st) flash("Every pencil mark is in"); return commit(n); }
+  if (id === "pick") return togglePick();
+  if ((id === "fill" || id === "clear-notes") && autoOn) return flash("Auto notes are on, C turns them off");
+  if (id === "fill") { const n = fillNotes(st); if (n === st) flash("Every note is in"); return commit(n); }
   if (id === "clear-notes") return commit(clearNotes(st));
   if (id === "undo") return undo();
   if (id === "redo") return redo();
-  if (id === "erase") return commit(erase(st, givens, at));
+  if (id === "erase") return commit(erase(st, givens, at, autoOn));
 }
 
 function restart() {
@@ -434,6 +505,7 @@ function restart() {
   undos = []; redos = [];
   closeTip(false);
   st = newPlay(givens);
+  pick = 0;
   looks = new Array(81).fill("");
   draw();
   showNearly(false);
@@ -474,12 +546,17 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   const digit = /^(?:Digit|Numpad)([0-9])$/.exec(e.code)?.[1];
   if (digit === "0") return run("erase");
-  if (digit) return input(Number(digit), notesMode !== (e.shiftKey || e.altKey));
+  const mod = e.shiftKey || e.altKey;
+  if (digit && pick && !mod) return setPick(Number(digit));
+  if (digit) return input(Number(digit), notesMode !== mod ? "note" : notesMode ? "place" : "type");
   const mv = MOVES[e.key] ?? (!e.shiftKey ? MOVES[k] : undefined);
   if (mv) return move(...mv);
   if (e.key === "Backspace" || e.key === "Delete" || k === "x") return run("erase");
   if (e.key === "Tab") return nextEmpty(e.shiftKey ? -1 : 1);
+  if (e.key === "Enter" && pick && !tip) return stamp(at);
   if (e.key === " " || k === "n") return run("notes");
+  if (k === "d") return run("pick");
+  if (k === "c") return run("auto");
   if (k === "u") return run(e.shiftKey ? "redo" : "undo");
   if (k === "a") return run(e.shiftKey ? "clear-notes" : "fill");
   if (k === "i" || (e.key === "Enter" && tip)) return run("hint");
@@ -495,16 +572,24 @@ cellsEl.addEventListener("pointerdown", (e) => {
   if (!Number.isInteger(i) || screen !== "play" || st.done) return;
   e.preventDefault();
   if (paused) return setPaused(false);
+  if (pick) return stamp(i);
   at = i;
   draw();
 });
-padEl.addEventListener("click", (e) => {
-  const d = Number((e.target as HTMLElement).closest<HTMLElement>("[data-d]")?.dataset.d);
-  if (d) input(d, notesMode !== (e.shiftKey || e.altKey));
-});
+/** A pad key: a plain click places (writes a note in notes mode), the corner, a right-click or ⌥-click writes a note; in digit first it picks the digit. */
+function padPress(e: MouseEvent, alt: boolean) {
+  const t = e.target as HTMLElement, d = Number(t.closest<HTMLElement>("[data-d]")?.dataset.d);
+  if (!d || screen !== "play") return;
+  e.preventDefault();
+  if (paused || st.done) return;
+  if (pick) return setPick(pick === d ? 0 : d);
+  input(d, t.closest(".nz") || notesMode !== (alt || e.altKey || e.shiftKey) ? "note" : "place");
+}
+padEl.addEventListener("click", (e) => padPress(e, false));
+padEl.addEventListener("contextmenu", (e) => padPress(e, true));
 $("#tools").addEventListener("click", (e) => {
   const t = (e.target as HTMLElement).closest<HTMLElement>("[data-tool]")?.dataset.tool;
-  if (t) run(t === "notes" ? "notes" : t);
+  if (t) run(t);
 });
 $("#tip-go").addEventListener("click", () => hintKey());
 $("#tip-close").addEventListener("click", () => closeTip());
@@ -575,7 +660,7 @@ function drawMenu() {
 /** What each difficulty asks of you, in the menu. */
 const WHAT: Record<Diff, string> = {
   easy: "Every digit can be spotted",
-  medium: "Pencil marks help",
+  medium: "Notes help",
   hard: "Pairs and locked digits",
   expert: "X-wings and friends",
 };
@@ -612,19 +697,32 @@ function note(text: string) {
   noteTimer = setTimeout(() => { noteEl.hidden = true; }, 2600);
 }
 
-let flashTimer: ReturnType<typeof setTimeout> | undefined;
-/** A short line in place of the key hint. */
+let flashTimer: ReturnType<typeof setTimeout> | undefined, flashing = false;
+/** A short line under the progress line, for a moment. */
 function flash(text: string) {
   clearTimeout(flashTimer);
+  flashing = true;
+  footer = undefined; // whatever comes next is drawn
   hintEl.innerHTML = `<span class="flash">${esc(text)}</span>`;
-  flashTimer = setTimeout(hintLine, 2200);
+  flashTimer = setTimeout(() => { flashing = false; hintLine(); }, 2400);
 }
 
-/** The one line of guidance: the main keys for a newcomer, just `?` once a few are solved. */
+/**
+ * The line under the progress: what digit first does while it is on, else one line for a
+ * newcomer (fewer than three solves) until a few digits are down, else nothing.
+ */
+let footer: string | undefined;
 function hintLine() {
-  hintEl.innerHTML = seasoned
-    ? `<span><kbd>?</kbd> every key</span>`
-    : `<span class="long"><kbd>1</kbd>–<kbd>9</kbd> place</span><span><kbd>⇧</kbd> digit: pencil mark</span><span><kbd>I</kbd> hint</span><span><kbd>?</kbd> keys</span>`;
+  if (flashing) return;
+  const newcomer = seasoned === false && st.v.filter((d, i) => d && !givens[i]).length < 6;
+  const html = pick
+    ? `<span class="mode"><b>${pick}</b><span class="long">Click the lit cells to ${notesMode ? "note" : "place"} it</span><span class="short">Click cells</span></span><span><kbd>D</kbd> done</span>`
+    : newcomer
+      ? `<span class="long">A second digit in the same cell makes notes</span><span class="short">Second digit: notes</span><span><kbd>?</kbd> keys</span>`
+      : "";
+  if (html === footer) return;
+  footer = html;
+  hintEl.innerHTML = html;
 }
 
 let dealTimer: ReturnType<typeof setTimeout> | undefined;
@@ -710,6 +808,7 @@ function load(o: Opened) {
   st = o.saved ? decode(o.saved, givens) : newPlay(givens);
   undos = []; redos = [];
   notesMode = false;
+  pick = 0;
   closeTip(false);
   doneEl.hidden = true;
   nearlyShown = false;
@@ -722,7 +821,6 @@ function load(o: Opened) {
   $("#when").textContent = o.today ? "Today's puzzle" : o.date ? dateLong(o.date) : "New puzzle";
   looks = new Array(81).fill("");
   placed = false;
-  hintLine();
   draw();
   deal();
   show("play");
@@ -735,8 +833,9 @@ function load(o: Opened) {
 
 pal.onHidden(() => { hidden = true; syncClock(); save(); });
 pal.onShown(() => { hidden = false; syncClock(); });
-function applySettings(s: { check?: Check; clock?: boolean }) {
+function applySettings(s: { check?: Check; clock?: boolean; auto_notes?: boolean }) {
   check = s.check === "mistakes" ? "mistakes" : "conflicts";
+  autoOn = s.auto_notes === true;
   showClock(s.clock !== false);
 }
 pal.onSettings((s) => { applySettings(s); if (opened) draw(); });

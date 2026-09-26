@@ -1,24 +1,28 @@
 /*
  * Sudoku's page. The board on the left, as tall as the panel allows; beside
- * it the difficulty and the clock, the number pad (each digit with how many
- * are left), the tools, and one line of keys. The board's colours rank what
- * you look at: the cursor's cell over the cells holding the digit in focus
- * over the cursor's row, column and box. `--s` (the cell size) is set by
- * main.ts; a cell's left edge is its column times (s + 1px) plus 2px more per
- * box passed, so the box plates under the cells show as thicker lines.
+ * it a slim side: the difficulty and the clock, a line filling as the cells
+ * do with a line of words under it only when there is something to say, the
+ * number pad (each key with a bar of how many are down and a corner
+ * that writes a note), and one row of tools. The board's colours rank what you look at: the
+ * cursor's cell over the cells holding the digit in focus over the cursor's
+ * row, column and box. `--s` (the cell size) is set by main.ts; a cell's left
+ * edge is its column times (s + 1px) plus 2px more per box passed, so the box
+ * plates under the cells show as thicker lines.
  */
 :root {
   --s: 38px;
+  --acc: var(--pal-accent, #4F46D6);
   --paper: #FFFFFF;
-  --thin: #D9DCE4;
-  --thick: #3A3D48;
-  --zone: #EEF1F7;
-  --same: #D3DEFB;
-  --cur: #BFD1FF;
-  --ring: #3D6BEA;
+  --thin: #DCDFE7;
+  --thick: #3B3E4B;
+  --zone: #F0F1F6;
+  --same: color-mix(in srgb, var(--acc) 15%, var(--paper));
+  --cur: color-mix(in srgb, var(--acc) 25%, var(--paper));
+  --fits: color-mix(in srgb, var(--acc) 10%, var(--paper));
+  --ring: var(--acc);
   --ink: #1B1D24;
-  --mine: #2A5ED6;
-  --mark: #5E6270;
+  --mine: var(--acc);
+  --mark: #5F6371;
   --bad: #D93A33;
   --bad-bg: #FCE3E1;
   --lit: #FFF1C9;
@@ -26,8 +30,9 @@
   --glow: #FFE38A;
   --gold: #E9A800;
   --gold-soft: #FFF1C2;
+  --track: color-mix(in srgb, var(--pal-fg, #1A1A1F) 9%, transparent);
   --chip: color-mix(in srgb, var(--pal-fg, #1A1A1F) 6%, var(--pal-bg, #F4F4F6));
-  --pie: var(--pal-accent, #4F46D6);
+  --pie: var(--acc);
   --easy: #1E8C55; --easy-bg: #DDF2E6;
   --medium: #2F6BD9; --medium-bg: #DDE7FA;
   --hard: #C4650B; --hard-bg: #FBE8D5;
@@ -39,14 +44,13 @@
 :root[data-theme="dark"] {
   --paper: #25262D;
   --thin: #363842;
-  --thick: #62667A;
-  --zone: #2D2F38;
-  --same: #334068;
-  --cur: #3F5496;
-  --ring: #8EAEFF;
+  --thick: #5E6276;
+  --zone: #2C2E37;
+  --same: color-mix(in srgb, var(--acc) 22%, var(--paper));
+  --cur: color-mix(in srgb, var(--acc) 36%, var(--paper));
+  --fits: color-mix(in srgb, var(--acc) 14%, var(--paper));
   --ink: #EEEFF4;
-  --mine: #93B4FF;
-  --mark: #A6A9B8;
+  --mark: #A4A7B6;
   --bad: #FF6F66;
   --bad-bg: #4A2629;
   --lit: #43391C;
@@ -54,6 +58,7 @@
   --glow: #7C6417;
   --gold: #F6C343;
   --gold-soft: #3A3218;
+  --track: color-mix(in srgb, var(--pal-fg, #fff) 11%, transparent);
   --chip: color-mix(in srgb, var(--pal-fg, #fff) 8%, var(--pal-bg, #1C1C21));
   --easy: #5BD394; --easy-bg: #1D3A2B;
   --medium: #8DB2FF; --medium-bg: #22304F;
@@ -78,7 +83,7 @@ kbd {
   box-shadow: inset 0 -1px 0 var(--pal-line-strong, #d0d0d6); font: 500 10.5px / 1 var(--pal-font-ui, system-ui, sans-serif);
 }
 kbd + kbd { margin-left: 2px; }
-.primary { background: var(--pal-accent, #4F46D6) !important; color: var(--pal-accent-fg, #fff) !important; }
+.primary { background: var(--acc) !important; color: var(--pal-accent-fg, #fff) !important; }
 .primary kbd { background: color-mix(in srgb, var(--pal-accent-fg, #fff) 22%, transparent); color: inherit; box-shadow: none; }
 #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 
@@ -99,12 +104,12 @@ kbd + kbd { margin-left: 2px; }
 .screen.on { opacity: 1; pointer-events: auto; visibility: visible; transform: none; transition: opacity 200ms var(--ease), transform 260ms var(--ease); }
 
 /* ======================================================================== play */
-#play { display: flex; gap: 18px; padding: 14px 16px 12px 14px; }
+#play { display: flex; gap: 20px; padding: 10px 16px 10px 12px; }
 #board { position: relative; flex: none; align-self: center; }
 #frame {
   position: relative; width: calc(var(--s) * 9 + 12px + 4px); height: calc(var(--s) * 9 + 12px + 4px);
-  border: 2px solid var(--thick); border-radius: 9px; background: var(--thick); overflow: hidden;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--pal-fg, #000) 5%, transparent), 0 10px 28px -16px color-mix(in srgb, #000 45%, transparent);
+  border: 2px solid var(--thick); border-radius: 10px; background: var(--thick); overflow: hidden;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--pal-fg, #000) 5%, transparent), 0 12px 30px -18px color-mix(in srgb, #000 50%, transparent);
   transition: opacity 170ms var(--ease), transform 220ms var(--ease);
 }
 .plate {
@@ -116,42 +121,63 @@ kbd + kbd { margin-left: 2px; }
   position: absolute; width: var(--s); height: var(--s);
   left: calc(var(--k) * (var(--s) + 1px) + var(--bx) * 2px); top: calc(var(--r) * (var(--s) + 1px) + var(--by) * 2px);
 }
-.cell { background: var(--paper); display: grid; place-items: center; cursor: pointer; transition: background-color 110ms var(--ease); }
+.cell { background: var(--paper); display: grid; place-items: center; cursor: pointer; transition: background-color 120ms var(--ease); }
 .cell.zone { background: var(--zone); }
+.cell.fits { background: var(--fits); }
 .cell.same { background: var(--same); }
 .cell.at { background: var(--cur); }
 /* While a hint is up only its area is lit, so the eye goes there. */
-body.tipping .cell.zone, body.tipping .cell.same, body.tipping .cell.at { background: var(--paper); }
-body.tipping .marks i.focus { background: none; color: var(--mark); }
+body.tipping .cell:is(.zone, .same, .at, .fits) { background: var(--paper); }
+body.tipping .marks i.focus { background: none; color: var(--mark); font-weight: 550; }
 body.tipping .cell.lit { background: var(--lit); }
 body.tipping #cursor { box-shadow: inset 0 0 0 2.5px var(--lit-edge); }
-.cell.clash:not(.at), .cell.wrong:not(.at) { background: var(--bad-bg); }
-.cell:hover:not(.at) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ring) 30%, transparent); }
+.cell:hover:not(.at) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ring) 28%, transparent); }
 
+/* digits: a clue solid ink, yours in the accent */
 .cell b {
   grid-area: 1 / 1; font: 500 calc(var(--s) * 0.6) / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--mine);
   font-variant-numeric: tabular-nums; translate: 0 calc(var(--s) * 0.02);
 }
 .cell.given b { color: var(--ink); font-weight: 650; }
-.cell.clash b, .cell.wrong b { color: var(--bad); }
-.cell.given.clash b { color: var(--ink); text-decoration: underline 2px var(--bad); text-underline-offset: calc(var(--s) * 0.1); }
-.cell b.pop { animation: pop 200ms var(--spring); }
+.cell b.pop { animation: pop 220ms var(--spring); }
 @keyframes pop { from { scale: 0.45; opacity: 0.1; } }
 
-/* pencil marks: a 3 by 3 of small digits, each in its own place */
+/* a clash: a red line under the digit you placed, the clue it runs into ringed; a wrong digit (mistakes shown) in red */
+.cell.clash::after, .cell.partner::after { content: ""; position: absolute; pointer-events: none; }
+.cell.clash::after {
+  left: 30%; right: 30%; bottom: 13%; height: max(2px, calc(var(--s) * 0.06)); border-radius: 2px; background: var(--bad);
+  animation: underline 260ms var(--ease) both;
+}
+.cell.partner::after { inset: 3px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px var(--bad); animation: fade 220ms ease both; }
+@keyframes underline { from { transform: scaleX(0); } }
+.cell.wrong b { color: var(--bad); }
+
+/* notes: a clean 3 by 3 of small digits, each in its own place; the digit in focus lit across the board */
 .marks {
-  grid-area: 1 / 1; width: 100%; height: 100%; padding: calc(var(--s) * 0.06);
+  grid-area: 1 / 1; width: 100%; height: 100%; padding: calc(var(--s) * 0.04);
   display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); place-items: center;
 }
 .marks i {
-  font: 600 calc(var(--s) * 0.25) / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal; color: var(--mark);
-  font-variant-numeric: tabular-nums; opacity: 0; scale: 0.6; transition: opacity 120ms, scale 160ms var(--spring);
-  width: calc(var(--s) * 0.3); height: calc(var(--s) * 0.3); display: grid; place-items: center; border-radius: 50%;
+  font: 550 calc(var(--s) * 0.28) / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal; color: var(--mark);
+  font-variant-numeric: tabular-nums; opacity: 0; scale: 0.6; transition: opacity 120ms, scale 160ms var(--spring), background 120ms, color 120ms;
+  width: calc(var(--s) * 0.31); height: calc(var(--s) * 0.31); display: grid; place-items: center; border-radius: 50%;
 }
 .marks i.on { opacity: 1; scale: 1; }
-.marks i.focus { background: var(--ring); color: var(--paper); }
+.marks i.focus { background: color-mix(in srgb, var(--acc) 20%, transparent); color: var(--acc); font-weight: 750; }
 .marks i.gone { color: var(--bad); background: none; text-decoration: line-through 1.5px; animation: nudge 360ms ease-out; }
-.cell b:not(:empty) ~ .marks, .cell:has(b:not(:empty)) .marks { display: none; }
+.cell:has(b:not(:empty)) .marks { display: none; }
+
+/* digit first: a hover shows the picked digit where it would land */
+#cells { counter-reset: pick var(--pick, 0); }
+body.picking .cell.fits:hover:not(:has(b:not(:empty)))::before {
+  content: counter(pick); grid-area: 1 / 1; font: 500 calc(var(--s) * 0.6) / 1 var(--pal-font-ui, system-ui, sans-serif);
+  color: var(--mine); opacity: 0.35; translate: 0 calc(var(--s) * 0.02);
+}
+body.picking .cell.fits:hover .marks { opacity: 0.25; }
+body.picking #cursor { opacity: 0.6; }
+body.picking .cell.at { background: var(--paper); }
+body.picking .cell.at.fits { background: var(--fits); }
+body.picking .cell.same { background: color-mix(in srgb, var(--acc) 30%, var(--paper)); }
 
 /* the cursor: one ring that glides */
 #cursor {
@@ -194,7 +220,7 @@ body.solved .cell { background: var(--paper); cursor: default; }
 
 /* paused: the board is covered */
 #cover {
-  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 9px; z-index: 5;
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 10px; z-index: 5;
   background: var(--pal-bg-sunken, #EAEAEE); opacity: 0; pointer-events: none; transform: scale(0.98);
   transition: opacity 180ms var(--ease), transform 220ms var(--ease);
 }
@@ -208,15 +234,16 @@ body.paused #time { visibility: hidden; }
 
 /* ---- the side ---- */
 #side {
-  flex: 1; min-width: 0; display: grid; position: relative;
-  grid-template-rows: 32px minmax(0, 1fr) auto 22px; grid-template-areas: "head" "pad" "tools" "hint"; row-gap: 10px;
+  flex: 1; min-width: 0; display: grid; position: relative; align-self: center; height: calc(var(--s) * 9 + 16px);
+  grid-template-rows: 26px 4px 22px minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr); row-gap: 10px;
+  grid-template-areas: "head" "progress" "hint" "." "pad" "tools";
 }
 #head { grid-area: head; display: flex; align-items: center; gap: 8px; min-width: 0; }
 #who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
 #when { font-size: 12px; color: var(--pal-fg-muted, #5c5c66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #slips { font-size: 11px; font-weight: 600; color: var(--bad); white-space: nowrap; }
 #clock {
-  display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 7px 0 9px; border-radius: 8px;
+  display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 6px 0 8px; margin-right: -6px; border-radius: 8px;
   font: 600 14px / 1 var(--pal-font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; transition: background 120ms;
 }
 #time { min-width: 3ch; text-align: right; }
@@ -228,56 +255,84 @@ body.solved #clock svg { opacity: 0; }
 body.solved #time { color: var(--gold); }
 body.noclock #clock { display: none; }
 
-/* the pad: 1 to 9, each with how many are left; in pencil mode the digit sits where its mark would */
-#pad { grid-area: pad; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 6px; min-height: 0; transition: filter 200ms, opacity 200ms; }
+/* the line under the header: filling as the cells do */
+#progress { grid-area: progress; border-radius: 2px; background: var(--track); overflow: hidden; }
+#progress i {
+  display: block; height: 100%; width: calc(var(--p, 0) * 100%); border-radius: 2px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--acc) 70%, var(--pal-bg, #fff)), var(--acc));
+  transition: width 420ms var(--ease), background 300ms;
+}
+body.solved #progress i { background: var(--gold); }
+
+/* the pad: slim keys, a bar of how many are down under each digit, a corner that writes the note */
+#pad { grid-area: pad; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; transition: filter 200ms, opacity 200ms, transform 220ms var(--ease); }
 #pad button {
-  position: relative; border-radius: 10px; background: var(--pal-bg-elevated, #fff); min-height: 0;
+  position: relative; height: 60px; border-radius: 10px; background: var(--pal-bg-elevated, #fff);
   box-shadow: 0 0 0 1px var(--pal-line, #e2e2e8), 0 1px 1px color-mix(in srgb, #000 5%, transparent);
   display: grid; place-items: center; transition: background 120ms, transform 100ms, box-shadow 140ms, opacity 200ms;
 }
-#pad button:hover { background: color-mix(in srgb, var(--ring) 7%, var(--pal-bg-elevated, #fff)); }
+#pad button:hover { background: color-mix(in srgb, var(--acc) 7%, var(--pal-bg-elevated, #fff)); }
 #pad button:active { transform: scale(0.95); }
 #pad b {
-  font: 550 22px / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--mine); font-variant-numeric: tabular-nums;
-  transition: transform 220ms var(--spring), font-size 180ms var(--ease), color 150ms;
+  font: 550 21px / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--mine); font-variant-numeric: tabular-nums;
+  translate: 0 -2px; transition: color 150ms, font-size 160ms var(--ease);
 }
-#pad small { position: absolute; right: 7px; bottom: 4px; font-size: 9.5px; font-weight: 550; color: var(--pal-fg-faint, #8e8e98); white-space: nowrap; }
-#pad svg { position: absolute; right: 6px; top: 6px; width: 13px; height: 13px; stroke-width: 2.4; color: var(--easy); opacity: 0; transform: scale(0.4); transition: opacity 160ms, transform 240ms var(--spring); }
+#pad .nz {
+  position: absolute; top: 4px; right: 4px; width: 17px; height: 17px; border-radius: 5px; display: grid; place-items: center;
+  font: 650 10px / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal; color: var(--pal-fg-faint, #8e8e98);
+  box-shadow: inset 0 0 0 1px var(--track); opacity: 0.7; transition: background 120ms, color 120ms, opacity 120ms, box-shadow 120ms;
+}
+#pad button:hover .nz { opacity: 1; }
+#pad .nz:hover { background: color-mix(in srgb, var(--acc) 16%, transparent); color: var(--acc); opacity: 1; box-shadow: none; }
+#pad button.noted .nz { background: color-mix(in srgb, var(--acc) 18%, transparent); color: var(--acc); opacity: 1; box-shadow: none; }
+#pad .bar { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
+#pad .bar::after {
+  content: ""; position: absolute; inset: 0; border-radius: 2px; background: var(--acc); opacity: 0.8;
+  transform-origin: left; transform: scaleX(var(--f, 0)); transition: transform 360ms var(--ease), background 200ms;
+}
+#pad svg { pointer-events: none; position: absolute; top: 5px; right: 5px; width: 13px; height: 13px; stroke-width: 2.4; color: var(--easy); opacity: 0; transform: scale(0.4); transition: opacity 160ms, transform 240ms var(--spring); }
 #pad button.focus { box-shadow: 0 0 0 2px var(--ring); }
+#pad button.picked { background: var(--acc); box-shadow: 0 0 0 1px var(--acc), 0 6px 14px -6px color-mix(in srgb, var(--acc) 70%, transparent); }
+#pad button.picked b { color: var(--pal-accent-fg, #fff); }
+#pad button.picked .bar { background: color-mix(in srgb, var(--pal-accent-fg, #fff) 30%, transparent); }
+#pad button.picked .bar::after { background: var(--pal-accent-fg, #fff); }
+#pad button.picked .nz { display: none; }
 #pad button.done { background: var(--chip); box-shadow: none; }
-#pad button.done b { color: var(--pal-fg-faint, #8e8e98); }
+#pad button.done b { color: var(--pal-fg-faint, #8e8e98); opacity: 0.7; }
+#pad button.done .nz, #pad button.done .bar { opacity: 0; }
 #pad button.done svg { opacity: 1; transform: none; }
-#pad small:not(:empty)::after { content: " left"; }
-#pad button.over small { color: var(--bad); }
-#pad button.over small::after { content: " extra"; }
-#pad.notes button b { font-size: 13px; color: var(--mark); transform: translate(calc((var(--nx) - 1) * 32%), calc((var(--ny) - 1) * 26%)) translate(calc((var(--nx) - 1) * 12px), calc((var(--ny) - 1) * 8px)); }
-#pad.notes button { background: color-mix(in srgb, var(--ring) 5%, var(--pal-bg-elevated, #fff)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ring) 35%, transparent); }
-#pad.notes button.done { background: var(--chip); box-shadow: none; }
+#pad button.over .bar::after { background: var(--bad); }
+#pad.notes button b { font-size: 16px; color: var(--mark); }
+#pad.notes button:not(.done, .picked) { background: color-mix(in srgb, var(--acc) 5%, var(--pal-bg-elevated, #fff)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--acc) 38%, transparent); }
 #pad button.cheer { animation: cheer 600ms var(--spring); }
 @keyframes cheer { 30% { transform: scale(1.1); background: var(--easy-bg); } }
 
-#tools { grid-area: tools; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; transition: filter 200ms, opacity 200ms; }
+/* the tools: one row of icons, their keys in the tooltips and under ? */
+#tools { grid-area: tools; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; transition: filter 200ms, opacity 200ms, transform 220ms var(--ease); }
 #tools button {
-  position: relative; height: 44px; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  color: var(--pal-fg-muted, #5c5c66); font-size: 10.5px; font-weight: 600; transition: background 120ms, color 120ms, transform 100ms;
+  position: relative; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  color: var(--pal-fg-muted, #5c5c66); transition: background 120ms, color 120ms, transform 100ms;
 }
 #tools button:hover { background: var(--pal-bg-sunken, #EAEAEE); color: var(--pal-fg, #1A1A1F); }
-#tools button:active { transform: scale(0.95); }
+#tools button:active { transform: scale(0.92); }
 #tools svg { width: 19px; height: 19px; }
-#tools button.off { opacity: 0.45; }
-#tools .pill {
-  position: absolute; top: 3px; right: calc(50% - 25px); font-style: normal; font-size: 8.5px; font-weight: 750; letter-spacing: 0.03em;
-  padding: 1px 4px; border-radius: 6px; background: var(--pal-bg-sunken, #EAEAEE); color: var(--pal-fg-faint, #8e8e98); transition: background 150ms, color 150ms;
-}
-#tools button.on { color: var(--ring); background: color-mix(in srgb, var(--ring) 12%, transparent); }
-#tools button.on .pill { background: var(--ring); color: var(--paper); }
+#tools .dots circle { fill: currentColor; stroke: none; }
+#tools button.off { opacity: 0.4; }
+#tools button.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 13%, transparent); }
+#tools button.on::after { content: ""; position: absolute; bottom: 3px; left: calc(50% - 2px); width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 
-#hint { grid-area: hint; align-self: end; height: 22px; display: flex; align-items: center; gap: 12px; overflow: hidden; white-space: nowrap; font-size: 11px; color: var(--pal-fg-faint, #8e8e98); }
-#hint span { display: inline-flex; align-items: center; gap: 3px; }
-#hint .flash { color: var(--pal-fg-muted, #5c5c66); animation: swap 200ms var(--ease); }
+/* under the progress: a newcomer's line, digit first's, or a moment's message */
+#hint { grid-area: hint; align-self: start; min-height: 22px; display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 1; white-space: nowrap; font-size: 11.5px; color: var(--pal-fg-faint, #8e8e98); }
+#hint > span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#hint > span:only-child { flex: 1; }
+#hint .short { display: none; }
+#hint .mode { color: var(--pal-fg, #1A1A1F); font-weight: 550; }
+#hint .mode b { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; background: var(--acc); color: var(--pal-accent-fg, #fff); font-size: 11.5px; }
+#hint .flash { color: var(--pal-fg-muted, #5c5c66); animation: swap 200ms var(--ease); display: block; white-space: normal; line-height: 1.4; padding-top: 2px; }
+#hint > span:not(.flash) { animation: swap 220ms var(--ease); }
 @keyframes swap { from { opacity: 0; transform: translateY(4px); } }
 #nearly {
-  grid-area: hint; align-self: end; z-index: 2; height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 11px; white-space: nowrap; overflow: hidden;
+  grid-area: hint; align-self: center; z-index: 2; height: 24px; display: flex; align-items: center; gap: 6px; padding: 0 10px; white-space: nowrap; overflow: hidden;
   border-radius: 8px; background: var(--bad-bg); color: var(--pal-fg, #1A1A1F); font-size: 12px;
 }
 #nearly b { font-weight: 650; color: var(--bad); }
@@ -286,13 +341,13 @@ body.noclock #clock { display: none; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes sink { to { opacity: 0; transform: translateY(6px); } }
 
-/* the hint card, over the pad */
+/* the hint card, over the pad and the tools */
 #tip {
-  grid-area: pad; z-index: 4; align-self: start; padding: 11px 13px 12px; border-radius: 12px;
+  grid-row: 4 / 6; grid-column: 1; z-index: 4; align-self: end; padding: 11px 13px 12px; border-radius: 12px;
   background: var(--pal-bg-elevated, #fff); box-shadow: 0 0 0 1px color-mix(in srgb, var(--lit-edge) 45%, transparent), 0 10px 26px -12px color-mix(in srgb, #000 35%, transparent);
   display: flex; flex-direction: column; gap: 6px;
 }
-body.tipping #pad { opacity: 0.3; }
+body.tipping #pad, body.tipping #tools { opacity: 0.25; }
 .tip-head { display: flex; align-items: center; gap: 8px; }
 .tip-head b { flex: 1; font-size: 11px; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in srgb, var(--lit-edge) 75%, var(--pal-fg, #000)); }
 #tip-close { width: 20px; height: 20px; border-radius: 6px; font-size: 16px; line-height: 1; color: var(--pal-fg-faint, #8e8e98); }
@@ -302,10 +357,9 @@ body.tipping #pad { opacity: 0.3; }
 #tip.in { animation: pop-card 220ms var(--ease); }
 #tip.swap p, #tip.swap .tip-head, #tip.swap #tip-go { animation: swap 220ms var(--ease) both; }
 
-/* the finish card, over the pad and the tools */
+/* the finish card, in place of the pad and the tools */
 body.finished #pad, body.finished #tools { opacity: 0; transform: translateY(6px); pointer-events: none; }
-#pad, #tools { transition: opacity 200ms, transform 220ms var(--ease), filter 200ms; }
-#done { grid-area: 2 / 1 / 4 / 2; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 4px; }
+#done { grid-row: 4 / 7; grid-column: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 4px; }
 #done.in > * { animation: rise 420ms var(--ease) both; }
 #done.in > :nth-child(2) { animation-delay: 40ms; }
 #done.in > :nth-child(3) { animation-delay: 80ms; }
@@ -337,17 +391,18 @@ body.finished #hint { visibility: hidden; }
 body.compact #play { gap: 14px; padding-right: 14px; }
 body.compact #when { display: none; }
 body.compact #pad { gap: 5px; }
-body.compact #pad b { font-size: 19px; }
-body.compact #pad small { right: 5px; bottom: 3px; }
-body.compact #pad small::after { content: none; }
-body.compact #tools { gap: 3px; }
-body.compact #tools button { height: 38px; }
-body.compact #tools span { display: none; }
-body.compact #tools .pill { display: none; }
+body.compact #pad button { height: 48px; border-radius: 9px; }
+body.compact #pad b { font-size: 18px; }
+body.compact #pad .nz { top: 3px; right: 3px; width: 14px; height: 14px; font-size: 9px; border-radius: 4px; }
+body.compact #pad svg { top: 4px; right: 4px; width: 11px; height: 11px; }
+body.compact #pad .bar { left: 9px; right: 9px; bottom: 5px; }
+body.compact #tools { gap: 1px; }
+body.compact #tools button { height: 32px; border-radius: 8px; }
+body.compact #tools svg { width: 17px; height: 17px; }
 body.compact #hint .long { display: none; }
-body.compact #hint { gap: 9px; }
+body.compact #hint .short { display: inline; }
 body.compact #done-time { font-size: 36px; }
-body.compact #done-go button:not(.primary) kbd { display: none; }
+#done-go button:not(.primary) kbd { display: none; }
 body.compact #tip p { font-size: 12.5px; }
 body.compact #nearly span { display: none; }
 
@@ -367,6 +422,8 @@ body.compact #nearly span { display: none; }
 #help dd { margin: 0; font-size: 12px; white-space: nowrap; }
 #help dd small { margin-left: 6px; font-size: 11px; color: var(--pal-fg-faint, #8e8e98); }
 #help p { margin: 12px 0 0; text-align: center; color: var(--pal-fg-faint, #8e8e98); font-size: 11px; }
+#help p.lead { margin: -2px 0 12px; max-width: 470px; text-align: left; font-size: 12px; line-height: 1.45; color: var(--pal-fg-muted, #5c5c66); }
+#help p.lead kbd { height: 15px; min-width: 15px; font-size: 9.5px; }
 body.compact #help .card { padding: 14px 14px 10px; }
 body.compact #help .cols { gap: 0 14px; }
 body.compact #help dl { gap: 6px 9px; }
