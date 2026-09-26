@@ -58,7 +58,7 @@ function stateOf(d: Data, id: string): Pick<Entry, "state" | "ms" | "filled" | "
   if (!s || !m) return { state: d.solves.some((x) => x.id === id) ? "solved" : "new" };
   if (s.done) return { state: s.hints ? "helped" : "solved", ms: s.done.ms };
   const pr = progressOf(s, m.givens);
-  return pr.filled ? { state: "started", filled: pr.filled, total: pr.total, ms: s.ms } : { state: "new" };
+  return pr.started ? { state: "started", filled: pr.filled, total: pr.total, ms: s.ms } : { state: "new" };
 }
 const entry = (d: Data, id: string, m: Pick<Meta, "diff" | "date">): Entry => ({ id, diff: m.diff, ...(m.date && { date: m.date }), ...stateOf(d, id) });
 
@@ -91,7 +91,7 @@ const freshId = (diff: Diff) => `new:${now().toString(36)}${Math.floor(Math.rand
 /** The first open: the game left half-done, else today's daily of the setting's difficulty. */
 async function first(d: Data): Promise<Opened | null> {
   const last = d.last && d.progress[d.last];
-  if (d.last && last && !last.done && d.meta[d.last] && progressOf(last, d.meta[d.last].givens).filled) return opened(d, d.last);
+  if (d.last && last && !last.done && d.meta[d.last] && progressOf(last, d.meta[d.last].givens).started) return opened(d, d.last);
   return opened(d, dailyId(today(), config().difficulty));
 }
 

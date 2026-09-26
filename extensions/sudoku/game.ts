@@ -91,15 +91,16 @@ export function decode(s: Saved, givens: number[]): Play {
   return { v, n, ms: s.ms || 0, ...(s.done && { done: s.done }), hints: s.hints ?? 0, mistakes: s.mistakes ?? 0 };
 }
 
-/** How far a saved game got: digits you placed of the cells there were to fill. */
-export function progressOf(s: Saved, givens: string): { filled: number; total: number } {
+/** How far a saved game got: digits you placed of the cells there were to fill, and whether anything (a digit or a pencil mark) was put down at all. */
+export function progressOf(s: Saved, givens: string): { filled: number; total: number; started: boolean } {
   let filled = 0, total = 0;
   for (let i = 0; i < 81; i++) {
     if (givens[i] !== "0") continue;
     total++;
     if (s.v?.[i] && s.v[i] !== "0") filled++;
   }
-  return { filled, total };
+  // A board of pencil marks only is a game under way too: resumed first and listed as in progress.
+  return { filled, total, started: filled > 0 || /[^0]/.test(s.n ?? "") };
 }
 
 // ---- names --------------------------------------------------------------------------------

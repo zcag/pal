@@ -137,7 +137,9 @@ describe("the moves and pencil marks", () => {
     expect(s.v).toHaveLength(81);
     expect(s.n).toHaveLength(162);
     expect(decode(s, P)).toEqual({ ...p, ms: 61_234 });
-    expect(progressOf(s, toText(P))).toEqual({ filled: 1, total: P.filter((d) => !d).length });
+    expect(progressOf(s, toText(P))).toEqual({ filled: 1, total: P.filter((d) => !d).length, started: true });
+    expect(progressOf(encode(toggleNote(newPlay(P), P, empty(0), 3)), toText(P))).toMatchObject({ filled: 0, started: true });
+    expect(progressOf(encode(newPlay(P)), toText(P)).started).toBe(false);
     expect(digitCounts(A).slice(1)).toEqual(new Array(9).fill(9));
   });
 });
@@ -235,6 +237,17 @@ describe("the extension", () => {
     const progress = await send<Entry[]>({ op: "progress" });
     expect(progress.map((e) => e.id)).toEqual([o.id]);
     expect(progress[0]).toMatchObject({ state: "started", filled: 1, diff: "medium", date: "2026-09-25" });
+  });
+
+  test("a new puzzle with only pencil marks is resumed and listed too", async () => {
+    const n = await send<Opened>({ op: "new", diff: "hard" });
+    const g = fromText(n.givens);
+    const play = encode({ ...toggleNote(newPlay(g), g, g.findIndex((d) => !d), 4), ms: 9000 });
+    await send({ op: "save", id: n.id, play });
+    const back = await send<Opened>({ op: "open" });
+    expect(back.id).toBe(n.id);
+    expect(back.saved?.n).toBe(play.n);
+    expect((await send<Entry[]>({ op: "progress" })).map((e) => e.id)).toContain(n.id);
   });
 
   test("a new puzzle of any difficulty, kept once made", async () => {
