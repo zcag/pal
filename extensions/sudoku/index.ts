@@ -19,10 +19,10 @@ import { DIFFS, generate, isDiff, toText, type Diff } from "./sudoku.ts";
 const EXT = "sudoku";
 
 export type Check = "conflicts" | "mistakes";
-type Config = { difficulty: Diff; check: Check };
+type Config = { difficulty: Diff; check: Check; clock: boolean };
 const config = (): Config => {
   const c = settings.get<Partial<Config>>();
-  return { difficulty: isDiff(c.difficulty) ? c.difficulty : "medium", check: c.check === "mistakes" ? "mistakes" : "conflicts" };
+  return { difficulty: isDiff(c.difficulty) ? c.difficulty : "medium", check: c.check === "mistakes" ? "mistakes" : "conflicts", clock: c.clock !== false };
 };
 
 // ---- what the page gets ---------------------------------------------------------------
@@ -147,7 +147,8 @@ type Msg =
   | { op: "progress" }
   | { op: "today" }
   | { op: "stats"; diff?: string }
-  | { op: "check"; mode: Check };
+  | { op: "check"; mode: Check }
+  | { op: "clock"; on: boolean };
 
 export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<unknown> {
   const m = raw as Msg;
@@ -194,6 +195,10 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       await settings.set("check", m.mode === "mistakes" ? "mistakes" : "conflicts", EXT);
       await view.update(screen()).catch(() => {});
       return { check: config().check };
+    case "clock":
+      await settings.set("clock", !!m.on, EXT);
+      await view.update(screen()).catch(() => {});
+      return { clock: config().clock };
     default: throw new Error(`sudoku: unknown call ${JSON.stringify(raw)}`);
   }
 }
@@ -213,6 +218,7 @@ export const actions = (c = config()): Action[] => [
   { id: "stats", title: "Stats", shortcut: "cmd+s" },
   { id: "check", title: c.check === "mistakes" ? "Show only clashes, not mistakes" : "Show mistakes as you make them" },
   { id: "pause", title: "Pause", shortcut: "cmd+p" },
+  { id: "clock", title: c.clock ? "Hide the clock" : "Show the clock", shortcut: "t" },
   { id: "restart", title: "Start over" },
   { id: "keys", title: "Every key" },
 ];

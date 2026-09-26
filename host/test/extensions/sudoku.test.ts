@@ -12,6 +12,7 @@ import {
   applyHint, clearNotes, decode, digitCounts, encode, erase, fillNotes, hint, newPlay, place, progressOf, toggleNote, unitsDone, wrongCells, type Play,
 } from "../../../extensions/sudoku/game.ts";
 import type { Entry, MonthView, Opened, SolvedReply, StatsView, TodayView } from "../../../extensions/sudoku/index.ts";
+import type { View } from "../../../sdk/src/protocol.ts";
 import { isBest, streaks, summary, type Solve } from "../../../extensions/sudoku/stats.ts";
 import type { Data } from "../../../extensions/sudoku/store.ts";
 import {
@@ -272,5 +273,17 @@ describe("the extension", () => {
   test("the checking mode is a setting the page can flip", async () => {
     expect(await send<{ check: string }>({ op: "check", mode: "mistakes" })).toEqual({ check: "mistakes" });
     expect(await send<{ check: string }>({ op: "check", mode: "conflicts" })).toEqual({ check: "conflicts" });
+  });
+
+  test("the clock is shown until the page hides it (T): the setting written, the ⌘K title following", async () => {
+    const clockAction = (v: View) => v.actions.find((a) => a.id === "clock");
+    expect(clockAction(await host.request<View>("view", { extension: "sudoku", palette: "sudoku" }))).toMatchObject({ title: "Hide the clock", shortcut: "t" });
+    const push = send<{ clock: boolean }>({ op: "clock", on: false });
+    const u = await host.nextViewUpdate("sudoku", { palette: "sudoku" }, (x) => clockAction(x.spec as View)?.title === "Show the clock");
+    expect(await push).toEqual({ clock: false });
+    expect(host.written.get("sudoku")?.clock).toBe(false);
+    expect(clockAction(u.spec as View)?.shortcut).toBe("t");
+    expect(await send<{ clock: boolean }>({ op: "clock", on: true })).toEqual({ clock: true });
+    expect(host.written.get("sudoku")?.clock).toBeUndefined();
   });
 });

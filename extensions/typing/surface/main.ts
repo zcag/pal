@@ -140,11 +140,11 @@ function start() {
   tick();
 }
 
-/** Every frame of a test: the counter (seconds left, words done out of all, zen's seconds so far) and the pace caret. */
+/** Every frame of a test: the counter (seconds left, words done out of all, zen's seconds so far; the seconds only with the clock on) and the pace caret. */
 function tick() {
   if (phase !== "running") return;
   const ms = performance.now() - t0;
-  counter.textContent = cfg.mode === "time" ? String(Math.max(0, Math.ceil(cfg.time - ms / 1000))) : cfg.mode === "words" ? `${run.at}/${run.words.length}` : String(Math.floor(ms / 1000));
+  counter.textContent = cfg.mode === "words" ? `${run.at}/${run.words.length}` : !opts.clock ? "" : cfg.mode === "time" ? String(Math.max(0, Math.ceil(cfg.time - ms / 1000))) : String(Math.floor(ms / 1000));
   if (pace !== undefined) placePace(ms);
   requestAnimationFrame(tick);
 }
@@ -397,7 +397,7 @@ pal.onAction((id) => {
   if (write) {
     // Written by the extension (so the Settings window agrees); taken here at once for the next test.
     void pal.send({ set: id }).catch((e) => console.error("typing: setting", e));
-    applyOptions({ pace_caret: opts.pace, stop_on_error: opts.stop, ...write });
+    applyOptions({ pace_caret: opts.pace, stop_on_error: opts.stop, clock: opts.clock, ...write });
   } else if (id === "stats") openStats();
   else if (id === "restart") { closeStats(); restart(); }
   else setConfig(configure(cfg, id));

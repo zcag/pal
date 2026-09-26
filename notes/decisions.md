@@ -2029,3 +2029,20 @@ due card, every answer is saved before the next card comes, Escape anywhere lose
 - **`openUrl` in the SDK** (browsers.ts): Quicklinks' `browsers()` and `openWith` moved there with a background flag
   (`open -g`), since Google Search needed both; `PAL_QUICKLINKS_*` became `PAL_BROWSERS` / `PAL_OPEN_URL`.
 
+
+## Hiding a game's clock (2026-09-26)
+
+- **One `clock` boolean per game, not one switch for all.** Sudoku, Crossword, Minesweeper, Solitaire and Typing each
+  declare `clock` (label "Clock", "Show the time while you play", default on). A single switch on Games was the first
+  choice, but an extension's settings reach only its own worker: `settings/changed` routes each extension's table to its
+  worker (host.ts), so Sudoku reading `settings.get("games")` gets an empty table, and Games is optional besides. A pal
+  config key would need a core change for one UI preference. The same id and words in each keeps them easy to find.
+- **Toggled in the game, written as the setting.** T (⌘T where letters type: Crossword, Typing) or ⌘K flips it; the page
+  sends it to its extension, which `settings.set`s it and pushes the ⌘K title ("Hide the clock" / "Show the clock"), so
+  the Settings window and the game agree and it is remembered with no storage of its own.
+- **Hidden means not on screen, nothing else.** The time still runs, is saved and counts for bests and streaks; the finish
+  still says how long it took (a result is not a race). Sudoku's and Crossword's clock button is also the pause button,
+  so it goes with it; P / ⌘P still pause. Minesweeper keeps the LED's place so the face stays centred.
+- **Typing: the countdown hides too.** A time test is a race by nature, but monkeytype lets you hide the timer for the same
+  reason; the test still ends on time. A words test's `12/25` is progress, not time, and stays. Games with no clock on
+  screen (Snake, Blackjack, Yahtzee, 2048, Wordle, Flashcards, whose answer timing is never shown) are untouched.

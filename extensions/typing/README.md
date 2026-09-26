@@ -40,6 +40,11 @@ length and mode, and the two toggles.
   wrong letter (the caret shakes red and waits for the right one);
   `word` will not leave a word with a mistake in it on space. The
   refused key still counts against accuracy.
+- **Clock** (setting `clock`, ⌘T or ⌘K): the seconds above the words,
+  left in a time test or so far in zen. Off hides them for anyone a
+  ticking number rushes: a time test still ends on time, and the result
+  says how long it took. A words test's count (`12/25`) is progress, not
+  time, and stays.
 - **Stats**: the `stats` button on the bar, `S` on the result or ⌘K opens
   them over the test. Chips pick all tests or one kind (`time 30`,
   `words 50 · punctuation`); the figures (tests, time typing, highest
@@ -99,18 +104,20 @@ per-second raw speeds. A test under 75% accuracy is not counted.
 | `←`, `→` | All tests, or the kind before or after | stats |
 | `↑`, `↓` | Scroll | stats |
 | `tab`, `enter`, `s` | Back to the test | stats |
-| `cmd+k` | New test, stats, every length and mode, punctuation, numbers | |
+| `cmd+t` | Hide or show the clock (the `clock` setting) | |
+| `cmd+k` | New test, stats, every length and mode, punctuation, numbers, the settings | |
 | `escape` | Leave; a test in progress is dropped | |
 
 ## Setup
 
-Nothing to install and no permission. Two settings (Settings, or ⌘K in
+Nothing to install and no permission. Three settings (Settings, or ⌘K in
 the test):
 
 | setting | values | default |
 | --- | --- | --- |
 | `pace_caret` | `off`, `pb`, `average`, `last` | `off` |
 | `stop_on_error` | `off`, `letter`, `word` | `off` |
+| `clock` | `true`, `false` | `true` |
 
 The options and the
 records (the best of every kind of test, the last 1000 tests, the count

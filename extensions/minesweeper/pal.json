@@ -28,6 +28,14 @@
         }
       ],
       "default": "beginner"
+    },
+    {
+      "kind": "boolean",
+      "id": "clock",
+      "label": "Clock",
+      "text": "Show the time while you play",
+      "description": "Off hides the time beside the face. Your times still count for best times and show when you clear a board. Also T or ⌘K in the game.",
+      "default": true
     }
   ],
   "store": {
@@ -40,7 +48,8 @@
       "The classic rules: the first open is always safe and opens an area, an empty cell floods open, a satisfied number opens around it",
       "An open ripples out from the cell as the caps lift; a mine goes off with a blast and the rest pop out from it; a cleared board plants its flags under confetti",
       "Beginner 9 by 9, intermediate 16 by 16, expert 30 by 16, each with a best time and a won count; the board scales to the panel, compact included",
-      "The clock runs from the first open and only while the board is on screen; Escape leaves at any point and the game is there when you come back, across restarts"
+      "The clock runs from the first open and only while the board is on screen; Escape leaves at any point and the game is there when you come back, across restarts",
+      "T hides the clock if it rushes you; your times still count"
     ],
     "permissions": [],
     "platforms": [
@@ -90,6 +99,11 @@
         "title": "Difficulty",
         "description": "The level picker: left and right choose, Enter takes it (asking first mid-game), D again closes it.",
         "keys": "d"
+      },
+      {
+        "title": "Hide the clock",
+        "description": "No running time on screen; again to bring it back. Times still count.",
+        "keys": "t"
       }
     ]
   },

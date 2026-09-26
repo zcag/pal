@@ -226,6 +226,7 @@ body.top.nolists #who { max-width: 55%; }
 body.solved #clock { pointer-events: none; }
 body.solved #clock svg { opacity: 0; }
 body.solved #time { color: var(--gold); }
+body.noclock #clock { display: none; }
 
 #clue {
   --clue-size: clamp(15px, 2.25vw, 22px);

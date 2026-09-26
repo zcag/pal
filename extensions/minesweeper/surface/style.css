@@ -90,6 +90,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 color-mix(in srgb, var(--ms-led-bg) 60%, #555);
 }
 .led::before { content: "888"; position: absolute; right: 5px; color: var(--ms-led); opacity: .09; text-shadow: none; }
+body.noclock #time { visibility: hidden; }
 #face {
   width: 32px; height: 32px; padding: 3px; border: 0; background: var(--ms-closed);
   box-shadow: inset var(--bvf, 2px) var(--bvf, 2px) 0 var(--ms-hi), inset calc(-1 * var(--bvf, 2px)) calc(-1 * var(--bvf, 2px)) 0 var(--ms-lo);

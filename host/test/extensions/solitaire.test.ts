@@ -285,6 +285,17 @@ describe("over the wire", () => {
     const v = await host.request<View>("view", { extension: "solitaire", palette: "solitaire" });
     expect(v.tree).toEqual({ type: "surface", src: "surface/index.html" } as unknown as View["tree"]);
     expect(v.title).toBe("Solitaire");
-    expect(v.actions.map((a) => a.id)).toEqual(["draw", "undo", "finish", "new"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["draw", "undo", "finish", "new", "clock"]);
+    expect(v.actions.at(-1)).toMatchObject({ title: "Hide the clock", shortcut: "t" });
+  });
+  test("the page hides the clock (T): the setting written, the ⌘K title following", async () => {
+    const push = host.surfaceSend("solitaire", "solitaire", { clock: false });
+    const u = await host.nextViewUpdate("solitaire", { palette: "solitaire" });
+    expect(await push).toEqual({ clock: false });
+    expect(host.written.get("solitaire")).toEqual({ clock: false });
+    expect((u.spec as View).actions.at(-1)?.title).toBe("Show the clock");
+    expect(await host.surfaceSend("solitaire", "solitaire", { nonsense: 1 })).toBeUndefined();
+    expect(await host.surfaceSend("solitaire", "solitaire", { clock: true })).toEqual({ clock: true });
+    expect(host.written.get("solitaire")).toEqual({});
   });
 });

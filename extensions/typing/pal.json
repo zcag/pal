@@ -117,6 +117,14 @@
         }
       ],
       "default": "off"
+    },
+    {
+      "kind": "boolean",
+      "id": "clock",
+      "label": "Clock",
+      "text": "Show the seconds while you type",
+      "description": "The seconds left in a time test, or so far in zen. Off hides them: a time test still ends on time and the result shows how long it took. The word count of a words test stays. Also ⌘T or ⌘K.",
+      "default": true
     }
   ],
   "palettes": {

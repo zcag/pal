@@ -49,7 +49,8 @@ counts only while the board is on screen: the page pauses it when the
 view leaves (Escape, the panel hidden, another level on top) and resumes
 it when it is back, so time away is never counted. A run the panel never
 ended (pal quit or crashed with the board up) is cut off at the last
-move.
+move. T (or `clock = false`) hides it for anyone a ticking time rushes;
+it still counts, for the best time and the "Cleared in" line.
 
 **The look** is the classic board redrawn: square cells, a closed one
 raised by a light top-left and a dark bottom-right bevel, an open one
@@ -73,7 +74,8 @@ height, the 30 by 16 expert board is 17 px in the 560 px compact panel.
 | `/`, `f`, `space` | Flag or unflag | playing, a closed cell |
 | `n` | New game; asks first mid-game | any time |
 | `d`, `tab` | The level picker: `left` `right` choose, `enter` takes it | any time |
-| `cmd+k` | Open, Flag, New game, Difficulty | |
+| `t` | Hide or show the clock (the `clock` setting) | any time |
+| `cmd+k` | Open, Flag, New game, Difficulty, the clock | |
 | `escape` | Leave the board; the game and its clock wait | |
 
 ## Mouse

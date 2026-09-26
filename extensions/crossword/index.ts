@@ -26,9 +26,9 @@ import { load, save, type Data, type Meta } from "./store.ts";
 const EXT = "crossword";
 const PALETTE = "crossword";
 
-type Config = { autocheck: boolean; suggest: boolean; source: SourceId };
+type Config = { autocheck: boolean; suggest: boolean; clock: boolean; source: SourceId };
 const config = (): Config => {
-  const c = { autocheck: false, suggest: true, ...settings.get<Partial<Config>>() };
+  const c = { autocheck: false, suggest: true, clock: true, ...settings.get<Partial<Config>>() };
   return { ...c, source: sourceId(c.source) };
 };
 
@@ -168,7 +168,8 @@ type Msg =
   | { op: "stats"; source?: string }
   | { op: "sources" }
   | { op: "site"; id: string }
-  | { op: "autocheck"; on: boolean };
+  | { op: "autocheck"; on: boolean }
+  | { op: "clock"; on: boolean };
 
 export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<unknown> {
   const m = raw as Msg;
@@ -243,6 +244,10 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       await settings.set("autocheck", !!m.on, EXT);
       await view.update(screen()).catch(() => {});
       return { autocheck: !!m.on };
+    case "clock":
+      await settings.set("clock", !!m.on, EXT);
+      await view.update(screen()).catch(() => {});
+      return { clock: !!m.on };
     default: throw new Error(`crossword: unknown call ${JSON.stringify(raw)}`);
   }
 }
@@ -265,6 +270,7 @@ export const actions = (c = config()): Action[] => [
   { id: "clues", title: "Show every clue", shortcut: "cmd+l" },
   { id: "autocheck", title: c.autocheck ? "Turn autocheck off" : "Turn autocheck on" },
   { id: "pause", title: "Pause", shortcut: "cmd+p" },
+  { id: "clock", title: c.clock !== false ? "Hide the clock" : "Show the clock", shortcut: "cmd+t" },
   { id: "restart", title: "Start over" },
   { id: "site", title: "Open the puzzle's page", shortcut: "cmd+shift+o" },
   { id: "keys", title: "Every key" },

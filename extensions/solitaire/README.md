@@ -48,7 +48,8 @@ loses nothing.
   keeps playing; the game counts as lost).
 
 Beside the table: the moves, the time played (counted only while the
-table is open), games won of played, a bar for the cards home, the draw,
+table is open; T or `clock = false` hides it, and the win still says how
+long it took), games won of played, a bar for the cards home, the draw,
 and the keys.
 
 Rules: Klondike as dealt by hand, seven piles of one to seven cards with
@@ -78,7 +79,8 @@ never past the point where a card's rank shows.
 | `u` (`backspace`) | Undo the last move; put down the cards held | after a move, or holding |
 | `enter` | Finish now | the finish |
 | `n` | New game; asks first mid-game; Enter too once won | any time |
-| `cmd+k` | Draw, undo, finish, new game | |
+| `t` | Hide or show the clock (the `clock` setting) | any time |
+| `cmd+k` | Draw, undo, finish, new game, the clock | |
 | `escape` | Leave the table; the game waits | |
 
 ## Setup
@@ -92,6 +94,7 @@ Settings, `[extensions.solitaire]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `draw` | `"1"` or `"3"` | `"1"` | Cards turned from the stock at a time. Applies from the next deal. |
+| `clock` | bool | `true` | The time beside the table while you play; off hides it (the win still shows it). Also T. |
 
 ## What it does not do
 

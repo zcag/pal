@@ -111,7 +111,9 @@ clue bar keeps its height and shrinks a long clue's type to fit.
 
 **The clock** runs only while the grid is on screen and unsolved: it stops
 when the panel hides, on Browse and Stats, over the key sheet or a
-question, and while paused. The time rides in every save.
+question, and while paused. The time rides in every save. ⌘T (or
+`clock = false`) hides it, pause button and all, for anyone a ticking
+time rushes; the time still counts for the stats and shows on the finish.
 
 **The finish.** A full grid with a mistake says "Not quite" and never
 where. Solved, a wave of light runs across the grid on the diagonals with

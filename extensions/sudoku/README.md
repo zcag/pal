@@ -32,6 +32,10 @@ loses nothing.
 - **Hints** (I): where to look, then why in plain words, then the move.
 - **Undo** (U, ⌘Z) and redo (Shift-U, ⌘⇧Z), erase (Backspace, 0), Tab to
   the next empty cell, arrows or `hjkl`, clicks on the cells and the pad.
+- **The clock** runs only while the board is on screen; P pauses it
+  and covers the board. T (or `clock = false`) hides it for anyone it
+  rushes: no time on screen while you play, though the time still counts
+  for the stats and shows on the finish.
 - **Browse** (⌘O): every half-done game and a calendar of dailies per
   difficulty. **Stats** (⌘S): best and average time, the streak, a
   chart, the history, per difficulty.
