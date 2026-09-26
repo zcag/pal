@@ -153,7 +153,8 @@ function draw() {
     c.el.className = `cell ${cls}`;
     if (ghost) c.el.dataset.ghost = ghost; else delete c.el.dataset.ghost;
     const prevDigit = Number(was.split("|")[0]) || 0;
-    if (d !== prevDigit) {
+    // A fresh board (`looks` reset by load) writes every cell: an empty one must clear what the last puzzle left there.
+    if (d !== prevDigit || !was) {
       c.digit.textContent = d ? String(d) : "";
       if (d && was) replay(c.digit, "pop");
     }
