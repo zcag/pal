@@ -392,11 +392,16 @@ What works (every line below is checked by `host/test/extensions/calc.test.ts`):
 | home currency | `12 usd`, `$12`, `100 try` | to `home_currency` (`12 USD to TRY`); the home currency itself goes to USD |
 | variables | `salary_month`, `salary_month to eur`, `rent / salary_month`, `height to ft` (with `vars` below) | `455,272.87 TRY` (+ a `9,360.00 USD` row), `8,111.62 EUR`, `0.09225236807` with `9.225%`, `6.00394 ft`; the subtitle is the query with each name as its value (`42,000.00 TRY / 9,360.00 USD`) |
 | how many fit | `1500 usd in salary_hour`, `1500 usd in salary` (a prefix), `5 km in lap` | `27.78 salary_hour`; one row per `salary_*` (`27.78 hour`, `3.472 day`, `0.1603 month`), largest count first; `100 pool`, `12.5 track` |
-| dates | `today`, `tomorrow`, `today + 3 days`, `3 weeks from now`, `in 3 weeks`, `2 days ago`, `25 dec 2026`, `dec 25, 2026` | the date written out (`Saturday, September 19, 2026`), a relative accessory (`in 3 days`), an ISO row (`2026-09-19`) |
+| dates | `today`, `tomorrow`, `today + 3 days`, `2026-10-14 + 45 days`, `3 weeks from now`, `in 90 days`, `2 days ago`, `25 dec 2026`, `dec 25, 2026`, `25 aralık`, `3 şubat 2027` | the date written out (`Saturday, September 19, 2026`), a relative accessory (`in 3 days`), an ISO row (`2026-09-19`) |
+| weekdays | `friday`, `next friday`, `last friday`, `this mon`, `next week`, `next month`, `gelecek cuma`, `geçen salı`, `next friday + 1 week` | the coming Friday (today on a Friday); `next` is the one after today, `last` the one before; `next week`/`month` a week or a month from today |
 | now | `now` | the time, with the date as accessory; ISO and unix rows |
-| counts | `days until 2026-12-25`, `weeks until 25 dec`, `months since 2025-06-15`, `2026-01-01 - 2025-06-15`, `2025-06-15 to 2026-01-01`, `weeks between 2025-06-15 and 2026-01-01` | `100 days` (with `14 weeks 2 days · 3 months 9 days`), `14.3 weeks`, `n months`, `200 days`, `200 days`, `28.6 weeks` |
-| time zones | `10:00 utc to tokyo`, `14:30 ist to cet`, `5pm ldn in sf`, `10:00 in tokyo`, `now in utc`, `time in tokyo`, `tokyo time`, `10am new york to utc+3`, `10:00 in Europe/Berlin` | `7:00 PM`, the subtitle `10:00 UTC (UTC) → Tokyo (GMT+9)`, the zone as accessory, `next day` when it crosses midnight, a second row with the full date there |
-| unix time | `unix 1700000000`, `1700000000 to date`, `unix`, `2026-01-01 12:00 to unix` | the moment written out (+ ISO and unix rows), the current unix time, `1767268800` (local time, here UTC) |
+| counts | `days until 25 dec`, `days since 2026-08-31`, `days until friday`, `weeks until 25 dec`, `months since 2025-06-15`, `2026-01-01 - 2025-06-15`, `2025-06-15 to 2026-01-01`, `weeks between 2025-06-15 and 2026-01-01`, `between 1 mar and 14 oct` | `100 days` (with `14 weeks 2 days · 3 months 9 days`), `16 days`, `2 days`, `14.3 weeks`, `15 months`, `200 days`, `200 days`, `28.6 weeks`, `227 days` |
+| workdays | `workdays until 25 dec`, `working days until friday`, `business days between 2026-10-01 and 2026-11-01`, `workdays since 2026-09-07` | `72 workdays` (with `100 days · Mon to Fri, holidays not counted`), `2 workdays`, `22 workdays`, `7 workdays`: Monday to Friday from the first day (counted) up to the last (not) |
+| weeks | `what week is it`, `week number`, `what's the week number`, `week of 25 dec`, `week number of 2027-01-01`, `week 1 2027`, `week 42` | `Week 38`, the subtitle `this week: Mon 14 Sep to Sun 20 Sep`, `of 53 in 2026` on the right; rows for the ISO week (`2026-W38`) and its Monday. ISO weeks: 1 January 2027 is in `2026-W53` |
+| day of a date | `what day is 2027-01-01`, `what day was 29 oct 1923`, `day of week 25 dec` | `Friday` (the full date as subtitle), `Monday`, `Friday` |
+| time zones | `time in tokyo`, `tokyo time`, `what time is it in tokyo?`, `3pm in tokyo`, `3pm istanbul to new york`, `now in PST`, `3pm tokyo`, `23:00 utc to tokyo`, `10:00 in india`, `14:30 ist to cet`, `5pm ldn in sf`, `10am new york to utc+3`, `noon in london`, `time in caracas`, `time in londra`, `10:00 in Europe/Berlin` | `16:30` with `6 h ahead · Asia/Tokyo` and the subtitle `10:30 Istanbul (GMT+3) → Tokyo (GMT+9)`; `tomorrow, 08:00` or `yesterday, 15:00` when the day there is not today's here; `2 h 30 min ahead` for India; rows with the full date there, ISO with its offset, and unix |
+| unix time | `1759000000`, `@1759000000`, `unix 1759000000`, `1759000000 to date`, `1759000000000`, `unix time`, `unix`, `2026-01-01 12:00 to unix` | the moment written out (`Saturday, September 27, 2025 at 22:06`, + ISO and unix rows), the current unix time, `1767258000` (local time, here Istanbul) |
+| durations | `3h20m + 45m`, `2 hours + 30 minutes`, `8h - 45 min - 30min`, `90 min in hours`, `1h30m to minutes` | `4 h 5 min` (with `4:05`, a `245 minutes` and a `4.0833 hours` row), `2 h 30 min`, `6 h 45 min`, `1.5 hours`, `90 minutes` |
 
 Details:
 
@@ -435,8 +440,12 @@ Details:
   under `en` a `1,000` is a thousand. Dates and relative phrases follow it
   too.
 - **Dates** are ISO (`2026-12-25`, with an optional `12:00`), `25 dec`,
-  `dec 25, 2026`, `25.12.2026`, and the words `now`, `today`, `tomorrow`,
-  `yesterday`. Arithmetic takes `days`, `weeks`, `months`, `years`,
+  `dec 25, 2026`, `25.12.2026`, `25 aralık` (Turkish month names, with or
+  without their letters), the words `now`, `today`, `tomorrow`,
+  `yesterday`, a weekday in English or Turkish (`friday`, `cuma`) with an
+  optional `next`/`last`/`this` (`gelecek`/`geçen`/`bu`), and `next week`,
+  `last month`. Times are 24 h whatever the locale. The clock is the
+  SDK's (`PAL_NOW` pins it in the tests). Arithmetic takes `days`, `weeks`, `months`, `years`,
   `hours`, `minutes` (and `d`, `w`, `mo`, `y`, `h`, `min`), chained
   (`today + 1 month - 2 days`); months keep the day of month, clamped. Day
   counts are calendar days (DST-proof); `A - B` is A minus B, `A to B`
@@ -446,8 +455,19 @@ Details:
   the common abbreviations (`utc`, `cet`, `est`, `pst`, `jst`, `aest`,
   ...) and 120-odd city and country names (`tokyo`, `new york`, `sf`,
   `ldn`, `india`, `hong kong`). `ist` is Istanbul here (the airport code),
-  India is `india`, `delhi`, `mumbai`. Without a source zone the local one
-  is meant; the time is today's in the source zone.
+  India is `india`, `delhi`, `mumbai`; any IANA id's city also works
+  (`caracas`, `ho chi minh`), and a few Turkish names (`londra`,
+  `moskova`). Without a source zone the local one (the system's) is
+  meant; the time is today's in the source zone. `3pm in tokyo` is your
+  3pm in Tokyo, `3pm tokyo` Tokyo's 3pm here. All from the runtime's time
+  zone data, no network.
+- **Unix time**: a bare 10-digit number starting with 1 (2001 to 2033; 13
+  digits for milliseconds) is a unix time, so `1759000000` at the root
+  answers with its date; `@` reads any. Other numbers stay numbers
+  (`5321234567`).
+- **Durations** add and subtract `d`, `h`, `m`, `s` (and their spelled
+  forms), compound or not (`3h20m`). `m` means minutes only beside an
+  hour, so `45m + 10m` is still metres.
 
 What does not:
 
@@ -460,14 +480,18 @@ What does not:
   later `x` is undefined.
 - `10x3` without spaces (`0x` would be hex); write `10 x 3` or `10*3`.
 - Half-hour offsets as `utc+5:30`; use the zone (`india`).
-- `12 usd to try` at the root: the calculator is an input palette, so
-  open it first (its row, or an alias).
+- Public holidays: `workdays` counts Monday to Friday only.
 
-At the root, a query that reads as sums, a conversion or a date (`2+2`,
-`15% of 80`, `12 usd to try`, `5 km to miles`, `3 days from now`,
-`today + 3 days`) is answered inline under a Calculator section above the
-hits, with the same actions (Enter copies the result). A bare number or a
-word never wakes it. A query nothing matched gets an "Ask Calculator"
+At the root, a query that reads as sums, a conversion, a date or a time
+(`2+2`, `15% of 80`, `12 usd to try`, `5 km to miles`, `3 days from now`,
+`today + 3 days`, `next friday`, `time in tokyo`, `tokyo time`, `what
+week is it`, `unix time`, `1759000000`) is answered inline under a
+Calculator section above the hits, with the same actions (Enter copies
+the result). A bare number or a single word never wakes it (`mon` is on
+the way to Monitor, `friday` answers only inside the palette), and a
+phrase without a digit or a date word answers only when the date parser
+reads it whole, so `time machine` and `screen time` stay app searches.
+The check costs about 5 µs a keystroke. A query nothing matched gets an "Ask Calculator"
 fallback row that opens the palette with it typed.
 
 Settings, `[extensions.calc]`:

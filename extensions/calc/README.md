@@ -9,8 +9,11 @@ the reverse conversion, a fraction, the hex and binary of an integer, the
 ISO date. A query that does not parse lists nothing, so nothing flashes
 while you type; with nothing typed the palette shows three hint rows.
 
-The calculator is an input palette, so its rows are never at the root:
-open it first (its row, an alias, or a hotkey), then type.
+At the root, a query that reads as sums, a conversion, a date or a time
+(`2+2`, `12 usd to try`, `next friday`, `time in tokyo`, `1759000000`) is
+answered inline under a Calculator section, with the same actions; a bare
+number or a single word (`42`, `mon`, `friday`) never is, so app names
+stay undisturbed. Anything else can be typed into the palette itself.
 
 ## What works
 
@@ -24,17 +27,31 @@ open it first (its row, an alias, or a hotkey), then type.
 | currency | `12 usd to try`, `€12 to $`, `1k usd`, `usd try` | the amount in the target currency, at the ECB's rate of the day |
 | thousands | `210k / 12`, `2k + 500`, `1.5m usd`, `$1.5k` | `k` is thousands anywhere; `m` and `b` are millions and billions before a currency (a bare `5m` is metres) |
 | home currency | `12 usd`, `$12` | to `home_currency`; the home currency itself goes to USD |
-| dates | `today + 3 days`, `3 weeks from now`, `25 dec 2026` | the date written out, `in 3 days` on the right, an ISO row |
-| counts | `days until 2026-12-25`, `weeks between 2025-06-15 and 2026-01-01` | `100 days` (with `14 weeks 2 days · 3 months 9 days`), `28.6 weeks` |
-| time zones | `10:00 utc to tokyo`, `5pm ldn in sf`, `time in tokyo` | the time there, the zone on the right, `next day` when it crosses midnight |
-| unix time | `unix 1700000000`, `unix`, `2026-01-01 12:00 to unix` | the moment written out, the current unix time, `1767268800` |
+| dates | `today + 3 days`, `2026-10-14 + 45 days`, `in 90 days`, `25 dec 2026`, `25 aralık` | the date written out, `in 3 days` on the right, an ISO row |
+| weekdays | `next friday`, `friday`, `last friday`, `next month`, `gelecek cuma` | the coming Friday (today on a Friday), the one after today, the one before |
+| counts | `days until 25 dec`, `days since 2026-08-31`, `between 1 mar and 14 oct` | `100 days` (with `14 weeks 2 days · 3 months 9 days`), `16 days`, `227 days` |
+| workdays | `workdays until 25 dec`, `business days between 2026-10-01 and 2026-11-01` | `72 workdays`, Monday to Friday from today up to the day; holidays are not known |
+| weeks | `what week is it`, `week number`, `week of 25 dec`, `week 42` | `Week 38` with its Monday to Sunday, the ISO `2026-W38`, its Monday |
+| day of a date | `what day is 2027-01-01` | `Friday`, the full date under it |
+| time zones | `time in tokyo`, `tokyo time`, `3pm in tokyo`, `3pm istanbul to new york`, `now in pst`, `3pm tokyo` | `16:30`, with `6 h ahead` and the zone on the right, `tomorrow, 08:00` when the day there is not today's here; the full date, ISO and unix rows |
+| unix time | `1759000000`, `@1759000000`, `unix time`, `2026-01-01 12:00 to unix` | the moment written out (with ISO and unix rows), the current unix time, `1767258000` |
+| durations | `3h20m + 45m`, `2 hours + 30 minutes`, `90 min in hours`, `1h30m to minutes` | `4 h 5 min` (with `4:05`, minutes and hours rows), `2 h 30 min`, `1.5 hours`, `90 minutes` |
+
+Times are 24 h whatever the locale. `3pm in tokyo` is your 3pm there;
+`3pm tokyo` is Tokyo's 3pm here. A bare 10-digit number starting with 1
+(2001 to 2033) is read as a unix time, `@` reads any; other numbers stay
+numbers. Month and day names are English or Turkish (`aralık`, `aralik`,
+`cuma`, `gelecek salı`). `45m + 10m` is metres: minutes need an hour
+beside them or a spelled-out `min`.
 
 Currencies are the 30 the ECB fixes (USD, EUR, GBP, TRY, JPY, CHF and the
 rest); symbols (`$ € £ ₺ ¥ ₹`), names (`dollars`, `lira`, `quid`) and ISO
 codes in any case are understood, `to`, `in`, `as` and `→` join the two
 sides, `1k` and `2.5m` are thousands and millions. Zones are IANA ids,
-`utc+3` offsets, the common abbreviations and 120-odd city and country
-names; `ist` is Istanbul, India is `india`. Locale sets grouping and the
+`utc+3` offsets, the common abbreviations, 120-odd city and country
+names (a few in Turkish: `londra`, `moskova`) and the city of every IANA
+id (`caracas`); `ist` is Istanbul, India is `india`. All from the
+runtime's time zone data, no network. Locale sets grouping and the
 decimal separator both ways: under `tr` or `de`, `1,5 + 2` is `3,5`.
 
 ## Keyboard
@@ -114,6 +131,7 @@ and underscores, and one spelled like a currency (`try`, `usd`) is ignored.
   undefined; variables live in the `vars` setting.
 - `10x3` without spaces (`0x` would be hex); write `10 x 3` or `10*3`.
 - Half-hour offsets as `utc+5:30`; use the zone name (`india`).
+- Public holidays: `workdays` counts Monday to Friday only.
 
 ## Platforms
 
