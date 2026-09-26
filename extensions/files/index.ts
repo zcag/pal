@@ -27,7 +27,8 @@
 // Contents too (content.ts): a query starting with `'` or `content:`
 // searches what files say instead of what they are called; a plain query
 // gets the content matches as a second section, "In files", under the
-// name matches, each row's subtitle the first matching line. Spotlight's
+// name matches (shown first, the content rows joining below as their
+// snippets come in), each row's subtitle the first matching line. Spotlight's
 // text index on macOS (`mdfind` without `-name`), `rg` else `grep` on
 // Linux, 1 s at most. `PAL_FILES_CONTENT` forces a tool (the tests use
 // `grep` on their temp folder).
@@ -106,8 +107,8 @@ async function firstMatch(q: string, path: string): Promise<string> {
   return snippet(text);
 }
 
-/** Content rows for `paths` (a `searchContent` answer) minus `skip` (what the name search listed): a file row in the section "In files", the first matching line as its subtitle. */
-async function contentRows(q: string, paths: string[], skip: Set<string>): Promise<Item[]> {
+/** Content rows for `paths` (a `searchContent` answer) minus `skip` (what the name search listed): a file row in the section "In files", the first matching line as its subtitle. `partial` gets the rows so far after each snippet batch but the last (the answer is that one). */
+async function contentRows(q: string, paths: string[], skip: Set<string>, partial?: (rows: Item[]) => void): Promise<Item[]> {
   const wanted = paths.filter((p) => !skip.has(p));
   const rows: Item[] = [];
   for (let i = 0; i < wanted.length; i += SNIPPETS) {
@@ -118,7 +119,9 @@ async function contentRows(q: string, paths: string[], skip: Set<string>): Promi
       const out: Item = { ...row, subtitle: line ? `${line} · ${tilde(dirname(p))}` : row.subtitle };
       return out;
     }));
+    const before = rows.length;
     rows.push(...batch.filter((r): r is Item => r !== undefined));
+    if (rows.length > before && i + SNIPPETS < wanted.length) partial?.([...rows]);
   }
   return rows;
 }
@@ -150,6 +153,8 @@ const excluded = (p: string, folders: string[], exclude: string[]) => {
 };
 
 let running: Bun.Subprocess<"ignore", "pipe", "ignore"> | undefined;
+/** Files listings started; one whose number is no longer the latest was superseded and shows nothing early. */
+let listings = 0;
 
 /** The process's stdout a line at a time until `limit` lines pass `keep`; stops reading then (the caller kills it). */
 async function readLines(proc: Bun.Subprocess<"ignore", "pipe", "ignore">, limit: number, keep: (line: string) => boolean): Promise<string[]> {
@@ -598,6 +603,9 @@ export default {
       placeholder: "Search files by name",
       // A level pushed by "Open with…" (`args.open_with` is the file) lists the apps for it instead; its rows' ids are app paths.
       list: async (query = "", ctx) => {
+        // Early rows only while this is the latest listing: a newer keystroke killed this one's searches, so what it holds is short.
+        const n = ++listings;
+        const show = (items: Item[]) => { if (n === listings) ctx?.partial?.(items); };
         const file = openWithOf(ctx);
         if (file) return appRows(file, query);
         const s = settings.get<Settings>();
@@ -609,7 +617,7 @@ export default {
         const ask = parseQuery(query);
         if (ask.only) {
           if (!ask.content) return [hint("Type words to find in file contents", CONTENT ? `${CONTENT} in ${folders.map(tilde).join(", ")}` : "No content search tool: Spotlight, rg or grep")];
-          return contentRows(ask.content, await searchContent(ask.content, s, folders), new Set());
+          return contentRows(ask.content, await searchContent(ask.content, s, folders), new Set(), show);
         }
         const q = ask.name;
         if (!q || !BACKEND) {
@@ -617,12 +625,16 @@ export default {
           const recent = BACKEND ? await recentRows(s, folders, RECENT_SECTION) : [];
           return recent.length ? recent : hints(folders);
         }
-        // Names and contents at once; the content rows come after, minus what the names found.
-        const content = s.content_search && CONTENT ? searchContent(q, s, folders) : Promise.resolve([]);
+        // Names and contents at once; the content rows come after, minus what the names found. The names are ready
+        // first (the content list, then a snippet per file, take up to a second more), so they show while it runs,
+        // and each snippet batch joins below them.
+        const content = s.content_search && CONTENT ? searchContent(q, s, folders) : undefined;
         const paths = await search(BACKEND, q, s, folders);
         const rows = (await Promise.all(paths.map((p) => item(p)))).filter((i): i is Item => i !== undefined);
         const named = rank(rows, q);
-        return [...named, ...(await contentRows(q, await content, new Set(named.map((r) => r.id))))];
+        if (!content) return named;
+        show(named);
+        return [...named, ...(await contentRows(q, await content, new Set(named.map((r) => r.id)), (more) => show([...named, ...more])))];
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);

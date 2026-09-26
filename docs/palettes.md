@@ -986,6 +986,8 @@ after 1 s: what it printed by then is the answer. The snippet is `rg -n
 -m1` (or `grep -n -m 1`) per file, eight at a time; a file the tool
 cannot read as text (a PDF Spotlight matched) keeps the folder as its
 subtitle. A file both searches find is listed once, as the name match.
+The name matches show as soon as they are ranked; the "In files" rows
+join below them as each batch of snippets comes in.
 `content_search = false` keeps the second section off; the prefix still
 works.
 

@@ -10,6 +10,9 @@ keystroke. The row is the file name; the parent folder is the subtitle
 accessories. `.app` bundles get their own icon, everything else a glyph by
 kind (folder, image, document, code, archive). Exact and prefix name
 matches come first, the rest in the backend's order, at most `limit` rows.
+Files whose text holds the query follow in an **In files** section; the
+name matches show as soon as they are ranked, and those rows join below
+them as their matching lines are read.
 Before you type, the palette lists the **recently used files** (a
 `Recently used` section) instead of hints.
 

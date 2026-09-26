@@ -342,6 +342,30 @@ describe.skipIf(!HAS_FIND)("files", () => {
     host.changeSettings("files", { settings: { folders: [dir] } });
   });
 
+  test("contents stream: the name matches show first, the In files rows join below them a snippet batch at a time, the answer the last partial plus the rest", async () => {
+    if (!HAS_GREP) return;
+    const sub = join(dir, "stream");
+    mkdirSync(sub);
+    writeFileSync(join(sub, "streamword-name.txt"), "");
+    for (let i = 0; i < 10; i++) writeFileSync(join(sub, `c${i}.txt`), "a streamword line\n");
+    try {
+      const { items, partials } = await host.listStream("files", "files", "streamword");
+      const ids = items.map((r) => r.id);
+      expect(items[0]).toMatchObject({ name: "streamword-name.txt" });
+      expect(items.slice(1).map((r) => r.section)).toEqual(Array(10).fill("In files"));
+      expect(partials[0].map((r) => r.id)).toEqual([join(sub, "streamword-name.txt")]);
+      // Every partial is a prefix of the answer: rows only ever join below.
+      for (const p of partials) expect(ids.slice(0, p.length)).toEqual(p.map((r) => r.id));
+      // Without a stream (or with content search off) the answer is the same and nothing is sent early.
+      expect((await list("streamword")).map((r) => r.id)).toEqual(ids);
+      host.changeSettings("files", { settings: { folders: [dir], content_search: false } });
+      expect((await host.listStream("files", "files", "streamword")).partials).toEqual([]);
+    } finally {
+      host.changeSettings("files", { settings: { folders: [dir] } });
+      rmSync(sub, { recursive: true, force: true });
+    }
+  });
+
   test("Copy text (OCR) is offered on images and PDFs, before the trash", async () => {
     expect((await list("photo"))[0].actions!.map((a) => a.id)).toEqual(OCR_ACTIONS);
     expect((await list("scan"))[0].actions!.map((a) => a.id)).toEqual(OCR_ACTIONS);
