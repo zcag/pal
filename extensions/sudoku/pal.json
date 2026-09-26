@@ -43,6 +43,14 @@
         { "id": "mistakes", "title": "Show mistakes as you make them" }
       ],
       "default": "conflicts"
+    },
+    {
+      "kind": "boolean",
+      "id": "clock",
+      "label": "Clock",
+      "text": "Show the time while you play",
+      "description": "Off hides the running time. Your times still count for stats and show when you finish. Also T or ⌘K in the game.",
+      "default": true
     }
   ],
   "store": {
@@ -58,7 +66,7 @@
       "Hints in three presses: where to look, then why in plain words (\"Only this cell in row 4 can take a 7\"), then the move; the cells that explain it are circled",
       "Undo and redo, erase, Tab to the next empty cell, arrows or H J K L, and a click on a cell or the pad",
       "A sweep of light when a row, column or box is done, a ripple and confetti for the board",
-      "A clock that runs only while the board is on screen, and a pause that hides it",
+      "A clock that runs only while the board is on screen, and a pause that hides it; T hides the clock if it rushes you (times still count)",
       "Browse every daily by month and every half-done game; stats per difficulty: best and average time, the streak, a chart, the history"
     ],
     "permissions": [],
@@ -82,7 +90,8 @@
       { "title": "New game", "description": "Today's puzzle or a new one, per difficulty.", "keys": "cmd+n" },
       { "title": "Browse", "description": "The dailies by month, and every half-done game.", "keys": "cmd+o" },
       { "title": "Stats", "description": "Times, streaks and the history per difficulty.", "keys": "cmd+s" },
-      { "title": "Pause", "description": "Stops the clock and hides the board.", "keys": "p" }
+      { "title": "Pause", "description": "Stops the clock and hides the board.", "keys": "p" },
+      { "title": "Hide the clock", "description": "No running time on screen; again to bring it back. Times still count.", "keys": "t" }
     ]
   },
   "palettes": {

@@ -13,7 +13,8 @@
 //
 // The clock is the page's: it runs while the grid is on screen and not
 // solved, paused or hidden (`pal.onHidden`), and the time so far rides in
-// every save.
+// every save. The `clock` setting (⌘T, ⌘K) only hides it: the time still
+// counts for the stats.
 import type { SurfaceKit } from "@zcag/pal";
 import {
   REVEALED, RIGHT, WRONG, arrow, backspace, check, clear, click, clockText, crossing, current, decode, del, encode, gridOf, isBlock, newPlay, nextWord, reveal,
@@ -38,6 +39,7 @@ let p: Puzzle;
 let g: Grid;
 let st: Play;
 let autocheck = false;
+let clockOn = true;
 let hidden = false;
 let paused = false;
 let seasoned = false;
@@ -347,6 +349,7 @@ function run(id: string) {
   if (id === "keys") return openHelp();
   if (id === "site") return void (opened && send({ op: "site", id: p.id }));
   if (id === "autocheck") return void send<{ autocheck: boolean }>({ op: "autocheck", on: !autocheck }).then((r) => { autocheck = !!r?.autocheck; flash(`Autocheck ${autocheck ? "on" : "off"}`); });
+  if (id === "clock") return void send<{ clock: boolean }>({ op: "clock", on: !clockOn }).then((r) => { showClock(r?.clock ?? !clockOn); flash(clockOn ? "The clock is back" : "The clock is hidden, ⌘T brings it back"); });
   if (!opened) return;
   if (screen !== "play") backToPlay();
   if (id === "pause") return setPaused(!paused);
@@ -373,7 +376,7 @@ function restart() {
 }
 
 const COMBOS: Record<string, string> = {
-  "cmd+n": "next", "cmd+o": "browse", "cmd+s": "stats", "cmd+p": "pause", "cmd+shift+o": "site",
+  "cmd+n": "next", "cmd+o": "browse", "cmd+s": "stats", "cmd+p": "pause", "cmd+t": "clock", "cmd+shift+o": "site",
   "cmd+e": "check-word", "cmd+alt+e": "check-square", "cmd+shift+e": "check-puzzle",
   "cmd+u": "reveal-word", "cmd+alt+u": "reveal-square", "cmd+shift+u": "reveal-puzzle",
   "alt+backspace": "clear-word", "cmd+alt+backspace": "clear-puzzle", "cmd+l": "clues",
@@ -640,10 +643,12 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 
 pal.onHidden(() => { hidden = true; syncClock(); save(); });
 pal.onShown(() => { hidden = false; syncClock(); });
-pal.onSettings((s) => { autocheck = !!(s as { autocheck?: boolean }).autocheck; });
+function showClock(on: boolean) { clockOn = on; body.classList.toggle("noclock", !on); }
+function applySettings(s: { autocheck?: boolean; clock?: boolean }) { autocheck = !!s.autocheck; showClock(s.clock !== false); }
+pal.onSettings(applySettings);
 
 async function start() {
-  autocheck = !!((await pal.settings()) as { autocheck?: boolean }).autocheck;
+  applySettings(await pal.settings());
   sources = (await send<SourcesView | null>({ op: "sources" }).catch(() => null)) ?? sources;
   const s = await send<{ solved?: number } | null>({ op: "stats", source: sources.source }).catch(() => null);
   seasoned = (s?.solved ?? 0) >= 3;

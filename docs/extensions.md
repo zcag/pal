@@ -701,6 +701,11 @@ export default defineExtension({
   the arrows and Enter, with key hints on the page.
 - **Size.** About 720 by 390 CSS px, 560 wide in compact mode, and it can
   change: fit the viewport, no page scroll, draw at `devicePixelRatio`.
+- **A clock.** A game that shows a running time declares a `clock`
+  boolean (label "Clock", default on) and a "Hide the clock" action (T, or
+  ⌘T where letters type) that writes it through the extension, as the
+  bundled games do: a ticking number rushes some players. Hidden, the time
+  still counts and the finish still shows it.
 - **In a browser.** `bun host/src/surface.ts extensions/<name> [port]`
   serves the folder the same way (`.ts` transpiled, the kit mapped), and
   the kit runs as a stub outside pal: storage in `localStorage`, settings

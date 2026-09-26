@@ -293,7 +293,7 @@ describe("the options", () => {
     expect(ids.slice(ids.indexOf("zen"), ids.indexOf("zen") + 3)).toEqual(["zen", "punctuation", "numbers"]);
   });
   test("the settings as the view offers them: the values not in use, written by id", () => {
-    const ids = viewActions(cfg(), { pace: "pb", stop: "off" }).map((a) => a.id);
+    const ids = viewActions(cfg(), { pace: "pb", stop: "off", clock: true }).map((a) => a.id);
     expect(ids).toContain("zen");
     expect(ids).toEqual(expect.arrayContaining(["pace:off", "pace:average", "pace:last", "stop:letter", "stop:word"]));
     expect(ids).not.toContain("pace:pb");
@@ -302,7 +302,13 @@ describe("the options", () => {
     expect(settingOf("pace:average")).toEqual({ pace_caret: "average" });
     expect(settingOf("stop:word")).toEqual({ stop_on_error: "word" });
     expect(settingOf("pace:fast")).toBeUndefined();
-    expect(optionsOf({ pace_caret: "last", stop_on_error: "nope" })).toEqual({ pace: "last", stop: "off" });
+    expect(optionsOf({ pace_caret: "last", stop_on_error: "nope" })).toEqual({ pace: "last", stop: "off", clock: true });
+    expect(optionsOf({ clock: false }).clock).toBe(false);
+    expect(viewActions(cfg()).find((a) => a.id.startsWith("clock:"))).toEqual({ id: "clock:off", title: "Hide the clock", shortcut: "cmd+t" });
+    expect(viewActions(cfg(), { pace: "off", stop: "off", clock: false }).map((a) => a.id)).toContain("clock:on");
+    expect(settingOf("clock:off")).toEqual({ clock: false });
+    expect(settingOf("clock:on")).toEqual({ clock: true });
+    expect(settingOf("clock:maybe")).toBeUndefined();
   });
   test("an action applied", () => {
     expect(configure(cfg(), "zen")).toMatchObject({ mode: "zen" });
@@ -345,5 +351,10 @@ describe("over the wire", () => {
     expect(ids).toContain("pace:off");
     await host.surfaceSend("typing", "typing", { set: "pace_caret" });
     expect(host.written.get("typing")).toEqual({ pace_caret: "pb" });
+    const hide = host.surfaceSend("typing", "typing", { set: "clock:off" });
+    const v = await host.nextViewUpdate("typing", { palette: "typing" }, (x) => (x.spec as View).actions.some((a) => a.id === "clock:on"));
+    await hide;
+    expect(host.written.get("typing")).toEqual({ pace_caret: "pb", clock: false });
+    expect((v.spec as View).actions.find((a) => a.id === "clock:on")?.title).toBe("Show the clock");
   });
 });

@@ -3165,7 +3165,8 @@ input gives way to the game's line ("7 mines left", "Cleared in 1:11"),
 
 The clock starts on the first open and counts only while the board is on
 screen: leaving the view pauses it, coming back resumes it, and a run pal
-never ended (a quit, a crash) is cut off at the last move. The board is
+never ended (a quit, a crash) is cut off at the last move; T (or
+`clock = false`) hides it while it keeps counting. The board is
 the classic one redrawn: square raised cells that press flat, the classic
 number colours tuned per theme, an LED counter and clock around the face.
 An open lifts the caps ring by ring from the cell opened; a mine goes off
@@ -3176,6 +3177,7 @@ fits the compact panel.
 ```toml
 [extensions.minesweeper]
 difficulty = "beginner"       # intermediate (16x16, 40), expert (30x16, 99); from the next board; D on the board too
+clock = true                  # false hides the running time while you play (times still count); also T
 ```
 
 ## Snake II (`snake`)
@@ -3254,7 +3256,8 @@ undo, finish and new game.
   asking first mid-game.
 - Escape leaves at any point; the game, the moves, the time and the
   record (games won of played) persist (in the extension's storage). The
-  time counts only while the table is open.
+  time counts only while the table is open; T (or `clock = false`) hides
+  it from beside the table, and the win still says how long it took.
 
 Every card glides to where it goes and turns over with a flip, the deal
 goes out row by row from the stock, and a column fans out while it has
@@ -3263,6 +3266,7 @@ room and tightens as it grows, never past where a card's rank shows.
 ```toml
 [extensions.solitaire]
 draw = "1"                    # or "3"
+clock = true                  # false hides the running time while you play; also T
 ```
 
 ## Yahtzee (`yahtzee`)
@@ -3314,7 +3318,9 @@ and mode, and the toggles.
 - Settings (also switched from ⌘K): `pace_caret` (`off`, `pb`,
   `average`, `last`), a fainter second caret gliding at that speed to
   race; `stop_on_error` (`off`, `letter`, `word`), which refuses a wrong
-  letter, or a space out of a wrong word.
+  letter, or a space out of a wrong word; `clock` (on by default; ⌘T),
+  the seconds left in a time test or so far in zen, which off hides (the
+  test still ends on time, the result says how long it took).
 - The clock starts on the first key. Right letters turn full colour,
   wrong ones red, extra ones trail, a word left wrong is underlined;
   Backspace goes back into a word only if it was left wrong
@@ -3382,7 +3388,9 @@ the Across and Down lists. The title line says which puzzle it is
   lays every clue over the grid.
 - **The clock** runs only while the grid is on screen: it stops when the
   panel hides, on the other screens and while paused (⌘P, or a click on
-  the clock), which covers the grid.
+  the clock), which covers the grid. ⌘T (or ⌘K, or `clock = false`)
+  hides it, pause button and all, for anyone a ticking time rushes; the
+  time still counts for the stats and shows on the finish.
 - **The finish.** A full grid with a mistake says "Not quite" without
   saying where. Solved, a wave of light runs across the grid, and the
   time shows with a new best or the streak, the constructor's note if
@@ -3402,6 +3410,7 @@ the Across and Down lists. The title line says which puzzle it is
 [extensions.crossword]
 source = "crosshare"   # what the first open and the Now row offer: haberturk, cumhuriyet, sabah
 autocheck = false      # mark a wrong letter as it is typed; also on ⌘K
+clock = true           # false hides the running time while you play (times still count); also ⌘T
 suggest = true         # today's puzzle in the root's Now section while unsolved
 ```
 
@@ -3447,7 +3456,9 @@ title line says which puzzle it is ("Sudoku · Hard, today's").
   updated). A wrong digit is always the first hint.
 - **The clock** runs only while the board is on screen: it stops when the
   panel hides, on the other screens and while paused (P or ⌘P), which
-  covers the board.
+  covers the board. T (or ⌘K, or `clock = false`) hides it, pause button
+  and all, for anyone a ticking time rushes; the time still counts for
+  the stats and shows on the finish.
 - **The finish.** A completed row, column or box sweeps with light; a
   digit's ninth copy makes all nine pulse; the solved board ripples out
   from the last digit under confetti, with the time, a new best, the
@@ -3464,6 +3475,7 @@ title line says which puzzle it is ("Sudoku · Hard, today's").
 [extensions.sudoku]
 difficulty = "medium"   # whose daily the first open shows: easy, medium, hard, expert
 check = "conflicts"     # or "mistakes": mark a digit that is not the answer as you place it; also on ⌘K
+clock = true            # false hides the running time while you play (times still count); also T
 ```
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)

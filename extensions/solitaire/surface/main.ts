@@ -12,7 +12,8 @@
 // the host side's storage reads) after every change, so Escape mid-game
 // loses nothing. The clock counts only while the page is shown: the time
 // since it was shown (or since the last change) is folded in at every
-// change and when it is hidden.
+// change and when it is hidden. The `clock` setting (T, ⌘K) only hides it
+// from the rail.
 import { DEFAULTS, F, RANKS, SUITS, SUIT_GLYPH, STOCK, WASTE, apply, canFinish, clock, finishStep, headline, isFoundation, isState, newGame, play, refusal, run, running, suitOf, type Action, type Card, type Settings, type State } from "../game.ts";
 import { dropBox, geometry, layout, overlap, slot, topBox, type Box, type Layout } from "./layout.ts";
 import type { SurfaceKit } from "@zcag/pal";
@@ -38,6 +39,7 @@ const box = (el: HTMLElement, b: Box) => Object.assign(el.style, { left: `${b.x}
 
 let st: State;
 let settings: Settings = DEFAULTS;
+let clockOn = true;
 let lay: Layout;
 
 // ---- the elements ------------------------------------------------------------
@@ -252,6 +254,7 @@ const KEYS: Record<string, Action> = {
 
 /** An action by key, by ⌘K, or by the footer. */
 function act(a: string) {
+  if (a === "clock") return toggleClock();
   if (a === "new" || (a === "select" && st.won)) return askNew();
   if (a === "select" && canFinish(st)) a = "finish";
   if (a === "finish") { clearTimeout(finishing); finishing = undefined; }
@@ -270,6 +273,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (cascading) { stopCascade(); showWon(); }
+  if (key === "t") return toggleClock();
   const a = KEYS[key];
   if (!a || (e.repeat && a === "select")) return;
   e.preventDefault();
@@ -460,7 +464,16 @@ function stopCascade() {
 // ---- the panel: actions, settings, shown and hidden ------------------------------
 
 pal.onAction(act);
-pal.onSettings((s) => (settings = { ...DEFAULTS, ...s } as Settings));
+function showClock(on: boolean) { clockOn = on; body.classList.toggle("noclock", !on); }
+function toggleClock() {
+  showClock(!clockOn);
+  pal.send({ clock: clockOn }).catch((e) => console.error(`solitaire: clock: ${e}`));
+}
+function applySettings(s: Record<string, unknown>) {
+  settings = { ...DEFAULTS, ...s } as Settings;
+  showClock(s.clock !== false);
+}
+pal.onSettings(applySettings);
 pal.onShown(() => {
   since ??= Date.now();
   startTick();
@@ -478,7 +491,7 @@ addEventListener("resize", () => snap());
 // ---- the first frame -------------------------------------------------------------
 
 const [stored, s] = await Promise.all([pal.storage.get(KEY).catch(() => undefined), pal.settings().catch(() => ({}))]);
-settings = { ...DEFAULTS, ...s } as Settings;
+applySettings(s);
 const fresh = !isState(stored);
 st = fresh ? newGame(settings) : { ...stored, held: undefined, note: undefined, drawn: [] };
 snap();

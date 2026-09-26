@@ -65,6 +65,14 @@
       "text": "A row in the root's Now section while today's mini is unsolved",
       "description": "Only once you have solved a puzzle, and gone as soon as today's is solved.",
       "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "clock",
+      "label": "Clock",
+      "text": "Show the time while you play",
+      "description": "Off hides the running time. Your times still count for stats and show when you finish. Also ⌘T or ⌘K in the game.",
+      "default": true
     }
   ],
   "store": {
@@ -77,7 +85,7 @@
       "The NYT Mini's keys: type to fill (full squares skipped), Backspace steps back, an arrow across the word turns first, Space or a click on the square turns, Tab and Shift-Tab walk the clues",
       "The clue you are on large above the lists, the lists beside the grid with the crossing clue lit and finished clues greyed",
       "Check or reveal a square, a word or the whole grid, and clear a word or the grid; wrong letters get a slash, revealed ones a corner mark; autocheck if you like",
-      "A clock that runs only while the grid is on screen, and a pause that hides the grid",
+      "A clock that runs only while the grid is on screen, and a pause that hides the grid; ⌘T hides the clock if it rushes you (times still count)",
       "A wave across the grid when it is solved, your time and whether it is a best; a full grid with a mistake says Not quite without saying where",
       "Browse a calendar per source, month by month, and Crosshare's newest minis, each puzzle marked solved, started or new",
       "Stats per source: solved, best and average time, the daily streak and the best one, a chart of recent times, the history",
@@ -157,6 +165,11 @@
         "title": "Pause",
         "description": "Stops the clock and hides the grid.",
         "keys": "cmd+p"
+      },
+      {
+        "title": "Hide the clock",
+        "description": "No running time on screen; again to bring it back. Times still count.",
+        "keys": "cmd+t"
       }
     ]
   },

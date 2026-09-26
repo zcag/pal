@@ -15,7 +15,8 @@
 // when it leaves (`pal.onShown` / `pal.onHidden`), `settle` on load for a
 // run the panel never ended. The level picker writes the difficulty
 // setting through the extension (`pal.send({ difficulty })`, which calls
-// `settings.set`), so the settings page and the page agree.
+// `settings.set`), so the settings page and the page agree; so does T,
+// which hides the clock (the `clock` setting) while it keeps counting.
 import { LEVELS, adopt, apply, around, count, elapsed, isChord, isState, levelOf, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, clockText, type Action, type Dir, type Level, type State } from "../game.ts";
 import { blast, confetti } from "./fx.ts";
 import type { SurfaceKit } from "@zcag/pal";
@@ -32,6 +33,7 @@ const toast = $("#toast"), prompt = $("#prompt");
 let st: State;
 let level: Level = "beginner";
 let hidden = false;
+let clockOn = true;
 
 // ---- persistence and the title ------------------------------------------
 
@@ -272,6 +274,7 @@ window.addEventListener("keydown", (e) => {
   else if (k === "/" || k === "f" || k === " ") act("flag");
   else if (k === "n") startOver();
   else if (k === "d" || k === "Tab") { picking = ORDER.indexOf(st.level); showPicker(); }
+  else if (k === "t") toggleClock();
 });
 pal.onAction((id) => {
   if (asking) answer(false);
@@ -279,7 +282,14 @@ pal.onAction((id) => {
   else if (id === "flag") act("flag");
   else if (id === "new") startOver();
   else if (id === "level") { picking = ORDER.indexOf(st.level); showPicker(); }
+  else if (id === "clock") toggleClock();
 });
+
+function showClock(on: boolean) { clockOn = on; document.body.classList.toggle("noclock", !on); }
+function toggleClock() {
+  showClock(!clockOn);
+  pal.send({ clock: clockOn }).catch((e) => console.error(`minesweeper: clock: ${e}`));
+}
 
 // ---- the pointer ------------------------------------------------------------
 // Left opens where it is let go, and on a satisfied number opens around it;
@@ -364,12 +374,15 @@ pal.onShown(() => {
   tick();
 });
 pal.onSettings((s) => {
+  showClock(s.clock !== false);
   level = levelOf(s.difficulty);
   commit(adopt(st, level));
 });
 
 async function start() {
-  level = levelOf((await pal.settings()).difficulty);
+  const s = await pal.settings();
+  showClock(s.clock !== false);
+  level = levelOf(s.difficulty);
   const stored = await pal.storage.get(KEY);
   st = resume(adopt(settle(isState(stored) ? stored : newGame(level)), level), Date.now());
   build();

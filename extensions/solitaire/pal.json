@@ -18,6 +18,14 @@
         { "id": "3", "title": "Three cards" }
       ],
       "default": "1"
+    },
+    {
+      "kind": "boolean",
+      "id": "clock",
+      "label": "Clock",
+      "text": "Show the time while you play",
+      "description": "Off hides the running time beside the table. Your time still shows when you win. Also T or ⌘K in the game.",
+      "default": true
     }
   ],
   "store": {
@@ -92,6 +100,11 @@
         "title": "New game",
         "description": "Asks first mid-game; the game counts as lost.",
         "keys": "n"
+      },
+      {
+        "title": "Hide the clock",
+        "description": "No running time beside the table; again to bring it back.",
+        "keys": "t"
       }
     ]
   },

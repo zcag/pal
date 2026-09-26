@@ -17,6 +17,7 @@ import {
 } from "../../../extensions/crossword/game.ts";
 import { fromIpuz } from "../../../extensions/crossword/ipuz.ts";
 import type { Entry, MonthView, NewestView, Offline, Opened, SolvedReply, StatsView } from "../../../extensions/crossword/index.ts";
+import type { View } from "../../../sdk/src/protocol.ts";
 import { isBest, streaks, summary, type Solve } from "../../../extensions/crossword/stats.ts";
 import type { Data } from "../../../extensions/crossword/store.ts";
 import { CART, DUMP, TALL, fakeCrosshare, ipuz, monthPage, tagPage } from "./crossword-fixtures.ts";
@@ -383,6 +384,17 @@ describe("the extension", () => {
       const m = await send<MonthView>({ op: "month", year: 2025, month: 1 });
       expect(m.error).toContain("503");
     } finally { site.down = false; }
+  });
+
+  test("the clock is shown until the page hides it (⌘T): the setting written, the ⌘K title following", async () => {
+    const clockAction = (v: View) => v.actions.find((a) => a.id === "clock");
+    expect(clockAction(await host.request<View>("view", { extension: "crossword", palette: "crossword" }))).toMatchObject({ title: "Hide the clock", shortcut: "cmd+t" });
+    const push = send<{ clock: boolean }>({ op: "clock", on: false });
+    await host.nextViewUpdate("crossword", { palette: "crossword" }, (x) => clockAction(x.spec as View)?.title === "Show the clock");
+    expect(await push).toEqual({ clock: false });
+    expect(host.written.get("crossword")?.clock).toBe(false);
+    expect(await send<{ clock: boolean }>({ op: "clock", on: true })).toEqual({ clock: true });
+    expect(host.written.get("crossword")?.clock).toBeUndefined();
   });
 
   test("the Now row: today's mini while it is unsolved, once one has been solved; Enter opens it by date", async () => {

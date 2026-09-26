@@ -12,7 +12,8 @@
 // changed.
 //
 // The clock runs while the board is on screen, unsolved, not paused and not
-// hidden (`pal.onHidden`); the time so far rides in every save.
+// hidden (`pal.onHidden`); the time so far rides in every save. The `clock`
+// setting (T, ⌘K) only hides it: the time still counts for the stats.
 import type { SurfaceKit } from "@zcag/pal";
 import {
   applyHint, clearNotes, clockText, decode, digitCounts, encode, erase, fillNotes, hint, isFull, isSolved, newPlay, place, toggleNote, unitsDone, wrongCells,
@@ -41,6 +42,7 @@ let at = 40;
 let notesMode = false;
 let undos: Play[] = [], redos: Play[] = [];
 let check: Check = "conflicts";
+let clockOn = true;
 let paused = false, hidden = false, seasoned = false;
 
 // ---- the extension -----------------------------------------------------------------
@@ -398,6 +400,10 @@ function run(id: string) {
   if (id === "stats") return screen === "stats" ? backToPlay() : void openStats();
   if (id === "keys") return openHelp();
   if (id === "next") return nextPlay().go();
+  if (id === "clock") return void send<{ clock: boolean }>({ op: "clock", on: !clockOn }).then((r) => {
+    showClock(r?.clock ?? !clockOn);
+    flash(clockOn ? "The clock is back" : "The clock is hidden, T brings it back");
+  });
   if (id === "check") return void send<{ check: Check }>({ op: "check", mode: check === "mistakes" ? "conflicts" : "mistakes" }).then((r) => {
     check = r?.check ?? check;
     draw();
@@ -477,6 +483,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "a") return run(e.shiftKey ? "clear-notes" : "fill");
   if (k === "i" || (e.key === "Enter" && tip)) return run("hint");
   if (k === "p") return run("pause");
+  if (k === "t") return run("clock");
 });
 pal.onAction((id) => run(id));
 
@@ -505,6 +512,8 @@ $("#cover").addEventListener("click", () => setPaused(false));
 doneEl.addEventListener("click", (e) => { const go = (e.target as HTMLElement).closest<HTMLElement>("[data-go]")?.dataset.go; if (go) run(go); });
 
 // ---- pause, help, the menu, the question -------------------------------------------------------
+
+function showClock(on: boolean) { clockOn = on; body.classList.toggle("noclock", !on); }
 
 function setPaused(on: boolean) {
   if (st.done && on) return;
@@ -725,10 +734,14 @@ function load(o: Opened) {
 
 pal.onHidden(() => { hidden = true; syncClock(); save(); });
 pal.onShown(() => { hidden = false; syncClock(); });
-pal.onSettings((s) => { check = (s as { check?: Check }).check === "mistakes" ? "mistakes" : "conflicts"; if (opened) draw(); });
+function applySettings(s: { check?: Check; clock?: boolean }) {
+  check = s.check === "mistakes" ? "mistakes" : "conflicts";
+  showClock(s.clock !== false);
+}
+pal.onSettings((s) => { applySettings(s); if (opened) draw(); });
 
 async function start() {
-  check = ((await pal.settings()) as { check?: Check }).check === "mistakes" ? "mistakes" : "conflicts";
+  applySettings(await pal.settings());
   const first = openPuzzle({ op: "open" });
   void Promise.all(DIFFS.map((diff) => send<{ solved?: number } | null>({ op: "stats", diff }).catch(() => null)))
     .then((xs) => { seasoned = xs.reduce((n, s) => n + (s?.solved ?? 0), 0) >= 3; if (opened) hintLine(); });

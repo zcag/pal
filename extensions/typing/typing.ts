@@ -51,14 +51,16 @@ export type Pace = (typeof PACES)[number];
 /** Stop on error: a wrong letter is not taken (`letter`), or a wrong word cannot be left with space (`word`). */
 export const STOPS = ["off", "letter", "word"] as const;
 export type Stop = (typeof STOPS)[number];
-export type Options = { pace: Pace; stop: Stop };
+/** `clock`: the seconds (left in a time test, so far in zen) shown while typing; off hides them. */
+export type Options = { pace: Pace; stop: Stop; clock: boolean };
 
-/** The extension's settings (`pace_caret`, `stop_on_error`), anything unknown off. */
+/** The extension's settings (`pace_caret`, `stop_on_error`, `clock`), anything unknown off (the clock on). */
 export function optionsOf(s: unknown): Options {
   const o = (s && typeof s === "object" ? s : {}) as Record<string, unknown>;
   return {
     pace: PACES.includes(o.pace_caret as Pace) ? (o.pace_caret as Pace) : "off",
     stop: STOPS.includes(o.stop_on_error as Stop) ? (o.stop_on_error as Stop) : "off",
+    clock: o.clock !== false,
   };
 }
 
@@ -392,7 +394,7 @@ export function rolling(xs: readonly number[], n = 10): number[] {
 // ---- the view's actions and title ----------------------------------------------------------------------------
 
 /** Every option as ⌘K lists it: a new test and the stats first, then the modes and lengths not in use, the toggles, and the settings' other values. */
-export function viewActions(c: Config, o: Options = { pace: "off", stop: "off" }): Action[] {
+export function viewActions(c: Config, o: Options = { pace: "off", stop: "off", clock: true }): Action[] {
   const out: Action[] = [{ id: "restart", title: "New test", shortcut: "tab" }, { id: "stats", title: "Stats and history" }];
   for (const t of TIMES) if (c.mode !== "time" || c.time !== t) out.push({ id: `time:${t}`, title: `Time: ${t} seconds` });
   for (const n of COUNTS) if (c.mode !== "words" || c.words !== n) out.push({ id: `words:${n}`, title: `Words: ${n}` });
@@ -401,6 +403,7 @@ export function viewActions(c: Config, o: Options = { pace: "off", stop: "off" }
   out.push({ id: "numbers", title: c.numbers ? "Numbers off" : "Numbers on" });
   for (const p of PACES) if (p !== o.pace) out.push({ id: `pace:${p}`, title: `Pace caret: ${PACE_TITLES[p]}` });
   for (const x of STOPS) if (x !== o.stop) out.push({ id: `stop:${x}`, title: `Stop on error: ${STOP_TITLES[x]}` });
+  out.push(o.clock ? { id: "clock:off", title: "Hide the clock", shortcut: "cmd+t" } : { id: "clock:on", title: "Show the clock", shortcut: "cmd+t" });
   return out;
 }
 
@@ -416,9 +419,10 @@ export function configure(c: Config, id: string): Config {
   return c;
 }
 
-/** An action id as a settings write (`pace:pb` → `{ pace_caret: "pb" }`), if it is one. */
-export function settingOf(id: string): Record<string, string> | undefined {
+/** An action id as a settings write (`pace:pb` → `{ pace_caret: "pb" }`, `clock:off` → `{ clock: false }`), if it is one. */
+export function settingOf(id: string): Record<string, string | boolean> | undefined {
   const [what, arg] = id.split(":");
+  if (what === "clock" && (arg === "on" || arg === "off")) return { clock: arg === "on" };
   if (what === "pace" && PACES.includes(arg as Pace)) return { pace_caret: arg };
   if (what === "stop" && STOPS.includes(arg as Stop)) return { stop_on_error: arg };
   return undefined;

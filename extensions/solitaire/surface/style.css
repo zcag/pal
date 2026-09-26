@@ -88,6 +88,7 @@ body:not(.kbd) #ring, #ring.off { opacity: 0; }
 #rail { position: fixed; display: flex; flex-direction: column; gap: 10px; padding: 4px 0 0; }
 .stats { margin: 0; display: grid; gap: 7px; }
 .stats div { display: grid; gap: 1px; }
+body.noclock #time-row { display: none; }
 dt { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pal-fg-muted, #5c5d66); }
 dd { margin: 0; font: 600 15px/1.2 var(--pal-font-ui, system-ui); font-variant-numeric: tabular-nums; }
 #record { font-size: 13px; }

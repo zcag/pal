@@ -240,6 +240,17 @@ describe("over the wire", () => {
     const v = await host.request<View>("view", { extension: "minesweeper", palette: "minesweeper" });
     expect(v.tree as unknown).toEqual({ type: "surface", src: "surface/index.html" });
     expect(v.title).toBe("Minesweeper");
-    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["open", "enter"], ["flag", ["/", "f", "space"]], ["new", "n"], ["level", "d"]]);
+    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["open", "enter"], ["flag", ["/", "f", "space"]], ["new", "n"], ["level", "d"], ["clock", "t"]]);
+    expect(v.actions.at(-1)?.title).toBe("Hide the clock");
+  });
+  test("the page hides the clock (T): the setting written, the ⌘K title following; the difficulty as before", async () => {
+    const push = host.surfaceSend("minesweeper", "minesweeper", { clock: false });
+    const u = await host.nextViewUpdate("minesweeper", { palette: "minesweeper" });
+    expect(await push).toEqual({ clock: false });
+    expect(host.written.get("minesweeper")?.clock).toBe(false);
+    expect((u.spec as View).actions.at(-1)?.title).toBe("Show the clock");
+    expect(await host.surfaceSend("minesweeper", "minesweeper", { difficulty: "expert" })).toEqual({ difficulty: "expert" });
+    expect(await host.surfaceSend("minesweeper", "minesweeper", { clock: true })).toEqual({ clock: true });
+    expect(host.written.get("minesweeper")).toEqual({ difficulty: "expert" });
   });
 });
