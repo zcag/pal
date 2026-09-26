@@ -8,7 +8,7 @@ slab with a glowing caret">
 
 **A Spotlight replacement for macOS and Linux, with menu bar items of its
 own.**<br>
-One hotkey, one search over your apps, files, clipboard, windows and 179
+One hotkey, one search over your apps, files, clipboard, windows and 192
 palettes. Every palette and every bar item is a TypeScript extension you
 can read, change and write.
 
@@ -16,7 +16,7 @@ can read, change and write.
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20silicon%20%7C%20Intel-black?logo=apple)
 ![Linux](https://img.shields.io/badge/Linux-X11%20%7C%20Wayland-black?logo=linux&logoColor=white)
-[![Extensions](https://img.shields.io/badge/extensions-69-8b7cf6)](https://pal.cagdas.io/extensions)
+[![Extensions](https://img.shields.io/badge/extensions-79-8b7cf6)](https://pal.cagdas.io/extensions)
 
 [Website](https://pal.cagdas.io) ·
 [Extension store](https://pal.cagdas.io/extensions) ·
@@ -45,7 +45,7 @@ Chrome, <code>12 usd to try</code> is answered at the root,
   ranked by what you pick. A sum, a currency, a colour, a path or an
   address is answered inline; a query nothing matches falls back to the
   web, a quicklink or a palette.
-- **179 palettes in 69 extensions, bundled.** Clipboard History, Files and
+- **192 palettes in 79 extensions, bundled.** Clipboard History, Files and
   Window Management next to GitHub, Gmail, Slack, Spotify, Calendar, Hue,
   Docker, Obsidian, 1Password, Home Assistant, Immich and a few games.
   Each has its own actions, keys and settings ([Palettes](docs/palettes.md)).
