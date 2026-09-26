@@ -468,8 +468,10 @@ describe("the extension", () => {
     expect(await host.pick("flashcards", "flashcard-anki", "42", "open")).toEqual({ open: "https://ankiweb.net/shared/info/42" });
     expect(await host.pick("flashcards", "flashcard-anki", "42", "add")).toMatchObject({ toast: { title: "Downloading Spanish Animals" }, keep: true });
     await host.until(() => saved().active?.includes("anki-42") ?? false, 5000, "the deck in practice");
-    const added = (await host.list("flashcards", "flashcard-anki", "spanish"))[0];
-    expect(added.accessories?.[0]).toEqual({ tag: "Added", color: "green" });
+    // The deck joins practice a beat before the download's own state settles; the row follows that state, so wait for it too (a CI runner saw "Downloading…").
+    let added: Awaited<ReturnType<typeof host.list>>[number] | undefined;
+    await host.until(async () => JSON.stringify((added = (await host.list("flashcards", "flashcard-anki", "spanish"))[0])?.accessories?.[0]).includes("\"Added\""), 5000, "the row marked Added");
+    expect(added!.accessories?.[0]).toEqual({ tag: "Added", color: "green" });
     expect(await host.pick("flashcards", "flashcard-anki", "42", "study")).toEqual({ push: { extension: "flashcards", palette: "flashcards", args: { pack: "anki-42" } } });
     const r = await send({ op: "open" }, { pack: "anki-42" });
     expect(r.screen === "card" && r.card).toMatchObject({ prompt: "el gato", answer: "the cat", audio: true });

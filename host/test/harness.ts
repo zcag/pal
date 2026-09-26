@@ -259,11 +259,11 @@ export class Host {
   loaded(): Loaded[] { return this.seen<Loaded>("extension/loaded"); }
   failed(): Failed[] { return this.seen<Failed>("extension/error"); }
 
-  /** Polls until `pred` holds. A wait sized for this Mac gets three times as long on the CI runner (`CI` set): its 1 Hz ticks and detached processes have missed 2.5 s budgets there that never miss here. */
-  async until(pred: () => boolean, timeout = 3000, what = "condition"): Promise<void> {
+  /** Polls until `pred` holds (it may be async: a list asked again each round). A wait sized for this Mac gets three times as long on the CI runner (`CI` set): its 1 Hz ticks and detached processes have missed 2.5 s budgets there that never miss here. */
+  async until(pred: () => boolean | Promise<boolean>, timeout = 3000, what = "condition"): Promise<void> {
     const t0 = Date.now();
     timeout *= process.env.CI ? 3 : 1;
-    while (!pred()) {
+    while (!(await pred())) {
       if (Date.now() - t0 > timeout) throw new Error(`${what} not met within ${timeout} ms`);
       await Bun.sleep(10);
     }

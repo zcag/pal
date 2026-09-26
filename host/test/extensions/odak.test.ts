@@ -342,7 +342,7 @@ describe("odak", () => {
       expect(await host.barAction("odak", "today", "open-pal")).toEqual({ push: { extension: "odak", palette: "odak" } });
       const gets = calls("GET", "/todos").length;
       expect(await host.barAction("odak", "today", "refresh")).toEqual({ keep: true });
-      await host.until(() => calls("GET", "/todos").length === gets + 1, 3000, "the refetch"); // the action answers before its fetch lands
+      await host.until(() => calls("GET", "/todos").length > gets, 3000, "the refetch"); // the action answers before its fetch lands; a background refresh may land too, so at least one more
     });
 
     test("n opens the field (the search row types a todo), Enter adds it through the add grammar and closes the field, an empty one is refused, Escape closes", async () => {
