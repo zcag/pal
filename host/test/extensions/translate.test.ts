@@ -116,7 +116,8 @@ const sayLog = join(dir, "say.log");
 const say = join(dir, "say");
 writeTool(say, `#!/bin/sh\nprintf '%s\\t%s\\n' "$1" "$2" >> "${sayLog}"\n`);
 
-const spoken = () => (existsSync(sayLog) ? readFileSync(sayLog, "utf8").trim().split("\n") : []);
+// Lines only: `>>` creates the file before printf writes, and an empty file read then passed the wait with nothing in it (CI, 2026-09-26).
+const spoken = () => (existsSync(sayLog) ? readFileSync(sayLog, "utf8").split("\n").filter(Boolean) : []);
 
 const { server, requests, base } = startMock();
 
