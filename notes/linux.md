@@ -623,7 +623,11 @@ broker answers from marko over ssh, tested by hand first), tela and
 WhatsApp through `env:` secret references carried in the launch env),
 `XDG_DATA_HOME=/tmp/pal-scratch/data` (the log lands at
 `$XDG_DATA_HOME/pal/pal.log`, `core/src/log.rs`, not under `XDG_STATE_HOME`),
-`XDG_STATE_HOME` and `XDG_CACHE_HOME` under the same dir, the handover
+`XDG_STATE_HOME` and `XDG_CACHE_HOME` under the same dir (⚠️ never
+`XDG_CACHE_HOME` again: `login_path` in `core/src/env.rs` runs his `zsh -l -i`
+with the launch env, antidote took its home from that cache and rewrote
+`~/.zsh_plugins.zsh` to `/tmp/pal-scratch/cache/antidote/...`, so every marko
+shell broke once `/tmp` was cleared; fixed 2026-09-27 by deleting the file), the handover
 marker written before every hand start. Driven from the Mac over ssh with
 `hyprctl`, `ydotool` and `grim` on the window found by title. Nothing of
 the daily instance was restarted; see "The daily instance" below for what
