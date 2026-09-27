@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1 · 2026-09-27
+
+- **Searches show what they have right away**: the fast part of a search appears at once and the rest joins below it, instead of the list waiting for the slowest part. Files lists name matches before the matches inside files, GitHub your own items before the rest, Gmail and WhatsApp messages before their pictures and contact names, Immich, GIFs and Spotify rows before their images, Maps your saved places before the lookup. The row you are on stays put while rows arrive.
+- **Google Search results in the list**: with Show results set to As I type, the answer and the top five results join the list under the suggestions once you pause typing (one search per pause, none while you keep typing).
+- **Fixed: focus after closing pal**: closing the panel sometimes left the keyboard with pal's invisible window, so typing did nothing until you clicked or switched Space. The app you were in gets it back now.
+- **Sudoku**: quieter pencil marks, a clearer mistake count that shakes when one is added, undo takes back the mistake too, and the selected cell can be let go with a click.
+- **Crossword**: the big panel scales the whole page, so the clues and lists grow with the grid.
+- **For extension authors**: `ctx.partial(items)` shows rows while a slow `list` is still working (docs: Slow listings).
+
 ## 0.7.0 · 2026-09-26
 
 - **Sudoku**: puzzles made on your Mac, a daily one per difficulty from Easy to Expert, graded by the techniques a person needs. Pencil marks without a mode: type a second digit over one you placed and the cell becomes notes, or right-click a pad key. Auto notes (C) keeps every cell's candidates up to date while you only take marks out, digit first (D) lights every cell a digit can still go, and hints come in three steps: where to look, why in plain words, then the move.
