@@ -22,12 +22,15 @@
  * badge's colour (the item's when unset).
  */
 import type { CSSProperties, ReactNode } from "react";
+import { inkOn } from "./View.tsx";
 
 export type BarColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal" | "text" | "muted" | "accent" | "destructive";
 export type BarSegment = { id: string; icon?: string; text?: string; color?: BarColor | string };
 export type BarStripItem = {
   hidden?: boolean; icon?: string; title?: string; segments?: BarSegment[]; badge?: number | "dot";
   color?: BarColor | string | null; urgent?: boolean; stale?: boolean; progress?: number; tooltip?: string;
+  /** sketchybar only: a band behind the item (`sketchybar.rs`, 22 pt, rounded), the ink by contrast unless `color` names one. */
+  background?: string;
 };
 export type BarStripTarget = "menubar" | "sketchybar";
 export type BarStripTheme = "dark" | "light";
@@ -98,9 +101,9 @@ const withAlpha = (hex: string, alpha: number) => {
   return m ? `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})` : hex;
 };
 
-/** A run of the strip: a Nerd glyph in the symbols font, anything else in the text font. */
+/** A run of the strip: Nerd glyphs (one, or several spaced like privacy's `󰖠 󰍬`) in the symbols font, anything else in the text font. */
 function Glyph({ value, className, style }: { value: string; className?: string; style?: CSSProperties }) {
-  return <span className={className} data-symbol={/^[\p{Co}]$/u.test(value) || undefined} style={style}>{value}</span>;
+  return <span className={className} data-symbol={/^\s*\p{Co}[\p{Co}\s]*$/u.test(value) || undefined} style={style}>{value}</span>;
 }
 
 // ---- menu bar -----------------------------------------------------------------
@@ -235,7 +238,8 @@ export function SketchyItem({ item, theme, look = defaultLook, anchor }: { item:
   const spec = (c: string | null | undefined, fallback: string) => (c ? (isHex(c) ? hexOf(c) : (pal.map as Record<string, string>)[c] ?? fallback) : fallback);
   const muted = withAlpha(pal.map.muted, look.dim / 100);
   const colorOf = (c: string | null | undefined, fallback: string) => (item.stale ? muted : c === "muted" ? muted : spec(c, fallback));
-  const itemColor = item.urgent ? spec(look.urgentColor, pal.map.destructive) : colorOf(item.color, pal.text);
+  const band = item.background ? spec(item.background, pal.text) : undefined;
+  const itemColor = item.urgent ? spec(look.urgentColor, pal.map.destructive) : band && (!item.color || item.color === "text") ? (inkOn(band) === "#000" ? "#1a1a1f" : "#fff") : colorOf(item.color, pal.text);
   // `Draw::badge_tint`: the look's badge colour, else the item's; stale mutes it with the rest.
   const badgeColor = item.stale && !item.urgent ? muted : look.badgeColor ? spec(look.badgeColor, itemColor) : itemColor;
   const iconColor = item.badge === "dot" ? badgeColor : itemColor;
@@ -250,7 +254,7 @@ export function SketchyItem({ item, theme, look = defaultLook, anchor }: { item:
   if (look.width > 0 && title) { labelStyle.minWidth = look.width; labelStyle.maxWidth = look.width; labelStyle.overflow = "hidden"; }
   const sp = look.spacing;
   // `opacity` is every colour's alpha on sketchybar; the strip fades the group as one.
-  const group: CSSProperties = { ...(item.urgent ? { background: pal.urgentBg } : {}), ...(look.opacity < 100 ? { opacity: look.opacity / 100 } : {}) };
+  const group: CSSProperties = { ...(item.urgent ? { background: pal.urgentBg } : band ? { background: band, borderRadius: 6 } : {}), ...(look.opacity < 100 ? { opacity: look.opacity / 100 } : {}) };
   return (
     <span ref={anchor} className="g-sb__group" data-urgent={item.urgent || undefined} style={group}>
       <span className="g-sb__item">

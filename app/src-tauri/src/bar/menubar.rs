@@ -86,7 +86,17 @@ pub fn clip(s: &str, max: usize) -> String {
 /// the text stays title text.
 pub fn prerendered(draw: &Draw) -> bool {
     let l = &draw.look;
-    (l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0 || l.opacity < 100 || l.badge_color.is_some()) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
+    (glyph_run(draw).is_some() || l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0 || l.opacity < 100 || l.badge_color.is_some()) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
+}
+
+/// An icon of several Nerd glyphs (privacy's `󰖠 󰍬`): the system face of
+/// the title has none of them, so it is drawn into the image by
+/// [`glyph::strip`], which takes each from the symbols font.
+fn glyph_run(draw: &Draw) -> Option<String> {
+    match draw.item.icon_kind() {
+        Some(IconKind::Text(t)) if t.chars().any(glyph::has_glyph) && t.chars().all(|c| c.is_whitespace() || glyph::has_glyph(c)) => Some(t),
+        _ => None,
+    }
 }
 
 /// ` ·3` for a count badge, else nothing: what follows [`runs`] in the
@@ -126,7 +136,9 @@ pub fn body(draw: &Draw) -> String {
 pub fn title_text(draw: &Draw) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some(IconKind::Text(t)) = draw.item.icon_kind() {
-        parts.push(t);
+        if glyph_run(draw).is_none() {
+            parts.push(t);
+        }
     }
     if !prerendered(draw) {
         parts.push(body(draw));
@@ -180,6 +192,10 @@ fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>
     let img = if prerendered(draw) {
         let l = &draw.look;
         let (text, badge) = (runs(draw), badge_text(draw));
+        let text = match glyph_run(draw) {
+            Some(icon) => format!("{icon}  {text}").trim_end().to_string(),
+            None => text,
+        };
         let badge = if text.is_empty() { badge.trim_start().to_string() } else { badge };
         glyph::strip(glyph, &glyph::Text { text, badge, mono: l.font == BarFont::Mono, spacing: l.spacing as f32, size: draw.label_size() as f32, width: l.width as f32 }, &style)?
     } else {
@@ -364,6 +380,16 @@ mod tests {
     fn with(item: serde_json::Value, look: BarLook) -> Draw {
         let d = draw(item);
         Draw { item: d.item.shaped(&look), look, ..d }
+    }
+
+    #[test]
+    fn an_icon_of_several_glyphs_is_drawn_into_the_image() {
+        let run = draw(json!({ "icon": "\u{f05a0} \u{f036c}" }));
+        assert!(prerendered(&run) || !glyph::can_strip(false), "a glyph run needs the strip");
+        assert_eq!(title_text(&run), "", "not system-face title text, where the glyphs would be boxes");
+        let words = draw(json!({ "icon": "2 low" }));
+        assert!(glyph_run(&words).is_none() && !prerendered(&words));
+        assert_eq!(title_text(&words), "2 low");
     }
 
     #[test]
