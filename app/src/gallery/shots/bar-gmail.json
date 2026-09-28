@@ -137,25 +137,17 @@
     }
   ],
   "shots": {
-    "bar-menubar-dark": {
+    "menubar": {
       "target": "menubar",
-      "theme": "dark",
       "caption": "On the menu bar: the envelope with the unread count, the account's title beside it"
     },
-    "bar-menubar-light": {
+    "popover": {
       "target": "menubar",
-      "theme": "light",
-      "caption": "The same item on a light menu bar"
-    },
-    "bar-menubar-popover": {
-      "target": "menubar",
-      "theme": "light",
       "popover": true,
       "caption": "A click opens the popover: the newest five unread, each with Open and Mark as read, then Open in pal and Open Gmail"
     },
-    "bar-sketchybar": {
+    "sketchybar": {
       "target": "sketchybar",
-      "theme": "dark",
       "caption": "On sketchybar: the glyph, the title and the count"
     }
   }

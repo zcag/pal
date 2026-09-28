@@ -65,12 +65,12 @@ try {
       [`images/${hero}:web`]: { view: web.view },
     },
     shots: {
-      "1-images": { palette: "images", keys: ["down"] },
-      "2-actions": { palette: "images", keys: ["down", "cmd+k"] },
-      "3-detail": { palette: "images", keys: ["down*3"] },
-      "4-resize": { palette: "images", keys: ["down", "cmd+shift+r"] },
-      "5-convert": { palette: "images", keys: ["down", "cmd+shift+v", "down"] },
-      "6-web": { palette: "images", keys: ["down", "cmd+enter"] },
+      "1-images": { palette: "images", keys: ["down"], caption: "The images at hand: the Finder selection and the clipboard, each with its size and dimensions, the result of a compression under Results" },
+      "2-actions": { palette: "images", keys: ["down", "cmd+k"], caption: "Every operation on a row: compress, optimise for web, resize, convert, rotate, crop, strip, grayscale, icon set, OCR, info" },
+      "3-detail": { palette: "images", keys: ["down*3"], caption: "The detail pane: the picture, dimensions, format, colour, camera and exposure" },
+      "4-resize": { palette: "images", keys: ["down", "cmd+shift+r"], caption: "Resize: the presets and a typed size, each row saying the pixels it lands on" },
+      "5-convert": { palette: "images", keys: ["down", "cmd+shift+v", "down"], caption: "Convert: the formats, each row naming the tool that writes it, a missing tool named" },
+      "6-web": { palette: "images", keys: ["down", "cmd+enter"], caption: "Optimise for web: the before and after of every image, the saving as a tag, the total at the bottom" },
     },
   };
   const text = JSON.stringify(fixture, null, 2).split(join(dir, "cache", "clipboard")).join("~/Library/Caches/pal/images/clipboard").split(dir).join("~/Desktop/site");

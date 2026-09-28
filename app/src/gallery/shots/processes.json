@@ -1566,27 +1566,31 @@
   "shots": {
     "1-list": {
       "palette": "processes",
-      "keys": []
+      "keys": [],
+      "caption": "Processes by CPU then memory; a busy one is tagged with its share"
     },
     "2-port": {
       "palette": "processes",
       "keys": [
         "type::"
-      ]
+      ],
+      "caption": ": lists every TCP listener with its port as a tag; :80 narrows to the ports starting with 80"
     },
     "3-confirm": {
       "palette": "processes",
       "keys": [
         "down",
         "enter"
-      ]
+      ],
+      "caption": "Kill asks before SIGTERM"
     },
     "4-actions": {
       "palette": "processes",
       "keys": [
         "down*2",
         "cmd+k"
-      ]
+      ],
+      "caption": "Kill, Force kill, Copy PID, Open in Activity Monitor"
     }
   }
 }

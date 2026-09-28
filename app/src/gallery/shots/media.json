@@ -148,18 +148,21 @@
   "shots": {
     "1-players": {
       "palette": "media",
-      "keys": []
+      "keys": [],
+      "caption": "One row per player: Spotify playing, Music paused, a browser with nothing loaded"
     },
     "2-actions": {
       "palette": "media",
       "keys": [
         "cmd+k"
-      ]
+      ],
+      "caption": "The transport on a row: pause, next, previous, copy the track, open it in the player"
     },
     "3-root": {
       "keys": [
         "type:blue monday"
-      ]
+      ],
+      "caption": "The playing track found from the root by its title"
     }
   }
 }

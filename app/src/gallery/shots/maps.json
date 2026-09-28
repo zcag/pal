@@ -779,13 +779,15 @@
       "palette": "maps",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Nothing typed: Home, Work, the commute both ways and the saved places"
     },
     "2-search": {
       "palette": "maps",
       "keys": [
         "type:kadıköy"
-      ]
+      ],
+      "caption": "kadıköy typed: Search, directions from here, home and work, a saved place that matches"
     },
     "3-route": {
       "palette": "maps",
@@ -793,7 +795,8 @@
         "type:home > work",
         "tab",
         "tab"
-      ]
+      ],
+      "caption": "home > work: the route and its reverse, walking chosen as the mode"
     },
     "4-autocomplete": {
       "palette": "maps",
@@ -801,7 +804,8 @@
         "type:Moda Sah",
         "wait:400",
         "down*4"
-      ]
+      ],
+      "caption": "With a Places API key: predictions under the rows"
     },
     "5-actions": {
       "palette": "maps",
@@ -809,7 +813,8 @@
         "type:kadıköy",
         "down*5",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a place can do: open, directions from here, from home, from work, copy the address or the link"
     }
   }
 }

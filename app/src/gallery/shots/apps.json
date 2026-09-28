@@ -1073,26 +1073,30 @@
       "palette": "apps",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "The applications, their source as the subtitle, the running ones tagged"
     },
     "2-search": {
       "keys": [
         "type:ma"
-      ]
+      ],
+      "caption": "Typing at the root: the name, the bundle id and the display name all match"
     },
     "3-actions": {
       "palette": "apps",
       "keys": [
         "down*12",
         "cmd+k"
-      ]
+      ],
+      "caption": "A running app: Open, Quit, Hide, Reveal in Finder, Copy path, Copy bundle id"
     },
     "4-panes": {
       "palette": "apps",
       "keys": [
         "type:settings",
         "down*3"
-      ]
+      ],
+      "caption": "The System Settings panes are rows too, found by what they hold"
     }
   }
 }

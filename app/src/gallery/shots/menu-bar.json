@@ -7,7 +7,7 @@
       "input": false,
       "icon": {
         "tile": {
-          "glyph": "\udb80\udf5c",
+          "glyph": "󰍜",
           "bg": "slate"
         }
       },
@@ -39,8 +39,8 @@
           ]
         },
         {
-          "id": "File > Open\u2026",
-          "name": "Open\u2026",
+          "id": "File > Open…",
+          "name": "Open…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -153,8 +153,8 @@
           ]
         },
         {
-          "id": "File > Save As\u2026",
-          "name": "Save As\u2026",
+          "id": "File > Save As…",
+          "name": "Save As…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -201,8 +201,8 @@
           ]
         },
         {
-          "id": "File > Rename\u2026",
-          "name": "Rename\u2026",
+          "id": "File > Rename…",
+          "name": "Rename…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -221,8 +221,8 @@
           ]
         },
         {
-          "id": "File > Move To\u2026",
-          "name": "Move To\u2026",
+          "id": "File > Move To…",
+          "name": "Move To…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -241,8 +241,8 @@
           ]
         },
         {
-          "id": "File > Export as PDF\u2026",
-          "name": "Export as PDF\u2026",
+          "id": "File > Export as PDF…",
+          "name": "Export as PDF…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -285,8 +285,8 @@
           ]
         },
         {
-          "id": "File > Page Setup\u2026",
-          "name": "Page Setup\u2026",
+          "id": "File > Page Setup…",
+          "name": "Page Setup…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -309,8 +309,8 @@
           ]
         },
         {
-          "id": "File > Print\u2026",
-          "name": "Print\u2026",
+          "id": "File > Print…",
+          "name": "Print…",
           "subtitle": "File",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -501,8 +501,8 @@
           ]
         },
         {
-          "id": "Edit > Find > Find\u2026",
-          "name": "Find\u2026",
+          "id": "Edit > Find > Find…",
+          "name": "Find…",
           "subtitle": "Edit > Find",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -855,7 +855,7 @@
           ],
           "accessories": [
             {
-              "text": "\u2713"
+              "text": "✓"
             },
             {
               "keys": "alt+cmd+t"
@@ -870,8 +870,8 @@
           ]
         },
         {
-          "id": "View > Customize Toolbar\u2026",
-          "name": "Customize Toolbar\u2026",
+          "id": "View > Customize Toolbar…",
+          "name": "Customize Toolbar…",
           "subtitle": "View",
           "icon": {
             "app": "/System/Applications/TextEdit.app"
@@ -902,7 +902,7 @@
           ],
           "accessories": [
             {
-              "text": "\u2713"
+              "text": "✓"
             }
           ],
           "section": "View",
@@ -994,7 +994,7 @@
           ],
           "accessories": [
             {
-              "text": "\u2713"
+              "text": "✓"
             }
           ],
           "section": "Window",
@@ -1037,24 +1037,28 @@
       "palette": "menu-bar",
       "keys": [
         "down*3"
-      ]
+      ],
+      "caption": "TextEdit's menus in one list: a section per menu, the path as the subtitle, shortcuts as key caps"
     },
     "2-checked": {
       "palette": "menu-bar",
       "keys": [
         "down*38"
-      ]
+      ],
+      "caption": "A checked item carries its mark; Enter Full Screen shows its Globe key"
     },
     "3-search": {
       "palette": "menu-bar",
       "keys": [
         "type:font"
-      ]
+      ],
+      "caption": "Typing narrows by the whole path: font finds every Format > Font item"
     },
     "4-root": {
       "keys": [
         "type:export"
-      ]
+      ],
+      "caption": "The rows are root results too: export from the root, no palette first"
     }
   }
 }

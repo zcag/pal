@@ -856,25 +856,29 @@
       "palette": "tabs",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "The tabs of two browsers in their own order, the host as the subtitle, playing and muted tagged"
     },
     "2-audible": {
       "palette": "tabs",
       "keys": [
         "tab"
-      ]
+      ],
+      "caption": "The Audible filter: only the tabs a page reports as playing sound"
     },
     "3-actions": {
       "palette": "tabs",
       "keys": [
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "Focus, Copy URL, Mute, Copy as markdown link, and Close last"
     },
     "4-root": {
       "keys": [
         "type:docker"
-      ]
+      ],
+      "caption": "Live: tab titles are root results, so part of one typed at the root finds it"
     }
   }
 }

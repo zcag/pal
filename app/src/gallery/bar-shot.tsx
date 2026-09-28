@@ -30,8 +30,8 @@ export type BarFixture = {
   states?: { id: string; item: Partial<BarItem> }[];
   /** The rows a `{ palette }` menu opens on. */
   palette?: { title: string; placeholder?: string; rows: Item[] };
-  /** What shots.mjs saves: file to target, theme, state, popover and the store caption. */
-  shots?: Record<string, { target: Target; theme: Theme; state?: string; popover?: boolean; caption: string }>;
+  /** What shots.mjs saves (docs/design/screenshots.md): `menubar`, `popover`, `sketchybar`, and `menubar-<state>` / `popover-<state>`, each with its target, state and store caption; both themes of each. */
+  shots?: Record<string, { target: Target; state?: string; popover?: boolean; caption: string }>;
 };
 type Target = "menubar" | "sketchybar";
 type Theme = "dark" | "light";
@@ -40,6 +40,8 @@ const fixtures = import.meta.glob<{ default: BarFixture }>("./shots/bar-*.json")
 
 /** The strip: 720 by 60, the band at the top and the desktop under it. */
 const W = 720, STRIP_H = 60;
+/** Every popover shot's canvas: the band, the gap and the tallest popover (480) with a margin, so the store lays them out alike. */
+const POPOVER_CANVAS_H = 540;
 const POPOVER_W = 420, POPOVER_MAX_H = 480, POPOVER_GAP = 8, POPOVER_CHROME = 52 + 36;
 
 const patched = (fx: BarFixture, state?: string): BarItem => {
@@ -59,7 +61,7 @@ const menuOf = (m: BarMenu | undefined): "nodes" | "palette" | "view" | "none" =
  * `{ view }` menu is that tree as the item's own view level (a pick from
  * it keeps the level, as the fixture cannot answer).
  */
-function Popover({ fx, item, x, onHeight }: { fx: BarFixture; item: BarItem; x: number; onHeight: (h: number) => void }) {
+function Popover({ fx, item, x }: { fx: BarFixture; item: BarItem; x: number }) {
   const kind = menuOf(item.menu);
   const key = kind === "palette" ? fx.palette?.title.toLowerCase() ?? "rows" : fx.key;
   const start = useMemo<Level>(() => (kind === "nodes" ? menuLevel(fx.key, fx.title, item.menu as BarMenuNode[]) : kind === "view" ? { kind: "view", palette: fx.key, title: fx.title, spec: toView((item.menu as { view: never }).view) } : { kind: "palette", palette: key }), [fx, item, kind, key]);
@@ -80,13 +82,12 @@ function Popover({ fx, item, x, onHeight }: { fx: BarFixture; item: BarItem; x: 
       const content = inner ? inner.scrollHeight + 16 : 120;
       const next = Math.min(POPOVER_MAX_H, POPOVER_CHROME + content);
       setH(next);
-      onHeight(next);
     };
     const mo = new MutationObserver(measure);
     mo.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     measure();
     return () => mo.disconnect();
-  }, [onHeight]);
+  }, []);
   return (
     <div ref={el} className="g-bar__popover pal-bar-page" data-urgent={item.urgent || undefined} title={item.tooltip} style={{ left: x, width: POPOVER_W, height: h }}>
       <Launcher key={key} start={start} items={rows} sources={rows ? undefined : sources} search={rows ? undefined : async () => []} onPick={() => ({ keep: true })} onHide={() => {}} />
@@ -100,7 +101,6 @@ function Strip({ fx, target, theme, state, popover }: { fx: BarFixture; target: 
   const item = useMemo(() => patched(fx, state), [fx, state]);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [x, setX] = useState<number | null>(null);
-  const [popH, setPopH] = useState(0);
   const bandH = target === "menubar" ? MENUBAR_H : SKETCHYBAR_H;
   const showHud = popover && menuOf(item.menu) === "none";
   useLayoutEffect(() => {
@@ -109,14 +109,14 @@ function Strip({ fx, target, theme, state, popover }: { fx: BarFixture; target: 
     const w = showHud ? 0 : POPOVER_W;
     setX(Math.round(Math.max(8, Math.min(W - w - 8, r.left + r.width / 2 - w / 2))));
   }, [anchor, showHud]);
-  const height = popover ? bandH + POPOVER_GAP + (showHud ? 36 + 24 : popH + 28) : STRIP_H;
+  const height = popover ? POPOVER_CANVAS_H : STRIP_H;
   useEffect(() => {
     document.documentElement.dataset.h = String(height);
     if (x !== null || !popover) requestAnimationFrame(() => { document.documentElement.dataset.ready = ""; });
   }, [height, x, popover]);
   return (
     <BarStrip items={[item]} target={target} theme={theme} width={W} height={height} anchor={setAnchor}>
-      {popover && x !== null && !showHud && <Popover fx={fx} item={item} x={x} onHeight={setPopH} />}
+      {popover && x !== null && !showHud && <Popover fx={fx} item={item} x={x} />}
       {showHud && x !== null && <div className="g-bar__hud" style={{ left: x, top: bandH + POPOVER_GAP }}><Hud text="Copied" /></div>}
     </BarStrip>
   );

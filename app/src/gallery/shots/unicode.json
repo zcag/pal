@@ -15568,21 +15568,24 @@
       "keys": [
         "down",
         "right*4"
-      ]
+      ],
+      "caption": "The grid by block, the cursor on an arrow"
     },
     "2-search": {
       "palette": "unicode",
       "keys": [
         "type:arrow",
         "right*2"
-      ]
+      ],
+      "caption": "Searching `arrow`: the matches across the arrows, keyboard and other blocks"
     },
     "3-actions": {
       "palette": "unicode",
       "keys": [
         "right",
         "cmd+k"
-      ]
+      ],
+      "caption": "Copy, paste, or copy the code point, the entity or the numeric reference"
     }
   }
 }

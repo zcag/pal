@@ -849,27 +849,31 @@
       "palette": "bookmarks",
       "keys": [
         "down*3"
-      ]
+      ],
+      "caption": "The file's links first, then each browser in its section, the folder on the right"
     },
     "2-search": {
       "palette": "bookmarks",
       "keys": [
         "type:dev"
-      ]
+      ],
+      "caption": "A folder name is a keyword: typing it finds what is filed under it"
     },
     "3-actions": {
       "palette": "bookmarks",
       "keys": [
         "down*3",
         "cmd+k"
-      ]
+      ],
+      "caption": "Open in browser, Copy link, Copy as markdown, Open in Chrome"
     },
     "4-history": {
       "palette": "history",
       "keys": [
         "type:sqlite",
         "wait:200"
-      ]
+      ],
+      "caption": "Browser History: a search over what the browsers visited, newest first, Enter opens it in the browser it came from"
     }
   }
 }

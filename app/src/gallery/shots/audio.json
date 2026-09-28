@@ -329,14 +329,16 @@
       "palette": "audio",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Outputs and inputs, the defaults tagged, a muted device marked, the volume on the right"
     },
     "2-actions": {
       "palette": "audio",
       "keys": [
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a device can do: set as output, set the volume, mute"
     },
     "3-volume": {
       "palette": "audio",
@@ -344,7 +346,8 @@
         "down",
         "cmd+shift+v",
         "down*2"
-      ]
+      ],
+      "caption": "The volume for one device, the percent typed in the bar"
     }
   }
 }

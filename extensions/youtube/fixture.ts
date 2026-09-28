@@ -33,12 +33,12 @@ try {
       nokey: { title: search.title, icon: search.icon, input: true, placeholder: search.placeholder, byQuery: { "": noKey } },
     },
     shots: {
-      "1-search": { palette: "search", keys: ["type:lofi", "wait:600", "down", "cmd+i", "wait:600"] },
-      "2-trending": { palette: "search", keys: ["wait:600"] },
-      "3-actions": { palette: "search", keys: ["type:lofi", "wait:600", "down", "cmd+k"] },
-      "4-channels": { palette: "channels", keys: ["type:lofi", "wait:600"] },
-      "5-later": { palette: "later", keys: ["wait:600"] },
-      "6-no-key": { palette: "nokey", keys: [] },
+      "1-search": { palette: "search", keys: ["type:lofi", "wait:600", "down", "cmd+i", "wait:600"], caption: "lofi typed: the videos with channel, length, views and age, the detail pane with the thumbnail" },
+      "2-trending": { palette: "search", keys: ["wait:600"], caption: "Nothing typed: the trending list" },
+      "3-actions": { palette: "search", keys: ["type:lofi", "wait:600", "down", "cmd+k"], caption: "What a video can do: open, play in IINA, copy the url, watch later, the channel" },
+      "4-channels": { palette: "channels", keys: ["type:lofi", "wait:600"], caption: "Channels by name: Enter lists the channel's latest videos" },
+      "5-later": { palette: "later", keys: ["wait:600"], caption: "Watch Later: what cmd+s kept" },
+      "6-no-key": { palette: "nokey", keys: [], caption: "Without a key or an instance: the row saying which setting to fill" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/youtube.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

@@ -49,13 +49,13 @@ const fixture = {
     "room/room:bedroom:along:next": { view: render({ kind: "room", room: bedroom }, { ...fresh(), focus: "scenes", index: 0 }, bedroomScenes) },
   },
   shots: {
-    "1-rooms": { palette: "rooms", keys: ["wait:300", "down*2", "wait:300"] },
+    "1-rooms": { palette: "rooms", keys: ["wait:300", "down*2", "wait:300"], caption: "Rooms and zones with their colour, how many lights are on and the brightness; Enter toggles, cmd+Enter opens the room" },
     // The view's strips and plane are gradients: true colour, like the colour picker's.
-    "2-light": { palette: "light", keys: ["wait:400", "right", "wait:500"], raw: true },
-    "3-room": { palette: "room", keys: ["wait:400", "right", "wait:500"], raw: true },
-    "4-scenes": { palette: "scenes", keys: ["wait:300", "down*4", "wait:300"] },
-    "5-sensors": { palette: "sensors", keys: ["wait:300", "down*4", "wait:300"] },
-    "6-setup": { palette: "setup", keys: ["wait:400"], raw: true },
+    "2-light": { palette: "light", keys: ["wait:400", "right", "wait:500"], raw: true, caption: "A light under the keys: the tile in its colour, brightness, the temperature strip, the colour plane, presets, scenes and effects" },
+    "3-room": { palette: "room", keys: ["wait:400", "right", "wait:500"], raw: true, caption: "A room under the keys, its scenes row focused: the arrows choose, Enter plays" },
+    "4-scenes": { palette: "scenes", keys: ["wait:300", "down*4", "wait:300"], caption: "Scenes by room as five-swatch strips, the active and dynamic ones tagged" },
+    "5-sensors": { palette: "sensors", keys: ["wait:300", "down*4", "wait:300"], caption: "Sensors and switches by device: motion, temperature, light level, the last button press, batteries" },
+    "6-setup": { palette: "setup", keys: ["wait:400"], raw: true, caption: "Set up Hue waiting for the button, with the countdown" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/hue.json", import.meta.url), JSON.stringify(fixture) + "\n");
@@ -75,12 +75,10 @@ const bar = {
     { id: "opened", item: { menu: { view: opened } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: how many lights are on (the live strip carries the main room's colour as a dot; the gallery draws the bulb)" },
-    "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, raw: true, caption: "A click opens the popover: the rooms as colour tiles (a tap toggles, the chevron opens), the sensors, the scenes, the keys" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, raw: true, caption: "The popover in the dark theme" },
-    "bar-menubar-popover-room": { target: "menubar", theme: "light", popover: true, raw: true, state: "opened", caption: "A room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count on the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: how many lights are on (the live strip carries the main room's colour as a dot; the gallery draws the bulb)" },
+    "popover": { target: "menubar", popover: true, raw: true, caption: "A click opens the popover: the rooms as colour tiles (a tap toggles, the chevron opens), the sensors, the scenes, the keys" },
+    "popover-room": { target: "menubar", popover: true, raw: true, state: "opened", caption: "A room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count on the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-hue.json", import.meta.url), JSON.stringify(bar) + "\n");

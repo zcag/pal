@@ -55,11 +55,11 @@ try {
     palettes: { downloads: { title: meta.title, icon: meta.icon, live: true, tier: meta.tier, placeholder: meta.placeholder, items: scrub(rows), details } },
     effects: { [`downloads/${scrub(target.id)}:move`]: scrub(move) },
     shots: {
-      "1-downloads": { palette: "downloads", keys: ["down*2"] },
-      "2-detail": { palette: "downloads", keys: ["down*3", "cmd+i"] },
-      "3-actions": { palette: "downloads", keys: ["down*3", "cmd+k"] },
-      "4-move": { palette: "downloads", keys: ["down*3", "cmd+m", "wait:300"] },
-      "5-marked": { palette: "downloads", keys: ["down", "shift+down", "shift+down", "shift+down"] },
+      "1-downloads": { palette: "downloads", keys: ["down*2"], caption: "The folder newest first: a download coming in, then Today, Yesterday, This week, Older with sizes and ages" },
+      "2-detail": { palette: "downloads", keys: ["down*3", "cmd+i"], caption: "The detail pane: name, folder, size, kind, modified, and the page the file came from" },
+      "3-actions": { palette: "downloads", keys: ["down*3", "cmd+k"], caption: "What a download can do: open, reveal, copy, move, rename, trash" },
+      "4-move": { palette: "downloads", keys: ["down*3", "cmd+m", "wait:300"], caption: "Move to folder: the form with the target" },
+      "5-marked": { palette: "downloads", keys: ["down", "shift+down", "shift+down", "shift+down"], caption: "Three rows marked with shift+down (Tab marks too): open, reveal, copy or trash them at once" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/downloads.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

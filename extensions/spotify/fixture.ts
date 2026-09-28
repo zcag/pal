@@ -105,12 +105,11 @@ const fixture = {
   },
   shots: {
     // The band under the cover and the amber bar do not survive the 256-colour quantisation (the bar came out red), so the two lyrics shots stay true colour.
-    "1-lyrics": { palette: "now-playing", keys: ["wait:400"], raw: true },
-    "2-lyrics-dark": { palette: "now-playing", keys: ["wait:400"], theme: "dark", raw: true },
-    "3-search": { palette: "search", keys: ["type:low tide", "wait:400"] },
-    "4-playlists": { palette: "playlists", keys: ["down", "wait:300"] },
-    "5-library": { palette: "library", keys: ["wait:300"] },
-    "6-queue": { palette: "queue", keys: ["down", "wait:300"] },
+    "1-lyrics": { palette: "now-playing", keys: ["wait:400"], raw: true, caption: "The lyrics view: the cover, the progress, the line playing bright among the lines around it" },
+    "3-search": { palette: "search", keys: ["type:low tide", "wait:400"], caption: "Search: tracks, artists, albums, playlists and podcasts as sections" },
+    "4-playlists": { palette: "playlists", keys: ["down", "wait:300"], caption: "Playlists: yours and the followed ones; cmd+enter lists a playlist's tracks" },
+    "5-library": { palette: "library", keys: ["wait:300"], caption: "Library: Liked Songs newest first, the other filters on Tab" },
+    "6-queue": { palette: "queue", keys: ["down", "wait:300"], caption: "The queue: what plays now, what comes next, Enter skips to a row" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/spotify.json", import.meta.url), JSON.stringify(fixture) + "\n");
@@ -126,11 +125,10 @@ const bar = {
   },
   states: [{ id: "track", item: { title: "Harbour Lights · The Low Tide", tooltip: "The Low Tide - Harbour Lights (hornet)" } }],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the lyric line playing beside the Spotify mark" },
-    "bar-menubar-light": { target: "menubar", theme: "light", state: "track", caption: "The same item on a light menu bar, with the track name when lrclib has no lyrics" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the cover and the track, the bar ticking, the lyrics around the line playing, the transport keys, and the queue's next two" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The same popover in the dark theme" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the mark in the icon font, the line as the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the lyric line playing beside the Spotify mark" },
+    "menubar-track": { target: "menubar", state: "track", caption: "The same item on a light menu bar, with the track name when lrclib has no lyrics" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the cover and the track, the bar ticking, the lyrics around the line playing, the transport keys, and the queue's next two" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the mark in the icon font, the line as the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-spotify.json", import.meta.url), JSON.stringify(bar) + "\n");

@@ -67,16 +67,18 @@ if (import.meta.main) {
     writeFileSync(new URL("../../app/src/gallery/shots/power.json", import.meta.url), JSON.stringify({
       palettes: { power: { title: p.title, ...meta, tree: now }, today: { title: p.title, ...meta, tree: today }, week: { title: p.title, ...meta, tree: week } },
       effects: {},
-      shots: { "1-now": { palette: "power", keys: ["wait:300"] }, "2-today": { palette: "today", keys: ["wait:300"] }, "3-week": { palette: "week", keys: ["down", "wait:300"] } },
+      shots: {
+        "1-now": { palette: "power", keys: ["wait:300"], caption: "Now: the level and six hours of draw on the left; the warning, where the watts go and what uses them on the right" },
+        "2-today": { palette: "today", keys: ["wait:300"], caption: "Today: what used the battery in watt-hours, with each one's share" },
+        "3-week": { palette: "week", keys: ["down", "wait:300"], caption: "7 days, the screen and the rest explained under the cursor" },
+      },
     }, null, 2) + "\n");
     writeFileSync(new URL("../../app/src/gallery/shots/bar-power.json", import.meta.url), JSON.stringify({
       key: "power/battery", title: "Battery", item,
       shots: {
-        "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the level, the draw and the warning that made it surface" },
-        "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-        "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now" },
-        "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The same popover in the dark theme" },
-        "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the level, draw and warning as one strip" },
+        "menubar": { target: "menubar", caption: "On the menu bar: the level, the draw and the warning that made it surface" },
+        "popover": { target: "menubar", popover: true, caption: "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now" },
+        "sketchybar": { target: "sketchybar", caption: "On sketchybar: the level, draw and warning as one strip" },
       },
     }, null, 2) + "\n");
     console.log("wrote app/src/gallery/shots/power.json and bar-power.json");

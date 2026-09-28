@@ -14,7 +14,7 @@
         "": [
           {
             "id": "uuid4",
-            "name": "bcd5c1a6-259c-41c7-a9a5-5c59e8f8ba25",
+            "name": "c10da511-235d-42c5-a238-de4c7313136c",
             "subtitle": "UUID v4, random",
             "icon": "󰻾",
             "keywords": [
@@ -22,7 +22,7 @@
               "guid"
             ],
             "detail": {
-              "markdown": "```\nbcd5c1a6-259c-41c7-a9a5-5c59e8f8ba25\n```",
+              "markdown": "```\nc10da511-235d-42c5-a238-de4c7313136c\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -47,7 +47,7 @@
           },
           {
             "id": "uuid7",
-            "name": "01a0abb1-4cc6-7d35-a95d-e6d16dd7d41f",
+            "name": "01a0e99f-ea89-7e28-bb1d-ae534379d267",
             "subtitle": "UUID v7, time-ordered",
             "icon": "󰻾",
             "keywords": [
@@ -55,7 +55,7 @@
               "guid"
             ],
             "detail": {
-              "markdown": "```\n01a0abb1-4cc6-7d35-a95d-e6d16dd7d41f\n```",
+              "markdown": "```\n01a0e99f-ea89-7e28-bb1d-ae534379d267\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -80,7 +80,7 @@
           },
           {
             "id": "ulid",
-            "name": "01M2NV2K67Y1AZCECN29SZZR3X",
+            "name": "01M3MSZTM9SDWNPKJ6BVH4H46E",
             "subtitle": "ULID, time-ordered",
             "icon": "󰻾",
             "keywords": [
@@ -88,7 +88,7 @@
               "id"
             ],
             "detail": {
-              "markdown": "```\n01M2NV2K67Y1AZCECN29SZZR3X\n```",
+              "markdown": "```\n01M3MSZTM9SDWNPKJ6BVH4H46E\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -113,7 +113,7 @@
           },
           {
             "id": "nanoid",
-            "name": "2sF5BLIgzB8dXAYeJP6AW",
+            "name": "DuRJg-pPwT0J4d3zjqdJl",
             "subtitle": "Nano ID, 21 characters",
             "icon": "󰻾",
             "keywords": [
@@ -121,7 +121,7 @@
               "id"
             ],
             "detail": {
-              "markdown": "```\n2sF5BLIgzB8dXAYeJP6AW\n```",
+              "markdown": "```\nDuRJg-pPwT0J4d3zjqdJl\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -146,7 +146,7 @@
           },
           {
             "id": "password",
-            "name": "^rpc8Vf6LgyTCx6Z8iRY",
+            "name": "aUAk#9RHz8AIniS32e?W",
             "subtitle": "Password, 20 characters, letters, digits and symbols",
             "icon": "󰟵",
             "keywords": [
@@ -163,7 +163,7 @@
               }
             ],
             "detail": {
-              "markdown": "```\n^rpc8Vf6LgyTCx6Z8iRY\n```",
+              "markdown": "```\naUAk#9RHz8AIniS32e?W\n```",
               "metadata": [
                 {
                   "label": "Length",
@@ -192,7 +192,7 @@
           },
           {
             "id": "passphrase",
-            "name": "pasty-block-goose-boggy-fatal",
+            "name": "cater-amply-femur-ozone-zilch",
             "subtitle": "Passphrase, 5 words",
             "icon": "󰦩",
             "keywords": [
@@ -210,7 +210,7 @@
               }
             ],
             "detail": {
-              "markdown": "```\npasty-block-goose-boggy-fatal\n```",
+              "markdown": "```\ncater-amply-femur-ozone-zilch\n```",
               "metadata": [
                 {
                   "label": "Words",
@@ -235,7 +235,7 @@
           },
           {
             "id": "number",
-            "name": "46",
+            "name": "40",
             "subtitle": "Random number, 1 to 100",
             "icon": "󰎠",
             "keywords": [
@@ -245,7 +245,7 @@
               "integer"
             ],
             "detail": {
-              "markdown": "```\n46\n```",
+              "markdown": "```\n40\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -270,7 +270,7 @@
           },
           {
             "id": "hex",
-            "name": "1807d766012cb2cdbc2e1b3af52c7838",
+            "name": "04dae2b7acccefec9e3860105eb4f327",
             "subtitle": "Random hex, 16 bytes",
             "icon": "󱊧",
             "keywords": [
@@ -280,7 +280,7 @@
               "token"
             ],
             "detail": {
-              "markdown": "```\n1807d766012cb2cdbc2e1b3af52c7838\n```",
+              "markdown": "```\n04dae2b7acccefec9e3860105eb4f327\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -305,7 +305,7 @@
           },
           {
             "id": "bytes",
-            "name": "Chk3xjZgP71DNt0x0klxqg==",
+            "name": "t5BLRHv1gbXEY0ZZL37FsQ==",
             "subtitle": "Random base64, 16 bytes",
             "icon": "󰒟",
             "keywords": [
@@ -316,7 +316,7 @@
               "token"
             ],
             "detail": {
-              "markdown": "```\nChk3xjZgP71DNt0x0klxqg==\n```",
+              "markdown": "```\nt5BLRHv1gbXEY0ZZL37FsQ==\n```",
               "metadata": [
                 {
                   "label": "Kind",
@@ -341,8 +341,8 @@
           },
           {
             "id": "lorem",
-            "name": "Lorem ipsum dolor sit amet, consectetur, adipiscing elit commodo elit. In sed d…",
-            "subtitle": "Lorem ipsum, 1 paragraph, 50 words",
+            "name": "Lorem ipsum dolor sit amet, consectetur adipiscing elit labore dolore non dolor…",
+            "subtitle": "Lorem ipsum, 1 paragraph, 52 words",
             "icon": "󰦪",
             "keywords": [
               "lorem",
@@ -351,15 +351,15 @@
               "text"
             ],
             "detail": {
-              "markdown": "Lorem ipsum dolor sit amet, consectetur, adipiscing elit commodo elit. In sed deserunt ipsum fugiat excepteur laborum ut occaecat. Duis consequat cillum ullamco et eiusmod, dolor, sint aliquip, et esse duis quis, velit. Labore reprehenderit aliqua aliquip ipsum dolor, sit amet ut laboris. Cillum non excepteur sunt occaecat aliqua excepteur.",
+              "markdown": "Lorem ipsum dolor sit amet, consectetur adipiscing elit labore dolore non dolor est, anim. Minim dolore magna aliqua magna mollit sunt quis sed, magna ipsum magna, nulla ut, consequat ex. Ad amet amet aliquip duis deserunt sint, aute ipsum culpa. Minim minim elit est id, fugiat laboris incididunt. Nostrud consequat consequat magna.",
               "metadata": [
                 {
                   "label": "Words",
-                  "value": "50"
+                  "value": "52"
                 },
                 {
                   "label": "Length",
-                  "value": "342 characters"
+                  "value": "333 characters"
                 }
               ]
             },
@@ -376,9 +376,9 @@
           },
           {
             "id": "colour",
-            "name": "#f5af89",
-            "subtitle": "Random colour, rgb(245, 175, 137)",
-            "icon": "#f5af89",
+            "name": "#a391a0",
+            "subtitle": "Random colour, rgb(163, 145, 160)",
+            "icon": "#a391a0",
             "keywords": [
               "colour",
               "color",
@@ -386,15 +386,15 @@
               "hex"
             ],
             "detail": {
-              "markdown": "# #f5af89",
+              "markdown": "# #a391a0",
               "metadata": [
                 {
                   "label": "Hex",
-                  "value": "#f5af89"
+                  "value": "#a391a0"
                 },
                 {
                   "label": "RGB",
-                  "value": "rgb(245, 175, 137)"
+                  "value": "rgb(163, 145, 160)"
                 }
               ]
             },
@@ -674,7 +674,7 @@
             "icon": "󰌋",
             "accessories": [
               {
-                "tag": "expires in 4 y",
+                "tag": "expires in 3 y",
                 "color": "green"
               },
               {
@@ -698,7 +698,7 @@
                 },
                 {
                   "label": "exp",
-                  "value": "2030-03-17 17:46:40 (in 4 y)"
+                  "value": "2030-03-17 17:46:40 (in 3 y)"
                 }
               ]
             },
@@ -721,7 +721,7 @@
           {
             "id": "jwt-exp",
             "name": "2030-03-17 17:46:40",
-            "subtitle": "Expires (exp), in 4 y",
+            "subtitle": "Expires (exp), in 3 y",
             "icon": "󰅐",
             "accessories": [
               {
@@ -812,28 +812,32 @@
       "palette": "generate",
       "keys": [
         "down*4"
-      ]
+      ],
+      "caption": "The empty query: a fresh value of every generator, the secrets with their strength"
     },
     "2-hash": {
       "palette": "generate",
       "keys": [
         "type:hash pal",
         "cmd+k"
-      ]
+      ],
+      "caption": "hash of typed text: all four digests, Copy all on cmd+shift+c"
     },
     "3-qr": {
       "palette": "generate",
       "keys": [
         "type:qr https://pal.cagdas.io",
         "cmd+i"
-      ]
+      ],
+      "caption": "qr of a link: the code on the row and large in the detail pane"
     },
     "4-jwt": {
       "palette": "generate",
       "keys": [
         "type:jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
         "down"
-      ]
+      ],
+      "caption": "jwt: the header, the payload with its expiry, the times, and a reminder that nothing is verified"
     }
   }
 }

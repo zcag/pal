@@ -48,9 +48,9 @@ const fixture = {
     "2048/view:up": { view: render(over, DEFAULTS) },
   },
   shots: {
-    "1-board": { palette: "2048", keys: ["wait:400"] },
-    "2-won": { palette: "2048", keys: ["wait:300", "right", "wait:900"] },
-    "3-over": { palette: "2048", keys: ["wait:300", "up", "wait:900"] },
+    "1-board": { palette: "2048", keys: ["wait:400"], caption: "Mid-game: the score, the best and the move count above the board, the keys under it" },
+    "2-won": { palette: "2048", keys: ["wait:300", "right", "wait:900"], caption: "The first 2048: keep going or start over" },
+    "3-over": { palette: "2048", keys: ["wait:300", "up", "wait:900"], caption: "Game over: no move left, the score, Enter for a new game" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/2048.json", import.meta.url), JSON.stringify(fixture) + "\n");

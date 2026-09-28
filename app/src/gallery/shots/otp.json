@@ -367,20 +367,23 @@
   "shots": {
     "1-codes": {
       "palette": "otp",
-      "keys": []
+      "keys": [],
+      "caption": "The codes of the day and earlier: the sender, the message, the code as a tag, when it came"
     },
     "2-detail": {
       "palette": "otp",
       "keys": [
         "down",
         "cmd+i"
-      ]
+      ],
+      "caption": "The detail pane: the whole message, the code, the sender, when it was received"
     },
     "3-actions": {
       "palette": "otp",
       "keys": [
         "cmd+k"
-      ]
+      ],
+      "caption": "Paste the code into the app in front, copy it, or copy the sender"
     }
   }
 }

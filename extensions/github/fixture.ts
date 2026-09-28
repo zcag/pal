@@ -37,11 +37,10 @@ const bar = {
     { id: "work", item: { menu: { view: render({ list: INBOX.slice(0, 4), cursor: 2, now: NOW, account: "Work" }) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the GitHub glyph with the unread count as a red badge" },
-    "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the unread threads by repository with their reason and age; Enter opens one, m marks it read, a marks all read" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, state: "work", caption: "The same popover in the dark theme, on a second account named Work, the cursor on a thread" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count in red on the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the GitHub glyph with the unread count as a red badge" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the unread threads by repository with their reason and age; Enter opens one, m marks it read, a marks all read" },
+    "popover-work": { target: "menubar", popover: true, state: "work", caption: "The same popover in the dark theme, on a second account named Work, the cursor on a thread" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count in red on the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-github.json", import.meta.url), JSON.stringify(bar) + "\n");

@@ -217,16 +217,16 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:50860/spaces/1"
+                "href": "http://127.0.0.1:52895/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "5 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -241,16 +241,16 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "12 h ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -269,16 +269,16 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "13 h ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/5/2026"
+              "value": "Sat 5 Sep 2026"
             },
             {
               "label": "Words",
@@ -293,16 +293,16 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:50860/spaces/1"
+                "href": "http://127.0.0.1:52895/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "14 h ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -317,16 +317,16 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "1 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/6/2026"
+              "value": "Sun 6 Sep 2026"
             },
             {
               "label": "Words",
@@ -341,7 +341,7 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
@@ -350,11 +350,11 @@
             },
             {
               "label": "Updated",
-              "value": "1 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/2/2026"
+              "value": "Wed 2 Sep 2026"
             },
             {
               "label": "Words",
@@ -369,16 +369,16 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:50860/spaces/3"
+                "href": "http://127.0.0.1:52895/spaces/3"
               }
             },
             {
               "label": "Updated",
-              "value": "7 d ago"
+              "value": "3 w ago"
             },
             {
               "label": "Created",
-              "value": "8/1/2026"
+              "value": "Sat 1 Aug 2026"
             },
             {
               "label": "Words",
@@ -393,16 +393,16 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:50860/spaces/1"
+                "href": "http://127.0.0.1:52895/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "2 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/8/2026"
+              "value": "Tue 8 Sep 2026"
             },
             {
               "label": "Words",
@@ -417,16 +417,16 @@
               "label": "Space",
               "link": {
                 "text": "Design",
-                "href": "http://127.0.0.1:50860/spaces/4"
+                "href": "http://127.0.0.1:52895/spaces/4"
               }
             },
             {
               "label": "Updated",
-              "value": "5 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -441,16 +441,16 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:50860/spaces/3"
+                "href": "http://127.0.0.1:52895/spaces/3"
               }
             },
             {
               "label": "Updated",
-              "value": "6 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "8/20/2026"
+              "value": "Thu 20 Aug 2026"
             },
             {
               "label": "Words",
@@ -552,22 +552,31 @@
         {
           "id": "cmd:ask",
           "name": "Ask tela",
-          "subtitle": "A question answered from the pages that matter",
+          "subtitle": "A question answered from the pages that matter, typed in the bar",
           "icon": "󰛩",
           "keywords": [
             "research",
             "question",
             "wiki"
           ],
+          "args": [
+            {
+              "id": "question",
+              "placeholder": "Question",
+              "required": true
+            }
+          ],
           "actions": [
             {
               "id": "ask",
-              "title": "Ask"
+              "title": "Ask",
+              "args": true
             },
             {
               "id": "browser",
               "title": "Ask in the browser",
-              "shortcut": "cmd+enter"
+              "shortcut": "cmd+enter",
+              "args": true
             }
           ]
         },
@@ -1056,16 +1065,16 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:50860/spaces/1"
+                "href": "http://127.0.0.1:52895/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "5 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -1080,16 +1089,16 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "12 h ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -1108,16 +1117,16 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "13 h ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/5/2026"
+              "value": "Sat 5 Sep 2026"
             },
             {
               "label": "Words",
@@ -1132,16 +1141,16 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:50860/spaces/1"
+                "href": "http://127.0.0.1:52895/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "14 h ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -1156,16 +1165,16 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "1 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/6/2026"
+              "value": "Sun 6 Sep 2026"
             },
             {
               "label": "Words",
@@ -1180,7 +1189,7 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
@@ -1189,11 +1198,11 @@
             },
             {
               "label": "Updated",
-              "value": "1 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/2/2026"
+              "value": "Wed 2 Sep 2026"
             },
             {
               "label": "Words",
@@ -1208,16 +1217,16 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:50860/spaces/3"
+                "href": "http://127.0.0.1:52895/spaces/3"
               }
             },
             {
               "label": "Updated",
-              "value": "7 d ago"
+              "value": "3 w ago"
             },
             {
               "label": "Created",
-              "value": "8/1/2026"
+              "value": "Sat 1 Aug 2026"
             },
             {
               "label": "Words",
@@ -1232,16 +1241,16 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:50860/spaces/1"
+                "href": "http://127.0.0.1:52895/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "2 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/8/2026"
+              "value": "Tue 8 Sep 2026"
             },
             {
               "label": "Words",
@@ -1256,16 +1265,16 @@
               "label": "Space",
               "link": {
                 "text": "Design",
-                "href": "http://127.0.0.1:50860/spaces/4"
+                "href": "http://127.0.0.1:52895/spaces/4"
               }
             },
             {
               "label": "Updated",
-              "value": "5 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/1/2026"
+              "value": "Tue 1 Sep 2026"
             },
             {
               "label": "Words",
@@ -1280,16 +1289,16 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:50860/spaces/3"
+                "href": "http://127.0.0.1:52895/spaces/3"
               }
             },
             {
               "label": "Updated",
-              "value": "6 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "8/20/2026"
+              "value": "Thu 20 Aug 2026"
             },
             {
               "label": "Words",
@@ -1635,13 +1644,13 @@
       ],
       "details": {
         "page:12": {
-          "markdown": "![first slide](http://127.0.0.1:50860/api/deck/d/abc/cover.png)\n\n\n# Release\n\n---\n\n## Numbers",
+          "markdown": "![first slide](http://127.0.0.1:52895/api/deck/d/abc/cover.png)\n\n\n# Release\n\n---\n\n## Numbers",
           "metadata": [
             {
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:50860/spaces/2"
+                "href": "http://127.0.0.1:52895/spaces/2"
               }
             },
             {
@@ -1655,11 +1664,11 @@
             },
             {
               "label": "Updated",
-              "value": "2 d ago"
+              "value": "2 w ago"
             },
             {
               "label": "Created",
-              "value": "9/3/2026"
+              "value": "Thu 3 Sep 2026"
             },
             {
               "label": "Words",
@@ -1922,7 +1931,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Engineering · Indexing › Steps · 12 h ago",
+                          "value": "Engineering · Indexing › Steps · 2 w ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2028,7 +2037,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Engineering · 1 d ago",
+                          "value": "Engineering · 2 w ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2070,7 +2079,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Blog · How we ship · 7 d ago",
+                          "value": "Blog · How we ship · 3 w ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2264,7 +2273,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Engineering · Indexing › Steps · 12 h ago",
+                          "value": "Engineering · Indexing › Steps · 2 w ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2306,7 +2315,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Engineering · 1 d ago",
+                          "value": "Engineering · 2 w ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2363,7 +2372,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Blog · How we ship · 7 d ago",
+                          "value": "Blog · How we ship · 3 w ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2484,7 +2493,7 @@
                 },
                 {
                   "type": "text",
-                  "value": "Engineering · updated 12 h ago · 137 words",
+                  "value": "Engineering · updated 2 w ago · 137 words",
                   "style": "muted",
                   "size": "xs"
                 }
@@ -2990,7 +2999,7 @@
                 },
                 {
                   "type": "text",
-                  "value": "Engineering · updated 12 h ago · 137 words",
+                  "value": "Engineering · updated 2 w ago · 137 words",
                   "style": "muted",
                   "size": "xs"
                 }
@@ -3539,7 +3548,8 @@
         "wait:700",
         "down",
         "wait:300"
-      ]
+      ],
+      "caption": "Search tela: ranked hits with the matching passage, sectioned by space"
     },
     "2-research": {
       "palette": "research",
@@ -3548,7 +3558,8 @@
         "wait:400",
         "enter",
         "wait:500"
-      ]
+      ],
+      "caption": "Ask tela: the sources of an answer as rows, the cited excerpt under the selected one, the flags above"
     },
     "3-page": {
       "palette": "search",
@@ -3557,14 +3568,16 @@
         "wait:700",
         "cmd+enter",
         "wait:500"
-      ]
+      ],
+      "caption": "A page read in pal: headings, callouts, lists, code and tables drawn with the tokens"
     },
     "4-spaces": {
       "palette": "spaces",
       "keys": [
         "down",
         "wait:300"
-      ]
+      ],
+      "caption": "Spaces with page counts; Enter lists a space's pages"
     },
     "5-new-page": {
       "palette": "pages",
@@ -3573,14 +3586,16 @@
         "wait:400",
         "type:Frecency, explained",
         "wait:300"
-      ]
+      ],
+      "caption": "New tela page: title, space, the body prefilled from the clipboard"
     },
     "6-pages": {
       "palette": "pages",
       "keys": [
         "down*5",
         "wait:300"
-      ]
+      ],
+      "caption": "Pages: favourites, then what changed lately, sectioned by space"
     }
   }
 }

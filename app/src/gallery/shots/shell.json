@@ -15,7 +15,7 @@
           {
             "id": "hint:type",
             "name": "Type a command and press Enter to run it",
-            "subtitle": "/bin/sh -c in /var/folders/ls/33sktrzn1t99qfh750dd9vlc0000gn/T/pal-shell-fixture-ET6HLN, 5 s at most",
+            "subtitle": "/bin/sh -c in /var/folders/ls/33sktrzn1t99qfh750dd9vlc0000gn/T/pal-shell-fixture-xkSJ8P, 5 s at most",
             "icon": "󰋽",
             "actions": []
           },
@@ -131,7 +131,7 @@
           {
             "id": "h:python3 -c 'import requests'",
             "name": "python3 -c 'import requests'",
-            "subtitle": "26 ms in ~/proj/demo",
+            "subtitle": "27 ms in ~/proj/demo",
             "icon": "󰞷",
             "keywords": [
               "python3 -c 'import requests'"
@@ -142,7 +142,7 @@
                 "color": "red"
               },
               {
-                "date": 1789597447727
+                "date": 1790625970101
               }
             ],
             "actions": [
@@ -170,7 +170,7 @@
           {
             "id": "h:ls -la",
             "name": "ls -la",
-            "subtitle": "6 ms in ~/proj/demo",
+            "subtitle": "9 ms in ~/proj/demo",
             "icon": "󰞷",
             "keywords": [
               "ls -la"
@@ -181,7 +181,7 @@
                 "color": "green"
               },
               {
-                "date": 1789597447700
+                "date": 1790625970074
               }
             ],
             "actions": [
@@ -220,7 +220,7 @@
                 "color": "green"
               },
               {
-                "date": 1789597147895
+                "date": 1790625670268
               }
             ],
             "actions": [
@@ -259,7 +259,7 @@
                 "color": "red"
               },
               {
-                "date": 1789595047895
+                "date": 1790623570268
               }
             ],
             "actions": [
@@ -298,7 +298,7 @@
                 "color": "green"
               },
               {
-                "date": 1789586647895
+                "date": 1790615170268
               }
             ],
             "actions": [
@@ -337,7 +337,7 @@
                 "color": "green"
               },
               {
-                "date": 1789503847895
+                "date": 1790532370268
               }
             ],
             "actions": [
@@ -414,7 +414,7 @@
                 },
                 {
                   "type": "text",
-                  "value": "6 ms",
+                  "value": "9 ms",
                   "style": "muted",
                   "size": "sm"
                 }
@@ -447,7 +447,7 @@
                 {
                   "type": "text",
                   "key": "out",
-                  "value": "total 48\ndrwx------     8 sam  staff    256 Sep 17 01:24 .\ndrwx------@ 2739 sam  staff  87648 Sep 17 01:24 ..\ndrwxr-xr-x     2 sam  staff     64 Sep 17 01:24 dist\n-rw-r--r--     1 sam  staff   9210 Sep 17 01:24 index.ts\n-rw-r--r--     1 sam  staff     88 Sep 17 01:24 notes.txt\n-rw-r--r--     1 sam  staff    612 Sep 17 01:24 package.json\n-rw-r--r--     1 sam  staff   1840 Sep 17 01:24 README.md\ndrwxr-xr-x     2 sam  staff     64 Sep 17 01:24 src",
+                  "value": "total 48\ndrwx------     8 sam  staff     256 Sep 28 23:06 .\ndrwx------@ 4572 sam  staff  146304 Sep 28 23:06 ..\ndrwxr-xr-x     2 sam  staff      64 Sep 28 23:06 dist\n-rw-r--r--     1 sam  staff    9210 Sep 28 23:06 index.ts\n-rw-r--r--     1 sam  staff      88 Sep 28 23:06 notes.txt\n-rw-r--r--     1 sam  staff     612 Sep 28 23:06 package.json\n-rw-r--r--     1 sam  staff    1840 Sep 28 23:06 README.md\ndrwxr-xr-x     2 sam  staff      64 Sep 28 23:06 src",
                   "style": "mono"
                 }
               ]
@@ -514,7 +514,7 @@
                 },
                 {
                   "type": "text",
-                  "value": "26 ms",
+                  "value": "27 ms",
                   "style": "muted",
                   "size": "sm"
                 }
@@ -588,7 +588,8 @@
       "palette": "shell",
       "keys": [
         "type:ls -la"
-      ]
+      ],
+      "caption": "A command typed: one Run row, nothing has run yet"
     },
     "2-output": {
       "palette": "shell",
@@ -596,7 +597,8 @@
         "type:ls -la",
         "enter",
         "wait:400"
-      ]
+      ],
+      "caption": "The output view: exit 0 and the duration as badges, stdout in mono on the sunken surface"
     },
     "3-stderr": {
       "palette": "shell",
@@ -604,7 +606,8 @@
         "type:python3 -c 'import requests'",
         "enter",
         "wait:400"
-      ]
+      ],
+      "caption": "A failing command: stderr in red, exit 1"
     },
     "4-confirm": {
       "palette": "shell",
@@ -612,13 +615,15 @@
         "type:rm -rf dist",
         "enter",
         "wait:300"
-      ]
+      ],
+      "caption": "rm -rf on the way: the confirm card before anything runs"
     },
     "5-history": {
       "palette": "history",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Shell History: past commands with their exit codes, Enter runs one again"
     }
   }
 }

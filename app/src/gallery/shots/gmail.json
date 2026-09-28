@@ -1469,7 +1469,8 @@
       "palette": "inbox",
       "keys": [
         "down*3"
-      ]
+      ],
+      "caption": "Inbox: unread first, the sender's avatar, the subject and the snippet, the labels, a paperclip, the date"
     },
     "2-detail": {
       "palette": "inbox",
@@ -1477,31 +1478,36 @@
         "down*3",
         "cmd+i",
         "wait:400"
-      ]
+      ],
+      "caption": "The pane: the message as text, who and when, the labels, the attachments with their sizes"
     },
     "3-search": {
       "palette": "search",
       "keys": [
         "type:has:attachment",
         "wait:400"
-      ]
+      ],
+      "caption": "Search Mail: Gmail's syntax typed into the panel, the hits sectioned by label"
     },
     "4-labels": {
       "palette": "labels",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Labels: yours and Gmail's, Enter opens one in Gmail, cmd+Enter searches it here"
     },
     "5-compose": {
       "palette": "compose",
       "keys": [
         "enter",
         "wait:300"
-      ]
+      ],
+      "caption": "Compose: to, cc, subject, body, the signature already under it; only with send on"
     },
     "6-drafts": {
       "palette": "drafts",
-      "keys": []
+      "keys": [],
+      "caption": "Drafts: the recipient and the subject, send or discard after a confirmation"
     }
   }
 }

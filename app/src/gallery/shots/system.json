@@ -401,19 +401,22 @@
       "palette": "system",
       "keys": [
         "down*7"
-      ]
+      ],
+      "caption": "The commands this machine can run; the appearance and the Trash count on the right"
     },
     "2-root": {
       "keys": [
         "type:sleep"
-      ]
+      ],
+      "caption": "sleep at the root: the rows are indexed with their keywords"
     },
     "3-confirm": {
       "palette": "system",
       "keys": [
         "down*5",
         "enter"
-      ]
+      ],
+      "caption": "A destructive command asks first"
     },
     "4-apps": {
       "palette": "system",

@@ -49,22 +49,22 @@
         "caption": "Enter brings the app forward; the privacy settings are a shortcut away"
       },
       {
-        "file": "bar-menubar-dark.png",
+        "file": "bar-menubar.png",
         "caption": "On the menu bar only while something is in use: a glyph for the camera, the microphone and the screen",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
+        "file": "bar-menubar-share.png",
         "caption": "A call sharing its screen: all three glyphs",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
+        "file": "bar-popover.png",
         "caption": "A click opens the popover: one row per app, what it holds in colour and for how long; Enter brings the app forward",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-dark.png",
+        "file": "bar-popover-share.png",
         "caption": "A screen share names its app too; macOS's own capture reads macOS",
         "kind": "bar"
       },

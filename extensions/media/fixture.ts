@@ -35,12 +35,10 @@ const bar = {
     { id: "untitled", item: { title: "Google Chrome", tooltip: "Playing in Google Chrome", menu: { view: render(chrome) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the playing track and its artist beside the note" },
-    "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the cover, the track, a progress bar that ticks, the transport as keys" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The same popover in the dark theme" },
-    "bar-menubar-popover-untitled": { target: "menubar", theme: "light", popover: true, state: "untitled", caption: "A player that names no track (a browser): the app, the position, the app's icon in place of a cover" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the note in the icon font, the track as the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the playing track and its artist beside the note" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the cover, the track, a progress bar that ticks, the transport as keys" },
+    "popover-untitled": { target: "menubar", popover: true, state: "untitled", caption: "A player that names no track (a browser): the app, the position, the app's icon in place of a cover" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the note in the icon font, the track as the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-media.json", import.meta.url), JSON.stringify(bar) + "\n");

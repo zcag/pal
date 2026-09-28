@@ -12811,21 +12811,24 @@
       "palette": "icons",
       "keys": [
         "right"
-      ]
+      ],
+      "caption": "The Nerd Font grid, Recent first, then the sets in order"
     },
     "2-search": {
       "palette": "icons",
       "keys": [
         "type:git",
         "right*2"
-      ]
+      ],
+      "caption": "Searching `git` across every set: Octicons, Devicons, Material Design and the rest"
     },
     "3-freedesktop": {
       "palette": "freedesktop",
       "keys": [
         "down",
         "right*2"
-      ]
+      ],
+      "caption": "The freedesktop icon names the SDK's xdg() maps to a glyph"
     },
     "4-actions": {
       "palette": "icons",
@@ -12833,7 +12836,8 @@
         "down",
         "right*3",
         "cmd+k"
-      ]
+      ],
+      "caption": "Copy the glyph, its code point, its nf- name or the CSS class"
     },
     "5-iconify": {
       "palette": "iconify",
@@ -12841,7 +12845,8 @@
         "type:arrow",
         "wait:400",
         "right*2"
-      ]
+      ],
+      "caption": "Iconify Icons: `arrow` across Material Design Icons, Tabler, Lucide and the rest, each tile its SVG"
     }
   }
 }

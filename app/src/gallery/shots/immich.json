@@ -3246,7 +3246,8 @@
   "shots": {
     "1-recent": {
       "palette": "immich",
-      "keys": []
+      "keys": [],
+      "caption": "Nothing typed: the newest uploads, the pane open on the first"
     },
     "2-search": {
       "palette": "immich",
@@ -3254,7 +3255,8 @@
         "type:receipt",
         "wait:400",
         "right"
-      ]
+      ],
+      "caption": "A CLIP search: what is in the picture, the place and date on every tile"
     },
     "3-actions": {
       "palette": "immich",
@@ -3262,25 +3264,30 @@
         "type:receipt",
         "wait:400",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a photo can do: open, copy, download, favourite, add to an album, Quick Look"
     },
     "4-albums": {
       "palette": "albums",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Albums: the cover, the count, the dates, the library's numbers on top"
     },
     "5-people": {
       "palette": "people",
-      "keys": []
+      "keys": [],
+      "caption": "People by face, favourites first"
     },
     "6-memories": {
       "palette": "memories",
-      "keys": []
+      "keys": [],
+      "caption": "On this day: a row per year with the places"
     },
     "7-setup": {
       "palette": "setup",
-      "keys": []
+      "keys": [],
+      "caption": "Without a URL or a key: one row that opens Settings"
     }
   }
 }

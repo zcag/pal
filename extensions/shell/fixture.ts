@@ -52,11 +52,11 @@ try {
     },
     effects,
     shots: {
-      "1-run": { palette: "shell", keys: [`type:${OUTPUT}`] },
-      "2-output": { palette: "shell", keys: [`type:${OUTPUT}`, "enter", "wait:400"] },
-      "3-stderr": { palette: "shell", keys: [`type:${STDERR}`, "enter", "wait:400"] },
-      "4-confirm": { palette: "shell", keys: [`type:${CONFIRM}`, "enter", "wait:300"] },
-      "5-history": { palette: "history", keys: ["down"] },
+      "1-run": { palette: "shell", keys: [`type:${OUTPUT}`], caption: "A command typed: one Run row, nothing has run yet" },
+      "2-output": { palette: "shell", keys: [`type:${OUTPUT}`, "enter", "wait:400"], caption: "The output view: exit 0 and the duration as badges, stdout in mono on the sunken surface" },
+      "3-stderr": { palette: "shell", keys: [`type:${STDERR}`, "enter", "wait:400"], caption: "A failing command: stderr in red, exit 1" },
+      "4-confirm": { palette: "shell", keys: [`type:${CONFIRM}`, "enter", "wait:300"], caption: "rm -rf on the way: the confirm card before anything runs" },
+      "5-history": { palette: "history", keys: ["down"], caption: "Shell History: past commands with their exit codes, Enter runs one again" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/shell.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

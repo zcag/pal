@@ -440,7 +440,7 @@
           ],
           "accessories": [
             {
-              "date": 1789597877813
+              "date": 1790625858283
             }
           ],
           "detail": {
@@ -460,7 +460,7 @@
               },
               {
                 "label": "When",
-                "value": "9/17/2026, 1:33:17 AM"
+                "value": "23:06"
               }
             ]
           },
@@ -506,7 +506,7 @@
           ],
           "accessories": [
             {
-              "date": 1789587197813
+              "date": 1790615178283
             }
           ],
           "detail": {
@@ -526,7 +526,7 @@
               },
               {
                 "label": "When",
-                "value": "9/17/2026, 1:33:17 AM"
+                "value": "23:06"
               }
             ]
           },
@@ -572,7 +572,7 @@
           ],
           "accessories": [
             {
-              "date": 1789504397813
+              "date": 1790532378283
             }
           ],
           "detail": {
@@ -592,7 +592,7 @@
               },
               {
                 "label": "When",
-                "value": "9/17/2026, 1:33:17 AM"
+                "value": "23:06"
               }
             ]
           },
@@ -651,7 +651,8 @@
       "keys": [
         "type:hello world",
         "wait:500"
-      ]
+      ],
+      "caption": "hello world typed with the system language Turkish: the translation first, the detected language, the alternatives, Swap"
     },
     "2-prefix": {
       "palette": "translate",
@@ -659,7 +660,8 @@
         "type:tr>en merhaba dünya. Nasılsın?",
         "wait:500",
         "cmd+i"
-      ]
+      ],
+      "caption": "tr>en merhaba dünya. Nasılsın?: both ends named in the prefix; the detail pane shows both texts and the pair"
     },
     "3-romanisation": {
       "palette": "translate",
@@ -667,7 +669,8 @@
         "type:>ja hello",
         "wait:500",
         "down"
-      ]
+      ],
+      "caption": ">ja hello: the Japanese with its romanisation and the dictionary entry"
     },
     "4-actions": {
       "palette": "translate",
@@ -675,13 +678,15 @@
         "type:hello world",
         "wait:500",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a translation can do: copy, paste, speak, the source, Google Translate"
     },
     "5-history": {
       "palette": "history",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Translation History: what was copied or spoken, newest first"
     }
   }
 }

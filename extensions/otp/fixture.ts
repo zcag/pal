@@ -33,12 +33,10 @@ const bar = {
     { id: "none", item: { hidden: true, menu: { view: render({ previous: [latest, ...previous], now: NOW + 120_000, window: 60_000 }) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the code that just arrived, in green, for a minute" },
-    "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the code large, who sent it, the minute counting down, the two codes before it; Enter copies" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The same popover in the dark theme" },
-    "bar-menubar-popover-gcode": { target: "menubar", theme: "light", popover: true, state: "gcode", caption: "A Google code forty seconds in: the bar nearly run down" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the key glyph and the code, both green" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the code that just arrived, in green, for a minute" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the code large, who sent it, the minute counting down, the two codes before it; Enter copies" },
+    "popover-gcode": { target: "menubar", popover: true, state: "gcode", caption: "A Google code forty seconds in: the bar nearly run down" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the key glyph and the code, both green" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-otp.json", import.meta.url), JSON.stringify(bar) + "\n");

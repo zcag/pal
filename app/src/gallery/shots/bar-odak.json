@@ -805,25 +805,17 @@
     }
   ],
   "shots": {
-    "bar-menubar-dark": {
+    "menubar": {
       "target": "menubar",
-      "theme": "dark",
       "caption": "On the menu bar: today's count, red while anything is overdue"
     },
-    "bar-menubar-light": {
+    "popover": {
       "target": "menubar",
-      "theme": "light",
-      "caption": "The same item on a light menu bar"
-    },
-    "bar-menubar-popover": {
-      "target": "menubar",
-      "theme": "light",
       "popover": true,
       "caption": "A click opens the popover: the overdue first, then today's, Enter completes, n adds"
     },
-    "bar-sketchybar": {
+    "sketchybar": {
       "target": "sketchybar",
-      "theme": "dark",
       "caption": "On sketchybar: the glyph and the count"
     }
   }

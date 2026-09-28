@@ -572,21 +572,24 @@
       "palette": "screenshots",
       "keys": [
         "down*3"
-      ]
+      ],
+      "caption": "Capture area, window or screen, then the folder's screenshots newest first with thumbnails, pixel sizes and ages"
     },
     "2-actions": {
       "palette": "screenshots",
       "keys": [
         "down*3",
         "cmd+k"
-      ]
+      ],
+      "caption": "Open, reveal, copy the image, its path or a markdown tag, read its text, trash it"
     },
     "3-detail": {
       "palette": "screenshots",
       "keys": [
         "down*3",
         "cmd+i"
-      ]
+      ],
+      "caption": "The detail pane: the picture itself over its name, folder, size and pixels"
     }
   }
 }

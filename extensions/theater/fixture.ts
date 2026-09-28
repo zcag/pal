@@ -55,10 +55,9 @@ try {
     item: bars.downloads,
     states: [{ id: "paused", item: { icon: "\u{f03e4}", title: "paused · 2", color: "amber", tooltip: "2 in the queue, paused" } }],
     shots: {
-      "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the combined download speed and how many items are active" },
-      "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-      "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the queue: every item with its progress bar, space pauses everything" },
-      "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the speed and the count" },
+      "menubar": { target: "menubar", caption: "On the menu bar: the combined download speed and how many items are active" },
+      "popover": { target: "menubar", popover: true, caption: "A click opens the queue: every item with its progress bar, space pauses everything" },
+      "sketchybar": { target: "sketchybar", caption: "On sketchybar: the speed and the count" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/bar-theater.json", import.meta.url), JSON.stringify(barFixture, null, 2) + "\n");

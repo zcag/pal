@@ -27,12 +27,12 @@ const bar = {
     { id: "field", item: { menu: { view: render(state(run(), { field: true })) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: a coffee and what is left of the run" },
-    "bar-menubar-light": { target: "menubar", theme: "light", state: "display", caption: "The display kept awake too: a monitor mark after the countdown" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the run on a card with the time left and a bar, the presets on the digits, the display switch, Enter allows sleep" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, state: "forever", caption: "Until turned off: ∞ on the strip and the card; a preset gives it an end" },
-    "bar-menubar-popover-field": { target: "menubar", theme: "light", popover: true, state: "field", caption: "u opens the field: 45m, 14:30 or forever, then Enter" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the coffee and the countdown as the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: a coffee and what is left of the run" },
+    "menubar-display": { target: "menubar", state: "display", caption: "The display kept awake too: a monitor mark after the countdown" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the run on a card with the time left and a bar, the presets on the digits, the display switch, Enter allows sleep" },
+    "popover-forever": { target: "menubar", popover: true, state: "forever", caption: "Until turned off: ∞ on the strip and the card; a preset gives it an end" },
+    "popover-field": { target: "menubar", popover: true, state: "field", caption: "u opens the field: 45m, 14:30 or forever, then Enter" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the coffee and the countdown as the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-system.json", import.meta.url), JSON.stringify(bar) + "\n");

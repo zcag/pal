@@ -78,12 +78,12 @@ try {
       "notes/cmd:new": newNote,
     },
     shots: {
-      "1-notes": { palette: "notes", keys: ["down*11", "wait:300"] },
-      "2-detail": { palette: "notes", keys: ["type:theater", "wait:300", "down", "cmd+i", "wait:500"] },
-      "3-search": { palette: "search", keys: ["type:caddy", "wait:500", "cmd+i", "wait:400"] },
-      "4-daily": { palette: "daily", keys: ["down", "wait:300"] },
-      "5-append": { palette: "daily", keys: ["down*4", "enter", "wait:500"] },
-      "6-read": { palette: "notes", keys: ["type:theater", "wait:300", "down", "cmd+shift+r", "wait:500"] },
+      "1-notes": { palette: "notes", keys: ["down*11", "wait:300"], caption: "Notes: every note by title, sectioned by folder, tags and the change date on the row" },
+      "2-detail": { palette: "notes", keys: ["type:theater", "wait:300", "down", "cmd+i", "wait:500"], caption: "The pane: the note rendered, its tags, links and backlinks under it" },
+      "3-search": { palette: "search", keys: ["type:caddy", "wait:500", "cmd+i", "wait:400"], caption: "Search Notes: the matching line on each row, the matches bold in the pane" },
+      "4-daily": { palette: "daily", keys: ["down", "wait:300"], caption: "Daily Notes: today, yesterday, this week, Append to today, New note" },
+      "5-append": { palette: "daily", keys: ["down*4", "enter", "wait:500"], caption: "Append to today: the line typed in the search bar lands at the end of today's note" },
+      "6-read": { palette: "notes", keys: ["type:theater", "wait:300", "down", "cmd+shift+r", "wait:500"], caption: "A note read in pal: callouts, lists, code and tables drawn with the tokens" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/obsidian.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

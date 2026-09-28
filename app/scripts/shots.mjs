@@ -1,54 +1,48 @@
 #!/usr/bin/env node
-// Store screenshots: drives `?gallery&shot=<extension>` (src/gallery/shots.tsx)
-// in a headless Chrome and saves each shot the fixture plans to
-// extensions/<extension>/screenshots/<file>.png, 1440x900 device pixels
-// (a 960x600 viewport at 1.5x: the 760x480 panel centred on the wallpaper).
+// The store screenshots (docs/design/screenshots.md): for each extension,
+// every panel shot its fixture plans (`src/gallery/shots/<name>.json`,
+// `?gallery&shot=<name>`) and every bar shot (`shots/bar-<name>.json`,
+// `?gallery&bar=...`), each on the light theme as `<file>.png` and on the
+// dark one as `<file>-dark.png`, into extensions/<name>/screenshots/. Then
+// the directory holds exactly those (an older picture is removed),
+// `store.screenshots` in pal.json lists the light ones with the fixtures'
+// captions, and `screenshots/.shots.json` stamps the fixtures' hash, which
+// host/test/screenshots.test.ts checks. `make shots` runs this with the
+// fixtures regenerated and a Vite server up; run by hand:
 //
-//   node app/scripts/shots.mjs [extension ...]     # all fixtures when none named
-//   node app/scripts/shots.mjs bar [extension ...] # bar items (below)
-//   SHOTS_URL=http://127.0.0.1:1430 (a Vite dev server: `npx vite --port 1430`)
-//   SHOTS_THEME=dark SHOTS_OUT=dir      # the same shots on the dark panel, saved as
-//                                       # <dir>/<extension>-<file>.png (the landing page's)
+//   node app/scripts/shots.mjs [extension ...]      # every extension with a fixture when none named
+//   SHOTS_URL=http://127.0.0.1:1430                  # the gallery (`npx vite --port 1430` in app/)
+//   SHOTS_OUT=dir                                     # the landing page's renders: <dir>/<extension>-<file>-<theme>.png, nothing else touched
+//   SHOTS_RAW=1                                       # keep true colour (no 256-colour quantising)
 //
-// A fixture's `shots` maps a file name to { palette?, keys?, caption?, raw?, theme? }:
-// `palette` opens that palette first; `theme: "dark"` renders that shot on
-// the dark panel (spotify's lyrics pair); `keys` are pressed in order, each
-// "type:<text>", "down", "up", "down*3", "tab", "enter", "escape",
-// "cmd+i", "cmd+k", "cmd+shift+c", or "wait:<ms>". The captions go to
-// pal.json's store.screenshots by hand. Each PNG is then quantised to 256
-// colours by shot-quant.py (Pillow; a third of the size, the saturated
-// colours kept); without Pillow the full PNG stays.
-//
-// `bar` mode drives `?gallery&bar=<ext>/<id>` (src/gallery/bar-shot.tsx) from
-// `shots/bar-<extension>.json`: each of the fixture's `shots` (bar-menubar-dark,
-// bar-menubar-light, bar-menubar-popover, bar-sketchybar) is a 720-wide strip
-// at 2x (1440x120; taller with the popover open, the page says how tall in
-// `data-h`), saved next to the panel shots and appended to pal.json's
-// store.screenshots with its caption and `kind: "bar"` when not listed yet.
-import { readFileSync, readdirSync, mkdirSync, existsSync, writeFileSync } from "node:fs";
+// A panel shot is { palette?, keys?, caption, raw?, settle? }: `palette`
+// opens that palette first; `keys` are pressed in order ("type:<text>",
+// "down", "down*3", "enter", "escape", "cmd+k", "wait:<ms>"); `raw` keeps true
+// colour (a colour picker's gradients). A bar shot is { target, state?,
+// popover?, caption } under the names `menubar`, `popover`, `sketchybar`,
+// `menubar-<state>`, `popover-<state>`. The browser is playwright-core's
+// own Chrome for Testing (`npx playwright-core install chromium`), never the
+// daily one.
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chromium } from "playwright-core";
+import { FIXTURES as fixtures, ROOT as root, barFixtureOf, fixtureHash, fixtureOf } from "./shots-lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = resolve(here, "../..");
-const fixtures = join(root, "app/src/gallery/shots");
 const base = process.env.SHOTS_URL ?? "http://127.0.0.1:1430";
-const pw = process.env.PLAYWRIGHT ?? "/Users/cagdas/.npm/_npx/9833c18b2d85bc59/node_modules/playwright-core/index.mjs";
-const chrome = process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const theme = process.env.SHOTS_THEME === "dark" ? "dark" : "light";
-const outDir = process.env.SHOTS_OUT; // set: every shot lands here, the manifest untouched
+const outDir = process.env.SHOTS_OUT;
+const THEMES = ["light", "dark"];
+const read = (f) => JSON.parse(readFileSync(f, "utf8"));
 
-const { chromium } = await import(pw);
 const args = process.argv.slice(2);
-const barMode = args[0] === "bar";
-if (barMode) args.shift();
-const fixtureOf = (name) => (barMode ? `bar-${name}` : name);
-const names = args.length ? args : readdirSync(fixtures).filter((f) => f.endsWith(".json") && f.startsWith("bar-") === barMode).map((f) => f.slice(barMode ? 4 : 0, -5));
+const names = args.length
+  ? args
+  : [...new Set(readdirSync(fixtures).filter((f) => f.endsWith(".json")).map((f) => f.replace(/^bar-/, "").slice(0, -5)))].filter((n) => existsSync(join(root, "extensions", n))).sort();
 
 const keyOf = { down: "ArrowDown", up: "ArrowUp", left: "ArrowLeft", right: "ArrowRight", tab: "Tab", enter: "Enter", escape: "Escape", backspace: "Backspace", space: "Space" };
 const combo = (s) => s.split("+").map((k) => ({ cmd: "Meta", shift: "Shift", alt: "Alt", ctrl: "Control" })[k] ?? keyOf[k] ?? (k.length === 1 ? k.toUpperCase() : k)).join("+");
-
 async function press(page, step) {
   if (step.startsWith("type:")) return page.keyboard.type(step.slice(5), { delay: 8 });
   if (step.startsWith("wait:")) return page.waitForTimeout(Number(step.slice(5)));
@@ -56,78 +50,81 @@ async function press(page, step) {
   for (let i = 0; i < Number(times); i++) { await page.keyboard.press(combo(key)); await page.waitForTimeout(40); }
 }
 
-/** A shot with `raw: true` keeps its true colours: a colour picker's gradients do not survive 256 colours. */
-const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? { status: 0 } : spawnSync("python3", [join(here, "shot-quant.py"), path]));
+/** 256 colours unless the shot or SHOTS_RAW keeps true colour (shot-quant.py; a third of the size). */
+const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? true : spawnSync("python3", [join(here, "shot-quant.py"), path]).status === 0);
 
-/** The bar strip's URL for one of the fixture's shots. */
-const barUrl = (key, shot) => {
-  const q = new URLSearchParams({ bar: key, target: shot.target, theme: shot.theme });
+const browser = await chromium.launch({ headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars"] });
+let failed = 0;
+
+async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
+  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  try {
+    await page.goto(url, { waitUntil: "networkidle" });
+    await page.waitForSelector("html[data-ready]", { timeout: 10000 });
+    await page.waitForTimeout(250);
+    for (const step of keys ?? []) await press(page, step);
+    await page.waitForTimeout(settle ?? 450);
+    if (errors.length) throw new Error(`page error: ${errors[0]}`);
+    await page.screenshot({ path, type: "png" });
+    if (!quant(path, raw)) console.warn(`  ${path}: not quantised (no Pillow)`);
+  } finally {
+    await context.close();
+  }
+}
+
+const barUrl = (key, shot, theme) => {
+  const q = new URLSearchParams({ bar: key, target: shot.target, theme });
   if (shot.state) q.set("state", shot.state);
   if (shot.popover) q.set("popover", "1");
   return `${base}/?gallery&${q}`;
 };
 
-/** Appends the bar shots the manifest does not list yet to `store.screenshots`, with `kind: "bar"` (STORE-FIELDS.md). */
-function listInManifest(name, entries) {
-  const path = join(root, "extensions", name, "pal.json");
-  const text = readFileSync(path, "utf8");
-  const manifest = JSON.parse(text);
-  const list = (manifest.store ??= {}).screenshots ??= [];
-  let added = 0;
-  for (const { file, caption } of entries) {
-    if (list.some((s) => s.file === file)) continue;
-    list.push({ file, caption, kind: "bar" });
-    added++;
-  }
-  if (added) writeFileSync(path, JSON.stringify(manifest, null, 2) + (text.endsWith("\n") ? "\n" : ""));
-  return added;
-}
-
-const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars"] });
-const context = await browser.newContext({
-  viewport: barMode ? { width: 720, height: 60 } : { width: 960, height: 600 }, deviceScaleFactor: barMode ? 2 : 1.5, colorScheme: theme,
-});
-const page = await context.newPage();
-page.on("pageerror", (e) => console.error("  page error:", e.message));
-let failed = 0;
 for (const name of names) {
-  const fx = JSON.parse(readFileSync(join(fixtures, `${fixtureOf(name)}.json`), "utf8"));
-  const shots = fx.shots ?? {};
-  if (!args.length && !Object.keys(shots).length) continue; // a fixture that plans no shots (hero.json is the landing page's, app/scripts/hero.mjs)
-  const out = outDir ?? join(root, "extensions", name, "screenshots");
-  if (!outDir && !existsSync(join(root, "extensions", name))) { console.error(`${name}: no extension directory`); failed++; continue; }
+  const panel = fixtureOf(name) && read(fixtureOf(name));
+  const bar = barFixtureOf(name) && read(barFixtureOf(name));
+  const dir = join(root, "extensions", name, "screenshots");
+  const out = outDir ?? dir;
   mkdirSync(out, { recursive: true });
-  const done = [];
-  for (const [file, shot] of Object.entries(shots)) {
-    const url = barMode ? barUrl(fx.key, shot) : `${base}/?gallery&shot=${name}${shot.palette ? `&palette=${encodeURIComponent(shot.palette)}` : ""}${(shot.theme ?? theme) === "dark" ? "&theme=dark" : ""}`;
-    try {
-      // A fresh document per shot: the same URL twice would keep the previous shot's state.
-      await page.goto("about:blank");
-      if (barMode) await page.setViewportSize({ width: 720, height: 60 });
-      await page.goto(url, { waitUntil: "networkidle" });
-      await page.waitForSelector("html[data-ready]", { timeout: 10000 });
-      await page.waitForTimeout(250);
-      if (barMode) {
-        // The strip says how tall it is (60, or the popover's height under the band); the viewport follows before the shot.
-        const h = Number(await page.evaluate(() => document.documentElement.dataset.h)) || 60;
-        if (h !== 60) { await page.setViewportSize({ width: 720, height: h }); await page.waitForTimeout(100); }
-      }
-      for (const step of shot.keys ?? []) await press(page, step);
-      await page.waitForTimeout(shot.settle ?? 450);
-      const path = join(out, outDir ? `${name}-${file}.png` : `${file}.png`);
-      await page.screenshot({ path, type: "png" });
-      const q = quant(path, shot.raw);
-      console.log(`${name}/${file}.png${shot.raw ? " (raw)" : q.status === 0 ? "" : " (not quantised: no Pillow)"}`);
-      done.push({ file: `${file}.png`, caption: shot.caption });
-    } catch (e) {
-      failed++;
-      console.error(`${name}/${file}: ${e.message.split("\n")[0]}`);
+  const listed = [];
+  const made = new Set();
+  let broke = 0;
+  for (const [file, shot] of Object.entries(panel?.shots ?? {})) {
+    for (const theme of THEMES) {
+      const png = outDir ? `${name}-${file}-${theme}.png` : `${file}${theme === "dark" ? "-dark" : ""}.png`;
+      const url = `${base}/?gallery&shot=${name}${shot.palette ? `&palette=${encodeURIComponent(shot.palette)}` : ""}${theme === "dark" ? "&theme=dark" : ""}`;
+      try {
+        await shoot({ url, viewport: { width: 960, height: 600 }, scale: 1.5, theme, keys: shot.keys, settle: shot.settle, path: join(out, png), raw: shot.raw });
+        made.add(png);
+        console.log(`${name}/${png}`);
+      } catch (e) { failed++; broke++; console.error(`${name}/${png}: ${e.message.split("\n")[0]}`); }
     }
+    listed.push({ file: `${file}.png`, caption: shot.caption });
   }
-  if (barMode && done.length && !outDir) {
-    const added = listInManifest(name, done);
-    if (added) console.log(`${name}/pal.json: ${added} bar screenshot${added === 1 ? "" : "s"} listed`);
+  for (const [key, shot] of Object.entries(bar?.shots ?? {})) {
+    for (const theme of THEMES) {
+      const png = outDir ? `${name}-bar-${key}-${theme}.png` : `bar-${key}${theme === "dark" ? "-dark" : ""}.png`;
+      try {
+        await shoot({ url: barUrl(bar.key, shot, theme), viewport: { width: 720, height: shot.popover ? 540 : 60 }, scale: 2, theme, path: join(out, png) });
+        made.add(png);
+        console.log(`${name}/${png}`);
+      } catch (e) { failed++; broke++; console.error(`${name}/${png}: ${e.message.split("\n")[0]}`); }
+    }
+    listed.push({ file: `bar-${key}.png`, caption: shot.caption, kind: "bar" });
   }
+  // Half a set is not stamped: the directory, the list and the stamp stay as they were until every shot renders.
+  if (outDir || broke) continue;
+  // The directory is exactly what the fixtures plan: a picture no fixture makes any more goes.
+  for (const f of readdirSync(dir)) if (f.endsWith(".png") && !made.has(f)) { rmSync(join(dir, f)); console.log(`${name}/${f}: removed (no fixture plans it)`); }
+  const manifestPath = join(root, "extensions", name, "pal.json");
+  const text = readFileSync(manifestPath, "utf8");
+  const manifest = JSON.parse(text);
+  (manifest.store ??= {}).screenshots = listed.map(({ file, caption, kind }) => ({ file, caption, ...(kind && { kind }) }));
+  const next = JSON.stringify(manifest, null, 2) + (text.endsWith("\n") ? "\n" : "");
+  if (next !== text) writeFileSync(manifestPath, next);
+  writeFileSync(join(dir, ".shots.json"), JSON.stringify({ fixtures: fixtureHash(name) }) + "\n");
 }
 await browser.close();
 process.exit(failed ? 1 : 0);

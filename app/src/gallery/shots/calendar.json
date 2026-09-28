@@ -936,7 +936,8 @@
       "palette": "schedule",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Today and the days after, the running event tagged now, calls tagged Join"
     },
     "2-detail": {
       "palette": "schedule",
@@ -944,7 +945,8 @@
         "down",
         "cmd+i",
         "wait:400"
-      ]
+      ],
+      "caption": "The detail pane: the notes as markdown, when, where, the call, the attendees with their replies"
     },
     "3-new": {
       "palette": "schedule",
@@ -952,20 +954,23 @@
         "type:new event",
         "enter",
         "wait:300"
-      ]
+      ],
+      "caption": "New event: a title, a day in words, the times, the calendar"
     },
     "4-today": {
       "palette": "today",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Today: the day in order, the running event with what is left of it, the rest with how long until they start"
     },
     "5-quick": {
       "palette": "quick",
       "keys": [
         "type:dentist fri 2pm-3pm at Room 4 @ home",
         "wait:300"
-      ]
+      ],
+      "caption": "Quick Add: a line typed, the event read back with its day, time and calendar before Enter adds it"
     }
   }
 }

@@ -97,10 +97,10 @@ const fixture = {
     [`map/${root}:next`]: { view: render(state(pal, { marked, focus: 2 })) },
   },
   shots: {
-    "1-map": { palette: "map", keys: ["wait:400"] },
-    "2-zoomed": { palette: "map", keys: ["wait:300", "enter", "wait:400", "tab", "wait:600"] },
-    "3-largest": { palette: "largest", keys: ["down*2"] },
-    "4-cleanup": { palette: "cleanup", keys: ["down*4"] },
+    "1-map": { palette: "map", keys: ["wait:400"], caption: "The map of a home folder: boxes inside boxes, the biggest first, the rows beside it" },
+    "2-zoomed": { palette: "map", keys: ["wait:300", "enter", "wait:400", "tab", "wait:600"], caption: "Zoomed into a folder, two boxes marked for the trash" },
+    "3-largest": { palette: "largest", keys: ["down*2"], caption: "The largest files under the root" },
+    "4-cleanup": { palette: "cleanup", keys: ["down*4"], caption: "Cleanup suggestions with their sizes" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/space.json", import.meta.url), JSON.stringify(fixture) + "\n");

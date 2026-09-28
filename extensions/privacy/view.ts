@@ -45,11 +45,13 @@ export function duration(since: number | null, now: number): string {
 
 /** The title line: which sensors are on, in words. */
 export function headline(uses: PrivacyUse[]): string {
-  const on = ORDER.filter((s) => uses.some((u) => u.sensor === s)).map((s) => SENSOR[s].toLowerCase());
+  const on = ORDER.filter((s) => uses.some((u) => u.sensor === s)).map((s) => SHORT[s]);
   if (!on.length) return "All clear";
-  const words = on.length === 3 ? "camera, microphone and screen" : on.join(" and ");
-  return `${words[0].toUpperCase()}${words.slice(1)} in use`;
+  // Short words: the popover's header has room for about 28 characters.
+  const words = on.length === 3 ? "Camera, mic and screen in use" : `${on.join(" and ")} in use`;
+  return `${words[0].toUpperCase()}${words.slice(1)}`;
 }
+const SHORT: Record<Sensor, string> = { camera: "camera", microphone: "mic", screen: "screen" };
 
 export type BarState = { uses: PrivacyUse[]; focus: number; now: number };
 

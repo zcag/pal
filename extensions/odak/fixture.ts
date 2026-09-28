@@ -70,10 +70,9 @@ try {
     item: bar,
     states: [{ id: "quiet", item: { title: "3", tooltip: "3 today" } }],
     shots: {
-      "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: today's count, red while anything is overdue" },
-      "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-      "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the overdue first, then today's, Enter completes, n adds" },
-      "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count" },
+      "menubar": { target: "menubar", caption: "On the menu bar: today's count, red while anything is overdue" },
+      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the overdue first, then today's, Enter completes, n adds" },
+      "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/bar-odak.json", import.meta.url), JSON.stringify(barFixture, null, 2) + "\n");

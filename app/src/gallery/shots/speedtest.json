@@ -384,7 +384,7 @@
               "children": [
                 {
                   "type": "text",
-                  "value": "9/17/2026, 2:19:19 AM · Enter runs again, cmd+Enter copies, cmd+o opens the result",
+                  "value": "9/28/2026, 11:06:10 PM · Enter runs again, cmd+Enter copies, cmd+o opens the result",
                   "style": "muted",
                   "size": "sm"
                 }
@@ -613,7 +613,7 @@
       "items": [
         {
           "id": "trend",
-          "name": "Trend: the last 8 runs",
+          "name": "Trend: the last 9 runs",
           "subtitle": "Download and upload as bars",
           "icon": "󰄪",
           "actions": [
@@ -624,13 +624,65 @@
           ]
         },
         {
-          "id": "run:1789593556814",
+          "id": "run:1790625970592",
+          "name": "↓ 467 Mbps  ↑ 99.5 Mbps  ·  6.2 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1790625970592
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 467 Mbps · ↑ 99.5 Mbps · ping 6.2 ms (jitter 0.9 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/28/2026, 11:06:10 PM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/a1b2c3d4",
+                  "href": "https://www.speedtest.net/result/c/a1b2c3d4"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1790618770319",
           "name": "↓ 461 Mbps  ↑ 98.4 Mbps  ·  6.4 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789593556814
+              "date": 1790618770319
             }
           ],
           "detail": {
@@ -638,7 +690,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/17/2026, 12:19:16 AM"
+                "value": "9/28/2026, 9:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -676,13 +728,13 @@
           ]
         },
         {
-          "id": "run:1789507156814",
+          "id": "run:1790532370319",
           "name": "↓ 449 Mbps  ↑ 97.1 Mbps  ·  6.9 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789507156814
+              "date": 1790532370319
             }
           ],
           "detail": {
@@ -690,7 +742,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/16/2026, 12:19:16 AM"
+                "value": "9/27/2026, 9:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -728,13 +780,13 @@
           ]
         },
         {
-          "id": "run:1789417156814",
+          "id": "run:1790442370319",
           "name": "↓ 313 Mbps  ↑ 95.8 Mbps  ·  7.2 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789417156814
+              "date": 1790442370319
             }
           ],
           "detail": {
@@ -742,7 +794,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/14/2026, 11:19:16 PM"
+                "value": "9/26/2026, 8:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -780,13 +832,13 @@
           ]
         },
         {
-          "id": "run:1789341556814",
+          "id": "run:1790366770319",
           "name": "↓ 455 Mbps  ↑ 99.0 Mbps  ·  6.1 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789341556814
+              "date": 1790366770319
             }
           ],
           "detail": {
@@ -794,7 +846,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/14/2026, 2:19:16 AM"
+                "value": "9/25/2026, 11:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -832,13 +884,13 @@
           ]
         },
         {
-          "id": "run:1789237156814",
+          "id": "run:1790262370319",
           "name": "↓ 96.3 Mbps  ↑ 41.2 Mbps  ·  18.4 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789237156814
+              "date": 1790262370319
             }
           ],
           "detail": {
@@ -846,7 +898,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/12/2026, 9:19:16 PM"
+                "value": "9/24/2026, 6:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -884,13 +936,13 @@
           ]
         },
         {
-          "id": "run:1789168756814",
+          "id": "run:1790193970319",
           "name": "↓ 453 Mbps  ↑ 98.8 Mbps  ·  6.3 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789168756814
+              "date": 1790193970319
             }
           ],
           "detail": {
@@ -898,7 +950,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/12/2026, 2:19:16 AM"
+                "value": "9/23/2026, 11:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -936,13 +988,13 @@
           ]
         },
         {
-          "id": "run:1789075156814",
+          "id": "run:1790100370319",
           "name": "↓ 430 Mbps  ↑ 96.5 Mbps  ·  6.7 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1789075156814
+              "date": 1790100370319
             }
           ],
           "detail": {
@@ -950,7 +1002,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/11/2026, 12:19:16 AM"
+                "value": "9/22/2026, 9:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -988,13 +1040,13 @@
           ]
         },
         {
-          "id": "run:1788909556814",
+          "id": "run:1789934770319",
           "name": "↓ 459 Mbps  ↑ 99.2 Mbps  ·  6.2 ms",
           "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
           "icon": "󰓅",
           "accessories": [
             {
-              "date": 1788909556814
+              "date": 1789934770319
             }
           ],
           "detail": {
@@ -1002,7 +1054,7 @@
             "metadata": [
               {
                 "label": "When",
-                "value": "9/9/2026, 2:19:16 AM"
+                "value": "9/20/2026, 11:06:10 PM"
               },
               {
                 "label": "Tool",
@@ -1042,7 +1094,7 @@
         {
           "id": "clear",
           "name": "Clear history",
-          "subtitle": "8 runs",
+          "subtitle": "9 runs",
           "icon": "󰃢",
           "actions": [
             {
@@ -1293,11 +1345,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1788909556814",
+                  "key": "run:1789934770319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 9 02:19 AM",
+                      "value": "Sep 20 11:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1343,11 +1395,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789075156814",
+                  "key": "run:1790100370319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 11 12:19 AM",
+                      "value": "Sep 22 09:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1393,11 +1445,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789168756814",
+                  "key": "run:1790193970319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 12 02:19 AM",
+                      "value": "Sep 23 11:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1443,11 +1495,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789237156814",
+                  "key": "run:1790262370319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 12 09:19 PM",
+                      "value": "Sep 24 06:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1493,11 +1545,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789341556814",
+                  "key": "run:1790366770319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 14 02:19 AM",
+                      "value": "Sep 25 11:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1543,11 +1595,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789417156814",
+                  "key": "run:1790442370319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 14 11:19 PM",
+                      "value": "Sep 26 08:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1593,11 +1645,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789507156814",
+                  "key": "run:1790532370319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 16 12:19 AM",
+                      "value": "Sep 27 09:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1643,11 +1695,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789593556814",
+                  "key": "run:1790618770319",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 17 12:19 AM",
+                      "value": "Sep 28 09:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1693,11 +1745,11 @@
                   "direction": "row",
                   "gap": 2,
                   "align": "center",
-                  "key": "run:1789600759948",
+                  "key": "run:1790625970592",
                   "children": [
                     {
                       "type": "text",
-                      "value": "Sep 17 02:19 AM",
+                      "value": "Sep 28 11:06 PM",
                       "style": "muted",
                       "size": "xs",
                       "width": 96
@@ -1750,7 +1802,8 @@
       "palette": "speedtest",
       "keys": [
         "wait:300"
-      ]
+      ],
+      "caption": "Opened: the tool found; nothing runs until Enter"
     },
     "2-running": {
       "palette": "speedtest",
@@ -1758,32 +1811,37 @@
         "wait:300",
         "enter",
         "wait:600"
-      ]
+      ],
+      "caption": "Downloading: the bar fills with Ookla's progress, the figure moves with it"
     },
     "3-done": {
       "palette": "done",
       "keys": [
         "wait:300"
-      ]
+      ],
+      "caption": "Done: both figures, ping and jitter, the server and the ISP"
     },
     "4-history": {
       "palette": "history",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "History: the runs, newest first"
     },
     "5-trend": {
       "palette": "history",
       "keys": [
         "enter",
         "wait:600"
-      ]
+      ],
+      "caption": "The trend: the last runs as bars, download in blue and upload in green"
     },
     "6-no-tool": {
       "palette": "notool",
       "keys": [
         "wait:300"
-      ]
+      ],
+      "caption": "Nothing installed: the three ways to get a tool"
     }
   }
 }

@@ -264,7 +264,8 @@
       "palette": "timers",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Every timer with what is left: a landed one, two running, one paused, and New timer last"
     },
     "2-new": {
       "palette": "timers",
@@ -273,21 +274,24 @@
         "enter",
         "wait:300",
         "type:25m"
-      ]
+      ],
+      "caption": "New timer: a duration, an optional name, ring the phone when it lands, typed in the bar"
     },
     "3-actions": {
       "palette": "timers",
       "keys": [
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "Pause, add five minutes, or stop a running timer"
     },
     "4-pomodoro": {
       "palette": "timers",
       "keys": [
         "down*2",
         "cmd+k"
-      ]
+      ],
+      "caption": "A pomodoro's round on its row: skip to the next phase or stop the cycle; the rounds finished today at the bottom"
     }
   }
 }

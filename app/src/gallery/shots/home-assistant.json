@@ -4006,20 +4006,23 @@
   "shots": {
     "1-entities": {
       "palette": "entities",
-      "keys": []
+      "keys": [],
+      "caption": "Entities with their state and when it last changed, favourites first"
     },
     "2-actions": {
       "palette": "entities",
       "keys": [
         "cmd+k"
-      ]
+      ],
+      "caption": "What a light can do: toggle, on, off, set brightness, and the rows every entity has"
     },
     "3-detail": {
       "palette": "entities",
       "keys": [
         "down*7",
         "cmd+shift+a"
-      ]
+      ],
+      "caption": "The detail pane: the entity, its state and its attributes"
     },
     "4-service": {
       "palette": "services",
@@ -4027,7 +4030,8 @@
         "type:turn on",
         "down",
         "enter"
-      ]
+      ],
+      "caption": "A service as a form: the target entity, then the fields Home Assistant describes"
     }
   }
 }

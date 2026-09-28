@@ -5,46 +5,260 @@
     "icon": "󰗚",
     "badge": 2,
     "tooltip": "1 mention, 1 reply",
-    "menu": [
-      {
-        "type": "section",
-        "title": "Unread",
-        "children": [
+    "menu": {
+      "view": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "compact",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 0,
+              "key": "rows",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "901",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "surface": "elevated",
+                  "selected": true,
+                  "action": "focus:901",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰀖",
+                      "key": "g",
+                      "size": "sm",
+                      "color": "accent",
+                      "width": 20
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "t",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "mara mentioned you in “Indexing”",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 300
+                        },
+                        {
+                          "type": "text",
+                          "value": "@cagdas is the 2 s budget still right?",
+                          "size": "sm",
+                          "color": "muted",
+                          "width": 300
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "value": "2w",
+                      "size": "xs",
+                      "color": "faint",
+                      "width": 52,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "902",
+                  "padding": 1,
+                  "minHeight": 44,
+                  "radius": true,
+                  "action": "focus:902",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰅹",
+                      "key": "g",
+                      "size": "sm",
+                      "color": "faint",
+                      "width": 20
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "t",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "tomas replied to your comment in “How we ship”",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 300
+                        },
+                        {
+                          "type": "text",
+                          "value": "agreed, weekly it is",
+                          "size": "sm",
+                          "color": "muted",
+                          "width": 300
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "value": "2w",
+                      "size": "xs",
+                      "color": "faint",
+                      "width": 52,
+                      "align": "end"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints",
+              "minHeight": 22,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter"
+                },
+                {
+                  "type": "text",
+                  "value": "open",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "m"
+                },
+                {
+                  "type": "text",
+                  "value": "read",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "a"
+                },
+                {
+                  "type": "text",
+                  "value": "all read",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "o"
+                },
+                {
+                  "type": "text",
+                  "value": "tela",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "p"
+                },
+                {
+                  "type": "text",
+                  "value": "pal",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
           {
-            "type": "item",
-            "id": "notif:901",
-            "title": "mara mentioned you in “Indexing”",
-            "subtitle": "@cagdas is the 2 s budget still right?",
-            "icon": "󰁥"
+            "id": "open",
+            "title": "Open the comment in tela"
           },
           {
-            "type": "item",
-            "id": "notif:902",
-            "title": "tomas replied to your comment in “How we ship”",
-            "subtitle": "agreed, weekly it is",
-            "icon": "󰼠"
+            "id": "read",
+            "title": "Mark as read",
+            "shortcut": "m"
+          },
+          {
+            "id": "read-all",
+            "title": "Mark all read",
+            "shortcut": [
+              "a",
+              "cmd+shift+a"
+            ],
+            "style": "destructive"
+          },
+          {
+            "id": "open-tela",
+            "title": "Open tela",
+            "shortcut": "o"
+          },
+          {
+            "id": "open-pal",
+            "title": "Open in pal",
+            "shortcut": "p"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:901",
+            "title": "Go to mara mentioned you in “Indexing”",
+            "hidden": true
+          },
+          {
+            "id": "focus:902",
+            "title": "Go to tomas replied to your comment in “How we ship”",
+            "hidden": true
           }
-        ]
-      },
-      {
-        "type": "separator"
-      },
-      {
-        "type": "item",
-        "id": "open",
-        "title": "Open in pal",
-        "subtitle": "2 in Comments",
-        "icon": "󰚇"
-      },
-      {
-        "type": "item",
-        "id": "read-all",
-        "title": "Mark all read",
-        "icon": "󰄭",
-        "shortcut": "cmd+shift+a",
-        "style": "destructive"
+        ],
+        "title": "2 addressed to you",
+        "id": "inbox",
+        "keys": "actions"
       }
-    ]
+    }
   },
   "states": [
     {
@@ -56,25 +270,17 @@
     }
   ],
   "shots": {
-    "bar-menubar-dark": {
+    "menubar": {
       "target": "menubar",
-      "theme": "dark",
       "caption": "On the menu bar: the tela glyph with the count of unread mentions and replies"
     },
-    "bar-menubar-light": {
+    "popover": {
       "target": "menubar",
-      "theme": "light",
-      "caption": "The same item on a light menu bar"
-    },
-    "bar-menubar-popover": {
-      "target": "menubar",
-      "theme": "light",
       "popover": true,
       "caption": "A click opens the popover: the newest mentions and replies, Open in pal, Mark all read"
     },
-    "bar-sketchybar": {
+    "sketchybar": {
       "target": "sketchybar",
-      "theme": "dark",
       "caption": "On sketchybar: the glyph and the count"
     }
   }

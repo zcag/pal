@@ -372,7 +372,16 @@
           "markdown": "**Kadıköy**\nİstanbul'un bir ilçesi\n\nKadıköy, İstanbul'un Anadolu yakasında, Marmara Denizi kıyısında bir ilçedir. Moda, Fenerbahçe ve Bahariye caddesiyle bilinir; Avrupa yakasına vapurla bağlanır.\n\n[Wikipedia](https://tr.wikipedia.org/wiki/Kad%C4%B1k%C3%B6y)"
         },
         "q:bun runtime": {
-          "markdown": "**Bun**\nJavaScript runtime\n\nA fast JavaScript runtime, package manager, bundler and test runner.\n\n[bun.sh](https://bun.sh/)\n\n---\n\n**[Bun: a fast all-in-one JavaScript runtime](https://bun.sh/)**\nbun.sh\nBundle, install and run JavaScript and TypeScript, all in one tool: a runtime, a package manager, a test runner and a bundler.\n\n**[Installation \\| Bun docs](https://bun.sh/docs/installation)**\nbun.sh\nBun ships as a single executable with no dependencies. Install it with curl, npm, Homebrew or Docker.\n\n**[Bun vs Node.js: what changes for a real project](https://blog.example.dev/bun-vs-node)**\nblog.example.dev\nWe moved a mid-sized API to Bun for a month. Startup, install times and the test runner, measured.\n\n**[oven-sh/bun on GitHub](https://github.com/oven-sh/bun)**\ngithub.com\nIncredibly fast JavaScript runtime, bundler, test runner, and package manager, all in one.\n\n**[Bun (software) - Wikipedia](https://en.wikipedia.org/wiki/Bun_(software))**\nen.wikipedia.org\nBun is a JavaScript runtime, package manager and test runner designed as a drop-in replacement for Node.js.\n\n*cmd+enter lists all 6 here*"
+          "markdown": "Enter searches Google for **bun runtime**; Tab puts it in the search box. cmd+Enter lists every result here.",
+          "metadata": [
+            {
+              "label": "Opens",
+              "link": {
+                "text": "google.com/search?q=bun+runtime&hl=tr&gl=tr",
+                "href": "https://www.google.com/search?q=bun+runtime&hl=tr&gl=tr"
+              }
+            }
+          ]
         }
       }
     },
@@ -711,28 +720,32 @@
       "keys": [
         "type:kadıköy",
         "wait:400"
-      ]
+      ],
+      "caption": "kadıköy typed: Google's suggestions, the district's Wikipedia card in the pane"
     },
     "2-preview": {
       "palette": "google",
       "keys": [
         "type:bun runtime",
         "wait:400"
-      ]
+      ],
+      "caption": "With SerpApi: the knowledge panel and the first results in the pane as you type"
     },
     "3-results": {
       "palette": "google-results",
       "keys": [
         "down",
         "wait:300"
-      ]
+      ],
+      "caption": "cmd+Enter: the answer and the results as rows, each with its site"
     },
     "4-actions": {
       "palette": "google-results",
       "keys": [
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a result can do: open, open in the background, copy the link or a Markdown link"
     }
   }
 }

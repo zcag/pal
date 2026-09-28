@@ -311,28 +311,32 @@
   "shots": {
     "1-networks": {
       "palette": "wifi",
-      "keys": []
+      "keys": [],
+      "caption": "The current network with its address and signal, the saved ones, what is in range"
     },
     "2-join": {
       "palette": "wifi",
       "keys": [
         "down*4",
         "enter"
-      ]
+      ],
+      "caption": "A secured network that is not saved asks for its password"
     },
     "3-actions": {
       "palette": "wifi",
       "keys": [
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "A known network: join, copy its password, forget it"
     },
     "4-forget": {
       "palette": "wifi",
       "keys": [
         "down",
         "ctrl+x"
-      ]
+      ],
+      "caption": "Forget asks first; the password goes with it"
     }
   }
 }

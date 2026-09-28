@@ -415,27 +415,31 @@
       "palette": "snippets",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Snippets by name, the keyword as a tag, the first line as the subtitle"
     },
     "2-detail": {
       "palette": "snippets",
       "keys": [
         "down*3",
         "cmd+i"
-      ]
+      ],
+      "caption": "The whole text in the detail pane, with its keyword and length"
     },
     "3-actions": {
       "palette": "snippets",
       "keys": [
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "Paste, Copy, Edit and Delete on a snippet"
     },
     "4-form": {
       "palette": "snippets",
       "keys": [
         "enter"
-      ]
+      ],
+      "caption": "Create Snippet: name, keyword and the text with its placeholders (format=, offset= and {snippet name=} named under the field)"
     }
   }
 }

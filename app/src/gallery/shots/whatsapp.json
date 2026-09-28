@@ -29,7 +29,30 @@
               "color": "green"
             },
             {
-              "date": 1789600560000
+              "date": 1790625840000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
+            },
+            {
+              "id": "quote",
+              "placeholder": "Reply",
+              "kind": "select",
+              "default": "",
+              "options": [
+                {
+                  "id": "",
+                  "title": "New message"
+                },
+                {
+                  "id": "quote",
+                  "title": "Quote “standup in 20?”"
+                }
+              ]
             }
           ],
           "actions": [
@@ -46,7 +69,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -87,7 +111,30 @@
               "color": "green"
             },
             {
-              "date": 1789600140000
+              "date": 1790625420000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
+            },
+            {
+              "id": "quote",
+              "placeholder": "Reply",
+              "kind": "select",
+              "default": "",
+              "options": [
+                {
+                  "id": "",
+                  "title": "New message"
+                },
+                {
+                  "id": "quote",
+                  "title": "Quote “Ola Berg: [location]”"
+                }
+              ]
             }
           ],
           "actions": [
@@ -104,7 +151,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -140,7 +188,30 @@
               "color": "green"
             },
             {
-              "date": 1789598820000
+              "date": 1790624100000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
+            },
+            {
+              "id": "quote",
+              "placeholder": "Reply",
+              "kind": "select",
+              "default": "",
+              "options": [
+                {
+                  "id": "",
+                  "title": "New message"
+                },
+                {
+                  "id": "quote",
+                  "title": "Quote “the cabin is booked, sending the map”"
+                }
+              ]
             }
           ],
           "actions": [
@@ -157,7 +228,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -191,7 +263,14 @@
               "color": "grey"
             },
             {
-              "date": 1789596180000
+              "date": 1790621460000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
             }
           ],
           "actions": [
@@ -208,7 +287,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -240,7 +320,14 @@
           "section": "Recent",
           "accessories": [
             {
-              "date": 1789592880000
+              "date": 1790618160000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
             }
           ],
           "actions": [
@@ -257,7 +344,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -289,7 +377,14 @@
           "section": "Recent",
           "accessories": [
             {
-              "date": 1789507080000
+              "date": 1790532360000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
             }
           ],
           "actions": [
@@ -306,7 +401,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -340,7 +436,14 @@
               "color": "grey"
             },
             {
-              "date": 1789420680000
+              "date": 1790445960000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
             }
           ],
           "actions": [
@@ -357,7 +460,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -389,7 +493,14 @@
           "section": "Recent",
           "accessories": [
             {
-              "date": 1789255080000
+              "date": 1790280360000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
             }
           ],
           "actions": [
@@ -406,7 +517,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -428,7 +540,7 @@
       ],
       "details": {
         "254011223344556@lid": {
-          "markdown": "**Mara Lind** · 01:38 AM\n\ncan you look at the parser before standup?\n\n**You** · 01:43 AM\n\non it, give me ten\n\n**Mara Lind** · 02:06 AM\n\n_[photo]_\n\n**Mara Lind** · 02:15 AM\n> on it, give me ten\n\nthe tests are green now, the diff is small\n\n**Mara Lind** · 02:16 AM\n\nstandup in 20?",
+          "markdown": "**Mara Lind** · 22:26\n\ncan you look at the parser before standup?\n\n**You** · 22:31\n\non it, give me ten\n\n**Mara Lind** · 22:54\n\n_[photo]_\n\n**Mara Lind** · 23:03\n> on it, give me ten\n\nthe tests are green now, the diff is small\n\n**Mara Lind** · 23:04\n\nstandup in 20?",
           "metadata": [
             {
               "label": "Chat",
@@ -448,7 +560,7 @@
             },
             {
               "label": "Newest",
-              "value": "02:16 AM"
+              "value": "23:04"
             },
             {
               "label": "Open",
@@ -460,7 +572,7 @@
           ]
         },
         "120363012345678901@g.us": {
-          "markdown": "**Ola Berg** · 01:18 AM\n\nwho is in for saturday?\n\n**You** · 01:23 AM\n\nme, if we start before nine\n\n**Tomas Ruiz** · 01:48 AM\n\n_[voice message]_\n\n**Lina Kova** · 01:58 AM\n> me, if we start before nine\n\ntrailhead at 8:30 then\n\n**Ola Berg** · 02:09 AM\n\n_[location]_",
+          "markdown": "**Ola Berg** · 22:06\n\nwho is in for saturday?\n\n**You** · 22:11\n\nme, if we start before nine\n\n**Tomas Ruiz** · 22:36\n\n_[voice message]_\n\n**Lina Kova** · 22:46\n> me, if we start before nine\n\ntrailhead at 8:30 then\n\n**Ola Berg** · 22:57\n\n_[location]_",
           "metadata": [
             {
               "label": "Chat",
@@ -476,7 +588,7 @@
             },
             {
               "label": "Newest",
-              "value": "02:09 AM"
+              "value": "22:57"
             },
             {
               "label": "Open",
@@ -488,7 +600,7 @@
           ]
         },
         "905559876543@c.us": {
-          "markdown": "**Tomas Ruiz** · 01:47 AM\n\nthe cabin is booked, sending the map",
+          "markdown": "**Tomas Ruiz** · 22:35\n\nthe cabin is booked, sending the map",
           "metadata": [
             {
               "label": "Chat",
@@ -508,7 +620,7 @@
             },
             {
               "label": "Newest",
-              "value": "01:47 AM"
+              "value": "22:35"
             },
             {
               "label": "Open",
@@ -549,7 +661,30 @@
               "color": "green"
             },
             {
-              "date": 1789600560000
+              "date": 1790625840000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
+            },
+            {
+              "id": "quote",
+              "placeholder": "Reply",
+              "kind": "select",
+              "default": "",
+              "options": [
+                {
+                  "id": "",
+                  "title": "New message"
+                },
+                {
+                  "id": "quote",
+                  "title": "Quote “standup in 20?”"
+                }
+              ]
             }
           ],
           "actions": [
@@ -566,7 +701,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -607,7 +743,30 @@
               "color": "green"
             },
             {
-              "date": 1789600140000
+              "date": 1790625420000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
+            },
+            {
+              "id": "quote",
+              "placeholder": "Reply",
+              "kind": "select",
+              "default": "",
+              "options": [
+                {
+                  "id": "",
+                  "title": "New message"
+                },
+                {
+                  "id": "quote",
+                  "title": "Quote “Ola Berg: [location]”"
+                }
+              ]
             }
           ],
           "actions": [
@@ -624,7 +783,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -660,7 +820,30 @@
               "color": "green"
             },
             {
-              "date": 1789598820000
+              "date": 1790624100000
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "Message",
+              "required": true
+            },
+            {
+              "id": "quote",
+              "placeholder": "Reply",
+              "kind": "select",
+              "default": "",
+              "options": [
+                {
+                  "id": "",
+                  "title": "New message"
+                },
+                {
+                  "id": "quote",
+                  "title": "Quote “the cabin is booked, sending the map”"
+                }
+              ]
             }
           ],
           "actions": [
@@ -677,7 +860,8 @@
             {
               "id": "reply",
               "title": "Send a message",
-              "shortcut": "cmd+shift+r"
+              "shortcut": "cmd+shift+r",
+              "args": true
             },
             {
               "id": "react",
@@ -699,7 +883,7 @@
       ],
       "details": {
         "254011223344556@lid": {
-          "markdown": "**Mara Lind** · 01:38 AM\n\ncan you look at the parser before standup?\n\n**You** · 01:43 AM\n\non it, give me ten\n\n**Mara Lind** · 02:06 AM\n\n_[photo]_\n\n**Mara Lind** · 02:15 AM\n> on it, give me ten\n\nthe tests are green now, the diff is small\n\n**Mara Lind** · 02:16 AM\n\nstandup in 20?",
+          "markdown": "**Mara Lind** · 22:26\n\ncan you look at the parser before standup?\n\n**You** · 22:31\n\non it, give me ten\n\n**Mara Lind** · 22:54\n\n_[photo]_\n\n**Mara Lind** · 23:03\n> on it, give me ten\n\nthe tests are green now, the diff is small\n\n**Mara Lind** · 23:04\n\nstandup in 20?",
           "metadata": [
             {
               "label": "Chat",
@@ -719,7 +903,7 @@
             },
             {
               "label": "Newest",
-              "value": "02:16 AM"
+              "value": "23:04"
             },
             {
               "label": "Open",
@@ -731,7 +915,7 @@
           ]
         },
         "120363012345678901@g.us": {
-          "markdown": "**Ola Berg** · 01:18 AM\n\nwho is in for saturday?\n\n**You** · 01:23 AM\n\nme, if we start before nine\n\n**Tomas Ruiz** · 01:48 AM\n\n_[voice message]_\n\n**Lina Kova** · 01:58 AM\n> me, if we start before nine\n\ntrailhead at 8:30 then\n\n**Ola Berg** · 02:09 AM\n\n_[location]_",
+          "markdown": "**Ola Berg** · 22:06\n\nwho is in for saturday?\n\n**You** · 22:11\n\nme, if we start before nine\n\n**Tomas Ruiz** · 22:36\n\n_[voice message]_\n\n**Lina Kova** · 22:46\n> me, if we start before nine\n\ntrailhead at 8:30 then\n\n**Ola Berg** · 22:57\n\n_[location]_",
           "metadata": [
             {
               "label": "Chat",
@@ -747,7 +931,7 @@
             },
             {
               "label": "Newest",
-              "value": "02:09 AM"
+              "value": "22:57"
             },
             {
               "label": "Open",
@@ -759,7 +943,7 @@
           ]
         },
         "905559876543@c.us": {
-          "markdown": "**Tomas Ruiz** · 01:47 AM\n\nthe cabin is booked, sending the map",
+          "markdown": "**Tomas Ruiz** · 22:35\n\nthe cabin is booked, sending the map",
           "metadata": [
             {
               "label": "Chat",
@@ -779,7 +963,7 @@
             },
             {
               "label": "Newest",
-              "value": "01:47 AM"
+              "value": "22:35"
             },
             {
               "label": "Open",
@@ -817,7 +1001,7 @@
             ],
             "accessories": [
               {
-                "date": 1789598280000
+                "date": 1790623560000
               }
             ],
             "actions": [
@@ -850,7 +1034,7 @@
             ],
             "accessories": [
               {
-                "date": 1789168680000
+                "date": 1790193960000
               }
             ],
             "actions": [
@@ -885,7 +1069,7 @@
             ],
             "accessories": [
               {
-                "date": 1789598820000
+                "date": 1790624100000
               }
             ],
             "actions": [
@@ -919,6 +1103,70 @@
       "tier": "catalog",
       "placeholder": "A name or a number",
       "items": [
+        {
+          "id": "905552223344@c.us",
+          "name": "+90 555 222 33 44",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2325d366%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3E9%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905552223344",
+            "+90 555 222 33 44"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
+        {
+          "id": "905558889900@c.us",
+          "name": "+90 555 888 99 00",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23075e54%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3E9%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905558889900",
+            "+90 555 888 99 00"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
         {
           "id": "905557778899@c.us",
           "name": "Acme Support",
@@ -1154,33 +1402,38 @@
       "palette": "chats",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Chats: unread first, the picture, the newest message and who sent it, the count, the time"
     },
     "2-detail": {
       "palette": "chats",
       "keys": [
         "cmd+i",
         "wait:400"
-      ]
+      ],
+      "caption": "The pane: the last messages as a conversation, a quoted reply indented, a photo named"
     },
     "3-unread": {
       "palette": "unread",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Unread: direct messages then groups, the same keys"
     },
     "4-search": {
       "palette": "search",
       "keys": [
         "type:parser",
         "wait:500"
-      ]
+      ],
+      "caption": "Search WhatsApp: the matching line, who said it where, when"
     },
     "5-contacts": {
       "palette": "contacts",
       "keys": [
         "down*3"
-      ]
+      ],
+      "caption": "Contacts: the number under the name; copy it or a vCard"
     },
     "6-message": {
       "palette": "chats",
@@ -1191,7 +1444,8 @@
         "wait:200",
         "enter",
         "wait:300"
-      ]
+      ],
+      "caption": "Send a message (send on): the message typed in the bar, the latest message quotable"
     }
   }
 }

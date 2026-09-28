@@ -702,31 +702,36 @@
       "palette": "links",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "A data-file palette: six rows from links.json, sectioned, the table's icon unless a row has its own"
     },
     "2-script": {
       "palette": "cmds",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "A script palette: the rows run.sh printed as JSON lines, with sections and tags"
     },
     "3-root": {
       "keys": [
         "type:deploy"
-      ]
+      ],
+      "caption": "A script palette's rows at the root: deploy finds both deploy commands"
     },
     "4-actions": {
       "palette": "links",
       "keys": [
         "down*2",
         "cmd+k"
-      ]
+      ],
+      "caption": "The table's actions on a row: Open and Copy link"
     },
     "5-commands": {
       "palette": "commands",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Script Commands: one row per file in the folder, the mode on the right, an inline command's first output line as its subtitle"
     },
     "6-command-list": {
       "palette": "commands",
@@ -734,7 +739,8 @@
         "down",
         "enter",
         "down"
-      ]
+      ],
+      "caption": "A list-mode command: the rows its script printed, as a level"
     },
     "7-command-form": {
       "palette": "commands",
@@ -743,7 +749,8 @@
         "type:prod",
         "tab",
         "type:v2.4, the settings window"
-      ]
+      ],
+      "caption": "A command with @pal.args takes them in the search bar"
     }
   }
 }

@@ -60,12 +60,12 @@ try {
     },
     effects: { "speedtest/speedtest:start": { view: running }, "history/trend": { view: trend } },
     shots: {
-      "1-idle": { palette: "speedtest", keys: ["wait:300"] },
-      "2-running": { palette: "speedtest", keys: ["wait:300", "enter", "wait:600"] },
-      "3-done": { palette: "done", keys: ["wait:300"] },
-      "4-history": { palette: "history", keys: ["down"] },
-      "5-trend": { palette: "history", keys: ["enter", "wait:600"] },
-      "6-no-tool": { palette: "notool", keys: ["wait:300"] },
+      "1-idle": { palette: "speedtest", keys: ["wait:300"], caption: "Opened: the tool found; nothing runs until Enter" },
+      "2-running": { palette: "speedtest", keys: ["wait:300", "enter", "wait:600"], caption: "Downloading: the bar fills with Ookla's progress, the figure moves with it" },
+      "3-done": { palette: "done", keys: ["wait:300"], caption: "Done: both figures, ping and jitter, the server and the ISP" },
+      "4-history": { palette: "history", keys: ["down"], caption: "History: the runs, newest first" },
+      "5-trend": { palette: "history", keys: ["enter", "wait:600"], caption: "The trend: the last runs as bars, download in blue and upload in green" },
+      "6-no-tool": { palette: "notool", keys: ["wait:300"], caption: "Nothing installed: the three ways to get a tool" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/speedtest.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

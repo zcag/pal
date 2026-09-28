@@ -58,54 +58,13 @@
               "text": "23.7 MB"
             },
             {
-              "date": 1789596358071
+              "date": 1790624765290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -119,60 +78,19 @@
           "keywords": [
             "Sunset over Kadıköy.jpg"
           ],
-          "section": "Yesterday",
+          "section": "Today",
           "accessories": [
             {
               "text": "6.9 KB"
             },
             {
-              "date": 1789590358071
+              "date": 1790618765290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -184,60 +102,19 @@
           "keywords": [
             "Invoice 2026-09.pdf"
           ],
-          "section": "Yesterday",
+          "section": "Today",
           "accessories": [
             {
               "text": "180 KB"
             },
             {
-              "date": 1789579558071
+              "date": 1790607965290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -249,60 +126,19 @@
           "keywords": [
             "Q3 metrics.xlsx"
           ],
-          "section": "This week",
+          "section": "Yesterday",
           "accessories": [
             {
               "text": "94 KB"
             },
             {
-              "date": 1789503958071
+              "date": 1790532365290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -314,60 +150,19 @@
           "keywords": [
             "node-v24.8.0.pkg"
           ],
-          "section": "This week",
+          "section": "Yesterday",
           "accessories": [
             {
               "text": "65.2 MB"
             },
             {
-              "date": 1789489558071
+              "date": 1790517965290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -387,54 +182,13 @@
               "text": "580 B"
             },
             {
-              "date": 1789338358071
+              "date": 1790366765290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -452,54 +206,13 @@
               "text": "1.2 MB"
             },
             {
-              "date": 1789251958071
+              "date": 1790280365290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -517,54 +230,13 @@
               "text": "3.0 KB"
             },
             {
-              "date": 1789079158071
+              "date": 1790107565290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -582,54 +254,13 @@
               "text": "2.6 KB"
             },
             {
-              "date": 1788560758071
+              "date": 1789589165290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -647,54 +278,13 @@
               "text": "4.7 MB"
             },
             {
-              "date": 1786055158071
+              "date": 1787083565290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -712,54 +302,13 @@
               "text": "3.1 MB"
             },
             {
-              "date": 1784413558071
+              "date": 1785441965290
             }
           ],
-          "actions": [
+          "args": [
             {
-              "id": "open",
-              "title": "Open",
-              "multi": true
-            },
-            {
-              "id": "reveal",
-              "title": "Reveal in Finder",
-              "multi": true
-            },
-            {
-              "id": "quick-look",
-              "title": "Quick Look",
-              "shortcut": "cmd+y"
-            },
-            {
-              "id": "copy-file",
-              "title": "Copy file",
-              "shortcut": "cmd+c",
-              "multi": true
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy path",
-              "shortcut": "cmd+shift+c",
-              "multi": true
-            },
-            {
-              "id": "move",
-              "title": "Move to folder…",
-              "shortcut": "cmd+m"
-            },
-            {
-              "id": "rename",
-              "title": "Rename…",
-              "shortcut": "cmd+shift+r"
-            },
-            {
-              "id": "trash",
-              "title": "Move to Trash",
-              "shortcut": "cmd+d",
-              "style": "destructive",
-              "confirm": "Move this to the Trash?",
-              "multi": true
+              "id": "name",
+              "placeholder": "Rename to"
             }
           ]
         },
@@ -813,7 +362,7 @@
             },
             {
               "label": "Modified",
-              "value": "9/16/2026, 8:25:58 PM"
+              "value": "18:06"
             },
             {
               "label": "From",
@@ -862,21 +411,24 @@
       "palette": "downloads",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "The folder newest first: a download coming in, then Today, Yesterday, This week, Older with sizes and ages"
     },
     "2-detail": {
       "palette": "downloads",
       "keys": [
         "down*3",
         "cmd+i"
-      ]
+      ],
+      "caption": "The detail pane: name, folder, size, kind, modified, and the page the file came from"
     },
     "3-actions": {
       "palette": "downloads",
       "keys": [
         "down*3",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a download can do: open, reveal, copy, move, rename, trash"
     },
     "4-move": {
       "palette": "downloads",
@@ -884,7 +436,8 @@
         "down*3",
         "cmd+m",
         "wait:300"
-      ]
+      ],
+      "caption": "Move to folder: the form with the target"
     },
     "5-marked": {
       "palette": "downloads",
@@ -893,7 +446,8 @@
         "shift+down",
         "shift+down",
         "shift+down"
-      ]
+      ],
+      "caption": "Three rows marked with shift+down (Tab marks too): open, reveal, copy or trash them at once"
     }
   }
 }

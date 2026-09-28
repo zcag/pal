@@ -758,7 +758,8 @@
       "palette": "make",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Targets sectioned by project, the description after the folder"
     },
     "2-recipe": {
       "palette": "make",
@@ -766,20 +767,23 @@
         "down*3",
         "cmd+i",
         "wait:400"
-      ]
+      ],
+      "caption": "The detail pane: the target's recipe, the project and the Makefile"
     },
     "3-makefile": {
       "palette": "make",
       "keys": [
         "cmd+l"
-      ]
+      ],
+      "caption": "Show Makefile: the whole file in the panel"
     },
     "4-actions": {
       "palette": "make",
       "keys": [
         "down*5",
         "cmd+k"
-      ]
+      ],
+      "caption": "Run, copy the command, open the project, show the Makefile"
     }
   }
 }

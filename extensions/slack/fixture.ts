@@ -45,12 +45,10 @@ const bar = {
     { id: "zero", item: { badge: undefined, urgent: false, tooltip: "Nothing addressed to you; 6 channels unread", menu: { view: render({ rows: [], quiet, quietTotal: quiet.length, focus: 0 }) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the Slack glyph with the count of what is addressed to you, red while a direct message waits" },
-    "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: direct messages, mentions and thread replies with the sender, the message and the time, the channels also unread, the keys" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The popover in the dark theme" },
-    "bar-menubar-popover-reply": { target: "menubar", theme: "light", popover: true, state: "reply", caption: "r turns the search row into a reply field; Enter posts it to the conversation" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count, red while a direct message waits" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the Slack glyph with the count of what is addressed to you, red while a direct message waits" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: direct messages, mentions and thread replies with the sender, the message and the time, the channels also unread, the keys" },
+    "popover-reply": { target: "menubar", popover: true, state: "reply", caption: "r turns the search row into a reply field; Enter posts it to the conversation" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count, red while a direct message waits" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-slack.json", import.meta.url), JSON.stringify(bar) + "\n");

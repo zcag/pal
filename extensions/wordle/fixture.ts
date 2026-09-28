@@ -26,9 +26,9 @@ const fixture = {
     "wordle/view:submit": { view: render(apply({ ...mid, game: { ...mid.game, input: "crane" } }, "submit", DEFAULTS, TODAY), DEFAULTS, TODAY) },
   },
   shots: {
-    "1-game": { palette: "wordle", keys: ["wait:400"] },
-    "2-notice": { palette: "wordle", keys: ["wait:300", "x", "wait:600"] },
-    "3-solved": { palette: "wordle", keys: ["wait:300", "a", "wait:200", "n", "wait:200", "e", "wait:300", "enter", "wait:1200"] },
+    "1-game": { palette: "wordle", keys: ["wait:400"], caption: "The daily, three guesses in and two letters typed: the keyboard shows what the guesses found" },
+    "2-notice": { palette: "wordle", keys: ["wait:300", "x", "wait:600"], caption: "A word that is not in the list: the badge over the board, the row stays for editing" },
+    "3-solved": { palette: "wordle", keys: ["wait:300", "a", "wait:200", "n", "wait:200", "e", "wait:300", "enter", "wait:1200"], caption: "Solved in four: the praise, the stats and the guess distribution, C copies the grid" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/wordle.json", import.meta.url), JSON.stringify(fixture) + "\n");

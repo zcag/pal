@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Fzf } from "fzf";
-import { Launcher, type LauncherHandle } from "../Launcher";
+import { Launcher, type LauncherHandle, type SurfaceBridge } from "../Launcher";
 import { ASK_ID, PALETTES, sourceKey, toItem, toView, type Ctx, type Effect, type SourceInfo, type WireItem } from "../items";
 import type { Hit } from "../ui";
 import type { Detail, FilterOption, Item, ViewSpec } from "../ui/types";
@@ -41,6 +41,14 @@ type Palette = {
   levels?: Record<string, WireItem[]>;
   details?: Record<string, Detail>;
   tree?: ViewSpec;
+  /**
+   * A game surface (a `tree` whose body is a `surface` node): the page is
+   * the extension's own, served by the gallery's Vite middleware
+   * (vite.config.ts) and framed by the real Surface component; its calls
+   * are answered here, `storage` from this (the game's state, seeded) and
+   * `settings` from this, as the host would.
+   */
+  surface?: { storage?: Record<string, unknown>; settings?: Record<string, unknown> };
   /** The manifest's `fallback`: an "Ask <title>" row (or the template, `{query}` filled) under "Use “q” with" when nothing matched, as fallback.rs builds it. */
   fallback?: true | string;
 };
@@ -67,8 +75,25 @@ function rows(key: string, p: Palette, items: WireItem[] = p.items ?? []): Hit[]
 
 const haystack = (h: Hit) => [h.item.name, h.item.subtitle, ...(h.item.keywords ?? [])].filter(Boolean).join(" ");
 
-function Shot({ fixture, palette: open, theme }: { fixture: Fixture; palette?: string; theme: "light" | "dark" }) {
+function Shot({ name, fixture, palette: open, theme }: { name: string; fixture: Fixture; palette?: string; theme: "light" | "dark" }) {
   const launcher = useRef<LauncherHandle>(null);
+  // A game's page and its calls, answered from the fixture; a copy of the storage per shot, so a page's writes stay in it.
+  const bridge = useMemo<SurfaceBridge | undefined>(() => {
+    if (!Object.values(fixture.palettes).some((p) => p.surface)) return undefined;
+    const stores = new Map<string, Record<string, unknown>>();
+    return {
+      url: (_extension, src) => `${location.origin}/__ext/${name}/${src}`,
+      call: async (level, method, params) => {
+        const s = fixture.palettes[level.palette]?.surface ?? {};
+        const store = stores.get(level.palette) ?? structuredClone(s.storage ?? {});
+        stores.set(level.palette, store);
+        if (method === "storage.get") return store[params.key as string] ?? null;
+        if (method === "storage.set") { store[params.key as string] = params.value; return null; }
+        if (method === "settings") return s.settings ?? {};
+        return null;
+      },
+    };
+  }, [fixture, name]);
   const sources = useMemo<SourceInfo[]>(() => {
     const own = Object.entries(fixture.palettes).map(([key, p]) => ({
       extension: "", palette: key, title: p.title, icon: p.icon, live: !!p.live, input: !!p.input || p.view === "view", view: p.view, columns: p.columns,
@@ -126,7 +151,7 @@ function Shot({ fixture, palette: open, theme }: { fixture: Fixture; palette?: s
   return (
     <div className="g-shot" data-theme={theme}>
       <div className="g-frame">
-        <Launcher ref={launcher} sources={sources} search={search} inline={fixture.inline && inline} fallback={fixture.inline && fallback} detail={detail} view={view} onPick={onPick} onHide={() => {}} onRefresh={() => {}} onSettings={() => {}} />
+        <Launcher ref={launcher} sources={sources} search={search} inline={fixture.inline && inline} fallback={fixture.inline && fallback} detail={detail} view={view} surface={bridge} onPick={onPick} onHide={() => {}} onRefresh={() => {}} onSettings={() => {}} />
       </div>
     </div>
   );
@@ -142,5 +167,5 @@ export default function Shots({ extension, palette, theme = "light" }: { extensi
     load().then((m) => setFixture(m.default));
   }, [extension, theme]);
   useEffect(() => { if (fixture) requestAnimationFrame(() => { document.documentElement.dataset.ready = ""; }); }, [fixture]);
-  return fixture ? <Shot fixture={fixture} palette={palette} theme={theme} /> : null;
+  return fixture ? <Shot name={extension} fixture={fixture} palette={palette} theme={theme} /> : null;
 }

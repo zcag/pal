@@ -1184,27 +1184,31 @@
       "palette": "unreads",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "Unreads: direct messages, mentions and threads addressed to you, then the channels that are only unread"
     },
     "2-unread-detail": {
       "palette": "unreads",
       "keys": [
         "cmd+i",
         "wait:400"
-      ]
+      ],
+      "caption": "The pane: the unread run of the conversation, oldest first"
     },
     "3-status": {
       "palette": "status",
       "keys": [
         "down*3"
-      ]
+      ],
+      "caption": "Status: what is set now, then the presets, Do Not Disturb and presence"
     },
     "4-search": {
       "palette": "search",
       "keys": [
         "type:from:@mara parser",
         "wait:300"
-      ]
+      ],
+      "caption": "Search Slack: Slack's syntax typed into the panel"
     }
   }
 }

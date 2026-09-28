@@ -505,32 +505,37 @@
       "palette": "windows",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "Open windows in a section per app; a minimised one is tagged"
     },
     "2-actions": {
       "palette": "windows",
       "keys": [
         "down*2",
         "cmd+k"
-      ]
+      ],
+      "caption": "Focus, Close, Minimize, Hide app, and the whole app's windows at once"
     },
     "3-root": {
       "keys": [
         "type:chrome"
-      ]
+      ],
+      "caption": "Window titles and app names are root results: chrome finds its three windows"
     },
     "4-confirm": {
       "palette": "windows",
       "keys": [
         "down*2",
         "cmd+shift+w"
-      ]
+      ],
+      "caption": "Close all of this app asks first"
     },
     "5-spaces": {
       "palette": "spaces",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Spaces: the three desktops by name with the apps on each, the current one tagged"
     }
   }
 }

@@ -782,31 +782,17 @@
     }
   },
   "shots": {
-    "bar-menubar-dark": {
+    "menubar": {
       "target": "menubar",
-      "theme": "dark",
       "caption": "On the menu bar: the current notable condition and temperature"
     },
-    "bar-menubar-light": {
+    "popover": {
       "target": "menubar",
-      "theme": "light",
-      "caption": "The same item on a light menu bar"
-    },
-    "bar-menubar-popover": {
-      "target": "menubar",
-      "theme": "light",
       "popover": true,
       "caption": "A click opens the popover: the reading now, the next eight hours, four days of forecast, sunrise and sunset"
     },
-    "bar-menubar-popover-dark": {
-      "target": "menubar",
-      "theme": "dark",
-      "popover": true,
-      "caption": "The same popover in the dark theme"
-    },
-    "bar-sketchybar": {
+    "sketchybar": {
       "target": "sketchybar",
-      "theme": "dark",
       "caption": "On sketchybar: the weather glyph and the temperature"
     }
   }

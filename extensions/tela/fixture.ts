@@ -69,12 +69,12 @@ try {
       "pages/cmd:new": newForm,
     },
     shots: {
-      "1-search": { palette: "search", keys: ["type:index", "wait:700", "down", "wait:300"] },
-      "2-research": { palette: "research", keys: ["type:how does indexing work", "wait:400", "enter", "wait:500"] },
-      "3-page": { palette: "search", keys: ["type:index", "wait:700", "cmd+enter", "wait:500"] },
-      "4-spaces": { palette: "spaces", keys: ["down", "wait:300"] },
-      "5-new-page": { palette: "pages", keys: ["enter", "wait:400", "type:Frecency, explained", "wait:300"] },
-      "6-pages": { palette: "pages", keys: ["down*5", "wait:300"] },
+      "1-search": { palette: "search", keys: ["type:index", "wait:700", "down", "wait:300"], caption: "Search tela: ranked hits with the matching passage, sectioned by space" },
+      "2-research": { palette: "research", keys: ["type:how does indexing work", "wait:400", "enter", "wait:500"], caption: "Ask tela: the sources of an answer as rows, the cited excerpt under the selected one, the flags above" },
+      "3-page": { palette: "search", keys: ["type:index", "wait:700", "cmd+enter", "wait:500"], caption: "A page read in pal: headings, callouts, lists, code and tables drawn with the tokens" },
+      "4-spaces": { palette: "spaces", keys: ["down", "wait:300"], caption: "Spaces with page counts; Enter lists a space's pages" },
+      "5-new-page": { palette: "pages", keys: ["enter", "wait:400", "type:Frecency, explained", "wait:300"], caption: "New tela page: title, space, the body prefilled from the clipboard" },
+      "6-pages": { palette: "pages", keys: ["down*5", "wait:300"], caption: "Pages: favourites, then what changed lately, sectioned by space" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/tela.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");
@@ -85,10 +85,9 @@ try {
     item: bar,
     states: [{ id: "one", item: { badge: 1, tooltip: "1 mention" } }],
     shots: {
-      "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the tela glyph with the count of unread mentions and replies" },
-      "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-      "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the newest mentions and replies, Open in pal, Mark all read" },
-      "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count" },
+      "menubar": { target: "menubar", caption: "On the menu bar: the tela glyph with the count of unread mentions and replies" },
+      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the newest mentions and replies, Open in pal, Mark all read" },
+      "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/bar-tela.json", import.meta.url), JSON.stringify(barFixture, null, 2) + "\n");

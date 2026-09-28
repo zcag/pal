@@ -485,18 +485,21 @@
   },
   "shots": {
     "1-addresses": {
-      "palette": "network"
+      "palette": "network",
+      "caption": "Every address in three sections, each row with its kind's glyph, the detail pane on the Wi-Fi interface"
     },
     "2-public": {
       "palette": "network",
       "keys": [
         "down*7"
-      ]
+      ],
+      "caption": "The public IP with where it is and whose it is"
     },
     "3-search": {
       "keys": [
         "type:dns"
-      ]
+      ],
+      "caption": "dns at the root finds the resolvers"
     },
     "4-actions": {
       "palette": "network",
@@ -504,7 +507,8 @@
         "cmd+i",
         "down*7",
         "cmd+k"
-      ]
+      ],
+      "caption": "Copy the value, or open the Network settings"
     }
   }
 }

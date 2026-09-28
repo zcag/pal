@@ -39,13 +39,13 @@ const bar = {
     { id: "pomodoro", item: { title: "18:27 · 2/4", progress: 0.26, color: "blue", tooltip: "Pomodoro: round 2 of 4, work (+1 more)", menu: { view: render(state([pomodoro, laundry], { pomodoro: { timerId: pomodoro.id, round: 2, of: 4, phase: "work" }, today: 3 })) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: what is left of the soonest timer, a fill under the glyph, amber past two thirds" },
-    "bar-menubar-light": { target: "menubar", theme: "light", state: "landed", caption: "A timer that landed: the item turns into a red alarm with its name" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: a card per timer with the time left and a bar, space pauses, + adds five minutes, backspace stops" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, state: "landed", caption: "A landed timer on top, red and full; Enter dismisses it" },
-    "bar-menubar-popover-new": { target: "menubar", theme: "light", popover: true, state: "new", caption: "n opens the field: 25m tea starts one, the last durations are a click away" },
-    "bar-menubar-popover-pomodoro": { target: "menubar", theme: "light", popover: true, state: "pomodoro", caption: "A pomodoro on the popover: the phase and the round on its card, s skips to the break, 3 rounds finished today" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: what is left of the soonest timer, a fill under the glyph, amber past two thirds" },
+    "menubar-landed": { target: "menubar", state: "landed", caption: "A timer that landed: the item turns into a red alarm with its name" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: a card per timer with the time left and a bar, space pauses, + adds five minutes, backspace stops" },
+    "popover-landed": { target: "menubar", popover: true, state: "landed", caption: "A landed timer on top, red and full; Enter dismisses it" },
+    "popover-new": { target: "menubar", popover: true, state: "new", caption: "n opens the field: 25m tea starts one, the last durations are a click away" },
+    "popover-pomodoro": { target: "menubar", popover: true, state: "pomodoro", caption: "A pomodoro on the popover: the phase and the round on its card, s skips to the break, 3 rounds finished today" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-timer.json", import.meta.url), JSON.stringify(bar) + "\n");

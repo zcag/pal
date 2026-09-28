@@ -40,8 +40,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/jellyfin",
-                  "href": "http://127.0.0.1:61730/jellyfin"
+                  "text": "127.0.0.1:52900/jellyfin",
+                  "href": "http://127.0.0.1:52900/jellyfin"
                 }
               },
               {
@@ -110,8 +110,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/seerr",
-                  "href": "http://127.0.0.1:61730/seerr"
+                  "text": "127.0.0.1:52900/seerr",
+                  "href": "http://127.0.0.1:52900/seerr"
                 }
               },
               {
@@ -175,8 +175,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/radarr",
-                  "href": "http://127.0.0.1:61730/radarr"
+                  "text": "127.0.0.1:52900/radarr",
+                  "href": "http://127.0.0.1:52900/radarr"
                 }
               },
               {
@@ -249,8 +249,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/sonarr",
-                  "href": "http://127.0.0.1:61730/sonarr"
+                  "text": "127.0.0.1:52900/sonarr",
+                  "href": "http://127.0.0.1:52900/sonarr"
                 }
               },
               {
@@ -322,8 +322,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/lidarr",
-                  "href": "http://127.0.0.1:61730/lidarr"
+                  "text": "127.0.0.1:52900/lidarr",
+                  "href": "http://127.0.0.1:52900/lidarr"
                 }
               },
               {
@@ -396,8 +396,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/prowlarr",
-                  "href": "http://127.0.0.1:61730/prowlarr"
+                  "text": "127.0.0.1:52900/prowlarr",
+                  "href": "http://127.0.0.1:52900/prowlarr"
                 }
               },
               {
@@ -463,8 +463,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/hydra",
-                  "href": "http://127.0.0.1:61730/hydra"
+                  "text": "127.0.0.1:52900/hydra",
+                  "href": "http://127.0.0.1:52900/hydra"
                 }
               },
               {
@@ -525,8 +525,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/bazarr",
-                  "href": "http://127.0.0.1:61730/bazarr"
+                  "text": "127.0.0.1:52900/bazarr",
+                  "href": "http://127.0.0.1:52900/bazarr"
                 }
               },
               {
@@ -588,8 +588,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/sab",
-                  "href": "http://127.0.0.1:61730/sab"
+                  "text": "127.0.0.1:52900/sab",
+                  "href": "http://127.0.0.1:52900/sab"
                 }
               },
               {
@@ -655,8 +655,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/qbit",
-                  "href": "http://127.0.0.1:61730/qbit"
+                  "text": "127.0.0.1:52900/qbit",
+                  "href": "http://127.0.0.1:52900/qbit"
                 }
               },
               {
@@ -721,8 +721,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/navidrome",
-                  "href": "http://127.0.0.1:61730/navidrome"
+                  "text": "127.0.0.1:52900/navidrome",
+                  "href": "http://127.0.0.1:52900/navidrome"
                 }
               },
               {
@@ -787,8 +787,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/abs",
-                  "href": "http://127.0.0.1:61730/abs"
+                  "text": "127.0.0.1:52900/abs",
+                  "href": "http://127.0.0.1:52900/abs"
                 }
               },
               {
@@ -854,8 +854,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/kavita",
-                  "href": "http://127.0.0.1:61730/kavita"
+                  "text": "127.0.0.1:52900/kavita",
+                  "href": "http://127.0.0.1:52900/kavita"
                 }
               },
               {
@@ -921,8 +921,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/shelfmark",
-                  "href": "http://127.0.0.1:61730/shelfmark"
+                  "text": "127.0.0.1:52900/shelfmark",
+                  "href": "http://127.0.0.1:52900/shelfmark"
                 }
               },
               {
@@ -978,8 +978,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/filebrowser",
-                  "href": "http://127.0.0.1:61730/filebrowser"
+                  "text": "127.0.0.1:52900/filebrowser",
+                  "href": "http://127.0.0.1:52900/filebrowser"
                 }
               },
               {
@@ -1026,8 +1026,8 @@
               {
                 "label": "URL",
                 "link": {
-                  "text": "127.0.0.1:61730/homepage",
-                  "href": "http://127.0.0.1:61730/homepage"
+                  "text": "127.0.0.1:52900/homepage",
+                  "href": "http://127.0.0.1:52900/homepage"
                 }
               },
               {
@@ -1066,7 +1066,7 @@
           "name": "Snatch",
           "subtitle": "Movie · 2000 · 1 h 43 min",
           "icon": {
-            "image": "http://127.0.0.1:61730/jellyfin/Items/aaa1/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t1"
+            "image": "http://127.0.0.1:52900/jellyfin/Items/aaa1/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t1"
           },
           "keywords": [
             "Movie",
@@ -1114,7 +1114,7 @@
           "name": "Barry S1E4 · Chapter Four: Commit ... to YOU",
           "subtitle": "Episode · 30 min",
           "icon": {
-            "image": "http://127.0.0.1:61730/jellyfin/Items/ser1/Images/Primary?fillHeight=60&fillWidth=40&quality=85"
+            "image": "http://127.0.0.1:52900/jellyfin/Items/ser1/Images/Primary?fillHeight=60&fillWidth=40&quality=85"
           },
           "keywords": [
             "Barry",
@@ -1165,7 +1165,7 @@
           "name": "Ted Lasso",
           "subtitle": "Series · 2020",
           "icon": {
-            "image": "http://127.0.0.1:61730/jellyfin/Items/ccc3/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t3"
+            "image": "http://127.0.0.1:52900/jellyfin/Items/ccc3/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t3"
           },
           "keywords": [
             "Series"
@@ -1237,7 +1237,7 @@
             "name": "My Neighbor Totoro",
             "subtitle": "Movie · 1988 · 1 h 26 min",
             "icon": {
-              "image": "http://127.0.0.1:61730/jellyfin/Items/ddd4/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t4"
+              "image": "http://127.0.0.1:52900/jellyfin/Items/ddd4/Images/Primary?fillHeight=60&fillWidth=40&quality=85&tag=t4"
             },
             "keywords": [
               "Movie",
@@ -1284,7 +1284,7 @@
       },
       "details": {
         "item:ddd4": {
-          "markdown": "![poster](http://127.0.0.1:61730/jellyfin/Items/ddd4/Images/Primary?fillHeight=240&fillWidth=160&quality=85&tag=t4)\n\nTwo sisters and a forest spirit.",
+          "markdown": "![poster](http://127.0.0.1:52900/jellyfin/Items/ddd4/Images/Primary?fillHeight=240&fillWidth=160&quality=85&tag=t4)\n\nTwo sisters and a forest spirit.",
           "metadata": [
             {
               "label": "Type",
@@ -1318,7 +1318,7 @@
               "label": "Jellyfin",
               "link": {
                 "text": "Open",
-                "href": "http://127.0.0.1:61730/jellyfin/web/#/details?id=ddd4"
+                "href": "http://127.0.0.1:52900/jellyfin/web/#/details?id=ddd4"
               }
             }
           ]
@@ -1386,7 +1386,7 @@
                 "label": "Jellyseerr",
                 "link": {
                   "text": "Open",
-                  "href": "http://127.0.0.1:61730/seerr/movie/438631"
+                  "href": "http://127.0.0.1:52900/seerr/movie/438631"
                 }
               }
             ]
@@ -1473,7 +1473,7 @@
                 "label": "Jellyseerr",
                 "link": {
                   "text": "Open",
-                  "href": "http://127.0.0.1:61730/seerr/tv/90228"
+                  "href": "http://127.0.0.1:52900/seerr/tv/90228"
                 }
               }
             ]
@@ -1724,7 +1724,7 @@
         {
           "id": "cmd:sonarr:open",
           "name": "Open Sonarr",
-          "subtitle": "http://127.0.0.1:61730/sonarr",
+          "subtitle": "http://127.0.0.1:52900/sonarr",
           "icon": "󰖟",
           "section": "Sonarr",
           "actions": [
@@ -1838,7 +1838,7 @@
               "title": "Open in Sonarr"
             }
           ],
-          "url": "http://127.0.0.1:61730/sonarr/series/ted-lasso"
+          "url": "http://127.0.0.1:52900/sonarr/series/ted-lasso"
         }
       ]
     },
@@ -2348,7 +2348,7 @@
           "name": "Chonks",
           "subtitle": "cagdas · Symfonium · 1 min ago · Snarky Puppy",
           "icon": {
-            "image": "http://127.0.0.1:61730/navidrome/rest/getCoverArt.view?id=al-al1&size=60&u=cagdas&t=9ff593cb4e6bd528727e5c17e0694698&s=gm4zb3kw&v=1.16.1&c=pal"
+            "image": "http://127.0.0.1:52900/navidrome/rest/getCoverArt.view?id=al-al1&size=60&u=cagdas&t=d04846822bd9afaccc2a61378273343e&s=6lgq41nx&v=1.16.1&c=pal"
           },
           "keywords": [
             "Snarky Puppy",
@@ -2383,7 +2383,7 @@
           "name": "Immigrance",
           "subtitle": "Snarky Puppy · 2019 · Fusion · 8 tracks",
           "icon": {
-            "image": "http://127.0.0.1:61730/navidrome/rest/getCoverArt.view?id=al-al1&size=60&u=cagdas&t=9803e083443939b4ce7c4cf1d8f1bd9c&s=f2cma6qx&v=1.16.1&c=pal"
+            "image": "http://127.0.0.1:52900/navidrome/rest/getCoverArt.view?id=al-al1&size=60&u=cagdas&t=95cc47a331aa018545d8f4f11abdac51&s=y9zxxog8&v=1.16.1&c=pal"
           },
           "keywords": [
             "Snarky Puppy",
@@ -2396,7 +2396,7 @@
             }
           ],
           "detail": {
-            "markdown": "![cover](http://127.0.0.1:61730/navidrome/rest/getCoverArt.view?id=al-al1&size=300&u=cagdas&t=a459e0696fb5e859cec382a3398af072&s=xuppaemt&v=1.16.1&c=pal)",
+            "markdown": "![cover](http://127.0.0.1:52900/navidrome/rest/getCoverArt.view?id=al-al1&size=300&u=cagdas&t=1fda7314cd33dfbb0b6e444ca3eeb6e8&s=sj2lfz48&v=1.16.1&c=pal)",
             "metadata": [
               {
                 "label": "Artist",

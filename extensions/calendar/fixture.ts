@@ -61,12 +61,12 @@ const bar = {
     { id: "tomorrow", item: { title: "Dentist", segments: [{ id: "when", text: "in 30m" }], color: "muted", badge: null, tooltip: "Dentist, 15:30 – 16:15 (Home)", menu: { view: popover(events, at(15), true, { ...st, expanded: true, cursor: 2 }) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the next event and how long until it, amber inside fifteen minutes, a dot for a call to join" },
-    "bar-menubar-light": { target: "menubar", theme: "light", state: "urgent", caption: "Inside five minutes the item turns red" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, state: "now", caption: "While a call runs its row sits on a card with what is left of it; Enter joins" },
-    "bar-menubar-popover-tomorrow": { target: "menubar", theme: "light", popover: true, state: "tomorrow", caption: "Late in the day: what is left, and t opens tomorrow in the same shape; the arrows walk the rows" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", state: "far", caption: "On sketchybar, hours out: muted, the strip's own text; hidden when nothing starts within ten hours" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the next event and how long until it, amber inside fifteen minutes, a dot for a call to join" },
+    "menubar-urgent": { target: "menubar", state: "urgent", caption: "Inside five minutes the item turns red" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header" },
+    "popover-now": { target: "menubar", popover: true, state: "now", caption: "While a call runs its row sits on a card with what is left of it; Enter joins" },
+    "popover-tomorrow": { target: "menubar", popover: true, state: "tomorrow", caption: "Late in the day: what is left, and t opens tomorrow in the same shape; the arrows walk the rows" },
+    "sketchybar": { target: "sketchybar", state: "far", caption: "On sketchybar, hours out: muted, the strip's own text; hidden when nothing starts within ten hours" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-calendar.json", import.meta.url), JSON.stringify(bar) + "\n");

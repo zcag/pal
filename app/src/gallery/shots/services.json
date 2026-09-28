@@ -1330,7 +1330,8 @@
       "palette": "services",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "systemd units under the User filter, the unit file's state and the active state on the right"
     },
     "2-failed": {
       "palette": "services",
@@ -1338,20 +1339,23 @@
         "tab",
         "tab",
         "down"
-      ]
+      ],
+      "caption": "The Failed filter: units of both managers, in a User and a System section"
     },
     "3-logs": {
       "palette": "services",
       "keys": [
         "down*6",
         "cmd+l"
-      ]
+      ],
+      "caption": "journalctl for a unit, the last 200 lines in the panel"
     },
     "4-agents": {
       "palette": "launchd",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "macOS: launchd agents by folder, with pid and state"
     }
   }
 }

@@ -29,11 +29,11 @@ try {
   const fixture = {
     palettes: { maps: { title: meta.title, icon: meta.icon, input: true, placeholder: meta.placeholder, filters: meta.filters, byQuery } },
     shots: {
-      "1-places": { palette: "maps", keys: ["down"] },
-      "2-search": { palette: "maps", keys: ["type:kadıköy"] },
-      "3-route": { palette: "maps", keys: ["type:home > work", "tab", "tab"] },
-      "4-autocomplete": { palette: "maps", keys: ["type:Moda Sah", "wait:400", "down*4"] },
-      "5-actions": { palette: "maps", keys: ["type:kadıköy", "down*5", "cmd+k"] },
+      "1-places": { palette: "maps", keys: ["down"], caption: "Nothing typed: Home, Work, the commute both ways and the saved places" },
+      "2-search": { palette: "maps", keys: ["type:kadıköy"], caption: "kadıköy typed: Search, directions from here, home and work, a saved place that matches" },
+      "3-route": { palette: "maps", keys: ["type:home > work", "tab", "tab"], caption: "home > work: the route and its reverse, walking chosen as the mode" },
+      "4-autocomplete": { palette: "maps", keys: ["type:Moda Sah", "wait:400", "down*4"], caption: "With a Places API key: predictions under the rows" },
+      "5-actions": { palette: "maps", keys: ["type:kadıköy", "down*5", "cmd+k"], caption: "What a place can do: open, directions from here, from home, from work, copy the address or the link" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/maps.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

@@ -47,10 +47,10 @@ try {
       "google-results": { title: "bun runtime", icon: meta.icon, input: true, showDetail: true, items: results },
     },
     shots: {
-      "1-suggestions": { palette: "google", keys: ["type:kadıköy", "wait:400"] },
-      "2-preview": { palette: "google", keys: ["type:bun runtime", "wait:400"] },
-      "3-results": { palette: "google-results", keys: ["down", "wait:300"] },
-      "4-actions": { palette: "google-results", keys: ["down", "cmd+k"] },
+      "1-suggestions": { palette: "google", keys: ["type:kadıköy", "wait:400"], caption: "kadıköy typed: Google's suggestions, the district's Wikipedia card in the pane" },
+      "2-preview": { palette: "google", keys: ["type:bun runtime", "wait:400"], caption: "With SerpApi: the knowledge panel and the first results in the pane as you type" },
+      "3-results": { palette: "google-results", keys: ["down", "wait:300"], caption: "cmd+Enter: the answer and the results as rows, each with its site" },
+      "4-actions": { palette: "google-results", keys: ["down", "cmd+k"], caption: "What a result can do: open, open in the background, copy the link or a Markdown link" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/google.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

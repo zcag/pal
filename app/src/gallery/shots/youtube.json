@@ -44,7 +44,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "6/17/2026 (3 months ago)"
+                  "value": "6/28/2026 (3 months ago)"
                 },
                 {
                   "label": "URL",
@@ -113,7 +113,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/18/2022 (4 years ago)"
+                  "value": "9/29/2022 (4 years ago)"
                 },
                 {
                   "label": "URL",
@@ -182,7 +182,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/17/2026 (2 minutes ago)"
+                  "value": "9/28/2026 (2 minutes ago)"
                 },
                 {
                   "label": "URL",
@@ -251,7 +251,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/16/2026 (1 day ago)"
+                  "value": "9/27/2026 (1 day ago)"
                 },
                 {
                   "label": "URL",
@@ -320,7 +320,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/3/2026 (14 days ago)"
+                  "value": "9/14/2026 (14 days ago)"
                 },
                 {
                   "label": "URL",
@@ -389,7 +389,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "10/22/2025 (11 months ago)"
+                  "value": "11/2/2025 (11 months ago)"
                 },
                 {
                   "label": "URL",
@@ -458,7 +458,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/17/2026 (1 minute ago)"
+                  "value": "9/28/2026 (1 minute ago)"
                 },
                 {
                   "label": "URL",
@@ -528,7 +528,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/17/2026 (1 minute ago)"
+                  "value": "9/28/2026 (1 minute ago)"
                 },
                 {
                   "label": "URL",
@@ -596,7 +596,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "10/22/2025 (11 months ago)"
+                  "value": "11/2/2025 (11 months ago)"
                 },
                 {
                   "label": "URL",
@@ -664,7 +664,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/3/2026 (14 days ago)"
+                  "value": "9/14/2026 (14 days ago)"
                 },
                 {
                   "label": "URL",
@@ -732,7 +732,7 @@
                 },
                 {
                   "label": "Published",
-                  "value": "9/17/2026 (2 minutes ago)"
+                  "value": "9/28/2026 (2 minutes ago)"
                 },
                 {
                   "label": "URL",
@@ -869,7 +869,7 @@
               },
               {
                 "label": "Published",
-                "value": "9/16/2026 (1 day ago)"
+                "value": "9/27/2026 (1 day ago)"
               },
               {
                 "label": "URL",
@@ -938,7 +938,7 @@
               },
               {
                 "label": "Published",
-                "value": "10/22/2025 (11 months ago)"
+                "value": "11/2/2025 (11 months ago)"
               },
               {
                 "label": "URL",
@@ -1031,13 +1031,15 @@
         "down",
         "cmd+i",
         "wait:600"
-      ]
+      ],
+      "caption": "lofi typed: the videos with channel, length, views and age, the detail pane with the thumbnail"
     },
     "2-trending": {
       "palette": "search",
       "keys": [
         "wait:600"
-      ]
+      ],
+      "caption": "Nothing typed: the trending list"
     },
     "3-actions": {
       "palette": "search",
@@ -1046,24 +1048,28 @@
         "wait:600",
         "down",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a video can do: open, play in IINA, copy the url, watch later, the channel"
     },
     "4-channels": {
       "palette": "channels",
       "keys": [
         "type:lofi",
         "wait:600"
-      ]
+      ],
+      "caption": "Channels by name: Enter lists the channel's latest videos"
     },
     "5-later": {
       "palette": "later",
       "keys": [
         "wait:600"
-      ]
+      ],
+      "caption": "Watch Later: what cmd+s kept"
     },
     "6-no-key": {
       "palette": "nokey",
-      "keys": []
+      "keys": [],
+      "caption": "Without a key or an instance: the row saying which setting to fill"
     }
   }
 }

@@ -40,13 +40,13 @@ try {
       setup: { title: grid.title, ...meta, showDetail: false, byQuery: { "": setup } },
     },
     shots: {
-      "1-recent": { palette: "immich", keys: [] },
-      "2-search": { palette: "immich", keys: ["type:receipt", "wait:400", "right"] },
-      "3-actions": { palette: "immich", keys: ["type:receipt", "wait:400", "cmd+k"] },
-      "4-albums": { palette: "albums", keys: ["down"] },
-      "5-people": { palette: "people", keys: [] },
-      "6-memories": { palette: "memories", keys: [] },
-      "7-setup": { palette: "setup", keys: [] },
+      "1-recent": { palette: "immich", keys: [], caption: "Nothing typed: the newest uploads, the pane open on the first" },
+      "2-search": { palette: "immich", keys: ["type:receipt", "wait:400", "right"], caption: "A CLIP search: what is in the picture, the place and date on every tile" },
+      "3-actions": { palette: "immich", keys: ["type:receipt", "wait:400", "cmd+k"], caption: "What a photo can do: open, copy, download, favourite, add to an album, Quick Look" },
+      "4-albums": { palette: "albums", keys: ["down"], caption: "Albums: the cover, the count, the dates, the library's numbers on top" },
+      "5-people": { palette: "people", keys: [], caption: "People by face, favourites first" },
+      "6-memories": { palette: "memories", keys: [], caption: "On this day: a row per year with the places" },
+      "7-setup": { palette: "setup", keys: [], caption: "Without a URL or a key: one row that opens Settings" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/immich.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

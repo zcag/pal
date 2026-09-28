@@ -5,7 +5,7 @@
 # extensions and the examples) and bun test, the SDK's pack. The host's
 # files run in parallel workers, one per core up to 8 (CI: one per core),
 # and host/test/budget.ts fails a file over its time budget: host/test/README.md.
-.PHONY: test
+.PHONY: shots test
 test:
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
@@ -60,6 +60,11 @@ release:
 # through LaunchServices.
 PAL_DEV_P12 ?= $(HOME)/Sync/.secrets/pal/pal-dev.p12
 .PHONY: app
+# The store screenshots, both themes (docs/design/screenshots.md): `make shots`
+# for every extension, `make shots EXT="privacy timer"` for some.
+shots:
+	EXT="$(EXT)" app/scripts/make-shots.sh
+
 app:
 	@security find-identity -p codesigning 2>/dev/null | grep -q '"pal-dev"' || { \
 		[ -f "$(PAL_DEV_P12)" ] || { echo "no pal-dev signing identity and no $(PAL_DEV_P12) to import it from (docs/releasing.md)"; exit 1; }; \

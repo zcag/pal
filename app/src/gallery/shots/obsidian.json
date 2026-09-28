@@ -37,7 +37,7 @@
         {
           "id": "cmd:new",
           "name": "New note",
-          "subtitle": "A note by title in a folder of the vault",
+          "subtitle": "A note by title in a folder of the vault; the body from the template, else your selection or the clipboard",
           "icon": "󰎝",
           "keywords": [
             "create",
@@ -47,7 +47,58 @@
           "actions": [
             {
               "id": "new",
-              "title": "New note"
+              "title": "Create note"
+            }
+          ],
+          "args": [
+            {
+              "id": "title",
+              "placeholder": "Title",
+              "required": true
+            },
+            {
+              "id": "folder",
+              "placeholder": "Folder",
+              "kind": "select",
+              "options": [
+                {
+                  "id": "",
+                  "title": "/ (the vault)"
+                },
+                {
+                  "id": "daily",
+                  "title": "daily"
+                },
+                {
+                  "id": "infra",
+                  "title": "infra"
+                },
+                {
+                  "id": "personal",
+                  "title": "personal"
+                },
+                {
+                  "id": "personal/projects",
+                  "title": "personal/projects"
+                },
+                {
+                  "id": "preferences",
+                  "title": "preferences"
+                },
+                {
+                  "id": "setup",
+                  "title": "setup"
+                },
+                {
+                  "id": "work",
+                  "title": "work"
+                },
+                {
+                  "id": "work/people",
+                  "title": "work/people"
+                }
+              ],
+              "default": ""
             }
           ]
         },
@@ -101,7 +152,14 @@
           "section": "Vault",
           "accessories": [
             {
-              "date": 1789488638073
+              "date": 1790517969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -138,6 +196,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -152,7 +216,14 @@
           "section": "Vault",
           "accessories": [
             {
-              "date": 1789524638073
+              "date": 1790553969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -189,6 +260,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -203,7 +280,14 @@
           "section": "Vault",
           "accessories": [
             {
-              "date": 1787076638073
+              "date": 1788105969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -240,12 +324,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-13.md",
-          "name": "2026-09-13",
+          "id": "note:daily/2026-09-24.md",
+          "name": "2026-09-24",
           "subtitle": "Nothing much",
           "icon": "󱇗",
           "keywords": [
@@ -254,7 +344,14 @@
           "section": "daily",
           "accessories": [
             {
-              "date": 1789258238073
+              "date": 1790287569588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -291,12 +388,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-15.md",
-          "name": "2026-09-15",
+          "id": "note:daily/2026-09-26.md",
+          "name": "2026-09-26",
           "subtitle": "Ferry times for Kaş",
           "icon": "󱇗",
           "keywords": [
@@ -305,7 +408,14 @@
           "section": "daily",
           "accessories": [
             {
-              "date": 1789431038073
+              "date": 1790460369588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -342,12 +452,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-16.md",
-          "name": "2026-09-16",
+          "id": "note:daily/2026-09-27.md",
+          "name": "2026-09-27",
           "subtitle": "Moved the reader's port, updated infra/theater",
           "icon": "󱇗",
           "keywords": [
@@ -356,7 +472,14 @@
           "section": "daily",
           "accessories": [
             {
-              "date": 1789517438073
+              "date": 1790546769588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -393,6 +516,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -415,7 +544,14 @@
               "tag": "homelab"
             },
             {
-              "date": 1789164638073
+              "date": 1790193969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -452,6 +588,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -475,7 +617,14 @@
               "tag": "homelab"
             },
             {
-              "date": 1789503038073
+              "date": 1790532369588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -512,6 +661,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -534,7 +689,14 @@
               "tag": "reading/rss"
             },
             {
-              "date": 1789578638073
+              "date": 1790607969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -571,6 +733,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -593,7 +761,14 @@
               "tag": "agent"
             },
             {
-              "date": 1789589438073
+              "date": 1790618769588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -630,6 +805,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -649,7 +830,14 @@
               "tag": "travel"
             },
             {
-              "date": 1789416638073
+              "date": 1790445969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -686,6 +874,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -704,7 +898,14 @@
               "tag": "preferences"
             },
             {
-              "date": 1788156638073
+              "date": 1789185969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -741,6 +942,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -759,7 +966,14 @@
               "tag": "setup"
             },
             {
-              "date": 1788516638073
+              "date": 1789545969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -796,6 +1010,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -818,7 +1038,14 @@
               "tag": "keyboard"
             },
             {
-              "date": 1788876638073
+              "date": 1789905969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -855,6 +1082,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -873,7 +1106,14 @@
               "tag": "work"
             },
             {
-              "date": 1789542638073
+              "date": 1790571969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -910,6 +1150,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -933,7 +1179,14 @@
               "tag": "people"
             },
             {
-              "date": 1789380638073
+              "date": 1790409969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -970,13 +1223,19 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         }
       ],
       "details": {
         "note:_index.md": {
-          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-lxmkdn&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-lxmkdn&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-lxmkdn&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) the standing agent",
+          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-7JD0v4&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-7JD0v4&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-7JD0v4&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-7JD0v4&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Ftan) the standing agent",
           "metadata": [
             {
               "label": "Path",
@@ -984,7 +1243,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 19:10"
+              "value": "2026-09-27 17:06"
             },
             {
               "label": "Words",
@@ -1023,7 +1282,7 @@
           ]
         },
         "note:_log.md": {
-          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-14, ken: two digests a day was too many, back to one\n- 2026-09-08, keyboard: home row mods on, tap-hold at 180 ms",
+          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-27, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-25, ken: two digests a day was too many, back to one\n- 2026-09-19, keyboard: home row mods on, tap-hold at 180 ms",
           "metadata": [
             {
               "label": "Path",
@@ -1031,7 +1290,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 05:10"
+              "value": "2026-09-28 03:06"
             },
             {
               "label": "Words",
@@ -1052,7 +1311,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-08-18 21:10"
+              "value": "2026-08-30 19:06"
             },
             {
               "label": "Words",
@@ -1064,16 +1323,16 @@
             }
           ]
         },
-        "note:daily/2026-09-13.md": {
-          "markdown": "# 2026-09-13\n\n## Log\n\n- Nothing much",
+        "note:daily/2026-09-24.md": {
+          "markdown": "# 2026-09-24\n\n## Log\n\n- Nothing much",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-13.md"
+              "value": "daily/2026-09-24.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-13 03:10"
+              "value": "2026-09-25 01:06"
             },
             {
               "label": "Words",
@@ -1085,16 +1344,16 @@
             }
           ]
         },
-        "note:daily/2026-09-15.md": {
-          "markdown": "# 2026-09-15\n\n## Log\n\n- Ferry times for Kaş",
+        "note:daily/2026-09-26.md": {
+          "markdown": "# 2026-09-26\n\n## Log\n\n- Ferry times for Kaş",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-15.md"
+              "value": "daily/2026-09-26.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 03:10"
+              "value": "2026-09-27 01:06"
             },
             {
               "label": "Words",
@@ -1106,16 +1365,16 @@
             }
           ]
         },
-        "note:daily/2026-09-16.md": {
-          "markdown": "# 2026-09-16\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater)\n- Read the ken digest",
+        "note:daily/2026-09-27.md": {
+          "markdown": "# 2026-09-27\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater)\n- Read the ken digest",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-16.md"
+              "value": "daily/2026-09-27.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 03:10"
+              "value": "2026-09-28 01:06"
             },
             {
               "label": "Words",
@@ -1136,7 +1395,7 @@
           ]
         },
         "note:infra/archer.md": {
-          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
+          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
           "metadata": [
             {
               "label": "Path",
@@ -1144,7 +1403,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-12 01:10"
+              "value": "2026-09-23 23:06"
             },
             {
               "label": "Words",
@@ -1176,7 +1435,7 @@
           ]
         },
         "note:infra/theater.md": {
-          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
+          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-7JD0v4&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
           "metadata": [
             {
               "label": "Path",
@@ -1184,7 +1443,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 23:10"
+              "value": "2026-09-27 21:06"
             },
             {
               "label": "Words",
@@ -1218,12 +1477,12 @@
             },
             {
               "label": "Backlinks",
-              "value": "4: Wiki Index, 2026-09-16, archer, ken"
+              "value": "4: Wiki Index, 2026-09-27, archer, ken"
             }
           ]
         },
         "note:personal/projects/ken.md": {
-          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
+          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
           "metadata": [
             {
               "label": "Path",
@@ -1231,7 +1490,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 20:10"
+              "value": "2026-09-28 18:06"
             },
             {
               "label": "Words",
@@ -1263,7 +1522,7 @@
           ]
         },
         "note:personal/projects/tan.md": {
-          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
+          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
           "metadata": [
             {
               "label": "Path",
@@ -1271,7 +1530,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 23:10"
+              "value": "2026-09-28 21:06"
             },
             {
               "label": "Words",
@@ -1303,7 +1562,7 @@
           ]
         },
         "note:personal/trip-to-kas.md": {
-          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
+          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
           "metadata": [
             {
               "label": "Path",
@@ -1311,7 +1570,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-14 23:10"
+              "value": "2026-09-26 21:06"
             },
             {
               "label": "Words",
@@ -1348,7 +1607,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-08-31 09:10"
+              "value": "2026-09-12 07:06"
             },
             {
               "label": "Words",
@@ -1377,7 +1636,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-04 13:10"
+              "value": "2026-09-16 11:06"
             },
             {
               "label": "Words",
@@ -1398,7 +1657,7 @@
           ]
         },
         "note:setup/keyboard.md": {
-          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-lxmkdn&file=setup%2Fdotfiles).",
+          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-7JD0v4&file=setup%2Fdotfiles).",
           "metadata": [
             {
               "label": "Path",
@@ -1406,7 +1665,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-08 17:10"
+              "value": "2026-09-20 15:06"
             },
             {
               "label": "Words",
@@ -1438,7 +1697,7 @@
           ]
         },
         "note:work/onboarding.md": {
-          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-lxmkdn&file=work%2Fpeople%2Flina)",
+          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-7JD0v4&file=work%2Fpeople%2Flina)",
           "metadata": [
             {
               "label": "Path",
@@ -1446,7 +1705,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 10:10"
+              "value": "2026-09-28 08:06"
             },
             {
               "label": "Words",
@@ -1483,7 +1742,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-14 13:10"
+              "value": "2026-09-26 11:06"
             },
             {
               "label": "Words",
@@ -1551,7 +1810,14 @@
                 "text": "3 lines"
               },
               {
-                "date": 1789503038073
+                "date": 1790532369588
+              }
+            ],
+            "args": [
+              {
+                "id": "text",
+                "placeholder": "A line to append",
+                "required": true
               }
             ],
             "actions": [
@@ -1588,6 +1854,12 @@
                 "id": "copy-path",
                 "title": "Copy path",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "append",
+                "title": "Append a line",
+                "shortcut": "cmd+shift+a",
+                "args": true
               }
             ],
             "detail": {
@@ -1603,7 +1875,7 @@
           {
             "id": "note:_log.md",
             "name": "Log",
-            "subtitle": "2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite",
+            "subtitle": "2026-09-27, infra / theater: the reader's port moved to 8791 after the Caddy rewrite",
             "icon": "󱇗",
             "keywords": [
               "_log"
@@ -1614,7 +1886,14 @@
                 "text": "1 line"
               },
               {
-                "date": 1789524638073
+                "date": 1790553969588
+              }
+            ],
+            "args": [
+              {
+                "id": "text",
+                "placeholder": "A line to append",
+                "required": true
               }
             ],
             "actions": [
@@ -1651,10 +1930,16 @@
                 "id": "copy-path",
                 "title": "Copy path",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "append",
+                "title": "Append a line",
+                "shortcut": "cmd+shift+a",
+                "args": true
               }
             ],
             "detail": {
-              "markdown": "5: 2026-09-16, infra / theater: the reader's port moved to 8791 after the **Caddy** rewrite",
+              "markdown": "5: 2026-09-27, infra / theater: the reader's port moved to 8791 after the **Caddy** rewrite",
               "metadata": [
                 {
                   "label": "Path",
@@ -1680,7 +1965,7 @@
         {
           "id": "daily:create",
           "name": "Create today's note",
-          "subtitle": "daily/2026-09-17.md, from the template",
+          "subtitle": "daily/2026-09-28.md, from the template",
           "icon": "󰃶",
           "keywords": [
             "today",
@@ -1696,8 +1981,8 @@
           ]
         },
         {
-          "id": "note:daily/2026-09-16.md",
-          "name": "2026-09-16",
+          "id": "note:daily/2026-09-27.md",
+          "name": "2026-09-27",
           "subtitle": "Yesterday · Moved the reader's port, updated infra/theater",
           "icon": "󰃶",
           "keywords": [
@@ -1706,7 +1991,14 @@
           "section": "Daily notes",
           "accessories": [
             {
-              "date": 1789517438073
+              "date": 1790546769588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -1743,12 +2035,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-15.md",
-          "name": "2026-09-15",
+          "id": "note:daily/2026-09-26.md",
+          "name": "2026-09-26",
           "subtitle": "Ferry times for Kaş",
           "icon": "󰨳",
           "keywords": [
@@ -1757,7 +2055,14 @@
           "section": "This week",
           "accessories": [
             {
-              "date": 1789431038073
+              "date": 1790460369588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -1794,12 +2099,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-13.md",
-          "name": "2026-09-13",
+          "id": "note:daily/2026-09-24.md",
+          "name": "2026-09-24",
           "subtitle": "Nothing much",
           "icon": "󰨳",
           "keywords": [
@@ -1808,7 +2119,14 @@
           "section": "This week",
           "accessories": [
             {
-              "date": 1789258238073
+              "date": 1790287569588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -1845,13 +2163,19 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
           "id": "append",
           "name": "Append to today",
-          "subtitle": "A line onto today's note, from the clipboard or what you type",
+          "subtitle": "A line onto today's note; {clipboard}, {selection}, {date} and {time} are filled in",
           "icon": "󰲶",
           "keywords": [
             "log",
@@ -1859,6 +2183,13 @@
             "add"
           ],
           "section": "Write",
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line for today",
+              "required": true
+            }
+          ],
           "actions": [
             {
               "id": "append",
@@ -1869,7 +2200,7 @@
         {
           "id": "new",
           "name": "New note",
-          "subtitle": "A note by title in a folder of the vault",
+          "subtitle": "A note by title in a folder of the vault; the body from the template, else your selection or the clipboard",
           "icon": "󰎝",
           "keywords": [
             "create",
@@ -1879,14 +2210,65 @@
           "actions": [
             {
               "id": "new",
-              "title": "New note"
+              "title": "Create note"
+            }
+          ],
+          "args": [
+            {
+              "id": "title",
+              "placeholder": "Title",
+              "required": true
+            },
+            {
+              "id": "folder",
+              "placeholder": "Folder",
+              "kind": "select",
+              "options": [
+                {
+                  "id": "",
+                  "title": "/ (the vault)"
+                },
+                {
+                  "id": "daily",
+                  "title": "daily"
+                },
+                {
+                  "id": "infra",
+                  "title": "infra"
+                },
+                {
+                  "id": "personal",
+                  "title": "personal"
+                },
+                {
+                  "id": "personal/projects",
+                  "title": "personal/projects"
+                },
+                {
+                  "id": "preferences",
+                  "title": "preferences"
+                },
+                {
+                  "id": "setup",
+                  "title": "setup"
+                },
+                {
+                  "id": "work",
+                  "title": "work"
+                },
+                {
+                  "id": "work/people",
+                  "title": "work/people"
+                }
+              ],
+              "default": ""
             }
           ]
         }
       ],
       "details": {
         "note:_index.md": {
-          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-lxmkdn&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-lxmkdn&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-lxmkdn&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) the standing agent",
+          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-7JD0v4&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-7JD0v4&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-7JD0v4&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-7JD0v4&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Ftan) the standing agent",
           "metadata": [
             {
               "label": "Path",
@@ -1894,7 +2276,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 19:10"
+              "value": "2026-09-27 17:06"
             },
             {
               "label": "Words",
@@ -1933,7 +2315,7 @@
           ]
         },
         "note:_log.md": {
-          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-14, ken: two digests a day was too many, back to one\n- 2026-09-08, keyboard: home row mods on, tap-hold at 180 ms",
+          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-27, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-25, ken: two digests a day was too many, back to one\n- 2026-09-19, keyboard: home row mods on, tap-hold at 180 ms",
           "metadata": [
             {
               "label": "Path",
@@ -1941,7 +2323,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 05:10"
+              "value": "2026-09-28 03:06"
             },
             {
               "label": "Words",
@@ -1962,7 +2344,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-08-18 21:10"
+              "value": "2026-08-30 19:06"
             },
             {
               "label": "Words",
@@ -1974,16 +2356,16 @@
             }
           ]
         },
-        "note:daily/2026-09-13.md": {
-          "markdown": "# 2026-09-13\n\n## Log\n\n- Nothing much",
+        "note:daily/2026-09-24.md": {
+          "markdown": "# 2026-09-24\n\n## Log\n\n- Nothing much",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-13.md"
+              "value": "daily/2026-09-24.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-13 03:10"
+              "value": "2026-09-25 01:06"
             },
             {
               "label": "Words",
@@ -1995,16 +2377,16 @@
             }
           ]
         },
-        "note:daily/2026-09-15.md": {
-          "markdown": "# 2026-09-15\n\n## Log\n\n- Ferry times for Kaş",
+        "note:daily/2026-09-26.md": {
+          "markdown": "# 2026-09-26\n\n## Log\n\n- Ferry times for Kaş",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-15.md"
+              "value": "daily/2026-09-26.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 03:10"
+              "value": "2026-09-27 01:06"
             },
             {
               "label": "Words",
@@ -2016,16 +2398,16 @@
             }
           ]
         },
-        "note:daily/2026-09-16.md": {
-          "markdown": "# 2026-09-16\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater)\n- Read the ken digest",
+        "note:daily/2026-09-27.md": {
+          "markdown": "# 2026-09-27\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater)\n- Read the ken digest",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-16.md"
+              "value": "daily/2026-09-27.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 03:10"
+              "value": "2026-09-28 01:06"
             },
             {
               "label": "Words",
@@ -2046,7 +2428,7 @@
           ]
         },
         "note:infra/archer.md": {
-          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
+          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
           "metadata": [
             {
               "label": "Path",
@@ -2054,7 +2436,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-12 01:10"
+              "value": "2026-09-23 23:06"
             },
             {
               "label": "Words",
@@ -2086,7 +2468,7 @@
           ]
         },
         "note:infra/theater.md": {
-          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
+          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-7JD0v4&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
           "metadata": [
             {
               "label": "Path",
@@ -2094,7 +2476,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 23:10"
+              "value": "2026-09-27 21:06"
             },
             {
               "label": "Words",
@@ -2128,12 +2510,12 @@
             },
             {
               "label": "Backlinks",
-              "value": "4: Wiki Index, 2026-09-16, archer, ken"
+              "value": "4: Wiki Index, 2026-09-27, archer, ken"
             }
           ]
         },
         "note:personal/projects/ken.md": {
-          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
+          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
           "metadata": [
             {
               "label": "Path",
@@ -2141,7 +2523,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 20:10"
+              "value": "2026-09-28 18:06"
             },
             {
               "label": "Words",
@@ -2173,7 +2555,7 @@
           ]
         },
         "note:personal/projects/tan.md": {
-          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
+          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
           "metadata": [
             {
               "label": "Path",
@@ -2181,7 +2563,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 23:10"
+              "value": "2026-09-28 21:06"
             },
             {
               "label": "Words",
@@ -2213,7 +2595,7 @@
           ]
         },
         "note:personal/trip-to-kas.md": {
-          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
+          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
           "metadata": [
             {
               "label": "Path",
@@ -2221,7 +2603,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-14 23:10"
+              "value": "2026-09-26 21:06"
             },
             {
               "label": "Words",
@@ -2258,7 +2640,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-08-31 09:10"
+              "value": "2026-09-12 07:06"
             },
             {
               "label": "Words",
@@ -2287,7 +2669,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-04 13:10"
+              "value": "2026-09-16 11:06"
             },
             {
               "label": "Words",
@@ -2308,7 +2690,7 @@
           ]
         },
         "note:setup/keyboard.md": {
-          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-lxmkdn&file=setup%2Fdotfiles).",
+          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-7JD0v4&file=setup%2Fdotfiles).",
           "metadata": [
             {
               "label": "Path",
@@ -2316,7 +2698,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-08 17:10"
+              "value": "2026-09-20 15:06"
             },
             {
               "label": "Words",
@@ -2348,7 +2730,7 @@
           ]
         },
         "note:work/onboarding.md": {
-          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-lxmkdn&file=work%2Fpeople%2Flina)",
+          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-7JD0v4&file=work%2Fpeople%2Flina)",
           "metadata": [
             {
               "label": "Path",
@@ -2356,7 +2738,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 10:10"
+              "value": "2026-09-28 08:06"
             },
             {
               "label": "Words",
@@ -2393,7 +2775,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-14 13:10"
+              "value": "2026-09-26 11:06"
             },
             {
               "label": "Words",
@@ -2725,7 +3107,14 @@
               "tag": "agent"
             },
             {
-              "date": 1789589438073
+              "date": 1790618769588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -2762,6 +3151,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -2783,7 +3178,14 @@
               "tag": "reading/rss"
             },
             {
-              "date": 1789578638073
+              "date": 1790607969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -2820,6 +3222,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -2837,7 +3245,14 @@
               "tag": "work"
             },
             {
-              "date": 1789542638073
+              "date": 1790571969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -2874,6 +3289,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -2887,7 +3308,14 @@
           ],
           "accessories": [
             {
-              "date": 1789524638073
+              "date": 1790553969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -2924,12 +3352,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-16.md",
-          "name": "2026-09-16",
+          "id": "note:daily/2026-09-27.md",
+          "name": "2026-09-27",
           "subtitle": "daily · Moved the reader's port, updated infra/theater",
           "icon": "󰋚",
           "keywords": [
@@ -2937,7 +3371,14 @@
           ],
           "accessories": [
             {
-              "date": 1789517438073
+              "date": 1790546769588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -2974,6 +3415,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -2996,7 +3443,14 @@
               "tag": "homelab"
             },
             {
-              "date": 1789503038073
+              "date": 1790532369588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3033,6 +3487,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3046,7 +3506,14 @@
           ],
           "accessories": [
             {
-              "date": 1789488638073
+              "date": 1790517969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3083,12 +3550,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-15.md",
-          "name": "2026-09-15",
+          "id": "note:daily/2026-09-26.md",
+          "name": "2026-09-26",
           "subtitle": "daily · Ferry times for Kaş",
           "icon": "󰋚",
           "keywords": [
@@ -3096,7 +3569,14 @@
           ],
           "accessories": [
             {
-              "date": 1789431038073
+              "date": 1790460369588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3133,6 +3613,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3151,7 +3637,14 @@
               "tag": "travel"
             },
             {
-              "date": 1789416638073
+              "date": 1790445969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3188,6 +3681,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3210,7 +3709,14 @@
               "tag": "people"
             },
             {
-              "date": 1789380638073
+              "date": 1790409969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3247,12 +3753,18 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
         {
-          "id": "note:daily/2026-09-13.md",
-          "name": "2026-09-13",
+          "id": "note:daily/2026-09-24.md",
+          "name": "2026-09-24",
           "subtitle": "daily · Nothing much",
           "icon": "󰋚",
           "keywords": [
@@ -3260,7 +3772,14 @@
           ],
           "accessories": [
             {
-              "date": 1789258238073
+              "date": 1790287569588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3297,6 +3816,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3318,7 +3843,14 @@
               "tag": "homelab"
             },
             {
-              "date": 1789164638073
+              "date": 1790193969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3355,6 +3887,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3376,7 +3914,14 @@
               "tag": "keyboard"
             },
             {
-              "date": 1788876638073
+              "date": 1789905969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3413,6 +3958,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3430,7 +3981,14 @@
               "tag": "setup"
             },
             {
-              "date": 1788516638073
+              "date": 1789545969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3467,6 +4025,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3484,7 +4048,14 @@
               "tag": "preferences"
             },
             {
-              "date": 1788156638073
+              "date": 1789185969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3521,6 +4092,12 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         },
@@ -3534,7 +4111,14 @@
           ],
           "accessories": [
             {
-              "date": 1787076638073
+              "date": 1788105969588
+            }
+          ],
+          "args": [
+            {
+              "id": "text",
+              "placeholder": "A line to append",
+              "required": true
             }
           ],
           "actions": [
@@ -3571,13 +4155,19 @@
               "id": "copy-path",
               "title": "Copy path",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "append",
+              "title": "Append a line",
+              "shortcut": "cmd+shift+a",
+              "args": true
             }
           ]
         }
       ],
       "details": {
         "note:_index.md": {
-          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-lxmkdn&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-lxmkdn&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-lxmkdn&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) the standing agent",
+          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-7JD0v4&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-7JD0v4&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-7JD0v4&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-7JD0v4&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Ftan) the standing agent",
           "metadata": [
             {
               "label": "Path",
@@ -3585,7 +4175,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 19:10"
+              "value": "2026-09-27 17:06"
             },
             {
               "label": "Words",
@@ -3624,7 +4214,7 @@
           ]
         },
         "note:_log.md": {
-          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-14, ken: two digests a day was too many, back to one\n- 2026-09-08, keyboard: home row mods on, tap-hold at 180 ms",
+          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-27, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-25, ken: two digests a day was too many, back to one\n- 2026-09-19, keyboard: home row mods on, tap-hold at 180 ms",
           "metadata": [
             {
               "label": "Path",
@@ -3632,7 +4222,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 05:10"
+              "value": "2026-09-28 03:06"
             },
             {
               "label": "Words",
@@ -3653,7 +4243,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-08-18 21:10"
+              "value": "2026-08-30 19:06"
             },
             {
               "label": "Words",
@@ -3665,16 +4255,16 @@
             }
           ]
         },
-        "note:daily/2026-09-13.md": {
-          "markdown": "# 2026-09-13\n\n## Log\n\n- Nothing much",
+        "note:daily/2026-09-24.md": {
+          "markdown": "# 2026-09-24\n\n## Log\n\n- Nothing much",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-13.md"
+              "value": "daily/2026-09-24.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-13 03:10"
+              "value": "2026-09-25 01:06"
             },
             {
               "label": "Words",
@@ -3686,16 +4276,16 @@
             }
           ]
         },
-        "note:daily/2026-09-15.md": {
-          "markdown": "# 2026-09-15\n\n## Log\n\n- Ferry times for Kaş",
+        "note:daily/2026-09-26.md": {
+          "markdown": "# 2026-09-26\n\n## Log\n\n- Ferry times for Kaş",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-15.md"
+              "value": "daily/2026-09-26.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 03:10"
+              "value": "2026-09-27 01:06"
             },
             {
               "label": "Words",
@@ -3707,16 +4297,16 @@
             }
           ]
         },
-        "note:daily/2026-09-16.md": {
-          "markdown": "# 2026-09-16\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater)\n- Read the ken digest",
+        "note:daily/2026-09-27.md": {
+          "markdown": "# 2026-09-27\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater)\n- Read the ken digest",
           "metadata": [
             {
               "label": "Path",
-              "value": "daily/2026-09-16.md"
+              "value": "daily/2026-09-27.md"
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 03:10"
+              "value": "2026-09-28 01:06"
             },
             {
               "label": "Words",
@@ -3737,7 +4327,7 @@
           ]
         },
         "note:infra/archer.md": {
-          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
+          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
           "metadata": [
             {
               "label": "Path",
@@ -3745,7 +4335,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-12 01:10"
+              "value": "2026-09-23 23:06"
             },
             {
               "label": "Words",
@@ -3777,7 +4367,7 @@
           ]
         },
         "note:infra/theater.md": {
-          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
+          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-7JD0v4&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
           "metadata": [
             {
               "label": "Path",
@@ -3785,7 +4375,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-15 23:10"
+              "value": "2026-09-27 21:06"
             },
             {
               "label": "Words",
@@ -3819,12 +4409,12 @@
             },
             {
               "label": "Backlinks",
-              "value": "4: Wiki Index, 2026-09-16, archer, ken"
+              "value": "4: Wiki Index, 2026-09-27, archer, ken"
             }
           ]
         },
         "note:personal/projects/ken.md": {
-          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
+          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-7JD0v4&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
           "metadata": [
             {
               "label": "Path",
@@ -3832,7 +4422,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 20:10"
+              "value": "2026-09-28 18:06"
             },
             {
               "label": "Words",
@@ -3864,7 +4454,7 @@
           ]
         },
         "note:personal/projects/tan.md": {
-          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
+          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
           "metadata": [
             {
               "label": "Path",
@@ -3872,7 +4462,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 23:10"
+              "value": "2026-09-28 21:06"
             },
             {
               "label": "Words",
@@ -3904,7 +4494,7 @@
           ]
         },
         "note:personal/trip-to-kas.md": {
-          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
+          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-7JD0v4&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
           "metadata": [
             {
               "label": "Path",
@@ -3912,7 +4502,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-14 23:10"
+              "value": "2026-09-26 21:06"
             },
             {
               "label": "Words",
@@ -3949,7 +4539,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-08-31 09:10"
+              "value": "2026-09-12 07:06"
             },
             {
               "label": "Words",
@@ -3978,7 +4568,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-04 13:10"
+              "value": "2026-09-16 11:06"
             },
             {
               "label": "Words",
@@ -3999,7 +4589,7 @@
           ]
         },
         "note:setup/keyboard.md": {
-          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-lxmkdn&file=setup%2Fdotfiles).",
+          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-7JD0v4&file=setup%2Fdotfiles).",
           "metadata": [
             {
               "label": "Path",
@@ -4007,7 +4597,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-08 17:10"
+              "value": "2026-09-20 15:06"
             },
             {
               "label": "Words",
@@ -4039,7 +4629,7 @@
           ]
         },
         "note:work/onboarding.md": {
-          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-lxmkdn&file=work%2Fpeople%2Flina)",
+          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-7JD0v4&file=work%2Fpeople%2Flina)",
           "metadata": [
             {
               "label": "Path",
@@ -4047,7 +4637,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-16 10:10"
+              "value": "2026-09-28 08:06"
             },
             {
               "label": "Words",
@@ -4084,7 +4674,7 @@
             },
             {
               "label": "Modified",
-              "value": "2026-09-14 13:10"
+              "value": "2026-09-26 11:06"
             },
             {
               "label": "Words",
@@ -4430,38 +5020,33 @@
     },
     "daily/append": {
       "form": {
-        "id": "append",
         "title": "Append to today",
         "fields": [
           {
-            "kind": "textarea",
+            "kind": "text",
             "id": "text",
-            "label": "Text",
+            "label": "A line for today",
+            "placeholder": "A line for today",
             "required": true,
-            "default": "The reader's first request after the disk spins down takes 4 s; worth a cache warm at 07:00.",
-            "placeholder": "What happened, a link, a thought",
-            "description": "Added as a new line at the end of daily/2026-09-17.md. {selection}, {clipboard}, {date} and {time} are filled in."
+            "default": "The reader's first request after the disk spins down takes 4 s; worth a cache warm at 07:00."
           }
         ],
         "submit": {
-          "id": "append:save",
+          "id": "append",
           "title": "Append"
         }
       }
     },
     "notes/cmd:new": {
       "form": {
-        "id": "new",
         "title": "New note",
         "fields": [
           {
             "kind": "text",
             "id": "title",
             "label": "Title",
-            "required": true,
-            "default": "",
-            "placeholder": "What the note is about",
-            "description": "The file name too; Obsidian's forbidden characters become dashes."
+            "placeholder": "Title",
+            "required": true
           },
           {
             "kind": "select",
@@ -4506,18 +5091,10 @@
               }
             ],
             "default": ""
-          },
-          {
-            "kind": "textarea",
-            "id": "body",
-            "label": "Body",
-            "default": "The reader's first request after the disk spins down takes 4 s; worth a cache warm at 07:00.",
-            "placeholder": "# Title\n\nMarkdown, [[wikilinks]], #tags",
-            "description": "Starts as your selection or the clipboard's text; a template setting replaces that."
           }
         ],
         "submit": {
-          "id": "new:save",
+          "id": "new",
           "title": "Create note"
         }
       }
@@ -4529,7 +5106,8 @@
       "keys": [
         "down*11",
         "wait:300"
-      ]
+      ],
+      "caption": "Notes: every note by title, sectioned by folder, tags and the change date on the row"
     },
     "2-detail": {
       "palette": "notes",
@@ -4539,7 +5117,8 @@
         "down",
         "cmd+i",
         "wait:500"
-      ]
+      ],
+      "caption": "The pane: the note rendered, its tags, links and backlinks under it"
     },
     "3-search": {
       "palette": "search",
@@ -4548,14 +5127,16 @@
         "wait:500",
         "cmd+i",
         "wait:400"
-      ]
+      ],
+      "caption": "Search Notes: the matching line on each row, the matches bold in the pane"
     },
     "4-daily": {
       "palette": "daily",
       "keys": [
         "down",
         "wait:300"
-      ]
+      ],
+      "caption": "Daily Notes: today, yesterday, this week, Append to today, New note"
     },
     "5-append": {
       "palette": "daily",
@@ -4563,7 +5144,8 @@
         "down*4",
         "enter",
         "wait:500"
-      ]
+      ],
+      "caption": "Append to today: the line typed in the search bar lands at the end of today's note"
     },
     "6-read": {
       "palette": "notes",
@@ -4573,7 +5155,8 @@
         "down",
         "cmd+shift+r",
         "wait:500"
-      ]
+      ],
+      "caption": "A note read in pal: callouts, lists, code and tables drawn with the tokens"
     }
   }
 }

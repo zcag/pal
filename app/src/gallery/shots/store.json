@@ -1462,21 +1462,24 @@
       "palette": "store",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "The store: what is behind under Updates, then every extension with its tile, tagline and chips"
     },
     "2-detail": {
       "palette": "store",
       "keys": [
         "type:git",
         "cmd+i"
-      ]
+      ],
+      "caption": "The detail pane on a row: the description, what it does, the screenshots and the keys"
     },
     "3-actions": {
       "palette": "store",
       "keys": [
         "down*3",
         "cmd+k"
-      ]
+      ],
+      "caption": "Install on Enter, the store page, the install command"
     }
   }
 }

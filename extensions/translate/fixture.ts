@@ -38,11 +38,11 @@ try {
       history: { title: history.title, icon: history.icon, live: true, placeholder: history.placeholder, items: rows },
     },
     shots: {
-      "1-translate": { palette: "translate", keys: ["type:hello world", "wait:500"] },
-      "2-prefix": { palette: "translate", keys: ["type:tr>en merhaba dünya. Nasılsın?", "wait:500", "cmd+i"] },
-      "3-romanisation": { palette: "translate", keys: ["type:>ja hello", "wait:500", "down"] },
-      "4-actions": { palette: "translate", keys: ["type:hello world", "wait:500", "cmd+k"] },
-      "5-history": { palette: "history", keys: ["down"] },
+      "1-translate": { palette: "translate", keys: ["type:hello world", "wait:500"], caption: "hello world typed with the system language Turkish: the translation first, the detected language, the alternatives, Swap" },
+      "2-prefix": { palette: "translate", keys: ["type:tr>en merhaba dünya. Nasılsın?", "wait:500", "cmd+i"], caption: "tr>en merhaba dünya. Nasılsın?: both ends named in the prefix; the detail pane shows both texts and the pair" },
+      "3-romanisation": { palette: "translate", keys: ["type:>ja hello", "wait:500", "down"], caption: ">ja hello: the Japanese with its romanisation and the dictionary entry" },
+      "4-actions": { palette: "translate", keys: ["type:hello world", "wait:500", "cmd+k"], caption: "What a translation can do: copy, paste, speak, the source, Google Translate" },
+      "5-history": { palette: "history", keys: ["down"], caption: "Translation History: what was copied or spoken, newest first" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/translate.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

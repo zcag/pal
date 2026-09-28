@@ -7153,20 +7153,23 @@
       "palette": "emoji",
       "keys": [
         "right*2"
-      ]
+      ],
+      "caption": "The grid: Recently used, then Smileys & Emotion and the other groups"
     },
     "2-search": {
       "palette": "emoji",
       "keys": [
         "type:party"
-      ]
+      ],
+      "caption": "Searching by keyword narrows the tiles across every group"
     },
     "3-actions": {
       "palette": "emoji",
       "keys": [
         "right",
         "cmd+k"
-      ]
+      ],
+      "caption": "Copy, paste, or copy the :shortcode:"
     }
   }
 }

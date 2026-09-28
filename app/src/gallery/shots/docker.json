@@ -1347,19 +1347,22 @@
       "palette": "docker",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Containers, running first, with ports, status and a state tag"
     },
     "2-actions": {
       "palette": "docker",
       "keys": [
         "cmd+k"
-      ]
+      ],
+      "caption": "What a running container can do: stop, logs, shell, restart, remove"
     },
     "3-logs": {
       "palette": "docker",
       "keys": [
         "cmd+l"
-      ]
+      ],
+      "caption": "The last 200 log lines of a container, opened in the panel"
     },
     "4-run": {
       "palette": "images",
@@ -1367,7 +1370,8 @@
         "enter",
         "wait:200",
         "type:web"
-      ]
+      ],
+      "caption": "Running an image: the name and the ports, then docker run -d"
     }
   }
 }

@@ -387,26 +387,30 @@
       "palette": "calc",
       "keys": [
         "type:12 usd to try"
-      ]
+      ],
+      "caption": "12 usd to try at the ECB's rate; the reverse conversion is the second row"
     },
     "2-dates": {
       "palette": "calc",
       "keys": [
         "type:days until 2026-12-25"
-      ]
+      ],
+      "caption": "A day count, with the weeks and months on the right"
     },
     "3-timezone": {
       "palette": "calc",
       "keys": [
         "type:10:00 utc to tokyo"
-      ]
+      ],
+      "caption": "10:00 UTC in Tokyo, the full date there as the second row"
     },
     "4-actions": {
       "palette": "calc",
       "keys": [
         "type:2^10 + 15% of 240",
         "cmd+k"
-      ]
+      ],
+      "caption": "What a result can do: copy, paste into the app in front, copy without formatting"
     }
   }
 }

@@ -49,12 +49,12 @@ const fixture = {
   },
   shots: {
     // The picker's gradients do not survive the 256-colour quantisation, so these three stay true colour.
-    "1-picker": { palette: "picker", keys: ["wait:400"], raw: true },
-    "2-shades": { palette: "picker-shades", keys: ["wait:300", "right", "wait:500"], raw: true },
-    "3-typing": { palette: "picker-typing", keys: ["wait:300", "type:00", "wait:400"], raw: true },
-    "4-sets": { palette: "colors", keys: ["wait:300", "tab*6", "wait:500"] },
-    "5-history": { palette: "history", keys: ["wait:300", "down", "wait:300"] },
-    "6-convert": { palette: "convert", keys: ["wait:200", "type:hsl(30 100% 50%)", "wait:400"] },
+    "1-picker": { palette: "picker", keys: ["wait:400"], raw: true, caption: "The picker: the swatch over the hue strip and the plane, every notation, the nearest tokens, contrast, tints, shades and harmonies" },
+    "2-shades": { palette: "picker-shades", keys: ["wait:300", "right", "wait:500"], raw: true, caption: "Tab onto the shades: the arrows walk the row, the label names the tile, Enter takes it" },
+    "3-typing": { palette: "picker-typing", keys: ["wait:300", "type:00", "wait:400"], raw: true, caption: "Typing a notation: a digit or # opens the field in the search row, Enter applies it" },
+    "4-sets": { palette: "colors", keys: ["wait:300", "tab*6", "wait:500"], caption: "The named sets as swatch grids, one section per set, a filter per set" },
+    "5-history": { palette: "history", keys: ["wait:300", "down", "wait:300"], caption: "The history: every picked and copied colour with when and where from, and the screen pick at the top" },
+    "6-convert": { palette: "convert", keys: ["wait:200", "type:hsl(30 100% 50%)", "wait:400"], caption: "Convert Colour: hsl(30 100% 50%) as every notation, the nearest CSS name and the contrast ratios" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/colors.json", import.meta.url), JSON.stringify(fixture) + "\n");

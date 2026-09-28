@@ -49,13 +49,15 @@
   "shots": {
     "1-current": {
       "palette": "weather",
-      "keys": []
+      "keys": [],
+      "caption": "The current temperature, condition, feels-like, humidity and wind for the configured place"
     },
     "2-actions": {
       "palette": "weather",
       "keys": [
         "cmd+k"
-      ]
+      ],
+      "caption": "The current reading can open the place in Maps"
     }
   }
 }

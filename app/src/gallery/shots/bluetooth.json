@@ -198,20 +198,23 @@
   "shots": {
     "1-devices": {
       "palette": "bluetooth",
-      "keys": []
+      "keys": [],
+      "caption": "Paired devices, the connected ones first with their battery"
     },
     "2-actions": {
       "palette": "bluetooth",
       "keys": [
         "down*3",
         "cmd+k"
-      ]
+      ],
+      "caption": "Connect a device that is not, or copy its address"
     },
     "3-disconnect": {
       "palette": "bluetooth",
       "keys": [
         "enter"
-      ]
+      ],
+      "caption": "Disconnect asks first"
     }
   }
 }

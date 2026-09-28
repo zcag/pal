@@ -524,25 +524,17 @@
     }
   ],
   "shots": {
-    "bar-menubar-dark": {
+    "menubar": {
       "target": "menubar",
-      "theme": "dark",
       "caption": "On the menu bar: the combined download speed and how many items are active"
     },
-    "bar-menubar-light": {
+    "popover": {
       "target": "menubar",
-      "theme": "light",
-      "caption": "The same item on a light menu bar"
-    },
-    "bar-menubar-popover": {
-      "target": "menubar",
-      "theme": "light",
       "popover": true,
       "caption": "A click opens the queue: every item with its progress bar, space pauses everything"
     },
-    "bar-sketchybar": {
+    "sketchybar": {
       "target": "sketchybar",
-      "theme": "dark",
       "caption": "On sketchybar: the speed and the count"
     }
   }

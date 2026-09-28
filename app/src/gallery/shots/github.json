@@ -4469,25 +4469,29 @@
       "keys": [
         "cmd+i",
         "down*2"
-      ]
+      ],
+      "caption": "Pull Requests: Mine, Review requested and Merged, with the checks and the review decision on each row"
     },
     "2-pr-detail": {
       "palette": "prs",
       "keys": [
         "wait:400"
-      ]
+      ],
+      "caption": "The pane a pull request opens with: the body, the latest comments and reviews, every check by name"
     },
     "3-notifications": {
       "palette": "notifications",
       "keys": [
         "down"
-      ]
+      ],
+      "caption": "Notifications by reason, newest first; the first row is the unread count"
     },
     "4-search": {
       "palette": "search",
       "keys": [
         "type:widgets"
-      ]
+      ],
+      "caption": "Search GitHub: repositories, issues, pull requests and users for one query"
     }
   }
 }

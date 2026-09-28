@@ -49,11 +49,11 @@ const bar = {
     { id: "clear", item: { hidden: true, empty: { icon: GLYPH.camera, tooltip: "Nothing is using the camera, the microphone or the screen" }, menu: { view: popover([]) } } },
   ],
   shots: {
-    "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar only while something is in use: a glyph for the camera, the microphone and the screen" },
-    "bar-menubar-light": { target: "menubar", theme: "light", state: "share", caption: "A call sharing its screen: all three glyphs" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: one row per app, what it holds in colour and for how long; Enter brings the app forward" },
-    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, state: "share", caption: "A screen share names its app too; macOS's own capture reads macOS" },
-    "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyphs on an amber band" },
+    "menubar": { target: "menubar", caption: "On the menu bar only while something is in use: a glyph for the camera, the microphone and the screen" },
+    "menubar-share": { target: "menubar", state: "share", caption: "A call sharing its screen: all three glyphs" },
+    "popover": { target: "menubar", popover: true, caption: "A click opens the popover: one row per app, what it holds in colour and for how long; Enter brings the app forward" },
+    "popover-share": { target: "menubar", popover: true, state: "share", caption: "A screen share names its app too; macOS's own capture reads macOS" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyphs on an amber band" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-privacy.json", import.meta.url), JSON.stringify(bar) + "\n");
@@ -62,8 +62,8 @@ const rows = groups(SHARE.concat(ffmpeg)).map((g) => paletteItem(g, NOW)).map((i
 const palette = {
   palettes: { privacy: { title: "Camera, Mic & Screen", live: true, icon: { tile: { glyph: GLYPH.camera, bg: "amber" } }, items: rows } },
   shots: {
-    "1-in-use": { palette: "privacy", keys: [] },
-    "2-actions": { palette: "privacy", keys: ["cmd+k"] },
+    "1-in-use": { palette: "privacy", keys: [], caption: "One row per app: what it holds and for how long, a screen share and a recording in Terminal included" },
+    "2-actions": { palette: "privacy", keys: ["cmd+k"], caption: "Enter brings the app forward; the privacy settings are a shortcut away" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/privacy.json", import.meta.url), JSON.stringify(palette) + "\n");

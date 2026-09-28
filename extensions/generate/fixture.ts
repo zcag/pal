@@ -18,10 +18,10 @@ try {
   const fixture = {
     palettes: { generate: { title: meta.title, icon: meta.icon, input: true, placeholder: meta.placeholder, byQuery } },
     shots: {
-      "1-everything": { palette: "generate", keys: ["down*4"] },
-      "2-hash": { palette: "generate", keys: ["type:hash pal", "cmd+k"] },
-      "3-qr": { palette: "generate", keys: ["type:qr https://pal.cagdas.io", "cmd+i"] },
-      "4-jwt": { palette: "generate", keys: [`type:jwt ${JWT}`, "down"] },
+      "1-everything": { palette: "generate", keys: ["down*4"], caption: "The empty query: a fresh value of every generator, the secrets with their strength" },
+      "2-hash": { palette: "generate", keys: ["type:hash pal", "cmd+k"], caption: "hash of typed text: all four digests, Copy all on cmd+shift+c" },
+      "3-qr": { palette: "generate", keys: ["type:qr https://pal.cagdas.io", "cmd+i"], caption: "qr of a link: the code on the row and large in the detail pane" },
+      "4-jwt": { palette: "generate", keys: [`type:jwt ${JWT}`, "down"], caption: "jwt: the header, the payload with its expiry, the times, and a reminder that nothing is verified" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/generate.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

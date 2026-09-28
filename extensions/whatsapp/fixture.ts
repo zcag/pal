@@ -56,12 +56,12 @@ try {
     },
     effects: { [`chats/${MARA}:reply`]: { form } },
     shots: {
-      "1-chats": { palette: "chats", keys: ["down"] },
-      "2-detail": { palette: "chats", keys: ["cmd+i", "wait:400"] },
-      "3-unread": { palette: "unread", keys: ["down"] },
-      "4-search": { palette: "search", keys: ["type:parser", "wait:500"] },
-      "5-contacts": { palette: "contacts", keys: ["down*3"] },
-      "6-message": { palette: "chats", keys: ["cmd+k", "wait:200", "type:Send a", "wait:200", "enter", "wait:300"] },
+      "1-chats": { palette: "chats", keys: ["down"], caption: "Chats: unread first, the picture, the newest message and who sent it, the count, the time" },
+      "2-detail": { palette: "chats", keys: ["cmd+i", "wait:400"], caption: "The pane: the last messages as a conversation, a quoted reply indented, a photo named" },
+      "3-unread": { palette: "unread", keys: ["down"], caption: "Unread: direct messages then groups, the same keys" },
+      "4-search": { palette: "search", keys: ["type:parser", "wait:500"], caption: "Search WhatsApp: the matching line, who said it where, when" },
+      "5-contacts": { palette: "contacts", keys: ["down*3"], caption: "Contacts: the number under the name; copy it or a vCard" },
+      "6-message": { palette: "chats", keys: ["cmd+k", "wait:200", "type:Send a", "wait:200", "enter", "wait:300"], caption: "Send a message (send on): the message typed in the bar, the latest message quotable" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/whatsapp.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");
@@ -82,12 +82,10 @@ try {
       { id: "reply", item: { menu: { view: reply } } },
     ],
     shots: {
-      "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits" },
-      "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-      "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys" },
-      "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The popover in the dark theme" },
-      "bar-menubar-popover-reply": { target: "menubar", theme: "light", popover: true, state: "reply", caption: "r turns the search row into a message field (send on); Enter sends it" },
-      "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count" },
+      "menubar": { target: "menubar", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits" },
+      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys" },
+      "popover-reply": { target: "menubar", popover: true, state: "reply", caption: "r turns the search row into a message field (send on); Enter sends it" },
+      "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/bar-whatsapp.json", import.meta.url), JSON.stringify(bar) + "\n");

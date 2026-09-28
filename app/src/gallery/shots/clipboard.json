@@ -2526,26 +2526,30 @@
       "palette": "history",
       "keys": [
         "down*5"
-      ]
+      ],
+      "caption": "The history with the pane open: pinned first (a named entry by its name), then newest, the source app and the time on the right"
     },
     "2-image": {
       "palette": "history",
       "keys": [
         "down*4"
-      ]
+      ],
+      "caption": "An image entry: its size and dimensions, the picture in the pane"
     },
     "3-colors": {
       "palette": "history",
       "keys": [
         "tab*5"
-      ]
+      ],
+      "caption": "The Colors filter: a copied colour is its own swatch on the row and in the pane"
     },
     "4-actions": {
       "palette": "history",
       "keys": [
         "down*2",
         "cmd+k"
-      ]
+      ],
+      "caption": "Paste, Copy, Open link, Edit, Pin, Name, Save as file, Save as snippet, Show as QR code, Delete, Clear history"
     },
     "5-edit": {
       "palette": "history",
@@ -2553,7 +2557,8 @@
         "down",
         "cmd+e",
         "wait:300"
-      ]
+      ],
+      "caption": "Edit (cmd+E): the text in a textarea; the submit copies it, so the edited text is the newest entry"
     },
     "6-qr": {
       "palette": "history",
@@ -2561,7 +2566,8 @@
         "down*2",
         "cmd+shift+k",
         "wait:300"
-      ]
+      ],
+      "caption": "Show as QR code (cmd+shift+K): the entry's text as a code to scan, large in a level"
     }
   },
   "effects": {

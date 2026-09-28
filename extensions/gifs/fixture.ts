@@ -36,11 +36,11 @@ try {
       nokey: { title: gifs.title, ...meta, byQuery: { "": noKey } },
     },
     shots: {
-      "1-trending": { palette: "gifs", keys: ["right*2"] },
-      "2-search": { palette: "gifs", keys: ["type:cat", "wait:400", "cmd+i"] },
-      "3-actions": { palette: "gifs", keys: ["type:cat", "wait:400", "cmd+k"] },
-      "4-favourites": { palette: "favourites", keys: ["right"] },
-      "5-no-key": { palette: "nokey", keys: [] },
+      "1-trending": { palette: "gifs", keys: ["right*2"], caption: "Nothing typed: Giphy's trending GIFs as a grid" },
+      "2-search": { palette: "gifs", keys: ["type:cat", "wait:400", "cmd+i"], caption: "cat typing: the results, the detail pane with the preview and the size" },
+      "3-actions": { palette: "gifs", keys: ["type:cat", "wait:400", "cmd+k"], caption: "What a GIF can do: copy the file, copy the url, open, save, favourite" },
+      "4-favourites": { palette: "favourites", keys: ["right"], caption: "Favourite GIFs: what cmd+f kept" },
+      "5-no-key": { palette: "nokey", keys: [], caption: "Without a key: one row saying where to get one" },
     },
   };
   writeFileSync(new URL("../../app/src/gallery/shots/gifs.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");

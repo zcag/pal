@@ -6,7 +6,7 @@
       "input": false,
       "icon": {
         "tile": {
-          "glyph": "\udb80\udf39",
+          "glyph": "󰌹",
           "bg": "orange"
         }
       },
@@ -15,7 +15,7 @@
           "id": "create",
           "name": "Create Quicklink",
           "subtitle": "A link, with {query} where what you type goes",
-          "icon": "\udb83\udc94",
+          "icon": "󰲔",
           "keywords": [
             "new",
             "add"
@@ -31,7 +31,7 @@
           "id": "library",
           "name": "Browse Library",
           "subtitle": "25 ready-made searches: Google, Wikipedia, GitHub, npm, MDN...",
-          "icon": "\udb82\udfa9",
+          "icon": "󰮩",
           "keywords": [
             "library",
             "search",
@@ -388,7 +388,7 @@
           "id": "import",
           "name": "Import Quicklinks",
           "subtitle": "From a JSON file",
-          "icon": "\udb80\udd20",
+          "icon": "󰄠",
           "keywords": [
             "json",
             "restore"
@@ -396,7 +396,7 @@
           "actions": [
             {
               "id": "import",
-              "title": "Import\u2026"
+              "title": "Import…"
             }
           ]
         },
@@ -404,7 +404,7 @@
           "id": "export",
           "name": "Export Quicklinks",
           "subtitle": "To a JSON file",
-          "icon": "\udb80\udd1d",
+          "icon": "󰄝",
           "keywords": [
             "json",
             "backup"
@@ -412,7 +412,7 @@
           "actions": [
             {
               "id": "export",
-              "title": "Export\u2026"
+              "title": "Export…"
             }
           ]
         }
@@ -1188,7 +1188,8 @@
       "palette": "quicklinks",
       "keys": [
         "down*2"
-      ]
+      ],
+      "caption": "Every quicklink by name; a {query} link carries the placeholder as a tag, one that opens in a named browser says so"
     },
     "2-query": {
       "palette": "quicklinks",
@@ -1197,20 +1198,23 @@
         "enter",
         "wait:300",
         "type:rust async"
-      ]
+      ],
+      "caption": "A search link picked: the bar asks for the query, Enter opens the filled url"
     },
     "3-actions": {
       "palette": "quicklinks",
       "keys": [
         "down*4",
         "cmd+k"
-      ]
+      ],
+      "caption": "Open, Copy URL, Edit, Delete on one of your links"
     },
     "4-form": {
       "palette": "quicklinks",
       "keys": [
         "enter"
-      ]
+      ],
+      "caption": "Create Quicklink: name, url with {query}, keywords, the browser to open with"
     },
     "5-library": {
       "palette": "quicklinks",
@@ -1219,7 +1223,8 @@
         "enter",
         "wait:300",
         "down*5"
-      ]
+      ],
+      "caption": "The library: ready-made searches, the ones you already have tagged added, Enter adds one"
     }
   }
 }
