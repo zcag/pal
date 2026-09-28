@@ -78,6 +78,13 @@ describe("store screenshots", () => {
       }
     });
 
+    const gen = join(BUNDLED, ext, "fixture.ts");
+    if (existsSync(gen)) test(`${ext}: the generator pins the clock`, () => {
+      const code = readFileSync(gen, "utf8");
+      expect(/fixture-kit\.ts/.test(code) && /\bpinClock\(|\bNOW(_S)?\b/.test(code), `${ext}: fixture.ts takes its clock from app/scripts/fixture-kit.ts (NOW, and pinClock() before a Host)`).toBe(true);
+      expect(/Date\.now\(\)/.test(code), `${ext}: fixture.ts reads the real clock (Date.now()); use fixture-kit's NOW, so the pictures are the same tomorrow`).toBe(false);
+    });
+
     test(`${ext}: made from the fixtures as they are now`, () => {
       if (!panel && !bar) return;
       const stamp = existsSync(join(dir, ".shots.json")) ? read(join(dir, ".shots.json")).fixtures : "none";

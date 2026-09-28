@@ -101,5 +101,8 @@ picture: `make shots` prints a contact sheet per extension.
   `screenshots/` is unlisted or orphaned; captions are there;
 - the stamp matches the fixtures: a fixture changed without `make shots` is
   a failure, so the pictures cannot fall behind what they claim to show;
+- a `fixture.ts` takes its clock from `fixture-kit.ts` and never reads
+  `Date.now()` (two runs a second apart agree even when a picture shows only
+  minutes; this makes them agree next month too);
 - every `bar.<id>` in a manifest has at least one `mock` (Settings previews
   them) and every mock is a valid item.
