@@ -3,8 +3,11 @@
 // shortcuts in three folders (nothing is read from this Mac), plus the
 // Run with text form the shot opens. `bun run extensions/shortcuts/fixture.ts`,
 // then `node app/scripts/shots.mjs shortcuts`.
-import { writeFileSync } from "node:fs";
+import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import manifest from "./pal.json" with { type: "json" };
+
+// No host and nothing timed here; pinned all the same, so a row that ever shows a time shows the strip's.
+pinClock();
 
 const ICON = "\u{f040b}";
 const ACTIONS = [
@@ -34,11 +37,11 @@ const fixture = {
     } },
   },
   shots: {
-    "1-list": { palette: "shortcuts", keys: ["down*3"], caption: "The shortcuts by folder, the ones in no folder first" },
-    "2-actions": { palette: "shortcuts", keys: ["down*3", "cmd+k"], caption: "Run, Run with clipboard, Run with input, Open in Shortcuts, Copy name" },
-    "3-root": { keys: ["type:lights"], caption: "A shortcut's name typed at the root finds it" },
-    "4-form": { palette: "shortcuts", keys: ["down*7", "cmd+t", "type:Shipped the settings window; reviewing PRs after lunch"], caption: "Run with input: the input the shortcut receives, typed in the bar" },
+    "1-list": { palette: "shortcuts", keys: ["wait:300", "down*3"], caption: "Every Apple Shortcut on this Mac, grouped by its folder and searchable by name or folder" },
+    "2-actions": { palette: "shortcuts", keys: ["wait:300", "down*3", "cmd+k"], caption: "Run it as it is, on the clipboard or on text you type, or open it in Shortcuts to edit" },
+    "3-root": { keys: ["wait:300", "type:lights"], caption: "No need to open the palette: a shortcut's name typed at the root finds it" },
+    "4-form": { palette: "shortcuts", keys: ["wait:300", "down*7", "cmd+t", "wait:300", "type:Shipped the settings window; reviewing PRs after lunch"], caption: "Run with text: type what the shortcut receives, here the notes a Standup shortcut files" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/shortcuts.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");
+writeFixture("shortcuts", fixture);
 console.log("wrote app/src/gallery/shots/shortcuts.json");

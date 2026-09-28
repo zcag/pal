@@ -2,10 +2,9 @@
 // store screenshots' fixtures. The lyrics view's trees come from view.ts
 // over a made-up track (its words are this file's, not a real song's; the
 // covers are SVGs drawn here, since the gallery has no Spotify), the rows
-// from the same shapes the palettes build. `bun run
-// extensions/spotify/fixture.ts`, then `node app/scripts/shots.mjs spotify`
-// and `node app/scripts/shots.mjs bar spotify`.
-import { writeFileSync } from "node:fs";
+// from the same shapes the palettes build; the library's dates count back
+// from fixture-kit's clock. `make shots EXT=spotify`.
+import { NOW, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { tintFrom } from "./color.ts";
 import { parseLrc } from "./lyrics.ts";
 import { render, type NowState } from "./view.ts";
@@ -52,7 +51,7 @@ const tint = tintFrom({ r: 232, g: 102, b: 58 });
 
 const now: NowState = {
   layout: "wide", track: HARBOUR, playing: true, position: 47.2, shuffle: false, repeat: "context", liked: true,
-  device: { name: "hornet", volume: 45 }, lyrics: { synced: lines, id: 1 }, cover: COVERS.salt, tint,
+  device: { name: "MacBook Air", volume: 45 }, lyrics: { synced: lines, id: 1 }, cover: COVERS.salt, tint,
 };
 const compact: NowState = { ...now, layout: "compact", queue: [PAPER, TIDE].map((t) => ({ id: t.id, name: t.name, artist: t.artist, cover: t.cover })) };
 
@@ -71,19 +70,21 @@ const searchRows = [
   { id: "show:s1", name: "Tide Tables", subtitle: "Harbour FM", icon: { image: COVERS.night }, section: "Podcasts", actions: containerActions("show") },
 ];
 const playlistRows = [
-  { id: "playlist:p2", name: "Focus", subtitle: "Cagdas · Deep work, no words", icon: { image: COVERS.focus }, section: "Yours", accessories: [{ text: "42 tracks" }], actions: containerActions("playlist") },
-  { id: "playlist:p3", name: "Evening", subtitle: "Cagdas", icon: { image: COVERS.night }, section: "Yours", accessories: [{ text: "88 tracks" }], actions: containerActions("playlist") },
-  { id: "playlist:p4", name: "Road", subtitle: "Cagdas · Long drives", icon: { image: COVERS.tide }, section: "Yours", accessories: [{ text: "120 tracks" }, { tag: "collaborative", color: "grey" }], actions: containerActions("playlist") },
+  { id: "playlist:p2", name: "Focus", subtitle: "Alex · Deep work, no words", icon: { image: COVERS.focus }, section: "Yours", accessories: [{ text: "42 tracks" }], actions: containerActions("playlist") },
+  { id: "playlist:p3", name: "Evening", subtitle: "Alex", icon: { image: COVERS.night }, section: "Yours", accessories: [{ text: "88 tracks" }], actions: containerActions("playlist") },
+  { id: "playlist:p4", name: "Road", subtitle: "Alex · Long drives", icon: { image: COVERS.tide }, section: "Yours", accessories: [{ text: "120 tracks" }, { tag: "collaborative", color: "grey" }], actions: containerActions("playlist") },
   { id: "playlist:p5", name: "Discover Weekly", subtitle: "Spotify · Your weekly mixtape of fresh music", icon: { image: COVERS.weekly }, section: "Followed", accessories: [{ text: "30 tracks" }], actions: containerActions("playlist") },
   { id: "playlist:p6", name: "Greenhouse Sessions", subtitle: "Fern Alder", icon: { image: COVERS.glass }, section: "Followed", accessories: [{ text: "24 tracks" }], actions: containerActions("playlist") },
 ];
+/** `h` hours before the clock, as the Web API's `added_at` / `played_at` (ISO). */
+const back = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 const likedRows = [
-  trackRow(HARBOUR, undefined, { accessories: [{ text: ms(HARBOUR.duration) }, { date: "2026-09-15T21:10:00Z" }] }),
-  trackRow(GLASS, undefined, { accessories: [{ text: ms(GLASS.duration) }, { date: "2026-09-12T08:30:00Z" }] }),
-  trackRow(NIGHT, undefined, { accessories: [{ text: ms(NIGHT.duration) }, { date: "2026-09-02T23:40:00Z" }] }),
-  trackRow(TIDE, undefined, { accessories: [{ text: ms(TIDE.duration) }, { date: "2026-08-20T19:05:00Z" }] }),
+  trackRow(HARBOUR, undefined, { accessories: [{ text: ms(HARBOUR.duration) }, { date: back(17.4) }] }),
+  trackRow(GLASS, undefined, { accessories: [{ text: ms(GLASS.duration) }, { date: back(4 * 24 + 6) }] }),
+  trackRow(NIGHT, undefined, { accessories: [{ text: ms(NIGHT.duration) }, { date: back(13 * 24 + 15) }] }),
+  trackRow(TIDE, undefined, { accessories: [{ text: ms(TIDE.duration) }, { date: back(27 * 24 + 19) }] }),
 ];
-const recentRows = [NIGHT, HARBOUR, GLASS].map((t, i) => trackRow(t, undefined, { accessories: [{ text: ms(t.duration) }, { date: `2026-09-16T1${8 - i}:00:00Z` }] }));
+const recentRows = [NIGHT, HARBOUR, GLASS].map((t, i) => trackRow(t, undefined, { accessories: [{ text: ms(t.duration) }, { date: back(0.3 + i * 0.1 + i) }] }));
 const queueRows = [
   { ...trackRow(HARBOUR, "Now playing"), id: "now:h1", actions: [{ id: "toggle", title: "Play or pause" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }] },
   ...[PAPER, TIDE, GLASS, NIGHT].map((t, i) => ({ ...trackRow(t, "Up next"), id: `q:${i}:${t.id}`, accessories: [{ text: `#${i + 1}` }, { text: ms(t.duration) }], actions: [{ id: "skip", title: i === 0 ? "Skip to it" : `Skip ${i + 1} ahead` }, { id: "like", title: "Like", shortcut: "cmd+l" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }] })),
@@ -106,13 +107,13 @@ const fixture = {
   shots: {
     // The band under the cover and the amber bar do not survive the 256-colour quantisation (the bar came out red), so the two lyrics shots stay true colour.
     "1-lyrics": { palette: "now-playing", keys: ["wait:400"], raw: true, caption: "The lyrics view: the cover, the progress, the line playing bright among the lines around it" },
-    "3-search": { palette: "search", keys: ["type:low tide", "wait:400"], caption: "Search: tracks, artists, albums, playlists and podcasts as sections" },
-    "4-playlists": { palette: "playlists", keys: ["down", "wait:300"], caption: "Playlists: yours and the followed ones; cmd+enter lists a playlist's tracks" },
-    "5-library": { palette: "library", keys: ["wait:300"], caption: "Library: Liked Songs newest first, the other filters on Tab" },
-    "6-queue": { palette: "queue", keys: ["down", "wait:300"], caption: "The queue: what plays now, what comes next, Enter skips to a row" },
+    "2-search": { palette: "search", keys: ["type:low tide", "wait:400"], caption: "Search: tracks, artists, albums, playlists and podcasts as sections" },
+    "3-playlists": { palette: "playlists", keys: ["down", "wait:300"], caption: "Playlists: yours and the followed ones; cmd+enter lists a playlist's tracks" },
+    "4-library": { palette: "library", keys: ["wait:300"], caption: "Library: Liked Songs newest first, the other filters on Tab" },
+    "5-queue": { palette: "queue", keys: ["down", "wait:300"], caption: "The queue: what plays now, what comes next, Enter skips to a row" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/spotify.json", import.meta.url), JSON.stringify(fixture) + "\n");
+writeFixture("spotify", fixture);
 
 const bar = {
   key: "spotify/playing",
@@ -120,16 +121,16 @@ const bar = {
   item: {
     icon: "\u{f04c7}",
     title: "With a coat that smells of rain",
-    tooltip: "The Low Tide - Harbour Lights (hornet)",
+    tooltip: "The Low Tide - Harbour Lights (MacBook Air)",
     menu: { view: render(compact) },
   },
-  states: [{ id: "track", item: { title: "Harbour Lights · The Low Tide", tooltip: "The Low Tide - Harbour Lights (hornet)" } }],
+  states: [{ id: "track", item: { title: "Harbour Lights · The Low Tide", tooltip: "The Low Tide - Harbour Lights (MacBook Air)" } }],
   shots: {
     "menubar": { target: "menubar", caption: "On the menu bar: the lyric line playing beside the Spotify mark" },
-    "menubar-track": { target: "menubar", state: "track", caption: "The same item on a light menu bar, with the track name when lrclib has no lyrics" },
+    "menubar-track": { target: "menubar", state: "track", caption: "A track lrclib has no synced lyrics for: the track and the artist in the line's place" },
     "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the cover and the track, the bar ticking, the lyrics around the line playing, the transport keys, and the queue's next two" },
     "sketchybar": { target: "sketchybar", caption: "On sketchybar: the mark in the icon font, the line as the label" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/bar-spotify.json", import.meta.url), JSON.stringify(bar) + "\n");
+writeFixture("bar-spotify", bar);
 console.log(`lyrics view ${lines.length} lines at ${now.position}s, ${searchRows.length} search rows, ${playlistRows.length} playlists, ${likedRows.length} liked, ${queueRows.length} queue rows`);

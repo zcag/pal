@@ -6,7 +6,7 @@
 // which stays its job so the split is computed in exactly one place.
 import { open, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { exec, home } from "@zcag/pal";
+import { exec, home, now as clockNow } from "@zcag/pal";
 
 export type Battery = { percent: number; source: "Battery Power" | "Power Adapter"; status: "charging" | "discharging" | "charged" | "unknown"; remaining?: string; eta?: string };
 export type Alert = { rule: string; level: "warn" | "crit"; message?: string };
@@ -105,7 +105,7 @@ async function readJson(file: string): Promise<Raw | undefined> {
  * is tens of MB and only its tail is ever wanted. The first line of the
  * read is dropped unless the read began at the start (it is cut mid-record).
  */
-export async function tailSamples(file: string, seconds: number, now = Date.now() / 1000): Promise<Raw[]> {
+export async function tailSamples(file: string, seconds: number, now = clockNow() / 1000): Promise<Raw[]> {
   let size: number;
   try { size = (await stat(file)).size; } catch { return []; }
   // ~1.1 KB a sample every 30 s, doubled back until the window is covered.
@@ -167,7 +167,7 @@ export function split(state: Raw, sample: Raw | undefined, onBattery: boolean, w
 }
 
 export async function snapshot(o: { os: string; stateFile: string; now?: number }): Promise<Snapshot | undefined> {
-  const now = o.now ?? Date.now() / 1000;
+  const now = o.now ?? clockNow() / 1000;
   const file = home(o.stateFile);
   const [battery, raw, samples] = await Promise.all([gauge(o.os), readJson(file), tailSamples(join(dirname(file), "samples.jsonl"), 120, now)]);
   if (!battery) return;

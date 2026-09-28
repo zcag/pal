@@ -89,27 +89,27 @@
     "screenshots": [
       {
         "file": "1-layouts.png",
-        "caption": "One row per layout; Enter applies it to the focused window"
+        "caption": "Every layout with its diagram; Enter applies it to the focused window"
       },
       {
         "file": "2-search.png",
-        "caption": "Typing narrows by name and keyword: quarter, third, screen"
+        "caption": "Typing narrows the list: quarter leaves the four corners"
       },
       {
         "file": "3-arrange.png",
-        "caption": "Arrange Window: pick a window first, then the layout for it"
+        "caption": "Arrange Window picks the window first, from every one open, then the layout for it"
       },
       {
         "file": "4-target.png",
-        "caption": "The layouts again, with the picked window as the subtitle"
+        "caption": "The layouts again, the picked window named under each"
       },
       {
         "file": "5-verbs.png",
-        "caption": "The moves by a step, Toggle Fullscreen, Minimize and Unminimize, each with its diagram"
+        "caption": "Moves by a step, the next display, fullscreen, minimize, unminimize and restore, each with its diagram"
       },
       {
         "file": "6-resize.png",
-        "caption": "Resize to…: a size and, optionally, a place, typed in the bar; blank keeps the window centred where it is"
+        "caption": "Resize to… is a form: a size in pixels and, if you like, a place; left blank the window stays centred where it is"
       }
     ],
     "actions": [

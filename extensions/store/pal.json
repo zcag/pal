@@ -33,15 +33,15 @@
     "screenshots": [
       {
         "file": "1-browse.png",
-        "caption": "The store: what is behind under Updates, then every extension with its tile, tagline and chips"
+        "caption": "The store as it opens: what has an update first, then every extension with its tile, tagline and category"
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane on a row: the description, what it does, the screenshots and the keys"
+        "caption": "cmd+I opens the detail pane: what the extension is and everything it does, read before installing"
       },
       {
         "file": "3-actions.png",
-        "caption": "Install on Enter, the store page, the install command"
+        "caption": "Install on Enter; the store page and the install command a keystroke away"
       }
     ],
     "actions": [

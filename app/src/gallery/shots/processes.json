@@ -1566,31 +1566,40 @@
   "shots": {
     "1-list": {
       "palette": "processes",
-      "keys": [],
-      "caption": "Processes by CPU then memory; a busy one is tagged with its share"
+      "keys": [
+        "wait:1500"
+      ],
+      "caption": "Processes by CPU, then memory: a busy one wears its share as a tag, with its pid and memory beside it",
+      "settle": 900
     },
     "2-port": {
       "palette": "processes",
       "keys": [
+        "wait:1500",
         "type::"
       ],
-      "caption": ": lists every TCP listener with its port as a tag; :80 narrows to the ports starting with 80"
+      "caption": "Type : for every TCP listener: the port as a tag, beside the process that holds it",
+      "settle": 900
     },
     "3-confirm": {
       "palette": "processes",
       "keys": [
+        "wait:1500",
         "down",
         "enter"
       ],
-      "caption": "Kill asks before SIGTERM"
+      "caption": "Enter kills, but asks first: SIGTERM here, Force kill's SIGKILL behind cmd+shift+k",
+      "settle": 900
     },
     "4-actions": {
       "palette": "processes",
       "keys": [
+        "wait:1500",
         "down*2",
         "cmd+k"
       ],
-      "caption": "Kill, Force kill, Copy PID, Open in Activity Monitor"
+      "caption": "Kill, Force kill, Copy PID or open the process in Activity Monitor",
+      "settle": 900
     }
   }
 }

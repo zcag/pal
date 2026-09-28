@@ -3,7 +3,12 @@
   "title": "Processes",
   "description": "What is running, busiest first, with its memory; `:3000` lists what listens on a port. Kill from the action panel, or open the process in Activity Monitor.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰍛", "bg": "slate" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰍛",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -39,19 +44,19 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Processes by CPU then memory; a busy one is tagged with its share"
+        "caption": "Processes by CPU, then memory: a busy one wears its share as a tag, with its pid and memory beside it"
       },
       {
         "file": "2-port.png",
-        "caption": ": lists every TCP listener with its port as a tag; :80 narrows to the ports starting with 80"
+        "caption": "Type : for every TCP listener: the port as a tag, beside the process that holds it"
       },
       {
         "file": "3-confirm.png",
-        "caption": "Kill asks before SIGTERM"
+        "caption": "Enter kills, but asks first: SIGTERM here, Force kill's SIGKILL behind cmd+shift+k"
       },
       {
         "file": "4-actions.png",
-        "caption": "Kill, Force kill, Copy PID, Open in Activity Monitor"
+        "caption": "Kill, Force kill, Copy PID or open the process in Activity Monitor"
       }
     ],
     "actions": [

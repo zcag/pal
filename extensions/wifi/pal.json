@@ -3,7 +3,12 @@
   "title": "Wi-Fi",
   "description": "The current network, the saved ones and what is in range: join, forget, copy the password, turn Wi-Fi off.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰖩", "bg": "blue" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰖩",
+      "bg": "blue"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -30,19 +35,19 @@
     "screenshots": [
       {
         "file": "1-networks.png",
-        "caption": "The current network with its address and signal, the saved ones, what is in range"
+        "caption": "The current network with its address and signal, the saved ones, then what is in range"
       },
       {
         "file": "2-join.png",
-        "caption": "A secured network that is not saved asks for its password"
+        "caption": "Joining a secured network that is not saved asks for its password"
       },
       {
         "file": "3-actions.png",
-        "caption": "A known network: join, copy its password, forget it"
+        "caption": "A saved network: join it, copy its name or its password, forget it"
       },
       {
         "file": "4-forget.png",
-        "caption": "Forget asks first; the password goes with it"
+        "caption": "Forget asks first, since the saved password goes with it"
       }
     ],
     "actions": [

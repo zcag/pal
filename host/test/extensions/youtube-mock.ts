@@ -27,7 +27,13 @@ const avatar = (hash: string, w: number, relative = false) => `${relative ? "" :
 const iso = (s: number) => (s <= 0 ? "P0D" : `PT${Math.floor(s / 3600) ? `${Math.floor(s / 3600)}H` : ""}${Math.floor((s % 3600) / 60) ? `${Math.floor((s % 3600) / 60)}M` : ""}${s % 60 ? `${s % 60}S` : ""}`);
 const hit = (q: string | null, v: { title: string; channel: string }) => !q || `${v.title} ${v.channel}`.toLowerCase().includes(q.toLowerCase());
 
-export function startMock() {
+export type MockVideo = (typeof VIDEOS)[number];
+export type MockChannel = (typeof CHANNELS)[number];
+const DEFAULT_VIDEOS = VIDEOS, DEFAULT_CHANNELS = CHANNELS;
+
+/** The mock over `VIDEOS` and `CHANNELS`, or over the fixture's own (the store screenshots' invented ones). */
+export function startMock(o: { videos?: MockVideo[]; channels?: MockChannel[] } = {}) {
+  const VIDEOS = o.videos ?? DEFAULT_VIDEOS, CHANNELS = o.channels ?? DEFAULT_CHANNELS;
   const requests: Seen[] = [];
   const server = Bun.serve({
     port: 0,

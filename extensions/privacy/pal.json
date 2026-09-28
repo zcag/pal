@@ -50,7 +50,7 @@
       },
       {
         "file": "bar-menubar.png",
-        "caption": "On the menu bar only while something is in use: a glyph for the camera, the microphone and the screen",
+        "caption": "On the menu bar only while something is in use, a glyph for each sensor: a call holding the camera and the microphone",
         "kind": "bar"
       },
       {
@@ -65,12 +65,12 @@
       },
       {
         "file": "bar-popover-share.png",
-        "caption": "A screen share names its app too; macOS's own capture reads macOS",
+        "caption": "A call sharing its screen: the screen is named on the app's row too, and a capture by macOS itself reads macOS",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
-        "caption": "On sketchybar: the glyphs on an amber band",
+        "caption": "On sketchybar: the same glyphs on an amber band",
         "kind": "bar"
       }
     ]

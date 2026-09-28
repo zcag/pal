@@ -3,7 +3,12 @@
   "title": "Services",
   "description": "systemd units on Linux (user and system), launchd agents on macOS: start, stop, restart, enable, logs.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰒓", "bg": "slate" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰒓",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -56,19 +61,19 @@
     "screenshots": [
       {
         "file": "1-units.png",
-        "caption": "systemd units under the User filter, the unit file's state and the active state on the right"
+        "caption": "systemd units under the User filter: whether each is enabled, and whether it is running, idle or failed"
       },
       {
         "file": "2-failed.png",
-        "caption": "The Failed filter: units of both managers, in a User and a System section"
+        "caption": "The Failed filter gathers what broke across both managers, in a User and a System section"
       },
       {
         "file": "3-logs.png",
-        "caption": "journalctl for a unit, the last 200 lines in the panel"
+        "caption": "cmd+l shows a unit's journal in the panel: why last night's backup failed"
       },
       {
         "file": "4-agents.png",
-        "caption": "macOS: launchd agents by folder, with pid and state"
+        "caption": "On macOS, launchd agents by folder, with their pid and state"
       }
     ],
     "actions": [

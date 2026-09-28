@@ -52,11 +52,11 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Every quicklink by name; a {query} link carries the placeholder as a tag, one that opens in a named browser says so"
+        "caption": "Your links by name: a search link carries its {query} as a tag, one pinned to a browser names it"
       },
       {
         "file": "2-query.png",
-        "caption": "A search link picked: the bar asks for the query, Enter opens the filled url"
+        "caption": "A search link asks for its query; Enter opens github.com/search with it filled in"
       },
       {
         "file": "3-actions.png",
@@ -68,7 +68,7 @@
       },
       {
         "file": "5-library.png",
-        "caption": "The library: ready-made searches, the ones you already have tagged added, Enter adds one"
+        "caption": "The library: 25 ready-made searches, the ones you have tagged added; Enter adds one to your links"
       }
     ],
     "actions": [

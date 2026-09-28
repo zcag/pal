@@ -1315,48 +1315,53 @@
       "keys": [
         "down*4"
       ],
-      "caption": "One row per layout; Enter applies it to the focused window"
+      "caption": "Every layout with its diagram; Enter applies it to the focused window"
     },
     "2-search": {
       "palette": "window-management",
       "keys": [
         "type:quarter"
       ],
-      "caption": "Typing narrows by name and keyword: quarter, third, screen"
+      "caption": "Typing narrows the list: quarter leaves the four corners"
     },
     "3-arrange": {
       "palette": "arrange",
       "keys": [
+        "wait:300",
         "down"
       ],
-      "caption": "Arrange Window: pick a window first, then the layout for it"
+      "caption": "Arrange Window picks the window first, from every one open, then the layout for it"
     },
     "4-target": {
       "palette": "arrange",
       "keys": [
+        "wait:300",
         "down",
         "enter",
-        "wait:300",
+        "wait:400",
         "down*8"
       ],
-      "caption": "The layouts again, with the picked window as the subtitle"
+      "caption": "The layouts again, the picked window named under each"
     },
     "5-verbs": {
       "palette": "window-management",
       "keys": [
-        "down*30"
+        "wait:300",
+        "End",
+        "up"
       ],
-      "caption": "The moves by a step, Toggle Fullscreen, Minimize and Unminimize, each with its diagram"
+      "caption": "Moves by a step, the next display, fullscreen, minimize, unminimize and restore, each with its diagram"
     },
     "6-resize": {
       "palette": "window-management",
       "keys": [
-        "down*21",
+        "type:resize to",
+        "wait:200",
         "enter",
-        "wait:300",
+        "wait:400",
         "type:1280x720"
       ],
-      "caption": "Resize to…: a size and, optionally, a place, typed in the bar; blank keeps the window centred where it is"
+      "caption": "Resize to… is a form: a size in pixels and, if you like, a place; left blank the window stays centred where it is"
     }
   }
 }

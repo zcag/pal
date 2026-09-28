@@ -13,7 +13,7 @@
         {
           "id": "dm:T1/D_MARA",
           "name": "Mara",
-          "subtitle": "can you look at the parser before standup? the tests are green now",
+          "subtitle": "the tests are green now, only the fixture for the empty run is missing",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
           },
@@ -28,7 +28,7 @@
               "color": "red"
             },
             {
-              "date": 1789584027797
+              "date": 1789557660000
             }
           ],
           "actions": [
@@ -75,7 +75,7 @@
               "color": "red"
             },
             {
-              "date": 1789581147797
+              "date": 1789555920000
             }
           ],
           "actions": [
@@ -107,7 +107,7 @@
         {
           "id": "mention:T1/C_ENG",
           "name": "#eng",
-          "subtitle": "Lina: @cagdas the build on #ops is red since the runner image bump",
+          "subtitle": "Lina: @alex the build on #ops is red since the runner image bump",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23f59e0b%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EL%3C%2Ftext%3E%3C%2Fsvg%3E"
           },
@@ -123,7 +123,7 @@
               "color": "red"
             },
             {
-              "date": 1789583247797
+              "date": 1789555200000
             }
           ],
           "actions": [
@@ -171,7 +171,7 @@
               "color": "red"
             },
             {
-              "date": 1789573947797
+              "date": 1789545480000
             }
           ],
           "actions": [
@@ -245,7 +245,7 @@
           "section": "Channels",
           "accessories": [
             {
-              "date": 1789584267797
+              "date": 1789557900000
             }
           ],
           "actions": [
@@ -286,7 +286,7 @@
           "section": "Channels",
           "accessories": [
             {
-              "date": 1789577547797
+              "date": 1789551240000
             }
           ],
           "actions": [
@@ -327,7 +327,7 @@
           "section": "Channels",
           "accessories": [
             {
-              "date": 1789566747797
+              "date": 1789542600000
             }
           ],
           "actions": [
@@ -359,7 +359,7 @@
       ],
       "details": {
         "dm:T1/D_MARA": {
-          "markdown": "**Mara** · 09:37 PM\n\nhey @cagdas, can you look at the parser before standup?\n\n---\n\n**Mara** · 09:40 PM\n\nthe tests are green now, only the fixture for the empty run is missing",
+          "markdown": "**Mara** · 14:18\n\nhey @alex, can you look at the parser before the release call?\n\n---\n\n**Mara** · 14:21\n\nthe tests are green now, only the fixture for the empty run is missing",
           "metadata": [
             {
               "label": "Conversation",
@@ -375,12 +375,12 @@
             },
             {
               "label": "Latest",
-              "value": "09:40 PM"
+              "value": "14:21"
             }
           ]
         },
         "dm:T1/D_TOMAS": {
-          "markdown": "**Tomas** · 08:52 PM\n\n📎 release-notes-0.4.md",
+          "markdown": "**Tomas** · 13:52\n\n📎 release-notes-0.4.md",
           "metadata": [
             {
               "label": "Conversation",
@@ -396,12 +396,12 @@
             },
             {
               "label": "Latest",
-              "value": "08:52 PM"
+              "value": "13:52"
             }
           ]
         },
         "mention:T1/C_ENG": {
-          "markdown": "**Tomas** · 09:02 PM\n\nbumped the runner image to 24.04\n\n---\n\n**Lina** · 09:27 PM\n\n@cagdas the build on #ops is red since the runner image bump\n\n---\n\n**Tomas** · 09:32 PM\n\nlooking\n\n---\n\n_…and more before these._",
+          "markdown": "**Tomas** · 13:31\n\nbumped the runner image to 24.04\n\n---\n\n**Lina** · 13:40\n\n@alex the build on #ops is red since the runner image bump\n\n---\n\n**Tomas** · 13:44\n\nlooking\n\n---\n\n_…and more before these._",
           "metadata": [
             {
               "label": "Conversation",
@@ -417,7 +417,7 @@
             },
             {
               "label": "Latest",
-              "value": "09:32 PM"
+              "value": "13:44"
             }
           ]
         },
@@ -857,7 +857,7 @@
         "from:@mara parser": [
           {
             "id": "T1/C_ENG/1",
-            "name": "the parser now keeps the restart array out of the entries, @cagdas can you double check the varint reader",
+            "name": "the parser now keeps the restart array out of the entries, @alex can you double check the varint reader",
             "subtitle": "Mara in #eng",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
@@ -868,7 +868,7 @@
             ],
             "accessories": [
               {
-                "date": 1789411947797
+                "date": 1789477320000
               }
             ],
             "actions": [
@@ -901,7 +901,7 @@
             ],
             "accessories": [
               {
-                "date": 1789325547797
+                "date": 1789379820000
               }
             ],
             "actions": [
@@ -934,7 +934,7 @@
             ],
             "accessories": [
               {
-                "date": 1789066347797
+                "date": 1789110720000
               }
             ],
             "actions": [
@@ -970,7 +970,7 @@
         {
           "id": "status:current",
           "name": "In a meeting",
-          "subtitle": "Your status, until 10:37 PM",
+          "subtitle": "Your status, until 15:30",
           "icon": "🗓️",
           "section": "Now",
           "keywords": [
@@ -1198,7 +1198,7 @@
     "3-status": {
       "palette": "status",
       "keys": [
-        "down*3"
+        "down*5"
       ],
       "caption": "Status: what is set now, then the presets, Do Not Disturb and presence"
     },

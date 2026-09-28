@@ -30,7 +30,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { argsForm, bar, clock, effects, errorMessage, exec, failed, hint, home, settings, storage, toast, view as liveView, type Action, type Arg, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, bar, clock, effects, errorMessage, exec, failed, hint, home, now as clockNow, settings, storage, toast, view as liveView, type Action, type Arg, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { KEY as POMODORO_KEY, STATS_KEY, asSession, dayOf, describe, minutesOf, nameOf, next as nextPhase, phaseWord, tally, type Config, type Phase, type Session, type Stats } from "./pomodoro.ts";
 import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
@@ -60,7 +60,7 @@ const TOMATO = "\u{f025b}";
 
 const conf = () => settings.get<Settings>(EXTENSION);
 const dirOf = () => home(conf().dir);
-const now = () => Math.floor(Date.now() / 1000);
+const now = () => Math.floor(clockNow() / 1000);
 
 // ---- the state directory ----------------------------------------------------
 

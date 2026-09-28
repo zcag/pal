@@ -4,6 +4,7 @@
 // a fixed stride, a permutation when the stride and the count are coprime
 // (the test checks), so consecutive days are far apart in the alphabet and
 // no answer repeats before every one has come up.
+import { now } from "@zcag/pal";
 import allowedText from "./allowed.txt";
 import answersText from "./answers.txt";
 
@@ -14,7 +15,7 @@ export const ALLOWED: ReadonlySet<string> = new Set([...allowedText.trim().split
 /** Day 0 of the dailies: 2026-01-01, in the local calendar. */
 export const EPOCH = Date.UTC(2026, 0, 1);
 /** The day index of a local date: puzzle `#(day + 1)`. */
-export const dayOf = (d: Date = new Date()): number => Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000);
+export const dayOf = (d: Date = new Date(now())): number => Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000);
 
 /** Coprime to the answer count (a prime that does not divide it); must not change once shipped, or every day's word would. */
 export const STRIDE = 1103;

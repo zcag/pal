@@ -2,16 +2,18 @@
 // screenshots' fixtures: the palette and the popover drawn through the host
 // harness against a made-up watcher (six hours of samples with a stretch
 // on the charger, a background burn, a `power` CLI that answers canned
-// watt-hours) and a stand-in pmset. Nothing is the owner's.
-// `bun run extensions/power/fixture.ts`, then `node app/scripts/shots.mjs power`
-// and `node app/scripts/shots.mjs bar power`.
+// watt-hours) and a stand-in pmset, at fixture-kit's clock. Nothing is the
+// owner's. `make shots EXT=power`; host/test/extensions/power.test.ts stages
+// the same watcher.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Host, writeTool } from "../../host/test/harness.ts";
 import type { View } from "../../sdk/src/protocol.ts";
+import { NOW_S, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 
-export const NOW = Math.floor(Date.now() / 1000);
+/** The watcher's clock, Unix seconds: the kit's, which the host reads too once pinned (`PAL_NOW`). */
+export const NOW = NOW_S;
 /** Six hours at a sample a minute: on battery, an hour on the charger two hours ago, a build's spike, the draw settling into a background burn. */
 export function samples(now = NOW) {
   const out: object[] = [];
@@ -49,6 +51,7 @@ export function stage(dir: string) {
 }
 
 if (import.meta.main) {
+  pinClock();
   const dir = mkdtempSync(join(tmpdir(), "pal-power-fixture-"));
   const { bin, state, power } = stage(dir);
   const saved = process.env.PATH;
@@ -61,26 +64,28 @@ if (import.meta.main) {
     const p = host.loaded().find((l) => l.extension === "power")!.palettes[0];
     const now = await host.request<View>("view", { extension: "power", palette: "power" });
     const today = (await host.pick("power", "power", "dash", "tab:today")).view as View;
-    const week = (await host.pick("power", "power", "dash", "tab:week")).view as View;
+    await host.pick("power", "power", "dash", "tab:week");
+    // The cursor one down, on the costliest process: the gallery answers no view action, so the tree comes moved.
+    const week = (await host.pick("power", "power", "dash", "down")).view as View;
     const item = await host.render("power", "battery");
     const meta = { icon: p.icon, view: "view" };
-    writeFileSync(new URL("../../app/src/gallery/shots/power.json", import.meta.url), JSON.stringify({
+    writeFixture("power", {
       palettes: { power: { title: p.title, ...meta, tree: now }, today: { title: p.title, ...meta, tree: today }, week: { title: p.title, ...meta, tree: week } },
       effects: {},
       shots: {
         "1-now": { palette: "power", keys: ["wait:300"], caption: "Now: the level and six hours of draw on the left; the warning, where the watts go and what uses them on the right" },
-        "2-today": { palette: "today", keys: ["wait:300"], caption: "Today: what used the battery in watt-hours, with each one's share" },
-        "3-week": { palette: "week", keys: ["down", "wait:300"], caption: "7 days, the screen and the rest explained under the cursor" },
+        "2-today": { palette: "today", keys: ["wait:300"], caption: "Today: what used the battery in watt-hours with each one's share, the screen and the rest explained" },
+        "3-week": { palette: "week", keys: ["wait:300"], caption: "7 days: where the week's watt-hours went, the costliest process under the cursor a key away from Processes" },
       },
-    }, null, 2) + "\n");
-    writeFileSync(new URL("../../app/src/gallery/shots/bar-power.json", import.meta.url), JSON.stringify({
+    });
+    writeFixture("bar-power", {
       key: "power/battery", title: "Battery", item,
       shots: {
         "menubar": { target: "menubar", caption: "On the menu bar: the level, the draw and the warning that made it surface" },
         "popover": { target: "menubar", popover: true, caption: "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now" },
         "sketchybar": { target: "sketchybar", caption: "On sketchybar: the level, draw and warning as one strip" },
       },
-    }, null, 2) + "\n");
+    });
     console.log("wrote app/src/gallery/shots/power.json and bar-power.json");
   } finally {
     host.kill();

@@ -418,25 +418,6 @@
         }
       ],
       "levels": {
-        "gh": [
-          {
-            "id": "https://github.com/search?q=rust%20async",
-            "name": "Open GitHub search",
-            "subtitle": "https://github.com/search?q=rust%20async",
-            "url": "https://github.com/search?q=rust%20async",
-            "actions": [
-              {
-                "id": "open",
-                "title": "Open"
-              },
-              {
-                "id": "copy",
-                "title": "Copy URL",
-                "shortcut": "cmd+c"
-              }
-            ]
-          }
-        ],
         "library": [
           {
             "id": "library:0",
@@ -1109,10 +1090,21 @@
   },
   "effects": {
     "quicklinks/l1": {
-      "push": {
-        "extension": "",
-        "palette": "quicklinks",
-        "args": "gh"
+      "form": {
+        "title": "Open GitHub search",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "query",
+            "label": "Query",
+            "placeholder": "Query",
+            "required": true
+          }
+        ],
+        "submit": {
+          "id": "open",
+          "title": "Open"
+        }
       }
     },
     "quicklinks/create": {
@@ -1187,44 +1179,54 @@
     "1-list": {
       "palette": "quicklinks",
       "keys": [
+        "wait:1500",
         "down*2"
       ],
-      "caption": "Every quicklink by name; a {query} link carries the placeholder as a tag, one that opens in a named browser says so"
+      "caption": "Your links by name: a search link carries its {query} as a tag, one pinned to a browser names it",
+      "settle": 900
     },
     "2-query": {
       "palette": "quicklinks",
       "keys": [
+        "wait:1500",
         "down*2",
         "enter",
         "wait:300",
         "type:rust async"
       ],
-      "caption": "A search link picked: the bar asks for the query, Enter opens the filled url"
+      "caption": "A search link asks for its query; Enter opens github.com/search with it filled in",
+      "settle": 900
     },
     "3-actions": {
       "palette": "quicklinks",
       "keys": [
+        "wait:1500",
         "down*4",
         "cmd+k"
       ],
-      "caption": "Open, Copy URL, Edit, Delete on one of your links"
+      "caption": "Open, Copy URL, Edit, Delete on one of your links",
+      "settle": 900
     },
     "4-form": {
       "palette": "quicklinks",
       "keys": [
+        "wait:1500",
         "enter"
       ],
-      "caption": "Create Quicklink: name, url with {query}, keywords, the browser to open with"
+      "caption": "Create Quicklink: name, url with {query}, keywords, the browser to open with",
+      "settle": 900
     },
     "5-library": {
       "palette": "quicklinks",
       "keys": [
+        "wait:1500",
         "down",
         "enter",
         "wait:300",
-        "down*5"
+        "down*6"
       ],
-      "caption": "The library: ready-made searches, the ones you already have tagged added, Enter adds one"
+      "caption": "The library: 25 ready-made searches, the ones you have tagged added; Enter adds one to your links",
+      "settle": 900
     }
   }
 }

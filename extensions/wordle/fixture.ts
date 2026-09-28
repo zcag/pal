@@ -1,35 +1,35 @@
 // Writes app/src/gallery/shots/wordle.json: the store screenshots' fixture,
 // a daily in progress as the opening tree (three guesses in, two letters
-// typed) and the trees a key brings (a bad word's notice, the solved board
-// with the stats), rendered by render.ts from rigged states so the shots
+// typed), a bad word's notice and the solved board
+// with the stats, each its own palette, rendered by render.ts from rigged states so the shots
 // show what a game looks like without playing one. `bun run
 // extensions/wordle/fixture.ts`, then `node app/scripts/shots.mjs wordle`.
-import { writeFileSync } from "node:fs";
+import { NOW, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { DEFAULTS, apply, type State } from "./game.ts";
 import { render } from "./render.ts";
+import { dayOf } from "./words.ts";
 
-const TODAY = 258;
+pinClock();
+/** The strip's day: puzzle #259. */
+const TODAY = dayOf(new Date(NOW));
 const stats = { played: 41, won: 38, streak: 12, best: 19, dist: [1, 6, 14, 11, 5, 1], lastDay: TODAY - 1 };
 const mid: State = { game: { answer: "crane", guesses: ["slate", "trace", "brace"], day: TODAY, hard: false, input: "cr", status: "play" }, stats };
 const typed: State = { ...mid, game: { ...mid.game, input: "crane" } };
 const bad = apply({ ...mid, game: { ...mid.game, input: "crxne" } }, "submit", DEFAULTS, TODAY);
 const solved = apply(typed, "submit", DEFAULTS, TODAY);
 if (solved.game.status !== "won") throw new Error("the fixture's answer did not solve");
-// The solved shot: `k` fills the row from the fixture, Enter submits it.
+// Each shot opens on its own tree rather than keys through effects: a view pick in the gallery is lost to a reload now and then.
 const fixture = {
-  palettes: { wordle: { title: "Wordle", icon: "🟩", view: "view", tree: render(mid, DEFAULTS, TODAY) } },
-  effects: {
-    "wordle/view:x": { view: render(bad, DEFAULTS, TODAY) },
-    "wordle/view:a": { view: render({ ...mid, game: { ...mid.game, input: "cra" } }, DEFAULTS, TODAY) },
-    "wordle/view:n": { view: render({ ...mid, game: { ...mid.game, input: "cran" } }, DEFAULTS, TODAY) },
-    "wordle/view:e": { view: render({ ...mid, game: { ...mid.game, input: "crane" } }, DEFAULTS, TODAY) },
-    "wordle/view:submit": { view: render(apply({ ...mid, game: { ...mid.game, input: "crane" } }, "submit", DEFAULTS, TODAY), DEFAULTS, TODAY) },
+  palettes: {
+    wordle: { title: "Wordle", icon: "🟩", view: "view", tree: render(mid, DEFAULTS, TODAY) },
+    notice: { title: "Wordle", icon: "🟩", view: "view", tree: render(bad, DEFAULTS, TODAY) },
+    solved: { title: "Wordle", icon: "🟩", view: "view", tree: render(solved, DEFAULTS, TODAY) },
   },
   shots: {
-    "1-game": { palette: "wordle", keys: ["wait:400"], caption: "The daily, three guesses in and two letters typed: the keyboard shows what the guesses found" },
-    "2-notice": { palette: "wordle", keys: ["wait:300", "x", "wait:600"], caption: "A word that is not in the list: the badge over the board, the row stays for editing" },
-    "3-solved": { palette: "wordle", keys: ["wait:300", "a", "wait:200", "n", "wait:200", "e", "wait:300", "enter", "wait:1200"], caption: "Solved in four: the praise, the stats and the guess distribution, C copies the grid" },
+    "1-game": { palette: "wordle", keys: ["wait:1500"], caption: "The daily, three guesses in and two letters typed: the keyboard shows what the guesses found" },
+    "2-notice": { palette: "notice", keys: ["wait:1500"], caption: "A word that is not in the list: a notice under the title, and the row stays for editing" },
+    "3-solved": { palette: "solved", keys: ["wait:2000"], caption: "Solved in four: the praise, the stats and the guess distribution, C copies the grid" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/wordle.json", import.meta.url), JSON.stringify(fixture) + "\n");
+writeFixture("wordle", fixture);
 console.log(`bad notice: ${bad.notice?.text}, solved in ${solved.game.guesses.length}`);

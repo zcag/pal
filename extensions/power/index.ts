@@ -4,7 +4,7 @@
 // long and what is eating it now; the Battery & Power palette is the full
 // account (view.ts draws both).
 import { dirname, join } from "node:path";
-import { home, settings, state, text, toast, truncate, view as liveView, type BarItem, type Ctx, type Effect, type Extension, type View } from "@zcag/pal";
+import { home, now, settings, state, text, toast, truncate, view as liveView, type BarItem, type Ctx, type Effect, type Extension, type View } from "@zcag/pal";
 import { points, snapshot, tailSamples, usage, type Snapshot, type Usage } from "./data.ts";
 import { focusedName, glyphOf, HISTORY_S, LOW, renderDash, renderPopover, rowCount, TABS, type Dash, type Tab } from "./view.ts";
 
@@ -24,7 +24,7 @@ const LIVE_MS = Number(process.env.PAL_POWER_LIVE_MS) || 10_000;
 /** `power blame` reads the ring buffer; a window's answer is kept this long. */
 const USAGE_TTL = 60_000;
 const SPANS: Record<Exclude<Tab, "now">, () => string | undefined> = {
-  today: () => { const d = new Date(); return `${Math.max(60, Math.round((d.getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 1000))}s`; },
+  today: () => { const d = new Date(now()); return `${Math.max(60, Math.round((d.getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 1000))}s`; },
   week: () => "7d",
   all: () => undefined,
 };

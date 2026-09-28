@@ -15569,7 +15569,7 @@
         "down",
         "right*4"
       ],
-      "caption": "The grid by block, the cursor on an arrow"
+      "caption": "The ones copied lately first, then every character in a grid by block; the full name of the one under the cursor below"
     },
     "2-search": {
       "palette": "unicode",
@@ -15577,7 +15577,7 @@
         "type:arrow",
         "right*2"
       ],
-      "caption": "Searching `arrow`: the matches across the arrows, keyboard and other blocks"
+      "caption": "Searching arrow: the matches in every block, the recent ones first"
     },
     "3-actions": {
       "palette": "unicode",
@@ -15585,7 +15585,7 @@
         "right",
         "cmd+k"
       ],
-      "caption": "Copy, paste, or copy the code point, the entity or the numeric reference"
+      "caption": "Copy or paste the character, or copy its code point, HTML entity or numeric reference"
     }
   }
 }

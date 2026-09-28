@@ -101,15 +101,15 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Capture area, window or screen, then the folder's screenshots newest first with thumbnails, pixel sizes and ages"
+        "caption": "Capture an area, a window or the screen, then the folder's screenshots newest first, with thumbnails, pixel sizes and ages"
       },
       {
         "file": "2-actions.png",
-        "caption": "Open, reveal, copy the image, its path or a markdown tag, read its text, trash it"
+        "caption": "Open or reveal it, copy the image, its path or a markdown tag, read its text, or trash it"
       },
       {
         "file": "3-detail.png",
-        "caption": "The detail pane: the picture itself over its name, folder, size and pixels"
+        "caption": "The detail pane: the picture itself over its name, folder, size, pixels and when it was taken"
       }
     ],
     "actions": [

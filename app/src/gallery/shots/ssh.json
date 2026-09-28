@@ -315,7 +315,7 @@
       "keys": [
         "type:example"
       ],
-      "caption": "The real host name finds the alias from the root"
+      "caption": "From the root, a host's real name finds its alias: example finds the four hosts under example.com"
     },
     "3-actions": {
       "palette": "ssh",
@@ -323,7 +323,7 @@
         "down*2",
         "cmd+k"
       ],
-      "caption": "Connect, copy the host or the command, the -J form, ping"
+      "caption": "Connect on Enter; copy the host, the ssh command or its -J form through the jump host; ping"
     },
     "4-ping": {
       "palette": "ssh",
@@ -331,7 +331,7 @@
         "cmd+p",
         "wait:300"
       ],
-      "caption": "Ping: one echo, the round trip as a toast"
+      "caption": "Ping sends one echo and shows the round trip as a toast"
     }
   }
 }

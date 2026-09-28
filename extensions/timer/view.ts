@@ -11,7 +11,7 @@
 // last durations used as tiles that start one on a click. A pomodoro
 // session (pomodoro.ts) marks its timer's card with the phase and the
 // round; `p` starts one, `s` skips to the next phase.
-import { POPOVER_W, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
+import { POPOVER_W, clock as hhmm, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import { phaseWord, type Session } from "./pomodoro.ts";
 
 export type State = "running" | "paused" | "done";
@@ -44,7 +44,8 @@ export const progressOf = (t: Timer, now: number) => (t.state === "done" ? 1 : t
 /** The strip's colour rule, shared with the bar item: blue, amber past two thirds, red past 90 %, grey while paused, red once landed. */
 export const colorOf = (t: Timer, now: number): TagColor => (t.state === "done" ? "red" : t.state === "paused" ? "grey" : progressOf(t, now) > 0.9 ? "red" : progressOf(t, now) > 0.66 ? "amber" : "blue");
 
-const clock = (epoch: number) => new Date(epoch * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+/** `14:35`, as every other row writes a time (the locale form put an AM/PM on a 24 h user). */
+const clock = (epoch: number) => hhmm(epoch * 1000);
 
 /** The card the keys act on: the cursor's timer when it is still there, else the first. */
 export const current = (st: PopoverState): Timer | undefined => st.timers.find((t) => t.id === st.cursor) ?? st.timers[0];

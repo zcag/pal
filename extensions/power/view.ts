@@ -4,7 +4,7 @@
 // the Battery & Power palette is the full account: the level and an hour-
 // by-hour chart on the left, and on the right what draws power now and
 // what used the battery today, this week and ever, in watt-hours.
-import { column, ink, keyHint, POPOVER_W, row, sparkline, text, truncate, type Action, type SparkBand, type TagColor, type Theme, type View, type ViewNode } from "@zcag/pal";
+import { column, ink, now as clockNow, keyHint, POPOVER_W, row, sparkline, text, truncate, type Action, type SparkBand, type TagColor, type Theme, type View, type ViewNode } from "@zcag/pal";
 import type { Point, Proc, Snapshot, Usage } from "./data.ts";
 
 export const TABS = [
@@ -313,7 +313,7 @@ export function dashActions(d: Dash): Action[] {
 }
 
 export function renderDash(d: Dash): View {
-  const s = d.snap, now = d.now ?? Date.now() / 1000;
+  const s = d.snap, now = d.now ?? clockNow() / 1000;
   const body = d.tab === "now" ? nowBody(d, d.compact ? 70 : 96) : usageBody(d, d.compact ? 70 : 110);
   // A tab's nodes leave at once: fading out beside the next tab's arriving ones, both would hold space and the column would jump.
   const right = column([tabsRow(d.tab), ...body.map((n) => ({ ...n, transition: { ...n.transition, exit: "none" as const } }))], { key: "right", gap: 2, grow: true });
@@ -336,7 +336,7 @@ export function renderDash(d: Dash): View {
 const POP_W = POPOVER_W;
 
 export function renderPopover(p: Pop): View {
-  const s = p.snap, now = p.now ?? Date.now() / 1000;
+  const s = p.snap, now = p.now ?? clockNow() / 1000;
   const top = s.procs.slice(0, 4);
   const max = Math.max(0, ...top.map((x) => x.share));
   const today = p.today ? ranked(p.today) : undefined;

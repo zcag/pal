@@ -3,11 +3,23 @@
   "title": "Disk Space",
   "description": "What is taking the space: a root (home, a volume, any folder) scanned into a tree, drawn as a zoomable treemap of boxes inside boxes (Enter zooms in, Backspace out, the arrows walk the boxes), the same children as rows beside it, the biggest files and folders as lists, and cleanup suggestions (caches, stale node_modules and target folders, Xcode's DerivedData, old downloads, the Trash) with their sizes. Mark boxes and trash them together; every delete goes to the Trash after a confirm. Scans persist compactly, so reopening is instant and Rescan is explicit.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰋊", "bg": "cyan" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰋊",
+      "bg": "cyan"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["disk", "space", "storage", "treemap", "cleanup", "du"],
+  "keywords": [
+    "disk",
+    "space",
+    "storage",
+    "treemap",
+    "cleanup",
+    "du"
+  ],
   "settings": [
     {
       "kind": "select",
@@ -15,8 +27,14 @@
       "label": "Sizes",
       "description": "What the boxes and rows measure: the blocks a file takes on disk (what deleting it frees; sparse and compressed files are small), or its apparent length.",
       "options": [
-        { "id": "allocated", "title": "On disk (allocated)" },
-        { "id": "apparent", "title": "Apparent" }
+        {
+          "id": "allocated",
+          "title": "On disk (allocated)"
+        },
+        {
+          "id": "apparent",
+          "title": "Apparent"
+        }
       ],
       "default": "allocated"
     },
@@ -26,8 +44,14 @@
       "label": "Colour boxes by",
       "description": "The kind of file (folder, image, video, code, archive, ...), or the place among the siblings with the nested boxes in their parent's hue (the DaisyDisk ring). `c` in the map flips it.",
       "options": [
-        { "id": "kind", "title": "Kind" },
-        { "id": "depth", "title": "Depth" }
+        {
+          "id": "kind",
+          "title": "Kind"
+        },
+        {
+          "id": "depth",
+          "title": "Depth"
+        }
       ],
       "default": "kind"
     },
@@ -76,21 +100,64 @@
     "permissions": [
       "Full Disk Access, for ~/Library/Mail and the like (unreadable folders are counted and named)"
     ],
-    "platforms": ["macos", "linux"],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-map.png", "caption": "The map of a home folder: boxes inside boxes, the biggest first, the rows beside it" },
-      { "file": "2-zoomed.png", "caption": "Zoomed into a folder, two boxes marked for the trash" },
-      { "file": "3-largest.png", "caption": "The largest files under the root" },
-      { "file": "4-cleanup.png", "caption": "Cleanup suggestions with their sizes" }
+      {
+        "file": "1-map.png",
+        "caption": "A home folder as a map: every folder a box sized by what it holds and coloured by kind, the list of the biggest beside it"
+      },
+      {
+        "file": "2-zoomed.png",
+        "caption": "Zoomed into a project, its build output and node_modules marked: one keystroke sends both to the Trash"
+      },
+      {
+        "file": "3-largest.png",
+        "caption": "The largest files anywhere under the root, each with its folder, kind and size; filter to videos or disk images"
+      },
+      {
+        "file": "4-cleanup.png",
+        "caption": "Cleanup suggestions: caches, package stores, the Trash, old downloads and stale build folders, each with what it frees and what to know"
+      }
     ],
     "actions": [
-      { "title": "Zoom in / Open", "description": "The focused folder becomes the board; a file opens.", "keys": "enter" },
-      { "title": "Zoom out", "description": "Back up one folder.", "keys": "backspace" },
-      { "title": "Focus", "description": "The arrows move between boxes by position, Tab by size.", "keys": "up, down, left, right, tab" },
-      { "title": "Mark for the trash", "description": "Toggles the focused box; the marked total shows in the header.", "keys": "m" },
-      { "title": "Move to Trash", "description": "The focused box, or every marked one, after a confirm.", "keys": "cmd+d" },
-      { "title": "Quick Look, Open, Reveal, Copy path, Info", "description": "The file actions.", "keys": "space, cmd+o, cmd+enter, cmd+c, i" },
-      { "title": "Rescan", "description": "This folder again (the root: everything). While scanning: stop.", "keys": "cmd+r" }
+      {
+        "title": "Zoom in / Open",
+        "description": "The focused folder becomes the board; a file opens.",
+        "keys": "enter"
+      },
+      {
+        "title": "Zoom out",
+        "description": "Back up one folder.",
+        "keys": "backspace"
+      },
+      {
+        "title": "Focus",
+        "description": "The arrows move between boxes by position, Tab by size.",
+        "keys": "up, down, left, right, tab"
+      },
+      {
+        "title": "Mark for the trash",
+        "description": "Toggles the focused box; the marked total shows in the header.",
+        "keys": "m"
+      },
+      {
+        "title": "Move to Trash",
+        "description": "The focused box, or every marked one, after a confirm.",
+        "keys": "cmd+d"
+      },
+      {
+        "title": "Quick Look, Open, Reveal, Copy path, Info",
+        "description": "The file actions.",
+        "keys": "space, cmd+o, cmd+enter, cmd+c, i"
+      },
+      {
+        "title": "Rescan",
+        "description": "This folder again (the root: everything). While scanning: stop.",
+        "keys": "cmd+r"
+      }
     ]
   },
   "palettes": {
@@ -99,11 +166,26 @@
       "kind": "live",
       "description": "Where to look: your home folder, every mounted volume with its free space, the folders scanned before with their age, and a folder typed in the bar. Enter opens the map.",
       "keys": [
-        { "keys": "enter", "title": "Open the map (scans first when there is none)" },
-        { "keys": "cmd+enter", "title": "Largest files under it" },
-        { "keys": "cmd+shift+l", "title": "Largest folders under it" },
-        { "keys": "cmd+r", "title": "Scan again" },
-        { "keys": "cmd+shift+d", "title": "Forget the saved scan" }
+        {
+          "keys": "enter",
+          "title": "Open the map (scans first when there is none)"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Largest files under it"
+        },
+        {
+          "keys": "cmd+shift+l",
+          "title": "Largest folders under it"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Scan again"
+        },
+        {
+          "keys": "cmd+shift+d",
+          "title": "Forget the saved scan"
+        }
       ]
     },
     "map": {
@@ -111,21 +193,66 @@
       "kind": "view",
       "description": "The treemap: the folder's children as boxes, area by size, their own children faintly inside; zoom in and out, mark and trash.",
       "keys": [
-        { "keys": "enter", "title": "Zoom into the focused folder; open a file" },
-        { "keys": "cmd+enter", "title": "Reveal in Finder" },
-        { "keys": "backspace", "title": "Zoom out" },
-        { "keys": "up", "title": "Focus the box in that direction (also down, left, right, and hjkl)" },
-        { "keys": "tab", "title": "Next box by size (shift+tab back)" },
-        { "keys": "m", "title": "Mark or unmark for the trash" },
-        { "keys": "cmd+d", "title": "Move to Trash: the focused box, or every marked one (asks first)" },
-        { "keys": "space", "title": "Quick Look (macOS)" },
-        { "keys": "cmd+o", "title": "Open" },
-        { "keys": "cmd+c", "title": "Copy path" },
-        { "keys": "i", "title": "Info: kind, sizes, count, modified, owner" },
-        { "keys": "cmd+l", "title": "Largest files under this folder" },
-        { "keys": "c", "title": "Colour by kind or depth" },
-        { "keys": "a", "title": "Sizes on disk or apparent" },
-        { "keys": "cmd+r", "title": "Rescan this folder; stop a running scan" }
+        {
+          "keys": "enter",
+          "title": "Zoom into the focused folder; open a file"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "backspace",
+          "title": "Zoom out"
+        },
+        {
+          "keys": "up",
+          "title": "Focus the box in that direction (also down, left, right, and hjkl)"
+        },
+        {
+          "keys": "tab",
+          "title": "Next box by size (shift+tab back)"
+        },
+        {
+          "keys": "m",
+          "title": "Mark or unmark for the trash"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash: the focused box, or every marked one (asks first)"
+        },
+        {
+          "keys": "space",
+          "title": "Quick Look (macOS)"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy path"
+        },
+        {
+          "keys": "i",
+          "title": "Info: kind, sizes, count, modified, owner"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Largest files under this folder"
+        },
+        {
+          "keys": "c",
+          "title": "Colour by kind or depth"
+        },
+        {
+          "keys": "a",
+          "title": "Sizes on disk or apparent"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Rescan this folder; stop a running scan"
+        }
       ]
     },
     "largest": {
@@ -134,12 +261,30 @@
       "lazy": true,
       "description": "The biggest files under the last scanned root (or the root a link names), kind as a tag; a filter by kind.",
       "keys": [
-        { "keys": "enter", "title": "Open" },
-        { "keys": "cmd+enter", "title": "Reveal in Finder" },
-        { "keys": "cmd+y", "title": "Quick Look" },
-        { "keys": "cmd+m", "title": "Show in the map" },
-        { "keys": "cmd+c", "title": "Copy path" },
-        { "keys": "cmd+d", "title": "Move to Trash (asks; marked rows together)" }
+        {
+          "keys": "enter",
+          "title": "Open"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+y",
+          "title": "Quick Look"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Show in the map"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy path"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash (asks; marked rows together)"
+        }
       ]
     },
     "folders": {
@@ -148,11 +293,26 @@
       "lazy": true,
       "description": "The biggest folders under the last scanned root, with their file counts.",
       "keys": [
-        { "keys": "enter", "title": "Show in the map" },
-        { "keys": "cmd+enter", "title": "Reveal in Finder" },
-        { "keys": "cmd+l", "title": "Largest files under it" },
-        { "keys": "cmd+c", "title": "Copy path" },
-        { "keys": "cmd+d", "title": "Move to Trash (asks)" }
+        {
+          "keys": "enter",
+          "title": "Show in the map"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Largest files under it"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy path"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash (asks)"
+        }
       ]
     },
     "cleanup": {
@@ -161,9 +321,18 @@
       "lazy": true,
       "description": "What is usually safe to clear, with its size: user and package caches, Xcode's DerivedData, node_modules and target folders untouched for a month, downloads older than a month, the Trash. Every action asks first and goes to the Trash.",
       "keys": [
-        { "keys": "enter", "title": "Show in the map" },
-        { "keys": "cmd+enter", "title": "Reveal in Finder" },
-        { "keys": "cmd+d", "title": "Move to Trash (asks); Empty Trash on the Trash row" }
+        {
+          "keys": "enter",
+          "title": "Show in the map"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash (asks); Empty Trash on the Trash row"
+        }
       ]
     }
   },
@@ -171,14 +340,21 @@
     "scan": {
       "description": "Open the map of a folder, scanning it first when there is no scan",
       "params": {
-        "root": { "description": "The folder; ~ is expanded. The home folder without it." },
-        "rescan": { "description": "Scan again even when a scan is saved", "type": "boolean" }
+        "root": {
+          "description": "The folder; ~ is expanded. The home folder without it."
+        },
+        "rescan": {
+          "description": "Scan again even when a scan is saved",
+          "type": "boolean"
+        }
       }
     },
     "largest": {
       "description": "Open the largest files under a folder",
       "params": {
-        "root": { "description": "The folder; ~ is expanded. The last scanned root without it." }
+        "root": {
+          "description": "The folder; ~ is expanded. The last scanned root without it."
+        }
       }
     }
   }

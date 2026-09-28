@@ -175,7 +175,10 @@
           "title": "No timers",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰥔", "tooltip": "No timers" }
+            "empty": {
+              "icon": "󰥔",
+              "tooltip": "No timers"
+            }
           }
         }
       },
@@ -247,53 +250,53 @@
     "screenshots": [
       {
         "file": "1-timers.png",
-        "caption": "Every timer with what is left: a landed one, two running, one paused, and New timer last"
+        "caption": "Every timer, the most urgent first: one that just landed, three running with when each lands, one paused, and the pomodoros done today"
       },
       {
-        "file": "2-new.png",
-        "caption": "New timer: a duration, an optional name, ring the phone when it lands, typed in the bar"
+        "file": "2-actions.png",
+        "caption": "A running timer's actions: pause it, stop it, or add the minutes in the field beside the search (five unless you type more)"
       },
       {
-        "file": "3-actions.png",
-        "caption": "Pause, add five minutes, or stop a running timer"
+        "file": "3-pomodoro.png",
+        "caption": "A pomodoro round is a timer too: its row says the round and the phase, and skips to the break or stops the cycle"
       },
       {
-        "file": "4-pomodoro.png",
-        "caption": "A pomodoro's round on its row: skip to the next phase or stop the cycle; the rounds finished today at the bottom"
+        "file": "4-new.png",
+        "caption": "New timer, typed after the search: a duration as you would say it, an optional name, and whether the phone rings when it lands"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: what is left of the soonest timer, a fill under the glyph, amber past two thirds",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: what is left of the soonest timer, with a fill under the glyph that turns amber past two thirds",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
+        "file": "bar-menubar-landed.png",
         "caption": "A timer that landed: the item turns into a red alarm with its name",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
-        "caption": "A click opens the popover: a card per timer with the time left and a bar, space pauses, + adds five minutes, backspace stops",
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: a card per timer with the time left and a bar; space pauses, + adds five minutes, backspace stops",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "A landed timer on top, red and full; Enter dismisses it",
+        "file": "bar-popover-landed.png",
+        "caption": "A landed timer sits on top, red and full, until space dismisses it",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-new.png",
-        "caption": "n opens the field: 25m tea starts one, the last durations are a click away",
+        "file": "bar-popover-new.png",
+        "caption": "n opens the field: 25m tea starts one, and the last durations are a click away",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-pomodoro.png",
+        "caption": "A pomodoro on the popover: the round and the phase on its card, s skips to the break, the rounds finished today below",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-pomodoro.png",
-        "caption": "A pomodoro on the popover: the phase and the round on its card, s skips to the break, 3 rounds finished today",
         "kind": "bar"
       }
     ],

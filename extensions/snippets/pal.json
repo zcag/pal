@@ -36,19 +36,19 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Snippets by name, the keyword as a tag, the first line as the subtitle"
+        "caption": "Snippets by name, the keyword as a tag, the first line as the subtitle; dynamic ones fill placeholders when pasted"
       },
       {
         "file": "2-detail.png",
-        "caption": "The whole text in the detail pane, with its keyword and length"
+        "caption": "cmd+i shows the whole text in the detail pane, with its keyword and length"
       },
       {
         "file": "3-actions.png",
-        "caption": "Paste, Copy, Edit and Delete on a snippet"
+        "caption": "Paste into the app in front, copy, edit or delete a snippet"
       },
       {
         "file": "4-form.png",
-        "caption": "Create Snippet: name, keyword and the text with its placeholders (format=, offset= and {snippet name=} named under the field)"
+        "caption": "Create Snippet: a name, a keyword and the text, its placeholders explained under the field"
       }
     ],
     "actions": [

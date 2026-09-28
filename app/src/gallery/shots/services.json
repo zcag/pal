@@ -871,12 +871,12 @@
       ],
       "items": [
         {
-          "id": "io.example.sketchybar",
-          "name": "io.example.sketchybar",
-          "subtitle": "/opt/homebrew/bin/sketchybar",
+          "id": "homebrew.mxcl.postgresql@16",
+          "name": "homebrew.mxcl.postgresql@16",
+          "subtitle": "/opt/homebrew/opt/postgresql@16/bin/postgres",
           "icon": "⚙",
           "keywords": [
-            "io.example.sketchybar.plist"
+            "homebrew.mxcl.postgresql@16.plist"
           ],
           "accessories": [
             {
@@ -891,15 +891,15 @@
             "metadata": [
               {
                 "label": "Label",
-                "value": "io.example.sketchybar"
+                "value": "homebrew.mxcl.postgresql@16"
               },
               {
                 "label": "Plist",
-                "value": "~/Library/LaunchAgents/io.example.sketchybar.plist"
+                "value": "~/Library/LaunchAgents/homebrew.mxcl.postgresql@16.plist"
               },
               {
                 "label": "Program",
-                "value": "/opt/homebrew/bin/sketchybar"
+                "value": "/opt/homebrew/opt/postgresql@16/bin/postgres"
               },
               {
                 "label": "State",
@@ -937,12 +937,12 @@
           ]
         },
         {
-          "id": "io.example.syncthing",
-          "name": "io.example.syncthing",
-          "subtitle": "/opt/homebrew/bin/syncthing",
+          "id": "com.example.notes-sync",
+          "name": "com.example.notes-sync",
+          "subtitle": "~/Applications/Notes Sync.app/Contents/MacOS/notes-sync",
           "icon": "⚙",
           "keywords": [
-            "io.example.syncthing.plist"
+            "com.example.notes-sync.plist"
           ],
           "accessories": [
             {
@@ -957,15 +957,15 @@
             "metadata": [
               {
                 "label": "Label",
-                "value": "io.example.syncthing"
+                "value": "com.example.notes-sync"
               },
               {
                 "label": "Plist",
-                "value": "~/Library/LaunchAgents/io.example.syncthing.plist"
+                "value": "~/Library/LaunchAgents/com.example.notes-sync.plist"
               },
               {
                 "label": "Program",
-                "value": "/opt/homebrew/bin/syncthing"
+                "value": "~/Applications/Notes Sync.app/Contents/MacOS/notes-sync"
               },
               {
                 "label": "State",
@@ -1003,12 +1003,12 @@
           ]
         },
         {
-          "id": "io.example.backup",
-          "name": "io.example.backup",
-          "subtitle": "~/.local/bin/backup",
+          "id": "com.example.backup",
+          "name": "com.example.backup",
+          "subtitle": "~/bin/backup.sh",
           "icon": "⚙",
           "keywords": [
-            "io.example.backup.plist"
+            "com.example.backup.plist"
           ],
           "accessories": [
             {
@@ -1020,15 +1020,15 @@
             "metadata": [
               {
                 "label": "Label",
-                "value": "io.example.backup"
+                "value": "com.example.backup"
               },
               {
                 "label": "Plist",
-                "value": "~/Library/LaunchAgents/io.example.backup.plist"
+                "value": "~/Library/LaunchAgents/com.example.backup.plist"
               },
               {
                 "label": "Program",
-                "value": "~/.local/bin/backup"
+                "value": "~/bin/backup.sh"
               },
               {
                 "label": "State",
@@ -1066,12 +1066,12 @@
           ]
         },
         {
-          "id": "io.example.chrome-cdp",
-          "name": "io.example.chrome-cdp",
-          "subtitle": "~/.local/bin/chrome-cdp",
+          "id": "homebrew.mxcl.redis",
+          "name": "homebrew.mxcl.redis",
+          "subtitle": "/opt/homebrew/opt/redis/bin/redis-server",
           "icon": "⚙",
           "keywords": [
-            "io.example.chrome-cdp.plist"
+            "homebrew.mxcl.redis.plist"
           ],
           "accessories": [
             {
@@ -1083,15 +1083,15 @@
             "metadata": [
               {
                 "label": "Label",
-                "value": "io.example.chrome-cdp"
+                "value": "homebrew.mxcl.redis"
               },
               {
                 "label": "Plist",
-                "value": "~/Library/LaunchAgents/io.example.chrome-cdp.plist"
+                "value": "~/Library/LaunchAgents/homebrew.mxcl.redis.plist"
               },
               {
                 "label": "Program",
-                "value": "~/.local/bin/chrome-cdp"
+                "value": "/opt/homebrew/opt/redis/bin/redis-server"
               },
               {
                 "label": "State",
@@ -1129,12 +1129,12 @@
           ]
         },
         {
-          "id": "io.example.power",
-          "name": "io.example.power",
-          "subtitle": "~/.local/bin/power",
+          "id": "com.example.wallpaper",
+          "name": "com.example.wallpaper",
+          "subtitle": "~/bin/wallpaper.sh",
           "icon": "⚙",
           "keywords": [
-            "io.example.power.plist"
+            "com.example.wallpaper.plist"
           ],
           "accessories": [
             {
@@ -1146,15 +1146,15 @@
             "metadata": [
               {
                 "label": "Label",
-                "value": "io.example.power"
+                "value": "com.example.wallpaper"
               },
               {
                 "label": "Plist",
-                "value": "~/Library/LaunchAgents/io.example.power.plist"
+                "value": "~/Library/LaunchAgents/com.example.wallpaper.plist"
               },
               {
                 "label": "Program",
-                "value": "~/.local/bin/power"
+                "value": "~/bin/wallpaper.sh"
               },
               {
                 "label": "State",
@@ -1321,7 +1321,7 @@
     "services/user:backup.service:logs": {
       "show": {
         "title": "backup.service logs",
-        "markdown": "````\nSep 16 02:00:01 web-1 systemd[1120]: Starting Nightly restic backup...\nSep 16 02:00:02 web-1 restic[48213]: open repository\nSep 16 02:00:02 web-1 restic[48213]: repository 9f1c2a7e opened (version 2, compression level auto)\nSep 16 02:00:03 web-1 restic[48213]: lock repository\nSep 16 02:00:03 web-1 restic[48213]: using parent snapshot 3b8d0e11\nSep 16 02:00:04 web-1 restic[48213]: load index files\nSep 16 02:00:19 web-1 restic[48213]: start scan on [/home/deploy]\nSep 16 02:00:19 web-1 restic[48213]: start backup on [/home/deploy]\nSep 16 02:03:41 web-1 restic[48213]: Fatal: unable to save snapshot: rclone: connection reset by peer\nSep 16 02:03:41 web-1 systemd[1120]: backup.service: Main process exited, code=exited, status=1/FAILURE\nSep 16 02:03:41 web-1 systemd[1120]: backup.service: Failed with result 'exit-code'.\nSep 16 02:03:41 web-1 systemd[1120]: Failed to start Nightly restic backup.\n````"
+        "markdown": "````\nSep 16 02:00:01 atlas systemd[1120]: Starting Nightly restic backup...\nSep 16 02:00:02 atlas restic[48213]: open repository\nSep 16 02:00:02 atlas restic[48213]: repository 9f1c2a7e opened (version 2)\nSep 16 02:00:03 atlas restic[48213]: using parent snapshot 3b8d0e11\nSep 16 02:00:04 atlas restic[48213]: load index files\nSep 16 02:00:19 atlas restic[48213]: start backup on [/home/sam]\nSep 16 02:03:41 atlas restic[48213]: Fatal: unable to save snapshot:\nSep 16 02:03:41 atlas restic[48213]:   connection reset by peer\nSep 16 02:03:41 atlas systemd[1120]: backup.service: Main process exited,\nSep 16 02:03:41 atlas systemd[1120]:   code=exited, status=1/FAILURE\nSep 16 02:03:41 atlas systemd[1120]: backup.service: Failed with result 'exit-code'.\nSep 16 02:03:41 atlas systemd[1120]: Failed to start Nightly restic backup.\n````"
       }
     }
   },
@@ -1329,33 +1329,41 @@
     "1-units": {
       "palette": "services",
       "keys": [
+        "wait:1500",
         "down*2"
       ],
-      "caption": "systemd units under the User filter, the unit file's state and the active state on the right"
+      "caption": "systemd units under the User filter: whether each is enabled, and whether it is running, idle or failed",
+      "settle": 900
     },
     "2-failed": {
       "palette": "services",
       "keys": [
+        "wait:1500",
         "tab",
         "tab",
         "down"
       ],
-      "caption": "The Failed filter: units of both managers, in a User and a System section"
+      "caption": "The Failed filter gathers what broke across both managers, in a User and a System section",
+      "settle": 900
     },
     "3-logs": {
       "palette": "services",
       "keys": [
+        "wait:1500",
         "down*6",
         "cmd+l"
       ],
-      "caption": "journalctl for a unit, the last 200 lines in the panel"
+      "caption": "cmd+l shows a unit's journal in the panel: why last night's backup failed",
+      "settle": 900
     },
     "4-agents": {
       "palette": "launchd",
       "keys": [
+        "wait:1500",
         "down*2"
       ],
-      "caption": "macOS: launchd agents by folder, with pid and state"
+      "caption": "On macOS, launchd agents by folder, with their pid and state",
+      "settle": 900
     }
   }
 }

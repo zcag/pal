@@ -69,23 +69,23 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Open windows in a section per app; a minimised one is tagged"
+        "caption": "Every open window in a section per app, the other display and a minimised one marked"
       },
       {
         "file": "2-actions.png",
-        "caption": "Focus, Close, Minimize, Hide app, and the whole app's windows at once"
+        "caption": "Focus, close, minimise or hide the app, or minimise and close all of its windows at once"
       },
       {
         "file": "3-root.png",
-        "caption": "Window titles and app names are root results: chrome finds its three windows"
+        "caption": "Windows are root results: chrome finds its three windows and the space it is on"
       },
       {
         "file": "4-confirm.png",
-        "caption": "Close all of this app asks first"
+        "caption": "Closing every window of an app asks first"
       },
       {
         "file": "5-spaces.png",
-        "caption": "Spaces: the three desktops by name with the apps on each, the current one tagged"
+        "caption": "Spaces: each desktop by name with the apps on it, the current and the previous one tagged"
       }
     ],
     "actions": [

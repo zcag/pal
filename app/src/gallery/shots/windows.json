@@ -214,7 +214,7 @@
         },
         {
           "id": "w5",
-          "name": "YouTube",
+          "name": "Quarterly roadmap - Slides",
           "subtitle": "Google Chrome",
           "keywords": [
             "com.google.Chrome",
@@ -506,7 +506,7 @@
       "keys": [
         "down*2"
       ],
-      "caption": "Open windows in a section per app; a minimised one is tagged"
+      "caption": "Every open window in a section per app, the other display and a minimised one marked"
     },
     "2-actions": {
       "palette": "windows",
@@ -514,13 +514,13 @@
         "down*2",
         "cmd+k"
       ],
-      "caption": "Focus, Close, Minimize, Hide app, and the whole app's windows at once"
+      "caption": "Focus, close, minimise or hide the app, or minimise and close all of its windows at once"
     },
     "3-root": {
       "keys": [
         "type:chrome"
       ],
-      "caption": "Window titles and app names are root results: chrome finds its three windows"
+      "caption": "Windows are root results: chrome finds its three windows and the space it is on"
     },
     "4-confirm": {
       "palette": "windows",
@@ -528,14 +528,14 @@
         "down*2",
         "cmd+shift+w"
       ],
-      "caption": "Close all of this app asks first"
+      "caption": "Closing every window of an app asks first"
     },
     "5-spaces": {
       "palette": "spaces",
       "keys": [
         "down"
       ],
-      "caption": "Spaces: the three desktops by name with the apps on each, the current one tagged"
+      "caption": "Spaces: each desktop by name with the apps on it, the current and the previous one tagged"
     }
   }
 }

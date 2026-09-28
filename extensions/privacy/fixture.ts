@@ -3,14 +3,10 @@
 // uses at a fixed clock. The apps are invented (Huddle, a call app, and
 // Terminal running ffmpeg) with SVG icons drawn here, since the gallery has
 // no `icon://` scheme and a real app's icon is someone's mark.
-// `bun run extensions/privacy/fixture.ts`, then `node app/scripts/shots.mjs
-// privacy` and `node app/scripts/shots.mjs bar privacy`.
-import { writeFileSync } from "node:fs";
+// `make shots EXT=privacy`.
 import type { PrivacyUse, ViewNode } from "@zcag/pal";
+import { NOW_S as NOW, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { GLYPH, groups, paletteItem, render } from "./view.ts";
-
-/** 16 Sep 2026, 14:32 local: the strip's clock. */
-const NOW = Math.floor(new Date(2026, 8, 16, 14, 32, 0).getTime() / 1000);
 
 const svg = (body: string) => `data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${body}</svg>`).toString("base64")}`;
 const ICONS: Record<string, string> = {
@@ -49,14 +45,14 @@ const bar = {
     { id: "clear", item: { hidden: true, empty: { icon: GLYPH.camera, tooltip: "Nothing is using the camera, the microphone or the screen" }, menu: { view: popover([]) } } },
   ],
   shots: {
-    "menubar": { target: "menubar", caption: "On the menu bar only while something is in use: a glyph for the camera, the microphone and the screen" },
+    "menubar": { target: "menubar", caption: "On the menu bar only while something is in use, a glyph for each sensor: a call holding the camera and the microphone" },
     "menubar-share": { target: "menubar", state: "share", caption: "A call sharing its screen: all three glyphs" },
     "popover": { target: "menubar", popover: true, caption: "A click opens the popover: one row per app, what it holds in colour and for how long; Enter brings the app forward" },
-    "popover-share": { target: "menubar", popover: true, state: "share", caption: "A screen share names its app too; macOS's own capture reads macOS" },
-    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyphs on an amber band" },
+    "popover-share": { target: "menubar", popover: true, state: "share", caption: "A call sharing its screen: the screen is named on the app's row too, and a capture by macOS itself reads macOS" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the same glyphs on an amber band" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/bar-privacy.json", import.meta.url), JSON.stringify(bar) + "\n");
+writeFixture("bar-privacy", bar);
 
 const rows = groups(SHARE.concat(ffmpeg)).map((g) => paletteItem(g, NOW)).map((i) => (typeof i.icon === "object" && i.icon && "app" in i.icon && ICONS[i.icon.app] ? { ...i, icon: { image: ICONS[i.icon.app] } } : i));
 const palette = {
@@ -66,5 +62,5 @@ const palette = {
     "2-actions": { palette: "privacy", keys: ["cmd+k"], caption: "Enter brings the app forward; the privacy settings are a shortcut away" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/privacy.json", import.meta.url), JSON.stringify(palette) + "\n");
+writeFixture("privacy", palette);
 console.log("privacy.json, bar-privacy.json: a call with a recording beside it, a call sharing its screen, all clear");

@@ -3,7 +3,12 @@
   "title": "Unicode Characters",
   "description": "A grid of arrows, math, currency, punctuation, keyboard symbols, box drawing, Greek, accented letters and other characters one pastes; searched by name, alias, HTML entity, LaTeX name or code point.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰏉", "bg": "pink" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰏉",
+      "bg": "pink"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -29,15 +34,15 @@
     "screenshots": [
       {
         "file": "1-grid.png",
-        "caption": "The grid by block, the cursor on an arrow"
+        "caption": "The ones copied lately first, then every character in a grid by block; the full name of the one under the cursor below"
       },
       {
         "file": "2-search.png",
-        "caption": "Searching `arrow`: the matches across the arrows, keyboard and other blocks"
+        "caption": "Searching arrow: the matches in every block, the recent ones first"
       },
       {
         "file": "3-actions.png",
-        "caption": "Copy, paste, or copy the code point, the entity or the numeric reference"
+        "caption": "Copy or paste the character, or copy its code point, HTML entity or numeric reference"
       }
     ],
     "actions": [

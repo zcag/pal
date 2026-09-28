@@ -36,7 +36,9 @@
       "id": "token",
       "required": true,
       "label": "Token",
-      "only": { "auth": "token" },
+      "only": {
+        "auth": "token"
+      },
       "description": "A user token (xoxp-...) with channels:read, groups:read, im:read, mpim:read, channels:history, groups:history, im:history, mpim:history, users:read, chat:write, search:read, users.profile:write, users:write, dnd:write. Only with Sign in set to token.",
       "placeholder": "xoxp-...",
       "default": ""
@@ -344,27 +346,17 @@
         "caption": "Search Slack: Slack's syntax typed into the panel"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: the Slack glyph with the count of what is addressed to you",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the Slack glyph with the count of what is addressed to you, red while a direct message waits",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "The same item on a light menu bar",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover.png",
+        "file": "bar-popover.png",
         "caption": "A click opens the popover: direct messages, mentions and thread replies with the sender, the message and the time, the channels also unread, the keys",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "The popover in the dark theme",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-reply.png",
+        "file": "bar-popover-reply.png",
         "caption": "r turns the search row into a reply field; Enter posts it to the conversation",
         "kind": "bar"
       },

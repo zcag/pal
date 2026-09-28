@@ -191,7 +191,7 @@
           "name": "Update packages",
           "subtitle": "brew upgrade",
           "section": "Maintenance",
-          "icon": "⬆",
+          "icon": "⬆️",
           "actions": [
             {
               "id": "_default",
@@ -468,7 +468,7 @@
           "id": "say-hi.sh",
           "name": "Say hi",
           "icon": "👋",
-          "section": "Raycast",
+          "section": "Utilities",
           "detail": {
             "metadata": [
               {
@@ -516,7 +516,7 @@
           "name": "Weather",
           "subtitle": "The forecast for today, from wttr.in",
           "icon": "🌤",
-          "section": "Raycast",
+          "section": "Utilities",
           "accessories": [
             {
               "text": "show"
@@ -701,56 +701,60 @@
     "1-data-file": {
       "palette": "links",
       "keys": [
+        "wait:1500",
         "down"
       ],
-      "caption": "A data-file palette: six rows from links.json, sectioned, the table's icon unless a row has its own"
+      "caption": "A data-file palette: the rows of links.json in sections, the table's icon unless a row brings its own",
+      "settle": 900
     },
     "2-script": {
       "palette": "cmds",
       "keys": [
+        "wait:1500",
         "down"
       ],
-      "caption": "A script palette: the rows run.sh printed as JSON lines, with sections and tags"
+      "caption": "A script palette: the rows run.sh printed as JSON lines, with sections and tags",
+      "settle": 900
     },
     "3-root": {
       "keys": [
+        "wait:1500",
         "type:deploy"
       ],
-      "caption": "A script palette's rows at the root: deploy finds both deploy commands"
+      "caption": "A script palette's rows are searchable from the root: deploy finds both deploy commands and the deploy script",
+      "settle": 900
     },
-    "4-actions": {
-      "palette": "links",
-      "keys": [
-        "down*2",
-        "cmd+k"
-      ],
-      "caption": "The table's actions on a row: Open and Copy link"
-    },
-    "5-commands": {
+    "4-commands": {
       "palette": "commands",
       "keys": [
+        "wait:1500",
         "down"
       ],
-      "caption": "Script Commands: one row per file in the folder, the mode on the right, an inline command's first output line as its subtitle"
+      "caption": "Script Commands: one row per script in the folder, its mode on the right, an inline one's latest output as its subtitle",
+      "settle": 900
     },
-    "6-command-list": {
+    "5-command-list": {
       "palette": "commands",
       "keys": [
+        "wait:1500",
         "down",
         "enter",
         "down"
       ],
-      "caption": "A list-mode command: the rows its script printed, as a level"
+      "caption": "A list-mode command: the lines its script printed become rows of their own",
+      "settle": 900
     },
-    "7-command-form": {
+    "6-command-form": {
       "palette": "commands",
       "keys": [
+        "wait:1500",
         "enter",
         "type:prod",
         "tab",
         "type:v2.4, the settings window"
       ],
-      "caption": "A command with @pal.args takes them in the search bar"
+      "caption": "A command with @pal.args asks for them before it runs: here the deploy's target and a note",
+      "settle": 900
     }
   }
 }

@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { pmsetTool, samples, stage, STATE } from "../../../extensions/power/fixture.ts";
+import { NOW, pmsetTool, samples, stage, STATE } from "../../../extensions/power/fixture.ts";
 import { tailSamples } from "../../../extensions/power/data.ts";
 import { buckets, nameOf, ranked, renderPopover, why } from "../../../extensions/power/view.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
@@ -25,8 +25,10 @@ beforeAll(async () => {
   process.env.PATH = `${staged.bin}:${dirname(process.execPath)}`;
   process.env.PAL_POWER_OS = "darwin";
   process.env.PAL_POWER_BIN = staged.power;
+  // The host's clock is the fixture's (the staged watcher's samples end at NOW), as an instant so the zone does not matter.
+  process.env.PAL_NOW = new Date(NOW * 1000).toISOString();
   try { host = await Host.bundled({ settings: { power: { settings: { power_state_file: state } } } }); }
-  finally { process.env.PATH = saved; delete process.env.PAL_POWER_OS; delete process.env.PAL_POWER_BIN; }
+  finally { process.env.PATH = saved; delete process.env.PAL_POWER_OS; delete process.env.PAL_POWER_BIN; delete process.env.PAL_NOW; }
 });
 afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
 
@@ -59,7 +61,7 @@ describe("power: the strip", () => {
   });
 
   test("healthy: the facts and the empty shape; hiding is the manifest's rule, not the render's", async () => {
-    writeFileSync(state, JSON.stringify({ ...STATE(), ts: Math.floor(Date.now() / 1000), alerts: [], w: 7.2 }));
+    writeFileSync(state, JSON.stringify({ ...STATE(), ts: NOW, alerts: [], w: 7.2 }));
     writeTool(pmset, pmsetTool("82%; discharging; 6:10 remaining"));
     const item = await host.render("power", "battery");
     expect(item).toMatchObject({ title: "82%", states: { level: 82, charging: false, draw: 7.2, alert: null }, empty: { title: "82%" } });
@@ -97,7 +99,7 @@ describe("power: the palette", () => {
   });
 
   test("a stale watcher leaves only the gauge, said plainly", async () => {
-    writeFileSync(state, JSON.stringify({ ...STATE(), ts: Math.floor(Date.now() / 1000) - 3600 }));
+    writeFileSync(state, JSON.stringify({ ...STATE(), ts: NOW - 3600 }));
     const t = texts(await view());
     expect(t).toContain("Only the level is known. The power watcher measures the draw and names what uses it.");
     expect(t).toContain("On battery · 1 h 48 min left");

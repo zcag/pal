@@ -4,7 +4,7 @@
 // the parsers on canned replies and the palette against a mock
 // (`PAL_YOUTUBE_API` points the Data API host elsewhere; the Invidious
 // host is the setting itself).
-import { errorMessage } from "@zcag/pal";
+import { errorMessage, now as clock } from "@zcag/pal";
 
 export type Video = {
   id: string;
@@ -42,7 +42,7 @@ export function isoSeconds(iso: string | undefined): number {
 
 export const duration = (s: number): string => (s <= 0 ? "live" : s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 export const count = (n: number | undefined, what: string): string => (n === undefined ? "" : `${n >= 1e9 ? `${(n / 1e9).toFixed(1).replace(/\.0$/, "")}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, "")}K` : String(n)} ${what}`);
-export const age = (t: number | undefined, now = Date.now()): string => {
+export const age = (t: number | undefined, now = clock()): string => {
   if (!t) return "";
   const d = Math.max(0, now - t) / 1000;
   const [n, unit] = d < 3600 ? [Math.floor(d / 60), "minute"] : d < 86400 ? [Math.floor(d / 3600), "hour"] : d < 86400 * 30 ? [Math.floor(d / 86400), "day"] : d < 86400 * 365 ? [Math.floor(d / (86400 * 30)), "month"] : [Math.floor(d / (86400 * 365)), "year"];
