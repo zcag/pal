@@ -311,6 +311,56 @@
           "url": "https://bun.sh"
         },
         {
+          "id": "cdp:Design review · Huddle",
+          "name": "Design review · Huddle",
+          "subtitle": "huddle.example.com",
+          "keywords": [
+            "https://huddle.example.com/r/design-review",
+            "huddle.example.com",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 2"
+            },
+            {
+              "tag": "playing",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            }
+          ],
+          "url": "https://huddle.example.com/r/design-review"
+        },
+        {
           "id": "as:Apple Developer Documentation",
           "name": "Apple Developer Documentation",
           "subtitle": "developer.apple.com",
@@ -505,6 +555,53 @@
               }
             ],
             "url": "https://www.youtube.com/watch?v=lofi"
+          },
+          {
+            "id": "cdp:Design review · Huddle",
+            "name": "Design review · Huddle",
+            "subtitle": "huddle.example.com",
+            "keywords": [
+              "https://huddle.example.com/r/design-review",
+              "huddle.example.com",
+              "Google Chrome"
+            ],
+            "accessories": [
+              {
+                "text": "Google Chrome"
+              },
+              {
+                "tag": "playing",
+                "color": "green"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "mute",
+                "title": "Mute",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://huddle.example.com/r/design-review"
           }
         ],
         "window": [
@@ -864,21 +961,23 @@
       "keys": [
         "tab"
       ],
-      "caption": "The Audible filter: only the tabs a page reports as playing sound"
+      "caption": "The Audible filter: only the tabs a page reports as playing sound, across windows"
     },
     "3-actions": {
       "palette": "tabs",
       "keys": [
         "down",
-        "cmd+k"
+        "wait:200",
+        "cmd+k",
+        "wait:200"
       ],
       "caption": "Focus, Copy URL, Mute, Copy as markdown link, and Close last"
     },
     "4-root": {
       "keys": [
-        "type:docker"
+        "type:compose"
       ],
-      "caption": "Live: tab titles are root results, so part of one typed at the root finds it"
+      "caption": "Live: tab titles are root results, so part of one typed at the root finds the tab"
     }
   }
 }

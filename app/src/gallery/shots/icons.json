@@ -12810,43 +12810,52 @@
     "1-grid": {
       "palette": "icons",
       "keys": [
+        "wait:1500",
         "right"
       ],
-      "caption": "The Nerd Font grid, Recent first, then the sets in order"
+      "caption": "The Nerd Font grid, Recent first, then the sets in order",
+      "settle": 700
     },
     "2-search": {
       "palette": "icons",
       "keys": [
-        "type:git",
+        "wait:1500",
+        "type:github",
         "right*2"
       ],
-      "caption": "Searching `git` across every set: Octicons, Devicons, Material Design and the rest"
+      "caption": "Searching `github` finds the mark in every set at once, a section per set: Font Awesome, Codicons, Octicons and the rest",
+      "settle": 700
     },
     "3-freedesktop": {
       "palette": "freedesktop",
       "keys": [
+        "wait:1500",
         "down",
         "right*2"
       ],
-      "caption": "The freedesktop icon names the SDK's xdg() maps to a glyph"
+      "caption": "The freedesktop icon names the SDK's xdg() maps to a glyph",
+      "settle": 700
     },
     "4-actions": {
       "palette": "icons",
       "keys": [
-        "down",
+        "wait:1500",
         "right*3",
         "cmd+k"
       ],
-      "caption": "Copy the glyph, its code point, its nf- name or the CSS class"
+      "caption": "Copy the glyph, its code point, its nf- name or the CSS class",
+      "settle": 700
     },
     "5-iconify": {
       "palette": "iconify",
       "keys": [
+        "wait:1500",
         "type:arrow",
         "wait:400",
         "right*2"
       ],
-      "caption": "Iconify Icons: `arrow` across Material Design Icons, Tabler, Lucide and the rest, each tile its SVG"
+      "caption": "Iconify Icons: `arrow` across Material Design Icons, Tabler, Lucide and the rest, each tile its SVG",
+      "settle": 700
     }
   }
 }

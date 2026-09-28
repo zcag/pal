@@ -174,7 +174,7 @@ export function actions(st: State, s: Settings): Action[] {
 
 /** The line under everything: what the keys do here, which changes with the focus. */
 function hints(st: State): ViewNode {
-  if (st.typing !== undefined) return row([text("Type any notation: #ff8800, rgb(255 136 0), hsl(30 100% 50%), oklch(0.75 0.18 60), lab(), color(display-p3 …), a name", { style: "muted", size: "xs" }), { type: "spacer" }, ...keyHint(["enter"], "apply"), ...keyHint(["escape"], "close")], { key: "hints-typing", gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
+  if (st.typing !== undefined) return row([text("Type any notation: #ff8800, rgb(255 136 0), hsl(30 100% 50%), oklch(0.75 0.18 60), lab(), a name", { style: "muted", size: "xs" }), { type: "spacer" }, ...keyHint(["enter"], "apply"), ...keyHint(["escape"], "close")], { key: "hints-typing", gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
   const items = st.focus === "swatch"
     ? [...keyHint(["left", "right"], "hue"), ...keyHint(["up", "down"], "lightness"), ...keyHint(["-", "+"], st.model === "hsl" ? "saturation" : "chroma"), ...keyHint(["shift"], "big steps"), ...keyHint(["m"], st.model === "hsl" ? "oklch" : "hsl"), ...keyHint(["tab"], "rows")]
     : [...keyHint(["left", "right"], "tile"), ...keyHint(["enter"], "use it"), ...keyHint(["tab", "shift+tab"], "rows"), ...keyHint(["up", "down"], "row")];

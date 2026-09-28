@@ -89,7 +89,7 @@ const withBridge = (text: string, bridge: string, several: boolean) => (several 
 export function roomRow(r: Room, several: boolean, bridgeName: string): Item {
   const a = aggregate(r);
   const bri = pct(a.brightness);
-  const state = a.on === 0 ? "all off" : a.on === a.total ? `all ${a.total} on` : `${a.on} of ${a.total} on`;
+  const state = a.on === 0 ? "all off" : a.on === a.total ? (a.total === 1 ? "on" : `all ${a.total} on`) : `${a.on} of ${a.total} on`;
   return {
     id: r.id, name: r.name,
     subtitle: withBridge(`${r.kind === "zone" ? "Zone" : "Room"} · ${state}${a.on && bri !== undefined ? ` · ${bri}%` : ""}`, bridgeName, several),

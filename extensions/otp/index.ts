@@ -23,14 +23,14 @@ import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { conceal, CONCEAL_SECONDS, errorMessage, hint, home, settings, toast, truncate, view as liveView, when as whenAt, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
+import { conceal, CONCEAL_SECONDS, errorMessage, hint, home, now, settings, toast, truncate, view as liveView, when as whenAt, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 import { PREVIOUS, render } from "./view.ts";
 
 /** `[extensions.otp]`, defaults in pal.json. */
 type Settings = { hours: number; senders: string[]; db: string; contacts: string };
 
 type Row = { id: number; text: string | null; body: Uint8Array | null; date: number; sender: string | null; chat: string | null; chat_name: string | null };
-type Code = { id: string; code: string; sender: string; name: string; text: string; at: number };
+export type Code = { id: string; code: string; sender: string; name: string; text: string; at: number };
 
 const MAC = process.platform === "darwin";
 /** md-message_text, the rows and the palette; md-lock_alert and md-message_off for the hint rows. */
@@ -205,7 +205,8 @@ function collect(rows: Row[], s: Settings): Code[] {
   return out;
 }
 
-function item(c: Code, now: Date): Item {
+/** A code's row: Today or Earlier against `today` (the store fixture builds its rows here too). */
+export function item(c: Code, today: Date): Item {
   const when = new Date(c.at);
   return {
     id: c.id,
@@ -214,7 +215,7 @@ function item(c: Code, now: Date): Item {
     icon: ICON,
     keywords: [c.code, c.sender, c.name].filter((k, i, a) => a.indexOf(k) === i),
     accessories: [{ tag: c.code, color: "green" }, { date: c.at }],
-    section: sameDay(when, now) ? "Today" : "Earlier",
+    section: sameDay(when, today) ? "Today" : "Earlier",
     detail: {
       markdown: c.text,
       metadata: [
@@ -230,7 +231,7 @@ function item(c: Code, now: Date): Item {
 /** The codes of the last `hours`, newest first; throws what SQLite did (a locked database is read from a copy first). */
 function readCodes(s: Settings, hours = s.hours): Code[] {
   const file = home(s.db);
-  const since = Date.now() - Math.max(1, hours) * 3600_000;
+  const since = now() - Math.max(1, hours) * 3600_000;
   let rows: Row[];
   try { rows = read(file, since); } catch (e) { if (!locked(e)) throw e; rows = readCopy(file, since); }
   return collect(rows, s).slice(0, LIMIT);
@@ -251,10 +252,10 @@ function list(): Item[] {
     if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${home(s.db)} is not there: open Messages once, or point the db setting at the file`, { icon: HINT_ICON.none })];
     return [hint("error", "Could not read Messages", msg, { icon: HINT_ICON.locked })];
   }
-  const now = new Date();
+  const today = new Date(now());
   for (const c of found) codes.set(c.id, c);
   if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code; raise Look back in Settings to scan further`, { icon: HINT_ICON.none })];
-  return found.map((c) => item(c, now));
+  return found.map((c) => item(c, today));
 }
 
 // ---- the bar item -----------------------------------------------------------
@@ -264,24 +265,24 @@ function recentCodes(): Code[] {
   if (!MAC) return [];
   try { return readCodes(settings.get<Settings>(), 1); } catch { return []; }
 }
-const inWindow = (c: Code | undefined, now = Date.now()) => (c && now - c.at <= BAR_WINDOW_MS ? c : undefined);
+const inWindow = (c: Code | undefined, at = now()) => (c && at - c.at <= BAR_WINDOW_MS ? c : undefined);
 /** The newest code, while it is younger than the window. */
 const latestCode = (): Code | undefined => inWindow(recentCodes()[0]);
 
 /** The last read, for the popover's tick and its clicks: no database read per second. */
 let snap: { latest?: Code; previous: Code[]; at: number } = { previous: [], at: 0 };
 
-const popover = (now = Date.now()) => render({ latest: inWindow(snap.latest, now), previous: snap.previous, now, window: BAR_WINDOW_MS });
+const popover = (at = now()) => render({ latest: inWindow(snap.latest, at), previous: snap.previous, now: at, window: BAR_WINDOW_MS });
 
 /** The code as the title, green, for a minute: `refresh` asks for the render that hides it once the minute is up; the popover's tree as the menu. Between codes the glyph and the popover are the `empty` shape a `show = "always"` config keeps, muted. Not on Linux, where nothing can be read. */
 function renderBar(): BarItem {
   listen();
   const found = recentCodes();
-  const now = Date.now();
-  const c = inWindow(found[0], now);
-  snap = { latest: c, previous: found.slice(1, 1 + PREVIOUS), at: now };
-  if (!c) return MAC ? { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "No recent code", menu: { view: popover(now) } } } : { hidden: true };
-  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${truncate(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (now - c.at)) / 1000)), menu: { view: popover(now) } };
+  const at = now();
+  const c = inWindow(found[0], at);
+  snap = { latest: c, previous: found.slice(1, 1 + PREVIOUS), at };
+  if (!c) return MAC ? { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "No recent code", menu: { view: popover(at) } } } : { hidden: true };
+  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${truncate(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (at - c.at)) / 1000)), menu: { view: popover(at) } };
 }
 
 // ---- the popover's tick -------------------------------------------------------

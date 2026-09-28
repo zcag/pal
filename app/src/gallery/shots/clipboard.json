@@ -48,7 +48,7 @@
               "text": "kitty"
             },
             {
-              "date": 1789307184762
+              "date": 1789299240000
             },
             {
               "tag": "pinned",
@@ -72,7 +72,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/13/2026, 4:46:24 PM"
+                "value": "9/13/2026, 2:34:00 PM"
               },
               {
                 "label": "Pinned",
@@ -163,7 +163,7 @@
               "text": "Mail"
             },
             {
-              "date": 1788529584762
+              "date": 1788521640000
             },
             {
               "tag": "pinned",
@@ -191,7 +191,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/4/2026, 4:46:24 PM"
+                "value": "9/4/2026, 2:34:00 PM"
               },
               {
                 "label": "Pinned",
@@ -282,7 +282,7 @@
               "text": "Chrome"
             },
             {
-              "date": 1789566144762
+              "date": 1789558200000
             }
           ],
           "detail": {
@@ -302,7 +302,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 4:42:24 PM"
+                "value": "9/16/2026, 2:30:00 PM"
               }
             ]
           },
@@ -389,7 +389,7 @@
               "text": "VS Code"
             },
             {
-              "date": 1789565304762
+              "date": 1789557360000
             }
           ],
           "detail": {
@@ -409,7 +409,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 4:28:24 PM"
+                "value": "9/16/2026, 2:16:00 PM"
               }
             ]
           },
@@ -483,23 +483,23 @@
         },
         {
           "id": "12",
-          "name": "Image 1440 x 900",
+          "name": "Image 1600 x 800",
           "icon": {
-            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E"
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20800%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22s%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233b4b8f%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23e08a6c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6c98b%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22w%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23e9a27c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2334406f%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22800%22%20fill%3D%22url(%23s)%22%2F%3E%3Ccircle%20cx%3D%221080%22%20cy%3D%22420%22%20r%3D%2270%22%20fill%3D%22%23fde2b0%22%2F%3E%3Cpath%20d%3D%22M0%20470%20L180%20340%20L330%20420%20L520%20260%20L720%20440%20L900%20330%20L1100%20450%20L1300%20300%20L1600%20460%20L1600%20520%20L0%20520Z%22%20fill%3D%22%235a4a78%22%2F%3E%3Cpath%20d%3D%22M0%20500%20L240%20400%20L460%20480%20L700%20380%20L960%20500%20L1220%20410%20L1600%20510%20L1600%20540%20L0%20540Z%22%20fill%3D%22%233d3560%22%2F%3E%3Crect%20y%3D%22530%22%20width%3D%221600%22%20height%3D%22270%22%20fill%3D%22url(%23w)%22%2F%3E%3Crect%20x%3D%221020%22%20y%3D%22560%22%20width%3D%22120%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.7%22%2F%3E%3Crect%20x%3D%221045%22%20y%3D%22590%22%20width%3D%2270%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.5%22%2F%3E%3Crect%20x%3D%221060%22%20y%3D%22615%22%20width%3D%2240%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.35%22%2F%3E%3C%2Fsvg%3E"
           },
           "accessories": [
             {
               "text": "Preview"
             },
             {
-              "text": "402.7 KB"
+              "text": "318.4 KB"
             },
             {
-              "date": 1789563984762
+              "date": 1789556040000
             }
           ],
           "detail": {
-            "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E)",
+            "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20800%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22s%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233b4b8f%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23e08a6c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6c98b%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22w%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23e9a27c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2334406f%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22800%22%20fill%3D%22url(%23s)%22%2F%3E%3Ccircle%20cx%3D%221080%22%20cy%3D%22420%22%20r%3D%2270%22%20fill%3D%22%23fde2b0%22%2F%3E%3Cpath%20d%3D%22M0%20470%20L180%20340%20L330%20420%20L520%20260%20L720%20440%20L900%20330%20L1100%20450%20L1300%20300%20L1600%20460%20L1600%20520%20L0%20520Z%22%20fill%3D%22%235a4a78%22%2F%3E%3Cpath%20d%3D%22M0%20500%20L240%20400%20L460%20480%20L700%20380%20L960%20500%20L1220%20410%20L1600%20510%20L1600%20540%20L0%20540Z%22%20fill%3D%22%233d3560%22%2F%3E%3Crect%20y%3D%22530%22%20width%3D%221600%22%20height%3D%22270%22%20fill%3D%22url(%23w)%22%2F%3E%3Crect%20x%3D%221020%22%20y%3D%22560%22%20width%3D%22120%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.7%22%2F%3E%3Crect%20x%3D%221045%22%20y%3D%22590%22%20width%3D%2270%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.5%22%2F%3E%3Crect%20x%3D%221060%22%20y%3D%22615%22%20width%3D%2240%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.35%22%2F%3E%3C%2Fsvg%3E)",
             "metadata": [
               {
                 "label": "Kind",
@@ -507,7 +507,7 @@
               },
               {
                 "label": "Size",
-                "value": "402.7 KB · 1440 x 900 px"
+                "value": "318.4 KB · 1600 x 800 px"
               },
               {
                 "label": "Source",
@@ -515,7 +515,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 4:06:24 PM"
+                "value": "9/16/2026, 1:54:00 PM"
               }
             ]
           },
@@ -586,7 +586,7 @@
               "text": "kitty"
             },
             {
-              "date": 1789559184762
+              "date": 1789551240000
             }
           ],
           "detail": {
@@ -606,7 +606,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 2:46:24 PM"
+                "value": "9/16/2026, 12:34:00 PM"
               }
             ]
           },
@@ -689,7 +689,7 @@
               "text": "Finder"
             },
             {
-              "date": 1789555584762
+              "date": 1789547640000
             }
           ],
           "detail": {
@@ -709,7 +709,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 1:46:24 PM"
+                "value": "9/16/2026, 11:34:00 AM"
               }
             ]
           },
@@ -770,7 +770,7 @@
               "text": "Chrome"
             },
             {
-              "date": 1789548384762
+              "date": 1789540440000
             }
           ],
           "detail": {
@@ -790,7 +790,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 11:46:24 AM"
+                "value": "9/16/2026, 9:34:00 AM"
               }
             ]
           },
@@ -871,7 +871,7 @@
               "text": "kitty"
             },
             {
-              "date": 1789541184762
+              "date": 1789533240000
             }
           ],
           "detail": {
@@ -891,7 +891,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/16/2026, 9:46:24 AM"
+                "value": "9/16/2026, 7:34:00 AM"
               }
             ]
           },
@@ -972,7 +972,7 @@
               "text": "Mail"
             },
             {
-              "date": 1789479984762
+              "date": 1789466640000
             }
           ],
           "detail": {
@@ -992,7 +992,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/15/2026, 4:46:24 PM"
+                "value": "9/15/2026, 1:04:00 PM"
               }
             ]
           },
@@ -1072,7 +1072,7 @@
               "text": "Safari"
             },
             {
-              "date": 1789472784762
+              "date": 1789464840000
             }
           ],
           "detail": {
@@ -1092,7 +1092,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/15/2026, 2:46:24 PM"
+                "value": "9/15/2026, 12:34:00 PM"
               }
             ]
           },
@@ -1179,7 +1179,7 @@
               "text": "Slack"
             },
             {
-              "date": 1789393584762
+              "date": 1789385640000
             }
           ],
           "detail": {
@@ -1199,7 +1199,7 @@
               },
               {
                 "label": "Copied",
-                "value": "9/14/2026, 4:46:24 PM"
+                "value": "9/14/2026, 2:34:00 PM"
               }
             ]
           },
@@ -1283,7 +1283,7 @@
                 "text": "VS Code"
               },
               {
-                "date": 1789565304762
+                "date": 1789557360000
               }
             ],
             "detail": {
@@ -1303,7 +1303,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 4:28:24 PM"
+                  "value": "9/16/2026, 2:16:00 PM"
                 }
               ]
             },
@@ -1357,7 +1357,7 @@
                 "text": "Chrome"
               },
               {
-                "date": 1789548384762
+                "date": 1789540440000
               }
             ],
             "detail": {
@@ -1377,7 +1377,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 11:46:24 AM"
+                  "value": "9/16/2026, 9:34:00 AM"
                 }
               ]
             },
@@ -1426,23 +1426,23 @@
         "image": [
           {
             "id": "12",
-            "name": "Image 1440 x 900",
+            "name": "Image 1600 x 800",
             "icon": {
-              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E"
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20800%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22s%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233b4b8f%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23e08a6c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6c98b%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22w%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23e9a27c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2334406f%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22800%22%20fill%3D%22url(%23s)%22%2F%3E%3Ccircle%20cx%3D%221080%22%20cy%3D%22420%22%20r%3D%2270%22%20fill%3D%22%23fde2b0%22%2F%3E%3Cpath%20d%3D%22M0%20470%20L180%20340%20L330%20420%20L520%20260%20L720%20440%20L900%20330%20L1100%20450%20L1300%20300%20L1600%20460%20L1600%20520%20L0%20520Z%22%20fill%3D%22%235a4a78%22%2F%3E%3Cpath%20d%3D%22M0%20500%20L240%20400%20L460%20480%20L700%20380%20L960%20500%20L1220%20410%20L1600%20510%20L1600%20540%20L0%20540Z%22%20fill%3D%22%233d3560%22%2F%3E%3Crect%20y%3D%22530%22%20width%3D%221600%22%20height%3D%22270%22%20fill%3D%22url(%23w)%22%2F%3E%3Crect%20x%3D%221020%22%20y%3D%22560%22%20width%3D%22120%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.7%22%2F%3E%3Crect%20x%3D%221045%22%20y%3D%22590%22%20width%3D%2270%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.5%22%2F%3E%3Crect%20x%3D%221060%22%20y%3D%22615%22%20width%3D%2240%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.35%22%2F%3E%3C%2Fsvg%3E"
             },
             "accessories": [
               {
                 "text": "Preview"
               },
               {
-                "text": "402.7 KB"
+                "text": "318.4 KB"
               },
               {
-                "date": 1789563984762
+                "date": 1789556040000
               }
             ],
             "detail": {
-              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E)",
+              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20800%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22s%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233b4b8f%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23e08a6c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6c98b%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22w%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23e9a27c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2334406f%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22800%22%20fill%3D%22url(%23s)%22%2F%3E%3Ccircle%20cx%3D%221080%22%20cy%3D%22420%22%20r%3D%2270%22%20fill%3D%22%23fde2b0%22%2F%3E%3Cpath%20d%3D%22M0%20470%20L180%20340%20L330%20420%20L520%20260%20L720%20440%20L900%20330%20L1100%20450%20L1300%20300%20L1600%20460%20L1600%20520%20L0%20520Z%22%20fill%3D%22%235a4a78%22%2F%3E%3Cpath%20d%3D%22M0%20500%20L240%20400%20L460%20480%20L700%20380%20L960%20500%20L1220%20410%20L1600%20510%20L1600%20540%20L0%20540Z%22%20fill%3D%22%233d3560%22%2F%3E%3Crect%20y%3D%22530%22%20width%3D%221600%22%20height%3D%22270%22%20fill%3D%22url(%23w)%22%2F%3E%3Crect%20x%3D%221020%22%20y%3D%22560%22%20width%3D%22120%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.7%22%2F%3E%3Crect%20x%3D%221045%22%20y%3D%22590%22%20width%3D%2270%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.5%22%2F%3E%3Crect%20x%3D%221060%22%20y%3D%22615%22%20width%3D%2240%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.35%22%2F%3E%3C%2Fsvg%3E)",
               "metadata": [
                 {
                   "label": "Kind",
@@ -1450,7 +1450,7 @@
                 },
                 {
                   "label": "Size",
-                  "value": "402.7 KB · 1440 x 900 px"
+                  "value": "318.4 KB · 1600 x 800 px"
                 },
                 {
                   "label": "Source",
@@ -1458,7 +1458,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 4:06:24 PM"
+                  "value": "9/16/2026, 1:54:00 PM"
                 }
               ]
             },
@@ -1513,7 +1513,7 @@
                 "text": "Chrome"
               },
               {
-                "date": 1789566144762
+                "date": 1789558200000
               }
             ],
             "detail": {
@@ -1533,7 +1533,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 4:42:24 PM"
+                  "value": "9/16/2026, 2:30:00 PM"
                 }
               ]
             },
@@ -1592,7 +1592,7 @@
                 "text": "Safari"
               },
               {
-                "date": 1789472784762
+                "date": 1789464840000
               }
             ],
             "detail": {
@@ -1612,7 +1612,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/15/2026, 2:46:24 PM"
+                  "value": "9/15/2026, 12:34:00 PM"
                 }
               ]
             },
@@ -1674,7 +1674,7 @@
                 "text": "kitty"
               },
               {
-                "date": 1789307184762
+                "date": 1789299240000
               },
               {
                 "tag": "pinned",
@@ -1698,7 +1698,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/13/2026, 4:46:24 PM"
+                  "value": "9/13/2026, 2:34:00 PM"
                 },
                 {
                   "label": "Pinned",
@@ -1762,7 +1762,7 @@
                 "text": "Mail"
               },
               {
-                "date": 1788529584762
+                "date": 1788521640000
               },
               {
                 "tag": "pinned",
@@ -1786,7 +1786,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/4/2026, 4:46:24 PM"
+                  "value": "9/4/2026, 2:34:00 PM"
                 },
                 {
                   "label": "Pinned",
@@ -1850,7 +1850,7 @@
                 "text": "Chrome"
               },
               {
-                "date": 1789566144762
+                "date": 1789558200000
               }
             ],
             "detail": {
@@ -1870,7 +1870,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 4:42:24 PM"
+                  "value": "9/16/2026, 2:30:00 PM"
                 }
               ]
             },
@@ -1930,7 +1930,7 @@
                 "text": "VS Code"
               },
               {
-                "date": 1789565304762
+                "date": 1789557360000
               }
             ],
             "detail": {
@@ -1950,7 +1950,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 4:28:24 PM"
+                  "value": "9/16/2026, 2:16:00 PM"
                 }
               ]
             },
@@ -2004,7 +2004,7 @@
                 "text": "kitty"
               },
               {
-                "date": 1789559184762
+                "date": 1789551240000
               }
             ],
             "detail": {
@@ -2024,7 +2024,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 2:46:24 PM"
+                  "value": "9/16/2026, 12:34:00 PM"
                 }
               ]
             },
@@ -2079,7 +2079,7 @@
                 "text": "Chrome"
               },
               {
-                "date": 1789548384762
+                "date": 1789540440000
               }
             ],
             "detail": {
@@ -2099,7 +2099,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 11:46:24 AM"
+                  "value": "9/16/2026, 9:34:00 AM"
                 }
               ]
             },
@@ -2153,7 +2153,7 @@
                 "text": "kitty"
               },
               {
-                "date": 1789541184762
+                "date": 1789533240000
               }
             ],
             "detail": {
@@ -2173,7 +2173,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 9:46:24 AM"
+                  "value": "9/16/2026, 7:34:00 AM"
                 }
               ]
             },
@@ -2227,7 +2227,7 @@
                 "text": "Mail"
               },
               {
-                "date": 1789479984762
+                "date": 1789466640000
               }
             ],
             "detail": {
@@ -2247,7 +2247,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/15/2026, 4:46:24 PM"
+                  "value": "9/15/2026, 1:04:00 PM"
                 }
               ]
             },
@@ -2300,7 +2300,7 @@
                 "text": "Safari"
               },
               {
-                "date": 1789472784762
+                "date": 1789464840000
               }
             ],
             "detail": {
@@ -2320,7 +2320,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/15/2026, 2:46:24 PM"
+                  "value": "9/15/2026, 12:34:00 PM"
                 }
               ]
             },
@@ -2380,7 +2380,7 @@
                 "text": "Slack"
               },
               {
-                "date": 1789393584762
+                "date": 1789385640000
               }
             ],
             "detail": {
@@ -2400,7 +2400,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/14/2026, 4:46:24 PM"
+                  "value": "9/14/2026, 2:34:00 PM"
                 }
               ]
             },
@@ -2457,7 +2457,7 @@
                 "text": "Finder"
               },
               {
-                "date": 1789555584762
+                "date": 1789547640000
               }
             ],
             "detail": {
@@ -2477,7 +2477,7 @@
                 },
                 {
                   "label": "Copied",
-                  "value": "9/16/2026, 1:46:24 PM"
+                  "value": "9/16/2026, 11:34:00 AM"
                 }
               ]
             },
@@ -2534,7 +2534,7 @@
       "keys": [
         "down*4"
       ],
-      "caption": "An image entry: its size and dimensions, the picture in the pane"
+      "caption": "An image entry: its size and dimensions on the row, the picture in the pane"
     },
     "3-colors": {
       "palette": "history",

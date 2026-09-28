@@ -386,13 +386,17 @@
     "1-currency": {
       "palette": "calc",
       "keys": [
-        "type:12 usd to try"
+        "wait:400",
+        "type:12 usd to try",
+        "cmd+i",
+        "wait:300"
       ],
-      "caption": "12 usd to try at the ECB's rate; the reverse conversion is the second row"
+      "caption": "12 usd to try at the ECB's rate, the reverse as the second row; the pane shows the rate, its inverse and where it comes from"
     },
     "2-dates": {
       "palette": "calc",
       "keys": [
+        "wait:400",
         "type:days until 2026-12-25"
       ],
       "caption": "A day count, with the weeks and months on the right"
@@ -400,6 +404,7 @@
     "3-timezone": {
       "palette": "calc",
       "keys": [
+        "wait:400",
         "type:10:00 utc to tokyo"
       ],
       "caption": "10:00 UTC in Tokyo, the full date there as the second row"
@@ -407,6 +412,7 @@
     "4-actions": {
       "palette": "calc",
       "keys": [
+        "wait:400",
         "type:2^10 + 15% of 240",
         "cmd+k"
       ],

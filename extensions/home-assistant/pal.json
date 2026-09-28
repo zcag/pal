@@ -2,10 +2,18 @@
   "name": "home-assistant",
   "title": "Home Assistant",
   "description": "Your entities at the root with their state: toggle, dim, set a temperature, run a scene; every service as a form; areas as drill-ins. Over the REST API with a long-lived token.",
-  "keywords": ["ha", "hass"],
+  "keywords": [
+    "ha",
+    "hass"
+  ],
   "version": "0.1.0",
   "multi": true,
-  "icon": { "tile": { "glyph": "󰟐", "bg": "teal" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰟐",
+      "bg": "teal"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -94,7 +102,7 @@
     "screenshots": [
       {
         "file": "1-entities.png",
-        "caption": "Entities with their state and when it last changed, favourites first"
+        "caption": "Every entity with its state as a tag and when it last changed, the favourites leading; Enter toggles the light under the cursor"
       },
       {
         "file": "2-actions.png",
@@ -102,11 +110,11 @@
       },
       {
         "file": "3-detail.png",
-        "caption": "The detail pane: the entity, its state and its attributes"
+        "caption": "Show attributes (cmd+shift+A): the thermostat's state and every attribute as a row, Enter copies the value"
       },
       {
         "file": "4-service.png",
-        "caption": "A service as a form: the target entity, then the fields Home Assistant describes"
+        "caption": "A service as a form: the target entity, then the fields Home Assistant describes for it, called with Enter"
       }
     ],
     "actions": [

@@ -3,7 +3,12 @@
   "title": "Bookmarks",
   "description": "Your browsers' bookmarks (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari, Firefox) and hand-picked links from a JSON file: open one, copy its address, or open it in the browser it came from. A second palette searches the browsers' visit history.",
   "version": "0.2.0",
-  "icon": { "tile": { "glyph": "󰃀", "bg": "orange" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰃀",
+      "bg": "orange"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -75,7 +80,7 @@
       },
       {
         "file": "4-history.png",
-        "caption": "Browser History: a search over what the browsers visited, newest first, Enter opens it in the browser it came from"
+        "caption": "Browser History: what the browsers visited, searched by title and address, newest first with when; Enter opens it in the browser it came from"
       }
     ],
     "actions": [

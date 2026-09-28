@@ -1,26 +1,30 @@
 // Writes app/src/gallery/shots/bar-github.json: the store screenshots'
 // fixture for the bar item, its popover tree from view.ts over a made-up
-// inbox (the names are this file's, not a real account's). `bun run
-// extensions/github/fixture.ts`, then `node app/scripts/shots.mjs bar github`.
-import { writeFileSync } from "node:fs";
+// inbox (the repositories are the panel fixture's acme/* and a few public
+// projects', not a real account's) at the kit's clock. `make shots EXT=github`.
+import { NOW, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import type { Notification } from "./data.ts";
 import { render } from "./view.ts";
 
-const NOW = Date.parse("2026-09-16T14:32:00Z");
 const at = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString();
 const n = (id: string, repo: string, type: string, reason: string, title: string, minutesAgo: number, path: string): Notification =>
   ({ kind: "notification", id: `thread:${id}`, thread: id, title, repo, reason, type, url: `https://github.com/${repo}/${path}`, updatedAt: at(minutesAgo) });
 
 const INBOX: Notification[] = [
-  n("1", "zcag/pal", "PullRequest", "review_requested", "Retry the index build on a host restart", 12, "pull/418"),
-  n("2", "zcag/pal", "Issue", "mention", "Settings window loses the hotkey field on tab switch", 47, "issues/402"),
-  n("3", "zcag/pal", "PullRequest", "ci_activity", "Bar popovers as view levels", 130, "pull/415"),
-  n("4", "zcag/tela", "Release", "subscribed", "v0.4.0", 60 * 5, "releases/tag/v0.4.0"),
-  n("5", "zcag/pal-site", "Discussion", "author", "Should the store show bar items separately from palettes?", 60 * 9, "discussions/12"),
-  n("6", "zcag/dek", "PullRequest", "assign", "Bump serde_json to 1.0.145", 60 * 26, "pull/88"),
-  n("7", "oven-sh/bun", "Issue", "comment", "fs.watch drops events on APFS when the directory is renamed", 60 * 24 * 3, "issues/21044"),
+  n("1", "acme/api", "PullRequest", "review_requested", "Retry the webhook delivery with backoff", 12, "pull/517"),
+  n("2", "acme/widgets", "Issue", "mention", "Search loses the cursor when rows stream in", 47, "issues/201"),
+  n("3", "acme/widgets", "PullRequest", "ci_activity", "Batch the index writes on startup", 130, "pull/142"),
+  n("4", "acme/widgets-cli", "Release", "subscribed", "v0.4.0", 60 * 5, "releases/tag/v0.4.0"),
+  n("5", "acme/docs", "Discussion", "author", "Should the guides and the API reference share one sidebar?", 60 * 9, "discussions/12"),
 ];
 const ONE: Notification[] = [INBOX[1]];
+/** A second account's inbox: the same shape over other repositories. */
+const WORK: Notification[] = [
+  n("11", "acme/infra", "PullRequest", "review_requested", "Move staging to the new node pool", 8, "pull/64"),
+  n("12", "acme/api", "Issue", "assign", "Rate limit headers are not surfaced", 35, "issues/530"),
+  n("13", "acme/api", "PullRequest", "ci_activity", "Retry the webhook delivery with backoff", 95, "pull/517"),
+  n("14", "acme/billing", "Issue", "mention", "Invoices round the tax twice for EUR", 60 * 4, "issues/77"),
+];
 
 const bar = {
   key: "github/notifications",
@@ -34,14 +38,14 @@ const bar = {
   states: [
     { id: "dot", item: { badge: "dot", tooltip: "1 unread notification", menu: { view: render({ list: ONE, cursor: 0, now: NOW }) } } },
     { id: "stale", item: { stale: true, tooltip: `${INBOX.length} unread notifications (stale)` } },
-    { id: "work", item: { menu: { view: render({ list: INBOX.slice(0, 4), cursor: 2, now: NOW, account: "Work" }) } } },
+    { id: "work", item: { badge: WORK.length, tooltip: `${WORK.length} unread notifications (Work)`, menu: { view: render({ list: WORK, cursor: 2, now: NOW, account: "Work" }) } } },
   ],
   shots: {
-    "menubar": { target: "menubar", caption: "On the menu bar: the GitHub glyph with the unread count as a red badge" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the GitHub glyph with the unread count beside it" },
     "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the unread threads by repository with their reason and age; Enter opens one, m marks it read, a marks all read" },
-    "popover-work": { target: "menubar", popover: true, state: "work", caption: "The same popover in the dark theme, on a second account named Work, the cursor on a thread" },
-    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count in red on the label" },
+    "popover-work": { target: "menubar", popover: true, state: "work", caption: "A second account, named Work, gets its own crumb; the arrows walk the threads and the footer names what Enter does" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph with the unread count as its label" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/bar-github.json", import.meta.url), JSON.stringify(bar) + "\n");
+writeFixture("bar-github", bar);
 console.log(`${INBOX.length} threads in the inbox, ${new Set(INBOX.map((x) => x.repo)).size} repositories`);

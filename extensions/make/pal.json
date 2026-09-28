@@ -3,7 +3,12 @@
   "title": "Makefile Targets",
   "description": "The targets of every Makefile under your project folders. Enter runs one in a terminal (or in the background, with a toast), variables or flags typed in the bar first.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰣪", "bg": "orange" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰣪",
+      "bg": "orange"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -77,19 +82,19 @@
     "screenshots": [
       {
         "file": "1-targets.png",
-        "caption": "Targets sectioned by project, the description after the folder"
+        "caption": "Every target of the Makefiles under the configured folders, a section per project, its ## description after the folder"
       },
       {
         "file": "2-recipe.png",
-        "caption": "The detail pane: the target's recipe, the project and the Makefile"
+        "caption": "The detail pane (cmd+I): the target's recipe, then its project, its Makefile and its description"
       },
       {
         "file": "3-makefile.png",
-        "caption": "Show Makefile: the whole file in the panel"
+        "caption": "Show Makefile (cmd+L): the whole file in the panel, the ## comments that describe the targets included"
       },
       {
         "file": "4-actions.png",
-        "caption": "Run, copy the command, open the project, show the Makefile"
+        "caption": "What a target can do: run it, copy the make command, open the project, show the Makefile"
       }
     ],
     "actions": [

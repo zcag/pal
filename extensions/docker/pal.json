@@ -3,7 +3,12 @@
   "title": "Docker",
   "description": "Containers, images and Compose projects over the docker CLI. Enter starts or stops a container; logs open in the panel, a shell in a terminal.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰡨", "bg": "cyan" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰡨",
+      "bg": "cyan"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -90,7 +95,7 @@
       },
       {
         "file": "3-logs.png",
-        "caption": "The last 200 log lines of a container, opened in the panel"
+        "caption": "The last log lines of a container, opened in the panel (cmd+L): nginx starting yesterday, today's requests under it"
       },
       {
         "file": "4-run.png",

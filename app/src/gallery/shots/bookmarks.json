@@ -536,7 +536,7 @@
           "url": "https://bun.sh/docs/api/sqlite",
           "accessories": [
             {
-              "date": 1789616041441
+              "date": 1789557600000
             }
           ],
           "section": "Chrome",
@@ -558,13 +558,13 @@
           ]
         },
         {
-          "id": "https://github.com/zcag/pal/pulls",
-          "name": "Pull requests · zcag/pal",
-          "subtitle": "https://github.com/zcag/pal/pulls",
-          "url": "https://github.com/zcag/pal/pulls",
+          "id": "https://github.com/acme/widgets/pulls",
+          "name": "Pull requests · acme/widgets",
+          "subtitle": "https://github.com/acme/widgets/pulls",
+          "url": "https://github.com/acme/widgets/pulls",
           "accessories": [
             {
-              "date": 1789615621441
+              "date": 1789557180000
             }
           ],
           "section": "Chrome",
@@ -592,7 +592,7 @@
           "url": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
           "accessories": [
             {
-              "date": 1789614721441
+              "date": 1789556280000
             }
           ],
           "section": "Firefox",
@@ -620,7 +620,35 @@
           "url": "https://news.ycombinator.com/",
           "accessories": [
             {
-              "date": 1789613401441
+              "date": 1789554960000
+            }
+          ],
+          "section": "Chrome",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://www.sqlite.org/lang_upsert.html",
+          "name": "UPSERT",
+          "subtitle": "https://www.sqlite.org/lang_upsert.html",
+          "url": "https://www.sqlite.org/lang_upsert.html",
+          "accessories": [
+            {
+              "date": 1789553100000
             }
           ],
           "section": "Chrome",
@@ -648,7 +676,35 @@
           "url": "https://www.sqlite.org/lang_datefunc.html",
           "accessories": [
             {
-              "date": 1789609081441
+              "date": 1789550640000
+            }
+          ],
+          "section": "Firefox",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Firefox"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://www.sqlite.org/json1.html",
+          "name": "JSON Functions And Operators",
+          "subtitle": "https://www.sqlite.org/json1.html",
+          "url": "https://www.sqlite.org/json1.html",
+          "accessories": [
+            {
+              "date": 1789548480000
             }
           ],
           "section": "Firefox",
@@ -676,7 +732,7 @@
           "url": "https://tauri.app/develop/",
           "accessories": [
             {
-              "date": 1789605481441
+              "date": 1789547040000
             }
           ],
           "section": "Chrome",
@@ -704,7 +760,7 @@
           "url": "https://en.wikipedia.org/wiki/Epoch_(computing)",
           "accessories": [
             {
-              "date": 1789598281441
+              "date": 1789539840000
             }
           ],
           "section": "Chrome",
@@ -732,7 +788,7 @@
           "url": "https://docs.rs/rusqlite/latest/rusqlite/",
           "accessories": [
             {
-              "date": 1789522681441
+              "date": 1789464240000
             }
           ],
           "section": "Firefox",
@@ -763,7 +819,35 @@
             "url": "https://bun.sh/docs/api/sqlite",
             "accessories": [
               {
-                "date": 1789616041441
+                "date": 1789557600000
+              }
+            ],
+            "section": "Chrome",
+            "actions": [
+              {
+                "id": "open-in",
+                "title": "Open in Chrome"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in default browser",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "https://www.sqlite.org/lang_upsert.html",
+            "name": "UPSERT",
+            "subtitle": "https://www.sqlite.org/lang_upsert.html",
+            "url": "https://www.sqlite.org/lang_upsert.html",
+            "accessories": [
+              {
+                "date": 1789553100000
               }
             ],
             "section": "Chrome",
@@ -791,7 +875,35 @@
             "url": "https://www.sqlite.org/lang_datefunc.html",
             "accessories": [
               {
-                "date": 1789609081441
+                "date": 1789550640000
+              }
+            ],
+            "section": "Firefox",
+            "actions": [
+              {
+                "id": "open-in",
+                "title": "Open in Firefox"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in default browser",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "https://www.sqlite.org/json1.html",
+            "name": "JSON Functions And Operators",
+            "subtitle": "https://www.sqlite.org/json1.html",
+            "url": "https://www.sqlite.org/json1.html",
+            "accessories": [
+              {
+                "date": 1789548480000
               }
             ],
             "section": "Firefox",
@@ -819,7 +931,7 @@
             "url": "https://docs.rs/rusqlite/latest/rusqlite/",
             "accessories": [
               {
-                "date": 1789522681441
+                "date": 1789464240000
               }
             ],
             "section": "Firefox",
@@ -873,7 +985,7 @@
         "type:sqlite",
         "wait:200"
       ],
-      "caption": "Browser History: a search over what the browsers visited, newest first, Enter opens it in the browser it came from"
+      "caption": "Browser History: what the browsers visited, searched by title and address, newest first with when; Enter opens it in the browser it came from"
     }
   }
 }

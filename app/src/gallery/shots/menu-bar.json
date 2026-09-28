@@ -1036,29 +1036,33 @@
     "1-list": {
       "palette": "menu-bar",
       "keys": [
-        "down*3"
+        "wait:1500",
+        "down*5"
       ],
-      "caption": "TextEdit's menus in one list: a section per menu, the path as the subtitle, shortcuts as key caps"
+      "caption": "The front app's menus in one list (TextEdit here): a section per menu, the path as the subtitle, shortcuts as key caps"
     },
     "2-checked": {
       "palette": "menu-bar",
       "keys": [
+        "wait:1500",
         "down*38"
       ],
-      "caption": "A checked item carries its mark; Enter Full Screen shows its Globe key"
+      "caption": "A checked item carries its mark, and Enter Full Screen shows its Globe (fn) key"
     },
     "3-search": {
       "palette": "menu-bar",
       "keys": [
-        "type:font"
+        "wait:1500",
+        "type:format font"
       ],
-      "caption": "Typing narrows by the whole path: font finds every Format > Font item"
+      "caption": "Typing narrows by the whole path: format font finds every item of Format > Font"
     },
     "4-root": {
       "keys": [
-        "type:export"
+        "wait:1500",
+        "type:export pdf"
       ],
-      "caption": "The rows are root results too: export from the root, no palette first"
+      "caption": "The rows are root results too: export pdf at the root finds File > Export as PDF… with no palette opened first"
     }
   }
 }

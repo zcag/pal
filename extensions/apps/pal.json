@@ -3,7 +3,12 @@
   "title": "Applications",
   "description": "Installed applications with their own icons: .app bundles on macOS (running ones tagged, with Quit and Hide; the System Settings panes as rows), .desktop entries on Linux (their own actions as secondary actions).",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰀻", "bg": "slate" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰀻",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -43,7 +48,7 @@
       },
       {
         "file": "2-search.png",
-        "caption": "Typing at the root: the name, the bundle id and the display name all match"
+        "caption": "Typing at the root finds an app by its bundle id as well as its name: ical is Calendar (com.apple.iCal)"
       },
       {
         "file": "3-actions.png",
@@ -51,7 +56,7 @@
       },
       {
         "file": "4-panes.png",
-        "caption": "The System Settings panes are rows too, found by what they hold"
+        "caption": "The System Settings panes are rows too, found by what they hold: network finds Network and Wi-Fi"
       }
     ],
     "actions": [

@@ -33,7 +33,7 @@
 // popover (`ARTWORK_MAX` bytes at most), since a view's image draws
 // `data:` and `icon://` only; the app's own icon stands in without one.
 import { readFile } from "node:fs/promises";
-import { bar, core, errorMessage, failed, hint, media, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
+import { bar, core, errorMessage, failed, hint, media, now, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
 import { clock, render, type MediaState } from "./view.ts";
 
 const MAC = process.platform === "darwin";
@@ -109,7 +109,8 @@ async function control(player: string, action?: string): Promise<Effect> {
   return { keep: true };
 }
 
-async function item(p: Player): Promise<Item> {
+/** A player's row (the store fixture builds its rows here too). */
+export async function item(p: Player): Promise<Item> {
   const idle = !p.title;
   // A row with a state but no track: the app is the title, the position the subtitle.
   const untitledActive = idle && p.state !== "stopped";
@@ -203,7 +204,7 @@ export const positionAt = (p: Player, at: number, now: number): number | undefin
   return p.duration != null && p.duration > 0 ? Math.min(p.duration, moved) : moved;
 };
 
-const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.now()): MediaState => ({ player: p, cover, position: positionAt(p, at, now), canOpen: !!openTarget(p) });
+const stateOf = (p: Player, cover: string | undefined, at: number, moment = now()): MediaState => ({ player: p, cover, position: positionAt(p, at, moment), canOpen: !!openTarget(p) });
 
 /**
  * What the strip shows for a playing player: the track (else the app) as
@@ -215,7 +216,7 @@ const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.no
  * with the popover saying nothing plays its `empty` shape for a
  * `show = "always"` config.
  */
-export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now()): BarItem {
+export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = now()): BarItem {
   const empty = { icon: BAR_GLYPH, tooltip: "Nothing playing", menu: { view: render({ canOpen: false }) } };
   if (!p) return { hidden: true, empty, states: { playing: false, state: "none", app: null } };
   const playing = p.state === "playing";
@@ -243,7 +244,7 @@ async function playingItem(np: Playing): Promise<BarItem> {
   const p = playerForBar(np);
   const c = p ? await coverOf(p) : undefined;
   const cover = p ? await popoverCover(p, c) : undefined;
-  snap = { p, cover, at: Date.now() };
+  snap = { p, cover, at: now() };
   return barItem(p, c, barArtwork(), cover, snap.at);
 }
 

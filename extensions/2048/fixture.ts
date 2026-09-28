@@ -2,11 +2,15 @@
 // mid-game board as the opening tree and the trees a key brings (a move
 // that makes 2048, a move into game over), rendered by render.ts from
 // rigged states so the shots show what a game looks like without playing
-// one. `bun run extensions/2048/fixture.ts`, then `node app/scripts/shots.mjs 2048`.
-import { writeFileSync } from "node:fs";
+// one. No host and no clock: the states are rigged and the spawns come from a
+// fixed sequence, so the fixture is the same every run.
+// `bun run extensions/2048/fixture.ts`, or `make shots EXT=2048`.
+import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { DEFAULTS, apply, type Board, type State } from "./game.ts";
 import { render } from "./render.ts";
 import manifest from "./pal.json";
+
+pinClock();
 
 let id = 1;
 const tiles = (vs: number[]): Board => vs.map((v) => (v ? { id: id++, v } : null));
@@ -42,16 +46,21 @@ const nearOver = state([
 const over = apply(nearOver, "up", DEFAULTS, () => 0.99);
 
 const fixture = {
-  palettes: { "2048": { title: "2048", icon: manifest.icon, view: "view", tree: render(mid, DEFAULTS) } },
+  // Game over opens on its own board: up is no legal move on the mid-game one, so it carries no action to press.
+  palettes: {
+    "2048": { title: "2048", icon: manifest.icon, view: "view", tree: render(mid, DEFAULTS) },
+    "2048-end": { title: "2048", icon: manifest.icon, view: "view", tree: render(nearOver, DEFAULTS) },
+  },
   effects: {
     "2048/view:right": { view: render(won, DEFAULTS) },
-    "2048/view:up": { view: render(over, DEFAULTS) },
+    "2048-end/view:up": { view: render(over, DEFAULTS) },
   },
+  // True colour: on the dark wallpaper the 256-colour quantisation moves the tile colours (the icon came out salmon).
   shots: {
     "1-board": { palette: "2048", keys: ["wait:400"], caption: "Mid-game: the score, the best and the move count above the board, the keys under it" },
     "2-won": { palette: "2048", keys: ["wait:300", "right", "wait:900"], caption: "The first 2048: keep going or start over" },
-    "3-over": { palette: "2048", keys: ["wait:300", "up", "wait:900"], caption: "Game over: no move left, the score, Enter for a new game" },
+    "3-over": { palette: "2048-end", keys: ["wait:300", "up", "wait:900"], caption: "Game over: no move left, the score, Enter for a new game" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/2048.json", import.meta.url), JSON.stringify(fixture) + "\n");
+writeFixture("2048", fixture);
 console.log(`won: ${won.won} (${won.board.filter((t) => t?.v === 2048).length} tile), over: ${over.board.every(Boolean)}`);

@@ -3,8 +3,8 @@
 // a history behind it, the shades row focused, the text field open), the
 // grid and the history rows from the same functions the palettes use, so
 // the shots show what the panel draws without a screen to pick from.
-// `bun run extensions/colors/fixture.ts`, then `node app/scripts/shots.mjs colors`.
-import { writeFileSync } from "node:fs";
+// `bun run extensions/colors/fixture.ts`, or `make shots EXT=colors`.
+import { NOW, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { colors } from "@zcag/pal";
 import { GRID_ACTIONS, HISTORY_ACTIONS, conversions, gridItem, historyRows } from "./rows.ts";
 import { render } from "./render.ts";
@@ -16,7 +16,7 @@ const { parse, toHex } = colors;
 const rows = data as Row[];
 const bySet = (id: SetId) => rows.filter((r) => r.s === id);
 const tokens = { tailwind: bySet("tailwind"), material: bySet("material") };
-const NOW = 1_758_000_000_000;
+pinClock();
 const history: Entry[] = [
   { c: "#ff8800", at: NOW - 40_000, from: "screen" },
   { c: "#64748b", at: NOW - 15 * 60_000, from: "set", name: "slate-500" },
@@ -27,7 +27,7 @@ const history: Entry[] = [
 ];
 const base: State = { ...fresh(), color: parse("#ff8800")!, history };
 const shades = { ...apply(apply(base, { kind: "focus", dir: 1 }, 50), { kind: "focus", dir: 1 }, 50), index: 3 };
-const typing = apply(base, { kind: "type", text: "#ff88" }, 50);
+const typing = apply(base, { kind: "type", text: "#ff8800" }, 50);
 const s = DEFAULTS;
 
 const gridItems = [...["tw/slate-500", "ctp/mocha/mauve", "apple/dark/green"].map((id) => gridItem(rows.find((r) => r.id === id)!, "Recent")), ...rows.map((r) => gridItem(r, sectionOf(r)))];
@@ -48,14 +48,15 @@ const fixture = {
     "picker-shades/picker:along:next": { view: render({ ...shades, index: 4 }, s, tokens) },
   },
   shots: {
-    // The picker's gradients do not survive the 256-colour quantisation, so these three stay true colour.
+    // Every shot stays true colour: the 256-colour quantisation loses the picker's gradients, and on the dark wallpaper it
+    // moves swatches to the nearest colour it kept (mauve came out peach), which a colour tool cannot show.
     "1-picker": { palette: "picker", keys: ["wait:400"], raw: true, caption: "The picker: the swatch over the hue strip and the plane, every notation, the nearest tokens, contrast, tints, shades and harmonies" },
     "2-shades": { palette: "picker-shades", keys: ["wait:300", "right", "wait:500"], raw: true, caption: "Tab onto the shades: the arrows walk the row, the label names the tile, Enter takes it" },
-    "3-typing": { palette: "picker-typing", keys: ["wait:300", "type:00", "wait:400"], raw: true, caption: "Typing a notation: a digit or # opens the field in the search row, Enter applies it" },
+    "3-typing": { palette: "picker-typing", keys: ["wait:600"], raw: true, caption: "Typing a notation: a digit or # opens the field in the search row, Enter applies it" },
     "4-sets": { palette: "colors", keys: ["wait:300", "tab*6", "wait:500"], caption: "The named sets as swatch grids, one section per set, a filter per set" },
     "5-history": { palette: "history", keys: ["wait:300", "down", "wait:300"], caption: "The history: every picked and copied colour with when and where from, and the screen pick at the top" },
     "6-convert": { palette: "convert", keys: ["wait:200", "type:hsl(30 100% 50%)", "wait:400"], caption: "Convert Colour: hsl(30 100% 50%) as every notation, the nearest CSS name and the contrast ratios" },
   },
 };
-writeFileSync(new URL("../../app/src/gallery/shots/colors.json", import.meta.url), JSON.stringify(fixture) + "\n");
+writeFixture("colors", fixture);
 console.log(`picker ${toHex(base.color)}, ${gridItems.length} tiles, ${historyItems.length} history rows`);

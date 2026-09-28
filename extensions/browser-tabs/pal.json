@@ -3,7 +3,12 @@
   "title": "Browser Tabs",
   "description": "Every open tab of your browsers with its favicon. Enter switches to it; close, mute and copy from the action panel.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰓩", "bg": "cyan" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰓩",
+      "bg": "cyan"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -71,7 +76,7 @@
       },
       {
         "file": "2-audible.png",
-        "caption": "The Audible filter: only the tabs a page reports as playing sound"
+        "caption": "The Audible filter: only the tabs a page reports as playing sound, across windows"
       },
       {
         "file": "3-actions.png",
@@ -79,7 +84,7 @@
       },
       {
         "file": "4-root.png",
-        "caption": "Live: tab titles are root results, so part of one typed at the root finds it"
+        "caption": "Live: tab titles are root results, so part of one typed at the root finds the tab"
       }
     ],
     "actions": [

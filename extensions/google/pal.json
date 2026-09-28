@@ -300,7 +300,7 @@
       },
       {
         "file": "2-preview.png",
-        "caption": "With SerpApi: the knowledge panel and the first results in the pane as you type"
+        "caption": "With SerpApi: the answer and the top results join the list as you type, and the pane previews a suggestion's"
       },
       {
         "file": "3-results.png",

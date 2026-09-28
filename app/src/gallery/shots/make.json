@@ -11,9 +11,9 @@
       "placeholder": "Target or project",
       "items": [
         {
-          "id": "build@~/proj/api",
+          "id": "build@~/code/api",
           "name": "build",
-          "subtitle": "~/proj/api: Compile the server into bin/api",
+          "subtitle": "~/code/api: Compile the server into bin/api",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -43,9 +43,9 @@
           ]
         },
         {
-          "id": "test@~/proj/api",
+          "id": "test@~/code/api",
           "name": "test",
-          "subtitle": "~/proj/api: Run every test with the race detector",
+          "subtitle": "~/code/api: Run every test with the race detector",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -75,9 +75,9 @@
           ]
         },
         {
-          "id": "lint@~/proj/api",
+          "id": "lint@~/code/api",
           "name": "lint",
-          "subtitle": "~/proj/api: Vet and staticcheck",
+          "subtitle": "~/code/api: Vet and staticcheck",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -107,9 +107,9 @@
           ]
         },
         {
-          "id": "run@~/proj/api",
+          "id": "run@~/code/api",
           "name": "run",
-          "subtitle": "~/proj/api: Start the server on :8080 with the dev config",
+          "subtitle": "~/code/api: Start the server on :8080 with the dev config",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -139,9 +139,9 @@
           ]
         },
         {
-          "id": "migrate@~/proj/api",
+          "id": "migrate@~/code/api",
           "name": "migrate",
-          "subtitle": "~/proj/api: Apply pending database migrations",
+          "subtitle": "~/code/api: Apply pending database migrations",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -171,9 +171,9 @@
           ]
         },
         {
-          "id": "docker@~/proj/api",
+          "id": "docker@~/code/api",
           "name": "docker",
-          "subtitle": "~/proj/api: Build the image tagged with the git sha",
+          "subtitle": "~/code/api: Build the image tagged with the git sha",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -203,9 +203,9 @@
           ]
         },
         {
-          "id": "clean@~/proj/api",
+          "id": "clean@~/code/api",
           "name": "clean",
-          "subtitle": "~/proj/api",
+          "subtitle": "~/code/api",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -235,9 +235,9 @@
           ]
         },
         {
-          "id": "plan@~/proj/infra",
+          "id": "plan@~/code/infra",
           "name": "plan",
-          "subtitle": "~/proj/infra: terraform plan for the production workspace",
+          "subtitle": "~/code/infra: terraform plan for the production workspace",
           "icon": "󰣪",
           "keywords": [
             "infra",
@@ -267,9 +267,9 @@
           ]
         },
         {
-          "id": "apply@~/proj/infra",
+          "id": "apply@~/code/infra",
           "name": "apply",
-          "subtitle": "~/proj/infra: terraform apply, after a plan",
+          "subtitle": "~/code/infra: terraform apply, after a plan",
           "icon": "󰣪",
           "keywords": [
             "infra",
@@ -299,9 +299,9 @@
           ]
         },
         {
-          "id": "fmt@~/proj/infra",
+          "id": "fmt@~/code/infra",
           "name": "fmt",
-          "subtitle": "~/proj/infra",
+          "subtitle": "~/code/infra",
           "icon": "󰣪",
           "keywords": [
             "infra",
@@ -331,9 +331,9 @@
           ]
         },
         {
-          "id": "dev@~/proj/site",
+          "id": "dev@~/code/site",
           "name": "dev",
-          "subtitle": "~/proj/site: Vite dev server with hot reload",
+          "subtitle": "~/code/site: Vite dev server with hot reload",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -363,9 +363,9 @@
           ]
         },
         {
-          "id": "build@~/proj/site",
+          "id": "build@~/code/site",
           "name": "build",
-          "subtitle": "~/proj/site: Production build into dist/",
+          "subtitle": "~/code/site: Production build into dist/",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -395,9 +395,9 @@
           ]
         },
         {
-          "id": "deploy@~/proj/site",
+          "id": "deploy@~/code/site",
           "name": "deploy",
-          "subtitle": "~/proj/site: Sync dist/ to the web host",
+          "subtitle": "~/code/site: Sync dist/ to the web host",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -427,9 +427,9 @@
           ]
         },
         {
-          "id": "preview@~/proj/site",
+          "id": "preview@~/code/site",
           "name": "preview",
-          "subtitle": "~/proj/site",
+          "subtitle": "~/code/site",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -460,12 +460,12 @@
         }
       ],
       "details": {
-        "build@~/proj/api": {
+        "build@~/code/api": {
           "markdown": "````make\ngo build -o bin/api ./cmd/api\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -481,12 +481,12 @@
             }
           ]
         },
-        "test@~/proj/api": {
+        "test@~/code/api": {
           "markdown": "````make\ngo test -race ./...\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -502,12 +502,12 @@
             }
           ]
         },
-        "lint@~/proj/api": {
+        "lint@~/code/api": {
           "markdown": "````make\ngo vet ./...\nstaticcheck ./...\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -523,12 +523,12 @@
             }
           ]
         },
-        "run@~/proj/api": {
+        "run@~/code/api": {
           "markdown": "````make\n./bin/api --config config/dev.toml\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -544,12 +544,12 @@
             }
           ]
         },
-        "migrate@~/proj/api": {
+        "migrate@~/code/api": {
           "markdown": "````make\nmigrate -path db/migrations -database \"$$DATABASE_URL\" up\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -565,12 +565,12 @@
             }
           ]
         },
-        "docker@~/proj/api": {
+        "docker@~/code/api": {
           "markdown": "````make\ndocker build -t ghcr.io/acme/api:$$(git rev-parse --short HEAD) .\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -586,12 +586,12 @@
             }
           ]
         },
-        "clean@~/proj/api": {
+        "clean@~/code/api": {
           "markdown": "````make\nrm -rf bin/\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/api"
+              "value": "~/code/api"
             },
             {
               "label": "Makefile",
@@ -603,12 +603,12 @@
             }
           ]
         },
-        "plan@~/proj/infra": {
+        "plan@~/code/infra": {
           "markdown": "````make\nterraform plan -var-file=prod.tfvars\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/infra"
+              "value": "~/code/infra"
             },
             {
               "label": "Makefile",
@@ -624,12 +624,12 @@
             }
           ]
         },
-        "apply@~/proj/infra": {
+        "apply@~/code/infra": {
           "markdown": "````make\nterraform apply -var-file=prod.tfvars\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/infra"
+              "value": "~/code/infra"
             },
             {
               "label": "Makefile",
@@ -645,12 +645,12 @@
             }
           ]
         },
-        "fmt@~/proj/infra": {
+        "fmt@~/code/infra": {
           "markdown": "````make\nterraform fmt -recursive\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/infra"
+              "value": "~/code/infra"
             },
             {
               "label": "Makefile",
@@ -662,12 +662,12 @@
             }
           ]
         },
-        "dev@~/proj/site": {
+        "dev@~/code/site": {
           "markdown": "````make\nnpm run dev\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/site"
+              "value": "~/code/site"
             },
             {
               "label": "Makefile",
@@ -683,12 +683,12 @@
             }
           ]
         },
-        "build@~/proj/site": {
+        "build@~/code/site": {
           "markdown": "````make\nnpm run build\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/site"
+              "value": "~/code/site"
             },
             {
               "label": "Makefile",
@@ -704,12 +704,12 @@
             }
           ]
         },
-        "deploy@~/proj/site": {
+        "deploy@~/code/site": {
           "markdown": "````make\nrsync -az --delete dist/ web-1:/srv/site/\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/site"
+              "value": "~/code/site"
             },
             {
               "label": "Makefile",
@@ -725,12 +725,12 @@
             }
           ]
         },
-        "preview@~/proj/site": {
+        "preview@~/code/site": {
           "markdown": "````make\nnpm run preview\n````",
           "metadata": [
             {
               "label": "Project",
-              "value": "~/proj/site"
+              "value": "~/code/site"
             },
             {
               "label": "Makefile",
@@ -746,9 +746,9 @@
     }
   },
   "effects": {
-    "make/build@~/proj/api:makefile": {
+    "make/build@~/code/api:makefile": {
       "show": {
-        "title": "Makefile in ~/proj/api",
+        "title": "Makefile in ~/code/api",
         "markdown": "````make\n.PHONY: build test lint run migrate docker clean\n\n## Compile the server into bin/api\nbuild:\n\tgo build -o bin/api ./cmd/api\n\n## Run every test with the race detector\ntest:\n\tgo test -race ./...\n\nlint: ## Vet and staticcheck\n\tgo vet ./...\n\tstaticcheck ./...\n\n## Start the server on :8080 with the dev config\nrun: build\n\t./bin/api --config config/dev.toml\n\n## Apply pending database migrations\nmigrate:\n\tmigrate -path db/migrations -database \"$$DATABASE_URL\" up\n\ndocker: ## Build the image tagged with the git sha\n\tdocker build -t ghcr.io/acme/api:$$(git rev-parse --short HEAD) .\n\nclean:\n\trm -rf bin/\n````"
       }
     }
@@ -757,33 +757,37 @@
     "1-targets": {
       "palette": "make",
       "keys": [
+        "wait:1500",
         "down"
       ],
-      "caption": "Targets sectioned by project, the description after the folder"
+      "caption": "Every target of the Makefiles under the configured folders, a section per project, its ## description after the folder"
     },
     "2-recipe": {
       "palette": "make",
       "keys": [
-        "down*3",
+        "wait:1500",
+        "down*2",
         "cmd+i",
         "wait:400"
       ],
-      "caption": "The detail pane: the target's recipe, the project and the Makefile"
+      "caption": "The detail pane (cmd+I): the target's recipe, then its project, its Makefile and its description"
     },
     "3-makefile": {
       "palette": "make",
       "keys": [
+        "wait:1500",
         "cmd+l"
       ],
-      "caption": "Show Makefile: the whole file in the panel"
+      "caption": "Show Makefile (cmd+L): the whole file in the panel, the ## comments that describe the targets included"
     },
     "4-actions": {
       "palette": "make",
       "keys": [
+        "wait:1500",
         "down*5",
         "cmd+k"
       ],
-      "caption": "Run, copy the command, open the project, show the Makefile"
+      "caption": "What a target can do: run it, copy the make command, open the project, show the Makefile"
     }
   }
 }

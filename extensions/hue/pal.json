@@ -2,7 +2,9 @@
   "name": "hue",
   "title": "Hue",
   "description": "Philips Hue over the bridge's CLIP v2 API: rooms, lights and scenes at the root, a light or a room under the keys with its colour, brightness and temperature, sensors, automations and entertainment areas, a bar item for the home, and a guided pairing that finds the bridge and waits for its button.",
-  "keywords": ["lights"],
+  "keywords": [
+    "lights"
+  ],
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -106,33 +108,23 @@
         "caption": "Set up Hue waiting for the button, with the countdown"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: how many lights are on (the live strip carries the main room's colour as a dot; the gallery draws the bulb)",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the bulb and how many lights are on",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "The same item on a light menu bar",
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: the rooms as tiles in their colour (the switch toggles, the chevron opens), the motion and temperature, the main room's scenes, the keys",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
-        "caption": "A click opens the popover: the rooms as colour tiles (a tap toggles, the chevron opens), the sensors, the scenes, the keys",
+        "file": "bar-popover-room.png",
+        "caption": "The living room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
-        "caption": "On sketchybar: the glyph and the count on the label",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "The popover in the dark theme",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-room.png",
-        "caption": "A room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them",
+        "caption": "On sketchybar: the bulb and the count on the label",
         "kind": "bar"
       }
     ],
@@ -480,19 +472,35 @@
         },
         "off": {
           "title": "All lights off",
-          "item": { "icon": "󰌶", "color": "muted", "tooltip": "All lights off" }
+          "item": {
+            "icon": "󰌶",
+            "color": "muted",
+            "tooltip": "All lights off"
+          }
         },
         "away": {
           "title": "Bridge not answering, last state kept",
-          "item": { "icon": "󰌶", "color": "muted", "stale": true, "tooltip": "All lights off" }
+          "item": {
+            "icon": "󰌶",
+            "color": "muted",
+            "stale": true,
+            "tooltip": "All lights off"
+          }
         },
         "unpaired": {
           "title": "Bridge not paired",
-          "item": { "icon": "󰌶", "color": "muted", "stale": true, "tooltip": "Hue: the bridge did not answer" }
+          "item": {
+            "icon": "󰌶",
+            "color": "muted",
+            "stale": true,
+            "tooltip": "Hue: the bridge did not answer"
+          }
         },
         "none": {
           "title": "No bridge configured",
-          "item": { "hidden": true }
+          "item": {
+            "hidden": true
+          }
         }
       },
       "keys": [

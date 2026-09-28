@@ -56,7 +56,7 @@
               "color": "green"
             },
             {
-              "date": "2026-09-16T10:37:26.847Z"
+              "date": "2026-09-16T08:32:00Z"
             }
           ],
           "detail": {
@@ -187,7 +187,7 @@
               "color": "amber"
             },
             {
-              "date": "2026-09-15T11:37:26.847Z"
+              "date": "2026-09-15T09:32:00Z"
             }
           ],
           "detail": {
@@ -299,7 +299,7 @@
               "color": "amber"
             },
             {
-              "date": "2026-09-16T08:37:26.847Z"
+              "date": "2026-09-16T06:32:00Z"
             }
           ],
           "detail": {
@@ -424,7 +424,7 @@
               "color": "amber"
             },
             {
-              "date": "2026-09-14T13:37:26.847Z"
+              "date": "2026-09-14T11:32:00Z"
             }
           ],
           "detail": {
@@ -536,7 +536,7 @@
               "color": "violet"
             },
             {
-              "date": "2026-09-13T13:37:26.847Z"
+              "date": "2026-09-13T11:32:00Z"
             }
           ],
           "detail": {
@@ -634,7 +634,7 @@
               "color": "violet"
             },
             {
-              "date": "2026-09-11T13:37:26.847Z"
+              "date": "2026-09-11T11:32:00Z"
             }
           ],
           "detail": {
@@ -739,7 +739,7 @@
                 "color": "green"
               },
               {
-                "date": "2026-09-16T10:37:26.847Z"
+                "date": "2026-09-16T08:32:00Z"
               }
             ],
             "detail": {
@@ -870,7 +870,7 @@
                 "color": "amber"
               },
               {
-                "date": "2026-09-15T11:37:26.847Z"
+                "date": "2026-09-15T09:32:00Z"
               }
             ],
             "detail": {
@@ -984,7 +984,7 @@
                 "color": "amber"
               },
               {
-                "date": "2026-09-16T08:37:26.847Z"
+                "date": "2026-09-16T06:32:00Z"
               }
             ],
             "detail": {
@@ -1109,7 +1109,7 @@
                 "color": "amber"
               },
               {
-                "date": "2026-09-14T13:37:26.847Z"
+                "date": "2026-09-14T11:32:00Z"
               }
             ],
             "detail": {
@@ -1223,7 +1223,7 @@
                 "color": "violet"
               },
               {
-                "date": "2026-09-13T13:37:26.847Z"
+                "date": "2026-09-13T11:32:00Z"
               }
             ],
             "detail": {
@@ -1321,7 +1321,7 @@
                 "color": "violet"
               },
               {
-                "date": "2026-09-11T13:37:26.847Z"
+                "date": "2026-09-11T11:32:00Z"
               }
             ],
             "detail": {
@@ -1564,7 +1564,7 @@
               "text": "4 comments"
             },
             {
-              "date": "2026-09-16T11:37:26.847Z"
+              "date": "2026-09-16T09:32:00Z"
             }
           ],
           "detail": {
@@ -1661,7 +1661,7 @@
               "text": "1 comment"
             },
             {
-              "date": "2026-09-15T07:37:26.847Z"
+              "date": "2026-09-15T05:32:00Z"
             }
           ],
           "detail": {
@@ -1751,7 +1751,7 @@
               "color": "grey"
             },
             {
-              "date": "2026-09-13T13:37:26.847Z"
+              "date": "2026-09-13T11:32:00Z"
             }
           ],
           "detail": {
@@ -1849,7 +1849,7 @@
               "text": "7 comments"
             },
             {
-              "date": "2026-09-10T13:37:26.847Z"
+              "date": "2026-09-10T11:32:00Z"
             }
           ],
           "detail": {
@@ -2038,7 +2038,7 @@
               "text": "★ 12"
             },
             {
-              "date": "2026-09-16T09:37:26.847Z"
+              "date": "2026-09-16T07:32:00Z"
             }
           ],
           "detail": {
@@ -2145,7 +2145,7 @@
               "text": "★ 240"
             },
             {
-              "date": "2026-09-14T13:37:26.847Z"
+              "date": "2026-09-14T11:32:00Z"
             }
           ],
           "detail": {
@@ -2256,7 +2256,7 @@
               "text": "★ 3"
             },
             {
-              "date": "2026-09-16T10:37:26.847Z"
+              "date": "2026-09-16T08:32:00Z"
             }
           ],
           "detail": {
@@ -2367,7 +2367,7 @@
               "text": "★ 1"
             },
             {
-              "date": "2026-09-16T08:37:26.847Z"
+              "date": "2026-09-16T06:32:00Z"
             }
           ],
           "detail": {
@@ -2440,16 +2440,16 @@
           ]
         },
         {
-          "id": "oven-sh/bun",
+          "id": "quill-rt/quill",
           "name": "bun",
-          "subtitle": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager",
+          "subtitle": "A fast JavaScript runtime and bundler",
           "icon": "",
           "keywords": [
-            "oven-sh/bun",
-            "oven-sh",
+            "quill-rt/quill",
+            "quill-rt",
             "Zig"
           ],
-          "url": "https://github.com/oven-sh/bun",
+          "url": "https://github.com/quill-rt/quill",
           "section": "Starred",
           "accessories": [
             {
@@ -2460,17 +2460,17 @@
               "text": "★ 78400"
             },
             {
-              "date": "2026-09-16T12:57:26.847Z"
+              "date": "2026-09-16T10:52:00Z"
             }
           ],
           "detail": {
-            "markdown": "# oven-sh/bun\n\nIncredibly fast JavaScript runtime, bundler, test runner, and package manager",
+            "markdown": "# quill-rt/quill\n\nA fast JavaScript runtime and bundler",
             "metadata": [
               {
                 "label": "Owner",
                 "link": {
-                  "text": "oven-sh",
-                  "href": "https://github.com/oven-sh"
+                  "text": "quill-rt",
+                  "href": "https://github.com/quill-rt"
                 }
               },
               {
@@ -2495,7 +2495,7 @@
               },
               {
                 "label": "Clone",
-                "value": "git@github.com:oven-sh/bun.git"
+                "value": "git@github.com:quill-rt/quill.git"
               },
               {
                 "label": "Pushed",
@@ -2533,16 +2533,16 @@
           ]
         },
         {
-          "id": "tauri-apps/tauri",
+          "id": "panekit/pane",
           "name": "tauri",
-          "subtitle": "Build smaller, faster, and more secure desktop applications with a web frontend",
+          "subtitle": "Small desktop apps with a web front end",
           "icon": "",
           "keywords": [
-            "tauri-apps/tauri",
-            "tauri-apps",
+            "panekit/pane",
+            "panekit",
             "Rust"
           ],
-          "url": "https://github.com/tauri-apps/tauri",
+          "url": "https://github.com/panekit/pane",
           "section": "Starred",
           "accessories": [
             {
@@ -2553,17 +2553,17 @@
               "text": "★ 92100"
             },
             {
-              "date": "2026-09-16T11:37:26.847Z"
+              "date": "2026-09-16T09:32:00Z"
             }
           ],
           "detail": {
-            "markdown": "# tauri-apps/tauri\n\nBuild smaller, faster, and more secure desktop applications with a web frontend",
+            "markdown": "# panekit/pane\n\nSmall desktop apps with a web front end",
             "metadata": [
               {
                 "label": "Owner",
                 "link": {
-                  "text": "tauri-apps",
-                  "href": "https://github.com/tauri-apps"
+                  "text": "panekit",
+                  "href": "https://github.com/panekit"
                 }
               },
               {
@@ -2588,7 +2588,7 @@
               },
               {
                 "label": "Clone",
-                "value": "git@github.com:tauri-apps/tauri.git"
+                "value": "git@github.com:panekit/pane.git"
               },
               {
                 "label": "Pushed",
@@ -2665,7 +2665,7 @@
                 "text": "★ 12"
               },
               {
-                "date": "2026-09-16T09:37:26.847Z"
+                "date": "2026-09-16T07:32:00Z"
               }
             ],
             "detail": {
@@ -2772,7 +2772,7 @@
                 "text": "★ 240"
               },
               {
-                "date": "2026-09-14T13:37:26.847Z"
+                "date": "2026-09-14T11:32:00Z"
               }
             ],
             "detail": {
@@ -2861,16 +2861,16 @@
         ],
         "starred": [
           {
-            "id": "oven-sh/bun",
+            "id": "quill-rt/quill",
             "name": "bun",
-            "subtitle": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager",
+            "subtitle": "A fast JavaScript runtime and bundler",
             "icon": "",
             "keywords": [
-              "oven-sh/bun",
-              "oven-sh",
+              "quill-rt/quill",
+              "quill-rt",
               "Zig"
             ],
-            "url": "https://github.com/oven-sh/bun",
+            "url": "https://github.com/quill-rt/quill",
             "section": "Starred",
             "accessories": [
               {
@@ -2881,17 +2881,17 @@
                 "text": "★ 78400"
               },
               {
-                "date": "2026-09-16T12:57:26.847Z"
+                "date": "2026-09-16T10:52:00Z"
               }
             ],
             "detail": {
-              "markdown": "# oven-sh/bun\n\nIncredibly fast JavaScript runtime, bundler, test runner, and package manager",
+              "markdown": "# quill-rt/quill\n\nA fast JavaScript runtime and bundler",
               "metadata": [
                 {
                   "label": "Owner",
                   "link": {
-                    "text": "oven-sh",
-                    "href": "https://github.com/oven-sh"
+                    "text": "quill-rt",
+                    "href": "https://github.com/quill-rt"
                   }
                 },
                 {
@@ -2916,7 +2916,7 @@
                 },
                 {
                   "label": "Clone",
-                  "value": "git@github.com:oven-sh/bun.git"
+                  "value": "git@github.com:quill-rt/quill.git"
                 },
                 {
                   "label": "Pushed",
@@ -2954,16 +2954,16 @@
             ]
           },
           {
-            "id": "tauri-apps/tauri",
+            "id": "panekit/pane",
             "name": "tauri",
-            "subtitle": "Build smaller, faster, and more secure desktop applications with a web frontend",
+            "subtitle": "Small desktop apps with a web front end",
             "icon": "",
             "keywords": [
-              "tauri-apps/tauri",
-              "tauri-apps",
+              "panekit/pane",
+              "panekit",
               "Rust"
             ],
-            "url": "https://github.com/tauri-apps/tauri",
+            "url": "https://github.com/panekit/pane",
             "section": "Starred",
             "accessories": [
               {
@@ -2974,17 +2974,17 @@
                 "text": "★ 92100"
               },
               {
-                "date": "2026-09-16T11:37:26.847Z"
+                "date": "2026-09-16T09:32:00Z"
               }
             ],
             "detail": {
-              "markdown": "# tauri-apps/tauri\n\nBuild smaller, faster, and more secure desktop applications with a web frontend",
+              "markdown": "# panekit/pane\n\nSmall desktop apps with a web front end",
               "metadata": [
                 {
                   "label": "Owner",
                   "link": {
-                    "text": "tauri-apps",
-                    "href": "https://github.com/tauri-apps"
+                    "text": "panekit",
+                    "href": "https://github.com/panekit"
                   }
                 },
                 {
@@ -3009,7 +3009,7 @@
                 },
                 {
                   "label": "Clone",
-                  "value": "git@github.com:tauri-apps/tauri.git"
+                  "value": "git@github.com:panekit/pane.git"
                 },
                 {
                   "label": "Pushed",
@@ -3073,7 +3073,7 @@
                 "text": "★ 3"
               },
               {
-                "date": "2026-09-16T10:37:26.847Z"
+                "date": "2026-09-16T08:32:00Z"
               }
             ],
             "detail": {
@@ -3184,7 +3184,7 @@
                 "text": "★ 1"
               },
               {
-                "date": "2026-09-16T08:37:26.847Z"
+                "date": "2026-09-16T06:32:00Z"
               }
             ],
             "detail": {
@@ -3314,7 +3314,7 @@
               "color": "grey"
             },
             {
-              "date": "2026-09-16T08:37:26.847Z"
+              "date": "2026-09-16T06:32:00Z"
             }
           ],
           "detail": {
@@ -3382,7 +3382,7 @@
               "color": "grey"
             },
             {
-              "date": "2026-09-16T11:37:26.847Z"
+              "date": "2026-09-16T09:32:00Z"
             }
           ],
           "detail": {
@@ -3450,7 +3450,7 @@
               "color": "grey"
             },
             {
-              "date": "2026-09-16T10:37:26.847Z"
+              "date": "2026-09-16T08:32:00Z"
             }
           ],
           "detail": {
@@ -3504,13 +3504,13 @@
         {
           "id": "n4",
           "name": "v1.4.2",
-          "subtitle": "oven-sh/bun",
+          "subtitle": "quill-rt/quill",
           "icon": "",
           "keywords": [
-            "oven-sh/bun",
+            "quill-rt/quill",
             null
           ],
-          "url": "https://github.com/oven-sh/bun",
+          "url": "https://github.com/quill-rt/quill",
           "section": "Subscribed",
           "accessories": [
             {
@@ -3518,7 +3518,7 @@
               "color": "grey"
             },
             {
-              "date": "2026-09-16T12:57:26.847Z"
+              "date": "2026-09-16T10:52:00Z"
             }
           ],
           "detail": {
@@ -3527,8 +3527,8 @@
               {
                 "label": "Repository",
                 "link": {
-                  "text": "oven-sh/bun",
-                  "href": "https://github.com/oven-sh/bun"
+                  "text": "quill-rt/quill",
+                  "href": "https://github.com/quill-rt/quill"
                 }
               },
               {
@@ -3572,13 +3572,13 @@
         {
           "id": "n5",
           "name": "Plugin API proposal",
-          "subtitle": "tauri-apps/tauri",
+          "subtitle": "panekit/pane",
           "icon": "",
           "keywords": [
-            "tauri-apps/tauri",
+            "panekit/pane",
             null
           ],
-          "url": "https://github.com/tauri-apps/tauri",
+          "url": "https://github.com/panekit/pane",
           "section": "Subscribed",
           "accessories": [
             {
@@ -3586,7 +3586,7 @@
               "color": "grey"
             },
             {
-              "date": "2026-09-16T04:37:26.847Z"
+              "date": "2026-09-16T02:32:00Z"
             }
           ],
           "detail": {
@@ -3595,8 +3595,8 @@
               {
                 "label": "Repository",
                 "link": {
-                  "text": "tauri-apps/tauri",
-                  "href": "https://github.com/tauri-apps/tauri"
+                  "text": "panekit/pane",
+                  "href": "https://github.com/panekit/pane"
                 }
               },
               {
@@ -3706,7 +3706,7 @@
                 "color": "green"
               },
               {
-                "date": "2026-09-16T10:37:26.847Z"
+                "date": "2026-09-16T08:32:00Z"
               }
             ],
             "detail": {
@@ -3837,7 +3837,7 @@
                 "color": "amber"
               },
               {
-                "date": "2026-09-15T11:37:26.847Z"
+                "date": "2026-09-15T09:32:00Z"
               }
             ],
             "detail": {
@@ -3951,7 +3951,7 @@
                 "color": "green"
               },
               {
-                "date": "2026-09-16T10:37:26.847Z"
+                "date": "2026-09-16T08:32:00Z"
               }
             ],
             "detail": {
@@ -4085,7 +4085,7 @@
                 "text": "4 comments"
               },
               {
-                "date": "2026-09-16T11:37:26.847Z"
+                "date": "2026-09-16T09:32:00Z"
               }
             ],
             "detail": {
@@ -4187,7 +4187,7 @@
                 "text": "7 comments"
               },
               {
-                "date": "2026-09-10T13:37:26.847Z"
+                "date": "2026-09-10T11:32:00Z"
               }
             ],
             "detail": {
@@ -4283,7 +4283,7 @@
                 "text": "★ 3"
               },
               {
-                "date": "2026-09-16T10:37:26.847Z"
+                "date": "2026-09-16T08:32:00Z"
               }
             ],
             "detail": {

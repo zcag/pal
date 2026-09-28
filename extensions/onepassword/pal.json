@@ -2,9 +2,17 @@
   "name": "onepassword",
   "title": "1Password",
   "description": "Your 1Password items through the op CLI. Enter copies the password; username, one-time code and the app are in the action panel.",
-  "keywords": ["1p", "op"],
+  "keywords": [
+    "1p",
+    "op"
+  ],
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰯄", "bg": "blue" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰯄",
+      "bg": "blue"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -61,7 +69,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane: vault, category, username, website, tags, updated"
+        "caption": "The detail pane (cmd+I): vault, category, username, website, tags and when it was last updated"
       },
       {
         "file": "3-actions.png",
@@ -69,7 +77,7 @@
       },
       {
         "file": "4-vault.png",
-        "caption": "A vault from the settings as a filter"
+        "caption": "The vault dropdown (Tab) narrows the list to one of the vaults in the settings: Work"
       }
     ],
     "actions": [

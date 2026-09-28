@@ -15,7 +15,7 @@ export type OtpState = {
   latest?: ShownCode;
   /** The codes before it, newest first; the first two are drawn. */
   previous: ShownCode[];
-  /** The moment drawn (`Date.now()`). */
+  /** The moment drawn (the sdk's `now()`). */
   now: number;
   /** How long a code stays on the strip after it arrived, ms. */
   window: number;

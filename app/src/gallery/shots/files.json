@@ -22,7 +22,7 @@
                 "text": "86.1 KB"
               },
               {
-                "date": 1789563984762
+                "date": 1789556040000
               }
             ],
             "actions": [
@@ -100,7 +100,7 @@
                 "text": "4.7 KB"
               },
               {
-                "date": 1789559184762
+                "date": 1789551240000
               }
             ],
             "actions": [
@@ -178,7 +178,7 @@
                 "text": "402.7 KB"
               },
               {
-                "date": 1789548384762
+                "date": 1789540440000
               }
             ],
             "actions": [
@@ -256,7 +256,7 @@
                 "text": "9.2 KB"
               },
               {
-                "date": 1789479984762
+                "date": 1789464840000
               }
             ],
             "actions": [
@@ -334,7 +334,7 @@
                 "text": "2.1 KB"
               },
               {
-                "date": 1789469184762
+                "date": 1789461240000
               }
             ],
             "actions": [
@@ -412,7 +412,7 @@
                 "text": "23.0 MB"
               },
               {
-                "date": 1789393584762
+                "date": 1789385640000
               }
             ],
             "actions": [
@@ -490,7 +490,7 @@
                 "text": "127.0 KB"
               },
               {
-                "date": 1789220784762
+                "date": 1789212840000
               }
             ],
             "actions": [
@@ -570,7 +570,84 @@
                 "text": "4.7 KB"
               },
               {
-                "date": 1789559184762
+                "date": 1789551240000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ]
+          },
+          {
+            "id": "/Users/ada/proj/README.md",
+            "name": "README.md",
+            "subtitle": "~/proj",
+            "icon": "󰧮",
+            "accessories": [
+              {
+                "text": "1.8 KB"
+              },
+              {
+                "date": 1788519240000
               }
             ],
             "actions": [
@@ -647,7 +724,7 @@
                 "text": "1.2 KB"
               },
               {
-                "date": 1789307184762
+                "date": 1789299240000
               }
             ],
             "actions": [
@@ -724,7 +801,7 @@
                 "text": "312 B"
               },
               {
-                "date": 1788788784762
+                "date": 1788780840000
               }
             ],
             "actions": [
@@ -800,7 +877,7 @@
             "icon": "󰉖",
             "accessories": [
               {
-                "date": 1789560384762
+                "date": 1789552440000
               }
             ],
             "actions": [
@@ -888,7 +965,7 @@
             },
             {
               "label": "Modified",
-              "value": "9/16/2026, 2:46:24 PM"
+              "value": "9/16/2026, 12:34:00 PM"
             },
             {
               "label": "Kind",
@@ -1017,7 +1094,7 @@
               "text": "86.1 KB"
             },
             {
-              "date": 1789563984762
+              "date": 1789556040000
             }
           ],
           "actions": [
@@ -1094,7 +1171,7 @@
               "text": "4.7 KB"
             },
             {
-              "date": 1789559184762
+              "date": 1789551240000
             }
           ],
           "actions": [
@@ -1171,7 +1248,7 @@
               "text": "402.7 KB"
             },
             {
-              "date": 1789548384762
+              "date": 1789540440000
             }
           ],
           "actions": [
@@ -1248,7 +1325,7 @@
               "text": "9.2 KB"
             },
             {
-              "date": 1789479984762
+              "date": 1789464840000
             }
           ],
           "actions": [
@@ -1325,7 +1402,7 @@
               "text": "2.1 KB"
             },
             {
-              "date": 1789469184762
+              "date": 1789461240000
             }
           ],
           "actions": [
@@ -1402,7 +1479,7 @@
               "text": "23.0 MB"
             },
             {
-              "date": 1789393584762
+              "date": 1789385640000
             }
           ],
           "actions": [
@@ -1479,7 +1556,7 @@
               "text": "127.0 KB"
             },
             {
-              "date": 1789220784762
+              "date": 1789212840000
             }
           ],
           "actions": [
@@ -1561,7 +1638,7 @@
             },
             {
               "label": "Modified",
-              "value": "9/16/2026, 2:46:24 PM"
+              "value": "9/16/2026, 12:34:00 PM"
             },
             {
               "label": "Kind",
@@ -1629,7 +1706,7 @@
             "icon": "󰉖",
             "accessories": [
               {
-                "date": 1789304784762
+                "date": 1789296840000
               }
             ],
             "actions": [
@@ -1687,7 +1764,7 @@
             "icon": "󰉖",
             "accessories": [
               {
-                "date": 1789562784762
+                "date": 1789554840000
               }
             ],
             "actions": [
@@ -1745,7 +1822,7 @@
             "icon": "󰉖",
             "accessories": [
               {
-                "date": 1789559184762
+                "date": 1789551240000
               }
             ],
             "actions": [
@@ -1806,7 +1883,7 @@
                 "text": "1.8 KB"
               },
               {
-                "date": 1788527184762
+                "date": 1788519240000
               }
             ],
             "actions": [
@@ -1862,7 +1939,7 @@
                 "text": "6.2 KB"
               },
               {
-                "date": 1789556784762
+                "date": 1789548840000
               }
             ],
             "actions": [
@@ -1918,7 +1995,7 @@
                 "text": "402.7 KB"
               },
               {
-                "date": 1789477584762
+                "date": 1789469640000
               }
             ],
             "actions": [
@@ -1974,7 +2051,7 @@
                 "text": "913 B"
               },
               {
-                "date": 1786107984762
+                "date": 1786100040000
               }
             ],
             "actions": [
@@ -2030,7 +2107,7 @@
                 "text": "1.1 MB"
               },
               {
-                "date": 1788786384762
+                "date": 1788778440000
               }
             ],
             "actions": [
@@ -2092,7 +2169,7 @@
             },
             {
               "label": "Modified",
-              "value": "9/16/2026, 4:12:07 PM"
+              "value": "9/16/2026, 2:00:00 PM"
             },
             {
               "label": "Kind",
@@ -2153,14 +2230,18 @@
     "1-search": {
       "palette": "files",
       "keys": [
-        "type:readme"
+        "wait:300",
+        "type:readme",
+        "wait:200"
       ],
       "caption": "Part of a file name typed: the matches under the configured folders, size and date on the right"
     },
     "2-detail": {
       "palette": "files",
       "keys": [
+        "wait:300",
         "type:readme",
+        "wait:200",
         "cmd+i"
       ],
       "caption": "The detail pane on a text file: path, size, modified, kind, and its first lines"
@@ -2168,7 +2249,9 @@
     "3-open-with": {
       "palette": "files",
       "keys": [
+        "wait:300",
         "type:readme",
+        "wait:200",
         "cmd+o"
       ],
       "caption": "Open with…: the apps registered for the file, the default tagged"
@@ -2176,6 +2259,7 @@
     "4-recent": {
       "palette": "recent",
       "keys": [
+        "wait:300",
         "down"
       ],
       "caption": "Recent Files: what was used in the last seven days, newest first"
@@ -2183,7 +2267,9 @@
     "5-browse": {
       "palette": "files",
       "keys": [
+        "wait:300",
         "type:~/pro",
+        "wait:200",
         "enter",
         "wait:200",
         "down"
@@ -2193,10 +2279,12 @@
     "6-rename": {
       "palette": "files",
       "keys": [
+        "wait:300",
         "type:readme",
+        "wait:200",
         "cmd+shift+r"
       ],
-      "caption": "Rename takes the bar's name, Move to and Copy to are forms; Compress zips the file next to itself"
+      "caption": "Rename (cmd+shift+R) is a form over the name, in the same folder; Move to and Copy to open the same way"
     }
   }
 }

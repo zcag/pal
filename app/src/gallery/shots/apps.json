@@ -1078,9 +1078,9 @@
     },
     "2-search": {
       "keys": [
-        "type:ma"
+        "type:ical"
       ],
-      "caption": "Typing at the root: the name, the bundle id and the display name all match"
+      "caption": "Typing at the root finds an app by its bundle id as well as its name: ical is Calendar (com.apple.iCal)"
     },
     "3-actions": {
       "palette": "apps",
@@ -1093,10 +1093,9 @@
     "4-panes": {
       "palette": "apps",
       "keys": [
-        "type:settings",
-        "down*3"
+        "type:network"
       ],
-      "caption": "The System Settings panes are rows too, found by what they hold"
+      "caption": "The System Settings panes are rows too, found by what they hold: network finds Network and Wi-Fi"
     }
   }
 }

@@ -78,15 +78,31 @@
       "mocks": {
         "fresh": {
           "title": "A code just arrived",
-          "item": { "icon": "", "title": "482913", "color": "green", "tooltip": "Akbank: Akbank Mobil giris kodunuz: 482913. Kodu kimseyle paylasmayin." }
+          "item": {
+            "icon": "",
+            "title": "482913",
+            "color": "green",
+            "tooltip": "Akbank: Akbank Mobil giris kodunuz: 482913. Kodu kimseyle paylasmayin."
+          }
         },
         "late": {
           "title": "Forty seconds in, the minute nearly up",
-          "item": { "icon": "", "title": "731064", "color": "green", "tooltip": "Google: G-731064 is your Google verification code." }
+          "item": {
+            "icon": "",
+            "title": "731064",
+            "color": "green",
+            "tooltip": "Google: G-731064 is your Google verification code."
+          }
         },
         "quiet": {
           "title": "No code in the last minute",
-          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "No recent code" } }
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "",
+              "tooltip": "No recent code"
+            }
+          }
         }
       },
       "keys": [
@@ -131,44 +147,34 @@
     "screenshots": [
       {
         "file": "1-codes.png",
-        "caption": "The codes of the day and earlier: the sender, the message, the code as a tag, when it came"
+        "caption": "Today's codes and yesterday's: the sender, the message, the code as a green tag, how long ago it came"
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane: the whole message, the code, the sender, when it was received"
+        "caption": "The detail pane: the whole message, the code, the sender with its number, when it was received"
       },
       {
         "file": "3-actions.png",
-        "caption": "Paste the code into the app in front, copy it, or copy the sender"
+        "caption": "Paste the code into the app in front, copy it (concealed, gone in 30 s), or copy the sender"
       },
       {
-        "file": "bar-menubar-dark.png",
+        "file": "bar-menubar.png",
         "caption": "On the menu bar: the code that just arrived, in green, for a minute",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "The same item on a light menu bar",
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: the code large, who sent it, the minute counting down, the two codes before it; Enter copies",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
-        "caption": "A click opens the popover: the code large, who sent it, the minute counting down, the two codes before it; Enter copies",
+        "file": "bar-popover-late.png",
+        "caption": "A code forty seconds in: the bar nearly run down, the item gone twenty seconds later",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the key glyph and the code, both green",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "The same popover in the dark theme",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-gcode.png",
-        "caption": "A Google code forty seconds in: the bar nearly run down",
         "kind": "bar"
       }
     ],

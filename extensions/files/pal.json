@@ -122,7 +122,7 @@
       },
       {
         "file": "6-rename.png",
-        "caption": "Rename takes the bar's name, Move to and Copy to are forms; Compress zips the file next to itself"
+        "caption": "Rename (cmd+shift+R) is a form over the name, in the same folder; Move to and Copy to open the same way"
       }
     ],
     "actions": [

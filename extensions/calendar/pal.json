@@ -139,52 +139,52 @@
     "screenshots": [
       {
         "file": "1-schedule.png",
-        "caption": "Today and the days after, the running event tagged now, calls tagged Join"
+        "caption": "What is left of today and the days after, the next event tagged with how soon, calls tagged Join"
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane: the notes as markdown, when, where, the call, the attendees with their replies"
+        "caption": "The detail pane: the notes as markdown, when, the call, the organizer, the attendees with their replies"
       },
       {
         "file": "3-new.png",
-        "caption": "New event: a title, a day in words, the times, the calendar"
+        "caption": "New event: a title, a day in words, the times from the next quarter hour, the calendar"
       },
       {
         "file": "4-today.png",
-        "caption": "Today: the day in order, the running event with what is left of it, the rest with how long until they start"
+        "caption": "Today: the whole day in order, what is over greyed, the rest with how long until it starts"
       },
       {
         "file": "5-quick.png",
-        "caption": "Quick Add: a line typed, the event read back with its day, time and calendar before Enter adds it"
+        "caption": "Quick Add: a line typed, the event read back with its day, time, place and calendar before Enter adds it"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: the next event and how long until it, amber inside fifteen minutes, a dot for a call to join",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the next event and how long until it, the glyph amber inside fifteen minutes, a dot for a call to join",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "Inside five minutes the item turns red",
+        "file": "bar-menubar-urgent.png",
+        "caption": "Inside five minutes the glyph turns red",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
-        "caption": "A hover peek opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header",
+        "file": "bar-popover.png",
+        "caption": "A click opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-now.png",
+        "caption": "While a call runs its row sits on a card with what is left of it, the strip green; Enter joins",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-tomorrow.png",
+        "caption": "Late in the day: what is left, and t opens tomorrow in the same shape; the arrows walk the rows",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
-        "caption": "On sketchybar, hours out: muted, the strip's own text; hidden when nothing starts within ten hours",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "While a call runs its row sits on a card with what is left of it; Enter joins",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-tomorrow.png",
-        "caption": "t opens tomorrow in the same shape; the arrows walk the rows",
+        "caption": "On sketchybar: the same item, amber with the call's dot",
         "kind": "bar"
       }
     ],

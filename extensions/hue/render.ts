@@ -55,7 +55,7 @@ export function shown(t: Target): Shown {
   return {
     name: r.name, on: a.anyOn, brightness: a.brightness, mirek, mirekRange: range, hs: first?.xy ? xyToHs(first.xy, first.gamut) : undefined,
     hasColor: r.lights.some((l) => l.xy), hasTemperature: !!range, color: a.color ?? mirekToRgb(mirek ?? 370), effects, effect: on.find((l) => l.effect)?.effect,
-    sub: `${r.kind === "zone" ? "Zone" : "Room"} · ${a.on === 0 ? "all off" : a.on === a.total ? `all ${a.total} on` : `${a.on} of ${a.total} on`}`,
+    sub: `${r.kind === "zone" ? "Zone" : "Room"} · ${a.on === 0 ? "all off" : a.on === a.total ? (a.total === 1 ? "on" : `all ${a.total} on`) : `${a.on} of ${a.total} on`}`,
   };
 }
 

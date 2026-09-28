@@ -3,7 +3,12 @@
   "title": "Calculator",
   "description": "Evaluates what you type: arithmetic, units, currencies, percentages, dates and time zones.",
   "version": "0.2.0",
-  "icon": { "tile": { "glyph": "󰃬", "bg": "indigo" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰃬",
+      "bg": "indigo"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -65,7 +70,7 @@
     "screenshots": [
       {
         "file": "1-currency.png",
-        "caption": "12 usd to try at the ECB's rate; the reverse conversion is the second row"
+        "caption": "12 usd to try at the ECB's rate, the reverse as the second row; the pane shows the rate, its inverse and where it comes from"
       },
       {
         "file": "2-dates.png",

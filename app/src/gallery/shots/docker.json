@@ -1313,7 +1313,7 @@
     "docker/3f9c2a1b7e40:logs": {
       "show": {
         "title": "Logs 3f9c2a1b7e40",
-        "markdown": "````\n2026/09/16 09:12:01 [notice] 1#1: using the \"epoll\" event method\n2026/09/16 09:12:01 [notice] 1#1: nginx/1.27.2\n2026/09/16 09:12:01 [notice] 1#1: start worker processes\n2026/09/16 09:12:01 [notice] 1#1: start worker process 29\n2026/09/16 09:12:01 [notice] 1#1: start worker process 30\n172.18.0.1 - - [16/Sep/2026:09:14:22 +0000] \"GET / HTTP/1.1\" 200 615 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:14:22 +0000] \"GET /assets/app.css HTTP/1.1\" 200 4021 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:14:23 +0000] \"GET /api/products HTTP/1.1\" 200 2318 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:15:40 +0000] \"POST /api/cart HTTP/1.1\" 201 87 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:15:41 +0000] \"GET /cart HTTP/1.1\" 200 1180 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:20:03 +0000] \"GET /healthz HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.31\"\n172.18.0.1 - - [16/Sep/2026:09:20:33 +0000] \"GET /healthz HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.31\"\n````"
+        "markdown": "````\n2026/09/15 11:32:04 [notice] 1#1: using the \"epoll\" event method\n2026/09/15 11:32:04 [notice] 1#1: nginx/1.27.2\n2026/09/15 11:32:04 [notice] 1#1: start worker processes\n2026/09/15 11:32:04 [notice] 1#1: start worker process 29\n2026/09/15 11:32:04 [notice] 1#1: start worker process 30\n172.18.0.1 - - [16/Sep/2026:11:24:12 +0000] \"GET / HTTP/1.1\" 200 615 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:11:24:12 +0000] \"GET /assets/app.css HTTP/1.1\" 200 4021 \"-\"\n172.18.0.1 - - [16/Sep/2026:11:24:13 +0000] \"GET /api/products HTTP/1.1\" 200 2318 \"-\"\n172.18.0.1 - - [16/Sep/2026:11:26:40 +0000] \"POST /api/cart HTTP/1.1\" 201 87 \"-\"\n172.18.0.1 - - [16/Sep/2026:11:26:41 +0000] \"GET /cart HTTP/1.1\" 200 1180 \"-\"\n172.18.0.1 - - [16/Sep/2026:11:31:03 +0000] \"GET /healthz HTTP/1.1\" 200 2 \"-\" \"curl/8.9.1\"\n172.18.0.1 - - [16/Sep/2026:11:31:33 +0000] \"GET /healthz HTTP/1.1\" 200 2 \"-\" \"curl/8.9.1\"\n````"
       }
     },
     "images/nginx:1.27-alpine:run": {
@@ -1346,6 +1346,7 @@
     "1-containers": {
       "palette": "docker",
       "keys": [
+        "wait:1500",
         "down"
       ],
       "caption": "Containers, running first, with ports, status and a state tag"
@@ -1353,6 +1354,7 @@
     "2-actions": {
       "palette": "docker",
       "keys": [
+        "wait:1500",
         "cmd+k"
       ],
       "caption": "What a running container can do: stop, logs, shell, restart, remove"
@@ -1360,15 +1362,17 @@
     "3-logs": {
       "palette": "docker",
       "keys": [
+        "wait:1500",
         "cmd+l"
       ],
-      "caption": "The last 200 log lines of a container, opened in the panel"
+      "caption": "The last log lines of a container, opened in the panel (cmd+L): nginx starting yesterday, today's requests under it"
     },
     "4-run": {
       "palette": "images",
       "keys": [
+        "wait:1500",
         "enter",
-        "wait:200",
+        "wait:700",
         "type:web"
       ],
       "caption": "Running an image: the name and the ports, then docker run -d"

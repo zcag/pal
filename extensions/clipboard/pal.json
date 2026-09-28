@@ -64,7 +64,7 @@
       },
       {
         "file": "2-image.png",
-        "caption": "An image entry: its size and dimensions, the picture in the pane"
+        "caption": "An image entry: its size and dimensions on the row, the picture in the pane"
       },
       {
         "file": "3-colors.png",
@@ -224,7 +224,9 @@
       ]
     },
     "history": {
-      "on": ["clipboard"],
+      "on": [
+        "clipboard"
+      ],
       "kind": "input",
       "description": "Every copy, pinned ones first, then newest.",
       "keys": [

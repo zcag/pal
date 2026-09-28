@@ -5,6 +5,7 @@
 // `bun run extensions/hue/fixture.ts`, then `node app/scripts/shots.mjs hue`
 // and `node app/scripts/shots.mjs bar hue`.
 import { writeFileSync } from "node:fs";
+import { NOW } from "../../app/scripts/fixture-kit.ts";
 import { Home, lightsOf, roomsOf, scenesOf, sensorsOf } from "./model.ts";
 import { freshPopover, renderPopover, type PopoverData } from "./popover.ts";
 import { fresh, render, renderSetup } from "./render.ts";
@@ -14,7 +15,10 @@ import { SAMPLE_BRIDGE_ID, SAMPLE_RESOURCES } from "./sample.ts";
 
 const home = new Home();
 home.load({ id: SAMPLE_BRIDGE_ID, name: "Hue Bridge", ip: "192.168.1.25" }, SAMPLE_RESOURCES);
-const rooms = roomsOf(home), lights = lightsOf(home), scenes = scenesOf(home), sensors = sensorsOf(home);
+const rooms = roomsOf(home), lights = lightsOf(home), scenes = scenesOf(home);
+// The sample's reports are from its own evening: moved as one so the newest (the hallway's motion) is three minutes before the kit's clock.
+const newest = Math.max(...sensorsOf(home).map((s) => (s.changed ? Date.parse(s.changed) : 0)));
+const sensors = sensorsOf(home).map((s) => (s.changed ? { ...s, changed: new Date(Date.parse(s.changed) - newest + NOW - 3 * 60_000).toISOString() } : s));
 const living = rooms.find((r) => r.id === "room:living-room")!;
 const bedroom = rooms.find((r) => r.id === "room:bedroom")!;
 const sofa = lights.find((l) => l.id === "light:sofa-lamp")!;
@@ -30,7 +34,6 @@ const automationItems = automationsOf(home).map((a) => automationRow(a, false, "
 
 const lightView = render({ kind: "light", light: sofa, room: living }, fresh(), livingScenes);
 const roomView = render({ kind: "room", room: bedroom }, { ...fresh(), focus: "scenes", index: 1 }, bedroomScenes);
-const NOW = 1_758_050_000_000;
 const setupView = renderSetup({ phase: "press", ip: "192.168.1.25", name: "Hue Bridge", id: "ecb5fafffe8c0231", deadline: NOW + 23_000, attempts: 7 }, [], [], NOW);
 
 const fixture = {
@@ -75,10 +78,10 @@ const bar = {
     { id: "opened", item: { menu: { view: opened } } },
   ],
   shots: {
-    "menubar": { target: "menubar", caption: "On the menu bar: how many lights are on (the live strip carries the main room's colour as a dot; the gallery draws the bulb)" },
-    "popover": { target: "menubar", popover: true, raw: true, caption: "A click opens the popover: the rooms as colour tiles (a tap toggles, the chevron opens), the sensors, the scenes, the keys" },
-    "popover-room": { target: "menubar", popover: true, raw: true, state: "opened", caption: "A room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them" },
-    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count on the label" },
+    "menubar": { target: "menubar", caption: "On the menu bar: the bulb and how many lights are on" },
+    "popover": { target: "menubar", popover: true, raw: true, caption: "A click opens the popover: the rooms as tiles in their colour (the switch toggles, the chevron opens), the motion and temperature, the main room's scenes, the keys" },
+    "popover-room": { target: "menubar", popover: true, raw: true, state: "opened", caption: "The living room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them" },
+    "sketchybar": { target: "sketchybar", caption: "On sketchybar: the bulb and the count on the label" },
   },
 };
 writeFileSync(new URL("../../app/src/gallery/shots/bar-hue.json", import.meta.url), JSON.stringify(bar) + "\n");

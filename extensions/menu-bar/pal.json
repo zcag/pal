@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "\udb80\udf5c",
+      "glyph": "󰍜",
       "bg": "slate"
     }
   },
@@ -31,19 +31,19 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "TextEdit's menus in one list: a section per menu, the path as the subtitle, shortcuts as key caps"
+        "caption": "The front app's menus in one list (TextEdit here): a section per menu, the path as the subtitle, shortcuts as key caps"
       },
       {
         "file": "2-checked.png",
-        "caption": "A checked item carries its mark; Enter Full Screen shows its Globe key"
+        "caption": "A checked item carries its mark, and Enter Full Screen shows its Globe (fn) key"
       },
       {
         "file": "3-search.png",
-        "caption": "Typing narrows by the whole path: font finds every Format > Font item"
+        "caption": "Typing narrows by the whole path: format font finds every item of Format > Font"
       },
       {
         "file": "4-root.png",
-        "caption": "The rows are root results too: export from the root, no palette first"
+        "caption": "The rows are root results too: export pdf at the root finds File > Export as PDF… with no palette opened first"
       }
     ],
     "actions": [
