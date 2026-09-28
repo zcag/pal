@@ -77,7 +77,7 @@ async function api<T>(path: string, params: Record<string, string>, key: string)
   const res = await fetch(`${DATA_API}/${path}?${new URLSearchParams({ ...params, key })}`, { signal: AbortSignal.timeout(FETCH_MS) });
   if (res.status === 400 || res.status === 403) {
     const reason = ((await res.json().catch(() => ({}))) as { error?: { errors?: { reason?: string }[] } })?.error?.errors?.[0]?.reason ?? "";
-    throw new YouTubeError(`api ${res.status} ${reason}`, reason === "quotaExceeded" ? "The Data API's daily quota is used up (10,000 units; a search is 100): tomorrow, or set `invidious_url`" : "YouTube refused the key: check `api_key` and that YouTube Data API v3 is enabled on its project");
+    throw new YouTubeError(`api ${res.status} ${reason}`, reason === "quotaExceeded" ? "The Data API's daily quota is used up (10,000 units; a search is 100): tomorrow, or set Invidious instance" : "YouTube refused the key: check Data API key and that YouTube Data API v3 is enabled on its project");
   }
   if (!res.ok) throw new YouTubeError(`api ${res.status}`, `YouTube answered ${res.status}`);
   return (await res.json()) as T;

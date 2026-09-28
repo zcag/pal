@@ -101,22 +101,22 @@ async function google(text: string, from: string, to: string, signal: AbortSigna
   if (!r.ok || raw.startsWith("<")) {
     // A "Sorry..." page is Google refusing the address, not the text; a 4xx is the same refusal with a code.
     const refused = raw.includes("Sorry") || r.status === 429 || r.status === 403;
-    throw new TranslateError(`Google answered ${r.status}${refused ? " (automated-query refusal)" : ""}`, refused ? "Google is refusing this network for now: switch `backend` to DeepL with a key, or try later" : `Google answered ${r.status}: try again`);
+    throw new TranslateError(`Google answered ${r.status}${refused ? " (automated-query refusal)" : ""}`, refused ? "Google is refusing this network for now: switch Backend to DeepL with a key, or try later" : `Google answered ${r.status}: try again`);
   }
   let reply: GoogleReply;
-  try { reply = JSON.parse(raw); } catch { throw new TranslateError("Google answered something that is not JSON", "Google's unofficial endpoint changed shape: switch `backend` to DeepL with a key"); }
+  try { reply = JSON.parse(raw); } catch { throw new TranslateError("Google answered something that is not JSON", "Google's unofficial endpoint changed shape: switch Backend to DeepL with a key"); }
   return parseGoogle(reply, to);
 }
 
 type DeeplReply = { translations?: { detected_source_language?: string; text?: string }[]; message?: string };
 
 async function deepl(text: string, from: string, to: string, key: string, signal: AbortSignal): Promise<Translation> {
-  if (!key) throw new TranslateError("DeepL key is not set", "Set `api_key` under Settings › Extensions › Translate (a free key ends in :fx), or switch `backend` to Google");
+  if (!key) throw new TranslateError("DeepL key is not set", "Set DeepL API key under Settings › Extensions › Translate (a free key ends in :fx), or switch Backend to Google");
   const body = { text: [text], target_lang: deeplTarget(to), ...(deeplSource(from) && { source_lang: deeplSource(from) }) };
   const r = await fetch(`${DEEPL}/v2/translate`, { method: "POST", body: JSON.stringify(body), headers: { Authorization: `DeepL-Auth-Key ${key}`, "Content-Type": "application/json" }, signal });
   const reply = (await r.json().catch(() => ({}))) as DeeplReply;
   if (!r.ok) {
-    const why = r.status === 403 ? "DeepL rejected the key: check `api_key` (a free key ends in :fx)" : r.status === 456 ? "DeepL's monthly quota for this key is used up" : r.status === 429 ? "DeepL asks to slow down: try again in a moment" : `DeepL answered ${r.status}${reply.message ? `: ${reply.message}` : ""}`;
+    const why = r.status === 403 ? "DeepL rejected the key: check DeepL API key (a free key ends in :fx)" : r.status === 456 ? "DeepL's monthly quota for this key is used up" : r.status === 429 ? "DeepL asks to slow down: try again in a moment" : `DeepL answered ${r.status}${reply.message ? `: ${reply.message}` : ""}`;
     throw new TranslateError(why, why);
   }
   const t = reply.translations?.[0];

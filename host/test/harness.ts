@@ -78,6 +78,20 @@ export type Hello = {
   errors: Record<string, string>;
 };
 
+/**
+ * A row's name and subtitle and a toast are plain text: a `code span` in
+ * them shows its backticks. An extension names a setting by its label ("Set
+ * Data API key"), never its id. Only an id-shaped span is caught, so a
+ * user's own text (a clipboard entry) still passes.
+ */
+function plainText<T extends Item[]>(items: T, toast?: unknown): T {
+  const t = toast as { title?: string; message?: string } | undefined;
+  for (const s of [...items.flatMap((i) => [i.name, i.subtitle]), t?.title, t?.message]) {
+    if (typeof s === "string" && /`[a-z][a-z0-9_]*`/.test(s)) throw new Error(`plain text with a code span, which shows its backticks: ${JSON.stringify(s)} (name a setting by its label)`);
+  }
+  return items;
+}
+
 export class HostError extends Error {
   constructor(public method: string, message: string) { super(message); }
 }
@@ -183,7 +197,7 @@ export class Host {
 
   hello() { return this.request<Hello>("hello"); }
   list(extension: string, palette: string, query?: string, ctx?: Ctx) {
-    return this.request<{ items: Item[] }>("list", { extension, palette, query, ...ctx }).then((r) => r.items);
+    return this.request<{ items: Item[] }>("list", { extension, palette, query, ...ctx }).then((r) => plainText(r.items));
   }
   /** A streamed `list`, as the panel asks an input palette: the answer, and the rows each `ctx.partial` showed before it, in order. */
   async listStream(extension: string, palette: string, query?: string, ctx?: Ctx) {
@@ -195,7 +209,7 @@ export class Host {
   }
   private streams = 0;
   pick(extension: string, palette: string, id: string, action?: string, ctx?: Ctx, timeout?: number) {
-    return this.request<Effect & Record<string, unknown>>("pick", { extension, palette, id, action, ...ctx }, timeout);
+    return this.request<Effect & Record<string, unknown>>("pick", { extension, palette, id, action, ...ctx }, timeout).then((e) => { plainText([], e.toast); return e; });
   }
   detail(extension: string, palette: string, id: string, ctx?: Ctx) {
     return this.request<Detail>("detail", { extension, palette, id, ...ctx });

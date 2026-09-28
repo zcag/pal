@@ -149,7 +149,7 @@ describe("windows", () => {
 
     test("toggle: a row once the setting names two spaces; on the first it goes to the second, anywhere else to the first", async () => {
       expect((await spaces()).map((r) => r.id)).not.toContain("toggle");
-      expect(await go("toggle")).toEqual({ keep: true, toast: { title: "No toggle pair: set two space names in `toggle`", style: "failure" } });
+      expect(await go("toggle")).toEqual({ keep: true, toast: { title: "No toggle pair: set two space names in Toggle pair", style: "failure" } });
       host.changeSettings("windows", { settings: { spaces: ["web", "term"], toggle: ["web", "term"] } });
       const rows = await spaces();
       expect(rows.at(-1)).toMatchObject({ id: "toggle", name: "Toggle web / term", subtitle: "Between the two; from elsewhere to web", icon: "\u{f04e1}" });

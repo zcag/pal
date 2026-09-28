@@ -246,7 +246,7 @@ describe("translate", () => {
     expect(items[0].name).toContain("DeepL rejected the key");
     host.changeSettings("translate", { settings: { to: "en", backend: "deepl", api_key: "" } });
     items = await list("merhaba once more");
-    expect(items[0].name).toContain("Set `api_key`");
+    expect(items[0].name).toContain("Set DeepL API key");
     host.changeSettings("translate", { settings: { to: "tr" } });
   });
 

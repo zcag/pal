@@ -109,7 +109,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   held.clear();
   if (!p.text) {
     const rows = savedRows(s, mode);
-    if (!rows.length) return [hint("setup", "Type a place to search, or a route: home > work", "Set `home`, `work` and `places` under Settings › Extensions › Maps for rows here"), hint("root", "At the root, maps: or go: before the query", "go: coffee near me · maps: home > work")];
+    if (!rows.length) return [hint("setup", "Type a place to search, or a route: home > work", "Set Home, Work and Saved places under Settings › Extensions › Maps for rows here"), hint("root", "At the root, maps: or go: before the query", "go: coffee near me · maps: home > work")];
     return rows;
   }
   if (p.from && p.to) {

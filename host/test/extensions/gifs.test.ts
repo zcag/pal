@@ -159,7 +159,7 @@ describe("gifs", () => {
     host.changeSettings("gifs", { settings: { giphy_api_key: "", content_filter: "high" } });
     let items = await list("");
     expect(items).toEqual([expect.objectContaining({ id: "hint:failed", actions: [] })]);
-    expect(items[0].name).toContain("giphy_api_key");
+    expect(items[0].name).toContain("Giphy API key");
     expect(items[0].name).toContain("developers.giphy.com › Create an App");
     host.changeSettings("gifs", { settings: { giphy_api_key: "bad", content_filter: "high" } });
     items = await list("");

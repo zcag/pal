@@ -112,7 +112,7 @@ function rows(t: Translation, src: Source, cut: boolean, given: boolean): Item[]
   if (t.from === t.to) {
     // Nothing to translate to: the text is in the only language the settings name (an English text, `to` unset on an English system).
     return [
-      hint("same", `Already ${nameOf(t.from)}`, "Set `to` (or `from`) to the other language of your pair, or name a target: tr: …, >de …", { icon: GLYPH.earth }),
+      hint("same", `Already ${nameOf(t.from)}`, "Set To (or From) to the other language of your pair, or name a target: tr: …, >de …", { icon: GLYPH.earth }),
       hint("prefix", "Name the target with a prefix", "tr: hello · >de hello · en>tr merhaba · german: hello"),
     ];
   }

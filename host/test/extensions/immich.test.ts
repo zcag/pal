@@ -385,11 +385,11 @@ describe("immich", () => {
     await expect(host.request("link", { extension: "immich", route: "search", params: { q: "x" } })).rejects.toThrow("set url and api_key");
     host.changeSettings("immich", { settings: { url: base, api_key: "bad", web_url: "", download_to: downloads } });
     await settle();
-    expect(await list("")).toEqual([expect.objectContaining({ id: "hint:failed", name: "Immich refused the key: check `api_key` under Settings › Extensions › Immich", actions: [] })]);
+    expect(await list("")).toEqual([expect.objectContaining({ id: "hint:failed", name: "Immich refused the key: check API key under Settings › Extensions › Immich", actions: [] })]);
     expect((await host.list("immich", "albums"))[0].name).toContain("refused the key");
     host.changeSettings("immich", { settings: { url: "http://127.0.0.1:9", api_key: "good", web_url: "", download_to: downloads } });
     await settle();
-    expect((await list("", { refresh: true }))[0].name).toBe("Immich did not answer at http://127.0.0.1:9: check `url` and the network");
+    expect((await list("", { refresh: true }))[0].name).toBe("Immich did not answer at http://127.0.0.1:9: check URL and the network");
     host.changeSettings("immich", { settings: { url: base, api_key: "good", web_url: "https://photos.example.com", download_to: downloads } });
     await settle();
     expect((await list("")).length).toBe(25);

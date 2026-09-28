@@ -211,7 +211,7 @@ export default {
         const previous = spaces.find((s) => s.previous);
         const pair = togglePair(spaces);
         let target = id === "last" ? previous : id === "toggle" ? pair && (pair[0].current ? pair[1] : pair[0]) : spaces.find((s) => spaceRowId(s) === id);
-        if (!target) return toast(id === "last" ? "No previous space" : id === "toggle" ? "No toggle pair: set two space names in `toggle`" : `No space ${id}`, undefined, "failure");
+        if (!target) return toast(id === "last" ? "No previous space" : id === "toggle" ? "No toggle pair: set two space names in Toggle pair" : `No space ${id}`, undefined, "failure");
         // A space's own key pressed on it goes back (Hyprland's `workspace_back_and_forth`).
         if (target.current && settings.get<Settings>().back_and_forth && previous) target = previous;
         return { space: target.id };

@@ -61,7 +61,7 @@ export function find(root: Node, path: string): Node | undefined {
 export type Kind = "folder" | "app" | "image" | "video" | "audio" | "document" | "code" | "archive" | "disk" | "package" | "file" | "rest";
 export const KINDS: Kind[] = ["folder", "app", "image", "video", "audio", "document", "code", "archive", "disk", "package", "file", "rest"];
 const EXT: [Kind, string[]][] = [
-  ["image", ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "svg", "bmp", "tiff", "tif", "avif", "raw", "arw", "cr2", "dng", "psd", "ai"]],
+  ["image", ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "svg", "bmp", "tiff", "tif", "avif", "arw", "cr2", "dng", "psd", "ai"]],
   ["video", ["mp4", "mov", "mkv", "avi", "webm", "m4v", "mpg", "mpeg", "wmv", "flv", "ts"]],
   ["audio", ["mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "aiff", "wma", "alac"]],
   ["document", ["txt", "md", "pdf", "doc", "docx", "rtf", "pages", "odt", "xls", "xlsx", "numbers", "csv", "ppt", "pptx", "key", "epub", "mobi", "azw3"]],

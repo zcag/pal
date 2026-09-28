@@ -175,7 +175,7 @@ describe("youtube", () => {
     host.changeSettings("youtube", { settings: { api_key: "quota" } });
     expect((await list("lofi again"))[0].name).toContain("daily quota");
     host.changeSettings("youtube", { settings: {} });
-    expect((await list("lofi"))[0]).toMatchObject({ id: "hint:setup", name: expect.stringContaining("invidious_url") });
+    expect((await list("lofi"))[0]).toMatchObject({ id: "hint:setup", name: expect.stringContaining("Invidious instance") });
     expect(await list("yt: lofi", { inline: true })).toEqual([]);
     expect((await host.list("youtube", "channels", "x"))[0].id).toBe("hint:setup");
   });

@@ -342,6 +342,8 @@ async function runOne(input: string, job: Job, s: Settings, avail: Avail): Promi
   const p = plan(job, input, { avail, quality: s.quality, tmp: tmpPath, output: target, dims: from });
   if (isMissing(p)) throw new Error(`${p.why}: install ${p.missing.join(" or ")}`);
   await execute(p, { folder: job.kind === "icons" });
+  // pngquant declines a picture it cannot keep above the quality floor (exec.ts): the next tool in line (oxipng, magick) tries it losslessly.
+  if (p.tool === "pngquant" && !(await sizeOf(target))) return runOne(input, job, s, avail.filter((t) => t !== "pngquant"));
   return land(input, job, output, target, p.tool, before, from, p.lossless, replace);
 }
 

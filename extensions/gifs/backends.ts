@@ -59,10 +59,10 @@ export function parseGiphy(reply: unknown): Gif[] {
 }
 
 async function giphy(path: string, params: Record<string, string>, key: string, filter: Filter): Promise<Gif[]> {
-  if (!key) throw new GifError("no giphy key", "Set `giphy_api_key` under Settings › Extensions › GIFs (a free key: developers.giphy.com › Create an App, API)");
+  if (!key) throw new GifError("no giphy key", "Set Giphy API key under Settings › Extensions › GIFs (a free key: developers.giphy.com › Create an App, API)");
   const q = new URLSearchParams({ api_key: key, limit: String(LIMIT), rating: GIPHY_RATING[filter], ...params });
   const res = await fetch(`${GIPHY}/v1/gifs/${path}?${q}`, { signal: AbortSignal.timeout(FETCH_MS) });
-  if (res.status === 401 || res.status === 403) throw new GifError(`giphy ${res.status}`, "Giphy refused the key: check `giphy_api_key`");
+  if (res.status === 401 || res.status === 403) throw new GifError(`giphy ${res.status}`, "Giphy refused the key: check Giphy API key");
   if (res.status === 429) throw new GifError("giphy 429", "Giphy's rate limit: try again in a moment");
   if (!res.ok) throw new GifError(`giphy ${res.status}`, `Giphy answered ${res.status}`);
   return parseGiphy(await res.json());

@@ -10,7 +10,7 @@
 // says so.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { errorMessage, failed, hint, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { dayNameYear, errorMessage, failed, hint, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { age, channels as searchChannels, channelUrl, channelVideos, count, duration, search, thumbUrl, watchUrl, YouTubeError, type Channel, type Source, type Video } from "./api.ts";
 
 /** `[extensions.youtube]`, defaults in pal.json. */
@@ -75,7 +75,7 @@ export function playerArgv(player: Player, url: string): { title: string; argv: 
 function play(v: Video): Effect {
   const url = watchUrl(v.id);
   const p = playerArgv(S().player ?? "auto", url);
-  if (!p) return S().player === "browser" || S().player === "auto" ? { open: url } : toast(`${S().player} is not installed`, "Set `player` under Settings › Extensions › YouTube", "failure");
+  if (!p) return S().player === "browser" || S().player === "auto" ? { open: url } : toast(`${S().player} is not installed`, "Set Player under Settings › Extensions › YouTube", "failure");
   try { Bun.spawn(p.argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); }
   catch (e) { return failed(`start ${p.title}`, e); }
   return { hud: `Playing in ${p.title}` };
@@ -99,7 +99,7 @@ const detailOf = (v: Video): Detail => ({
     { label: "Channel", link: { text: v.channel, href: channelUrl(v.channelId) } },
     { label: "Length", value: v.live ? "live now" : duration(v.seconds) },
     ...(v.views !== undefined ? [{ label: "Views", value: v.views.toLocaleString() }] : []),
-    ...(v.published ? [{ label: "Published", value: `${new Date(v.published).toLocaleDateString()} (${age(v.published)})` }] : []),
+    ...(v.published ? [{ label: "Published", value: `${dayNameYear(v.published)} (${age(v.published)})` }] : []),
     { label: "URL", link: { text: `youtube.com/watch?v=${v.id}`, href: watchUrl(v.id) } },
   ],
 });
@@ -112,7 +112,7 @@ function item(v: Video, actions: Action[], section?: string): Item {
 }
 
 const setupHints = (): Item[] => [
-  hint("setup", "Set `api_key` or `invidious_url` under Settings › Extensions › YouTube", "A Data API v3 key (free, 100 searches a day) or an Invidious instance that serves its API"),
+  hint("setup", "Set a Data API key or an Invidious instance under Settings › Extensions › YouTube", "A Data API v3 key (free, 100 searches a day) or an Invidious instance that serves its API"),
   hint("root", "At the root, yt: before the query", "yt: lofi hip hop"),
 ];
 

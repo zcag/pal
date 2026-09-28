@@ -249,7 +249,9 @@ export function render(st: MapState): View {
   }
   if (st.marked.size) status.push(text(`${st.marked.size} marked`, { key: "marked", size: "xs", color: "destructive", weight: "medium" }));
   if (st.denied) status.push(text(`${st.denied} unreadable`, { key: "denied", size: "xs", color: "amber" }));
-  const head = row([...crumbs, { type: "spacer" }, ...status], { key: "head", gap: 1, minHeight: 20 });
+  // One status line: the parts apart by a dot, as the totals inside the first are.
+  const line = status.flatMap((n, k) => (k ? [text("·", { key: `dot${k}`, style: "muted", size: "xs" }), n] : [n]));
+  const head = row([...crumbs, { type: "spacer" }, ...line], { key: "head", gap: 1, minHeight: 20 });
 
   // ---- the footer: the focused box, then the keys -------------------------------
   const foot: ViewNode[] = [];

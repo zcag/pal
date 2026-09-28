@@ -273,12 +273,12 @@ async function request(c: Client, method: string, path: string, body?: unknown, 
     res = await fetch(`${c.url}/api${path}`, { method, headers: { "x-api-key": c.key, accept: "application/json", ...(body !== undefined && { "content-type": "application/json" }) }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(ms) });
   } catch (e) {
     const timeout = (e as Error)?.name === "TimeoutError";
-    throw new ImmichError(`${method} ${path}: ${errorMessage(e)}`, timeout ? `Immich did not answer within ${ms / 1000} s (${c.url})` : `Immich did not answer at ${c.url}: check \`url\` and the network`);
+    throw new ImmichError(`${method} ${path}: ${errorMessage(e)}`, timeout ? `Immich did not answer within ${ms / 1000} s (${c.url})` : `Immich did not answer at ${c.url}: check URL and the network`);
   }
   if (res.ok) return res;
   const text = await res.text().catch(() => "");
   const message = (() => { try { return String((JSON.parse(text) as { message?: unknown })?.message ?? text); } catch { return text; } })();
-  if (res.status === 401) throw new ImmichError(`${path} 401`, "Immich refused the key: check `api_key` under Settings › Extensions › Immich", 401);
+  if (res.status === 401) throw new ImmichError(`${path} 401`, "Immich refused the key: check API key under Settings › Extensions › Immich", 401);
   if (res.status === 403) { const p = permissionOf(message); throw new ImmichError(`${path} 403 ${message}`, p ? `The key lacks the \`${p}\` permission: make one with it under Account Settings › API Keys` : `Immich refused: ${message}`, 403); }
   if (res.status === 404) throw new ImmichError(`${path} 404`, `Not on Immich any more (${message || "404"})`, 404);
   throw new ImmichError(`${path} ${res.status} ${message}`, `Immich answered ${res.status}${message ? `: ${message}` : ""}`, res.status);

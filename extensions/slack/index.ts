@@ -8,7 +8,7 @@
 // rows' `args`); an unread row's Reply and a conversation's Send take the
 // message the same way. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { argsForm, clock, errorMessage, failed, hint, imageData, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { ago, argsForm, clock, errorMessage, failed, hint, imageData, now, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
@@ -65,6 +65,8 @@ const ms = (ts: string) => Math.round(Number(ts) * 1000);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /** A Slack `ts` as the SDK writes a moment: the clock today, the day before it otherwise. */
 const at = (ts: string) => when(ms(ts));
+/** The popover's narrow time column: the clock today, then how long ago (`when` gives "Tue 15 Sep 09:40", wider than the column). */
+const stamp = (ts: string) => { const d = new Date(ms(ts)); return d.toDateString() === new Date(now()).toDateString() ? clock(d) : ago(d, { short: true }); };
 const convIcon = (kind: Conversation["kind"]) => (kind === "private" ? ICON.private : kind === "im" ? ICON.im : kind === "mpim" ? ICON.mpim : ICON.channel);
 
 // ---- unreads --------------------------------------------------------------------
@@ -393,7 +395,7 @@ async function barState(i: Inbox): Promise<BarState> {
   const rows: BarRow[] = await Promise.all(picked.map(async (u) => {
     const ts = u.top?.ts ?? u.latest;
     return {
-      id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? u.about || "New messages" : ""), time: ts ? at(ts) : undefined, n: u.n, more: u.more,
+      id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? u.about || "New messages" : ""), time: ts ? stamp(ts) : undefined, n: u.n, more: u.more,
       avatar: u.top?.avatar ? await imageData(u.top.avatar) : undefined,
       dot: p.has(u.id) ? dotColor(p.get(u.id)!) : undefined,
       canReply: u.kind !== "thread", canRead: u.kind !== "thread" && !!u.latest, teamName: u.teamName || undefined,
