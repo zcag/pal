@@ -132,3 +132,25 @@ fn parity_snapshot_is_current() {
     let was = std::fs::read_to_string(&path).unwrap_or_default();
     assert!(was == now, "the strip parity snapshot is stale: a renderer, a fixture or a mock changed. Run `PAL_UPDATE_PARITY=1 cargo test -p pal parity`, then `npx vitest run bar-parity` in app/ (BarStrip.tsx must draw the same)");
 }
+
+/// The menu bar's real pixels for a few fixture items, to set beside the
+/// gallery's strip by eye (docs/design/screenshots.md, "Parity"): run with
+/// `PAL_PARITY_DUMP=<dir> cargo test -p pal dump_menubar_pictures -- --ignored`.
+#[test]
+#[ignore]
+fn dump_menubar_pictures() {
+    let Some(dir) = std::env::var_os("PAL_PARITY_DUMP") else { return };
+    let dir = PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, item, _) in items().into_iter().filter(|(n, _, all)| *all && n.starts_with("bar-")) {
+        for dark in [true, false] {
+            let raw: BarItem = serde_json::from_value(item.clone()).unwrap();
+            let look = BarLook::default();
+            let draw = Draw { item: raw.shaped(&look), order: 0, position: "right".into(), hover: false, look };
+            let palette = Palette::new(dark, &BTreeMap::new());
+            let Some((png, template)) = menubar::picture(&draw, &palette) else { continue };
+            let theme = if dark { "dark" } else { "light" };
+            std::fs::write(dir.join(format!("{name}-{theme}{}.png", if template { "-template" } else { "" })), png).unwrap();
+        }
+    }
+}

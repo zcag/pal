@@ -175,6 +175,12 @@ fn style(draw: &Draw, palette: &Palette) -> glyph::Style {
 /// item's colour (none: template), the whole strip when [`prerendered`],
 /// an image decoded, else nothing.
 fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>, bool)> {
+    let (img, template) = pixels(draw, palette)?;
+    Some((tauri::image::Image::new_owned(img.data, img.width, img.height), template))
+}
+
+/// [`image`]'s pixels: what the status item shows, at 2x.
+fn pixels(draw: &Draw, palette: &Palette) -> Option<(glyph::Rgba, bool)> {
     let item = &draw.item;
     let kind = item.icon_kind();
     if let Some(IconKind::Image { value, template }) = &kind {
@@ -183,7 +189,7 @@ fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>
         if draw.look.opacity < 100 {
             img.fade(draw.look.opacity as f32 / 100.0);
         }
-        return Some((tauri::image::Image::new_owned(img.data, img.width, img.height), *template));
+        return Some((img, *template));
     }
     let style = style(draw, palette);
     let glyph = match kind {
@@ -202,7 +208,15 @@ fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>
     } else {
         glyph::render(glyph?, &style)?
     };
-    Some((tauri::image::Image::new_owned(img.data.clone(), img.width, img.height), style.template()))
+    Some(((*img).clone(), style.template()))
+}
+
+/// The status item's image as a PNG and whether it is a template: the
+/// real pixels, for checking the gallery's strip against them
+/// (`parity.rs`, `dump_menubar_pictures`).
+#[cfg(test)]
+pub fn picture(draw: &Draw, palette: &Palette) -> Option<(Vec<u8>, bool)> {
+    pixels(draw, palette).map(|(img, t)| (img.png(), t))
 }
 
 /// What the menu bar draws for `draw`, as data rather than pixels: the

@@ -73,7 +73,8 @@ function Runs({ text, className, style, mono }: { text: string; className?: stri
     plain = sym = "";
   };
   for (const ch of text) {
-    if (hasGlyph(ch) || (sym && /\s/.test(ch))) { if (plain) flush(); sym += ch; } else { if (sym) flush(); plain += ch; }
+    // A space is the text face's even between two glyphs, as glyph::strip draws it.
+    if (hasGlyph(ch)) { if (plain) flush(); sym += ch; } else { if (sym) flush(); plain += ch; }
   }
   flush();
   return <span className={className} style={style}>{out}</span>;
@@ -116,7 +117,8 @@ function MenubarImage({ d, item, textPx }: { d: MenubarDescribed; item: BarStrip
   return (
     <span className="g-mb__image" data-progress={d.progress !== null || undefined} style={{ color: ink }}>
       {d.icon === "image" && src && <img className="g-mb__picture" src={src} alt="" />}
-      {d.glyph && <Runs text={d.glyph} className="g-mb__icon" style={{ opacity: alpha, fontSize: d.size > 0 ? d.size : undefined }} />}
+      {/* A run is drawn into the image as text (glyph::strip), at the text's size; a lone glyph fills the 18 pt square. */}
+      {d.glyph && <Runs text={d.glyph} className={d.icon === "run" ? "g-mb__itext" : "g-mb__icon"} style={{ opacity: alpha, fontSize: d.icon === "run" ? textPx : d.size > 0 ? d.size : undefined }} />}
       {text && <Runs text={words} className="g-mb__itext" style={{ opacity: alpha, fontSize: textPx }} />}
       {tail && <span className="g-mb__itext" style={{ color: d.badge_ink ?? undefined, fontSize: textPx }}>{tail}</span>}
       {d.dot && <span className="g-mb__dot" style={{ background: d.badge_ink ?? ink }} />}
