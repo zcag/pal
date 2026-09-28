@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.2 · 2026-09-29
+
+- **Privacy**: see which app has your camera, microphone or screen. A bar item appears only while one is in use, with a glyph for each on an amber band, and a click lists every app with what it holds and for how long. The app is named even when a helper or a command does the recording (`ffmpeg` in kitty reads kitty).
+- **Store pictures in both themes**: every extension's screenshots, on pal.cagdas.io and in the Store palette, come in light and dark and follow your setting. The bar pictures show the item as the menu bar and sketchybar really draw it.
+- **Argument fields**: fields a row asks for (a timer's duration and name) now show in the search bar; the search keeps its words whole beside them.
+- **Files**: Open with… says Search apps over its list of apps.
+- **Fixed**: a selected line in Diff no longer paints over its neighbours; Solitaire's first deal turns its cards in order; Bluetooth's device tiles and the AirPods glyph draw properly; three weather glyphs were one off (fog, snow, thunder); Images falls back to the next tool when pngquant turns a picture down; Slack's popover times fit; YouTube's publish date and Space's status line read cleanly, and Docker.raw is no longer a photo; settings are named by their label in hints ("Set Data API key"), not in backticks.
+
 ## 0.7.1 · 2026-09-27
 
 - **Searches show what they have right away**: the fast part of a search appears at once and the rest joins below it, instead of the list waiting for the slowest part. Files lists name matches before the matches inside files, GitHub your own items before the rest, Gmail and WhatsApp messages before their pictures and contact names, Immich, GIFs and Spotify rows before their images, Maps your saved places before the lookup. The row you are on stays put while rows arrive.

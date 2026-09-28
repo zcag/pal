@@ -13,7 +13,7 @@
   "repo": "bundled",
   "license": "MIT",
   "store": {
-    "tagline": "See which app has your camera or microphone",
+    "tagline": "See which app has your camera, microphone or screen",
     "category": "system",
     "features": [
       "A bar item that stays off the strip until the camera, the microphone or the screen is in use (a call, a screen share, a recording), then shows a glyph for each on an amber band",
