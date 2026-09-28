@@ -3,21 +3,61 @@
   "title": "Diff",
   "description": "Diff what you copied: the two newest copies in the clipboard history, the clipboard against the selection, any two history entries, or two files, as a view with the changed lines tinted and the words that differ marked. Unified or side by side, whitespace ignored on a key, long unchanged runs folded, the unified diff a copy away, the two sides open in VS Code, kitty, FileMerge or Meld.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰢪", "bg": "orange" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰢪",
+      "bg": "orange"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["diffy", "compare"],
+  "keywords": [
+    "diffy",
+    "compare"
+  ],
   "settings": [
-    { "kind": "select", "id": "tool", "label": "External tool", "description": "What `o` opens the two sides in. Auto takes the first installed of VS Code (`code --diff`), kitty (`+kitten diff`), FileMerge (`opendiff`, with Xcode) and Meld.", "options": [
-      { "id": "auto", "title": "Auto (VS Code, kitty, FileMerge, Meld)" },
-      { "id": "code", "title": "VS Code (code --diff)" },
-      { "id": "kitty", "title": "kitty (kitten diff)" },
-      { "id": "opendiff", "title": "FileMerge (opendiff)" },
-      { "id": "meld", "title": "Meld" },
-      { "id": "custom", "title": "Custom command" }
-    ], "default": "auto" },
-    { "kind": "text", "id": "tool_command", "label": "Custom command", "description": "With the custom tool: the command line, `{left}` and `{right}` standing for the two files (a quoted argument stays whole).", "placeholder": "nvim -d {left} {right}", "default": "" }
+    {
+      "kind": "select",
+      "id": "tool",
+      "label": "External tool",
+      "description": "What `o` opens the two sides in. Auto takes the first installed of VS Code (`code --diff`), kitty (`+kitten diff`), FileMerge (`opendiff`, with Xcode) and Meld.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "Auto (VS Code, kitty, FileMerge, Meld)"
+        },
+        {
+          "id": "code",
+          "title": "VS Code (code --diff)"
+        },
+        {
+          "id": "kitty",
+          "title": "kitty (kitten diff)"
+        },
+        {
+          "id": "opendiff",
+          "title": "FileMerge (opendiff)"
+        },
+        {
+          "id": "meld",
+          "title": "Meld"
+        },
+        {
+          "id": "custom",
+          "title": "Custom command"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "kind": "text",
+      "id": "tool_command",
+      "label": "Custom command",
+      "description": "With the custom tool: the command line, `{left}` and `{right}` standing for the two files (a quoted argument stays whole).",
+      "placeholder": "nvim -d {left} {right}",
+      "default": ""
+    }
   ],
   "store": {
     "tagline": "Diff the two things you just copied",
@@ -32,61 +72,205 @@
       "`o` opens the two sides in VS Code, kitty, FileMerge, Meld or a command of your own",
       "`pal://diff/clipboard`, `pal://diff/selection`, `pal://diff/files?left=&right=`, `pal://diff/text?left=&right=` for keybinds and scripts; the Clipboard History palette's Diff with… and Diff these two land here"
     ],
-    "permissions": ["accessibility"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "accessibility"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "actions": [
-      { "title": "Copy unified diff", "keys": "enter" },
-      { "title": "Open in external tool", "description": "The two sides as files in VS Code, kitty, FileMerge, Meld or the custom command.", "keys": "o" },
-      { "title": "Side by side / Unified", "keys": "s" },
-      { "title": "Ignore whitespace / Mind whitespace", "description": "Leading and trailing whitespace on a line does not count.", "keys": "w" },
-      { "title": "Swap sides", "keys": "x" },
-      { "title": "Copy left text", "keys": "l" },
-      { "title": "Copy right text", "keys": "r" },
-      { "title": "Expand the fold under the cursor", "description": "`tab` and `shift+tab` move the cursor over the folds; `a` expands every fold; a click expands one.", "keys": "space" },
-      { "title": "Diff the two newest copies", "keys": "n" },
-      { "title": "Clipboard vs selection", "keys": "e" },
-      { "title": "Pick two from history…", "keys": "h" },
-      { "title": "Two files…", "keys": "f" }
+      {
+        "title": "Copy unified diff",
+        "keys": "enter"
+      },
+      {
+        "title": "Open in external tool",
+        "description": "The two sides as files in VS Code, kitty, FileMerge, Meld or the custom command.",
+        "keys": "o"
+      },
+      {
+        "title": "Side by side / Unified",
+        "keys": "s"
+      },
+      {
+        "title": "Ignore whitespace / Mind whitespace",
+        "description": "Leading and trailing whitespace on a line does not count.",
+        "keys": "w"
+      },
+      {
+        "title": "Swap sides",
+        "keys": "x"
+      },
+      {
+        "title": "Copy left text",
+        "keys": "l"
+      },
+      {
+        "title": "Copy right text",
+        "keys": "r"
+      },
+      {
+        "title": "Expand the fold under the cursor",
+        "description": "`tab` and `shift+tab` move the cursor over the folds; `a` expands every fold; a click expands one.",
+        "keys": "space"
+      },
+      {
+        "title": "Diff the two newest copies",
+        "keys": "n"
+      },
+      {
+        "title": "Clipboard vs selection",
+        "keys": "e"
+      },
+      {
+        "title": "Pick two from history…",
+        "keys": "h"
+      },
+      {
+        "title": "Two files…",
+        "keys": "f"
+      }
+    ],
+    "screenshots": [
+      {
+        "file": "1-unified.png",
+        "caption": "The two newest copies diffed: the older on the left, the words that changed marked, unchanged runs folded"
+      },
+      {
+        "file": "2-side.png",
+        "caption": "s puts the sides next to each other"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Every key on ⌘K: copy the unified diff or either side, open both in your diff tool, other sources"
+      },
+      {
+        "file": "4-history.png",
+        "caption": "Any two from the clipboard history: pick the left, then the right, or mark two and press Enter"
+      }
     ]
   },
   "links": {
-    "clipboard": { "description": "Diff the two newest text copies in the clipboard history" },
-    "selection": { "description": "Diff the clipboard against the selection in the app in front" },
-    "files": { "description": "Diff two files", "params": {
-      "left": { "description": "The left file's path (~ allowed)", "required": true },
-      "right": { "description": "The right file's path", "required": true }
-    } },
-    "text": { "description": "Diff two texts given in the link", "params": {
-      "left": { "description": "The left text", "required": true },
-      "right": { "description": "The right text", "required": true },
-      "left_label": { "description": "What to call the left side" },
-      "right_label": { "description": "What to call the right side" }
-    } },
-    "history": { "description": "Diff two clipboard history entries by id", "params": {
-      "left": { "description": "The left entry's id", "required": true, "type": "number" },
-      "right": { "description": "The right entry's id", "required": true, "type": "number" }
-    } }
+    "clipboard": {
+      "description": "Diff the two newest text copies in the clipboard history"
+    },
+    "selection": {
+      "description": "Diff the clipboard against the selection in the app in front"
+    },
+    "files": {
+      "description": "Diff two files",
+      "params": {
+        "left": {
+          "description": "The left file's path (~ allowed)",
+          "required": true
+        },
+        "right": {
+          "description": "The right file's path",
+          "required": true
+        }
+      }
+    },
+    "text": {
+      "description": "Diff two texts given in the link",
+      "params": {
+        "left": {
+          "description": "The left text",
+          "required": true
+        },
+        "right": {
+          "description": "The right text",
+          "required": true
+        },
+        "left_label": {
+          "description": "What to call the left side"
+        },
+        "right_label": {
+          "description": "What to call the right side"
+        }
+      }
+    },
+    "history": {
+      "description": "Diff two clipboard history entries by id",
+      "params": {
+        "left": {
+          "description": "The left entry's id",
+          "required": true,
+          "type": "number"
+        },
+        "right": {
+          "description": "The right entry's id",
+          "required": true,
+          "type": "number"
+        }
+      }
+    }
   },
   "palettes": {
     "diff": {
       "kind": "view",
       "description": "The two newest copies diffed; keys for other pairs, side by side, whitespace, the folds, the tool.",
-      "keywords": ["diffy", "compare"],
+      "keywords": [
+        "diffy",
+        "compare"
+      ],
       "keys": [
-        { "keys": "enter", "title": "Copy the unified diff" },
-        { "keys": "o", "title": "Open both sides in the external tool" },
-        { "keys": "s", "title": "Side by side, or unified" },
-        { "keys": "w", "title": "Ignore whitespace, or mind it" },
-        { "keys": "x", "title": "Swap the sides" },
-        { "keys": "l", "title": "Copy the left text" },
-        { "keys": "r", "title": "Copy the right text" },
-        { "keys": "tab", "title": "Next fold (shift+tab: previous)" },
-        { "keys": "space", "title": "Expand the fold under the cursor" },
-        { "keys": "a", "title": "Expand every fold" },
-        { "keys": "n", "title": "The two newest copies" },
-        { "keys": "e", "title": "The clipboard against the selection" },
-        { "keys": "h", "title": "Pick two entries from the history" },
-        { "keys": "f", "title": "Two files" }
+        {
+          "keys": "enter",
+          "title": "Copy the unified diff"
+        },
+        {
+          "keys": "o",
+          "title": "Open both sides in the external tool"
+        },
+        {
+          "keys": "s",
+          "title": "Side by side, or unified"
+        },
+        {
+          "keys": "w",
+          "title": "Ignore whitespace, or mind it"
+        },
+        {
+          "keys": "x",
+          "title": "Swap the sides"
+        },
+        {
+          "keys": "l",
+          "title": "Copy the left text"
+        },
+        {
+          "keys": "r",
+          "title": "Copy the right text"
+        },
+        {
+          "keys": "tab",
+          "title": "Next fold (shift+tab: previous)"
+        },
+        {
+          "keys": "space",
+          "title": "Expand the fold under the cursor"
+        },
+        {
+          "keys": "a",
+          "title": "Expand every fold"
+        },
+        {
+          "keys": "n",
+          "title": "The two newest copies"
+        },
+        {
+          "keys": "e",
+          "title": "The clipboard against the selection"
+        },
+        {
+          "keys": "h",
+          "title": "Pick two entries from the history"
+        },
+        {
+          "keys": "f",
+          "title": "Two files"
+        }
       ]
     },
     "pick": {
@@ -94,8 +278,14 @@
       "kind": "input",
       "description": "The clipboard history's text entries: pick the left side, then the right; or mark two and press Enter.",
       "keys": [
-        { "keys": "enter", "title": "Pick this side (with two marked: diff them)" },
-        { "keys": "tab", "title": "Mark the entry (x with nothing typed)" }
+        {
+          "keys": "enter",
+          "title": "Pick this side (with two marked: diff them)"
+        },
+        {
+          "keys": "tab",
+          "title": "Mark the entry (x with nothing typed)"
+        }
       ]
     }
   }

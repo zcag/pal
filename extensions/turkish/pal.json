@@ -3,16 +3,39 @@
   "title": "Turkish",
   "description": "Turkish text tools: deasciify what was typed without the Turkish letters (Turkce yazilmis bir cumle → Türkçe yazılmış bir cümle, the pattern-table algorithm from Emacs turkish-mode), asciify the other way, and the Turkish cases where i and ı are two letters. Type, or select text in the app in front and open the palette; Enter pastes the row back, over the selection when that is where it came from.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰬴", "bg": "red" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰬴",
+      "bg": "red"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["deasciify", "asciify", "türkçe", "turkce"],
+  "keywords": [
+    "deasciify",
+    "asciify",
+    "türkçe",
+    "turkce"
+  ],
   "settings": [
-    { "kind": "select", "id": "primary_action", "label": "Primary action", "description": "What Enter does on a row; the other is cmd+Enter, and cmd+c always copies.", "options": [
-      { "id": "paste", "title": "Paste into the app in front" },
-      { "id": "copy", "title": "Copy to the clipboard" }
-    ], "default": "paste" }
+    {
+      "kind": "select",
+      "id": "primary_action",
+      "label": "Primary action",
+      "description": "What Enter does on a row; the other is cmd+Enter, and cmd+c always copies.",
+      "options": [
+        {
+          "id": "paste",
+          "title": "Paste into the app in front"
+        },
+        {
+          "id": "copy",
+          "title": "Copy to the clipboard"
+        }
+      ],
+      "default": "paste"
+    }
   ],
   "store": {
     "tagline": "Turkce → Türkçe, and the Turkish cases",
@@ -26,47 +49,139 @@
       "Each row says how many characters it changed; a conversion that changes nothing is tagged unchanged",
       "`pal://turkish/deasciify?text=…` (and asciify, upper, lower, title) for scripts; without `text` it converts the selection and pastes over it"
     ],
-    "permissions": ["accessibility"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "accessibility"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "actions": [
-      { "title": "Paste", "description": "Into the app in front; over the selection when the rows came from it.", "keys": "enter" },
-      { "title": "Copy", "keys": "cmd+c" },
-      { "title": "Translate", "description": "The row's text in the Translate palette.", "keys": "cmd+t" },
-      { "title": "Copy the source text", "keys": "cmd+shift+c" }
+      {
+        "title": "Paste",
+        "description": "Into the app in front; over the selection when the rows came from it.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Translate",
+        "description": "The row's text in the Translate palette.",
+        "keys": "cmd+t"
+      },
+      {
+        "title": "Copy the source text",
+        "keys": "cmd+shift+c"
+      }
+    ],
+    "screenshots": [
+      {
+        "file": "1-selection.png",
+        "caption": "Opened over a selected sentence: its Turkish letters back, the reverse and the three cases; Enter replaces the selection"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "cmd+i shows the result over the source, what changed and where the text came from"
+      },
+      {
+        "file": "3-cases.png",
+        "caption": "Typed Turkish: the cases keep i and ı apart (İSTANBUL, ILIK) and a suffix after an apostrophe stays down"
+      },
+      {
+        "file": "4-actions.png",
+        "caption": "Paste, copy, hand the row to Translate, or copy the source text"
+      }
     ]
   },
   "links": {
-    "deasciify": { "description": "Turkish letters restored (Turkce → Türkçe)", "params": {
-      "text": { "description": "The text; the selection, else the clipboard, when absent" },
-      "paste": { "description": "Paste the result into the app in front rather than copy it (the default over a selection)", "type": "boolean" }
-    } },
-    "asciify": { "description": "Turkish letters as ASCII (Türkçe → Turkce)", "params": {
-      "text": { "description": "The text; the selection, else the clipboard, when absent" },
-      "paste": { "description": "Paste rather than copy (the default over a selection)", "type": "boolean" }
-    } },
-    "upper": { "description": "Turkish uppercase (i → İ, ı → I)", "params": {
-      "text": { "description": "The text; the selection, else the clipboard, when absent" },
-      "paste": { "description": "Paste rather than copy (the default over a selection)", "type": "boolean" }
-    } },
-    "lower": { "description": "Turkish lowercase (I → ı, İ → i)", "params": {
-      "text": { "description": "The text; the selection, else the clipboard, when absent" },
-      "paste": { "description": "Paste rather than copy (the default over a selection)", "type": "boolean" }
-    } },
-    "title": { "description": "Title Case the Turkish way", "params": {
-      "text": { "description": "The text; the selection, else the clipboard, when absent" },
-      "paste": { "description": "Paste rather than copy (the default over a selection)", "type": "boolean" }
-    } }
+    "deasciify": {
+      "description": "Turkish letters restored (Turkce → Türkçe)",
+      "params": {
+        "text": {
+          "description": "The text; the selection, else the clipboard, when absent"
+        },
+        "paste": {
+          "description": "Paste the result into the app in front rather than copy it (the default over a selection)",
+          "type": "boolean"
+        }
+      }
+    },
+    "asciify": {
+      "description": "Turkish letters as ASCII (Türkçe → Turkce)",
+      "params": {
+        "text": {
+          "description": "The text; the selection, else the clipboard, when absent"
+        },
+        "paste": {
+          "description": "Paste rather than copy (the default over a selection)",
+          "type": "boolean"
+        }
+      }
+    },
+    "upper": {
+      "description": "Turkish uppercase (i → İ, ı → I)",
+      "params": {
+        "text": {
+          "description": "The text; the selection, else the clipboard, when absent"
+        },
+        "paste": {
+          "description": "Paste rather than copy (the default over a selection)",
+          "type": "boolean"
+        }
+      }
+    },
+    "lower": {
+      "description": "Turkish lowercase (I → ı, İ → i)",
+      "params": {
+        "text": {
+          "description": "The text; the selection, else the clipboard, when absent"
+        },
+        "paste": {
+          "description": "Paste rather than copy (the default over a selection)",
+          "type": "boolean"
+        }
+      }
+    },
+    "title": {
+      "description": "Title Case the Turkish way",
+      "params": {
+        "text": {
+          "description": "The text; the selection, else the clipboard, when absent"
+        },
+        "paste": {
+          "description": "Paste rather than copy (the default over a selection)",
+          "type": "boolean"
+        }
+      }
+    }
   },
   "palettes": {
     "turkish": {
       "kind": "input",
       "description": "What you type (or the selection, else the clipboard) deasciified, asciified, and in the Turkish upper, lower and title cases; Enter pastes the row.",
       "keys": [
-        { "keys": "enter", "title": "Paste into the app in front (over the selection the rows came from)" },
-        { "keys": "cmd+enter", "title": "Copy" },
-        { "keys": "cmd+c", "title": "Copy" },
-        { "keys": "cmd+t", "title": "Translate the row" },
-        { "keys": "cmd+shift+c", "title": "Copy the source text" }
+        {
+          "keys": "enter",
+          "title": "Paste into the app in front (over the selection the rows came from)"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Copy"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Translate the row"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the source text"
+        }
       ]
     }
   }

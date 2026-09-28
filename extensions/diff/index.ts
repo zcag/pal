@@ -259,14 +259,17 @@ async function pickRows(query: string, ctx?: Ctx): Promise<Item[]> {
   const args = (ctx?.args ?? {}) as PickArgs;
   const left = args.left !== undefined ? await clipboard.get(args.left).catch(() => undefined) : undefined;
   const entries = (await clipboard.list({ query, kind: "text", limit: 100 })).filter((e) => e.kind === "text" && e.id !== args.left);
-  const rows: Item[] = entries.map((e) => ({
-    id: String(e.id),
-    name: entryTitle(e),
-    subtitle: `${e.text!.split("\n").length} lines · ${truncate(oneLine(e.text!), 80)}`,
-    icon: GLYPH.text,
-    accessories: [...(e.source_app ? [{ text: appName(e.source_app) }] : []), { date: e.at }],
-    actions: left ? [{ id: "right", title: `Diff ${entryTitle(left)} with this` }] : [PICK_LEFT, PICK_BOTH],
-  }));
+  const rows: Item[] = entries.map((e) => {
+    const n = e.text!.split("\n").length;
+    return {
+      id: String(e.id),
+      name: entryTitle(e),
+      subtitle: `${n} ${n === 1 ? "line" : "lines"} · ${truncate(oneLine(e.text!), 80)}`,
+      icon: GLYPH.text,
+      accessories: [...(e.source_app ? [{ text: appName(e.source_app) }] : []), { date: e.at }],
+      actions: left ? [{ id: "right", title: `Diff ${entryTitle(left)} with this` }] : [PICK_LEFT, PICK_BOTH],
+    };
+  });
   if (left) rows.unshift(hint("left", `Left: ${entryTitle(left)}`, `${entrySub(left)} · pick the right side below`, { icon: GLYPH.pick }));
   else if (!rows.length) rows.push(hint("empty", query ? "No text entry matches" : "No text in the clipboard history", "Copy two texts, then come back", { icon: GLYPH.clipboard }));
   else rows.unshift(hint("how", "Pick the left side, then the right", "Or mark two entries (tab, or x) and press Enter", { icon: GLYPH.pick }));

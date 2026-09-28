@@ -28,10 +28,16 @@ export const lower = (s: string): string => s.toLocaleLowerCase("tr");
 export const title = (s: string): string => lower(s).replace(/(^|[^\p{L}\p{M}'’])(\p{L})/gu, (_, before: string, first: string) => before + upper(first));
 
 let deasciifier: Promise<{ deasciify(text: string): string }> | undefined;
-/** The pattern-table deasciifier, made once (`deasciifier.d.ts` types the package). */
+/**
+ * The pattern-table deasciifier, made once (`deasciifier.d.ts` types the
+ * package). A letter that was typed Turkish stays as typed: the table
+ * decides every i and ı by context, and turned a typed `ılık` into `ilik`.
+ */
 export const deasciify = async (s: string): Promise<string> => {
   deasciifier ??= import("turkish-deasciifier").then((m) => new m.default());
-  return s ? (await deasciifier).deasciify(s) : s;
+  if (!s) return s;
+  const out = (await deasciifier).deasciify(s);
+  return out.length === s.length ? out.replace(/[\s\S]/g, (c, i: number) => (s[i] in ASCII ? s[i] : c)) : out;
 };
 
 /** One conversion by name. */

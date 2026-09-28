@@ -30,7 +30,16 @@
       "macos",
       "linux"
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "file": "1-list.png",
+        "caption": "Every game pal has, by name, each with its tile and what it is"
+      },
+      {
+        "file": "2-search.png",
+        "caption": "Typing narrows the list, taglines included: daily finds the daily puzzles; Enter opens one"
+      }
+    ],
     "actions": [
       {
         "title": "Play",
