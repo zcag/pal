@@ -7,6 +7,7 @@ import { menuKind, type BarPayload, type BarShow } from "./bar";
 import { mark, surface, useCore, useLiveViews } from "./core";
 import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
 import type { Item } from "./ui/types";
+import { POPOVER_CHROME, POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
 
 const hide = () => invoke("bar_hide");
 
@@ -14,8 +15,7 @@ const hide = () => invoke("bar_hide");
 const sidebar = new URLSearchParams(location.search).has("sidebar");
 
 /** The popover's height for what it shows: the search row, the footer and the content, up to the window's maximum (bar/popover.rs clamps too; the sidebar's is its work area, sidebar.rs). */
-const MAX_HEIGHT = sidebar ? Infinity : 480;
-const CHROME = 52 + 36;
+const MAX_HEIGHT = sidebar ? Infinity : POPOVER_MAX_H;
 
 /**
  * The level a bar item opens on: its `nodes` as a menu level, `{ palette }`
@@ -86,11 +86,9 @@ export default function BarPage() {
     let raf = 0;
     const measure = () => {
       raf = 0;
-      const inner = el.querySelector<HTMLElement>(".pal-list__inner, .pal-view > .pal-view__stack, .pal-show, .pal-form-level, .pal-empty");
-      const content = inner ? inner.scrollHeight + 16 : 120;
       // The chrome as drawn: the sidebar hides its field while peeking and has no footer, so the popover's fixed sum would leave a gap.
-      const chrome = sidebar ? (el.querySelector<HTMLElement>(".pal-panel__search")?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>(".pal-footer")?.offsetHeight ?? 0) : CHROME;
-      invoke("bar_size", { height: Math.min(MAX_HEIGHT, chrome + content) });
+      const chrome = sidebar ? (el.querySelector<HTMLElement>(".pal-panel__search")?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>(".pal-footer")?.offsetHeight ?? 0) : POPOVER_CHROME;
+      invoke("bar_size", { height: popoverHeight(el, chrome, MAX_HEIGHT) });
     };
     const mo = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(measure); });
     mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });

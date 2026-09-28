@@ -17,6 +17,7 @@ import { Launcher, menuLevel, type Level } from "../Launcher";
 import type { BarMenu, BarMenuNode } from "../bar";
 import { Hud } from "../ui";
 import { BarStrip, MENUBAR_H, SKETCHYBAR_H, type BarStripItem } from "../ui/BarStrip";
+import { popoverHeight } from "../ui/popover-size";
 import { iconOf, toView, type SourceInfo } from "../items";
 import { manifestOf } from "./data";
 import type { Item } from "../ui/types";
@@ -43,7 +44,7 @@ const fixtures = import.meta.glob<{ default: BarFixture }>("./shots/bar-*.json")
 const W = 720, STRIP_H = 60;
 /** Every popover shot's canvas: the band, the gap and the tallest popover (480) with a margin, so the store lays them out alike. */
 const POPOVER_CANVAS_H = 540;
-const POPOVER_W = 420, POPOVER_MAX_H = 480, POPOVER_GAP = 8, POPOVER_CHROME = 52 + 36;
+const POPOVER_W = 420, POPOVER_GAP = 8;
 
 const patched = (fx: BarFixture, state?: string): BarItem => {
   const s = state ? fx.states?.find((x) => x.id === state) : undefined;
@@ -78,12 +79,7 @@ function Popover({ fx, item, x }: { fx: BarFixture; item: BarItem; x: number }) 
   useLayoutEffect(() => {
     const root = el.current;
     if (!root) return;
-    const measure = () => {
-      const inner = root.querySelector<HTMLElement>(".pal-list__inner, .pal-view > .pal-view__stack");
-      const content = inner ? inner.scrollHeight + 16 : 120;
-      const next = Math.min(POPOVER_MAX_H, POPOVER_CHROME + content);
-      setH(next);
-    };
+    const measure = () => setH(popoverHeight(root));
     const mo = new MutationObserver(measure);
     mo.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     measure();
