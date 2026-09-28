@@ -24,6 +24,10 @@ describe("md", () => {
       run: undefined,
     });
     expect(inline("**Just bold**")).toMatchObject({ text: "Just bold", run: "bold" });
+    // A code span is literal: an angle-bracketed placeholder in it is text, not a tag to strip.
+    expect(inline("serve it at `<name>.lan` now").text).toBe("serve it at <name>.lan now");
+    expect(inline("`<name>.lan`")).toMatchObject({ text: "<name>.lan", run: "code" });
+    expect(inline("a <b>tag</b> and `x`").text).toBe("a tag and x");
     expect(inline("`code`")).toMatchObject({ text: "code", run: "code" });
     expect(inline("_soft_")).toMatchObject({ text: "soft", run: "italic" });
     expect(inline("snake_case_name and 2*3*4 stay")).toMatchObject({ text: "snake_case_name and 2*3*4 stay" });

@@ -70,8 +70,12 @@ export function inline(src: string): { text: string; links: Link[]; run?: "bold"
   s = s.replace(WIKI, (_, page: string, label?: string) => { links.push({ label: (label ?? page).trim(), page: page.trim() }); return (label ?? page).trim(); });
   s = s.replace(MD_LINK, (m, label: string, href: string) => { if (m.startsWith("!")) { links.push({ label: label || "image", href }); return label ? `[image: ${label}]` : "[image]"; } links.push({ label: label || href, href }); return label || href; });
   s = s.replace(AUTOLINK, (_, href: string) => { links.push({ label: href, href }); return href; });
-  s = s.replace(/`([^`]+)`/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/(^|[^\w*])\*([^*\n]+)\*(?=[^\w*]|$)/g, "$1$2").replace(/(^|[^\w_])_([^_\n]+)_(?=[^\w_]|$)/g, "$1$2").replace(/~~([^~]+)~~/g, "$1");
+  // A code span is literal: set aside before the tags are stripped (`<name>.lan` is text there, not a tag), put back after.
+  const code: string[] = [];
+  if (run === "code") { code.push(s); s = "\u00010\u0001"; }
+  s = s.replace(/`([^`]+)`/g, (_, c: string) => `\u0001${code.push(c) - 1}\u0001`).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/(^|[^\w*])\*([^*\n]+)\*(?=[^\w*]|$)/g, "$1$2").replace(/(^|[^\w_])_([^_\n]+)_(?=[^\w_]|$)/g, "$1$2").replace(/~~([^~]+)~~/g, "$1");
   s = s.replace(/<br\s*\/?>/gi, "\n").replace(HTML_TAG, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  s = s.replace(/\u0001(\d+)\u0001/g, (_, i: string) => code[Number(i)]);
   s = s.replace(/\u0000([0-9a-f]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16)));
   return { text: s, links, run };
 }
