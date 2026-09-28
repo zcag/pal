@@ -30,6 +30,8 @@ export type BarFixture = {
   item: BarItem;
   /** Patches over `item`, picked by `&state=<id>`. */
   states?: { id: string; item: Partial<BarItem> }[];
+  /** The menu bar's own battery level, percent, when the item is about power (80 otherwise). */
+  battery?: number;
   /** The rows a `{ palette }` menu opens on. */
   palette?: { title: string; placeholder?: string; rows: Item[] };
   /** What shots.mjs saves (docs/design/screenshots.md): `menubar`, `popover`, `sketchybar`, and `menubar-<state>` / `popover-<state>`, each with its target, state and store caption; both themes of each. */
@@ -117,7 +119,7 @@ function Strip({ fx, target, theme, state, popover }: { fx: BarFixture; target: 
     if (x !== null || !popover) requestAnimationFrame(() => { document.documentElement.dataset.ready = ""; });
   }, [height, x, popover]);
   return (
-    <BarStrip items={[item]} target={target} theme={theme} width={W} height={height} anchor={setAnchor}>
+    <BarStrip items={[item]} target={target} theme={theme} width={W} height={height} battery={fx.battery} anchor={setAnchor}>
       {popover && x !== null && !showHud && <Popover fx={fx} item={item} x={x} />}
       {showHud && x !== null && <div className="g-bar__hud" style={{ left: x, top: bandH + POPOVER_GAP }}><Hud text="Copied" /></div>}
     </BarStrip>

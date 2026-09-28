@@ -82,11 +82,11 @@ function Runs({ text, className, style, mono }: { text: string; className?: stri
 
 // ---- menu bar -----------------------------------------------------------------
 
-/** Apple's items at the right of every bar, as neutral template glyphs. */
-const Battery = () => (
+/** Apple's items at the right of every bar, as neutral template glyphs; the battery at `level` percent (a fixture about power says its own). */
+const Battery = ({ level = 80 }: { level?: number }) => (
   <svg className="g-mb__glyph" width="25" height="12" viewBox="0 0 25 12" aria-hidden>
     <rect x="0.5" y="0.5" width="21" height="11" rx="2.5" fill="none" stroke="currentColor" strokeOpacity="0.45" />
-    <rect x="2" y="2" width="15" height="8" rx="1.2" fill="currentColor" />
+    <rect x="2" y="2" width={Math.max(1, Math.round((18 * Math.min(100, Math.max(0, level))) / 100))} height="8" rx="1.2" fill="currentColor" />
     <path d="M23 4.2v3.6a2 2 0 0 0 1-1.8 2 2 0 0 0-1-1.8z" fill="currentColor" fillOpacity="0.45" />
   </svg>
 );
@@ -141,12 +141,12 @@ export function MenubarItem({ item, look = defaultLook, dark, anchor }: { item: 
   );
 }
 
-export function MenuBar({ items, look, dark, anchor, bare }: { items: BarStripItem[]; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void; bare?: boolean }) {
+export function MenuBar({ items, look, dark, anchor, bare, battery }: { items: BarStripItem[]; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void; bare?: boolean; battery?: number }) {
   return (
     <div className="g-mb" style={{ height: MENUBAR_H }}>
       <div className="g-mb__items">
         {items.map((it, i) => <MenubarItem key={i} item={it} look={look} dark={dark} anchor={i === 0 ? anchor : undefined} />)}
-        {!bare && <span className="g-mb__item"><Battery /></span>}
+        {!bare && <span className="g-mb__item"><Battery level={battery} /></span>}
         {!bare && <span className="g-mb__item"><Wifi /></span>}
         <span className="g-mb__item"><ControlCenter /></span>
         <span className="g-mb__item g-mb__clock">Wed 16 Sep<span className="g-mb__time">14:32</span></span>
@@ -192,7 +192,6 @@ export function Sketchybar({ items, look, dark, anchor, bare }: { items: BarStri
       <div className="g-sb__items">
         {items.map((it, i) => <SketchyItem key={i} item={it} look={look} dark={dark} anchor={i === 0 ? anchor : undefined} />)}
         {!bare && <span className="g-sb__item"><Runs text={"\u{f057e}"} className="g-sb__icon g-sb__icon--opt" style={{ paddingRight: 8 }} /></span>}
-        <span className="g-sb__item"><Runs text={"\u{f0081}"} className="g-sb__icon" /><span className="g-sb__label">82%</span></span>
         <span className="g-sb__item"><span className="g-sb__label">Wed Sep 16 14:32</span></span>
       </div>
     </div>
@@ -212,18 +211,20 @@ export type BarStripProps = {
   height?: number;
   /** Fewer of Apple's / the bar's own items, for a narrow preview. */
   bare?: boolean;
+  /** The menu bar's battery level, percent (80 when unset): a fixture about power keeps it true to its own item. */
+  battery?: number;
   anchor?: (el: HTMLElement | null) => void;
   children?: ReactNode;
 };
 
 /** The band at the top over the desktop; `children` go over the strip (a popover, a HUD). */
-export function BarStrip({ items, target, theme, look = defaultLook, width = 720, height, bare, anchor, children }: BarStripProps) {
+export function BarStrip({ items, target, theme, look = defaultLook, width = 720, height, bare, battery, anchor, children }: BarStripProps) {
   const shaped = items.map((it) => shapeItem(it, look)).filter((it) => !it.hidden);
   const bandH = target === "menubar" ? MENUBAR_H : SKETCHYBAR_H;
   const dark = theme === "dark";
   return (
     <div className="g-bar" data-theme={theme} data-target={target} style={{ width, height: height ?? bandH + 36 }}>
-      {target === "menubar" ? <MenuBar items={shaped} look={look} dark={dark} anchor={anchor} bare={bare} /> : <Sketchybar items={shaped} look={look} dark={dark} anchor={anchor} bare={bare} />}
+      {target === "menubar" ? <MenuBar items={shaped} look={look} dark={dark} anchor={anchor} bare={bare} battery={battery} /> : <Sketchybar items={shaped} look={look} dark={dark} anchor={anchor} bare={bare} />}
       {children}
     </div>
   );
