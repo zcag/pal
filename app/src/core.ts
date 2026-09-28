@@ -118,7 +118,8 @@ export function useSources() {
  */
 const streams = new Map<number, (items: WireItem[]) => void>();
 let streamSeq = 0;
-listen<{ n: number; items: WireItem[] }>("pal://partial", (e) => streams.get(e.payload.n)?.(e.payload.items), { target: getCurrentWindow().label }).catch(() => {});
+// At import, so only inside Tauri: the gallery and the vitest pages load this module with no window to name, and getCurrentWindow throws there.
+if (window.__TAURI_INTERNALS__) listen<{ n: number; items: WireItem[] }>("pal://partial", (e) => streams.get(e.payload.n)?.(e.payload.items), { target: getCurrentWindow().label }).catch(() => {});
 
 export function useCore(hide: () => void) {
   const { sources, version, bump } = useSources();
