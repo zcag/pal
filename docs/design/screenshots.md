@@ -33,7 +33,9 @@ item, as `BarPage.tsx` places it, and top-aligned under the band; the canvas
 is the tallest popover's (480 pt) so every popover shot is the same size.
 
 `pal.json`'s `store.screenshots` lists the light files, each with its
-caption and `kind` (`panel` or `bar`); the dark twins are not listed.
+caption and `kind` (`panel` or `bar`); the dark twins are not listed. A
+popover shot also has `box`, `[x, y, width, height]` in the picture's
+pixels: where the popover sits on its canvas, which the store crops to.
 `app/scripts/shots.mjs` writes that list from the fixtures, so the captions
 live in one place, the fixture.
 

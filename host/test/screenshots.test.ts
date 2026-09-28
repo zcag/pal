@@ -12,7 +12,7 @@ import { BUNDLED } from "./harness.ts";
 import { SIZES, barFixtureOf, fixtureHash, fixtureOf } from "../../app/scripts/shots-lib.mjs";
 
 type Shot = { caption?: string; target?: string; state?: string; popover?: boolean; palette?: string };
-type Listed = { file: string; caption?: string; kind?: string };
+type Listed = { file: string; caption?: string; kind?: string; box?: number[] };
 const read = (f: string) => JSON.parse(readFileSync(f, "utf8"));
 /** PNG width and height from its IHDR. */
 function size(file: string): [number, number] {
@@ -67,8 +67,14 @@ describe("store screenshots", () => {
         ...Object.entries<Shot>(bar?.shots ?? {}).map(([k, s]) => ({ file: `bar-${k}.png`, caption: s.caption, kind: "bar" })),
       ];
       const listed: Listed[] = manifest.store?.screenshots ?? [];
-      expect(listed, `${ext}: pal.json's store.screenshots is what the fixtures plan (make shots EXT=${ext} writes it)`).toEqual(planned);
+      expect(listed.map(({ box: _, ...l }) => l), `${ext}: pal.json's store.screenshots is what the fixtures plan (make shots EXT=${ext} writes it)`).toEqual(planned);
       for (const l of listed) expect((l.caption ?? "").length, `${ext}/${l.file}: a caption`).toBeGreaterThan(10);
+      // A popover says where it sits on its canvas (the store crops to it), inside the picture; nothing else has a box.
+      for (const l of listed) {
+        if (!l.file.startsWith("bar-popover")) { expect(l.box, `${ext}/${l.file}: only a popover has a box`).toBeUndefined(); continue; }
+        const [x, y, w, h] = l.box ?? [];
+        expect(l.box?.length === 4 && [x, y, w, h].every(Number.isInteger) && x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= SIZES.popover[0] && y + h <= SIZES.popover[1], `${ext}/${l.file}: box is [x, y, width, height] inside the picture (make shots EXT=${ext})`).toBe(true);
+      }
       const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".png")).sort() : [];
       const want = planned.flatMap((p) => [p.file, p.file.replace(/\.png$/, "-dark.png")]).sort();
       expect(files, `${ext}: screenshots/ holds exactly the planned pictures and their dark twins (make shots EXT=${ext})`).toEqual(want);

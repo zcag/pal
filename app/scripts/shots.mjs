@@ -6,7 +6,7 @@
 // dark one as `<file>-dark.png`, into extensions/<name>/screenshots/. Then
 // the directory holds exactly those (an older picture is removed),
 // `store.screenshots` in pal.json lists the light ones with the fixtures'
-// captions, and `screenshots/.shots.json` stamps the fixtures' hash, which
+// captions (a popover with its `box`, where it sits in the picture), and `screenshots/.shots.json` stamps the fixtures' hash, which
 // host/test/screenshots.test.ts checks. `make shots` runs this with the
 // fixtures regenerated and a Vite server up; run by hand:
 //
@@ -56,7 +56,7 @@ const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? true : spawnSync("p
 const browser = await chromium.launch({ headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars"] });
 let failed = 0;
 
-async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
+async function shoot({ url, viewport, scale, theme, keys, settle, path, raw, box }) {
   // en-GB: a page's own toLocale* reads as the SDK writes dates (16 Sep, 14:32), not the headless default's Sep 16, 02:32 PM.
   const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ, locale: "en-GB" });
   // The fixtures' clock: Date reads NOW (timers still run, so a page settles and animates as it would).
@@ -83,6 +83,8 @@ async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
     if (errors.length) throw new Error(`page error: ${errors[0]}`);
     await page.screenshot({ path, type: "png" });
     if (!quant(path, raw)) throw new Error(`${path}: not quantised (brew install pngquant)`);
+    // Where `box` is in the picture, in its pixels: what the store crops to (a popover on its canvas).
+    if (box) return await page.$eval(box, (el, k) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map((v) => Math.round(v * k)); }, scale);
   } finally {
     await context.close();
   }
@@ -146,21 +148,22 @@ for (const name of names) {
     listed.push({ file: `${file}.png`, caption: shot.caption });
   }
   for (const [key, shot] of Object.entries(bar?.shots ?? {})) {
+    let box;
     for (const theme of THEMES) {
       const png = outDir ? `${name}-bar-${key}-${theme}.png` : `bar-${key}${theme === "dark" ? "-dark" : ""}.png`;
       try {
-        await shoot({ url: barUrl(bar.key, shot, theme), viewport: { width: 720, height: shot.popover ? 540 : 60 }, scale: 2, theme, path: join(out, png) });
+        box = (await shoot({ url: barUrl(bar.key, shot, theme), viewport: { width: 720, height: shot.popover ? 540 : 60 }, scale: 2, theme, path: join(out, png), box: shot.popover ? ".g-bar__popover" : undefined })) ?? box;
         made.add(png);
         console.log(`${name}/${png}`);
       } catch (e) { failed++; broke++; console.error(`${name}/${png}: ${e.message.split("\n")[0]}`); }
     }
-    listed.push({ file: `bar-${key}.png`, caption: shot.caption, kind: "bar" });
+    listed.push({ file: `bar-${key}.png`, caption: shot.caption, kind: "bar", box });
   }
   // Half a set is not stamped: the directory, the list and the stamp stay as they were until every shot renders.
   if (outDir || broke) continue;
   // The directory is exactly what the fixtures plan: a picture no fixture makes any more goes.
   for (const f of readdirSync(dir)) if (f.endsWith(".png") && !made.has(f)) { rmSync(join(dir, f)); console.log(`${name}/${f}: removed (no fixture plans it)`); }
-  writeList(join(root, "extensions", name, "pal.json"), listed.map(({ file, caption, kind }) => ({ file, caption, ...(kind && { kind }) })));
+  writeList(join(root, "extensions", name, "pal.json"), listed.map(({ file, caption, kind, box }) => ({ file, caption, ...(kind && { kind }), ...(box && { box }) })));
   writeFileSync(join(dir, ".shots.json"), JSON.stringify({ fixtures: fixtureHash(name) }) + "\n");
 }
 await browser.close();
