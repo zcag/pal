@@ -150,7 +150,8 @@ export function previewState(state: BarItem["state"] | undefined, fallback: stri
   const s = kept(state, show);
   return {
     hidden: s.hidden,
-    icon: typeof s.icon === "string" ? s.icon : s.icon ? "\u{f0976}" : undefined,
+    // A picture stays a picture: the strip draws `{ image }` (an `icon://` app icon in the app) as the renderers do.
+    icon: s.icon as BarStripItem["icon"],
     title: s.title,
     segments: s.segments,
     badge: s.dot ? "dot" : s.badge,
@@ -159,6 +160,10 @@ export function previewState(state: BarItem["state"] | undefined, fallback: stri
     stale,
     progress: s.progress,
     tooltip: s.tooltip,
+    background: s.background,
+    icon_size: s.icon_size,
+    label_size: s.label_size,
+    icon_width: s.icon_width,
   };
 }
 

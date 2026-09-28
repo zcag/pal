@@ -76,7 +76,8 @@ describe("SettingsBar", () => {
     expect(html.match(/class="g-bar" data-theme="dark" data-target="menubar"/g)?.length).toBe(1);
     expect(html.match(/class="g-bar" data-theme="light" data-target="menubar"/g)?.length).toBe(1);
     expect(html).toContain("menu bar, dark");
-    expect(html).toContain('class="g-mb__count" style="background:currentColor">3</span>');
+    // The real menu bar has no count bubble: the count is the title's ` ·3` (menubar.rs `badge_text`).
+    expect(html).toContain('<span class="g-mb__title"><span>·3</span></span>');
     // The item's pane has the custom icon field, the extension's own icon as its placeholder.
     expect(html).toContain('data-inherited="true" data-anchor="bar:github/notifications:icon"');
     expect(html).toMatch(/id="bar:github\/notifications-icon"[^>]*placeholder="\u{f09b}"/u);
@@ -160,23 +161,26 @@ describe("SettingsBar", () => {
     expect(effectiveTarget(barItems[1], config, false)).toBe("sketchybar");
     expect(effectiveTarget(barItems[0], { ...config, target: "both" }, false)).toBe("both");
   });
-  it("draws the badge in the item's colour unless the look says, fades at opacity, and sizes the glyph and the text apart", () => {
+  it("draws what the renderers draw: the dot and the count in the badge's colour, the fade, the sizes (bar-model.ts, held to them by bar-parity)", () => {
     const strip = (item: BarStripItem, look: Partial<BarLook>, target: "menubar" | "sketchybar" = "menubar") => renderToStaticMarkup(<BarStrip items={[item]} target={target} theme="dark" look={{ ...lookDefaults, ...look }} bare />);
-    // Menu bar: the dot and the count ride the ink; a badge colour is their own.
-    expect(strip({ icon: "\u{f09b}", badge: "dot" }, {})).toContain('class="g-mb__dot" style="background:currentColor"');
-    expect(strip({ icon: "\u{f09b}", badge: "dot", color: "green" }, {})).toContain('class="g-mb__dot" style="background:var(--pal-tag-green)"');
-    expect(strip({ icon: "\u{f09b}", badge: 3 }, { badgeColor: "red" })).toContain('class="g-mb__count" style="background:var(--pal-tag-red)"');
-    expect(strip({ icon: "\u{f09b}", badge: "dot", stale: true }, { badgeColor: "red" })).toContain('class="g-mb__dot" style="background:currentColor"');
+    // Menu bar: a dot rides the ink (the bar's, for a template); a colour or a badge colour is its own.
+    expect(strip({ icon: "\u{f09b}", badge: "dot" }, {})).toContain('class="g-mb__dot" style="background:var(--g-mb-fg)"');
+    expect(strip({ icon: "\u{f09b}", badge: "dot", color: "green" }, {})).toContain('class="g-mb__dot" style="background:#5ccb8e"');
+    expect(strip({ icon: "\u{f09b}", badge: "dot", stale: true }, { badgeColor: "red" })).toContain('class="g-mb__dot" style="background:var(--g-mb-fg)"');
+    // A badge colour prerenders the text into the image, the count in that colour.
+    const coloured = strip({ icon: "\u{f09b}", badge: 3 }, { badgeColor: "red" });
+    expect(coloured).toContain('<span class="g-mb__itext" style="color:#ff8a82">·3</span>');
+    expect(coloured).not.toContain("g-mb__title");
     expect(strip({ icon: "\u{f09b}", title: "x" }, { opacity: 40 })).toMatch(/class="g-mb__item g-mb__pal"[^>]*style="opacity:0\.4"/);
-    expect(strip({ icon: "\u{f09b}", title: "x" }, { size: 12, iconSize: 16, textSize: 9 })).toContain("font-size:18px");
-    expect(strip({ icon: "\u{f09b}", title: "x" }, { size: 12, iconSize: 16, textSize: 9 })).toContain("font-size:9px");
-    // sketchybar: the same rules on the map's colours.
-    expect(strip({ icon: "\u{f09b}", badge: 3, color: "green" }, {}, "sketchybar")).toContain('<span style="color:#a6d189">3</span>');
-    expect(strip({ icon: "\u{f09b}", badge: 3, color: "green" }, { badgeColor: "red" }, "sketchybar")).toContain('<span style="color:#e78284">3</span>');
-    expect(strip({ icon: "\u{f09b}", badge: "dot" }, { badgeColor: "#ff8800" }, "sketchybar")).toContain("color:#ff8800");
-    expect(strip({ icon: "\u{f09b}", title: "x" }, { opacity: 50 }, "sketchybar")).toMatch(/class="g-sb__group" style="opacity:0\.5"/);
+    const sized = strip({ icon: "\u{f09b}", title: "x" }, { size: 12, iconSize: 16, textSize: 9 });
+    expect(sized).toContain("font-size:16px");
+    expect(sized).toContain("font-size:9px");
+    // sketchybar: the count is an item of its own in the badge's colour; the pal palette's colours, at the look's opacity.
+    expect(strip({ icon: "\u{f09b}", badge: 3, color: "green" }, {}, "sketchybar")).toMatch(/color:rgba\(92, 203, 142, 1\)[^"]*"[^>]*>3<\/span>/);
+    expect(strip({ icon: "\u{f09b}", badge: 3, color: "green" }, { badgeColor: "red" }, "sketchybar")).toMatch(/color:rgba\(255, 138, 130, 1\)[^"]*"[^>]*>3<\/span>/);
+    expect(strip({ icon: "\u{f09b}", badge: "dot" }, { badgeColor: "#ff8800" }, "sketchybar")).toContain("color:rgba(255, 136, 0, 1)");
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { opacity: 50 }, "sketchybar")).toContain("rgba(236, 236, 240, 0.502)");
     expect(strip({ icon: "\u{f09b}", title: "x" }, { textSize: 9 }, "sketchybar")).toContain("font-size:9px");
-    expect(strip({ icon: "\u{f09b}", title: "x" }, { textSize: 9 }, "sketchybar")).not.toContain("font-size:10px");
   });
   it("has an empty state and an index with an anchor for every field", () => {
     expect(page({ items: [] })).toContain("No bar items");

@@ -13,13 +13,13 @@
 .g-mb__clock { font-variant-numeric: tabular-nums; }
 .g-mb__time { margin-left: 8px; }
 .g-mb__pal { gap: 5px; }
-.g-mb__image { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; gap: 6px; }
+.g-mb__image { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; gap: 4px; }
 .g-mb__icon { font-size: 16px; line-height: 1; }
+.g-mb__itext { font-size: 13px; line-height: 1; white-space: pre; }
+.g-mb__picture { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
 .g-mb__image[data-progress] .g-mb__icon { font-size: 14px; margin-bottom: 4px; }
-.g-mb__seg-icon { font-size: 12px; }
 .g-mb__title { font-size: 13px; }
 .g-mb__dot { position: absolute; top: 0; right: -1px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.g-mb__count { position: absolute; top: -3px; right: -6px; min-width: 11px; height: 11px; padding: 0 3px; border-radius: 6px; background: currentColor; color: #fff; font-size: 8px; font-weight: 700; line-height: 11px; text-align: center; letter-spacing: 0; }
 .g-mb__progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; }
 .g-mb__progress::before { content: ""; position: absolute; inset: 0; border-radius: 1px; background: currentColor; opacity: 0.25; }
 .g-mb__progress > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 1px; background: currentColor; }
@@ -27,10 +27,8 @@
 /* sketchybar, the owner's: flat, opaque, SF 14 labels, icon font 15, icon padding 8/4, label padding 4/8, the urgent wash the one box. */
 .g-sb { display: flex; align-items: center; justify-content: flex-end; padding: 0 6px; font-size: 14px; line-height: 1; -webkit-font-smoothing: antialiased; }
 .g-sb__items { display: flex; align-items: center; height: 100%; }
-.g-sb__group { display: inline-flex; align-items: center; height: 22px; }
+.g-sb__group { display: inline-flex; align-items: center; height: 100%; }
 .g-sb__item { display: inline-flex; align-items: center; height: 100%; white-space: nowrap; }
 .g-sb__icon { padding-left: 8px; padding-right: 4px; font-size: 15px; }
 .g-sb__icon--opt { font-size: 18px; }
-.g-sb__rule { padding-left: 8px; font: 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0; }
-.g-sb__rule + .g-sb__icon { padding-left: 4px; }
 .g-sb__label { padding-left: 4px; padding-right: 8px; font-variant-numeric: tabular-nums; }

@@ -819,6 +819,15 @@ pub struct BarItemState {
     progress: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tooltip: Option<String>,
+    /// The band and the sizes: the strip draws them as the renderers do (`BarStrip.tsx` reads `bar-model.ts`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    background: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon_size: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    label_size: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon_width: Option<f64>,
     /// `BarItem.empty`, what `show = "always"` keeps of a hidden item: the
     /// page previews it under that setting and offers the setting on it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -858,6 +867,10 @@ fn bar_item_state(item: &crate::bar::BarItem) -> BarItemState {
         color: item.color.clone(),
         progress: item.progress,
         tooltip: item.tooltip.clone(),
+        background: item.background.clone(),
+        icon_size: item.icon_size,
+        label_size: item.label_size,
+        icon_width: item.icon_width,
     }
 }
 

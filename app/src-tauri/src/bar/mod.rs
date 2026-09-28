@@ -33,6 +33,8 @@
 pub mod colors;
 pub mod glyph;
 pub mod menubar;
+#[cfg(test)]
+mod parity;
 pub mod popover;
 pub mod sketchybar;
 
@@ -236,7 +238,8 @@ impl BarItem {
     /// extension's colour (`muted` stays: it is a state, not a colour), and
     /// hidden when nothing is left to draw.
     pub fn shaped(mut self, look: &BarLook) -> BarItem {
-        if let Some(icon) = &look.icon {
+        // A blank custom icon is no custom icon: the extension's stays.
+        if let Some(icon) = look.icon.as_deref().filter(|i| !i.trim().is_empty()) {
             self.icon = Some(look_icon(icon));
         }
         if !look.show_icon {

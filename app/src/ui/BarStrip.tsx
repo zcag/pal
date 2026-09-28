@@ -1,36 +1,34 @@
 /**
- * A bar item as each target draws it (docs/design/bar.md, "Mapping"), on
- * a band the gallery's shots and the Settings > Bar preview share. The
- * band is drawn from the bar's geometry, not captured. Menu bar: 24 pt
- * tall, 13 pt system text, template glyphs in the text colour, 22 px
- * between items, Apple's own items (battery, Wi-Fi, Control Center, the
- * clock) at the right and pal's to their left; the glyph is the
- * renderer's prerendered 18 pt image (`bar/menubar.rs`): badge and
- * progress drawn into it, tinted only when `color` or `urgent` says so.
- * sketchybar: the owner's flat 26 px Catppuccin Frappe bar
- * (`~/.config/sketchybar/{theme,colors}.sh`), San Francisco 14 for
- * labels, the icon font at 15, icon padding 8/4 and label padding 4/8,
- * no pills at rest; the `urgent` tint is the one box drawn.
+ * A bar item as each target draws it, on the band the gallery's shots and
+ * the Settings > Bar preview share. Nothing here decides what an item
+ * looks like: `bar-model.ts` says what the real renderers draw
+ * (`describeMenubar`, `describeSketchy`; held to them by
+ * `__tests__/bar-parity.test.ts`) and this file only lays that out on a
+ * band (docs/design/screenshots.md, "Parity").
  *
- * The look (`[bar.menubar]` / `[bar.sketchybar]` with the item's
- * overrides, `BarLook`) is applied the way the renderers apply it:
- * `shapeItem` drops the icon or the text, puts the look's own `icon` in,
- * maps the badge and tints; `dim` is a muted item's opacity, `opacity`
- * the whole item's, `size` the glyph and text size (`icon_size` /
- * `text_size` each alone), `spacing` the gaps, `width` a fixed item
- * width, `font` the text face, `max_chars` the cut, `badge_color` the
- * badge's colour (the item's when unset).
+ * Menu bar: 24 pt tall, 13 pt system text, 22 px between items, Apple's own
+ * items (battery, Wi-Fi, Control Center, the clock) at the right and pal's
+ * to their left. pal's item is its image (the glyph, a glyph run or the
+ * prerendered text, the dot, the progress fill; the bar's ink when a
+ * template, else its own) then the title in the bar's text colour.
+ * sketchybar: a flat 26 px bar with San Francisco 14 labels and the icon
+ * font at 15, pal's items one sketchybar item each (a segment and the count
+ * are items of their own), drawn from their properties.
  */
 import type { CSSProperties, ReactNode } from "react";
-import { inkOn } from "./View.tsx";
+import { clipText, cssOf, describeMenubar, describeSketchy, hasGlyph, labelSize, shapeItem, type MenubarDescribed } from "./bar-model";
+
+export { clipText, shapeItem };
 
 export type BarColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal" | "text" | "muted" | "accent" | "destructive";
 export type BarSegment = { id: string; icon?: string; text?: string; color?: BarColor | string };
+/** The strip's part of an extension's `BarItem` (sdk `protocol.ts`), in its wire spelling: what `bar-model.ts` reads. */
 export type BarStripItem = {
-  hidden?: boolean; icon?: string; title?: string; segments?: BarSegment[]; badge?: number | "dot";
+  hidden?: boolean; icon?: string | { image: string; template?: boolean } | { app: string }; title?: string; segments?: BarSegment[]; badge?: number | "dot";
   color?: BarColor | string | null; urgent?: boolean; stale?: boolean; progress?: number; tooltip?: string;
   /** sketchybar only: a band behind the item (`sketchybar.rs`, 22 pt, rounded), the ink by contrast unless `color` names one. */
   background?: string;
+  icon_size?: number; label_size?: number; icon_width?: number;
 };
 export type BarStripTarget = "menubar" | "sketchybar";
 export type BarStripTheme = "dark" | "light";
@@ -57,65 +55,30 @@ export type BarLook = {
 
 export const defaultLook: BarLook = { dim: 50, opacity: 100, size: 0, iconSize: 0, textSize: 0, spacing: 4, showIcon: true, showTitle: true, urgentColor: "destructive", badgeStyle: "count", width: 0, font: "system", maxChars: 32 };
 
-/** `Draw::icon_size` / `label_size`: the split size, else `size`. */
-export const iconSizeOf = (look: BarLook) => look.iconSize || look.size;
-export const textSizeOf = (look: BarLook) => look.textSize || look.size;
 
 export const MENUBAR_H = 24, SKETCHYBAR_H = 26;
 
-/** `menubar::clip`: `s` cut to `max` characters with an ellipsis, on a word edge when one is near. */
-export function clipText(s: string, max: number): string {
-  const chars = [...s];
-  if (chars.length <= max) return s;
-  const cut = Math.max(0, max - 1);
-  let keep = chars.slice(0, cut).join("");
-  const midWord = chars[cut] !== " ";
-  const space = keep.lastIndexOf(" ");
-  if (midWord && space >= 0 && space >= (keep.length * 2) / 3) keep = keep.slice(0, space);
-  return `${keep.trimEnd()}…`;
-}
-
-/** `bar::look_icon`: a look's icon that names a picture (a path, a `data:` URI, an `icon://` url); the strip stands in a glyph for it, as `previewState` does for an extension's image. */
-const isPicture = (s: string) => s.startsWith("/") || s.startsWith("~/") || s.startsWith("data:image/") || s.startsWith("icon://");
-const PICTURE = "\u{f0976}";
-
-/** `BarItem::shaped`: the item with the look applied, hidden when nothing is left to draw. */
-export function shapeItem(item: BarStripItem, look: BarLook): BarStripItem {
-  const out: BarStripItem = { ...item };
-  if (look.icon?.trim()) out.icon = isPicture(look.icon.trim()) ? PICTURE : look.icon.trim();
-  if (!look.showIcon) delete out.icon;
-  if (!look.showTitle) { delete out.title; out.segments = []; }
-  if (look.badgeStyle === "none") delete out.badge;
-  else if (look.badgeStyle === "dot" && typeof out.badge === "number") out.badge = "dot";
-  if (look.color && out.color !== "muted") out.color = look.color;
-  if (!out.icon && !out.title && !(out.segments?.length) && out.badge === undefined) out.hidden = true;
-  return out;
-}
-
-const isMuted = (item: BarStripItem) => !item.urgent && (item.stale || item.color === "muted");
-const isHex = (c: string) => /^#[0-9a-f]{6}$/i.test(c) || /^0x[0-9a-f]{8}$/i.test(c);
-const hexOf = (c: string) => (c.startsWith("0x") ? `#${c.slice(4)}` : c);
-/** `#rrggbb` at `alpha`. */
-const withAlpha = (hex: string, alpha: number) => {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
-  return m ? `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})` : hex;
-};
-
-/** A run of the strip: Nerd glyphs (one, or several spaced like privacy's `󰖠 󰍬`) in the symbols font, anything else in the text font. */
-function Glyph({ value, className, style }: { value: string; className?: string; style?: CSSProperties }) {
-  return <span className={className} data-symbol={/^\s*\p{Co}[\p{Co}\s]*$/u.test(value) || undefined} style={style}>{value}</span>;
+/**
+ * Text with each Nerd glyph in the symbols font: the gallery's stand-in for
+ * the renderers' own glyph drawing (`glyph::strip` takes each from the
+ * symbols font; sketchybar's icon font is a Nerd Font).
+ */
+function Runs({ text, className, style }: { text: string; className?: string; style?: CSSProperties }) {
+  const out: ReactNode[] = [];
+  let plain = "", sym = "";
+  const flush = () => {
+    if (plain) out.push(<span key={out.length}>{plain}</span>);
+    if (sym) out.push(<span key={out.length} data-symbol>{sym}</span>);
+    plain = sym = "";
+  };
+  for (const ch of text) {
+    if (hasGlyph(ch) || (sym && /\s/.test(ch))) { if (plain) flush(); sym += ch; } else { if (sym) flush(); plain += ch; }
+  }
+  flush();
+  return <span className={className} style={style}>{out}</span>;
 }
 
 // ---- menu bar -----------------------------------------------------------------
-
-/** A pal token for a colour spec on the menu bar (the tag palette; `text` is the bar's own colour, `muted` its 55% alpha; hex as is). */
-const menubarColor = (c: string | null | undefined): string | undefined => {
-  if (!c || c === "text") return undefined;
-  if (c === "muted") return "var(--g-mb-muted)";
-  if (isHex(c)) return hexOf(c);
-  if (c === "accent" || c === "destructive") return `var(--pal-${c})`;
-  return `var(--pal-tag-${c})`;
-};
 
 /** Apple's items at the right of every bar, as neutral template glyphs. */
 const Battery = () => (
@@ -141,75 +104,45 @@ const ControlCenter = () => (
   </svg>
 );
 
-/** The renderer's 18 pt image: the glyph, the badge in its corner (in `badge` colour, else the ink's), the progress fill along its bottom. */
-function MenubarImage({ item, tint, badge: badgeColor, size, dim }: { item: BarStripItem; tint?: string; badge?: string; size: number; dim?: number }) {
-  const badge = item.badge;
-  const mark: CSSProperties = { background: badgeColor ?? "currentColor" };
+/** The status item's image: the glyph (or run) and the prerendered text in the ink, the count in the badge's, the dot, the progress fill. */
+function MenubarImage({ d, item, textPx }: { d: MenubarDescribed; item: BarStripItem; textPx?: number }) {
+  const ink = d.template || !d.ink ? "var(--g-mb-fg)" : d.ink;
+  const alpha = d.alpha < 100 ? d.alpha / 100 : undefined;
+  const src = typeof item.icon === "object" && item.icon && "image" in item.icon ? item.icon.image : typeof item.icon === "object" && item.icon && "app" in item.icon ? `icon://localhost/app?path=${encodeURIComponent(item.icon.app)}&size=36` : undefined;
+  const count = typeof item.badge === "number" ? ` ·${item.badge}` : "";
+  const text = d.image_text ?? "";
+  const [words, tail] = count && text.endsWith(count.trimStart()) ? [text.slice(0, text.length - count.trimStart().length), text.slice(text.length - count.trimStart().length)] : [text, ""];
   return (
-    <span className="g-mb__image" data-progress={typeof item.progress === "number" || undefined} style={{ color: tint, opacity: dim }}>
-      {item.icon && <Glyph value={item.icon} className="g-mb__icon" style={size ? { fontSize: Math.min(18, size + 2) } : undefined} />}
-      {badge === "dot" && <span className="g-mb__dot" style={mark} />}
-      {typeof badge === "number" && <span className="g-mb__count" style={mark}>{badge > 99 ? "99+" : badge}</span>}
-      {typeof item.progress === "number" && (
-        <span className="g-mb__progress"><span style={{ width: `${Math.round(Math.min(1, Math.max(0, item.progress)) * 100)}%` }} /></span>
-      )}
+    <span className="g-mb__image" data-progress={d.progress !== null || undefined} style={{ color: ink }}>
+      {d.icon === "image" && src && <img className="g-mb__picture" src={src} alt="" />}
+      {d.glyph && <Runs text={d.glyph} className="g-mb__icon" style={{ opacity: alpha, fontSize: d.size > 0 ? d.size : undefined }} />}
+      {text && <Runs text={words} className="g-mb__itext" style={{ opacity: alpha, fontSize: textPx }} />}
+      {tail && <span className="g-mb__itext" style={{ color: d.badge_ink ?? undefined, fontSize: textPx }}>{tail}</span>}
+      {d.dot && <span className="g-mb__dot" style={{ background: d.badge_ink ?? ink }} />}
+      {d.progress !== null && <span className="g-mb__progress"><span style={{ width: `${Math.round(Math.min(1, Math.max(0, d.progress)) * 100)}%` }} /></span>}
     </span>
   );
 }
 
-/** The text beside the image (`menubar::body`): the title, the segments two spaces apart, the count as ` ·n` when there is no image to carry it. */
-function menubarRuns(item: BarStripItem, look: BarLook): ReactNode[] {
-  const runs: ReactNode[] = [];
-  const parts: string[] = [];
-  if (item.title) parts.push(item.title);
-  for (const s of item.segments ?? []) parts.push([s.icon, s.text].filter(Boolean).join(" "));
-  let text = parts.filter(Boolean).join("  ");
-  if (typeof item.badge === "number" && !item.icon) text += ` ·${item.badge}`;
-  text = clipText(text.trim(), look.maxChars);
-  if (!text) return runs;
-  // Each Nerd glyph inside the text takes the symbols font.
-  let plain = "";
-  for (const ch of text) {
-    if (/^[\p{Co}]$/u.test(ch)) {
-      if (plain) runs.push(<span key={runs.length}>{plain}</span>);
-      plain = "";
-      runs.push(<Glyph key={runs.length} value={ch} className="g-mb__seg-icon" />);
-    } else plain += ch;
-  }
-  if (plain) runs.push(<span key={runs.length}>{plain}</span>);
-  return runs;
-}
-
-/** One `NSStatusItem`: the image, `ImageLeft` of the title; the title in the one text colour unless the look prerenders it. */
-export function MenubarItem({ item, look = defaultLook, anchor }: { item: BarStripItem; look?: BarLook; anchor?: (el: HTMLElement | null) => void }) {
-  const tint = item.urgent ? menubarColor(look.urgentColor) ?? "var(--pal-destructive)" : menubarColor(item.color);
-  // `Draw::badge_tint`: the look's badge colour, else the tint; stale mutes it with the rest.
-  const badge = item.stale && !item.urgent ? undefined : look.badgeColor ? menubarColor(look.badgeColor) : tint;
-  const runs = menubarRuns(item, look);
-  const prerendered = look.font === "mono" || iconSizeOf(look) > 0 || textSizeOf(look) > 0 || look.width > 0 || look.opacity < 100 || !!look.badgeColor;
-  const style: CSSProperties = { gap: look.spacing === 4 ? undefined : look.spacing + 1 };
-  if (look.width > 0) { style.width = look.width; style.overflow = "hidden"; }
-  // A muted item is the template image at `dim`; the title text keeps the bar's colour unless it is in the image too. `opacity` is the whole item's, prerendered.
-  const dim = isMuted(item) ? look.dim / 100 : undefined;
-  if (dim !== undefined && prerendered) style.opacity = dim;
-  if (look.opacity < 100) style.opacity = (dim !== undefined && prerendered ? dim : 1) * look.opacity / 100;
-  const text: CSSProperties = {};
-  if (tint && prerendered) text.color = tint;
-  if (textSizeOf(look) > 0) text.fontSize = textSizeOf(look);
-  if (look.font === "mono") text.fontFamily = "var(--pal-font-mono, ui-monospace, monospace)";
+/** One `NSStatusItem`: the image `ImageLeft` of the title (`menubar::describe`). */
+export function MenubarItem({ item, look = defaultLook, dark, anchor }: { item: BarStripItem; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void }) {
+  const d = describeMenubar(item, look, dark);
+  const image = d.icon === "glyph" || d.icon === "run" || d.icon === "image" || d.image_text !== null;
+  const style: CSSProperties = { opacity: d.opacity < 100 ? d.opacity / 100 : undefined, fontFamily: look.font === "mono" && d.image_text !== null ? "var(--pal-font-mono, ui-monospace, monospace)" : undefined };
+  if (look.width > 0 && d.image_text) { style.width = look.width; style.overflow = "hidden"; }
   return (
-    <span ref={anchor} className="g-mb__item g-mb__pal" data-muted={dim !== undefined || undefined} title={item.tooltip} style={style}>
-      {item.icon && <MenubarImage item={item} tint={tint} badge={badge} size={iconSizeOf(look)} dim={prerendered ? undefined : dim} />}
-      {runs.length > 0 && <span className="g-mb__title" style={text}>{runs}</span>}
+    <span ref={anchor} className="g-mb__item g-mb__pal" title={item.tooltip} style={style}>
+      {image && <MenubarImage d={d} item={item} textPx={labelSize(item, look) > 0 ? labelSize(item, look) : undefined} />}
+      {d.title && <Runs text={d.title} className="g-mb__title" />}
     </span>
   );
 }
 
-export function MenuBar({ items, look, anchor, bare }: { items: BarStripItem[]; look?: BarLook; anchor?: (el: HTMLElement | null) => void; bare?: boolean }) {
+export function MenuBar({ items, look, dark, anchor, bare }: { items: BarStripItem[]; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void; bare?: boolean }) {
   return (
     <div className="g-mb" style={{ height: MENUBAR_H }}>
       <div className="g-mb__items">
-        {items.map((it, i) => <MenubarItem key={i} item={it} look={look} anchor={i === 0 ? anchor : undefined} />)}
+        {items.map((it, i) => <MenubarItem key={i} item={it} look={look} dark={dark} anchor={i === 0 ? anchor : undefined} />)}
         {!bare && <span className="g-mb__item"><Battery /></span>}
         {!bare && <span className="g-mb__item"><Wifi /></span>}
         <span className="g-mb__item"><ControlCenter /></span>
@@ -221,65 +154,42 @@ export function MenuBar({ items, look, anchor, bare }: { items: BarStripItem[]; 
 
 // ---- sketchybar ---------------------------------------------------------------
 
-/** The owner's two sketchybar palettes (colors.sh), the roles pal's `BarColor` lands on. */
-const SKETCHY = {
-  dark: { base: "#303446", text: "#c6d0f5", dim: "#7c8299", dimmer: "#535766", urgentBg: "#4f3352",
-    map: { grey: "#7c8299", blue: "#8caaee", green: "#a6d189", amber: "#ef9f76", red: "#e78284", violet: "#ca9ee6", pink: "#f4b8e4", teal: "#81c8be", text: "#c6d0f5", muted: "#7c8299", accent: "#8caaee", destructive: "#e78284" } },
-  light: { base: "#faf4ed", text: "#575279", dim: "#797593", dimmer: "#9893a5", urgentBg: "#f0dde2",
-    map: { grey: "#797593", blue: "#286983", green: "#286983", amber: "#d7827e", red: "#b4637a", violet: "#907aa9", pink: "#b4637a", teal: "#56949f", text: "#575279", muted: "#797593", accent: "#286983", destructive: "#b4637a" } },
-} as const;
+/** A sketchybar of its own look: the bar and its neighbours (volume, battery, clock); pal's items take their colours from pal's palette, as the renderer does. */
+const SKETCHY = { dark: { base: "#303446", text: "#c6d0f5" }, light: { base: "#faf4ed", text: "#575279" } } as const;
 
-/** The owner's timer rule: eight cells of heavy and light box drawing, the heavy ones the elapsed share. */
-const rule = (p: number) => { const n = Math.round(Math.min(1, Math.max(0, p)) * 8); return "━".repeat(n) + "─".repeat(8 - n); };
+const px = (v: string | undefined) => (v === undefined ? undefined : Number(v));
 
-/** One sketchybar item (or, with segments, a bracket of them): `icon` then `label`, the owner's paddings, colours from the map. */
-export function SketchyItem({ item, theme, look = defaultLook, anchor }: { item: BarStripItem; theme: BarStripTheme; look?: BarLook; anchor?: (el: HTMLElement | null) => void }) {
-  const pal = SKETCHY[theme];
-  const spec = (c: string | null | undefined, fallback: string) => (c ? (isHex(c) ? hexOf(c) : (pal.map as Record<string, string>)[c] ?? fallback) : fallback);
-  const muted = withAlpha(pal.map.muted, look.dim / 100);
-  const colorOf = (c: string | null | undefined, fallback: string) => (item.stale ? muted : c === "muted" ? muted : spec(c, fallback));
-  const band = item.background ? spec(item.background, pal.text) : undefined;
-  const itemColor = item.urgent ? spec(look.urgentColor, pal.map.destructive) : band && (!item.color || item.color === "text") ? (inkOn(band) === "#000" ? "#1a1a1f" : "#fff") : colorOf(item.color, pal.text);
-  // `Draw::badge_tint`: the look's badge colour, else the item's; stale mutes it with the rest.
-  const badgeColor = item.stale && !item.urgent ? muted : look.badgeColor ? spec(look.badgeColor, itemColor) : itemColor;
-  const iconColor = item.badge === "dot" ? badgeColor : itemColor;
-  const title = item.title ? clipText(item.title, look.maxChars) : "";
-  const label = [title, typeof item.badge === "number" ? <span key="b" style={{ color: badgeColor }}>{title ? " " : ""}{item.badge}</span> : null].filter(Boolean);
-  const hasLabel = label.length > 0;
-  const font: CSSProperties = {};
-  if (textSizeOf(look) > 0) font.fontSize = textSizeOf(look);
-  if (look.font === "mono") font.fontFamily = "Menlo, ui-monospace, monospace";
-  const iconFont = iconSizeOf(look) > 0 ? iconSizeOf(look) + 1 : undefined;
-  const labelStyle: CSSProperties = { color: itemColor, ...font };
-  if (look.width > 0 && title) { labelStyle.minWidth = look.width; labelStyle.maxWidth = look.width; labelStyle.overflow = "hidden"; }
-  const sp = look.spacing;
-  // `opacity` is every colour's alpha on sketchybar; the strip fades the group as one.
-  const group: CSSProperties = { ...(item.urgent ? { background: pal.urgentBg } : band ? { background: band, borderRadius: 6 } : {}), ...(look.opacity < 100 ? { opacity: look.opacity / 100 } : {}) };
+/** pal's sketchybar items for one bar item, from their properties (`sketchybar::props`): the main item, then its segments and its count. */
+export function SketchyItem({ item, look = defaultLook, dark, anchor }: { item: BarStripItem; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void }) {
+  const props = describeSketchy(item, look, dark);
+  const main = props[0];
+  const band: CSSProperties = main["background.drawing"] === "on" ? { background: cssOf(main["background.color"]), borderRadius: px(main["background.corner_radius"]), height: px(main["background.height"]) } : {};
   return (
-    <span ref={anchor} className="g-sb__group" data-urgent={item.urgent || undefined} style={group}>
-      <span className="g-sb__item">
-        {typeof item.progress === "number" && <span className="g-sb__rule" style={{ color: iconColor }}>{rule(item.progress)}</span>}
-        {item.icon && <Glyph value={item.icon} className="g-sb__icon" style={{ color: iconColor, paddingRight: hasLabel || item.segments?.length ? sp : 8, fontSize: iconFont }} />}
-        {hasLabel && <span className="g-sb__label" style={labelStyle}>{label}</span>}
-      </span>
-      {item.segments?.map((s) => (
-        <span key={s.id} className="g-sb__item">
-          {s.icon && <Glyph value={s.icon} className="g-sb__icon" style={{ color: colorOf(s.color ?? item.color, pal.text), paddingLeft: sp, paddingRight: s.text ? 2 : 8, fontSize: iconFont }} />}
-          {s.text && <span className="g-sb__label" style={{ color: colorOf(s.color ?? item.color, pal.text), paddingLeft: s.icon ? 0 : sp, ...font }}>{s.text}</span>}
+    <span ref={anchor} className="g-sb__group" style={band}>
+      {props.map((p, i) => p.drawing === "off" ? null : (
+        <span key={i} className="g-sb__item">
+          {p["icon.drawing"] === "on" && (
+            <Runs text={p.icon} className="g-sb__icon" style={{ color: cssOf(p["icon.color"]), fontSize: px(p["icon.font.size"]), paddingLeft: px(p["icon.padding_left"]), paddingRight: px(p["icon.padding_right"]), width: px(p["icon.width"]) }} />
+          )}
+          {p["label.drawing"] === "on" && (
+            <span className="g-sb__label" style={{ color: cssOf(p["label.color"]), fontSize: px(p["label.font.size"]), fontFamily: p["label.font.family"] ? "Menlo, ui-monospace, monospace" : undefined, paddingLeft: px(p["label.padding_left"]), paddingRight: px(p["label.padding_right"]), width: px(p["label.width"]), overflow: p["label.width"] ? "hidden" : undefined }}>
+              {p.label}
+            </span>
+          )}
         </span>
       ))}
     </span>
   );
 }
 
-export function Sketchybar({ items, theme, look, anchor, bare }: { items: BarStripItem[]; theme: BarStripTheme; look?: BarLook; anchor?: (el: HTMLElement | null) => void; bare?: boolean }) {
-  const pal = SKETCHY[theme];
+export function Sketchybar({ items, look, dark, anchor, bare }: { items: BarStripItem[]; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void; bare?: boolean }) {
+  const bar = SKETCHY[dark ? "dark" : "light"];
   return (
-    <div className="g-sb" style={{ height: SKETCHYBAR_H, background: pal.base, color: pal.text }}>
+    <div className="g-sb" style={{ height: SKETCHYBAR_H, background: bar.base, color: bar.text }}>
       <div className="g-sb__items">
-        {items.map((it, i) => <SketchyItem key={i} item={it} theme={theme} look={look} anchor={i === 0 ? anchor : undefined} />)}
-        {!bare && <span className="g-sb__item"><Glyph value={"\u{f057e}"} className="g-sb__icon g-sb__icon--opt" style={{ paddingRight: 8 }} /></span>}
-        <span className="g-sb__item"><Glyph value={"\u{f0081}"} className="g-sb__icon" /><span className="g-sb__label">82%</span></span>
+        {items.map((it, i) => <SketchyItem key={i} item={it} look={look} dark={dark} anchor={i === 0 ? anchor : undefined} />)}
+        {!bare && <span className="g-sb__item"><Runs text={"\u{f057e}"} className="g-sb__icon g-sb__icon--opt" style={{ paddingRight: 8 }} /></span>}
+        <span className="g-sb__item"><Runs text={"\u{f0081}"} className="g-sb__icon" /><span className="g-sb__label">82%</span></span>
         <span className="g-sb__item"><span className="g-sb__label">Tue Sep 16 14:32</span></span>
       </div>
     </div>
@@ -292,12 +202,12 @@ export type BarStripProps = {
   items: BarStripItem[];
   target: BarStripTarget;
   theme: BarStripTheme;
-  /** Applied through `shapeItem` and the band's styling; the defaults when absent. */
+  /** The item's look, applied through `shapeItem`; the defaults when absent. */
   look?: BarLook;
   /** The strip's size: 720 by 60 for a shot; the band alone plus a sliver of desktop for a preview. */
   width?: number | string;
   height?: number;
-  /** Fewer of Apple's / the owner's own items, for a narrow preview. */
+  /** Fewer of Apple's / the bar's own items, for a narrow preview. */
   bare?: boolean;
   anchor?: (el: HTMLElement | null) => void;
   children?: ReactNode;
@@ -307,9 +217,10 @@ export type BarStripProps = {
 export function BarStrip({ items, target, theme, look = defaultLook, width = 720, height, bare, anchor, children }: BarStripProps) {
   const shaped = items.map((it) => shapeItem(it, look)).filter((it) => !it.hidden);
   const bandH = target === "menubar" ? MENUBAR_H : SKETCHYBAR_H;
+  const dark = theme === "dark";
   return (
     <div className="g-bar" data-theme={theme} data-target={target} style={{ width, height: height ?? bandH + 36 }}>
-      {target === "menubar" ? <MenuBar items={shaped} look={look} anchor={anchor} bare={bare} /> : <Sketchybar items={shaped} theme={theme} look={look} anchor={anchor} bare={bare} />}
+      {target === "menubar" ? <MenuBar items={shaped} look={look} dark={dark} anchor={anchor} bare={bare} /> : <Sketchybar items={shaped} look={look} dark={dark} anchor={anchor} bare={bare} />}
       {children}
     </div>
   );

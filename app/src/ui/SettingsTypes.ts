@@ -445,7 +445,7 @@ export type BarItemMock = {
 };
 
 /** The compact render state settings.rs exposes for the live and mock strips. `empty` is what `show = "always"` keeps of a hidden item (`BarItem.empty`, the menu left out). */
-export type BarItemState = { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string; empty?: { icon?: unknown; title?: string; tooltip?: string } };
+export type BarItemState = { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string; background?: string; icon_size?: number; label_size?: number; icon_width?: number; empty?: { icon?: unknown; title?: string; tooltip?: string } };
 
 /** One declared bar item (settings.rs `BarItemView`) with its extension and its config. */
 export type BarItem = {

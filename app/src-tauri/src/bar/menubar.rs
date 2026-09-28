@@ -79,14 +79,15 @@ pub fn clip(s: &str, max: usize) -> String {
     format!("{}…", trimmed.trim_end())
 }
 
-/// Whether the look asks for what the title cannot carry: a face, a
-/// size, a fixed width, an opacity or a badge colour (the count is title
-/// text otherwise). Then the text goes into the image (`glyph::strip`),
+/// Whether the item has what the title cannot carry: a Nerd glyph in the
+/// icon run or in the text (a segment's mark: the system face has none of
+/// them), or a look that asks for a face, a size, a fixed width, an opacity
+/// or a badge colour (the count is title text otherwise). Then the text goes into the image (`glyph::strip`),
 /// where the system face is on disk; an image icon keeps its picture and
 /// the text stays title text.
 pub fn prerendered(draw: &Draw) -> bool {
     let l = &draw.look;
-    (glyph_run(draw).is_some() || l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0 || l.opacity < 100 || l.badge_color.is_some()) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
+    (glyph_run(draw).is_some() || runs(draw).chars().any(glyph::has_glyph) || l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0 || l.opacity < 100 || l.badge_color.is_some()) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
 }
 
 /// An icon of several Nerd glyphs (privacy's `󰖠 󰍬`): the system face of
@@ -202,6 +203,60 @@ fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>
         glyph::render(glyph?, &style)?
     };
     Some((tauri::image::Image::new_owned(img.data.clone(), img.width, img.height), style.template()))
+}
+
+/// What the menu bar draws for `draw`, as data rather than pixels: the
+/// parity snapshot's menu bar half (docs/design/screenshots.md), which the
+/// gallery's and the Settings preview's strip (`app/src/ui/BarStrip.tsx`)
+/// must agree with. Every field comes from the functions [`image`] and
+/// [`build`] draw with, so it cannot describe something they do not do.
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct Described {
+    /// `glyph` (one Nerd glyph), `run` (several, drawn into the image), `text` (title text), `image`, or `none`.
+    pub icon: &'static str,
+    /// The glyph or the run; the text of a `text` icon is in `title`.
+    pub glyph: Option<String>,
+    /// The text drawn into the image with the glyph ([`prerendered`]): the runs, then the count.
+    pub image_text: Option<String>,
+    /// The status item's title, in the bar's own face and colour.
+    pub title: String,
+    /// A template image takes the bar's ink; otherwise it is drawn in `ink`.
+    pub template: bool,
+    pub ink: Option<String>,
+    pub badge_ink: Option<String>,
+    pub dot: bool,
+    /// To a thousandth: the f32 the image takes is not the f64 the item said.
+    pub progress: Option<f64>,
+    /// The ink's strength (a muted item's `dim`) and the whole image's (`opacity`), percent.
+    pub alpha: u32,
+    pub opacity: u32,
+    pub size: f32,
+}
+
+#[cfg(test)]
+pub fn describe(draw: &Draw, palette: &Palette) -> Described {
+    let hex = |c: Option<[u8; 3]>| c.map(|[r, g, b]| format!("#{r:02x}{g:02x}{b:02x}"));
+    let s = style(draw, palette);
+    let kind = draw.item.icon_kind();
+    let (icon, glyph) = match (&kind, glyph_run(draw)) {
+        (_, Some(run)) => ("run", Some(run)),
+        (Some(IconKind::Glyph(c)), _) => ("glyph", Some(c.to_string())),
+        (Some(IconKind::Text(_)), _) => ("text", None),
+        (Some(IconKind::Image { .. }), _) => ("image", None),
+        (None, _) => ("none", None),
+    };
+    let image_text = (prerendered(draw) && icon != "image").then(|| {
+        let (text, badge) = (runs(draw), badge_text(draw));
+        let badge = if text.is_empty() { badge.trim_start().to_string() } else { badge };
+        format!("{text}{badge}")
+    });
+    let template = match &kind {
+        Some(IconKind::Image { template, .. }) => *template,
+        _ => s.template(),
+    };
+    let pct = |f: f32| (f * 100.0).round() as u32;
+    Described { icon, glyph, image_text, title: title_text(draw), template, ink: hex(s.color), badge_ink: hex(s.badge), dot: s.dot, progress: s.progress.map(|p| (p as f64 * 1000.0).round() / 1000.0), alpha: pct(s.alpha), opacity: pct(s.opacity), size: s.size }
 }
 
 /// Whether two draws come out as the same image (the tooltip and the menu are not in it).
@@ -387,6 +442,8 @@ mod tests {
         let run = draw(json!({ "icon": "\u{f05a0} \u{f036c}" }));
         assert!(prerendered(&run) || !glyph::can_strip(false), "a glyph run needs the strip");
         assert_eq!(title_text(&run), "", "not system-face title text, where the glyphs would be boxes");
+        let segment = draw(json!({ "icon": "\u{f0176}", "title": "1h 59m", "segments": [{ "id": "display", "icon": "\u{f0379}" }] }));
+        assert!(prerendered(&segment) || !glyph::can_strip(false), "a segment's glyph cannot be title text either");
         let words = draw(json!({ "icon": "2 low" }));
         assert!(glyph_run(&words).is_none() && !prerendered(&words));
         assert_eq!(title_text(&words), "2 low");
@@ -490,7 +547,13 @@ mod tests {
     fn title_text_joins_emoji_title_segments_and_count() {
         assert_eq!(title_text(&draw(json!({ "icon": "\u{f09b}", "badge": 3 }))), "·3", "a glyph is the image, the count the text");
         assert_eq!(title_text(&draw(json!({ "icon": "🔔", "title": "Ring" }))), "🔔  Ring", "an emoji leads the text");
-        assert_eq!(title_text(&draw(json!({ "title": "prs", "segments": [{ "id": "a", "icon": "\u{f0159}", "text": "2" }, { "id": "b", "text": "│" }, { "id": "c", "icon": "\u{f09b}" }] }))), "prs  \u{f0159} 2  │  \u{f09b}");
+        // Segments' glyphs are not title text (the system face would box them): the whole run goes into the image, the title stays empty.
+        let marks = draw(json!({ "title": "prs", "segments": [{ "id": "a", "icon": "\u{f0159}", "text": "2" }, { "id": "b", "text": "│" }, { "id": "c", "icon": "\u{f09b}" }] }));
+        assert_eq!(runs(&marks), "prs  \u{f0159} 2  │  \u{f09b}");
+        if glyph::can_strip(false) {
+            assert_eq!(title_text(&marks), "");
+        }
+        assert_eq!(title_text(&draw(json!({ "title": "prs", "segments": [{ "id": "b", "text": "│ 2" }] }))), "prs  │ 2", "plain text stays the title");
         assert_eq!(title_text(&draw(json!({ "hidden": true }))), "");
         assert_eq!(tooltip(&draw(json!({ "tooltip": "3 unread", "stale": true }))), "3 unread (stale)");
         assert_eq!(tooltip(&draw(json!({ "stale": true }))), "(stale)");
