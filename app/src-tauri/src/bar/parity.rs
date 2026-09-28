@@ -154,3 +154,57 @@ fn dump_menubar_pictures() {
         }
     }
 }
+
+/// A bar fixture shows what the bar would draw: the core applies the
+/// manifest's rules (`ruled`, mod.rs) over what `render` answered, by the
+/// states the item publishes, so a fixture item whose rules hold must
+/// already carry their urgency, tint and presence, or its picture is a
+/// strip the bar never shows (WhatsApp's direct message, red on the bar,
+/// drew plain).
+#[test]
+fn fixtures_carry_what_their_rules_draw() {
+    let mut wrong = vec![];
+    for p in sorted(&root().join("app/src/gallery/shots"), |n| n.starts_with("bar-") && n.ends_with(".json")) {
+        let fx = read(&p);
+        let Some((ext, id)) = fx["key"].as_str().and_then(|k| k.split_once('/')) else { continue };
+        let Ok(text) = std::fs::read_to_string(root().join("extensions").join(ext).join("pal.json")) else { continue };
+        let m: Value = serde_json::from_str(&text).unwrap();
+        let rules = m["bar"][id]["rules"].as_array().cloned().unwrap_or_default();
+        if rules.is_empty() {
+            continue;
+        }
+        let mut shown = vec![("item".to_string(), fx["item"].clone())];
+        for st in fx["states"].as_array().into_iter().flatten() {
+            let mut merged = fx["item"].as_object().cloned().unwrap_or_default();
+            merged.extend(st["item"].as_object().cloned().unwrap_or_default());
+            shown.push((st["id"].as_str().unwrap_or("?").to_string(), Value::Object(merged)));
+        }
+        for (state, item) in shown {
+            let mut table = pal_core::states::States::default();
+            for (name, v) in item["states"].as_object().into_iter().flatten() {
+                let _ = table.publish(&format!("{ext}/{name}"), ext, v.clone());
+            }
+            let (mut urgent, mut color, mut hidden) = (item["urgent"].as_bool().unwrap_or(false), item["color"].as_str().map(str::to_string), item["hidden"].as_bool().unwrap_or(false));
+            for r in &rules {
+                let Some(when) = r["when"].as_str() else { continue };
+                if !table.eval(when).is_ok_and(|v| v == Value::Bool(true)) {
+                    continue;
+                }
+                if let Some(u) = r["urgent"].as_bool() {
+                    urgent = u;
+                }
+                if let Some(c) = r["color"].as_str() {
+                    color = Some(c.to_string());
+                }
+                if let Some(h) = r["hidden"].as_bool() {
+                    hidden = h;
+                }
+            }
+            let has = (item["urgent"].as_bool().unwrap_or(false), item["color"].as_str().map(str::to_string), item["hidden"].as_bool().unwrap_or(false));
+            if has != (urgent, color.clone(), hidden) {
+                wrong.push(format!("{} ({state}): the rules draw urgent {urgent}, color {color:?}, hidden {hidden}; the fixture has {has:?}", p.file_name().unwrap().to_string_lossy()));
+            }
+        }
+    }
+    assert!(wrong.is_empty(), "bar fixtures that do not show what their manifest rules draw (set urgent/color/hidden in the fixture as the core would, or pick a state the rules leave alone):\n{}", wrong.join("\n"));
+}

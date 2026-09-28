@@ -369,7 +369,7 @@
       },
       {
         "file": "bar-menubar.png",
-        "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats",
+        "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct message waits",
         "kind": "bar"
       },
       {

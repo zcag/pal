@@ -62,14 +62,15 @@ try {
   const bar = {
     key: "whatsapp/unread",
     title: "Unread",
-    item: { ...item, refresh: 120, menu: { view } },
+    // The manifest's `dm` rule makes a direct message urgent (red) on the bar; the core applies it after render, so the fixture shows it as drawn.
+    item: { ...item, urgent: true, refresh: 120, menu: { view } },
     states: [
-      { id: "calm", item: { badge: 1, urgent: false, tooltip: "1 chat unread: 1 group" } },
+      { id: "calm", item: { badge: 1, urgent: false, tooltip: "1 chat unread: 1 group", states: { unread: 1, direct: 0 } } },
       { id: "stale", item: { stale: true, tooltip: `${item.tooltip} (stale)` } },
       { id: "reply", item: { menu: { view: reply } } },
     ],
     shots: {
-      "menubar": { target: "menubar", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats" },
+      "menubar": { target: "menubar", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct message waits" },
       "popover": { target: "menubar", popover: true, caption: "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys" },
       "popover-reply": { target: "menubar", popover: true, state: "reply", caption: "r turns the search row into a message field (send on); Enter sends it" },
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },

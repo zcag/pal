@@ -79,7 +79,8 @@ if (import.meta.main) {
       },
     });
     writeFixture("bar-power", {
-      key: "power/battery", title: "Battery", item,
+      // The manifest's `warn` rule tints the item amber once the watcher warns; the core applies it after render, so the fixture shows it as drawn.
+      key: "power/battery", title: "Battery", item: { ...item, color: "amber" },
       shots: {
         "menubar": { target: "menubar", caption: "On the menu bar: the level, the draw and the warning that made it surface" },
         "popover": { target: "menubar", popover: true, caption: "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now" },

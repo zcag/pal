@@ -114,4 +114,9 @@ picture: `make shots` prints a contact sheet per extension.
   `Date.now()` (two runs a second apart agree even when a picture shows only
   minutes; this makes them agree next month too);
 - every `bar.<id>` in a manifest has at least one `mock` (Settings previews
-  them) and every mock is a valid item.
+  them) and every mock is a valid item;
+- a bar fixture carries what its manifest's rules draw (`parity.rs`,
+  `fixtures_carry_what_their_rules_draw`): the core applies the rules over
+  what `render` answered, by the states the item publishes, so the fixture
+  sets the urgency, tint and presence they give, or its picture is a strip
+  the bar never shows.
