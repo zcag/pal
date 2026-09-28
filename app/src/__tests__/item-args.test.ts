@@ -11,5 +11,8 @@ describe("a row's typed arguments", () => {
     expect(toItem(hit, { title: "Timer" }).args).toEqual(args);
     expect(toItem({ ...hit, item: { id: "x", name: "x" } }, { title: "Timer" }).args).toBeUndefined();
     expect(toItem({ ...hit, item: { id: "x", name: "x", args: [] } }, { title: "Timer" }).args).toBeUndefined();
+    // An action that takes the fields says so (`args: true`), and keeps saying so through the panel.
+    const acted = toItem({ ...hit, item: { id: "new", name: "New timer", args, actions: [{ id: "start", title: "Start", args: true }, { id: "copy", title: "Copy" }] } }, { title: "Timer" });
+    expect(acted.actions?.map((a) => a.args)).toEqual([true, undefined]);
   });
 });

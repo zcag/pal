@@ -109,7 +109,7 @@ export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "objec
  * on the `pal:` prefix, and the host refuses those ids in a view, so an
  * extension's actions can never run the shell's code.
  */
-const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined, multi: a.multi === true || undefined });
+const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined, multi: a.multi === true || undefined, args: a.args === true || undefined });
 
 /** A `View` off the wire as the UI keeps it; the host has checked the tree. */
 export const toView = (v: ViewSpec): ViewSpec => ({

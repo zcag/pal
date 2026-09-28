@@ -149,7 +149,7 @@ export function MenuBar({ items, look, dark, anchor, bare }: { items: BarStripIt
         {!bare && <span className="g-mb__item"><Battery /></span>}
         {!bare && <span className="g-mb__item"><Wifi /></span>}
         <span className="g-mb__item"><ControlCenter /></span>
-        <span className="g-mb__item g-mb__clock">Tue 16 Sep<span className="g-mb__time">14:32</span></span>
+        <span className="g-mb__item g-mb__clock">Wed 16 Sep<span className="g-mb__time">14:32</span></span>
       </div>
     </div>
   );
@@ -193,7 +193,7 @@ export function Sketchybar({ items, look, dark, anchor, bare }: { items: BarStri
         {items.map((it, i) => <SketchyItem key={i} item={it} look={look} dark={dark} anchor={i === 0 ? anchor : undefined} />)}
         {!bare && <span className="g-sb__item"><Runs text={"\u{f057e}"} className="g-sb__icon g-sb__icon--opt" style={{ paddingRight: 8 }} /></span>}
         <span className="g-sb__item"><Runs text={"\u{f0081}"} className="g-sb__icon" /><span className="g-sb__label">82%</span></span>
-        <span className="g-sb__item"><span className="g-sb__label">Tue Sep 16 14:32</span></span>
+        <span className="g-sb__item"><span className="g-sb__label">Wed Sep 16 14:32</span></span>
       </div>
     </div>
   );
