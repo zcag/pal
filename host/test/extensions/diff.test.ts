@@ -328,7 +328,7 @@ describe("diff over the wire", () => {
   test("the pick palette: the text entries with a hint on top; Enter on one pushes the palette again with it on the left, then Enter on another opens the diff; two marked go straight there, three are refused", async () => {
     const rows = await host.list("diff", "pick", "");
     expect(rows.map((r) => r.id)).toEqual(["hint:how", "1", "2", "5"]);
-    expect(rows[1]).toMatchObject({ name: "“hello world”", subtitle: "1 lines · hello world" });
+    expect(rows[1]).toMatchObject({ name: "“hello world”", subtitle: "1 line · hello world" });
     expect(rows[1].actions!.map((a) => a.id)).toEqual(["left", "both"]);
     expect(await host.list("diff", "pick", "zzz")).toMatchObject([{ id: "hint:empty", name: "No text entry matches" }]);
     expect(await host.pick("diff", "pick", "2", "left")).toEqual({ push: { extension: "diff", palette: "pick", args: { left: 2 }, title: "Diff Deploy notes with…" } });

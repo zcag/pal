@@ -25,6 +25,9 @@ describe("turkish.ts", () => {
     expect(await deasciify("")).toBe("");
     // Already Turkish stays as it is.
     expect(await deasciify("Türkçe yazılmış bir cümle")).toBe("Türkçe yazılmış bir cümle");
+    // A letter typed Turkish is kept, not decided again by the table (it read `ılık` as `ilik`).
+    expect(await deasciify("istanbul'da ılık bir eylül akşamı")).toBe("istanbul'da ılık bir eylül akşamı");
+    expect(await deasciify("ılık bir aksam")).toBe("ılık bir akşam");
   });
 
   test("the classic ambiguous words the table decides: sik, kus, acik, yas, and their sentences", async () => {
