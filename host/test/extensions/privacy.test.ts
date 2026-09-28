@@ -20,8 +20,8 @@ const viewOf = (x: unknown): View => checkView(((x as { view?: View; menu?: { vi
 describe("privacy", () => {
   test("meta: a live palette and a bar item on the privacy trigger", () => {
     const loaded = host.loaded().find((l) => l.extension === "privacy")!;
-    expect(loaded.palettes).toMatchObject([{ name: "privacy", title: "Camera & Microphone", live: true }]);
-    expect(loaded.bar).toMatchObject([{ id: "in-use", title: "Camera & Microphone", refresh: { on: ["privacy", "wake"] } }]);
+    expect(loaded.palettes).toMatchObject([{ name: "privacy", title: "Camera, Mic & Screen", live: true }]);
+    expect(loaded.bar).toMatchObject([{ id: "in-use", title: "Camera, Mic & Screen", refresh: { on: ["privacy", "wake"] } }]);
     for (const m of Object.values(loaded.bar![0].mocks!)) checkBarItem(m.item);
   });
 
@@ -29,9 +29,9 @@ describe("privacy", () => {
     uses = [];
     const item = await host.render("privacy", "in-use");
     checkBarItem(item);
-    expect(item).toMatchObject({ empty: { tooltip: "Nothing is using the camera or microphone" }, states: { camera: false, microphone: false, screen: false } });
+    expect(item).toMatchObject({ empty: { tooltip: "Nothing is using the camera, the microphone or the screen" }, states: { camera: false, microphone: false, screen: false } });
     expect(item.background).toBeUndefined();
-    expect(texts(viewOf(item))).toContain("Nothing is using the camera or microphone");
+    expect(texts(viewOf(item))).toContain("Nothing is using the camera, the microphone or the screen");
   });
 
   test("bar: a glyph per sensor on amber, the apps in the tooltip; the popover focuses and shows", async () => {
@@ -47,6 +47,12 @@ describe("privacy", () => {
     expect(viewOf(await host.barAction("privacy", "in-use", "down")).actions![0]).toMatchObject({ title: "Open privacy settings" });
   });
 
+  test("bar: a screen share adds its glyph and names its app", async () => {
+    uses = [{ sensor: "screen", app: "Google Chrome", process: null, pid: 900, path: "/Applications/Google Chrome.app", device: null }, zoom];
+    const item = await host.render("privacy", "in-use");
+    expect(item).toMatchObject({ icon: "\u{f036c} \u{f0e51}", tooltip: "Microphone: zoom.us · Screen: Google Chrome", states: { camera: false, microphone: true, screen: true } });
+  });
+
   test("palette: the same rows, Enter brings the app forward; a use gone since is a no-op", async () => {
     uses = [zoom];
     const rows = await host.list("privacy", "privacy");
@@ -54,6 +60,6 @@ describe("privacy", () => {
     expect(await host.pick("privacy", "privacy", "microphone:812")).toEqual({ open: "/Applications/zoom.us.app" });
     uses = [];
     expect(await host.pick("privacy", "privacy", "microphone:812")).toEqual({ keep: true });
-    expect(await host.list("privacy", "privacy")).toMatchObject([{ id: "hint:none", name: "Nothing is using the camera or microphone" }]);
+    expect(await host.list("privacy", "privacy")).toMatchObject([{ id: "hint:none", name: "Nothing is using the camera, the microphone or the screen" }]);
   });
 });

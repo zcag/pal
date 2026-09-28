@@ -1499,9 +1499,9 @@ to the core.
   `system_profiler` + IOBluetooth on macOS, `bluetoothctl` on Linux.
 - `privacy.inUse()` (what uses a sensor now, `PrivacyUse[]`: `sensor`
   camera/microphone/screen, `app`, `process`, `pid`, `path`, `device`;
-  cameras first). The microphone per app from CoreAudio, a camera per
-  device from CoreMediaIO (macOS names no app for a camera), a Screen
-  Sharing session from `screensharingd`; `pactl` and `/dev/video*` on
+  cameras first). macOS: the camera and the screen from Control Center's
+  `sensor-indicators` log (what drives the menu bar's dots, app named),
+  the microphone per app from CoreAudio; `pactl` and `/dev/video*` on
   Linux. The first call starts a watcher: a bar item with `privacy` in
   `refresh.on` re-renders on every change.
 - `wifi.status()` (`interface`, `powered`, `current` with `ssid`, `signal`,

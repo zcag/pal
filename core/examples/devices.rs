@@ -4,7 +4,7 @@
 //! `cargo run -q -p pal-core --example devices -- bluetooth`                 paired devices
 //! `cargo run -q -p pal-core --example devices -- wifi [scan]`               status, known networks, a cached scan (`scan` forces one)
 //! `cargo run -q -p pal-core --example devices -- media [play_pause|next|previous <player>]`
-//! `cargo run -q -p pal-core --example devices -- privacy`                   what uses the camera, the microphone or the screen now
+//! `cargo run -q -p pal-core --example devices -- privacy`                   what uses the camera, the microphone or the screen now (after the first read of the log, a few seconds)
 use pal_core::{audio, bluetooth, media, privacy, wifi};
 
 fn main() {
@@ -25,6 +25,10 @@ fn main() {
                 .map_err(|e| e.to_string()),
         },
         Some("privacy") => privacy::in_use()
+            .and_then(|_| {
+                std::thread::sleep(std::time::Duration::from_secs(5));
+                privacy::in_use()
+            })
             .map(|us| {
                 for u in us {
                     println!("{:<10} {:<24} {:<12} {:>6} {}", format!("{:?}", u.sensor).to_lowercase(), u.app.unwrap_or_default(), u.process.unwrap_or_default(), u.pid.map_or("".into(), |p| p.to_string()), u.device.unwrap_or_default());

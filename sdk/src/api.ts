@@ -516,7 +516,7 @@ export const bluetooth = {
 /** `pal_core::privacy::Use`: one app (or one camera) using a sensor now. */
 export type PrivacyUse = {
   sensor: "camera" | "microphone" | "screen";
-  /** The app responsible, by name; null for a camera on macOS, which says that a camera runs but not for whom. */
+  /** The app responsible, by name; null for a camera no one has named yet (the device alone). */
   app: string | null;
   /** The process doing it when it is not the app itself (`ffmpeg` under kitty). */
   process: string | null;
@@ -527,7 +527,7 @@ export type PrivacyUse = {
   device: string | null;
 };
 
-/** What uses the camera, the microphone or the screen now (`pal_core::privacy`): CoreAudio and CoreMediaIO on macOS, `pactl` and `/dev/video*` on Linux. The first call starts a watcher that fires the `privacy` bar trigger on every change. */
+/** What uses the camera, the microphone or the screen now (`pal_core::privacy`): Control Center's sensor log and CoreAudio on macOS, `pactl` and `/dev/video*` on Linux. The first call starts a watcher that fires the `privacy` bar trigger on every change. */
 export const privacy = {
   inUse: () => call<PrivacyUse[]>("privacy.in_use"),
 };

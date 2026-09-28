@@ -1,9 +1,10 @@
 // What is using the camera, the microphone or the screen, over the core's
 // privacy capability. The bar item is off the strip until something is,
 // then shows a glyph per sensor on an amber band, the apps named in the
-// tooltip and the popover. It re-renders on the core's `privacy` trigger
-// (a change seen within a second or two), not on a poll of its own. The
-// palette lists the same rows, so `camera` at the root says who has it.
+// tooltip and the popover: a call, a screen share, a recording. It
+// re-renders on the core's `privacy` trigger (a change seen within a
+// second or two), not on a poll of its own. The palette lists the same
+// rows, so `camera` at the root says who has it.
 import { errorMessage, hint, privacy, toast, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type PrivacyUse } from "@zcag/pal";
 import { GLYPH, SENSOR, detailOf, enterTitle, keyOf, nameOf, render, type BarState } from "./view.ts";
 
@@ -39,7 +40,7 @@ async function renderBar(): Promise<BarItem> {
   const on = ORDER.filter((s) => uses.some((u) => u.sensor === s));
   const states = Object.fromEntries(ORDER.map((s) => [s, on.includes(s)]));
   const menu = { view: render(barState(uses)) };
-  const clear = { icon: GLYPH.camera, tooltip: "Nothing is using the camera or microphone", menu };
+  const clear = { icon: GLYPH.camera, tooltip: "Nothing is using the camera, the microphone or the screen", menu };
   if (!on.length) return { ...clear, click: "open", empty: clear, states };
   const tooltip = on.map((s) => `${SENSOR[s]}: ${uses.filter((u) => u.sensor === s).map(nameOf).join(", ")}`).join(" · ");
   return { icon: on.map((s) => GLYPH[s]).join(" "), tooltip, color: "text", background: "amber", click: "open", menu, empty: clear, states };
@@ -69,19 +70,19 @@ const item = (u: PrivacyUse): Item => ({
   name: nameOf(u),
   subtitle: detailOf(u),
   icon: u.path ? { app: u.path } : GLYPH[u.sensor],
-  keywords: [SENSOR[u.sensor].toLowerCase(), ...(u.sensor === "camera" ? ["webcam", "video"] : u.sensor === "microphone" ? ["mic", "audio", "recording"] : ["screen", "sharing"])],
+  keywords: [SENSOR[u.sensor].toLowerCase(), ...(u.sensor === "camera" ? ["webcam", "video"] : u.sensor === "microphone" ? ["mic", "audio", "recording"] : ["sharing", "share", "recording"])],
   actions: [{ id: "show", title: enterTitle(u) }, SETTINGS],
 });
 
 export default {
   palettes: {
     privacy: {
-      title: "Camera & Microphone",
+      title: "Camera, Mic & Screen",
       live: true,
       list: async (): Promise<Item[]> => {
         try {
           const uses = await privacy.inUse();
-          return uses.length ? uses.map(item) : [hint("none", "Nothing is using the camera or microphone", "Apps that turn one on are listed here", { actions: [SETTINGS] })];
+          return uses.length ? uses.map(item) : [hint("none", "Nothing is using the camera, the microphone or the screen", "Apps that turn one on are listed here", { actions: [SETTINGS] })];
         } catch (e) { return [hint("error", "Cannot tell on this machine", errorMessage(e))]; }
       },
       pick: async (id, action): Promise<Effect> => {

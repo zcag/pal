@@ -1,11 +1,11 @@
-// The Camera & Microphone popover as a pure view tree: one row per app (or
+// The Camera, Mic & Screen popover as a pure view tree: one row per app (or
 // camera) using a sensor, cameras first, the focused one marked. index.ts
 // keeps the focus; a click moves it, Enter brings the app forward (a camera
 // with no app opens its privacy settings).
 import { POPOVER_W, column, keyHint, row, text, type Action, type PrivacyUse, type View, type ViewNode } from "@zcag/pal";
 
 export const GLYPH: Record<PrivacyUse["sensor"], string> = { camera: "\u{f05a0}", microphone: "\u{f036c}", screen: "\u{f0e51}" }; // md-webcam, md-microphone, md-monitor_share
-export const SENSOR: Record<PrivacyUse["sensor"], string> = { camera: "Camera", microphone: "Microphone", screen: "Screen sharing" };
+export const SENSOR: Record<PrivacyUse["sensor"], string> = { camera: "Camera", microphone: "Microphone", screen: "Screen" };
 
 /** A use's stable key: the sensor with its app, pid or device. */
 export const keyOf = (u: PrivacyUse) => `${u.sensor}:${u.pid ?? u.device ?? u.app ?? ""}`;
@@ -42,7 +42,7 @@ function empty(): ViewNode {
   return column(
     [
       { type: "tile", key: "zero", width: 48, height: 48, text: "✓", color: "green", fill: "soft" },
-      text("Nothing is using the camera or microphone", { style: "title", key: "zero-t", align: "center" }),
+      text("Nothing is using the camera, the microphone or the screen", { style: "title", key: "zero-t", align: "center" }),
     ],
     { key: "empty", padding: 5, gap: 2, align: "center", justify: "center" },
   );
@@ -68,7 +68,7 @@ export function render(st: BarState): View {
   return {
     tree: column([...(st.uses.length ? [column(st.uses.map((u, i) => useRow(u, i === focus)), { key: "rows", gap: 0 })] : [empty()]), { type: "divider", key: "rule" }, hints], { key: "compact", padding: 3, gap: 2 }),
     actions: actions(cur, st.uses),
-    title: "Camera & Microphone",
+    title: "Camera, Mic & Screen",
     id: "in-use",
     keys: "actions",
   };

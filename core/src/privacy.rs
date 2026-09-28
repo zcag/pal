@@ -1,20 +1,24 @@
 //! What is using the camera, the microphone or the screen right now: the
-//! macOS menu bar's orange and green dots, as data.
+//! macOS menu bar's orange, green and purple dots, as data.
 //!
-//! macOS: the microphone per process from the CoreAudio HAL's process
-//! objects (`kAudioHardwarePropertyProcessObjectList`, each with
-//! `kAudioProcessPropertyIsRunningInput` and its pid; macOS 14.2+), named
-//! by the app responsible for it, so `ffmpeg` in kitty reads "kitty" with
-//! `ffmpeg` as the process. The camera per device from CoreMediaIO
-//! (`kCMIODevicePropertyDeviceIsRunningSomewhere`): macOS says *that* a
-//! camera runs, not for whom (the `cameracaptured` power assertion names no
-//! client either), so a camera row has a device and no app. The screen: a
-//! Screen Sharing session is attached while `screensharingd` runs. Linux:
-//! `pactl -f json list source-outputs` (PipeWire's pulse server included)
-//! for the microphone, `/proc/*/fd` links into `/dev/video*` for the camera.
+//! macOS: the dots' own source for the camera and the screen, Control
+//! Center's `sensor-indicators` log (`Active activity attributions changed
+//! to ["cam:us.zoom.xos", "scr:com.google.Chrome", "mic:…"]`, a public
+//! format string), read once with `log show` and then followed with one
+//! long-lived `log stream`, so a change arrives as it happens and names the
+//! app (a bundle id, a bare executable such as `ffmpeg`, or `System` for
+//! macOS's own capture). The microphone per process from the CoreAudio
+//! HAL's process objects (`kAudioProcessPropertyIsRunningInput` and its
+//! pid; macOS 14.2+), named by the app responsible for it, so `ffmpeg` in
+//! kitty reads "kitty" with `ffmpeg` as the process. Two fallbacks for what
+//! the log may not have said yet: a camera CoreMediaIO sees running
+//! (`kCMIODevicePropertyDeviceIsRunningSomewhere`, the device without the
+//! app) and a Screen Sharing session (`screensharingd`). Linux: `pactl -f
+//! json list source-outputs` (PipeWire's pulse server included) for the
+//! microphone, `/proc/*/fd` links into `/dev/video*` for the camera.
 //!
-//! [`on_change`] starts one watcher thread that looks every [`EVERY`] and
-//! calls back only when the answer differs from the last.
+//! [`on_change`] starts one watcher thread that looks every [`EVERY`] (and
+//! at once on a log line) and calls back only when the answer differs.
 
 use serde::{Deserialize, Serialize};
 use std::sync::{Mutex, OnceLock};
@@ -33,7 +37,7 @@ pub enum Sensor {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Use {
     pub sensor: Sensor,
-    /// The app responsible, by its display name; None for a camera (macOS cannot say) or a session with no app.
+    /// The app responsible, by its display name; None for a camera no one has named (the device alone).
     pub app: Option<String>,
     /// The process doing it, when it is not the app itself (`ffmpeg` under kitty).
     pub process: Option<String>,
@@ -71,22 +75,37 @@ pub fn on_change(f: impl Fn() + Send + 'static) {
     if started {
         return;
     }
+    check();
     std::thread::Builder::new()
         .name("privacy".into())
-        .spawn(|| {
-            let mut last = in_use().ok();
-            loop {
-                std::thread::sleep(EVERY);
-                let now = in_use().ok();
-                if now != last {
-                    last = now;
-                    for f in WATCHERS.get().unwrap().lock().unwrap().iter() {
-                        f();
-                    }
-                }
-            }
+        .spawn(|| loop {
+            std::thread::sleep(EVERY);
+            check();
         })
         .expect("spawn the privacy watcher");
+}
+
+/// Look now; tell the listeners when the answer moved since the last look.
+fn check() {
+    static LAST: Mutex<Option<Vec<Use>>> = Mutex::new(None);
+    let Some(watchers) = WATCHERS.get() else { return };
+    let now = in_use().ok();
+    let mut last = LAST.lock().unwrap();
+    if *last != now {
+        *last = now;
+        drop(last);
+        for f in watchers.lock().unwrap().iter() {
+            f();
+        }
+    }
+}
+
+/// Control Center's `Active activity attributions changed to [...]`: each `kind:who` (`cam`, `mic`, `scr`, `loc`).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn parse_attributions(message: &str) -> Option<Vec<(String, String)>> {
+    let list = message.strip_prefix("Active activity attributions changed to ")?;
+    let items: Vec<String> = serde_json::from_str(list).ok()?;
+    Some(items.into_iter().filter_map(|i| i.split_once(':').map(|(k, w)| (k.to_string(), w.to_string()))).collect())
 }
 
 // ---- Linux parser, compiled everywhere for the tests -------------------
@@ -117,7 +136,7 @@ fn parse_source_outputs(json: &str) -> Vec<Use> {
 #[cfg(target_os = "macos")]
 mod platform {
     use super::*;
-    use objc2_app_kit::NSRunningApplication;
+    use objc2_app_kit::{NSRunningApplication, NSWorkspace};
     use objc2_core_audio::{
         kAudioHardwarePropertyProcessObjectList, kAudioObjectPropertyElementMain, kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject, kAudioProcessPropertyIsRunningInput, kAudioProcessPropertyPID,
         AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize, AudioObjectID, AudioObjectPropertyAddress, AudioObjectPropertySelector,
@@ -127,7 +146,11 @@ mod platform {
         kCMIODevicePropertyDeviceIsRunningSomewhere, kCMIOHardwarePropertyDevices, kCMIOObjectPropertyElementMain, kCMIOObjectPropertyName, kCMIOObjectPropertyScopeGlobal, kCMIOObjectSystemObject,
         CMIOObjectGetPropertyData, CMIOObjectGetPropertyDataSize, CMIOObjectID, CMIOObjectPropertyAddress,
     };
+    use objc2_foundation::NSString;
+    use std::io::BufRead;
+    use std::process::{Command, Stdio};
     use std::ptr::NonNull;
+    use std::sync::Once;
 
     extern "C" {
         /// libquarantine's, exported by libSystem: the app a helper or a child counts against (what TCC asks about).
@@ -235,9 +258,77 @@ mod platform {
         pids.into_iter().any(|p| proc_name(p).as_deref() == Some(name))
     }
 
+    const PREDICATE: &str = r#"subsystem == "com.apple.controlcenter" AND category == "sensor-indicators" AND eventMessage BEGINSWITH "Active activity attributions""#;
+    /// What Control Center last said is in use; None until the log has been read.
+    static ATTRIBUTIONS: Mutex<Option<Vec<(String, String)>>> = Mutex::new(None);
+
+    fn message(line: &str) -> Option<Vec<(String, String)>> {
+        let v: serde_json::Value = serde_json::from_str(line).ok()?;
+        parse_attributions(v.get("eventMessage")?.as_str()?)
+    }
+
+    fn set(a: Vec<(String, String)>) {
+        *ATTRIBUTIONS.lock().unwrap() = Some(a);
+        super::check();
+    }
+
+    /// Once, on a thread: the last attributions of the past day (a few
+    /// seconds of `log show`, meanwhile the fallbacks answer), then every new one as
+    /// Control Center logs it. The stream runs under a shell that kills it
+    /// when pal's end of its stdin closes, so it ends with pal; a stream
+    /// that dies is started again.
+    fn follow() {
+        static START: Once = Once::new();
+        START.call_once(|| {
+            std::thread::Builder::new()
+                .name("privacy-log".into())
+                .spawn(|| {
+                    let last = crate::tool::run("/usr/bin/log", &["show", "--last", "1d", "--style", "ndjson", "--predicate", PREDICATE]).ok().and_then(|out| out.lines().rev().find_map(message));
+                    set(last.unwrap_or_default());
+                    let script = format!("/usr/bin/log stream --style ndjson --predicate '{PREDICATE}' </dev/null & p=$!; cat >/dev/null; kill $p");
+                    loop {
+                        if let Ok(mut child) = Command::new("/bin/sh").args(["-c", &script]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn() {
+                            let _keep = child.stdin.take();
+                            for line in std::io::BufReader::new(child.stdout.take().unwrap()).lines().map_while(|l| l.ok()) {
+                                if let Some(a) = message(&line) {
+                                    set(a);
+                                }
+                            }
+                            drop(_keep);
+                            let _ = child.wait();
+                        }
+                        std::thread::sleep(Duration::from_secs(10));
+                    }
+                })
+                .expect("spawn the privacy log reader");
+        });
+    }
+
+    /// A row for what the log names: a bundle id (its app, running or installed), a bare executable, or `System` (macOS itself).
+    fn resolve(sensor: Sensor, who: &str, device: Option<String>) -> Use {
+        let id = NSString::from_str(who);
+        let app = NSRunningApplication::runningApplicationsWithBundleIdentifier(&id).firstObject();
+        let url = app.as_ref().and_then(|a| a.bundleURL()).or_else(|| NSWorkspace::sharedWorkspace().URLForApplicationWithBundleIdentifier(&id));
+        let path = url.and_then(|u| u.path()).map(|p| p.to_string());
+        let stem = || path.as_deref().and_then(|p| std::path::Path::new(p).file_stem()).map(|s| s.to_string_lossy().into_owned());
+        let name = if who == "System" { "macOS".into() } else { app.as_ref().and_then(|a| a.localizedName()).map(|s| s.to_string()).or_else(stem).unwrap_or_else(|| who.to_string()) };
+        Use { sensor, app: Some(name), process: None, pid: app.map(|a| a.processIdentifier() as u32), path, device }
+    }
+
     pub fn in_use() -> Result<Vec<Use>> {
-        let mut v = cameras();
+        follow();
+        let said = ATTRIBUTIONS.lock().unwrap().clone().unwrap_or_default();
+        let of = |kind: &'static str| said.iter().filter(move |(k, _)| k == kind).map(|(_, w)| w.as_str());
+        // A camera the log has not named yet (or never will) is still a camera: the device, no app.
+        let devices = cameras();
+        let mut v: Vec<Use> = if of("cam").next().is_none() {
+            devices
+        } else {
+            let device = (devices.len() == 1).then(|| devices[0].device.clone()).flatten();
+            of("cam").map(|w| resolve(Sensor::Camera, w, device.clone())).collect()
+        };
         v.extend(microphones());
+        v.extend(of("scr").map(|w| resolve(Sensor::Screen, w, None)));
         if running("screensharingd") {
             v.push(Use { sensor: Sensor::Screen, app: Some("Screen Sharing".into()), process: None, pid: None, path: None, device: None });
         }
@@ -298,5 +389,13 @@ mod tests {
         assert_eq!(v.iter().map(|u| (u.app.as_deref(), u.pid)).collect::<Vec<_>>(), [(Some("Firefox"), Some(4242)), (Some("arecord"), Some(77))]);
         assert!(v.iter().all(|u| u.sensor == Sensor::Microphone));
         assert!(parse_source_outputs("not json").is_empty());
+    }
+
+    #[test]
+    fn attributions_split_kind_and_who() {
+        let a = parse_attributions(r#"Active activity attributions changed to ["cam:us.zoom.xos", "scr:System", "mic:ffmpeg"]"#).unwrap();
+        assert_eq!(a, [("cam".into(), "us.zoom.xos".into()), ("scr".into(), "System".into()), ("mic".into(), "ffmpeg".into())]);
+        assert_eq!(parse_attributions("Active activity attributions changed to []"), Some(vec![]));
+        assert_eq!(parse_attributions("Recent activity attributions changed to []"), None);
     }
 }

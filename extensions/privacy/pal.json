@@ -1,7 +1,7 @@
 {
   "name": "privacy",
   "title": "Privacy",
-  "description": "What is using the camera, the microphone or the screen right now: a bar item that appears only while something is, and a palette of the same.",
+  "description": "Which app is using the camera, the microphone or the screen right now (a call, a screen share, a recording): a bar item that appears only while one is, and a palette of the same.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -16,9 +16,9 @@
     "tagline": "See which app has your camera or microphone",
     "category": "system",
     "features": [
-      "A bar item that stays off the strip until the camera, the microphone or a Screen Sharing session is in use, then shows a glyph for each on an amber band",
+      "A bar item that stays off the strip until the camera, the microphone or the screen is in use (a call, a screen share, a recording), then shows a glyph for each on an amber band",
       "The app is named: the microphone per app, a helper or a command counted against the app that started it (`ffmpeg` in kitty reads kitty, with ffmpeg under it)",
-      "The camera by device: macOS tells that a camera runs but not which app has it",
+      "Named from the same source as the menu bar's dots (Control Center's own record), so a Zoom call reads zoom.us for the camera and a Meet share Google Chrome for the screen",
       "Seen within a second of turning on or off, with no poll in the extension: the core watches and re-renders the item on a change",
       "The popover lists every use; Enter brings the app forward, `s` opens the privacy settings",
       "The palette lists the same rows, so `camera` or `mic` at the root answers who has it"
@@ -66,14 +66,14 @@
       "kind": "boolean"
     },
     "screen": {
-      "description": "A Screen Sharing session is attached (macOS)",
+      "description": "An app is sharing or recording the screen, or a Screen Sharing session is attached (macOS)",
       "kind": "boolean"
     }
   },
   "bar": {
     "in-use": {
-      "title": "Camera & Microphone",
-      "description": "Off the strip until the camera, the microphone or a Screen Sharing session is in use, then a glyph for each on an amber band, the apps in the tooltip. The popover lists every use; Enter brings the app forward. Re-rendered within a second or two of a change.",
+      "title": "Camera, Mic & Screen",
+      "description": "Off the strip until the camera, the microphone or the screen is in use, then a glyph for each on an amber band, the apps in the tooltip. The popover lists every use; Enter brings the app forward. Re-rendered within a second or two of a change.",
       "keys": [
         {
           "keys": "enter",
@@ -120,7 +120,7 @@
             "hidden": true,
             "empty": {
               "icon": "󰖠",
-              "tooltip": "Nothing is using the camera or microphone"
+              "tooltip": "Nothing is using the camera, the microphone or the screen"
             }
           }
         }

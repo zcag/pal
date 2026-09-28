@@ -40,7 +40,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Browser History](#bookmarks-bookmarks-bookmarks-history) | `bookmarks-history` | input | Open in the browser it came from |
 | [Browser Tabs](#browser-tabs-browser-tabs-tabs) | `browser-tabs-tabs` | live, primary | Switch to the tab |
 | [Calculator](#calculator-calc) | `calc` | input, normal | Copy the result |
-| [Camera & Microphone](#privacy-privacy) | `privacy` | live, normal | Bring the app forward (a camera: its privacy settings) |
+| [Camera, Mic & Screen](#privacy-privacy) | `privacy` | live, normal | Bring the app forward |
 | [My Schedule](#calendar-calendar-today-calendar-schedule-calendar-quick-calendarupcoming) | `calendar-schedule` | live, normal | Join the call, else open in Calendar |
 | [Today](#calendar-calendar-today-calendar-schedule-calendar-quick-calendarupcoming) | `calendar-today` | live, normal | Join the call, else open in Calendar |
 | [Quick Add Event](#calendar-calendar-today-calendar-schedule-calendar-quick-calendarupcoming) | `calendar-quick` | input | Add the typed line as an event |
@@ -2240,27 +2240,31 @@ What is using the camera, the microphone or the screen right now, over
 the core's privacy capability, cameras first. Live: read again on every
 show, so `camera` or `mic` at the root answers who has it.
 
-- **macOS**: the microphone per app from CoreAudio's process objects
+- **macOS**: the camera and the screen from what drives the menu bar's
+  dots, Control Center's `sensor-indicators` log (`Active activity
+  attributions changed to ["cam:us.zoom.xos", "scr:com.google.Chrome"]`):
+  the last line of the past day, then `log stream` for every change, each
+  bundle id named by its app (`System`, macOS's own capture, reads macOS).
+  The microphone per app from CoreAudio's process objects
   (`kAudioProcessPropertyIsRunningInput`, macOS 14.2+), named by the app
   responsible for the process (`ffmpeg` in kitty reads kitty, ffmpeg in
-  the subtitle); a camera per device from CoreMediaIO
-  (`kCMIODevicePropertyDeviceIsRunningSomewhere`), with no app, since
-  macOS does not say which app has a camera; a Screen Sharing session
-  while `screensharingd` runs.
+  the subtitle). A camera CoreMediaIO sees running before the log names
+  it is the device alone; an attached Screen Sharing session
+  (`screensharingd`) is Screen Sharing.
 - **Linux**: `pactl -f json list source-outputs` for the microphone
   (pavucontrol's peak meters left out), `/proc/*/fd` links into
   `/dev/video*` for the camera.
 
 | action | shortcut | what |
 | --- | --- | --- |
-| Show the app | `Enter` | brings the app forward; a camera with no app opens its privacy settings |
+| Show the app | `Enter` | brings the app forward; a row with no app opens its privacy settings |
 | Open privacy settings | `⌘,` | the sensor's pane of Privacy & Security |
 
-The bar item **Camera & Microphone** (`privacy/in-use`) is off the strip
+The bar item **Camera, Mic & Screen** (`privacy/in-use`) is off the strip
 until something is in use, then one glyph per sensor on an amber band,
 the apps in the tooltip, and the same rows in its popover. The core
-watches (every second on macOS, two on Linux, from the first time the
-extension asks) and fires the `privacy` trigger on a change, which the
+watches (every second on macOS, two on Linux, and at once on a Control
+Center log line, from the first time the extension asks) and fires the `privacy` trigger on a change, which the
 item's `refresh.on` names; the extension does not poll. No settings.
 
 ## Wi-Fi (`wifi`)
