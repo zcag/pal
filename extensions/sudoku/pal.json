@@ -86,14 +86,26 @@
       "linux"
     ],
     "screenshots": [
-      { "file": "1-solving.png", "caption": "Mid-game: the digit in focus and its notes lit across the board, the pad's bars" },
-      { "file": "2-digit-first.png", "caption": "Digit first: pick a 4, every cell it can still go in lights up" },
-      { "file": "3-auto-notes.png", "caption": "Auto notes: every cell's options kept for you" },
-      { "file": "4-hint.png", "caption": "A hint: where to look, why, and the move" },
-      { "file": "5-solved.png", "caption": "Solved: the time, the streak, Flawless" },
-      { "file": "6-new.png", "caption": "⌘N: today's puzzle or a new one, per difficulty" },
-      { "file": "7-browse.png", "caption": "The dailies month by month" },
-      { "file": "8-stats.png", "caption": "Stats per difficulty" }
+      {
+        "file": "1-solving.png",
+        "caption": "Today's medium, half solved: the digit in focus and its notes lit across the board, the pad's bars"
+      },
+      {
+        "file": "2-hint.png",
+        "caption": "A hint: where to look first, then why, and the move on Enter"
+      },
+      {
+        "file": "3-solved.png",
+        "caption": "Solved: the time, the streak, Flawless, and today's next daily on Enter"
+      },
+      {
+        "file": "4-new.png",
+        "caption": "⌘N: today's puzzle or a new one, per difficulty"
+      },
+      {
+        "file": "5-stats.png",
+        "caption": "Stats per difficulty: the best, the average, the streak and every solve"
+      }
     ],
     "actions": [
       { "title": "Hint", "description": "Where to look; again for why; again for the move.", "keys": "i" },

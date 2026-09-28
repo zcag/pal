@@ -79,7 +79,7 @@
     "screenshots": [
       {
         "file": "1-blackjack.png",
-        "caption": "A blackjack: 3:2 on the $50 bet, and its flourish"
+        "caption": "A blackjack: 3:2 on the $50 bet, the winnings stacked beside it"
       },
       {
         "file": "2-hand.png",
@@ -91,7 +91,7 @@
       },
       {
         "file": "4-bet.png",
-        "caption": "Placing a bet in the dark theme: the chips on the felt, up and down move it by the minimum, Enter deals"
+        "caption": "Placing a bet: the chips on the felt, up and down move it by the minimum, Enter deals"
       }
     ],
     "actions": [

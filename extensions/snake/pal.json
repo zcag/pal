@@ -54,7 +54,7 @@
       },
       {
         "file": "2-menu.png",
-        "caption": "The Snake II menu, lit, as the phone draws it"
+        "caption": "The Snake II menu, lit, as the phone draws it: Continue for the game left paused"
       },
       {
         "file": "3-maze.png",
@@ -62,7 +62,7 @@
       },
       {
         "file": "4-topscore.png",
-        "caption": "The Top score screen, its coins falling into the cup"
+        "caption": "The Top score screen, its coins fallen into the cup"
       }
     ],
     "actions": [

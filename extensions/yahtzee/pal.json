@@ -32,15 +32,15 @@
     "screenshots": [
       {
         "file": "1-roll.png",
-        "caption": "Mid-round: three fours held, each open category showing what it would score"
+        "caption": "Mid-round: three fours kept, each open box showing what it would score"
       },
       {
         "file": "2-choose.png",
-        "caption": "Out of rolls: the cursor on the card, the dice it counts ringed, the total showing what it adds"
+        "caption": "Out of throws: the cursor on the card, the dice it counts ringed, the total showing what it adds"
       },
       {
         "file": "3-yahtzee.png",
-        "caption": "A second Yahtzee in the dark theme: 100 more, and as a Joker it fills a straight"
+        "caption": "A second Yahtzee: 100 more, and as a Joker it fills a straight"
       },
       {
         "file": "4-over.png",

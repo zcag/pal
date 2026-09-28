@@ -53,12 +53,16 @@
         "caption": "The other way, typed: an accent left off counts, and shows where"
       },
       {
-        "file": "3-done.png",
-        "caption": "A session done: the words missed and new, and how much of everyday Spanish your words now cover"
+        "file": "3-goal.png",
+        "caption": "The day's twentieth card: the goal met, the streak goes on"
       },
       {
         "file": "4-stats.png",
         "caption": "Stats: the streak, the heatmap, the week ahead, each pack"
+      },
+      {
+        "file": "5-welcome.png",
+        "caption": "The first run: pick the packs to practise, or bring your own"
       }
     ]
   },

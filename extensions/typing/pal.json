@@ -32,20 +32,24 @@
     ],
     "screenshots": [
       {
-        "file": "1-typing.png",
-        "caption": "Mid-test: the caret on the current letter, a mistake in red, the seconds left above"
+        "file": "1-test.png",
+        "caption": "Mid-test: the caret on the next letter, a slip in red, the seconds left above"
       },
       {
         "file": "2-result.png",
-        "caption": "The result: wpm, accuracy and the test second by second"
+        "caption": "The result: wpm and accuracy, the test second by second, a new best for ten words"
       },
       {
-        "file": "3-dark.png",
-        "caption": "A new personal best in the dark theme"
+        "file": "3-zen.png",
+        "caption": "Zen: no words to follow, the caret after whatever you type; Enter ends it and scores it"
       },
       {
         "file": "4-stats.png",
-        "caption": "Stats: the figures, the progress chart, the bests and the history"
+        "caption": "Stats: the figures, and the progress chart with its average of ten"
+      },
+      {
+        "file": "5-history.png",
+        "caption": "Further down: the personal best at every length, and every test taken, newest first"
       }
     ],
     "actions": [

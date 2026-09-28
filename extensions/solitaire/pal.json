@@ -3,7 +3,12 @@
   "title": "Solitaire",
   "description": "Klondike on a felt table: drag the cards with the mouse, or play one-handed on the arrows and Enter (Enter twice sends a card where it goes). Draw one or three, unlimited passes, undo; the game and the record persist.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󱢯", "bg": "green" } },
+  "icon": {
+    "tile": {
+      "glyph": "󱢯",
+      "bg": "green"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -14,8 +19,14 @@
       "label": "Draw",
       "description": "Cards turned from the stock at a time. Applies from the next deal.",
       "options": [
-        { "id": "1", "title": "One card" },
-        { "id": "3", "title": "Three cards" }
+        {
+          "id": "1",
+          "title": "One card"
+        },
+        {
+          "id": "3",
+          "title": "Three cards"
+        }
       ],
       "default": "1"
     },
@@ -54,15 +65,15 @@
       },
       {
         "file": "2-game.png",
-        "caption": "Forty moves in: the cursor holds three cards of a run, ready to pick up"
+        "caption": "54 moves in: the cursor takes 4 cards of a run, the title line names them"
       },
       {
-        "file": "3-drag.png",
-        "caption": "Dragging a run with the mouse: the pile it goes on lights up (dark theme)"
+        "file": "3-carry.png",
+        "caption": "Enter picks the run up: it lifts, and the pile it can go on lights up"
       },
       {
         "file": "4-won.png",
-        "caption": "Won: the cards bounce off the foundations, Enter deals again"
+        "caption": "Won: every card home, the moves and the time, Enter deals again"
       }
     ],
     "actions": [

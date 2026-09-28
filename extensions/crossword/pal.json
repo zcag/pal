@@ -106,7 +106,7 @@
       },
       {
         "file": "2-solved.png",
-        "caption": "Solved: the time, a new best, the streak, Next puzzle on Enter"
+        "caption": "Solved: the time, the best, the streak, Next puzzle on Enter"
       },
       {
         "file": "3-browse.png",
@@ -115,14 +115,6 @@
       {
         "file": "4-stats.png",
         "caption": "Stats: best and average, the streak, recent times"
-      },
-      {
-        "file": "5-kare-bulmaca.png",
-        "caption": "HaberTürk's kare bulmaca: Turkish letters, s' typed as ş"
-      },
-      {
-        "file": "6-wide.png",
-        "caption": "Cumhuriyet's 17 by 11 with its photo: the clue across the top, the lists beside the grid"
       }
     ],
     "actions": [

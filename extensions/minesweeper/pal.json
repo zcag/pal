@@ -3,7 +3,12 @@
   "title": "Minesweeper",
   "description": "The mine-clearing game in the panel, on its own page: the mouse as in the original (click, right-click, both buttons), or one hand on the keys (the arrows move, Enter opens, / flags, N starts over, D picks the level). The board, the clock and the best times persist.",
   "version": "0.2.0",
-  "icon": { "tile": { "glyph": "󰚑", "bg": "slate" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰚑",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -63,7 +68,7 @@
       },
       {
         "file": "2-won.png",
-        "caption": "Cleared: the mines left are flagged, the time, a new best, confetti"
+        "caption": "Cleared: the mines left are flagged, the time, a new best"
       },
       {
         "file": "3-lost.png",
