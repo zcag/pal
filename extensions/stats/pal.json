@@ -96,12 +96,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: every core's share and the busiest processes, x kills one after asking",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          960
+        ]
       },
       {
         "file": "bar-popover-pinned.png",
         "caption": "An export pinning every core: ffmpeg on top, x kills it after asking",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          364,
+          64,
+          840,
+          960
+        ]
       },
       {
         "file": "bar-sketchybar.png",

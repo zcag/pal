@@ -61,12 +61,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: one row per app, what it holds in colour and for how long; Enter brings the app forward",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          450,
+          64,
+          840,
+          558
+        ]
       },
       {
         "file": "bar-popover-share.png",
         "caption": "A call sharing its screen: the screen is named on the app's row too, and a capture by macOS itself reads macOS",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          438,
+          64,
+          840,
+          558
+        ]
       },
       {
         "file": "bar-sketchybar.png",

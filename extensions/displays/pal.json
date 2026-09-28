@@ -83,12 +83,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: a card per display with its mode and a brightness slider",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          628
+        ]
       },
       {
         "file": "bar-popover-panel.png",
         "caption": "↓ moves to the next display: the arrows and the digits now set the built-in panel",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          628
+        ]
       },
       {
         "file": "bar-sketchybar.png",

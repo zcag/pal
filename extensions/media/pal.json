@@ -205,12 +205,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the cover, the track, a progress bar that ticks, the transport as keys",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          294,
+          64,
+          840,
+          612
+        ]
       },
       {
         "file": "bar-popover-untitled.png",
         "caption": "A player that names no track (a browser): the app, the position, the app's icon in place of a cover",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          352,
+          64,
+          840,
+          612
+        ]
       },
       {
         "file": "bar-sketchybar.png",

@@ -165,12 +165,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the code large, who sent it, the minute counting down, the two codes before it; Enter copies",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          400,
+          64,
+          840,
+          716
+        ]
       },
       {
         "file": "bar-popover-late.png",
         "caption": "A code forty seconds in: the bar nearly run down, the item gone twenty seconds later",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          400,
+          64,
+          840,
+          716
+        ]
       },
       {
         "file": "bar-sketchybar.png",

@@ -196,7 +196,13 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the reading now, the next eight hours, four days of forecast, sunrise and sunset",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          418,
+          64,
+          840,
+          960
+        ]
       },
       {
         "file": "bar-sketchybar.png",

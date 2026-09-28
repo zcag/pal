@@ -54,7 +54,13 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the low batteries first, then the rest of the connected ones, Enter disconnects, c copies the address",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          414,
+          64,
+          840,
+          834
+        ]
       },
       {
         "file": "bar-sketchybar.png",

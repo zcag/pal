@@ -344,12 +344,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: a row per session by state; Enter focuses its terminal, r copies the resume command",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          926
+        ]
       },
       {
         "file": "bar-popover-transcript.png",
         "caption": "t shows the transcript over the list, the command waiting on you lit",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          940
+        ]
       },
       {
         "file": "bar-sketchybar.png",

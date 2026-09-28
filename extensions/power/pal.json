@@ -59,7 +59,13 @@
       {
         "file": "bar-popover.png",
         "caption": "Hover opens the popover: the level, the last hour's draw, the warning and what uses power now",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          254,
+          64,
+          840,
+          946
+        ]
       },
       {
         "file": "bar-sketchybar.png",

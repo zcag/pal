@@ -277,22 +277,46 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: a card per timer with the time left and a bar; space pauses, + adds five minutes, backspace stops",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          844
+        ]
       },
       {
         "file": "bar-popover-landed.png",
         "caption": "A landed timer sits on top, red and full, until space dismisses it",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          416,
+          64,
+          840,
+          960
+        ]
       },
       {
         "file": "bar-popover-new.png",
         "caption": "n opens the field: 25m tea starts one, and the last durations are a click away",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          754
+        ]
       },
       {
         "file": "bar-popover-pomodoro.png",
         "caption": "A pomodoro on the popover: the round and the phase on its card, s skips to the break, the rounds finished today below",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          382,
+          64,
+          840,
+          684
+        ]
       },
       {
         "file": "bar-sketchybar.png",

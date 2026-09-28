@@ -326,7 +326,13 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: every unread message with the sender, subject and time, a star or a paperclip; m marks one read, a marks them all",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          378,
+          64,
+          840,
+          740
+        ]
       },
       {
         "file": "bar-sketchybar.png",

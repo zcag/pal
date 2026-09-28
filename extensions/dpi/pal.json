@@ -103,17 +103,35 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the status with its facts; Enter turns it off, t tests it",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          452,
+          64,
+          840,
+          590
+        ]
       },
       {
         "file": "bar-popover-test.png",
         "caption": "t runs the test in the popover: each url's code lands under the card",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          452,
+          64,
+          840,
+          960
+        ]
       },
       {
         "file": "bar-popover-partial.png",
         "caption": "Half on: the reason on the card and r to repair",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          452,
+          64,
+          840,
+          590
+        ]
       },
       {
         "file": "bar-sketchybar.png",

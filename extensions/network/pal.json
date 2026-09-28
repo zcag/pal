@@ -79,12 +79,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the connection, interface, address, gateway, signal and DNS, with keys for settings and all addresses",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          410,
+          64,
+          840,
+          580
+        ]
       },
       {
         "file": "bar-popover-open.png",
         "caption": "An open café network, flagged amber as open in the popover",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          378,
+          64,
+          840,
+          580
+        ]
       },
       {
         "file": "bar-sketchybar.png",

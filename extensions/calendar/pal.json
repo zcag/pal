@@ -170,17 +170,35 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          326,
+          64,
+          840,
+          734
+        ]
       },
       {
         "file": "bar-popover-now.png",
         "caption": "While a call runs its row sits on a card with what is left of it, the strip green; Enter joins",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          252,
+          64,
+          840,
+          734
+        ]
       },
       {
         "file": "bar-popover-tomorrow.png",
         "caption": "Late in the day: what is left, and t opens tomorrow in the same shape; the arrows walk the rows",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          358,
+          64,
+          840,
+          806
+        ]
       },
       {
         "file": "bar-sketchybar.png",

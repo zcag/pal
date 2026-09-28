@@ -375,12 +375,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          434,
+          64,
+          840,
+          692
+        ]
       },
       {
         "file": "bar-popover-reply.png",
         "caption": "r turns the search row into a message field (send on); Enter sends it",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          434,
+          64,
+          840,
+          692
+        ]
       },
       {
         "file": "bar-sketchybar.png",

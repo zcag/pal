@@ -375,7 +375,13 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the overdue first, then today's, Enter completes, n adds",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          438,
+          64,
+          840,
+          668
+        ]
       },
       {
         "file": "bar-sketchybar.png",

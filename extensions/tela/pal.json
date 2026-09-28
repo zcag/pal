@@ -471,7 +471,13 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the newest mentions and replies, Open in pal, Mark all read",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          436,
+          64,
+          840,
+          492
+        ]
       },
       {
         "file": "bar-sketchybar.png",

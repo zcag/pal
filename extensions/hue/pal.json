@@ -115,12 +115,24 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the rooms as tiles in their colour (the switch toggles, the chevron opens), the motion and temperature, the main room's scenes, the keys",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          792
+        ]
       },
       {
         "file": "bar-popover-room.png",
         "caption": "The living room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          960
+        ]
       },
       {
         "file": "bar-sketchybar.png",

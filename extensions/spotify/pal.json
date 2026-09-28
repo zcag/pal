@@ -467,7 +467,13 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the cover and the track, the bar ticking, the lyrics around the line playing, the transport keys, and the queue's next two",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          264,
+          64,
+          840,
+          942
+        ]
       },
       {
         "file": "bar-sketchybar.png",

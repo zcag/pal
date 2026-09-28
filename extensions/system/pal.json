@@ -90,17 +90,35 @@
       {
         "file": "bar-popover.png",
         "caption": "A click opens the popover: the run on a card with the time left and a bar, the presets on the digits, the display switch, Enter allows sleep",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          602
+        ]
       },
       {
         "file": "bar-popover-forever.png",
         "caption": "Until turned off: ∞ on the strip and the card; a preset gives it an end",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          430,
+          64,
+          840,
+          578
+        ]
       },
       {
         "file": "bar-popover-field.png",
         "caption": "u opens the field: 45m, 14:30 or forever, then Enter",
-        "kind": "bar"
+        "kind": "bar",
+        "box": [
+          420,
+          64,
+          840,
+          646
+        ]
       },
       {
         "file": "bar-sketchybar.png",
