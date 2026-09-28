@@ -259,6 +259,8 @@ export function toItem(hit: WireHit, palette: PaletteInfo): Item {
     group: hit.group,
     complete: typeof w.complete === "string" && w.complete ? w.complete : undefined,
     push: w.push && typeof w.push === "object" && typeof w.push.extension === "string" && typeof w.push.palette === "string" ? { extension: w.push.extension, palette: w.push.palette, args: w.push.args, query: typeof w.push.query === "string" ? w.push.query : undefined } : undefined,
+    // Typed arguments (docs/extensions.md): the fields after the query while the row is focused.
+    args: Array.isArray(w.args) && w.args.length ? (w.args as Item["args"]) : undefined,
   };
 }
 

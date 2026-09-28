@@ -1,0 +1,15 @@
+import { describe, expect, it, vi } from "vitest";
+
+// items.ts pulls in icons.ts, which reads `window` at import; no DOM is needed here.
+vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
+import { toItem, type WireHit } from "../items";
+
+describe("a row's typed arguments", () => {
+  it("reach the panel's item, so the fields show while the row is focused (they were dropped: no extension's args ever drew)", () => {
+    const args = [{ id: "minutes", placeholder: "minutes", kind: "number" as const, default: "25" }];
+    const hit: WireHit = { source: { extension: "timer", palette: "timer" }, id: "new", score: 0, name_positions: [], item: { id: "new", name: "New timer", args } };
+    expect(toItem(hit, { title: "Timer" }).args).toEqual(args);
+    expect(toItem({ ...hit, item: { id: "x", name: "x" } }, { title: "Timer" }).args).toBeUndefined();
+    expect(toItem({ ...hit, item: { id: "x", name: "x", args: [] } }, { title: "Timer" }).args).toBeUndefined();
+  });
+});

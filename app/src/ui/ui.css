@@ -248,6 +248,9 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-meta { display: flex; justify-content: space-between; gap: var(--pal-space-3, 12px); padding: var(--pal-space-1, 4px) 0; font-size: var(--pal-text-sm, 12px); }
 .pal-meta__label { flex: none; color: var(--pal-fg-faint, #868794); }
 .pal-meta__value { margin: 0; min-width: 0; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--pal-space-1, 4px); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+/* A metadata link in the accent, as the markdown's: without it the browser's own blue was near unreadable on the dark theme. */
+.pal-meta__value a { color: var(--pal-accent, #9f97ff); text-decoration: none; }
+.pal-meta__value a:hover { text-decoration: underline; }
 .pal-md > :first-child { margin-top: 0; }
 .pal-md > :last-child { margin-bottom: 0; }
 .pal-md h1, .pal-md h2, .pal-md h3 { margin: var(--pal-space-4, 16px) 0 var(--pal-space-2, 8px); font-weight: var(--pal-weight-semibold, 600); line-height: var(--pal-leading-ui, 1.25); }
