@@ -38,6 +38,41 @@
         "title": "Open privacy settings",
         "keys": "cmd+,"
       }
+    ],
+    "screenshots": [
+      {
+        "file": "1-in-use.png",
+        "caption": "One row per app: what it holds and for how long, a screen share and a recording in Terminal included"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "Enter brings the app forward; the privacy settings are a shortcut away"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar only while something is in use: a glyph for the camera, the microphone and the screen",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "A call sharing its screen: all three glyphs",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: one row per app, what it holds in colour and for how long; Enter brings the app forward",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "A screen share names its app too; macOS's own capture reads macOS",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the glyphs on an amber band",
+        "kind": "bar"
+      }
     ]
   },
   "palettes": {

@@ -3,7 +3,7 @@
 // camera no one has named yet is a row of its own under the device's name.
 // index.ts keeps the focus; a click moves it, Enter brings the app forward
 // (a row with no app opens the privacy settings).
-import { POPOVER_W, column, keyHint, row, text, type Action, type PrivacyUse, type View, type ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type Item, type PrivacyUse, type View, type ViewNode } from "@zcag/pal";
 
 type Sensor = PrivacyUse["sensor"];
 export const ORDER: Sensor[] = ["camera", "microphone", "screen"];
@@ -120,3 +120,19 @@ export function render(st: BarState): View {
     keys: "actions",
   };
 }
+
+// ---- the palette's rows ------------------------------------------------------------
+
+export const SETTINGS: Action = { id: "settings", title: "Open privacy settings", shortcut: "cmd+," };
+const KEYWORDS: Record<Sensor, string[]> = { camera: ["camera", "webcam", "video"], microphone: ["microphone", "mic", "audio", "recording"], screen: ["screen", "sharing", "share", "recording"] };
+
+/** A palette row for an app: what it holds as the subtitle, how long on the right. */
+export const paletteItem = (g: Group, now: number): Item => ({
+  id: g.key,
+  name: g.name,
+  subtitle: [g.sensors.map((s) => SENSOR[s]).join(", "), g.process].filter(Boolean).join(" · "),
+  icon: g.path ? { app: g.path } : GLYPH[g.sensors[0]],
+  ...(g.since !== null && { accessories: [{ text: duration(g.since, now) }] }),
+  keywords: g.sensors.flatMap((s) => KEYWORDS[s]),
+  actions: [{ id: "show", title: enterTitle(g) }, SETTINGS],
+});

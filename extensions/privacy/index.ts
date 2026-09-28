@@ -5,8 +5,8 @@
 // re-renders on the core's `privacy` trigger (a change seen within a
 // second or two), not on a poll of its own. The palette lists the same
 // rows, so `camera` at the root says who has it.
-import { errorMessage, hint, privacy, toast, view as liveView, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type PrivacyUse } from "@zcag/pal";
-import { GLYPH, ORDER, SENSOR, duration, enterTitle, groups, render, type BarState, type Group } from "./view.ts";
+import { errorMessage, hint, privacy, toast, view as liveView, type BarCtx, type BarItem, type Effect, type Extension, type Item, type PrivacyUse } from "@zcag/pal";
+import { GLYPH, ORDER, SENSOR, SETTINGS, groups, paletteItem, render, type BarState, type Group } from "./view.ts";
 
 const EXTENSION = "privacy";
 const ITEM = "in-use";
@@ -78,19 +78,6 @@ liveView.onHidden((ev) => { if (ev.bar === ITEM) { clearInterval(tick); tick = u
 
 // ---- the palette -------------------------------------------------------------
 
-const SETTINGS: Action = { id: "settings", title: "Open privacy settings", shortcut: "cmd+," };
-const KEYWORDS: Record<PrivacyUse["sensor"], string[]> = { camera: ["camera", "webcam", "video"], microphone: ["microphone", "mic", "audio", "recording"], screen: ["screen", "sharing", "share", "recording"] };
-
-const item = (g: Group, now: number): Item => ({
-  id: g.key,
-  name: g.name,
-  subtitle: [g.sensors.map((s) => SENSOR[s]).join(", "), g.process].filter(Boolean).join(" · "),
-  icon: g.path ? { app: g.path } : GLYPH[g.sensors[0]],
-  ...(g.since !== null && { accessories: [{ text: duration(g.since, now) }] }),
-  keywords: g.sensors.flatMap((s) => KEYWORDS[s]),
-  actions: [{ id: "show", title: enterTitle(g) }, SETTINGS],
-});
-
 export default {
   palettes: {
     privacy: {
@@ -99,7 +86,7 @@ export default {
       list: async (): Promise<Item[]> => {
         try {
           const all = groups(await privacy.inUse());
-          return all.length ? all.map((g) => item(g, nowS())) : [hint("none", "Nothing is using the camera, the microphone or the screen", "Apps show up here the moment one does", { actions: [SETTINGS] })];
+          return all.length ? all.map((g) => paletteItem(g, nowS())) : [hint("none", "Nothing is using the camera, the microphone or the screen", "Apps show up here the moment one does", { actions: [SETTINGS] })];
         } catch (e) { return [hint("error", "Cannot tell on this machine", errorMessage(e))]; }
       },
       pick: async (id, action): Promise<Effect> => {
