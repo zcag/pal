@@ -134,7 +134,7 @@ export function rootHits(query: string, found: Hit[], inline: Hit[], fallback: H
  */
 export type Level =
   | { kind: "root" }
-  | { kind: "palette"; palette: string; args?: unknown; /** The crumb, when the push named one (`Effect.push.title`: the folder being browsed). */ title?: string }
+  | { kind: "palette"; palette: string; args?: unknown; /** The crumb, when the push named one (`Effect.push.title`: the folder being browsed). */ title?: string; /** The search box's, when the push named one. */ placeholder?: string }
   | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string }
   | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec; /** The crumb, when `palette` is not a source (a bar item's key). */ title?: string }
   | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number }
@@ -691,8 +691,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   /** Mark or unmark the row at `i` (cmd+click, `x`); a row that cannot be marked is left alone. */
   const toggleAt = (i: number) => { const item = hits[i]?.item; if (item && markable(item)) { cur.set(i); setSel((s) => toggle(s, item)); } };
   /** Into a palette: a view palette opens as a view level (its tree asked for), any other as a list; `q` is typed into it on arrival, `title` is the crumb when the push named one. */
-  const enter = useCallback((palette: string, args?: unknown, q?: string, title?: string) => {
-    push(byKey.get(palette)?.view === "view" ? { kind: "view", palette, args, title } : { kind: "palette", palette, args, title });
+  const enter = useCallback((palette: string, args?: unknown, q?: string, title?: string, placeholder?: string) => {
+    push(byKey.get(palette)?.view === "view" ? { kind: "view", palette, args, title } : { kind: "palette", palette, args, title, placeholder });
     if (q) nav.setQuery(q);
   }, [byKey]);
   /**
@@ -863,7 +863,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const top = level.current;
     if (submit && !e.form && top.kind === "form") pop();
     if (e.toast) setToast({ style: e.toast.style ?? "success", title: e.toast.title, message: e.toast.message });
-    if (e.push) enter(sourceKey(e.push), e.push.args, e.push.query, e.push.title);
+    if (e.push) enter(sourceKey(e.push), e.push.args, e.push.query, e.push.title, e.push.placeholder);
     if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title, palette: item.palette });
     if (e.view) {
       // The next tree of the view it came from, if that is still the level on top; else a fresh level.
@@ -1178,7 +1178,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : undefined;
   // The bottom level has nothing under it to go back to: its crumb is a title, not a button.
   const back = crumb && { ...crumb, onBack: nav.depth > 1 ? pop : undefined };
-  const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" ? "" : isMenu ? `Search ${view.title}…` : scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
+  const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" ? "" : isMenu ? `Search ${view.title}…` : (view.kind === "palette" ? view.placeholder : undefined) ?? scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
   /** What Enter runs and the footer names: the field's submit while a view's text field is open, else the first listed action. */
   const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : sel && listed[0]?.id === CLEAR ? undefined : listed[0];
   const onPickAt = (i: number) => { cur.set(i); const a = listed[0]; if (a) run(a); };

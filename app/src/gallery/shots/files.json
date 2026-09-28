@@ -2186,7 +2186,8 @@
         "extension": "",
         "palette": "files",
         "args": "open-with",
-        "title": "Open README.md with"
+        "title": "Open README.md with",
+        "placeholder": "Search apps"
       }
     },
     "files//Users/ada/proj:browse": {

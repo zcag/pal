@@ -540,7 +540,7 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "dialog": return { dialog: id };
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
     case "quick-look": files.quickLook(ids); return { hide: true };
-    case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith, title: `Open ${basename(id)} with` } };
+    case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith, title: `Open ${basename(id)} with`, placeholder: "Search apps" } };
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
     case "terminal": return openTerminal(id);

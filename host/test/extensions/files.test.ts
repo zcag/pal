@@ -229,7 +229,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(rows[0].actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     const p = join(dir, "Report-Beta.md");
     expect(await host.pick("files", "recent", p, "copy")).toEqual({ copy: p });
-    expect(await host.pick("files", "recent", p, "open-with")).toEqual({ push: { extension: "files", palette: "recent", args: { open_with: p }, title: `Open ${basename(p)} with` } });
+    expect(await host.pick("files", "recent", p, "open-with")).toEqual({ push: { extension: "files", palette: "recent", args: { open_with: p }, title: `Open ${basename(p)} with`, placeholder: "Search apps" } });
     expect((await host.list("files", "recent", "", { args: { open_with: p } })).map((r) => r.name)).toEqual(APPS.map((a) => a.name));
     expect((await host.detail("files", "recent", p)).metadata!.map((m) => m.label)).toEqual(["Path", "Size", "Modified", "Kind"]);
   });
@@ -458,7 +458,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
 
   test("open with: pushes a level on the same palette with the file as args", async () => {
     const p = join(dir, "report-alpha.txt");
-    expect(await pick(p, "open-with")).toEqual({ push: { extension: "files", palette: "files", args: { open_with: p }, title: `Open ${basename(p)} with` } });
+    expect(await pick(p, "open-with")).toEqual({ push: { extension: "files", palette: "files", args: { open_with: p }, title: `Open ${basename(p)} with`, placeholder: "Search apps" } });
   });
 
   test("open with level: the core's apps in its order, the default tagged, app icons, bundle id as keyword; the query narrows by name or id", async () => {
@@ -572,7 +572,7 @@ describe.skipIf(!HAS_FIND)("the Finder selection", () => {
   test.skipIf(!MAC)("open with from the selection pushes the selection palette with the file as args, and that level lists the apps", async () => {
     const a = join(dir, "report-alpha.txt");
     finder = [a];
-    expect(await host.pick("files", "selection", a, "open-with")).toEqual({ push: { extension: "files", palette: "selection", args: { open_with: a }, title: "Open report-alpha.txt with" } });
+    expect(await host.pick("files", "selection", a, "open-with")).toEqual({ push: { extension: "files", palette: "selection", args: { open_with: a }, title: "Open report-alpha.txt with", placeholder: "Search apps" } });
     expect((await sel("", { args: { open_with: a } })).map((r) => r.name)).toEqual(["TextEdit", "kitty", "Notes"]);
     finder = [];
   });
@@ -663,7 +663,7 @@ describe.skipIf(!HAS_FIND)("browsing folders", () => {
 
   test("open with from a browsed row pushes the browse palette with the file as args, and that level lists the apps", async () => {
     const p = join(dir, "notes.md");
-    expect(await host.pick("files", "browse", p, "open-with", { args: { browse: dir } })).toEqual({ push: { extension: "files", palette: "browse", args: { open_with: p }, title: "Open notes.md with" } });
+    expect(await host.pick("files", "browse", p, "open-with", { args: { browse: dir } })).toEqual({ push: { extension: "files", palette: "browse", args: { open_with: p }, title: "Open notes.md with", placeholder: "Search apps" } });
     expect((await host.list("files", "browse", "", { args: { open_with: p } })).map((r) => r.name)).toEqual(APPS.map((a) => a.name));
   });
 });

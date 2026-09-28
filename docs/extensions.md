@@ -346,7 +346,9 @@ is left to the load-time check.
   into the open or save panel in front, below),
   `keep` (stay open and list again), `push` (drill into a palette with
   `args`; `title` names the level's crumb, the folder being browsed
-  rather than the palette's title; `query` is typed into it), `show` (a
+  rather than the palette's title; `placeholder` its search box, "Search
+  apps" where the palette's says "Search files"; `query` is typed into
+  it), `show` (a
   detail-only level: a `Detail` plus a `title`), `view` (a render tree, below),
   `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
   of the `push` that opened the level, on a form's submit its `values`,

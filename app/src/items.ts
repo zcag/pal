@@ -23,9 +23,12 @@ export type WireItem = {
   accessories?: Accessory[];
   detail?: Detail;
   /** A fallback "Ask" row (`fallback.rs`): the palette to open with the query typed. */
-  push?: { extension: string; palette: string; args?: unknown; query?: string; /** The level's crumb, in place of the palette's title. */ title?: string };
+  push?: Push;
   [extra: string]: unknown;
 };
+
+/** `Effect.push` in sdk/src/protocol.ts: `query` is typed into the level, `title` is its crumb and `placeholder` its search box's, in place of the palette's. */
+export type Push = { extension: string; palette: string; args?: unknown; query?: string; title?: string; placeholder?: string };
 
 /** One row of the `query` command's reply (`HitView` in src-tauri/src/index.rs); `group` names a root section that is not the palette's. */
 export type WireHit = { source: Source; id: string; score: number; name_positions: number[]; item: WireItem; group?: string };
@@ -92,7 +95,7 @@ export type Effect = {
   hud?: string;
   keep?: true;
   /** Drill in: a level scoped to that palette, its `list` given `args`; `query` is typed into its search box. */
-  push?: { extension: string; palette: string; args?: unknown; query?: string; /** The level's crumb, in place of the palette's title. */ title?: string };
+  push?: Push;
   /** A detail-only level to read. */
   show?: Detail & { title?: string };
   /** A render tree: a new view level from a list, the next tree of the view it came from. */
