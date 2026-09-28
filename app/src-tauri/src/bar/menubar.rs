@@ -86,8 +86,15 @@ pub fn clip(s: &str, max: usize) -> String {
 /// where the system face is on disk; an image icon keeps its picture and
 /// the text stays title text.
 pub fn prerendered(draw: &Draw) -> bool {
+    wants_strip(draw) && glyph::can_strip(draw.look.font == BarFont::Mono)
+}
+
+/// [`prerendered`] where the faces are on disk, as on every Mac: what the
+/// item asks for, whatever machine answers (the parity snapshot is the
+/// same on CI's Linux).
+fn wants_strip(draw: &Draw) -> bool {
     let l = &draw.look;
-    (glyph_run(draw).is_some() || runs(draw).chars().any(glyph::has_glyph) || l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0 || l.opacity < 100 || l.badge_color.is_some()) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
+    (glyph_run(draw).is_some() || runs(draw).chars().any(glyph::has_glyph) || l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0 || l.opacity < 100 || l.badge_color.is_some()) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
 }
 
 /// An icon of several Nerd glyphs (privacy's `󰖠 󰍬`): the system face of
@@ -135,13 +142,17 @@ pub fn body(draw: &Draw) -> String {
 /// The title text beside the icon: an emoji icon first (the font has no
 /// emoji), then [`body`] unless it is prerendered into the image.
 pub fn title_text(draw: &Draw) -> String {
+    title_with(draw, prerendered(draw))
+}
+
+fn title_with(draw: &Draw, strip: bool) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some(IconKind::Text(t)) = draw.item.icon_kind() {
         if glyph_run(draw).is_none() {
             parts.push(t);
         }
     }
-    if !prerendered(draw) {
+    if !strip {
         parts.push(body(draw));
     }
     parts.join("  ").trim().to_string()
@@ -260,7 +271,9 @@ pub fn describe(draw: &Draw, palette: &Palette) -> Described {
         (Some(IconKind::Image { .. }), _) => ("image", None),
         (None, _) => ("none", None),
     };
-    let image_text = (prerendered(draw) && icon != "image").then(|| {
+    // What a Mac draws, whichever machine runs the test: the strip's faces are on every Mac.
+    let strip = wants_strip(draw);
+    let image_text = (strip && icon != "image").then(|| {
         let (text, badge) = (runs(draw), badge_text(draw));
         let badge = if text.is_empty() { badge.trim_start().to_string() } else { badge };
         format!("{text}{badge}")
@@ -270,7 +283,7 @@ pub fn describe(draw: &Draw, palette: &Palette) -> Described {
         _ => s.template(),
     };
     let pct = |f: f32| (f * 100.0).round() as u32;
-    Described { icon, glyph, image_text, title: title_text(draw), template, ink: hex(s.color), badge_ink: hex(s.badge), dot: s.dot, progress: s.progress.map(|p| (p as f64 * 1000.0).round() / 1000.0), alpha: pct(s.alpha), opacity: pct(s.opacity), size: s.size }
+    Described { icon, glyph, image_text, title: title_with(draw, strip), template, ink: hex(s.color), badge_ink: hex(s.badge), dot: s.dot, progress: s.progress.map(|p| (p as f64 * 1000.0).round() / 1000.0), alpha: pct(s.alpha), opacity: pct(s.opacity), size: s.size }
 }
 
 /// Whether two draws come out as the same image (the tooltip and the menu are not in it).
