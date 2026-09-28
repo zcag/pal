@@ -71,7 +71,12 @@ async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
   try {
     await page.goto(url, { waitUntil: "networkidle" });
     await page.waitForSelector("html[data-ready]", { timeout: 10000 });
-    await page.waitForTimeout(250);
+    // data-ready says the fixture is in; the palette it opens lands a few frames later (the Launcher's open, its first search). Keys pressed before then are lost, so wait until the page stops changing.
+    await page.waitForFunction(() => {
+      const w = window, html = document.body.innerHTML;
+      if (w.__shotHtml !== html) { w.__shotHtml = html; w.__shotSince = performance.now(); return false; }
+      return performance.now() - w.__shotSince > 300 && (!document.activeElement || document.activeElement !== document.body || !document.querySelector("input"));
+    }, null, { timeout: 5000, polling: 50 }).catch(() => {});
     for (const step of keys ?? []) await press(page, step);
     await page.waitForTimeout(settle ?? 450);
     if (errors.length) throw new Error(`page error: ${errors[0]}`);

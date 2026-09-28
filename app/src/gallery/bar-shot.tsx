@@ -17,7 +17,7 @@ import { Launcher, menuLevel, type Level } from "../Launcher";
 import type { BarMenu, BarMenuNode } from "../bar";
 import { Hud } from "../ui";
 import { BarStrip, MENUBAR_H, SKETCHYBAR_H, type BarStripItem } from "../ui/BarStrip";
-import { popoverHeight } from "../ui/popover-size";
+import { POPOVER_MAX_H, popoverHeight } from "../ui/popover-size";
 import { toItem, toView, type SourceInfo, type WireItem } from "../items";
 import { manifestOf } from "./data";
 import type { Item } from "../ui/types";
@@ -81,7 +81,8 @@ function Popover({ fx, item, x }: { fx: BarFixture; item: BarItem; x: number }) 
     return m ? [{ extension: kind === "palette" ? "" : fx.key.split("/")[0], palette: kind === "palette" ? key : "manifest", title: kind === "palette" ? fx.palette?.title ?? m.title : m.title, placeholder: kind === "palette" ? fx.palette?.placeholder : undefined, icon: m.icon, live: false, input: false, count: 0, stale: false }] : [];
   }, [fx, m, kind, key]);
   const el = useRef<HTMLDivElement>(null);
-  const [h, setH] = useState(120);
+  // From the tallest, then shrunk to the content: a view that scrolls its selected row into view on mount (stats) would otherwise scroll in a 120 px box.
+  const [h, setH] = useState(POPOVER_MAX_H);
   // The height follows the content as BarPage.tsx measures it: the rows land after the Launcher's first search, so watch the tree.
   useLayoutEffect(() => {
     const root = el.current;
