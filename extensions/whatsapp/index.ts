@@ -34,7 +34,7 @@ function failure(e: unknown): Item[] {
   if (e instanceof Unreachable) return [hint("unreachable", `OpenWA is unreachable at ${e.url}`, "Check base_url under Settings › Extensions › WhatsApp, and that the gateway is up", { actions: SETTINGS_ACTION, icon: ICON.alert })];
   if (e instanceof ApiError && e.auth) return [hint("auth", "OpenWA rejected the API key", `${e.status}: check api_key under Settings › Extensions › WhatsApp`, { actions: SETTINGS_ACTION, icon: ICON.alert })];
   if (e instanceof SessionError) return [hint("session", e.message, e.status === "qr_ready" ? `Scan the QR code at ${base()} to link the phone again` : e.status ? `Check the session at ${base()}` : `Set session under Settings › Extensions › WhatsApp to a session ${base()} lists`, { actions: SETTINGS_ACTION, icon: ICON.alert })];
-  if (e instanceof RateLimited) return [hint("limit", "OpenWA rate limit reached", `Retry at ${e.until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, { icon: ICON.alert })];
+  if (e instanceof RateLimited) return [hint("limit", "OpenWA rate limit reached", `Retry at ${clock(e.until.getTime())}`, { icon: ICON.alert })];
   log(errorMessage(e));
   return [hint("error", "OpenWA did not answer", errorMessage(e), { icon: ICON.alert })];
 }

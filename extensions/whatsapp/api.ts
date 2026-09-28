@@ -8,7 +8,7 @@
 // it waits for a QR scan), a 429 is remembered for `Retry-After` and
 // refused locally until then. Sends, replies, reactions and mark-read are
 // the four writes; index.ts gates the first three behind `send`.
-import { settings, storage } from "@zcag/pal";
+import { clock, settings, storage } from "@zcag/pal";
 
 export type Conf = { base_url?: string; api_key?: string; session?: string; send?: boolean; open?: "auto" | "app" | "web" };
 export const conf = (): Conf => settings.get<Conf>();
@@ -35,7 +35,7 @@ export class ApiError extends Error { constructor(readonly status: number, messa
 /** No session of that name, or one that is not `ready` (its `status` says what it is doing instead). */
 export class SessionError extends Error { constructor(readonly name: string, readonly status: string | undefined) { super(status ? `WhatsApp session "${name}" is ${status.replace(/_/g, " ")}` : `No WhatsApp session named "${name}"`); } }
 /** Too many calls; every request until `until` is refused here. */
-export class RateLimited extends Error { constructor(readonly until: Date) { super(`OpenWA rate limit reached, retry at ${until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`); } }
+export class RateLimited extends Error { constructor(readonly until: Date) { super(`OpenWA rate limit reached, retry at ${clock(until)}`); } }
 
 // ---- wire shapes -----------------------------------------------------------------------
 

@@ -42,7 +42,7 @@ const names = args.length
   : [...new Set(readdirSync(fixtures).filter((f) => f.endsWith(".json")).map((f) => f.replace(/^bar-/, "").slice(0, -5)))].filter((n) => existsSync(join(root, "extensions", n))).sort();
 
 const keyOf = { down: "ArrowDown", up: "ArrowUp", left: "ArrowLeft", right: "ArrowRight", tab: "Tab", enter: "Enter", escape: "Escape", backspace: "Backspace", space: "Space" };
-const combo = (s) => s.split("+").map((k) => ({ cmd: "Meta", shift: "Shift", alt: "Alt", ctrl: "Control" })[k] ?? keyOf[k] ?? (k.length === 1 ? k.toUpperCase() : k)).join("+");
+const combo = (s) => s.split("+").map((k) => ({ cmd: "Meta", shift: "Shift", alt: "Alt", ctrl: "Control" })[k] ?? keyOf[k] ?? k).join("+");  // a letter as written: "s" is e.key "s", as a page compares it
 async function press(page, step) {
   if (step.startsWith("type:")) return page.keyboard.type(step.slice(5), { delay: 8 });
   if (step.startsWith("wait:")) return page.waitForTimeout(Number(step.slice(5)));
@@ -57,7 +57,8 @@ const browser = await chromium.launch({ headless: true, args: ["--force-color-pr
 let failed = 0;
 
 async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
-  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ });
+  // en-GB: a page's own toLocale* reads as the SDK writes dates (16 Sep, 14:32), not the headless default's Sep 16, 02:32 PM.
+  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ, locale: "en-GB" });
   // The fixtures' clock: Date reads NOW (timers still run, so a page settles and animates as it would).
   await context.clock.setFixedTime(NOW);
   // Chance, seeded in every frame (a game's deal, a page's shuffle): the same picture every run (fixture-kit's seeded(42), mulberry32).
