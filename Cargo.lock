@@ -3268,7 +3268,7 @@ dependencies = [
 
 [[package]]
 name = "pal"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "ab_glyph",
  "base64 0.22.1",
@@ -3308,7 +3308,7 @@ dependencies = [
 
 [[package]]
 name = "pal-core"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "arboard",
  "base64 0.22.1",
