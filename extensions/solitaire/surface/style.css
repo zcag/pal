@@ -54,7 +54,9 @@ body {
 }
 .card .inner {
   position: absolute; inset: 0; transform-style: preserve-3d;
-  transition: transform 300ms var(--ease) var(--fd, 0ms), filter 120ms;
+  /* The flip alone is `transform`; the hover lift and the drag's swell are `translate` and `scale`, which compose with it and never
+     restart it: a lift on `transform` replaced a flip still waiting out its deal delay, so a card under the pointer turned a second late. */
+  transition: transform 300ms var(--ease) var(--fd, 0ms), translate 140ms var(--ease), scale 140ms var(--ease), filter 120ms;
   border-radius: calc(var(--cw) * 0.06);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
 }
@@ -66,10 +68,10 @@ body {
 .card .back { transform: rotateY(180deg); }
 .card.down .inner { transform: rotateY(180deg); }
 .card.can { cursor: grab; }
-.card.hl .inner { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
+.card.hl .inner { translate: 0 -3px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
 .card.lifted .inner { box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38); }
 .card.drag { transition: none; cursor: grabbing; }
-.card.drag .inner { box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4); transform: scale(1.04); }
+.card.drag .inner { box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4); scale: 1.04; }
 .card.stock { cursor: pointer; }
 .card.stock .inner, .card.flat .inner { box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.2); }
 
