@@ -6,10 +6,6 @@
 import { Host } from "../../host/test/harness.ts";
 import { NOW, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import type { View } from "../../sdk/src/protocol.ts";
-// The app's own relative date; imported by a variable so the host's tsc does not follow it into DOM-typed code.
-const FORMAT = "../../app/src/ui/format.ts";
-const { relativeDate } = (await import(FORMAT)) as { relativeDate: (d: string | number, now: number) => string };
-
 pinClock();
 const BEFORE = `name: release
 on:
@@ -73,8 +69,7 @@ try {
   const unified = await host.request<View>("view", { extension: "diff", palette: "diff" });
   const side = (await host.pick("diff", "diff", unified.id!, "side")).view as View;
 
-  // The gallery draws a `date` accessory against the real clock: the text it would draw at NOW instead.
-  const rows = (await host.list("diff", "pick", "")).map((r) => ({ ...r, accessories: r.accessories?.map((a) => ("date" in a ? { text: relativeDate(a.date, NOW) } : a)) }));
+  const rows = await host.list("diff", "pick", "");
   const meta = { title: diff.title, icon: diff.icon, view: "view" };
   writeFixture("diff", {
     palettes: {

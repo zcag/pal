@@ -7,7 +7,6 @@
 // `make shots EXT=grafana`.
 import { NOW, pinClock, seeded, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { Host } from "../../host/test/harness.ts";
-import type { Item } from "../../sdk/src/protocol.ts";
 import manifest from "./pal.json" with { type: "json" };
 
 pinClock();
@@ -132,10 +131,6 @@ const server = Bun.serve({
 });
 const BASE = `http://127.0.0.1:${server.port}`;
 
-/** The gallery's clock is the real one: a `date` accessory reads as text at the fixture's clock, as the row would have at 14:32. By a variable, so the host's typecheck does not follow it into the DOM code. */
-const FORMAT = "../../app/src/ui/format.ts";
-const { relativeDate } = (await import(FORMAT)) as { relativeDate: (d: string | number, now: number) => string };
-const fixed = (rows: Item[]) => rows.map((r) => ({ ...r, accessories: r.accessories?.map((a) => ("date" in a && a.date !== undefined ? { text: relativeDate(a.date as string, NOW) } : a)) }));
 
 const host = await Host.bundled({ settings: { grafana: { settings: { url: BASE, token: TOKEN, time_range: "now-6h" } } }, timeout: 20000 });
 try {
@@ -163,7 +158,7 @@ try {
   const panel = await settle({
     palettes: {
       grafana: { ...pal("grafana"), items: dashboards, byFilter: { folders }, details: dashDetails },
-      alerts: { ...pal("alerts"), live: true, items: fixed(alerts), byFilter: { silenced: fixed(silenced) }, details: alertDetails },
+      alerts: { ...pal("alerts"), live: true, items: alerts, byFilter: { silenced: silenced }, details: alertDetails },
       query: { ...pal("query"), input: true, byQuery: { "": saved, node_load1: load } },
     },
     effects: { "grafana/svc-overview:range": range },
