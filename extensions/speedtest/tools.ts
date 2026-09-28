@@ -8,7 +8,7 @@
 // three binaries (the tests put stand-ins there).
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { exec } from "@zcag/pal";
+import { exec, now as clockNow } from "@zcag/pal";
 
 export type ToolId = "ookla" | "speedtest-cli" | "fast";
 export type Tool = { id: ToolId; bin: string; title: string };
@@ -87,7 +87,7 @@ export type Run = {
   endedAt?: number;
 };
 
-export const start = (tool: ToolId, now = Date.now()): Run => ({ tool, startedAt: now, phase: "starting" });
+export const start = (tool: ToolId, now = clockNow()): Run => ({ tool, startedAt: now, phase: "starting" });
 const mbps = (bytesPerSec: number) => Math.round((bytesPerSec * 8) / 1e4) / 100;
 const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
@@ -150,7 +150,7 @@ export function feed(r: Run, text: string): void {
 }
 
 /** The tool exited: a run without an upload figure is a failure, with the last error line as the reason. */
-export function finish(r: Run, code: number | null, now = Date.now()): void {
+export function finish(r: Run, code: number | null, now = clockNow()): void {
   r.endedAt = now;
   if (r.phase === "done") return;
   if (r.tool === "fast" && r.download !== undefined && r.upload !== undefined && code === 0) { r.phase = "done"; r.progress = 1; return; }

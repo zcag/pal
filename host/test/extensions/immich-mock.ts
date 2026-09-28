@@ -53,6 +53,9 @@ export const ALBUMS: MockAlbum[] = [
   { id: "a4", name: "Untitled Album", description: "", assets: [], shared: false, owner: ME, modified: "2026-06-01T00:00:00.000Z" },
 ];
 
+/** The day "on this day" answers for and the albums' span: the tests' clock; the store fixture moves them to its own. */
+export const DAYS = { memories: "09-22", albumStart: "2026-07-10", albumEnd: "2026-09-19" };
+
 const MEMORIES = [
   { id: "m1", year: 2025, assets: [uuid(7)] },
   { id: "m2", year: 2021, assets: [uuid(8)] },
@@ -74,7 +77,7 @@ function dto(a: Asset, withExif: boolean) {
 const albumDto = (a: MockAlbum) => ({
   albumName: a.name, description: a.description, albumThumbnailAssetId: a.assets[0] ?? null, createdAt: a.modified, updatedAt: a.modified, id: a.id,
   albumUsers: [{ user: { id: a.owner, email: "x@example.com", name: a.owner, profileImagePath: "", avatarColor: "yellow", profileChangedAt: a.modified }, role: "owner" }],
-  shared: a.shared, hasSharedLink: false, startDate: a.assets.length ? "2026-07-10T00:00:00.000Z" : null, endDate: a.assets.length ? "2026-09-19T00:00:00.000Z" : null,
+  shared: a.shared, hasSharedLink: false, startDate: a.assets.length ? `${DAYS.albumStart}T00:00:00.000Z` : null, endDate: a.assets.length ? `${DAYS.albumEnd}T00:00:00.000Z` : null,
   assetCount: a.assets.length, isActivityEnabled: true, order: "desc", lastModifiedAssetTimestamp: a.modified,
 });
 
@@ -170,8 +173,8 @@ export function startMock() {
       if (path === "/memories") {
         const day = url.searchParams.get("for") ?? "";
         if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return Response.json({ message: "Validation failed" }, { status: 400 });
-        const list = day.endsWith("09-22") ? MEMORIES : [];
-        return Response.json(list.map((mm) => ({ id: mm.id, createdAt: `${day}T00:00:01.683Z`, updatedAt: `${day}T00:00:01.683Z`, memoryAt: `${mm.year}-09-22T00:00:00.000Z`, showAt: `${day}T00:00:00.000Z`, hideAt: `${day}T23:59:59.999Z`, ownerId: ME, type: "on_this_day", data: { year: mm.year }, isSaved: false, assets: mm.assets.map((id) => dto(ASSETS.find((a) => a.id === id)!, false)) })));
+        const list = day.endsWith(DAYS.memories) ? MEMORIES : [];
+        return Response.json(list.map((mm) => ({ id: mm.id, createdAt: `${day}T00:00:01.683Z`, updatedAt: `${day}T00:00:01.683Z`, memoryAt: `${mm.year}-${DAYS.memories}T00:00:00.000Z`, showAt: `${day}T00:00:00.000Z`, hideAt: `${day}T23:59:59.999Z`, ownerId: ME, type: "on_this_day", data: { year: mm.year }, isSaved: false, assets: mm.assets.map((id) => dto(ASSETS.find((a) => a.id === id)!, false)) })));
       }
       return Response.json({ message: `Cannot ${req.method} ${path}`, error: "Not Found", statusCode: 404 }, { status: 404 });
     },

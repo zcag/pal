@@ -3,12 +3,15 @@
 // New page form come out of the real extension run through the host
 // harness against the tests' mock instance (host/test/extensions/tela-mock.ts),
 // with a few more pages added so the listings look lived in; nothing here
-// is the owner's. `bun run extensions/tela/fixture.ts`, then
-// `node app/scripts/shots.mjs tela` and `node app/scripts/shots.mjs bar tela`.
-import { writeFileSync } from "node:fs";
+// is the owner's (the tests' "you" is renamed deniz). `make shots EXT=tela`.
 import { BUNDLED, Host, stored } from "../../host/test/harness.ts";
-import { FAVORITES, PAGES, RECENT, SETTINGS, SPACES, server, setRead } from "../../host/test/extensions/tela-mock.ts";
+import { BASE, FAVORITES, NOTIFICATIONS, PAGES, RECENT, SETTINGS, SPACES, server, setRead } from "../../host/test/extensions/tela-mock.ts";
+import { pinClock, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import manifest from "./pal.json" with { type: "json" };
+
+pinClock();
+for (const r of RECENT) if (r.author_username === "cagdas") r.author_username = "deniz";
+for (const n of NOTIFICATIONS) if ("snippet" in n.data && n.data.snippet) n.data.snippet = n.data.snippet.replace("@cagdas", "@deniz");
 
 // More of a wiki than the tests need: pages the recent list and the trees show.
 Object.assign(PAGES, {
@@ -21,7 +24,7 @@ SPACES.push({ id: 4, name: "Design", slug: "design", visibility: "private", desc
 Object.assign(PAGES, { 40: { id: 40, space_id: 4, parent_id: null, title: "Brief", body: "# Brief\n\nHigh polish everywhere.", props: {}, created_at: "2026-09-01 10:00:00", updated_at: "2026-09-12 09:00:00" } });
 RECENT.splice(1, 0, { page_id: 14, title: "On-call runbook", space_id: 2, space_name: "Engineering", author_username: "lina", updated_at: "2026-09-16 08:20:00" });
 RECENT.splice(3, 0, { page_id: 15, title: "Frecency", space_id: 2, space_name: "Engineering", author_username: "mara", updated_at: "2026-09-15 16:00:00" });
-RECENT.push({ page_id: 22, title: "Trip to Kaş", space_id: 1, space_name: "Notes", author_username: "cagdas", updated_at: "2026-09-14 18:00:00" }, { page_id: 40, title: "Brief", space_id: 4, space_name: "Design", author_username: "ola", updated_at: "2026-09-12 09:00:00" }, { page_id: 31, title: "Why one index", space_id: 3, space_name: "Blog", author_username: "tomas", updated_at: "2026-09-11 09:00:00" });
+RECENT.push({ page_id: 22, title: "Trip to Kaş", space_id: 1, space_name: "Notes", author_username: "deniz", updated_at: "2026-09-14 18:00:00" }, { page_id: 40, title: "Brief", space_id: 4, space_name: "Design", author_username: "ola", updated_at: "2026-09-12 09:00:00" }, { page_id: 31, title: "Why one index", space_id: 3, space_name: "Blog", author_username: "tomas", updated_at: "2026-09-11 09:00:00" });
 FAVORITES.push({ page_id: 14, title: "On-call runbook", space_id: 2, space_name: "Engineering", created_at: "2026-09-07 10:00:00" });
 setRead((n) => n.id === 901 || n.id === 902, false);
 
@@ -77,7 +80,8 @@ try {
       "6-pages": { palette: "pages", keys: ["down*5", "wait:300"], caption: "Pages: favourites, then what changed lately, sectioned by space" },
     },
   };
-  writeFileSync(new URL("../../app/src/gallery/shots/tela.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");
+  const hosts = { [BASE]: "https://tela.example.com" };
+  writeFixture("tela", await settle(fixture, { hosts }));
 
   const barFixture = {
     key: "tela/inbox",
@@ -90,7 +94,7 @@ try {
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },
     },
   };
-  writeFileSync(new URL("../../app/src/gallery/shots/bar-tela.json", import.meta.url), JSON.stringify(barFixture, null, 2) + "\n");
+  writeFixture("bar-tela", await settle(barFixture, { hosts }));
   console.log(`${pages.length} page rows, ${spaces.length} spaces, ${searchHits.length} hits, research ${(research.view as { actions: unknown[] }).actions.length} actions, bar badge ${bar.badge}`);
 } finally {
   await host.close();

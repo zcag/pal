@@ -3,14 +3,14 @@
 // translate mock (host/test/extensions/translate-mock.ts, the real
 // endpoint's answers of 2026-09-17), with `to = tr` so the shots show the
 // Turkish and English pair, and a history of what the shots picked.
-// Nothing is the owner's. `bun run extensions/translate/fixture.ts`,
-// then `node app/scripts/shots.mjs translate`.
-import { writeFileSync } from "node:fs";
+// Nothing is the owner's. `make shots EXT=translate`.
 import { Host, stored } from "../../host/test/harness.ts";
 import { startMock } from "../../host/test/extensions/translate-mock.ts";
+import { NOW, pinClock, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
 
 const QUERIES = ["hello world", "tr>en merhaba dünya. Nasılsın?", ">ja hello"];
 
+pinClock();
 const { server, base } = startMock();
 process.env.PAL_TRANSLATE_GOOGLE = base;
 process.env.PAL_TRANSLATE_DEEPL = base;
@@ -29,9 +29,10 @@ try {
   await host.pick("translate", "translate", "translation");
   await host.list("translate", "translate", "hello world");
   await host.pick("translate", "translate", "translation");
-  // Spread the entries over the day, as a used history reads.
+  // Spread the entries over the day, as a used history reads: all three were stamped at the pinned clock.
   const ages = [2 * 60e3, 3 * 3600e3, 26 * 3600e3];
-  const rows = (await host.list("translate", "history")).map((r, i) => (i < ages.length ? { ...r, accessories: [{ date: Date.now() - ages[i] }] } : r));
+  stored.set("translate\0history", (stored.get("translate\0history") as { at: number }[]).map((e, i) => ({ ...e, at: NOW - (ages[i] ?? 0) })));
+  const rows = await host.list("translate", "history");
   const fixture = {
     palettes: {
       translate: { title: translate.title, icon: translate.icon, input: true, placeholder: translate.placeholder, byQuery },
@@ -45,7 +46,7 @@ try {
       "5-history": { palette: "history", keys: ["down"], caption: "Translation History: what was copied or spoken, newest first" },
     },
   };
-  writeFileSync(new URL("../../app/src/gallery/shots/translate.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");
+  writeFixture("translate", await settle(fixture, { hosts: { [base]: "https://translate.example.com" } }));
   console.log("wrote app/src/gallery/shots/translate.json");
 } finally {
   host.kill();

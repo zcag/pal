@@ -10,7 +10,7 @@
 // Google's unofficial web endpoint or DeepL with a key. A picked
 // translation goes to the history palette (storage, the last hundred).
 import { createHash } from "node:crypto";
-import { errorMessage, hint, oneLine, settings, storage, textAtHand, toast, truncate, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, hint, now, oneLine, settings, storage, textAtHand, toast, truncate, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { MAX_CHARS, speak, translate, TranslateError, type Backend, type Translation } from "./backends.ts";
 import { langOf, matches, nameOf, otherEnd, parse, systemLanguage } from "./lang.ts";
 
@@ -58,7 +58,7 @@ const history = async (): Promise<Entry[]> => ((await storage.get<Entry[]>("hist
 
 async function remember(h: Held): Promise<void> {
   const list = (await history()).filter((e) => !(e.text === h.source && e.to === h.to && e.result === h.text));
-  list.unshift({ text: h.source, result: h.text, from: h.from, to: h.to, backend: h.backend, at: Date.now() });
+  list.unshift({ text: h.source, result: h.text, from: h.from, to: h.to, backend: h.backend, at: now() });
   await storage.set("history", list.slice(0, HISTORY_MAX));
 }
 
