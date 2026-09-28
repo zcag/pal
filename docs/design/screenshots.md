@@ -81,6 +81,14 @@ fails when that file is stale; `bar-parity.test.ts` fails when
 steps: change the Rust, `PAL_UPDATE_PARITY=1 cargo test -p pal parity`, make
 `bar-model.ts` agree.
 
+The parity data covers what is drawn, not how the face renders it: a font's
+width, a glyph's weight. `app/scripts/bar-real.sh <extension>...` sets the
+gallery's strips beside the real ones (the menu bar's own status-item
+picture from `menubar::pixels`, and a running sketchybar drawing the
+renderer's properties as temporary items) for the eye; run it after a change
+to `BarStrip.tsx` or the renderers' drawing. It caught the progress rule
+drawn twice its width and a glyph run at the wrong size.
+
 ## Making them
 
     make shots                  # every extension, both themes, both kinds

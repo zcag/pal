@@ -1753,6 +1753,24 @@ from a checkout with `pal install path/to/pal/examples/hello-extension`,
 or from GitHub with `pal install github:zcag/pal/examples/hello-extension@main`;
 change the greeting under Settings › Extensions › Hello and the row follows.
 
+## Store screenshots
+
+The store (pal.cagdas.io) shows what `screenshots/` holds, captioned by
+`pal.json`'s `store.screenshots`. Every picture comes as a pair,
+`<name>.png` on the light theme and `<name>-dark.png` on the dark one, and
+the store shows the one matching the visitor's scheme; list the light file
+with its caption and `kind` (`panel`, or `bar` for a bar item's picture).
+Sizes: a panel shot 1440 by 900 (the panel on a wallpaper), a bar strip
+1440 by 120 (`bar-menubar`, `bar-sketchybar`), a popover 1440 by 1080
+(`bar-popover`); `bar-menubar-<state>` and `bar-popover-<state>` for other
+states. Invented data only: nobody's real mail, calendar or music.
+
+A bundled extension's pictures are generated, never captured: a
+`fixture.ts` beside `index.ts` builds them from the extension's own code and
+`make shots EXT=<name>` renders both themes, writes the list and stamps it;
+`make test` refuses a set that is missing, stale, the wrong size or
+unlisted. The whole contract is `docs/design/screenshots.md`.
+
 ## Trust
 
 An extension is code that runs with your user's rights inside the host.
