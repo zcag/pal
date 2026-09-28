@@ -18,6 +18,7 @@
 //! - `core/selection.{text,files}` (selection.rs)
 //! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
+//! - `core/privacy.in_use` (privacy.rs)
 //! - `core/settings.{get {extension, manifest}, set {extension, palette?, values}}` (settings.rs)
 //! - `core/instances.get {extension}` (settings.rs: the configured instances of a `multi` extension)
 //! - `core/states.{get, set, list, eval, manual, reset, declare, undeclare}` (states.rs)
@@ -54,6 +55,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "media" => crate::media::call(app, func, params),
         "menubar" => menubar::call(app, func, params),
         "permissions" => crate::permissions::call(app, func, params),
+        "privacy" => crate::privacy::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
         "instances" => crate::settings::instances(app, func, params),
         "states" => crate::states::call(app, func, params),

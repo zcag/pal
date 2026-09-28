@@ -1,0 +1,138 @@
+{
+  "name": "privacy",
+  "title": "Privacy",
+  "description": "What is using the camera, the microphone or the screen right now: a bar item that appears only while something is, and a palette of the same.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰖠",
+      "bg": "amber"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "store": {
+    "tagline": "See which app has your camera or microphone",
+    "category": "system",
+    "features": [
+      "A bar item that stays off the strip until the camera, the microphone or a Screen Sharing session is in use, then shows a glyph for each on an amber band",
+      "The app is named: the microphone per app, a helper or a command counted against the app that started it (`ffmpeg` in kitty reads kitty, with ffmpeg under it)",
+      "The camera by device: macOS tells that a camera runs but not which app has it",
+      "Seen within a second of turning on or off, with no poll in the extension: the core watches and re-renders the item on a change",
+      "The popover lists every use; Enter brings the app forward, `s` opens the privacy settings",
+      "The palette lists the same rows, so `camera` or `mic` at the root answers who has it"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Show the app",
+        "description": "Brings the app using the sensor forward; a camera with no app opens its privacy settings.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open privacy settings",
+        "keys": "cmd+,"
+      }
+    ]
+  },
+  "palettes": {
+    "privacy": {
+      "kind": "live",
+      "description": "Every app using the camera, the microphone or the screen now, cameras first.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Bring the app forward"
+        },
+        {
+          "keys": "cmd+,",
+          "title": "Open the sensor's privacy settings"
+        }
+      ]
+    }
+  },
+  "states": {
+    "camera": {
+      "description": "A camera is running",
+      "kind": "boolean"
+    },
+    "microphone": {
+      "description": "An app is recording from a microphone",
+      "kind": "boolean"
+    },
+    "screen": {
+      "description": "A Screen Sharing session is attached (macOS)",
+      "kind": "boolean"
+    }
+  },
+  "bar": {
+    "in-use": {
+      "title": "Camera & Microphone",
+      "description": "Off the strip until the camera, the microphone or a Screen Sharing session is in use, then a glyph for each on an amber band, the apps in the tooltip. The popover lists every use; Enter brings the app forward. Re-rendered within a second or two of a change.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Bring the focused app forward"
+        },
+        {
+          "keys": "s",
+          "title": "Open Privacy & Security settings"
+        },
+        {
+          "keys": "up, down",
+          "title": "Move between the uses; a click on one focuses it"
+        }
+      ],
+      "refresh": {
+        "every": 300,
+        "on": [
+          "privacy",
+          "wake"
+        ]
+      },
+      "mocks": {
+        "call": {
+          "title": "On a call",
+          "item": {
+            "icon": "󰖠 󰍬",
+            "color": "text",
+            "background": "amber",
+            "tooltip": "Camera: MacBook Pro Camera · Microphone: zoom.us"
+          }
+        },
+        "mic": {
+          "title": "Recording",
+          "item": {
+            "icon": "󰍬",
+            "color": "text",
+            "background": "amber",
+            "tooltip": "Microphone: kitty"
+          }
+        },
+        "clear": {
+          "title": "Nothing in use",
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰖠",
+              "tooltip": "Nothing is using the camera or microphone"
+            }
+          }
+        }
+      },
+      "rules": [
+        {
+          "id": "clear",
+          "when": "not privacy.camera and not privacy.microphone and not privacy.screen",
+          "description": "Nothing in use: off the strip.",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

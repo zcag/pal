@@ -20,6 +20,7 @@ pub mod keycast;
 pub mod log;
 pub mod media;
 pub mod ocr;
+pub mod privacy;
 pub mod menubar;
 pub mod permission;
 pub mod selection;

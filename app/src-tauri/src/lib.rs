@@ -62,6 +62,7 @@ mod permissions;
 mod pershow;
 mod pick;
 mod pop;
+mod privacy;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};

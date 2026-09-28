@@ -59,6 +59,8 @@ block2 = "0.6"
 objc2-vision = { version = "0.3", default-features = false, features = ["std", "VNObservation", "VNRecognizeTextRequest", "VNRequest", "VNRequestHandler", "VNTypes"] }
 # wifi: CoreWLAN for the current network's name, signal and channel and for a scan (the names only show with Location Services, which the app asks for)
 objc2-core-wlan = { version = "0.3", default-features = false, features = ["std", "CWWiFiClient", "CWInterface", "CWNetwork", "CWChannel", "CoreWLANTypes"] }
+# privacy: whether a camera is running (CoreMediaIO's device-is-running-somewhere)
+objc2-core-media-io = { version = "0.3", default-features = false, features = ["std", "CMIOHardwareObject", "CMIOHardwareDevice", "CMIOHardwareSystem"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 freedesktop-icons = "0.4"

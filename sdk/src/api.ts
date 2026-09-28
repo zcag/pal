@@ -513,6 +513,25 @@ export const bluetooth = {
   disconnect: (address: string) => call<null>("bluetooth.disconnect", { address }),
 };
 
+/** `pal_core::privacy::Use`: one app (or one camera) using a sensor now. */
+export type PrivacyUse = {
+  sensor: "camera" | "microphone" | "screen";
+  /** The app responsible, by name; null for a camera on macOS, which says that a camera runs but not for whom. */
+  app: string | null;
+  /** The process doing it when it is not the app itself (`ffmpeg` under kitty). */
+  process: string | null;
+  pid: number | null;
+  /** The app's bundle (macOS), for its icon. */
+  path: string | null;
+  /** The camera's name. */
+  device: string | null;
+};
+
+/** What uses the camera, the microphone or the screen now (`pal_core::privacy`): CoreAudio and CoreMediaIO on macOS, `pactl` and `/dev/video*` on Linux. The first call starts a watcher that fires the `privacy` bar trigger on every change. */
+export const privacy = {
+  inUse: () => call<PrivacyUse[]>("privacy.in_use"),
+};
+
 /** `pal_core::wifi::Current`: the network the machine is on. `ssid` is null when the OS hides it (macOS 15+ without Location Services: `permissions.request("location")`). */
 export type WifiCurrent = { ssid: string | null; signal: number | null; channel: string | null; security: string | null; ip: string | null };
 /** `pal_core::wifi::Status`: `interface` is null on a machine without Wi-Fi; `current` null while off or not associated. */
