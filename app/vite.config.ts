@@ -59,16 +59,21 @@ export default defineConfig(() => ({
     // Reachable as http://hornet:1420 from the LAN so the gallery can be reviewed off-box.
     host: host || true,
     allowedHosts: ["hornet", "hornet.lan"],
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 1421,
-        }
-      : undefined,
-    watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
-    },
+    // `make shots` runs a private server (PAL_SHOTS): no hot reload and no watcher, so a fixture written mid-render does not reload the page it is shooting.
+    hmr: process.env.PAL_SHOTS
+      ? false
+      : host
+        ? {
+            protocol: "ws",
+            host,
+            port: 1421,
+          }
+        : undefined,
+    watch: process.env.PAL_SHOTS
+      ? null
+      : {
+          // 3. tell Vite to ignore watching `src-tauri`
+          ignored: ["**/src-tauri/**"],
+        },
   },
 }));

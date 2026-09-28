@@ -2,7 +2,7 @@
 # `make shots [EXT="a b"]`: the store screenshots (docs/design/screenshots.md).
 #   1. each extension's fixture.ts, twice: a fixture that differs between the
 #      runs reads a clock, a port or a random number, and fails here;
-#   2. the gallery's Vite server (one of its own on 1430 if none is up);
+#   2. a private Vite server for the gallery (no hot reload, a free port);
 #   3. shots.mjs: every shot both themes, the list in pal.json, the stamp;
 #   4. a contact sheet per extension under $TMPDIR/pal-shots/, to look at.
 set -euo pipefail
@@ -34,11 +34,12 @@ for e in $exts; do
 done
 [ "$fail" = 0 ] || exit 1
 
-if ! curl -s -o /dev/null http://127.0.0.1:1430/; then
-  (cd app && npx vite --port 1430 --strictPort >"$scratch/vite.log" 2>&1) &
-  vite=$!
-  for _ in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:1430/ && break; sleep 0.5; done
-fi
+# A private gallery server: no hot reload, no watcher (PAL_SHOTS), on a free port, so a fixture another run writes cannot reload the page mid-shot.
+port=$(node -e 'const s = require("net").createServer().listen(0, () => { console.log(s.address().port); s.close(); })')
+(cd app && PAL_SHOTS=1 npx vite --port "$port" --strictPort >"$scratch/vite.log" 2>&1) &
+vite=$!
+for _ in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+export SHOTS_URL="http://127.0.0.1:$port"
 # shellcheck disable=SC2086
 node app/scripts/shots.mjs $exts
 
