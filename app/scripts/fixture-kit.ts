@@ -14,8 +14,8 @@
 // reads `odak.example.com`).
 import { writeFileSync } from "node:fs";
 
-/** The one clock every fixture and shot uses: 16 Sep 2026, 14:32 local, the strip's clock. */
-export const NOW = new Date(2026, 8, 16, 14, 32, 0).getTime();
+/** The one clock every fixture and shot uses: 16 Sep 2026, 14:32 in `TZ` (11:32 UTC), the strip's clock; the same instant on every machine. shots-lib.mjs's NOW is this. */
+export const NOW = Date.UTC(2026, 8, 16, 11, 32, 0);
 /** `NOW` in Unix seconds. */
 export const NOW_S = Math.floor(NOW / 1000);
 /** The zone the pictures are in: fixed, so a time of day reads the same on CI and at home. */
@@ -24,9 +24,9 @@ export const TZ = "Europe/Istanbul";
 /** Pins the extensions' clock (sdk `now()`, `PAL_NOW`) and the zone for the host the fixture starts next; call before `Host.bundled`. */
 export function pinClock(at = NOW) {
   process.env.TZ = TZ;
-  const d = new Date(at);
-  const p = (n: number) => String(n).padStart(2, "0");
-  process.env.PAL_NOW = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  // PAL_NOW is a wall-clock time in TZ (sdk/src/clock.ts): the instant as Istanbul reads it.
+  const f = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(at));
+  process.env.PAL_NOW = f.replace(" ", "T");
 }
 
 /** A seeded generator (mulberry32) for anything a fixture draws at random: the same sequence every run. */

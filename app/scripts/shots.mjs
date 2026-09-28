@@ -28,7 +28,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
-import { FIXTURES as fixtures, ROOT as root, barFixtureOf, fixtureHash, fixtureOf } from "./shots-lib.mjs";
+import { FIXTURES as fixtures, NOW, ROOT as root, TZ, barFixtureOf, fixtureHash, fixtureOf } from "./shots-lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const base = process.env.SHOTS_URL ?? "http://127.0.0.1:1430";
@@ -50,14 +50,16 @@ async function press(page, step) {
   for (let i = 0; i < Number(times); i++) { await page.keyboard.press(combo(key)); await page.waitForTimeout(40); }
 }
 
-/** 256 colours unless the shot or SHOTS_RAW keeps true colour (shot-quant.py; a third of the size). */
+/** 256 colours unless the shot or SHOTS_RAW keeps true colour (shot-quant.py, pngquant; a quarter of the size). */
 const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? true : spawnSync("python3", [join(here, "shot-quant.py"), path]).status === 0);
 
 const browser = await chromium.launch({ headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars"] });
 let failed = 0;
 
 async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
-  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme });
+  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ });
+  // The fixtures' clock: Date reads NOW (timers still run, so a page settles and animates as it would).
+  await context.clock.setFixedTime(NOW);
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -69,7 +71,7 @@ async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
     await page.waitForTimeout(settle ?? 450);
     if (errors.length) throw new Error(`page error: ${errors[0]}`);
     await page.screenshot({ path, type: "png" });
-    if (!quant(path, raw)) console.warn(`  ${path}: not quantised (no Pillow)`);
+    if (!quant(path, raw)) throw new Error(`${path}: not quantised (brew install pngquant)`);
   } finally {
     await context.close();
   }

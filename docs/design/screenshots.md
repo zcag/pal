@@ -96,8 +96,9 @@ drawn twice its width and a glyph run at the wrong size.
 
 `make shots` runs each `extensions/<name>/fixture.ts`, starts the gallery's
 Vite server, renders every shot both themes with `app/scripts/shots.mjs`
-(the cached Chrome for Testing, never the daily browser), quantises the PNGs
-to 256 colours, rewrites `store.screenshots`, and stamps
+(the cached Chrome for Testing, never the daily browser, its clock pinned to
+the fixtures' moment and zone), quantises the PNGs to 256 colours with
+`pngquant` (`brew install pngquant`), rewrites `store.screenshots`, and stamps
 `screenshots/.shots.json` with the fixtures' hash. Then look at every
 picture: `make shots` prints a contact sheet per extension.
 

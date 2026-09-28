@@ -7,6 +7,9 @@ import { fileURLToPath } from "node:url";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 export const FIXTURES = join(ROOT, "app/src/gallery/shots");
+/** fixture-kit.ts's clock and zone: the page the shots are taken of runs at this instant, in this zone, so "2w ago" and "in 12 min" are the same every time. */
+export const NOW = Date.UTC(2026, 8, 16, 11, 32, 0);
+export const TZ = "Europe/Istanbul";
 /** Pixels: a panel shot, a bar strip, a bar popover. */
 export const SIZES = { panel: [1440, 900], strip: [1440, 120], popover: [1440, 1080] };
 

@@ -13,6 +13,9 @@ if [ -z "$exts" ]; then
   exts=$(ls app/src/gallery/shots/*.json | xargs -n1 basename | sed 's/\.json$//; s/^bar-//' | sort -u | while read -r e; do [ -d "extensions/$e" ] && echo "$e"; done | tr '\n' ' ')
 fi
 
+# pngquant quantises every picture alike on every machine (shot-quant.py).
+command -v pngquant >/dev/null || { echo "make shots needs pngquant: brew install pngquant"; exit 1; }
+
 # playwright-core's own browser, fetched once (never the daily Chrome).
 (cd app && npx --no-install playwright-core install chromium >/dev/null)
 
