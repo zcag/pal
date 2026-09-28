@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Item } from "../../../sdk/src/index.ts";
-import { actionsFor, detail, newer, select, staleNote, trim, trimAll, type Listing } from "../../../extensions/store/store.ts";
+import { actionsFor, detail, newer, select, staleNote, standing, trim, trimAll, type Listing } from "../../../extensions/store/store.ts";
 import { Host, stored } from "../harness.ts";
 
 const fixture = JSON.parse(readFileSync(join(import.meta.dir, "store-fixture.json"), "utf8"));
@@ -70,6 +70,15 @@ describe("the pure parts", () => {
     expect(trimAll({ extensions: [{ name: "b", title: "B" }, { name: "a", title: "A" }] }).map((x) => x.name)).toEqual(["a", "b"]);
     expect(trimAll("junk")).toEqual([]);
   });
+  test("a dark panel shows each screenshot's dark twin, a light one (or a missing twin) the light picture", () => {
+    const l = trim({ name: "demo", panel_screenshots: ["https://x/a.png", "https://x/b.png"], panel_screenshots_dark: ["https://x/a-dark.png", ""], manifest: { store: { screenshots: [{ file: "a.png", caption: "A" }, { file: "b.png", caption: "B" }] } } })!;
+    expect(l.screenshots).toEqual([{ url: "https://x/a.png", dark: "https://x/a-dark.png", caption: "A" }, { url: "https://x/b.png", dark: "", caption: "B" }]);
+    const fresh = standing(l, []);
+    expect(detail(l, fresh, true).markdown).toContain("![A](https://x/a-dark.png)");
+    expect(detail(l, fresh, true).markdown).toContain("![B](https://x/b.png)");
+    expect(detail(l, fresh).markdown).toContain("![A](https://x/a.png)");
+  });
+
   test("newer compares dotted versions, never an unparseable pair as newer", () => {
     expect(newer("0.2.0", "0.1.9")).toBe(true);
     expect(newer("0.10.0", "0.9.0")).toBe(true);

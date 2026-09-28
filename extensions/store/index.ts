@@ -9,7 +9,7 @@
 // HUD says Installing…, the host restarts, the root opens with the name
 // typed), updates a store-installed one that is behind, and opens the
 // store page of a bundled one. The pure parts are in store.ts.
-import { errorMessage, extensions, hint, storage, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, extensions, hint, state, storage, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
 import { actionsFor, detail, FILTERS, fresh, row, select, staleNote, standing, trimAll, type Cache, type Installed, type Listing } from "./store.ts";
 
 /** The site's list; `PAL_STORE_API` points the tests at a local server. */
@@ -92,7 +92,7 @@ export default {
       detail: async (id) => {
         const l = byName(id);
         if (!l) return;
-        return detail(l, standing(l, await installed()));
+        return detail(l, standing(l, await installed()), (await state.get("theme").catch(() => undefined)) === "dark");
       },
     },
   },

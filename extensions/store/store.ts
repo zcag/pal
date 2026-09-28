@@ -18,7 +18,8 @@ export type Listing = {
   category: string;
   /** `kind` on the site: `bundled` ships with pal, anything else is a community extension. */
   kind: string;
-  screenshots: { url: string; caption: string }[];
+  /** The panel pictures: the light one and its dark twin (the site's `panel_screenshots_dark`, empty when there is none). */
+  screenshots: { url: string; dark: string; caption: string }[];
   bar: boolean;
   links: boolean;
   multi: boolean;
@@ -62,6 +63,8 @@ export function trim(raw: unknown): Listing | null {
   const store = (manifest.store && typeof manifest.store === "object" ? manifest.store : {}) as Record<string, unknown>;
   const captions = Array.isArray(store.screenshots) ? store.screenshots.map((s) => (s && typeof s === "object" ? str((s as { caption?: unknown }).caption) : "")) : [];
   const urls = strs(e.panel_screenshots).length ? strs(e.panel_screenshots) : strs(e.screenshots);
+  // At the same index as panel_screenshots; `strs` drops the empty ones, so read the array as it is.
+  const darks = Array.isArray(e.panel_screenshots_dark) ? e.panel_screenshots_dark.map((d) => (typeof d === "string" ? d : "")) : [];
   const icon = e.icon && typeof e.icon === "object" && "tile" in (e.icon as object) ? (e.icon as TileIcon) : typeof e.icon === "string" ? e.icon : undefined;
   const palettes = Object.entries((manifest.palettes && typeof manifest.palettes === "object" ? manifest.palettes : {}) as Record<string, Record<string, unknown>>).map(([key, p]) => ({
     key,
@@ -79,7 +82,7 @@ export function trim(raw: unknown): Listing | null {
     tagline: str(e.tagline) || str(e.description).split(/(?<=\.)\s/)[0] || "",
     category: str(e.category),
     kind: str(e.kind) || "community",
-    screenshots: urls.map((url, i) => ({ url, caption: captions[i] ?? "" })),
+    screenshots: urls.map((url, i) => ({ url, dark: darks[i] ?? "", caption: captions[i] ?? "" })),
     bar: e.has_bar === true,
     links: e.has_links === true,
     multi: e.multi === true,
@@ -180,11 +183,11 @@ export function row(l: Listing, s: Standing, section?: string): Item {
 
 const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 
-/** The detail pane: description, features, screenshots, the keys per palette; the facts as metadata. */
-export function detail(l: Listing, s: Standing): Detail {
+/** The detail pane: description, features, screenshots (the dark twin on a dark panel), the keys per palette; the facts as metadata. */
+export function detail(l: Listing, s: Standing, dark = false): Detail {
   const parts: string[] = [`# ${l.title}`, "", l.description || l.tagline];
   if (l.features.length) parts.push("", "## What it does", "", ...l.features.map((f) => `- ${f}`));
-  if (l.screenshots.length) parts.push("", ...l.screenshots.map((sh) => `![${esc(sh.caption)}](${sh.url})`));
+  if (l.screenshots.length) parts.push("", ...l.screenshots.map((sh) => `![${esc(sh.caption)}](${(dark && sh.dark) || sh.url})`));
   for (const p of l.palettes) {
     if (!p.keys.length) continue;
     parts.push("", `## ${p.title}`, "", "| key | does |", "| --- | --- |", ...p.keys.map((k) => `| \`${esc(k.keys)}\` | ${esc(k.title)} |`));
