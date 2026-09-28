@@ -151,6 +151,8 @@ const CORE_READS: Fmt[] = ["png", "jpeg", "gif"];
 /** Thumbnails made here: a JPEG for opaque formats, a PNG where there may be transparency. */
 const ALPHA: Fmt[] = ["png", "gif", "webp", "avif", "svg", "tiff"];
 const thumbCache = new Map<string, string>();
+/** Thumbnails being made, by key: a second caller (the web view redrawn as each image lands) waits on the first rather than writing the same file under it, which could fail and show a tile instead. */
+const thumbMaking = new Map<string, Promise<string | undefined>>();
 
 /**
  * A picture of the image fitted in `px` for a row, a view or the pane:
@@ -167,8 +169,14 @@ export async function thumbnail(p: string, px: number): Promise<string | undefin
   if (fmt && CORE_READS.includes(fmt) && !process.env.PAL_IMAGES_DATA_THUMBS) return thumbnailUrl(p, Math.min(px, 256));
   const ext = fmt && ALPHA.includes(fmt) ? "png" : "jpg";
   const key = `${Bun.hash(`${p}:${st.mtimeMs}:${st.size}`).toString(36)}-${px}.${ext}`;
-  const hit = thumbCache.get(key);
+  const hit = thumbCache.get(key) ?? thumbMaking.get(key);
   if (hit) return hit;
+  const making = makeThumbnail(p, px, ext, key).finally(() => thumbMaking.delete(key));
+  thumbMaking.set(key, making);
+  return making;
+}
+
+async function makeThumbnail(p: string, px: number, ext: "png" | "jpg", key: string): Promise<string | undefined> {
   const file = join(dir("thumbs"), key);
   if (!exists(file)) {
     try {

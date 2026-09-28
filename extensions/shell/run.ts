@@ -3,7 +3,7 @@
 // apart with a cap each, the exit code and the duration; plus the pure
 // helpers around it (what looks destructive, the `env` list as a table,
 // the argv that opens a terminal on the command).
-import { errorMessage, home, terminal } from "@zcag/pal";
+import { errorMessage, home, now, terminal } from "@zcag/pal";
 
 export type Run = {
   cmd: string;
@@ -88,12 +88,13 @@ export const looksDestructive = (cmd: string): boolean =>
 
 /** Runs `cmd` through the shell, in `cwd`, with `env` on top of the host's, for at most `timeout` seconds. Never throws: a shell that cannot start is a Run with the error in `err`. */
 export async function run(cmd: string, o: { shell: string[]; cwd: string; env: Record<string, string>; timeout: number }): Promise<Run> {
-  const startedAt = Date.now();
+  // When it ran is the SDK's clock (a history row's date); how long it took is the real one.
+  const startedAt = now(), t0 = Date.now();
   let proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
   try {
     proc = Bun.spawn([...o.shell, cmd], { cwd: o.cwd, env: { ...process.env, ...o.env }, stdin: "ignore", stdout: "pipe", stderr: "pipe", detached: true });
   } catch (e) {
-    return { cmd, out: "", err: `${o.shell[0]}: ${errorMessage(e)}`, code: null, ms: Date.now() - startedAt, timedOut: false, truncated: false, startedAt };
+    return { cmd, out: "", err: `${o.shell[0]}: ${errorMessage(e)}`, code: null, ms: Date.now() - t0, timedOut: false, truncated: false, startedAt };
   }
   const kill = (sig: NodeJS.Signals) => { try { process.kill(-proc.pid, sig); } catch {} try { proc.kill(sig); } catch {} };
   let timedOut = false;
@@ -115,7 +116,7 @@ export async function run(cmd: string, o: { shell: string[]; cwd: string; env: R
   };
   const [code, out, err] = await Promise.all([proc.exited, drain(proc.stdout), drain(proc.stderr)]);
   timers.forEach(clearTimeout);
-  return { cmd, out, err, code: timedOut ? null : code, ms: Date.now() - startedAt, timedOut, truncated, startedAt };
+  return { cmd, out, err, code: timedOut ? null : code, ms: Date.now() - t0, timedOut, truncated, startedAt };
 }
 
 /** `1.2 s`, `340 ms`, `2 min 5 s`. */

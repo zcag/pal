@@ -12,7 +12,7 @@
 // parsing.
 import { readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { argsForm, clipboard, errorMessage, expand, failed, hint, home, md, selection, settings, storage, toast, type Action, type Arg, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
+import { argsForm, clipboard, errorMessage, expand, failed, hint, home, md, now, selection, settings, storage, toast, type Action, type Arg, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
 import { DAILY_FORMAT, cut, dailyConfig, dayAfter, fileName, fillTemplate, firstVault, formatDate, frontMatter, obsidianSearchUrl, obsidianUrl, plainLine, resolve, unescapePipes, wikilink, type Note } from "./notes.ts";
 import { BACKEND, appendNote, dispose, exists, index, noteText, search, writeNote, type Index } from "./vault.ts";
 
@@ -83,7 +83,7 @@ async function dailyPath(r: string, day: Date): Promise<string> {
 async function templateText(r: string, rel: string, title: string): Promise<string> {
   if (!rel) return "";
   const p = /\.md$/i.test(rel) ? rel : `${rel}.md`;
-  try { return fillTemplate(await noteText(r, p), { title }); } catch { return ""; }
+  try { return fillTemplate(await noteText(r, p), { title, now: new Date(now()) }); } catch { return ""; }
 }
 
 // ---- rows -------------------------------------------------------------------------------
@@ -319,17 +319,17 @@ async function dailyRows(ctx?: Ctx): Promise<Item[]> {
   const r = await root();
   const i = await ix(!!ctx?.refresh);
   const actions = noteActions();
-  const now = new Date();
+  const day = new Date(now());
   const rows: Item[] = [];
-  const todayPath = await dailyPath(r, now);
+  const todayPath = await dailyPath(r, day);
   const today = i.byPath.get(todayPath);
   if (today) rows.push(noteRow(today, actions, { section: "Daily notes", icon: ICON.today, subtitle: `Today · ${today.description ?? todayPath}` }));
   else rows.push({ id: "daily:create", name: `Create today's note`, subtitle: `${todayPath}, from the template`, icon: ICON.today, keywords: ["today", "daily"], section: "Daily notes", actions: [{ id: "create", title: "Create today's note", confirm: CREATE_CONFIRM }] });
-  const yPath = await dailyPath(r, dayAfter(now, -1));
+  const yPath = await dailyPath(r, dayAfter(day, -1));
   const y = i.byPath.get(yPath);
   if (y) rows.push(noteRow(y, actions, { section: "Daily notes", icon: ICON.today, subtitle: `Yesterday · ${y.description ?? yPath}` }));
   for (let k = 2; k < 7; k++) {
-    const n = i.byPath.get(await dailyPath(r, dayAfter(now, -k)));
+    const n = i.byPath.get(await dailyPath(r, dayAfter(day, -k)));
     if (n) rows.push(noteRow(n, actions, { section: "This week", icon: ICON.week }));
   }
   rows.push(APPEND_ROW, { ...NEW_ROW, args: newArgs(i) });
@@ -361,7 +361,7 @@ async function saveAppend(values: FormValues): Promise<Effect> {
   try {
     const r = await root();
     const text = await expand(raw, SOURCES);
-    const { path } = await ensureDaily(r, new Date());
+    const { path } = await ensureDaily(r, new Date(now()));
     await appendNote(r, path, text);
     return { hud: `Appended to ${basename(path, ".md")}` };
   } catch (e) {
@@ -386,7 +386,7 @@ async function saveNew(values: FormValues): Promise<Effect> {
     const path = `${folder ? `${folder}/` : ""}${name}.md`;
     if (await exists(i.root, path)) return { form: await newForm(values, { title: `${path} is there already` }) };
     const body = typeof values.body === "string" ? values.body : await defaultBody(i.root, name);
-    await writeNote(i.root, path, fillTemplate(body, { title: name }));
+    await writeNote(i.root, path, fillTemplate(body, { title: name, now: new Date(now()) }));
     await remember(path);
     const j = await ix(true);
     return { ...open(j, path), hud: `Created ${name}` };
@@ -448,7 +448,7 @@ async function pickCommand(id: string, action?: string, ctx?: Ctx): Promise<Effe
     case "cmd:today": {
       if (action === "append") return { form: await appendForm() };
       const r = await root();
-      const { path, created } = await ensureDaily(r, new Date());
+      const { path, created } = await ensureDaily(r, new Date(now()));
       const i = await ix(created);
       await remember(path);
       return { ...open(i, path), ...(created ? { hud: `Created ${basename(path, ".md")}` } : {}) };
@@ -478,7 +478,7 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
   if (id === "new") return ctx?.values ? saveNew(ctx.values) : { form: await newForm() };
   if (id === "daily:create") {
     const r = await root();
-    const { path } = await ensureDaily(r, new Date());
+    const { path } = await ensureDaily(r, new Date(now()));
     const i = await ix(true);
     await remember(path);
     return { ...open(i, path), hud: `Created ${basename(path, ".md")}` };
@@ -521,7 +521,7 @@ export default {
     if (route === "open") { const i = await ix(); const n = await noteByRef(i, String(params.path)); await remember(n.path); return open(i, n.path); }
     if (route === "append-today") {
       const r = await root();
-      const { path } = await ensureDaily(r, new Date());
+      const { path } = await ensureDaily(r, new Date(now()));
       await appendNote(r, path, await expand(String(params.text), SOURCES));
       return { hud: `Appended to ${basename(path, ".md")}` };
     }

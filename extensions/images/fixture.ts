@@ -10,10 +10,13 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ViewNode } from "@zcag/pal";
+import { NOW, pinClock, seeded, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import { Host } from "../../host/test/harness.ts";
 import { png, type Pixel } from "../../host/test/extensions/images-png.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-images-fixture-"));
+const grain = seeded(7);
 /** A soft two-tone picture with a disc and a band, so the thumbnails read as photos rather than noise. */
 const paint = (hue: [number, number, number], hue2: [number, number, number], w: number, h: number): Pixel => (x, y) => {
   const t = x / w, u = y / h;
@@ -21,8 +24,9 @@ const paint = (hue: [number, number, number], hue2: [number, number, number], w:
   const d = Math.hypot(x - w * 0.62, y - h * 0.42);
   const disc = d < Math.min(w, h) * 0.22 ? 0.35 : 0;
   const band = Math.abs(x - y * 1.3 - w * 0.1) < w * 0.03 ? 0.18 : 0;
-  const k = 1 - u * 0.25 + disc - band;
-  return [Math.min(255, mix(0) * k), Math.min(255, mix(1) * k), Math.min(255, mix(2) * k), 255];
+  // A little grain, as a photo has: without it a compressor has nothing to win on a smooth gradient.
+  const k = 1 - u * 0.25 + disc - band + (grain() - 0.5) * 0.06;
+  return [Math.max(0, Math.min(255, mix(0) * k)), Math.max(0, Math.min(255, mix(1) * k)), Math.max(0, Math.min(255, mix(2) * k)), 255];
 };
 const files: [string, number, number, [number, number, number], [number, number, number]][] = [
   ["hero.png", 1600, 1000, [236, 112, 99], [244, 200, 120]],
@@ -40,7 +44,8 @@ writeFileSync(join(dir, "clip", "pasted.png"), png(800, 500, paint([90, 90, 110]
 process.env.PAL_IMAGES_SELECTION = files.map(([n]) => join(dir, n)).join("\n");
 process.env.PAL_IMAGES_CACHE = join(dir, "cache");
 process.env.PAL_IMAGES_DATA_THUMBS = "1";
-const clip = { id: 3, kind: "image", image: join(dir, "clip", "pasted.png"), text: null, files: null, source_app: "com.apple.screencapture", at: Date.now(), bytes: 1, pinned: false, width: 800, height: 500 };
+const clip = { id: 3, kind: "image", image: join(dir, "clip", "pasted.png"), text: null, files: null, source_app: "com.apple.screencapture", at: NOW, bytes: 1, pinned: false, width: 800, height: 500 };
+pinClock();
 const host = await Host.bundled({ settings: { images: { settings: { tinypng_api_key: "" } } }, core: { "clipboard.current": () => clip, "ocr.available": () => true } });
 try {
   const meta = host.loaded().find((l) => l.extension === "images")!.palettes[0];
@@ -56,7 +61,15 @@ try {
   const convert = await host.list("images", "images", "", { args: { op: "convert", files: [hero] } });
   host.changeSettings("images", { settings: { tinypng_api_key: "" } });
   await Bun.sleep(50);
-  const web = await host.pick("images", "images", hero, "web", { ids: [hero, photo, join(dir, "logo.png")] });
+  // The view as the batch leaves it: a slow machine answers before every image has landed ("2 of 3 done") and pushes the rest.
+  const picked = await host.pick("images", "images", hero, "web", { ids: [hero, photo, join(dir, "logo.png")] });
+  const foot = (t: ViewNode) => JSON.stringify(t).match(/"key":"foot","value":"([^"]*)"/)?.[1] ?? "";
+  const done = (t: ViewNode) => !/ of \d+ done$/.test(foot(t));
+  let web = picked as { view: { tree: ViewNode } };
+  if (!done(web.view.tree)) {
+    await host.until(() => host.viewUpdates("images", { palette: "images" }).some((u) => done(u.spec.tree)), 20_000, "the web batch landed");
+    web = { view: { ...web.view, tree: host.viewUpdates("images", { palette: "images" }).filter((u) => done(u.spec.tree)).at(-1)!.spec.tree } };
+  }
   const fixture = {
     palettes: { images: { title: meta.title, icon: meta.icon, input: true, showDetail: true, placeholder: meta.placeholder, byQuery: { "": rows }, levels: { resize, convert }, details } },
     effects: {
@@ -67,14 +80,14 @@ try {
     shots: {
       "1-images": { palette: "images", keys: ["down"], caption: "The images at hand: the Finder selection and the clipboard, each with its size and dimensions, the result of a compression under Results" },
       "2-actions": { palette: "images", keys: ["down", "cmd+k"], caption: "Every operation on a row: compress, optimise for web, resize, convert, rotate, crop, strip, grayscale, icon set, OCR, info" },
-      "3-detail": { palette: "images", keys: ["down*3"], caption: "The detail pane: the picture, dimensions, format, colour, camera and exposure" },
+      "3-detail": { palette: "images", keys: ["down*3"], caption: "The detail pane: the picture, its size, dimensions, format, colour profile and camera" },
       "4-resize": { palette: "images", keys: ["down", "cmd+shift+r"], caption: "Resize: the presets and a typed size, each row saying the pixels it lands on" },
       "5-convert": { palette: "images", keys: ["down", "cmd+shift+v", "down"], caption: "Convert: the formats, each row naming the tool that writes it, a missing tool named" },
       "6-web": { palette: "images", keys: ["down", "cmd+enter"], caption: "Optimise for web: the before and after of every image, the saving as a tag, the total at the bottom" },
     },
   };
   const text = JSON.stringify(fixture, null, 2).split(join(dir, "cache", "clipboard")).join("~/Library/Caches/pal/images/clipboard").split(dir).join("~/Desktop/site");
-  writeFileSync(new URL("../../app/src/gallery/shots/images.json", import.meta.url), text + "\n");
+  writeFixture("images", JSON.parse(text));
   console.log("wrote app/src/gallery/shots/images.json", rows.length, "rows");
 } finally {
   host.kill();

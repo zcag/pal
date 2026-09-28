@@ -1,16 +1,19 @@
 // Writes app/src/gallery/shots/whatsapp.json and bar-whatsapp.json, the
 // store screenshots' fixtures: the palettes listed through the host
 // harness against the OpenWA mock (host/test/extensions/whatsapp-mock.ts,
-// invented people and messages, nothing the owner's) with `send` on so
-// the message form shows, the pictures the mock serves inlined as data
-// urls (the gallery has no mock to fetch from), the bar item rendered
-// the same way with its popover from view.ts. `bun run
-// extensions/whatsapp/fixture.ts`, then `node app/scripts/shots.mjs
-// whatsapp` and `node app/scripts/shots.mjs bar whatsapp`.
+// invented people and messages, nothing the owner's) at the fixed clock,
+// with `send` on so the message form shows, the pictures the mock serves
+// inlined by `settle`, the bar item rendered the same way with its popover
+// from view.ts. `bun run extensions/whatsapp/fixture.ts`, then
+// `node app/scripts/shots.mjs whatsapp`.
 import { writeFileSync } from "node:fs";
-import type { Item, View } from "../../sdk/src/protocol.ts";
-import { KEY, WhatsAppMock } from "../../host/test/extensions/whatsapp-mock.ts";
-import { Host, stored } from "../../host/test/harness.ts";
+import { pinClock, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
+import type { View } from "../../sdk/src/protocol.ts";
+
+// Before the mock and the harness load: the mock dates its messages by the SDK's clock, read once at load.
+pinClock();
+const { KEY, WhatsAppMock } = await import("../../host/test/extensions/whatsapp-mock.ts");
+const { Host, stored } = await import("../../host/test/harness.ts");
 
 const MARA = "254011223344556@lid";
 
@@ -18,31 +21,14 @@ const mock = new WhatsAppMock();
 stored.clear();
 const host = await Host.bundled({ settings: { whatsapp: { settings: { base_url: mock.url, api_key: KEY, send: true, open: "web" } } }, timeout: 8000 });
 
-/** The mock's picture urls as data urls, so the gallery draws them without the mock. */
-const inlined = new Map<string, string>();
-async function inline(items: Item[]): Promise<Item[]> {
-  for (const it of items) {
-    const src = it.icon && typeof it.icon === "object" && "image" in it.icon ? it.icon.image : undefined;
-    if (!src?.startsWith("http")) continue;
-    let data = inlined.get(src);
-    if (!data) {
-      const r = await fetch(src);
-      data = `data:${r.headers.get("content-type")?.split(";")[0]};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
-      inlined.set(src, data);
-    }
-    it.icon = { image: data };
-  }
-  return items;
-}
-
 try {
   const l = host.loaded().find((l) => l.extension === "whatsapp")!;
   const [chats, unread, search, contacts] = l.palettes;
   // The pictures land from a background pass after the first listing; the second listing carries them.
   await host.list("whatsapp", "chats");
   await host.until(() => stored.has("whatsapp\0pictures"), 3000, "the picture pass");
-  const chatRows = await inline(await host.list("whatsapp", "chats"));
-  const unreadRows = await inline(await host.list("whatsapp", "unread"));
+  const chatRows = await host.list("whatsapp", "chats");
+  const unreadRows = await host.list("whatsapp", "unread");
   const details = Object.fromEntries(await Promise.all(chatRows.slice(0, 3).map(async (r) => [r.id, await host.detail("whatsapp", "chats", r.id)])));
   const byQuery = { parser: await host.list("whatsapp", "search", "parser"), cabin: await host.list("whatsapp", "search", "cabin") };
   const contactRows = await host.list("whatsapp", "contacts");
@@ -57,14 +43,15 @@ try {
     effects: { [`chats/${MARA}:reply`]: { form } },
     shots: {
       "1-chats": { palette: "chats", keys: ["down"], caption: "Chats: unread first, the picture, the newest message and who sent it, the count, the time" },
-      "2-detail": { palette: "chats", keys: ["cmd+i", "wait:400"], caption: "The pane: the last messages as a conversation, a quoted reply indented, a photo named" },
+      "2-detail": { palette: "chats", keys: ["cmd+i", "wait:400"], caption: "The pane: the last messages as a conversation, a quoted reply indented, a photo as [photo]" },
       "3-unread": { palette: "unread", keys: ["down"], caption: "Unread: direct messages then groups, the same keys" },
       "4-search": { palette: "search", keys: ["type:parser", "wait:500"], caption: "Search WhatsApp: the matching line, who said it where, when" },
-      "5-contacts": { palette: "contacts", keys: ["down*3"], caption: "Contacts: the number under the name; copy it or a vCard" },
-      "6-message": { palette: "chats", keys: ["cmd+k", "wait:200", "type:Send a", "wait:200", "enter", "wait:300"], caption: "Send a message (send on): the message typed in the bar, the latest message quotable" },
+      "5-contacts": { palette: "contacts", keys: ["down*3"], caption: "Contacts: each name with its number, a number alone when it has none; copy it or a vCard" },
+      "6-message": { palette: "chats", keys: ["cmd+k", "wait:200", "type:Send a", "wait:200", "enter", "wait:300"], caption: "Send a message (send on): a form for the text, the latest message there to quote" },
     },
   };
-  writeFileSync(new URL("../../app/src/gallery/shots/whatsapp.json", import.meta.url), JSON.stringify(fixture, null, 2) + "\n");
+  const hosts = { hosts: { [mock.url]: "https://wa.example" } };
+  writeFixture("whatsapp", await settle(fixture, hosts));
   console.log(`whatsapp.json: ${chatRows.length} chats, ${unreadRows.length} unread, ${byQuery.parser.length} hits, ${contactRows.length} contacts`);
 
   // The bar item and its popover, the reply field as a second state; `cli` insists on a fresh list.
@@ -82,13 +69,13 @@ try {
       { id: "reply", item: { menu: { view: reply } } },
     ],
     shots: {
-      "menubar": { target: "menubar", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits" },
+      "menubar": { target: "menubar", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats" },
       "popover": { target: "menubar", popover: true, caption: "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys" },
       "popover-reply": { target: "menubar", popover: true, state: "reply", caption: "r turns the search row into a message field (send on); Enter sends it" },
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },
     },
   };
-  writeFileSync(new URL("../../app/src/gallery/shots/bar-whatsapp.json", import.meta.url), JSON.stringify(bar) + "\n");
+  writeFileSync(new URL("../../app/src/gallery/shots/bar-whatsapp.json", import.meta.url), JSON.stringify(await settle(bar, hosts)) + "\n");
   console.log(`bar-whatsapp.json: badge ${item.badge}, ${view.actions.length} actions`);
 } finally {
   host.kill();

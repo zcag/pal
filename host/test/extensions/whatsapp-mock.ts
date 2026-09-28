@@ -12,6 +12,8 @@
 // 503 the owner's wsearch gave on 2026-09-17; `status` other than `ready`
 // makes the chat list answer 409 as the live gateway does while it waits
 // for a QR scan. The people and messages are invented.
+import { now } from "../../../sdk/src/clock.ts";
+
 export type MockChat = { id: string; name: string; group: boolean; unread: number; at: number; last?: string | null; phone?: string; picture?: boolean };
 export type MockMsg = { id: string; chatId: string; fromMe: boolean; author?: string; body: string; type: string; at: number; chatName?: string; quoted?: string };
 export type MockContact = { id: string; name?: string; pushName?: string; number: string; isMyContact: boolean };
@@ -19,8 +21,8 @@ export type MockContact = { id: string; name?: string; pushName?: string; number
 export const SESSION_ID = "0f3b7c2e-1111-4a5b-9c8d-0123456789ab";
 export const KEY = "k-test";
 
-/** "Now" for the fixture, in seconds: the newest message is two minutes old whenever the mock runs, so the screenshots read as live. */
-export const T0 = Math.floor(Date.now() / 60_000) * 60;
+/** "Now" in seconds, the SDK's clock (`PAL_NOW` when the fixture pins it, else the real one): the newest message is two minutes old whenever the mock runs. */
+export const T0 = Math.floor(now() / 60_000) * 60;
 export const m = (mins: number) => T0 - mins * 60;
 
 export const chats: MockChat[] = [

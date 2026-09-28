@@ -7,7 +7,7 @@
 // copies on Enter and pastes on cmd+Enter; the shell's Refresh (cmd+r)
 // lists again, which is how a value is regenerated. The values are made in
 // `gen.ts`, the QR code in `qr.ts`; this file is the rows.
-import { ago, clipboard, errorMessage, hint, settings, toast, truncate, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { ago, clipboard, errorMessage, hint, now, settings, toast, truncate, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { base64, base64Decode, base64url, CHARSET_TITLES, CHARSETS, entropy, hash, HASHES, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randomBase64, randomColor, randomHex, randomNumber, rgbOf, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid4, uuid7, WORDS, type Charset, type HashAlgo } from "./gen.ts";
 import { encode as encodeQr, toDataUrl, toSvg } from "./qr.ts";
 
@@ -81,10 +81,10 @@ const strengthOf = (bits: number): Accessory[] => {
 function uuidRows(): Item[] {
   return [
     row("uuid4", uuid4(), { subtitle: "UUID v4, random", keywords: ["uuid", "guid"], kind: "UUID v4" }),
-    row("uuid7", uuid7(), { subtitle: "UUID v7, time-ordered", keywords: ["uuid", "guid"], kind: "UUID v7" }),
+    row("uuid7", uuid7(now()), { subtitle: "UUID v7, time-ordered", keywords: ["uuid", "guid"], kind: "UUID v7" }),
   ];
 }
-const ulidRow = () => row("ulid", ulid(), { subtitle: "ULID, time-ordered", keywords: ["ulid", "id"], kind: "ULID" });
+const ulidRow = () => row("ulid", ulid(now()), { subtitle: "ULID, time-ordered", keywords: ["ulid", "id"], kind: "ULID" });
 const nanoidRow = () => row("nanoid", nanoid(), { subtitle: "Nano ID, 21 characters", keywords: ["nanoid", "id"], kind: "Nano ID" });
 
 function passwordRow(length = S().password_length, charset: Charset = S().password_charset): Item {
@@ -212,7 +212,7 @@ function jwtRows(src: Source): Item[] {
   const claims = jwt.payload;
   const times: Item[] = [];
   const exp = typeof claims.exp === "number" ? claims.exp : undefined;
-  const expiry: Accessory[] = exp === undefined ? [] : exp * 1000 < Date.now() ? [{ tag: `expired ${ago(exp * 1000)}`, color: "red" }] : [{ tag: `expires ${ago(exp * 1000)}`, color: "green" }];
+  const expiry: Accessory[] = exp === undefined ? [] : exp * 1000 < now() ? [{ tag: `expired ${ago(exp * 1000)}`, color: "red" }] : [{ tag: `expires ${ago(exp * 1000)}`, color: "green" }];
   for (const [claim, label] of [["exp", "Expires"], ["iat", "Issued"], ["nbf", "Not before"]] as const) {
     const v = claims[claim];
     if (typeof v !== "number") continue;

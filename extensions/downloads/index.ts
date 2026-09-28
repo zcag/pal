@@ -15,7 +15,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { bytes, errorMessage, files, hint as hintRow, home, run, settings, tilde, toast, when, type Action, type Arg, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { bytes, errorMessage, files, hint as hintRow, home, now, run, settings, tilde, toast, when, type Action, type Arg, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { browserDirsFrom, finalName, GLYPH, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, SUGGEST_MS, THUMBABLE, type Kind, type Section } from "./scan.ts";
 
 /** `[extensions.downloads]`, defaults in pal.json. */
@@ -88,15 +88,16 @@ async function all(s: Settings): Promise<{ entries: Entry[]; folders: string[] }
 const seen = new Map<string, { size: number; at: number }>();
 
 async function progress(e: Entry): Promise<string> {
-  const now = Date.now();
+  // The real clock, not `now()`: a rate is bytes over the time that really passed between two listings.
+  const at = Date.now();
   if (e.dir && e.name.toLowerCase().endsWith(".download")) {
     // Safari: a bundle with the bytes and the total in its plist.
     const p = safariProgress(await readFile(join(e.path, "Info.plist"), "utf8").catch(() => ""));
     if (p) return `${Math.min(100, Math.round((p.done / p.total) * 100))}% · ${bytes(p.done)} of ${bytes(p.total)}`;
   }
   const prev = seen.get(e.path);
-  seen.set(e.path, { size: e.size, at: now });
-  const r = prev ? rate(prev.size, e.size, now - prev.at) : undefined;
+  seen.set(e.path, { size: e.size, at });
+  const r = prev ? rate(prev.size, e.size, at - prev.at) : undefined;
   return r ? `${bytes(e.size)} · ${r}` : bytes(e.size);
 }
 
@@ -206,7 +207,7 @@ async function list(): Promise<Item[]> {
 async function suggest(): Promise<Item[]> {
   const s = S();
   const { entries, folders: fs } = await all(s);
-  const e = entries.find((x) => !x.partial && Date.now() - x.mtime < SUGGEST_MS);
+  const e = entries.find((x) => !x.partial && now() - x.mtime < SUGGEST_MS);
   if (!e) return [];
   const row = await item(e, fs.length > 1, s.thumbnails !== false);
   return [{ ...row, name: `Downloaded: ${e.name}`, section: undefined }];

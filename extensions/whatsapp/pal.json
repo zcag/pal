@@ -349,7 +349,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The pane: the last messages as a conversation, a quoted reply indented, a photo named"
+        "caption": "The pane: the last messages as a conversation, a quoted reply indented, a photo as [photo]"
       },
       {
         "file": "3-unread.png",
@@ -361,34 +361,24 @@
       },
       {
         "file": "5-contacts.png",
-        "caption": "Contacts: the number under the name; copy it or a vCard"
+        "caption": "Contacts: each name with its number, a number alone when it has none; copy it or a vCard"
       },
       {
         "file": "6-message.png",
-        "caption": "Send a message (send on): the message typed in the bar, the latest message quotable"
+        "caption": "Send a message (send on): a form for the text, the latest message there to quote"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "The same item on a light menu bar",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover.png",
+        "file": "bar-popover.png",
         "caption": "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "The popover in the dark theme",
-        "kind": "bar"
-      },
-      {
-        "file": "bar-menubar-popover-reply.png",
+        "file": "bar-popover-reply.png",
         "caption": "r turns the search row into a message field (send on); Enter sends it",
         "kind": "bar"
       },

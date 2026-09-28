@@ -4,7 +4,7 @@
 // download folders read off their preference files, and a Safari
 // `.download` bundle's progress from its Info.plist.
 import { extname } from "node:path";
-import { bytes } from "@zcag/pal";
+import { bytes, now as clock } from "@zcag/pal";
 
 export type Kind = "folder" | "image" | "video" | "audio" | "document" | "archive" | "code" | "app" | "disk" | "file";
 
@@ -50,7 +50,7 @@ export const finalName = (name: string): string => name.replace(PARTIAL, "");
 export type Section = "Downloading" | "Today" | "Yesterday" | "This week" | "Older";
 
 /** By local calendar day: today, yesterday, the last seven days, older. */
-export function sectionOf(mtime: number, now = Date.now()): Exclude<Section, "Downloading"> {
+export function sectionOf(mtime: number, now = clock()): Exclude<Section, "Downloading"> {
   const day = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
   const today = day(now), that = day(mtime);
   const days = Math.round((today - that) / 86400e3);
@@ -90,4 +90,4 @@ export function safariProgress(plist: string): { done: number; total: number } |
 export const SUGGEST_MS = 10 * 60_000;
 
 /** Files older than `days` by modification time, for the clear-out row. */
-export const olderThan = <T extends { mtime: number }>(files: T[], days: number, now = Date.now()): T[] => files.filter((f) => now - f.mtime > days * 86400e3);
+export const olderThan = <T extends { mtime: number }>(files: T[], days: number, now = clock()): T[] => files.filter((f) => now - f.mtime > days * 86400e3);
