@@ -11,7 +11,7 @@ import { checkView } from "../../../sdk/src/view.ts";
 import { fmt, parseNew, readTimers, unquote } from "../../../extensions/timer/index.ts";
 import { asSession, next, tally, type Session } from "../../../extensions/timer/pomodoro.ts";
 import { DEFAULT_RECENT, actions, render as renderPopover, type PopoverState, type Timer } from "../../../extensions/timer/view.ts";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-timer-"));
 const dir = join(base, "state");
@@ -39,7 +39,7 @@ const put = (id: string, s: Spec) => writeFileSync(join(dir, `${id}.state`), [
   "ring=0", "quiet=0", `auto=${s.auto ? 1 : 0}`, "pid=0", `fired=${s.fired ?? 0}`, "",
 ].join("\n"));
 const clear = () => { for (const f of ["tea", "eggs", "pizza", "stale", "old", "over"]) if (existsSync(join(dir, `${f}.state`))) unlinkSync(join(dir, `${f}.state`)); };
-const asked = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n") : []);
+const asked = () => logLines(log);
 
 let host: Host;
 beforeAll(async () => {

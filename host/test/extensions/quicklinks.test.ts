@@ -8,14 +8,14 @@
 // `tabs.active`/`tabs.find`); `PAL_BROWSERS` names the installed
 // browsers and `PAL_OPEN_URL` a stand-in for the SDK's `openUrl` that logs.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LIBRARY } from "../../../extensions/quicklinks/library.ts";
 import { asLinks, badUrl, fill, fillNamed, fromJson, placeholder, placeholders, splitKeywords } from "../../../extensions/quicklinks/links.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import type { Item } from "../../../sdk/src/index.ts";
-import { Host, fixtures, stored, writeTool } from "../harness.ts";
+import { Host, fixtures, stored, writeTool, logLines } from "../harness.ts";
 
 describe("links", () => {
   test("placeholder: {query}, {argument}, a named argument, or none", () => {
@@ -83,7 +83,7 @@ writeFileSync(importFile, JSON.stringify([{ name: "Grafana", url: "http://grafan
 const openLog = join(dir, "open.log");
 writeTool(join(dir, "open"), `#!/bin/sh\necho "$1|$2" >> ${JSON.stringify(openLog)}\n`);
 
-const opened = () => { try { return readFileSync(openLog, "utf8").trim().split("\n"); } catch { return []; } };
+const opened = () => logLines(openLog);
 
 let host: Host;
 /** What the canned `core/selection.text` answers. */

@@ -3,14 +3,14 @@
 // canned output and record their argv. `PAL_SERVICES_BACKEND` picks the
 // backend, so both run on one machine; each gets its own host.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-services-"));
 const calls = join(dir, "calls");
-const called = () => { try { return readFileSync(calls, "utf8").trim().split("\n"); } catch { return []; } };
+const called = () => logLines(calls);
 const script = (name: string, body: string) => { writeTool(join(dir, name), `#!/bin/sh\nprintf '%s\\n' "${name} $*" >> "${calls}"\n${body}`); };
 const PATH = process.env.PATH;
 

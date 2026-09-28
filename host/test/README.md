@@ -16,6 +16,10 @@ tool to one stub made once per machine and keeps the script beside it as data, s
 any script: a `#!` line picks the interpreter (sh without one), and a shell script's `$0` is still the tool's path.
 `rules.test.ts` fails on an executable made any other way; its allow-list says who may and why.
 
+What a fake logged is read with `logLines(file)`: no lines while the file is missing or still empty. A shell's `>>` creates the
+file before the command writes, so a hand-rolled `split("\n")` reads one empty line there and a wait on `.length > 0` passes early
+(shell's and translate's CI flakes).
+
 ## Time: never wait on the real clock
 
 - **A tick, a poll, a timeout** in an extension is read from an environment variable at module load, with the real value as the

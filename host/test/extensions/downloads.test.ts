@@ -7,13 +7,13 @@
 // trash (`PAL_DOWNLOADS_TRASH`) that moves into a folder of its own, so
 // nothing touches the real Downloads or the real Trash.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { browserDirsFrom, finalName, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, SUGGEST_MS } from "../../../extensions/downloads/scan.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Form, Item } from "../../../sdk/src/protocol.ts";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 
@@ -107,7 +107,7 @@ afterAll(() => { host.kill(); process.env.PATH = oldPath; delete process.env.PAL
 
 const list = () => host.list("downloads", "downloads");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("downloads", "downloads", id, action, ctx);
-const opened = () => (existsSync(openLog) ? readFileSync(openLog, "utf8").trim().split("\n") : []);
+const opened = () => logLines(openLog);
 const byName = (items: Item[], name: string) => items.find((i) => i.name === name)!;
 const FILE_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "copy-file", "copy-path", "move", "rename", "trash"];
 

@@ -7,7 +7,7 @@
 // /proc the Linux cwd lookup reads, mirroring the lsof answer. The `blocked?`
 // test waits the real two seconds the idle check takes on a first sight.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -17,7 +17,7 @@ import { claude, codex, copilot, ps } from "../../../extensions/sessions/fixture
 import { agentOf, ancestors, appOf, cputime, kittyCandidates, kittyListenOn, kittyPids, kittyWindowOf, stepsFor, tool, ttyOf } from "../../../extensions/sessions/procs.ts";
 import { actions, render as renderPopover, shown, type Session } from "../../../extensions/sessions/view.ts";
 import { CAP, PAGE } from "../../../extensions/sessions/transcript.ts";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-sessions-"));
 const MAC = process.platform === "darwin";
@@ -48,7 +48,7 @@ stub("open", "");
 stub("xdg-open", "");
 stub("kill", "");
 stub("code", "");
-const asked = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").filter(Boolean) : []);
+const asked = () => logLines(log);
 const since = (n: number) => asked().slice(n);
 
 // The files: three directories, one session each to begin with, timestamps relative to the wall clock.

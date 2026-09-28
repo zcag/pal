@@ -5,7 +5,7 @@
 // `curl` that answers a code per host, and, for Linux, a fake `sudo` whose
 // answer a file decides.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { tile } from "../../../sdk/src/icon.ts";
@@ -17,7 +17,7 @@ import { curlArgv, parseTargets, summary as testSummary, type Result } from "../
 import { renderPopover, renderTest } from "../../../extensions/dpi/view.ts";
 import manifest from "../../../extensions/dpi/pal.json" with { type: "json" };
 import ext from "../../../extensions/dpi/index.ts";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const MAC_ON = "proxy   : up (pid 4242, :1080)\nservice : Wi-Fi\ndns     : 1.1.1.1 9.9.9.9 \nsocks   : 127.0.0.1:1080\n";
 const MAC_OFF = "proxy   : down\nservice : Wi-Fi\ndns     : There aren't any DNS Servers set on Wi-Fi. \nsocks   : off\n";
@@ -145,7 +145,7 @@ const dir = mkdtempSync(join(tmpdir(), "pal-dpi-"));
 const bin = join(dir, "bin");
 mkdirSync(bin);
 const STATE = join(dir, "state"), LOG = join(dir, "log"), CODES = join(dir, "codes"), SUDO = join(dir, "sudo-ok");
-const asked = () => (existsSync(LOG) ? readFileSync(LOG, "utf8").trim().split("\n") : []);
+const asked = () => logLines(LOG);
 /** The switches the fake dpi ran: its log without the status reads and the curls. */
 const cmds = () => asked().filter((l) => !/^status$|--max-time/.test(l));
 const DPI_LOG = join(dir, "dpi.log");

@@ -3,11 +3,11 @@
 // on `run` records its arguments and writes an output file. On Linux the
 // palette is one Unavailable row and the rest is skipped.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Form } from "../../../sdk/src/protocol.ts";
-import { Host, fixtures, writeTool } from "../harness.ts";
+import { Host, fixtures, writeTool, logLines } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 const dir = mkdtempSync(join(tmpdir(), "pal-shortcuts-"));
@@ -49,7 +49,7 @@ afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); del
 
 const list = () => host.list("shortcuts", "shortcuts");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("shortcuts", "shortcuts", id, action, ctx);
-const runs = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n") : []);
+const runs = () => logLines(log);
 /** The next `effects.run` the extension makes (the HUD after a run). */
 const nextHud = async () => {
   const from = host.coreCalls.filter((c) => c.method === "effects.run").length;

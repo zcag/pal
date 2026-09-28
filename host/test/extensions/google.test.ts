@@ -9,12 +9,12 @@
 // pane's entity card and results preview, the results level, recent
 // searches, and the picks through `PAL_OPEN_URL`.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { decode, localeOf, parseBrave, parseFirefox, parseSearxng, parseSerpApi, parseSummary, parseWiz, searchUrl } from "../../../extensions/google/google.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const WIZ = `)]}'\n[[["tarkan",46,[512,433],{"zh":"Tarkan","zi":"Şarkıcı-şarkı yazarı","zs":"https://img/tarkan.jpg"}],["tarkan<b> konseri</b>",0,[512]],["tarkan<b> &amp; sezen</b>",0,[512]]],{"ag":{}}]`;
 
@@ -246,7 +246,7 @@ describe("google", () => {
     expect(await pick("q:kadıköy")).toEqual({ hide: true });
     expect(await pick("q:x", "copy_link")).toEqual({ copy: "https://www.google.com/search?q=x&hl=tr&gl=tr" });
     settle({});
-    const lines = () => { try { return readFileSync(opened, "utf8").trim().split("\n"); } catch { return []; } };
+    const lines = () => logLines(opened);
     await host.until(() => lines().length === 2, 3000, "both opens logged");
     expect(lines().sort()).toEqual([
       "Firefox https://www.google.com/search?q=kad%C4%B1k%C3%B6y&hl=tr&gl=tr",

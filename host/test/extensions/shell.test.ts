@@ -6,14 +6,14 @@
 // `view.update`, the timeout, the confirm on a destructive command, the
 // terminal action against a stand-in `open`/terminal, the history.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CAP, commandsOf, duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv } from "../../../extensions/shell/run.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored, writeTool } from "../harness.ts";
+import { Host, stored, writeTool, logLines } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 
@@ -79,7 +79,7 @@ const bin = join(dir, "bin");
 const stub = (name: string) => { const p = join(bin, name); writeTool(p, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); };
 mkdirSync(bin);
 stub("open"); stub("osascript"); stub("x-terminal-emulator");
-const opened = () => (existsSync(openLog) ? readFileSync(openLog, "utf8").trim().split("\n").filter(Boolean) : []); // an empty file (created before the fake terminal writes) is no line yet
+const opened = () => logLines(openLog);
 
 let host: Host;
 const oldPath = process.env.PATH;

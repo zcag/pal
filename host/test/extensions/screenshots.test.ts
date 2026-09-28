@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const MAC = process.platform === "darwin";
 
@@ -108,7 +108,7 @@ afterAll(() => { host?.kill(); if (PATH0 !== undefined) process.env.PATH = PATH0
 
 const list = () => host.list("screenshots", "screenshots");
 const pick = (id: string, action?: string, ctx?: { ids?: string[] }) => host.pick("screenshots", "screenshots", id, action, ctx);
-const captures = () => (existsSync(captureLog) ? readFileSync(captureLog, "utf8").trim().split("\n") : []);
+const captures = () => logLines(captureLog);
 
 describe("screenshots", () => {
   test("meta: a live, multi, primary palette with the teal camera tile and the manifest's settings", async () => {

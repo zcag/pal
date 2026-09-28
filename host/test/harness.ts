@@ -5,7 +5,7 @@
 // throwaway extension root under the OS temp dir. README.md has the rules a test
 // keeps (writeTool for fakes, no waiting on the real clock, the time budget).
 import { setDefaultTimeout } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewUpdate, Window } from "../../sdk/src/index.ts";
@@ -91,6 +91,19 @@ function plainText<T extends Item[]>(items: T, toast?: unknown): T {
   }
   return items;
 }
+
+/**
+ * The lines a fake tool has logged so far: none while the file is missing
+ * or still empty (a shell's `>>` creates it before the command writes, so a
+ * wait on `.length > 0` would otherwise pass on one empty line).
+ */
+export const logLines = (file: string): string[] => {
+  try {
+    return readFileSync(file, "utf8").trim().split("\n").filter(Boolean);
+  } catch {
+    return [];
+  }
+};
 
 export class HostError extends Error {
   constructor(public method: string, message: string) { super(message); }

@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, logLines } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-docker-"));
 const calls = join(dir, "calls");
@@ -56,7 +56,7 @@ beforeAll(async () => {
 });
 afterAll(() => { host?.kill(); process.env.PATH = PATH; if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(dir, { recursive: true, force: true }); });
 
-const called = () => { try { return readFileSync(calls, "utf8").trim().split("\n"); } catch { return []; } };
+const called = () => logLines(calls);
 const list = (palette = "docker") => host.list("docker", palette);
 const pick = (id: string, action?: string, palette = "docker", values?: Record<string, string | boolean>) => host.pick("docker", palette, id, action, values ? { values } : undefined);
 
