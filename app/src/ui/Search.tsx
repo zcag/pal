@@ -74,6 +74,8 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
         spellCheck={false}
         placeholder={placeholder}
         value={value}
+        // Beside argument fields the query keeps its words whole ("Find a ti…" otherwise); the fields scroll instead.
+        style={args ? { minWidth: `min(${Math.max(value.length, placeholder?.length ?? 0) + 1}ch, 45%)` } : undefined}
         readOnly={readOnly}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         onKeyDown={args ? (e) => { if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); args.firstRef.current?.focus({ preventScroll: true }); } } : undefined}
