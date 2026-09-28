@@ -63,11 +63,12 @@ export const MENUBAR_H = 24, SKETCHYBAR_H = 26;
  * the renderers' own glyph drawing (`glyph::strip` takes each from the
  * symbols font; sketchybar's icon font is a Nerd Font).
  */
-function Runs({ text, className, style }: { text: string; className?: string; style?: CSSProperties }) {
+function Runs({ text, className, style, mono }: { text: string; className?: string; style?: CSSProperties; mono?: boolean }) {
   const out: ReactNode[] = [];
   let plain = "", sym = "";
   const flush = () => {
-    if (plain) out.push(<span key={out.length}>{plain}</span>);
+    // sketchybar's icon font is a monospaced Nerd Font: the progress rule's box drawing is a cell a character there.
+    if (plain) out.push(<span key={out.length} className={mono ? "g-sb__mono" : undefined}>{plain}</span>);
     if (sym) out.push(<span key={out.length} data-symbol>{sym}</span>);
     plain = sym = "";
   };
@@ -169,7 +170,7 @@ export function SketchyItem({ item, look = defaultLook, dark, anchor }: { item: 
       {props.map((p, i) => p.drawing === "off" ? null : (
         <span key={i} className="g-sb__item">
           {p["icon.drawing"] === "on" && (
-            <Runs text={p.icon} className="g-sb__icon" style={{ color: cssOf(p["icon.color"]), fontSize: px(p["icon.font.size"]), paddingLeft: px(p["icon.padding_left"]), paddingRight: px(p["icon.padding_right"]), width: px(p["icon.width"]) }} />
+            <Runs text={p.icon} mono className="g-sb__icon" style={{ color: cssOf(p["icon.color"]), fontSize: px(p["icon.font.size"]), paddingLeft: px(p["icon.padding_left"]), paddingRight: px(p["icon.padding_right"]), width: px(p["icon.width"]) }} />
           )}
           {p["label.drawing"] === "on" && (
             <span className="g-sb__label" style={{ color: cssOf(p["label.color"]), fontSize: px(p["label.font.size"]), fontFamily: p["label.font.family"] ? "Menlo, ui-monospace, monospace" : undefined, paddingLeft: px(p["label.padding_left"]), paddingRight: px(p["label.padding_right"]), width: px(p["label.width"]), overflow: p["label.width"] ? "hidden" : undefined }}>
