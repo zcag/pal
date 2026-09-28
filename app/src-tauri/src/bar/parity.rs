@@ -130,7 +130,9 @@ fn parity_snapshot_is_current() {
         return;
     }
     let was = std::fs::read_to_string(&path).unwrap_or_default();
-    assert!(was == now, "the strip parity snapshot is stale: a renderer, a fixture or a mock changed. Run `PAL_UPDATE_PARITY=1 cargo test -p pal parity`, then `npx vitest run bar-parity` in app/ (BarStrip.tsx must draw the same)");
+    // The first case that moved, both ways, so a failure on another machine (CI) says what differs there.
+    let moved = was.lines().zip(now.lines()).find(|(a, b)| a != b).map(|(a, b)| format!("\nwas: {a}\nnow: {b}")).unwrap_or_default();
+    assert!(was == now, "the strip parity snapshot is stale: a renderer, a fixture or a mock changed. Run `PAL_UPDATE_PARITY=1 cargo test -p pal parity`, then `npx vitest run bar-parity` in app/ (BarStrip.tsx must draw the same){moved}");
 }
 
 /// The menu bar's real pixels for a few fixture items, to set beside the
