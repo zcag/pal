@@ -273,6 +273,7 @@ function Node({ node }: { node: ViewNode }) {
           data-justify={node.justify}
           data-grow={node.grow || undefined}
           data-box={box || undefined}
+          data-tight={node.gap === 0 || undefined}
           data-surface={own ? "custom" : node.surface}
           data-radius={node.radius || undefined}
           {...motion}
