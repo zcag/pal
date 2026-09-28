@@ -1,15 +1,16 @@
 /**
  * `?gallery&bar=<ext>/<id>[,<ext>/<id>]&target=menubar|sketchybar&theme=dark|light[&state=<id>][&popover=1]`:
- * a bar item as each target draws it (docs/design/bar.md, "Mapping"), on a
- * 720 by 60 strip the store shows next to the panel screenshots. The item
- * comes from `shots/bar-<ext>.json` (fixture data, never the owner's): a
- * `BarItem`, `states[]` patches over it, and for a `{ palette }` menu the
- * rows that palette lists. `app/scripts/shots.mjs bar` drives it. The band
- * itself is `ui/BarStrip.tsx`, shared with the Settings > Bar preview.
- * `&popover=1` opens the popover under the item: the Launcher on the item's
- * menu level or palette level, 420 wide, height by content, as `BarPage.tsx`
- * shows it; an item with no menu shows the HUD its click answers with
- * ("Copied").
+ * a bar item as each target draws it, on a 720 by 60 strip, for the store's
+ * bar shots (docs/design/screenshots.md). The item comes from
+ * `shots/bar-<ext>.json` (fixture data, never the owner's): a `BarItem`,
+ * `states[]` patches over it, and for a `{ palette }` menu the rows that
+ * palette lists. `app/scripts/shots.mjs` drives it. The band itself is
+ * `ui/BarStrip.tsx` over `ui/bar-model.ts` (what the real renderers draw),
+ * shared with the Settings > Bar preview. `&popover=1` opens the popover
+ * under the item: the Launcher on the item's menu level or palette level,
+ * 420 wide, height by content, as `BarPage.tsx` shows it, on a 720 by 540
+ * canvas whatever its height; an item with no menu shows the HUD its click
+ * answers with ("Copied").
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Launcher, menuLevel, type Level } from "../Launcher";
