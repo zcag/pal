@@ -12,7 +12,12 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["screen", "monitor", "brightness", "resolution"],
+  "keywords": [
+    "screen",
+    "monitor",
+    "brightness",
+    "resolution"
+  ],
   "settings": [
     {
       "kind": "number",
@@ -45,12 +50,68 @@
       "A bar item with the external display's brightness, its popover a slider per display"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
-    "screenshots": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-list.png",
+        "caption": "Every display with its mode and brightness; Night Shift, Sleep displays and the saved arrangements below"
+      },
+      {
+        "file": "2-display.png",
+        "caption": "Enter on a monitor: brightness, contrast and volume over DDC, the input source, modes, mirroring and rotation"
+      },
+      {
+        "file": "3-brightness.png",
+        "caption": "A control opens as a slider: the arrows move it by the step, the digits jump to 10 to 100%"
+      },
+      {
+        "file": "4-modes.png",
+        "caption": "Every mode the monitor takes, HiDPI first and the current one tagged; a change keeps Undo one row away"
+      },
+      {
+        "file": "5-actions.png",
+        "caption": "Set the brightness from the bar's text, make a display main or copy its id for a link"
+      },
+      {
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the external monitor's brightness, a scroll on it moves it by the step",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: a card per display with its mode and a brightness slider",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-panel.png",
+        "caption": "↓ moves to the next display: the arrows and the digits now set the built-in panel",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the sun and the level as its label",
+        "kind": "bar"
+      }
+    ],
     "actions": [
-      { "title": "Open", "description": "Drills into the display: its controls, modes and arrangement.", "keys": "enter" },
-      { "title": "Set brightness", "description": "The percent typed in the bar (or +10 / -10).", "keys": "cmd+b" },
-      { "title": "Make main", "description": "Moves the arrangement so this display is at (0,0).", "keys": "cmd+shift+m" }
+      {
+        "title": "Open",
+        "description": "Drills into the display: its controls, modes and arrangement.",
+        "keys": "enter"
+      },
+      {
+        "title": "Set brightness",
+        "description": "The percent typed in the bar (or +10 / -10).",
+        "keys": "cmd+b"
+      },
+      {
+        "title": "Make main",
+        "description": "Moves the arrangement so this display is at (0,0).",
+        "keys": "cmd+shift+m"
+      }
     ]
   },
   "palettes": {
@@ -58,12 +119,30 @@
       "kind": "live",
       "description": "Every display with its mode and brightness, the arrangement presets, Night Shift and Sleep displays; Enter drills into a display's controls.",
       "keys": [
-        { "keys": "enter", "title": "Open the display, apply a preset, run a row" },
-        { "keys": "cmd+b", "title": "Set the brightness to the percent typed in the bar" },
-        { "keys": "cmd+shift+m", "title": "Make the display the main one" },
-        { "keys": "cmd+c", "title": "Copy the display's id, for links" },
-        { "keys": "cmd+r", "title": "Rename a preset" },
-        { "keys": "cmd+backspace", "title": "Delete a preset" }
+        {
+          "keys": "enter",
+          "title": "Open the display, apply a preset, run a row"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "Set the brightness to the percent typed in the bar"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Make the display the main one"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the display's id, for links"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Rename a preset"
+        },
+        {
+          "keys": "cmd+backspace",
+          "title": "Delete a preset"
+        }
       ]
     }
   },
@@ -71,62 +150,110 @@
     "brightness": {
       "description": "Set a display's brightness",
       "params": {
-        "value": { "description": "A percent (50), or a step (+10, -5)", "required": true },
-        "display": { "description": "main, external, builtin, a display id or a name; the bar item's display otherwise" }
+        "value": {
+          "description": "A percent (50), or a step (+10, -5)",
+          "required": true
+        },
+        "display": {
+          "description": "main, external, builtin, a display id or a name; the bar item's display otherwise"
+        }
       }
     },
     "contrast": {
       "description": "Set an external monitor's contrast over DDC",
       "params": {
-        "value": { "description": "A percent (50), or a step (+10, -5)", "required": true },
-        "display": { "description": "external, a display id or a name; the first external otherwise" }
+        "value": {
+          "description": "A percent (50), or a step (+10, -5)",
+          "required": true
+        },
+        "display": {
+          "description": "external, a display id or a name; the first external otherwise"
+        }
       }
     },
     "volume": {
       "description": "Set an external monitor's speaker volume over DDC",
       "params": {
-        "value": { "description": "A percent (50), or a step (+10, -5)", "required": true },
-        "display": { "description": "external, a display id or a name; the first external otherwise" }
+        "value": {
+          "description": "A percent (50), or a step (+10, -5)",
+          "required": true
+        },
+        "display": {
+          "description": "external, a display id or a name; the first external otherwise"
+        }
       }
     },
     "input": {
       "description": "Switch an external monitor's input source over DDC",
       "params": {
-        "source": { "description": "hdmi1, hdmi2, dp1, dp2, usbc, or a raw VCP 60 code", "required": true },
-        "display": { "description": "external, a display id or a name; the first external otherwise" }
+        "source": {
+          "description": "hdmi1, hdmi2, dp1, dp2, usbc, or a raw VCP 60 code",
+          "required": true
+        },
+        "display": {
+          "description": "external, a display id or a name; the first external otherwise"
+        }
       }
     },
     "mode": {
       "description": "Set a display's resolution (displayplacer, or the compositor on Linux)",
       "params": {
-        "mode": { "description": "A mode number from the palette, or 1800x1169, 1800x1169@60, 2560x1440 hidpi, 3024x1964 native", "required": true },
-        "display": { "description": "main, external, builtin, a display id or a name; the main display otherwise" }
+        "mode": {
+          "description": "A mode number from the palette, or 1800x1169, 1800x1169@60, 2560x1440 hidpi, 3024x1964 native",
+          "required": true
+        },
+        "display": {
+          "description": "main, external, builtin, a display id or a name; the main display otherwise"
+        }
       }
     },
     "preset": {
       "description": "Apply a saved arrangement preset",
       "params": {
-        "name": { "description": "The preset's name", "required": true }
+        "name": {
+          "description": "The preset's name",
+          "required": true
+        }
       }
     },
     "night-shift": {
       "description": "Night Shift on, off or toggled (the nightlight CLI)",
       "params": {
-        "state": { "description": "on, off or toggle; toggle otherwise" }
+        "state": {
+          "description": "on, off or toggle; toggle otherwise"
+        }
       }
     }
   },
   "states": {
-    "brightness": { "description": "The bar item's display's brightness, percent; unset while unreadable", "kind": "number" },
-    "external": { "description": "How many external displays are connected", "kind": "number" },
-    "count": { "description": "How many displays are online", "kind": "number" },
-    "settable": { "description": "Whether any display's brightness can be set from pal", "kind": "boolean" }
+    "brightness": {
+      "description": "The bar item's display's brightness, percent; unset while unreadable",
+      "kind": "number"
+    },
+    "external": {
+      "description": "How many external displays are connected",
+      "kind": "number"
+    },
+    "count": {
+      "description": "How many displays are online",
+      "kind": "number"
+    },
+    "settable": {
+      "description": "Whether any display's brightness can be set from pal",
+      "kind": "boolean"
+    }
   },
   "bar": {
     "brightness": {
       "title": "Brightness",
       "description": "The external display's brightness (or the main or built-in one's, by the setting), with a slider per display in the popover, a scroll on the item moving it by the step. Hidden while only the built-in display is there, whose keys already set it, and while nothing installed can set any display: its rules, which Settings > Bar lets you turn off to keep the item.",
-      "refresh": { "every": 60, "on": ["wake", "show"] },
+      "refresh": {
+        "every": 60,
+        "on": [
+          "wake",
+          "show"
+        ]
+      },
       "settings": [
         {
           "kind": "select",
@@ -134,9 +261,18 @@
           "label": "Display on the bar",
           "description": "Whose brightness the bar item shows: the first external display (the built-in one has keys of its own), the main display, or the built-in one.",
           "options": [
-            { "id": "external", "title": "The external display" },
-            { "id": "main", "title": "The main display" },
-            { "id": "builtin", "title": "The built-in display" }
+            {
+              "id": "external",
+              "title": "The external display"
+            },
+            {
+              "id": "main",
+              "title": "The main display"
+            },
+            {
+              "id": "builtin",
+              "title": "The built-in display"
+            }
           ],
           "default": "external"
         }
@@ -146,37 +282,83 @@
           "title": "Only the built-in display, hidden",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰃟", "title": "50%", "tooltip": "Built-in Retina Display · 50%" }
+            "empty": {
+              "icon": "󰃟",
+              "title": "50%",
+              "tooltip": "Built-in Retina Display · 50%"
+            }
           }
         },
         "external": {
           "title": "An external display connected",
-          "item": { "icon": "󰃠", "title": "70%", "tooltip": "DELL U2720Q · 70% · 2560×1440 @ 60 Hz · HiDPI" }
+          "item": {
+            "icon": "󰃠",
+            "title": "70%",
+            "tooltip": "Aurora 27Q · 70% · 2560×1440 @ 60 Hz · HiDPI"
+          }
         },
         "dim": {
           "title": "Dimmed",
-          "item": { "icon": "󰃞", "title": "15%", "tooltip": "DELL U2720Q · 15% · 2560×1440 @ 60 Hz · HiDPI" }
+          "item": {
+            "icon": "󰃞",
+            "title": "15%",
+            "tooltip": "Aurora 27Q · 15% · 2560×1440 @ 60 Hz · HiDPI"
+          }
         },
         "unreadable": {
           "title": "External connected, no DDC tool",
           "item": {
             "hidden": true,
-            "empty": { "icon": "󰃟", "tooltip": "DELL U2720Q: install m1ddc to set its brightness" }
+            "empty": {
+              "icon": "󰃟",
+              "tooltip": "Aurora 27Q: install m1ddc to set its brightness"
+            }
           }
         }
       },
       "keys": [
-        { "keys": "enter", "title": "Open the display in pal" },
-        { "keys": "up / down", "title": "Move between displays" },
-        { "keys": "left / right", "title": "Brightness down / up by the step" },
-        { "keys": "shift+left / shift+right", "title": "Brightness by 1%" },
-        { "keys": "1…9, 0", "title": "10…90%, 100%" },
-        { "keys": "n", "title": "Night Shift on / off" },
-        { "keys": "p", "title": "Open the Displays palette" }
+        {
+          "keys": "enter",
+          "title": "Open the display in pal"
+        },
+        {
+          "keys": "up / down",
+          "title": "Move between displays"
+        },
+        {
+          "keys": "left / right",
+          "title": "Brightness down / up by the step"
+        },
+        {
+          "keys": "shift+left / shift+right",
+          "title": "Brightness by 1%"
+        },
+        {
+          "keys": "1…9, 0",
+          "title": "10…90%, 100%"
+        },
+        {
+          "keys": "n",
+          "title": "Night Shift on / off"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Displays palette"
+        }
       ],
       "rules": [
-        { "id": "laptop", "when": "displays.external == 0", "description": "Only the built-in display: its keyboard keys set it. Off, and the item stays with the built-in display's level.", "hidden": true },
-        { "id": "unsettable", "when": "not displays.settable", "description": "Nothing installed can set any display's brightness: nothing to open a slider on.", "hidden": true }
+        {
+          "id": "laptop",
+          "when": "displays.external == 0",
+          "description": "Only the built-in display: its keyboard keys set it. Off, and the item stays with the built-in display's level.",
+          "hidden": true
+        },
+        {
+          "id": "unsettable",
+          "when": "not displays.settable",
+          "description": "Nothing installed can set any display's brightness: nothing to open a slider on.",
+          "hidden": true
+        }
       ]
     }
   }

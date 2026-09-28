@@ -2,7 +2,7 @@
 // bar item that shows what is held by hand. Every read and write is a
 // `state.*` / `core/states.*` call; nothing is cached here, the core is
 // the table.
-import { argsForm, failed, hint, parseDuration, state, toast, type Accessory, type Action, type Arg, type BarItem, type Effect, type Extension, type Item, type StateEntry, type StateValue } from "@zcag/pal";
+import { argsForm, failed, hint, now as clock, parseDuration, state, toast, type Accessory, type Action, type Arg, type BarItem, type Effect, type Extension, type Item, type StateEntry, type StateValue } from "@zcag/pal";
 
 const GLYPH = "\u{f04f9}"; // 󰓹 nf-md-variable
 const PLUS = "\u{f0415}";
@@ -18,6 +18,13 @@ const SET_ARGS: Arg[] = [
   { id: "value", placeholder: "Value: true, false, 3, home", required: true },
   { id: "for", placeholder: "For: 15m, 1h, 3h, 1d (blank: until reset)" },
 ];
+
+/** The args as a form (a row picked without them): each field labelled by its name, the placeholder keeps the hint. */
+const LABELS: Record<string, string> = { name: "Name", expr: "Expression", default: "Default", description: "Description", value: "Value", for: "For" };
+const form = (args: Arg[], id: string, title: string, submit: { id: string; title: string }, errors?: Record<string, string>): Effect => {
+  const f = argsForm(args, title, submit, errors);
+  return { form: { ...f, id, fields: f.fields.map((x) => ({ ...x, label: LABELS[x.id] ?? x.label })) } };
+};
 
 /** `true`, `3`, `"x"` as JSON; anything else the text. */
 const parse = (s: string): StateValue => { try { const v = JSON.parse(s); return v === null || ["boolean", "number", "string"].includes(typeof v) ? v : s; } catch { return s; } };
@@ -56,21 +63,21 @@ const newRow: Item = { id: NEW, name: "New state", subtitle: "Declare one in the
 
 async function list(_query?: string, ctx?: { filter?: string }): Promise<Item[]> {
   const all = await state.list();
-  const now = Date.now();
+  const now = clock();
   const f = ctx?.filter ?? "all";
   const rows = all.filter((e) => f === "all" || (f === "held" ? e.source === "manual" : f === "mine" ? !e.builtin && !e.name.includes("/") : f === "builtin" ? e.builtin : e.name.includes("/")));
   return [...(f === "all" || f === "mine" ? [newRow] : []), ...rows.map((e) => row(e, now)), ...(rows.length ? [] : [hint("none", "No states here", f === "held" ? "Set one by hand: a row's actions, or `pal state set working true --for 3h`" : "Declare one with New state, or `[states.<name>]` in the config")])];
 }
 
 /** Midnight tonight, local, as unix ms. */
-const tomorrow = () => { const d = new Date(); d.setHours(24, 0, 0, 0); return d.getTime(); };
+const tomorrow = () => { const d = new Date(clock()); d.setHours(24, 0, 0, 0); return d.getTime(); };
 
 async function pick(id: string, action?: string, ctx?: { values?: Record<string, string | boolean> }): Promise<Effect> {
   const v = ctx?.values;
   if (id === NEW) {
-    if (!v) return { form: { ...argsForm(NEW_ARGS, "New state", { id: "declare", title: "Declare" }), id: NEW } };
+    if (!v) return form(NEW_ARGS, NEW, "New state", { id: "declare", title: "Declare" });
     const name = String(v.name ?? "").trim();
-    if (!/^[a-z0-9_]+$/.test(name)) return { form: { ...argsForm(NEW_ARGS, "New state", { id: "declare", title: "Declare" }, { name: "Lowercase letters, digits and _" }), id: NEW } };
+    if (!/^[a-z0-9_]+$/.test(name)) return form(NEW_ARGS, NEW, "New state", { id: "declare", title: "Declare" }, { name: "Lowercase letters, digits and _" });
     const expr = String(v.expr ?? "").trim(), description = String(v.description ?? "").trim(), def = String(v.default ?? "").trim();
     try { await state.declare(name, { ...(expr && { expr }), ...(description && { description }), ...(def && { default: parse(def) }) }); } catch (e) { return failed("declare the state", e); }
     return toast(`Declared ${name}`, "Written to [states] in the config file");
@@ -80,16 +87,16 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
       case "copy": return { copy: id };
       case "reset": await state.reset(id); return { keep: true };
       case "undeclare": await state.undeclare(id); return toast(`Removed [states.${id}]`);
-      case "hold-1h": await state.hold(id, true, Date.now() + 3_600_000); return { keep: true };
-      case "hold-3h": await state.hold(id, true, Date.now() + 3 * 3_600_000); return { keep: true };
+      case "hold-1h": await state.hold(id, true, clock() + 3_600_000); return { keep: true };
+      case "hold-3h": await state.hold(id, true, clock() + 3 * 3_600_000); return { keep: true };
       case "hold-tomorrow": await state.hold(id, true, tomorrow()); return { keep: true };
       case "set": {
         const raw = String(v?.value ?? "").trim();
-        if (!raw) return { form: { ...argsForm(SET_ARGS, `Set ${id}`, { id: "set", title: "Set" }), id } };
+        if (!raw) return form(SET_ARGS, id, `Set ${id}`, { id: "set", title: "Set" });
         const forText = String(v?.for ?? "").trim();
         const secs = forText ? parseDuration(forText) : undefined;
-        if (forText && secs === undefined) return { form: { ...argsForm(SET_ARGS, `Set ${id}`, { id: "set", title: "Set" }, { for: "90s, 25m, 1h30m, 2h, 1d" }), id } };
-        await state.hold(id, parse(raw), secs ? Date.now() + secs * 1000 : undefined);
+        if (forText && secs === undefined) return form(SET_ARGS, id, `Set ${id}`, { id: "set", title: "Set" }, { for: "90s, 25m, 1h30m, 2h, 1d" });
+        await state.hold(id, parse(raw), secs ? clock() + secs * 1000 : undefined);
         return { keep: true };
       }
       default: {
@@ -110,7 +117,7 @@ async function render(): Promise<BarItem> {
   const held = (await state.list()).filter((e) => e.source === "manual");
   const empty = { icon: GLYPH, tooltip: "No state held by hand", menu: { palette: "states" } };
   if (!held.length) return { hidden: true, empty };
-  const now = Date.now();
+  const now = clock();
   held.sort((a, b) => (a.until ?? Infinity) - (b.until ?? Infinity));
   const first = held[0];
   const title = `${first.name}${first.until ? ` · ${left(first.until - now)}` : ""}`;

@@ -664,7 +664,7 @@ describe("sessions: the bar", () => {
     expect(v).toMatchObject({ id: "sessions", keys: "actions", title: "5 sessions" });
     expect(texts(v).slice(0, 8)).toEqual(["Waiting on you?", "", "deploy it", "api · main · tmux work:0.1", expect.any(String), "Your turn", "", "Review Issue 4258 Status"]);
     expect(badges(v)).toEqual(["1", "waiting on you?", "1", "your turn", "2", "working", "working", "1", "ended"]);
-    expect(keycaps(v)).toEqual(["enter", "t", "o", "r", "x", "s", "p", "up", "down"]);
+    expect(keycaps(v)).toEqual(["enter", "t", "r", "x", "s", "p"]);
     // The ring is on the first row; its actions lead with Focus and offer Send (a tmux pane) and Kill with a confirm.
     const rows = nodes(v.tree).filter((n) => n.type === "stack" && n.action?.startsWith("focus:"));
     expect(rows.map((r) => r.selected)).toEqual([true, undefined, undefined, undefined, undefined]);
@@ -698,7 +698,7 @@ describe("sessions: the bar", () => {
     v = view(await act("up"));
     expect(ring(v)).toBe(key("claude", ID.done));
     expect(v.actions[0]).toEqual({ id: "resume", title: "Resume in a terminal", shortcut: "enter" });
-    expect(keycaps(v)).toEqual(["enter", "t", "o", "r", "p", "up", "down"]);
+    expect(keycaps(v)).toEqual(["enter", "t", "r", "p"]);
     expect(await act("resume")).toEqual({ hide: true });
     expect(terminalOpened().at(-1)).toMatch(new RegExp(`^cd ${CWD.notes} && exec (\\S*/)?claude --resume ${ID.done}$`));
     // Enter on the pal session: the kitty window.

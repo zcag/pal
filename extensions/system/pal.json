@@ -67,7 +67,7 @@
       },
       {
         "file": "2-root.png",
-        "caption": "sleep at the root: the rows are indexed with their keywords"
+        "caption": "caffeinate at the root finds Keep Awake: the rows are indexed with their keywords"
       },
       {
         "file": "3-confirm.png",
@@ -75,7 +75,37 @@
       },
       {
         "file": "4-apps.png",
-        "caption": "Quit All Apps (asks first), Unhide All Apps and Dismiss Notifications"
+        "caption": "Quit All Apps (asks first), Unhide All Apps, Dismiss Notifications, and Quick Look on what is marked in Finder"
+      },
+      {
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: a coffee and what is left of the run",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-display.png",
+        "caption": "The display kept awake too: a monitor mark after the countdown",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: the run on a card with the time left and a bar, the presets on the digits, the display switch, Enter allows sleep",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-forever.png",
+        "caption": "Until turned off: ∞ on the strip and the card; a preset gives it an end",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-field.png",
+        "caption": "u opens the field: 45m, 14:30 or forever, then Enter",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the coffee and the countdown as the label",
+        "kind": "bar"
       }
     ],
     "actions": [

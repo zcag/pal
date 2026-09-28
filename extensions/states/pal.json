@@ -12,7 +12,12 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["state", "states", "variable", "working"],
+  "keywords": [
+    "state",
+    "states",
+    "variable",
+    "working"
+  ],
   "store": {
     "tagline": "Named variables: declare, set by hand, compose, hide bar items on",
     "category": "system",
@@ -21,6 +26,44 @@
       "Set true or false until reset, or for 15 minutes, an hour, three hours, until tomorrow; any value and duration typed into the row",
       "New state writes `[states.<name>]` to the config file with an expression, a default and a description",
       "A bar item that shows only while a state is held by hand, with the time left"
+    ],
+    "screenshots": [
+      {
+        "file": "1-list.png",
+        "caption": "Every state with its value and which layer answers: its expression, set by hand with the time left, a publisher, built-in"
+      },
+      {
+        "file": "2-held.png",
+        "caption": "Tab steps through the filters: held by hand, yours, what extensions publish, the built-ins"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Set a state for an hour, three, until tomorrow or a value typed, reset it, or remove it from the config"
+      },
+      {
+        "file": "4-new.png",
+        "caption": "New state writes [states.<name>] to the config: a name, an expression over the others, a default"
+      },
+      {
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar only while a state is held by hand: its name and the time left",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-two.png",
+        "caption": "Two held: the soonest to run out first, the count after it",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover.png",
+        "caption": "A click opens the palette: every state with its value; Enter flips one, ⌘R resets it",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the state and the time left on amber",
+        "kind": "bar"
+      }
     ]
   },
   "palettes": {
@@ -29,11 +72,24 @@
       "description": "Every state with its value and source; set one by hand, reset it, declare a new one.",
       "kind": "live",
       "tier": "normal",
-      "keywords": ["state", "variable", "working"],
+      "keywords": [
+        "state",
+        "variable",
+        "working"
+      ],
       "keys": [
-        { "keys": "enter", "title": "Toggle a boolean, or set the typed value" },
-        { "keys": "cmd+r", "title": "Reset the manual value" },
-        { "keys": "cmd+backspace", "title": "Remove the declaration from the config" }
+        {
+          "keys": "enter",
+          "title": "Toggle a boolean, or set the typed value"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Reset the manual value"
+        },
+        {
+          "keys": "cmd+backspace",
+          "title": "Remove the declaration from the config"
+        }
       ]
     }
   },
@@ -41,10 +97,32 @@
     "forced": {
       "title": "Held states",
       "description": "The states set by hand, with the time left on the soonest to expire; hidden while none is. A click opens the palette.",
-      "refresh": { "every": 60, "on": ["state:*"] },
+      "refresh": {
+        "every": 60,
+        "on": [
+          "state:*"
+        ]
+      },
       "mocks": {
-        "one": { "title": "One state held for a while", "item": { "icon": "󰓹", "title": "working · 2 h 40 m", "color": "amber", "tooltip": "working = true, set by hand, 2 h 40 m left" } },
-        "two": { "title": "Two states held", "item": { "icon": "󰓹", "title": "working · 40 m", "badge": 2, "color": "amber", "tooltip": "working = true (40 m), deep = true" } }
+        "one": {
+          "title": "One state held for a while",
+          "item": {
+            "icon": "󰓹",
+            "title": "working · 2 h 40 m",
+            "color": "amber",
+            "tooltip": "working = true, set by hand, 2 h 40 m left"
+          }
+        },
+        "two": {
+          "title": "Two states held",
+          "item": {
+            "icon": "󰓹",
+            "title": "working · 40 m",
+            "badge": 2,
+            "color": "amber",
+            "tooltip": "working = true (40 m), deep = true"
+          }
+        }
       }
     }
   }

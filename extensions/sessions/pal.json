@@ -319,7 +319,44 @@
       "macos",
       "linux"
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "file": "1-list.png",
+        "caption": "Every Claude Code, Codex and Copilot session on the machine by state: the one waiting on you first, then your turn, working, ended"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The pane: your last prompt, the agent's last words and the command it is waiting to run; the folder, tokens and process below"
+      },
+      {
+        "file": "3-transcript.png",
+        "caption": "cmd+t reads the transcript inside pal: prompts, replies and every tool call with its outcome, live while it runs"
+      },
+      {
+        "file": "4-actions.png",
+        "caption": "⌘K on a session: focus its terminal, send a line to its tmux pane, read or reveal the transcript, copy the resume command"
+      },
+      {
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: how many sessions wait on you, are your turn and are working; the glyph turns red while one waits on you",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: a row per session by state; Enter focuses its terminal, r copies the resume command",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-transcript.png",
+        "caption": "t shows the transcript over the list, the command waiting on you lit",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the three counts in red, amber and blue",
+        "kind": "bar"
+      }
+    ],
     "actions": [
       {
         "title": "Focus the terminal",

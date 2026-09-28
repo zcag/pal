@@ -45,9 +45,10 @@ function header(st: TranscriptState): ViewNode[] {
 
 const paragraphs = (t: string) => t.trim().split(/\n{2,}/).map((p) => p.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
 
+// The chat's paragraphs carry no `width`: a width clips a text to one line (View.tsx), these wrap in their column.
 function userNode(t: Turn, i: number): ViewNode {
   return row(
-    [{ type: "tile", key: "rail", width: 3, height: 22, color: "accent", fill: "solid" }, column(paragraphs(t.text ?? "").map((p, j) => text(p, { key: `p${j}`, size: "sm", width: W - 40 })), { key: "body", gap: 1, grow: true })],
+    [{ type: "tile", key: "rail", width: 3, height: 22, color: "accent", fill: "solid" }, column(paragraphs(t.text ?? "").map((p, j) => text(p, { key: `p${j}`, size: "sm" })), { key: "body", gap: 1, grow: true })],
     { key: `u${i}`, surface: "sunken", radius: true, padding: 2, gap: 2, align: "start" },
   );
 }
@@ -55,7 +56,7 @@ function userNode(t: Turn, i: number): ViewNode {
 function assistantNode(t: Turn, i: number): ViewNode {
   const full = t.text ?? "";
   const cut = full.length > CAP;
-  const kids = paragraphs(cut ? full.slice(0, CAP) : full).map((p, j) => text(p, { key: `p${j}`, size: "sm", width: W - 8 }));
+  const kids = paragraphs(cut ? full.slice(0, CAP) : full).map((p, j) => text(p, { key: `p${j}`, size: "sm" }));
   if (cut) kids.push(text(`… ${full.length - CAP} more chars`, { key: "more", size: "xs", color: "faint" }));
   return column(kids, { key: `a${i}`, gap: 1, padding: 1 });
 }

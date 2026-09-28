@@ -12,7 +12,13 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "keywords": ["dpi", "bypass", "byedpi", "zapret", "censorship"],
+  "keywords": [
+    "dpi",
+    "bypass",
+    "byedpi",
+    "zapret",
+    "censorship"
+  ],
   "settings": [
     {
       "kind": "path",
@@ -43,7 +49,10 @@
       "label": "Override DNS",
       "placeholder": "1.1.1.1",
       "description": "The resolvers `dpi on` sets on macOS (the script's DNS_ON), so the status can tell a full bypass from a partial one: the proxy up with the DNS still the ISP's is partial. Empty: DNS is not judged.",
-      "default": ["1.1.1.1", "9.9.9.9"]
+      "default": [
+        "1.1.1.1",
+        "9.9.9.9"
+      ]
     }
   ],
   "store": {
@@ -60,49 +69,161 @@
       "Nothing of byedpi or the network settings is reimplemented: the script is the engine, pal is the button and the light"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
-    "screenshots": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-on.png",
+        "caption": "The bypass on: Turn off leads, then the status, the test, the log, the build and a copy of the status"
+      },
+      {
+        "file": "2-status.png",
+        "caption": "⌘I on the status: what the script printed, and the proxy, the network service, the DNS and the SOCKS proxy it names"
+      },
+      {
+        "file": "3-test.png",
+        "caption": "The test: a curl per url through the proxy, the blocked sites and the controls with their codes and times"
+      },
+      {
+        "file": "4-partial.png",
+        "caption": "Half on: amber with the reason, and a Repair row that turns it off and on again"
+      },
+      {
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar only while the bypass is on: a shield",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-partial.png",
+        "caption": "Half on: the shield turns amber and half full",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover.png",
+        "caption": "A click opens the popover: the status with its facts; Enter turns it off, t tests it",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-test.png",
+        "caption": "t runs the test in the popover: each url's code lands under the card",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover-partial.png",
+        "caption": "Half on: the reason on the card and r to repair",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the shield while the bypass is on",
+        "kind": "bar"
+      }
+    ],
     "actions": [
-      { "title": "Turn on / Turn off", "description": "Runs the script; the HUD says its line.", "keys": "enter" },
-      { "title": "Test the bypass", "description": "The test level, from any row.", "keys": "cmd+t" },
-      { "title": "Repair", "description": "Off, then on; on the Turn off row while partial.", "keys": "cmd+shift+r" },
-      { "title": "Copy the status", "description": "The script's status output.", "keys": "cmd+c" }
+      {
+        "title": "Turn on / Turn off",
+        "description": "Runs the script; the HUD says its line.",
+        "keys": "enter"
+      },
+      {
+        "title": "Test the bypass",
+        "description": "The test level, from any row.",
+        "keys": "cmd+t"
+      },
+      {
+        "title": "Repair",
+        "description": "Off, then on; on the Turn off row while partial.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Copy the status",
+        "description": "The script's status output.",
+        "keys": "cmd+c"
+      }
     ]
   },
   "links": {
-    "toggle": { "description": "Turn the bypass on, or off while it is on (the script's toggle)" },
-    "on": { "description": "Turn the bypass on" },
-    "off": { "description": "Turn the bypass off; the script restores the previous settings" },
-    "test": { "description": "Open the panel on the test level; the test runs at once" },
-    "status": { "description": "Open the DPI Bypass palette" }
+    "toggle": {
+      "description": "Turn the bypass on, or off while it is on (the script's toggle)"
+    },
+    "on": {
+      "description": "Turn the bypass on"
+    },
+    "off": {
+      "description": "Turn the bypass off; the script restores the previous settings"
+    },
+    "test": {
+      "description": "Open the panel on the test level; the test runs at once"
+    },
+    "status": {
+      "description": "Open the DPI Bypass palette"
+    }
   },
   "palettes": {
     "dpi": {
       "kind": "live",
       "description": "Turn the bypass on or off, repair a half-on one, read the status, run the test, open the log, build byedpi.",
       "keys": [
-        { "keys": "enter", "title": "Turn the bypass on or off; on Status, copy it; on Test, run it" },
-        { "keys": "cmd+t", "title": "Test the bypass" },
-        { "keys": "cmd+shift+r", "title": "Repair: off, then on (while partial)" },
-        { "keys": "cmd+c", "title": "Copy the status" }
+        {
+          "keys": "enter",
+          "title": "Turn the bypass on or off; on Status, copy it; on Test, run it"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Test the bypass"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Repair: off, then on (while partial)"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the status"
+        }
       ]
     },
     "test": {
       "kind": "view",
       "description": "The bypass tested end to end: a row per url with its HTTP code, the time and whether it is a blocked site or a control, landing one by one.",
       "keys": [
-        { "keys": "enter", "title": "Open the url under the cursor" },
-        { "keys": "c", "title": "Copy the row's line" },
-        { "keys": "cmd+c", "title": "Copy the whole report" },
-        { "keys": "cmd+r", "title": "Run the test again" },
-        { "keys": "up", "title": "Move the cursor (down, j, k too)" }
+        {
+          "keys": "enter",
+          "title": "Open the url under the cursor"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the row's line"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the whole report"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Run the test again"
+        },
+        {
+          "keys": "up",
+          "title": "Move the cursor (down, j, k too)"
+        }
       ]
     }
   },
   "states": {
-    "on": { "description": "The bypass is on, or partly on", "kind": "boolean" },
-    "state": { "description": "off, on or partial", "kind": "string" },
-    "service": { "description": "The network service the proxy is set on (macOS), or the units (Linux)", "kind": "string" }
+    "on": {
+      "description": "The bypass is on, or partly on",
+      "kind": "boolean"
+    },
+    "state": {
+      "description": "off, on or partial",
+      "kind": "string"
+    },
+    "service": {
+      "description": "The network service the proxy is set on (macOS), or the units (Linux)",
+      "kind": "string"
+    }
   },
   "bar": {
     "bypass": {
@@ -110,7 +231,11 @@
       "description": "A shield while the bypass is on, hidden while off by its rule (`show = \"always\"` keeps a muted one), amber while only half of it is in effect. The popover: the status card with the facts, Enter turns it on or off, `t` runs the test and shows its rows in place, `r` repairs, `c` copies the status, `l` opens the log, `o` the palette.",
       "refresh": {
         "every": 60,
-        "on": ["show", "wake", "network"]
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
       },
       "rules": [
         {
@@ -161,12 +286,30 @@
         }
       },
       "keys": [
-        { "keys": "enter", "title": "Turn the bypass on or off" },
-        { "keys": "t", "title": "Test the bypass; the rows land in the popover" },
-        { "keys": "r", "title": "Repair: off, then on" },
-        { "keys": "c", "title": "Copy the status" },
-        { "keys": "l", "title": "Open the log (macOS)" },
-        { "keys": "o", "title": "Open the DPI Bypass palette" }
+        {
+          "keys": "enter",
+          "title": "Turn the bypass on or off"
+        },
+        {
+          "keys": "t",
+          "title": "Test the bypass; the rows land in the popover"
+        },
+        {
+          "keys": "r",
+          "title": "Repair: off, then on"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the status"
+        },
+        {
+          "keys": "l",
+          "title": "Open the log (macOS)"
+        },
+        {
+          "keys": "o",
+          "title": "Open the DPI Bypass palette"
+        }
       ]
     }
   }

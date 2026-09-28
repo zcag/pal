@@ -443,7 +443,7 @@ async function detail(id: string): Promise<Detail | undefined> {
   const parts = [`## ${mdEscape(s.title)}`];
   if (s.prompt) parts.push(`**You** · ${when(s.promptAt)}`, ...truncate(s.prompt.trim(), CUT_PROMPT).split("\n").map((l) => `> ${mdEscape(l)}`));
   if (s.reply) parts.push(`**${AGENT_TITLE[s.agent]}**`, truncate(s.reply.trim(), CUT_REPLY));
-  if (s.pending && s.state !== "waiting" && s.state !== "ended") parts.push(`**${s.state === "blocked" ? "Waiting on you?" : "Running"}** \`${s.pending.name}\` since ${clock(s.pending.at)}`, "```", s.pending.summary, "```");
+  if (s.pending && s.state !== "waiting" && s.state !== "ended") parts.push(`**${s.state === "blocked" ? (s.exact ? "Waiting on you" : "Waiting on you?") : "Running"}** \`${s.pending.name}\` since ${clock(s.pending.at)}`, "```\n" + s.pending.summary + "\n```");
   const t = s.tokens;
   const tokens = [t.context !== undefined && `${fmtTokens(t.context)} context`, t.output !== undefined && `${fmtTokens(t.output)} out`, t.total !== undefined && `${fmtTokens(t.total)} total`].filter(Boolean).join(", ");
   const metadata: Metadata[] = [

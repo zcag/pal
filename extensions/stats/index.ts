@@ -49,6 +49,14 @@ const cfg = () => settings.get<Settings>();
 const labels: { [K in ItemId]: Label[K] } = { cpu: "percent", memory: "percent", disk: "free", network: "rate", load: "one" };
 const interval = () => Math.max(MIN_INTERVAL, Number(cfg().interval) || 3);
 
+/**
+ * What the builders below read besides the sample (the popovers, the
+ * strip's faces, the palette's rows): the module's live state here, a
+ * made-up one in fixture.ts, which draws the store screenshots with them.
+ */
+export type Ctx = { history: History; theme: Theme; interval: number; labels: { [K in ItemId]: Label[K] }; hide: string[]; wifi: { iface?: string; ssid?: string }; focus: Partial<Record<ItemId, string>> };
+const live = (): Ctx => ({ history, theme, interval: interval(), labels, hide: (cfg().disk_hide ?? []).map(String), wifi: wifiInfo, focus });
+
 // ---- the loop ---------------------------------------------------------------
 
 /** One sample at a time: the sampler's deltas are against its last call, and five renders arrive together at load. */
@@ -108,26 +116,25 @@ function start() {
 const roundTo = (n: number, places = 1) => Number(n.toFixed(places));
 const topOf = (s: Sample): Proc | undefined => (s.procs ? topByCpu(s.procs)[0] : undefined);
 /** The volume the strip speaks for: the startup disk, else the first not hidden by `disk_hide`. */
-function shownVolumes(s: Sample): Volume[] {
-  const hide = new Set((cfg().disk_hide ?? []).map(String));
+function shownVolumes(s: Sample, c = live()): Volume[] {
+  const hide = new Set(c.hide);
   return s.volumes.filter((v) => !hide.has(v.mount) && !hide.has(v.name));
 }
 const mainVolume = (vols: Volume[]) => vols.find((v) => v.mount === "/") ?? vols[0];
 /** What the network palette would say about an interface: the Wi-Fi one by its SSID, a tunnel as VPN. */
-const ifaceView = (i: IfaceRate): Iface => ({ ...i, kind: i.name === wifiInfo.iface ? "Wi-Fi" : /^(utun|tun|tailscale|wg)/.test(i.name) ? "VPN" : /^bridge/.test(i.name) ? "Bridge" : undefined, ssid: i.name === wifiInfo.iface ? wifiInfo.ssid : undefined });
-const base = () => ({ theme, interval: interval() });
-const ifaces = (s: Sample) => s.net.ifaces.filter(shownIface).sort((a, b) => b.down + b.up - (a.down + a.up) || a.name.localeCompare(b.name)).map(ifaceView);
+const ifaceView = (i: IfaceRate, c: Ctx): Iface => ({ ...i, kind: i.name === c.wifi.iface ? "Wi-Fi" : /^(utun|tun|tailscale|wg)/.test(i.name) ? "VPN" : /^bridge/.test(i.name) ? "Bridge" : undefined, ssid: i.name === c.wifi.iface ? c.wifi.ssid : undefined });
+const ifaces = (s: Sample, c = live()) => s.net.ifaces.filter(shownIface).sort((a, b) => b.down + b.up - (a.down + a.up) || a.name.localeCompare(b.name)).map((i) => ifaceView(i, c));
 
-const focusIndex = (id: ItemId, ids: string[]) => Math.max(0, ids.indexOf(focus[id] ?? ""));
+const focusIndex = (id: ItemId, ids: string[], c = live()) => Math.max(0, ids.indexOf(c.focus[id] ?? ""));
 
-function popoverOf(id: ItemId, s: Sample): View {
-  const procs = s.procs ?? [];
+export function popoverOf(id: ItemId, s: Sample, c = live()): View {
+  const procs = s.procs ?? [], h = c.history, base = { theme: c.theme, interval: c.interval };
   switch (id) {
-    case "cpu": return renderCpu({ ...base(), cpu: s.cpu, load: s.load, uptime: s.uptime, history: history.get("cpu"), procs, focus: focusIndex(id, topByCpu(procs).map((p) => String(p.pid))) });
-    case "memory": return renderMemory({ ...base(), memory: s.memory ?? NO_MEMORY, history: history.get("memory"), procs, focus: focusIndex(id, topByMemory(procs).map((p) => String(p.pid))) });
-    case "disk": { const vols = shownVolumes(s); return renderDisk({ ...base(), volumes: vols, focus: focusIndex(id, vols.map((v) => v.mount)) }); }
-    case "network": { const list = ifaces(s); return renderNetwork({ ...base(), ifaces: list, down: s.net.down, up: s.net.up, downHistory: history.get("down"), upHistory: history.get("up"), focus: focusIndex(id, list.map((i) => i.name)) }); }
-    case "load": return renderLoad({ ...base(), load: s.load, cores: s.cpu.cores.length, history: history.get("load"), uptime: s.uptime, focus: 0 });
+    case "cpu": return renderCpu({ ...base, cpu: s.cpu, load: s.load, uptime: s.uptime, history: h.get("cpu"), procs, focus: focusIndex(id, topByCpu(procs).map((p) => String(p.pid)), c) });
+    case "memory": return renderMemory({ ...base, memory: s.memory ?? NO_MEMORY, history: h.get("memory"), procs, focus: focusIndex(id, topByMemory(procs).map((p) => String(p.pid)), c) });
+    case "disk": { const vols = shownVolumes(s, c); return renderDisk({ ...base, volumes: vols, focus: focusIndex(id, vols.map((v) => v.mount), c) }); }
+    case "network": { const list = ifaces(s, c); return renderNetwork({ ...base, ifaces: list, down: s.net.down, up: s.net.up, downHistory: h.get("down"), upHistory: h.get("up"), focus: focusIndex(id, list.map((i) => i.name), c) }); }
+    case "load": return renderLoad({ ...base, load: s.load, cores: s.cpu.cores.length, history: h.get("load"), uptime: s.uptime, focus: 0 });
   }
 }
 
@@ -143,10 +150,10 @@ function rowIds(id: ItemId, s: Sample): string[] {
   }
 }
 
-function itemOf(id: ItemId, s: Sample): BarItem {
-  const c = labels;
+export function itemOf(id: ItemId, s: Sample, ctx = live()): BarItem {
+  const c = ctx.labels, history = ctx.history;
   const face = (item: Omit<BarItem, "empty" | "menu">, states: BarItem["states"]): BarItem => {
-    const menu = { view: popoverOf(id, s) };
+    const menu = { view: popoverOf(id, s, ctx) };
     return { ...item, menu, empty: { icon: item.icon, title: item.title, tooltip: item.tooltip, menu }, states };
   };
   switch (id) {
@@ -165,7 +172,7 @@ function itemOf(id: ItemId, s: Sample): BarItem {
       return face({ icon: GLYPH.memory, title, tooltip }, { memory: Math.round(share), memory_pressure: m.pressure, swap: m.swapTotal ? Math.round((m.swapUsed / m.swapTotal) * 100) : 0 });
     }
     case "disk": {
-      const vols = shownVolumes(s);
+      const vols = shownVolumes(s, ctx);
       const v = mainVolume(vols);
       if (!v) return { hidden: true, states: { disk: null, disk_free: null, disk_worst: null } };
       const share = (v.used / v.total) * 100;
@@ -177,7 +184,7 @@ function itemOf(id: ItemId, s: Sample): BarItem {
     }
     case "network": {
       const title = c.network === "down" ? `↓${rateShort(s.net.down)}` : c.network === "spark" ? sparkGlyphs(history.get("down"), Math.max(...history.get("down"), 1)) : `↓${rateShort(s.net.down)} ↑${rateShort(s.net.up)}`;
-      const busiest = ifaces(s)[0];
+      const busiest = ifaces(s, ctx)[0];
       const tooltip = [`↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, busiest && [busiest.name, busiest.kind, busiest.ssid, busiest.addr].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
       return face({ icon: GLYPH.network, title, tooltip }, { net_down: Math.round(s.net.down / 1024), net_up: Math.round(s.net.up / 1024) });
     }
@@ -258,9 +265,11 @@ async function onAction(id: ItemId, action: string): Promise<Effect | void> {
 const SECTION = { cpu: "Processor", memory: "Memory", disk: "Disks", network: "Network", busiest: "Busiest processes", largest: "Largest processes", system: "System" };
 /** What the last listing put behind each row: what Enter copies and the detail pane. */
 const known = new Map<string, { value: string; detail: { markdown?: string; metadata: Metadata[] } }>();
+/** The detail pane of a row the last listing built. */
+export const detailOf = (id: string) => known.get(id)?.detail;
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((p): p is [string, string] => !!p[1]).map(([label, value]) => ({ label, value }));
 /** The sparkline as the detail pane's picture: the same SVG the popover draws, as a markdown image. */
-const sparkMd = (series: SparkSeries[], o: { max?: number; floor?: number }) => `![](${sparkline(series, { width: INNER_W, height: 48, theme, ...o })})`;
+const sparkMd = (series: SparkSeries[], o: { max?: number; floor?: number; theme: Theme }) => `![](${sparkline(series, { width: INNER_W, height: 48, ...o })})`;
 const COPY = { id: "copy", title: "Copy" };
 const MONITOR = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "cmd+o" } : { id: "processes", title: "Open Processes", shortcut: "cmd+o" };
 const POPOVER = { id: "popover", title: "Open bar popover", shortcut: "cmd+p" };
@@ -270,19 +279,19 @@ function row(id: string, name: string, subtitle: string, icon: Item["icon"], sec
   return { id, name, subtitle, icon, section, actions: [COPY, MONITOR, POPOVER], ...extra };
 }
 
-function rows(s: Sample, only?: string): Item[] {
-  const out: Item[] = [];
+export function rows(s: Sample, only?: string, c = live()): Item[] {
+  const out: Item[] = [], history = c.history, theme = c.theme;
   const top = topOf(s);
   const [l1, l5, l15] = s.load;
   const cpuLevel = levelOf(s.cpu.total, CPU.warn, CPU.crit);
   out.push(row("cpu", pct(s.cpu.total), ["CPU", `${s.cpu.cores.length} cores`, top && `busiest ${top.name} ${top.cpu.toFixed(0)}%`].filter(Boolean).join(" · "), GLYPH.cpu, SECTION.cpu, pct(s.cpu.total), {
-    markdown: sparkMd([{ values: history.get("cpu"), color: colorOf(cpuLevel) }], { max: 100 }),
+    markdown: sparkMd([{ values: history.get("cpu"), color: colorOf(cpuLevel) }], { max: 100, theme }),
     metadata: meta([["CPU", pct(s.cpu.total)], ["Cores", String(s.cpu.cores.length)], ["Per core", s.cpu.cores.map((c) => pct(c)).join(" ")], ["Load", `${loadText(l1)} ${loadText(l5)} ${loadText(l15)}`], ["Busiest", top && `${top.name} (${top.pid}) ${top.cpu.toFixed(1)}%`]]),
   }, { keywords: ["cpu", "processor", "usage"], accessories: cpuLevel ? [{ tag: cpuLevel === "crit" ? "critical" : "high", color: colorOf(cpuLevel) }] : [] }));
   const per = s.cpu.cores.length ? l1 / s.cpu.cores.length : 0;
   const loadLevel = levelOf(per, LOAD.warn, LOAD.crit);
   out.push(row("load", `${loadText(l1)} ${loadText(l5)} ${loadText(l15)}`, `Load average · 1, 5 and 15 min · ${per.toFixed(2)} per core`, GLYPH.load, SECTION.cpu, `${loadText(l1)} ${loadText(l5)} ${loadText(l15)}`, {
-    markdown: sparkMd([{ values: history.get("load"), color: colorOf(loadLevel) }], { floor: Math.max(1, s.cpu.cores.length) }),
+    markdown: sparkMd([{ values: history.get("load"), color: colorOf(loadLevel) }], { floor: Math.max(1, s.cpu.cores.length), theme }),
     metadata: meta([["1 min", loadText(l1)], ["5 min", loadText(l5)], ["15 min", loadText(l15)], ["Cores", String(s.cpu.cores.length)], ["Per core", per.toFixed(2)]]),
   }, { keywords: ["load", "average", "loadavg"], accessories: loadLevel ? [{ tag: loadLevel === "crit" ? "critical" : "high", color: colorOf(loadLevel) }] : [] }));
   const m = s.memory;
@@ -291,12 +300,12 @@ function rows(s: Sample, only?: string): Item[] {
     const level = m.pressure === "critical" ? "crit" : m.pressure === "warn" ? "warn" : levelOf(share, MEMORY.warn, MEMORY.crit);
     const segs = memorySegments(m).map((x) => `${x.label} ${gb(x.value)}`).join(" · ");
     out.push(row("memory", `${gb(m.used)} used · ${pct(share)}`, `${segs} · pressure ${m.pressure}`, GLYPH.memory, SECTION.memory, `${gb(m.used)} of ${gb(m.total)} (${pct(share)})`, {
-      markdown: sparkMd([{ values: history.get("memory"), color: colorOf(level) }], { max: 100 }),
+      markdown: sparkMd([{ values: history.get("memory"), color: colorOf(level) }], { max: 100, theme }),
       metadata: meta([["Used", `${gb(m.used)} of ${gb(m.total)}`], ...memorySegments(m).map((x): [string, string] => [x.label[0].toUpperCase() + x.label.slice(1), gb(x.value)]), ["Pressure", m.pressure]]),
     }, { keywords: ["memory", "ram", "pressure"], accessories: level ? [{ tag: level === "crit" ? "critical" : m.pressure !== "normal" ? m.pressure : "high", color: colorOf(level) }] : [] }));
     if (m.swapTotal) out.push(row("swap", `${gb(m.swapUsed)} of ${gb(m.swapTotal)}`, `Swap · ${pct((m.swapUsed / m.swapTotal) * 100)} used`, GLYPH.swap, SECTION.memory, `${gb(m.swapUsed)} of ${gb(m.swapTotal)}`, { metadata: meta([["Swap used", gb(m.swapUsed)], ["Swap total", gb(m.swapTotal)]]) }, { keywords: ["swap"] }));
   } else out.push(hint("memory:none", "Memory unavailable", MAC ? "vm_stat answered nothing" : "/proc/meminfo could not be read", { section: SECTION.memory, icon: GLYPH.memory }));
-  const vols = shownVolumes(s);
+  const vols = shownVolumes(s, c);
   for (const v of vols) {
     const level = diskLevel(v);
     const share = v.total ? (v.used / v.total) * 100 : 0;
@@ -305,14 +314,14 @@ function rows(s: Sample, only?: string): Item[] {
     }, { keywords: ["disk", "volume", "storage", "free", v.name], accessories: [...(level ? [{ tag: level === "crit" ? "nearly full" : "filling up", color: colorOf(level) }] : []), { text: pct(share) }], actions: [COPY, { id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "cmd+r" }, POPOVER] }));
   }
   if (!vols.length) out.push(hint("disk:none", "No volumes read", "df answered nothing", { section: SECTION.disk, icon: GLYPH.disk }));
-  const list = ifaces(s);
+  const list = ifaces(s, c);
   for (const i of list) {
     out.push(row(`if:${i.name}`, `↓ ${rate(i.down)} ↑ ${rate(i.up)}`, [i.name, i.kind, i.ssid, i.addr].filter(Boolean).join(" · "), GLYPH.network, SECTION.network, i.addr ?? `${i.name}`, {
       metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid], ["IPv4", i.addr], ["Down", rate(i.down)], ["Up", rate(i.up)], ["Received", gb(i.rx)], ["Sent", gb(i.tx)]]),
     }, { keywords: ["network", "interface", "throughput", i.name, ...(i.ssid ? [i.ssid] : [])], actions: [{ id: "copy", title: "Copy address" }, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
   }
   out.push(row("net", `↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, "All physical links", GLYPH.network, SECTION.network, `↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, {
-    markdown: sparkMd([{ values: history.get("down"), color: "blue" }, { values: history.get("up"), color: "violet" }], { floor: 1024 }),
+    markdown: sparkMd([{ values: history.get("down"), color: "blue" }, { values: history.get("up"), color: "violet" }], { floor: 1024, theme }),
     metadata: meta([["Down", rate(s.net.down)], ["Up", rate(s.net.up)], ["Interfaces", list.map((i) => i.name).join(", ") || undefined]]),
   }, { keywords: ["network", "throughput", "bandwidth", "download", "upload"], actions: [COPY, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
   const procs = s.procs ?? [];
@@ -366,7 +375,7 @@ export default {
       },
       detail: async (id) => {
         if (!known.has(id)) rows(last ?? (await ensure()));
-        return known.get(id)?.detail;
+        return detailOf(id);
       },
     },
   },

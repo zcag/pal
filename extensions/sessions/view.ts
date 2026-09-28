@@ -103,15 +103,15 @@ function empty(): ViewNode {
   );
 }
 
+/** One line at the popover's 420 px, so the arrows and `o` (in ⌘K) are left out: with every hint a tmux row's line ran past the edge. */
 function hints(s?: Session): ViewNode {
   const kids: ViewNode[] = [];
   if (s) {
-    kids.push(...keyHint("enter", s.state === "ended" ? "resume" : "focus"), ...keyHint("t", "transcript"), ...keyHint("o", "editor"), ...keyHint("r", "copy resume"));
+    kids.push(...keyHint("enter", s.state === "ended" ? "resume" : "focus"), ...keyHint("t", "transcript"), ...keyHint("r", "copy resume"));
     if (s.state !== "ended") kids.push(...keyHint("x", "kill"));
     if (s.pane) kids.push(...keyHint("s", "send"));
   }
   kids.push(...keyHint("p", "in pal"));
-  if (s) kids.push(...keyHint(["up", "down"], "move"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
 }
 
