@@ -45,10 +45,12 @@ type Palette = {
    * A game surface (a `tree` whose body is a `surface` node): the page is
    * the extension's own, served by the gallery's Vite middleware
    * (vite.config.ts) and framed by the real Surface component; its calls
-   * are answered here, `storage` from this (the game's state, seeded) and
-   * `settings` from this, as the host would.
+   * are answered here, `storage` from this (the game's state, seeded),
+   * `settings` from this, and a `send` by the first entry whose `msg` fields
+   * all match the page's message (the fixture records the extension's own
+   * `onMessage` replies), as the host would.
    */
-  surface?: { storage?: Record<string, unknown>; settings?: Record<string, unknown> };
+  surface?: { storage?: Record<string, unknown>; settings?: Record<string, unknown>; send?: { msg: Record<string, unknown>; reply: unknown }[] };
   /** The manifest's `fallback`: an "Ask <title>" row (or the template, `{query}` filled) under "Use “q” with" when nothing matched, as fallback.rs builds it. */
   fallback?: true | string;
 };
@@ -90,6 +92,10 @@ function Shot({ name, fixture, palette: open, theme }: { name: string; fixture: 
         if (method === "storage.get") return store[params.key as string] ?? null;
         if (method === "storage.set") { store[params.key as string] = params.value; return null; }
         if (method === "settings") return s.settings ?? {};
+        if (method === "send") {
+          const m = (params.msg ?? {}) as Record<string, unknown>;
+          return s.send?.find((r) => Object.entries(r.msg).every(([k, v]) => JSON.stringify(m[k]) === JSON.stringify(v)))?.reply ?? null;
+        }
         return null;
       },
     };

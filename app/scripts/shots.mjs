@@ -60,6 +60,11 @@ async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ });
   // The fixtures' clock: Date reads NOW (timers still run, so a page settles and animates as it would).
   await context.clock.setFixedTime(NOW);
+  // Chance, seeded in every frame (a game's deal, a page's shuffle): the same picture every run (fixture-kit's seeded(42), mulberry32).
+  await context.addInitScript(() => {
+    let a = 42;
+    Math.random = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -75,6 +80,35 @@ async function shoot({ url, viewport, scale, theme, keys, settle, path, raw }) {
   } finally {
     await context.close();
   }
+}
+
+/**
+ * `store.screenshots` in pal.json becomes `list`, the rest of the file as it
+ * was: only the array's text is replaced (a whole-file rewrite reflowed every
+ * hand-formatted manifest), and nothing is written when the list is the same.
+ */
+function writeList(path, list) {
+  const text = readFileSync(path, "utf8");
+  const manifest = JSON.parse(text);
+  if (JSON.stringify(manifest.store?.screenshots ?? null) === JSON.stringify(list)) return;
+  const body = JSON.stringify(list, null, 2);
+  const store = text.search(/"store"\s*:\s*\{/);
+  const at = store < 0 ? -1 : text.slice(store).search(/"screenshots"\s*:\s*\[/);
+  if (at < 0) {
+    (manifest.store ??= {}).screenshots = list;
+    return writeFileSync(path, JSON.stringify(manifest, null, 2) + "\n");
+  }
+  const open = text.indexOf("[", store + at);
+  let depth = 0, end = open, inStr = false;
+  for (; end < text.length; end++) {
+    const c = text[end];
+    if (inStr) { if (c === "\\") end++; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === "[") depth++;
+    else if (c === "]" && --depth === 0) break;
+  }
+  const indent = text.slice(text.lastIndexOf("\n", open) + 1).match(/^\s*/)[0];
+  writeFileSync(path, text.slice(0, open) + body.replace(/\n/g, "\n" + indent) + text.slice(end + 1));
 }
 
 const barUrl = (key, shot, theme) => {
@@ -120,12 +154,7 @@ for (const name of names) {
   if (outDir || broke) continue;
   // The directory is exactly what the fixtures plan: a picture no fixture makes any more goes.
   for (const f of readdirSync(dir)) if (f.endsWith(".png") && !made.has(f)) { rmSync(join(dir, f)); console.log(`${name}/${f}: removed (no fixture plans it)`); }
-  const manifestPath = join(root, "extensions", name, "pal.json");
-  const text = readFileSync(manifestPath, "utf8");
-  const manifest = JSON.parse(text);
-  (manifest.store ??= {}).screenshots = listed.map(({ file, caption, kind }) => ({ file, caption, ...(kind && { kind }) }));
-  const next = JSON.stringify(manifest, null, 2) + (text.endsWith("\n") ? "\n" : "");
-  if (next !== text) writeFileSync(manifestPath, next);
+  writeList(join(root, "extensions", name, "pal.json"), listed.map(({ file, caption, kind }) => ({ file, caption, ...(kind && { kind }) })));
   writeFileSync(join(dir, ".shots.json"), JSON.stringify({ fixtures: fixtureHash(name) }) + "\n");
 }
 await browser.close();
