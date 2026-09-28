@@ -600,7 +600,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   gap: 2px;
   overflow: hidden;
   border-radius: var(--pal-radius-tile, 10px);
-  font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif);
+  /* The symbols font first, as for a glyph icon (icons.css): it has nothing below U+2000, so a digit or a letter still draws from the UI font, and a Nerd Font glyph (a device, a sensor) from it. After the UI font it came too late: system-ui's cascade ends in macOS's last-resort box. */
+  font-family: var(--pal-font-symbols, "Symbols Nerd Font Mono"), var(--pal-font-ui, -apple-system, system-ui, sans-serif);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   user-select: none;
