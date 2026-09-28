@@ -67,23 +67,23 @@
         "caption": "Copy the value, or open the Network settings"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: the Wi-Fi glyph and the network's label",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the signal as a Wi-Fi glyph and the network's name, or the label you gave it",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "The same item on a light menu bar",
+        "file": "bar-menubar-open.png",
+        "caption": "On an open network the glyph turns into a coffee cup, so you know before you type a password",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
+        "file": "bar-popover.png",
         "caption": "A click opens the popover: the connection, interface, address, gateway, signal and DNS, with keys for settings and all addresses",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "The same popover in the dark theme",
+        "file": "bar-popover-open.png",
+        "caption": "An open café network, flagged amber as open in the popover",
         "kind": "bar"
       },
       {
@@ -154,16 +154,16 @@
           "title": "Phone hotspot",
           "item": {
             "icon": "󰄜",
-            "title": "marvin",
-            "tooltip": "en0 · marvin · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1"
+            "title": "iPhone",
+            "tooltip": "en0 · iPhone · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1"
           }
         },
         "open": {
           "title": "Open network",
           "item": {
             "icon": "󰅶",
-            "title": "Kronotrop",
-            "tooltip": "en0 · Kronotrop · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1"
+            "title": "Cafe Guest",
+            "tooltip": "en0 · Cafe Guest · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1"
           }
         },
         "wired": {

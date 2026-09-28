@@ -31,39 +31,39 @@
     "screenshots": [
       {
         "file": "1-devices.png",
-        "caption": "Outputs and inputs, the defaults tagged, a muted device marked, the volume on the right"
+        "caption": "Outputs and inputs in two sections, the defaults tagged, a muted device marked, the volume on the right"
       },
       {
         "file": "2-actions.png",
-        "caption": "What a device can do: set as output, set the volume, mute"
+        "caption": "What a device can do: make it the output, set its volume, mute it"
       },
       {
         "file": "3-volume.png",
-        "caption": "The volume for one device, the percent typed in the bar"
+        "caption": "Set volume with nothing typed in the bar asks for the percent here, 0 to 100"
       },
       {
-        "file": "bar-menubar-dark.png",
-        "caption": "On the menu bar: just after a change, the speaker glyph with the new level",
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: the speaker glyph, and the new level beside it for a moment after a change",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-light.png",
-        "caption": "The same item on a light menu bar",
+        "file": "bar-menubar-call.png",
+        "caption": "The rest of the time one glyph that says where the sound goes: headphones while the AirPods play",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover.png",
+        "file": "bar-popover.png",
         "caption": "A click opens the popover: the output in use on a card with a slider and mute, the other outputs as rows, the input in one line",
         "kind": "bar"
       },
       {
-        "file": "bar-menubar-popover-dark.png",
-        "caption": "The same popover in the dark theme",
+        "file": "bar-popover-call.png",
+        "caption": "On a call through the AirPods with the microphone muted: the input line says so in red",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
-        "caption": "On sketchybar: just after a change, the speaker glyph with the level as the label",
+        "caption": "On sketchybar: the speaker glyph with the level as the label",
         "kind": "bar"
       }
     ],
@@ -179,7 +179,7 @@
         "headphones": {
           "title": "Bluetooth headphones",
           "item": {
-            "icon": "󰣃",
+            "icon": "󰋋",
             "icon_size": 18,
             "icon_width": 31,
             "tooltip": "Px8 · 62%"

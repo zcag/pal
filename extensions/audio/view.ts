@@ -22,7 +22,7 @@ export type BarState = {
   focus: number;
 };
 
-const GLYPH = { output: "\u{f04c3}", headphones: "\u{f08c3}", hdmi: "\u{f04c3}", input: "\u{f036c}", muted: "\u{f075f}", micMuted: "\u{f036d}" };
+const GLYPH = { output: "\u{f04c3}", headphones: "\u{f02cb}", hdmi: "\u{f04c3}", input: "\u{f036c}", muted: "\u{f075f}", micMuted: "\u{f036d}" };
 /** The rows' inner width, and what the name column has left once the glyph, the level and the switch have theirs. */
 const PAD = 8, GLYPH_W = 22, LEVEL_W = 38, SWITCH_W = 34, SLIDER_W = 120;
 const ROW_W = POPOVER_W - 2 * PAD;

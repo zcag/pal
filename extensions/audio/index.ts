@@ -19,7 +19,7 @@ const parse = (row: string): { kind: AudioDevice["kind"]; id: string } => {
 const MIC = "\u{f036c}"; // md-microphone
 const MIC_MUTED = "\u{f036d}";
 const MIC_OFF = "\u{f036e}";
-const VOLUME = { muted: "\u{f075f}", headphones: "\u{f08c3}", speaker: "\u{f04c3}" };
+const VOLUME = { muted: "\u{f075f}", headphones: "\u{f02cb}", speaker: "\u{f04c3}" };
 /**
  * The loudness ramp: one more arc on the same cone each step. Zero is not the
  * bottom of it — it is the same fact as muted, and takes the muted glyph.

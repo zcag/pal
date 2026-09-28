@@ -46,6 +46,8 @@ describe("bluetooth", () => {
     const original = devices;
     try {
       expect(await host.render("bluetooth", "battery")).toMatchObject({ icon: "\u{f00b1}", empty: { icon: "\u{f00b1}" }, states: { low: 0, lowest: 55, connected: 2 } });
+      // Nothing low: the levels above the threshold are green, never the alert's amber.
+      expect(nodes(viewOf(await host.render("bluetooth", "battery")).tree).filter((n): n is Extract<ViewNode, { type: "progress" }> => n.type === "progress").map((p) => [p.value, p.color])).toEqual([[0.55, "green"], [0.75, "green"]]);
       // The threshold is the item's setting, through the ctx as the core sends it.
       const at = (low_threshold: number) => ({ reason: "load", settings: { low_threshold } }) as const;
       devices = devices.map((d) => d.name === "Corne" ? { ...d, connected: true } : d);

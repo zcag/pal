@@ -63,7 +63,8 @@ function glyph(d: BluetoothDevice, low: boolean, threshold: number): ViewNode {
 }
 
 function batteryRow(d: BluetoothDevice, focused: boolean, threshold: number, low: boolean): ViewNode {
-  const color = levelColor(d.battery!, threshold);
+  // Amber and red are the alert's; a level above the threshold is fine, and says so.
+  const color = low ? levelColor(d.battery!, threshold) : "green";
   return row(
     [
       glyph(d, low, threshold),

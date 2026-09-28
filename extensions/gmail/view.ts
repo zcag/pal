@@ -37,12 +37,12 @@ export type BarState = {
 const AVATAR = 28;
 /** A row's inner width (its own padding of one step a side), and the text column left after the avatar, the time and the marks with their gaps. */
 const ROW_W = POPOVER_W - 8, TIME_W = 52, MARK_W = 16, TEXT_W = ROW_W - AVATAR - TIME_W - MARK_W - 3 * 8;
-const STAR = "\u{f04ce}", CLIP = "\u{f0439}";
+const STAR = "\u{f04ce}", CLIP = "\u{f03e2}"; // md-star, md-paperclip
 
 function rowNode(r: BarRow, focused: boolean): ViewNode {
   const marks: ViewNode[] = [];
-  if (r.starred) marks.push(text(STAR, { key: "st", size: "sm", color: "amber" }));
-  else if (r.attached) marks.push(text(CLIP, { key: "at", size: "sm", color: "faint" }));
+  if (r.starred) marks.push(text(STAR, { key: "st", style: "glyph", size: "sm", color: "amber" }));
+  else if (r.attached) marks.push(text(CLIP, { key: "at", style: "glyph", size: "sm", color: "faint" }));
   return row(
     [
       r.avatar ? { type: "image", key: "av", src: r.avatar.image, width: AVATAR, height: AVATAR, mask: "circle", alt: r.who } : { type: "spacer", key: "av", size: AVATAR },

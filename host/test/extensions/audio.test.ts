@@ -166,7 +166,7 @@ describe("audio", () => {
     // Silent is the same fact as muted, not the bottom of the ramp.
     expect(await glyph({ volume: 0 })).toBe("\u{f075f}");
     expect(await glyph({ muted: true, volume: 80 })).toBe("\u{f075f}");
-    expect(await glyph({ transport: "bluetooth", volume: 80 })).toBe("\u{f08c3}");
+    expect(await glyph({ transport: "bluetooth", volume: 80 })).toBe("\u{f02cb}");
     expect(await glyph({ transport: "hdmi", volume: 80 })).toBe("\u{f04c3}");
   });
 

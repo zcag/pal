@@ -12,11 +12,12 @@ export type Hourly = { time?: unknown[]; temperature_2m?: unknown[]; weather_cod
 export type Daily = { time?: unknown[]; weather_code?: unknown[]; temperature_2m_max?: unknown[]; temperature_2m_min?: unknown[]; precipitation_probability_max?: unknown[]; sunrise?: unknown[]; sunset?: unknown[] };
 export type Reading = { place: Place; current: Current; unit: string; windUnit: string; hourly?: Hourly; daily?: Daily };
 
+/** WMO weather code to condition, glyph (md-weather_*: sunny, partly_cloudy, cloudy, fog, rainy, pouring, snowy, lightning_rainy) and tint. */
 export const LOOK: Record<number, [string, string, "muted" | "amber" | "blue" | "teal" | "red"]> = {
   0: ["Clear", "󰖙", "amber"], 1: ["Mostly clear", "󰖕", "amber"], 2: ["Partly cloudy", "󰖕", "amber"], 3: ["Overcast", "󰖐", "muted"],
-  45: ["Fog", "󰖝", "teal"], 48: ["Rime fog", "󰖝", "teal"], 51: ["Light drizzle", "󰖗", "blue"], 53: ["Drizzle", "󰖗", "blue"], 55: ["Heavy drizzle", "󰖖", "blue"],
-  61: ["Light rain", "󰖗", "blue"], 63: ["Rain", "󰖗", "blue"], 65: ["Heavy rain", "󰖖", "blue"], 71: ["Light snow", "󰖑", "blue"], 73: ["Snow", "󰖑", "blue"], 75: ["Heavy snow", "󰖑", "blue"],
-  80: ["Rain showers", "󰖗", "blue"], 81: ["Rain showers", "󰖗", "blue"], 82: ["Violent showers", "󰖖", "red"], 95: ["Thunderstorm", "󰖘", "red"], 96: ["Thunderstorm with hail", "󰖘", "red"], 99: ["Thunderstorm with hail", "󰖘", "red"],
+  45: ["Fog", "󰖑", "teal"], 48: ["Rime fog", "󰖑", "teal"], 51: ["Light drizzle", "󰖗", "blue"], 53: ["Drizzle", "󰖗", "blue"], 55: ["Heavy drizzle", "󰖖", "blue"],
+  61: ["Light rain", "󰖗", "blue"], 63: ["Rain", "󰖗", "blue"], 65: ["Heavy rain", "󰖖", "blue"], 71: ["Light snow", "󰖘", "blue"], 73: ["Snow", "󰖘", "blue"], 75: ["Heavy snow", "󰖘", "blue"],
+  80: ["Rain showers", "󰖗", "blue"], 81: ["Rain showers", "󰖗", "blue"], 82: ["Violent showers", "󰖖", "red"], 95: ["Thunderstorm", "󰙾", "red"], 96: ["Thunderstorm with hail", "󰙾", "red"], 99: ["Thunderstorm with hail", "󰙾", "red"],
 };
 
 /**
@@ -86,7 +87,8 @@ function hourly(r: Reading): ViewNode[] {
       text(clock(time), { size: "xs", color: "muted", align: "center", width: HOURLY_W }),
       text(glyph, { style: "glyph", size: "md", align: "center", width: HOURLY_W }),
       text(temp === undefined ? "—" : `${fmt(temp)}${r.unit}`, { style: "number", size: "sm", align: "center", width: HOURLY_W }),
-      text(rain !== undefined && rain >= PRECIP_MIN ? `${fmt(rain)}%` : "", { size: "xs", color: "blue", align: "center", width: HOURLY_W }),
+      // A dry hour keeps the line (a no-break space, not ""), or its column is a line short and the strip's rows no longer line up.
+      text(rain !== undefined && rain >= PRECIP_MIN ? `${fmt(rain)}%` : "\u00a0", { size: "xs", color: "blue", align: "center", width: HOURLY_W }),
     ], { key: `h-${time}`, gap: 0 }));
   }
   if (!cols.length) return [];

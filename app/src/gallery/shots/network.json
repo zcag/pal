@@ -53,7 +53,7 @@
               },
               {
                 "label": "Security",
-                "value": "WPA2 Personal"
+                "value": "WPA2_PSK"
               },
               {
                 "label": "IPv4",
@@ -111,7 +111,7 @@
               },
               {
                 "label": "Security",
-                "value": "WPA2 Personal"
+                "value": "WPA2_PSK"
               },
               {
                 "label": "IPv4",
@@ -319,15 +319,15 @@
         {
           "id": "public",
           "name": "203.0.113.57",
-          "subtitle": "Public IP · Amsterdam, NL · AS1136 KPN B.V.",
+          "subtitle": "Public IP · Istanbul, TR · AS64512 Example Fiber",
           "icon": "󰇧",
           "keywords": [
             "public",
             "wan",
             "external",
             "ip",
-            "NL",
-            "AS1136 KPN B.V."
+            "TR",
+            "AS64512 Example Fiber"
           ],
           "section": "Internet",
           "actions": [
@@ -348,23 +348,23 @@
               },
               {
                 "label": "City",
-                "value": "Amsterdam"
+                "value": "Istanbul"
               },
               {
                 "label": "Region",
-                "value": "North Holland"
+                "value": "Istanbul"
               },
               {
                 "label": "Country",
-                "value": "NL"
+                "value": "TR"
               },
               {
                 "label": "Organisation",
-                "value": "AS1136 KPN B.V."
+                "value": "AS64512 Example Fiber"
               },
               {
                 "label": "Fetched",
-                "value": "10:42:17"
+                "value": "14:31:05"
               }
             ]
           }
