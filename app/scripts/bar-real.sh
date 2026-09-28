@@ -35,7 +35,7 @@ for e in "$@"; do
   w=$(osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSScreen.mainScreen.frame.size.width')
   screencapture -x -R"0,0,$w,$h" "$out/before.png"
   # A locked or sleeping display captures black: nothing to compare then.
-  [ "$(magick "$out/before.png" -format "%[fx:round(mean*1000)]" info:)" -gt 5 ] || { echo "the bar captures black: is the display asleep or locked?"; exit 1; }
+  [ "$(magick "$out/before.png" -threshold 25% -format "%[fx:round(mean*1000)]" info:)" -gt 8 ] || { echo "the bar captures black: is the display asleep or locked?"; exit 1; }
   sketchybar "${args[@]}"
   sleep 1.5
   screencapture -x -R"0,0,$w,$h" "$out/after.png"
