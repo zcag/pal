@@ -2,10 +2,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { checkBarItem, checkView, type PrivacyUse, type View, type ViewNode } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
+import { duration } from "../../../extensions/privacy/view.ts";
 
-const camera: PrivacyUse = { sensor: "camera", app: null, process: null, pid: null, path: null, device: "MacBook Pro Camera" };
-const zoom: PrivacyUse = { sensor: "microphone", app: "zoom.us", process: null, pid: 812, path: "/Applications/zoom.us.app", device: null };
-const ffmpeg: PrivacyUse = { sensor: "microphone", app: "kitty", process: "ffmpeg", pid: 740, path: "/Applications/kitty.app", device: null };
+const now = () => Math.floor(Date.now() / 1000);
+const camera = (): PrivacyUse => ({ sensor: "camera", app: "zoom.us", process: null, pid: 812, path: "/Applications/zoom.us.app", device: "MacBook Pro Camera", since: now() - 23 * 60 });
+const zoom = (): PrivacyUse => ({ sensor: "microphone", app: "zoom.us", process: null, pid: 812, path: "/Applications/zoom.us.app", device: null, since: now() - 22 * 60 });
+const ffmpeg = (): PrivacyUse => ({ sensor: "microphone", app: "kitty", process: "ffmpeg", pid: 740, path: "/Applications/kitty.app", device: null, since: now() - 5 });
+const bare = (): PrivacyUse => ({ sensor: "camera", app: null, process: null, pid: null, path: null, device: "Studio Display Camera", since: null });
 let uses: PrivacyUse[] = [];
 let host: Host;
 beforeAll(async () => {
@@ -25,41 +28,59 @@ describe("privacy", () => {
     for (const m of Object.values(loaded.bar![0].mocks!)) checkBarItem(m.item);
   });
 
-  test("bar: nothing in use is the clear shape with every state false; the rule hides it", async () => {
-    uses = [];
-    const item = await host.render("privacy", "in-use");
-    checkBarItem(item);
-    expect(item).toMatchObject({ empty: { tooltip: "Nothing is using the camera, the microphone or the screen" }, states: { camera: false, microphone: false, screen: false } });
-    expect(item.background).toBeUndefined();
-    expect(texts(viewOf(item))).toContain("Nothing is using the camera, the microphone or the screen");
+  test("durations read in words", () => {
+    expect(duration(null, 1000)).toBe("");
+    expect(duration(1000, 1030)).toBe("just now");
+    expect(duration(1000, 1000 + 23 * 60 + 10)).toBe("23 min");
+    expect(duration(1000, 1000 + 60 * 60)).toBe("1 h");
+    expect(duration(1000, 1000 + 65 * 60)).toBe("1 h 5 min");
   });
 
-  test("bar: a glyph per sensor on amber, the apps in the tooltip; the popover focuses and shows", async () => {
-    uses = [camera, zoom, ffmpeg];
-    const item = await host.render("privacy", "in-use");
-    checkBarItem(item);
-    expect(item).toMatchObject({ icon: "\u{f05a0} \u{f036c}", background: "amber", tooltip: "Camera: MacBook Pro Camera · Microphone: zoom.us, kitty", states: { camera: true, microphone: true, screen: false } });
+  test("bar: nothing in use is the clear shape with every state false; the rule hides it", async () => {
+    uses = [];
+    const item = checkBarItem(await host.render("privacy", "in-use"));
+    expect(item).toMatchObject({ empty: { tooltip: "Nothing is using the camera, the microphone or the screen" }, states: { camera: false, microphone: false, screen: false } });
+    expect(item.background).toBeUndefined();
     const v = viewOf(item);
-    expect(texts(v).slice(0, 6)).toEqual(["MacBook Pro Camera", "Camera", "zoom.us", "Microphone", "kitty", "Microphone · ffmpeg"]);
-    expect(v.actions!.filter((a) => !a.hidden).map((a) => [a.id, a.title])).toEqual([["show", "Open privacy settings"], ["settings", "Open Privacy & Security settings"]]);
-    expect(viewOf(await host.barAction("privacy", "in-use", "focus:microphone:740")).actions![0]).toMatchObject({ id: "show", title: "Show kitty" });
+    expect(v.title).toBe("All clear");
+    expect(texts(v)).toContain("Apps show up here the moment one does.");
+  });
+
+  test("bar: a glyph per sensor on amber; the popover is one row per app with what it holds and how long", async () => {
+    uses = [camera(), zoom(), ffmpeg()];
+    const item = checkBarItem(await host.render("privacy", "in-use"));
+    expect(item).toMatchObject({ icon: "\u{f05a0} \u{f036c}", background: "amber", tooltip: "Camera: zoom.us · Microphone: zoom.us, kitty", states: { camera: true, microphone: true, screen: false } });
+    const v = viewOf(item);
+    expect(v.title).toBe("Camera and microphone in use");
+    expect(texts(v).slice(0, 11)).toEqual(["zoom.us", "\u{f05a0}", "Camera", "\u{f036c}", "Microphone", "23 min", "kitty", "ffmpeg", "\u{f036c}", "Microphone", "just now"]);
+    const rows = nodes(v.tree).filter((n): n is Extract<ViewNode, { type: "stack" }> => n.type === "stack" && !!n.action?.startsWith("focus:"));
+    expect(rows.map((r) => [r.action, !!r.selected])).toEqual([["focus:zoom.us", true], ["focus:kitty", false]]);
+    expect(v.actions!.filter((a) => !a.hidden).map((a) => [a.id, a.title])).toEqual([["show", "Show zoom.us"], ["settings", "Open Privacy & Security settings"]]);
+    expect(viewOf(await host.barAction("privacy", "in-use", "down")).actions![0]).toMatchObject({ id: "show", title: "Show kitty" });
     expect(await host.barAction("privacy", "in-use", "show")).toEqual({ open: "/Applications/kitty.app" });
-    expect(viewOf(await host.barAction("privacy", "in-use", "down")).actions![0]).toMatchObject({ title: "Open privacy settings" });
+    expect(viewOf(await host.barAction("privacy", "in-use", "focus:zoom.us")).actions![0]).toMatchObject({ title: "Show zoom.us" });
+  });
+
+  test("bar: a camera no app has claimed is its own row that opens the settings", async () => {
+    uses = [bare()];
+    const v = viewOf(await host.render("privacy", "in-use"));
+    expect(texts(v).slice(0, 2)).toEqual(["\u{f05a0}", "Studio Display Camera"]);
+    expect(v.actions!.find((a) => a.id === "show")).toMatchObject({ title: "Open privacy settings" });
   });
 
   test("bar: a screen share adds its glyph and names its app", async () => {
-    uses = [{ sensor: "screen", app: "Google Chrome", process: null, pid: 900, path: "/Applications/Google Chrome.app", device: null }, zoom];
+    uses = [zoom(), { sensor: "screen", app: "Google Chrome", process: null, pid: 900, path: "/Applications/Google Chrome.app", device: null, since: now() - 3600 }];
     const item = await host.render("privacy", "in-use");
     expect(item).toMatchObject({ icon: "\u{f036c} \u{f0e51}", tooltip: "Microphone: zoom.us · Screen: Google Chrome", states: { camera: false, microphone: true, screen: true } });
+    expect(viewOf(item).title).toBe("Microphone and screen in use");
   });
 
-  test("palette: the same rows, Enter brings the app forward; a use gone since is a no-op", async () => {
-    uses = [zoom];
-    const rows = await host.list("privacy", "privacy");
-    expect(rows).toMatchObject([{ id: "microphone:812", name: "zoom.us", subtitle: "Microphone", icon: { app: "/Applications/zoom.us.app" } }]);
-    expect(await host.pick("privacy", "privacy", "microphone:812")).toEqual({ open: "/Applications/zoom.us.app" });
+  test("palette: one row per app with its duration; Enter brings it forward; gone since is a no-op", async () => {
+    uses = [camera(), zoom()];
+    expect(await host.list("privacy", "privacy")).toMatchObject([{ id: "zoom.us", name: "zoom.us", subtitle: "Camera, Microphone", icon: { app: "/Applications/zoom.us.app" }, accessories: [{ text: "23 min" }] }]);
+    expect(await host.pick("privacy", "privacy", "zoom.us")).toEqual({ open: "/Applications/zoom.us.app" });
     uses = [];
-    expect(await host.pick("privacy", "privacy", "microphone:812")).toEqual({ keep: true });
+    expect(await host.pick("privacy", "privacy", "zoom.us")).toEqual({ keep: true });
     expect(await host.list("privacy", "privacy")).toMatchObject([{ id: "hint:none", name: "Nothing is using the camera, the microphone or the screen" }]);
   });
 });

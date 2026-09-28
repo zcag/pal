@@ -525,6 +525,8 @@ export type PrivacyUse = {
   path: string | null;
   /** The camera's name. */
   device: string | null;
+  /** When it started, Unix seconds: from the log line that first named it (macOS), else when pal first saw it. */
+  since: number | null;
 };
 
 /** What uses the camera, the microphone or the screen now (`pal_core::privacy`): Control Center's sensor log and CoreAudio on macOS, `pactl` and `/dev/video*` on Linux. The first call starts a watcher that fires the `privacy` bar trigger on every change. */

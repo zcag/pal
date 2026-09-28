@@ -78,6 +78,17 @@ pub fn at(c: u32, percent: u32) -> u32 {
     (a << 24) | (c & 0x00FF_FFFF)
 }
 
+/// Black or white ink for text on `c`, by WCAG luminance (the view tree's
+/// `inkOn`: 0.179 is where the two contrast ratios meet).
+pub fn ink_on(c: u32) -> u32 {
+    let lin = |v: u32| {
+        let v = (v & 0xFF) as f32 / 255.0;
+        if v <= 0.04045 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
+    };
+    let l = 0.2126 * lin(c >> 16) + 0.7152 * lin(c >> 8) + 0.0722 * lin(c);
+    if l > 0.179 { 0xFF1A_1A1F } else { 0xFFFF_FFFF }
+}
+
 /// The sketchybar spelling of an `0xAARRGGBB`.
 pub fn spell(c: u32) -> String {
     format!("0x{c:08x}")

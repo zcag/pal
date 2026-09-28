@@ -68,7 +68,7 @@ export type BarItem = {
   tooltip?: string;
   /** Seconds until the next `render`, this once (prs: 60 while checks run, else the manifest's `every`). */
   refresh?: number;
-  /** A named/hex background tint; sketchybar only. */
+  /** A named/hex background tint; sketchybar only: a 22 pt band with rounded ends, the ink by contrast unless `color` names one. */
   background?: string;
   /** Independent per-render glyph and title sizes in points. */
   icon_size?: number;

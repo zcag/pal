@@ -99,6 +99,10 @@ fn input_script(key: &str, item: &BarItem, hover: bool, palette: &Palette, pal_b
 /// The items for `key` as drawn: the model mapped to sketchybar's
 /// properties (`docs/design/bar.md`, Mapping). `pal_bin` is the absolute
 /// path the click and hover scripts run.
+/// An item's `background` band: 22 pt tall (it fits the 26 pt bar of an external display) with 6 pt corners.
+const BAND_HEIGHT: &str = "22";
+const BAND_RADIUS: &str = "6";
+
 pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Rendered {
     let item = &draw.item;
     let look = &draw.look;
@@ -114,7 +118,12 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         };
         colors::spell(colors::at(c, look.opacity))
     };
-    let item_color = color(draw.tint());
+    let background = item.background.as_deref().and_then(|b| palette.resolve(b));
+    // On a band the plain ink is the band's contrast, not the bar's text colour.
+    let item_color = match (background, draw.tint()) {
+        (Some(bg), None | Some("text")) => colors::spell(colors::at(colors::ink_on(bg), look.opacity)),
+        _ => color(draw.tint()),
+    };
     let spacing = look.spacing.to_string();
     let mut p = Props::new();
     set(&mut p, "drawing", if item.hidden { "off" } else { "on" });
@@ -167,9 +176,12 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "label.color", item_color.clone());
     set(&mut p, "label.max_chars", look.max_chars.to_string());
     set(&mut p, "background.drawing", if item.background.is_some() { "on" } else { "off" });
-    if let Some(background) = &item.background {
-        set(&mut p, "background.color", palette.hex_of(background).unwrap_or_else(|| colors::spell(text)));
+    if item.background.is_some() {
+        set(&mut p, "background.color", colors::spell(background.unwrap_or(text)));
     }
+    // A band, not a slab: inset from the bar's edges with rounded ends; 0 is sketchybar's full height for the hover wash.
+    set(&mut p, "background.height", if item.background.is_some() { BAND_HEIGHT } else { "0" });
+    set(&mut p, "background.corner_radius", if item.background.is_some() { BAND_RADIUS } else { "0" });
     let trailing = item.segments.is_empty() && item.count().is_none();
     // Icon only: the icon takes the label's right padding (the owner's `icon_only`); the look's spacing before whatever follows it.
     let icon_right = if title.is_empty() && trailing { "8".to_string() } else { spacing.clone() };
@@ -584,6 +596,21 @@ mod tests {
 
     fn pal() -> Palette {
         Palette::new(true, &BTreeMap::new())
+    }
+
+    #[test]
+    fn a_background_is_a_rounded_band_with_contrasting_ink() {
+        let r = props("privacy/in-use", &draw(json!({ "icon": "x", "background": "amber" }), "right", false), &pal(), "/pal");
+        let m = &r.props["pal.privacy.in-use"];
+        assert_eq!((m["background.drawing"].as_str(), m["background.color"].as_str()), ("on", "0xfff0b25a"));
+        assert_eq!((m["background.height"].as_str(), m["background.corner_radius"].as_str()), ("22", "6"));
+        assert_eq!(m["icon.color"], "0xff1a1a1f", "dark ink on the light amber");
+        let blue = props("x/y", &draw(json!({ "icon": "x", "background": "#1e3a8a" }), "right", false), &pal(), "/pal");
+        assert_eq!(blue.props["pal.x.y"]["icon.color"], "0xffffffff", "white ink on a dark band");
+        let own = props("x/y", &draw(json!({ "icon": "x", "background": "amber", "color": "red" }), "right", false), &pal(), "/pal");
+        assert_eq!(own.props["pal.x.y"]["icon.color"], "0xffff8a82", "an item's own colour wins");
+        let plain = props("x/y", &draw(json!({ "icon": "x" }), "right", false), &pal(), "/pal");
+        assert_eq!((plain.props["pal.x.y"]["background.height"].as_str(), plain.props["pal.x.y"]["background.drawing"].as_str()), ("0", "off"));
     }
 
     #[test]

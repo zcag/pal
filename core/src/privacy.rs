@@ -46,14 +46,43 @@ pub struct Use {
     pub path: Option<String>,
     /// The camera's name.
     pub device: Option<String>,
+    /// When it started, Unix seconds: the log line that first named it (macOS's camera and screen, and a microphone the log also named), else when pal first saw it.
+    pub since: Option<u64>,
 }
 
 /// Everything in use, cameras first, one row per app per sensor.
 pub fn in_use() -> Result<Vec<Use>> {
     let mut v = platform::in_use()?;
     v.sort_by(|a, b| (a.sensor, &a.app, &a.device).cmp(&(b.sensor, &b.app, &b.device)));
-    v.dedup_by(|a, b| a.sensor == b.sensor && a.app.is_some() && a.app == b.app && a.device == b.device);
+    v.dedup_by(|a, b| {
+        let same = a.sensor == b.sensor && a.app.is_some() && a.app == b.app && a.device == b.device;
+        if same {
+            b.since = b.since.min(a.since).or(b.since).or(a.since);
+        }
+        same
+    });
+    stamp(&mut v);
     Ok(v)
+}
+
+/// Fill in `since` from when pal first saw each use, keeping an earlier one the platform knew.
+fn stamp(v: &mut [Use]) {
+    static SEEN: Mutex<Vec<(String, u64)>> = Mutex::new(vec![]);
+    let key = |u: &Use| format!("{:?}\0{}\0{}\0{}", u.sensor, u.app.as_deref().unwrap_or(""), u.device.as_deref().unwrap_or(""), u.pid.unwrap_or(0));
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+    let mut seen = SEEN.lock().unwrap();
+    seen.retain(|(k, _)| v.iter().any(|u| key(u) == *k));
+    for u in v {
+        let k = key(u);
+        let first = match seen.iter().find(|(x, _)| *x == k) {
+            Some((_, t)) => *t,
+            None => {
+                seen.push((k, now));
+                now
+            }
+        };
+        u.since = Some(u.since.map_or(first, |s| s.min(first)));
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -100,6 +129,35 @@ fn check() {
     }
 }
 
+/// One thing Control Center says is in use: `kind` (`cam`, `mic`, `scr`, `loc`), `who`, and since when (Unix seconds).
+type Attribution = (String, String, u64);
+
+/// The next state after a log line at `at` listing `now`: what was already there keeps its start, what is new starts at `at`.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn advance(prev: &[Attribution], now: Vec<(String, String)>, at: u64) -> Vec<Attribution> {
+    now.into_iter().map(|(k, w)| {
+        let since = prev.iter().find(|(pk, pw, _)| *pk == k && *pw == w).map_or(at, |p| p.2);
+        (k, w, since)
+    }).collect()
+}
+
+/// The log's `timestamp`, `2026-09-28 20:31:01.337055+0300`, as Unix seconds.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn parse_log_time(t: &str) -> Option<u64> {
+    let n = |r: std::ops::Range<usize>| t.get(r)?.parse::<i64>().ok();
+    let (y, mo, d, h, mi, s) = (n(0..4)?, n(5..7)?, n(8..10)?, n(11..13)?, n(14..16)?, n(17..19)?);
+    let tz = t.rfind(['+', '-']).filter(|&i| i > 19)?;
+    let sign = if &t[tz..=tz] == "-" { -1 } else { 1 };
+    let off = sign * (n(tz + 1..tz + 3)? * 3600 + n(tz + 3..tz + 5)? * 60);
+    // Days from the civil date (Howard Hinnant's algorithm).
+    let y = if mo <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * ((mo + 9) % 12) + 2) / 5 + d - 1;
+    let days = era * 146097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719468;
+    u64::try_from(days * 86400 + h * 3600 + mi * 60 + s - off).ok()
+}
+
 /// Control Center's `Active activity attributions changed to [...]`: each `kind:who` (`cam`, `mic`, `scr`, `loc`).
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn parse_attributions(message: &str) -> Option<Vec<(String, String)>> {
@@ -129,6 +187,7 @@ fn parse_source_outputs(json: &str) -> Vec<Use> {
             pid: prop(o, "application.process.id").and_then(|p| p.parse().ok()),
             path: None,
             device: None,
+            since: None,
         })
         .collect()
 }
@@ -217,7 +276,7 @@ mod platform {
                 let device = (cmio_get(id, kCMIOObjectPropertyName, &mut name) && !name.is_null())
                     // SAFETY: a +1 reference, released with the CFRetained.
                     .then(|| unsafe { CFRetained::from_raw(NonNull::new_unchecked(name.cast_mut())) }.to_string());
-                Use { sensor: Sensor::Camera, app: None, process: None, pid: None, path: None, device }
+                Use { sensor: Sensor::Camera, app: None, process: None, pid: None, path: None, device, since: None }
             })
             .collect()
     }
@@ -238,7 +297,7 @@ mod platform {
         let name = app.as_ref().and_then(|a| a.localizedName()).map(|s| s.to_string()).or_else(|| proc_name(owner));
         let path = app.as_ref().and_then(|a| a.bundleURL()).and_then(|u| u.path()).map(|p| p.to_string());
         let process = if owner != pid { proc_name(pid) } else { None };
-        Use { sensor, app: name, process, pid: Some(owner as u32), path, device: None }
+        Use { sensor, app: name, process, pid: Some(owner as u32), path, device: None, since: None }
     }
 
     fn microphones() -> Vec<Use> {
@@ -259,17 +318,20 @@ mod platform {
     }
 
     const PREDICATE: &str = r#"subsystem == "com.apple.controlcenter" AND category == "sensor-indicators" AND eventMessage BEGINSWITH "Active activity attributions""#;
-    /// What Control Center last said is in use; None until the log has been read.
-    static ATTRIBUTIONS: Mutex<Option<Vec<(String, String)>>> = Mutex::new(None);
+    /// What Control Center last said is in use, each with its start; None until the log has been read.
+    static ATTRIBUTIONS: Mutex<Option<Vec<Attribution>>> = Mutex::new(None);
 
-    fn message(line: &str) -> Option<Vec<(String, String)>> {
+    /// A log line's attributions and its time.
+    fn message(line: &str) -> Option<(Vec<(String, String)>, u64)> {
         let v: serde_json::Value = serde_json::from_str(line).ok()?;
-        parse_attributions(v.get("eventMessage")?.as_str()?)
+        Some((parse_attributions(v.get("eventMessage")?.as_str()?)?, parse_log_time(v.get("timestamp")?.as_str()?)?))
     }
 
-    fn set(a: Vec<(String, String)>) {
-        *ATTRIBUTIONS.lock().unwrap() = Some(a);
-        super::check();
+    fn apply(line: &str) {
+        if let Some((now, at)) = message(line) {
+            let mut a = ATTRIBUTIONS.lock().unwrap();
+            *a = Some(advance(a.as_deref().unwrap_or(&[]), now, at));
+        }
     }
 
     /// Once, on a thread: the last attributions of the past day (a few
@@ -283,16 +345,18 @@ mod platform {
             std::thread::Builder::new()
                 .name("privacy-log".into())
                 .spawn(|| {
-                    let last = crate::tool::run("/usr/bin/log", &["show", "--last", "1d", "--style", "ndjson", "--predicate", PREDICATE]).ok().and_then(|out| out.lines().rev().find_map(message));
-                    set(last.unwrap_or_default());
+                    // The whole day in order, so a use still on from then keeps the time it started.
+                    let day = crate::tool::run("/usr/bin/log", &["show", "--last", "1d", "--style", "ndjson", "--predicate", PREDICATE]).unwrap_or_default();
+                    day.lines().for_each(apply);
+                    ATTRIBUTIONS.lock().unwrap().get_or_insert_with(Vec::new);
+                    super::check();
                     let script = format!("/usr/bin/log stream --style ndjson --predicate '{PREDICATE}' </dev/null & p=$!; cat >/dev/null; kill $p");
                     loop {
                         if let Ok(mut child) = Command::new("/bin/sh").args(["-c", &script]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn() {
                             let _keep = child.stdin.take();
                             for line in std::io::BufReader::new(child.stdout.take().unwrap()).lines().map_while(|l| l.ok()) {
-                                if let Some(a) = message(&line) {
-                                    set(a);
-                                }
+                                apply(&line);
+                                super::check();
                             }
                             drop(_keep);
                             let _ = child.wait();
@@ -305,32 +369,37 @@ mod platform {
     }
 
     /// A row for what the log names: a bundle id (its app, running or installed), a bare executable, or `System` (macOS itself).
-    fn resolve(sensor: Sensor, who: &str, device: Option<String>) -> Use {
+    fn resolve(sensor: Sensor, who: &str, device: Option<String>, since: u64) -> Use {
         let id = NSString::from_str(who);
         let app = NSRunningApplication::runningApplicationsWithBundleIdentifier(&id).firstObject();
         let url = app.as_ref().and_then(|a| a.bundleURL()).or_else(|| NSWorkspace::sharedWorkspace().URLForApplicationWithBundleIdentifier(&id));
         let path = url.and_then(|u| u.path()).map(|p| p.to_string());
         let stem = || path.as_deref().and_then(|p| std::path::Path::new(p).file_stem()).map(|s| s.to_string_lossy().into_owned());
         let name = if who == "System" { "macOS".into() } else { app.as_ref().and_then(|a| a.localizedName()).map(|s| s.to_string()).or_else(stem).unwrap_or_else(|| who.to_string()) };
-        Use { sensor, app: Some(name), process: None, pid: app.map(|a| a.processIdentifier() as u32), path, device }
+        Use { sensor, app: Some(name), process: None, pid: app.map(|a| a.processIdentifier() as u32), path, device, since: Some(since) }
     }
 
     pub fn in_use() -> Result<Vec<Use>> {
         follow();
         let said = ATTRIBUTIONS.lock().unwrap().clone().unwrap_or_default();
-        let of = |kind: &'static str| said.iter().filter(move |(k, _)| k == kind).map(|(_, w)| w.as_str());
+        let of = |kind: &'static str| said.iter().filter(move |(k, _, _)| k == kind).map(|(_, w, t)| (w.as_str(), *t));
         // A camera the log has not named yet (or never will) is still a camera: the device, no app.
         let devices = cameras();
         let mut v: Vec<Use> = if of("cam").next().is_none() {
             devices
         } else {
             let device = (devices.len() == 1).then(|| devices[0].device.clone()).flatten();
-            of("cam").map(|w| resolve(Sensor::Camera, w, device.clone())).collect()
+            of("cam").map(|(w, t)| resolve(Sensor::Camera, w, device.clone(), t)).collect()
         };
-        v.extend(microphones());
-        v.extend(of("scr").map(|w| resolve(Sensor::Screen, w, None)));
+        // CoreAudio names the microphone's app; the log, when it named the same app, says since when.
+        let named: Vec<(Option<String>, u64)> = of("mic").map(|(w, t)| (resolve(Sensor::Microphone, w, None, t).app, t)).collect();
+        v.extend(microphones().into_iter().map(|mut u| {
+            u.since = named.iter().filter(|(a, _)| *a == u.app).map(|(_, t)| *t).min();
+            u
+        }));
+        v.extend(of("scr").map(|(w, t)| resolve(Sensor::Screen, w, None, t)));
         if running("screensharingd") {
-            v.push(Use { sensor: Sensor::Screen, app: Some("Screen Sharing".into()), process: None, pid: None, path: None, device: None });
+            v.push(Use { sensor: Sensor::Screen, app: Some("Screen Sharing".into()), process: None, pid: None, path: None, device: None, since: None });
         }
         Ok(v)
     }
@@ -349,7 +418,7 @@ mod platform {
             let dev = fds.flatten().filter_map(|fd| std::fs::read_link(fd.path()).ok()).find(|l| l.to_string_lossy().starts_with("/dev/video"));
             if let Some(dev) = dev {
                 let comm = std::fs::read_to_string(p.path().join("comm")).ok().map(|s| s.trim().to_string());
-                v.push(Use { sensor: Sensor::Camera, app: comm, process: None, pid: Some(pid), path: None, device: Some(dev.to_string_lossy().into_owned()) });
+                v.push(Use { sensor: Sensor::Camera, app: comm, process: None, pid: Some(pid), path: None, device: Some(dev.to_string_lossy().into_owned()), since: None });
             }
         }
         v
@@ -389,6 +458,24 @@ mod tests {
         assert_eq!(v.iter().map(|u| (u.app.as_deref(), u.pid)).collect::<Vec<_>>(), [(Some("Firefox"), Some(4242)), (Some("arecord"), Some(77))]);
         assert!(v.iter().all(|u| u.sensor == Sensor::Microphone));
         assert!(parse_source_outputs("not json").is_empty());
+    }
+
+    #[test]
+    fn a_use_keeps_the_time_it_first_appeared() {
+        let p = |v: &[(&str, &str)]| v.iter().map(|(k, w)| (k.to_string(), w.to_string())).collect::<Vec<_>>();
+        let a = advance(&[], p(&[("cam", "zoom")]), 100);
+        let b = advance(&a, p(&[("cam", "zoom"), ("mic", "zoom")]), 160);
+        assert_eq!(b, [("cam".into(), "zoom".into(), 100), ("mic".into(), "zoom".into(), 160)]);
+        let c = advance(&advance(&b, p(&[]), 200), p(&[("cam", "zoom")]), 300);
+        assert_eq!(c, [("cam".into(), "zoom".into(), 300)]);
+    }
+
+    #[test]
+    fn log_times_with_their_offset() {
+        assert_eq!(parse_log_time("2026-09-28 20:31:01.337055+0300"), Some(1790616661));
+        assert_eq!(parse_log_time("1970-01-01 00:00:00.000000+0000"), Some(0));
+        assert_eq!(parse_log_time("2024-02-29 23:59:59.5-0130"), Some(1709256599));
+        assert_eq!(parse_log_time("nope"), None);
     }
 
     #[test]

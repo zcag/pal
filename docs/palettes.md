@@ -2237,8 +2237,10 @@ No extension settings. `battery` item settings, `[bar.items."bluetooth/battery".
 ## Privacy (`privacy`)
 
 What is using the camera, the microphone or the screen right now, over
-the core's privacy capability, cameras first. Live: read again on every
-show, so `camera` or `mic` at the root answers who has it.
+the core's privacy capability: one row per app, what it holds and for how
+long (from the log line that first named it, else from when pal first saw
+it). Live: read again on every show, so `camera` or `mic` at the root
+answers who has it.
 
 - **macOS**: the camera and the screen from what drives the menu bar's
   dots, Control Center's `sensor-indicators` log (`Active activity
@@ -2262,7 +2264,8 @@ show, so `camera` or `mic` at the root answers who has it.
 
 The bar item **Camera, Mic & Screen** (`privacy/in-use`) is off the strip
 until something is in use, then one glyph per sensor on an amber band,
-the apps in the tooltip, and the same rows in its popover. The core
+the apps in the tooltip; its popover is the same rows, each sensor a
+coloured glyph and word, the durations ticking while it is open. The core
 watches (every second on macOS, two on Linux, and at once on a Control
 Center log line, from the first time the extension asks) and fires the `privacy` trigger on a change, which the
 item's `refresh.on` names; the extension does not poll. No settings.

@@ -30,8 +30,10 @@ fn main() {
                 privacy::in_use()
             })
             .map(|us| {
+                let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
                 for u in us {
-                    println!("{:<10} {:<24} {:<12} {:>6} {}", format!("{:?}", u.sensor).to_lowercase(), u.app.unwrap_or_default(), u.process.unwrap_or_default(), u.pid.map_or("".into(), |p| p.to_string()), u.device.unwrap_or_default());
+                    let ago = u.since.map_or("".into(), |s| format!("{}s ago", now.saturating_sub(s)));
+                    println!("{:<10} {:<24} {:<12} {:>6} {:<10} {}", format!("{:?}", u.sensor).to_lowercase(), u.app.unwrap_or_default(), u.process.unwrap_or_default(), u.pid.map_or("".into(), |p| p.to_string()), ago, u.device.unwrap_or_default());
                 }
             })
             .map_err(|e| e.to_string()),
