@@ -79,7 +79,7 @@ const bin = join(dir, "bin");
 const stub = (name: string) => { const p = join(bin, name); writeTool(p, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); };
 mkdirSync(bin);
 stub("open"); stub("osascript"); stub("x-terminal-emulator");
-const opened = () => (existsSync(openLog) ? readFileSync(openLog, "utf8").trim().split("\n") : []);
+const opened = () => (existsSync(openLog) ? readFileSync(openLog, "utf8").trim().split("\n").filter(Boolean) : []); // an empty file (created before the fake terminal writes) is no line yet
 
 let host: Host;
 const oldPath = process.env.PATH;
