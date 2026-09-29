@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0 · 2026-09-30
+
+- **A lighter pal**: 33 extensions come with pal now, the ones that work with no account or setup; the other 47 install when you want them. Type a name and one you don't have shows below your results, Games lists every game, and Settings › Extensions has them all. The ones you use are installed for you on first start, from whichever version you come, with their settings and progress as you left them.
+
 ## 0.8.0 · 2026-09-30
 
 - **Extensions update on their own**: a fix to an extension reaches you within hours instead of waiting for the next pal release. Every build is signed and checked before it installs; one that fails to load is put back to the one before by itself, and Settings says what happened. Settings › Extensions › Update extensions automatically turns it off, for everything or per registry.
