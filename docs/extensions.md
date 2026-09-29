@@ -13,8 +13,9 @@ the code is right.
 
 ## Where they live
 
-- Bundled: `extensions/<name>/` in the repo (the app's resource tree in a
-  release build).
+- Bundled: `extensions/<name>/` in the repo; in a release build the
+  names in `extensions/bundled.txt`, each built into a package (below,
+  "Packages: `pal-pack`") in the app's resource tree.
 - The store, what `pal install` and the settings window fill:
   `~/Library/Application Support/pal/extensions/<name>/` on macOS,
   `~/.local/share/pal/extensions/<name>/` on Linux (`$XDG_DATA_HOME/pal/`
@@ -29,7 +30,20 @@ the code is right.
 The roots load in that order and a later one wins on a name: a directory
 named like a bundled extension replaces it. The host loads every directory
 under those roots that has an `index.ts` (or `index.js`), watches them, and
-reloads an extension whose files change.
+reloads an extension whose files change. Three things keep a found
+extension from loading:
+
+- **Its protocol.** A package built for a `protocol` this pal does not run
+  (the manifest's `protocol`, below) is passed over for the same name in an
+  earlier root; with no other copy it is listed as failed, "built for
+  protocol 3; this pal runs protocol 2". A directory without `protocol` (a
+  source checkout, one you made by hand) always loads.
+- **Turned off.** An extension turned off in Settings (`[store] disabled`)
+  is listed with its switch and not loaded; a `multi` one's instances all
+  stop with it.
+- **`requires`.** One that requires an extension that is missing or turned
+  off is listed as failed ("needs weather, which is not installed") and
+  loads by itself once that one is there.
 
 ## The manifest, `pal.json`
 
@@ -119,6 +133,17 @@ whose code fails to load.
 - `multi`: `true` when the extension can run as several configured
   instances (two accounts, two homes; below, "Instances"). Without it a
   `[instances."<name>@<suffix>"]` in the config file is not loaded.
+- `requires`: the names of extensions this one does not work without
+  (`["processes"]`). It does not load while one of them is missing or
+  turned off, and loads when it arrives; installing it from a registry
+  installs them.
+- `suggests`: the names of extensions some of its actions use (`["colors",
+  "diff"]` on Clipboard). The actions that need a missing one hide.
+- `protocol`: written by `pal-pack`, never by hand: the `PROTOCOL` of the
+  SDK the package was built against (below, "Packages").
+
+A name in `requires` or `suggests` that is not an extension name, or the
+extension's own, is a load warning and is ignored.
 
 ## Instances: one extension, several accounts
 
@@ -1807,6 +1832,64 @@ manifest's `palettes` block) is `examples/hello-extension/`. Install it
 from a checkout with `pal install path/to/pal/examples/hello-extension`,
 or from GitHub with `pal install github:zcag/pal/examples/hello-extension@main`;
 change the greeting under Settings › Extensions › Hello and the row follows.
+
+## Packages: `pal-pack`
+
+A package is an extension built: what a registry serves and what the app
+bundles, in one format (the contract is [Registries and packages](registry.md)).
+`pal-pack`, in `@zcag/pal` (`sdk/bin/pal-pack.ts`), is the one tool that
+builds and hashes them, for pal's own extensions and anyone else's:
+
+```
+weather/
+  pal.json        the manifest, "protocol" stamped in
+  index.js        bun build of index.ts; its dependencies inlined
+  *.js            chunks, one per dynamic import
+  surface/        a game's page, with the *.ts beside index.ts it imports
+```
+
+Nothing else: no `node_modules`, no dotfiles, no `index.ts` (the host would
+load it over `index.js`). `@zcag/pal` is **not** inlined: it is left an
+import and resolves at run time to the SDK of the pal running it (the link
+the host makes in each root, or the copy in the bundled root), so a package
+calls the API of the app it runs in, and a package is only rebuilt when its
+own code changes. What that API may change is what `PROTOCOL` guards: it is
+an integer in `sdk/src/protocol.ts` (`import { PROTOCOL } from "@zcag/pal"`),
+raised when a change to the SDK or the host breaks extensions built before
+it. A pal runs packages stamped from `PROTOCOL_MIN` to `PROTOCOL`, and
+`hello` on the host's wire reports both.
+
+```sh
+bunx pal-pack build extensions/*   # dist/<name>/, dist/<name>.tar.gz, dist/<name>.entry.json
+bunx pal-pack statements dist      # dist/<name>.statement, for minisign
+minisign -S -s key -m dist/*.statement
+bunx pal-pack index dist --name acme --base https://acme.github.io/pal --out site
+minisign -S -s key -m site/index.json
+```
+
+- `build <dir>... [--out dist] [--cwd <root>] [--seq N] [--commit SHA]
+  [--screenshots-base URL] [--dir-only]` runs `bun build` in `--cwd`
+  (default: the git checkout's top, so the source-path comments in the
+  output are the same wherever it runs), and prints one line per
+  extension: name, hash, seq, protocol and the tarball's size. `seq` is
+  the commit's time and `commit` its sha, from git unless given; outside a
+  git checkout pass `--seq`. The same source gives the same hash and the
+  same tarball bytes. `--screenshots-base` makes the listing's screenshots
+  `<base>/<name>/screenshots/<file>`; without it the listing has none.
+  `--dir-only` writes the package directory alone with `.pal-build.json`
+  (its hash, seq, commit and protocol) inside, which is how the app bundles
+  them.
+- `statements <dist>`: the text each build is signed over.
+- `index <dist> --name <registry> --base <url> --out <dir> [--merge
+  index.json] [--yank name@hash]... [--keep a,b] [--next-key KEY]`: the
+  index and `pkg/<name>/<hash>.{tar.gz,json}` under `--out`. Every entry
+  needs its `<name>.statement.minisig`. `--merge` builds on the index you
+  serve now, keeping the newest build per protocol and the one before it;
+  `--keep` names the extensions that stay (the rest of the merged ones
+  leave); `--next-key` announces the key you are moving to (`""` clears it).
+- `promote --from edge.json --to stable.json --out index.json [--names
+  a,b] [--yank name@hash]...`: the newest good build of each extension in
+  one index added to another, as pal's own edge and stable are.
 
 ## Store screenshots
 

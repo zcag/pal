@@ -7,8 +7,10 @@ is what that `index.ts` imports: the calls into the core (settings, storage,
 clipboard, windows, system) and the types of what a palette lists, what a
 pick returns, what a view draws.
 
-Provisional: pal is 0.x and the shapes still move. A change that breaks an
-extension bumps the minor version.
+Provisional: pal is 0.x and the shapes still move. What says whether a
+built extension still runs is `PROTOCOL`, an integer exported here: it goes
+up when a change breaks extensions built before it, and a pal runs packages
+built from `PROTOCOL_MIN` to `PROTOCOL`.
 
 ## Install
 
@@ -90,10 +92,31 @@ comment, `src/protocol.ts` is the contract.
 | `xdg()`, `XDG_ICONS` | freedesktop icon names as glyphs |
 | `checkView()`, `checkForm()`, `checkBarItem()`, `checkEffect()`, `MAX_NODES`, `MAX_DEPTH`, `MAX_BAR_*`, `SHELL_PREFIX` | what the host checks a view, form, bar item or effect against, for your tests |
 | `defineExtension()` | type-checks the default export where it is written |
+| `PROTOCOL`, `PROTOCOL_MIN` | the extension protocol this SDK speaks, and the oldest a pal built with it still runs |
+| `checkDeps()` | what the host warns about a manifest's `requires` and `suggests` |
 | `@zcag/pal/runtime` | the host's side (`bind`); not for extensions |
 
 Wire shapes (`Request`, `Response`, `Notification`, `PaletteMeta`,
 `BarMeta`, `SettingsChanged`) are exported for a host or a test harness.
+
+## Packaging: `pal-pack`
+
+The package also installs `pal-pack`, which builds extensions into the
+packages a registry serves (`@zcag/pal` left external, `protocol` stamped
+into `pal.json`, a reproducible tarball and its tree hash) and writes a
+registry's index:
+
+```sh
+bunx pal-pack build extensions/*
+bunx pal-pack statements dist
+minisign -S -s key -m dist/*.statement
+bunx pal-pack index dist --name acme --base https://acme.github.io/pal --out site
+minisign -S -s key -m site/index.json
+```
+
+The flags are in `pal-pack --help` and
+[docs/extensions.md](https://github.com/zcag/pal/blob/main/docs/extensions.md#packages-pal-pack);
+the formats in [docs/registry.md](https://github.com/zcag/pal/blob/main/docs/registry.md).
 
 ## License
 
