@@ -23,6 +23,9 @@ import { MockBridge, discoveryServer } from "./hue-mock.ts";
 const E = "hue";
 // Discovery is the cloud endpoint and mDNS; in the tests the cloud is a local server (set per describe) and mDNS a tool that prints nothing.
 process.env.PAL_HUE_MDNS = "true";
+// The rate gaps shorter than Hue's own (100 ms a light, 1 s a group), so the waits past them below (150 ms, 1100 ms) have slack on a slow CI runner; still long enough that two picks back to back land inside one.
+process.env.PAL_HUE_LIGHT_GAP_MS = "60";
+process.env.PAL_HUE_GROUP_GAP_MS = "600";
 const near = (a: number, b: number, eps = 0.01) => Math.abs(a - b) <= eps;
 
 describe("colour maths", () => {

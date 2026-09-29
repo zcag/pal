@@ -10,8 +10,8 @@ import { errorMessage } from "@zcag/pal";
 import { ROOT_BRIDGE_PEM } from "./cert.ts";
 
 export const SETTINGS_HINT = "Settings › Extensions › Hue";
-/** Hue's guidance: at most 10 light commands and 1 group command a second. */
-export const LIGHT_GAP_MS = 100, GROUP_GAP_MS = 1000;
+/** Hue's guidance: at most 10 light commands and 1 group command a second. The env overrides are the tests', which wait past a gap on a real clock and want room for a slow runner. */
+export const LIGHT_GAP_MS = Number(process.env.PAL_HUE_LIGHT_GAP_MS) || 100, GROUP_GAP_MS = Number(process.env.PAL_HUE_GROUP_GAP_MS) || 1000;
 /** The link button stays armed this long after a press. */
 export const PAIR_WINDOW_MS = 30_000;
 
