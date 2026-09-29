@@ -9,7 +9,7 @@
 // update for, opens an installed one; each waits for the core and says how
 // it went. The pure parts are in store.ts.
 import { errorMessage, extensions, hint, type Ctx, type Effect, type Extension, type Item, type StoreResult, type StoreState } from "@zcag/pal";
-import { FILTERS, REGISTRIES_LINK, detail, pageOf, registryRows, row, select, staleNote, standings, targetOf, type Standing } from "./store.ts";
+import { FILTERS, REGISTRIES_LINK, detail, featured, pageOf, registryRows, row, select, shelves, staleNote, standingId, standings, targetOf, type Standing } from "./store.ts";
 
 /** How long a fetch of the registries stands before a listing asks for another (the core also fetches every 6 hours and when Settings opens). `PAL_STORE_REFRESH_MS` sets it for the tests. */
 const REFRESH_MS = Number(process.env.PAL_STORE_REFRESH_MS) || 10 * 60_000;
@@ -34,7 +34,14 @@ async function current(force: boolean, now: number): Promise<{ state: StoreState
   }
 }
 
-/** The rows for a state: problems first (a fetch that failed, a registry that did not answer), then what has an update under its own heading, then the rest. */
+/**
+ * The rows for a state: problems first (a fetch that failed, a registry
+ * that did not answer), then what has an update under its own heading,
+ * then the rest. Opened on everything with nothing typed, the rest is a
+ * Featured section (three worth meeting first) and a section per
+ * category, what is not installed leading each; a search or a filter
+ * lists one run of rows, the title's matches first.
+ */
 function rows(state: StoreState, filter: string, query: string, now: number, error?: string): Item[] {
   const out: Item[] = [];
   if (error) out.push(hint("refresh", "Could not check the registries", error, { icon: OFFLINE }));
@@ -45,15 +52,19 @@ function rows(state: StoreState, filter: string, query: string, now: number, err
   // What has an update leads, under its own heading, unless the filter already narrows to it.
   const behind = filter === "updates" ? [] : chosen.filter((s) => targetOf(s.status));
   out.push(...behind.map((s) => row(s, "Updates")));
-  out.push(...chosen.filter((s) => !behind.includes(s)).map((s) => row(s, behind.length ? "Extensions" : undefined)));
+  const rest = chosen.filter((s) => !behind.includes(s));
+  if (filter === "all" && !query.trim()) {
+    out.push(...featured(rest).map((s) => row(s, "Featured", { featured: true })));
+    for (const shelf of shelves(rest)) out.push(...shelf.rows.map((s) => row(s, shelf.title, { shelved: true })));
+  } else out.push(...rest.map((s) => row(s, behind.length ? "Extensions" : undefined)));
   if (!chosen.length) out.push(hint("none", query ? `Nothing listed matches “${query}”` : filter === "updates" ? "Everything installed is up to date" : filter === "installed" ? "Nothing from a registry is installed" : "Nothing listed on this shelf", "The Registries filter shows where extensions come from"));
   return out;
 }
 
-/** The standing a row id (`<registry>/<name>`) names, in the last state listed. */
+/** The standing a row id (`<registry>/<name>`, or a Featured row's) names, in the last state listed. */
 async function standingOf(id: string): Promise<Standing | undefined> {
   const state = last ?? (last = await extensions.state());
-  return standings(state).find((s) => `${s.a.registry}/${s.a.name}` === id);
+  return standings(state).find((s) => `${s.a.registry}/${s.a.name}` === standingId(id));
 }
 
 /** Several results as one toast, or the reason when any did not go through (the rows relist either way). */
@@ -86,8 +97,9 @@ export default {
         const s = await standingOf(id);
         if (!s) throw new Error(`no extension ${id} in the store`);
         const a = action ?? row(s).actions![0]?.id;
-        // The marked extensions (`ctx.ids`), the addressed one first, else the one.
-        const all = (await Promise.all((ctx?.ids ?? [id]).map(standingOf))).filter((x): x is Standing => !!x);
+        // The marked extensions (`ctx.ids`), the addressed one first, else the one; a Featured row and its shelf row marked together count once.
+        const ids = [...new Set((ctx?.ids ?? [id]).map(standingId))];
+        const all = (await Promise.all(ids.map(standingOf))).filter((x): x is Standing => !!x);
         const titles = new Map(all.map((x) => [x.a.name, x.a.listing.title || x.a.name]));
         switch (a) {
           case "install": {

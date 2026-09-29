@@ -3,15 +3,16 @@
 // that waits, wordle is current, todo from acme needs a newer pal, github
 // and gmail are absent, dpi is not for this platform), `store.refresh`
 // the same after counting the fetch, and install, update and remove are
-// recorded and answered. The rows and their tags, the filters (Registries
-// included), the Updates section, the detail pane, the picks reaching the
-// core and saying how they went, the cached rows streamed before a fetch,
-// a registry that did not answer, a fetch that failed, and no registry yet.
+// recorded and answered. The rows and their tags, the Featured and category
+// sections, the filters (Registries included), the Updates section, the
+// detail pane, the picks reaching the core and saying how they went, the
+// cached rows streamed before a fetch, a registry that did not answer, a
+// fetch that failed, and no registry yet.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Item, StoreResult, StoreState } from "../../../sdk/src/index.ts";
-import { actionsFor, detail, registryRows, select, staleNote, standings, targetOf } from "../../../extensions/store/store.ts";
+import { actionsFor, detail, featured, registryRows, select, shelves, staleNote, standings, targetOf } from "../../../extensions/store/store.ts";
 import { Host } from "../harness.ts";
 
 const fixture: StoreState = JSON.parse(readFileSync(join(import.meta.dir, "store-fixture.json"), "utf8"));
@@ -89,6 +90,14 @@ describe("the pure parts", () => {
     expect(detail(of("dpi")).metadata).toContainEqual({ label: "Status", value: "Not for this platform" });
     expect(detail(of("calc")).metadata).toContainEqual({ label: "From", value: "Comes with pal" });
     expect(detail(of("todo")).metadata).toContainEqual({ label: "Status", value: "Its next build needs a newer pal" });
+    // What it does: the listing's features when the index has them (an older one has none).
+    expect(d.markdown).not.toContain("## What it does");
+    const withFeatures = { ...of("timer"), a: { ...of("timer").a, listing: { ...of("timer").a.listing, features: ["Named countdowns", "A `pomodoro` cycle"] } } };
+    expect(detail(withFeatures).markdown).toContain("## What it does\n\n- Named countdowns\n- A `pomodoro` cycle");
+  });
+  test("Featured: the first three of the list not installed that install here; shelves by the filter's order, what is not installed first", () => {
+    expect(featured(all).map((s) => s.a.name)).toEqual(["github"]);
+    expect(shelves(all).map((s) => [s.title, s.rows.map((x) => x.a.name)])).toEqual([["Productivity", ["calc", "timer", "todo"]], ["Developer", ["github"]], ["System", ["dpi"]], ["Fun", ["wordle"]], ["Integration", ["gmail"]]]);
   });
   test("the registries: one row each and one to add, the stale note says why and how old", () => {
     const rows = registryRows(fixture.registries, NOW);
@@ -119,18 +128,29 @@ describe("store", () => {
     expect(refreshes).toBe(2);
     expect(again.partials).toHaveLength(1);
   });
-  test("rows: every listed extension by title, how it stands, what has an update under Updates first", async () => {
+  test("rows: what has an update under Updates first, then Featured, then a section per category, what is not installed leading each", async () => {
     const rows = await list();
-    expect(ids(rows)).toEqual(["pal/timer", "pal/calc", "pal/dpi", "pal/github", "pal/gmail", "acme/todo", "pal/wordle"]);
-    expect(rows[0].section).toBe("Updates");
+    expect(ids(rows)).toEqual(["pal/timer", "featured:pal/github", "pal/calc", "acme/todo", "pal/github", "pal/dpi", "pal/wordle", "pal/gmail"]);
+    expect(rows.map((r) => r.section)).toEqual(["Updates", "Featured", "Productivity", "Productivity", "Developer", "System", "Fun", "Integration"]);
     expect(tags(rows[0])).toEqual(["update", "Productivity"]);
-    expect(rows[1].section).toBe("Extensions");
-    expect(tags(rows[1])).toEqual(["comes with pal", "Productivity"]);
-    expect(tags(rows[2])).toEqual(["not for this platform", "System"]);
-    expect(tags(rows[3])).toEqual(["Developer"]);
-    expect(tags(rows[5])).toEqual(["needs a newer pal", "acme", "Productivity"]);
-    expect(tags(rows[6])).toEqual(["installed", "Fun"]);
-    expect(rows[3].icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
+    // Featured and shelf rows: the section names the shelf, so the row does not.
+    expect(tags(rows[1])).toEqual(["Developer"]);
+    expect(tags(rows[2])).toEqual(["comes with pal"]);
+    expect(tags(rows[3])).toEqual(["needs a newer pal", "acme"]);
+    expect(tags(rows[4])).toEqual([]);
+    expect(tags(rows[5])).toEqual(["not for this platform"]);
+    expect(tags(rows[6])).toEqual(["installed"]);
+    expect(rows[4].icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
+    // A Featured row acts, and shows, as its extension.
+    expect(await host.detail("store", "store", "featured:pal/github")).toEqual(await host.detail("store", "store", "pal/github"));
+    calls.length = 0;
+    expect(await pick("featured:pal/github", "install", { ids: ["featured:pal/github", "pal/github"] })).toEqual({ keep: true, toast: { title: "Installed GitHub" } });
+    expect(calls).toEqual([{ method: "install", params: { name: "github", registry: "pal", from: "store" } }]);
+  });
+  test("a search lists one run of rows, the title's matches first; a filter too", async () => {
+    const rows = await list("pal");
+    expect(rows.every((r) => r.section === undefined || r.section === "Updates" || r.section === "Extensions")).toBe(true);
+    expect(tags((await list("calc"))[0])).toEqual(["comes with pal", "Productivity"]);
   });
   test("the query and the filters narrow, nothing found says so, Registries lists the registries", async () => {
     expect(ids(await list("word"))).toEqual(["pal/wordle"]);

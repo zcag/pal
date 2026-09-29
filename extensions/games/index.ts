@@ -2,10 +2,10 @@
 // offers for this machine. A game is an extension the store shelves under
 // Fun with a view palette: the installed ones read from their manifests on
 // every open (so a new game is listed without a change here), the others
-// from the registries' listings (`extensions.available()`), tagged Not
-// installed. Enter opens an installed game; on one not installed it
-// installs it, waits for it to load, then opens it. An install that fails
-// stays as a row saying why.
+// from the registries' listings (`extensions.available()`), under Not
+// installed after the installed ones. Enter opens an installed game; on
+// one not installed it installs it, waits for it to load, then opens it.
+// An install that fails stays as a row saying why.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { errorMessage, extensions, hint, type AvailableExtension, type Effect, type Extension, type InstalledExtension, type Item, type OwnIcon } from "@zcag/pal";
@@ -60,9 +60,12 @@ export default {
         const all = await games();
         if (!all.length) return [hint("none", "No games installed", "The store's Fun shelf has them")];
         const rows: Item[] = [...failed].map(([name, error]) => hint(`failed:${name}`, `Could not install ${all.find((g) => g.extension === name)?.title ?? name}`, error));
-        for (const g of all) rows.push({
+        // The ones on offer under their own heading, after the installed ones (headed too when both are there); the heading says it, so a row's tag only says an install is running.
+        const offer = all.some((g) => !g.installed);
+        for (const g of [...all.filter((x) => x.installed), ...all.filter((x) => !x.installed)]) rows.push({
           id: `${g.extension}/${g.palette}`, name: g.title, subtitle: g.tagline, icon: g.icon,
-          ...(!g.installed && { accessories: [installing.has(g.extension) ? { tag: "Installing…", color: "blue" } : { tag: "Not installed", color: "grey" }] }),
+          ...(offer && { section: g.installed ? "Installed" : "Not installed" }),
+          ...(installing.has(g.extension) && { accessories: [{ tag: "Installing…", color: "blue" }] }),
           actions: [g.installed ? { id: "play", title: "Play" } : { id: "install", title: "Install and play" }],
         });
         return rows;

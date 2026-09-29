@@ -4,7 +4,7 @@
 // games itself; and a canned `store.state` offering games not installed
 // (pong, one for this platform; one for another; one with no build that
 // runs here; one already installed; a fun one with no view palette). The
-// rows (every game by title, the ones on offer tagged Not installed), the
+// rows (every game by title, the ones on offer under Not installed), the
 // pick (a push of an installed game; an install, then the push, for one on
 // offer), the row while it installs, and an install that fails.
 import { afterAll, beforeAll, expect, test } from "bun:test";
@@ -49,16 +49,17 @@ test("offered: fun, a view palette, this platform, a build that runs here, not i
   expect(offered(AVAILABLE, new Set(["pong"]))).toEqual([]);
 });
 
-test("one row per game: the installed ones and the ones on offer, by title, with tile and tagline; the ones on offer tagged", async () => {
+test("one row per game, by title, with tile and tagline: the installed ones, then the ones on offer under Not installed", async () => {
   const rows = await host.list("games", "games");
-  expect(rows.map((r) => r.id)).toEqual(["2048/2048", "blackjack/blackjack", "crossword/crossword", "minesweeper/minesweeper", "pong/pong", "snake/snake", "solitaire/solitaire", "sudoku/sudoku", "yahtzee/yahtzee"]);
+  expect(rows.map((r) => r.id)).toEqual(["2048/2048", "blackjack/blackjack", "crossword/crossword", "minesweeper/minesweeper", "snake/snake", "solitaire/solitaire", "sudoku/sudoku", "yahtzee/yahtzee", "pong/pong"]);
+  expect(rows.map((r) => r.section)).toEqual([...Array(8).fill("Installed"), "Not installed"]);
   const snake = rows.find((r) => r.id === "snake/snake")!;
   expect(snake.name).toBe("Snake II");
   expect(snake.subtitle).toContain("3310");
   expect(snake.icon).toMatchObject({ tile: { bg: "green" } });
   expect(snake.accessories ?? []).toEqual([]);
   const pong = rows.find((r) => r.id === "pong/pong")!;
-  expect(pong.accessories).toEqual([{ tag: "Not installed", color: "grey" }]);
+  expect(pong.accessories).toBeUndefined();
   expect(pong.actions).toEqual([{ id: "install", title: "Install and play" }]);
   expect(pong.subtitle).toBe("Pong, the game");
 });
@@ -105,7 +106,7 @@ test("no games: one hint row", async () => {
   installed = [ext("calc")];
   const rows = await host.list("games", "games").finally(() => { installed = INSTALLED; });
   // Pong is still on offer: a row, not the hint.
-  expect(rows.map((r) => r.id)).toEqual(["pong/pong"]);
+  expect(rows.map((r) => [r.id, r.section])).toEqual([["pong/pong", "Not installed"]]);
   installed = [ext("calc")];
   avail = [];
   const none = await host.list("games", "games").finally(() => { installed = INSTALLED; avail = AVAILABLE; });

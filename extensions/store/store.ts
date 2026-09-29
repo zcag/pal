@@ -16,6 +16,17 @@ const CATEGORY_TITLE: Record<string, string> = { productivity: "Productivity", d
 export const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? c[0].toUpperCase() + c.slice(1) : "Other");
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
+/**
+ * The Featured section: extensions worth meeting first, one per kind of
+ * thing pal does, in order; the first three not installed that install
+ * here show. Settings' Browse (app/src/ui/SettingsStore.tsx FEATURED)
+ * keeps the same list.
+ */
+export const FEATURED = ["spotify", "github", "solitaire", "calendar", "translate", "space", "hue", "typing"];
+
+/** What an extension does, a line each (`store.features`, in the listing since pal 0.9); an older index has none. */
+export const featuresOf = (a: AvailableExtension): string[] => ((a.listing as { features?: unknown }).features as string[] | undefined ?? []).filter((f) => typeof f === "string" && !!f.trim());
+
 /** The filter dropdown: everything, what is installed, what has an update, the registries, then the shelves. */
 export const FILTERS = [{ id: "all", title: "All" }, { id: "installed", title: "Installed" }, { id: "updates", title: "Updates" }, { id: "registries", title: "Registries" }, ...CATEGORIES.map((c) => ({ id: c, title: categoryTitle(c) }))];
 
@@ -39,7 +50,15 @@ export function standings(state: StoreState): Standing[] {
 /** What the query is matched against: name, title, tagline, category, author, keywords, palette titles. */
 const haystack = (a: AvailableExtension) => [a.name, a.listing.title, a.listing.tagline, a.listing.category, a.listing.author, a.registry, ...a.listing.keywords, ...a.listing.palettes.map((p) => p.title)].join(" ").toLowerCase();
 
-/** The standings the filter admits, narrowed by every word of the query, by title. */
+const titleOf = (s: Standing) => (s.a.listing.title || s.a.name).toLowerCase();
+/** 0 when every word starts a word of the title, 1 when one is inside it, 2 otherwise: what a search puts first. */
+const titleRank = (s: Standing, words: string[]) => {
+  const t = titleOf(s);
+  const starts = t.split(/[^\p{L}\p{N}]+/u);
+  return !words.length || words.every((w) => starts.some((x) => x.startsWith(w))) ? 0 : words.some((w) => t.includes(w)) ? 1 : 2;
+};
+
+/** The standings the filter admits, narrowed by every word of the query: the title's matches first, then by title. */
 export function select(all: Standing[], filter: string | undefined, query: string): Standing[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   return all.filter((s) => {
@@ -48,7 +67,18 @@ export function select(all: Standing[], filter: string | undefined, query: strin
     if (filter && !["all", "installed", "updates"].includes(filter) && s.a.listing.category !== filter) return false;
     const h = haystack(s.a);
     return words.every((w) => h.includes(w));
-  }).sort((x, y) => (x.a.listing.title || x.a.name).localeCompare(y.a.listing.title || y.a.name));
+  }).sort((x, y) => titleRank(x, words) - titleRank(y, words) || titleOf(x).localeCompare(titleOf(y)));
+}
+
+/** The Featured section's standings: FEATURED's names that are listed, not installed and install here, the first `n`. */
+export const featured = (all: Standing[], n = 3): Standing[] =>
+  FEATURED.map((name) => all.find((s) => s.a.name === name && !s.a.installed && s.a.installable)).filter((s): s is Standing => !!s).slice(0, n);
+
+/** The standings as shelves: a category each in the filter's order (one no filter names after them, by title; none last as Other), what is not installed first on each, then by title. */
+export function shelves(all: Standing[]): { title: string; rows: Standing[] }[] {
+  const rank = (c: string) => { const i = (CATEGORIES as readonly string[]).indexOf(c); return i < 0 ? (c ? CATEGORIES.length : CATEGORIES.length + 1) : i; };
+  const cats = [...new Set(all.map((s) => s.a.listing.category))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  return cats.map((c) => ({ title: categoryTitle(c), rows: all.filter((s) => s.a.listing.category === c).sort((x, y) => Number(x.a.installed) - Number(y.a.installed) || titleOf(x).localeCompare(titleOf(y))) }));
 }
 
 const shortHash = (h: string) => h.slice(0, 7);
@@ -90,16 +120,25 @@ function standingTag(s: Standing): Accessory | undefined {
   return undefined;
 }
 
-/** The row: the tile, the title, the tagline, how it stands, the registry when it is not pal's, the shelf. */
-export function row(s: Standing, section?: string): Item {
+/** A Featured row's id: the extension's own, prefixed, since the same extension is also a row on its shelf. */
+export const FEATURED_ID = "featured:";
+/** The `<registry>/<name>` a row id stands for. */
+export const standingId = (id: string) => (id.startsWith(FEATURED_ID) ? id.slice(FEATURED_ID.length) : id);
+
+/**
+ * The row: the tile, the title, the tagline, how it stands, the registry
+ * when it is not pal's, and the shelf unless the row's section already is
+ * the shelf (`shelved`). `featured` gives it the Featured section's id.
+ */
+export function row(s: Standing, section?: string, opts: { shelved?: boolean; featured?: boolean } = {}): Item {
   const accessories: Accessory[] = [];
   const tag = standingTag(s);
   if (tag) accessories.push(tag);
   if (!s.ours) accessories.push({ tag: s.a.registry, color: "violet" });
-  if (s.a.listing.category) accessories.push({ text: categoryTitle(s.a.listing.category) });
+  if (s.a.listing.category && !opts.shelved) accessories.push({ text: categoryTitle(s.a.listing.category) });
   const icon = s.a.listing.icon as TileIcon | string | undefined;
   return {
-    id: `${s.a.registry}/${s.a.name}`,
+    id: `${opts.featured ? FEATURED_ID : ""}${s.a.registry}/${s.a.name}`,
     name: s.a.listing.title || s.a.name,
     subtitle: s.a.listing.tagline,
     ...(icon && { icon }),
@@ -130,6 +169,8 @@ const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 export function detail(s: Standing): Detail {
   const l = s.a.listing;
   const parts: string[] = [`# ${l.title || s.a.name}`, "", l.description || l.tagline];
+  const features = featuresOf(s.a);
+  if (features.length) parts.push("", "## What it does", "", ...features.map((f) => `- ${f.replace(/\n/g, " ")}`));
   if (l.palettes.length) parts.push("", "## Palettes", "", ...l.palettes.map((p) => `- ${p.title}`));
   const shots = l.screenshots.map((x) => (typeof x === "string" ? { url: x, caption: "" } : { url: x.url, caption: x.caption ?? "" })).filter((x) => x.url);
   if (shots.length) parts.push("", ...shots.map((x) => `![${esc(x.caption)}](${x.url})`));
