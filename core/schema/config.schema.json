@@ -649,6 +649,14 @@
       },
       "type": "object"
     },
+    "Channel": {
+      "description": "Which of a registry's indexes to follow. Ours has both; a third party\nmay publish only one URL, which is then whatever its `url` says.",
+      "enum": [
+        "stable",
+        "edge"
+      ],
+      "type": "string"
+    },
     "Confirm": {
       "anyOf": [
         {
@@ -866,6 +874,11 @@
           "default": "",
           "description": "A theme file overriding pal's colours, radii and fonts\n(`pal_core::theme`, docs/config.md \"Theme file\"): a name, looked up\nas `<config dir>/themes/<name>.toml`, or a path (`~` expanded).\nLight and dark sections apply to the scheme `theme` (or the OS)\npicks; the file is watched and applies live. Empty is pal's own.",
           "type": "string"
+        },
+        "usage": {
+          "default": true,
+          "description": "Share anonymous usage: which extensions are installed and opened,\ninstalls, updates and failures, with a random id kept in pal's data\ndirectory (docs/usage.md lists all of it). `false` sends nothing\nand deletes the id.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -990,6 +1003,43 @@
       ],
       "type": "string"
     },
+    "RegistryConfig": {
+      "additionalProperties": false,
+      "description": "`[[store.registries]]`: one registry.",
+      "properties": {
+        "auto_update": {
+          "description": "Overrides `[store] auto_update` for this registry.",
+          "type": "boolean"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Channel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`stable` (the default) or `edge`. Only pal's registry has both."
+        },
+        "key": {
+          "default": "",
+          "description": "The minisign public key its index and builds are signed with,\npinned when it was added and moved by a signed rotation.",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "description": "What the registry's index calls itself; `installed` entries use it.",
+          "type": "string"
+        },
+        "url": {
+          "default": "",
+          "description": "The index URL (`.../index.json`; its signature is `<url>.minisig`).",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "Sidebar": {
       "additionalProperties": false,
       "description": "`[sidebar]`: one live palette docked to a screen edge, peeked when the\npointer rests there, engaged by a click, a key or its hotkey; every\nrow numbered so `cmd+N` runs it (`docs/design/switcher.md`). The hover\ntimings are `[bar]`'s. macOS only: read and validated on Linux, nothing\nbuilt.",
@@ -1037,6 +1087,42 @@
           "description": "Width in points; the height follows the rows up to the work area.",
           "format": "double",
           "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "StoreConfig": {
+      "additionalProperties": false,
+      "description": "`[store]`.",
+      "properties": {
+        "auto_update": {
+          "default": true,
+          "description": "Apply extension updates by themselves, for every registry (a\nregistry's own `auto_update` overrides it). Off, each update waits\nin Settings for your click.",
+          "type": "boolean"
+        },
+        "disabled": {
+          "default": [],
+          "description": "Extensions that do not load, by name, installed or not.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "installed": {
+          "default": [],
+          "description": "Extensions installed from a registry: `name` for pal's own,\n`registry:name` for another. A listed one that is missing is\ninstalled at start. Bundled extensions, `extension_dirs` and source\ninstalls are never listed.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "registries": {
+          "default": [],
+          "description": "Registries to follow besides pal's own, in this order. An entry\nnamed `pal` sets only pal's `channel` and `auto_update`.",
+          "items": {
+            "$ref": "#/$defs/RegistryConfig"
+          },
+          "type": "array"
         }
       },
       "type": "object"
@@ -1179,7 +1265,8 @@
         "search_history": true,
         "selection_snapshot": true,
         "theme": "system",
-        "theme_file": ""
+        "theme_file": "",
+        "usage": true
       }
     },
     "instances": {
@@ -1205,6 +1292,16 @@
       "default": {},
       "description": "States: named variables bar items and extensions read\n(`[states.working] expr = \"hour >= 9 and hour < 18\"`;\n`docs/design/states.md`).",
       "type": "object"
+    },
+    "store": {
+      "$ref": "#/$defs/StoreConfig",
+      "default": {
+        "auto_update": true,
+        "disabled": [],
+        "installed": [],
+        "registries": []
+      },
+      "description": "Extensions from registries: which are installed, which are off,\nwhich registries to follow (`docs/registry.md`). pal writes it from\nSettings, the Store and the CLI; editing by hand is fine too."
     }
   },
   "title": "pal config",

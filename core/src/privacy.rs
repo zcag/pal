@@ -149,12 +149,7 @@ fn parse_log_time(t: &str) -> Option<u64> {
     let tz = t.rfind(['+', '-']).filter(|&i| i > 19)?;
     let sign = if &t[tz..=tz] == "-" { -1 } else { 1 };
     let off = sign * (n(tz + 1..tz + 3)? * 3600 + n(tz + 3..tz + 5)? * 60);
-    // Days from the civil date (Howard Hinnant's algorithm).
-    let y = if mo <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let doy = (153 * ((mo + 9) % 12) + 2) / 5 + d - 1;
-    let days = era * 146097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719468;
+    let days = crate::calendar::days_from_civil(y, mo, d);
     u64::try_from(days * 86400 + h * 3600 + mi * 60 + s - off).ok()
 }
 

@@ -592,7 +592,7 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             if spec.is_empty() {
                 return Ok(install_form(Some("a source is needed")));
             }
-            match settings::extensions_install(app.state(), spec).await {
+            match settings::extensions_install(app.clone(), app.state(), spec).await {
                 Ok(r) => Ok(toast(&format!("Installed {} {}", r.name, r.version), "The extension host is restarting with it", "success")),
                 Err(e) => Ok(install_form(Some(&e))),
             }

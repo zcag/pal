@@ -57,6 +57,19 @@ folders = ["~/Applications/Nix Apps"]
 
 [extensions.github]
 token = "keychain:pal/github-token"   # a secret reference, never the value
+
+# Extensions from registries: what is installed, what is off, which
+# registries to follow. pal writes it when you install from Settings, the
+# Store or the CLI (docs/registry.md).
+[store]
+auto_update = true
+installed = ["weather", "acme:todo"]   # "registry:name" when not pal's own
+disabled = ["hue"]
+
+[[store.registries]]
+name = "acme"
+url = "https://acme.github.io/pal/index.json"
+key = "RWQ..."             # pinned when added
 ```
 
 The first line is taplo's schema directive, pointing at the committed
@@ -77,7 +90,8 @@ writes those two header lines and nothing else into the config directory.
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, a `pal.service` user unit (or, without systemd, an XDG autostart entry) on Linux. The same agent relaunches pal after a crash, on or off; see [Crash relaunch](#crash-relaunch). |
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
 | `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded by the check). A found release shows on the Overview and the About page and as an "Install Update" row at the root; installing is always your click (Settings › About, the Overview's row, that root row), never automatic. `false` means no automatic check at all: neither this one nor the settings Overview's (which otherwise checks the app and the store's extensions when it opens, at most once a day). The Overview's "Check now", About's "Check for Updates", the menu bar's "Check for updates…" and the "Check for Updates" row run regardless. See [Updates](getting-started.md#updates). |
-| `extension_dirs` | list of paths | `[]` | Extra directories of extensions, one subdirectory per extension like the store, for a dotfiles-managed set. Loaded after the bundled extensions and the store, in order, so a later directory's extension replaces an earlier one's by name. `~` is expanded. Read when the host starts: `pal reload` after a change. See [Extensions](extensions.md). |
+| `usage` | bool | `true` | Share anonymous usage: which of pal's own extensions are installed and opened, installs, updates and failures, with a random id kept in pal's data directory. Nothing about other registries' extensions, what you type or pick is ever sent; [Usage data](usage.md) lists all of it. `false` sends nothing and deletes the id; turning it on again makes a new one. |
+| `extension_dirs` | list of paths | `[]` | Extra directories of extensions, one subdirectory per extension like the store, for a dotfiles-managed set. Loaded after the bundled extensions and the store, in order, so a later directory's extension replaces an earlier one's by name, and a registry never installs or updates a name one of them has. `~` is expanded. Read when the host starts: `pal reload` after a change. See [Extensions](extensions.md). |
 | `selection_snapshot` | bool | `true` | When an app does not expose its selected text to the accessibility API (`selection.text()`, `{selection}` in a snippet), send the copy shortcut and read the clipboard, then put it back as it was; pal's own history records none of it. `false` keeps pal off the clipboard: the selection is then only what the API reports. macOS needs Accessibility for either. |
 | `root_caps` | table | `{ primary = 8, normal = 6, catalog = 3 }` | How many rows one palette may show at the root for a typed query, by its tier ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)); the rest is a "12 more in Emoji" row that opens the palette. Inline, `root_caps = { catalog = 5 }` keeps the other two at their defaults. The empty query and a palette's own level are never capped. |
 | `root_first` | list | `["browser-tabs/tabs", "windows/windows", "pal/commands", "apps/apps", "pal/palettes"]` | Palettes whose rows lead the others of their standing at the root, in this order: a tab over a window over one of pal's own commands (so `sett` is pal's Settings before System Settings) over an app over a palette row (`pal/palettes` is the row that opens a palette), all over the rest. Each is `root_first_step` points above the next, on top of its tier; the ladder orders rows that are otherwise level and never lifts a row that only scatters the typed letters over one that has the word, nor a normal row over a primary one. `[]` turns it off; then the shorter name leads among equals. Ranking tweaks: this, `root_first_step`, `root_cut`, `root_caps`, and `tier` per palette (below). |
@@ -441,6 +455,50 @@ restart too (`timeout` and `preview_max` apply to the next run); and the
 clipboard recorder, which runs in pal itself rather than in the host,
 reads `exclude_apps`, `max_entries` and `max_age_days` once at startup, so
 those want pal relaunched.
+
+## `[store]`
+
+Extensions installed from registries, and the registries themselves. pal
+writes this table whenever you install, remove, disable or enable an
+extension or add or remove a registry, from Settings, the Store palette or
+the CLI ([CLI](cli.md#pal-install-update-remove-list-disable-enable)), so
+the file is a record you can back up, version and restore; editing it by
+hand is fine too.
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `auto_update` | bool | `true` | Install extension updates by themselves, from every registry. A registry's own `auto_update` overrides it. Off, each update waits in Settings for your click. |
+| `installed` | list of strings | `[]` | Extensions installed from a registry: `"weather"` for pal's own, `"acme:todo"` for another's. At start, a listed extension that is missing is installed in the background; one that cannot be (offline, no longer listed) stays listed and is retried. Bundled extensions, `extension_dirs` and source installs (`pal install --from`) are never listed. A directory in the store that is not listed is left alone and reported as *not in config*, never added by itself. |
+| `disabled` | list of strings | `[]` | Extensions that do not load, by name. A name that is not installed is kept and does nothing. `[instances.<name>] enabled = false` still parks one instance of an enabled extension. |
+| `registries` | list of tables | `[]` | The registries to follow besides pal's own, in this order (below). |
+
+### `[[store.registries]]`
+
+One table per registry, in the order bare names are looked up in (pal's own
+always first):
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `name` | string | | What the registry's index calls itself; `installed` entries use it (`acme:todo`). |
+| `url` | string | | Its index (`.../index.json`); the signature is `<url>.minisig`. |
+| `key` | string | | The minisign public key its index and builds are signed with: pinned when the registry was added, moved when the registry announces its next key in a signed index. |
+| `auto_update` | bool | `[store] auto_update` | Whether this registry's updates install by themselves. |
+| `channel` | `"stable"`, `"edge"` | `"stable"` | Which of its indexes to follow. Only pal's own has both. |
+
+A table named `pal` sets only pal's own registry's `channel` and
+`auto_update`; its URL and keys are built in:
+
+```toml
+[[store.registries]]
+name = "pal"
+channel = "edge"           # every build pushed to main, before it is released
+```
+
+Each registry's index is cached under pal's cache directory
+(`registries/<name>/`) with when it was last checked and why that check
+failed, if it did; Settings and `pal registry list` show both. A check that
+fails (unreachable, a bad signature, an index older than the cached one)
+never replaces the cached copy.
 
 ## `[instances]`
 

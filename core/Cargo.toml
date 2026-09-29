@@ -32,6 +32,10 @@ minijinja = { version = "2", default-features = false, features = ["builtins", "
 tar = "0.4"
 flate2 = "1"
 tempfile = "3"
+# registry: index and build signatures (the crate tauri's updater verifies with)
+minisign-verify = "0.2"
+# usage: the random install id
+uuid = { version = "1", features = ["v4"] }
 # clipboard: history store; bundled so the app ships one known SQLite (with FTS5) on both platforms
 rusqlite = { version = "0.40", features = ["bundled"] }
 
@@ -71,3 +75,5 @@ arboard = { version = "3", default-features = false, features = ["wayland-data-c
 
 [dev-dependencies]
 tempfile = "3"
+# registry tests sign fixtures the way a registry does
+minisign = "0.9"

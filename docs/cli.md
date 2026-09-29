@@ -22,10 +22,12 @@ pal hide            hide the panel
 pal settings [page] open the settings window (overview, general, palettes, extensions, bar, about)
 pal reload          restart the extension host (reloads every extension from disk)
 pal quit            quit the running instance (flushes its state, stops the extension host)
-pal install NAME    install an extension: a name from pal.cagdas.io, or a source (see below)
-pal update [NAME]   fetch an installed extension's source again (every one with a source, without a name)
-pal remove NAME     remove an installed extension
-pal list            the installed extensions: name, version, source
+pal install NAME    install an extension from a registry (--registry R), or a source with --from (see below)
+pal update [NAME..] update the named extensions, or every one with an update (--all); bare, list what has one
+pal remove NAME     remove an installed extension (its settings and data stay)
+pal list            every extension: bundled, registry, source or local, with its update status
+pal registry ...    the registries: list, add URL, remove NAME (see below)
+pal disable NAME    turn an extension off; pal enable NAME turns it back on
 pal instance ...    instances of a multi extension: list, add, remove (see below)
 pal action NAME     act on the value on stdin (see Actions for scripts)
 pal bar ...         bar items (see below)
@@ -64,38 +66,101 @@ flushes the search history and the index cache.
 A second `pal` with no subcommand while one is running shows the panel:
 what a second launch of a single-instance app conventionally does.
 
-## `pal install`, `update`, `remove`, `list`
+## `pal install`, `update`, `remove`, `list`, `disable`, `enable`
 
 These work the extension store in the calling process (so their output is
 on your terminal), then tell a running instance to `reload` its host so it
 sees the change. With no instance running the change is on disk and the
-extension loads at the next start. None of them starts the app.
+extension loads at the next start. None of them starts the app. They are
+the same operations Settings and the Store run, so the config file's
+`[store]` lists follow them ([Config](config.md#store)).
 
 ```text
-pal install wordle                            a name from the store at pal.cagdas.io
-pal install github:user/repo                  the repo's root is the extension
+pal install weather                           from the registries: pal's own first, then yours in config order
+pal install todo --registry acme              from that registry only
+pal install github:user/repo                  a source: the repo's root is the extension
 pal install github:user/repo/sub/dir@v1.2     a subdirectory, at a tag or branch
 pal install https://github.com/user/repo/tree/main/sub/dir
 pal install ~/src/my-extension                a local directory, copied
-pal install --from ./my-extension             a source, never a store name
+pal install --from ./my-extension             a source, never a registry name
 pal list
-pal update my-extension
-pal remove my-extension
+pal update                                    what has an update; nothing is installed
+pal update weather todo                       those two
+pal update --all                              every one with an update
+pal remove weather
+pal disable hue
+pal enable hue
 ```
 
-A bare name (letters, digits, `-`, `_`, `.`; no slash) is looked up at
-`https://pal.cagdas.io/api/extensions/<name>`, whose `spec` is then
-installed like the explicit forms (`pal list` shows that spec as the
-source, and `pal update` fetches it again from GitHub, not from the site).
-A name the site does not list fails with `<name>: not an extension the
-store at pal.cagdas.io knows; pass its source with --from`. Anything with
-a slash, a `:` scheme, or a leading `.` or `~` is a source and never
-looked up; `--from SPEC` says so for a bare word too, so `pal install
---from my-extension` is the directory of that name, not the store's.
-The site unreachable is an error, not a fallback: an explicit source
-works offline the same as before.
+**From a registry.** A bare name (letters, digits, `-`, `_`, `.`; no
+slash) is looked up in the registries' indexes, fetched first; a registry
+that cannot be reached is said on stderr and its last good copy answers.
+The first registry that lists the name is used, and the output says which
+(`installed weather from pal (build 1a2b3c4, 2026-09-30)`); when another
+also lists it, a second line says so and `--registry` picks one. The build
+installed is the newest one that runs on this machine: not withdrawn, for
+a protocol this pal runs, listed for this platform. Before anything
+changes, its signature is checked against the registry's key and the
+unpacked package against the hash the index lists; any mismatch is an
+error and nothing is installed. It is then listed in `[store] installed`.
+
+A name is refused when another registry's copy of it is installed (both
+are named: remove one first), when it is one of pal's bundled extensions
+and the registry is not pal's own, and when one of your
+`general.extension_dirs` has it (that copy wins over every registry).
+
+**From a source.** Anything with a slash, a `:` scheme, or a leading `.`
+or `~` is a source and never looked up; `--from SPEC` says so for a bare
+word too, so `pal install --from my-extension` is the directory of that
+name. A source is copied or fetched from GitHub, `bun install
+--production` runs when it has a `package.json`, and it is marked as a
+source install: it is never updated by itself and never listed in
+`[store]`. `pal update NAME` fetches its source again.
+
+**Updating.** `pal update` fetches every registry's index and runs the
+same check Settings does: an extension has an update when its registry's
+newest build that runs here has a later `seq` and a different hash. The
+bare command prints each one that has an update or needs attention
+(`weather  update to 9f8e7d6`, `hue  a newer build needs a newer pal
+(protocol 2)`, `todo  no longer updated: registry acme is no longer
+followed`) and installs nothing. With names it installs theirs, with
+`--all` every one. The replaced copy is kept as the previous version,
+outside every extension root.
+
+**`pal list`** prints one line per extension, tab-separated: name, where
+it comes from (`bundled`, `registry acme`, `source github:...`, `local`,
+`by hand`), its build (or version), and its status from the last fetched
+indexes (`up to date`, `update to 9f8e7d6`, `not checked yet`, ...), with
+`(disabled)` after a disabled one. It does not fetch; `pal update` does.
+
+**`pal remove`** deletes the extension's directory and its `[store]
+installed` entry. Its settings, storage and ranking stay, so a reinstall
+brings its setup back.
+
+**`pal disable` / `pal enable`** add the name to `[store] disabled` or
+take it out. A disabled extension does not load; the name may be one that
+is not installed.
 
 What each does and what an extension is: [Extensions](extensions.md).
+
+## `pal registry`
+
+```text
+pal registry list                                  every registry: name, channel, extensions, last check, last error, url
+pal registry add https://acme.github.io/pal/index.json
+pal registry add URL --key RWQ...                  when the index does not announce its key
+pal registry add URL --yes                         without asking
+pal registry remove acme
+```
+
+`add` fetches the index and its signature and shows the registry's name,
+how many extensions it lists and its key (with the key id `minisign`
+prints), then asks before following it. The key shown is pinned in the
+config: every later index and build must be signed by it, or by the next
+key the registry announces in a signed index (the pin then moves by
+itself). `remove` stops following one; its extensions stay installed and
+are reported as no longer updated. pal's own registry is always first and
+cannot be removed.
 
 ## `pal instance`
 

@@ -1726,31 +1726,50 @@ provides it at runtime), so that install skips it.
 
 ## Install, update, remove
 
-From the CLI (`pal install SPEC`, see [CLI](cli.md)) or the settings
-window's Extensions page (the box at the top takes the same spec; Update
-and Remove are on each extension). A spec is:
+From the CLI (`pal install NAME`, see [CLI](cli.md)) or the settings
+window's Extensions page (the box at the top takes a name or a source;
+Update and Remove are on each extension).
+
+**By name, from a registry.** The name is looked up in the registries'
+signed indexes, pal's own first ([Registries and packages](registry.md)).
+The newest build that runs here is downloaded, its signature checked
+against the registry's key, the package unpacked (only files and
+directories under one `<name>/` top directory) and its tree hash and
+`pal.json` name compared with what the index lists. Only then is it put
+into the store's `<name>/`, in one rename, and listed in the config's
+`[store] installed`.
+
+**From a source.** A spec is:
 
 - `github:user/repo`, `github:user/repo/sub/dir`, either with `@ref` (a
   branch, tag or commit; the default branch otherwise);
 - `https://github.com/user/repo`, or `.../tree/<ref>/sub/dir`;
 - a local directory, which is copied (without `node_modules` and `.git`).
 
-Install fetches the codeload tarball (20 s), validates the manifest, runs
+Install fetches the codeload tarball, validates the manifest, runs
 `bun install --production` when there is a `package.json` (120 s), and
 renames the finished copy into the store's `<name>/` in one step, so
-nothing ever sees it half-done. A name already installed is refused:
-`update` it instead. `.pal-install.json` in the directory records
-the source, the ref, the time and the commit it was fetched at.
+nothing ever sees it half-done. A source install is never updated by
+itself; `pal update NAME` fetches its source again.
 
-`pal update NAME` fetches the recorded source again and replaces the
-directory; `pal update` with no name does every extension that has a
-source. The Extensions page checks GitHub once when it opens (the commit
-at the recorded ref, unauthenticated, 10 s each) and marks an extension
-whose branch moved with an `update` tag.
+A name already installed is refused (`update` it instead), and so is a
+name one of your `general.extension_dirs` has, or a bundled extension's
+name from a registry other than pal's own. `.pal-install.json` in the
+directory records where it came from: the registry, channel and build
+(`hash`, `seq`, `protocol`, `commit`), or the source spec. Every change
+holds a lock on the store, so the CLI and the app never interleave.
+
+**Updates.** One check answers everywhere (Settings, the Store, `pal
+update`, `pal list`): an extension from a registry, and a bundled one
+against pal's registry, has an update when the newest build that runs
+here has a later `seq` and a different hash. The copy an update replaces
+is kept as the previous version in `<data dir>/extensions-previous/<name>`,
+outside every extension root, and a rollback swaps it back; the build
+rolled away from is not offered again on this machine.
 
 `pal remove NAME` deletes the directory. Its keys in the config file stay
-(`[extensions.<name>]`, `[palettes.<id>]`), so a reinstall finds its
-settings; delete them by hand if you want them gone.
+(`[extensions.<name>]`, `[palettes.<id>]`), and so does its storage, so a
+reinstall finds its settings; delete them by hand if you want them gone.
 
 After each of these the extension host is restarted, so the new set is
 loaded and a removed extension is gone from the root.

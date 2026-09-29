@@ -78,14 +78,44 @@ pub(crate) fn bun() -> PathBuf {
     if cfg!(debug_assertions) { on_path.or(sidecar) } else { sidecar.or(on_path) }.unwrap_or_else(|| PathBuf::from("bun"))
 }
 
+/// Where the host script and the bundled extensions are: the staged
+/// resource tree in a release build that has one, the repo otherwise
+/// (`Layout`). `resource_dir` is tauri's, which the CLI resolves without
+/// an app handle.
+pub(crate) fn base(resource_dir: Option<PathBuf>) -> PathBuf {
+    match (cfg!(debug_assertions), resource_dir.filter(|d| d.join("host/src/host.ts").is_file())) {
+        (false, Some(dir)) => dir,
+        _ => PathBuf::from(REPO),
+    }
+}
+
+/// What the store's rules and the update check need to know of the other
+/// roots (`pal_core::updates::Inputs`): the bundled extensions with their
+/// builds, and the names a local root provides. Run from the repo (a dev
+/// layout), every name in it is local: edits there are never shadowed by a
+/// registry build nor updated from one.
+pub(crate) fn store_inputs(base: &Path, config: &pal_core::config::Config) -> pal_core::updates::Inputs {
+    let names_in = |dir: &Path| -> Vec<String> {
+        std::fs::read_dir(dir).into_iter().flatten().flatten().filter(|e| e.path().join("pal.json").is_file()).map(|e| e.file_name().to_string_lossy().into_owned()).collect()
+    };
+    let bundled = pal_core::updates::bundled_builds(&base.join("extensions"));
+    let mut local: std::collections::BTreeSet<String> = config.general.extension_dirs().iter().flat_map(|d| names_in(d)).collect();
+    if base == Path::new(REPO) {
+        local.extend(bundled.keys().cloned());
+    }
+    pal_core::updates::Inputs { bundled, local }
+}
+
+/// The extension operations (`pal_core::manage`) for the running app.
+pub(crate) fn manager(app: &AppHandle) -> pal_core::manage::Manager {
+    let inputs = store_inputs(&base(app.path().resource_dir().ok()), &crate::settings::config(app));
+    pal_core::manage::Manager::new(crate::settings::file(app), inputs)
+}
+
 impl Layout {
     fn resolve(app: &AppHandle) -> Layout {
         let bun = bun();
-        let staged = app.path().resource_dir().ok().filter(|d| d.join("host/src/host.ts").is_file());
-        let base = match (cfg!(debug_assertions), staged) {
-            (false, Some(dir)) => dir,
-            _ => PathBuf::from(REPO),
-        };
+        let base = base(app.path().resource_dir().ok());
         let mut roots = vec![base.join("extensions"), pal_core::extensions::Store::locate().dir().to_path_buf()];
         roots.extend(crate::settings::config(app).general.extension_dirs());
         Layout { bun, host: base.join("host/src/host.ts"), roots }

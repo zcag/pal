@@ -252,6 +252,8 @@ pub(crate) fn quit(app: &AppHandle) {
 
 pub fn run() {
     START.get_or_init(Instant::now);
+    // What every request the core sends says it is (core net.rs).
+    pal_core::net::init(env!("CARGO_PKG_VERSION"));
     // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
     let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
     // Only the instance logs to the file (a link argv starts one too); a `pal <cmd>` keeps its stderr.
@@ -271,7 +273,8 @@ pub fn run() {
     // The store commands run here, in this process, so their output lands
     // on the caller's terminal; a running instance is then told to restart
     // its host (`reload`), and none of them starts the app.
-    if let Some(changed) = cli.cmd.as_ref().and_then(cli::Cmd::run_store) {
+    let base = host::base(tauri::utils::platform::resource_dir(context.package_info(), &tauri::Env::default()).ok());
+    if let Some(changed) = cli.cmd.as_ref().and_then(|c| c.run_store(&base)) {
         if changed && !cli::handover_args(&context.config().identifier, &["reload"]) {
             eprintln!("pal	not running; the extension loads at the next start");
         }
