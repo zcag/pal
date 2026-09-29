@@ -24,7 +24,9 @@ palettes and a bar item over the Gmail API, one instance per account:
   the subject and its snippet, the time, a star or a paperclip), with a
   cursor the arrows move and a click sets. Enter opens the focused
   message in Gmail, `m` marks it read, `s` stars it, `a` marks every
-  listed message read, `o` opens Gmail, `p` the Inbox palette.
+  listed message read, `o` opens Gmail, `p` the Inbox palette. Mark
+  several rows (`⌘`-click, `⇧`-click for a range, `⇧↓`) and `m` marks
+  them all read at once.
 
 ## Two accounts
 
@@ -125,9 +127,9 @@ Archive and Star join the row's actions.
 | action | shortcut | when |
 | --- | --- | --- |
 | Open in Gmail | `Enter` | `https://mail.google.com/mail/?authuser=<address>#inbox/<threadId>` (`#all/` off the inbox; Gmail redirects to the account's `/u/N/` slot with the fragment kept) |
-| Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify`; works over marked rows too |
-| Archive | `⌘E` | send on; out of the inbox |
-| Star / Unstar | `⌘S` | send on |
+| Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify`; works over marked rows too, a mix of read and unread included |
+| Archive | `⌘E` | send on; out of the inbox; marked rows too |
+| Star / Unstar | `⌘S` | send on; marked rows too |
 | Reply | `⌘⇧R` | send on; the text typed in the bar's field (the sender and the `Re:` subject implied) or, without it, the form; then `messages.send` in the thread |
 | Copy link | `⌘C` | |
 | Search label | `⌘Enter` | on a label row: Search Mail with `label:<name>` typed |

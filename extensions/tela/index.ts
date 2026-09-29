@@ -443,7 +443,7 @@ const notifTable = new Map<number, Notification>();
 const NOTIF_ACTIONS: Action[] = [
   { id: "open", title: "Open in tela" },
   { id: "read-page", title: "Read page in pal", shortcut: "cmd+enter" },
-  { id: "read", title: "Mark as read", shortcut: "cmd+shift+r" },
+  { id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true },
   { id: "copy", title: "Copy link", shortcut: "cmd+c" },
   { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
 ];
@@ -485,10 +485,19 @@ async function findNotif(id: number): Promise<Notification> {
   return n;
 }
 
-async function pickNotif(id: string, action?: string): Promise<Effect> {
+/** Every notification in `ids` marked read, one request each (tela has no batch call). */
+const markEach = (ids: number[]) => Promise.all(ids.map((i) => markRead(i)));
+
+async function pickNotif(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (action === "read-all") {
     try { await markAllRead(); } catch (e) { return failed("mark all read", e); }
     return toast("All read");
+  }
+  // Marked rows (`ctx.ids`): each one read.
+  const ids = ctx?.ids ?? [id];
+  if (action === "read" && ids.length > 1) {
+    try { await markEach(ids.map((x) => Number(x.slice(6)))); } catch (e) { return failed("mark read", e); }
+    return toast("Marked read", `${ids.length} notifications`);
   }
   const n = await findNotif(Number(id.slice(6)));
   switch (action) {
@@ -533,7 +542,7 @@ function barState(list: Notification[]): BarState {
  * zero; the popover is a view of its own (view.ts): every one as a row
  * (the kind's glyph, what happened, the comment's snippet, the time),
  * with a cursor the arrows move and a click sets. Enter opens
- * the focused comment in tela, `m` marks it read, `a` marks them all,
+ * the focused comment in tela, `m` marks it read (or every marked row), `a` marks them all,
  * `o` opens tela, `p` the Comments palette. The cursor lives here
  * between renders.
  */
@@ -557,7 +566,7 @@ async function inboxItem(ctx: BarCtx): Promise<BarItem> {
 /** The popover drawn again from the notifications at hand (no fetch): what a key that only moves the cursor answers. */
 const redrawBar = async (): Promise<Effect> => ({ view: renderBar(barState(await addressed())) });
 
-async function inboxAction(action: string): Promise<Effect> {
+async function inboxAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: EXTENSION, palette: "comments" } };
   if (action === "read-all") {
     const r = await pickNotif("", "read-all");
@@ -574,9 +583,11 @@ async function inboxAction(action: string): Promise<Effect> {
     }
     case "open-tela": return { open: baseUrl() || "https://telawiki.com" };
     case "read": {
-      if (!cur) return { keep: true };
-      const r = await pickNotif(`notif:${cur.id}`, "read");
-      return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
+      // The marked rows (`BarCtx.ids`), else the one under the cursor.
+      const ids = ctx?.ids ?? (cur ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      try { await markEach(ids.map(Number)); } catch (e) { return failed("mark read", e); }
+      return { keep: true, hud: ids.length > 1 ? `Marked ${ids.length} read` : "Marked read" };
     }
     case "open": return cur ? pickNotif(`notif:${cur.id}`) : { open: baseUrl() || "https://telawiki.com" };
   }
@@ -607,7 +618,7 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
   if (id === "new") return action === "save" ? saveNewPage(ctx?.values ?? {}) : { form: await newPageForm() };
   if (id.startsWith("cmd:")) return pickCommand(id, action, ctx);
   if (id.startsWith("space:")) return pickSpace(id, action, ctx);
-  if (id.startsWith("notif:")) return pickNotif(id, action);
+  if (id.startsWith("notif:")) return pickNotif(id, action, ctx);
   if (id === "research" || id.startsWith("ask:")) return pickResearch(id, action, ctx);
   const n = pid(id);
   if (Number.isFinite(n)) return pickPage(n, action, ctx);

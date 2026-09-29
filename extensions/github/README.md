@@ -88,7 +88,7 @@ computes per result; yours carry them from the cached lists.
 | `cmd+o` | Open folder | a repository with a local clone |
 | `cmd+shift+c` | Copy clone URL (`clone_protocol`) | repositories |
 | `cmd+p` | Open path: the path typed in the bar's field (the row's argument, `src/main.rs` or `docs`) on the default branch; a form when picked without it | repositories |
-| `cmd+shift+r` | Mark as read, without opening | notifications |
+| `cmd+shift+r` | Mark as read, without opening; every marked row when rows are marked | notifications |
 | `cmd+shift+a` | Mark all as read; asks first | notifications |
 | `cmd+k` | Copy reference (`owner/repo#n`), Copy owner/name, Open issues, Open pull requests, Open repositories | the rest, without a shortcut |
 | `cmd+i` | The detail pane (open by default in Pull Requests and Issues) | |
@@ -163,7 +163,9 @@ and `subscribed` grey, and the rest) and its age. Every thread is a row;
 the popover scrolls. The ring is the
 cursor: `↑`/`↓` (or `k`/`j`) move it, a click on a thread puts it there.
 Keys: `Enter` (or `o`) marks the thread read and opens it on GitHub, `m`
-marks it read and the list redraws with the count, `a` (or `⌘⇧A`) marks
+marks it read and the list redraws with the count (with threads marked
+by `⌘`-click, `⇧`-click or `⇧↑`/`⇧↓`, `m` marks all of them read at
+once), `a` (or `⌘⇧A`) marks
 everything read and the popover reads "All caught up", `p` opens the
 Notifications palette, `⌘C` copies the thread's URL. On a second account
 the title carries its name ("4 unread (Work)").

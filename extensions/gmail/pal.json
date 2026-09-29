@@ -348,7 +348,7 @@
       },
       {
         "title": "Mark as read",
-        "description": "On an unread row; Mark as unread on a read one.",
+        "description": "On an unread row; Mark as unread on a read one. Mark several rows (cmd-click, shift-click) to do them at once.",
         "keys": "cmd+enter"
       },
       {

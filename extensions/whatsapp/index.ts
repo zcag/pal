@@ -47,15 +47,19 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 /** The row's mark: the profile picture, the group glyph (tinted by the tile), else the initial on a tile. */
 const chatIcon = (c: Chat) => (c.avatar ? { image: c.avatar } : c.group ? ICON.group : initialIcon(c.name));
 
+const READ: Action = { id: "read", title: "Mark as read", multi: true }, UNREAD: Action = { id: "unread", title: "Mark as unread", multi: true };
+
 function chatActions(c: Chat): Action[] {
   const send = canSend();
   return [
     { id: "open", title: c.group ? "Open WhatsApp" : "Open chat" },
-    c.unread > 0 ? { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true } : { id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true },
+    // The one that flips the chat is on ⌘↵; the other rides at the end, so marked chats that mix read and unread can still be marked either way.
+    { ...(c.unread > 0 ? READ : UNREAD), shortcut: "cmd+enter" },
     // Send takes the row's typed arguments (the message, and whether it quotes); Enter on the row still opens the chat.
     ...(send ? [{ id: "reply", title: "Send a message", shortcut: "cmd+shift+r", args: true as const }, { id: "react", title: "React to the latest message", shortcut: "cmd+shift+e" }] : []),
     { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" },
     c.group ? { id: "copy-name", title: "Copy name", shortcut: "cmd+c" } : { id: "copy-number", title: "Copy number", shortcut: "cmd+c" },
+    c.unread > 0 ? UNREAD : READ,
   ];
 }
 
@@ -107,7 +111,7 @@ async function chatPane(c: Chat): Promise<Detail> {
 }
 
 /** Every chat the pick is for: the marked rows, else the one. */
-const idsOf = (id: string, ctx?: Ctx) => (ctx?.ids?.length ? ctx.ids : [id]);
+const idsOf = (id: string, ctx?: Ctx) => ctx?.ids ?? [id];
 
 async function openChat(c: Chat, where = opener()): Promise<Effect> {
   if (c.group) return { open: chatLink(undefined, where), hud: `${c.name} is a group: WhatsApp opens at the top` };
@@ -311,8 +315,9 @@ async function pickPerson(id: string, action?: string): Promise<Effect> {
  * (which then lists the recent chats) its `empty` shape for a `show =
  * "always"` config. The popover is a view of the item's own (view.ts):
  * direct messages then groups, a cursor the arrows move and a click
- * sets, the keys as hints; Enter opens the focused chat, `m` marks it
- * read, `a` every listed one, `r` (send on) turns the search row into a
+ * sets, rows the shell can mark (cmd/shift click, shift+arrows), the
+ * keys as hints; Enter opens the focused chat, `m` marks it read (or
+ * every marked chat), `a` every listed one, `r` (send on) turns the search row into a
  * message field whose Enter sends, `o` opens WhatsApp, `p` the Unread
  * palette. The cursor and the field live here between renders. No key
  * set is hidden, not an error: the strip has no room for a hint. Any
@@ -390,10 +395,14 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return { ...(await redraw()), toast: { title: "Sent", message: `${c.name}: ${truncate(text, 60)}`, style: "success" } };
     }
     case "read": {
-      if (!cur || cur.n === 0) return { keep: true };
-      try { await markChatRead(cur.id); } catch (e) { return failed("mark read", e); }
+      // The marked rows (`BarCtx.ids`), else the unread one under the cursor.
+      const ids = ctx?.ids ?? (cur && cur.n > 0 ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      const refused: string[] = [];
+      for (const id of ids) { try { await markChatRead(id); } catch (e) { refused.push(st.rows.find((r) => r.id === id)?.name ?? id); log(`read ${id}: ${errorMessage(e)}`); } }
       dropChats();
-      return { keep: true, hud: `${cur.name}: read` };
+      if (refused.length) return failed("mark read", refused.join(", "));
+      return { keep: true, hud: ids.length > 1 ? `Marked ${ids.length} read` : `${st.rows.find((r) => r.id === ids[0])?.name ?? "Chat"}: read` };
     }
     case "open": return cur ? openChat(await chat(cur.id)) : { open: chatLink(undefined, opener()) };
     case "web": return cur ? openChat(await chat(cur.id), "web") : { open: chatLink(undefined, "web") };

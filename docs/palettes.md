@@ -4222,9 +4222,9 @@ Open in Gmail. The unread count is the list's length under a page,
 | action | shortcut | when |
 | --- | --- | --- |
 | Open in Gmail | `Enter` | `https://mail.google.com/mail/u/<address>/#inbox/<threadId>`; `#all/` off the inbox |
-| Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify` over the row or the marked rows |
-| Archive | `⌘E` | send on; `INBOX` removed |
-| Star / Unstar | `⌘S` | send on |
+| Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify` over the row or the marked rows; the one that flips the row is on `⌘Enter`, the other at the end, so marked read and unread rows offer both |
+| Archive | `⌘E` | send on; `INBOX` removed; marked rows too |
+| Star / Unstar | `⌘S` | send on; marked rows too (all starred or all unstarred) |
 | Reply | `⌘⇧R` | send on; a form (to, cc, subject, body), the original quoted under the answer and the signature between, `messages.send` in the thread with `In-Reply-To` |
 | Copy link | `⌘C` | |
 
@@ -4257,9 +4257,13 @@ discards after one.
 **The bar item** `gmail/unread`: the inbox's unread count as the badge,
 hidden at zero, the instance's title as the strip text when it has one
 ("Personal", "Work"), the address in the tooltip; every 120 s and on
-show, wake, network. The popover: every unread as a row (it scrolls), each
-a submenu (Open in Gmail, Mark as read), then Open in pal (the Inbox
-palette) and Open Gmail.
+show, wake, network. The popover is a view: every unread as a row (it
+scrolls: the sender's mark, who wrote it, the subject and its snippet, the
+time, a star or a paperclip), a cursor the arrows move and a click sets;
+`Enter` opens the message in Gmail, `m` marks it read, `s` stars it, `a`
+marks every listed message read, `o` opens Gmail, `p` the Inbox palette.
+Rows mark as a list's do (`⌘`-click, `⇧`-click, `⇧↓`), and `m` then marks
+them all read at once.
 
 Settings, `[extensions.gmail]` (and `[extensions."gmail@work"]`):
 

@@ -3,7 +3,9 @@
 // assert on it. The newest unread messages as rows — the sender's mark,
 // who wrote it, the subject, the snippet under it, the time, and a star
 // or a paperclip where there is one; a cursor (`selected`) the arrows
-// move and a click sets; the keys as keycap hints. Nothing unread is one
+// move and a click sets; rows the shell can mark (`mark`: cmd/shift
+// click, shift+arrows) for `m` to mark them all read; the keys as keycap
+// hints. Nothing unread is one
 // calm line. The same shape Slack's and WhatsApp's popovers take, so the
 // three inboxes read alike.
 import { POPOVER_W, column, keyHint, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
@@ -57,7 +59,7 @@ function rowNode(r: BarRow, focused: boolean): ViewNode {
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
       marks.length ? marks[0]! : { type: "spacer", key: "mk", size: MARK_W },
     ],
-    { key: r.id, padding: 1, minHeight: 52, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, mark: r.id, padding: 1, minHeight: 52, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -74,7 +76,7 @@ export function actions(st: BarState): Action[] {
   const clicks: Action[] = st.rows.map((r): Action => ({ id: `focus:${r.id}`, title: `Go to ${r.who}`, hidden: true }));
   return [
     { id: "open", title: cur ? `Open ${cur.subject || "message"} in Gmail` : "Open Gmail" },
-    ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m" } as Action] : []),
+    ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m", multi: true } as Action] : []),
     ...(cur ? [{ id: "star", title: cur.starred ? "Remove star" : "Star", shortcut: "s" } as Action] : []),
     ...(st.rows.length ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-gmail", title: "Open Gmail", shortcut: "o" },

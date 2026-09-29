@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
 import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
 import type { Item, PaletteMeta, View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored, writeTool } from "../harness.ts";
+import { Host, marksOf, stored, writeTool } from "../harness.ts";
 import { GmailMock, personal } from "./gmail-mock.ts";
 
 const P = "gmail";
@@ -168,9 +168,11 @@ describe("gmail", () => {
       { id: "open", title: "Open in Gmail" },
       { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true },
       { id: "archive", title: "Archive", shortcut: "cmd+e", multi: true },
-      { id: "star", title: "Star", shortcut: "cmd+s" },
+      { id: "star", title: "Star", shortcut: "cmd+s", multi: true },
       { id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true },
       { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+      // The other way too, so marked rows that mix read and unread share both.
+      { id: "unread", title: "Mark as unread", multi: true },
     ]);
     // The quick reply's text is the row's typed argument (send on for this account only).
     expect(m1.args).toEqual([{ id: "body", placeholder: "Quick reply", required: true }]);
@@ -179,7 +181,7 @@ describe("gmail", () => {
     expect(tags(rows[1])).toEqual(["GitHub"]);
     expect(tags(rows[3])).toEqual(["Family/Trips", "★"]);
     expect(rows[3].accessories).toContainEqual({ text: "📎" });
-    expect(rows[3].actions!.find((a) => a.id === "unstar")).toEqual({ id: "unstar", title: "Unstar", shortcut: "cmd+s" });
+    expect(rows[3].actions!.find((a) => a.id === "unstar")).toEqual({ id: "unstar", title: "Unstar", shortcut: "cmd+s", multi: true });
     expect(rows[4].actions![1]).toEqual({ id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true });
     expect(runs("personal")).toBe(1);
     expect(host.stderr).toContain('[gmail] no label "Nope" on this account');
@@ -197,9 +199,9 @@ describe("gmail", () => {
   test("inbox (work): its own token, its own two unread, no archive, star or reply with send off, and no reply field", async () => {
     const rows = await list(W, "inbox");
     expect(rows.map((r) => [r.id, r.section])).toEqual([["w1", "Unread"], ["w2", "Unread"], ["w3", "Recent"]]);
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "unread"]);
     expect(rows[0].args).toBeUndefined();
-    expect(rows[2].actions!.map((a) => a.id)).toEqual(["open", "unread", "copy"]);
+    expect(rows[2].actions!.map((a) => a.id)).toEqual(["open", "unread", "copy", "read"]);
     expect(tags(rows[0])).toEqual(["Reports"]);
     expect(rows[0].keywords).toContain("Work");
     expect(runs("work")).toBe(1);
@@ -406,6 +408,9 @@ describe("gmail", () => {
     expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "read", "star", "read-all", "open-gmail", "open-pal", "copy"]);
     // Every row is clickable: a hidden focus action each.
     expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:m1", "focus:m2", "focus:m3", "focus:m4"]);
+    // Every row can be marked (its message id), and `m` marks every marked row read at once.
+    expect(marksOf(v.tree)).toEqual(["m1", "m2", "m3", "m4"]);
+    expect(v.actions!.find((a) => a.id === "read")).toMatchObject({ multi: true });
     // The render right after the listing shared its inbox: three list calls for the refresh, none for the render.
     expect(mock.calls("/users/me/messages").length).toBe(n + 3);
     const w = await host.render(W, "unread", { reason: "every", instance: { key: W, name: P, title: "Work", isDefault: false } });
@@ -419,7 +424,9 @@ describe("gmail", () => {
     expect(viewOf(await host.barAction(W, "unread", "focus:w1"))).toMatchObject({ id: "unread" });
     expect(await host.barAction(W, "unread", "star")).toMatchObject({ view: { id: "unread" } });
     expect(modifies().at(-1)).toEqual({ ids: ["w1"], addLabelIds: ["STARRED"] });
-    await host.barAction(W, "unread", "read:w1");
+    // Marked rows (`ctx.ids`): one batchModify for them all.
+    expect(await host.barAction(W, "unread", "read", { reason: "open", ids: ["w1", "w2"] })).toEqual({ keep: true, hud: "Marked 2 read" });
+    expect(modifies().at(-1)).toEqual({ ids: ["w1", "w2"], removeLabelIds: ["UNREAD"] });
     expect(await host.render(W, "unread", { reason: "update" })).toMatchObject({ hidden: true, empty: { icon: "\u{f01ee}" } });
     await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });
   });
@@ -440,7 +447,7 @@ describe("gmail", () => {
     host.changeSettings(P, { settings: { token_command: join(dir, "tok-personal.sh"), send: false, signature: "Cagdas" } });
     await Bun.sleep(50);
     const rows = await list(P, "inbox", "", { refresh: true });
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "unread"]);
     expect(await list(P, "compose")).toEqual([]);
     expect(await list(P, "drafts")).toEqual([]);
     expect(await host.pick(P, "inbox", "m1", "archive")).toMatchObject({ toast: { title: "Archive is off" } });

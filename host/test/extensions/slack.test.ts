@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { derive } from "../../../extensions/slack/cookies.ts";
 import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, HostError, stored, writeTool } from "../harness.ts";
+import { Host, HostError, marksOf, stored, writeTool } from "../harness.ts";
 import { buildAppDir } from "./slack-fixtures.ts";
 
 // ---- fixtures ---------------------------------------------------------------
@@ -262,6 +262,14 @@ describe("slack", () => {
       expect(await pick("unreads", "channel:T1/C_GEN")).toEqual({ open: "slack://channel?team=T1&id=C_GEN" });
     });
 
+    test("mark as read over marked rows: one conversations.mark each, a thread among them skipped, the count in the toast", async () => {
+      expect((await list("unreads")).find((i) => i.id === "dm:T1/D_MARA")!.actions!.find((a) => a.id === "read")).toMatchObject({ multi: true });
+      const before = calls("conversations.mark").length;
+      const r = await pick("unreads", "dm:T1/D_MARA", "read", { ids: ["dm:T1/D_MARA", "mention:T1/C_ENG", "thread:T1/C_ENG"] });
+      expect(r).toMatchObject({ keep: true, toast: { title: "Marked read", message: "2 conversations" } });
+      expect(calls("conversations.mark").slice(before).map((c) => c.body.channel)).toEqual(["D_MARA", "C_ENG"]);
+    });
+
     test("mark as read: conversations.mark up to the conversation's latest, the inbox dropped so the next list fetches", async () => {
       const before = calls("client.counts").length;
       const r = await pick("unreads", "dm:T1/D_MARA", "read");
@@ -384,6 +392,9 @@ describe("slack", () => {
       const rows = all.filter((n): n is Extract<ViewNode, { type: "stack" }> => n.type === "stack" && !!n.action?.startsWith("focus:"));
       expect(rows.map((r) => r.action)).toEqual(["focus:dm:T1/D_MARA", "focus:mention:T1/C_ENG", "focus:thread:T1/C_ENG"]);
       expect(rows.map((r) => !!r.selected)).toEqual([true, false, false]);
+      // The rows that can be read can be marked; the thread row cannot. `m` runs over the marks.
+      expect(marksOf(view.tree)).toEqual(["dm:T1/D_MARA", "mention:T1/C_ENG"]);
+      expect(view.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
       expect(texts(view)).toEqual(expect.arrayContaining(["mara", "and the doc is up", "#eng", "mara: @cagdas the build on #ops is red", "3 new replies in threads you follow"]));
       // Mara's avatar was fetched once into a data url (the picture host needs no session); the thread row is a hash tile.
       const images = all.filter((n): n is Extract<ViewNode, { type: "image" }> => n.type === "image");
@@ -451,6 +462,10 @@ describe("slack", () => {
       let before = calls("conversations.mark").length;
       expect(await host.barAction("slack", "unreads", "read", ctx)).toEqual({ keep: true, hud: "mara: read" });
       expect(calls("conversations.mark").slice(before).map((c) => c.body)).toEqual([expect.objectContaining({ channel: "D_MARA", ts: "1789580400.000200" })]);
+      // Marked rows (`ctx.ids`): each one, wherever the cursor is.
+      before = calls("conversations.mark").length;
+      expect(await host.barAction("slack", "unreads", "read", { ...ctx, ids: ["dm:T1/D_MARA", "mention:T1/C_ENG"] })).toEqual({ keep: true, hud: "Marked 2 read" });
+      expect(calls("conversations.mark").slice(before).map((c) => c.body.channel)).toEqual(["D_MARA", "C_ENG"]);
       before = calls("conversations.mark").length;
       expect(await host.barAction("slack", "unreads", "read-all", ctx)).toEqual({ keep: true, hud: "Marked read" });
       expect(calls("conversations.mark").slice(before).map((c) => c.body.channel).sort()).toEqual(["C_ENG", "D_MARA"]);

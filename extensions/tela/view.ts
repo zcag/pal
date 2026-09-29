@@ -2,7 +2,8 @@
 // gallery renders a fixture state with this same function, the tests
 // assert on it. The unread mentions and replies as rows — the kind's
 // glyph, what happened, the comment's snippet under it, the time — with
-// a cursor (`selected`) the arrows move and a click sets, and the keys
+// a cursor (`selected`) the arrows move and a click sets, rows the shell
+// can mark (`mark`) for `m` to read them all at once, and the keys
 // as keycap hints. The same shape Gmail's, Slack's and WhatsApp's
 // popovers take, so the inboxes read alike.
 import { POPOVER_W, column, keyHint, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
@@ -41,7 +42,7 @@ function rowNode(r: BarRow, focused: boolean): ViewNode {
       column(kids, { key: "t", gap: 0 }),
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
     ],
-    { key: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, mark: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -58,7 +59,7 @@ export function actions(st: BarState): Action[] {
   const clicks: Action[] = st.rows.map((r): Action => ({ id: `focus:${r.id}`, title: `Go to ${r.title}`, hidden: true }));
   return [
     { id: "open", title: cur ? "Open the comment in tela" : "Open tela" },
-    ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m" } as Action] : []),
+    ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m", multi: true } as Action] : []),
     ...(st.rows.length ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-tela", title: "Open tela", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },

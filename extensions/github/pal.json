@@ -515,7 +515,7 @@
         },
         {
           "keys": "m",
-          "title": "Mark the thread read"
+          "title": "Mark the thread read, or every marked thread (⌘-click, ⇧-click, ⇧↑↓)"
         },
         {
           "keys": "a",

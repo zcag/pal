@@ -14,7 +14,7 @@ import { chatLink, conversationMarkdown, mediaLabel, msgOf, msgOfDb, opener, pic
 import { initial, initialIcon, render, type BarState } from "../../../extensions/whatsapp/view.ts";
 import type { Item, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, marksOf, stored } from "../harness.ts";
 import { KEY, SESSION_ID, WhatsAppMock, m } from "./whatsapp-mock.ts";
 
 const X = "whatsapp";
@@ -119,6 +119,11 @@ describe("whatsapp helpers", () => {
     expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ mask: "circle", alt: "Weekend hike" });
     expect(keycaps(v)).toEqual(["enter", "r", "m", "a", "o", "p"]);
     expect(v.actions.slice(0, 6).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-whatsapp", "o"], ["open-pal", "p"]]);
+    // Every row can be marked (its chat id), and `m` runs over every marked row; offered even with the cursor on a read chat.
+    expect(marksOf(v.tree)).toEqual([MARA, HIKE]);
+    expect(v.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
+    const onRead = checkView(render({ rows: [{ ...rows[0]!, n: 0 }, rows[1]!], focus: 0, canSend: true }));
+    expect(onRead.actions.find((a) => a.id === "read")).toMatchObject({ title: "Mark as read", multi: true });
     // Send off: no reply key, no hint.
     const off = checkView(render({ rows, focus: 0, canSend: false }));
     expect(keycaps(off)).toEqual(["enter", "m", "a", "o", "p"]);
@@ -190,9 +195,12 @@ describe("whatsapp", () => {
     expect(rows[6]).toMatchObject({ name: "pal beta", subtitle: "Group" });
     expect(rows.find((r) => r.name === "Status")).toBeUndefined();
     // Read chats: Open, Mark as unread, web, copy; with send off no message or reaction, and no message field.
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "web", "copy-number"]);
+    // Each also carries the other way at the end, so marked chats that mix read and unread share both.
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "web", "copy-number", "unread"]);
     expect(rows[0].args).toBeUndefined();
-    expect(rows[3].actions!.map((a) => a.id)).toEqual(["open", "unread", "web", "copy-name"]);
+    expect(rows[3].actions!.map((a) => a.id)).toEqual(["open", "unread", "web", "copy-name", "read"]);
+    expect(rows[0].actions!.at(-1)).toEqual({ id: "unread", title: "Mark as unread", multi: true });
+    expect(rows[3].actions!.at(-1)).toEqual({ id: "read", title: "Mark as read", multi: true });
     expect(rows[0].actions![1]).toEqual({ id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true });
     // One session lookup, kept in storage; the histories only for the unread three, sized to their count (5 at most); one picture batch.
     expect(mock.calls("/api/sessions")).toHaveLength(1);
@@ -287,7 +295,7 @@ describe("whatsapp", () => {
     host.changeSettings(X, { settings: settings({ send: true }) });
     await host.until(() => host.coreCalls.length > 0);
     const rows = await list("chats", "", { refresh: true });
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "reply", "react", "web", "copy-number"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "reply", "react", "web", "copy-number", "unread"]);
     // The message is the row's typed argument for Send (Enter still opens the chat); a quote choice when the latest message is theirs.
     expect(rows[0].actions![2]).toEqual({ id: "reply", title: "Send a message", shortcut: "cmd+shift+r", args: true });
     expect(rows[0].args).toEqual([{ id: "text", placeholder: "Message", required: true }, { id: "quote", placeholder: "Reply", kind: "select", default: "", options: [{ id: "", title: "New message" }, { id: "quote", title: "Quote “standup in 20?”" }] }]);
@@ -416,12 +424,14 @@ describe("whatsapp", () => {
     expect(mock.sent.slice(sent)).toEqual([{ chatId: HIKE, text: "see you at the trailhead" }]);
     await host.barAction(X, "unread", "reply", ctx);
     expect(checkView(viewOf(await host.barAction(X, "unread", "cancel", ctx))).input).toBeUndefined();
-    // m on the focused row, then a over the rest.
+    // m on the focused row, then over marked rows (`ctx.ids`), then a over whatever is left.
     const read = mock.read.length;
     expect(await host.barAction(X, "unread", "read", ctx)).toEqual({ keep: true, hud: "Weekend hike: read" });
     expect(mock.read.slice(read)).toEqual([HIKE]);
+    expect(await host.barAction(X, "unread", "read", { ...ctx, ids: [MARA, TOMAS] })).toEqual({ keep: true, hud: "Marked 2 read" });
+    expect(mock.read.slice(read + 1)).toEqual([MARA, TOMAS]);
     expect(await host.barAction(X, "unread", "read-all", ctx)).toEqual({ keep: true, hud: "Marked read" });
-    expect(mock.read.slice(read + 1).sort()).toEqual([MARA, TOMAS].sort());
+    expect(mock.read.slice(read + 3)).toEqual([]);
     expect(await host.barAction(X, "unread", "open-pal", ctx)).toEqual({ push: { extension: X, palette: "unread" } });
     expect(await host.barAction(X, "unread", "open-whatsapp", ctx)).toEqual({ open: "https://web.whatsapp.com/" });
     expect(await host.barAction(X, "unread", MARA)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });

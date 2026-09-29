@@ -75,16 +75,20 @@ function mailAccessories(m: Mail): Accessory[] {
   return a;
 }
 
+const READ: Action = { id: "read", title: "Mark as read", multi: true }, UNREAD: Action = { id: "unread", title: "Mark as unread", multi: true };
+
 function mailActions(m: Mail): Action[] {
   const send = canSend();
   return [
     { id: "open", title: "Open in Gmail" },
-    m.unread ? { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true } : { id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true },
+    // The one that flips the row is on ⌘↵; the other rides at the end, so marked rows that mix read and unread can still be marked either way.
+    { ...(m.unread ? READ : UNREAD), shortcut: "cmd+enter" },
     ...(send && m.inInbox ? [{ id: "archive", title: "Archive", shortcut: "cmd+e", multi: true } as Action] : []),
-    ...(send ? [{ id: m.starred ? "unstar" : "star", title: m.starred ? "Unstar" : "Star", shortcut: "cmd+s" } as Action] : []),
+    ...(send ? [{ id: m.starred ? "unstar" : "star", title: m.starred ? "Unstar" : "Star", shortcut: "cmd+s", multi: true } as Action] : []),
     // The quick reply takes the row's typed argument (the text; the sender and the reply subject are implied); Enter on the row still opens the thread.
     ...(send ? [{ id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true } as Action] : []),
     { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+    m.unread ? UNREAD : READ,
   ];
 }
 
@@ -140,7 +144,7 @@ const replyForm = (m: Mail, errors?: Record<string, string>, values: Partial<Rec
 const values = (ctx?: Ctx) => ({ to: String(ctx?.values?.to ?? "").trim(), cc: String(ctx?.values?.cc ?? "").trim(), subject: String(ctx?.values?.subject ?? "").trim(), body: String(ctx?.values?.body ?? "").trim() });
 
 async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise<Effect> {
-  const ids = ctx?.ids?.length ? ctx.ids : [m.id];
+  const ids = ctx?.ids ?? [m.id];
   const n = ids.length;
   switch (action) {
     case "copy": return { copy: threadUrl(await address(), m.threadId, m.inInbox) };
@@ -159,9 +163,9 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
       return toast("Archived", n > 1 ? plural(n, "message") : m.subject || "(no subject)");
     case "star": case "unstar":
       if (!canSend()) return toast("Star is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
-      try { await star([m.id], action === "star"); } catch (e) { return failed(action === "star" ? "star" : "unstar", e); }
+      try { await star(ids, action === "star"); } catch (e) { return failed(action === "star" ? "star" : "unstar", e); }
       dropInbox();
-      return toast(action === "star" ? "Starred" : "Unstarred", m.subject || "(no subject)");
+      return toast(action === "star" ? "Starred" : "Unstarred", n > 1 ? plural(n, "message") : m.subject || "(no subject)");
     case "reply": case "send": {
       if (!canSend()) return toast("Reply is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
       // "reply" with the bar's one field is a quick reply to the sender under the reply subject; "send" is the form's four fields; neither: the form.
@@ -361,7 +365,7 @@ async function barState(i: Inbox): Promise<BarState> {
  * unread as a row (the sender's mark, who wrote it, the subject and its
  * snippet, the time, a star or a paperclip), a cursor
  * the arrows move and a click sets, the keys as hints. Enter opens the
- * focused message in Gmail, `m` marks it read, `s` stars it, `a` marks
+ * focused message in Gmail, `m` marks it read (or every marked row), `s` stars it, `a` marks
  * every listed message read, `o` opens Gmail, `p` the Inbox palette.
  * The cursor lives here between renders. No token is hidden, not an
  * error: the strip has no room for a hint. A failed fetch throws,
@@ -389,7 +393,7 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
 /** The popover drawn again from the inbox at hand (no fetch): what a key that only moves the cursor answers. */
 const redrawBar = async (): Promise<Effect> => ({ view: renderBar(await barState(await loadInbox())) });
 
-async function unreadAction(action: string): Promise<Effect> {
+async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: "gmail", palette: "inbox" } };
   if (action === "open-gmail") return { open: `${gmailBase(await address())}#inbox` };
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(); }
@@ -416,9 +420,12 @@ async function unreadAction(action: string): Promise<Effect> {
       return redrawBar();
     }
     case "read": {
-      if (!cur) return { keep: true };
-      const r = await pickMail(await mail(cur.id), "read");
-      return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
+      // The marked rows (`BarCtx.ids`), else the one under the cursor.
+      const ids = ctx?.ids ?? (cur ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      try { await markRead(ids); } catch (e) { return failed("mark read", e); }
+      dropInbox();
+      return { keep: true, hud: ids.length > 1 ? `Marked ${ids.length} read` : "Marked read" };
     }
     case "copy": return cur ? pickMail(await mail(cur.id), "copy") : { keep: true };
     case "open": return cur ? pickMail(await mail(cur.id), "open") : { open: `${gmailBase(await address())}#inbox` };

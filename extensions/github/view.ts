@@ -4,8 +4,9 @@
 // strip segments count, all rows, the popover scrolls; the focused row
 // wears the accent ring and row clicks move it. Notifications keeps its
 // repository-grouped inbox: every unread thread with a type rail, reason
-// badge and age, the popover scrolls. All three use the popover width
-// constant and the same key-hint row pattern.
+// badge and age, the popover scrolls; its rows can be marked (`mark`:
+// cmd/shift click, shift+arrows) for `m` to mark them all read. All three
+// use the popover width constant and the same key-hint row pattern.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Issue, Notification, PR } from "./data.ts";
 
@@ -200,7 +201,7 @@ function threadRow(n: Notification, focused: boolean, st: NotifState): ViewNode 
       column([text(n.title, { size: "md", weight: focused ? "semibold" : "medium", width: TITLE_W }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "body", gap: 0, grow: true }),
       text(ago(n.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
-    { key: n.id, padding: 1, radius: true, action: `focus:${n.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+    { key: n.id, mark: n.id, padding: 1, radius: true, action: `focus:${n.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -230,7 +231,7 @@ export function actions(st: NotifState): Action[] {
   const list: Action[] = rows.length
     ? [
       { id: "open", title: "Open on GitHub", shortcut: "o" },
-      { id: "read", title: "Mark read", shortcut: "m" },
+      { id: "read", title: "Mark read", shortcut: "m", multi: true },
       { id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" },
       { id: "pal", title: "Open in pal", shortcut: "p" },
       { id: "copy", title: "Copy URL", shortcut: "cmd+c" },

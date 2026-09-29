@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { checkView, tinted } from "../../../sdk/src/index.ts";
 import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, marksOf, stored } from "../harness.ts";
 import { BASE, RESEARCH, SETTINGS, calls, seen, server, setRead, state } from "./tela-mock.ts";
 
 
@@ -331,6 +331,12 @@ describe("tela", () => {
       expect(await pick("comments", "notif:902")).toEqual({ open: `${BASE}/spaces/3/pages/30/how-we-ship` });
       expect(calls("POST", "/api/notifications/902/read")).toHaveLength(1);
       expect(await pick("comments", "notif:901", "read")).toEqual({ keep: true, toast: { title: "Marked read", message: "mara mentioned you in “Indexing”" } });
+      // Marked rows (`multi`): each one read, one toast for them all.
+      expect(items[0].actions!.find((a) => a.id === "read")).toMatchObject({ multi: true });
+      setRead((n) => n.id === 901 || n.id === 902, false);
+      expect(await pick("comments", "notif:901", "read", { ids: ["notif:901", "notif:902"] })).toEqual({ keep: true, toast: { title: "Marked read", message: "2 notifications" } });
+      expect(calls("POST", "/api/notifications/901/read")).toHaveLength(2);
+      expect(calls("POST", "/api/notifications/902/read")).toHaveLength(2);
       expect(ids(await list("comments"))).toEqual(["hint:none", "notif:901", "notif:902", "notif:905"]);
       expect((await list("comments"))[0]).toMatchObject({ name: "No unread mentions or replies", subtitle: "Earlier ones are below", actions: [] });
     });
@@ -358,6 +364,12 @@ describe("tela", () => {
       expect(await host.barAction("tela", "inbox", "open")).toEqual({ open: `${BASE}/spaces/2/pages/10/indexing` });
       expect(viewOf(await host.barAction("tela", "inbox", "focus:902"))).toMatchObject({ id: "inbox" });
       expect(await host.barAction("tela", "inbox", "notif:901")).toEqual({ open: `${BASE}/spaces/2/pages/10/indexing` });
+      // Every row can be marked (its notification id), and `m` reads every marked row at once.
+      expect(marksOf(v.tree)).toEqual(["901", "902"]);
+      expect(v.actions!.find((a) => a.id === "read")).toMatchObject({ multi: true });
+      const before = calls("POST", "/api/notifications/901/read").length + calls("POST", "/api/notifications/902/read").length;
+      expect(await host.barAction("tela", "inbox", "read", { reason: "open", ids: ["901", "902"] })).toEqual({ keep: true, hud: "Marked 2 read" });
+      expect(calls("POST", "/api/notifications/901/read").length + calls("POST", "/api/notifications/902/read").length).toBe(before + 2);
       expect(await host.barAction("tela", "inbox", "read-all")).toEqual({ keep: true, hud: "Marked read" });
       expect(calls("POST", "/api/notifications/read-all")).toHaveLength(1);
       expect(await host.render("tela", "inbox", { reason: "every" })).toMatchObject({ hidden: true, empty: { icon: "\u{f05da}" } });

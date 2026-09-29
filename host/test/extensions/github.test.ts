@@ -13,7 +13,7 @@ import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { REASONS, render as renderNotifs, renderIssues, renderPrs, shown, shownIssues, shownPrs } from "../../../extensions/github/view.ts";
 import type { Issue as GhIssue, Notification, PR as GhPR } from "../../../extensions/github/data.ts";
-import { Host, stored, writeTool } from "../harness.ts";
+import { Host, marksOf, stored, writeTool } from "../harness.ts";
 
 // ---- fixtures ---------------------------------------------------------------
 
@@ -479,6 +479,14 @@ describe("github", () => {
       expect(seen.find((s) => s.method === "PUT" && s.path === "/notifications")!.body).toMatchObject({ read: true });
       expect(await pick("notifications", "summary")).toEqual({ open: "https://github.com/notifications" });
     });
+
+    test("mark read over marked rows (ctx.ids): a PATCH per thread, one toast counting them", async () => {
+      expect((await list("notifications"))[1].actions!.find((a) => a.id === "read")).toMatchObject({ multi: true });
+      const before = seen.filter((s) => s.method === "PATCH").length;
+      expect(await pick("notifications", "thread:1001", "read", { ids: ["thread:1001", "thread:1003"] })).toMatchObject({ keep: true, toast: { title: "Marked read", message: "2 notifications" } });
+      const patches = seen.filter((s) => s.method === "PATCH").slice(before).map((s) => s.path).sort();
+      expect(patches).toEqual(["/notifications/threads/1001", "/notifications/threads/1003"]);
+    });
   });
 
   describe("search", () => {
@@ -576,7 +584,10 @@ describe("github", () => {
       expect(s).toContain('"text":"mention","color":"red"');
       expect(s).toContain('"text":"subscribed","color":"grey"');
       // The cursor on the first row, a click on any row moves it; the hints name the keys.
-      expect(s).toContain('"key":"thread:1002","padding":1,"radius":true,"action":"focus:thread:1002","selected":true');
+      expect(s).toContain('"key":"thread:1002","mark":"thread:1002","padding":1,"radius":true,"action":"focus:thread:1002","selected":true');
+      // Every thread can be marked, and m marks every marked one read.
+      expect(marksOf(view.tree)).toEqual(["thread:1002", "thread:1001", "thread:1003"]);
+      expect(view.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
       expect(s).toContain('"action":"focus:thread:1003"');
       expect(s).not.toContain('"action":"focus:thread:1003","selected"');
       for (const k of ["enter", "m", "a", "p", "up", "down"]) expect(s).toContain(`"type":"keycap","keys":"${k}"`);
@@ -635,6 +646,11 @@ describe("github", () => {
       expect(checkView(read.view)).toBeTruthy();
       expect(tree(read)).not.toContain('"key":"thread:1002"');
       expect(tree(read)).toContain('"action":"focus:thread:1001","selected":true');
+      // m with rows marked (`ctx.ids`): every marked thread PATCHed, a HUD counting them.
+      const before = seen.filter((s) => s.method === "PATCH").length;
+      const many = await host.barAction("github", "notifications", "read", { ...ctx, ids: ["thread:1001", "thread:1003"] });
+      expect(seen.filter((s) => s.method === "PATCH").slice(before).map((s) => s.path).sort()).toEqual(["/notifications/threads/1001", "/notifications/threads/1003"]);
+      expect(many).toMatchObject({ keep: true, hud: "Marked 2 read" });
       expect(await host.barAction("github", "notifications", "pal", ctx)).toEqual({ push: { extension: "github", palette: "notifications" } });
       const puts = seen.filter((s) => s.method === "PUT" && s.path === "/notifications").length;
       const all = await host.barAction("github", "notifications", "read-all", ctx);

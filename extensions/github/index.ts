@@ -783,7 +783,7 @@ const notifTable = new Map<string, Notification>();
 
 const NOTIF_ACTIONS: Action[] = [
   { id: "open", title: "Open" },
-  { id: "read", title: "Mark as read", shortcut: "cmd+shift+r" },
+  { id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true },
   { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
   { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
 ];
@@ -832,7 +832,15 @@ async function findNotif(id: string): Promise<Notification> {
   return n;
 }
 
-async function pickNotif(id: string, action?: string): Promise<Effect> {
+/** Mark the threads of `ids` read, all at once; the cache is dropped once. */
+async function readNotifs(ids: string[]): Promise<Notification[]> {
+  const ns = await Promise.all(ids.map(findNotif));
+  await Promise.all(ns.map((n) => markRead(n.thread)));
+  await forget("notifications");
+  return ns;
+}
+
+async function pickNotif(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (action === "read-all") {
     try { await markAllRead(); } catch (e) { return failed("mark all read", e); }
     await forget("notifications");
@@ -842,10 +850,12 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
   const n = await findNotif(id);
   switch (action) {
     case "copy": return { copy: n.url };
-    case "read":
-      try { await markRead(n.thread); } catch (e) { return failed("mark read", e); }
-      await forget("notifications");
-      return toast("Marked read", truncate(n.title, 60));
+    case "read": {
+      // Every marked row (`ctx.ids`), else the one; the summary row is never one of them.
+      const ids = (ctx?.ids ?? [id]).filter((x) => x !== SUMMARY);
+      try { await readNotifs(ids); } catch (e) { return failed("mark read", e); }
+      return toast("Marked read", ids.length > 1 ? `${ids.length} notifications` : truncate(n.title, 60));
+    }
     default:
       // Opening reads it, as the page would: the count is honest by the time you are back.
       try { await markRead(n.thread); await forget("notifications"); } catch (e) { log(`mark read ${n.thread}: ${errorMessage(e)}`); }
@@ -895,12 +905,12 @@ async function notifItem(ctx: BarCtx): Promise<BarItem> {
 
 /**
  * A key or a click in the popover: Enter/`o` marks the focused thread
- * read and opens it (as the palette's row does), `m` marks it read and
- * redraws, `a` marks all read, `p` pushes the palette, arrows and a
+ * read and opens it (as the palette's row does), `m` marks it (or every
+ * marked row) read and redraws, `a` marks all read, `p` pushes the palette, arrows and a
  * click move the cursor. A redraw after a mark read answers the fresh
  * list with `keep`, so the strip's count follows too.
  */
-async function notifAction(action: string): Promise<Effect> {
+async function notifAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "pal") return { push: { extension: "github", palette: "notifications" } };
   if (action === "site") return { open: "https://github.com/notifications" };
   if (action === "read-all") {
@@ -923,13 +933,14 @@ async function notifAction(action: string): Promise<Effect> {
   switch (action) {
     case "copy": return { copy: focused.url };
     case "read": {
-      const r = await pickNotif(focused.id, "read");
-      if (r.toast?.style === "failure") return r;
+      // The marked rows (`BarCtx.ids`), else the focused one.
+      const ids = ctx?.ids ?? [focused.id];
+      try { await readNotifs(ids); } catch (e) { return failed("mark read", e); }
       // The cursor stays at its index: the next thread slides under it.
       const next = notifState(await notifications());
       const at = Math.min(st.cursor, Math.max(0, shownNotifs(next.list).length - 1));
       barFocus.notifications = shownNotifs(next.list)[at]?.id;
-      return { keep: true, view: renderNotifs({ ...next, cursor: at }) };
+      return { keep: true, view: renderNotifs({ ...next, cursor: at }), ...(ids.length > 1 && { hud: `Marked ${ids.length} read` }) };
     }
     default: return pickNotif(focused.id);
   }
@@ -1062,7 +1073,7 @@ export default {
       title: "Notifications",
       live: true,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await notifRows(ctx))]),
-      pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickNotif(id, action)),
+      pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickNotif(id, action, ctx)),
     },
     search: {
       title: "Search GitHub",

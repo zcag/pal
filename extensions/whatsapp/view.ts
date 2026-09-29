@@ -4,7 +4,9 @@
 // groups), each row the picture (a data url; the initial on a green
 // tile while there is none), the name, the newest message on one line
 // with who wrote it, the time and the count; a cursor (`selected`) the
-// arrows move and a click sets; the keys as keycap hints. Replying turns
+// arrows move and a click sets; rows the shell can mark (`mark`: cmd/shift
+// click, shift+arrows) for `m` to mark them all read; the keys as keycap
+// hints. Replying turns
 // the search row into a text field (`View.input`) and the hints into
 // Send / Cancel. Nothing unread is one calm line, with the recent chats
 // as rows when the item stays on the bar (the core's `show = "always"`).
@@ -70,7 +72,7 @@ function rowNode(r: BarRow, focused: boolean, replying: boolean): ViewNode {
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
       count ? { type: "badge", key: "n", text: count, color: "green" } : { type: "spacer", key: "n", size: BADGE_W },
     ],
-    { key: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, mark: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -97,7 +99,8 @@ export function actions(st: BarState): Action[] {
   return [
     { id: "open", title: cur ? (cur.group ? "Open WhatsApp" : `Open chat with ${cur.name}`) : "Open WhatsApp" },
     ...(cur && st.canSend ? [{ id: "reply", title: `Reply to ${cur.name}`, shortcut: "r" }] : []),
-    ...(cur && cur.n > 0 ? [{ id: "read", title: `Mark ${cur.name} read`, shortcut: "m" }] : []),
+    // Offered while anything is unread, not only the cursor's chat: marked rows run it over them all.
+    ...(st.rows.some((r) => r.n > 0) ? [{ id: "read", title: cur && cur.n > 0 ? `Mark ${cur.name} read` : "Mark as read", shortcut: "m", multi: true } as Action] : []),
     ...(st.rows.some((r) => r.n > 0) ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-whatsapp", title: "Open WhatsApp", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },

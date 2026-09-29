@@ -98,7 +98,7 @@ function unreadActions(u: Unread): Action[] {
   return [
     { id: "open", title: "Open in Slack" },
     ...(u.kind !== "thread" ? [{ id: "reply", title: "Reply", args: true as const }] : []),
-    ...(u.kind !== "thread" && u.latest ? [{ id: "read", title: "Mark as read", shortcut: "cmd+shift+r" }] : []),
+    ...(u.kind !== "thread" && u.latest ? [{ id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true as const }] : []),
     { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" },
     { id: "copy", title: "Copy link", shortcut: "cmd+c" },
   ];
@@ -158,6 +158,19 @@ async function findUnread(id: string): Promise<Unread> {
   return u;
 }
 
+/** Mark the rows `ids` read (a thread or a row with nothing to mark is skipped): how many were, or the failure. */
+async function markReadIds(ids: string[]): Promise<number | Effect> {
+  let n = 0;
+  for (const id of ids) {
+    const u = await findUnread(id);
+    if (u.kind === "thread" || !u.latest) continue;
+    try { await markRead(u); } catch (e) { dropInbox(); return failed("mark read", e); }
+    n++;
+  }
+  dropInbox();
+  return n;
+}
+
 const replyForm = (u: Unread, errors?: Record<string, string>, text = ""): Form => ({
   id: rowId(u),
   title: `Reply to ${u.where}`,
@@ -179,10 +192,11 @@ async function pickUnread(u: Unread, action?: string, ctx?: Ctx): Promise<Effect
       try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { return { form: replyForm(u, { text: errorMessage(e) }, text) }; }
       return toast("Sent", `${u.where}: ${truncate(text, 60)}`);
     }
-    case "read":
-      try { await markRead(u); } catch (e) { return failed("mark read", e); }
-      dropInbox();
-      return toast("Marked read", u.where);
+    case "read": {
+      const n = await markReadIds(ctx?.ids ?? [rowId(u)]);
+      if (typeof n !== "number") return n;
+      return toast("Marked read", n > 1 ? plural(n, "conversation") : u.where);
+    }
     default: return { open: deepLink(u.team, u.cid, ts) };
   }
 }
@@ -377,7 +391,7 @@ async function pickStatus(id: string, action?: string, ctx?: Ctx): Promise<Effec
  * a section per kind with every row (the popover scrolls), a cursor the arrows move
  * and a click sets, the channels that are only unread as badges, the keys
  * as hints. Enter opens the focused row in Slack, `r` turns the search row
- * into a reply field (Enter sends through `post`), `m` marks it read, `a`
+ * into a reply field (Enter sends through `post`), `m` marks it read (or every marked row), `a`
  * marks every listed conversation read, `o` opens Slack, `p` the Unreads
  * palette. The cursor and the reply field live here between renders. Not
  * signed in is hidden, not an error: the strip has no room for a hint. A
@@ -462,6 +476,11 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return { ...(await redraw()), toast: { title: "Sent", message: `${u.where}: ${truncate(text, 60)}`, style: "success" } };
     }
     case "read": {
+      // The marked rows (`BarCtx.ids`), else the one under the cursor.
+      if (ctx?.ids?.length) {
+        const n = await markReadIds(ctx.ids);
+        return typeof n === "number" ? { keep: true, hud: `Marked ${n} read` } : n;
+      }
       if (!cur?.canRead) return { keep: true };
       const u = await findUnread(cur.id);
       try { await markRead(u); } catch (e) { return failed("mark read", e); }
