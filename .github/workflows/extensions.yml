@@ -131,7 +131,7 @@ jobs:
         if: env.BUILD == 'true'
         run: |
           R=$RUNNER_TEMP/registry
-          bun sdk/bin/pal-pack.ts build extensions/* --out "$R/all" \
+          bun sdk/bin/pal-pack.ts build extensions/*/ --out "$R/all" \
             --seq "$(git show -s --format=%ct HEAD)" --commit "$(git rev-parse HEAD)" \
             --screenshots-base "$SITE/extensions"
           bun sdk/bin/pal-pack.ts statements "$R/all"

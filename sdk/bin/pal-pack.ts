@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 // pal-pack: builds pal extensions into packages and writes a registry's
 // index (docs/registry.md). The work is in ../pack/pack.ts.
+import { statSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { buildAll, promote, writeIndex, writeStatements } from "../pack/pack.ts";
 
@@ -34,10 +35,13 @@ async function main(argv: string[]) {
   if (v.help || !cmd) return console.log(USAGE);
   switch (cmd) {
     case "build": {
-      if (!pos.length) throw new Error(`build: no extension directory given\n\n${USAGE}`);
+      // A glob like `extensions/*` also matches the files beside the extensions (bundled.txt, a README): those are skipped, said on stderr.
+      const dirs = pos.filter((p) => statSync(p, { throwIfNoEntry: false })?.isDirectory() ?? true);
+      for (const p of pos) if (!dirs.includes(p)) console.error(`pal-pack: ${p}: not a directory, skipped`);
+      if (!dirs.length) throw new Error(`build: no extension directory given\n\n${USAGE}`);
       const seq = v.seq === undefined ? undefined : Number(v.seq);
       if (seq !== undefined && !(Number.isInteger(seq) && seq > 0)) throw new Error(`build: --seq ${v.seq} is not a positive integer`);
-      await buildAll(pos, { out: v.out ?? "dist", cwd: v.cwd, seq, commit: v.commit, screenshotsBase: v["screenshots-base"], dirOnly: v["dir-only"] }, (e) =>
+      await buildAll(dirs, { out: v.out ?? "dist", cwd: v.cwd, seq, commit: v.commit, screenshotsBase: v["screenshots-base"], dirOnly: v["dir-only"] }, (e) =>
         console.log(`${e.name}\t${e.build.hash}\t${e.build.seq}\t${e.build.protocol}${v["dir-only"] ? "" : `\t${e.build.size}`}`),
       );
       return;
