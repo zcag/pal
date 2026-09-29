@@ -4,9 +4,11 @@
 # latest release, only once every bundle is on it; docs/releasing.md has the
 # rest. `make release VERSION=x.y.z` bumps the versions, commits,
 # tags and pushes; the guard below refuses a tag that does not match
-# tauri.conf.json. The `manifest` job then checks that latest.json carries
-# all three platforms (the three jobs merge into one file in parallel) and
-# publishes.
+# tauri.conf.json. `extensions` (extensions.yml) then publishes every
+# extension built at the tag to the registry's edge and stable indexes. The
+# `manifest` job checks that latest.json carries all three platforms (the
+# three jobs merge into one file in parallel) and that stable lists every
+# bundled extension's build, and publishes.
 #
 # A push to main that changes the dependencies runs the same build without
 # bundling or releasing (`warm`): it saves the Rust cache, and a tag run can
@@ -201,13 +203,38 @@ jobs:
           args: --target ${{ matrix.target }} ${{ steps.sign.outputs.args }} ${{ steps.codesign.outputs.args }}
           uploadUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
 
+      # What the bundle ships of each extension: the tree hash pal-pack gave
+      # the bundled copy (build-extensions.sh writes `.pal-build.json` beside
+      # its manifest). The `manifest` job holds it against the registry.
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type == 'tag' && matrix.target == 'aarch64-apple-darwin'
+        with:
+          name: bundled-builds
+          path: app/src-tauri/resources/extensions/*/.pal-build.json
+          include-hidden-files: true
+          if-no-files-found: error
+
+  # Every extension built at the tag goes to edge and then to stable
+  # (extensions.yml), so the registry never offers a build older than the
+  # one the app bundles. Only the `registry` environment's secrets reach it:
+  # nothing is passed, so the updater key stays in this workflow.
+  extensions:
+    needs: bundle
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/extensions.yml
+    with:
+      ref: ${{ github.sha }}
+      promote: all
+
   # The three jobs each download latest.json from the draft, add their
   # platform and upload it again (tauri-action's upload-version-json.ts),
   # so two finishing at once can drop a platform. This reads the merged
   # file back and fails when a platform is missing: re-run the missing
   # platform's job, which merges its entry in again.
   manifest:
-    needs: bundle
+    needs: [bundle, extensions]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     permissions:
@@ -235,6 +262,27 @@ jobs:
           done
           v=$(jq -r .version latest.json)
           [ "v$v" = "$TAG" ] || { echo "::error::latest.json says version $v, tag is $TAG"; fail=1; }
+          exit "${fail:-0}"
+      # Every bundled extension's hash is a build stable lists, not yanked:
+      # an app compares its bundled copy with the registry by hash, so a
+      # bundle the registry lacks would offer an "update" to what it already
+      # runs, or hide a real one. The hash, not the commit: a tree that did
+      # not change since the last promotion keeps the build (and commit) it
+      # was first promoted with.
+      - uses: actions/download-artifact@v4
+        with:
+          name: bundled-builds
+          path: bundled
+      - name: bundled builds are in the registry
+        run: |
+          curl -fsS https://pal.cagdas.io/registry/stable/index.json > stable.json
+          for f in bundled/*/.pal-build.json; do
+            n=$(basename "$(dirname "$f")"); h=$(jq -r .hash "$f"); count=$((${count:-0} + 1))
+            jq -e --arg n "$n" --arg h "$h" \
+              'any(.extensions[] | select(.name == $n) | .builds[]; .hash == $h and (.yanked | not))' stable.json > /dev/null ||
+              { echo "::error::$n: the bundle has $h, which stable does not list (or yanked)"; fail=1; }
+          done
+          [ -n "${fail:-}" ] || echo "all $count bundled extensions match stable"
           exit "${fail:-0}"
       # Only a complete release goes public, and always as the latest: the
       # updater and the site's Download buttons both follow releases/latest.

@@ -5,7 +5,7 @@
 # extensions and the examples) and bun test, the SDK's pack. The host's
 # files run in parallel workers, one per core up to 8 (CI: one per core),
 # and host/test/budget.ts fails a file over its time budget: host/test/README.md.
-.PHONY: shots test
+.PHONY: test
 test:
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
@@ -50,6 +50,20 @@ release:
 	run ssh -o ConnectTimeout=10 hermes /usr/local/bin/pal-site sync --data-dir /home/cagdas/.local/share/pal-site --ref main || echo "pal.cagdas.io not synced (its hourly sync picks the changelog up)"; \
 	echo "$$tag pushed: https://github.com/zcag/pal/actions/workflows/release.yml (published as the latest release once every bundle is on it)"
 
+# Promotes the registry's edge builds to stable, the index every pal
+# follows (docs/registry.md): `make ext-release` for every extension,
+# `make ext-release NAMES="weather timer"` for some. It dispatches
+# .github/workflows/extensions.yml on main with `promote` and watches that
+# run to the end, failing when it fails; the run's summary lists what was
+# promoted, with hashes. Edge is what green pushes to main built, so push
+# and let ci pass first. docs/releasing.md has the rest.
+.PHONY: ext-release
+ext-release:
+	@set -e; out=$$(gh workflow run extensions.yml --ref main -f promote="$(or $(strip $(NAMES)),all)" 2>&1); echo "$$out"; \
+	id=$$(echo "$$out" | grep -Eo 'actions/runs/[0-9]+' | cut -d/ -f3); \
+	[ -n "$$id" ] || { sleep 5; id=$$(gh run list --workflow extensions.yml --event workflow_dispatch -L 1 --json databaseId -q '.[0].databaseId'); }; \
+	gh run watch "$$id" --exit-status
+
 # Builds the macOS app and installs it to /Applications, signed with the
 # "pal-dev" identity every release is signed with too (release.yml), so a
 # local build, a release and an update are one app to macOS and keep its
@@ -60,11 +74,6 @@ release:
 # through LaunchServices.
 PAL_DEV_P12 ?= $(HOME)/Sync/.secrets/pal/pal-dev.p12
 .PHONY: app
-# The store screenshots, both themes (docs/design/screenshots.md): `make shots`
-# for every extension, `make shots EXT="privacy timer"` for some.
-shots:
-	EXT="$(EXT)" app/scripts/make-shots.sh
-
 app:
 	@security find-identity -p codesigning 2>/dev/null | grep -q '"pal-dev"' || { \
 		[ -f "$(PAL_DEV_P12)" ] || { echo "no pal-dev signing identity and no $(PAL_DEV_P12) to import it from (docs/releasing.md)"; exit 1; }; \
@@ -74,3 +83,9 @@ app:
 	rm -rf /Applications/pal.app && cp -R target/release/bundle/macos/pal.app /Applications/pal.app
 	open -a /Applications/pal.app
 	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
+
+# The store screenshots, both themes (docs/design/screenshots.md): `make shots`
+# for every extension, `make shots EXT="privacy timer"` for some.
+.PHONY: shots
+shots:
+	EXT="$(EXT)" app/scripts/make-shots.sh

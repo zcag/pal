@@ -1,0 +1,332 @@
+# Our registry (docs/registry.md "Our registry"): every extension built with
+# pal-pack, signed with the extension key, published to pal.cagdas.io.
+#
+# - A green `ci` on a push to main builds main into the edge index; only the
+#   extensions whose hash is not edge's newest go out, so a push that touched
+#   no extension publishes nothing.
+# - `make ext-release [NAMES="a b"]` dispatches `promote`: edge's newest
+#   builds of those (or all) go to the stable index apps use.
+# - release.yml calls it for a tag: the builds at the tag go to edge and
+#   every one of them to stable.
+# - `yank: name@hash` marks a build yanked in both indexes; `reindex`
+#   re-signs both and every build in them with the current key (a key
+#   rotation, docs/releasing.md).
+#
+# The three jobs are split by what they may touch. `build` runs `bun
+# install` (dependency scripts) and holds no secret. `sign` holds the
+# extension key and installs nothing: bun runs pal-pack, which has no
+# dependencies, with auto-install off. `publish` holds only the site token.
+# The key and the token live in the `registry` environment.
+name: extensions
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      promote:
+        description: "Promote edge to stable: all, or extension names (space or comma separated). Empty: build ref into edge."
+        type: string
+        default: ""
+      ref:
+        description: "What to build into edge (without promote, yank or reindex)"
+        type: string
+        default: main
+      yank:
+        description: "name@hash to mark yanked in both indexes"
+        type: string
+        default: ""
+      reindex:
+        description: "Re-sign both indexes and every build in them with the current key"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      promote:
+        type: string
+        default: ""
+      yank:
+        type: string
+        default: ""
+      reindex:
+        type: boolean
+        default: false
+
+# Each run reads an index, adds to it and writes it back, so runs go one at a
+# time and none is cancelled halfway. GitHub keeps one pending run per
+# group: a third run arriving cancels the one waiting, not the one running.
+# For edge that loses nothing (the newer run builds a newer main); a
+# cancelled promote shows as a failed `make ext-release` or release job,
+# to run again.
+concurrency:
+  group: registry
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SITE: https://pal.cagdas.io
+  BASE: https://pal.cagdas.io/registry
+
+jobs:
+  build:
+    # A workflow_run fires for every `ci` run on a branch named main,
+    # including a pull request's from a fork: only a push to this
+    # repository's main that passed is built.
+    if: >-
+      github.event_name != 'workflow_run' || (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+      built: ${{ steps.plan.outputs.built }}
+      work: ${{ steps.plan.outputs.work }}
+    env:
+      # A dispatch that promotes, yanks or re-signs publishes what is already
+      # built; everything else builds.
+      BUILD: ${{ github.event_name != 'workflow_dispatch' || (inputs.promote == '' && inputs.yank == '' && !inputs.reindex) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref || 'main' }}
+          persist-credentials: false
+      - id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # The same Bun as ci.yml and the app's sidecar (fetch-bun.sh pins it).
+      - name: Bun version
+        if: env.BUILD == 'true'
+        id: bun
+        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' app/scripts/fetch-bun.sh)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        if: env.BUILD == 'true'
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
+      - uses: actions/cache@v4
+        if: env.BUILD == 'true'
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - name: Install JS dependencies
+        if: env.BUILD == 'true'
+        run: |
+          bun install --frozen-lockfile
+          for d in extensions/*/; do
+            if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
+          done
+
+      # Every extension at this commit, with its statement. `seq` is the
+      # commit's time (docs/registry.md), the same in every workflow that
+      # builds it, so the release's build of a tag and this one agree.
+      - name: Build
+        if: env.BUILD == 'true'
+        run: |
+          R=$RUNNER_TEMP/registry
+          bun sdk/bin/pal-pack.ts build extensions/* --out "$R/all" \
+            --seq "$(git show -s --format=%ct HEAD)" --commit "$(git rev-parse HEAD)" \
+            --screenshots-base "$SITE/extensions"
+          bun sdk/bin/pal-pack.ts statements "$R/all"
+          .github/actions/registry/registry.sh fetch "$BASE/edge/index.json" "$R/edge.json"
+          .github/actions/registry/registry.sh changed "$R/all" "$R/edge.json" | tee "$R/changed.txt"
+          rm -f "$R/edge.json" "$R/edge.json.minisig"
+
+      - name: Plan
+        id: plan
+        env:
+          ACT: ${{ inputs.promote }}${{ inputs.yank }}${{ inputs.reindex && 'reindex' || '' }}
+        run: |
+          R=$RUNNER_TEMP/registry
+          if [ -f "$R/changed.txt" ]; then
+            awk '$2 == "new" { print $1 }' "$R/changed.txt" > "$R/new.txt"
+            echo "$(wc -l < "$R/new.txt") of $(wc -l < "$R/changed.txt") extensions are not edge's newest build"
+          fi
+          if [ -s "$R/new.txt" ] || [ -n "$ACT" ]; then echo "work=true" >> "$GITHUB_OUTPUT"; else echo "nothing to publish"; fi
+          if [ -f "$R/changed.txt" ]; then echo "built=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/upload-artifact@v4
+        if: steps.plan.outputs.work == 'true' && steps.plan.outputs.built == 'true'
+        with:
+          name: built
+          path: ${{ runner.temp }}/registry
+          retention-days: 7
+
+  sign:
+    needs: build
+    if: needs.build.outputs.work == 'true'
+    runs-on: ubuntu-24.04
+    environment: registry
+    env:
+      # The public keys the live indexes may be signed with (space
+      # separated): the current one, and the old one during a rotation.
+      PUBKEYS: ${{ vars.PAL_REGISTRY_PUBKEYS }}
+      NEXT_KEY: ${{ vars.PAL_REGISTRY_NEXT_KEY }}
+      PROMOTE: ${{ inputs.promote }}
+      YANK: ${{ inputs.yank }}
+      REINDEX: ${{ inputs.reindex }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.sha }}
+          persist-credentials: false
+      - name: Bun version
+        id: bun
+        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' app/scripts/fetch-bun.sh)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
+      # Ubuntu's own package (universe, 0.11 on noble), from the runner's
+      # apt mirror.
+      - name: minisign
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends minisign
+      - uses: actions/download-artifact@v4
+        if: needs.build.outputs.built == 'true'
+        with:
+          name: built
+          path: ${{ runner.temp }}/registry
+      - name: Key
+        env:
+          KEY: ${{ secrets.PAL_REGISTRY_KEY }}
+        run: |
+          [ -n "$KEY" ] || { echo "::error::PAL_REGISTRY_KEY is not set in the registry environment (docs/releasing.md)"; exit 1; }
+          [ -n "$PUBKEYS" ] || { echo "::error::PAL_REGISTRY_PUBKEYS is not set in the registry environment (docs/releasing.md)"; exit 1; }
+          (umask 077; printf '%s\n' "$KEY" > "$RUNNER_TEMP/registry.key")
+
+      # Out: out/edge (index, signature, the new packages) and out/stable
+      # (index, signature), each only when it changes; out/before keeps the
+      # indexes as they were, for the summary.
+      - name: Sign and index
+        run: |
+          set -euo pipefail
+          r=.github/actions/registry/registry.sh
+          pack() { bun --no-install sdk/bin/pal-pack.ts "$@"; }
+          R=$RUNNER_TEMP/registry key=$RUNNER_TEMP/registry.key
+          mkdir -p "$R/out/before" "$R/empty" "$R/dist"
+          opts=(--name pal --base "$BASE")
+          [ -z "$YANK" ] || opts+=(--yank "$YANK")
+          [ -z "$NEXT_KEY" ] || opts+=(--next-key "$NEXT_KEY")
+
+          for ch in edge stable; do
+            $r fetch "$BASE/$ch/index.json" "$R/$ch.json"
+            if [ -f "$R/$ch.json" ]; then
+              cp "$R/$ch.json" "$R/out/before/"
+              # `reindex`, or the first run after a key swap (the index is
+              # signed by an old key): every build is re-signed, and both
+              # indexes go out signed with the current key.
+              if [ "$REINDEX" = true ]; then $r resign "$R/$ch.json" "$key"
+              elif [ "$($r rekey "$R/$ch.json" "$key")" = rekeyed ]; then REINDEX=true
+              fi
+            fi
+          done
+
+          if [ -d "$R/all" ]; then
+            shopt -s nullglob
+            $r sign "$key" "$R"/all/*.statement
+            $r pick "$R/all" "$R/dist" "$R/new.txt"
+          fi
+          if [ -s "$R/new.txt" ] || [ -n "$YANK" ] || [ "$REINDEX" = true ]; then
+            m=(); [ ! -f "$R/edge.json" ] || m=(--merge "$R/edge.json")
+            pack index "$R/dist" "${opts[@]}" "${m[@]}" --out "$R/out/edge"
+            $r sign "$key" "$R/out/edge/index.json"
+          fi
+
+          if [ -n "$PROMOTE" ]; then
+            if [ -d "$R/all" ]; then
+              # A release: exactly the builds at its commit, whatever edge
+              # has since. A build yanked in edge is left out, and the
+              # release's manifest job then refuses to ship it bundled.
+              awk '$2 != "yanked" { print $1 }' "$R/changed.txt" > "$R/at-ref.txt"
+              $r pick "$R/all" "$R/at-ref" "$R/at-ref.txt"
+              pack index "$R/at-ref" --name pal --base "$BASE" --out "$R/at-ref-index"
+              from=$R/at-ref-index/index.json
+            elif [ -f "$R/out/edge/index.json" ]; then from=$R/out/edge/index.json
+            else from=$R/edge.json
+            fi
+            [ -f "$from" ] || { echo "::error::no edge index to promote from"; exit 1; }
+            [ -f "$R/stable.json" ] || jq -n '{format: 1, name: "pal", generated_at: "1970-01-01T00:00:00Z", next_key: null, extensions: []}' > "$R/stable.json"
+            names=()
+            [ "$PROMOTE" = all ] || names=(--names "$(sed -E 's/[ ,]+/,/g; s/^,|,$//g' <<< "$PROMOTE")")
+            pack promote --from "$from" --to "$R/stable.json" "${names[@]}" --out "$R/stable.promoted.json"
+            mv "$R/stable.promoted.json" "$R/stable.json"
+          fi
+          # Through pal-pack index once more, with nothing new, so stable
+          # gets the yank, next_key and generated_at the same way edge does.
+          if [ -n "$PROMOTE" ] || [ -n "$YANK" ] || [ "$REINDEX" = true ]; then
+            m=(); [ ! -f "$R/stable.json" ] || m=(--merge "$R/stable.json")
+            pack index "$R/empty" "${opts[@]}" "${m[@]}" --out "$R/out/stable"
+            $r sign "$key" "$R/out/stable/index.json"
+          fi
+
+          ls "$R"/out/*/index.json > /dev/null 2>&1 || { echo "::error::nothing was indexed"; exit 1; }
+          for f in "$R"/out/*/index.json; do $r verify "$f"; done
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/registry.key"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed
+          path: ${{ runner.temp }}/registry/out
+          retention-days: 7
+
+  publish:
+    needs: [build, sign]
+    if: needs.build.outputs.work == 'true'
+    runs-on: ubuntu-24.04
+    environment: registry
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: .github/actions/registry
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed
+          path: ${{ runner.temp }}/signed
+      # Packages first, then edge, then stable: an index never lists a
+      # package the site does not have yet. Each index is read back from
+      # its public URL, what apps fetch, and compared byte for byte.
+      - name: Upload
+        env:
+          PAL_PUBLISH_TOKEN: ${{ secrets.PAL_PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+          r=.github/actions/registry/registry.sh S=$RUNNER_TEMP/signed
+          shopt -s nullglob
+          for f in "$S"/edge/pkg/*/*; do
+            $r put "$SITE/api/registry/pkg/$(basename "$(dirname "$f")")/$(basename "$f")" "$f"
+          done
+          for ch in edge stable; do
+            [ -f "$S/$ch/index.json" ] || continue
+            jq -n --rawfile index "$S/$ch/index.json" --rawfile sig "$S/$ch/index.json.minisig" \
+              '{index: $index, sig: $sig}' > "$RUNNER_TEMP/$ch.body.json"
+            $r put "$SITE/api/registry/$ch" "$RUNNER_TEMP/$ch.body.json"
+            curl -fsS "$BASE/$ch/index.json" | cmp - "$S/$ch/index.json"
+            curl -fsS "$BASE/$ch/index.json.minisig" | cmp - "$S/$ch/index.json.minisig"
+            echo "$BASE/$ch/index.json is live"
+          done
+      - name: Summary
+        env:
+          YANK: ${{ inputs.yank }}
+          REINDEX: ${{ inputs.reindex }}
+        run: |
+          r=.github/actions/registry/registry.sh S=$RUNNER_TEMP/signed
+          {
+            echo "## Registry at \`${{ needs.build.outputs.sha }}\`"
+            for ch in edge stable; do
+              [ -f "$S/$ch/index.json" ] || continue
+              echo; echo "### $ch"; echo
+              $r summary "$S/before/$ch.json" "$S/$ch/index.json"
+            done
+            [ -z "$YANK" ] || printf '\n%s\n' "Yanked \`$YANK\` in both indexes."
+            [ "$REINDEX" != true ] || printf '\nRe-signed both indexes and every build in them.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
