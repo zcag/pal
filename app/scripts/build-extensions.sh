@@ -7,21 +7,24 @@
 #   resources/sdk/{package.json,src/*.ts}  the SDK (`@zcag/pal`): the host
 #                                          imports it by relative path and
 #                                          links it into every user root
-#   resources/extensions/<name>/index.js   each extension bundled (a dynamic
-#                                          import is its own chunk beside it)
-#   resources/extensions/<name>/pal.json   its manifest: the host reads the
-#                                          settings defaults and title from it
-#   resources/extensions/<name>/surface/   a game's page, with the *.ts beside
-#                                          index.ts it imports (`ext://`)
+#   resources/extensions/<name>/           each extension in extensions/bundled.txt,
+#                                          built by pal-pack (sdk/bin/pal-pack.ts)
+#                                          exactly as a registry package is:
+#                                          index.js (+ chunks), pal.json with
+#                                          `protocol` stamped, a game's surface/
+#                                          and the sources it imports, and
+#                                          .pal-build.json {hash, seq, commit,
+#                                          protocol}, which the core compares
+#                                          with our registry
+#   resources/extensions/node_modules/@zcag/pal/  a copy of the SDK
 #
-# `bun build` inlines an extension's dependencies (emoji's data.json) and
-# its import of `@zcag/pal` (resolved through the root workspace, so `bun
-# install` at the repo root first), so no node_modules ships and nothing in
-# the bundle needs a node_modules link. A copy of the SDK per extension is
-# fine: it reaches the host through a process-wide slot (sdk/src/runtime.ts),
-# not a shared module instance. `--splitting` keeps a dynamic import (calc's
-# mathjs, 1.3 MB) in a chunk of its own, loaded on first use rather than
-# parsed with the entry.
+# A package has `@zcag/pal` external, so an SDK change does not change every
+# package, and the same build is bundled here and published to the registry
+# with one hash. The import resolves at run time through the copy of the SDK
+# in the bundled root's node_modules: real files, since a signed .app holds no
+# symlinks (the host links the SDK into user roots instead, and leaves this
+# root alone). Built from the repo root, so the source-path comments in the
+# output are the same on every machine.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
@@ -33,27 +36,27 @@ if [ -z "$bun" ]; then
   [ -x "$bun" ] || "$root/app/scripts/fetch-bun.sh" "$triple"
 fi
 
+# The list, comments and blank lines dropped; a name without its directory
+# fails here, so the list cannot drift from the tree unnoticed.
+names=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$root/extensions/bundled.txt" | grep -v '^$')
+dirs=()
+for name in $names; do
+  [ -f "$root/extensions/$name/index.ts" ] || { echo "build-extensions: extensions/bundled.txt lists $name, which has no extensions/$name/index.ts" >&2; exit 1; }
+  dirs+=("$root/extensions/$name")
+done
+
 # Staged in a temp dir and synced by checksum, so a file that did not change
 # keeps its mtime: tauri-build watches the tree and would otherwise re-link
 # the app on every build.
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$tmp/host/src" "$tmp/sdk/src" "$tmp/extensions"
+mkdir -p "$tmp/host/src" "$tmp/sdk/src" "$tmp/extensions/node_modules/@zcag/pal/src"
 cp "$root"/host/src/*.ts "$tmp/host/src/"
-cp "$root"/sdk/package.json "$tmp/sdk/"
-cp "$root"/sdk/src/*.ts "$tmp/sdk/src/"
-for entry in "$root"/extensions/*/index.ts; do
-  name=$(basename "$(dirname "$entry")")
-  "$bun" build "$entry" --target bun --splitting --outdir "$tmp/extensions/$name" >/dev/null
-  cp "$(dirname "$entry")/pal.json" "$tmp/extensions/$name/"
-  # A game surface's page loads its files by URL (`ext://`, surface.rs): the
-  # page as is, and the sources beside it it imports (`../game.ts`), which the
-  # bundle above inlined; never index.ts, which the host would load over index.js.
-  if [ -d "$(dirname "$entry")/surface" ]; then
-    cp -R "$(dirname "$entry")/surface" "$tmp/extensions/$name/"
-    find "$(dirname "$entry")" -maxdepth 1 -name '*.ts' ! -name index.ts -exec cp {} "$tmp/extensions/$name/" \;
-  fi
+for d in "$tmp/sdk" "$tmp/extensions/node_modules/@zcag/pal"; do
+  cp "$root"/sdk/package.json "$d/"
+  cp "$root"/sdk/src/*.ts "$d/src/"
 done
+"$bun" "$root/sdk/bin/pal-pack.ts" build --dir-only --cwd "$root" --out "$tmp/extensions" "${dirs[@]}" >/dev/null
 mkdir -p "$out"
 rsync -rc --delete "$tmp/" "$out/"
-echo "build-extensions: $(ls "$out/extensions" | tr '\n' ' ')-> $out"
+echo "build-extensions: $(echo $names | wc -w | tr -d ' ') extensions -> $out"
