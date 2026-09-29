@@ -24,6 +24,8 @@
     "src",
     "test",
     "../sdk/src",
+    "../sdk/pack",
+    "../sdk/bin",
     "../extensions",
     "../examples"
   ],

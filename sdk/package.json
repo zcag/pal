@@ -14,8 +14,9 @@
     ".": { "types": "./dist/index.d.ts", "default": "./src/index.ts" },
     "./runtime": { "types": "./dist/runtime.d.ts", "default": "./src/runtime.ts" }
   },
+  "bin": { "pal-pack": "./bin/pal-pack.ts" },
   "publishConfig": { "access": "public" },
-  "files": ["dist", "src", "README.md", "LICENSE"],
+  "files": ["dist", "src", "bin", "pack", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
