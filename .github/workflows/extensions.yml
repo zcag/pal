@@ -165,7 +165,8 @@ jobs:
     environment: registry
     env:
       # The public keys the live indexes may be signed with (space
-      # separated): the current one, and the old one during a rotation.
+      # separated): the current one, and the old one during a rotation. The
+      # first is written into the indexes as their `key`.
       PUBKEYS: ${{ vars.PAL_REGISTRY_PUBKEYS }}
       NEXT_KEY: ${{ vars.PAL_REGISTRY_NEXT_KEY }}
       PROMOTE: ${{ inputs.promote }}
@@ -211,9 +212,9 @@ jobs:
           pack() { bun --no-install sdk/bin/pal-pack.ts "$@"; }
           R=$RUNNER_TEMP/registry key=$RUNNER_TEMP/registry.key
           mkdir -p "$R/out/before" "$R/empty" "$R/dist"
-          opts=(--name pal --base "$BASE")
+          # An unset PAL_REGISTRY_NEXT_KEY clears the indexes' next_key.
+          opts=(--name pal --base "$BASE" --key "${PUBKEYS%% *}" --next-key "$NEXT_KEY")
           [ -z "$YANK" ] || opts+=(--yank "$YANK")
-          [ -z "$NEXT_KEY" ] || opts+=(--next-key "$NEXT_KEY")
 
           for ch in edge stable; do
             $r fetch "$BASE/$ch/index.json" "$R/$ch.json"

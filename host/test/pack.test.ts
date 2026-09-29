@@ -151,7 +151,7 @@ describe("index", () => {
     expect(finish(i, new Date("2026-09-30T12:00:00.123Z")).generated_at).toBe("2026-09-30T12:00:00Z");
   });
 
-  test("statements, then the index: packages copied by hash, merged over the live index, yank, keep, next_key; an unsigned entry is refused", async () => {
+  test("statements, then the index: packages copied by hash, merged over the live index, yank, keep, key, next_key; an unsigned entry is refused", async () => {
     const dir = tmp();
     try {
       source(dir, "thing");
@@ -169,13 +169,13 @@ describe("index", () => {
       await expect(writeIndex(dist, { name: "acme", base: "https://x.test/pal/", out })).rejects.toThrow("no signature for other");
       writeFileSync(join(dist, "other.statement.minisig"), "untrusted comment: o\nSIG\n");
 
-      // The live index: an older thing build, a yanked one, an extension gone from the source, a key being moved to.
+      // The live index: an older thing build, a yanked one, an extension gone from the source, its key, a key being moved to.
       const live = join(dir, "live.json");
-      writeFileSync(live, JSON.stringify({ format: 1, name: "acme", generated_at: "2026-01-01T00:00:00Z", next_key: "RWQnext", extensions: [
+      writeFileSync(live, JSON.stringify({ format: 1, name: "acme", generated_at: "2026-01-01T00:00:00Z", key: "RWQold", next_key: "RWQnext", extensions: [
         { name: "thing", listing: listingOf({ name: "thing", title: "Old" }), builds: [b("old", 50), b("older", 40)] },
         { name: "gone", listing: listingOf({ name: "gone" }), builds: [b("g", 10)] },
       ] }));
-      const i = await writeIndex(dist, { name: "acme", base: "https://x.test/pal/", out, merge: live });
+      const i = await writeIndex(dist, { name: "acme", base: "https://x.test/pal/", out, merge: live, key: "RWQcur" });
       expect(readFileSync(join(out, "pkg", "thing", `${thing.build.hash}.tar.gz`)).equals(readFileSync(join(dist, "thing.tar.gz")))).toBe(true);
       expect(readFileSync(join(out, "pkg", "thing", `${thing.build.hash}.json`), "utf8")).toBe(readFileSync(join(dist, "thing", "pal.json"), "utf8"));
       expect(i.extensions.map((e) => e.name)).toEqual(["gone", "other", "thing"]);
@@ -183,15 +183,19 @@ describe("index", () => {
       expect(t.listing.title).toBe("Thing");
       expect(t.builds.map((x) => x.hash)).toEqual([thing.build.hash, "old"]);
       expect(t.builds[0]).toEqual({ hash: thing.build.hash, seq: 100, protocol: PROTOCOL, commit: "c1", url: `https://x.test/pal/pkg/thing/${thing.build.hash}.tar.gz`, manifest: `https://x.test/pal/pkg/thing/${thing.build.hash}.json`, size: thing.build.size, sig: "untrusted comment: t\nSIG\n", yanked: false });
-      expect(i.next_key).toBe("RWQnext");
-      expect(Object.keys(json(join(out, "index.json")))).toEqual(["format", "name", "generated_at", "next_key", "extensions"]);
+      expect([i.key, i.next_key]).toEqual(["RWQcur", "RWQnext"]);
+      expect(Object.keys(json(join(out, "index.json")))).toEqual(["format", "name", "generated_at", "key", "next_key", "extensions"]);
       expect(readFileSync(join(out, "index.json"), "utf8")).toBe(JSON.stringify(i, null, 2) + "\n");
 
-      // Again over the result: nothing duplicated; --keep drops what the source no longer has; --yank; --next-key "" clears it.
+      // Again over the result: nothing duplicated; --keep drops what the source no longer has; --yank; the key stays; --next-key "" clears it.
       const again = await writeIndex(dist, { name: "acme", base: "https://x.test/pal", out: join(dir, "site2"), merge: join(out, "index.json"), keep: ["thing"], yank: ["thing@old"], nextKey: "" });
       expect(again.extensions.map((e) => e.name)).toEqual(["other", "thing"]);
       expect(again.extensions.find((e) => e.name === "thing")!.builds.map((x) => [x.hash, x.yanked])).toEqual([[thing.build.hash, false], ["old", true]]);
-      expect(again.next_key).toBeNull();
+      expect([again.key, again.next_key]).toEqual(["RWQcur", null]);
+      // --key "" drops the field, not writes it as null: it is optional.
+      const bare = await writeIndex(dist, { name: "acme", base: "b", out: join(dir, "site4"), merge: join(out, "index.json"), key: "" });
+      expect("key" in json(join(dir, "site4", "index.json"))).toBe(false);
+      expect(bare.key).toBeUndefined();
       await expect(writeIndex(dist, { name: "acme", base: "b", out: join(dir, "site3"), yank: ["thing@nope"] })).rejects.toThrow("--yank thing@nope: no such build");
       writeFileSync(join(dir, "v2.json"), JSON.stringify({ format: 2, extensions: [] }));
       await expect(readIndex(join(dir, "v2.json"), "x")).rejects.toThrow("index format 2");

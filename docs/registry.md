@@ -79,6 +79,7 @@ A registry is one JSON file and its detached minisign signature
   "format": 1,
   "name": "pal",
   "generated_at": "2026-09-30T12:00:00Z",
+  "key": "RWQ…",
   "next_key": null,
   "extensions": [
     {
@@ -113,6 +114,12 @@ A registry is one JSON file and its detached minisign signature
 - `yanked: true`: never offered; an installed yanked build is replaced by the
   newest good one.
 - `url` and `manifest` may point anywhere.
+- `key` (optional): the registry's current minisign public key. It is
+  trusted only when a user adds the registry: `pal registry add` without a
+  key shows it and pins it then. After that it is never read; the pin, and
+  `next_key`, are what indexes are checked against, so an index cannot move
+  the pin by changing `key`. Our indexes carry it too; the app ignores it
+  and uses its built-in keys.
 - `next_key`: a minisign public key the registry is moving to. The index is
   signed by the current key, so the move is signed; an app that sees it
   accepts later indexes signed by either key and keeps the new one from the
@@ -154,14 +161,16 @@ to the site with a bearer token (`PAL_PUBLISH_TOKEN`):
 bunx --package @zcag/pal pal-pack build extensions/* --out dist   # → dist/<name>/, <name>.tar.gz, <name>.entry.json
 bunx --package @zcag/pal pal-pack statements dist                 # → dist/<name>.statement, to sign
 for f in dist/*.statement; do minisign -S -s acme.key -m "$f"; done
-bunx --package @zcag/pal pal-pack index dist --name acme --base https://acme.github.io/pal --out site
+bunx --package @zcag/pal pal-pack index dist --name acme --base https://acme.github.io/pal --key RWQ… --out site
 minisign -S -s acme.key -m site/index.json
 ```
 
 `site/` is then the registry: `index.json`, its `.minisig` and
-`pkg/<name>/<hash>.tar.gz|.json`. A later publish adds `--merge` with the
-live `index.json`, so the builds already listed stay, and their packages
-must still be served beside it.
+`pkg/<name>/<hash>.tar.gz|.json`. `--key` is the public key (below), written
+as the index's `key`. A later publish adds `--merge` with the live
+`index.json`, so the builds already listed stay (its `key` and `next_key`
+too, unless `--key` or `--next-key` is given; `""` clears either), and their
+packages must still be served beside it.
 
 **The key.** A minisign key pair without a password, since CI has no one
 to type it:
@@ -171,7 +180,7 @@ minisign -G -W -p acme.pub -s acme.key
 ```
 
 `acme.key` (the whole file) is the secret; the second line of `acme.pub`
-(`RWQ…`) is the public key users pin. Keep a copy of the secret somewhere
+(`RWQ…`) is the public key users pin, and the one `--key` takes. Keep a copy of the secret somewhere
 safe: without it, every user has to remove the registry and add it again.
 
 **The Action** does all of it and deploys to GitHub Pages:
@@ -214,15 +223,15 @@ jobs:
   the repository secret `PAL_REGISTRY_KEY`.
 - Inputs: `name` (the registry's name), `extensions` (a glob, default
   `extensions/*`), `key`, `public-key` (the live index is checked against
-  it before a run builds on it, and a `key` that is not its pair fails the
-  run), `base-url` (default the repository's Pages URL, a custom domain
+  it before a run builds on it, a `key` that is not its pair fails the run,
+  and the first key in it is written as the index's `key`), `base-url` (default the repository's Pages URL, a custom domain
   included) and `next-key` (below). Output: `url`, the index's URL.
 - A run builds every extension and keeps the builds whose hash is not
   already the live index's newest; with none, nothing is deployed. It signs
   them and the index, and deploys the site with the packages of every build
   the index still lists.
 - The run's summary prints the index URL, the public key and the
-  `pal://registry/add?url=…` link, for a README.
+  `pal://registry/add?url=…&key=…` link, for a README.
 - **Yanking** a build: `pal-pack index <an empty dir> --merge index.json
   --yank name@hash`, then sign and deploy that index as above.
 - **Rotating the key:**
@@ -232,11 +241,18 @@ jobs:
      hours), set `key` to the new secret, `public-key` to the new key then
      the old one (`RWQnew… RWQold…`), and drop `next-key`. That run finds
      the live index signed by the old key and re-signs it and every build
-     in it with the new one.
+     in it with the new one; the index's `key` becomes the new key and its
+     `next_key` is cleared.
   3. Then `public-key` is the new key alone.
 
-Users add it with `pal registry add <url>` or a `pal://registry/add?url=<url>`
-link, where `<url>` is the index's; the key shown then is pinned.
+Users add it with `pal registry add <url> --key <key>`, or with a
+`pal://registry/add?url=<url>&key=<key>` link (both values URL-encoded:
+a key's `+` and `/` are `%2B` and `%2F`), where `<url>` is the index's and
+`<key>` the public key. The key is then checked against the index's
+signature and pinned. Give it: without one, `add` falls back to the key the
+index itself announces (`key`), which proves only that whoever serves the
+index holds its secret, not that the index is the one you meant.
+`pal registry add <url>` and a link with `url` alone still work that way.
 
 ## Calls the app makes to pal.cagdas.io
 

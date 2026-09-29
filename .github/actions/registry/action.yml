@@ -26,7 +26,7 @@ inputs:
     description: The minisign secret key, the whole file's text, made without a password (`minisign -G -W`).
     required: true
   public-key:
-    description: Its public key, the second line of the `.pub` file (`RWQ...`). The live index is checked against it before a publish builds on it, and the run's summary prints it. During a key rotation, the new key then the old one, space separated.
+    description: Its public key, the second line of the `.pub` file (`RWQ...`). The live index is checked against it before a publish builds on it, the index carries it as `key` (what `pal registry add` shows and pins), and the run's summary prints it. During a key rotation, the new key then the old one, space separated.
     required: true
   base-url:
     description: Where the site is served. Defaults to the repository's Pages URL (a custom domain included).
@@ -90,8 +90,10 @@ runs:
         $r changed "$W/all" "$W/live.json" | tee "$W/changed.txt"
         awk '$2 == "new" { print $1 }' "$W/changed.txt" > "$W/new.txt"
         echo "url=$base/index.json" >> "$GITHUB_OUTPUT"
-        live_next=$( [ -f "$W/live.json" ] && jq -r '.next_key // ""' "$W/live.json" || true)
-        if [ ! -s "$W/new.txt" ] && [ -f "$W/live.json" ] && [ "$live_next" = "$NEXT_KEY" ] && [ -z "$rekeyed" ]; then
+        # With no new build, a live index whose `key` or `next_key` is not
+        # the inputs' is still rewritten (and a missing one written).
+        live=$( [ -f "$W/live.json" ] && jq -r '"\(.key // "") \(.next_key // "")"' "$W/live.json" || true)
+        if [ ! -s "$W/new.txt" ] && [ "$live" = "${PUBKEYS%% *} $NEXT_KEY" ] && [ -z "$rekeyed" ]; then
           echo "nothing to publish"; exit 0
         fi
 
@@ -99,9 +101,10 @@ runs:
         pack statements "$W/dist"
         shopt -s nullglob
         $r sign "$W/key" "$W"/dist/*.statement
-        opts=(--name "$NAME" --base "$base" --out "$W/site")
+        # `key` and `next_key` come from the inputs on every run, so dropping
+        # the `next-key` input clears it rather than keeping the live one.
+        opts=(--name "$NAME" --base "$base" --out "$W/site" --key "${PUBKEYS%% *}" --next-key "$NEXT_KEY")
         [ ! -f "$W/live.json" ] || opts+=(--merge "$W/live.json")
-        [ -z "$NEXT_KEY" ] || opts+=(--next-key "$NEXT_KEY")
         pack index "$W/dist" "${opts[@]}"
         $r sign "$W/key" "$W/site/index.json"
         $r verify "$W/site/index.json"
@@ -130,7 +133,7 @@ runs:
         ACTION: ${{ github.action_path }}
       run: |
         W=$RUNNER_TEMP/pal-registry
-        link="pal://registry/add?url=$(jq -rn --arg u "$URL" '$u | @uri')"
+        link="pal://registry/add?$(jq -rn --arg u "$URL" --arg k "${PUBKEY%% *}" '"url=\($u | @uri)&key=\($k | @uri)"')"
         {
           echo "## pal registry \`$NAME\`"
           echo

@@ -31,7 +31,8 @@ export type BuildInfo = { hash: string; seq: number; protocol: number; commit: s
 export type Entry = { name: string; listing: Listing; build: BuildInfo & { size: number } };
 export type IndexBuild = BuildInfo & { url: string; manifest: string; size: number; sig: string; yanked: boolean };
 export type IndexExtension = { name: string; listing: Listing; builds: IndexBuild[] };
-export type Index = { format: 1; name: string; generated_at: string; next_key: string | null; extensions: IndexExtension[] };
+/** `key` is optional (docs/registry.md "Index"): absent, not null, when unset. */
+export type Index = { format: 1; name: string; generated_at: string; key?: string; next_key: string | null; extensions: IndexExtension[] };
 
 type Json = Record<string, any>;
 const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
@@ -261,6 +262,7 @@ export function finish(index: Index, now = new Date()): Index {
     format: 1,
     name: index.name,
     generated_at: now.toISOString().replace(/\.\d+Z$/, "Z"),
+    ...(index.key ? { key: index.key } : {}),
     next_key: index.next_key ?? null,
     extensions: [...index.extensions]
       .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
@@ -274,12 +276,14 @@ export type IndexOptions = {
   /** Where `<out>` is served: packages are listed at `<base>/pkg/<name>/<hash>.tar.gz` and `.json`. */
   base: string;
   out: string;
-  /** An index to build on (the live one): its builds are kept under the retention rule, its `next_key` too. */
+  /** An index to build on (the live one): its builds are kept under the retention rule, its `key` and `next_key` too. */
   merge?: string;
   /** `name@hash` builds to mark yanked. */
   yank?: string[];
   /** When given, the index holds only these extensions and the ones in `dist`: an extension gone from the source leaves the index. */
   keep?: string[];
+  /** The registry's current public key, which `pal registry add` shows and pins; `""` clears it. */
+  key?: string;
   /** Announces the key the registry is moving to; `""` clears it. */
   nextKey?: string;
 };
@@ -311,6 +315,7 @@ export async function writeIndex(dist: string, o: IndexOptions): Promise<Index> 
     index.extensions = index.extensions.filter((e) => keep.has(e.name));
   }
   for (const s of o.yank ?? []) yank(index, s);
+  if (o.key !== undefined) index.key = o.key || undefined;
   if (o.nextKey !== undefined) index.next_key = o.nextKey || null;
   const done = finish(index);
   await mkdir(o.out, { recursive: true });
