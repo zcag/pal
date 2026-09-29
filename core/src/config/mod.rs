@@ -18,6 +18,7 @@
 //!   never sit in the file as plain text.
 
 mod edit;
+pub mod store;
 pub mod instance;
 pub mod migrate;
 pub mod reshape;
@@ -35,6 +36,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::index::{Caps, Tier};
 pub use edit::json_to_toml;
+pub use store::{reconcile, Plan};
 pub use watch::Watcher;
 
 /// pal's settings: everything the settings view can set, in the file it
@@ -71,6 +73,83 @@ pub struct Config {
     /// whatever the extension declared.
     #[schemars(with = "BTreeMap<String, BTreeMap<String, serde_json::Value>>")]
     pub extensions: BTreeMap<String, toml::Table>,
+    /// Extensions from registries: which are installed, which are off,
+    /// which registries to follow (`docs/registry.md`). pal writes it from
+    /// Settings, the Store and the CLI; editing by hand is fine too.
+    pub store: StoreConfig,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+/// `[store]`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct StoreConfig {
+    /// Apply extension updates by themselves, for every registry (a
+    /// registry's own `auto_update` overrides it). Off, each update waits
+    /// in Settings for your click.
+    pub auto_update: bool,
+    /// Extensions installed from a registry: `name` for pal's own,
+    /// `registry:name` for another. A listed one that is missing is
+    /// installed at start. Bundled extensions, `extension_dirs` and source
+    /// installs are never listed.
+    pub installed: Vec<String>,
+    /// Extensions that do not load, by name, installed or not.
+    pub disabled: Vec<String>,
+    /// Registries to follow besides pal's own, in this order. An entry
+    /// named `pal` sets only pal's `channel` and `auto_update`.
+    pub registries: Vec<RegistryConfig>,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl Default for StoreConfig {
+    fn default() -> Self {
+        Self { auto_update: true, installed: Vec::new(), disabled: Vec::new(), registries: Vec::new(), extra: BTreeMap::new() }
+    }
+}
+
+impl StoreConfig {
+    /// `installed` as `(registry, name)` pairs.
+    pub fn installed(&self) -> Vec<(String, String)> {
+        self.installed.iter().map(|e| split_installed(e)).map(|(r, n)| (r.to_string(), n.to_string())).collect()
+    }
+
+    pub fn is_disabled(&self, name: &str) -> bool {
+        self.disabled.iter().any(|d| d == name)
+    }
+}
+
+/// An `installed` entry as `(registry, name)`: `weather` is pal's,
+/// `acme:todo` is acme's.
+pub fn split_installed(entry: &str) -> (&str, &str) {
+    entry.split_once(':').unwrap_or((crate::registry::PAL, entry))
+}
+
+/// The `installed` entry for `name` from `registry`.
+pub fn installed_entry(registry: &str, name: &str) -> String {
+    if registry == crate::registry::PAL { name.to_string() } else { format!("{registry}:{name}") }
+}
+
+/// `[[store.registries]]`: one registry.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct RegistryConfig {
+    /// What the registry's index calls itself; `installed` entries use it.
+    pub name: String,
+    /// The index URL (`.../index.json`; its signature is `<url>.minisig`).
+    pub url: String,
+    /// The minisign public key its index and builds are signed with,
+    /// pinned when it was added and moved by a signed rotation.
+    pub key: String,
+    /// Overrides `[store] auto_update` for this registry.
+    pub auto_update: Option<bool>,
+    /// `stable` (the default) or `edge`. Only pal's registry has both.
+    pub channel: Option<crate::registry::Channel>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -116,6 +195,11 @@ pub struct General {
     /// always your click. `false` turns the automatic check off; "Check
     /// for Updates" still runs one on demand.
     pub check_updates: bool,
+    /// Share anonymous usage: which extensions are installed and opened,
+    /// installs, updates and failures, with a random id kept in pal's data
+    /// directory (docs/usage.md lists all of it). `false` sends nothing
+    /// and deletes the id.
+    pub usage: bool,
     /// Extra directories of extensions (one subdirectory per extension,
     /// like the store), for a dotfiles-managed set. Loaded after the
     /// bundled extensions and the store, so a name in a later directory
@@ -211,6 +295,7 @@ impl Default for General {
             menu_bar_icon: true,
             position: Position::Top,
             check_updates: true,
+            usage: true,
             extension_dirs: Vec::new(),
             selection_snapshot: true,
             deeplink_confirm: Confirm::default(),
@@ -1214,6 +1299,16 @@ impl Config {
             }
             let declared: Vec<&str> = crate::features::settings(id).as_array().into_iter().flatten().filter_map(|s| s["id"].as_str()).collect();
             out.extend(t.keys().filter(|k| *k != "hotkeys" && !declared.contains(&k.as_str())).map(|k| Diagnostic::warn(format!("features.{id}.{k}"), "unknown key")));
+        }
+        out.extend(unknown("store.", &self.store.extra));
+        for (i, r) in self.store.registries.iter().enumerate() {
+            let at = format!("store.registries.{i}");
+            out.extend(unknown(&format!("{at}."), &r.extra));
+            if r.name.is_empty() {
+                out.push(Diagnostic::warn(at.clone(), "a registry needs a name"));
+            } else if r.name != crate::registry::PAL && (r.url.trim().is_empty() || r.key.trim().is_empty()) {
+                out.push(Diagnostic::warn(at, format!("registry {:?} needs a url and a key", r.name)));
+            }
         }
         for (key, i) in &self.instances {
             if !(instance::is_key(key) || instance::valid_name(key)) {

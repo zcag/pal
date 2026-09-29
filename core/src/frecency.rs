@@ -367,6 +367,11 @@ impl Frecency {
         had
     }
 
+    /// Every extension (or instance key) with an item remembered.
+    pub fn extensions(&self) -> std::collections::BTreeSet<&str> {
+        self.entries.keys().map(|k| k.extension.as_str()).collect()
+    }
+
     /// Drop every item of one extension (an instance removed: `gmail@work`
     /// and nothing of `gmail`); how many went. The search history stays.
     pub fn forget_extension(&mut self, extension: &str) -> usize {
