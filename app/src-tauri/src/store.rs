@@ -861,8 +861,9 @@ pub fn new_show(window: &str) {
 }
 
 /// A palette of `key`'s extension (`ext/palette`, `ext`, an instance key)
-/// opened in `window`: counted for our extensions only (docs/usage.md), once
-/// per show. The Store's own opening fetches the registries when that is due.
+/// opened in `window`, once per show: noted in the local record of what is
+/// used (`migrate::mark_used`, always), and counted for our extensions only
+/// while sharing is on (docs/usage.md). The Store's own opening fetches the registries when that is due.
 pub fn opened(app: &AppHandle, window: &str, key: &str) {
     let ext = name_of(key.split('/').next().unwrap_or(key)).to_string();
     if ext.is_empty() || ext == "pal" || app.try_state::<Service>().is_none() || !lock(&OPENED).insert((window.to_string(), ext.clone())) {
@@ -873,6 +874,10 @@ pub fn opened(app: &AppHandle, window: &str, key: &str) {
     }
     let m = manager(app);
     tauri::async_runtime::spawn_blocking(move || {
+        // The local record the migration reads, sharing on or off; never sent.
+        if let Err(e) = pal_core::extensions::migrate::mark_used(m.usage.dir(), &ext) {
+            eprintln!("usage\tused record\t{e}");
+        }
         if m.is_ours(&ext) {
             m.usage.opened(&ext);
         }
@@ -1031,10 +1036,12 @@ fn sync_rows(app: &AppHandle, available: &[Available]) {
         if ix.snapshot(&source) == rows {
             return false;
         }
-        ix.replace(source, rows);
+        ix.replace(source, rows.clone());
         true
     });
     if changed {
+        let (n, blocked) = (available.len(), available.iter().filter(|a| a.blocked.is_some()).count());
+        eprintln!("store\troot rows\t{} of {n} listed ({blocked} blocked, the rest installed or another registry's)", rows.len() - 1);
         events::emit(app, events::INDEX, ());
     }
 }

@@ -999,7 +999,7 @@ pub fn query(
     let mut hits = views(&ix, ranked, &titles);
     if at_root {
         hits = dedupe_across_palettes(hits);
-        hits.extend(available_tail(&mut ix, &q, limit.unwrap_or(DEFAULT_LIMIT), caps, ranking.cut, &titles));
+        hits.extend(available_tail(&mut ix, &q, ranking.cut));
     }
     for lead in [attention, frequent] {
         if lead.is_empty() {
@@ -1016,15 +1016,22 @@ pub fn query(
 /// The root's last section on a typed query: the extensions of ours that
 /// are not installed (`store::source`) that match, below every installed
 /// match whatever they score, never on the empty query, and never boosted
-/// by frecency (their picks are not recorded either).
-fn available_tail(ix: &mut Index, q: &str, limit: usize, caps: Option<pal_core::index::Caps>, cut: bool, titles: &[(Source, String)]) -> Vec<HitView> {
+/// by frecency (their picks are not recorded either). At most
+/// [`AVAILABLE_MAX`] of them and no "N more" row: the source is no palette
+/// to push into, the Store is ("Browse extensions").
+fn available_tail(ix: &mut Index, q: &str, cut: bool) -> Vec<HitView> {
     if q.trim().is_empty() {
         return Vec::new();
     }
     let only = [crate::store::source()];
-    let ranked = ix.query(q, QueryOpts { limit, sources: Some(&only), boost: None, tier: None, caps, cut });
-    views(ix, ranked, titles)
+    // The cap is what lets the cut apply: rows with the typed word, when there are any, over rows that only scatter its letters.
+    let caps = pal_core::index::Caps { primary: AVAILABLE_MAX, normal: AVAILABLE_MAX, catalog: AVAILABLE_MAX };
+    let ranked = ix.query(q, QueryOpts { limit: AVAILABLE_MAX, sources: Some(&only), boost: None, tier: None, caps: Some(caps), cut });
+    views(ix, ranked, &[]).into_iter().filter(|h| h.hit.id != MORE_ID).collect()
 }
+
+/// The uninstalled extensions a typed root query shows at most.
+const AVAILABLE_MAX: usize = 5;
 
 /// The reply's rows: each hit beside its item, and after the last hit of
 /// every capped source its "more" row (the hits come grouped by source).
@@ -1387,13 +1394,18 @@ mod tests {
             let sources: Vec<Source> = ix.sources().into_iter().map(|s| s.source).filter(|s| *s != crate::store::source()).collect();
             let ranked = ix.query(q, QueryOpts { sources: Some(&sources), ..Default::default() });
             let mut hits = views(ix, ranked, &[]);
-            hits.extend(available_tail(ix, q, DEFAULT_LIMIT, None, true, &[]));
+            hits.extend(available_tail(ix, q, true));
             hits.into_iter().map(|h| h.item.id).collect::<Vec<_>>()
         };
         assert_eq!(root("weather", &mut ix), ["weather.app", "weather"], "an exact name still ranks under the installed app");
         assert_eq!(root("right now", &mut ix), ["weather"], "a palette title finds it");
         assert_eq!(root("store", &mut ix), [crate::store::BROWSE]);
         assert!(root("", &mut ix).iter().all(|id| id == "weather.app"), "never on the empty query");
+        let many: Vec<Item> = (0..9).map(|i| row(&format!("w{i}"), &format!("Wave {i}"), &[])).chain([row("sw", "Sudoku with a wave", &[])]).collect();
+        ix.replace(crate::store::source(), many);
+        let got = root("wave", &mut ix);
+        assert_eq!(got.len(), AVAILABLE_MAX, "a few, no \"N more\" row into a source that is no palette: {got:?}");
+        assert!(root("wav", &mut ix).iter().all(|id| id != MORE_ID));
     }
 
     #[test]
