@@ -12,9 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { age, count, duration, isoSeconds, parseApiChannels, parseApiVideos, parseInvChannels, parseInvVideos } from "../../../extensions/youtube/api.ts";
 import { matches, playerArgv } from "../../../extensions/youtube/index.ts";
-import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
-import { Host, stored, writeTool, logLines } from "../harness.ts";
+import { Host, stored, writeTool, logLines, bundledIcon } from "../harness.ts";
 import { CHANNELS, startMock, VIDEOS } from "./youtube-mock.ts";
 
 describe("api.ts", () => {
@@ -75,11 +74,11 @@ const names = (items: Item[]) => items.map((i) => i.name);
 const lofi = VIDEOS[1], jazz = VIDEOS[3], chill = VIDEOS[2], piano = VIDEOS[5];
 
 describe("youtube", () => {
-  test("meta: the search an input palette on the red tile, inline with yt: and a fallback row; channels input; Watch Later live; no warnings", () => {
+  test("meta: the search an input palette on the YouTube logo tile, inline with yt: and a fallback row; channels input; Watch Later live; no warnings", () => {
     const l = host.loaded().find((l) => l.extension === "youtube")!;
     expect(l.warnings).toEqual([]);
     expect(l.palettes.map((p) => p.name)).toEqual(["search", "channels", "later"]);
-    expect(l.palettes[0]).toMatchObject({ title: "YouTube", input: true, inline: true, match: "^\\s*yt\\s*:\\s*\\S", fallback: "ask", fallbackTitle: "Search YouTube for “{query}”", icon: tile("red", "\u{f05c3}") });
+    expect(l.palettes[0]).toMatchObject({ title: "YouTube", input: true, inline: true, match: "^\\s*yt\\s*:\\s*\\S", fallback: "ask", fallbackTitle: "Search YouTube for “{query}”", icon: bundledIcon("youtube") });
     expect(l.palettes[1]).toMatchObject({ title: "YouTube Channels", input: true });
     expect(l.palettes[2]).toMatchObject({ title: "Watch Later", live: true });
   });

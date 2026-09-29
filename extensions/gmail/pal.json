@@ -1,7 +1,7 @@
 {
   "name": "gmail",
   "title": "Gmail",
-  "description": "Your inbox as rows with the sender, the subject and the snippet; open a message in Gmail, mark it read, search with Gmail's own syntax, browse the labels; an unread count on the bar. One instance per account, each with its own token command; sending only where you turn it on.",
+  "description": "Your Gmail inbox in the panel: read, search with Gmail's own syntax, browse labels and mark messages read, with the unread count on the bar. Each account is its own instance, and sending stays off until you turn it on.",
   "keywords": [
     "mail",
     "email"
@@ -10,8 +10,9 @@
   "multi": true,
   "icon": {
     "tile": {
-      "glyph": "󰇮",
-      "bg": "red"
+      "svg": "M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z",
+      "box": 24,
+      "bg": "#EA4335"
     }
   },
   "author": "pal",
@@ -276,14 +277,12 @@
     "tagline": "Your inbox in the panel, its count on the bar, per account",
     "category": "integration",
     "features": [
-      "Inbox: unread first then recent, each row with the sender's avatar (Gravatar, else the initial on a tinted tile), the subject, the snippet, the labels as chips, a paperclip when there is an attachment, the date",
-      "Enter opens the message in Gmail at the thread; cmd+Enter marks it read; the pane shows the message as text with the quoted replies folded, the headers and the attachments listed",
-      "Search Mail as you type with Gmail's own syntax (from:, subject:, has:attachment, newer_than:7d), the results sectioned by label",
-      "Labels: every label, yours and Gmail's; open it in Gmail or search it here",
-      "The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists every unread with Open and Mark as read",
-      "Two accounts are two instances, each with its own token command, address, palettes and bar item, told apart by the title and the badge on the tile",
-      "Sending is off per account until you turn it on: with it, Compose as a form, a quick Reply typed in the bar on a row (the full form without it), Drafts to send or discard, Archive and Star. A work account stays read and mark-read only",
-      "No secret in pal: a command of yours prints the token (gcloud, a helper, a broker), pal keeps it in memory until it expires"
+      "The inbox, unread first: sender, subject, snippet, labels and attachments at a glance",
+      "`enter` opens the thread in Gmail, `cmd+enter` marks it read; the side pane shows the message as text",
+      "Search with Gmail's own syntax (`from:`, `has:attachment`, `newer_than:7d`) and browse every label",
+      "An unread count on the bar, hidden at zero; its popover lists the unread messages",
+      "Several accounts side by side, each with its own tile badge, token and bar item",
+      "Compose, reply, drafts, archive and star, only on accounts where you turn sending on"
     ],
     "permissions": [
       "network",

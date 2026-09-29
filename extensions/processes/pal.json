@@ -1,7 +1,7 @@
 {
   "name": "processes",
   "title": "Processes",
-  "description": "What is running, busiest first, with its memory; `:3000` lists what listens on a port. Kill from the action panel, or open the process in Activity Monitor.",
+  "description": "What is running, busiest first, with its memory; type :3000 to see what listens on a port. Kill a process or open it in Activity Monitor.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -22,16 +22,15 @@
     }
   ],
   "store": {
-    "tagline": "What is running, busiest first; :3000 shows a port's owner",
+    "tagline": "What is running, busiest first, and who holds a port",
     "category": "system",
     "features": [
-      "One `ps` per keystroke, sorted by CPU then memory; the pid and resident memory on the right, a process above 10% CPU tagged `NN% cpu`",
-      "The query matches the name or a pid prefix; `:3000` lists what listens on that TCP port, `:` alone every listener (`lsof` on macOS, `ss` on Linux)",
-      "Filters: All, Mine (your own user), Top CPU and Top memory (the 25 busiest or largest)",
-      "Kill sends SIGTERM and Force kill (`cmd+shift+k`) SIGKILL, both after a confirm; the palette stays open and lists again",
-      "A process in a `.app` bundle gets that app's icon on macOS; Open in Activity Monitor (`cmd+o`) types its pid into the search field",
-      "`include_system` lists pids below 100 and kernel threads too",
-      "The detail pane (`cmd+i`): the full command, pid, parent, user, CPU and memory"
+      "Every process sorted by CPU then memory, with its pid and memory, busy ones tagged with their CPU share",
+      "Search by name or pid; `:3000` lists what listens on that port, `:` alone every listener",
+      "Filters for your own processes, the top CPU users and the top memory users",
+      "Kill or force kill (`cmd+shift+k`) after a confirm, and the list stays open",
+      "App icons for processes that belong to an app; `cmd+o` finds the process in Activity Monitor",
+      "`cmd+i` shows the full command, parent, user, CPU and memory"
     ],
     "permissions": [
       "automation",

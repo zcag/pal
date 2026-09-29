@@ -13,8 +13,8 @@ export type Icon =
   | { kind: "emoji"; value: string }
   /** Text in the mono font, or a Nerd Font codepoint in the bundled symbols font; `color` tints it in any CSS colour, `tint` in a brand colour. */
   | { kind: "glyph"; value: string; color?: string; tint?: Brand }
-  /** A rounded square in a brand colour with a white mark: one Nerd Font glyph, or SVG path data drawn in a 16 by 16 box (an extension's icon); `badge` is one or two characters in its corner (an instance's mark). */
-  | { kind: "tile"; bg: Brand; glyph?: string; svg?: string; badge?: string }
+  /** A rounded square in a brand colour, or a product's own `#rrggbb`, with a mark in white or `fg`: one Nerd Font glyph, or SVG path data drawn in a `box` by `box` square (16 by default; a product logo's is 24) (an extension's icon); `badge` is one or two characters in its corner (an instance's mark). */
+  | { kind: "tile"; bg: Brand | `#${string}`; fg?: string; box?: number; glyph?: string; svg?: string; badge?: string }
   | { kind: "image"; src: string; mask?: IconMask }
   /** An application's own artwork via the `icon://` scheme; `letter` when it has none. */
   | { kind: "app"; path: string; letter: string }

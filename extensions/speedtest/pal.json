@@ -1,7 +1,7 @@
 {
   "name": "speedtest",
   "title": "Speedtest",
-  "description": "Run an internet speed test in the panel with the CLI you have (Speedtest by Ookla, speedtest-cli or fast) and watch it: a bar per direction with the live figure, ping and jitter, the server and the ISP. Nothing runs until Enter. The result is one line to copy; every run lands in a history with a trend drawn as bars.",
+  "description": "Run an internet speed test and watch it fill in: download and upload as they happen, ping and jitter, the server and your provider. Every run is kept in a history with a trend.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -57,14 +57,14 @@
     }
   ],
   "store": {
-    "tagline": "A speed test you can watch, in the panel",
+    "tagline": "An internet speed test you can watch, with a history",
     "category": "system",
     "features": [
-      "Runs the CLI you have: Speedtest by Ookla (with per-phase progress), speedtest-cli, or fast; the view says which, and names the brew formula and the npm package when none is installed",
-      "Never starts by itself: opening the palette shows the last result, Enter runs a test, Enter again stops it",
-      "Live: a bar per direction filling with the phase and the figure in Mbps beside it, the ping and jitter tiles, the server and the ISP, updated as the tool prints",
-      "One line to copy (`cmd+enter`): down, up, ping and jitter, the server, the ISP; `cmd+o` opens Ookla's result page",
-      "History (`cmd+h`): every finished run with its date, tool and server, and a Trend row drawing the last twenty as download and upload bars"
+      "Uses the speed test tool you have: Speedtest by Ookla, speedtest-cli or fast, and says how to install one",
+      "Starts only when you press `enter`; `enter` again stops it",
+      "Live download and upload bars with the speed, ping and jitter, the server and your provider",
+      "`cmd+enter` copies the result as one line, `cmd+o` opens Ookla's result page",
+      "`cmd+h` shows every past run and a trend of the last twenty"
     ],
     "permissions": [
       "network"

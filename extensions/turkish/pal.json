@@ -1,7 +1,7 @@
 {
   "name": "turkish",
   "title": "Turkish",
-  "description": "Turkish text tools: deasciify what was typed without the Turkish letters (Turkce yazilmis bir cumle → Türkçe yazılmış bir cümle, the pattern-table algorithm from Emacs turkish-mode), asciify the other way, and the Turkish cases where i and ı are two letters. Type, or select text in the app in front and open the palette; Enter pastes the row back, over the selection when that is where it came from.",
+  "description": "Turkish text tools: put the Turkish letters back into text typed without them (Turkce yazilmis → Türkçe yazılmış), take them out again, and change case the Turkish way, where i and ı are two letters. Works on what you type or on the selection, pasting the result back over it.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -38,16 +38,15 @@
     }
   ],
   "store": {
-    "tagline": "Turkce → Türkçe, and the Turkish cases",
+    "tagline": "Restore Turkish letters (Turkce → Türkçe) and change case correctly",
     "category": "productivity",
     "features": [
-      "Deasciify: ASCII-typed Turkish gets its letters back, decided by context (sik → sık, kus → kuş, acik → açık, yas → yaş): Deniz Yüret's Emacs turkish-mode table in Mustafa Emre Acer's JavaScript port",
-      "Asciify: the reverse, for a form or a system that takes no Turkish letters",
-      "UPPERCASE, lowercase and Title Case the Turkish way: i → İ, ı → I, and back; a suffix after an apostrophe stays down (İstanbul'da)",
-      "Type the text, or select it in the app in front and open the palette: the rows act on the selection and Enter pastes over it",
-      "Enter pastes (or copies, a setting), cmd+c copies, cmd+t hands the row to Translate, cmd+shift+c copies the source",
-      "Each row says how many characters it changed; a conversion that changes nothing is tagged unchanged",
-      "`pal://turkish/deasciify?text=…` (and asciify, upper, lower, title) for scripts; without `text` it converts the selection and pastes over it"
+      "Deasciify: letters restored from context (sik → sık, kus → kuş, acik → açık), using the Emacs turkish-mode table",
+      "Asciify: the reverse, for forms that take no Turkish letters",
+      "UPPERCASE, lowercase and Title Case the Turkish way (i ↔ İ, ı ↔ I); a suffix after an apostrophe stays down (İstanbul'da)",
+      "Select text in any app and open the list: `enter` pastes the result over the selection",
+      "`cmd+c` copies, `cmd+t` sends the result to Translate; each row says how many letters it changed",
+      "`pal://turkish/deasciify?text=…` and the other conversions for scripts and hotkeys"
     ],
     "permissions": [
       "accessibility"

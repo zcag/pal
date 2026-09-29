@@ -1,7 +1,7 @@
 {
   "name": "colors",
   "title": "Colors",
-  "description": "A colour picker for the keyboard: pick a pixel off the screen with the system's loupe, type any notation, or walk hue, saturation and lightness with the arrows (HSL or OKLCH), and read the colour in every notation with its tints, shades, harmonies, contrast and nearest tokens. Named sets as swatch grids (CSS, Tailwind, Material 3, Material, Apple, Catppuccin, Rosé Pine, Nord, Solarized), a history of what was picked and copied, and a converter.",
+  "description": "A colour picker for the keyboard: pick a pixel off the screen, type any notation, or walk hue and lightness with the arrows, then copy the colour in any notation. Also named palettes as swatch grids, a history and a converter.",
   "version": "0.2.0",
   "icon": {
     "tile": {
@@ -112,18 +112,15 @@
     }
   ],
   "store": {
-    "tagline": "A colour picker for the keyboard: pick, type, walk the hue, copy in any notation",
+    "tagline": "Pick, type or walk a colour, then copy it in any notation",
     "category": "developer",
     "features": [
-      "Pick a pixel off the screen with the system's own loupe (`NSColorSampler` on macOS, the screenshot portal on Linux): `p` in the picker, or the Pick Colour from Screen row at the root, which copies it and says so in the HUD",
-      "The picker: a large swatch over a hue strip and a saturation/value plane, the colour in hex, rgb, hsl, hwb, oklch, oklab, lab, display-p3 and its CSS name, the nearest Tailwind and Material tokens, and the contrast on white, on black and against the previous colour with AA/AAA badges",
-      "Arrows walk the colour: hue left and right, lightness up and down, saturation or chroma on - and +, shift for big steps, `m` switches between HSL and OKLCH (chroma stays inside the gamut)",
-      "Type any notation: a digit or # opens the field in the search row, Enter applies; `c` copies in your notation, `cmd+c` the hex, and every other notation is a shortcut or an action",
-      "Nine tints, nine shades, and the complementary, analogous, triadic, split and tetradic harmonies as tiles; Tab focuses a row, the arrows walk it, Enter takes the tile",
-      "995 named colours as swatch grids: CSS, Tailwind 3.4, Material 3's tonal palettes, Material 2014, Apple's system colours light and dark, Catppuccin's four flavours, Rosé Pine's three, Nord, Solarized and pal's tokens; a filter per set, and each tile's detail says where the token is used",
-      "A history of every picked and copied colour, newest first, with when and where it came from; open any of them in the picker again",
-      "Convert Colour: type a colour in any notation and every notation is a row; Enter opens the picker on it, cmd+enter copies the row",
-      "Settings: the notation to copy, uppercase hex, keep or drop the alpha, which sets to show, the history size"
+      "Pick a pixel off the screen with the system's loupe; the Pick Colour row copies it straight away",
+      "Every notation at once (hex, rgb, hsl, oklch, lab, display-p3, CSS name), plus contrast with AA/AAA badges",
+      "Arrows walk hue and lightness, `-` and `+` saturation; `m` switches between HSL and OKLCH",
+      "Tints, shades and harmonies as tiles to pick from",
+      "Named palettes as swatch grids: CSS, Tailwind, Material, Apple, Catppuccin, Rosé Pine, Nord, Solarized",
+      "A history of every colour you picked or copied, and a converter for any notation"
     ],
     "permissions": [],
     "platforms": [

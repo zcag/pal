@@ -1,7 +1,7 @@
 {
   "name": "flashcards",
   "title": "Flashcards",
-  "description": "Spaced repetition for the minute a build takes: a card on a stack, flip it, throw it right if you knew it and left if you did not. FSRS (Anki's scheduler) decides when each card comes back; every answer is saved as you give it. Starts with Spanish (Jeff Doozan's 6001 most common words, each with an example sentence, and everyday phrases), and takes any pack of your own as an Anki deck (.apkg) or a TSV, CSV or JSON file.",
+  "description": "Spaced repetition for the spare minute: flip a card, throw it right if you knew it and left if you did not, and the scheduler Anki uses decides when it comes back. Starts with the most common Spanish words, and takes any Anki deck or a file of your own.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -23,18 +23,15 @@
     "vocabulary"
   ],
   "store": {
-    "tagline": "Spaced-repetition flashcards: Spanish to start, any pack of your own",
+    "tagline": "Spaced-repetition flashcards: Spanish to start, any deck of your own",
     "category": "productivity",
     "features": [
-      "A card on a stack: space flips it, → Knew it throws it right and ← Didn't know left (or drag it), each saying when the card comes back",
-      "FSRS, the scheduler Anki uses, spaces what you know out to months; every answer is saved as you give it, so Escape at any point loses nothing",
-      "Sessions of ten with a bar along the top, then a summary: the words missed, new and mastered, and how much of everyday Spanish your words now cover",
-      "Drill a session's misses until each is right; a refresher for the cards you keep missing, without disturbing their schedule",
-      "Recognise a word first, then type it: checked kindly (an accent or the article missed counts, and shows where), Tab for a letter, a' for á",
-      "Articles coloured by gender, the word said aloud on Tab, an example sentence with the word marked, your own meaning with ⌘E",
-      "A daily goal ring and a streak; stats with your best streak, a heatmap, the week ahead and each pack's mastery",
-      "Browse AnkiWeb's shared decks from pal: search, see the rating, a preview of the cards and whether it has native audio, and add one with Enter",
-      "Your own packs: any Anki deck (.apkg, its recordings play on Tab), or a TSV, CSV or JSON file in the packs folder; Add Flashcard for one card at a time"
+      "`space` flips a card; → if you knew it, ← if not (or drag it)",
+      "FSRS, Anki's scheduler, decides when each card comes back; every answer is saved at once",
+      "Short sessions with a summary, then a drill of the ones you missed",
+      "Type the word once you recognise it; a missed accent counts and is shown",
+      "A daily goal, a streak and stats with a heatmap",
+      "Browse and add AnkiWeb's shared decks, or import `.apkg`, TSV, CSV or JSON"
     ],
     "permissions": [
       "network"

@@ -1,7 +1,7 @@
 {
   "name": "home-assistant",
   "title": "Home Assistant",
-  "description": "Your entities at the root with their state: toggle, dim, set a temperature, run a scene; every service as a form; areas as drill-ins. Over the REST API with a long-lived token.",
+  "description": "Your Home Assistant entities in the panel with their state: toggle lights, dim, set a temperature, lock a door, run a scene. Every service is a form, and areas list their own entities.",
   "keywords": [
     "ha",
     "hass"
@@ -10,8 +10,9 @@
   "multi": true,
   "icon": {
     "tile": {
-      "glyph": "󰟐",
-      "bg": "teal"
+      "svg": "M22.939 10.627 13.061.749a1.505 1.505 0 0 0-2.121 0l-9.879 9.878C.478 11.21 0 12.363 0 13.187v9c0 .826.675 1.5 1.5 1.5h9.227l-4.063-4.062a2.034 2.034 0 0 1-.664.113c-1.13 0-2.05-.92-2.05-2.05s.92-2.05 2.05-2.05 2.05.92 2.05 2.05c0 .233-.041.456-.113.665l3.163 3.163V9.928a2.05 2.05 0 0 1-1.15-1.84c0-1.13.92-2.05 2.05-2.05s2.05.92 2.05 2.05a2.05 2.05 0 0 1-1.15 1.84v8.127l3.146-3.146A2.051 2.051 0 0 1 18 12.239c1.13 0 2.05.92 2.05 2.05s-.92 2.05-2.05 2.05c-.25 0-.488-.047-.709-.13L12.9 20.602v3.088h9.6c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.477-1.977-1.061-2.561z",
+      "box": 24,
+      "bg": "#18BCF2"
     }
   },
   "author": "pal",
@@ -84,12 +85,12 @@
     "tagline": "Toggle, dim and run Home Assistant entities from the panel",
     "category": "integration",
     "features": [
-      "Every entity of the chosen domains at the root with its state as a tag (`on`, `locked`, `playing`) and when it last changed; favourites first, a filter per domain",
-      "Actions by domain: Toggle, Turn on, Turn off, Set brightness (`cmd+b`, the percent typed in the bar) for a light; Set temperature for a thermostat, the temperature and mode typed in the bar; Open, Close, Stop for a cover; Lock and Unlock (asking first); play, next, Set volume (the percent typed in the bar) for a media player; Activate, Run, Trigger for scenes, scripts and automations",
-      "`cmd+c` copies the entity id, `cmd+shift+a` lists its attributes, `cmd+o` opens it in Home Assistant",
-      "Every service as a form: the target entity as a select, then the service's fields from its description",
-      "Areas as drill-ins: `enter` on an area lists its entities",
-      "Entity ids are row ids, so an item hotkey can toggle the kitchen light without showing pal"
+      "Every entity at the root with its state (`on`, `locked`, `playing`); favourites first, a filter per domain",
+      "The right actions per kind: toggle and dim a light, set a thermostat, open a cover, lock a door, run a scene",
+      "Brightness, temperature and volume typed straight into the search bar",
+      "Every service as a form, its fields taken from Home Assistant",
+      "Areas as lists of their entities; `cmd+o` opens an entity in Home Assistant",
+      "A hotkey on any entity toggles it without showing the panel"
     ],
     "permissions": [
       "network",

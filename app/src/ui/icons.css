@@ -46,6 +46,8 @@
 /* The symbols font sits a hair low in its em box at these sizes; the nudge centres the mark optically. */
 .pal-icon__glyph { display: block; transform: translateY(-2%); }
 .pal-icon__mark { display: block; width: 66%; height: 66%; fill: currentColor; }
+/* A product's logo (a Simple Icons path, `box` 24) fills its box edge to edge where pal's own marks keep a margin: a smaller share reads the same weight. */
+.pal-icon[data-logo] .pal-icon__mark { width: 58%; height: 58%; }
 
 /*
  * An instance's badge (docs/design/instances.md): one or two characters

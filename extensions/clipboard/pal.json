@@ -1,7 +1,7 @@
 {
   "name": "clipboard",
   "title": "Clipboard",
-  "description": "What you copied, searchable, with images; pinned entries first, a filter by kind (text, images, files, links, colors). Enter pastes it back into the app in front; an entry can be edited, named, saved as a file or a snippet, or shown as a QR code.",
+  "description": "Everything you copied, text, images and files, searchable and a keystroke from being pasted back into the app in front. Pin what you reuse; edit, name or save an entry, or copy the text out of an image.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -42,13 +42,12 @@
     "tagline": "Everything you copied, with images; Enter pastes it back",
     "category": "productivity",
     "features": [
-      "Text, images and file lists, recorded while pal runs, searched with SQLite full-text search on every keystroke",
-      "The detail pane open from the start: the full text, the image, or the file list, with kind, size, source app and time",
-      "Pinned entries in a section at the top, never expiring; the rest newest first, kept for `max_age_days` and `max_entries`",
-      "Filters: All, Text, Images, Files, Links (text that is one url) and Colors (a `#hex` or `rgb()`, drawn as a swatch)",
-      "Paste (`enter`) or copy back (`cmd+enter`), paste as plain text (`cmd+shift+v`), open a link (`cmd+o`), copy an image as a file (`cmd+shift+c`), copy the text in an image (`cmd+shift+t`, OCR: the Vision framework on macOS, `tesseract` on Linux)",
-      "Edit a text entry (`cmd+e`, the edited text copied as the newest entry), name one (`cmd+shift+r`: the row's title, found by search), save it as a file (`cmd+s`), as a snippet (`cmd+shift+s`), or show it as a QR code (`cmd+shift+k`)",
-      "Never recorded: what a password manager marks concealed (pal's own concealed copies too: a 1Password password, a verification code), copies over 10 MB, copies made in an excluded app"
+      "Text, images and files you copied, searched as you type, with a preview beside the list",
+      "Pinned entries stay at the top and never expire",
+      "Filters for text, images, files, links and colours (drawn as swatches)",
+      "`enter` pastes into the app in front, `cmd+shift+v` as plain text, `cmd+shift+t` copies the text in an image",
+      "Edit, name, save as a file or snippet, or show as a QR code",
+      "Password manager copies and excluded apps are never recorded"
     ],
     "permissions": [
       "accessibility"

@@ -550,7 +550,7 @@ item's menu rows) takes the same forms:
 
 | Form | Draws as | For |
 | --- | --- | --- |
-| `{ tile: { glyph, bg } }` or `{ tile: { svg, bg } }`, or `tile(bg, mark)` from `@zcag/pal` | a rounded square in the brand colour `bg`, the mark white: one Nerd Font glyph, or SVG path data (`d` only, no markup, 400 bytes at most) drawn in a 16 by 16 box; `badge` puts one or two characters in its corner (`badged(icon, { tint, badge })`) | the extension's own icon: `icon` in `pal.json`, which every palette wears at the root, in the crumb, in Settings and on the store |
+| `{ tile: { glyph, bg } }` or `{ tile: { svg, bg } }`, or `tile(bg, mark)` from `@zcag/pal` | a rounded square in the brand colour `bg` (or a product's own `#rrggbb`), the mark white (or `fg`): one Nerd Font glyph, or SVG path data (`d` only, no markup, 5000 bytes at most) drawn in a `box` by `box` square (16 by default); `badge` puts one or two characters in its corner (`badged(icon, { tint, badge })`) | the extension's own icon: `icon` in `pal.json`, which every palette wears at the root, in the crumb, in Settings and on the store |
 | `{ glyph, color }`, or `tinted(glyph, color)` | the glyph in a brand colour or a hex of your own | a state on a row: an open pull request's octicon in green, a merged one's in violet |
 | a Nerd Font codepoint (`"\u{f0868}"`, or `xdg("dialog-error")`) | the glyph, tinted in the palette's tile colour; the text colour on a palette without a tile | most rows |
 | an emoji | the platform's colour emoji | rows whose content is the emoji |
@@ -561,9 +561,38 @@ item's menu rows) takes the same forms:
 
 The brand colours (`TILE_COLORS`, the `--pal-brand-*` tokens, each with a
 light and a dark value): `red orange amber green teal cyan blue indigo
-violet pink slate ink`. Pick the one the thing is known by (GitHub `ink`,
-1Password `blue`, Home Assistant `teal`); the neutral family (apps,
-windows, files, processes, services, system, scripts) is `slate`. A row
+violet pink slate ink`. Pick the one the thing is known by (Slack
+`violet`, a timer `amber`); the neutral family (apps, windows, files,
+processes, services, system, scripts) is `slate`.
+
+An extension that is a product or a service (GitHub, Gmail, Spotify,
+Docker, Home Assistant) wears that product's logo instead, on the
+product's own colour:
+
+```json
+{ "tile": { "svg": "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0z…", "box": 24, "bg": "#1ED760", "fg": "#000000" } }
+```
+
+- `svg` is the path from [Simple Icons](https://simpleicons.org) (CC0),
+  copied into the manifest, so nothing loads at run time; `box` is 24, the
+  box Simple Icons draw in (at most 64).
+- `bg` is the brand's colour as `#rrggbb` (Simple Icons' `hex`). It is the
+  same in both themes, as the brand is; the tile's hairline ring keeps a
+  near-black one (GitHub's) a square on the dark panel.
+- `fg` is the mark's colour, `#rrggbb`, white when absent. Set it where the
+  brand draws its mark dark on its colour (Spotify's black on green), or
+  where white would not read on a light brand colour.
+- The rows of a palette with a logo tile are tinted in the brand colour
+  nearest the logo's hex, which has a light and a dark value.
+- An instance's tint replaces `bg` and takes the mark back to white.
+
+A logo is only for the extension that is that product: pal's own tools
+keep a glyph tile, and so does one that speaks to several services
+(calendar, maps, translate, speedtest). A brand Simple Icons does not have
+(Slack, removed on the owner's request; Apple Shortcuts) keeps its glyph
+tile: never draw a logo by hand. `app/scripts/brand-icons.ts` writes the
+bundled extensions' logos from the `simple-icons` package (`--check`
+reports a manifest that has drifted from it). A row
 with a real picture shows it (an app's icon, a favicon, an avatar, album
 art, a colour swatch) and only falls back to a glyph without one. The
 host checks every icon on load (`checkIcon`): a tile off the palette or

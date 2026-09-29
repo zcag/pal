@@ -426,6 +426,8 @@ export type StoreListing = {
   title: string;
   description: string;
   tagline: string;
+  /** `store.features`: what it does, one line each. Empty from an index older than 0.9. */
+  features: string[];
   category: string;
   keywords: string[];
   icon: unknown;

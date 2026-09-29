@@ -1,12 +1,13 @@
 {
   "name": "gifs",
   "title": "GIFs",
-  "description": "Search Giphy from the panel: a grid of animated previews, trending while nothing is typed. Enter puts the GIF file on the clipboard (it pastes as a picture), cmd+Enter copies its url, cmd+o opens the page, cmd+s saves it to Downloads, cmd+f keeps it in a Favourites grid.",
+  "description": "Search Giphy and paste the GIF itself: Enter puts the file on the clipboard, so it lands as a picture in a chat or a document. Trending GIFs show before you type, and favourites keep in a grid of their own.",
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "󰵸",
-      "bg": "pink"
+      "svg": "M2.666 0v24h18.668V8.666l-2.668 2.668v10H5.334V2.668H10L12.666 0zm10.668 0v8h8V5.334h-2.668V2.668H16V0",
+      "box": 24,
+      "bg": "#FF6666"
     }
   },
   "author": "pal",
@@ -58,15 +59,14 @@
     }
   ],
   "store": {
-    "tagline": "Search GIFs, paste the file",
+    "tagline": "Search Giphy and paste the GIF as a picture",
     "category": "fun",
     "features": [
-      "A grid of animated previews from Giphy, searched 300 ms after the last key; the trending list while nothing is typed",
-      "`enter` downloads the GIF and puts the file on the clipboard, so it pastes as a picture into Slack, Messages or a document; `cmd+enter` copies the url instead",
-      "`cmd+o` opens the GIF's page, `cmd+s` saves the file to Downloads (or `save_to`) named after its title, `cmd+f` keeps it in Favourites",
-      "Favourite GIFs is a grid of its own with the same actions and Remove; its rows are at the root, so a favourite is found by name",
-      "Previews and downloaded GIFs are cached under the user cache directory (`~/Library/Caches/pal/gifs`), so a second look or a second copy fetches nothing",
-      "At the root a query nothing matched offers “Search GIFs for …”"
+      "A grid of animated previews from Giphy as you type; trending while nothing is typed",
+      "`enter` puts the GIF file on the clipboard, so it pastes as a picture; `cmd+enter` copies the link",
+      "`cmd+s` saves the GIF to Downloads, `cmd+o` opens its page on Giphy",
+      "`cmd+f` keeps a GIF in Favourites, a grid of its own you can also search from the root",
+      "Previews and GIFs you already fetched are cached, so a second look or copy is instant"
     ],
     "permissions": [
       "network"

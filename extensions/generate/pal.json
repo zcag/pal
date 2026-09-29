@@ -1,7 +1,7 @@
 {
   "name": "generate",
   "title": "Generate",
-  "description": "UUIDs, ULIDs, Nano IDs, passwords and passphrases with their strength, random numbers and bytes, hashes and encodings of typed or copied text, lorem ipsum, a random colour, a QR code, a JWT taken apart. Every value copies on Enter.",
+  "description": "UUIDs, passwords, passphrases, random numbers, hashes, encodings, lorem ipsum, colours and QR codes, and a JWT taken apart. Every value copies on Enter.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -68,15 +68,15 @@
     }
   ],
   "store": {
-    "tagline": "UUIDs, passwords, hashes, base64, lorem, QR codes and JWTs",
+    "tagline": "UUIDs, passwords, hashes, base64, lorem ipsum, QR codes and JWTs",
     "category": "developer",
     "features": [
-      "The empty query lists a fresh value of everything: UUID v4 and v7, ULID, Nano ID, a password and a passphrase with their strength, a random number, hex and base64 bytes, a lorem ipsum paragraph, a random colour",
-      "A mode word narrows and parameterises: `password 32 alnum`, `passphrase 7`, `number 1-6`, `hex 32`, `lorem 3 paragraphs`, `colour`",
-      "Transforms work on the text typed after the mode, or on the newest clipboard text when nothing follows: `sha256`, `md5`, `sha1`, `sha512`, `hash` for all four, `base64`, `url`, `hex`, `encode`, `decode`",
-      "`qr <text>` draws the QR code (a small pure-TypeScript encoder, versions 1 to 40): the row shows it, Enter shows it large, `cmd+c` copies the SVG",
-      "`jwt <token>` takes a token apart: header, payload, expiry as relative time; the signature is never verified and the palette says so",
-      "Enter copies, `cmd+enter` pastes into the app in front, `cmd+shift+c` copies a whole group (all hashes, all encodings, header and payload); `cmd+r` lists again with fresh values"
+      "A fresh value of everything before you type: UUID v4 and v7, ULID, Nano ID, a password, a passphrase, random bytes, lorem ipsum, a colour",
+      "A word and a number narrow it: `password 32 alnum`, `passphrase 7`, `number 1-6`, `lorem 3 paragraphs`",
+      "Hash or encode the text you type, or the clipboard: `sha256`, `md5`, `base64`, `url`, `hex`, `decode`",
+      "`qr <text>` draws a QR code; `cmd+c` copies it as SVG",
+      "`jwt <token>` shows the header, the payload and when it expires (the signature is not checked)",
+      "`enter` copies, `cmd+enter` pastes into the app in front, `cmd+r` makes new values"
     ],
     "permissions": [
       "accessibility"

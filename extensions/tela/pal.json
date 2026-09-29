@@ -1,7 +1,7 @@
 {
   "name": "tela",
   "title": "tela",
-  "description": "Your tela wiki in the panel: full-text search, semantic research with sources, recent pages and favourites, spaces, decks, sheets, mentions and replies, backlinks; new pages from what you selected.",
+  "description": "Your tela wiki in the panel: search as you type, ask questions answered from your pages with their sources, and open recent pages, spaces, decks and sheets. Create a page from selected text and keep up with mentions and replies.",
   "keywords": [
     "wiki"
   ],
@@ -420,15 +420,14 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "Your tela wiki: search, research, pages, spaces, inbox",
+    "tagline": "Search, ask and write in your tela wiki from the panel",
     "category": "productivity",
     "features": [
-      "Search tela as you type: ranked full-text hits with the matching passage, sectioned by space; cmd+Enter reads the page inside pal",
-      "Ask tela: a question answered by meaning, the sources as rows with the cited excerpt, disagreements and low confidence flagged",
-      "Pages: favourites first, then what changed across every space; a page read in pal keeps headings, lists, callouts, code and tables in the tokens",
-      "Spaces with page counts, Decks with the first slide in the pane, Sheets, Backlinks of the page you opened last",
-      "New tela page as a form, the body from your selection or the clipboard; Comment on a page anchored on its text",
-      "Comments: mentions of you and replies to your comments; the bar item counts them and hides at zero"
+      "Full-text search as you type, grouped by space, with the matching passage; `cmd+enter` reads the page in the panel",
+      "Ask tela: a question answered from your pages, with the cited sources and low confidence flagged",
+      "Favourites and recent changes across every space; spaces, decks, sheets and backlinks",
+      "A new page from the selection or the clipboard; comment on a page anchored to its text",
+      "Mentions and replies to your comments, counted on the bar and hidden at zero"
     ],
     "permissions": [
       "network",

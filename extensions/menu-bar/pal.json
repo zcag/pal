@@ -16,11 +16,11 @@
     "tagline": "The front app's menus, searched and pressed from one list",
     "category": "productivity",
     "features": [
-      "Live: the menus of the app in front are read every time the panel shows, so `export pdf` at the root finds Safari's or Preview's item without opening the palette",
-      "One row per enabled item: the title, the menus above it as the subtitle, the shortcut as key caps, a check mark when it is on, a section per top menu in menu order",
-      "Enter presses the item through Accessibility after pal hides, so a sheet or a dialog it opens lands in the app; the HUD names what was pressed",
-      "Separators, disabled items and the Apple menu are left out; menus deeper than four levels or past 150 ms of reading are cut, so a slow app never delays the panel",
-      "Without Accessibility the one row opens System Settings on the pane; on Linux it says the menu bar is macOS only"
+      "Every menu item of the app in front, searchable from the root: `export pdf` finds Preview's item",
+      "Each row shows the item, the menus above it, its shortcut and a check mark when it is on",
+      "`enter` presses the item, so a dialog it opens lands in the app",
+      "Disabled items and separators are left out, and a slow app never delays the panel",
+      "macOS only; needs Accessibility, and the row opens the right settings pane when it is missing"
     ],
     "permissions": [
       "accessibility"

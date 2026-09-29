@@ -61,3 +61,7 @@
 .g-bar__popover .pal-panel { border-radius: var(--pal-radius-popover, 12px); box-shadow: var(--pal-shadow-popover); }
 .g-bar[data-target="sketchybar"] .g-bar__popover { top: 34px; }
 .g-bar__hud { position: absolute; transform: translateX(-50%); }
+
+/* Every extension tile (the Icon tiles section): the 56 and the 24 of each, side by side, wrapping. */
+.g-tiles { display: flex; flex-wrap: wrap; gap: 14px 18px; padding: 12px; }
+.g-tiles > span { display: flex; align-items: center; gap: 8px; }

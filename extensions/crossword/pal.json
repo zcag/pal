@@ -1,7 +1,7 @@
 {
   "name": "crossword",
   "title": "Crossword",
-  "description": "Daily crosswords in the panel: Crosshare's English minis (today's daily mini first, then as many more as you like) and the Turkish papers' kare bulmaca from HaberTürk, Cumhuriyet and Sabah. Type to fill, Space turns, Tab walks the clues; check and reveal a square, a word or the grid; a clock that only runs while the grid is on screen; streaks and times per source. Every key is saved, so Escape anywhere loses nothing.",
+  "description": "Daily crosswords in the panel: Crosshare's English minis, and the Turkish papers' kare bulmaca from HaberTürk, Cumhuriyet and Sabah. Every key is saved, so you can leave mid-puzzle and pick up where you were.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -79,18 +79,12 @@
     "tagline": "Daily crosswords: Crosshare's minis and the Turkish papers' kare bulmaca",
     "category": "fun",
     "features": [
-      "Today's daily mini from Crosshare, or the Turkish papers' kare bulmaca (HaberTürk since 2017, Cumhuriyet with its photo, Sabah's archive); Next (Enter on the finish) goes straight to another unplayed puzzle of the same source",
-      "Turkish letters as the papers check them: plain letters on a US keyboard, each shown as the answer's own (c typed where Ç goes shows Ç)",
-      "A wide newspaper grid gets the room it needs: the clue across the top and the lists beside it, or ⌘L for every clue when the panel is compact; the paper's photo on its squares, large on a click",
-      "The NYT Mini's keys: type to fill (full squares skipped), Backspace steps back, an arrow across the word turns first, Space or a click on the square turns, Tab and Shift-Tab walk the clues",
-      "The clue you are on large above the lists, the lists beside the grid with the crossing clue lit and finished clues greyed",
-      "Check or reveal a square, a word or the whole grid, and clear a word or the grid; wrong letters get a slash, revealed ones a corner mark; autocheck if you like",
-      "A clock that runs only while the grid is on screen, and a pause that hides the grid; ⌘T hides the clock if it rushes you (times still count)",
-      "A wave across the grid when it is solved, your time and whether it is a best; a full grid with a mistake says Not quite without saying where",
-      "Browse a calendar per source, month by month, and Crosshare's newest minis, each puzzle marked solved, started or new",
-      "Stats per source: solved, best and average time, the daily streak and the best one, a chart of recent times, the history",
-      "Every key is saved as you type: Escape anywhere, the half-done puzzle is there next time; puzzles once opened play offline",
-      "Each puzzle credited to its constructor or paper, with a link to it on their site"
+      "Today's Crosshare mini, or a kare bulmaca from HaberTürk, Cumhuriyet or Sabah; Next goes to another unplayed one",
+      "The NYT Mini's keys: type to fill, `space` turns, `tab` walks the clues",
+      "Turkish letters typed on a US keyboard: `c` where Ç goes shows Ç",
+      "Check or reveal a square, a word or the grid; a clock that runs only while the grid is on screen",
+      "A calendar of past puzzles per source, marked solved, started or new",
+      "Stats per source: best and average times, daily streaks, a chart of recent solves"
     ],
     "permissions": [
       "network"

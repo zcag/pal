@@ -1,7 +1,7 @@
 {
   "name": "slack",
   "title": "Slack",
-  "description": "What Slack is holding for you: direct messages, mentions and threads as rows with the message and who sent it, the channels you are in, Slack's search, and your status, presence and Do Not Disturb. Signs in through the desktop app's own session or a user token.",
+  "description": "What Slack is holding for you: direct messages, mentions and thread replies with who sent them, your channels, search, and your status and Do Not Disturb. Signs in through the Slack desktop app you already use, or a token.",
   "version": "0.1.0",
   "multi": true,
   "icon": {
@@ -309,16 +309,15 @@
     }
   },
   "store": {
-    "tagline": "Your Slack inbox, the part that is yours, in the panel and on the bar",
+    "tagline": "Your Slack messages and mentions, in the panel and on the bar",
     "category": "integration",
     "features": [
-      "Unreads: direct messages, mentions and thread replies as rows with the sender's avatar, the message and how long ago; the channels that are merely unread named under them",
-      "Enter opens the conversation in the Slack app at the message; Reply posts the message typed in the bar from the panel (a form without it); Mark as read from the row",
-      "The bar item counts only what is addressed to you, so it is usually hidden and worth reading when it is not; red while a direct message waits",
-      "Channels: every channel, group and direct message you are in, with the topic and the member count",
-      "Search Slack as you type with Slack's own syntax: from:@name, in:#channel, has:link",
-      "Status: presets with an expiry or one typed in the bar (text, emoji, expiry), clear, Do Not Disturb for 30 minutes, an hour, until tomorrow or any minutes, away or active",
-      "No Slack app to install: the desktop app's own session is read from its files, so what you see is exactly your inbox"
+      "Direct messages, mentions and thread replies with avatars and the message; unread channels under them",
+      "`enter` opens the message in Slack; reply or mark as read without leaving the panel",
+      "A bar item that counts only what is addressed to you, red while a direct message waits",
+      "Every channel and conversation you are in, with the topic and member count",
+      "Search as you type with Slack's own filters: `from:@name`, `in:#channel`, `has:link`",
+      "Set your status, presence and Do Not Disturb from the panel"
     ],
     "permissions": [
       "network",

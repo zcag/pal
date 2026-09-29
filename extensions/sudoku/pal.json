@@ -1,7 +1,7 @@
 {
   "name": "sudoku",
   "title": "Sudoku",
-  "description": "Sudoku in the panel, made on your machine: a daily puzzle for each of Easy, Medium, Hard and Expert (the same for everyone on that day) and a new one whenever you like, graded by the techniques it takes, not the clue count. Notes without an extra step (a second digit in a cell turns it into notes), auto notes that keep every cell's options for you, a digit-first mode; hints that say where to look, then why, in plain words; undo, a clock, streaks and times per difficulty. Every move is saved, so Escape anywhere loses nothing.",
+  "description": "Sudoku made on your machine: a daily puzzle in Easy, Medium, Hard and Expert (the same for everyone that day) and a new one whenever you like, graded by the techniques it takes. Notes without switching modes, auto notes, hints that explain in plain words, and every move saved.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -62,23 +62,15 @@
     }
   ],
   "store": {
-    "tagline": "Daily sudoku in four difficulties, notes without an extra step, hints that explain",
+    "tagline": "Daily sudoku in four difficulties, with notes and hints that explain",
     "category": "fun",
     "features": [
-      "A daily puzzle per difficulty, the same on every machine that day, and a new one of any difficulty on ⌘N; nothing is fetched",
-      "Graded by how a person solves it: Easy takes only singles you can spot, Medium a cell with one digit left, Hard pairs and locked candidates, Expert X-wings, swordfish and XY-wings",
-      "Notes without an extra step: type a different digit over one you placed and the cell turns into notes holding both; Backspace clears it",
-      "Auto notes (C, a setting): every empty cell shows the digits that still fit, updated as you play; you only take out the ones you rule out, and they stay out",
-      "Digit first (D): pick a digit, every cell it can still go in lights up, and each click places it",
-      "A pad of slim keys: a click places, a right-click, ⌥-click or the key's corner writes the note; a bar under each digit for how many are down, a check once all nine are",
-      "Notes in a 3 by 3 inside the cell, also Shift or Option with a digit or N for notes mode; a placed digit clears itself from the notes it sees; A fills every note in, Shift-A clears them",
-      "Clues solid, your digits in the accent colour; the cursor's row, column and box lit, every copy of its digit lit, that digit's notes circled across the board",
-      "A clash is a red line under your digit with the clue it runs into ringed; every mistake in red as you make it if you want (a setting)",
-      "Hints in three presses: where to look, then why in plain words (\"Only this cell in row 4 can take a 7\"), then the move; the cells that explain it are circled",
-      "Undo and redo, erase, Tab to the next empty cell, arrows or H J K L, one row of tools, a line filling as the cells do",
-      "A sweep of light when a row, column or box is done, a ripple and confetti for the board",
-      "A clock that runs only while the board is on screen, and a pause that hides it; T hides the clock if it rushes you (times still count)",
-      "Browse every daily by month and every half-done game; stats per difficulty: best and average time, the streak, a chart, the history"
+      "A daily puzzle per difficulty, the same on every machine, and a new one any time with `cmd+n`; nothing is fetched",
+      "Graded by the techniques it needs, from singles you can spot to X-wings and swordfish",
+      "Notes without an extra step: type a second digit into a cell and it keeps both as notes; auto notes on `c`",
+      "Hints in three steps: where to look, why in plain words, then the move",
+      "A digit-first mode on `d`, undo and redo, and clashes or mistakes marked as you play",
+      "A clock you can hide, streaks, best and average times per difficulty, and every past daily by month"
     ],
     "permissions": [],
     "platforms": [

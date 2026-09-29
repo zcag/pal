@@ -1,7 +1,7 @@
 {
   "name": "maps",
   "title": "Maps",
-  "description": "Search places and get directions in Google Maps or Apple Maps from the panel, no key needed: Search, Directions from here, from home and from work for what you type, a route as `home > work`, your saved places as rows, and, with a Places API key, autocomplete as you type. `go:` or `maps:` at the root answers inline.",
+  "description": "Search places and get directions in Google Maps or Apple Maps without leaving the keyboard. Type a route like `home > work`, keep saved places, and add a Places API key for autocomplete.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -67,11 +67,11 @@
     "tagline": "Places and directions from the panel, no key needed",
     "category": "productivity",
     "features": [
-      "Type a place: Search, Directions from here, from home, from work, and the saved places that match; Enter opens it in Google Maps or Apple Maps",
-      "A route with both ends: `home > work`, `here -> Kadıköy`, `istanbul to ankara`; the reverse route as the second row",
-      "The travel mode is the filter: driving, transit, walking, cycling (Tab cycles it)",
-      "Nothing typed: Home, Work, the commute both ways and every saved place, each with Open, Directions, Copy address, Copy link and Open in the other app",
-      "With a Places API key, autocomplete predictions as you type, opened pinned to their place id",
+      "Type a place: search it, or get directions from here, from home or from work",
+      "Routes typed as you say them: `home > work`, `istanbul to ankara`; the way back as the second row",
+      "Pick driving, transit, walking or cycling (`tab` cycles)",
+      "Home, work, your commute and every saved place before you type, with Copy address and Copy link",
+      "Opens in Google Maps or Apple Maps, your choice; autocomplete with a Places API key",
       "`go: coffee` or `maps: home > work` at the root answers inline"
     ],
     "permissions": [

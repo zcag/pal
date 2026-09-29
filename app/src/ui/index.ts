@@ -54,4 +54,4 @@ export type {
   BarTarget, BarShow, BarConfig, BarItemConfig, BarItem, BarRuleEffect, BarRuleView, BarStateView, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont, SidebarConfig, SidebarEdge,
 } from "./SettingsTypes";
 export { resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, SIDEBAR_WINDOWS } from "./SettingsTypes";
-export { badgedIcon, instanceBadge, instanceTint, instancesOf, resolveInstance, slugSuffix, suffixProblem, suffixTitle, validSuffix, type InstanceInfo, type RawInstance, type SettingsInstance } from "./SettingsTypes";
+export { badgedIcon, instanceBadge, instanceTint, instancesOf, ownBrand, resolveInstance, slugSuffix, suffixProblem, suffixTitle, validSuffix, type InstanceInfo, type RawInstance, type SettingsInstance } from "./SettingsTypes";

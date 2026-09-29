@@ -1,7 +1,7 @@
 {
   "name": "shortcuts",
   "title": "Shortcuts",
-  "description": "Every shortcut from the Shortcuts app, its folder as the section: Enter runs it, cmd+Enter runs it with the clipboard as input, cmd+T with the input typed in the bar, cmd+O opens it in Shortcuts. The result shows in the HUD.",
+  "description": "Every shortcut from Apple's Shortcuts app, grouped by folder. Run one with Enter, with the clipboard or typed text as its input, and see the result when it ends.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -16,12 +16,12 @@
     "tagline": "Run any Apple Shortcut by name, folders as sections",
     "category": "system",
     "features": [
-      "Every shortcut from Shortcuts.app as an indexed row, so its name at the root finds it; the folder is the section and a keyword",
-      "Enter runs it; the panel hides and the HUD shows Done or the first line of the shortcut's output when it ends, however long it takes",
-      "cmd+Enter runs it with the newest clipboard text as its input; Run with input (cmd+t) takes the text typed in the bar (a form when picked without it)",
-      "cmd+O opens the shortcut in the Shortcuts app for editing, cmd+C copies its name",
-      "A global hotkey per shortcut through `[palettes.shortcuts.item_hotkeys]`, keyed by the shortcut's name",
-      "Listed through the `shortcuts` command line tool (macOS 12 and later), refreshed every five minutes and on cmd+r; on Linux one row says it is not available"
+      "Every shortcut findable by name from the root, grouped by its folder",
+      "`enter` runs it and shows Done or its output when it finishes, however long it takes",
+      "`cmd+enter` runs it on the clipboard text, `cmd+t` on text you type in the bar",
+      "`cmd+o` opens it in Shortcuts for editing",
+      "A global hotkey for any shortcut, set by its name in your config",
+      "macOS 12 and later"
     ],
     "permissions": [
       "automation"

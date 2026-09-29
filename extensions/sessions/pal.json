@@ -1,7 +1,7 @@
 {
   "name": "sessions",
   "title": "Sessions",
-  "description": "Every AI coding session on this machine (Claude Code, Codex, Copilot CLI) and what each is doing: working, your turn, waiting on you, or ended. Read from the files the CLIs write and the process table; Enter brings the session's terminal in front.",
+  "description": "Every Claude Code, Codex and Copilot CLI session on this machine and what each is doing: working, your turn, waiting on you, or ended. Enter brings the session's terminal to the front.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -299,13 +299,12 @@
     "tagline": "Every Claude Code, Codex and Copilot session, and which one needs you",
     "category": "developer",
     "features": [
-      "One row per session from the files the CLIs keep (`~/.claude/projects`, `~/.codex/sessions`, `~/.copilot/session-state`), by state: waiting on you, your turn, working, ended",
-      "The state from the transcript alone: a prompt or turn start after the last turn end is working; a tool call left without a result for 20 s while the process sits idle reads `waiting on you?`, the shape of a permission prompt; a hook can tell the exact state through `pal://sessions/state`",
-      "The pane: the last prompt, the assistant's last text, the pending tool call with its command or path, the agent and model, folder and branch, turns, tokens, permission mode, the transcript path",
-      "`enter` brings the session's terminal in front: a tmux pane, a kitty window (over its remote-control socket, found from kitty.conf), an iTerm2 or Terminal tab by tty, a WezTerm pane, else the app it runs under raised by its pid; on an ended session it opens a terminal with the resume command",
-      "`cmd+t` opens the transcript as a view inside pal: prompts, replies, tool calls with their outcome, thinking, streaming while the session runs; `[` for older entries, `c` copies the last reply, `s` types a line into a tmux-backed session",
-      "A line typed in the bar goes into a tmux-backed session with `cmd+enter`; `cmd+c` copies `claude --resume <id>`, `codex resume <id>` or `copilot --resume=<id>`; `cmd+d` kills",
-      "A bar item with the count and red, amber and blue segments per state, an alarm while a session waits on you, hidden with none; its popover a row per session with Enter, `o`, `r`, `x`, `s` and `p`"
+      "One row per session, sorted by who needs you: waiting on you, your turn, working, ended",
+      "Spots a session stuck on a permission prompt; a hook can report the exact state",
+      "The last prompt, the last reply, the pending command, the model, folder, branch and token count",
+      "`enter` jumps to the session's terminal (tmux, kitty, iTerm2, Terminal, WezTerm); an ended one resumes",
+      "`cmd+t` reads the transcript live in the panel; send a line to a tmux session with `cmd+enter`",
+      "A bar item counts sessions by state and raises an alarm while one waits on you"
     ],
     "permissions": [
       "ps",

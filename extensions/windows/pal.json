@@ -1,7 +1,7 @@
 {
   "name": "windows",
   "title": "Windows",
-  "description": "Every open window, with its app's icon, most recently used first and grouped by app. Enter switches to it; close, minimise, close or minimise all of the app, and hide or show the app from the action panel. Spaces: a row per Space, workspace or desktop with the apps on it; Enter brings it in front, and named desktops take global hotkeys.",
+  "description": "Every open window with its app's icon, most recently used first and grouped by app: `enter` switches to it, and you can close, minimise or hide from the keyboard. Spaces and workspaces are listed too, each with the apps on it.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -47,16 +47,15 @@
     }
   ],
   "store": {
-    "tagline": "Every open window, most recently used first, and the spaces they are on; Enter switches",
+    "tagline": "Switch to any open window or space, most recently used first",
     "category": "productivity",
     "features": [
-      "Live: listed again every time the panel shows, so window titles are root results and the order is most recently used, the window you came from first (macOS and Hyprland)",
-      "A section per app; the app name is the subtitle and a keyword, the bundle id or window class a keyword too",
-      "Spaces: a row per Space, workspace or desktop in the desktop's order, the apps on it as the subtitle, the icon of the window used there last, `current` and `previous` tags; Enter brings it in front (macOS: an instant switch by the same synthesised swipe yabai uses, then the window used there last raised), Previous space goes back, Toggle flips between two named spaces, and a named desktop's row takes an `item_hotkeys` key",
-      "A hidden app's window carries a `hidden` tag, a minimised one `minimized`, one on another space `other space` or `ws 3`, and the monitor when known",
-      "Close (`cmd+w`) and Minimize (`cmd+m`) keep the palette open and list again; Hide app (`cmd+h`) hides the whole app, Show app (`cmd+shift+h`) brings a hidden one back",
-      "Minimize all (`cmd+shift+m`) and Close all (`cmd+shift+w`, asks first) act on every window of the app",
-      "Hyprland, Sway and X11 (wmctrl) on Linux, detected rather than configured"
+      "Every window, most recently used first, grouped by app; window titles are found at the root",
+      "Tags for hidden, minimised and on another space, and the monitor when known",
+      "`cmd+w` closes, `cmd+m` minimises, `cmd+h` hides the app; Close all and Minimize all act on every window of an app",
+      "Spaces: a row per Space or workspace with its apps; `enter` switches, Previous space goes back",
+      "Named desktops can take global hotkeys",
+      "macOS, and Hyprland, Sway and X11 on Linux, detected by itself"
     ],
     "permissions": [
       "accessibility",

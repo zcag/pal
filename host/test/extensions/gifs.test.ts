@@ -10,10 +10,9 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileName, GIPHY_RATING, mimeOf, parseGiphy } from "../../../extensions/gifs/backends.ts";
-import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
 import { picture } from "../png.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, bundledIcon } from "../harness.ts";
 import { startMock } from "./gifs-mock.ts";
 
 describe("backends", () => {
@@ -69,11 +68,11 @@ const names = (items: Item[]) => items.map((i) => i.name);
 const dataUrl = (i: Item) => (i.icon as { image?: string })?.image ?? "";
 
 describe("gifs", () => {
-  test("meta: an input grid on the pink tile with a fallback row, six columns from the palette setting; the favourites a live grid; no warnings", () => {
+  test("meta: an input grid on the Giphy logo tile with a fallback row, six columns from the palette setting; the favourites a live grid; no warnings", () => {
     const l = host.loaded().find((l) => l.extension === "gifs")!;
     expect(l.warnings).toEqual([]);
     expect(l.palettes.map((p) => p.name)).toEqual(["gifs", "favourites"]);
-    expect(l.palettes[0]).toMatchObject({ title: "GIFs", input: true, view: "grid", columns: 6, fallback: "ask", fallbackTitle: "Search GIFs for “{query}”", icon: tile("pink", "\u{f0d78}") });
+    expect(l.palettes[0]).toMatchObject({ title: "GIFs", input: true, view: "grid", columns: 6, fallback: "ask", fallbackTitle: "Search GIFs for “{query}”", icon: bundledIcon("gifs") });
     expect(l.palettes[1]).toMatchObject({ title: "Favourite GIFs", live: true, view: "grid", columns: 6 });
   });
 

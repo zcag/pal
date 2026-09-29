@@ -1,7 +1,7 @@
 {
   "name": "bluetooth",
   "title": "Bluetooth",
-  "description": "Paired devices: connect, disconnect, see the battery.",
+  "description": "Connect and disconnect your paired Bluetooth devices, with their battery levels in view.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -16,12 +16,11 @@
     "tagline": "Connect and disconnect paired devices, battery in view",
     "category": "system",
     "features": [
-      "Every paired device, connected ones first, with a glyph for its kind (headphones, speaker, keyboard, mouse, controller, phone, watch, computer)",
-      "The battery on the right when the OS reports it; AirPods show `L 80% · R 75% · Case 90%`",
-      "`enter` connects or disconnects, on the state read back from the OS at that moment; Disconnect asks first",
-      "`cmd+c` copies the address (`AA:BB:CC:DD:EE:FF`)",
-      "Nothing to install: IOBluetooth on macOS, `bluetoothctl` on Linux",
-      "Live: the connected state is read again on every show"
+      "Every paired device, connected ones first, with a mark for its kind (headphones, keyboard, mouse, controller)",
+      "Battery levels when the device reports them; AirPods show left, right and case",
+      "`enter` connects or disconnects; disconnecting asks first",
+      "`cmd+c` copies the device address",
+      "Nothing to install on macOS; uses `bluetoothctl` on Linux"
     ],
     "permissions": [],
     "platforms": [

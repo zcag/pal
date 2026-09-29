@@ -1,7 +1,7 @@
 {
   "name": "diff",
   "title": "Diff",
-  "description": "Diff what you copied: the two newest copies in the clipboard history, the clipboard against the selection, any two history entries, or two files, as a view with the changed lines tinted and the words that differ marked. Unified or side by side, whitespace ignored on a key, long unchanged runs folded, the unified diff a copy away, the two sides open in VS Code, kitty, FileMerge or Meld.",
+  "description": "Compare the two things you copied last, with changed lines tinted and the differing words marked. Also diff the clipboard against a selection, any two history entries, or two files.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -63,14 +63,11 @@
     "tagline": "Diff the two things you just copied",
     "category": "developer",
     "features": [
-      "Open it and the two newest text copies are diffed, the older on the left: what changed on the way to the newer one",
-      "Other pairs on a key: `e` the clipboard against the selection in the app in front, `h` two entries picked from the history (or marked there), `f` two files typed into a form",
-      "Line by line with the words that differ marked inside a changed line, line numbers for both sides, a pair that differs in whitespace alone tagged",
-      "Unified by default, side by side on `s`; `w` ignores whitespace; `x` swaps the sides",
-      "Long unchanged runs fold to one row; `tab` walks the folds, `space` or a click expands one, `a` all",
-      "Enter copies the unified diff (`--- left`, `+++ right`, the hunks), `l` and `r` the left and right text",
-      "`o` opens the two sides in VS Code, kitty, FileMerge, Meld or a command of your own",
-      "`pal://diff/clipboard`, `pal://diff/selection`, `pal://diff/files?left=&right=`, `pal://diff/text?left=&right=` for keybinds and scripts; the Clipboard History palette's Diff with… and Diff these two land here"
+      "Opens on the two newest text copies, the older on the left",
+      "Other pairs: the clipboard against the selection (`e`), two history entries (`h`), two files (`f`)",
+      "Changed words marked inside each line; unified or side by side (`s`); `w` ignores whitespace",
+      "Unchanged stretches fold away; `tab` walks them, `space` expands one",
+      "`enter` copies the unified diff; `o` opens both sides in VS Code, kitty, FileMerge or Meld"
     ],
     "permissions": [
       "accessibility"

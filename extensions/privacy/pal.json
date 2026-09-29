@@ -1,7 +1,7 @@
 {
   "name": "privacy",
   "title": "Privacy",
-  "description": "Which app is using the camera, the microphone or the screen right now (a call, a screen share, a recording): a bar item that appears only while one is, and a palette of the same.",
+  "description": "Which app is using the camera, the microphone or the screen right now, during a call, a screen share or a recording. A bar item appears only while one is in use.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -16,12 +16,12 @@
     "tagline": "See which app has your camera, microphone or screen",
     "category": "system",
     "features": [
-      "A bar item that stays off the strip until the camera, the microphone or the screen is in use (a call, a screen share, a recording), then shows a glyph for each on an amber band",
-      "The app is named: the microphone per app, a helper or a command counted against the app that started it (`ffmpeg` in kitty reads kitty, with ffmpeg under it)",
-      "Named from the same source as the menu bar's dots (Control Center's own record), so a Zoom call reads zoom.us for the camera and a Meet share Google Chrome for the screen",
-      "Seen within a second of turning on or off, with no poll in the extension: the core watches and re-renders the item on a change",
-      "The popover lists every use; Enter brings the app forward, `s` opens the privacy settings",
-      "The palette lists the same rows, so `camera` or `mic` at the root answers who has it"
+      "A bar item that shows up only while the camera, microphone or screen is in use, with a mark for each",
+      "Names the app behind it, even when a helper or a command started by the app does the recording",
+      "Reads the same record as the macOS menu bar's dots, so a Zoom call or a Meet share is named right",
+      "Updates within a second of anything turning on or off",
+      "`enter` brings the app forward, `s` opens the privacy settings",
+      "Type `camera` or `mic` in the search to see who has it"
     ],
     "permissions": [],
     "platforms": [

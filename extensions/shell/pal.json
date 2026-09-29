@@ -1,7 +1,7 @@
 {
   "name": "shell",
   "title": "Shell",
-  "description": "Run a command in your login shell and read what it printed in the panel: stdout in mono, stderr in red, the exit code and the duration. Typing never runs anything (Enter does), a command that looks destructive asks first, the output copies on Enter, opens in a terminal on cmd+Enter, runs again on cmd+r. A history of every command with its exit code.",
+  "description": "Run a command in your login shell and read its output in the panel, with the exit code and how long it took. Nothing runs until you press Enter, and destructive-looking commands ask first.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -68,13 +68,12 @@
     "tagline": "Run a command, read its output in the panel, run it again",
     "category": "developer",
     "features": [
-      "One row until Enter: `Run: <command>`; typing runs nothing, and a command that looks destructive (`rm`, `sudo`, `mv`, `dd`, `git reset --hard`, ...) asks first",
-      "Runs in your login shell (`$SHELL -lic`), so PATH, aliases and functions from your rc files apply; `cwd`, `env` and `timeout` are settings",
-      "The output as a view: the command as the title, the exit code and the duration as badges, stdout in monospace on a sunken surface, stderr under it in red, scrolling past the panel",
-      "A command that outlasts the pick shows a running view with the elapsed time and the result lands in place when it ends; the timeout kills it and the view says so",
-      "Enter copies the output, cmd+Enter opens the command in a terminal (Terminal, iTerm, kitty, Alacritty, WezTerm, Ghostty), cmd+r runs it again, cmd+c copies the command",
-      "Shell History: every command with its exit code and duration, newest first; Enter runs it again",
-      "`$ ls` or `> git status` at the root lists the Run row inline"
+      "Nothing runs as you type; `rm`, `sudo`, `git reset --hard` and the like ask first",
+      "Runs in your login shell, so your PATH, aliases and functions work",
+      "Output in the panel: stdout in monospace, stderr in red, the exit code and duration on top",
+      "Long commands show the elapsed time and the result lands when they finish",
+      "`enter` copies the output, `cmd+enter` opens the command in your terminal, `cmd+r` runs it again",
+      "A history of every command with its exit code; type `$ ls` at the root to run it right there"
     ],
     "permissions": [],
     "platforms": [

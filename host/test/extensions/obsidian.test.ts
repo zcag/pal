@@ -13,9 +13,8 @@ import { join } from "node:path";
 import { paneMarkdown } from "../../../extensions/obsidian/index.ts";
 import { dailyConfig, excluded, fileName, fillTemplate, firstVault, formatDate, frontMatter, isoWeek, parseNote, resolve, tags, wikilink, wikilinks, type Note } from "../../../extensions/obsidian/notes.ts";
 import { parseRg, rgArgv } from "../../../extensions/obsidian/vault.ts";
-import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/index.ts";
-import { Host, stored, writeTool } from "../harness.ts";
+import { Host, stored, writeTool, bundledIcon } from "../harness.ts";
 
 const HAS_RG = Bun.which("rg") !== null;
 const NOTE_ACTIONS = ["obsidian", "editor", "copy-link", "read", "backlinks", "outgoing", "copy-path", "append"];
@@ -188,10 +187,10 @@ async function untilListed(palette: string, pred: (rows: Item[]) => boolean, wha
 }
 
 describe("the extension", () => {
-  test("loads: the violet tile, seven palettes with the manifest's kinds and tiers, no warnings, the three link routes", async () => {
+  test("loads: the Obsidian logo tile, seven palettes with the manifest's kinds and tiers, no warnings, the three link routes", async () => {
     const loaded = host.loaded().find((l) => l.extension === "obsidian")!;
     expect(loaded.warnings).toEqual([]);
-    expect(loaded.manifest.icon).toEqual(tile("violet", "\u{f0a6a}"));
+    expect(loaded.manifest.icon).toEqual(bundledIcon("obsidian"));
     const by = Object.fromEntries(loaded.palettes.map((p) => [p.name, p]));
     expect(Object.keys(by).sort()).toEqual(["backlinks", "daily", "notes", "outgoing", "recent", "search", "tags"]);
     expect(by.notes).toMatchObject({ tier: "primary", ttl: 300, detail: "lazy", live: false, input: false });

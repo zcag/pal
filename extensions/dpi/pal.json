@@ -1,7 +1,7 @@
 {
   "name": "dpi",
   "title": "DPI Bypass",
-  "description": "The `dpi` script's censorship bypass as a toggle with an indicator: Turn on / Turn off, a Repair row when only half of it is in effect, the status with its facts, an end-to-end test whose rows land one by one, the log and the build. A shield on the bar while it is on, amber while partial. byedpi and the network settings on macOS, zapret and dnscrypt-proxy under systemd on Linux; the script does all of it, pal runs it and draws what it says.",
+  "description": "Turns the `dpi` script's censorship bypass on and off, with a shield on the menu bar while it is on. Shows the status, repairs a half-applied state, and runs an end-to-end test.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -56,17 +56,15 @@
     }
   ],
   "store": {
-    "tagline": "The dpi bypass on and off, with a shield on the bar",
+    "tagline": "The DPI bypass on and off, with a shield on the bar",
     "category": "system",
     "features": [
-      "Turn on bypass / Turn off bypass leads the palette and sits in the root's Now section while on; Enter runs the script, the panel hides and the HUD says what the script said (`dpi on (Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9)`)",
-      "A partial state (the proxy up but the SOCKS or the DNS not pointing at it, or the reverse; one of the two Linux units down) is amber with the reason and gets a Repair row: off, then on",
-      "The status row's detail pane: proxy, service, DNS and SOCKS (the units and the DNS probe on Linux); Enter copies the script's own output",
-      "The test: one curl per url at once, through the proxy while it is up, each row landing as it answers with the code as a coloured tag, the time and its role; the header says `2 blocked reach, 4 controls fine` or names what failed; `cmd+r` runs it again",
-      "The bar item: a shield while on, hidden while off by its rule (`show = \"always\"` keeps a muted one), amber while partial; the popover has the status card, Enter toggles, `t` runs the test in place, `r` repairs, `l` opens the log, `o` the palette",
-      "`pal://dpi/toggle`, `on`, `off`, `test`, `status` for a keybind",
-      "Linux: `sudo -n true` is probed before a switch; a closed credential window is a toast saying to run `sudo -v` first, never a hung prompt",
-      "Nothing of byedpi or the network settings is reimplemented: the script is the engine, pal is the button and the light"
+      "Turn on and Turn off as rows; the state stays at the top of the panel while on",
+      "A half-applied state shows amber with the reason, and a Repair row fixes it",
+      "A test that tries each site through the bypass and shows which get through",
+      "A shield on the menu bar while on; its popover toggles, tests and repairs",
+      "Links like `pal://dpi/toggle` for a keybind",
+      "Uses byedpi on macOS and zapret with dnscrypt-proxy on Linux; the script does the work"
     ],
     "permissions": [],
     "platforms": [

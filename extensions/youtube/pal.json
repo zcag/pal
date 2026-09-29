@@ -1,12 +1,13 @@
 {
   "name": "youtube",
   "title": "YouTube",
-  "description": "Search YouTube from the panel: videos with their thumbnail, channel, length, views and age, trending while nothing is typed; Enter opens one, cmd+Enter plays it in IINA, mpv or VLC, cmd+s keeps it in Watch Later. Through the Data API v3 with a free key, or an Invidious instance without one. Channels by name, with their latest videos.",
+  "description": "Search YouTube from the panel, with thumbnails, channels, lengths and views, and trending when nothing is typed. Open a video in the browser, play it in IINA, mpv or VLC, or save it to Watch Later; works with a free API key or an Invidious instance.",
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "󰗃",
-      "bg": "red"
+      "svg": "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
+      "box": 24,
+      "bg": "#FF0000"
     }
   },
   "author": "pal",
@@ -72,15 +73,15 @@
     }
   ],
   "store": {
-    "tagline": "Search YouTube, open or play, keep for later",
+    "tagline": "Search YouTube, then open, play or save for later",
     "category": "media",
     "features": [
-      "Videos with the thumbnail, the channel, the length, the views and the age, searched 400 ms after the last key; trending while nothing is typed",
-      "`enter` opens the video in the browser, `cmd+enter` plays it in IINA, mpv or VLC (auto picks the first installed), `cmd+c` copies the url, `cmd+shift+o` opens the channel",
-      "Watch Later (`cmd+s`) is a list of its own; its rows are at the root, so a saved video is found by title",
-      "Channels by name: Enter lists the channel's latest videos, `cmd+enter` opens it. Subscriptions need a Google sign-in (OAuth), which pal does not do",
-      "The Data API v3 with a free key (a search costs 100 of the 10,000 daily units), or an Invidious instance without one",
-      "`yt: lofi` at the root answers inline; a query nothing matched offers “Search YouTube for …”"
+      "Videos with thumbnail, channel, length, views and age; trending while nothing is typed",
+      "`enter` opens in the browser, `cmd+enter` plays in IINA, mpv or VLC, `cmd+c` copies the link",
+      "Watch Later (`cmd+s`), its videos found by title at the root",
+      "Channels by name, with their latest videos",
+      "A free YouTube Data API key, or an Invidious instance without one",
+      "`yt: lofi` at the root answers inline"
     ],
     "permissions": [
       "network"

@@ -1,7 +1,7 @@
 {
   "name": "calc",
   "title": "Calculator",
-  "description": "Evaluates what you type: arithmetic, units, currencies, percentages, dates and time zones.",
+  "description": "Answers what you type as you type it: arithmetic, units, currencies, percentages, dates, time zones and durations, with variables of your own.",
   "version": "0.2.0",
   "icon": {
     "tile": {
@@ -50,14 +50,12 @@
     "tagline": "Sums, units, currencies, dates and time zones as you type",
     "category": "productivity",
     "features": [
-      "Arithmetic with precedence, percentages, powers, factorials and bases: `2^10`, `15% of 240`, `255 to hex`",
-      "Units through mathjs plus the spellings people type: `5 km to miles`, `72 f to c`, `12 gb to mb`, `5 ft 3 in to cm`",
-      "The 30 ECB currencies by code, symbol or name (`12 usd to try`, `€12 to $`, `1k usd`), rates fetched once a day and cached",
-      "Your own variables: `salary_hour = 54 usd`, `rent = 42000 try`, then `rent / salary_month` or `salary_year to eur`, currencies converted along the way",
-      "Dates: `today + 3 days`, `next friday`, `days until 25 dec` (or `25 aralık`), `workdays until friday`, `what week is it`, `what day is 2027-01-01`",
-      "Time zones by city, abbreviation or offset: `time in tokyo`, `3pm istanbul to new york`, `now in pst`, with how far ahead and `tomorrow, ` when the day differs",
-      "Unix time both ways (`1759000000`, `@1759000000`, `2026-01-01 to unix`) and durations (`3h20m + 45m`, `90 min in hours`)",
-      "A second row with the other form: the reverse conversion, a fraction, the hex and binary of an integer, the ISO date"
+      "Arithmetic, percentages and number bases: `2^10`, `15% of 240`, `255 to hex`",
+      "Units as people type them: `5 km to miles`, `72 f to c`, `5 ft 3 in to cm`",
+      "30 currencies by code, symbol or name (`€12 to $`), rates updated daily",
+      "Dates and time zones: `next friday`, `days until 25 dec`, `3pm istanbul to new york`",
+      "Your own variables: `rent = 42000 try`, then `rent / 12`",
+      "A second answer in the other form: the reverse conversion, a fraction, hex, the ISO date"
     ],
     "permissions": [
       "network",

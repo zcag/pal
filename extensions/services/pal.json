@@ -1,7 +1,7 @@
 {
   "name": "services",
   "title": "Services",
-  "description": "systemd units on Linux (user and system), launchd agents on macOS: start, stop, restart, enable, logs.",
+  "description": "Start, stop and restart background services: systemd units on Linux, launchd jobs on macOS. Read their logs, and enable or disable a unit.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -43,15 +43,14 @@
     }
   ],
   "store": {
-    "tagline": "systemd units and launchd jobs: start, stop, restart, logs",
+    "tagline": "Start, stop and restart systemd units and launchd jobs",
     "category": "system",
     "features": [
-      "Linux: every systemd unit of the user and the system manager, filters User, System, Failed and Running; the unit file's state (`enabled`) and a coloured active-state tag (`running` green, `failed` red) on the right",
-      "`enter` stops an active unit or starts an inactive one; a system unit asks first and goes through `systemctl`, then `sudo -n`, then `pkexec`, whichever is allowed",
-      "`cmd+l` opens `journalctl -u <unit> -n 200` in the panel; `cmd+e` enables or disables the unit file",
-      "macOS: the agent plists in `~/Library/LaunchAgents` and `/Library/LaunchAgents`, everything `launchctl list` knows, and the jobs with a pid, tagged `running`, `loaded`, `exit N` or `not loaded`",
-      "`enter` unloads a loaded job (`launchctl bootout`, after a confirm) or loads one from its plist (`bootstrap`); `cmd+shift+r` kickstarts it; `cmd+l` shows the plist as XML",
-      "Live: listed again when the panel shows once the rows are older than `ttl`"
+      "Linux: every systemd unit, user and system, filtered by User, System, Failed or Running, its state in colour",
+      "`enter` starts or stops a unit; system units ask first and use sudo or pkexec as allowed",
+      "`cmd+l` shows the unit's recent log, `cmd+e` enables or disables it",
+      "macOS: your launch agents and every loaded job, tagged running, loaded, exited or not loaded",
+      "`enter` loads or unloads a job after a confirm, `cmd+shift+r` restarts it, `cmd+l` shows its plist"
     ],
     "permissions": [],
     "platforms": [

@@ -1,12 +1,13 @@
 {
   "name": "google",
   "title": "Google Search",
-  "description": "Search Google from the panel: Google's suggestions as you type (no key; Tab puts one in the box), a Wikipedia card for a person, place or thing, and with a provider the web results and instant answers under the suggestions as you type or all of them on cmd+Enter (SerpApi for Google's own results, the Brave Search API, or your own SearXNG). At the root, when nothing matches, the first suggestions join Search the web.",
+  "description": "Search Google from the panel with its suggestions as you type and a Wikipedia card for people, places and things. Add SerpApi, Brave Search or your own SearXNG to see answers and results right in the list.",
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "󰊭",
-      "bg": "blue"
+      "svg": "M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z",
+      "box": 24,
+      "bg": "#4285F4"
     }
   },
   "author": "pal",
@@ -238,15 +239,15 @@
     }
   ],
   "store": {
-    "tagline": "Google's suggestions as you type, results and answers in the panel",
+    "tagline": "Google suggestions, answers and results as you type",
     "category": "productivity",
     "features": [
-      "Google's suggestions on every keystroke, no key needed: Enter searches, Tab puts a suggestion in the box, cmd+b searches in the background",
-      "A person, place or thing Google recognises shows its line and thumbnail, and its Wikipedia card in the pane",
-      "With a provider, the answer (the weather, a conversion, a definition) and the top results join the list under the suggestions as you type; cmd+Enter lists them all as rows to open, open in the background or copy",
-      "SerpApi for Google's own results, the Brave Search API, or your own SearXNG instance",
-      "At the root, when nothing matches, the first suggestions join Search the web; the query leaves the machine only then",
-      "Recent searches while nothing is typed; language, region, safe search and the browser in Settings"
+      "Google's suggestions as you type, no key needed; `enter` searches, `tab` takes a suggestion",
+      "A Wikipedia card in the side pane for a person, place or thing Google recognises",
+      "With SerpApi, Brave Search or SearXNG: instant answers and top results under the suggestions",
+      "`cmd+enter` lists every result as a row to open, open in the background or copy",
+      "Offered at the root when nothing else matches; your query leaves the machine only then",
+      "Recent searches before you type; language, region and safe search in Settings"
     ],
     "permissions": [
       "network"

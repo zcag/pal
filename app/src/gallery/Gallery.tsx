@@ -14,7 +14,7 @@ import { toItem, type Raw } from "../fixtures";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
   SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
-  aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+  aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, ownBrand, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, storeExtensions, storeReferences, tileRows } from "./data";
 import type { StoreState } from "../store";
@@ -447,7 +447,7 @@ function GalleryPage() {
       </Section>
 
       <Section id="tiles" title="Icon tiles">
-        <p className="g-note">Every bundled extension's icon as its manifest writes it (<code>extensions/*/pal.json</code>, read live): a rounded square in one of the twelve <code>--pal-brand-*</code> colours with a white mark. The same tile at 24 in a row, 20 in the crumb and the footer, 32 in a grid cell, 56 on a settings page. A row's plain glyph takes its palette's colour (<code>tint</code>); a state keeps its own.</p>
+        <p className="g-note">Every bundled extension's icon as its manifest writes it (<code>extensions/*/pal.json</code>, read live): a rounded square in one of the twelve <code>--pal-brand-*</code> colours with a white mark, or a product's logo on its own colour. The same tile at 24 in a row, 20 in the crumb and the footer, 32 in a grid cell, 56 on a settings page. A row's plain glyph takes its palette's colour (<code>tint</code>); a state keeps its own.</p>
         <State label="Palette rows, the second selected">
           <Pair surface>
             {tileRows.map((item, i) => <Row key={item.id} item={item} active={i === 1} />)}
@@ -466,6 +466,13 @@ function GalleryPage() {
             <Row item={{ id: "t3", name: "pal-web", subtitle: "running · 2h", icon: { kind: "glyph", value: "\u{f0868}", tint: "cyan" }, accessories: [{ tag: "up", color: "green" }] }} />
             <Row item={{ id: "t4", name: "Tea", subtitle: "12:30 left", icon: { kind: "glyph", value: "\u{f051b}", tint: "amber" }, accessories: [{ text: "25m" }] }} />
             <Row item={{ id: "t5", name: "No calculator found", subtitle: "A hint row keeps the palette's colour", icon: { kind: "glyph", value: "\u{f0029}", tint: "indigo" }, accessories: [] }} />
+          </Pair>
+        </State>
+        <State label="Every tile at 56 and 24: a product's logo on its own colour (Simple Icons, app/scripts/brand-icons.ts), pal's own tools in the brand colours">
+          <Pair surface>
+            <div className="g-tiles">
+              {tileRows.map((r) => <span key={r.id} title={r.id}><Icon icon={r.icon} size="lg" /><Icon icon={r.icon} /></span>)}
+            </div>
           </Pair>
         </State>
         <State label="Grid cell at 32 and a settings hero at 56">
@@ -675,7 +682,7 @@ function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage
   const addInstance = async (name: string, suffix: string, title?: string, tint?: string) => setExts((es) => {
     const base = es.find((e) => e.name === name && e.instance?.isDefault) ?? es.find((e) => e.name === name);
     if (!base || !base.icon) return es;
-    const inst = resolveInstance(`${name}@${suffix}`, name, { title, tint }, undefined, base.icon.kind === "tile" ? base.icon.bg : undefined);
+    const inst = resolveInstance(`${name}@${suffix}`, name, { title, tint }, undefined, ownBrand(base.icon));
     const extTitle = base.extTitle ?? base.title;
     return [...es, { ...base, key: inst.key, instance: inst, title: `${extTitle} (${inst.title})`, icon: badgedIcon(base.icon, inst), values: {}, inherited: base.values, inheritedFrom: base.title, latest: undefined, palettes: base.palettes.map((p) => ({ ...p, id: p.id.replace(name, inst.key), title: p.title.replace(/ \(.*\)$/, ` (${inst.title})`), config: { enabled: true, settings: {} }, inherited: p.config.settings })) }];
   });
