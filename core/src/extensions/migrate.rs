@@ -1,24 +1,46 @@
 //! The move from "everything bundled" to registries (docs/design/distribution.md
 //! "Migration"), as helpers the app runs in the last full-bundle release:
-//! which extensions are in use, without reading any manifest ([`in_use`]),
-//! and turning store copies of our own repo's extensions into registry
+//! which extensions are in use, without reading any manifest ([`in_use`],
+//! helped by the local record of opens, [`mark_used`]), and turning store copies of our own repo's extensions into registry
 //! installs ([`convert_legacy`]).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use super::refs::{mentions, palette_owner};
 use super::{write_record, Kind, Record, Result, Spec, Store};
-use crate::config::{instance, Config};
+use crate::config::{instance, Config, DEFAULT_FALLBACKS};
 use crate::frecency::Frecency;
 use crate::registry::{self, Channel, PAL};
 
+/// `<data dir>/extensions-used.json`: every extension whose palette was
+/// opened here, with when last (unix seconds). Kept whether usage sharing
+/// is on or off and never sent anywhere: it is what carries the extensions
+/// someone uses over when the bundle shrinks (docs/design/distribution.md
+/// "Migration").
+pub const USED: &str = "extensions-used.json";
+
+/// The record of opens in `data_dir` ([`USED`]), empty when there is none.
+pub fn used(data_dir: &Path) -> BTreeMap<String, u64> {
+    std::fs::read(data_dir.join(USED)).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+}
+
+/// A palette of `key`'s extension (an instance counts for its extension)
+/// was opened now.
+pub fn mark_used(data_dir: &Path, key: &str) -> std::io::Result<()> {
+    let mut all = used(data_dir);
+    all.insert(instance::name_of(key).to_string(), registry::now());
+    crate::fs::write_atomic(&data_dir.join(USED), serde_json::to_vec_pretty(&all).unwrap_or_default())
+}
+
 /// The names in `known` (every name a registry or the bundled root has)
-/// that this setup uses: mentioned by `[extensions.<n>]`,
-/// `[instances.<n>*]`, a `[palettes.<id>]` table, a `bar.items` key, the
-/// sidebar palette, `general.fallbacks`, a `[states]` expression, a
-/// frecency entry, or a `<data dir>/storage/<n>.json` file (where game
-/// progress lives). A palette id (`clipboard-history`, `gmail@work-inbox`)
+/// that this setup uses: opened here ([`USED`]), or mentioned by
+/// `[extensions.<n>]`, `[instances.<n>*]`, a `[palettes.<id>]` table (a
+/// hotkey, an alias, any setting), a `bar.items` key, the sidebar palette,
+/// `general.fallbacks` when it is not the default, a `[states]` expression,
+/// or a frecency entry. A storage file does not count: extensions write
+/// theirs on their own (a cache), used or not; game progress shows as
+/// opens. A palette id (`clipboard-history`, `gmail@work-inbox`)
 /// is its extension's name or starts with it and a `-`, so it counts for
 /// the longest known name it starts with.
 pub fn in_use(config: &Config, data_dir: &Path, frecency: Option<&Frecency>, known: &BTreeSet<String>) -> BTreeSet<String> {
@@ -40,13 +62,12 @@ pub fn in_use(config: &Config, data_dir: &Path, frecency: Option<&Frecency>, kno
     for f in frecency.map(|f| f.extensions()).unwrap_or_default() {
         name(f);
     }
-    let storage = data_dir.join(crate::storage::DIR_NAME);
-    for e in std::fs::read_dir(storage).into_iter().flatten().flatten() {
-        if let Some(stem) = e.file_name().to_str().and_then(|f| f.strip_suffix(".json")) {
-            name(stem);
-        }
+    for n in used(data_dir).keys() {
+        name(n);
     }
-    for id in config.palettes.keys().chain(config.general.fallbacks.iter()) {
+    // The default order names calc, files and quicklinks for everyone: only an order someone set says anything.
+    let fallbacks = if config.general.fallbacks.iter().eq(DEFAULT_FALLBACKS.iter()) { &[][..] } else { &config.general.fallbacks[..] };
+    for id in config.palettes.keys().chain(fallbacks.iter()) {
         if let Some(n) = palette_owner(id, known) {
             out.insert(n.to_string());
         }
@@ -127,12 +148,30 @@ expr = "spotify2.playing or not hue.on"
         )
         .unwrap();
         std::fs::create_dir_all(tmp.path().join("storage")).unwrap();
-        std::fs::write(tmp.path().join("storage/2048.json"), "{}").unwrap();
+        std::fs::write(tmp.path().join("storage/github.json"), "{}").unwrap();
+        mark_used(tmp.path(), "2048").unwrap();
+        mark_used(tmp.path(), "gmail@home").unwrap();
         let mut f = Frecency::in_memory();
         f.record(&crate::frecency::Key::new("emoji", "emoji", "x"), std::time::SystemTime::now());
         let all = known(&["github", "gmail", "window", "window-management", "clipboard", "weather", "spotify", "spotify2", "hue", "2048", "emoji", "quicklinks", "unused", "on"]);
         let got = in_use(&config, tmp.path(), Some(&f), &all);
         assert_eq!(got, known(&["2048", "clipboard", "emoji", "github", "gmail", "hue", "quicklinks", "spotify", "spotify2", "weather", "window-management"]));
+    }
+
+    #[test]
+    fn a_storage_file_or_the_default_fallbacks_are_not_use() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("storage")).unwrap();
+        std::fs::write(tmp.path().join("storage/github.json"), "{}").unwrap();
+        let all = known(&["github", "calc", "files", "quicklinks", "2048"]);
+        let fresh = Config::default();
+        assert!(in_use(&fresh, tmp.path(), None, &all).is_empty(), "a cache github wrote itself, and the default fallback order, say nothing");
+        let (set, _) = crate::config::parse("[general]\nfallbacks = [\"web\", \"url\", \"quicklinks\", \"calc\", \"files\", \"github\"]\n").unwrap();
+        assert_eq!(in_use(&set, tmp.path(), None, &all), known(&["calc", "files", "github", "quicklinks"]), "an order someone set counts whole");
+        mark_used(tmp.path(), "2048").unwrap();
+        let t = used(tmp.path())["2048"];
+        assert!(t > 1_700_000_000);
+        assert_eq!(in_use(&fresh, tmp.path(), None, &all), known(&["2048"]), "opened here: in use");
     }
 
     #[test]

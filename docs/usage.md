@@ -16,6 +16,11 @@ pal.cagdas.io does not keep IP addresses; it keeps the country at most.
 
 Turning sharing off deletes the id; turning it on again makes a new one.
 
+Separately, pal keeps a local record of which extensions you open
+(`extensions-used.json` in its data directory, a name and the last time),
+so the ones you use carry over when fewer come bundled. It is kept whether
+sharing is on or off and is never sent.
+
 ## What is sent
 
 Every request pal makes to pal.cagdas.io (registry, packages, updates)
