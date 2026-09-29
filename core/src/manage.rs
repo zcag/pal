@@ -5,13 +5,38 @@
 //! event (`crate::usage`, for our registry's extensions only). One path, so
 //! no UI mirrors or counts differently.
 
+use std::collections::BTreeMap;
 use std::path::Path;
+
+use serde::Serialize;
 
 use crate::config::{ConfigFile, RegistryConfig};
 use crate::extensions::{Error, Installed, Kind, Result, Roots, Store};
-use crate::registry::{self, Preview, Refreshed, Registries, PAL};
-use crate::updates::{self, Inputs, Status};
+use crate::registry::{self, Listing, Preview, Refreshed, Registries, PAL};
+use crate::updates::{self, BuildInfo, Inputs, Status};
 use crate::usage::{ErrorKind, Event, EventKind, From, Usage};
+
+/// One listed extension of one registry, as the Store, root search and
+/// Games offer it (`Available` in docs/design/distribution.md's contract).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Available {
+    pub name: String,
+    pub registry: String,
+    pub listing: Listing,
+    /// What is installed is this registry's build of it (a bundled one is ours).
+    pub installed: bool,
+    /// Ours, and comes with pal.
+    pub bundled: bool,
+    /// A build runs here and no other source has the name.
+    pub installable: bool,
+    /// Why not installable: `needs pal with protocol N`, `not for this
+    /// platform`, `provided by <registry>`, `a local copy`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked: Option<String>,
+    /// The build an install would get.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<BuildInfo>,
+}
 
 pub struct Manager {
     pub store: Store,
@@ -49,6 +74,42 @@ impl Manager {
     /// The one update check ([`updates::check`]).
     pub fn check(&self) -> Vec<Status> {
         updates::check(&self.store, &self.registries, &self.inputs)
+    }
+
+    /// Every extension every cached index lists, ours first, each with
+    /// whether it is installed and can be.
+    pub fn available(&self) -> Vec<Available> {
+        let copies: BTreeMap<String, Installed> = self.store.list().unwrap_or_default().into_iter().map(|i| (i.name.clone(), i)).collect();
+        let mut out = Vec::new();
+        for src in self.registries.sources() {
+            let Some(index) = self.registries.index(&src.name) else { continue };
+            for e in index.extensions {
+                let copy = copies.get(&e.name).map(Installed::kind);
+                let bundled = src.is_ours() && self.inputs.bundled.contains_key(&e.name);
+                let local = self.inputs.local.contains(&e.name);
+                let installed = !local && match copy {
+                    Some(Kind::Registry { registry, .. }) => registry == src.name,
+                    Some(_) => false,
+                    None => bundled,
+                };
+                let bad = self.store.bad_builds(&e.name);
+                let best = registry::best_build(&e, registry::protocols(), registry::platform(), &bad);
+                let blocked = match copy {
+                    _ if local => Some("a local copy".to_string()),
+                    Some(Kind::Registry { registry, .. }) if registry != src.name => Some(format!("provided by {registry}")),
+                    Some(Kind::Source(_) | Kind::Hand) => Some("a local copy".into()),
+                    _ if !src.is_ours() && self.inputs.bundled.contains_key(&e.name) => Some(format!("provided by {PAL}")),
+                    _ if best.is_some() => None,
+                    _ => Some(match registry::needs_newer(&e, registry::protocols(), registry::platform(), &bad) {
+                        Some(p) => format!("needs pal with protocol {p}"),
+                        None if !e.runs_on(registry::platform()) => "not for this platform".into(),
+                        None => "no build to install".into(),
+                    }),
+                };
+                out.push(Available { build: best.map(BuildInfo::of), installable: blocked.is_none(), blocked, installed, bundled, registry: src.name.clone(), listing: e.listing, name: e.name });
+            }
+        }
+        out
     }
 
     /// Installs `name` from the registries (`Store::install`) and lists it.
@@ -141,8 +202,9 @@ impl Manager {
         Ok(())
     }
 
-    /// Whether `name` is ours to count: bundled, or installed from our registry.
-    fn is_ours(&self, name: &str) -> bool {
+    /// Whether `name` is ours to count (docs/usage.md): bundled, or
+    /// installed from our registry. Another registry's names never leave.
+    pub fn is_ours(&self, name: &str) -> bool {
         self.inputs.bundled.contains_key(name) || self.store.get(name).is_ok_and(|i| matches!(i.kind(), Kind::Registry { registry: PAL, .. }))
     }
 
@@ -218,6 +280,36 @@ mod tests {
         let last = queued(&m).pop().unwrap();
         assert_eq!((last.kind, last.error), (EventKind::Fail, Some(ErrorKind::Verify)));
         assert!(!m.config.load().config.store.installed.contains(&"broken".to_string()));
+    }
+
+    #[test]
+    fn available_says_what_is_installed_and_what_can_be() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (mut ours, mut acme) = (Fixture::new(PAL), Fixture::new("acme"));
+        for (fx, names) in [(&mut ours, &["todo", "calc", "mine", "later", "elsewhere"][..]), (&mut acme, &["todo", "calc", "extra"][..])] {
+            for n in names {
+                let protocol = if *n == "later" { registry::PROTOCOL + 1 } else { 1 };
+                let b = fx.build(n, "x", 1, protocol, None);
+                fx.list(n, vec![b], (*n == "elsewhere").then_some(&["plan9"][..]));
+            }
+        }
+        let mut m = manager(tmp.path(), vec![ours.source(), acme.source()]);
+        m.inputs.local.insert("mine".into());
+        m.refresh();
+        m.install("extra", None, From::Store).unwrap();
+        let all = m.available();
+        let of = |r: &str, n: &str| all.iter().find(|a| a.registry == r && a.name == n).unwrap_or_else(|| panic!("no {r}/{n}")).clone();
+        let todo = of(PAL, "todo");
+        assert!(todo.installable && !todo.installed && todo.blocked.is_none() && todo.build.is_some());
+        assert!(of("acme", "todo").installable, "listed twice: either may be installed");
+        let calc = of(PAL, "calc");
+        assert!(calc.bundled && calc.installed, "a bundled one is ours, installed");
+        assert_eq!(of("acme", "calc").blocked.as_deref(), Some("provided by pal"));
+        assert_eq!(of(PAL, "mine").blocked.as_deref(), Some("a local copy"));
+        assert_eq!(of(PAL, "later").blocked, Some(format!("needs pal with protocol {}", registry::PROTOCOL + 1)));
+        assert_eq!(of(PAL, "elsewhere").blocked.as_deref(), Some("not for this platform"));
+        assert!(of("acme", "extra").installed && of("acme", "extra").installable);
+        assert_eq!(all.iter().position(|a| a.registry == "acme"), Some(5), "ours first");
     }
 
     #[test]

@@ -7,6 +7,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use super::refs::{mentions, palette_owner};
 use super::{write_record, Kind, Record, Result, Spec, Store};
 use crate::config::{instance, Config};
 use crate::frecency::Frecency;
@@ -55,23 +56,6 @@ pub fn in_use(config: &Config, data_dir: &Path, frecency: Option<&Frecency>, kno
         out.extend(known.iter().filter(|n| mentions(expr, n)).cloned());
     }
     out
-}
-
-/// The longest name in `known` that `id` is, or starts with followed by
-/// `-` (a palette of it) or `@` (an instance of it).
-fn palette_owner<'a>(id: &str, known: &'a BTreeSet<String>) -> Option<&'a str> {
-    known.iter().filter(|n| id == n.as_str() || id.strip_prefix(n.as_str()).is_some_and(|rest| rest.starts_with(['-', '@', '/']))).max_by_key(|n| n.len()).map(String::as_str)
-}
-
-/// Whether `expr` reads a state of `name` (`name.playing`): the name as a
-/// whole word followed by a dot.
-fn mentions(expr: &str, name: &str) -> bool {
-    let word = |c: char| c.is_ascii_alphanumeric() || c == '_' || c == '-';
-    expr.match_indices(name).any(|(i, _)| {
-        let before = expr[..i].chars().next_back();
-        let after = expr[i + name.len()..].chars().next();
-        !before.is_some_and(word) && after == Some('.')
-    })
 }
 
 /// What [`convert_legacy`] did.
@@ -149,14 +133,6 @@ expr = "spotify2.playing or not hue.on"
         let all = known(&["github", "gmail", "window", "window-management", "clipboard", "weather", "spotify", "spotify2", "hue", "2048", "emoji", "quicklinks", "unused", "on"]);
         let got = in_use(&config, tmp.path(), Some(&f), &all);
         assert_eq!(got, known(&["2048", "clipboard", "emoji", "github", "gmail", "hue", "quicklinks", "spotify", "spotify2", "weather", "window-management"]));
-    }
-
-    #[test]
-    fn mentions_is_a_whole_word() {
-        assert!(mentions("hue.on and x", "hue"));
-        assert!(!mentions("bighue.on", "hue"));
-        assert!(!mentions("hue_x.on", "hue"));
-        assert!(!mentions("hue and x", "hue"));
     }
 
     #[test]

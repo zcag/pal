@@ -39,6 +39,7 @@ use crate::fs::{self, write_atomic};
 use crate::registry::{self, Build, Channel, Entry, Registries, Source};
 
 pub mod migrate;
+pub mod refs;
 
 /// The install record kept next to the manifest.
 pub const RECORD: &str = ".pal-install.json";
