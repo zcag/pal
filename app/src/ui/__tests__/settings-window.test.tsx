@@ -8,11 +8,11 @@ vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; }
 import { SettingsWindow, settingsPages } from "../SettingsWindow";
 import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
 import { SettingsExtensions, extensionsIndex, forgetText } from "../SettingsExtensions";
-import type { ExtensionsStore } from "../SettingsStore";
+import { browseRows, categoriesOf, featuredOf, relatedOf, whatLine, type ExtensionsStore } from "../SettingsStore";
 import { EMPTY_STORE } from "../../store";
 import { SettingsAbout } from "../SettingsAbout";
 import { barItems } from "./settings-fixtures";
-import { settingsExtensions, settingsStore, storeExtensions, storeReferences } from "../../gallery/data";
+import { browseStore, settingsExtensions, settingsStore, storeExtensions, storeReferences } from "../../gallery/data";
 import { homeAssistant } from "./settings-fixtures";
 
 const noop = () => {};
@@ -119,7 +119,7 @@ describe("SettingsExtensions", () => {
     expect(html).not.toContain("v1.4.2");
     expect(html).not.toContain("bundled");
   });
-  it("the home: what needs you with its fix, what is in use, what is turned off, the rest as an index, Browse and the registries", () => {
+  it("the home: the Installed / Browse switch, what needs you with its fix, what is in use, what is turned off, the rest as an index", () => {
     const html = renderToStaticMarkup(<SettingsExtensions extensions={[...withStore, homeAssistant]} onSelect={noop} onChange={noop} store={fakeStore()} bar={barItems} />);
     const section = (name: string) => html.slice(html.indexOf(`aria-label="${name}"`), html.indexOf("</section>", html.indexOf(`aria-label="${name}"`)));
     const needs = section("Needs you");
@@ -138,9 +138,10 @@ describe("SettingsExtensions", () => {
     expect(section("Turned off")).toContain("<b>Timer</b>");
     expect(section("Turned off")).toContain('role="switch" aria-checked="false"');
     expect(section("Everything else")).toContain('placeholder="Find one"');
-    expect(section("Browse")).toContain("Comes with pal");
-    expect(section("Browse")).toContain(">Install</button>");
-    expect(section("Registries")).toContain("https://acme.github.io/pal/index.json");
+    expect(html).toContain('aria-checked="true" data-id="installed"');
+    // Browse and the registries are the other view.
+    expect(html).not.toContain('aria-label="Browse"');
+    expect(html).not.toContain('aria-label="Registries"');
     expect(html).not.toContain('class="pal-install__field"');
     expect(html).not.toContain('class="pal-xpane__hero"');
   });
@@ -171,10 +172,12 @@ describe("SettingsExtensions", () => {
   });
   it("a listed extension that is not installed opens as its listing, with Install or why it cannot be", () => {
     const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="docker" onSelect={noop} onChange={noop} store={fakeStore()} />);
+    expect(html).toContain("\u2039 Extensions</button>");
     expect(html).toContain('class="pal-xpane__title">Docker</h3>');
     expect(html).toContain("Not installed");
     expect(html).toContain(">Install</button>");
     expect(html).toContain("Containers</span>");
+    expect(html).toContain("<code>pal install docker</code>");
     const dpi = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="dpi" onSelect={noop} onChange={noop} store={fakeStore()} />);
     expect(dpi).toContain("Not for this platform");
     expect(dpi).not.toContain(">Install</button>");
@@ -196,17 +199,78 @@ describe("SettingsExtensions", () => {
     expect(count(html, /class="pal-xpane__shot"/g)).toBe(1);
     expect(html).toContain("<figcaption>Pull Requests</figcaption>");
   });
+  it("a listing's page from Browse: back to Browse, the screenshots large with thumbnails, what it does, the facts, related ones", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="calendar" onSelect={noop} onChange={noop} store={fakeStore(browseStore)} browsing onBrowse={noop} />);
+    const cal = browseStore.available.find((a) => a.name === "calendar")!.listing;
+    expect(html).toContain("\u2039 Browse</button>");
+    expect(html).toContain('class="pal-xgallery__stage"');
+    expect(count(html, /class="pal-xgallery__thumb"/g)).toBe(cal.screenshots.length);
+    expect(html).toContain(">What it does</h4>");
+    expect(count(html, /<li>/g)).toBeGreaterThanOrEqual(cal.features!.length);
+    expect(html).toContain("<dt>Runs on</dt><dd>macOS and Linux</dd>");
+    expect(html).toContain("<dt>From</dt><dd>The pal registry</dd>");
+    expect(html).toContain('aria-label="Related"');
+    expect(count(html, /class="pal-xrel"/g)).toBe(3);
+  });
   it("prefers the registry listing's screenshots on an extension's page", () => {
     const state = { ...settingsStore, available: settingsStore.available.map((a) => (a.name === "github" ? { ...a, listing: { ...a.listing, screenshots: [{ url: "https://pal.cagdas.io/x/1.png", caption: "From the index" }, "https://pal.cagdas.io/x/2.png"] } } : a)) };
     const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} store={fakeStore(state)} />);
     expect(count(html, /class="pal-xpane__shot"/g)).toBe(2);
     expect(html).toContain("<figcaption>From the index</figcaption>");
   });
-  it("says so when nothing is set up, and still offers more", () => {
+  it("says so when nothing is set up, and still offers more; Browse says no registry answered", () => {
     const html = renderToStaticMarkup(<SettingsExtensions extensions={[]} onSelect={noop} onChange={noop} store={fakeStore({ ...EMPTY_STORE })} />);
     expect(html).toContain("nothing set up yet");
     expect(html).toContain("Get more extensions");
-    expect(html).toContain("no registry has answered yet");
+    const browse = renderToStaticMarkup(<SettingsExtensions extensions={[]} onSelect={noop} onChange={noop} store={fakeStore({ ...EMPTY_STORE })} browsing onBrowse={noop} />);
+    expect(browse).toContain("No registry has answered yet.");
+  });
+  it("Browse: the switch, the search, the categories with their counts, Featured with screenshots, a shelf per category, the registries and the other ways in", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} onSelect={noop} onChange={noop} store={fakeStore(browseStore)} browsing onBrowse={noop} />);
+    const section = (name: string) => html.slice(html.indexOf(`aria-label="${name}"`), html.indexOf("</section>", html.indexOf(`aria-label="${name}"`)));
+    expect(html).toContain('aria-checked="true" data-id="browse"');
+    expect(html).toContain(`placeholder="Search ${browseStore.available.length} extensions"`);
+    const fun = browseStore.available.filter((a) => a.listing.category === "fun").length;
+    expect(html).toContain(`Fun<span class="pal-xcat__n">${fun}</span>`);
+    const browse = section("Browse");
+    expect(browse).toContain(">Featured</h2>");
+    // GitHub is installed here, so Featured goes on to the next ones; each shows its first screenshot.
+    expect(count(browse, /class="pal-xbcard" data-shot="true"/g)).toBe(3);
+    expect(browse).toContain('src="/__ext/spotify/screenshots/');
+    expect(browse).toContain('data-scheme="dark"');
+    for (const c of categoriesOf(browseStore.available)) expect(browse).toContain(`>${c.title}</button><span>${c.count}</span>`);
+    expect(browse).toContain("Comes with pal");
+    expect(browse).toContain(">Install</button>");
+    expect(browse).toContain(">Installing…</button>");
+    expect(browse).toContain("Not for this platform");
+    expect(browse).toContain(">From acme</span>");
+    expect(section("Registries")).toContain("https://acme.github.io/pal/index.json");
+    expect(html).toContain("Open the Store palette");
+  });
+  it("Browse's words and choices: the search, the categories, Featured, the card's line, related ones", () => {
+    const all = browseStore.available;
+    const names = (rows: typeof all) => rows.map((a) => a.name);
+    // A title match leads; the description and the features match at a word's start only.
+    const git = names(browseRows(all, "all", "git"));
+    expect(git[0]).toBe("github");
+    expect(git).not.toContain("hue");
+    expect(names(browseRows(all, "fun", "")).slice(0, 2)).toEqual(["2048", "blackjack"]);
+    expect(browseRows(all, "fun", "").at(-1)?.installed).toBe(true);
+    expect(browseRows(all, "all", "daily").some((a) => a.name === "wordle")).toBe(true);
+    const cats = categoriesOf(all);
+    expect(cats.map((c) => c.id)).toEqual(["productivity", "developer", "system", "media", "reference", "fun", "integration"]);
+    expect(cats.reduce((n, c) => n + c.count, 0)).toBe(all.length);
+    expect(names(featuredOf(all))).toEqual(["spotify", "solitaire", "calendar"]);
+    // The first feature, else the description when it says more than the tagline (backticks dropped).
+    const l = all.find((a) => a.name === "calendar")!.listing;
+    expect(whatLine({ ...l, features: ["Press `enter` to join"] })).toBe("Press enter to join");
+    expect(whatLine({ ...l, features: undefined, description: `${l.tagline}.` })).toBeUndefined();
+    expect(whatLine({ ...l, features: [], description: "More words." })).toBe("More words.");
+    const cal = all.find((a) => a.name === "calendar")!;
+    const rel = relatedOf(browseStore, { ...cal, listing: { ...cal.listing, suggests: ["weather"] } });
+    expect(rel.map((a) => a.name)[0]).toBe("weather");
+    expect(rel).toHaveLength(3);
+    expect(rel.every((a) => a.name !== "calendar")).toBe(true);
   });
   it("indexes Browse, Registries and every listed extension not installed", () => {
     const idx = extensionsIndex(settingsExtensions, settingsStore.available);

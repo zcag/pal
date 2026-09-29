@@ -4,9 +4,8 @@ import { BRAND } from "./icons";
 import { Tag } from "./Row";
 import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
 import { ExtensionPalettes, type SettingsPalettesProps } from "./SettingsPalettes";
-import { availableOf, Browse, buildLine, ListingPane, listingIcon, needsOf, originLine, Registries, screenshotsOf, Shots, statusText, targetOf, updatesLine, type ExtensionsStore, type InstallState, type Need } from "./SettingsStore";
+import { availableOf, Browse, buildLine, ExtensionsTabs, ListingPane, listingIcon, needsOf, originLine, screenshotsOf, Shots, statusText, targetOf, updatesLine, type ExtensionsStore, type InstallState, type Need } from "./SettingsStore";
 import { badgedIcon, type BarItem, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
-import { flashAnchor } from "./SettingsWindow";
 import type { Brand } from "./types";
 import { EMPTY_STORE, type Available } from "../store";
 
@@ -22,6 +21,9 @@ export type SettingsExtensionsProps = {
   onOpenBarItem?: (key: string) => void;
   /** The registries, the update check and every install, update, remove and switch; the page has no Browse, Registries or store rows without it. */
   store?: ExtensionsStore;
+  /** The page's Browse view rather than its home (the `extensions:browse` and `extensions:registries` anchors land there); kept here when the owner does not hold it. A page opened from Browse goes back to it. */
+  browsing?: boolean;
+  onBrowse?: (on: boolean) => void;
   /** The instance whose settings the pane shows (a key); the default when unset. */
   selectedInstance?: string;
   onSelectInstance?: (key: string) => void;
@@ -109,7 +111,14 @@ type Busy = Record<string, string>;
  * its settings, its palettes, its bar items, and what can be done to it; a
  * listed one not installed opens as its listing with Install.
  */
-export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem, store }: SettingsExtensionsProps) {
+export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem, store, browsing: heldBrowsing, onBrowse: heldOnBrowse }: SettingsExtensionsProps) {
+  const [ownBrowsing, setOwnBrowsing] = useState(false);
+  const browsing = !!store && (heldOnBrowse ? !!heldBrowsing : ownBrowsing);
+  const onBrowse = heldOnBrowse ?? setOwnBrowsing;
+  // Browse's category and search outlive a visit to a listing's page and back.
+  const [category, setCategory] = useState("all");
+  const [browseQuery, setBrowseQuery] = useState("");
+  const back = <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"‹"} {browsing ? "Browse" : "Extensions"}</button>;
   const rows = byName(extensions);
   const current = rows.find((e) => e.name === selected);
   const [busy, setBusy] = useState<Busy>({});
@@ -146,7 +155,7 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
     const target = targetOf(current.status);
     return (
       <div className="pal-settings-page pal-xpage">
-        <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"‹"} Extensions</button>
+        {back}
         <ExtensionPane
           key={name}
           ext={current}
@@ -180,13 +189,14 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
   if (store && listed) {
     const off = store.state.disabled.includes(listed.name);
     return (
-      <div className="pal-settings-page pal-xpage">
-        <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"‹"} Extensions</button>
+      <div className="pal-settings-page pal-xpage pal-xlistpage">
+        {back}
         <ListingPane
           key={listed.name}
           a={listed}
           store={store}
-          busy={installing[listed.name]}
+          onSelect={onSelect}
+          busy={installing[listed.name] ?? (store.state.busy.includes(listed.name) ? { kind: "busy" } : undefined)}
           onInstall={() => install(listed.name, listed.registry)}
           extra={off && (
             <p className="pal-callout">
@@ -197,6 +207,11 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
         />
       </div>
     );
+  }
+
+  const tabs = store && <ExtensionsTabs browsing={browsing} onBrowse={onBrowse} />;
+  if (store && browsing) {
+    return <Browse store={store} installing={installing} onInstall={(a) => install(a.name, a.registry)} onSelect={onSelect} category={category} onCategory={setCategory} query={browseQuery} onQuery={setBrowseQuery} tabs={tabs} />;
   }
 
   // Without the store only what the extensions themselves say (a failure, a missing setting, warnings) needs you.
@@ -232,6 +247,7 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
 
   return (
     <div className="pal-settings-page pal-xhome">
+      {tabs && <header className="pal-xbrowse__top">{tabs}</header>}
       {needs.length > 0 && (
         <section className="pal-xhome__sec" aria-label="Needs you">
           <h2 className="pal-xhome__h">Needs you<span>{needs.length}</span></h2>
@@ -260,9 +276,9 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
             </button>
           ))}
           {store && (
-            <button type="button" className="pal-xcard pal-xcard--more" onClick={() => flashAnchor("extensions:browse")}>
+            <button type="button" className="pal-xcard pal-xcard--more" onClick={() => onBrowse(true)}>
               <span className="pal-xcard__plus" aria-hidden>+</span>
-              <span className="pal-xcard__text"><b>Get more extensions</b><span>Browse what the registries list, below, and install in place</span></span>
+              <span className="pal-xcard__text"><b>Get more extensions</b><span>{store.state.available.some((a) => !a.installed) ? `Browse ${store.state.available.filter((a) => !a.installed).length} more and install them in place` : "Browse what the registries list and install in place"}</span></span>
             </button>
           )}
         </div>
@@ -297,8 +313,6 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
           {rest.length === 0 && <p className="pal-pane__none">{q ? `Nothing else matches "${query}".` : "Every extension is in use."}</p>}
         </div>
       </section>
-      {store && <Browse store={store} installing={installing} onInstall={(a) => install(a.name, a.registry)} onSelect={onSelect} />}
-      {store && <Registries store={store} />}
     </div>
   );
 }

@@ -5,9 +5,9 @@
  * page of an extension that is listed but not installed. Pure components
  * over the state and a few callbacks; SettingsExtensions places them.
  */
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type FormEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Icon } from "./Icon";
-import { ArmedButton, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { ArmedButton, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { needsSetup, instancesOf, type SettingsExtension, type Screenshot } from "./SettingsTypes";
 import { relativeDate } from "./format";
 import type { Icon as IconSpec } from "./types";
@@ -176,74 +176,216 @@ export function needsOf(rows: SettingsExtension[], all: SettingsExtension[], s: 
 
 // ---- Browse -----------------------------------------------------------------
 
+/** The shelves in the order Browse and the Store palette show them; a category outside these sorts after them, by title. */
+export const CATEGORIES = ["productivity", "developer", "system", "media", "reference", "fun", "integration"];
 const CATEGORY_TITLE: Record<string, string> = { productivity: "Productivity", developer: "Developer", system: "System", media: "Media", reference: "Reference", fun: "Fun", integration: "Integration" };
 export const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? cap(c) : "Other");
 
-/** What Browse lists for a category and a query: every word must match the name, title, tagline, keywords or a palette's title; not installed first, each by title. */
-export function browseRows(available: Available[], category: string, query: string): Available[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const hay = (a: Available) => [a.name, a.listing.title, a.listing.tagline, a.listing.category, ...a.listing.keywords, ...a.listing.palettes.map((p) => p.title)].join(" ").toLowerCase();
-  return available
-    .filter((a) => (category === "all" || a.listing.category === category) && words.every((w) => hay(a).includes(w)))
-    .sort((x, y) => Number(x.installed) - Number(y.installed) || (x.listing.title || x.name).localeCompare(y.listing.title || y.name));
+/**
+ * Browse's Featured row: extensions worth meeting first, one per kind of
+ * thing pal does (music, code, a game, the day, words, the disk, the
+ * lights, typing), in order; the first three that are not installed and
+ * install here show. The Store palette's Featured section
+ * (extensions/store/store.ts) keeps the same list.
+ */
+export const FEATURED = ["spotify", "github", "solitaire", "calendar", "translate", "space", "hue", "typing"];
+
+/** What an extension does, a line each: the listing's `features`; an older index has none. */
+export const featuresOf = (l: Listing | undefined): string[] => (l?.features ?? []).filter((f) => typeof f === "string" && !!f.trim());
+/** A feature line's backticks mark keys and code; a card shows the words. */
+export const plainText = (s: string) => s.replace(/`([^`]*)`/g, "$1");
+/** The same line on a page: the backticked parts as code. */
+const withCode = (s: string): ReactNode[] => s.split(/`([^`]*)`/g).map((part, i) => (i % 2 ? <code key={i}>{part}</code> : part));
+
+/** The card's line under the tagline: the first feature, else the description when it says more than the tagline. */
+export function whatLine(l: Listing): string | undefined {
+  const f = featuresOf(l)[0];
+  if (f) return plainText(f);
+  const d = l.description.trim();
+  const t = l.tagline.trim().replace(/\.$/, "").toLowerCase();
+  return d && (!t || !d.toLowerCase().startsWith(t)) ? d : undefined;
 }
 
-/** What a Browse row or a listing's page is doing: installing, done, or why it failed. */
+/** Every category the listings use, with how many each has: the known shelves in order, then the rest by title. */
+export function categoriesOf(available: Available[]): { id: string; title: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const a of available) if (a.listing.category) counts.set(a.listing.category, (counts.get(a.listing.category) ?? 0) + 1);
+  const rank = (c: string) => (CATEGORIES.includes(c) ? CATEGORIES.indexOf(c) : CATEGORIES.length);
+  return [...counts].sort(([a], [b]) => rank(a) - rank(b) || categoryTitle(a).localeCompare(categoryTitle(b))).map(([id, count]) => ({ id, title: categoryTitle(id), count }));
+}
+
+/** The Featured row: FEATURED's names that are listed, not installed and install here, the first `n`. */
+export const featuredOf = (available: Available[], n = 3): Available[] =>
+  FEATURED.map((name) => available.find((a) => a.name === name && !a.installed && a.installable)).filter((a): a is Available => !!a).slice(0, n);
+
+/**
+ * What Browse lists for a category and a query. Every word must be in the
+ * name, title, tagline, category, keywords or a palette's title, or start
+ * a word of the description or a feature (inside a word there, "git"
+ * would find every "digit"). With a query the title's matches lead (every
+ * word starts a word of the title, then a word inside it); within that,
+ * and without a query, what is not installed comes first, each by title.
+ */
+export function browseRows(available: Available[], category: string, query: string): Available[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const tokens = (s: string) => s.toLowerCase().split(/[^\p{L}\p{N}]+/u);
+  const strong = (a: Available) => [a.name, a.listing.title, a.listing.tagline, a.listing.category, ...a.listing.keywords, ...a.listing.palettes.map((p) => p.title)].join(" ").toLowerCase();
+  const weak = (a: Available) => tokens([a.listing.description, ...featuresOf(a.listing)].join(" "));
+  const matches = (a: Available) => { const s = strong(a); let w: string[] | undefined; return words.every((x) => s.includes(x) || (w ??= weak(a)).some((t) => t.startsWith(x))); };
+  const title = (a: Available) => (a.listing.title || a.name).toLowerCase();
+  const rank = (a: Available) => {
+    if (!words.length) return 0;
+    const t = title(a);
+    return words.every((w) => tokens(t).some((s) => s.startsWith(w))) ? 0 : words.some((w) => t.includes(w)) ? 1 : 2;
+  };
+  return available
+    .filter((a) => (category === "all" || a.listing.category === category) && (!words.length || matches(a)))
+    .sort((x, y) => rank(x) - rank(y) || Number(x.installed) - Number(y.installed) || title(x).localeCompare(title(y)));
+}
+
+/** What a Browse card or a listing's page is doing: installing, done, or why it failed. */
 export type InstallState = { kind: "busy" } | { kind: "done" } | { kind: "error"; message: string };
 
-/** The Install button, or what stands for it: "Installing…", "Installed", "Open" on one already here, the reason on one that cannot be. */
-function InstallControl({ a, busy, run, onOpen }: { a: Available; busy?: InstallState; run: () => void; onOpen: () => void }) {
-  if (a.installed || busy?.kind === "done") return <button type="button" className="pal-button" data-small onClick={onOpen}>Open</button>;
-  if (!a.installable) return <span className="pal-xbrow__blocked" title={a.blocked}>{a.blocked ? cap(a.blocked) : "Not available here"}</span>;
-  return <button type="button" className="pal-button" data-small data-primary disabled={busy?.kind === "busy"} onClick={run}>{busy?.kind === "busy" ? "Installing…" : "Install"}</button>;
+/**
+ * The card's button: Install, "Installing…" while it runs, Open on one
+ * already here, or the reason one cannot be installed. A pill in the
+ * accent's soft tint, so eighty of them on a page stay quiet; Open is
+ * the plain one.
+ */
+function GetButton({ a, busy, run, onOpen }: { a: Available; busy?: InstallState; run: () => void; onOpen: () => void }) {
+  const title = a.listing.title || a.name;
+  if (a.installed || busy?.kind === "done") return <button type="button" className="pal-xget" data-open onClick={onOpen} aria-label={`Open ${title}`}>Open</button>;
+  if (!a.installable) return <span className="pal-xget__blocked" title={a.blocked}>{a.blocked ? cap(a.blocked) : "Not available here"}</span>;
+  const running = busy?.kind === "busy";
+  return <button type="button" className="pal-xget" data-busy={running || undefined} disabled={running} onClick={run} aria-label={`Install ${title}`}>{running ? "Installing…" : "Install"}</button>;
 }
 
 /**
- * Browse: every extension the registries list, narrowed by a category and
- * what is typed, the ones not installed first. Each row says where it
- * comes from ("Comes with pal", or its registry) and installs in place;
- * the row itself opens the extension's page, installed or not.
+ * A screenshot in the scheme in force. The store's pictures come in pairs
+ * (`1-list.png`, `1-list-dark.png`, docs/design/screenshots.md): both are
+ * in the page and the CSS shows the one for the scheme, so a flip swaps
+ * them without a reload; a dark one a registry does not have falls back
+ * to the light one.
  */
-export function Browse({ store, installing, onInstall, onSelect }: { store: ExtensionsStore; installing: Record<string, InstallState>; onInstall: (a: Available) => void; onSelect: (name: string) => void }) {
-  const [category, setCategory] = useState("all");
-  const [query, setQuery] = useState("");
-  const { state } = store;
-  const categories = [...new Set(state.available.map((a) => a.listing.category).filter(Boolean))].sort((a, b) => categoryTitle(a).localeCompare(categoryTitle(b)));
-  const rows = browseRows(state.available, category, query);
-  const absent = state.available.filter((a) => !a.installed).length;
-  const busy = (a: Available): InstallState | undefined => installing[a.name] ?? (state.busy.includes(a.name) ? { kind: "busy" } : undefined);
+export function ThemedShot({ src, alt = "", onFail }: { src: string; alt?: string; /** The picture itself did not load (the light one, or the only one). */ onFail?: (img: HTMLImageElement) => void }) {
+  const [missing, setMissing] = useState(false);
+  const dark = /-dark\.png(?=$|[?&#])/.test(src) ? undefined : src.replace(/\.png(?=$|[?&#])/, "-dark.png");
+  const img = (s: string, scheme: string | undefined, onError: (e: SyntheticEvent<HTMLImageElement>) => void) => <img className="pal-xshot" data-scheme={scheme} src={s} alt={alt} loading="lazy" decoding="async" draggable={false} onError={onError} />;
+  const fail = (e: SyntheticEvent<HTMLImageElement>) => onFail?.(e.currentTarget);
+  if (!dark || dark === src) return img(src, undefined, fail);
+  return <>{img(src, "light", fail)}{img(missing ? src : dark, "dark", () => setMissing(true))}</>;
+}
+
+/**
+ * One listed extension as a card: its tile large, the title, the tagline
+ * and one line of what it does (the first feature, else the
+ * description), then where it comes from or that it is installed, and
+ * Install or Open. The card opens the listing's page; `shot` puts the
+ * first screenshot on top (the Featured row). An install in flight runs a
+ * thin bar along the card's foot; a failed one says why under it.
+ */
+function BrowseCard({ a, store, busy, index, shot, onInstall, onSelect }: { a: Available; store: ExtensionsStore; busy?: InstallState; index: number; shot?: boolean; onInstall: () => void; onSelect: (name: string) => void }) {
+  const l = a.listing;
+  const installed = a.installed || busy?.kind === "done";
+  const ours = !!store.state.registries.find((r) => r.name === a.registry)?.ours;
+  const from = a.bundled ? "Comes with pal" : installed ? "Installed" : ours ? undefined : `From ${a.registry}`;
+  const what = whatLine(l);
+  const picture = shot ? screenshotsOf(l)[0] : undefined;
   return (
-    <section className="pal-xhome__sec" aria-label="Browse" data-anchor="extensions:browse">
-      <h2 className="pal-xhome__h">Browse<span>{state.available.length ? `${absent} not installed, from ${plural(state.registries.length, "registry", "registries")}` : store.loaded ? "no registry has answered yet" : "asking the registries…"}</span>
-        <input className="pal-field__input pal-xhome__find" type="search" placeholder="Find one to install" aria-label="Find an extension to install" value={query} spellCheck={false} onChange={(e) => setQuery(e.target.value)} />
-      </h2>
-      {categories.length > 1 && (
-        <div className="pal-xbrowse__cats" role="group" aria-label="Categories">
-          {["all", ...categories].map((c) => <button key={c} type="button" className="pal-button" data-small aria-pressed={category === c} onClick={() => setCategory(c)}>{c === "all" ? "All" : categoryTitle(c)}</button>)}
-        </div>
-      )}
-      <div className="pal-xbrowse__list">
-        {rows.map((a) => {
-          const b = busy(a);
-          return (
-            <div key={`${a.registry}/${a.name}`} className="pal-xbrow" data-installed={a.installed || undefined} data-anchor={`extensions:browse:${a.name}`}>
-              <button type="button" className="pal-xbrow__open" onClick={() => onSelect(a.name)} title={a.listing.description || a.listing.tagline}>
-                <Icon icon={listingIcon(a.listing, a.name)} />
-                <span className="pal-xbrow__text"><b>{a.listing.title || a.name}</b><span>{a.listing.tagline}</span></span>
-              </button>
-              <span className="pal-xbrow__from">{a.bundled ? "Comes with pal" : registryName(a.registry, state.registries)}</span>
-              <InstallControl a={a} busy={b} run={() => onInstall(a)} onOpen={() => onSelect(a.name)} />
-              {b?.kind === "error" && <p className="pal-xbrow__error" role="alert">{b.message}</p>}
-            </div>
-          );
-        })}
-        {rows.length === 0 && state.available.length > 0 && <p className="pal-pane__none">{query ? `Nothing listed matches "${query}".` : "Nothing in this category."}</p>}
+    <article className="pal-xbcard" data-shot={shot || undefined} data-installed={installed || undefined} data-busy={busy?.kind === "busy" || undefined} data-failed={busy?.kind === "error" || undefined} data-anchor={`extensions:browse:${a.name}`} style={{ "--i": Math.min(index, 14) } as CSSProperties}>
+      <button type="button" className="pal-xbcard__open" onClick={() => onSelect(a.name)} aria-label={`${l.title || a.name}: ${l.tagline}`}>
+        {shot && <span className="pal-xbcard__shot">{picture ? <ThemedShot src={picture.src} /> : null}</span>}
+        <span className="pal-xbcard__head">
+          <span className="pal-xbcard__tile"><Icon icon={listingIcon(l, a.name)} size="lg" /></span>
+          <span className="pal-xbcard__titles"><b>{l.title || a.name}</b><span>{l.tagline}</span></span>
+        </span>
+        {what && !shot && <span className="pal-xbcard__what">{what}</span>}
+      </button>
+      <div className="pal-xbcard__foot">
+        <span className="pal-xbcard__from" data-installed={installed || undefined}>{from}</span>
+        <GetButton a={a} busy={busy} run={onInstall} onOpen={() => onSelect(a.name)} />
       </div>
-      <p className="pal-xbrowse__foot">
-        {store.openStore && <button type="button" className="pal-link" onClick={store.openStore}>Open the Store palette</button>}
-      </p>
-      {store.installSource && <SourceInstall run={store.installSource} />}
-    </section>
+      {busy?.kind === "error" && <p className="pal-xbcard__error" role="alert">{busy.message}</p>}
+    </article>
+  );
+}
+
+/** The two views of the Extensions page, at its top: what is here, and what the registries offer. */
+export function ExtensionsTabs({ browsing, onBrowse }: { browsing: boolean; onBrowse: (on: boolean) => void }) {
+  return <SettingsSegment value={browsing ? "browse" : "installed"} options={[{ id: "installed", title: "Installed" }, { id: "browse", title: "Browse" }]} onChange={(v) => onBrowse(v === "browse")} label="Extensions" />;
+}
+
+/**
+ * Browse: every extension the registries list, as cards in a grid that
+ * takes as many columns as the window has room for. The search narrows
+ * as you type; the categories above it say how many each has. With
+ * neither, a Featured row (three with their screenshots) leads and every
+ * category is a shelf of its own; with either, one grid of what matches.
+ * Each card installs in place and opens the listing's page. The
+ * registries themselves, a source install and the Store palette follow.
+ */
+export function Browse({ store, installing, onInstall, onSelect, category, onCategory, query, onQuery, tabs }: {
+  store: ExtensionsStore; installing: Record<string, InstallState>; onInstall: (a: Available) => void; onSelect: (name: string) => void;
+  category: string; onCategory: (c: string) => void; query: string; onQuery: (q: string) => void; tabs?: ReactNode;
+}) {
+  const { state } = store;
+  const cats = categoriesOf(state.available);
+  const q = query.trim();
+  const rows = browseRows(state.available, category, q);
+  const shelves = !q && category === "all";
+  const featured = shelves ? featuredOf(state.available) : [];
+  const busy = (a: Available): InstallState | undefined => installing[a.name] ?? (state.busy.includes(a.name) ? { kind: "busy" } : undefined);
+  const card = (a: Available, i: number, shot?: boolean) => <BrowseCard key={`${shot ? "featured:" : ""}${a.registry}/${a.name}`} a={a} store={store} busy={busy(a)} index={i} shot={shot} onInstall={() => onInstall(a)} onSelect={onSelect} />;
+  const other = rows.filter((a) => !a.listing.category);
+  const shelvesOf = [...cats.map((c) => ({ ...c, rows: rows.filter((a) => a.listing.category === c.id) })), ...(other.length ? [{ id: "", title: "Other", count: other.length, rows: other }] : [])];
+  return (
+    <div className="pal-settings-page pal-xbrowse">
+      <header className="pal-xbrowse__top">
+        {tabs}
+        <label className="pal-xbrowse__search">
+          <svg viewBox="0 0 16 16" aria-hidden><circle cx="7" cy="7" r="4.2" /><path d="M10.2 10.2L14 14" /></svg>
+          <input type="search" placeholder={state.available.length ? `Search ${plural(state.available.length, "extension")}` : "Search extensions"} aria-label="Search extensions" value={query} spellCheck={false} onChange={(e) => onQuery(e.target.value)} />
+        </label>
+      </header>
+      {cats.length > 1 && (
+        <nav className="pal-xbrowse__cats" aria-label="Categories">
+          {[{ id: "all", title: "All", count: state.available.length }, ...cats].map((c) => (
+            <button key={c.id} type="button" className="pal-xcat" aria-pressed={category === c.id} onClick={() => onCategory(category === c.id && c.id !== "all" ? "all" : c.id)}>
+              {c.title}<span className="pal-xcat__n">{c.count}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      <section className="pal-xbrowse__results" aria-label="Browse" data-anchor="extensions:browse" key={`${category}\n${q}`}>
+        {!state.available.length && <p className="pal-xbrowse__empty">{store.loaded ? "No registry has answered yet. Check now, under Registries below, asks again." : "Asking the registries…"}</p>}
+        {featured.length > 0 && (
+          <div className="pal-xshelf" data-featured>
+            <h2 className="pal-xshelf__h">Featured</h2>
+            <div className="pal-xbrowse__featured">{featured.map((a, i) => card(a, i, true))}</div>
+          </div>
+        )}
+        {shelves
+          ? shelvesOf.map((c) => c.rows.length > 0 && (
+            <div key={c.id} className="pal-xshelf">
+              <h2 className="pal-xshelf__h"><button type="button" className="pal-xshelf__go" onClick={() => onCategory(c.id)}>{c.title}</button><span>{c.rows.length}</span></h2>
+              <div className="pal-xbrowse__grid">{c.rows.map((a, i) => card(a, i + 3))}</div>
+            </div>
+          ))
+          : <div className="pal-xbrowse__grid">{rows.map((a, i) => card(a, i))}</div>}
+        {rows.length === 0 && state.available.length > 0 && (
+          <p className="pal-xbrowse__empty">
+            {q ? `Nothing listed matches "${q}"${category !== "all" ? ` in ${categoryTitle(category)}` : ""}.` : "Nothing in this category."}
+            {q && category !== "all" && <> <button type="button" className="pal-link" onClick={() => onCategory("all")}>Search every category</button></>}
+          </p>
+        )}
+      </section>
+      <Registries store={store} />
+      <section className="pal-xhome__sec pal-xbrowse__more" aria-label="More ways to install">
+        <h2 className="pal-xhome__h">Not listed?<span>your own extension, or one in development</span></h2>
+        {store.installSource && <SourceInstall run={store.installSource} />}
+        {store.openStore && <p className="pal-xbrowse__foot"><button type="button" className="pal-link" onClick={store.openStore}>Open the Store palette</button> to browse from the panel.</p>}
+      </section>
+    </div>
   );
 }
 
@@ -357,14 +499,14 @@ function AddRegistry({ store, onDone }: { store: ExtensionsStore; onDone: () => 
 
 // ---- a listed extension's page ------------------------------------------------
 
-/** Screenshots as the pane lays them out: a strip that scrolls, a picture that fails to load drops out. */
+/** Screenshots as an installed extension's page lays them out: a strip that scrolls, in the scheme in force; a picture that fails to load drops out. */
 export function Shots({ shots }: { shots: Screenshot[] }) {
   if (!shots.length) return null;
   return (
     <div className="pal-xpane__shots" role="list" aria-label="Screenshots">
       {shots.map((s) => (
         <figure key={s.src} className="pal-xpane__shot" role="listitem" title={s.caption}>
-          <img src={s.src} alt={s.caption ?? ""} loading="lazy" draggable={false} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).hidden = true; }} />
+          <ThemedShot src={s.src} alt={s.caption} onFail={(el) => { (el.closest("figure") as HTMLElement | null)?.setAttribute("hidden", ""); }} />
           {s.caption && <figcaption>{s.caption}</figcaption>}
         </figure>
       ))}
@@ -373,46 +515,127 @@ export function Shots({ shots }: { shots: Screenshot[] }) {
 }
 
 /**
- * An extension a registry lists and this machine does not have: what it
- * is (the listing's hero, screenshots, description, palettes, what it
- * installs first) and Install, or why it cannot be.
+ * A listing's screenshots as a store page shows them: one large, its
+ * caption under it, and the rest as thumbnails that pick it; the large one
+ * fades in on a pick. A bar strip or a popover sits whole in the frame.
  */
-export function ListingPane({ a, store, busy, onInstall, extra }: { a: Available; store: ExtensionsStore; busy?: InstallState; onInstall: () => void; extra?: ReactNode }) {
+function ShotGallery({ shots }: { shots: Screenshot[] }) {
+  const [at, setAt] = useState(0);
+  if (!shots.length) return null;
+  const i = Math.min(at, shots.length - 1);
+  const cur = shots[i];
+  return (
+    <section className="pal-xgallery" aria-label="Screenshots">
+      <figure className="pal-xgallery__stage" key={cur.src}>
+        <span className="pal-xgallery__frame"><ThemedShot src={cur.src} alt={cur.caption} /></span>
+        {cur.caption && <figcaption>{cur.caption}</figcaption>}
+      </figure>
+      {shots.length > 1 && (
+        <div className="pal-xgallery__thumbs" role="tablist" aria-label="Pick a screenshot">
+          {shots.map((s, k) => (
+            <button key={s.src} type="button" role="tab" aria-selected={k === i} aria-label={s.caption ?? `Screenshot ${k + 1}`} className="pal-xgallery__thumb" onClick={() => setAt(k)}>
+              <ThemedShot src={s.src} />
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const PLATFORM_TITLE: Record<string, string> = { macos: "macOS", linux: "Linux", windows: "Windows" };
+/** "macOS and Linux"; nothing when the listing names none (it runs wherever pal does). */
+const platformsLine = (p: string[] | null | undefined) => {
+  const words = (p ?? []).map((x) => PLATFORM_TITLE[x] ?? x);
+  return words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words.at(-1)}` : words[0];
+};
+
+/** What the page offers next to this one: what it suggests, then others on its shelf not installed yet, three at most (a row). */
+export function relatedOf(state: StoreState, a: Available, n = 3): Available[] {
+  const seen = new Set([a.name]);
+  const out: Available[] = [];
+  const add = (x: Available | undefined) => { if (x && !seen.has(x.name) && out.length < n) { seen.add(x.name); out.push(x); } };
+  for (const name of a.listing.suggests) add(availableOf(state, name));
+  for (const x of browseRows(state.available, a.listing.category || "all", "")) if (!x.installed && x.listing.category === a.listing.category) add(x);
+  return out;
+}
+
+/**
+ * An extension a registry lists and this machine does not have, as its
+ * store page: the hero (the tile large, the title, the tagline, Install or
+ * why it cannot be), the screenshots in the scheme in force, the
+ * description and what it does, its palettes, the facts beside them
+ * (where it comes from, what it runs on, what it installs first, its
+ * build, the command), and related extensions to go on to.
+ */
+export function ListingPane({ a, store, busy, onInstall, onSelect, extra }: { a: Available; store: ExtensionsStore; busy?: InstallState; onInstall: () => void; onSelect?: (name: string) => void; extra?: ReactNode }) {
   const l = a.listing;
   const icon = listingIcon(l, a.name);
+  const features = featuresOf(l);
+  const titleOf = (name: string) => availableOf(store.state, name)?.listing.title || name;
+  const related = onSelect ? relatedOf(store.state, a) : [];
+  const running = busy?.kind === "busy";
+  const done = busy?.kind === "done";
+  const facts = ([
+    ["Category", l.category ? categoryTitle(l.category) : undefined],
+    ["From", a.bundled ? "Comes with pal" : `The ${registryName(a.registry, store.state.registries)} registry`],
+    ["Author", l.author || undefined],
+    ["Runs on", platformsLine(l.platforms)],
+    ["Installs first", l.requires.length ? l.requires.map(titleOf).join(", ") : undefined],
+    ["Status", a.installed || done ? "Installed" : a.installable ? "Not installed" : cap(a.blocked ?? "Not available here")],
+    [a.installed ? "Build" : "Latest build", a.build ? <span title={a.build.commit}>{buildLine(a.build)}</span> : undefined],
+    ["In a terminal", <code>pal install {a.name}</code>],
+  ] as [string, ReactNode][]).filter((f) => f[1] !== undefined);
   return (
-    <>
-      <div className="pal-pane pal-xpane" data-anchor={`extensions:${a.name}`}>
-        <header className="pal-xpane__hero">
-          <span className="pal-xpane__tile" data-image={icon?.kind === "image" || icon?.kind === "app" || icon?.kind === "tile" || undefined}><Icon icon={icon} size="lg" /></span>
-          <div className="pal-xpane__titles">
-            <h3 className="pal-xpane__title">{l.title || a.name}</h3>
-            <p className="pal-xpane__tagline">{l.tagline}</p>
-            <p className="pal-xpane__meta">
-              {l.author && <span>{l.author}</span>}
-              <span>{a.bundled ? "Comes with pal" : `From the ${registryName(a.registry, store.state.registries)} registry`}</span>
-              {l.category && <span>{categoryTitle(l.category)}</span>}
-              {a.build && <span title={a.build.commit}>{buildLine(a.build)}</span>}
-              <span>{a.installed ? "Installed" : "Not installed"}</span>
-            </p>
-          </div>
-        </header>
-        <Shots shots={screenshotsOf(l)} />
-        {extra}
-        {busy?.kind === "error" && <p className="pal-callout" role="alert" data-level="error">{busy.message}</p>}
-        {l.description && <p className="pal-xpane__desc">{l.description}</p>}
-        {l.palettes.length > 0 && (
-          <section className="pal-xpane__section" aria-label="Palettes">
-            <h4 className="pal-xpane__h">Palettes</h4>
-            <ul className="pal-xpane__palettes">{l.palettes.map((p) => <li key={p.id} className="pal-xpane__palette"><Icon icon={icon} /><span className="pal-xpane__palette-title">{p.title}</span></li>)}</ul>
-          </section>
-        )}
-        {l.requires.length > 0 && <p className="pal-pane__none">Installing it installs {l.requires.join(", ")} first.</p>}
+    <div className="pal-pane pal-xpane pal-xlisting" data-anchor={`extensions:${a.name}`}>
+      <header className="pal-xlisting__hero">
+        <span className="pal-xlisting__tile"><Icon icon={icon} size="lg" /></span>
+        <div className="pal-xpane__titles">
+          <h3 className="pal-xpane__title">{l.title || a.name}</h3>
+          <p className="pal-xpane__tagline">{l.tagline}</p>
+        </div>
+        <div className="pal-xlisting__act">
+          {!a.installed && a.installable && !done && <button type="button" className="pal-button" data-primary data-busy={running || undefined} disabled={running} onClick={onInstall}>{running ? "Installing…" : "Install"}</button>}
+          {done && <span className="pal-xlisting__state" data-ok role="status">Installed</span>}
+          {!a.installed && !a.installable && <span className="pal-xlisting__state">{a.blocked ? cap(a.blocked) : "No build runs here"}</span>}
+        </div>
+      </header>
+      {extra}
+      {busy?.kind === "error" && <p className="pal-callout" role="alert" data-level="error">{busy.message}</p>}
+      <ShotGallery shots={screenshotsOf(l)} />
+      <div className="pal-xlisting__body">
+        <div className="pal-xlisting__main">
+          {l.description && <p className="pal-xlisting__desc">{withCode(l.description)}</p>}
+          {features.length > 0 && (
+            <section className="pal-xpane__section" aria-label="What it does">
+              <h4 className="pal-xpane__h">What it does</h4>
+              <ul className="pal-xlisting__features">{features.map((f) => <li key={f}>{withCode(f)}</li>)}</ul>
+            </section>
+          )}
+          {l.palettes.length > 0 && (
+            <section className="pal-xpane__section" aria-label="Palettes">
+              <h4 className="pal-xpane__h">Palettes</h4>
+              <ul className="pal-xpane__palettes">{l.palettes.map((p) => <li key={p.id} className="pal-xpane__palette"><Icon icon={icon} /><span className="pal-xpane__palette-title">{p.title}</span></li>)}</ul>
+            </section>
+          )}
+        </div>
+        <dl className="pal-xlisting__facts">
+          {facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
       </div>
-      <footer className="pal-pane__foot">
-        <span className="pal-pane__note">{a.installable || a.installed ? (busy?.kind === "done" ? "Installed" : "") : a.blocked ? cap(a.blocked) : "No build runs here"}</span>
-        {!a.installed && a.installable && busy?.kind !== "done" && <button type="button" className="pal-button" data-small data-primary disabled={busy?.kind === "busy"} onClick={onInstall}>{busy?.kind === "busy" ? "Installing…" : "Install"}</button>}
-      </footer>
-    </>
+      {related.length > 0 && (
+        <section className="pal-xpane__section pal-xlisting__related" aria-label="Related">
+          <h4 className="pal-xpane__h">Related</h4>
+          <div className="pal-xlisting__rel">
+            {related.map((r) => (
+              <button key={r.name} type="button" className="pal-xrel" onClick={() => onSelect!(r.name)}>
+                <Icon icon={listingIcon(r.listing, r.name)} size="lg" />
+                <span className="pal-xrel__text"><b>{r.listing.title || r.name}</b><span>{r.listing.tagline}</span></span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }

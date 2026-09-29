@@ -306,6 +306,7 @@ export default function Settings() {
   const [palette, setPalette] = useState<string | undefined>(undefined);
   /** The Extensions page's selection: an extension name (one row per name, every instance in its pane), and the instance whose settings its pane shows. */
   const [ext, setExt] = useState<string | undefined>(undefined);
+  const [browsing, setBrowsing] = useState(false);
   const [extInstance, setExtInstance] = useState<string | undefined>(undefined);
   const [barKey, setBarKey] = useState<string | undefined>(undefined);
   /** The feature card a link or a search hit opened (`features:<id>`). */
@@ -608,11 +609,12 @@ export default function Settings() {
     // `palettes:<id>[:<key>]`: the palette's extension (the instance it is of) selected, the palette unfolded under its row.
     if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; const hit = extensions.find((e) => e.palettes.some((x) => x.id === id)); if (hit) { setPage("extensions"); setExt(hit.name); setExtInstance(hit.key); setPalette(id); } }
     // `extensions:<key>[:<setting>]`: the key's extension is the row, its instance the pane's settings.
-    // `extensions:browse` and `extensions:registries` are sections of the page's home; a name only a registry lists opens as its listing.
+    // `extensions:browse` and `extensions:registries` are the page's Browse view; a name only a registry lists opens as its listing.
     if (anchor?.startsWith("extensions:")) {
       const key = anchor.split(":")[1];
       const hit = extensions.find((e) => e.key === key);
       const name = hit?.name ?? nameOf(key);
+      setBrowsing(key === "browse" || key === "registries");
       if (key === "browse" || key === "registries") setExt(undefined);
       else if (extensions.some((e) => e.name === name) || storeState.available.some((a) => a.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); }
     }
@@ -711,7 +713,7 @@ export default function Settings() {
           open={feature?.split(":")[1]}
         />
       )}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} store={extStore} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} bar={barSupported ? barItems : []} onOpenBarItem={(key) => go("bar", `bar:${key}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} store={extStore} browsing={browsing} onBrowse={setBrowsing} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} bar={barSupported ? barItems : []} onOpenBarItem={(key) => go("bar", `bar:${key}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
       {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const b = barItems.find((x) => x.key === key); writeDeclared(["bar", "items", key, "settings", id], b?.settings?.find((x) => x.spec.id === id)?.spec, value as SettingValue, b?.settings?.find((x) => x.spec.id === id)?.base); }} />}
       {page === "about" && (
         <SettingsAbout

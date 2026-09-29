@@ -1079,7 +1079,7 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-ptable--inline .pal-ppane--embedded { margin: var(--pal-space-1, 4px) 0 var(--pal-space-3, 12px) var(--pal-space-4, 16px); padding: 0 0 0 var(--pal-space-3, 12px); border-left: 2px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 
 /* Extensions: the home (Needs you, In use, Everything else) and an extension's own page */
-.pal-xhome { --pal-settings-measure: 820px; }
+.pal-xhome { --pal-settings-measure: 880px; }
 .pal-xhome__sec + .pal-xhome__sec { margin-top: var(--pal-space-5, 20px); }
 .pal-xhome__h { display: flex; align-items: baseline; gap: var(--pal-space-2, 8px); margin: 0 0 var(--pal-space-2, 8px); padding: 0 var(--pal-space-1, 4px); font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-semibold, 600); }
 .pal-xhome__h > span { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); font-weight: var(--pal-weight-regular, 400); }
@@ -1107,7 +1107,7 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xrest:hover { background: var(--pal-bg-elevated, #26262d); color: var(--pal-fg, #ececf0); }
 .pal-xrest[data-dim] { opacity: 0.5; }
 .pal-xpage { --pal-settings-measure: 720px; --pal-settings-label-w: 140px; }
-.pal-xpage__back { display: block; margin-bottom: var(--pal-space-3, 12px); padding: 2px 0; border: 0; background: none; color: var(--pal-accent, #9f97ff); font: inherit; font-size: var(--pal-text-sm, 12px); cursor: pointer; }
+.pal-xpage__back { display: block; margin-bottom: var(--pal-space-3, 12px); margin-left: max(0px, calc((100% - var(--pal-settings-measure, 640px)) / 2)); padding: 2px 0; border: 0; background: none; color: var(--pal-accent, #9f97ff); font: inherit; font-size: var(--pal-text-sm, 12px); cursor: pointer; }
 .pal-xpage .pal-pane__foot { margin-top: var(--pal-space-4, 16px); padding: var(--pal-space-3, 12px) 0 0; }
 .pal-xpane__bar { list-style: none; margin: 0; padding: var(--pal-space-1, 4px) var(--pal-space-3, 12px); border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-xpane__bar li { display: flex; align-items: center; gap: var(--pal-space-3, 12px); padding: var(--pal-space-2, 8px) 0; }
@@ -1134,23 +1134,222 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xoff .pal-xneed__open .pal-icon { flex: none; opacity: 0.6; }
 .pal-xoff .pal-switch { flex: none; }
 
-/* Browse: the categories as small toggles, then one row per listed extension: tile, title and tagline, where it comes from, its button. */
-.pal-xbrowse__cats { display: flex; flex-wrap: wrap; gap: var(--pal-space-1, 4px); margin: 0 0 var(--pal-space-2, 8px); padding: 0 var(--pal-space-1, 4px); }
-.pal-settings .pal-xbrowse__cats .pal-button[aria-pressed="true"] { background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16)); color: var(--pal-accent, #9f97ff); box-shadow: none; }
-.pal-xbrowse__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 2px var(--pal-space-3, 12px); }
-.pal-xbrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; padding: 5px 6px; border-radius: var(--pal-radius-control, 6px); }
-.pal-xbrow:hover { background: var(--pal-bg-elevated, #26262d); }
-.pal-xbrow__open { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--pal-space-2, 8px); padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.pal-xbrow__open .pal-icon { flex: none; }
-.pal-xbrow__text { min-width: 0; display: flex; flex-direction: column; }
-.pal-xbrow__text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--pal-weight-medium, 500); }
-.pal-xbrow__text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
-.pal-xbrow[data-installed] .pal-xbrow__text b { color: var(--pal-fg-muted, #a3a4ae); font-weight: var(--pal-weight-regular, 400); }
-.pal-xbrow__from { flex: none; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
-.pal-xbrow > .pal-button { flex: none; }
-.pal-xbrow__blocked { flex: none; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
-.pal-xbrow__error { flex-basis: 100%; margin: 0; padding-left: 32px; color: var(--pal-destructive, #ff6e66); font-size: var(--pal-text-xs, 11px); }
-.pal-xbrowse__foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pal-space-1, 4px) var(--pal-space-3, 12px); margin: var(--pal-space-2, 8px) 0 0; padding: 0 var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+/*
+ * Browse (SettingsStore.tsx): the Installed / Browse switch at the page's
+ * top, the search beside it, the categories as pills with their counts,
+ * then cards in a grid that takes as many columns as the window has room
+ * for. A card not installed stands on the elevated surface with the
+ * accent's soft Install pill; an installed one lies flat on the page with
+ * a check, so the two read apart at a glance. The Featured row puts each
+ * card's first screenshot on top. A result set fades in card by card when
+ * the category or the search changes it.
+ */
+.pal-xbrowse { --pal-settings-measure: 880px; }
+.pal-xbrowse__top { display: flex; align-items: center; gap: var(--pal-space-3, 12px); margin-bottom: var(--pal-space-4, 16px); }
+.pal-xhome > .pal-xbrowse__top { margin-bottom: var(--pal-space-4, 16px); }
+.pal-xbrowse__search {
+  flex: 0 1 320px;
+  display: flex;
+  align-items: center;
+  gap: var(--pal-space-2, 8px);
+  margin-left: auto;
+  height: var(--pal-settings-control-h, 30px);
+  padding: 0 var(--pal-space-3, 12px);
+  border-radius: var(--pal-radius-control, 6px);
+  background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3));
+  box-shadow: inset 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08));
+}
+.pal-xbrowse__search:focus-within { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-xbrowse__search svg { flex: none; width: 13px; height: 13px; fill: none; stroke: var(--pal-fg-faint, #868794); stroke-width: 1.6; stroke-linecap: round; }
+.pal-xbrowse__search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; caret-color: var(--pal-accent, #9f97ff); outline: none; -webkit-appearance: none; appearance: none; }
+.pal-xbrowse__search input::placeholder { color: var(--pal-fg-faint, #868794); }
+
+.pal-xbrowse__cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--pal-space-2, 8px); }
+.pal-xcat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08));
+  color: var(--pal-fg-muted, #a3a4ae);
+  font: inherit;
+  font-size: var(--pal-text-sm, 12px);
+  cursor: default;
+  transition: background var(--pal-dur-fast, 120ms) var(--pal-ease, ease), color var(--pal-dur-fast, 120ms) var(--pal-ease, ease);
+}
+.pal-xcat:hover { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); color: var(--pal-fg, #ececf0); }
+.pal-xcat[aria-pressed="true"] { background: var(--pal-fg, #ececf0); box-shadow: none; color: var(--pal-bg, #1c1c21); font-weight: var(--pal-weight-medium, 500); }
+.pal-xcat:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-xcat__n { color: var(--pal-fg-faint, #868794); font-variant-numeric: tabular-nums; }
+.pal-xcat[aria-pressed="true"] .pal-xcat__n { color: inherit; opacity: 0.6; }
+
+.pal-xshelf { margin-top: var(--pal-space-5, 20px); }
+.pal-xshelf__h { display: flex; align-items: baseline; gap: var(--pal-space-2, 8px); margin: 0 0 var(--pal-space-2, 8px); font-size: var(--pal-text-lg, 15px); font-weight: var(--pal-weight-semibold, 600); letter-spacing: -0.01em; }
+.pal-xshelf__h > span { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); font-weight: var(--pal-weight-regular, 400); font-variant-numeric: tabular-nums; }
+.pal-xshelf__go { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: default; }
+.pal-xshelf__go:hover { color: var(--pal-accent, #9f97ff); }
+.pal-xshelf__go:focus-visible { outline: none; border-radius: var(--pal-radius-mark, 2px); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-xbrowse__results > .pal-xbrowse__grid { margin-top: var(--pal-space-4, 16px); }
+.pal-xbrowse__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: var(--pal-space-3, 12px); }
+.pal-xbrowse__featured { display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); gap: var(--pal-space-3, 12px); }
+.pal-xbrowse__empty { margin: var(--pal-space-5, 20px) 0; color: var(--pal-fg-muted, #a3a4ae); }
+.pal-xbrowse__more { margin-top: var(--pal-space-5, 20px); }
+.pal-xbrowse > .pal-xhome__sec[aria-label="Registries"] { margin-top: var(--pal-space-6, 24px); }
+
+/* A card: the open area (tile, title, tagline, what it does) over the foot (where from, the button). */
+.pal-xbcard {
+  --pal-grid-tile: 44px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--pal-bg-elevated, #26262d);
+  box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, none);
+  transition: box-shadow var(--pal-dur-fast, 120ms) var(--pal-ease, ease);
+  animation: pal-xcard-in 280ms var(--pal-ease, ease) both;
+  animation-delay: calc(var(--i, 0) * 16ms);
+}
+@keyframes pal-xcard-in { from { opacity: 0; transform: translateY(6px); } }
+.pal-xbcard:hover { box-shadow: 0 0 0 1px var(--pal-line-strong, rgba(255, 255, 255, 0.16)), var(--pal-bevel, none); }
+.pal-xbcard[data-installed] { background: transparent; box-shadow: inset 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xbcard[data-installed]:hover { box-shadow: inset 0 0 0 1px var(--pal-line-strong, rgba(255, 255, 255, 0.16)); }
+.pal-xbcard[data-failed] { box-shadow: 0 0 0 1px var(--pal-destructive, #ff6e66); }
+.pal-xbcard .pal-icon { flex: none; }
+.pal-xbcard .pal-icon[data-kind="tile"] { --tile: 44px; }
+.pal-xbcard__open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pal-space-2, 8px);
+  min-width: 0;
+  padding: 14px 14px 10px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+.pal-xbcard__open:focus-visible { outline: none; box-shadow: inset var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-xbcard__head { display: flex; align-items: center; gap: var(--pal-space-3, 12px); min-width: 0; }
+.pal-xbcard__titles { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pal-xbcard__titles b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-semibold, 600); }
+.pal-xbcard__titles span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); line-height: 1.35; }
+.pal-xbcard__what { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); line-height: 1.45; }
+.pal-xbcard__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--pal-space-2, 8px); min-height: 24px; padding: 0 14px 12px; }
+.pal-xbcard__from { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xbcard__from[data-installed] { color: var(--pal-success, #4fc98a); }
+.pal-xbcard__from[data-installed]::before { content: "\f05e0"; margin-right: 4px; font-family: var(--pal-font-symbols, "Symbols Nerd Font Mono"); }
+.pal-xbcard__error { margin: -4px 0 0; padding: 0 14px 12px; color: var(--pal-destructive, #ff6e66); font-size: var(--pal-text-xs, 11px); line-height: 1.4; }
+/* An install in flight: a thin bar sweeps along the card's foot until the core answers. */
+.pal-xbcard[data-busy]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--pal-accent, #9f97ff), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: pal-xbusy 1.1s var(--pal-ease, ease) infinite; }
+@keyframes pal-xbusy { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+
+/* The Featured row: the first screenshot on top, zoomed a touch past the wallpaper onto the panel; it leans in on hover. */
+.pal-xbcard[data-shot] .pal-xbcard__open { padding: 0 0 10px; gap: 10px; }
+.pal-xbcard[data-shot] .pal-xbcard__head, .pal-xbcard[data-shot] .pal-xbcard__what { margin: 0 14px; }
+.pal-xbcard__shot { display: block; aspect-ratio: 16 / 10; overflow: hidden; background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); box-shadow: inset 0 -1px 0 var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xbcard__shot .pal-xshot { width: 100%; height: 100%; object-fit: cover; transform: scale(1.16); transition: transform var(--pal-dur-slow, 320ms) var(--pal-ease, ease); }
+.pal-xbcard[data-shot]:hover .pal-xbcard__shot .pal-xshot { transform: scale(1.22); }
+
+/* The card's button: a soft accent pill; Open is the plain one; the reason in words where there is no build. */
+.pal-xget {
+  flex: none;
+  height: 24px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16));
+  color: var(--pal-accent, #9f97ff);
+  font: inherit;
+  font-size: var(--pal-text-sm, 12px);
+  font-weight: var(--pal-weight-semibold, 600);
+  cursor: default;
+  transition: background var(--pal-dur-fast, 120ms) var(--pal-ease, ease), color var(--pal-dur-fast, 120ms) var(--pal-ease, ease);
+}
+.pal-xget:hover:not(:disabled) { background: var(--pal-accent, #9f97ff); color: var(--pal-accent-fg, #14141a); }
+.pal-xget:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-xget[data-open] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); color: var(--pal-fg, #ececf0); font-weight: var(--pal-weight-medium, 500); }
+.pal-xget[data-open]:hover { background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); color: var(--pal-fg, #ececf0); }
+.pal-xget[data-busy] { opacity: 1; animation: pal-xpulse 1.1s var(--pal-ease, ease) infinite alternate; }
+@keyframes pal-xpulse { to { opacity: 0.55; } }
+.pal-xget__blocked { flex: none; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+
+/*
+ * A store picture in the scheme in force (ThemedShot): the pair is in the
+ * page and one shows, following the tokens' own rule (the pin, else the
+ * OS), the nearest pinned ancestor winning over an outer one.
+ */
+.pal-xshot { display: block; }
+.pal-xshot[data-scheme="dark"] { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pal-xshot[data-scheme="dark"] { display: block; }
+  :root:not([data-theme="light"]) .pal-xshot[data-scheme="light"] { display: none; }
+}
+[data-theme="light"] .pal-xshot[data-scheme="light"], [data-theme="dark"] [data-theme="light"] .pal-xshot[data-scheme="light"] { display: block; }
+[data-theme="light"] .pal-xshot[data-scheme="dark"], [data-theme="dark"] [data-theme="light"] .pal-xshot[data-scheme="dark"] { display: none; }
+[data-theme="dark"] .pal-xshot[data-scheme="dark"], [data-theme="light"] [data-theme="dark"] .pal-xshot[data-scheme="dark"] { display: block; }
+[data-theme="dark"] .pal-xshot[data-scheme="light"], [data-theme="light"] [data-theme="dark"] .pal-xshot[data-scheme="light"] { display: none; }
+
+/* A listed extension's page: the hero, the pictures, the words beside the facts, related ones. */
+.pal-xlistpage { --pal-settings-measure: 820px; }
+.pal-xlisting__hero { display: flex; align-items: center; gap: var(--pal-space-4, 16px); }
+.pal-xlisting__tile { flex: none; --pal-grid-tile: 64px; }
+.pal-xlisting__tile .pal-icon[data-kind="tile"] { --tile: 64px; box-shadow: inset 0 0 0 1px var(--pal-tile-ring, rgba(0, 0, 0, 0.1)), 0 6px 18px -8px var(--brand, transparent); }
+.pal-xlisting .pal-xpane__title { font-size: 22px; letter-spacing: -0.015em; }
+.pal-xlisting .pal-xpane__tagline { margin-top: 4px; font-size: var(--pal-text-md, 13px); }
+.pal-xlisting__act { flex: none; margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pal-settings .pal-xlisting__act .pal-button { min-width: 96px; padding: 0 18px; }
+.pal-xlisting__act .pal-button[data-busy] { animation: pal-xpulse 1.1s var(--pal-ease, ease) infinite alternate; }
+.pal-xlisting__state { max-width: 220px; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); text-align: right; }
+.pal-xlisting__state[data-ok] { color: var(--pal-success, #4fc98a); }
+.pal-xlisting > .pal-callout { margin-top: var(--pal-space-3, 12px); }
+
+.pal-xgallery { margin-top: var(--pal-space-5, 20px); }
+.pal-xgallery__stage { margin: 0; animation: pal-xstage-in var(--pal-dur-base, 200ms) var(--pal-ease, ease) both; }
+@keyframes pal-xstage-in { from { opacity: 0.35; } }
+.pal-xgallery__frame { display: block; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 12px; background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xgallery__frame .pal-xshot { width: 100%; height: 100%; object-fit: contain; }
+.pal-xgallery__stage figcaption { margin-top: var(--pal-space-2, 8px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-xgallery__thumbs { display: flex; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-3, 12px); padding: 2px 2px var(--pal-space-1, 4px); overflow-x: auto; }
+.pal-xgallery__thumb { flex: none; width: 88px; aspect-ratio: 16 / 10; padding: 0; overflow: hidden; border: 0; border-radius: 6px; background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); opacity: 0.6; cursor: default; transition: opacity var(--pal-dur-fast, 120ms) var(--pal-ease, ease); }
+.pal-xgallery__thumb .pal-xshot { width: 100%; height: 100%; object-fit: contain; }
+.pal-xgallery__thumb:hover { opacity: 0.9; }
+.pal-xgallery__thumb[aria-selected="true"] { opacity: 1; box-shadow: 0 0 0 2px var(--pal-accent, #9f97ff); }
+.pal-xgallery__thumb:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+
+.pal-xlisting__body { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: var(--pal-space-6, 24px); margin-top: var(--pal-space-5, 20px); }
+.pal-xlisting__desc { margin: 0; max-width: 64ch; font-size: var(--pal-text-md, 13px); line-height: 1.6; }
+.pal-xlisting__features { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pal-xlisting__features li { position: relative; padding-left: 16px; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); line-height: 1.5; }
+.pal-xlisting__features li::before { content: ""; position: absolute; left: 3px; top: 0.6em; width: 5px; height: 5px; border-radius: 50%; background: var(--pal-accent, #9f97ff); }
+.pal-xlisting__desc code, .pal-xlisting__features code { padding: 0 0.3em; border-radius: var(--pal-radius-mark, 2px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: 0.92em; }
+.pal-xlisting__facts { align-self: start; margin: 0; }
+.pal-xlisting__facts > div { padding: var(--pal-space-2, 8px) 0; border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xlisting__facts > div:first-child { border-top: 0; padding-top: 0; }
+.pal-xlisting__facts dt { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xlisting__facts dd { margin: 2px 0 0; font-size: var(--pal-text-sm, 12px); line-height: 1.4; overflow-wrap: anywhere; }
+.pal-xlisting__facts code { font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); user-select: text; -webkit-user-select: text; }
+.pal-xlisting__related { margin-top: var(--pal-space-5, 20px); }
+.pal-xlisting__rel { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--pal-space-2, 8px); }
+.pal-xrel { --pal-grid-tile: 32px; display: flex; align-items: center; gap: var(--pal-space-3, 12px); min-width: 0; padding: 10px 12px; border: 0; border-radius: 10px; background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); color: inherit; font: inherit; text-align: left; cursor: default; }
+.pal-xrel:hover { box-shadow: 0 0 0 1px var(--pal-line-strong, rgba(255, 255, 255, 0.16)); }
+.pal-xrel:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-xrel .pal-icon { flex: none; }
+.pal-xrel .pal-icon[data-kind="tile"] { --tile: 32px; }
+.pal-xrel__text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pal-xrel__text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--pal-weight-semibold, 600); }
+.pal-xrel__text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); }
+@media (max-width: 720px) { .pal-xlisting__body { grid-template-columns: minmax(0, 1fr); } }
+
+.pal-xbrowse__foot { margin: var(--pal-space-2, 8px) 0 0; padding: 0 var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-xsource { display: flex; flex-wrap: wrap; align-items: end; gap: var(--pal-space-2, 8px); margin: var(--pal-space-3, 12px) 0 0; padding: 0 var(--pal-space-1, 4px); }
 .pal-xsource .pal-instances__field { flex: 1 1 260px; }
 .pal-xsource .pal-instances__note { flex-basis: 100%; margin: 0; }

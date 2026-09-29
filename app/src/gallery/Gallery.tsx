@@ -16,7 +16,7 @@ import {
   SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
   aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
-import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, storeExtensions, storeReferences, tileRows } from "./data";
+import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, browseStore, storeExtensions, storeReferences, tileRows } from "./data";
 import type { StoreState } from "../store";
 import type { ExtensionsStore } from "../ui/SettingsStore";
 import Shots from "./shots";
@@ -265,7 +265,7 @@ function Solo({ what }: { what: string }) {
   }, []);
   return (
     <div className="g-solo" data-theme={theme}>
-      <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} open={params.get("open") ?? undefined} />
+      <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} open={params.get("open") ?? undefined} browse={params.has("browse")} />
     </div>
   );
 }
@@ -574,6 +574,9 @@ function GalleryPage() {
         <State label="Extensions: what needs you, what is in use and what it is set to, the rest, the store card; a click opens an extension's own page (GitHub: its update, settings, palettes with PRs unfolded, bar items, Update and Remove)">
           <WidePair>{(t) => <SettingsDemo key={t} page="extensions" />}</WidePair>
         </State>
+        <State label="Extensions, Browse: every extension pal's registry lists (the repo's manifests), Featured with screenshots, a shelf per category, Install in place; a card opens the listing's page">
+          <WidePair>{(t) => <SettingsDemo key={t} page="extensions" browse />}</WidePair>
+        </State>
         <State label="Bar, the timer selected: the Defaults card over the items list, the pane with the preview strips, the mono width look of its own over the menu bar defaults">
           <WidePair>{(t) => <SettingsDemo key={t} page="bar" />}</WidePair>
         </State>
@@ -633,7 +636,7 @@ const galleryFeatures: SettingsFeature[] = FEATURE_ORDER.map((id) => featureSpec
   };
 });
 
-function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage; diagnostics?: boolean; /** A feature card to open (`&open=keycast`). */ open?: string }) {
+function SettingsDemo({ page: initial, diagnostics, open, browse }: { page: SettingsPage; diagnostics?: boolean; /** A feature card to open (`&open=keycast`). */ open?: string; /** Extensions opens on Browse over the whole registry (`&browse`). */ browse?: boolean }) {
   const [page, setPage] = useState<SettingsPage>(initial);
   const [features, setFeatures] = useState(galleryFeatures);
   const [sidebar, setSidebar] = useState<SidebarConfig>(sidebarDefaults);
@@ -641,7 +644,8 @@ function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage
   const [general, setGeneral] = useState(settingsGeneral);
   // The Extensions page gets the store fixture's own extensions too (a failed load, one turned off...); the other pages keep the four.
   const [rawExts, setExts] = useState<SettingsExtension[]>(initial === "extensions" ? [...settingsExtensions, ...storeExtensions] : settingsExtensions);
-  const [store, setStore] = useState<StoreState>(settingsStore);
+  const [store, setStore] = useState<StoreState>(browse ? browseStore : settingsStore);
+  const [browsing, setBrowsing] = useState(!!browse);
   // Each extension's status and switch follow the fake store, as Settings.tsx derives them from the real one.
   const exts = rawExts.map((e) => ({ ...e, status: store.statuses.find((s) => s.name === e.name) ?? e.status, disabled: store.disabled.includes(e.name) || undefined }));
   const wait = () => new Promise((r) => setTimeout(r, 700));
@@ -694,7 +698,7 @@ function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage
       {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} onOpenLink={noop} />}
       {page === "shortcuts" && <SettingsShortcuts general={general} onGeneral={setGeneral} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} extensions={exts} onPalette={patchPalette} bar={barItems} onBarItem={patchBarItem} onGo={(p) => setPage(p)} />}
       {page === "features" && <SettingsFeatures features={features.map((f) => (f.id === "sidebar" ? { ...f, on: !!sidebar.palette } : f))} onSetting={patchFeature} onHotkey={(id, cmd, combo) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, hotkeys: { ...f.hotkeys, [cmd]: combo ?? "" } } : f)))} onRun={(id) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, on: !f.on, note: f.on ? undefined : f.note } : f)))} onRequestPermission={noop} sidebar={{ value: sidebar, onChange: setSidebar, palettes: [{ id: "windows/windows", title: "Windows" }, { id: "apps/apps", title: "Applications" }], displays: ["Built-in Retina Display"] }} switcher={{ hold: "cmd+tab", suggested: "alt+tab", onHold: noop, appSwitcher: "alt+tab", onAppSwitcher: noop }} open={open} />}
-      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} store={galleryStore} onOpenLink={noop} openPalette={palette} onOpenPalette={setPalette} onPalette={patchPalette} bar={barItems} onOpenBarItem={(key) => { setBarKey(key); setPage("bar"); }} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
+      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} store={galleryStore} browsing={browsing} onBrowse={setBrowsing} onOpenLink={noop} openPalette={palette} onOpenPalette={setPalette} onPalette={patchPalette} bar={barItems} onOpenBarItem={(key) => { setBarKey(key); setPage("bar"); }} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal" }} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>

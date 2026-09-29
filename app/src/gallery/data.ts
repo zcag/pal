@@ -445,3 +445,36 @@ export const tileRows: Item[] = Object.values(manifests)
   .map((m) => m.default)
   .sort((a, b) => a.name.localeCompare(b.name))
   .map((m) => ({ id: m.name, name: m.title, subtitle: m.name, icon: iconFromWire(m.icon, m.title), palette: "palettes", accessories: [{ text: "Palette" }] }));
+
+/**
+ * The store as pal's registry lists it, for Browse's gallery state
+ * (`?gallery=settings:extensions&browse`): every extension in the repo,
+ * its listing made from its manifest as pal-pack makes it (the tile, the
+ * tagline, the description, `store.features`, the palettes, the
+ * screenshots served from the extension's folder), on a machine with the
+ * 33 that come with pal (distribution.md, "What is bundled"), GitHub and
+ * Wordle installed from the registry, Spotify installing, and acme's Todo
+ * beside them. Docker's install fails (the gallery store's fake).
+ */
+type Manifest = { name: string; title?: string; description?: string; keywords?: string[]; icon?: unknown; author?: string; requires?: string[]; suggests?: string[]; palettes?: Record<string, { title?: string; kind?: string }>; store?: { tagline?: string; category?: string; features?: string[]; platforms?: string[]; play?: boolean; screenshots?: { file: string; caption?: string }[] } };
+const BUNDLED_09 = new Set("apps files calc clipboard snippets windows window-management system quicklinks emoji store games states scripts bookmarks browser-tabs downloads audio bluetooth displays wifi network media screenshots timer processes power menu-bar shortcuts unicode generate colors shell".split(" "));
+const listingOf = (m: Manifest): Listing => ({
+  title: m.title ?? m.name, description: m.description ?? "", tagline: m.store?.tagline ?? "", category: m.store?.category ?? "", keywords: m.keywords ?? [], icon: m.icon ?? null, author: m.author ?? "",
+  platforms: m.store?.platforms ?? null, play: !!m.store?.play, features: m.store?.features ?? [],
+  palettes: Object.entries(m.palettes ?? {}).map(([id, p]) => ({ id, title: p.title ?? m.title ?? id, kind: p.kind ?? "list" })),
+  screenshots: (m.store?.screenshots ?? []).map((s) => ({ url: `/__ext/${m.name}/screenshots/${s.file}`, caption: s.caption })), requires: m.requires ?? [], suggests: m.suggests ?? [],
+});
+const registryManifests = Object.values(manifests).map((m) => m.default as Manifest).sort((a, b) => a.name.localeCompare(b.name));
+export const browseStore: StoreState = {
+  ...settingsStore,
+  registries: [{ ...settingsStore.registries[0], count: registryManifests.length }, { ...settingsStore.registries[1], last_error: null, last_ok: settingsStore.registries[1].last_checked }],
+  available: [
+    ...registryManifests.map((m) => {
+      const bundled = BUNDLED_09.has(m.name);
+      return { name: m.name, registry: "pal", listing: listingOf(m), installed: bundled || m.name === "github" || m.name === "wordle", bundled, installable: m.name !== "dpi", ...(m.name === "dpi" && { blocked: "not for this platform" }), build: info(`${m.name}0000000000000000`.slice(0, 16), 3) };
+    }),
+    settingsStore.available.find((a) => a.name === "todo")!,
+  ],
+  pending: [], rolled_back: [], unlisted: [], leftovers: [], disabled: [],
+  busy: ["spotify"],
+};
