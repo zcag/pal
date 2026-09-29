@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Launcher, pickLevel, type LauncherHandle, type PanelMode, type PickRow } from "./Launcher";
+import { installMissing, missingInfo, opened } from "./store";
+import { iconOf } from "./items";
 import { mark, surface, useCore, usePrefs, useLiveViews } from "./core";
 import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
@@ -47,9 +49,18 @@ export default function App() {
   // A `pal://` link (deeplink.rs): the query to type and the filter to pick (after the palette `pal://shown` opened), at the root when asked;
   // a pick's answer to apply with the item it came from (`deliver`); a toast while the panel is up.
   useEffect(() => {
-    type Delivered = { query?: string | null; filter?: string | null; reset?: boolean; effect?: Effect; item?: Item & { args?: unknown }; toast?: { title: string; message?: string | null } };
+    // `missing`: a link to a palette of an extension that is not loaded (the core's `Missing`, deeplink.rs `known_palette`); the panel opens on its card, Install or Turn on, then that palette.
+    type Missing = { name: string; palette?: string | null; state: "not_installed" | "disabled"; registry?: string | null; title: string; tagline: string; icon: unknown };
+    type Delivered = { query?: string | null; filter?: string | null; reset?: boolean; effect?: Effect; item?: Item & { args?: unknown }; toast?: { title: string; message?: string | null }; missing?: Missing };
     const un = listen<Delivered>("pal://deeplink", (e) => {
       const p = e.payload;
+      if (p.missing) {
+        const m = p.missing;
+        // A palette key is `ext/palette`; the payload may name the palette alone.
+        const palette = m.palette ? (m.palette.includes("/") ? m.palette : `${m.name}/${m.palette}`) : undefined;
+        launcher.current?.missing(m.name, palette, { title: m.title || m.name, icon: iconOf(m.icon, m.title || m.name), tagline: m.tagline, state: m.state, installable: true, registry: m.registry ?? undefined });
+        return;
+      }
       if (p.reset) launcher.current?.reset();
       if (p.query != null) launcher.current?.type(p.query);
       if (p.filter != null) launcher.current?.filter(p.filter);
@@ -102,7 +113,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

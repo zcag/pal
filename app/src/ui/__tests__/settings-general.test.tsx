@@ -10,7 +10,7 @@ const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: 
 import { permissionRows, type GeneralConfig } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
 const noop = () => {};
 const page = (props: Partial<Parameters<typeof SettingsGeneral>[0]>) =>
   renderToStaticMarkup(<SettingsGeneral value={general} onChange={noop} file={{ path: "~/.config/pal/config.toml" }} {...props} />);
@@ -75,6 +75,19 @@ describe("SettingsGeneral permissions", () => {
     expect(find("catppuccin")).toEqual(["Theme file"]);
     const html = page({ permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
+  });
+  it("has the update and usage switches, found by their words, the usage one with a link to what is sent", () => {
+    const html = page({ value: { ...general, autoUpdate: false }, onOpenLink: noop });
+    expect(html).toContain('aria-label="Updates"');
+    expect(html).toMatch(/role="switch" aria-checked="true" aria-label="Check for pal updates"/);
+    expect(html).toMatch(/role="switch" aria-checked="false" aria-label="Update extensions automatically"/);
+    expect(html).toMatch(/role="switch" aria-checked="true" aria-label="Share anonymous usage"/);
+    expect(html).toContain(">What is sent</button>");
+    const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);
+    expect(find("telemetry")).toEqual(["Share anonymous usage"]);
+    expect(find("registry")).toEqual(["Update extensions automatically"]);
+    // A page not handed them (an older caller) leaves the groups out.
+    expect(page({ value: { ...general, checkUpdates: undefined, autoUpdate: undefined, usage: undefined } })).not.toContain('aria-label="Updates"');
   });
   it("Reset Ranking asks once before it forgets everything", () => {
     const html = page({ onResetFrecency: noop });

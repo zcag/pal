@@ -1445,17 +1445,41 @@ to the core.
   (its `view` or `list` asked afresh, as a palette hotkey would). `toast`,
   `keep`, `view`, `form` and `show` need the level a pick came from and
   are refused.
-- `extensions.list()`: every extension the app knows, as
-  `{ name, version, root, loaded, store, bundled }`: `store` for one
-  `pal install` put in the user store (updatable, removable), `bundled`
-  for one that ships with pal. `extensions.install(spec)`,
-  `extensions.update(name)`, `extensions.remove(name)` hand the work to
-  the `pal://install`, `pal://update` and `pal://remove` routes and
-  resolve at once: the store restarts the host your code runs in, so no
-  reply could follow the work. No card is shown (ask through
-  `Action.confirm` first); the HUD says "Installing…" and the outcome,
-  and an install reopens the root with the name typed. What the Store
-  palette is built on.
+- `extensions.list()`: every extension the host found, as
+  `{ name, version, root, loaded, store, bundled }`: `store` for one in
+  the user store (a registry or source install), `bundled` for one that
+  ships with pal.
+- The store (capability `store`; what the Store and Games palettes are
+  built on). Nothing is compared on your side: whether an extension has
+  an update is the core's one check.
+  - `extensions.state()`: a `StoreState`, cached by the core and cheap:
+    `registries` (each with `last_checked`, `last_ok`, `last_error`,
+    `channel`, `auto_update`, `count`), `statuses` (one `StoreStatus` per
+    installed, bundled or local extension: `origin` `bundled`, `store` or
+    `local`, the `registry` it updates from, the `installed` build, and a
+    `state`: `up_to_date`, `update` with the build `to`, `needs_newer_pal`,
+    `yanked` with its `replacement`, `no_longer_listed` with `why`,
+    `unchecked`, `source` or `local`), `available`, `pending` installs,
+    `rolled_back` updates, `unlisted` store folders, `disabled` names,
+    `leftovers` and the names `busy` right now.
+  - `extensions.available()`: every `AvailableExtension` the registries
+    list, installed or not: `name`, `registry`, `listing` (title,
+    tagline, description, category, keywords, icon, author, platforms,
+    palettes, screenshots, requires, suggests), `installed`, `bundled`,
+    `installable` (a build runs here and no other source has the name),
+    `blocked` (why not, in words) and the `build` an install would get.
+  - `extensions.refresh()`: fetches every registry now, then answers the
+    new `StoreState`. Slow: stream the cached rows first ("Slow listings").
+  - `extensions.install(name, { registry?, from? })`,
+    `extensions.update(names?)` (every update when none are named) and
+    `extensions.remove(name, { forget? })` do the work and resolve when it
+    is done and the extension loaded (or gone), with a `StoreResult`
+    `{ name, ok, loaded?, error? }` each: a failure is `ok: false` with
+    the reason, one that installed but failed to load `loaded: false`.
+    `from` says where it was asked for, for the usage counts
+    ([Usage](usage.md)). `forget` also deletes its settings, storage,
+    cache, ranking and keychain secrets. No card is shown: ask through
+    `Action.confirm` first.
 - `selection.text()`: the text selected in the app in front, or null.
   The accessibility API first (`AXSelectedText` of the focused element on
   macOS, the primary selection on Linux); when that answers nothing and
@@ -1714,6 +1738,9 @@ The protocol's types ride along: `Extension`, `Palette`, `Item`,
 `ManifestPalette`, `ManifestBar`, `ManifestLink`, `SettingSpec`, and the
 API's own (`ClipboardEntry`, `ClipboardListOpts`, `Window`, `Rect`,
 `Display`, `Applied`, `SystemCommand`, `App`, `InstalledExtension`,
+`StoreState`, `StoreStatus`, `StoreRegistry`, `StoreListing`, `StoreBuild`,
+`StoreBuildInfo`, `AvailableExtension`, `StorePending`, `StoreRolledBack`,
+`StoreLeftOver`, `StoreResult`, `StoreFrom`,
 `AudioDevice`, `BluetoothDevice`, `WifiStatus`, `WifiCurrent`,
 `WifiKnown`, `WifiNetwork`, `WifiScan`, `WifiScanMode`, `MediaPlayer`,
 `NowPlaying`, `MediaCommand`, `Permissions`, `PermissionId`,
@@ -1728,9 +1755,11 @@ provides it at runtime), so that install skips it.
 
 ## Install, update, remove
 
-From the CLI (`pal install NAME`, see [CLI](cli.md)) or the settings
-window's Extensions page (the box at the top takes a name or a source;
-Update and Remove are on each extension).
+From the panel's Store palette, from the settings window's Extensions
+page (Browse installs, each extension's page has Update now, Turn off,
+Remove and Remove and forget, Registries adds and removes registries), or
+from the CLI (`pal install NAME`, see [CLI](cli.md)). A source install
+(below) is the CLI's alone: it is for developing an extension.
 
 **By name, from a registry.** The name is looked up in the registries'
 signed indexes, pal's own first ([Registries and packages](registry.md)).
@@ -1771,10 +1800,12 @@ rolled away from is not offered again on this machine.
 
 `pal remove NAME` deletes the directory. Its keys in the config file stay
 (`[extensions.<name>]`, `[palettes.<id>]`), and so does its storage, so a
-reinstall finds its settings; delete them by hand if you want them gone.
+reinstall finds its settings. Remove and forget (Settings › Extensions,
+on the extension's page) deletes those too, with its storage, cache,
+ranking and keychain secrets.
 
-After each of these the extension host is restarted, so the new set is
-loaded and a removed extension is gone from the root.
+Each of these is loaded or unloaded without restarting the extension
+host, and the Store, Settings and the SDK calls answer once that is done.
 
 ## Writing one
 

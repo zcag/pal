@@ -20,6 +20,8 @@ import {
 import { comboOf, isMac } from "./ui/keys";
 import { screenshotUrl } from "./ui/icons";
 import { iconOf } from "./items";
+import { ok, store, useStore, type Status, type StoreState } from "./store";
+import type { ExtensionsStore } from "./ui/SettingsStore";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
 
@@ -31,7 +33,9 @@ type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: numb
 type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string; settings?: Record<string, unknown> };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
-  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean };
+  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean; usage?: boolean };
+  /** `[store]` (docs/config.md): the installed and turned-off lists, auto-update, the registries. */
+  store?: { auto_update?: boolean; installed?: string[]; disabled?: string[] };
   palettes: Record<string, RawPalette>;
   bar: RawBar;
   /** `[features]`: the sidebar's typed table, every other feature's as written (`[features.mouse]`, with `hotkeys`). */
@@ -46,21 +50,19 @@ type Manifest = { name: string; title?: string; description?: string; version?: 
 /** `PaletteMeta` (registry.rs): what the code said about a palette, `tier` already the manifest's over the code's (host.ts). */
 type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier; hold?: string };
 type Record_ = { source: string; ref?: string; installed_at: number; commit_or_etag?: string };
-/** settings.rs `Ext`: one instance as the host reported it; `key` is the instance key (`gmail@work`), `name` the manifest's. */
-type Ext = { key: string; name: string; instance: InstanceInfo; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; warnings?: string[]; installed?: number; record?: Record_ };
-/** `pal_core::extensions::Update`. */
-type Update = { name: string; current: string; latest: string };
+/** settings.rs `Ext`: one instance as the host reported it; `key` is the instance key (`gmail@work`), `name` the manifest's. `disabled`: turned off, reported with its manifest (`extension/disabled`) and never loaded. */
+type Ext = { key: string; name: string; instance: InstanceInfo; manifest: Manifest; root: string; loaded: boolean; disabled?: boolean; error?: string; palettes: Meta[]; warnings?: string[]; installed?: number; record?: Record_ };
 /** settings.rs `Checked`: when a check ran (unix ms) and what it said, the value or the failure's message. */
 type Checked<T> = { at: number; value?: T; error?: string };
-/** settings.rs `Checks`: the app's release check and the store's, as last run this process. */
-type Checks = { app?: Checked<UpdateInfo>; extensions?: Checked<Update[]> };
+/** settings.rs `Checks`: the app's release check as last run this process. The extensions' check is the store's (`StoreState`). */
+type Checks = { app?: Checked<UpdateInfo> };
 /** settings.rs `BarItemView`. */
 type RawBarState = NonNullable<BarItem["state"]>;
 /** A rule's effect from the file's spelling: the look keys as the page names them, plus hidden, urgent and position. */
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
 type RawBarView = { key: string; extension: string; id: string; title: string; /** The manifest's `bar.<id>.settings`. */ settings_specs?: SettingSpec[]; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[] };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[] };
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
 type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
@@ -99,7 +101,7 @@ const isTier = (r: unknown): r is PaletteTier => r === "primary" || r === "norma
  * no palettes. `alone` is whether the extension has one enabled instance:
  * a named default is labelled only next to another.
  */
-function toExtension(e: Ext, config: RawConfig, userRoot: string, latest: string | undefined, alone: boolean): SettingsExtension {
+function toExtension(e: Ext, config: RawConfig, store: StoreState, alone: boolean): SettingsExtension {
   const m = e.manifest;
   const extTitle = m.title ?? e.name;
   const own = m.icon ? iconOf(m.icon, extTitle) : undefined;
@@ -132,7 +134,11 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest: string
       ...(inherits && { inherited: inheritedOf(declared?.settings ?? [], config.palettes[paletteId(e.name, name)]?.settings) }),
     };
   });
-  const bundled = e.root !== userRoot;
+  // Where the copy came from is the core's answer (its store status), never the manifest; unknown until the store answered.
+  const status: Status | undefined = store.statuses.find((s) => s.name === e.name);
+  const bundled = status ? status.origin === "bundled" : undefined;
+  // pal's registry has a page per extension on the site; a third party's has none there.
+  const ours = status?.origin === "bundled" || store.registries.some((r) => r.ours && r.name === status?.registry);
   return {
     name: e.name,
     key: e.key,
@@ -146,12 +152,10 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest: string
     author: m.author,
     icon: badgedIcon(own, instance),
     version: m.version ?? "",
-    latest,
-    // "bundled" here means "not the store's": Update and Remove only apply there. An
-    // extension from `general.extension_dirs` gets the same treatment (and the
-    // "built in" label, which the page cannot yet tell apart).
-    repo: m.repo ?? (bundled ? "bundled" : ""),
+    repo: m.repo,
     bundled,
+    status,
+    disabled: e.disabled || (!e.loaded && !e.error && store.disabled.includes(e.name)) || undefined,
     source: e.record?.source,
     installed: e.installed,
     palettes,
@@ -161,11 +165,12 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest: string
     loaded: e.loaded,
     error: e.error,
     warnings: e.warnings,
-    // A store-installed extension has its screenshots in its checkout (the
-    // `icon://` shot route); a bundled one ships without them (8.6 MB across
-    // the set), so its page loads them from the store site.
+    // A registry install has its screenshots in its folder (the `icon://`
+    // shot route); a bundled one ships without them (8.6 MB across the
+    // set), so its page loads them from the site. The page prefers the
+    // listing's own (absolute) pictures when the registry lists it.
     screenshots: m.store?.screenshots?.map((s) => ({ src: bundled ? `${STORE}/${e.name}/screenshots/${s.file}` : screenshotUrl(e.name, s.file), caption: s.caption, kind: s.kind })),
-    storeUrl: bundled || m.repo === "bundled" ? `${STORE}/${e.name}` : undefined,
+    storeUrl: ours ? `${STORE}/${e.name}` : undefined,
   };
 }
 
@@ -214,8 +219,27 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
   };
 }
 
-/** When the newest of the two checks ran, unix ms; `undefined` while neither has. */
-const checkedAt = (c: Checks): number | undefined => [c.app?.at, c.extensions?.at].filter((t): t is number => t !== undefined).sort((a, b) => b - a)[0];
+/** When the newest check ran, unix ms: the app's release check or any registry's fetch; `undefined` while none has. */
+const checkedAt = (c: Checks, s: StoreState): number | undefined => [c.app?.at, ...s.registries.map((r) => (r.last_checked ? r.last_checked * 1000 : undefined))].filter((t): t is number => t !== undefined).sort((a, b) => b - a)[0];
+
+/**
+ * What in the config still points at the extension `name` (hotkeys,
+ * aliases, bar items, the sidebar), in words, for a turned-off one: those
+ * do nothing until it is on again. Its palettes are the manifest's when
+ * the host reported it, else any `[palettes]` id of its name.
+ */
+function referencesOf(name: string, config: RawConfig, manifest?: Manifest): string[] {
+  const ids = new Set(Object.keys(manifest?.palettes ?? {}).map((p) => paletteId(name, p)));
+  const out: string[] = [];
+  for (const [id, p] of Object.entries(config.palettes ?? {})) {
+    if (!(ids.has(id) || id === name || id.startsWith(`${name}-`))) continue;
+    if (p.hotkey) out.push(`the hotkey ${p.hotkey}`);
+    if (p.alias) out.push(`the alias ${p.alias}`);
+  }
+  for (const [key, b] of Object.entries(config.bar?.items ?? {})) if (nameOf(key.split("/")[0]) === name && b.enabled !== false) out.push(`the bar item ${key}`);
+  if (config.features?.sidebar?.palette && nameOf(config.features.sidebar.palette.split("/")[0]) === name) out.push("the sidebar");
+  return out;
+}
 
 /** Deep set/delete on the local copy, so the window moves before the file's reload confirms it. */
 function patch(config: RawConfig, key: string[], value: unknown): RawConfig {
@@ -346,20 +370,23 @@ export default function Settings() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // The update checks, the app's release and the store's branches (network,
-  // the unauthenticated GitHub API), live in the core (settings.rs `Checks`):
-  // it runs them when the Overview or Extensions page opens only while
-  // `general.check_updates` is on and the last result is a day old, and
-  // remembers them, so a window opened twice a day asks once; "Check now"
-  // (`force`) always runs both. The About page's button runs the app's alone.
+  // The app's release check lives in the core (settings.rs `Checks`): it
+  // runs when the Overview opens only while `general.check_updates` is on
+  // and the last result is a day old, and is remembered, so a window
+  // opened twice a day asks once; "Check now" (`force`) always runs, and
+  // fetches every registry too. The extensions' check is the store's
+  // (`useStore`): every registry is fetched when the Extensions page opens.
+  const { state: storeState, loaded: storeLoaded, refresh: storeRefresh } = useStore();
   const [checking, setChecking] = useState(false);
   const check = useCallback((force: boolean) => {
     setChecking(true);
-    invoke<Checks>("settings_check_updates", { force })
-      .then((checks) => setView((v) => (v ? { ...v, checks } : v)), (e) => setError(String(e)))
-      .finally(() => setChecking(false));
-  }, []);
-  useEffect(() => { if (page === "overview" || page === "extensions") check(false); }, [page, check]);
+    Promise.all([
+      invoke<Checks>("settings_check_updates", { force }).then((checks) => setView((v) => (v ? { ...v, checks } : v)), (e) => setError(String(e))),
+      force ? storeRefresh() : undefined,
+    ]).finally(() => setChecking(false));
+  }, [storeRefresh]);
+  useEffect(() => { if (page === "overview") check(false); }, [page, check]);
+  useEffect(() => { if (page === "extensions") storeRefresh(); }, [page, storeRefresh]);
   const update = view?.checks.app?.value;
   // An install's steps (updater.rs `Progress`): the row and the Overview draw them; a window opened mid-way reads the state first.
   const [progress, setProgress] = useState<UpdateProgress | undefined>(undefined);
@@ -369,32 +396,27 @@ export default function Settings() {
     return () => { u.then((f) => f()); };
   }, []);
   const installUpdate = useCallback(() => invoke<void>("update_install"), []);
-  const latest = useMemo(() => Object.fromEntries((view?.checks.extensions?.value ?? []).map((u) => [u.name, u.latest.slice(0, 7)])), [view]);
 
-  /** The user's store (`Store::locate`, under the data dir): the root whose extensions Update and Remove apply to. */
-  const userRoot = view?.store ?? "";
   // By title: the registry's order is the host's load order, which means nothing to the reader. One entry per instance key (a parked instance included); the Extensions page groups them by name.
   const extensions = useMemo(() => {
     if (!view) return [];
     const all = [...view.extensions, ...parkedInstances(view.extensions, view.config)];
     const enabled = (name: string) => all.filter((e) => e.name === name && view.config.instances?.[e.key]?.enabled !== false).length;
-    return all.map((e) => toExtension(e, view.config, userRoot, latest[e.name], enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
-  }, [view, userRoot, latest]);
+    return all.map((e) => toExtension(e, view.config, storeState, enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
+  }, [view, storeState]);
   const barItems = useMemo(() => (view?.bar ? view.bar.items.map((b) => toBarItem(b, view.config, extensions, view.features)) : []), [view, extensions]);
-  const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
-  // The core forgets the extension's pending update (settings.rs); the re-read lands it.
-  const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); refresh(); };
-  const onExtRemove = async (name: string) => { await invoke("extensions_remove", { name }); refresh(); };
+  // Every store operation goes through the core and resolves once the host loaded (or dropped) the extension; `pal://store` and `pal://host` bring the pages up to date.
+  const onExtUpdate = async (names: string[]) => { for (const r of await store.update(names, "settings")) ok(r); };
   // Instances (settings.rs `instances_*`): the file edits, applied to the running config at once; the host reloads the extension's instances.
   const onInstanceAdd = async (name: string, suffix: string, title?: string, tint?: string) => { await invoke<string>("instances_add", { name, suffix, title: title || null, tint: tint || null }); refresh(); };
   const onInstanceRename = async (key: string, title: string) => { await invoke("instances_rename", { key, title }); refresh(); };
   const onInstanceRemove = async (key: string) => { await invoke("instances_remove", { key }); refresh(); };
   const onInstanceEnabled = (key: string, enabled: boolean) => write(["instances", key, "enabled"], enabled ? undefined : false);
-  // A selection that names nothing (first paint, or a removed extension) moves to the first entry.
+  // A selection that names nothing (a removed extension no registry lists) goes back to the page's home; one only listed opens as its listing.
   useEffect(() => {
-    if (extensions.length === 0) return;
-    if (ext && !extensions.some((e) => e.name === ext)) setExt(undefined);
-  }, [extensions, ext]);
+    if (extensions.length === 0 || !storeLoaded) return;
+    if (ext && !extensions.some((e) => e.name === ext) && !storeState.available.some((a) => a.name === ext)) setExt(undefined);
+  }, [extensions, ext, storeState, storeLoaded]);
 
   /** The theme file picker's state (General): fetched and written by its own hook, since the file lives outside the config. */
   const themeFile = useThemeFile();
@@ -442,7 +464,9 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined };
+  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined,
+    // The file's value, else the store's view of it (the core's default is on for all three).
+    checkUpdates: config.general.check_updates !== false, autoUpdate: config.store?.auto_update ?? storeState.auto_update, usage: config.general.usage ?? storeState.usage };
   const onGeneral = (next: GeneralConfig) => {
     // `general.hotkey` keeps the spelling the file has (a string stays a string) until a second entry needs the list.
     if (next.hotkeys.join("\n") !== general.hotkeys.join("\n")) write(["general", "hotkey"], Array.isArray(config.general.hotkey) || next.hotkeys.length > 1 ? next.hotkeys : (next.hotkeys[0] ?? ""));
@@ -452,8 +476,33 @@ export default function Settings() {
     if (next.position !== general.position) write(["general", "position"], next.position);
     if (next.backspaceBack !== general.backspaceBack) write(["general", "backspace_back"], next.backspaceBack ? undefined : false);
     if ((next.appSwitcher ?? "") !== (general.appSwitcher ?? "")) write(["features", "switcher", "app_switcher"], next.appSwitcher || undefined);
+    // Written as the value either way: the core reacts to the change (the updater's schedule, auto-update, the usage id).
+    if (next.checkUpdates !== general.checkUpdates) write(["general", "check_updates"], next.checkUpdates);
+    if (next.autoUpdate !== general.autoUpdate) write(["store", "auto_update"], next.autoUpdate);
+    if (next.usage !== general.usage) write(["general", "usage"], next.usage);
   };
   const fail = (e: unknown) => setError(String(e));
+
+  /** The Extensions page's store: the core's commands, each result that did not go through turned into the rejection the page shows. */
+  const extStore: ExtensionsStore = {
+    state: storeState,
+    loaded: storeLoaded,
+    install: async (name, registry) => { ok(await store.install(name, registry, "settings")); },
+    update: onExtUpdate,
+    remove: async (name, forget) => { ok(await store.remove(name, forget)); },
+    setDisabled: (name, disabled) => store.setDisabled(name, disabled),
+    refresh: storeRefresh,
+    previewRegistry: store.registryPreview,
+    addRegistry: store.registryAdd,
+    removeRegistry: store.registryRemove,
+    setRegistry: store.registrySet,
+    forgetLeftover: store.forgetLeftover,
+    // `[store] installed` names what another machine installs from a registry: the folder is added to it by hand here, never silently.
+    addUnlisted: async (name) => write(["store", "installed"], [...new Set([...(config.store?.installed ?? []), name])]),
+    references: Object.fromEntries(storeState.disabled.map((n) => [n, referencesOf(n, config, view.extensions.find((e) => e.name === n)?.manifest)])),
+    openStore: () => { store.openStore().catch(fail); },
+    updatePal: () => go("about", "about:updates"),
+  };
 
   const onPalette = (id: string, next: PaletteConfig) => {
     const p = extensions.flatMap((e) => e.palettes).find((x) => x.id === id);
@@ -558,7 +607,14 @@ export default function Settings() {
     // `palettes:<id>[:<key>]`: the palette's extension (the instance it is of) selected, the palette unfolded under its row.
     if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; const hit = extensions.find((e) => e.palettes.some((x) => x.id === id)); if (hit) { setPage("extensions"); setExt(hit.name); setExtInstance(hit.key); setPalette(id); } }
     // `extensions:<key>[:<setting>]`: the key's extension is the row, its instance the pane's settings.
-    if (anchor?.startsWith("extensions:")) { const key = anchor.split(":")[1]; const hit = extensions.find((e) => e.key === key); const name = hit?.name ?? nameOf(key); if (extensions.some((e) => e.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); } }
+    // `extensions:browse` and `extensions:registries` are sections of the page's home; a name only a registry lists opens as its listing.
+    if (anchor?.startsWith("extensions:")) {
+      const key = anchor.split(":")[1];
+      const hit = extensions.find((e) => e.key === key);
+      const name = hit?.name ?? nameOf(key);
+      if (key === "browse" || key === "registries") setExt(undefined);
+      else if (extensions.some((e) => e.name === name) || storeState.available.some((a) => a.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); }
+    }
     // `bar:<ext>/<item>[:<key>]` is an item's row; every other bar anchor lives on the Defaults pane, which the list selects the same way.
     if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; setBarKey(key ?? BAR_DEFAULTS); }
     if (anchor?.startsWith("features:")) setFeature(anchor);
@@ -568,7 +624,7 @@ export default function Settings() {
   const openKeyboardShortcuts = () => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail);
 
   const barSupported = view.bar?.supported ?? isMac;
-  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions), ...barIndex(barItems, barSupported), ...aboutIndex];
+  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions, storeState.available), ...barIndex(barItems, barSupported), ...aboutIndex];
   /** A search hit selects what it names before the page lights its row. */
   const onJump = (entry: SettingsIndexEntry) => go(entry.page, entry.anchor);
   const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
@@ -591,7 +647,7 @@ export default function Settings() {
           diagnostics={view.diagnostics}
           update={update}
           progress={progress}
-          checks={{ enabled: config.general.check_updates, checkedAt: checkedAt(view.checks), error: view.checks.app?.error ?? view.checks.extensions?.error, status: view.checks.app?.value?.status, busy: checking }}
+          checks={{ enabled: config.general.check_updates, checkedAt: checkedAt(view.checks, storeState), error: view.checks.app?.error ?? storeState.registries.find((r) => r.last_error)?.last_error ?? undefined, status: view.checks.app?.value?.status, busy: checking }}
           switcher={windows ? holdOf(windows) ?? "" : undefined}
           sidebar={sidebarLine}
           users={permissionUsers(extensions, features)}
@@ -600,7 +656,7 @@ export default function Settings() {
           onGo={go}
           onRequestPermission={requestPermission}
           onOpenKeyboardShortcuts={openKeyboardShortcuts}
-          onUpdateExtension={(name) => onExtUpdate(name).catch(fail)}
+          onUpdateExtension={(name) => onExtUpdate([name]).catch(fail)}
           changelog={about.changelog}
           onOpenLink={openLink}
         />
@@ -620,6 +676,7 @@ export default function Settings() {
           onOpenOverview={() => go("overview", "overview:attention")}
           themeFile={themeFile}
           onOpenShortcuts={() => go("shortcuts", "shortcuts:hotkey")}
+          onOpenLink={openLink}
         />
       )}
       {page === "shortcuts" && (
@@ -653,7 +710,7 @@ export default function Settings() {
           open={feature?.split(":")[1]}
         />
       )}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} bar={barSupported ? barItems : []} onOpenBarItem={(key) => go("bar", `bar:${key}`)} onOpenStore={() => invoke("settings_open_store").catch(fail)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} store={extStore} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} bar={barSupported ? barItems : []} onOpenBarItem={(key) => go("bar", `bar:${key}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
       {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const b = barItems.find((x) => x.key === key); writeDeclared(["bar", "items", key, "settings", id], b?.settings?.find((x) => x.spec.id === id)?.spec, value as SettingValue, b?.settings?.find((x) => x.spec.id === id)?.base); }} />}
       {page === "about" && (
         <SettingsAbout

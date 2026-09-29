@@ -34,13 +34,14 @@ export { BarStrip, MenuBar, Sketchybar, shapeItem, clipText, defaultLook, type B
 import "./settings.css";
 export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./SettingsWindow";
 export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
-export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
+export { SettingsGeneral, generalIndex, USAGE_DOC } from "./SettingsGeneral";
 export { SettingsShortcuts, shortcutsIndex, bindings, clashOf, type Binding } from "./SettingsShortcuts";
 export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
 export { ExtensionPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";
 export { SettingsSidebar, sidebarIndex, sidebarSummary, SIDEBAR_HELP, type SettingsSidebarProps } from "./SettingsSidebar";
 export { SettingsFeatures, featuresIndex, type SettingsFeature, type SettingsFeaturesProps } from "./SettingsFeatures";
-export { SettingsExtensions, extensionsIndex, byName } from "./SettingsExtensions";
+export { SettingsExtensions, extensionsIndex, byName, forgetText } from "./SettingsExtensions";
+export { needsOf, browseRows, registryLine, refsLine, originLine, statusText, buildLine, toMs, type ExtensionsStore, type Need } from "./SettingsStore";
 export { SettingsBar, barIndex, BAR_DEFAULTS } from "./SettingsBar";
 export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";

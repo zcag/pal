@@ -1533,44 +1533,42 @@ Settings, `[extensions.window-management]`:
 
 ## Store (`store`)
 
-pal.cagdas.io's extension list in the panel. An input palette: what you
-type narrows the list by name, title, tagline, category and author; the
-dropdown (`Tab`) filters to **Installed**, **Updates**, or one of the
-site's shelves (Productivity, Developer, System, Media, Reference, Fun,
-Integration). Every row is one extension with its tile, its tagline as
-the subtitle, chips for what it brings (`menu bar`, `links`, `accounts`),
-an `installed` or `bundled` tag, or `update to x.y.z` when the site has
-a newer version of one installed from the store; the category on the
-right. What is behind leads the list under an **Updates** heading. The
-detail pane (`⌘I`) shows the description, "What it does", the
-screenshots (loaded from the site) and a keys table per palette, with
-the author, version (the installed one beside it when they differ),
-category, licence, platforms, what it needs, the `pal install` line and
-a link to the page.
+Every extension your registries list, in the panel: pal's own registry
+first, then any added in Settings › Extensions › Registries. An input
+palette: what you type narrows the list by name, title, tagline,
+category, keywords and palette titles; the dropdown (`Tab`) filters to
+**Installed**, **Updates**, **Registries**, or a shelf (Productivity,
+Developer, System, Media, Reference, Fun, Integration). Every row is one
+listed extension with its tile, its tagline as the subtitle, how it
+stands (`update`, `needs a newer pal`, `not updated`, `comes with pal`,
+`installed`, or why it cannot be installed here), the registry's name
+when it is not pal's, and the category on the right. What has an update
+leads the list under an **Updates** heading. The detail pane (`⌘I`)
+shows the description, the palettes and the listing's screenshots, with
+the author, where it comes from, its status, its build (short hash and
+date), whether it updates by itself, category, platforms, the `pal
+install` line and, for pal's registry, a link to the page.
 
 | standing | `Enter` | `⌘Enter` | `⌘C` | `⌃X` |
 | --- | --- | --- | --- | --- |
 | not installed | Install (asks first) | Open store page | Copy `pal install <name>` | |
-| from the store, current | Open store page | Update (asks first) | Copy install command | Remove (asks first) |
-| from the store, behind | Update (asks first) | Open store page | Copy install command | Remove (asks first) |
-| bundled with pal | Open store page | | Copy install command | |
+| installed, update ready | Update | Open | Copy install command | Remove (asks first) |
+| installed | Open (its first palette) | Open store page | Copy install command | Remove (asks first) |
+| comes with pal | Open | Open store page | Copy install command | |
 
-Install, Update and Remove run through the core's `pal://install`,
-`pal://update` and `pal://remove` routes ([Links](links.md)) without the
-link's card (the panel's confirm is the question; Enter here is your
-hand): the HUD says "Installing…" and the outcome, the extension host
-restarts with the change, and an install reopens the root with the
-extension's name typed so its palettes are one keystroke away. A
-bundled extension is never updated from here: it ships with pal and
-moves with the app.
+Install, Update and Remove go through the core (the SDK's
+`extensions.install`, `update`, `remove`) and wait until the extension
+is loaded or gone; a toast says how it went and the list relists in
+place. Whether something has an update is the core's one check; the
+palette compares nothing. One that comes with pal is turned off in
+Settings, never removed from here. The Registries filter lists each
+registry and an Add registry row; Enter opens Settings › Extensions ›
+Registries.
 
-The list comes from `https://pal.cagdas.io/api/extensions`, fetched at
-most once an hour, trimmed to what the rows and the pane need, and kept
-in the extension's storage across restarts; `⌘R` fetches now. Offline
-with a list from before, the rows show under a "Showing the list from N
-min ago" note; with no list at all, one row says the site is not
-reachable. `PAL_STORE_API` points the palette at another server (the
-tests serve a fixture). No settings.
+The first listing in ten minutes and `⌘R` fetch every registry, the
+cached rows shown meanwhile; a registry that did not answer says so above
+the list, with how old its list is. `PAL_STORE_REFRESH_MS` changes the
+ten minutes. No settings.
 
 ## Scripts and data files (`scripts`)
 
@@ -3105,13 +3103,15 @@ background into practice, ⌘Enter opens it on AnkiWeb. The first open's
 
 ## Games (`games`)
 
-Every game pal has in one list: one row per game with its tile and
-tagline, sorted by name, and Enter opens that game as its own level
-(Escape comes back to the list). Nothing is kept here: every open reads
-the installed extensions' manifests and lists each view palette of a
-loaded extension the store shelves under Fun, so today 2048, Blackjack,
-Crossword, Minesweeper, Snake II, Solitaire, Sudoku, Typing, Wordle and Yahtzee, and a game
-installed from the store as soon as it is. No settings.
+Every game in one list: one row per game with its tile and tagline,
+sorted by name, and Enter opens that game as its own level (Escape comes
+back to the list). Nothing is kept here: every open reads the installed
+extensions' manifests and lists each view palette of a loaded extension
+the store shelves under Fun, then every game the registries list for this
+machine that is not installed, tagged **Not installed**. Enter on one of
+those installs it from its registry, waits for it to load, then opens it
+(its row says **Installing…** meanwhile); an install that fails stays at
+the top of the list as a row saying why. No settings.
 
 ## 2048 (`2048`)
 

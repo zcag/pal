@@ -408,27 +408,152 @@ export type InstalledExtension = {
   version: string;
   root: string;
   loaded: boolean;
-  /** Installed by `pal install` (the user store): can be updated and removed. */
+  /** In the user store (a registry or source install): can be updated and removed. */
   store: boolean;
-  /** Ships with the app: never updated or removed from a palette. */
+  /** Ships with the app: never removed from a palette. */
   bundled: boolean;
 };
 
+/** Where an install or update was asked for, for the usage counts (docs/usage.md). */
+export type StoreFrom = "store" | "settings" | "search" | "games" | "welcome" | "web" | "deeplink" | "migration" | "reconcile" | "auto" | "cli";
+
+/** One build of an extension in a registry's index (docs/registry.md). `seq` is the source commit's time in unix seconds: newer is a higher `seq`. */
+export type StoreBuild = { hash: string; seq: number; protocol: number; commit: string; url: string; manifest: string; size?: number; sig: string; yanked?: boolean };
+/** A build's identity, without where to fetch it. */
+export type StoreBuildInfo = { hash: string; seq: number; protocol: number; commit: string };
+/** What a registry's index says about an extension: enough to browse it before it is installed. */
+export type StoreListing = {
+  title: string;
+  description: string;
+  tagline: string;
+  category: string;
+  keywords: string[];
+  icon: unknown;
+  author: string;
+  /** `null` or absent: runs everywhere. */
+  platforms?: string[] | null;
+  play: boolean;
+  palettes: { id: string; title: string; kind: string }[];
+  /** Absolute URLs, bare or with a caption. */
+  screenshots: ({ url: string; caption?: string } | string)[];
+  requires: string[];
+  suggests: string[];
+};
+
 /**
- * The extensions the app has (`extensions.rs`), for the store palette:
- * `list` says what is installed and from where; `install`, `update` and
- * `remove` hand the work to the `pal://install` / `update` / `remove`
- * routes (deeplink.rs) and resolve at once, since the store restarts the
- * host the caller runs in. No card is shown (the palette asks through
- * `Action.confirm` first); the HUD carries "Installing…" and the outcome,
- * and an install reopens the root with the name typed.
+ * How one extension on this machine stands (`pal_core::updates::Status`):
+ * where its copy came from, the build installed, and the answer of the
+ * core's one update check. Nothing is compared on your side: `update` is
+ * an update, whatever the versions say.
+ */
+export type StoreStatus = {
+  name: string;
+  origin: "bundled" | "store" | "local";
+  /** The registry it updates from (pal's for a bundled one). */
+  registry?: string | null;
+  installed?: StoreBuildInfo | null;
+  /** Its registry applies updates by itself. */
+  auto_update: boolean;
+} & (
+  | { state: "up_to_date" }
+  | { state: "update"; to: StoreBuild }
+  | { state: "needs_newer_pal"; protocol: number }
+  | { state: "yanked"; replacement?: StoreBuild | null }
+  | { state: "no_longer_listed"; why: string }
+  | { state: "unchecked" }
+  | { state: "source" }
+  | { state: "local" }
+);
+
+/** One registry and how its last fetch went; `last_checked` and `last_ok` are unix seconds. */
+export type StoreRegistry = {
+  name: string;
+  url: string;
+  channel: "stable" | "edge";
+  auto_update: boolean;
+  key: string;
+  count: number;
+  generated_at?: string | null;
+  last_checked?: number | null;
+  last_ok?: number | null;
+  last_error?: string | null;
+  /** pal's own: always there, first, never removed. */
+  ours: boolean;
+};
+
+/** One extension a registry lists, installed or not. */
+export type AvailableExtension = {
+  name: string;
+  registry: string;
+  listing: StoreListing;
+  installed: boolean;
+  /** Ships with pal. */
+  bundled: boolean;
+  /** A build that runs here exists and no other source has the name. */
+  installable: boolean;
+  /** Why it is not installable, in words ("not for this platform"). */
+  blocked?: string;
+  /** The build an install would get. */
+  build?: StoreBuildInfo;
+};
+
+/** Listed in `[store] installed` but not installed yet (offline, gone from its registry): retried. */
+export type StorePending = { name: string; registry: string; error?: string; since: number };
+/** An update that failed to load and was put back. */
+export type StoreRolledBack = { name: string; hash: string; error: string; at: number };
+/** Config that points at an extension that is not there. */
+export type StoreLeftOver = { name: string; refs: { kind: "config" | "hotkey" | "bar" | "alias" | "state" | "fallback" | "sidebar"; what: string }[] };
+
+/** Everything the app knows about extensions and where they come from. */
+export type StoreState = {
+  /** `[store] auto_update`. */
+  auto_update: boolean;
+  /** `general.usage`. */
+  usage: boolean;
+  registries: StoreRegistry[];
+  /** Every installed, bundled and local extension. */
+  statuses: StoreStatus[];
+  /** Every extension the registries list, installed or not. */
+  available: AvailableExtension[];
+  pending: StorePending[];
+  rolled_back: StoreRolledBack[];
+  /** Folders in the store that `[store] installed` does not list. */
+  unlisted: string[];
+  /** `[store] disabled`. */
+  disabled: string[];
+  leftovers: StoreLeftOver[];
+  /** Names with an install, update or remove running. */
+  busy: string[];
+};
+
+/** How one install, update or remove went: a failure is `ok: false` with the reason; `loaded: false` means the files are in place but it failed to load. */
+export type StoreResult = { name: string; ok: boolean; loaded?: boolean; error?: string };
+
+/** An install or update waits for the download and the load, longer than a plain call. */
+const STORE_TIMEOUT_MS = 180_000;
+
+/**
+ * The extensions the app has and the ones its registries offer
+ * (docs/extensions.md, "Install, update, remove"). `list` is what the host
+ * found and from where; `state` and `available` are what the core's one
+ * update check knows (cached, cheap); `refresh` fetches every registry
+ * first. `install`, `update` and `remove` resolve once the work is done and
+ * the extension loaded (or gone), with how it went. No card is shown: ask
+ * through `Action.confirm` first. Capability `store` on the bridge.
  */
 export const extensions = {
   list: () => call<InstalledExtension[]>("extensions.list"),
-  /** A store name, `github:user/repo[/subdir][@ref]`, a github.com URL or a directory (`pal install`'s spellings). */
-  install: (spec: string) => call<null>("extensions.install", { spec }),
-  update: (name: string) => call<null>("extensions.update", { name }),
-  remove: (name: string) => call<null>("extensions.remove", { name }),
+  /** Every extension the registries list, installed or not, each with its registry. */
+  available: () => call<StoreState>("store.state").then((s) => s.available),
+  state: () => call<StoreState>("store.state"),
+  /** Every registry fetched now, then checked again. */
+  refresh: () => call<StoreState>("store.refresh", {}, { timeout: STORE_TIMEOUT_MS }),
+  /** From `registry` (without one: the first that lists it, pal's first); what it `requires` comes first. `from` says where it was asked for (the usage counts), `store` when absent. */
+  install: (name: string, opts: { registry?: string; from?: StoreFrom } = {}) => call<StoreResult>("store.install", { name, ...(opts.registry && { registry: opts.registry }), from: opts.from ?? "store" }, { timeout: STORE_TIMEOUT_MS }),
+  /** The named extensions to their update; every update when none are named. */
+  update: (names: string[] = [], opts: { from?: StoreFrom } = {}) => call<StoreResult[]>("store.update", { names, from: opts.from ?? "store" }, { timeout: STORE_TIMEOUT_MS }),
+  /** Its folder goes; settings, storage and ranking stay for a reinstall unless `forget`. */
+  remove: (name: string, opts: { forget?: boolean } = {}) => call<StoreResult>("store.remove", { name, forget: !!opts.forget }, { timeout: STORE_TIMEOUT_MS }),
 };
 
 /** `pal_core::system::SystemCommand`. */

@@ -16,7 +16,9 @@ import {
   SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
   aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
-import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
+import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, storeExtensions, storeReferences, tileRows } from "./data";
+import type { StoreState } from "../store";
+import type { ExtensionsStore } from "../ui/SettingsStore";
 import Shots from "./shots";
 import BarShot from "./bar-shot";
 import { parseThemeToml } from "./theme-toml";
@@ -637,7 +639,32 @@ function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage
   const [sidebar, setSidebar] = useState<SidebarConfig>(sidebarDefaults);
   const patchFeature = (id: string, key: string, value: SettingValue) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, values: { ...f.values, [key]: value }, on: f.toggle === key ? value === true : f.on } : f)));
   const [general, setGeneral] = useState(settingsGeneral);
-  const [exts, setExts] = useState<SettingsExtension[]>(settingsExtensions);
+  // The Extensions page gets the store fixture's own extensions too (a failed load, one turned off...); the other pages keep the four.
+  const [rawExts, setExts] = useState<SettingsExtension[]>(initial === "extensions" ? [...settingsExtensions, ...storeExtensions] : settingsExtensions);
+  const [store, setStore] = useState<StoreState>(settingsStore);
+  // Each extension's status and switch follow the fake store, as Settings.tsx derives them from the real one.
+  const exts = rawExts.map((e) => ({ ...e, status: store.statuses.find((s) => s.name === e.name) ?? e.status, disabled: store.disabled.includes(e.name) || undefined }));
+  const wait = () => new Promise((r) => setTimeout(r, 700));
+  const patchStore = (f: (s: StoreState) => StoreState) => setStore(f);
+  const galleryStore: ExtensionsStore = {
+    state: store,
+    loaded: true,
+    // Docker's download fails, to show a failed install; anything else lands.
+    install: async (name) => { await wait(); if (name === "docker") throw new Error("docker: the download failed (HTTP 503)"); patchStore((s) => ({ ...s, available: s.available.map((a) => (a.name === name ? { ...a, installed: true } : a)), pending: s.pending.filter((p) => p.name !== name), leftovers: s.leftovers.filter((l) => l.name !== name) })); },
+    update: async (names) => { await wait(); patchStore((s) => ({ ...s, rolled_back: s.rolled_back.filter((r) => !names.includes(r.name)), statuses: s.statuses.map((x) => { const to = x.state === "update" ? x.to : x.state === "yanked" ? x.replacement : undefined; return names.includes(x.name) && to ? { ...x, state: "up_to_date" as const, installed: { hash: to.hash, seq: to.seq, protocol: to.protocol, commit: to.commit } } : x; }) })); },
+    remove: async (name) => { await wait(); patchStore((s) => ({ ...s, statuses: s.statuses.filter((x) => x.name !== name), available: s.available.map((a) => (a.name === name ? { ...a, installed: false } : a)) })); setExts((es) => es.filter((e) => e.name !== name)); },
+    setDisabled: async (name, off) => { await wait(); patchStore((s) => ({ ...s, disabled: off ? [...s.disabled, name] : s.disabled.filter((n) => n !== name) })); },
+    refresh: async () => { await wait(); patchStore((s) => ({ ...s, registries: s.registries.map((r) => ({ ...r, last_checked: Math.floor(Date.now() / 1000) })) })); },
+    previewRegistry: async (url, key) => { await wait(); if (!/^https:\/\//.test(url)) throw new Error("not a registry: the URL must start with https://"); return { name: new URL(url).hostname.split(".")[0], url, count: 5, key: key || "RWQexampleexampleexampleexampleexampleexampleexample", key_id: "8C1F2A3B4D5E6F70" }; },
+    addRegistry: async (url) => { await wait(); patchStore((s) => ({ ...s, registries: [...s.registries, { name: new URL(url).hostname.split(".")[0], url, channel: "stable", auto_update: true, key: "RWQ", count: 5, last_checked: Math.floor(Date.now() / 1000), last_ok: Math.floor(Date.now() / 1000), ours: false }] })); },
+    removeRegistry: async (name) => { await wait(); patchStore((s) => ({ ...s, registries: s.registries.filter((r) => r.name !== name) })); },
+    setRegistry: async (name, auto, channel) => { patchStore((s) => ({ ...s, registries: s.registries.map((r) => (r.name === name ? { ...r, ...(auto !== null && { auto_update: auto }), ...(channel && { channel }) } : r)) })); },
+    forgetLeftover: async (name) => { await wait(); patchStore((s) => ({ ...s, leftovers: s.leftovers.filter((l) => l.name !== name) })); },
+    addUnlisted: async (name) => { patchStore((s) => ({ ...s, unlisted: s.unlisted.filter((n) => n !== name) })); },
+    references: storeReferences,
+    openStore: noop,
+    updatePal: () => setPage("about"),
+  };
   const [palette, setPalette] = useState<string | undefined>("github-prs");
   const [ext, setExt] = useState<string | undefined>(new URLSearchParams(location.search).get("ext") ?? undefined);
   const patchPalette = (id: string, config: PaletteConfig) =>
@@ -660,14 +687,14 @@ function SettingsDemo({ page: initial, diagnostics, open }: { page: SettingsPage
   const [barItems, setBarItems] = useState(settingsBarItems);
   const [barKey, setBarKey] = useState<string | undefined>("timer/timer");
   const patchBarItem = (key: string, config: BarItemConfig) => setBarItems((bs) => bs.map((b) => (b.key === key ? { ...b, config } : b)));
-  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts), ...barIndex(barItems), ...aboutIndex];
+  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts, store.available), ...barIndex(barItems), ...aboutIndex];
   const mac = /Mac/.test(navigator.platform);
   return (
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
-      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} />}
+      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} onOpenLink={noop} />}
       {page === "shortcuts" && <SettingsShortcuts general={general} onGeneral={setGeneral} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} extensions={exts} onPalette={patchPalette} bar={barItems} onBarItem={patchBarItem} onGo={(p) => setPage(p)} />}
       {page === "features" && <SettingsFeatures features={features.map((f) => (f.id === "sidebar" ? { ...f, on: !!sidebar.palette } : f))} onSetting={patchFeature} onHotkey={(id, cmd, combo) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, hotkeys: { ...f.hotkeys, [cmd]: combo ?? "" } } : f)))} onRun={(id) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, on: !f.on, note: f.on ? undefined : f.note } : f)))} onRequestPermission={noop} sidebar={{ value: sidebar, onChange: setSidebar, palettes: [{ id: "windows/windows", title: "Windows" }, { id: "apps/apps", title: "Applications" }], displays: ["Built-in Retina Display"] }} switcher={{ hold: "cmd+tab", suggested: "alt+tab", onHold: noop, appSwitcher: "alt+tab", onAppSwitcher: noop }} open={open} />}
-      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} openPalette={palette} onOpenPalette={setPalette} onPalette={patchPalette} bar={barItems} onOpenBarItem={(key) => { setBarKey(key); setPage("bar"); }} onOpenStore={noop} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
+      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} store={galleryStore} onOpenLink={noop} openPalette={palette} onOpenPalette={setPalette} onPalette={patchPalette} bar={barItems} onOpenBarItem={(key) => { setBarKey(key); setPage("bar"); }} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal" }} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>

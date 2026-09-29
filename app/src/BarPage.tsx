@@ -8,6 +8,7 @@ import { mark, surface, useCore, useLiveViews } from "./core";
 import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
 import type { Item } from "./ui/types";
 import { POPOVER_CHROME, POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
+import { installMissing, missingInfo, opened } from "./store";
 
 const hide = () => invoke("bar_hide");
 
@@ -122,7 +123,7 @@ export default function BarPage() {
 
   return (
     <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} data-peek={sidebar && show && !show.engaged ? "" : undefined} title={show?.tooltip} onMouseDownCapture={engage}>
-      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} surface={surface} ordinals={sidebar} />
+      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} surface={surface} ordinals={sidebar} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
     </div>
   );
 }

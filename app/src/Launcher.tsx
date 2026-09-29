@@ -11,7 +11,7 @@ import {
   hasSurface, anchorOf, idsOf, isMarked, markRange, markable, multiActions, pickIds, prune, step, toggle, viewCursor, viewMarks, type Selection, type SurfaceHandle, type SurfaceHost,
 } from "./ui";
 import { Fzf } from "fzf";
-import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
+import type { Action, Detail as DetailSpec, Icon as IconSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
 import { ASK_ID, ATTENTION, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
 import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
@@ -29,9 +29,21 @@ const LIST_ID = "results";
 /** Fixture palettes (the gallery) best browsed as tiles; a real palette declares `view` itself. */
 const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
 /** The shell's own actions, kept apart from an item's by the prefix. */
-const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh", TIPS = "pal:welcome", LINK = "pal:link", FORGET = "pal:forget", CLEAR = "pal:clear", COMPACT = "pal:compact", BIG = "pal:big", CORNER = "pal:corner";
+const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh", TIPS = "pal:welcome", LINK = "pal:link", FORGET = "pal:forget", CLEAR = "pal:clear", COMPACT = "pal:compact", BIG = "pal:big", CORNER = "pal:corner", MISSING = "pal:missing";
 const CLEAR_ACTION: Action = { id: CLEAR, title: "Clear selection", icon: { kind: "glyph", value: "×" }, section: "pal" };
 const OPEN: Action = { id: "open", title: "Open" };
+/** The missing card's one action: Turn on for one turned off, Install for one a registry offers here, none otherwise (or while it runs). */
+const missingAction = (v: MissingLevel): Action | undefined =>
+  !v.info || v.phase === "busy" || v.phase === "ready" ? undefined : v.info.state === "disabled" ? { id: MISSING, title: "Turn on" } : v.info.state === "not_installed" && v.info.installable ? { id: MISSING, title: "Install" } : undefined;
+/** The card's words: what is missing, what to do, and how it went. */
+export function missingCard(v: MissingLevel): { title: string; hint?: string; note?: string } {
+  const name = v.info?.title ?? v.extension;
+  const title = v.info?.state === "disabled" ? `${name} is turned off` : `${name} isn't installed`;
+  if (v.phase === "busy") return { title, hint: v.info?.state === "disabled" ? "Turning it on…" : "Installing…" };
+  if (v.phase === "ready") return { title, hint: "Opening…" };
+  const hint = !v.info ? undefined : v.info.state === "disabled" ? "Its palettes and hotkeys do nothing until it is turned on." : v.info.state === "unknown" ? "No registry you follow lists it." : v.info.installable ? v.info.tagline : v.info.blocked ? `It can't be installed here: ${v.info.blocked}.` : "It can't be installed here.";
+  return { title, hint, note: v.phase === "error" ? v.error : undefined };
+}
 /** After the last keystroke at the root, before the inline and fallback sections are asked for (the local hits paint first; a keystroke inside this cancels the ask). */
 const ROOT_DEBOUNCE = 120;
 /** Synthetic sources (`pal/*`) never carry a ranking to reset and are not palettes to jump into. */
@@ -139,7 +151,39 @@ export type Level =
   | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string }
   | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec; /** The crumb, when `palette` is not a source (a bar item's key). */ title?: string }
   | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number; /** The marked rows of the multi pick that opened it (`ctx.ids`): its submit runs over them too. */ ids?: string[] }
-  | { kind: "menu"; key: string; title: string; rows: Item[]; submenus: Record<string, BarMenuNode[]>; pick?: { token: number; multi: boolean } };
+  | { kind: "menu"; key: string; title: string; rows: Item[]; submenus: Record<string, BarMenuNode[]>; pick?: { token: number; multi: boolean } }
+  | MissingLevel;
+
+/**
+ * A push or a link into an extension that is not loaded (docs/design/distribution.md,
+ * "Nothing silently inert"): a card that says so, with Install or Turn on
+ * as its Enter. `palette` is the key the push named (absent when a link
+ * named the extension alone), opened once the extension is in, with what
+ * the push carried; `info` is what the store says of it, asked on arrival.
+ */
+export type MissingLevel = { kind: "missing"; extension: string; palette?: string; args?: unknown; query?: string; title?: string; from: MissingFrom; info?: MissingInfo; phase: "idle" | "busy" | "ready" | "error"; error?: string };
+/**
+ * What the shell knows of a missing extension, the core's `Missing` shape
+ * (a deep link's payload) or built from the store's state for a push:
+ * listed and installable (`registry` it installs from), listed but not for
+ * here (`blocked`), turned off, or known to no registry.
+ */
+export type MissingInfo = { title: string; icon?: IconSpec; tagline?: string; state: "not_installed" | "disabled" | "unknown"; installable?: boolean; blocked?: string; registry?: string };
+/** Where the missing card came from, for the install's usage count. */
+export type MissingFrom = "store" | "deeplink";
+
+/**
+ * The extension a palette key names when nothing of it is loaded: its
+ * instance key (`gmail@work` for `gmail@work/inbox`). Undefined while no
+ * source is known yet (startup), for a shell source or a bar item's key,
+ * and for an extension that is loaded (a palette of it switched off is not
+ * a missing extension).
+ */
+export function missingExtension(key: string, sources: SourceInfo[]): string | undefined {
+  if (!sources.length || isShell(key) || key.startsWith("bar:") || sources.some((s) => sourceKey(s) === key)) return undefined;
+  const ext = key.split("/")[0];
+  return ext && !sources.some((s) => s.extension === ext) ? ext : undefined;
+}
 
 /** A menu level for a bar item's `nodes`. */
 export const menuLevel = (key: string, title: string, nodes: BarMenuNode[]): Level => ({ kind: "menu", key, title, ...menuRows(key, nodes) });
@@ -208,6 +252,8 @@ export type LauncherHandle = {
   update(u: ViewUpdate): void;
   /** A trigger fired (`pal://trigger`): a view level on top whose palette lists it under `on` asks for its tree again. */
   trigger(name: string): void;
+  /** A link named an extension that is not loaded (the core's `DEEPLINK {missing}`): the root, then its card, with what the core said of it when given (else the store is asked). */
+  missing(extension: string, palette?: string, info?: MissingInfo): void;
 };
 
 export type LauncherProps = {
@@ -265,6 +311,12 @@ export type LauncherProps = {
   /** Sidebar mode: every row wears its number without cmd held, and cmd+N runs row N instead of moving the cursor to it (the number is the pick). */
   ordinals?: boolean;
   mark?: (name: string, t: number) => void;
+  /** What the store says of an extension a push or a link named that is not loaded; without it such a push opens an empty level as before. */
+  missing?: (extension: string) => Promise<MissingInfo>;
+  /** Install (or, for one turned off, turn on) a missing extension; resolves once it is loaded, rejects with the reason. */
+  onInstallMissing?: (extension: string, info: MissingInfo, from: MissingFrom) => Promise<void>;
+  /** A palette was entered, by its `ext/palette` key (the usage counts, `usage_opened`). */
+  onOpened?: (palette: string) => void;
 };
 
 const haystack = (i: Item) => [i.name, i.subtitle, ...(i.keywords ?? [])].filter(Boolean).join(" ");
@@ -312,7 +364,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onPanelMode, ordinals = false, mark } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onPanelMode, ordinals = false, mark, onOpened } = props;
   const prefs = props.prefs ?? DEFAULT_PREFS;
   /** Compact: no detail pane (cmd+i is inert), the footer's primary hint sits in the search row instead. */
   const compact = prefs.compact;
@@ -390,7 +442,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const viewInput = spec?.input;
   const form = view.kind === "form" ? view : undefined;
   // A menu level's rows are its own: nothing is loading or updating there.
-  const loading = isView ? !spec || busy : isForm || isMenu ? busy : sources.length === 0 || updating || asking;
+  const loading = isView ? !spec || busy : isForm || isMenu ? busy : view.kind === "missing" ? view.phase === "busy" || view.phase === "ready" : sources.length === 0 || updating || asking;
   const total = scope ? scope.count : filterable.reduce((n, s) => n + s.count, 0);
   const args = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? view.args : undefined;
   const scopeFilter = view.kind === "palette" && scope?.filters?.length ? paletteFilter ?? scope.filters[0].id : undefined;
@@ -441,7 +493,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const indexVersion = scope?.input || ctx?.args !== undefined ? 0 : version;
   useEffect(() => {
     const n = ++seq.current;
-    if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu") { setAsking(false); return setFound([]); }
+    if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu" || view.kind === "missing") { setAsking(false); return setFound([]); }
     setAsking(!!scope?.input);
     const done = () => { if (n === seq.current) setAsking(false); };
     const show = (h: Hit[]) => { if (n === seq.current) setFound(h); };
@@ -704,10 +756,48 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     setSel((s) => markRange(s, viewRows, c >= 0 ? c : i, i));
   };
   /** Into a palette: a view palette opens as a view level (its tree asked for), any other as a list; `q` is typed into it on arrival, `title` is the crumb when the push named one. */
+  // An extension that is not loaded gets its card instead of an empty level (`missing`); a palette entered is counted by its key (`onOpened`).
   const enter = useCallback((palette: string, args?: unknown, q?: string, title?: string, placeholder?: string) => {
-    push(byKey.get(palette)?.view === "view" ? { kind: "view", palette, args, title } : { kind: "palette", palette, args, title, placeholder });
+    const gone = props.missing ? missingExtension(palette, sources) : undefined;
+    if (gone) return push({ kind: "missing", extension: gone, palette, args, query: q, title, from: "store", phase: "idle" });
+    const s = byKey.get(palette);
+    if (s?.extension) onOpened?.(palette);
+    push(s?.view === "view" ? { kind: "view", palette, args, title } : { kind: "palette", palette, args, title, placeholder });
     if (q) nav.setQuery(q);
-  }, [byKey]);
+  }, [byKey, sources, onOpened, props.missing]);
+  // The card asks the store what it knows once; a failed ask reads as known to no registry.
+  const missingKey = view.kind === "missing" && !view.info ? view.extension : undefined;
+  useEffect(() => {
+    if (!missingKey || !props.missing) return;
+    let live = true;
+    const fill = (info: MissingInfo) => { if (live) nav.patch((v) => (v.kind === "missing" && v.extension === missingKey && !v.info ? { ...v, info } : v)); };
+    props.missing(missingKey).then(fill, () => fill({ title: missingKey, state: "unknown" }));
+    return () => { live = false; };
+  }, [missingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Installed: the card gives way to the palette it was for (the extension's first when a link named none) as soon as the index lists it; the store's install resolves after the host loaded it, the index follows a beat later.
+  useEffect(() => {
+    if (view.kind !== "missing" || view.phase !== "ready") return;
+    // An extension's palettes land in the index together.
+    const own = sources.filter((s) => s.extension === view.extension);
+    if (!own.length) return;
+    const s = own.find((x) => sourceKey(x) === view.palette) ?? own[0];
+    const key = sourceKey(s);
+    onOpened?.(key);
+    nav.replace(s.view === "view" ? { kind: "view", palette: key, args: view.args, title: view.title } : { kind: "palette", palette: key, args: view.args, title: view.title });
+    if (view.query) nav.setQuery(view.query);
+  }, [view, byKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** A link to a missing extension (the core's DEEPLINK): the root under the card, so Escape lands there. */
+  const missingFromLink = (extension: string, palette?: string, info?: MissingInfo) => { reset(); push({ kind: "missing", extension, palette, info, from: "deeplink", phase: "idle" }); };
+  /** The card's Enter: install (or turn on), then the palette it was for, once its source is in (the effect below). */
+  const installMissing = () => {
+    const top = level.current;
+    if (top.kind !== "missing" || !top.info || top.phase === "busy" || !props.onInstallMissing) return;
+    nav.replace({ ...top, phase: "busy", error: undefined });
+    props.onInstallMissing(top.extension, top.info, top.from).then(
+      () => nav.patch((v) => (v.kind === "missing" && v.extension === top.extension && v.phase === "busy" ? { ...v, phase: "ready" } : v)),
+      (e) => nav.patch((v) => (v.kind === "missing" && v.extension === top.extension && v.phase === "busy" ? { ...v, phase: "error", error: String(e) } : v)),
+    );
+  };
   /**
    * The search box changed. At the root, with `prefs.aliasSpace`, a word
    * and a space typed forward (never a deletion) jump into the palette the
@@ -827,7 +917,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const filter = (id: string) => { setPaletteFilter(id); cur.reset(); };
   // `applyEffect` closes over this render's stack, so the handle is rebuilt per render (cheap: an object).
   const apply = (item: Item, effect: Effect, args?: unknown) => applyEffect(item, effect, args !== undefined ? { args } : undefined);
-  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus, filter, apply, shown, toast: setToast, update, trigger }));
+  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus, filter, apply, shown, toast: setToast, update, trigger, missing: missingFromLink }));
 
   // The item's own actions first (the default "Open" when it declares none;
   // a welcome tip declares `[]`, so Enter on it shows its detail), then the
@@ -843,6 +933,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       { id: CORNER, title: panelMode === "corner" ? "Normal panel size" : "Panel in the corner", icon: { kind: "glyph", value: panelMode === "corner" ? "⇱" : "⇲" }, shortcut: "cmd+shift+j", section: "pal" },
     ] : [];
     // Rows marked in a view: its multi actions, and the hidden ones its keys route (the arrows still move the cursor); then the way out.
+    if (view.kind === "missing") return missingAction(view) ? [missingAction(view)!] : [];
     if (view.kind === "view") return sel ? [...(view.spec?.actions ?? []).filter((x) => x.multi || x.hidden), CLEAR_ACTION] : [...(view.spec?.actions ?? []), ...(linkable ? [link] : []), ...panel];
     if (view.kind === "form") return linkable ? [{ ...link, hidden: true }] : [];
     // Rows marked: only what works on several (the `multi` actions every marked row carries), and the way out.
@@ -1019,6 +1110,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case BIG: togglePanel("big"); break;
       case CORNER: togglePanel("corner"); break;
       case CLEAR: setSel(null); break;
+      case MISSING: installMissing(); break;
       case FORGET:
         if (current && onForget) Promise.resolve(onForget(current)).then(
           (had) => setToast(had ? { style: "success", title: "Ranking reset", message: `${current.name} ranks as never picked` } : { style: "success", title: "Nothing to reset", message: `${current.name} had no ranking` }),
@@ -1172,7 +1264,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       },
       // Enter and cmd+enter are a row's: with nothing under the cursor the shell's actions wait in the panel.
       // A form's fields take them first (Form's own scope); reaching here means focus is elsewhere, so the form is asked to submit.
-      primary: () => (view.kind === "show" ? pop() : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] ? run(listed[0]) : false),
+      primary: () => (view.kind === "show" ? pop() : view.kind === "missing" ? (listed[0] ? run(listed[0]) : false) : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] ? run(listed[0]) : false),
       secondary: () => (view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "secondary" }) : sel ? (runnable[1] ? run(runnable[1]) : false) : current && listed[1] ? run(listed[1]) : false),
       actions: () => (listed.length ? setActionsOpen(true) : false),
       // Under the switcher's hold Escape is the cancel, whatever is typed: the hide reaches the shell (switcher.rs `on_hidden`).
@@ -1223,10 +1315,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     return s?.icon ? iconOf(s.icon, s.title) : undefined;
   };
   const levelIcon = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? iconFor(view.palette) : view.kind === "show" ? iconFor(view.palette) : isMenu ? iconFor(view.key) : undefined;
-  const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : undefined;
+  const isMissing = view.kind === "missing";
+  const card = view.kind === "missing" ? missingCard(view) : undefined;
+  const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : view.kind === "missing" ? { title: view.info?.title ?? view.extension, icon: view.info?.icon } : undefined;
   // The bottom level has nothing under it to go back to: its crumb is a title, not a button.
   const back = crumb && { ...crumb, onBack: nav.depth > 1 ? pop : undefined };
-  const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" ? "" : isMenu ? `Search ${view.title}…` : (view.kind === "palette" ? view.placeholder : undefined) ?? scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
+  const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" || view.kind === "missing" ? "" : isMenu ? `Search ${view.title}…` : (view.kind === "palette" ? view.placeholder : undefined) ?? scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
   /** What Enter runs and the footer names: the field's submit while a view's text field is open, else the first listed action. */
   const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : runnable[0];
   const onPickAt = (i: number) => { cur.set(i); const a = listed[0]; if (a) run(a); };
@@ -1234,7 +1328,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const noMulti = () => setToast({ style: "failure", title: "Nothing here works on several rows", message: "Clear the selection (Escape) to pick one" });
   /** A single-row action's key with rows marked. */
   const oneRow = (a: Action) => setToast({ style: "failure", title: `${a.title} works on one row`, message: "Clear the selection (Escape) first" });
-  const body = view.kind === "show"
+  const body = card
+    ? <Empty icon={(view.kind === "missing" && view.info?.icon) || { kind: "glyph", value: "\u{f03d7}" }} title={card.title} hint={card.hint} note={card.note} action={primaryAction && <button type="button" className="pal-button" data-primary onClick={() => run(primaryAction)}>{primaryAction.title}</button>} />
+    : view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : view.kind === "view"
     ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} marked={sel && sel.palette === viewPalette ? idsOf(sel) : undefined} onMark={viewRows.length ? markView : undefined} /></SurfaceContext.Provider> : null)
@@ -1253,16 +1349,16 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} />;
 
   /** The footer's primary hint and Enter handler, one place: the footer draws it, or the search row's right side in compact mode. */
-  const primaryHint = isShow ? { title: "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || current) && primaryAction ? { title: primaryAction.title } : undefined;
-  const onPrimary = () => (isShow ? pop() : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
+  const primaryHint = isShow ? { title: "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || isMissing || current) && primaryAction ? { title: primaryAction.title } : undefined;
+  const onPrimary = () => (isShow ? pop() : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : isMissing ? primaryAction && run(primaryAction) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
-      aside={!compact && showDetail && !isShow && !isView && !isForm && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
+      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
+      aside={!compact && showDetail && !isShow && !isView && !isForm && !isMissing && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :
         <Footer
           icon={isShow || isView || isForm ? levelIcon : current?.icon}
-          title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView || isForm ? viewTitle : current?.name}
+          title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView || isForm ? viewTitle : card ? card.title : current?.name}
           note={updating && !isShow && !isView && !isForm && !isMenu ? "updating…" : undefined}
           count={(sel ? sel.items.length : undefined)}
           primary={primaryHint}

@@ -7,6 +7,7 @@
 import { defaultLook, type BarLook } from "./BarStrip";
 import { BRAND } from "./icons";
 import type { Brand, Icon } from "./types";
+import type { Status } from "../store";
 
 export type SettingOption = { id: string; title: string };
 
@@ -129,12 +130,14 @@ export type SettingsExtension = {
   author?: string;
   icon?: Icon;
   version: string;
-  /** Newer version available, when there is one. */
-  latest?: string;
-  /** Source repository, or "bundled" for the ones that ship with pal. */
-  repo: string;
-  /** Ships with pal: cannot be removed. Decided by the root it loaded from, not the manifest. */
+  /** The manifest's `repo`: a link to the source when it is a URL. */
+  repo?: string;
+  /** Ships with pal (`origin` of its store status): cannot be removed, only turned off. Unknown until the store answered. */
   bundled?: boolean;
+  /** How it stands with the core's one update check: where it came from, the build, an update, a problem. */
+  status?: Status;
+  /** Turned off (`[store] disabled`): not loaded, its manifest still listed. */
+  disabled?: boolean;
   /** What `pal install` was given (`.pal-install.json`), for an extension in the user's store. */
   source?: string;
   installed?: string | number | Date;
@@ -168,6 +171,12 @@ export type GeneralConfig = {
   backspaceBack: boolean;
   /** `[features.switcher] app_switcher`: macOS's own App Switcher on this Tab chord, through the event tap; unset is off. */
   appSwitcher?: string;
+  /** `general.check_updates`: look for a new pal once a day. Absent where the page does not offer it. */
+  checkUpdates?: boolean;
+  /** `[store] auto_update`: extension updates apply by themselves (a registry can override it). */
+  autoUpdate?: boolean;
+  /** `general.usage`: the anonymous counts (docs/usage.md). */
+  usage?: boolean;
 };
 
 /** hotkey.rs `RootOutcome`: one entry of `general.hotkey` and how its registration went. */
