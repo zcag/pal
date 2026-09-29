@@ -12,6 +12,8 @@ import { checkView } from "../../../sdk/src/view.ts";
 import { Host, stored } from "../harness.ts";
 
 const TODAY = 100;
+/** The host's clock for the tests over the wire: a daily puzzle is a function of the day. */
+const CLOCK = "2026-09-30T12:00:00";
 const game = (answer: string, extra: Partial<Game> = {}): Game => ({ answer, guesses: [], day: TODAY, hard: false, input: "", status: "play", ...extra });
 const state = (g: Game, stats = stats0()): State => ({ game: g, stats });
 /** Types a word and submits it. */
@@ -234,7 +236,9 @@ describe("render", () => {
 
 describe("over the wire", () => {
   let host: Host;
-  beforeAll(async () => { stored.clear(); host = await Host.bundled(); });
+  // The host's clock pinned here, not inherited: bun runs several files in one worker, and a file that set PAL_NOW
+  // before this one (calc, theater, ...) would otherwise give the host another day than this file's own clock.
+  beforeAll(async () => { process.env.PAL_NOW = CLOCK; stored.clear(); host = await Host.bundled(); });
   afterAll(() => host.kill());
 
   test("a view palette is input on the wire with view: view", async () => {
@@ -244,14 +248,14 @@ describe("over the wire", () => {
   test("view answers today's daily and stores it with fresh stats", async () => {
     await expect(host.request("list", { extension: "wordle", palette: "wordle" })).rejects.toThrow("view palette has no list");
     const v = await host.request<View>("view", { extension: "wordle", palette: "wordle" });
-    const today = dayOf();
+    const today = dayOf(new Date(CLOCK));
     expect(v.title).toBe(`Daily #${today + 1}`);
     const g = stored.get("wordle\0game") as Game;
     expect(g).toMatchObject({ day: today, answer: dailyAnswer(today), guesses: [], status: "play" });
     expect(stored.get("wordle\0stats")).toEqual(stats0());
   });
   test("picks type, submit and persist the game; the win updates the stats; copy answers the share text", async () => {
-    const today = dayOf();
+    const today = dayOf(new Date(CLOCK));
     stored.set("wordle\0game", game("crane", { day: today }));
     for (const l of "slate") await host.pick("wordle", "wordle", "view", l);
     expect((stored.get("wordle\0game") as Game).input).toBe("slate");
