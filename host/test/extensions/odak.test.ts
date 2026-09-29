@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { checkView } from "../../../sdk/src/index.ts";
 import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, marksOf, stored } from "../harness.ts";
 import { BASE, ITEMS, NOW, SETTINGS, calls, idOf, reset, seen, server, state } from "./odak-mock.ts";
 
 process.env.TZ = "Europe/Istanbul";
@@ -319,7 +319,9 @@ describe("odak", () => {
       expect(t).toContain("overdue 3 d");
       expect(t.filter((x) => x === "\u{f0028}")).toHaveLength(1);
       expect(v.actions.map((a) => a.id).slice(0, 8)).toEqual(["complete", "urgent", "tomorrow", "new", "open-odak", "open-pal", "refresh", "down"]);
-      expect(v.actions.find((a) => a.id === "complete")!.shortcut).toBe("x");
+      expect(v.actions.find((a) => a.id === "complete")).toMatchObject({ shortcut: "x", multi: true });
+      // Every row can be marked by its todo id, for x to complete them all.
+      expect(marksOf(v.tree).slice(0, 2)).toEqual([id("Call the bank"), id("Review the parser")]);
       // The item's own today_sections: with none, only what is due today and the overdue count.
       const bare = await host.render("odak", "today", { reason: "settings", settings: { today_sections: [] } });
       expect(bare.states).toMatchObject({ overdue: 1 });
@@ -343,6 +345,9 @@ describe("odak", () => {
       const gets = calls("GET", "/todos").length;
       expect(await host.barAction("odak", "today", "refresh")).toEqual({ keep: true });
       await host.until(() => calls("GET", "/todos").length > gets, 3000, "the refetch"); // the action answers before its fetch lands; a background refresh may land too, so at least one more
+      // Marked rows (`ctx.ids`): x completes them all, whatever the cursor is on.
+      expect(await host.barAction("odak", "today", "complete", { reason: "open", ids: [id("Ship the release"), id("Write the changelog")] })).toEqual({ keep: true, hud: "Done: 2 todos" });
+      expect([item("Ship the release").done, item("Write the changelog").done, !!item("Call the bank").done]).toEqual([true, true, false]);
     });
 
     test("n opens the field (the search row types a todo), Enter adds it through the add grammar and closes the field, an empty one is refused, Escape closes", async () => {

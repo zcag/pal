@@ -232,6 +232,10 @@ describe("shell", () => {
     expect(await host.pick("shell", "history", "h:true", "copy_cmd")).toEqual({ copy: "true" });
     expect(await host.pick("shell", "history", "h:true", "remove")).toMatchObject({ keep: true, toast: { title: "Removed" } });
     expect((await host.list("shell", "history", "")).map((r) => r.id)).not.toContain("h:true");
+    // Marked rows (`ctx.ids`): one write for them all, the toast counting them.
+    expect(entries[0].actions!.find((a) => a.id === "remove")).toMatchObject({ multi: true });
+    expect(await host.pick("shell", "history", some[0].id, "remove", { ids: some.map((r) => r.id) })).toMatchObject({ keep: true, toast: { title: "Removed", message: "2 commands" } });
+    expect(await host.list("shell", "history", "sleep")).toEqual([]);
     expect(await host.pick("shell", "history", "clear", "clear")).toMatchObject({ keep: true, toast: { title: "History cleared" } });
     expect(await host.list("shell", "history", "")).toEqual([expect.objectContaining({ id: "hint:empty", actions: [] })]);
   });

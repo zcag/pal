@@ -18,9 +18,10 @@ const FILTERS = [
 ];
 
 const FOCUS: Action = { id: "focus", title: "Focus" };
-const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive" };
-const COPY: Action = { id: "copy-url", title: "Copy URL", shortcut: "cmd+c" };
-const MARKDOWN: Action = { id: "copy-markdown", title: "Copy as markdown link", shortcut: "cmd+shift+c" };
+// Close and the copies work on marked tabs too: one pick with every marked id (`ctx.ids`); the copies put one line per tab.
+const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true };
+const COPY: Action = { id: "copy-url", title: "Copy URL", shortcut: "cmd+c", multi: true };
+const MARKDOWN: Action = { id: "copy-markdown", title: "Copy as markdown link", shortcut: "cmd+shift+c", multi: true };
 const mute = (muted: boolean): Action => ({ id: "mute", title: muted ? "Unmute" : "Mute", shortcut: "cmd+m" });
 
 // ---- rows -------------------------------------------------------------------------
@@ -82,16 +83,19 @@ export default {
       placeholder: "Switch to a tab",
       filters: FILTERS,
       list: (_query, ctx) => list(ctx?.filter),
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         if (id === "hint:automation") return { open: AUTOMATION_URL };
         const t = tabs.known(id);
         if (!t) return { keep: true };
+        // The marked tabs still open, in marking order; just this one on a single pick.
+        const all = (ctx?.ids ?? [id]).map((x) => tabs.known(x)).filter((x): x is NonNullable<typeof x> => !!x);
         switch (action) {
-          case "copy-url": return { copy: t.url };
-          case "copy-markdown": return { copy: `[${t.title || t.url}](${t.url})` };
+          case "copy-url": return { copy: all.map((x) => x.url).join("\n") };
+          case "copy-markdown": return { copy: all.map((x) => `[${x.title || x.url}](${x.url})`).join("\n") };
           case "close":
-            try { await tabs.close(t); } catch (e) { return failed("close the tab", e); }
-            return { keep: true };
+            // One at a time: a browser closing two of its tabs at once over AppleScript or CDP races its own tab list.
+            try { for (const x of all) await tabs.close(x); } catch (e) { return failed(all.length > 1 ? "close the tabs" : "close the tab", e); }
+            return all.length > 1 ? { keep: true, toast: { title: `Closed ${all.length} tabs` } } : { keep: true };
           case "mute":
             try { await tabs.mute(t, !t.media?.muted); } catch (e) { return failed(t.media?.muted ? "unmute the tab" : "mute the tab", e); }
             return { keep: true };

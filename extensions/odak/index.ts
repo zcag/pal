@@ -516,9 +516,10 @@ async function todayAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return redrawBar(ctx);
     }
     case "complete": {
-      if (!cur) return { keep: true };
-      const r = await complete([cur.id]);
-      return r.toast?.style === "failure" ? r : { keep: true, hud: `Done: ${truncate(cur.text, 50)}` };
+      const ids = ctx?.ids ?? (cur ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      const r = await complete(ids);
+      return r.toast?.style === "failure" ? r : { keep: true, hud: ids.length > 1 ? `Done: ${ids.length} todos` : `Done: ${truncate(st.rows.find((x) => x.id === ids[0])?.text ?? cur?.text ?? "", 50)}` };
     }
     case "urgent": {
       if (!cur) return { keep: true };

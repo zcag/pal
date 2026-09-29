@@ -162,6 +162,11 @@ describe("youtube", () => {
     expect(names(rows)).toEqual([jazz.title, lofi.title, "Clear Watch Later"]);
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "play", "copy_url", "channel", "remove"]);
     expect(await host.pick("youtube", "later", lofi.id)).toEqual({ open: `https://www.youtube.com/watch?v=${lofi.id}` });
+    // Marked videos (`ctx.ids`): one write for them all.
+    expect(await host.pick("youtube", "later", lofi.id, "remove", { ids: [lofi.id, jazz.id] })).toMatchObject({ keep: true, toast: { title: "Removed", message: "2 videos" } });
+    expect(names(await host.list("youtube", "later"))).toEqual(["Nothing saved yet"]);
+    await pick(jazz.id, "later");
+    await pick(lofi.id, "later");
     expect(await host.pick("youtube", "later", lofi.id, "remove")).toMatchObject({ keep: true, toast: { title: "Removed" } });
     rows = await host.list("youtube", "later");
     expect(names(rows)).toEqual([jazz.title, "Clear Watch Later"]);

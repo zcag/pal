@@ -257,6 +257,9 @@ describe("google", () => {
     expect(empty[1]).toMatchObject({ section: "Recent searches", complete: "kadıköy" });
     await pick("h:istanbul", "remove");
     expect(ids(await list(""))).toEqual(["hint:type", "h:kadıköy", "h:tarkan konseri", "h:2+2"]);
+    // Marked recent searches (`ctx.ids`) go at once.
+    await host.pick("google", "google", "h:tarkan konseri", "remove", { ids: ["h:tarkan konseri", "h:2+2"] });
+    expect(ids(await list(""))).toEqual(["hint:type", "h:kadıköy"]);
     await pick("h:kadıköy", "clear");
     empty = await list("");
     expect(ids(empty)).toEqual(["hint:type"]);

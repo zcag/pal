@@ -106,18 +106,19 @@ const project = (labels = "") => labels.split(",").find((l) => l.startsWith("com
 const LINES_ARG: Arg = { id: "lines", placeholder: "Log lines", kind: "number", default: String(LOG_LINES) };
 const COMMAND_ARG: Arg = { id: "command", placeholder: "Command for Shell (blank: a shell)" };
 const RUNNING: Action[] = [
-  { id: "stop", title: "Stop", confirm: "Stop this container?" },
+  { id: "stop", title: "Stop", confirm: "Stop this container?", multi: true },
   { id: "logs", title: "Logs", shortcut: "cmd+l", args: true },
   { id: "shell", title: "Shell", shortcut: "cmd+t", args: true },
-  { id: "restart", title: "Restart", shortcut: "cmd+shift+r" },
-  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? It is stopped first; its writable layer is lost." },
-  { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
+  { id: "restart", title: "Restart", shortcut: "cmd+shift+r", multi: true },
+  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? It is stopped first; its writable layer is lost.", multi: true },
+  { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true },
 ];
 const STOPPED: Action[] = [
-  { id: "start", title: "Start" },
+  { id: "start", title: "Start", multi: true },
   { id: "logs", title: "Logs", shortcut: "cmd+l", args: true },
-  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? Its writable layer is lost." },
-  { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
+  // Same wording as a running row's: marked rows mixing the two show the anchor's.
+  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? It is stopped first; its writable layer is lost.", multi: true },
+  { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true },
 ];
 
 function container(r: PsRow): Item {
@@ -168,10 +169,14 @@ async function listContainers(): Promise<Item[]> {
 /** The bar's line count, else the default (a blank field, a pick without values, a value that is not a count). */
 const lineCount = (values?: Record<string, string | boolean>) => { const n = Math.round(Number(values?.lines)); return n > 0 ? n : LOG_LINES; };
 
-async function pickContainer(id: string, action?: string, values?: Record<string, string | boolean>) {
+/** "Removed web" for one, "Removed 3 containers" for several. */
+const what = (ids: string[], noun: string) => (ids.length === 1 ? ids[0]! : `${ids.length} ${noun}s`);
+
+// Stop, start, restart and remove take several ids in one docker call: marked rows (`ctx.ids`) are one run.
+async function pickContainer(id: string, action?: string, values?: Record<string, string | boolean>, ids = [id]) {
   action ??= running.get(id) ? "stop" : "start";
   switch (action) {
-    case "copy-id": return { copy: id };
+    case "copy-id": return { copy: ids.join("\n") };
     case "logs": return logs(`Logs ${id}`, ["logs", "--tail", String(lineCount(values)), id]);
     case "shell": {
       const bin = S().binary || "docker";
@@ -184,13 +189,13 @@ async function pickContainer(id: string, action?: string, values?: Record<string
       return why ? toast("Could not open a terminal", why, "failure") : {};
     }
     case "remove": {
-      const r = await docker(["rm", "-f", id], ACT_MS);
-      return r.pending ? pending(`Removing ${id}`) : r.code === 0 ? { keep: true as const, toast: { title: `Removed ${id}` } } : fail("Could not remove", r);
+      const r = await docker(["rm", "-f", ...ids], ACT_MS);
+      return r.pending ? pending(`Removing ${what(ids, "container")}`) : r.code === 0 ? { keep: true as const, toast: { title: `Removed ${what(ids, "container")}` } } : fail("Could not remove", r);
     }
     case "start": case "stop": case "restart": {
-      const r = await docker([action, id], ACT_MS);
+      const r = await docker([action, ...ids], ACT_MS);
       const done = { start: "Started", stop: "Stopped", restart: "Restarted" }[action];
-      return r.pending ? pending(`${action} ${id}`) : r.code === 0 ? { keep: true as const, toast: { title: `${done} ${id}` } } : fail(`Could not ${action}`, r);
+      return r.pending ? pending(`${action} ${what(ids, "container")}`) : r.code === 0 ? { keep: true as const, toast: { title: `${done} ${what(ids, "container")}` } } : fail(`Could not ${action}`, r);
     }
   }
   return { keep: true as const };
@@ -202,8 +207,8 @@ type ImageRow = { ID: string; Repository: string; Tag: string; Size: string; Cre
 
 const IMAGE_ACTIONS: Action[] = [
   { id: "run", title: "Run" },
-  { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
-  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this image? A container still using it keeps docker from removing it." },
+  { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true },
+  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this image? A container still using it keeps docker from removing it.", multi: true },
 ];
 /** Run's arguments, typed in the bar: both optional (docker picks a name, no port published), so Enter with them blank runs the image bare. */
 const RUN_ARGS: Arg[] = [
@@ -238,9 +243,9 @@ async function listImages(): Promise<Item[]> {
 /** The bar's fields as a page: what a pick without values (a hotkey, `pal run`) answers, and what a bad port comes back on. */
 const runForm = (image: string, errors?: Record<string, string>) => ({ form: { ...argsForm(RUN_ARGS, `Run ${image}`, { id: "run", title: "Run" }, errors), id: image } });
 
-async function pickImage(id: string, action = "run", values?: Record<string, string | boolean>) {
+async function pickImage(id: string, action = "run", values?: Record<string, string | boolean>, ids = [id]) {
   switch (action) {
-    case "copy-id": return { copy: id };
+    case "copy-id": return { copy: ids.join("\n") };
     case "run": {
       if (!values) return runForm(id);
       const name = String(values.name ?? "").trim();
@@ -251,8 +256,8 @@ async function pickImage(id: string, action = "run", values?: Record<string, str
       return r.pending ? pending(`docker run ${id}`) : r.code === 0 ? { keep: true as const, toast: { title: `Started ${name || r.out.trim().slice(0, 12)}`, message: `from ${id}` } } : fail("Could not run", r);
     }
     case "remove": {
-      const r = await docker(["rmi", id], ACT_MS);
-      return r.pending ? pending(`Removing ${id}`) : r.code === 0 ? { keep: true as const, toast: { title: `Removed ${id}` } } : fail("Could not remove", r);
+      const r = await docker(["rmi", ...ids], ACT_MS);
+      return r.pending ? pending(`Removing ${what(ids, "image")}`) : r.code === 0 ? { keep: true as const, toast: { title: `Removed ${what(ids, "image")}` } } : fail("Could not remove", r);
     }
   }
   return { keep: true as const };
@@ -323,7 +328,7 @@ export default {
       ttl: TTL,
       placeholder: "Search containers",
       list: listContainers,
-      pick: (id, action, ctx) => pickContainer(id, action, ctx?.values),
+      pick: (id, action, ctx) => pickContainer(id, action, ctx?.values, ctx?.ids),
     },
     images: {
       title: "Docker Images",
@@ -331,7 +336,7 @@ export default {
       ttl: TTL,
       placeholder: "Search images",
       list: listImages,
-      pick: (id, action, ctx) => pickImage(id, action, ctx?.values),
+      pick: (id, action, ctx) => pickImage(id, action, ctx?.values, ctx?.ids),
     },
     compose: {
       title: "Compose Projects",

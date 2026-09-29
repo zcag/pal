@@ -89,6 +89,20 @@ describe("docker", () => {
     expect(called().at(-1)).toBe("restart aa11bb22cc33");
   });
 
+  test("marked containers and images: stop, start, restart, remove and copy id in one docker call over every id, the toast counting them", async () => {
+    const items = await list();
+    for (const i of items) expect(i.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(i.id === "aa11bb22cc33" ? ["start", "remove", "copy-id"] : ["stop", "restart", "remove", "copy-id"]);
+    const marked = (id: string, action: string, ids: string[], palette = "docker") => host.pick("docker", palette, id, action, { ids });
+    expect(await marked("b5d74103f8fe", "restart", ["b5d74103f8fe", "dd44ee55ff66"])).toEqual({ keep: true, toast: { title: "Restarted 2 containers" } });
+    expect(called().at(-1)).toBe("restart b5d74103f8fe dd44ee55ff66");
+    expect(await marked("b5d74103f8fe", "remove", ["b5d74103f8fe", "aa11bb22cc33"])).toEqual({ keep: true, toast: { title: "Removed 2 containers" } });
+    expect(called().at(-1)).toBe("rm -f b5d74103f8fe aa11bb22cc33");
+    expect(await marked("b5d74103f8fe", "copy-id", ["b5d74103f8fe", "aa11bb22cc33"])).toEqual({ copy: "b5d74103f8fe\naa11bb22cc33" });
+    expect((await list("images"))[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy-id", "remove"]);
+    expect(await marked("0123456789ab", "remove", ["0123456789ab", "127.0.0.1:5000/tela-backend:latest"], "images")).toEqual({ keep: true, toast: { title: "Removed 2 images" } });
+    expect(called().at(-1)).toBe("rmi 0123456789ab 127.0.0.1:5000/tela-backend:latest");
+  });
+
   test("a failed command is a failure toast with docker's last stderr line", async () => {
     expect(await pick("aa11bb22cc33", "stop")).toEqual({ keep: true, toast: { title: "Could not stop", message: "no such container", style: "failure" } });
   });

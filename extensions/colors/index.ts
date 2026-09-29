@@ -211,7 +211,7 @@ export default {
       live: true,
       list: async () => historyRows(await load(), current(), Date.now()),
       actions: HISTORY_ACTIONS,
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         if (id === PICK_ROW) return action === "open" ? { push: PICKER } : sampleThen("copy");
         const s = current();
         const before = await load();
@@ -220,7 +220,8 @@ export default {
         switch (action) {
           case "copy": return { copy: write(c, s) };
           case "hex": return { copy: write(c, s, "hex") };
-          case "delete": await save(before, { ...before, history: before.history.filter((e) => e.c !== id) }); return { keep: true };
+          // Marked colours (`ctx.ids`) go in one write.
+          case "delete": { const gone = new Set(ctx?.ids ?? [id]); await save(before, { ...before, history: before.history.filter((e) => !gone.has(e.c)) }); return { keep: true }; }
           case "clear": await save(before, apply(before, { kind: "clear" }, s.history_size)); return { keep: true };
           default: return { push: { extension: NAME, palette: "picker", args: { color: id, from: "history" } } };
         }

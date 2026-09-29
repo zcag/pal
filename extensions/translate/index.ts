@@ -37,7 +37,7 @@ const SPEAK: Action = { id: "speak", title: "Speak", shortcut: "cmd+shift+s" };
 const COPY_SOURCE: Action = { id: "copy_source", title: "Copy the source text", shortcut: "cmd+shift+c" };
 const OPEN_WEB: Action = { id: "open", title: "Open in Google Translate", shortcut: "cmd+o" };
 const AGAIN: Action = { id: "again", title: "Translate again", shortcut: "cmd+t" };
-const REMOVE: Action = { id: "remove", title: "Remove from history", shortcut: "cmd+d", style: "destructive" };
+const REMOVE: Action = { id: "remove", title: "Remove from history", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear history", style: "destructive", confirm: "Forget every translation in the history?" };
 
 /** Keystrokes settle for this long before a request goes out. */
@@ -214,7 +214,7 @@ async function historyRows(): Promise<Item[]> {
   return rows;
 }
 
-async function historyPick(id: string, action?: string): Promise<Effect> {
+async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id === "clear") { await storage.remove("history"); return toast("History cleared"); }
   const list = await history();
   const e = list.find((x) => historyId(x) === id);
@@ -224,7 +224,13 @@ async function historyPick(id: string, action?: string): Promise<Effect> {
     case "speak": return (await speak(e.result, e.to)) ? toast("Speaking", short(e.result, 60)) : toast("Nothing can speak here", "Install spd-say or espeak", "failure");
     case "again": return { push: { extension: "translate", palette: "translate", query: `${e.from === "auto" ? "" : e.from}>${e.to} ${e.text}` } };
     case "copy_source": return { copy: e.text };
-    case "remove": await storage.set("history", list.filter((x) => historyId(x) !== id)); return toast("Removed", short(e.result, 60));
+    case "remove": {
+      // Marked rows (`ctx.ids`) go in one write.
+      const gone = new Set(ctx?.ids ?? [id]);
+      const kept = list.filter((x) => !gone.has(historyId(x))), n = list.length - kept.length;
+      await storage.set("history", kept);
+      return toast("Removed", n > 1 ? `${n} translations` : short(e.result, 60));
+    }
     default: return { copy: e.result };
   }
 }

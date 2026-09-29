@@ -195,6 +195,8 @@ describe("browser-tabs", () => {
     expect(await pick("cdp:T2", "copy-url")).toEqual({ copy: "https://github.com/zcag/pal" });
     expect(await pick("cdp:T2", "copy-markdown")).toEqual({ copy: "[GitHub](https://github.com/zcag/pal)" });
     expect(await pick("ff:1:1", "copy-markdown")).toEqual({ copy: "[MDN](https://developer.mozilla.org/)" });
+    // Marked tabs: a line each, in marking order.
+    expect(await host.pick("browser-tabs", "tabs", "cdp:T2", "copy-markdown", { ids: ["cdp:T2", "ff:1:1"] })).toEqual({ copy: "[GitHub](https://github.com/zcag/pal)\n[MDN](https://developer.mozilla.org/)" });
   });
 
   test("focus over DevTools: activate, bring to front, then the focus effect on the browser's window from windows.list", async () => {
@@ -212,6 +214,11 @@ describe("browser-tabs", () => {
     http.length = 0;
     expect(await pick("cdp:T3", "close")).toEqual({ keep: true });
     expect(http).toEqual(["/json/close/T3"]);
+    // Marked tabs close one after the other, and the toast counts them.
+    http.length = 0;
+    expect(await host.pick("browser-tabs", "tabs", "cdp:T2", "close", { ids: ["cdp:T2", "cdp:T4"] })).toEqual({ keep: true, toast: { title: "Closed 2 tabs" } });
+    expect(http).toEqual(["/json/close/T2", "/json/close/T4"]);
+    await list();
     const n = ws.length;
     expect(await pick("cdp:T1", "mute")).toEqual({ keep: true });
     expect(await pick("cdp:T4", "mute")).toEqual({ keep: true });

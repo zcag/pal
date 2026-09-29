@@ -6,7 +6,7 @@
 // on Linux a .desktop file's own actions ("New Private Window") are the
 // row's secondary actions.
 import { readdir } from "node:fs/promises";
-import { exec, failed, home, run, settings, terminal, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { exec, failed, home, run, settings, terminal, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { execArgv, parseDesktop, splitList, type DesktopAction } from "./desktop.ts";
 
 /** `[extensions.apps]`, defaults in pal.json. */
@@ -27,7 +27,7 @@ const MAC_ROOTS: [string, string][] = [
 ];
 
 const OPEN: Action = { id: "open", title: "Open" };
-const QUIT: Action = { id: "quit", title: "Quit", shortcut: "cmd+q" };
+const QUIT: Action = { id: "quit", title: "Quit", shortcut: "cmd+q", multi: true };
 const HIDE: Action = { id: "hide", title: "Hide", shortcut: "cmd+h" };
 const REVEAL: Action = { id: "reveal", title: "Reveal in Finder", shortcut: "cmd+shift+r" };
 const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+c" };
@@ -171,7 +171,22 @@ async function quitMac(path: string, pids: number[]) {
 
 const hideMac = (pid: number) => run(["osascript", "-e", `tell application "System Events" to set visible of (first process whose unix id is ${pid}) to false`], { ms: OSASCRIPT_MS });
 
-async function pickMac(id: string, action?: string) {
+/** Quit every marked app that is running (`ctx.ids`); the ones that are not are skipped, and the toast counts what was quit. */
+async function quitMany(ids: string[]) {
+  if (!ids.every((id) => macApps.has(id))) await apps();
+  const running = await runningPids();
+  const up = ids.filter((id) => running.get(id)?.length);
+  if (!up.length) return { keep: true as const, toast: { title: "None of them is running" } };
+  const failures: string[] = [];
+  await Promise.all(up.map((id) => quitMac(id, running.get(id)!).catch(() => { failures.push(macApps.get(id)?.name ?? id); })));
+  cache = undefined;
+  if (failures.length) return { keep: true as const, toast: { title: `Could not quit ${failures.join(", ")}`, style: "failure" as const } };
+  return { keep: true as const, toast: { title: up.length === 1 ? `Quit ${macApps.get(up[0]!)?.name ?? up[0]}` : `Quit ${up.length} apps` } };
+}
+
+async function pickMac(id: string, action?: string, ctx?: Ctx) {
+  const ids = ctx?.ids ?? [id];
+  if (action === "quit" && ids.length > 1) return quitMany(ids);
   if (id.startsWith(PANE)) return action === "copy-url" ? { copy: paneUrl(id.slice(PANE.length)) } : { open: paneUrl(id.slice(PANE.length)) };
   // A pick on a row restored from the persisted index, before this run has listed.
   if (!macApps.has(id)) await apps();
@@ -348,7 +363,7 @@ export default {
       // The Linux rows carry their own (a .desktop file's actions differ per app).
       ...(!LINUX && { actions: MAC_ACTIONS }),
       list: (_query, ctx) => apps(ctx?.refresh),
-      pick: (id, action) => (LINUX ? pickLinux(id, action) : pickMac(id, action)),
+      pick: (id, action, ctx) => (LINUX ? pickLinux(id, action) : pickMac(id, action, ctx)),
       detail: (id) => (LINUX ? detailLinux(id) : detailMac(id)),
     },
   },

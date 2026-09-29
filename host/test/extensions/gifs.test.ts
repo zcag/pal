@@ -151,6 +151,12 @@ describe("gifs", () => {
     expect(await host.pick("gifs", "favourites", rows[1].id, "unfav")).toMatchObject({ keep: true, toast: { title: "Removed" } });
     rows = await host.list("gifs", "favourites");
     expect(names(rows)).toEqual(["Happy Dance", "Clear favourites"]);
+    // Marked tiles (`ctx.ids`): the count is what was there to remove.
+    expect(rows[0].actions!.find((a) => a.id === "unfav")).toMatchObject({ multi: true });
+    await pick(dance.id, "fav");
+    expect(await host.pick("gifs", "favourites", rows[0].id, "unfav", { ids: [rows[0].id, "giphy:gone"] })).toMatchObject({ keep: true, toast: { title: "Removed", message: "Happy Dance" } });
+    expect(names(await host.list("gifs", "favourites"))).toEqual(["No favourites yet"]);
+    await pick(dance.id, "fav");
     expect(await host.pick("gifs", "favourites", "clear", "clear")).toMatchObject({ keep: true, toast: { title: "Favourites cleared" } });
     expect(await host.list("gifs", "favourites")).toEqual([expect.objectContaining({ id: "hint:empty", name: "No favourites yet", actions: [] })]);
   });

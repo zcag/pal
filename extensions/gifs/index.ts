@@ -33,7 +33,7 @@ const COPY_URL: Action = { id: "copy_url", title: "Copy URL" };
 const OPEN: Action = { id: "open", title: "Open in browser", shortcut: "cmd+o" };
 const SAVE: Action = { id: "save", title: "Save to Downloads", shortcut: "cmd+s" };
 const FAV: Action = { id: "fav", title: "Add to favourites", shortcut: "cmd+f" };
-const UNFAV: Action = { id: "unfav", title: "Remove from favourites", shortcut: "cmd+d", style: "destructive" };
+const UNFAV: Action = { id: "unfav", title: "Remove from favourites", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear favourites", style: "destructive", confirm: "Forget every favourite GIF?" };
 
 const DEBOUNCE_MS = 300;
@@ -203,13 +203,16 @@ async function favRows(): Promise<Item[]> {
   return rows;
 }
 
-async function favPick(id: string, action?: string): Promise<Effect> {
+async function favPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id === "clear") { await storage.remove(FAVS); return toast("Favourites cleared"); }
   const g = held.get(id) ?? (await favourites()).find((f) => f.id === id);
   if (!g) return toast("GIF is gone", undefined, "failure");
   if (action === "unfav") {
-    await storage.set(FAVS, (await favourites()).filter((f) => f.id !== id));
-    return toast("Removed", g.title);
+    // Marked tiles (`ctx.ids`) go in one write.
+    const gone = new Set(ctx?.ids ?? [id]);
+    const all = await favourites(), kept = all.filter((f) => !gone.has(f.id)), n = all.length - kept.length;
+    await storage.set(FAVS, kept);
+    return toast("Removed", n > 1 ? `${n} GIFs` : g.title);
   }
   return act(g, action);
 }

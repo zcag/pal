@@ -66,7 +66,7 @@ export const HISTORY_ACTIONS: Action[] = [
   { id: "open", title: "Open in Picker" },
   { id: "copy", title: "Copy" },
   { id: "hex", title: "Copy hex", shortcut: "cmd+shift+c" },
-  { id: "delete", title: "Remove from History", shortcut: "cmd+d", style: "destructive" },
+  { id: "delete", title: "Remove from History", shortcut: "cmd+d", style: "destructive", multi: true },
   { id: "clear", title: "Clear History", shortcut: "cmd+shift+d", style: "destructive", confirm: "Clear the colour history? Every picked and copied colour is forgotten." },
 ];
 const FROM: Record<Source, string> = { screen: "picked from the screen", typed: "typed", set: "from a set", picker: "from the picker", convert: "converted", history: "from history" };

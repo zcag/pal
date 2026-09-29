@@ -31,7 +31,7 @@ const GLYPH = {
 const RUN: Action = { id: "run", title: "Run" };
 const TERMINAL: Action = { id: "terminal", title: "Run in terminal" };
 const COPY_CMD: Action = { id: "copy_cmd", title: "Copy command", shortcut: "cmd+c" };
-const REMOVE: Action = { id: "remove", title: "Remove from history", shortcut: "cmd+d", style: "destructive" };
+const REMOVE: Action = { id: "remove", title: "Remove from history", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear history", style: "destructive", confirm: "Forget every command in the history?" };
 
 /** How much of the output the view draws (the clipboard gets it all, up to run.ts's cap). */
@@ -206,7 +206,7 @@ async function historyRows(query = ""): Promise<Item[]> {
   return rows;
 }
 
-async function historyPick(id: string, action?: string): Promise<Effect> {
+async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id === VIEW_ID) return pick(id, action);
   if (id === "clear") { await storage.remove("history"); return { keep: true, toast: { title: "History cleared" } }; }
   if (!id.startsWith("h:")) return { keep: true, toast: { title: "Not a command", style: "failure" } };
@@ -214,7 +214,13 @@ async function historyPick(id: string, action?: string): Promise<Effect> {
   switch (action) {
     case "terminal": return openTerminal(cmd);
     case "copy_cmd": return { copy: cmd };
-    case "remove": await storage.set("history", (await history()).filter((e) => e.cmd !== cmd)); return { keep: true, toast: { title: "Removed", message: short(cmd, 60) } };
+    case "remove": {
+      // Marked rows (`ctx.ids`) go in one write.
+      const gone = new Set((ctx?.ids ?? [id]).filter((x) => x.startsWith("h:")).map((x) => x.slice(2)));
+      const all = await history(), kept = all.filter((e) => !gone.has(e.cmd)), n = all.length - kept.length;
+      await storage.set("history", kept);
+      return { keep: true, toast: { title: "Removed", message: n > 1 ? `${n} commands` : short(cmd, 60) } };
+    }
     default: return answer(start(cmd, "history"));
   }
 }

@@ -241,7 +241,10 @@ describe("speedtest", () => {
     expect(await host.pick("speedtest", "history", rows[3].id)).toEqual({ copy: "↓ 93.2 Mbps · ↑ 29.6 Mbps · ping 12.4 ms (jitter 1.0 ms) · Example Net, Istanbul · Turk Telekom" });
     expect(await host.pick("speedtest", "history", rows[3].id, "open")).toEqual({ open: "https://www.speedtest.net/result/c/d5ac8c40" });
     expect(await host.pick("speedtest", "history", rows[3].id, "remove")).toMatchObject({ keep: true, toast: { title: "Removed" } });
-    expect((await host.list("speedtest", "history")).length).toBe(4);
+    const left = await host.list("speedtest", "history");
+    expect(left.length).toBe(4);
+    // Marked runs (`ctx.ids`): one write, counted.
+    expect(await host.pick("speedtest", "history", left[1].id, "remove", { ids: [left[1].id, left[2].id] })).toMatchObject({ keep: true, toast: { title: "Removed", message: "2 runs" } });
     expect(await host.pick("speedtest", "history", "clear", "clear")).toMatchObject({ keep: true, toast: { title: "History cleared" } });
     expect(await host.list("speedtest", "history")).toEqual([expect.objectContaining({ id: "hint:empty", actions: [] })]);
   });

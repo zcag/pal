@@ -29,7 +29,7 @@ const HERE: Action = { id: "here", title: "Open in Google Search", shortcut: "cm
 const BACKGROUND: Action = { id: "background", title: "Search in the background", shortcut: "cmd+b" };
 const COPY: Action = { id: "copy", title: "Copy text", shortcut: "cmd+c" };
 const COPY_SEARCH: Action = { id: "copy_link", title: "Copy search link", shortcut: "cmd+l" };
-const REMOVE: Action = { id: "remove", title: "Remove from recent searches", shortcut: "ctrl+x", style: "destructive" };
+const REMOVE: Action = { id: "remove", title: "Remove from recent searches", shortcut: "ctrl+x", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear recent searches", style: "destructive", confirm: "Forget every recent search?" };
 const OPEN: Action = { id: "open", title: "Open" };
 const OPEN_BG: Action = { id: "background", title: "Open in the background", shortcut: "cmd+enter" };
@@ -255,7 +255,7 @@ async function detail(id: string): Promise<Detail> {
 
 const resultsLevel = (q: string): Effect => ({ push: { extension: EXT, palette: PALETTE, args: { results: q }, title: q } });
 
-async function pick(id: string, action?: string): Promise<Effect | void> {
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   const s = S();
   const { kind, text } = parse(id);
   if (kind === "r") {
@@ -278,7 +278,12 @@ async function pick(id: string, action?: string): Promise<Effect | void> {
     case "copy": return { copy: text };
     case "copy_link": return { copy: searchUrl(text, s) };
     case "here": return { push: { extension: EXT, palette: PALETTE, query: text } };
-    case "remove": await storage.set(HISTORY_KEY, (await recent()).filter((x) => x !== text)); return { keep: true };
+    case "remove": {
+      // Marked recent searches (`ctx.ids`) go in one write.
+      const gone = new Set((ctx?.ids ?? [id]).map(parse).filter((p) => p.kind === "h").map((p) => p.text));
+      await storage.set(HISTORY_KEY, (await recent()).filter((x) => !gone.has(x)));
+      return { keep: true };
+    }
     case "clear": await storage.set(HISTORY_KEY, []); return { keep: true };
     case "results": await keep(text); return resultsLevel(text);
     case "background": await keep(text); return openUrl(searchUrl(text, s), { app, background: true });

@@ -33,7 +33,7 @@ const PLAY: Action = { id: "play", title: "Play in player" };
 const COPY_URL: Action = { id: "copy_url", title: "Copy URL", shortcut: "cmd+c" };
 const LATER: Action = { id: "later", title: "Watch later", shortcut: "cmd+s" };
 const CHANNEL: Action = { id: "channel", title: "Open the channel", shortcut: "cmd+shift+o" };
-const REMOVE: Action = { id: "remove", title: "Remove from Watch Later", shortcut: "cmd+d", style: "destructive" };
+const REMOVE: Action = { id: "remove", title: "Remove from Watch Later", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear Watch Later", style: "destructive", confirm: "Forget every saved video?" };
 
 const DEBOUNCE_MS = 400;
@@ -229,8 +229,15 @@ async function laterRows(): Promise<Item[]> {
   return rows;
 }
 
-async function laterPick(id: string, action?: string): Promise<Effect> {
+async function laterPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id === "clear") { await storage.remove(LATER_KEY); return toast("Watch Later cleared"); }
+  // Marked videos (`ctx.ids`) go in one write.
+  if (action === "remove" && (ctx?.ids?.length ?? 0) > 1) {
+    const gone = new Set(ctx!.ids);
+    const all = await later(), kept = all.filter((x) => !gone.has(x.id)), n = all.length - kept.length;
+    await storage.set(LATER_KEY, kept);
+    return toast("Removed", n === 1 ? all.find((x) => gone.has(x.id))!.title : `${n} videos`);
+  }
   return pick(id, action);
 }
 

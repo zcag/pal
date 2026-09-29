@@ -150,8 +150,10 @@ describe.skipIf(!mac)("apps", () => {
     expect(pane.metadata![0]).toEqual({ label: "Opens", value: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension" });
   });
 
-  test("quit: an unregistered bundle id falls back to SIGTERM; the next list has no tag; quit again says it is not running", async () => {
-    expect(await pick(fakeApp, "quit")).toEqual({ keep: true });
+  test("quit: an unregistered bundle id falls back to SIGTERM; the next list has no tag; quit again says it is not running; several marked quit the running ones", async () => {
+    expect(host.loaded().find((l) => l.extension === "apps")!.palettes[0].actions!.find((a) => a.id === "quit")).toMatchObject({ multi: true });
+    // Marked rows: the running one quits, the one that is not is skipped, and the toast names what quit.
+    expect(await host.pick("apps", "apps", fakeApp, "quit", { ids: [fakeApp, "/Applications/Pal Not There.app"] })).toEqual({ keep: true, toast: { title: "Quit Pal Fake" } });
     await child!.exited;
     expect(child!.signalCode).toBe("SIGTERM");
     const fake = (await list()).find((i) => i.id === fakeApp)!;
@@ -159,6 +161,7 @@ describe.skipIf(!mac)("apps", () => {
     expect(fake.actions).toBeUndefined();
     expect(await pick(fakeApp, "quit")).toEqual({ keep: true, toast: { title: "Pal Fake is not running" } });
     expect(await pick(fakeApp, "hide")).toEqual({ keep: true, toast: { title: "Pal Fake is not running" } });
+    expect(await host.pick("apps", "apps", fakeApp, "quit", { ids: [fakeApp, "/Applications/Pal Not There.app"] })).toEqual({ keep: true, toast: { title: "None of them is running" } });
   });
 
   test("a folders change drops the cache and the extra folder's apps show up", async () => {

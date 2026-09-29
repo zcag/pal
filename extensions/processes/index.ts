@@ -27,10 +27,11 @@ const MAC = process.platform === "darwin";
 /** md-memory for a process without an app bundle and the palette; md-alert_circle_outline for the hint row. */
 const ICON = "\u{f035b}";
 const HINT_ICON = "\u{f05d6}";
+// Kill, force kill and copy PID work on marked rows too (`ctx.ids`).
 const ACTIONS: Action[] = [
-  { id: "kill", title: "Kill", style: "destructive", confirm: "Send SIGTERM?" },
-  { id: "force-kill", title: "Force kill", shortcut: "cmd+shift+k", style: "destructive", confirm: "Send SIGKILL? The process gets no chance to clean up." },
-  { id: "copy-pid", title: "Copy PID", shortcut: "cmd+c" },
+  { id: "kill", title: "Kill", style: "destructive", confirm: "Send SIGTERM?", multi: true },
+  { id: "force-kill", title: "Force kill", shortcut: "cmd+shift+k", style: "destructive", confirm: "Send SIGKILL? The process gets no chance to clean up.", multi: true },
+  { id: "copy-pid", title: "Copy PID", shortcut: "cmd+c", multi: true },
   ...(MAC ? [{ id: "activity-monitor", title: "Open in Activity Monitor", shortcut: "cmd+o" }] : []),
 ];
 /** `ss` where it is (Linux), else `lsof` (macOS ships it); neither is a hint row. */
@@ -118,17 +119,21 @@ export default {
       filters: FILTERS,
       list: (query, ctx) => list(query, ctx?.filter),
       detail,
-      pick: (id, action) => {
-        // A listener row's id is `pid:port`.
-        const pid = Number(id.split(":")[0]);
-        if (action === "copy-pid") return { copy: String(pid) };
+      pick: (id, action, ctx) => {
+        // A listener row's id is `pid:port`; two listeners of one process are one pid.
+        const pidOf = (x: string) => Number(x.split(":")[0]);
+        const pid = pidOf(id);
+        const pids = [...new Set((ctx?.ids ?? [id]).map(pidOf))];
+        if (action === "copy-pid") return { copy: pids.join("\n") };
         if (action === "activity-monitor") { activityMonitor(pid); return { hide: true }; }
-        try {
-          process.kill(pid, action === "force-kill" ? "SIGKILL" : "SIGTERM");
-        } catch (e) {
-          return failed(`kill ${id}`, e);
+        // Every pid gets its signal even when one fails (gone already, not ours); the failures are named after.
+        const bad: string[] = [];
+        let first: unknown;
+        for (const p of pids) {
+          try { process.kill(p, action === "force-kill" ? "SIGKILL" : "SIGTERM"); } catch (e) { bad.push(String(p)); first ??= e; }
         }
-        return { keep: true };
+        if (bad.length) return failed(`kill ${pids.length > 1 ? bad.join(", ") : id}`, first);
+        return pids.length > 1 ? { keep: true, toast: { title: `Killed ${pids.length} processes` } } : { keep: true };
       },
     },
   },

@@ -468,6 +468,11 @@ describe("colors over the wire", () => {
     expect(await host.pick("colors", "history", "#663399", "copy")).toEqual({ copy: "#663399" });
     expect(await host.pick("colors", "history", "#0000ff", "delete")).toEqual({ keep: true });
     expect((await host.list("colors", "history")).map((i) => i.id)).not.toContain("#0000ff");
+    // Marked colours (`ctx.ids`) go in one write.
+    const tint = toHex(tints(orange)[1]);
+    expect(await host.pick("colors", "history", tint, "delete", { ids: [tint, "#663399"] })).toEqual({ keep: true });
+    expect((await host.list("colors", "history")).map((i) => i.id)).not.toContain(tint);
+    expect((await host.list("colors", "history")).map((i) => i.id)).not.toContain("#663399");
     expect(await host.pick("colors", "history", "nope", "delete")).toMatchObject({ toast: { title: "Unknown colour" } });
     expect(await host.pick("colors", "history", "#663399", "clear")).toEqual({ keep: true });
     expect(await host.list("colors", "history")).toHaveLength(1);

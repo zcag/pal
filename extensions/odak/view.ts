@@ -49,7 +49,7 @@ function rowNode(r: BarRow, focused: boolean): ViewNode {
       column([text(r.text, { size: "md", weight: "semibold", width: TEXT_W }), text(sub, { size: "xs", color: "muted", width: TEXT_W })], { key: "t", gap: 0 }),
       text(r.due?.text ?? "", { size: "xs", color: r.due ? dueColor(r.due) : "faint", width: DUE_W, align: "end" }),
     ],
-    { key: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, mark: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -67,7 +67,8 @@ export function actions(st: BarState): Action[] {
   const acts: Action[] = [];
   if (st.field) acts.push({ id: "add", title: `Add to ${st.section}` });
   if (cur) {
-    acts.push({ id: "complete", title: "Complete", shortcut: "x" });
+    // Enter and x complete every marked row when the shell has some marked (`mark` on the rows, `ctx.ids`).
+    acts.push({ id: "complete", title: "Complete", shortcut: "x", multi: true });
     acts.push({ id: "urgent", title: cur.urgent ? "Not urgent" : "Mark urgent", shortcut: "u" });
     acts.push({ id: "tomorrow", title: "Snooze to tomorrow", shortcut: "t" });
   }

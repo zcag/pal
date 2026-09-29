@@ -289,7 +289,11 @@ describe("translate", () => {
     expect(await host.pick("translate", "history", id, "copy_source")).toEqual({ copy: "hello world" });
     expect(await host.pick("translate", "history", id, "again")).toEqual({ push: { extension: "translate", palette: "translate", query: "en>tr hello world" } });
     expect(await host.pick("translate", "history", id, "remove")).toMatchObject({ keep: true, toast: { title: "Removed" } });
-    expect((await host.list("translate", "history")).map((r) => r.name)).toEqual(["こんにちは", "merhaba dünya", "Clear history"]);
+    const left = await host.list("translate", "history");
+    expect(left.map((r) => r.name)).toEqual(["こんにちは", "merhaba dünya", "Clear history"]);
+    // Marked rows (`ctx.ids`): one write for them all.
+    expect(entries[0].actions!.find((a) => a.id === "remove")).toMatchObject({ multi: true });
+    expect(await host.pick("translate", "history", left[0].id, "remove", { ids: [left[0].id, left[1].id] })).toMatchObject({ keep: true, toast: { title: "Removed", message: "2 translations" } });
     expect(await host.pick("translate", "history", "clear", "clear")).toMatchObject({ keep: true, toast: { title: "History cleared" } });
     const empty = await host.list("translate", "history");
     expect(empty).toEqual([expect.objectContaining({ id: "hint:empty", name: "Nothing translated yet", actions: [] })]);

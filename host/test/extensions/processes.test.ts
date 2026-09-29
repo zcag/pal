@@ -146,4 +146,19 @@ describe("processes", () => {
     // A pid nothing has: a failure toast, palette kept.
     expect(await pick("999999999", "kill")).toMatchObject({ keep: true, toast: { style: "failure" } });
   });
+
+  test("marked rows: one kill signals every pid (a listener's pid:port counts once), copy PID a line each; a gone one is named, the rest still die", async () => {
+    const a = Bun.spawn(["sleep", "60"]), b = Bun.spawn(["sleep", "60"]);
+    const marked = (action: string, ids: string[]) => host.pick("processes", "processes", ids[0]!, action, { ids });
+    expect(await marked("copy-pid", [`${a.pid}:8080`, String(a.pid), String(b.pid)])).toEqual({ copy: `${a.pid}\n${b.pid}` });
+    expect(await marked("kill", [String(a.pid), String(b.pid)])).toEqual({ keep: true, toast: { title: "Killed 2 processes" } });
+    await Promise.all([a.exited, b.exited]);
+    expect([a.signalCode, b.signalCode]).toEqual(["SIGTERM", "SIGTERM"]);
+    const c = Bun.spawn(["sleep", "60"]);
+    const r = await marked("force-kill", ["999999999", String(c.pid)]);
+    expect(r).toMatchObject({ keep: true, toast: { style: "failure" } });
+    expect(JSON.stringify(r)).toContain("999999999");
+    await c.exited;
+    expect(c.signalCode).toBe("SIGKILL");
+  });
 });

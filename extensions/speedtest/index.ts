@@ -7,7 +7,7 @@
 // tool's output). Enter while it runs stops it. A finished run is one line
 // on the clipboard (cmd+Enter) and lands in the History palette (storage),
 // whose first row draws the last runs as bars.
-import { clock, hint, isoDay, now as clockNow, settings, storage, toast, view as viewApi, when, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { clock, hint, isoDay, now as clockNow, settings, storage, toast, view as viewApi, when, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { argv, detect, feed, finish, ms, speed, start, summary, TITLE, type Run, type Tool, type ToolId, noteLine } from "./tools.ts";
 import { type Live, runId, running, spec, trend, VIEW_ID } from "./view.ts";
 
@@ -131,13 +131,13 @@ async function historyRows(): Promise<Item[]> {
   for (const r of list) out.push({
     id: runId(r), name: `↓ ${speed(r.download)} Mbps  ↑ ${speed(r.upload)} Mbps  ·  ${ms(r.ping)}`, subtitle: [r.server, r.isp, TITLE[r.tool]].filter(Boolean).join(" · "), icon: GLYPH.gauge, accessories: [{ date: r.startedAt }],
     detail: { markdown: `**${summary(r)}**`, metadata: [{ label: "When", value: when(r.startedAt) }, { label: "Tool", value: TITLE[r.tool] }, ...(r.ip ? [{ label: "IP", value: r.ip }] : []), ...(r.url ? [{ label: "Result", link: { text: r.url.replace(/^https?:\/\//, ""), href: r.url } }] : [])] },
-    actions: [{ id: "copy", title: "Copy result" }, ...(r.url ? [{ id: "open", title: "Open the result page", shortcut: "cmd+o" }] : []), { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive" }],
+    actions: [{ id: "copy", title: "Copy result" }, ...(r.url ? [{ id: "open", title: "Open the result page", shortcut: "cmd+o" }] : []), { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", multi: true }],
   });
   out.push({ id: "clear", name: "Clear history", subtitle: `${list.length} ${list.length === 1 ? "run" : "runs"}`, icon: GLYPH.broom, actions: [{ id: "clear", title: "Clear history", style: "destructive", confirm: "Forget every run?" }] });
   return out;
 }
 
-async function historyPick(id: string, action?: string): Promise<Effect> {
+async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const list = await runs();
   if (id === "trend" || action === "copy_all") return action === "copy_all" ? { copy: list.map((r) => `${isoDay(r.startedAt)} ${clock(r.startedAt)}  ${summary(r)}`).join("\n") } : { view: trend(list) };
   if (id === "clear") { await storage.remove(RUNS); return toast("History cleared"); }
@@ -145,7 +145,13 @@ async function historyPick(id: string, action?: string): Promise<Effect> {
   if (!r) return toast("Run is gone", undefined, "failure");
   switch (action) {
     case "open": return r.url ? { open: r.url } : { keep: true };
-    case "remove": await storage.set(RUNS, list.filter((x) => x !== r)); return toast("Removed");
+    case "remove": {
+      // Marked runs (`ctx.ids`) go in one write.
+      const gone = new Set(ctx?.ids ?? [id]);
+      const kept = list.filter((x) => !gone.has(runId(x))), n = list.length - kept.length;
+      await storage.set(RUNS, kept);
+      return toast("Removed", n > 1 ? `${n} runs` : undefined);
+    }
     default: return { copy: summary(r) };
   }
 }
