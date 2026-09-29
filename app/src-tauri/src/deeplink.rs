@@ -261,8 +261,8 @@ pub const ROUTES: &[Spec] = &[
             Ok(Route::Install { spec })
         },
     },
-    Spec { pattern: "update", doc: "fetch every installed extension with a source again", build: |_| Ok(Route::Update { name: None }) },
-    Spec { pattern: "update/{name}", doc: "fetch an installed extension again", build: |c| Ok(Route::Update { name: Some(c.part("name").into()) }) },
+    Spec { pattern: "update", doc: "update every installed extension that has an update", build: |_| Ok(Route::Update { name: None }) },
+    Spec { pattern: "update/{name}", doc: "update an installed extension (a source install: fetch its source again)", build: |c| Ok(Route::Update { name: Some(c.part("name").into()) }) },
     Spec { pattern: "remove/{name}", doc: "remove an installed extension", build: |c| Ok(Route::Remove { name: c.part("name").into() }) },
     Spec {
         pattern: "instance/add/{name}/{suffix}",
@@ -898,7 +898,7 @@ async fn install(app: &AppHandle, spec: &str, trusted: bool) {
         }
     }
     hud::show(app, "Installing\u{2026}");
-    match settings::extensions_install(app.state(), spec.to_string()).await {
+    match settings::extensions_install(app.clone(), app.state(), spec.to_string()).await {
         Ok(i) => {
             hud::show(app, &format!("Installed {} {}", i.name, i.version));
             // The root, with the name typed: its palette rows land as the host loads it.
@@ -920,8 +920,8 @@ async fn install(app: &AppHandle, spec: &str, trusted: bool) {
 /// the store (or the config file), then the HUD's word on it.
 async fn store(app: &AppHandle, route: Route, trusted: bool) {
     let (title, message, ok) = match &route {
-        Route::Update { name: Some(n) } => (format!("Update {n} from a link?"), "Its source is fetched again".to_string(), "Update"),
-        Route::Update { name: None } => ("Update every extension from a link?".to_string(), "Each one with a source is fetched again".to_string(), "Update"),
+        Route::Update { name: Some(n) } => (format!("Update {n} from a link?"), "Its newer build is installed".to_string(), "Update"),
+        Route::Update { name: None } => ("Update every extension from a link?".to_string(), "Each one with a newer build is updated".to_string(), "Update"),
         Route::Remove { name } => (format!("Remove {name} from a link?"), "Its directory is deleted; its settings stay in the config file".to_string(), "Remove"),
         Route::InstanceAdd { name, suffix, title, .. } => (format!("Add {} as another {name} from a link?", title.as_deref().unwrap_or(suffix)), format!("[instances.\"{name}@{suffix}\"] is written to the config file"), "Add"),
         Route::InstanceRemove { key } => (format!("Remove the instance {key} from a link?"), "Its tables leave the config file; its storage, cache and ranking are deleted".to_string(), "Remove"),

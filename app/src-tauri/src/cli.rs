@@ -12,12 +12,13 @@
 //! exit 2 before sending, and the instance runs it with no confirm card
 //! (`deeplink::handle_trusted`). Every link's outcome is the HUD's.
 //!
-//! `pal install|update|remove|list` work the extension store in this process
-//! (`Cmd::run_store`: results on stdout, one `pal\t<reason>` line on stderr
-//! and exit 1 on failure), then `reload` reaches the running instance so
-//! its host picks the change up. `install` takes a store name (looked up
-//! at pal.cagdas.io, `pal_core::extensions::REGISTRY`) or an explicit
-//! source; `--from SPEC` is the source with no lookup.
+//! `pal install|update|remove|list|registry|disable|enable` work the
+//! extension store in this process (`Cmd::run_store`, through
+//! `pal_core::manage` like every other UI: results on stdout, one
+//! `pal\t<reason>` line on stderr and exit 1 on failure), then `reload`
+//! reaches the running instance so its host picks the change up. `install`
+//! takes a name, resolved through the registries' indexes (pal's own first),
+//! or a source with `--from`.
 //!
 //! `pal instance list|add|remove` (docs/design/instances.md): `list` reads
 //! the config file in this process (every `[instances.*]` table, the
@@ -48,7 +49,7 @@
 //! press, the back step, the release, the escape.
 
 use clap::{Parser, Subcommand, ValueEnum};
-use pal_core::extensions::Store;
+use pal_core::updates::State;
 use tauri::{AppHandle, Manager};
 
 #[derive(Parser)]
@@ -80,20 +81,36 @@ pub enum Cmd {
     Reload,
     /// Quit the running instance (flushes its state, stops the extension host).
     Quit,
-    /// Install an extension: a name from the store at pal.cagdas.io, a directory, github:user/repo[/subdir][@ref], or a github.com URL.
+    /// Install an extension by name from a registry (pal's own first, then yours in config order), or a source with --from.
     Install {
-        /// A store name (`wordle`), or a source as with --from.
-        spec: Option<String>,
-        /// The source itself (a directory, github:user/repo[/subdir][@ref], or a github.com URL), never looked up as a store name.
-        #[arg(long, conflicts_with = "spec", required_unless_present = "spec")]
+        /// The extension's name (`wordle`); a path or github: spec here is read as --from.
+        name: Option<String>,
+        /// Only this registry (`pal registry list`).
+        #[arg(long, conflicts_with = "from")]
+        registry: Option<String>,
+        /// A source instead: a directory, github:user/repo[/subdir][@ref], or a github.com URL. Never updated by itself.
+        #[arg(long, conflicts_with = "name", required_unless_present = "name")]
         from: Option<String>,
     },
-    /// Fetch an installed extension's source again; every one with a source when no name is given.
-    Update { name: Option<String> },
-    /// Remove an installed extension (its settings stay in the config file).
+    /// Update the named extensions, or every one with an update (--all); with neither, list what has one.
+    Update {
+        names: Vec<String>,
+        #[arg(long, conflicts_with = "names")]
+        all: bool,
+    },
+    /// Remove an installed extension (its settings and data stay).
     Remove { name: String },
-    /// List the installed extensions: name, version and source, one per line.
+    /// Every extension, bundled, from a registry, from source or local, with its update status.
     List,
+    /// The registries extensions come from: list them, follow one, stop following one.
+    Registry {
+        #[command(subcommand)]
+        cmd: RegistryCmd,
+    },
+    /// Turn an extension off: it does not load (`[store] disabled`).
+    Disable { name: String },
+    /// Turn a disabled extension back on.
+    Enable { name: String },
     /// Instances of a multi extension (a second account): list, add or remove one.
     Instance {
         #[command(subcommand)]
@@ -375,6 +392,25 @@ pub enum InstanceCmd {
 }
 
 #[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
+pub enum RegistryCmd {
+    /// Every registry: name, channel, extensions, when it was last checked, and the last error.
+    List,
+    /// Follow a registry: its index is fetched and shown (name, extensions, key) and its key pinned once you confirm.
+    Add {
+        /// The index URL (`https://acme.github.io/pal/index.json`).
+        url: String,
+        /// The registry's public key, when its index does not announce one (or to check it is the one you expect).
+        #[arg(long)]
+        key: Option<String>,
+        /// Do not ask.
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Stop following a registry; its extensions stay installed and are no longer updated.
+    Remove { name: String },
+}
+
+#[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
 pub enum BarCmd {
     /// Every declared item, visible or not, with its last title.
     List,
@@ -510,57 +546,150 @@ impl Cmd {
 
     /// The store commands, run in this process: `Some(changed)` for one of
     /// them (printed, exit status set on failure), `None` for the rest.
-    pub fn run_store(&self) -> Option<bool> {
-        let store = Store::locate();
+    /// `base` is where the bundled extensions are (`host::base`). They go
+    /// through `pal_core::manage`, the same path Settings and the Store take,
+    /// so the config's `[store]` lists and the usage counts follow a CLI
+    /// change too.
+    pub fn run_store(&self, base: &std::path::Path) -> Option<bool> {
+        use pal_core::manage::Manager;
+        use pal_core::usage::From;
+        if !matches!(self, Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Registry { .. } | Cmd::Disable { .. } | Cmd::Enable { .. }) {
+            return None;
+        }
+        let file = pal_core::config::ConfigFile::locate();
+        let config = file.load().config;
+        let m = Manager::new(file, crate::host::store_inputs(base, &config));
+        let _ = m.usage.set_enabled(config.general.usage);
         let bun = crate::host::bun();
         let text = |e: pal_core::extensions::Error| e.to_string();
         let r: Result<bool, String> = match self {
-            Cmd::Install { spec, from } => match (spec, from) {
-                (_, Some(from)) => store.install_from(from, Some(&bun)),
-                (Some(spec), None) => store.install(spec, Some(&bun)),
-                (None, None) => unreachable!("clap requires one of them"),
+            // A name that is a path or a github: spec is a source too.
+            Cmd::Install { name, registry: None, from } if from.is_some() || name.as_deref().is_some_and(|n| !pal_core::extensions::Spec::is_bare_name(n)) => {
+                let spec = from.as_deref().or(name.as_deref()).unwrap_or_default();
+                m.install_source(spec, Some(&bun)).map_err(text).map(|i| {
+                    println!("installed {} from source at {}", i.name, i.dir.display());
+                    true
+                })
             }
-            .map_err(text)
-            .map(|i| {
-                println!("installed {} {} at {}", i.name, i.version, i.dir.display());
-                true
-            }),
-            Cmd::Update { name: Some(name) } => store.update(name, Some(&bun)).map_err(text).map(|i| {
-                println!("updated {} {}", i.name, i.version);
-                true
-            }),
-            // Every extension with a source, each failure on its own line;
-            // the exit status is 1 only when none could be updated.
-            Cmd::Update { name: None } => store.list().map_err(text).and_then(|all| {
-                let (mut changed, mut failed) = (false, Vec::new());
-                for i in all.iter().filter(|i| i.record.is_some()) {
-                    match store.update(&i.name, Some(&bun)) {
-                        Ok(u) => {
-                            println!("updated {} {}", u.name, u.version);
+            Cmd::Install { name: Some(name), registry, .. } => {
+                let name = name.trim();
+                refresh(&m);
+                let others: Vec<String> = m.registries.resolve(name).iter().map(|(s, _)| s.name.clone()).collect();
+                m.install(name, registry.as_deref(), From::Cli).map_err(text).map(|i| {
+                    let from = i.record.as_ref().and_then(|r| r.registry.clone()).unwrap_or_default();
+                    println!("installed {} from {from} ({})", i.name, build_text(&i));
+                    if registry.is_none() && others.len() > 1 {
+                        eprintln!("pal\t{name} is also in {}; --registry picks one", others.iter().filter(|r| **r != from).cloned().collect::<Vec<_>>().join(", "));
+                    }
+                    true
+                })
+            }
+            Cmd::Install { .. } => unreachable!("clap requires a name or --from"),
+            Cmd::Update { names, all } => {
+                refresh(&m);
+                let statuses = m.check();
+                if names.is_empty() && !*all {
+                    let pending: Vec<_> = statuses.iter().filter(|s| !matches!(s.state, State::UpToDate | State::Source | State::Local)).collect();
+                    for s in &pending {
+                        println!("{}\t{}", s.name, state_text(&s.state));
+                    }
+                    if pending.is_empty() {
+                        println!("every extension is up to date");
+                    }
+                    Ok(false)
+                } else {
+                    // Each failure on its own line; the exit status is 1
+                    // only when nothing asked for could be updated.
+                    let (mut changed, mut failed) = (false, Vec::new());
+                    let asked: Vec<&pal_core::updates::Status> = if *all { statuses.iter().filter(|s| s.target().is_some()).collect() } else { Vec::new() };
+                    let mut run = |name: &str, r: Option<pal_core::extensions::Result<pal_core::extensions::Installed>>, why: String| match r {
+                        Some(Ok(i)) => {
+                            println!("updated {name} ({})", build_text(&i));
                             changed = true;
                         }
-                        Err(e) => {
-                            eprintln!("pal\t{}: {e}", i.name);
-                            failed.push(i.name.clone());
+                        Some(Err(e)) => {
+                            eprintln!("pal\t{name}: {e}");
+                            failed.push(name.to_string());
+                        }
+                        None => println!("{name}\t{why}"),
+                    };
+                    for s in asked {
+                        run(&s.name, m.apply(s, From::Cli), String::new());
+                    }
+                    for name in names {
+                        match statuses.iter().find(|s| &s.name == name) {
+                            Some(s) if s.state == State::Source => run(name, Some(m.store.update_source(name, Some(&bun))), String::new()),
+                            Some(s) => run(name, m.apply(s, From::Cli), state_text(&s.state)),
+                            None => run(name, Some(Err(pal_core::extensions::Error::NotFound(name.clone()))), String::new()),
                         }
                     }
+                    if *all && !changed && failed.is_empty() {
+                        println!("every extension is up to date");
+                    }
+                    if !changed && !failed.is_empty() {
+                        Err(format!("no extension updated ({})", failed.join(", ")))
+                    } else {
+                        Ok(changed)
+                    }
                 }
-                if !changed && !failed.is_empty() {
-                    return Err(format!("no extension updated ({})", failed.join(", ")));
-                }
-                Ok(changed)
-            }),
-            Cmd::Remove { name } => store.remove(name).map_err(text).map(|()| {
+            }
+            Cmd::Remove { name } => m.remove(name, From::Cli).map_err(text).map(|()| {
                 println!("removed {name}");
                 true
             }),
-            Cmd::List => store.list().map_err(text).map(|all| {
-                for i in &all {
-                    let source = i.record.as_ref().map_or("(by hand)", |r| r.source.as_str());
-                    println!("{}\t{}\t{}", i.name, i.version, source);
+            Cmd::List => {
+                let disabled = &config.store.disabled;
+                for s in m.check() {
+                    let copy = m.store.get(&s.name).ok();
+                    let kind = match (&s.origin, copy.as_ref().map(|c| c.kind())) {
+                        (_, Some(pal_core::extensions::Kind::Source(spec))) => format!("source {spec}"),
+                        (_, Some(pal_core::extensions::Kind::Hand)) => "by hand".to_string(),
+                        (pal_core::updates::Origin::Local, _) => "local".to_string(),
+                        (pal_core::updates::Origin::Bundled, _) => "bundled".to_string(),
+                        _ => format!("registry {}", s.registry.as_deref().unwrap_or_default()),
+                    };
+                    let build = s.installed.as_ref().map(|b| short(&b.hash).to_string()).or(copy.map(|c| c.version).filter(|v| !v.is_empty())).unwrap_or_else(|| "-".into());
+                    let off = if disabled.contains(&s.name) { " (disabled)" } else { "" };
+                    println!("{}\t{kind}\t{build}\t{}{off}", s.name, state_text(&s.state));
                 }
+                for r in m.registries.status().iter().filter(|r| r.last_error.is_some()) {
+                    eprintln!("pal\t{}: {}", r.name, r.last_error.as_deref().unwrap_or_default());
+                }
+                Ok(false)
+            }
+            Cmd::Registry { cmd: RegistryCmd::List } => {
+                refresh(&m);
+                for r in m.registries.status() {
+                    let checked = r.last_checked.map_or("never checked".to_string(), |t| format!("checked {} ago", left_text(pal_core::registry::now().saturating_sub(t))));
+                    let health = r.last_error.as_deref().map_or("ok".to_string(), |e| format!("error: {e}"));
+                    println!("{}\t{}\t{} extensions\t{checked}\t{health}\t{}", r.name, r.channel, r.count, r.url);
+                }
+                Ok(false)
+            }
+            Cmd::Registry { cmd: RegistryCmd::Add { url, key, yes } } => pal_core::registry::preview(url, key.as_deref()).map_err(|e| e.to_string()).and_then(|p| {
+                println!("registry\t{}\nurl\t{}\nlists\t{} extensions\nkey\t{} ({})", p.name, p.url, p.count, p.key, p.key_id.as_deref().unwrap_or("?"));
+                println!("Its extensions update by themselves unless you turn that off for it (auto_update = false).");
+                if !*yes && !confirm(&format!("Follow {} and trust this key?", p.name)) {
+                    return Err("not added".into());
+                }
+                m.add_registry(&p).map_err(text)?;
+                // The config now lists it: fetch it into the cache.
+                let regs = pal_core::registry::Registries::from_config(&pal_core::config::ConfigFile::locate().load().config.store);
+                regs.refresh(&p.name).map_err(|e| e.to_string())?;
+                println!("added {}", p.name);
+                Ok(false)
+            }),
+            Cmd::Registry { cmd: RegistryCmd::Remove { name } } => m.remove_registry(name).map_err(text).map(|()| {
+                println!("removed registry {name}; its extensions stay installed and are no longer updated");
                 false
             }),
+            Cmd::Disable { name } | Cmd::Enable { name } => {
+                let off = matches!(self, Cmd::Disable { .. });
+                m.set_disabled(name, off, From::Cli).map_err(text).map(|()| {
+                    println!("{} {name}", if off { "disabled" } else { "enabled" });
+                    true
+                })
+            }
             _ => return None,
         };
         match r {
@@ -623,7 +752,7 @@ impl Cmd {
             Cmd::State { .. } => {}
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
-            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } | Cmd::Instance { cmd: InstanceCmd::List } => {}
+            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Registry { .. } | Cmd::Disable { .. } | Cmd::Enable { .. } | Cmd::Action { .. } | Cmd::Instance { cmd: InstanceCmd::List } => {}
             // The instance's side of a picker: connect back to the CLI's socket (pick.rs). Without one the CLI process handled it.
             Cmd::Pick { reply: Some(socket), title, multi, query, select } => crate::pick::serve(&handle, socket.into(), crate::pick::Options { title, multi, query, select }),
             Cmd::Pick { reply: None, .. } => {}
@@ -727,6 +856,57 @@ fn send(identifier: &str, args: &[String], cwd: &str) -> zbus::Result<()> {
     Ok(())
 }
 
+/// Every registry's index fetched now; a failure is said on stderr and the
+/// cached copy answers.
+fn refresh(m: &pal_core::manage::Manager) {
+    for (_, r) in m.refresh() {
+        if let Err(e) = r {
+            eprintln!("pal\t{e}");
+        }
+    }
+}
+
+/// The first 7 of a hash, like git's short sha.
+fn short(hash: &str) -> &str {
+    hash.get(..7).unwrap_or(hash)
+}
+
+/// `build 1a2b3c4, 2026-09-30` for a registry install, else its version.
+fn build_text(i: &pal_core::extensions::Installed) -> String {
+    match i.kind() {
+        pal_core::extensions::Kind::Registry { hash, seq, .. } => {
+            let (y, mo, d, ..) = pal_core::calendar::civil_utc(seq as i64);
+            format!("build {}, {y:04}-{mo:02}-{d:02}", short(hash))
+        }
+        _ => i.version.clone(),
+    }
+}
+
+/// One status for a person.
+fn state_text(s: &pal_core::updates::State) -> String {
+    use pal_core::updates::State;
+    match s {
+        State::UpToDate => "up to date".into(),
+        State::Update { to } => format!("update to {}", short(&to.hash)),
+        State::NeedsNewerPal { protocol } => format!("a newer build needs a newer pal (protocol {protocol})"),
+        State::Yanked { replacement: Some(b) } => format!("this build was withdrawn; replaced by {}", short(&b.hash)),
+        State::Yanked { replacement: None } => "this build was withdrawn, and none replaces it here".into(),
+        State::NoLongerListed { why } => format!("no longer updated: {why}"),
+        State::Unchecked => "not checked yet".into(),
+        State::Source => "from source, not checked".into(),
+        State::Local => "local".into(),
+    }
+}
+
+/// `question [y/N]` on stderr, the answer from stdin.
+fn confirm(question: &str) -> bool {
+    use std::io::Write;
+    eprint!("{question} [y/N] ");
+    let _ = std::io::stderr().flush();
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line).is_ok() && matches!(line.trim(), "y" | "Y" | "yes")
+}
+
 /// `2 h 40 m`, `12 m`, `40 s` for the table's time-left column.
 fn left_text(secs: u64) -> String {
     match (secs / 3600, secs % 3600 / 60, secs % 60) {
@@ -807,6 +987,24 @@ mod tests {
         assert!(Cli::try_parse_from(["pal", "switch", "sideways"]).is_err());
         assert!(cmd(&["switch"]).link().is_none(), "not a link: the instance drives the switcher");
         assert_eq!(cmd(&["switch"]).run_compat(), None, "goes on to the handover");
+    }
+
+    #[test]
+    fn store_commands_parse() {
+        assert_eq!(cmd(&["install", "weather"]), Cmd::Install { name: Some("weather".into()), registry: None, from: None });
+        assert_eq!(cmd(&["install", "todo", "--registry", "acme"]), Cmd::Install { name: Some("todo".into()), registry: Some("acme".into()), from: None });
+        assert_eq!(cmd(&["install", "--from", "github:a/b"]), Cmd::Install { name: None, registry: None, from: Some("github:a/b".into()) });
+        assert!(Cli::try_parse_from(["pal", "install"]).is_err(), "a name or --from");
+        assert!(Cli::try_parse_from(["pal", "install", "--from", "x", "--registry", "acme"]).is_err());
+        assert_eq!(cmd(&["update"]), Cmd::Update { names: vec![], all: false });
+        assert_eq!(cmd(&["update", "a", "b"]), Cmd::Update { names: vec!["a".into(), "b".into()], all: false });
+        assert_eq!(cmd(&["update", "--all"]), Cmd::Update { names: vec![], all: true });
+        assert!(Cli::try_parse_from(["pal", "update", "a", "--all"]).is_err());
+        assert_eq!(cmd(&["registry", "add", "https://a/index.json", "--yes"]), Cmd::Registry { cmd: RegistryCmd::Add { url: "https://a/index.json".into(), key: None, yes: true } });
+        assert_eq!(cmd(&["registry", "remove", "acme"]), Cmd::Registry { cmd: RegistryCmd::Remove { name: "acme".into() } });
+        assert_eq!(cmd(&["disable", "hue"]), Cmd::Disable { name: "hue".into() });
+        assert_eq!(cmd(&["enable", "hue"]), Cmd::Enable { name: "hue".into() });
+        assert!(cmd(&["disable", "hue"]).link().is_none() && cmd(&["disable", "hue"]).run_compat().is_none(), "run in this process by run_store");
     }
 
     #[test]

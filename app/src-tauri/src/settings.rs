@@ -15,7 +15,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::secrets::{platform_store, SecretRef};
 use pal_core::config::{instance, Config, ConfigFile, Diagnostic, Error, Loaded, Watcher};
-use pal_core::extensions::{Installed, Store, Update};
+use pal_core::extensions::{Installed, Store};
 use pal_core::frecency::Frecency;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -609,9 +609,9 @@ pub fn close(app: &AppHandle) {
 
 // ---- update checks ---------------------------------------------------------
 // Two network checks, the app's release manifest (updater.rs) and the
-// store's GitHub branches (`Store::check_updates`), each remembered here
+// extensions' registries (`pal_core::updates::check`), each remembered here
 // with its time so the Overview can say when it last looked and so a
-// window opened twice a day asks GitHub once. By themselves they run only
+// window opened twice a day asks once. By themselves they run only
 // while `general.check_updates` is on and the last result is older than
 // [`CHECK_EVERY`]; "Check now" and the About page's button always run.
 
@@ -683,9 +683,33 @@ pub fn last_app_check(app: &AppHandle) -> Option<UpdateInfo> {
     app.try_state::<Settings>().and_then(|st| lock(&st.checks).app.as_ref().and_then(|c| c.value.clone()))
 }
 
-/// The store's check, remembered.
+/// An extension with an update, in the shape the Overview reads (the
+/// installed and the offered build's hash). Phase 2 of the distribution
+/// work replaces it with `pal_core::updates::Status` whole.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Update {
+    pub name: String,
+    pub current: String,
+    pub latest: String,
+}
+
+/// The one update check (`pal_core::updates::check`) over freshly fetched
+/// indexes, remembered.
 async fn check_extensions(app: &AppHandle) -> Result<Vec<Update>, String> {
-    let r = in_store(|s| s.check_updates()).await;
+    let m = crate::host::manager(app);
+    let r = tauri::async_runtime::spawn_blocking(move || {
+        let failed: Vec<String> = m.refresh().into_iter().filter_map(|(_, r)| r.err().map(|e| e.to_string())).collect();
+        let found: Vec<Update> = m
+            .check()
+            .into_iter()
+            .filter_map(|s| Some(Update { current: s.installed.as_ref().map(|b| b.hash.clone()).unwrap_or_default(), latest: s.target()?.hash.clone(), name: s.name }))
+            .collect();
+        // A failed fetch never reads as "up to date".
+        if found.is_empty() && !failed.is_empty() { Err(failed.join("; ")) } else { Ok(found) }
+    })
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| r);
     match &r {
         Ok(u) if u.is_empty() => eprintln!("extensions\tup to date"),
         Ok(u) => eprintln!("extensions\tbehind\t{}", u.iter().map(|x| x.name.as_str()).collect::<Vec<_>>().join(", ")),
@@ -1117,32 +1141,54 @@ pub async fn settings_restart_host(host: State<'_, Arc<Host>>) -> Result<(), Str
 }
 
 // ---- the extension store ---------------------------------------------------
-// `pal_core::extensions` does the work off the runtime, in the one store
+// `pal_core::manage` does the work off the runtime, in the one store
 // (`Store::locate`, under the data dir: not tied to the config file); the host is restarted
 // after every change to the store. Its watcher does see the change (a new
 // root, a removed extension), but the index only drops a gone extension's
 // sources and cache on `host/ready`, and `bun install` under a watched root
 // would trigger a reload per file.
 
-async fn in_store<T: Send + 'static>(f: impl FnOnce(Store) -> pal_core::extensions::Result<T> + Send + 'static) -> Result<T, String> {
-    let store = Store::locate();
-    tauri::async_runtime::spawn_blocking(move || f(store)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())
+/// `f` with the extension operations (`pal_core::manage`), off the runtime.
+async fn managed<T: Send + 'static>(app: &AppHandle, f: impl FnOnce(pal_core::manage::Manager) -> pal_core::extensions::Result<T> + Send + 'static) -> Result<T, String> {
+    let m = crate::host::manager(app);
+    tauri::async_runtime::spawn_blocking(move || f(m)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())
 }
 
+/// A bare name installs from the registries (fetched first), anything else
+/// is a source (a directory, GitHub).
 #[tauri::command]
-pub async fn extensions_install(host: State<'_, Arc<Host>>, spec: String) -> Result<Installed, String> {
+pub async fn extensions_install(app: AppHandle, host: State<'_, Arc<Host>>, spec: String) -> Result<Installed, String> {
     let bun = crate::host::bun();
-    let r = in_store(move |s| s.install(&spec, Some(&bun))).await?;
+    let r = managed(&app, move |m| {
+        if pal_core::extensions::Spec::is_bare_name(&spec) {
+            m.refresh();
+            m.install(spec.trim(), None, pal_core::usage::From::Settings)
+        } else {
+            m.install_source(&spec, Some(&bun))
+        }
+    })
+    .await?;
     eprintln!("extensions	installed	{} {}", r.name, r.version);
     host.restart().await;
     Ok(r)
 }
 
+/// The update the one check offers for `name`, or a source install's
+/// source fetched again.
 #[tauri::command]
 pub async fn extensions_update(app: AppHandle, host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
     let bun = crate::host::bun();
     let n = name.clone();
-    let r = in_store(move |s| s.update(&n, Some(&bun))).await?;
+    let r = managed(&app, move |m| {
+        m.refresh();
+        let status = m.check().into_iter().find(|s| s.name == n);
+        match status {
+            Some(s) if s.state == pal_core::updates::State::Source => m.store.update_source(&n, Some(&bun)),
+            Some(s) => m.apply(&s, pal_core::usage::From::Settings).unwrap_or_else(|| Err(pal_core::extensions::Error::Manifest(format!("{n}: no update to apply")))),
+            None => Err(pal_core::extensions::Error::NotFound(n)),
+        }
+    })
+    .await?;
     eprintln!("extensions	updated	{} {}", r.name, r.version);
     lock(&app.state::<Settings>().checks).forget(&name);
     host.restart().await;
@@ -1152,16 +1198,15 @@ pub async fn extensions_update(app: AppHandle, host: State<'_, Arc<Host>>, name:
 #[tauri::command]
 pub async fn extensions_remove(app: AppHandle, host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
     let n = name.clone();
-    in_store(move |s| s.remove(&n)).await?;
+    managed(&app, move |m| m.remove(&n, pal_core::usage::From::Settings)).await?;
     eprintln!("extensions	removed");
     lock(&app.state::<Settings>().checks).forget(&name);
     host.restart().await;
     Ok(())
 }
 
-/// GitHub-installed extensions whose branch moved, on demand; network, so
-/// up to 10 s per extension, and an extension whose check fails is simply
-/// not listed. The result is remembered (`Checks`).
+/// Extensions with an update, on demand: every registry's index is fetched
+/// first. The result is remembered (`Checks`).
 #[tauri::command]
 pub async fn extensions_check_updates(app: AppHandle) -> Result<Vec<Update>, String> {
     check_extensions(&app).await
