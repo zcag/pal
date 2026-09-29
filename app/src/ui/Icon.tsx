@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { appIconUrl, faviconUrl, isSymbol } from "./icons";
+import { appIconUrl, faviconUrl, isBrand, isSymbol } from "./icons";
 import type { Icon as IconSpec } from "./types";
 
 const APP_PX = 24;
@@ -25,7 +25,7 @@ export function Icon({ icon, size = "md" }: { icon?: IconSpec; size?: Size }) {
   }
   if (icon.kind === "app") return <Served size={size} kind="app" src={(s) => appIconUrl(icon.path, s)} px={APP_PX} fallback={<Icon icon={{ kind: "glyph", value: icon.letter }} size={size} />} />;
   if (icon.kind === "favicon") return <Served size={size} kind="favicon" src={(s) => faviconUrl(icon.url, s)} px={FAVICON_PX} fallback={<Globe size={size} tint={icon.tint} />} />;
-  if (icon.kind === "tile") return <Tile size={size} bg={icon.bg} glyph={icon.glyph} svg={icon.svg} badge={icon.badge} />;
+  if (icon.kind === "tile") return <Tile size={size} {...icon} />;
   // A Nerd Font codepoint is a glyph whatever the caller said: the emoji font has nothing for it.
   const kind = icon.kind === "emoji" && isSymbol(icon.value) ? "glyph" : icon.kind;
   const style: CSSProperties | undefined = icon.kind === "glyph" && icon.color ? { color: icon.color } : undefined;
@@ -39,15 +39,20 @@ export function Icon({ icon, size = "md" }: { icon?: IconSpec; size?: Size }) {
 /**
  * An icon tile (icons.css): a rounded square in a brand colour, the mark
  * white. The glyph is drawn from the symbols font at about two thirds of
- * the side; an SVG mark is path data in a 16 by 16 box, filled
- * `currentColor`, at the same share of the side. A `badge` (an
- * instance's letter) sits in the bottom-right corner as a small pill in
- * the panel's colours, over the tile's edge, so the mark stays whole.
+ * the side; an SVG mark is path data in a `box` by `box` square (16 by
+ * default), filled `currentColor`, at the same share of the side. A
+ * product's logo tile brings its own colours: `bg` a hex (inline as
+ * `--brand`, the same in both themes, as the brand is) and `fg` the mark's.
+ * A `badge` (an instance's letter) sits in the bottom-right corner as a
+ * small pill in the panel's colours, over the tile's edge, so the mark
+ * stays whole.
  */
-function Tile({ size, bg, glyph, svg, badge }: { size: Size; bg: string; glyph?: string; svg?: string; badge?: string }) {
+function Tile({ size, bg, fg, box = 16, glyph, svg, badge }: { size: Size; bg: string; fg?: string; box?: number; glyph?: string; svg?: string; badge?: string }) {
+  const brand = isBrand(bg);
+  const style = brand && !fg ? undefined : ({ ...(!brand && { "--brand": bg }), ...(fg && { color: fg }) } as CSSProperties);
   return (
-    <span className="pal-icon" data-size={size} data-kind="tile" data-brand={bg} data-badged={badge ? "" : undefined} aria-hidden>
-      {svg ? <svg className="pal-icon__mark" viewBox="0 0 16 16"><path d={svg} /></svg> : <span className="pal-icon__glyph">{glyph}</span>}
+    <span className="pal-icon" data-size={size} data-kind="tile" data-brand={brand ? bg : undefined} data-logo={box !== 16 || undefined} data-badged={badge ? "" : undefined} style={style} aria-hidden>
+      {svg ? <svg className="pal-icon__mark" viewBox={`0 0 ${box} ${box}`}><path d={svg} /></svg> : <span className="pal-icon__glyph">{glyph}</span>}
       {badge ? <span className="pal-icon__badge">{badge}</span> : null}
     </span>
   );

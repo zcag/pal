@@ -14,7 +14,7 @@ import {
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, permissionUsers, storePermissions, type SettingsFeature,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
-  badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
+  badgedIcon, leavesFile, ownBrand, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
   useThemeFile,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
@@ -105,7 +105,7 @@ function toExtension(e: Ext, config: RawConfig, store: StoreState, alone: boolea
   const m = e.manifest;
   const extTitle = m.title ?? e.name;
   const own = m.icon ? iconOf(m.icon, extTitle) : undefined;
-  const instance: SettingsInstance | undefined = m.multi ? resolveInstance(e.key, e.name, config.instances?.[e.key], e.instance, own?.kind === "tile" ? own.bg : undefined) : undefined;
+  const instance: SettingsInstance | undefined = m.multi ? resolveInstance(e.key, e.name, config.instances?.[e.key], e.instance, ownBrand(own)) : undefined;
   // "Gmail (Work)"; a lone or unnamed default stays "Gmail", as its palette titles do (the host's rule).
   const label = instance && instance.title && (!instance.isDefault || !alone) ? instance.title : undefined;
   const title = label ? `${extTitle} (${label})` : extTitle;

@@ -23,7 +23,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
-import { isTileIcon } from "../../sdk/src/icon.ts";
+import { tileBrand } from "../../sdk/src/icon.ts";
 import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
 import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
@@ -321,7 +321,7 @@ async function reloadInstances(name: string, f: Found, manifest: Manifest) {
   } catch (e) {
     log(`instances of ${name} unavailable (${describe(e)}); the default alone`);
   }
-  const own = isTileIcon(manifest.icon) ? manifest.icon.tile.bg : undefined;
+  const own = tileBrand(manifest.icon);
   const all = resolveInstances(name, answer, own);
   const enabled = all.filter((i) => i.enabled);
   for (const i of all.filter((i) => !i.enabled)) log(`instance ${i.key} is disabled`);

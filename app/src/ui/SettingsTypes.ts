@@ -5,7 +5,7 @@
  * that introduced this file).
  */
 import { defaultLook, type BarLook } from "./BarStrip";
-import { BRAND } from "./icons";
+import { BRAND, isBrand } from "./icons";
 import type { Brand, Icon } from "./types";
 import type { Status } from "../store";
 
@@ -602,11 +602,16 @@ export function resolveInstance(key: string, name: string, raw: RawInstance | un
   return { key, suffix, title, tint, badge, isDefault: false, enabled };
 }
 
-/** The extension's tile as the instance's: the tint and the badge in its corner (a tile icon only; anything else stays). */
+/** The extension's tile as the instance's: the tint (with the white mark a brand colour carries) and the badge in its corner (a tile icon only; anything else stays). `badged` in sdk/src/icon.ts. */
 export function badgedIcon(icon: Icon | undefined, inst: SettingsInstance | undefined): Icon | undefined {
   if (!icon || !inst || inst.isDefault || icon.kind !== "tile") return icon;
-  return { ...icon, bg: inst.tint ?? icon.bg, badge: inst.badge };
+  if (!inst.tint) return { ...icon, badge: inst.badge };
+  const { fg: _fg, ...rest } = icon;
+  return { ...rest, bg: inst.tint, badge: inst.badge };
 }
+
+/** The brand colour of an extension's tile, the one an instance's tint skips; none for a logo tile in a product's own hex. */
+export const ownBrand = (icon: Icon | undefined): Brand | undefined => (icon?.kind === "tile" && isBrand(icon.bg) ? icon.bg : undefined);
 
 /** The instances of the extension `ext` belongs to, the default first, then by key (`SettingsExtension.instance` of every entry of its name). */
 export function instancesOf(ext: SettingsExtension, all: SettingsExtension[]): SettingsExtension[] {

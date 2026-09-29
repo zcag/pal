@@ -2,7 +2,7 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
-import { isBrand, isSymbol } from "./ui/icons";
+import { isBrand, isSymbol, nearestBrand } from "./ui/icons";
 import type { Accessory, Action, Brand, Detail, FilterOption, FormField, FormSpec, FormValues, Icon, Item, ViewSpec } from "./ui/types";
 
 /** `pal_core::index::Source`. */
@@ -151,6 +151,7 @@ export const ASK_ID = "pal:ask";
 const pictographic = /\p{Extended_Pictographic}/u;
 
 const HEX = /^#[0-9a-f]{3,8}$/i;
+const HEX6 = /^#[0-9a-f]{6}$/i;
 
 /**
  * `{ app: path }` (or a bare path, as v1 rows carry) is the app's artwork;
@@ -168,12 +169,16 @@ export function iconOf(icon: unknown, name: string, url?: string): Icon | undefi
   if (typeof obj?.app === "string") return { kind: "app", path: obj.app, letter };
   if (typeof obj?.image === "string") return { kind: "image", src: obj.image, mask: "rounded" };
   if (obj?.tile && typeof obj.tile === "object") {
-    const t = obj.tile as { glyph?: unknown; svg?: unknown; bg?: unknown; badge?: unknown };
+    const t = obj.tile as { glyph?: unknown; svg?: unknown; bg?: unknown; fg?: unknown; box?: unknown; badge?: unknown };
     const glyph = typeof t.glyph === "string" && isSymbol(t.glyph) ? t.glyph : undefined;
     const svg = typeof t.svg === "string" && t.svg.trim() ? t.svg : undefined;
     // An instance's mark: one or two characters (code points) in the corner; anything longer is cut to fit.
     const badge = typeof t.badge === "string" && t.badge.trim() ? { badge: [...t.badge.trim()].slice(0, 2).join("") } : {};
-    if (isBrand(t.bg) && (glyph || svg)) return glyph ? { kind: "tile", bg: t.bg, glyph, ...badge } : { kind: "tile", bg: t.bg, svg, ...badge };
+    // A product's own colours (a logo tile) are `#rrggbb`; a bad `fg` or `box` is left out rather than failing the tile.
+    const bg = isBrand(t.bg) ? t.bg : typeof t.bg === "string" && HEX6.test(t.bg) ? (t.bg as `#${string}`) : undefined;
+    const fg = typeof t.fg === "string" && HEX6.test(t.fg) ? { fg: t.fg } : {};
+    const box = svg && typeof t.box === "number" && t.box > 0 && t.box <= 64 ? { box: t.box } : {};
+    if (bg && (glyph || svg)) return glyph ? { kind: "tile", bg, glyph, ...fg, ...badge } : { kind: "tile", bg, svg, ...box, ...fg, ...badge };
     return glyph ? { kind: "glyph", value: glyph } : letter ? { kind: "glyph", value: letter } : undefined;
   }
   if (typeof obj?.glyph === "string" && obj.glyph.trim()) {
@@ -212,11 +217,16 @@ const safeHost = (url: string) => { try { return new URL(url).host; } catch { re
 /** What `toItem` reads of a row's palette: the section label, whether details are lazy, the rows' shared actions, its icon and kind (a tile's colour tints the rows' plain glyphs, except in a catalog or a grid, where the glyphs are the content). */
 export type PaletteInfo = Pick<SourceInfo, "title" | "detail" | "actions" | "icon" | "view" | "tier">;
 
-/** The brand colour a palette's rows are marked in: its tile icon's, unless its glyphs are what it lists (a catalog, a grid). */
+/**
+ * The brand colour a palette's rows are marked in: its tile icon's (for a
+ * logo tile, the brand colour nearest its own hex, which has no dark-panel
+ * variant and may be too light or too dark to read as a glyph), unless its
+ * glyphs are what it lists (a catalog, a grid).
+ */
 export const brandOf = (p: Pick<PaletteInfo, "icon" | "view" | "tier">): Brand | undefined => {
   if (p.view === "grid" || p.tier === "catalog") return undefined;
   const i = iconOf(p.icon, "");
-  return i?.kind === "tile" ? i.bg : undefined;
+  return i?.kind === "tile" ? (isBrand(i.bg) ? i.bg : nearestBrand(i.bg)) : undefined;
 };
 
 /**
