@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 · 2026-09-30
+
+- **Extensions update on their own**: a fix to an extension reaches you within hours instead of waiting for the next pal release. Every build is signed and checked before it installs; one that fails to load is put back to the one before by itself, and Settings says what happened. Settings › Extensions › Update extensions automatically turns it off, for everything or per registry.
+- **Find extensions where you look**: type a name in pal and an extension you don't have yet shows below your own results, Enter installs it and opens it. Games lists every game with the ones you haven't installed marked, and Enter installs and starts one. Settings › Extensions has a Browse section, and each extension a page with what it does, its pictures and where it came from.
+- **Install, turn off and remove without a restart**: nothing else reloads when an extension comes or goes. Turn an extension off without removing it; Remove keeps its settings and data for a reinstall, Remove and forget clears them. A link, hotkey or row that points at an extension you don't have says so and offers to install it.
+- **Registries**: anyone can publish a list of extensions (a signed file on GitHub Pages is enough, with a ready GitHub Action), and you add one in Settings › Extensions › Registries or from a link. Extensions from a folder or GitHub install from the same page.
+- **Anonymous usage counts**: pal now counts installs, updates and which extensions get opened, with a random id and nothing about what you type or pick. Settings › General › Share anonymous usage turns it off; pal.cagdas.io/docs/usage lists exactly what is sent.
+- **Settings › General** gains the switches for pal's own update check and for extension updates.
+- **Coming next**: pal will ship with a smaller set of extensions and install the rest when you want them. This version notes which ones you use, so they stay installed when that happens.
+
 ## 0.7.2 · 2026-09-29
 
 - **Privacy**: see which app has your camera, microphone or screen. A bar item appears only while one is in use, with a glyph for each on an amber band, and a click lists every app with what it holds and for how long. The app is named even when a helper or a command does the recording (`ffmpeg` in kitty reads kitty).

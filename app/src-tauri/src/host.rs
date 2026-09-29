@@ -104,6 +104,19 @@ pub(crate) fn base(resource_dir: Option<PathBuf>) -> PathBuf {
     }
 }
 
+/// The bundle's resources when pal runs through a symlink (`~/.local/bin/pal`
+/// -> `pal.app/Contents/MacOS/pal`): Tauri refuses to resolve the starting
+/// binary through a link on macOS, so its `resource_dir` fails there and the
+/// CLI's store commands would take the bundle for a checkout. Only paths are
+/// read from it; nothing is relaunched.
+pub(crate) fn resource_dir_through_link() -> Option<PathBuf> {
+    if !cfg!(target_os = "macos") {
+        return None;
+    }
+    let exe = std::env::current_exe().ok()?.canonicalize().ok()?;
+    Some(exe.parent()?.parent()?.join("Resources"))
+}
+
 /// Whether the extensions come from a checkout (a debug build, or a
 /// release binary run from the repo): a dev layout, where the repo's
 /// extensions win over the store's.

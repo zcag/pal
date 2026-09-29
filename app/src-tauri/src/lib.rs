@@ -280,7 +280,7 @@ pub fn run() {
     // instance follows by itself: its host watches the store's directory
     // (and loads or drops the one extension), its config watcher sees
     // `[store]` change (a turned-off set goes to the host, store.rs).
-    let base = host::base(tauri::utils::platform::resource_dir(context.package_info(), &tauri::Env::default()).ok());
+    let base = host::base(tauri::utils::platform::resource_dir(context.package_info(), &tauri::Env::default()).ok().or_else(host::resource_dir_through_link));
     if cli.cmd.as_ref().and_then(|c| c.run_store(&base)).is_some() {
         return;
     }
