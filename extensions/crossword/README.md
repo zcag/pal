@@ -97,7 +97,8 @@ The NYT's keys:
 - Tab and Shift-Tab (Enter and Shift-Enter too) walk the clues, across
   then down, skipping full ones while any has a gap. A click on a square
   or a clue goes there.
-- ⌘E checks the word (⌘⌥E the square, ⌘⇧E the grid): a wrong letter gets
+- ⌘E checks the word (⌘⌥E the square, ⌘G the grid, and Enter on "Not
+  quite"; ⌘⇧E still works): a wrong letter gets
   a red slash until it changes, a right one turns blue and locks. ⌘U
   reveals the word (⌘⌥U the square, ⌘⇧U the grid, asking first): the
   answer in blue with a corner mark. ⌥⌫ clears the word, ⌘⌥⌫ the grid

@@ -273,7 +273,7 @@ export const actions = (c = config()): Action[] => [
   { id: "stats", title: "Stats", shortcut: "cmd+s" },
   { id: "check-word", title: "Check word", shortcut: "cmd+e" },
   { id: "check-square", title: "Check square", shortcut: "cmd+alt+e" },
-  { id: "check-puzzle", title: "Check puzzle", shortcut: "cmd+shift+e" },
+  { id: "check-puzzle", title: "Check puzzle", shortcut: "cmd+g" },
   { id: "reveal-square", title: "Reveal square", shortcut: "cmd+alt+u" },
   { id: "reveal-word", title: "Reveal word", shortcut: "cmd+u" },
   { id: "reveal-puzzle", title: "Reveal puzzle", shortcut: "cmd+shift+u" },

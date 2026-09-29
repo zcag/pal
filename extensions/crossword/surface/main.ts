@@ -390,7 +390,7 @@ function restart() {
 
 const COMBOS: Record<string, string> = {
   "cmd+n": "next", "cmd+shift+n": "skip", "cmd+o": "browse", "cmd+s": "stats", "cmd+p": "pause", "cmd+t": "clock", "cmd+shift+o": "site",
-  "cmd+e": "check-word", "cmd+alt+e": "check-square", "cmd+shift+e": "check-puzzle",
+  "cmd+e": "check-word", "cmd+alt+e": "check-square", "cmd+g": "check-puzzle", "cmd+shift+e": "check-puzzle",
   "cmd+u": "reveal-word", "cmd+alt+u": "reveal-square", "cmd+shift+u": "reveal-puzzle",
   "alt+backspace": "clear-word", "cmd+alt+backspace": "clear-puzzle", "cmd+l": "clues",
 };
@@ -426,6 +426,8 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Delete") return commit(del(g, st));
   if (ARROWS[e.key]) return commit(arrow(g, st, ARROWS[e.key]));
   if (e.key === " ") return commit(toggle(g, st));
+  // Full but wrong somewhere: Enter checks the grid rather than walking the clues.
+  if (e.key === "Enter" && !e.shiftKey && nearlyShown) return scoped("check", "puzzle");
   if (e.key === "Tab" || e.key === "Enter") return commit(nextWord(g, st, e.shiftKey ? -1 : 1));
 });
 pal.onAction((id) => run(id));

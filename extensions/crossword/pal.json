@@ -140,7 +140,7 @@
       },
       {
         "title": "Check word",
-        "description": "Also the square (⌘⌥E) and the grid (⌘⇧E).",
+        "description": "Also the square (⌘⌥E) and the grid (⌘G, or Enter once the grid is full but not right).",
         "keys": "cmd+e"
       },
       {
@@ -198,7 +198,7 @@
         },
         {
           "keys": "cmd+e",
-          "title": "Check word (cmd+alt+e square, cmd+shift+e grid)"
+          "title": "Check word (cmd+alt+e square, cmd+g grid)"
         },
         {
           "keys": "cmd+u",

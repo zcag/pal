@@ -3420,7 +3420,8 @@ the Across and Down lists. The title line says which puzzle it is
   papers' own players check: their grids cross Ç with C. A US keyboard
   solves one with plain letters, each shown as the answer's own once it
   matches (c typed where Ç goes shows Ç).
-- **Help.** Check (⌘E the word, ⌘⌥E the square, ⌘⇧E the grid) slashes
+- **Help.** Check (⌘E the word, ⌘⌥E the square, ⌘G the grid, or Enter
+  on "Not quite") slashes
   wrong letters and turns right ones blue (they lock); reveal (⌘U, ⌘⌥U,
   ⌘⇧U, the grid asking first) fills in the answer with a corner mark;
   ⌥⌫ clears the word, ⌘⌥⌫ the grid. `autocheck` marks a wrong letter as
