@@ -45,6 +45,10 @@ pub trait SecretStore: Send + Sync {
     /// settings view calls for a `secret` setting; the file then gets the
     /// `keychain:<key>` reference, never the value.
     fn set(&self, key: &str, value: &str) -> Result<(), SecretError>;
+    /// Deletes the secret behind `key`; one that is not there is no error.
+    /// What "Remove and forget" calls for every `keychain:` reference the
+    /// extension's settings held.
+    fn delete(&self, key: &str) -> Result<(), SecretError>;
 }
 
 /// Resolve `value` against `store`: a `keychain:` reference goes to the
@@ -131,6 +135,18 @@ impl SecretStore for Keychain {
             Ok(())
         } else {
             Err(SecretError::Store(format!("keychain:{key}: {}", String::from_utf8_lossy(&out.stderr).trim())))
+        }
+    }
+
+    fn delete(&self, key: &str) -> Result<(), SecretError> {
+        let (service, account) = service_account(key);
+        let out = std::process::Command::new("security")
+            .args(["delete-generic-password", "-s", service, "-a", account])
+            .output()
+            .map_err(|e| SecretError::Store(e.to_string()))?;
+        match out.status.code() {
+            Some(0 | 44) => Ok(()),
+            _ => Err(SecretError::Store(format!("keychain:{key}: {}", String::from_utf8_lossy(&out.stderr).trim()))),
         }
     }
 }
@@ -222,6 +238,20 @@ impl SecretStore for SecretService {
             })
         }
     }
+
+    /// `clear` removes every item with the attributes, and says nothing
+    /// when there is none: an empty stderr is success either way.
+    fn delete(&self, key: &str) -> Result<(), SecretError> {
+        let (service, account) = service_account(key);
+        let out = self.run(&["clear", "service", service, "account", account], None)?;
+        match out.status.success() {
+            true => Ok(()),
+            false => match Self::failure(key, &out.stderr) {
+                SecretError::NotFound(_) => Ok(()),
+                e => Err(e),
+            },
+        }
+    }
 }
 
 /// In-memory store for tests and for hosts that inject secrets themselves.
@@ -241,6 +271,11 @@ impl SecretStore for MemStore {
 
     fn set(&self, key: &str, value: &str) -> Result<(), SecretError> {
         self.0.lock().unwrap().insert(key.into(), value.into());
+        Ok(())
+    }
+
+    fn delete(&self, key: &str) -> Result<(), SecretError> {
+        self.0.lock().unwrap().remove(key);
         Ok(())
     }
 }
@@ -263,6 +298,10 @@ mod tests {
         assert_eq!(resolve("keychain:pal/tok", &store).unwrap(), "s3cret");
         store.set("pal/tok", "new").unwrap();
         assert_eq!(resolve("keychain:pal/tok", &store).unwrap(), "new", "set replaces");
+        store.delete("pal/tok").unwrap();
+        store.delete("pal/tok").unwrap();
+        assert!(matches!(resolve("keychain:pal/tok", &store), Err(SecretError::NotFound(_))), "deleted, and twice is fine");
+        store.set("pal/tok", "new").unwrap();
         assert_eq!(resolve("keychain:pal/nope", &store), Err(SecretError::NotFound("keychain:pal/nope".into())));
         assert_eq!(resolve("literal", &store).unwrap(), "literal");
         std::env::set_var("PAL_TEST_SECRET", "from-env");

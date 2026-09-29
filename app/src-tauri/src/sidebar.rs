@@ -274,6 +274,10 @@ fn show(app: &AppHandle, engaged: bool) {
     };
     // A fresh show: the page starts its level over and reports its view anew; shown again while up, it keeps what it has.
     crate::views::set_visible(app, WINDOW, true, first);
+    if first {
+        crate::store::new_show(WINDOW);
+        crate::store::opened(app, WINDOW, key);
+    }
     let payload = Payload::Show { key: KEY.into(), title, engaged, urgent: false, tooltip: None, menu: json!({ "palette": source.palette, "extension": source.extension }), item: json!({}), effect: None, sidebar: true };
     events::emit_to(app, WINDOW, events::BAR, payload);
     // Placed now at the last height (the page's first `bar_size` re-places

@@ -277,7 +277,7 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             };
             let name = params["name"].as_str().unwrap_or(pal_core::config::instance::name_of(&ext));
             let title = params["manifest"]["title"].as_str().unwrap_or(name).to_string();
-            settings::register(app, &ext, params, true);
+            settings::register(app, &ext, params, true, false);
             // A fixed extension's "failed to load" row goes.
             commands::sync_failed_rows(app);
             // Its bar items: the manifest's `bar` merged with the code's keys by the host; the instance's label rides on the tooltip.
@@ -288,9 +288,18 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
         }
         "extension/error" => {
             let ext = params["extension"].as_str().unwrap_or_default();
-            settings::register(app, ext, params, false);
+            settings::register(app, ext, params, false, false);
             remove_extension(app, ext);
             // Said once, as a row at the root (and in Settings): never a toast on a show.
+            commands::sync_failed_rows(app);
+        }
+        // Turned off (`[store] disabled`): listed in Settings with its
+        // manifest, nothing of it in the index (its `extension/removed`
+        // came first when it was loaded).
+        "extension/disabled" => {
+            let ext = params["extension"].as_str().unwrap_or_default();
+            settings::register(app, ext, params, false, true);
+            remove_extension(app, ext);
             commands::sync_failed_rows(app);
         }
         // Its directory went away while the host was up: nothing to keep.
@@ -306,7 +315,7 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
         // fixed). Then the pass over the expired cached palettes.
         "host/ready" => {
             let live: Vec<String> = serde_json::from_value(params["extensions"].clone()).unwrap_or_default();
-            let known: Vec<String> = serde_json::from_value(params["known"].clone()).unwrap_or_else(|_| live.clone());
+            let mut known: Vec<String> = serde_json::from_value(params["known"].clone()).unwrap_or_else(|_| live.clone());
             let stale: Vec<String> = Palettes::with(app, |reg| {
                 reg.iter().map(|r| r.source.extension.clone()).filter(|e| !live.contains(e)).collect()
             });
@@ -317,6 +326,8 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             // Settings, where its error is shown.
             settings::retain(app, &known);
             commands::sync_failed_rows(app);
+            // A listed extension not installed yet (its install pending) keeps its cache too.
+            known.extend(settings::config(app).store.installed().into_iter().map(|(_, n)| n));
             let (app, host, dir) = (app.clone(), host.clone(), cache_dir(app));
             tauri::async_runtime::spawn(async move {
                 // File removals off the reader task.
@@ -330,6 +341,7 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
         }
         _ => {}
     }
+    crate::store::on_host(app, method);
 }
 
 /// Re-lists `pal/palettes` from the registry: the enabled ones, with their
@@ -771,7 +783,7 @@ pub const FREQUENT: &str = "Frequent";
 /// their own sections (`dedupe`). Asked for more keys than rows so a store
 /// full of gone items still fills the section.
 fn frequent(ix: &Index, fre: &Frecency, now: SystemTime) -> Vec<HitView> {
-    let skip = [palettes_source(), commands::source(), welcome::source()];
+    let skip = [palettes_source(), commands::source(), welcome::source(), crate::store::source()];
     fre.top(FREQUENT_MAX * 8, now)
         .into_iter()
         .filter(|k| !skip.iter().any(|s| s.extension == k.extension && s.palette == k.palette))
@@ -970,21 +982,24 @@ pub fn query(
     let fre = lock(&frecency);
     let fre_boost = fre.boost(&q, SystemTime::now());
     let boost = root_boost(&q, &ranking, &fre_boost);
-    let welcome = welcome::source();
+    let (welcome, available) = (welcome::source(), crate::store::source());
     let mut ix = lock(&index);
+    let at_root = sources.is_none();
+    // At the root: every source but the uninstalled extensions (`available_tail` puts them after), and the welcome rows on the empty query only.
     let sources = match sources {
-        None if !q.is_empty() => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != welcome).collect()),
+        None => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != available && (q.is_empty() || *s != welcome)).collect::<Vec<_>>()),
         s => s,
     };
     // The empty unscoped root leads with what needs attention (a failed extension's row) and the Frequent section, after the welcome rows, which outscore everything.
-    let empty_root = sources.is_none() && q.trim().is_empty();
+    let empty_root = at_root && q.trim().is_empty();
     let frequent = if empty_root { frequent(&ix, &fre, SystemTime::now()) } else { Vec::new() };
     let attention = if empty_root { attention(&ix) } else { Vec::new() };
     let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps, cut: ranking.cut };
     let ranked = ix.query(&q, opts);
     let mut hits = views(&ix, ranked, &titles);
-    if sources.is_none() {
+    if at_root {
         hits = dedupe_across_palettes(hits);
+        hits.extend(available_tail(&mut ix, &q, ranking.cut));
     }
     for lead in [attention, frequent] {
         if lead.is_empty() {
@@ -997,6 +1012,26 @@ pub fn query(
     FIRST.call_once(|| eprintln!("query\tfirst answer\t{q:?} {} hits of {} items\t{:.1}ms since start", hits.len(), ix.len(), crate::since_start_ms()));
     hits
 }
+
+/// The root's last section on a typed query: the extensions of ours that
+/// are not installed (`store::source`) that match, below every installed
+/// match whatever they score, never on the empty query, and never boosted
+/// by frecency (their picks are not recorded either). At most
+/// [`AVAILABLE_MAX`] of them and no "N more" row: the source is no palette
+/// to push into, the Store is ("Browse extensions").
+fn available_tail(ix: &mut Index, q: &str, cut: bool) -> Vec<HitView> {
+    if q.trim().is_empty() {
+        return Vec::new();
+    }
+    let only = [crate::store::source()];
+    // The cap is what lets the cut apply: rows with the typed word, when there are any, over rows that only scatter its letters.
+    let caps = pal_core::index::Caps { primary: AVAILABLE_MAX, normal: AVAILABLE_MAX, catalog: AVAILABLE_MAX };
+    let ranked = ix.query(q, QueryOpts { limit: AVAILABLE_MAX, sources: Some(&only), boost: None, tier: None, caps: Some(caps), cut });
+    views(ix, ranked, &[]).into_iter().filter(|h| h.hit.id != MORE_ID).collect()
+}
+
+/// The uninstalled extensions a typed root query shows at most.
+const AVAILABLE_MAX: usize = 5;
 
 /// The reply's rows: each hit beside its item, and after the last hit of
 /// every capped source its "more" row (the hits come grouped by source).
@@ -1119,6 +1154,9 @@ pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host:
     let PickRequest { source, id, action, query, args, values, ids } = req;
     if source == welcome::source() {
         return welcome::pick(&app, &id).await;
+    }
+    if source == crate::store::source() {
+        return crate::store::pick(&app, &id, action.as_deref(), &query).await;
     }
     // The "N more in X" row: into the palette, remembered as nothing.
     if id == MORE_ID && args.is_none() && with_index(&app, |ix| ix.get(&source, &id).is_none()) {
@@ -1343,6 +1381,31 @@ mod tests {
 
     fn ranked(q: &str, fre: &Frecency) -> Vec<String> {
         root(q, fre, None)
+    }
+
+    #[test]
+    fn uninstalled_extensions_answer_typed_queries_below_every_installed_match() {
+        let mut ix = Index::new();
+        ix.replace(Source::new("apps", "apps"), vec![row("weather.app", "Weather", &[])]);
+        let mut weather = row("weather", "Weather", &["forecast", "Right now"]);
+        weather.subtitle = Some("Not installed".into());
+        ix.replace(crate::store::source(), vec![weather, row(crate::store::BROWSE, "Browse extensions", &["store", "install"])]);
+        let root = |q: &str, ix: &mut Index| {
+            let sources: Vec<Source> = ix.sources().into_iter().map(|s| s.source).filter(|s| *s != crate::store::source()).collect();
+            let ranked = ix.query(q, QueryOpts { sources: Some(&sources), ..Default::default() });
+            let mut hits = views(ix, ranked, &[]);
+            hits.extend(available_tail(ix, q, true));
+            hits.into_iter().map(|h| h.item.id).collect::<Vec<_>>()
+        };
+        assert_eq!(root("weather", &mut ix), ["weather.app", "weather"], "an exact name still ranks under the installed app");
+        assert_eq!(root("right now", &mut ix), ["weather"], "a palette title finds it");
+        assert_eq!(root("store", &mut ix), [crate::store::BROWSE]);
+        assert!(root("", &mut ix).iter().all(|id| id == "weather.app"), "never on the empty query");
+        let many: Vec<Item> = (0..9).map(|i| row(&format!("w{i}"), &format!("Wave {i}"), &[])).chain([row("sw", "Sudoku with a wave", &[])]).collect();
+        ix.replace(crate::store::source(), many);
+        let got = root("wave", &mut ix);
+        assert_eq!(got.len(), AVAILABLE_MAX, "a few, no \"N more\" row into a source that is no palette: {got:?}");
+        assert!(root("wav", &mut ix).iter().all(|id| id != MORE_ID));
     }
 
     #[test]

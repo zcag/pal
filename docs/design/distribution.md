@@ -492,13 +492,19 @@ It runs in two releases, because the second one no longer has the manifests or
 code of the extensions it drops.
 
 1. **The last full-bundle release** writes `[store] installed` from a
-   manifest-free "in use" test in the core. An extension is in use when any of
-   these mention it:
-   - `[extensions.<n>]`, `[instances.<n>*]`, `[palettes."<n>"|"<n>/*"]`;
-   - `bar.items."<n>/*"`, the sidebar palette, the fallback order,
-     `[states]` expressions;
-   - frecency;
-   - `storage/<n>.json`, which is where game progress lives.
+   manifest-free "in use" test in the core. An extension is in use when:
+   - a palette of it was opened here: `<data dir>/extensions-used.json`,
+     a local record of opens (name and last time) kept whether usage sharing
+     is on or off and never sent, written at the same places palette opens
+     are counted;
+   - or any of these mention it: `[extensions.<n>]`, `[instances.<n>*]`,
+     `[palettes."<n>"|"<n>-*"]` (a hotkey, an alias, any setting),
+     `bar.items."<n>/*"`, the sidebar palette, a fallback order the user
+     set (the default order names calc, files and quicklinks for everyone),
+     `[states]` expressions, frecency.
+
+   A `storage/<n>.json` file does not count: extensions write theirs on
+   their own (GitHub's cache), used or not; game progress shows as opens.
 
    This release also converts existing store installs whose source is
    `github:zcag/pal/extensions/<n>` to `registry = "pal"`, and deletes a

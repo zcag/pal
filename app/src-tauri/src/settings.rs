@@ -53,6 +53,10 @@ pub struct Ext {
     pub manifest: Value,
     pub root: String,
     pub loaded: bool,
+    /// Turned off (`[store] disabled`): found and listed, never loaded
+    /// (the host's `extension/disabled`).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub disabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// From the code, so empty while it fails to load.
@@ -247,6 +251,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     crate::mouse::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);
+    crate::store::apply_config(app, &prev, &loaded.config);
     if prev.features != loaded.config.features || prev.palettes != loaded.config.palettes {
         crate::features::sync(app);
     }
@@ -295,11 +300,11 @@ pub fn extensions(app: &AppHandle) -> Vec<Ext> {
 
 // ---- extension registry --------------------------------------------------
 
-/// `extension/loaded` or `extension/error` from the host. No event of its
-/// own: the host loop emits [`events::HOST`] with the notification right
-/// after this returns, and the window re-reads on that (one `Loaded`
-/// serialisation per extension at startup was the alternative).
-pub fn register(app: &AppHandle, key: &str, params: &Value, loaded: bool) {
+/// `extension/loaded`, `extension/error` or `extension/disabled` from the
+/// host. No event of its own: the host loop emits [`events::HOST`] with the
+/// notification right after this returns, and the window re-reads on that
+/// (one `Loaded` serialisation per extension at startup was the alternative).
+pub fn register(app: &AppHandle, key: &str, params: &Value, loaded: bool, disabled: bool) {
     let root = params["root"].as_str().unwrap_or_default().to_string();
     // `key` is the instance key (`gmail@work`); the directory is the manifest name's (`params.name`).
     let name = params["name"].as_str().unwrap_or_else(|| instance::name_of(key)).to_string();
@@ -313,6 +318,7 @@ pub fn register(app: &AppHandle, key: &str, params: &Value, loaded: bool) {
         name,
         root,
         loaded,
+        disabled,
         error: params["message"].as_str().map(str::to_string),
         palettes: serde_json::from_value(params["palettes"].clone()).unwrap_or_default(),
         warnings: serde_json::from_value(params["warnings"].clone()).unwrap_or_default(),
@@ -573,6 +579,10 @@ pub fn open_page(app: &AppHandle, page: Option<&str>) {
 /// (`extensions:hello`): the page selects what it names and lights the
 /// row, as a search hit does.
 pub fn open_at(app: &AppHandle, page: Option<&str>, anchor: Option<&str>) {
+    // The Extensions page shows what the registries offer: fetched again when that is due.
+    if page == Some("extensions") {
+        crate::store::refresh_soon(app);
+    }
     let handle = app.clone();
     let page = page.map(str::to_string);
     let anchor = anchor.map(str::to_string);
@@ -678,6 +688,12 @@ pub fn remember_app_check(app: &AppHandle, result: &Result<UpdateInfo, String>) 
     }
 }
 
+/// `name` was updated or removed: the Overview's last extensions check no
+/// longer counts it as behind.
+pub fn forget_check(app: &AppHandle, name: &str) {
+    lock(&app.state::<Settings>().checks).forget(name);
+}
+
 /// What the last app check found, when one ran and answered.
 pub fn last_app_check(app: &AppHandle) -> Option<UpdateInfo> {
     app.try_state::<Settings>().and_then(|st| lock(&st.checks).app.as_ref().and_then(|c| c.value.clone()))
@@ -694,22 +710,14 @@ pub struct Update {
 }
 
 /// The one update check (`pal_core::updates::check`) over freshly fetched
-/// indexes, remembered.
+/// indexes (`store::refresh`, which also applies what updates by itself),
+/// remembered.
 async fn check_extensions(app: &AppHandle) -> Result<Vec<Update>, String> {
-    let m = crate::host::manager(app);
-    let r = tauri::async_runtime::spawn_blocking(move || {
-        let failed: Vec<String> = m.refresh().into_iter().filter_map(|(_, r)| r.err().map(|e| e.to_string())).collect();
-        let found: Vec<Update> = m
-            .check()
-            .into_iter()
-            .filter_map(|s| Some(Update { current: s.installed.as_ref().map(|b| b.hash.clone()).unwrap_or_default(), latest: s.target()?.hash.clone(), name: s.name }))
-            .collect();
-        // A failed fetch never reads as "up to date".
-        if found.is_empty() && !failed.is_empty() { Err(failed.join("; ")) } else { Ok(found) }
-    })
-    .await
-    .map_err(|e| e.to_string())
-    .and_then(|r| r);
+    let state = crate::store::refresh(app, Duration::ZERO).await;
+    let found: Vec<Update> = state.statuses.iter().filter_map(|s| Some(Update { current: s.installed.as_ref().map(|b| b.hash.clone()).unwrap_or_default(), latest: s.target()?.hash.clone(), name: s.name.clone() })).collect();
+    let failed: Vec<String> = state.registries.iter().filter_map(|r| r.status.last_error.clone()).collect();
+    // A failed fetch never reads as "up to date".
+    let r = if found.is_empty() && !failed.is_empty() { Err(failed.join("; ")) } else { Ok(found) };
     match &r {
         Ok(u) if u.is_empty() => eprintln!("extensions\tup to date"),
         Ok(u) => eprintln!("extensions\tbehind\t{}", u.iter().map(|x| x.name.as_str()).collect::<Vec<_>>().join(", ")),
@@ -1141,68 +1149,41 @@ pub async fn settings_restart_host(host: State<'_, Arc<Host>>) -> Result<(), Str
 }
 
 // ---- the extension store ---------------------------------------------------
-// `pal_core::manage` does the work off the runtime, in the one store
-// (`Store::locate`, under the data dir: not tied to the config file); the host is restarted
-// after every change to the store. Its watcher does see the change (a new
-// root, a removed extension), but the index only drops a gone extension's
-// sources and cache on `host/ready`, and `bun install` under a watched root
-// would trigger a reload per file.
+// The work is `crate::store`'s (one `pal_core::manage::Manager`, the host
+// told to reload the one extension, no restart); these are the commands the
+// Settings page had before the Store's own (`store_*`), kept for it and for
+// the panel's install form.
 
-/// `f` with the extension operations (`pal_core::manage`), off the runtime.
-async fn managed<T: Send + 'static>(app: &AppHandle, f: impl FnOnce(pal_core::manage::Manager) -> pal_core::extensions::Result<T> + Send + 'static) -> Result<T, String> {
-    let m = crate::host::manager(app);
-    tauri::async_runtime::spawn_blocking(move || f(m)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())
-}
-
-/// A bare name installs from the registries (fetched first), anything else
-/// is a source (a directory, GitHub).
+/// A bare name installs from the registries, anything else is a source (a
+/// directory, GitHub). Answers once the host has loaded it.
 #[tauri::command]
-pub async fn extensions_install(app: AppHandle, host: State<'_, Arc<Host>>, spec: String) -> Result<Installed, String> {
-    let bun = crate::host::bun();
-    let r = managed(&app, move |m| {
-        if pal_core::extensions::Spec::is_bare_name(&spec) {
-            m.refresh();
-            m.install(spec.trim(), None, pal_core::usage::From::Settings)
-        } else {
-            m.install_source(&spec, Some(&bun))
-        }
-    })
-    .await?;
-    eprintln!("extensions	installed	{} {}", r.name, r.version);
-    host.restart().await;
-    Ok(r)
+pub async fn extensions_install(app: AppHandle, spec: String) -> Result<Installed, String> {
+    let r = if pal_core::extensions::Spec::is_bare_name(&spec) { crate::store::install(&app, spec.trim(), None, pal_core::usage::From::Settings).await } else { crate::store::install_source(&app, &spec).await };
+    installed(r)
 }
 
 /// The update the one check offers for `name`, or a source install's
 /// source fetched again.
 #[tauri::command]
-pub async fn extensions_update(app: AppHandle, host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
-    let bun = crate::host::bun();
-    let n = name.clone();
-    let r = managed(&app, move |m| {
-        m.refresh();
-        let status = m.check().into_iter().find(|s| s.name == n);
-        match status {
-            Some(s) if s.state == pal_core::updates::State::Source => m.store.update_source(&n, Some(&bun)),
-            Some(s) => m.apply(&s, pal_core::usage::From::Settings).unwrap_or_else(|| Err(pal_core::extensions::Error::Manifest(format!("{n}: no update to apply")))),
-            None => Err(pal_core::extensions::Error::NotFound(n)),
-        }
-    })
-    .await?;
-    eprintln!("extensions	updated	{} {}", r.name, r.version);
-    lock(&app.state::<Settings>().checks).forget(&name);
-    host.restart().await;
-    Ok(r)
+pub async fn extensions_update(app: AppHandle, name: String) -> Result<Installed, String> {
+    let r = crate::store::update(&app, vec![name], pal_core::usage::From::Settings).await.pop().ok_or("nothing to update")?;
+    installed(r)
 }
 
 #[tauri::command]
-pub async fn extensions_remove(app: AppHandle, host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
-    let n = name.clone();
-    managed(&app, move |m| m.remove(&n, pal_core::usage::From::Settings)).await?;
-    eprintln!("extensions	removed");
-    lock(&app.state::<Settings>().checks).forget(&name);
-    host.restart().await;
-    Ok(())
+pub async fn extensions_remove(app: AppHandle, name: String) -> Result<(), String> {
+    let r = crate::store::remove(&app, &name, false, pal_core::usage::From::Settings).await;
+    if r.ok { Ok(()) } else { Err(r.error.unwrap_or_default()) }
+}
+
+/// An operation's outcome as these commands answer it: the store copy it
+/// left, or its error (a load failure included).
+fn installed(r: crate::store::OpResult) -> Result<Installed, String> {
+    match (r.ok, r.loaded, r.error) {
+        (true, Some(false), Some(e)) => Err(format!("{} is installed but did not load: {e}", r.name)),
+        (true, ..) => Store::locate().get(&r.name).map_err(|e| e.to_string()),
+        (false, _, e) => Err(e.unwrap_or_else(|| format!("{}: failed", r.name))),
+    }
 }
 
 /// Extensions with an update, on demand: every registry's index is fetched
@@ -1226,7 +1207,7 @@ const STOP_WAIT: Duration = Duration::from_secs(3);
 
 /// The file as it is now, applied as the watcher would (the watcher's own
 /// reload of the same bytes follows and finds nothing changed).
-fn reload_now(app: &AppHandle) {
+pub(crate) fn reload_now(app: &AppHandle) {
     let loaded = app.state::<Settings>().file.load();
     on_reload(app, loaded);
 }
@@ -1298,18 +1279,29 @@ pub async fn instances_remove(app: AppHandle, key: String) -> Result<(), String>
             eprintln!("instances\tremove\t{key}\tstill registered after {STOP_WAIT:?}; deleting its files anyway");
         }
     }
-    let index = st.file.data_dir().join(crate::cache::DIR_NAME).join(&key);
-    let (a, k) = (app.clone(), key.clone());
+    forget_data(&app, std::slice::from_ref(&key)).await;
+    Ok(())
+}
+
+/// Everything pal keeps for the instance keys `keys` outside the config
+/// file, deleted: the storage file (`<data dir>/pal/storage/<key>.json`,
+/// through the store so nothing of it stays loaded), the index cache
+/// directory and the frecency entries. Removing an instance, and "Remove
+/// and forget" for a whole extension (`store.rs`), every key of it.
+pub(crate) async fn forget_data(app: &AppHandle, keys: &[String]) {
+    let index = file(app).data_dir().join(crate::cache::DIR_NAME);
+    let (a, ks) = (app.clone(), keys.to_vec());
     let gone = tauri::async_runtime::spawn_blocking(move || {
         let mut gone = Vec::new();
-        // `<data dir>/pal/storage/<key>.json`, through the store so nothing of it stays loaded.
-        match a.state::<pal_core::storage::Storage>().forget(&k) {
-            Ok(true) => gone.push("storage"),
-            Ok(false) => {}
-            Err(e) => eprintln!("instances\tremove\t{k}\tstorage: {e}"),
-        }
-        if std::fs::remove_dir_all(&index).is_ok() {
-            gone.push("index");
+        for k in &ks {
+            match a.state::<pal_core::storage::Storage>().forget(k) {
+                Ok(true) => gone.push(format!("storage:{k}")),
+                Ok(false) => {}
+                Err(e) => eprintln!("forget\t{k}\tstorage: {e}"),
+            }
+            if std::fs::remove_dir_all(index.join(k)).is_ok() {
+                gone.push(format!("index:{k}"));
+            }
         }
         gone
     })
@@ -1318,7 +1310,7 @@ pub async fn instances_remove(app: AppHandle, key: String) -> Result<(), String>
     let forgotten = {
         let st = app.state::<Mutex<Frecency>>();
         let mut f = lock(&st);
-        let n = f.forget_extension(&key);
+        let n: usize = keys.iter().map(|k| f.forget_extension(k)).sum();
         if n > 0 {
             if let Err(e) = f.flush() {
                 eprintln!("frecency\tflush failed\t{e}");
@@ -1326,9 +1318,8 @@ pub async fn instances_remove(app: AppHandle, key: String) -> Result<(), String>
         }
         n
     };
-    eprintln!("instances\tcleaned\t{key}\tfiles=[{}] frecency={forgotten}", gone.join(","));
-    events::emit(&app, events::INDEX, ());
-    Ok(())
+    eprintln!("forget\t{}\tfiles=[{}] frecency={forgotten}", keys.join(","), gone.join(","));
+    events::emit(app, events::INDEX, ());
 }
 
 // ---- about -----------------------------------------------------------------
@@ -1474,7 +1465,7 @@ mod tests {
 
     #[test]
     fn instance_warnings_name_the_missing_and_the_single() {
-        let ext = |name: &str, multi: bool| Ext { key: name.into(), name: name.into(), instance: InstanceInfo::default_for(name), manifest: json!({ "name": name, "multi": multi }), root: String::new(), loaded: true, error: None, palettes: vec![], warnings: vec![], installed: None, record: None };
+        let ext = |name: &str, multi: bool| Ext { key: name.into(), name: name.into(), instance: InstanceInfo::default_for(name), manifest: json!({ "name": name, "multi": multi }), root: String::new(), loaded: true, disabled: false, error: None, palettes: vec![], warnings: vec![], installed: None, record: None };
         let exts = vec![ext("gmail", true), ext("timer", false)];
         let c = cfg("[instances.\"gmail@work\"]\n[instances.\"timer@two\"]\n[instances.\"nope@x\"]\n[instances.gmail]\ntitle = \"P\"\n[instances.\"bad@@k\"]\n");
         let w: Vec<(String, String)> = instance_warnings(&c, &exts).into_iter().map(|d| (d.path, d.message)).collect();

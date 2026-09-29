@@ -13,12 +13,20 @@ impl ConfigFile {
     /// Lists `name` from `registry` in `installed`, replacing an entry for
     /// the same name from another registry (a re-pin).
     pub fn store_add_installed(&self, registry: &str, name: &str) -> Result<(), Error> {
-        let entry = installed_entry(registry, name);
+        self.store_add_installed_all(registry, &[name.to_string()])
+    }
+
+    /// [`Self::store_add_installed`] for several names in one edit (the
+    /// migration's list).
+    pub fn store_add_installed_all(&self, registry: &str, names: &[String]) -> Result<(), Error> {
         self.edit(|doc| {
             let list = list(doc, "installed")?;
-            list.retain(|v| v.as_str().is_none_or(|s| split_installed(s).1 != name || s == entry));
-            if !list.iter().any(|v| v.as_str() == Some(&entry)) {
-                list.push(entry.as_str());
+            for name in names {
+                let entry = installed_entry(registry, name);
+                list.retain(|v| v.as_str().is_none_or(|s| split_installed(s).1 != name || s == entry));
+                if !list.iter().any(|v| v.as_str() == Some(&entry)) {
+                    list.push(entry.as_str());
+                }
             }
             Ok(())
         })

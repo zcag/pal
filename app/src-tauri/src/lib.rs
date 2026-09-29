@@ -45,6 +45,7 @@ mod settings;
 mod sidebar;
 mod states;
 mod storage;
+mod store;
 mod surface;
 mod switcher;
 mod system;
@@ -204,11 +205,15 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
         compact::on_show(app, keep && palette.is_none());
         place(app);
         panel::show(app);
+        store::new_show(WINDOW);
     } else if palette.is_none() {
         return;
     }
     // The page keeps its level only with `keep` and no palette to open; otherwise it starts over and reports its view anew.
     views::set_visible(app, WINDOW, true, !(keep && palette.is_none()));
+    if let Some(p) = &palette {
+        store::opened(app, WINDOW, p);
+    }
     let held = hold.and(palette.clone());
     events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold: hold.is_some(), steps: hold.unwrap_or(0) });
     // After the event: the live palettes list again off this thread; a file dialog in front and the Finder selection are looked for once per show.
@@ -271,13 +276,12 @@ pub fn run() {
     }
     let context = tauri::generate_context!();
     // The store commands run here, in this process, so their output lands
-    // on the caller's terminal; a running instance is then told to restart
-    // its host (`reload`), and none of them starts the app.
+    // on the caller's terminal, and none of them starts the app. A running
+    // instance follows by itself: its host watches the store's directory
+    // (and loads or drops the one extension), its config watcher sees
+    // `[store]` change (a turned-off set goes to the host, store.rs).
     let base = host::base(tauri::utils::platform::resource_dir(context.package_info(), &tauri::Env::default()).ok());
-    if let Some(changed) = cli.cmd.as_ref().and_then(|c| c.run_store(&base)) {
-        if changed && !cli::handover_args(&context.config().identifier, &["reload"]) {
-            eprintln!("pal	not running; the extension loads at the next start");
-        }
+    if cli.cmd.as_ref().and_then(|c| c.run_store(&base)).is_some() {
         return;
     }
     // `pal pick`: this process reads the rows, hands the picker to the instance and waits for the answer (pick.rs).
@@ -353,6 +357,19 @@ pub fn run() {
             settings::extensions_update,
             settings::extensions_remove,
             settings::extensions_check_updates,
+            store::store_state,
+            store::store_refresh,
+            store::store_install,
+            store::store_update,
+            store::store_remove,
+            store::store_set_disabled,
+            store::store_registry_preview,
+            store::store_registry_add,
+            store::store_registry_remove,
+            store::store_registry_set,
+            store::store_forget_leftover,
+            store::settings_open_store,
+            store::usage_opened,
             settings::instances_add,
             settings::instances_rename,
             settings::instances_remove,
@@ -408,6 +425,7 @@ pub fn run() {
             //   6. hotkey: the registered map, before settings applies it
             //   7. settings: load the file, apply hotkeys/tray/autostart, watch
             //      (the settings window itself is built on its first open)
+            //      store: the extension operations, the usage switch
             //      permissions: log what the OS lets pal do, watch for a grant
             //   8. clipboard: the recorder, retention from the loaded settings
             //      storage: the extensions' key-value files, nothing read yet
@@ -445,6 +463,7 @@ pub fn run() {
             index::install(app.handle(), &data);
             hotkey::install(app.handle());
             settings::install(app.handle(), config);
+            store::setup(app.handle());
             permissions::install(app.handle());
             clipboard::install(app.handle());
             storage::install(app.handle());
@@ -482,6 +501,7 @@ pub fn run() {
             if let RunEvent::Exit = event {
                 bar::remove_all(app);
                 index::flush(app);
+                store::flush_at_quit();
                 eprintln!("quit\tflushed\t{:.1}ms since start", since_start_ms());
                 if RESTARTING.load(Ordering::SeqCst) {
                     std::process::exit(RESTART_EXIT);

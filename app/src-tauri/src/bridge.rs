@@ -23,6 +23,7 @@
 //! - `core/instances.get {extension}` (settings.rs: the configured instances of a `multi` extension)
 //! - `core/states.{get, set, list, eval, manual, reset, declare, undeclare}` (states.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
+//! - `core/store.{disabled, state, refresh, install {name, registry?, from?}, update {names?, from?}, remove {name, forget?}}` (store.rs: the extension store, `extensions.*` in the SDK)
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
 //! - `core/windows.{list, close, minimize, unminimize, fullscreen, frame, set_frame, displays, focused, layout, spaces, go_space}` (windows.rs)
@@ -60,6 +61,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "instances" => crate::settings::instances(app, func, params),
         "states" => crate::states::call(app, func, params),
         "storage" => crate::storage::call(app, func, params),
+        "store" => crate::store::call(app, func, params),
         "snippets" => crate::expansion::call(app, func, params),
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),
@@ -97,6 +99,7 @@ mod tests {
         assert_eq!(route("core/color.sample"), Ok(("color", "sample")));
         assert_eq!(route("core/effects.run"), Ok(("effects", "run")));
         assert_eq!(route("core/extensions.list"), Ok(("extensions", "list")));
+        assert_eq!(route("core/store.disabled"), Ok(("store", "disabled")));
         assert_eq!(route("core/permissions.request"), Ok(("permissions", "request")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");

@@ -77,8 +77,13 @@ pub const CONFIRM_REPLY: &str = "pal://confirm/reply";
 pub const THEME: &str = "pal://theme";
 /// To the panel's page, after a `pal://` link showed it: `{ query?, reset? }`,
 /// the text to type into the search box, at the root when `reset` is set
-/// (deeplink.rs).
+/// (deeplink.rs); `{ reset: true, missing }` when what it pointed at is an
+/// extension that is not installed or is turned off (`store::Missing`): the
+/// page shows the card that offers the fix.
 pub const DEEPLINK: &str = "pal://deeplink";
+/// To every page: the extension store's state (`store::StoreState`),
+/// whenever it changes: a refresh, an operation, a load, a config change.
+pub const STORE: &str = "pal://store";
 
 /// Emit to every window; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.

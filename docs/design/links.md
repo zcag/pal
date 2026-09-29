@@ -71,9 +71,10 @@ pal link '<url>'               the same, from a shell; readable twins below
 | `pal://hud?text=` | `pal hud TEXT` | One line in the HUD | no |
 | `pal://toast?title=&message=` | `pal toast TITLE [MESSAGE]` | A toast in the panel when it is up, else the HUD line | no |
 | `pal://confetti?text=` | `pal confetti [TEXT]` | A celebration in the HUD (the capsule with `text`, "🎉" without) | no |
-| `pal://install/<spec>` | `pal install SPEC` | Installs an extension (a `pal install` spec or a store name) | always |
+| `pal://install/<spec>[?open=]` | `pal install SPEC` | Installs an extension (a `pal install` spec or a store name), waits for it to load, then opens its palette `open` (else the root with the name typed) | always |
 | `pal://update[/<name>]` | `pal update [NAME]` | Fetches an installed extension again (every one with a source without a name) | always |
 | `pal://remove/<name>` | `pal remove NAME` | Removes an installed extension | always |
+| `pal://registry/add?url=&key=` | `pal registry add URL [--key K]` | Follows a registry after a card with its name, URL, count and key (the link's `key`, else the index's own `key`; neither is refused) | always |
 | `pal://bar/<ext>/<id>[?action=]` | `pal bar click <ext>/<id>` / `pal bar action <ext>/<id> <action>` | A bar item's popover; with `action`, one of its actions | no / yes |
 | `pal://<ext>/<route>?<params>` | `pal call <ext>/<route> [key=value ...]` | A route the extension declares in its manifest (below) | yes |
 | any of the above | `pal link '<url>'` | The link as written | as the CLI: never |

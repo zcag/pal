@@ -1804,8 +1804,13 @@ reinstall finds its settings. Remove and forget (Settings › Extensions,
 on the extension's page) deletes those too, with its storage, cache,
 ranking and keychain secrets.
 
-Each of these is loaded or unloaded without restarting the extension
-host, and the Store, Settings and the SDK calls answer once that is done.
+A running app follows each of these at once, whichever did it (Settings,
+the Store, a link, the CLI): the host loads or drops that one extension,
+nothing else restarts. An update that fails to load where the build before
+it loaded is rolled back by itself, and Settings says so with the error.
+An extension's `requires` are installed before it; one that others
+require is not removed until they are.
+The Store, Settings and the SDK calls answer once that is done.
 
 ## Writing one
 

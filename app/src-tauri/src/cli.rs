@@ -15,8 +15,9 @@
 //! `pal install|update|remove|list|registry|disable|enable` work the
 //! extension store in this process (`Cmd::run_store`, through
 //! `pal_core::manage` like every other UI: results on stdout, one
-//! `pal\t<reason>` line on stderr and exit 1 on failure), then `reload`
-//! reaches the running instance so its host picks the change up. `install`
+//! `pal\t<reason>` line on stderr and exit 1 on failure); a running
+//! instance follows by itself (its host watches the store's directory, its
+//! config watcher `[store]`), no restart. `install`
 //! takes a name, resolved through the registries' indexes (pal's own first),
 //! or a source with `--from`.
 //!
@@ -822,7 +823,7 @@ pub fn handover(identifier: &str) -> bool {
 }
 
 /// Same channel, a different subcommand than this process was given
-/// (`reload` after a store command). `argv[0]` stays ours.
+/// (`pick --reply`, pick.rs). `argv[0]` stays ours.
 pub fn handover_args(identifier: &str, args: &[&str]) -> bool {
     let mut argv = vec![std::env::args().next().unwrap_or_else(|| "pal".into())];
     argv.extend(args.iter().map(|a| a.to_string()));

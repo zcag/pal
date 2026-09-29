@@ -1,8 +1,8 @@
-//! Updates: the check against the release manifest (`plugins.updater.endpoints`
-//! in tauri.conf.json: pal.cagdas.io's `/update/<target>/<arch>/<version>`,
-//! which answers the latest GitHub release's `latest.json` and counts the
-//! check, then that `latest.json` itself when the site fails; it is written
-//! by `.github/workflows/release.yml`), and the install.
+//! Updates: the check against the release manifest (`endpoints`:
+//! pal.cagdas.io's `/update/<target>/<arch>/<version>`, which answers the
+//! latest GitHub release's `latest.json` and counts the check, then that
+//! `latest.json` itself when the site fails; it is written by
+//! `.github/workflows/release.yml`), and the install.
 //!
 //! The check runs once after startup and then daily while
 //! `general.check_updates` is on; `check_updates` is the same check on
@@ -158,9 +158,26 @@ pub fn support_for(debug: bool, linux: bool, bundle: Option<tauri::utils::config
     Ok(())
 }
 
+const SITE_ENDPOINT: &str = "https://pal.cagdas.io/update/{{target}}/{{arch}}/{{current_version}}";
+const GITHUB_ENDPOINT: &str = "https://github.com/zcag/pal/releases/latest/download/latest.json";
+
+/// Where the check asks, in order: the site, whose URL carries the install
+/// id (`?i=`) while usage sharing is on (docs/usage.md: it counts the check
+/// as the day's "alive"), then GitHub. Set per check, since the id is only
+/// known at run time; tauri.conf.json's list is the same two without it. A
+/// header would carry the id through the site's redirect to GitHub.
+fn endpoints(id: Option<&str>) -> Vec<url::Url> {
+    let mut site = url::Url::parse(SITE_ENDPOINT).expect("a valid URL");
+    if let Some(id) = id {
+        site.query_pairs_mut().append_pair("i", id);
+    }
+    vec![site, url::Url::parse(GITHUB_ENDPOINT).expect("a valid URL")]
+}
+
 async fn fetch(app: &AppHandle) -> Result<UpdateInfo, String> {
     use tauri_plugin_updater::Error;
-    let updater = app.updater().map_err(|e| e.to_string())?;
+    let id = settings::config(app).general.usage.then(|| pal_core::usage::Usage::locate().id()).flatten();
+    let updater = app.updater_builder().endpoints(endpoints(id.as_deref())).and_then(|b| b.build()).map_err(|e| e.to_string())?;
     match updater.check().await {
         Ok(Some(u)) => {
             let info = UpdateInfo::available(u.version.clone(), u.body.clone());
@@ -307,6 +324,17 @@ pub fn install_checks(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_install_id_rides_on_the_site_url_only_while_sharing() {
+        let with = endpoints(Some("0f9c-id"));
+        assert_eq!(with[0].query(), Some("i=0f9c-id"));
+        assert!(with[0].as_str().contains("%7B%7Btarget%7D%7D") || with[0].as_str().contains("{{target}}"), "the templates the plugin fills: {}", with[0]);
+        assert_eq!(with[1].as_str(), GITHUB_ENDPOINT, "GitHub never sees it");
+        assert_eq!(endpoints(None)[0].query(), None);
+        let conf: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        assert_eq!(conf["plugins"]["updater"]["endpoints"], serde_json::json!([SITE_ENDPOINT, GITHUB_ENDPOINT]), "the static list is the same two");
+    }
     use serde_json::json;
     use tauri::utils::config::BundleType;
 

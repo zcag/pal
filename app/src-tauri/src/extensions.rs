@@ -4,11 +4,11 @@
 //! version, so the palette can tag what is installed and what is behind
 //! the site. `install`, `update` and `remove` hand the work to the deep
 //! link routes (`pal://install/<spec>` and its twins, deeplink.rs) and
-//! return at once: the bridge runs on the host's blocking thread and the
-//! store restarts the host, so a reply after the work would never arrive.
-//! The trusted path (no card) is right here: the palette asks through
-//! `Action.confirm` before it calls, and Enter in the panel is the user's
-//! hand. The HUD says "Installing…" and then the outcome, as for a link.
+//! return at once, the HUD saying "Installing…" and then the outcome, as
+//! for a link; the calls that wait for the outcome are `core/store.*`
+//! (store.rs). The trusted path (no card) is right here: the palette asks
+//! through `Action.confirm` before it calls, and Enter in the panel is the
+//! user's hand.
 
 use std::path::Path;
 

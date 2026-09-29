@@ -30,6 +30,7 @@ const MARKER: &str = "welcomed";
 pub const BOOST: f32 = 1e9;
 
 pub const ABOUT: &str = "about";
+pub const PICK: &str = "pick";
 pub const HOTKEY: &str = "hotkey";
 pub const SWITCHER: &str = "switcher";
 pub const SIDEBAR: &str = "sidebar";
@@ -163,6 +164,13 @@ pub fn rows(env: &Env) -> Vec<Item> {
     rows.extend([
         about,
         row(
+            PICK,
+            "Pick extensions",
+            "Games, your accounts, developer tools and more: Enter opens the Store",
+            "\u{f0431}",
+            "# Pick extensions\n\npal comes with the everyday ones: apps, files, clipboard, windows, calculator, emoji and more. The Store has the rest, by category: games, the ones for your accounts (GitHub, Gmail, Spotify), developer tools, and other people's registries. Enter opens it; an extension installs and loads in a second, no restart.\n\npal shares anonymous usage counts (which extensions are installed and opened, never what you type); Settings \u{203a} General turns that off.".into(),
+        ),
+        row(
             HOTKEY,
             "Change the hotkey",
             &format!("{hk} now; Enter opens the recorder in Settings"),
@@ -265,6 +273,7 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
             Ok(json!({ "hide": true }))
         }
         EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,
+        PICK => effects::apply(app, crate::store::store_envelope(app)).await,
         GITHUB => effects::apply(app, json!({ "open": REPO })).await,
         ACCESSIBILITY => {
             // The user asked: the request every time (the prompt, or the pane once it has shown), not the once-per-run card.
@@ -323,9 +332,9 @@ mod tests {
     #[test]
     fn rows_in_order_with_accessibility_only_while_untrusted() {
         let ids = |rows: &[Item]| rows.iter().map(|r| r.id.clone()).collect::<Vec<_>>();
-        assert_eq!(ids(&rows(&env(false))), [ACCESSIBILITY, ABOUT, HOTKEY, SWITCHER, SIDEBAR, EXTENSIONS, GITHUB, HIDE], "the permission leads until granted");
-        assert_eq!(ids(&rows(&env(true))), [ABOUT, HOTKEY, SWITCHER, SIDEBAR, EXTENSIONS, GITHUB, HIDE]);
-        assert_eq!(ids(&rows(&Env { sidebar: false, ..env(true) })), [ABOUT, HOTKEY, SWITCHER, EXTENSIONS, GITHUB, HIDE], "no sidebar row where none is built");
+        assert_eq!(ids(&rows(&env(false))), [ACCESSIBILITY, ABOUT, PICK, HOTKEY, SWITCHER, SIDEBAR, EXTENSIONS, GITHUB, HIDE], "the permission leads until granted");
+        assert_eq!(ids(&rows(&env(true))), [ABOUT, PICK, HOTKEY, SWITCHER, SIDEBAR, EXTENSIONS, GITHUB, HIDE]);
+        assert_eq!(ids(&rows(&Env { sidebar: false, ..env(true) })), [ABOUT, PICK, HOTKEY, SWITCHER, EXTENSIONS, GITHUB, HIDE], "no sidebar row where none is built");
     }
 
     #[test]
@@ -355,8 +364,10 @@ mod tests {
         assert!(rows.iter().skip(1).all(|r| r.extra.get("actions").is_none()));
         let about = rows[0].extra["detail"]["markdown"].as_str().unwrap();
         assert!(about.contains(&hotkey_label("ctrl+space")), "the detail names the hotkey");
-        assert!(rows[4].extra["detail"]["markdown"].as_str().unwrap().contains(EXTENSIONS_GUIDE));
-        assert!(rows[5].extra["detail"]["markdown"].as_str().unwrap().contains(REPO));
+        let md = |id: &str| rows.iter().find(|r| r.id == id).unwrap().extra["detail"]["markdown"].as_str().unwrap().to_string();
+        assert!(md(EXTENSIONS).contains(EXTENSIONS_GUIDE));
+        assert!(md(GITHUB).contains(REPO));
+        assert!(md(PICK).contains("anonymous usage counts") && md(PICK).contains("Settings \u{203a} General"), "the usage sentence, and where it is turned off");
     }
 
     #[test]

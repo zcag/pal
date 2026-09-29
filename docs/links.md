@@ -56,9 +56,10 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 | `pal://hud?text=<text>` | `pal hud <text>` | One line in the HUD |
 | `pal://toast?title=<t>&message=<m>` | `pal toast <t> [<m>]` | A toast in the panel while it is up, else the HUD |
 | `pal://confetti` | `pal confetti [<text>]` | A celebration in the HUD (`?text=` for its line) |
-| `pal://install/<spec>` | `pal install <spec>` | Install an extension (a store name or a source, see [CLI](cli.md)) |
+| `pal://install/<spec>` | `pal install <spec>` | Install an extension (a store name or a source, see [CLI](cli.md)); `?open=<palette>` opens that palette of it once it has loaded, else the panel opens with its name typed |
 | `pal://update/<name>`, `pal://update` | `pal update [<name>]` | Fetch one or every installed extension again |
 | `pal://remove/<name>` | `pal remove <name>` | Remove an installed extension |
+| `pal://registry/add?url=<url>&key=<key>` | `pal registry add <url> [--key K]` | Follow a registry: the card shows its name, URL, how many extensions it lists and the key that gets pinned (`key`, else the one its index announces; with neither, the HUD asks for the key). URL-encode the key (`+` is `%2B`) |
 | `pal://instance/add/<name>/<suffix>` | `pal instance add <name> <suffix>` | Add an instance of a `multi` extension: `[instances."<name>@<suffix>"]` written (`?title=` its name, `?tint=` its tile colour; `--title`, `--tint`) |
 | `pal://instance/remove/<key>` | `pal instance remove <key>` | Remove an instance (`gmail@work`): its tables, storage, cache and ranking; the keychain items stay |
 | `pal://bar/<ext>/<id>` | `pal bar click <ext>/<id>` | A bar item's popover |

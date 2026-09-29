@@ -315,7 +315,8 @@ pal://open/<extension>/<palette>[?q=&filter=]   the panel inside that palette
 pal://run/<extension>/<palette>/<id>[?action=&args=]   run one row, the panel down
 pal://form/<extension>/<palette>/<id>?<field>=  the form a row opens, prefilled
 pal://copy?text=  pal://paste?text=  pal://open?url=  pal://hud?text=  pal://toast?title=  pal://confetti
-pal://install/<spec>   pal://update[/<name>]   pal://remove/<name>
+pal://install/<spec>[?open=<palette>]   pal://update[/<name>]   pal://remove/<name>
+pal://registry/add?url=<index url>[&key=<public key>]
 pal://bar/<extension>/<id>[?action=]           a bar item's popover, or one of its actions
 pal://<extension>/<route>?<params>             a route the extension declares
 ```

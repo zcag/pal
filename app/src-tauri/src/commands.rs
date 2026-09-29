@@ -135,7 +135,7 @@ pub struct Failed {
 impl Failed {
     /// From the registry's record of the extension (`settings::Ext`).
     pub fn of(e: &settings::Ext) -> Option<Self> {
-        if e.loaded {
+        if e.loaded || e.disabled {
             return None;
         }
         let title = e.manifest["title"].as_str().filter(|t| !t.is_empty()).unwrap_or(&e.name);
@@ -450,7 +450,7 @@ impl Diag {
             profile: file.profile(),
             data: file.data_dir(),
             // By instance key: `gmail` and `gmail@work` each say whether they loaded.
-            extensions: settings::extensions(app).iter().map(|e| (e.key.clone(), e.loaded)).collect(),
+            extensions: settings::extensions(app).iter().filter(|e| !e.disabled).map(|e| (e.key.clone(), e.loaded)).collect(),
             hotkey: hotkey::outcome(app),
             accessibility: permissions::status().accessibility,
             theme: settings::config(app).general.theme,
@@ -581,19 +581,16 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
         Plan::Open(url) => effects::apply(app, json!({ "open": url })).await,
         Plan::WhatsNew => effects::apply(app, json!({ "open": changelog_url(&app.package_info().version.to_string()) })).await,
         Plan::Store => {
-            if settings::extensions(app).iter().any(|e| e.name == "store" && e.loaded) {
-                Ok(json!({ "push": { "extension": "store", "palette": "store" } }))
-            } else {
-                effects::apply(app, json!({ "open": STORE })).await
-            }
+            let env = crate::store::store_envelope(app);
+            if env.get("push").is_some() { Ok(env) } else { effects::apply(app, env).await }
         }
         Plan::InstallForm => Ok(install_form(None)),
         Plan::Install(spec) => {
             if spec.is_empty() {
                 return Ok(install_form(Some("a source is needed")));
             }
-            match settings::extensions_install(app.clone(), app.state(), spec).await {
-                Ok(r) => Ok(toast(&format!("Installed {} {}", r.name, r.version), "The extension host is restarting with it", "success")),
+            match settings::extensions_install(app.clone(), spec).await {
+                Ok(r) => Ok(toast(&format!("Installed {}", r.name), "Loaded and ready", "success")),
                 Err(e) => Ok(install_form(Some(&e))),
             }
         }
@@ -780,6 +777,7 @@ mod tests {
             manifest: json!({ "name": "gmail", "title": "Gmail", "icon": icon }),
             root: "/r".into(),
             loaded,
+            disabled: false,
             error: (!loaded).then(|| "boom".to_string()),
             palettes: Vec::new(),
             warnings: Vec::new(),
@@ -787,6 +785,7 @@ mod tests {
             record: None,
         };
         assert_eq!(Failed::of(&ext("gmail", true, None)), None);
+        assert_eq!(Failed::of(&settings::Ext { disabled: true, error: None, ..ext("gmail", false, None) }), None, "turned off is not failed");
         let f = Failed::of(&ext("gmail@work", false, Some("Work"))).unwrap();
         assert_eq!((f.key.as_str(), f.title.as_str(), f.error.as_str()), ("gmail@work", "Gmail (Work)", "boom"));
         assert_eq!(Failed::of(&ext("gmail", false, Some("Personal"))).unwrap().title, "Gmail", "the default instance is the extension");

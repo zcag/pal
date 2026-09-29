@@ -241,6 +241,11 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
                 return Err(t.to_string());
             }
             if let Some(key) = push {
+                // Into an extension that is not there (not installed, turned off): its card, not an empty level.
+                if let Some(m) = crate::store::missing(app, &key) {
+                    crate::store::show_missing(app, m);
+                    return Ok(Value::Null);
+                }
                 let handle = app.clone();
                 app.run_on_main_thread(move || crate::show_in(&handle, Some(key))).map_err(|e| e.to_string())?;
             }
