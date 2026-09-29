@@ -37,7 +37,15 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
    the three jobs merge into that one file in parallel, and a platform can
    be dropped when two finish at once. Re-run the missing platform's job;
    it merges its entry in again.
-4. When every bundle is there (with the updater key set: both dmgs, the
+4. Once the bundles are up, a job `extensions` runs `extensions.yml` for the
+   tag ([Extensions](#extensions)): every extension built at the tag goes
+   to the registry's edge and stable indexes. `manifest` then also checks
+   that every extension the aarch64 bundle ships (its `.pal-build.json`
+   hash) is a build stable lists, not yanked, and fails otherwise: an app
+   compares its bundled copies with the registry by hash, so a mismatch
+   would offer an "update" to what it already runs. A failed `extensions`
+   leaves the draft unpublished too: re-run it, then `manifest`.
+5. When every bundle is there (with the updater key set: both dmgs, the
    AppImage and the deb, the `.app.tar.gz` and AppImage `.sig`s, and
    `latest.json`), `manifest` publishes the draft with `--latest`. The repo's
    older releases of the previous pal sort by version on their own, and
@@ -49,8 +57,8 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
 
 ## The updater
 
-`tauri-plugin-updater` (`app/src-tauri/src/updater.rs`) checks the manifest
-above once 20 s after startup and then daily while `general.check_updates`
+`tauri-plugin-updater` (`app/src-tauri/src/updater.rs`) checks for a newer
+release once 20 s after startup and then daily while `general.check_updates`
 is on (default), and on demand from the menu bar's "Check for updates…",
 Settings › About and the "Check for Updates" row. A found release is
 offered in three places and installed only on a click: the plugin
@@ -59,6 +67,21 @@ row), verifies it against the public key, replaces the `.app` or the
 AppImage in place and relaunches pal ([Getting
 started](getting-started.md#updates)). A debug build skips the periodic
 check and cannot be installed over.
+
+It asks the endpoints in `plugins.updater.endpoints` (`tauri.conf.json`) in
+order, and takes the first answer:
+
+1. `https://pal.cagdas.io/update/{{target}}/{{arch}}/{{current_version}}`
+   (the plugin fills in `darwin` or `linux`, `aarch64` or `x86_64`, and the
+   running version). The site answers the latest release's `latest.json`
+   and counts the check (the version spread, [usage](usage.md)). A 204 means
+   no update and ends the check.
+2. `https://github.com/zcag/pal/releases/latest/download/latest.json`, when
+   the site fails: a connection error, a status other than 2xx, or JSON that
+   is not a release. A 200 whose body is not JSON at all is an error that
+   ends the check without trying GitHub, so the site must never answer one.
+
+Released apps before 0.8 know only the GitHub URL, which stays.
 
 `latest.json` is written by `tauri-action` from the `.sig` files of every
 job (`uploadUpdaterJson`), platform keys `darwin-aarch64`, `darwin-x86_64`,
@@ -90,6 +113,89 @@ Local `npm run tauri build` needs the key in the environment for the same
 reason (`TAURI_SIGNING_PRIVATE_KEY=<contents or path>`); without one, build
 with the updater artifacts off:
 `npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false}}'`.
+
+## Extensions
+
+The registry's packages and indexes are published by
+`.github/workflows/extensions.yml` to pal.cagdas.io (formats and URLs:
+[registry.md](registry.md)). Two indexes: **edge**, what `main` builds,
+and **stable**, what every pal follows unless a registry is set to
+`channel = "edge"`.
+
+- **Edge, on every green push to main.** When `ci` passes on a push to
+  main, `extensions.yml` builds every extension at that commit with
+  `pal-pack`, keeps those whose hash is not already edge's newest build,
+  signs them and publishes them to edge. A push that changed no extension
+  publishes nothing. A build yanked in edge is never published again, even
+  when the tree comes back to it.
+- **Stable, on `make ext-release [NAMES="a b"]`.** It dispatches the
+  workflow with `promote` (every extension, or those names) and watches the
+  run: edge's newest builds of those go to stable. Like an app release, a
+  promotion is a decision, taken after trying edge.
+- **Stable, at every app release.** `release.yml` calls `extensions.yml`
+  for the tag: every build at the tag goes to edge and to stable, so the
+  registry never offers anything older than what the app bundles, and the
+  `manifest` job checks the bundled hashes against stable.
+- **By hand** (Actions › extensions › Run workflow): `ref` builds another
+  commit into edge (it does not wait for `ci`, so pick a green one);
+  `yank` and `reindex` are below.
+
+Each run has three jobs:
+- `build` runs `bun install` (dependency scripts) and holds no secret.
+- `sign` holds the extension key and installs nothing but Ubuntu's
+  `minisign`; bun runs `pal-pack`, which has no dependencies, with
+  auto-install off. It checks the live indexes against the public keys
+  before building on them, and its output against them before anything
+  goes out.
+- `publish` holds only the site token. It uploads the packages, then edge,
+  then stable, reads each index back from its public URL and compares it
+  byte for byte. The run's summary lists what was published and promoted,
+  with hashes.
+
+Runs go one at a time (concurrency group `registry`, never cancelled
+halfway). GitHub keeps only one run waiting: a third arriving cancels the
+waiting one. For edge that loses nothing, as the newer run builds a newer
+main; a cancelled promotion shows as a failed `make ext-release` or
+release job, to run again.
+
+**The environment.** Settings › Environments › `registry`, with deployment
+branches and tags limited to `main` and `v*` (the workflow runs on main,
+and on a tag when a release calls it):
+
+| name | kind | what |
+| --- | --- | --- |
+| `PAL_REGISTRY_KEY` | secret | the extension key: the minisign secret key file's text, made without a password (`minisign -G -W`) |
+| `PAL_PUBLISH_TOKEN` | secret | the bearer token pal.cagdas.io's `/api/registry` accepts |
+| `PAL_REGISTRY_PUBKEYS` | variable | the public keys the live indexes may be signed with, space separated: the current key first, then an old one during a rotation |
+| `PAL_REGISTRY_NEXT_KEY` | variable | empty, or the public key the registry is moving to (announced in both indexes as `next_key`) |
+
+The extension key is not the updater key and never reaches `release.yml`:
+the call passes no secrets, and only the jobs that name the `registry`
+environment see it. The key pair's backup is
+`~/Sync/.secrets/pal/pal-registry.key` (and `.pub` beside it); the public
+key is also built into the app (`pal_core::registry::PAL_KEYS`).
+
+**Yanking a build.** Run the workflow with `yank: name@hash`: both indexes
+are published again with that build marked `yanked`. Apps never offer it
+and replace an installed copy with the newest good build. A later push that
+builds the same tree does not bring it back; fix forward with a change.
+
+**Rotating the key.**
+1. `minisign -G -W -p pal-registry-2.pub -s pal-registry-2.key`, both into
+   `~/Sync/.secrets/pal/`.
+2. Add the new public key to `PAL_KEYS` in the app and release it, so apps
+   that update trust it from the start.
+3. Set `PAL_REGISTRY_NEXT_KEY` to the new public key and run the workflow
+   with `reindex`: both indexes, still signed by the old key, announce it.
+   Every later run carries it.
+4. After enough time for apps to have fetched an index since (they check
+   every 6 hours; allow weeks for machines that are off), set
+   `PAL_REGISTRY_KEY` to the new secret, `PAL_REGISTRY_PUBKEYS` to
+   `<new> <old>`, clear `PAL_REGISTRY_NEXT_KEY`, and run with `reindex`.
+   The run finds the indexes signed by the old key, re-signs every build in
+   them and the indexes with the new one, and publishes both.
+5. Set `PAL_REGISTRY_PUBKEYS` to the new key alone, and drop the old key
+   from `PAL_KEYS` in a later release.
 
 ## macOS signing
 
@@ -149,7 +255,8 @@ notarised, refused once by Gatekeeper on first launch.
 
 ## CI
 
-`ci.yml` runs on every push and pull request on the same two runners:
+`ci.yml` runs on every push and pull request on the same two runners
+(`extensions.yml` follows it on main, [Extensions](#extensions)):
 clippy with `-D warnings`, `cargo test --workspace` (tests that need a
 pasteboard, an unlocked keychain or the fixture corpus are `#[ignore]`d and
 run by hand with `--ignored`), a `cargo build` of the app crate (build.rs,
