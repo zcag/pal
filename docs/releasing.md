@@ -132,8 +132,10 @@ and **stable**, what every pal follows unless a registry is set to
   workflow with `promote` (every extension, or those names) and watches the
   run: edge's newest builds of those go to stable. Like an app release, a
   promotion is a decision, taken after trying edge.
-- **Stable, at every app release.** `release.yml` calls `extensions.yml`
-  for the tag: every build at the tag goes to edge and to stable, so the
+- **Stable, at every app release.** `release.yml` dispatches
+  `extensions.yml` for the tag (`release: true`) and waits for it; a called
+  workflow would not get the `registry` environment's secrets. Every build
+  at the tag goes to edge and to stable, so the
   registry never offers anything older than what the app bundles, and the
   `manifest` job checks the bundled hashes against stable.
 - **By hand** (Actions › extensions › Run workflow): `ref` builds another

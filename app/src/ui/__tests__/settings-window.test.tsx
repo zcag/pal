@@ -264,7 +264,7 @@ describe("SettingsExtensions", () => {
     // The first feature, else the description when it says more than the tagline (backticks dropped).
     const l = all.find((a) => a.name === "calendar")!.listing;
     expect(whatLine({ ...l, features: ["Press `enter` to join"] })).toBe("Press enter to join");
-    expect(whatLine({ ...l, features: undefined, description: `${l.tagline}.` })).toBeUndefined();
+    expect(whatLine({ ...l, features: [], description: `${l.tagline}.` })).toBeUndefined();
     expect(whatLine({ ...l, features: [], description: "More words." })).toBe("More words.");
     const cal = all.find((a) => a.name === "calendar")!;
     const rel = relatedOf(browseStore, { ...cal, listing: { ...cal.listing, suggests: ["weather"] } });

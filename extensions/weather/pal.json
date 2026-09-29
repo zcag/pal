@@ -1,7 +1,7 @@
 {
   "name": "weather",
   "title": "Weather",
-  "description": "Current local weather from Open-Meteo: quiet when ordinary, present for rain, fog, wind and uncomfortable temperatures.",
+  "description": "Current local weather from Open-Meteo, with no account or key. The bar stays out of the way in ordinary weather and shows up for rain, fog, wind or uncomfortable temperatures.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -160,13 +160,12 @@
     }
   },
   "store": {
-    "tagline": "A quiet local weather signal",
+    "tagline": "Local weather on the bar, only when it is worth noticing",
     "category": "system",
     "features": [
-      "A named city or postal code resolved through Open-Meteo—no account, token or Home Assistant",
+      "Your city or postal code, looked up through Open-Meteo; no account, key or Home Assistant",
       "Current condition, temperature, feels-like, humidity and wind",
-      "The bar is deliberately hidden in ordinary weather and returns for a condition or temperature worth noticing",
-      "Settings previews cover rain, heat, fog, quiet and unavailable states"
+      "The bar item hides in ordinary weather and comes back for rain, fog, wind, heat or cold"
     ],
     "permissions": [
       "network"

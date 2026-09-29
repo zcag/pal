@@ -1,7 +1,7 @@
 {
   "name": "solitaire",
   "title": "Solitaire",
-  "description": "Klondike on a felt table: drag the cards with the mouse, or play one-handed on the arrows and Enter (Enter twice sends a card where it goes). Draw one or three, unlimited passes, undo; the game and the record persist.",
+  "description": "Klondike on a felt table: drag the cards with the mouse, or play with the arrows and Enter. Draw one or three, unlimited passes and undo; the game and your record are kept.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -40,18 +40,15 @@
     }
   ],
   "store": {
-    "tagline": "Klondike with real cards: drag and drop, or the arrows and Enter; the game and the record persist",
+    "tagline": "Klondike solitaire with the mouse or the keyboard",
     "category": "fun",
     "features": [
-      "A felt table filling the panel, the cards as large as it allows: a column fans out while it has room and tightens as it grows, never past where a card's rank shows",
-      "Drag a card or a run with the mouse: the piles it can go on light up, a drop anywhere else glides it back. Or click the cards, then where they go; a double-click sends a card home, a click on the stock draws",
-      "One-handed: `←` `→` walk the stock, the waste, the foundations and the seven piles, `↑` `↓` take more or fewer cards of a face-up run (and past it, the row above or below), `Enter` picks up and drops",
-      "`Enter` twice on the same card sends it where it goes: its foundation, else the first pile that takes it",
-      "Every card glides to where it goes and turns over with a flip; the deal goes out row by row from the stock, and a win bounces the cards off the foundations",
-      "The title line says what the cursor is on (`Pile 4 · 9♣ 8♥`), what you carry (`Moving 7♥ and 2 more`) or why a move was refused (`7♥ can't go on 9♠`)",
-      "Draw one or three (a setting), unlimited passes through the stock, `U` or `Backspace` undoes (a hundred moves back)",
-      "Once every card is face up the rest flies home by itself, one card at a time",
-      "Moves, the time played (only while the table is open) and games won of played beside the table; Escape leaves at any point and the game is there when you come back"
+      "Drag cards and runs with the mouse; the piles they can go on light up",
+      "Keyboard play with the arrows and `enter`; `enter` twice sends a card where it belongs",
+      "Cards glide and flip, and a win bounces them off the foundations",
+      "Draw one or three, unlimited passes, and undo with `U` or `backspace`",
+      "Finishes by itself once every card is face up",
+      "Your moves, time and games won are kept, and the game waits where you left it"
     ],
     "permissions": [],
     "platforms": [

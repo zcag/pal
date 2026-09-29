@@ -17,7 +17,7 @@ import { lightRow, roomRow, sceneRow } from "../../../extensions/hue/rows.ts";
 import { SAMPLE_BRIDGE_ID, SAMPLE_KEY, SAMPLE_RESOURCES } from "../../../extensions/hue/sample.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import type { Effect, View } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, stored, bundledIcon } from "../harness.ts";
 import { MockBridge, discoveryServer } from "./hue-mock.ts";
 
 const E = "hue";
@@ -262,7 +262,7 @@ describe("over the wire against the mock bridge", () => {
     const l = host.loaded().find((x) => x.extension === E)!;
     expect(l.warnings).toEqual([]);
     expect(l.palettes.map((p) => p.name)).toEqual(["rooms", "lights", "scenes", "light", "setup", "sensors", "automations", "entertainment"]);
-    expect(l.palettes.find((p) => p.name === "rooms")).toMatchObject({ live: true, tier: "primary", icon: { tile: { bg: "amber" } } });
+    expect(l.palettes.find((p) => p.name === "rooms")).toMatchObject({ live: true, tier: "primary", icon: bundledIcon("hue") });
     expect(l.palettes.find((p) => p.name === "light")).toMatchObject({ view: "view", input: true });
     expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 60, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "x", title: "All off" }]), settings: [expect.objectContaining({ id: "main_room", default: "" }), expect.objectContaining({ id: "scenes", default: [] })], source: true }]);
     expect(Object.keys(l.manifest.links!)).toEqual(["toggle", "scene", "off"]);

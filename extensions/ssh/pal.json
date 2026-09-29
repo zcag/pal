@@ -1,7 +1,7 @@
 {
   "name": "ssh",
   "title": "SSH Hosts",
-  "description": "The hosts in ~/.ssh/config (and its Include files, one section per file). Enter opens a terminal running ssh, with a command typed in the bar or a shell; copy the command (with -J for a host behind a ProxyJump), or ping the host.",
+  "description": "The hosts in your ssh config, one Enter from a terminal running ssh. Run a command on a host, copy the ssh command, or ping it.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -67,12 +67,12 @@
     "tagline": "Your ssh config's hosts, one Enter from a terminal",
     "category": "developer",
     "features": [
-      "Every named `Host` in `~/.ssh/config`, `Include` files followed one level, one section per file (`.ssh/config`, `.ssh/conf.d/work.conf`)",
-      "`HostName` under the name and searchable, `User` and `:port` on the right, a `via <jump>` tag for a `ProxyJump` host",
-      "`enter` opens a terminal window running `ssh <host>`: kitty, Ghostty, Alacritty, iTerm2 or Terminal on macOS, `$TERMINAL` on Linux; a command typed into the bar first runs there instead of a shell, the window kept until Enter",
-      "`cmd+shift+c` copies `ssh <host>`, `cmd+shift+j` the `ssh -J <jump> <host>` form for a machine without your config",
-      "`cmd+p` pings the host once and toasts the round trip (`web-1.example.com: 3 ms`), or why it did not answer",
-      "Optionally the names in `known_hosts` as a last section"
+      "Every host in `~/.ssh/config` and its included files, one section per file",
+      "The address, user and port on each row, with a tag for hosts behind a jump host",
+      "`enter` opens a terminal running ssh, or runs a command you typed in the bar",
+      "`cmd+shift+c` copies the ssh command, `cmd+shift+j` the jump-host form for a machine without your config",
+      "`cmd+p` pings the host and shows the round trip",
+      "Optionally the hosts from `known_hosts` too"
     ],
     "permissions": [
       "automation"

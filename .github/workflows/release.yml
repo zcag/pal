@@ -218,15 +218,33 @@ jobs:
   # (extensions.yml), so the registry never offers a build older than the
   # one the app bundles. Only the `registry` environment's secrets reach it:
   # nothing is passed, so the updater key stays in this workflow.
+  # extensions.yml dispatched, not called: a called workflow does not get
+  # the `registry` environment's secrets (v0.8.0's sign job had no key),
+  # a dispatched run does. It builds the tag into edge and promotes exactly
+  # those builds to stable; this job waits for it.
   extensions:
     needs: bundle
     if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
     permissions:
+      actions: write
       contents: read
-    uses: ./.github/workflows/extensions.yml
-    with:
-      ref: ${{ github.sha }}
-      promote: all
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: publish the tag's extensions (extensions.yml)
+        run: |
+          before=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run extensions.yml --ref main -f ref="$GITHUB_SHA" -f promote=all -f release=true
+          for _ in $(seq 36); do
+            id=$(gh run list --workflow extensions.yml --event workflow_dispatch --limit 5 --json databaseId,createdAt -q "[.[] | select(.createdAt >= \"$before\")][-1].databaseId")
+            [ -n "$id" ] && break
+            sleep 5
+          done
+          [ -n "$id" ] || { echo "::error::the dispatched extensions.yml run did not appear"; exit 1; }
+          echo "extensions.yml run: https://github.com/$GH_REPO/actions/runs/$id"
+          gh run watch "$id" --exit-status --interval 20 > /dev/null
 
   # The three jobs each download latest.json from the draft, add their
   # platform and upload it again (tauri-action's upload-version-json.ts),

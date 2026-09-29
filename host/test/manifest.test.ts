@@ -4,7 +4,7 @@
 // carrying its warnings on the wire, and the bundled extensions all clean.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { checkIcon, tile, tinted } from "../../sdk/src/icon.ts";
+import { badged, checkIcon, tile, tileBrand, tinted } from "../../sdk/src/icon.ts";
 import { checkBarSettings, checkPalettes, kindOf, paletteMeta } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest, ManifestPalette, Palette } from "../../sdk/src/protocol.ts";
 import { BUNDLED, Host, Root, manifest, simpleExt } from "./harness.ts";
@@ -199,7 +199,7 @@ describe("checkPalettes", () => {
     // A bad manifest icon is a warning and is not inherited; a bad palette icon is a warning and is dropped.
     const bad = checkPalettes({ ...man({ p: {} }), icon: { tile: { glyph: "\uf408", bg: "mauve" } } as unknown as string }, ext({ p: { ...list, icon: { tile: { svg: "<svg/>", bg: "red" } } as unknown as string } }));
     expect(bad.warnings).toEqual([
-      "icon: tile bg \"mauve\" is not one of red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate, ink",
+      "icon: tile bg \"mauve\" is not one of red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate, ink or a #rrggbb colour",
       "palettes.p: tile svg must be path data (the d attribute), not markup",
     ]);
     expect(bad.metas[0].icon).toBeUndefined();
@@ -220,8 +220,25 @@ describe("checkPalettes", () => {
     expect(checkIcon({ tile: { bg: "red" } }, "icon")).toBe("icon: a tile has a glyph or an svg, not neither");
     expect(checkIcon({ tile: { bg: "red", glyph: "\uf408", svg: "M0 0" } }, "icon")).toBe("icon: a tile has a glyph or an svg, not both");
     expect(checkIcon({ tile: { bg: "red", glyph: "ab" } }, "icon")).toBe("icon: tile glyph must be one Nerd Font codepoint");
-    expect(checkIcon({ tile: { bg: "red", svg: "M".repeat(401) } }, "icon")).toBe("icon: tile svg is 401 bytes, at most 400");
+    expect(checkIcon({ tile: { bg: "red", svg: "M".repeat(5001) } }, "icon")).toBe("icon: tile svg is 5001 bytes, at most 5000");
+    // A product's logo: a Simple Icons path (24 box) on the brand's own colour, the mark in fg where white would not read.
+    expect(checkIcon(tile("#1ED760", { svg: "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0z", box: 24, fg: "#000000" }), "icon")).toBeUndefined();
+    expect(checkIcon({ tile: { bg: "#1ed760", svg: "M0 0h24v24H0z", box: 24 } }, "icon")).toBeUndefined();
+    expect(checkIcon({ tile: { bg: "#1ED", svg: "M0 0" } }, "icon")).toBe("icon: tile bg \"#1ED\" is not one of red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate, ink or a #rrggbb colour");
+    expect(checkIcon({ tile: { bg: "red", svg: "M0 0", fg: "white" } }, "icon")).toBe("icon: tile fg \"white\" is not a #rrggbb colour");
+    expect(checkIcon({ tile: { bg: "red", svg: "M0 0", box: 0 } }, "icon")).toBe("icon: tile box must be a number above 0 and at most 64, not 0");
+    expect(checkIcon({ tile: { bg: "red", svg: "M0 0", box: 65 } }, "icon")).toBe("icon: tile box must be a number above 0 and at most 64, not 65");
+    expect(checkIcon({ tile: { bg: "red", svg: "M0 0", box: "24" } }, "icon")).toBe("icon: tile box must be a number above 0 and at most 64, not \"24\"");
+    expect(checkIcon({ tile: { bg: "red", glyph: "\uf408", box: 24 } }, "icon")).toBe("icon: tile box sizes an svg mark; a glyph has none");
     expect(checkIcon({ glyph: "\uf407", color: "lime" }, "palettes.p")).toBe("palettes.p: color \"lime\" is not a brand name (red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate, ink) or a hex colour");
+  });
+
+  test("badged: an instance's tint takes a logo tile's colour and its mark back to white; the badge alone keeps both", () => {
+    const logo = tile("#FFCB3D", { svg: "M0 0h24v24H0z", box: 24, fg: "#000000" });
+    expect(badged(logo, { tint: "blue", badge: "W" })).toEqual({ tile: { svg: "M0 0h24v24H0z", box: 24, bg: "blue", badge: "W" } });
+    expect(badged(logo, { badge: "W" })).toEqual({ tile: { svg: "M0 0h24v24H0z", box: 24, bg: "#FFCB3D", fg: "#000000", badge: "W" } });
+    expect(tileBrand(logo)).toBeUndefined();
+    expect(tileBrand(tile("ink", ""))).toBe("ink");
   });
 
   test("paletteMeta: the code's flags, the manifest's title and ttl over the code's, the shared actions once", () => {

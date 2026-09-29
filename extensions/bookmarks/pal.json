@@ -1,7 +1,7 @@
 {
   "name": "bookmarks",
   "title": "Bookmarks",
-  "description": "Your browsers' bookmarks (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari, Firefox) and hand-picked links from a JSON file: open one, copy its address, or open it in the browser it came from. A second palette searches the browsers' visit history.",
+  "description": "Search the bookmarks of every browser you use, plus links of your own, and open one in the browser it came from. A second list searches your browsing history.",
   "version": "0.2.0",
   "icon": {
     "tile": {
@@ -48,15 +48,14 @@
     }
   ],
   "store": {
-    "tagline": "Browser bookmarks and your own links, by name or folder",
+    "tagline": "Bookmarks from every browser and your own links, in one search",
     "category": "productivity",
     "features": [
-      "Chrome, Brave, Edge, Chromium, Vivaldi and Arc: every profile's `Bookmarks` file, a section per browser and profile (`Chrome (Work)`)",
-      "Safari's `Bookmarks.plist` and Firefox's `places.sqlite`, read on every listing so an edit shows at once",
-      "A JSON file of hand-picked links with `name`, `url`, optional `subtitle`, `icon` and `keywords`",
-      "The folder path on the right (`Bookmarks Bar / Dev`) and as keywords; a url two sources have is listed once",
-      "Open, copy the link, copy it as `[name](url)`, or open it in the browser it came from",
-      "Browser History: a search over Chrome-family and Firefox visit history, newest first with when it was last visited; Enter opens the page in the browser it came from"
+      "Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari and Firefox, every profile",
+      "Your own links from a JSON file, with names, keywords and icons",
+      "Found by name, address or folder; a link saved twice is listed once",
+      "Open it, open it in the browser it came from, or copy it plain or as a markdown link",
+      "Browser History: search pages you visited in Chrome-family browsers and Firefox, newest first"
     ],
     "permissions": [
       "full-disk-access"

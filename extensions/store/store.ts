@@ -24,8 +24,8 @@ const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
  */
 export const FEATURED = ["spotify", "github", "solitaire", "calendar", "translate", "space", "hue", "typing"];
 
-/** What an extension does, a line each (`store.features`, in the listing since pal 0.9); an older index has none. */
-export const featuresOf = (a: AvailableExtension): string[] => ((a.listing as { features?: unknown }).features as string[] | undefined ?? []).filter((f) => typeof f === "string" && !!f.trim());
+/** What an extension does, a line each (`store.features`); a listing from an index older than 0.9 has none (the field may be missing altogether from an older core). */
+export const featuresOf = (a: AvailableExtension): string[] => (a.listing.features ?? []).filter((f) => typeof f === "string" && !!f.trim());
 
 /** The filter dropdown: everything, what is installed, what has an update, the registries, then the shelves. */
 export const FILTERS = [{ id: "all", title: "All" }, { id: "installed", title: "Installed" }, { id: "updates", title: "Updates" }, { id: "registries", title: "Registries" }, ...CATEGORIES.map((c) => ({ id: c, title: categoryTitle(c) }))];

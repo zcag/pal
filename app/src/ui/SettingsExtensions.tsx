@@ -5,7 +5,7 @@ import { Tag } from "./Row";
 import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
 import { ExtensionPalettes, type SettingsPalettesProps } from "./SettingsPalettes";
 import { availableOf, Browse, buildLine, ExtensionsTabs, ListingPane, listingIcon, needsOf, originLine, screenshotsOf, Shots, statusText, targetOf, updatesLine, type ExtensionsStore, type InstallState, type Need } from "./SettingsStore";
-import { badgedIcon, type BarItem, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
+import { badgedIcon, type BarItem, instanceBadge, ownBrand, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
 import type { Brand } from "./types";
 import { EMPTY_STORE, type Available } from "../store";
 
@@ -603,7 +603,7 @@ function AddInstance({ ext, taken, onAdd, onCancel }: { ext: SettingsExtension; 
   const [tint, setTint] = useState<Brand | undefined>(undefined);
   const [state, setState] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "error"; message: string }>({ kind: "idle" });
   const problem = suffixProblem(suffix, taken);
-  const own = ext.icon?.kind === "tile" ? ext.icon.bg : undefined;
+  const own = ownBrand(ext.icon);
   const auto = suffix ? instanceTint(suffix, own) : undefined;
   const preview = badgedIcon(ext.icon, { key: `${ext.name}@${suffix}`, suffix, title: title || (suffix ? suffixTitle(suffix) : undefined), tint: tint ?? auto ?? own, badge: instanceBadge(title || suffix || "?"), isDefault: false, enabled: true });
   const first = useRef<HTMLInputElement>(null);

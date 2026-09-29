@@ -1,7 +1,7 @@
 {
   "name": "odak",
   "title": "odak",
-  "description": "Your odak todos in the panel: what is open by section with the overdue and today's on top, a todo typed in one line with its tags, flag, section and a day in words, search across open and done, what you completed; a bar item that counts today's.",
+  "description": "Your odak todos in the panel: open ones by section with today's and the overdue on top, a new todo in one typed line, search across open and done, and today's count on the bar.",
   "keywords": [
     "todo",
     "todos",
@@ -324,15 +324,15 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "Your odak todos: today's on the bar, a line to add, sections, search",
+    "tagline": "Your odak todos: add in one line, see today's on the bar",
     "category": "productivity",
     "features": [
-      "Todos by section with the overdue and today's on top, subtasks under their parent; Enter completes, with Undo on the next row",
-      "Add a todo in one line: #tag, ! for urgent, /section, a day in words at the end (tomorrow, fri, next mon, in 3 days, 20 sep), read back as you type; any root query with no hit offers to add it",
-      "Snooze to tomorrow, in 3 days, next Monday, next week or a day typed; move between sections; edit everything in a form",
-      "Search across open and completed todos; Completed lists what is checked off and reopens it",
-      "A bar item with today's count, red while anything is overdue, hidden at zero; the popover completes on Enter and adds from a field",
-      "pal://odak/add?text=... adds from a script or a keybind"
+      "Todos by section, overdue and today's on top; `enter` completes, with Undo right after",
+      "Add in one line: `#tag`, `!` for urgent, `/section` and a day in words (`tomorrow`, `fri`, `in 3 days`)",
+      "Snooze, move between sections, or edit everything in a form",
+      "Search across open and completed todos, and reopen what you checked off",
+      "Today's count on the bar, red when anything is overdue; add and complete from its popover",
+      "`pal://odak/add?text=...` adds a todo from a script or a keybind"
     ],
     "permissions": [
       "network",

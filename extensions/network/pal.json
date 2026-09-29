@@ -1,7 +1,7 @@
 {
   "name": "network",
   "title": "Network",
-  "description": "This machine's addresses: every interface's IPs (the Wi-Fi one with its SSID), the public IP with its country and ISP, the default gateway, the DNS servers, the Tailscale IP, the hostname. Enter copies the value.",
+  "description": "Every address this machine has: each interface's IPs, the public IP with its location, the gateway, the DNS servers and the Tailscale IP. Enter copies the value.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -34,12 +34,11 @@
     "tagline": "Every IP this machine has right now, Enter copies it",
     "category": "system",
     "features": [
-      "This machine: each interface's IPv4 and global IPv6 (`en0 · Wi-Fi`, `eth0`), the Tailscale IPv4 and IPv6, the hostname and the Bonjour `.local` name",
-      "Internet: the public IP with the city, country and organisation the endpoint gives, fetched once and kept ten minutes",
-      "Network: the default gateway with its interface, the DNS servers in resolver order",
-      "The value is the row's name, so it reads at a glance; `enter` copies it, `cmd+enter` opens the Network settings",
-      "Opens with the detail pane: interface, kind, SSID, security, signal, MAC and status for an address; city, region and organisation for the public IP",
-      "Live: listed again when the panel shows and the last listing is over a minute old; `cmd+r` fetches the public IP again"
+      "Each interface's IPv4 and IPv6, the Wi-Fi network's name, the Tailscale IPs and the hostname",
+      "The public IP with its city, country and provider (from ipinfo.io by default)",
+      "The default gateway and the DNS servers in the order they are asked",
+      "`enter` copies the value, `cmd+enter` opens the network settings",
+      "A side pane with the details: interface, SSID, signal, MAC and status"
     ],
     "permissions": [
       "network",

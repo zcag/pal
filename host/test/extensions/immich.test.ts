@@ -12,10 +12,9 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { clientOf, clip, downloadName, durationOf, exposureOf, isoCeiling, isoFloor, looksLikeFile, parseAsset, parseQuery, permissionOf, placeOf, takenClock, takenDay } from "../../../extensions/immich/api.ts";
-import { tile } from "../../../sdk/src/icon.ts";
 import type { Effect, Item } from "../../../sdk/src/protocol.ts";
 import { picture } from "../png.ts";
-import { Host, stored, writeTool } from "../harness.ts";
+import { Host, stored, writeTool, bundledIcon } from "../harness.ts";
 import { ALBUMS, startMock } from "./immich-mock.ts";
 
 describe("api", () => {
@@ -119,11 +118,11 @@ const last = () => requests.filter((r) => !r.path.includes("/thumbnail")).at(-1)
 const settle = (ms = 50) => Bun.sleep(ms);
 
 describe("immich", () => {
-  test("meta: an input grid on the indigo tile with the pane open, five filters and a fallback row; albums and people lazy lists with a ttl; memories live; three links; no warnings", () => {
+  test("meta: an input grid on the Immich logo tile with the pane open, five filters and a fallback row; albums and people lazy lists with a ttl; memories live; three links; no warnings", () => {
     const l = host.loaded().find((l) => l.extension === "immich")!;
     expect(l.warnings).toEqual([]);
     expect(l.palettes.map((p) => p.name)).toEqual(["immich", "albums", "people", "memories"]);
-    expect(l.palettes[0]).toMatchObject({ title: "Immich", input: true, view: "grid", columns: 6, showDetail: true, detail: "lazy", fallback: "ask", fallbackTitle: "Search Immich for “{query}”", icon: tile("indigo", "\u{f02f9}") });
+    expect(l.palettes[0]).toMatchObject({ title: "Immich", input: true, view: "grid", columns: 6, showDetail: true, detail: "lazy", fallback: "ask", fallbackTitle: "Search Immich for “{query}”", icon: bundledIcon("immich") });
     expect(l.palettes[0].filters!.map((f) => f.id)).toEqual(["all", "photos", "videos", "favourites", "archived"]);
     expect(l.palettes[1]).toMatchObject({ title: "Immich Albums", lazy: true, ttl: 300, input: false, live: false });
     expect(l.palettes[2]).toMatchObject({ title: "Immich People", lazy: true, ttl: 600 });

@@ -1,12 +1,13 @@
 {
   "name": "docker",
   "title": "Docker",
-  "description": "Containers, images and Compose projects over the docker CLI. Enter starts or stops a container; logs open in the panel, a shell in a terminal.",
+  "description": "Your Docker containers, images and Compose projects in one list: start and stop containers, read their logs in the panel, or open a shell in a terminal.",
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "󰡨",
-      "bg": "cyan"
+      "svg": "M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z",
+      "box": 24,
+      "bg": "#2496ED"
     }
   },
   "author": "pal",
@@ -69,12 +70,12 @@
     "tagline": "Start, stop, log and shell into containers from the panel",
     "category": "developer",
     "features": [
-      "Every container, running ones first: the image under the name, the published ports (`8080:80`), docker's status (`Up 27 hours`) and a coloured state tag on the right",
-      "`enter` stops a running container (after a confirm) or starts a stopped one; `cmd+l` opens its last 200 log lines (or the count typed in the bar) in the panel; `cmd+t` opens a terminal with a shell inside it, or runs the command typed in the bar",
-      "Images: `enter` takes a name and `host:container` ports in the search bar (both optional), then `docker run -d`",
-      "Compose projects docker knows of: `up -d`, `down`, `restart`, logs, open the project folder",
-      "Podman works through the same commands: set `binary = \"podman\"`",
-      "Without the binary, or with the daemon down, one hint row says which; a slow command goes on in the background and the toast says so"
+      "Every container, running ones first, with its image, ports and status",
+      "`enter` starts or stops a container (stopping asks first)",
+      "`cmd+l` shows its recent logs in the panel; `cmd+t` opens a shell in a terminal",
+      "Run an image with an optional name and ports",
+      "Compose projects: up, down, restart, logs, open the folder",
+      "Works with Podman too (a setting)"
     ],
     "permissions": [
       "docker",

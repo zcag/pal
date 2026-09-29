@@ -85,8 +85,9 @@ A registry is one JSON file and its detached minisign signature
     {
       "name": "weather",
       "listing": {
-        "title": "Weather", "description": "…", "tagline": "…", "category": "system",
-        "keywords": ["forecast"], "icon": { "tile": { "glyph": "…", "bg": "sky" } },
+        "title": "Weather", "description": "…", "tagline": "…",
+        "features": ["…", "…"], "category": "system",
+        "keywords": ["forecast"], "icon": { "tile": { "glyph": "…", "bg": "cyan" } },
         "author": "pal", "platforms": ["macos", "linux"], "play": false,
         "palettes": [{ "id": "weather", "title": "Weather", "kind": "list" }],
         "screenshots": [{ "url": "https://…/1-list.png", "caption": "…" }],
@@ -108,7 +109,14 @@ A registry is one JSON file and its detached minisign signature
 - `name` is the registry's own name, the one `[[store.registries]]` uses.
   Ours is `pal`.
 - `listing` is what the Store, root search and Games show without fetching
-  anything else; `manifest` is the full `pal.json` of that build.
+  anything else; `manifest` is the full `pal.json` of that build. It is
+  the manifest's `title`, `description`, `keywords`, `icon` (a tile,
+  a product's logo included: docs/extensions.md, "Icons"), `author`,
+  `requires` and `suggests`, its store block's `tagline`, `features` (the
+  "What it does" bullets), `category`, `platforms` (absent: every
+  platform), `play` and `screenshots` (absolute urls with their
+  captions), and its `palettes` (`id`, `title`, `kind`). A field an
+  older index lacks reads as empty.
 - `builds`: newest `seq` first. A registry keeps at least the newest build
   per `protocol` and the one before it (the rollback target).
 - `yanked: true`: never offered; an installed yanked build is replaced by the

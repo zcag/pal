@@ -1,7 +1,7 @@
 {
   "name": "minesweeper",
   "title": "Minesweeper",
-  "description": "The mine-clearing game in the panel, on its own page: the mouse as in the original (click, right-click, both buttons), or one hand on the keys (the arrows move, Enter opens, / flags, N starts over, D picks the level). The board, the clock and the best times persist.",
+  "description": "Classic Minesweeper in the panel, played with the mouse as in the original or one-handed on the arrows. The board, the clock and your best times persist.",
   "version": "0.2.0",
   "icon": {
     "tile": {
@@ -44,17 +44,14 @@
     }
   ],
   "store": {
-    "tagline": "Minesweeper in the panel: the classic board, by mouse or one hand on the arrows",
+    "tagline": "Classic Minesweeper, by mouse or one hand on the arrows",
     "category": "fun",
     "features": [
-      "The classic board redrawn: square raised cells that press flat, the numbers in their classic colours tuned for the light and dark panel, an LED mine counter and clock around the face",
-      "Mouse as in the original: click opens, right-click flags, a click (or both buttons, or the middle one) on a satisfied number opens around it; a held button shows the cells it would open pressed",
-      "One-handed: the arrows move the cursor, `Enter` opens, `/` (just above the arrows) flags; `hjkl`, `F` and `Space` do the same, `N` starts over, `D` picks the level",
-      "The classic rules: the first open is always safe and opens an area, an empty cell floods open, a satisfied number opens around it",
-      "An open ripples out from the cell as the caps lift; a mine goes off with a blast and the rest pop out from it; a cleared board plants its flags under confetti",
-      "Beginner 9 by 9, intermediate 16 by 16, expert 30 by 16, each with a best time and a won count; the board scales to the panel, compact included",
-      "The clock runs from the first open and only while the board is on screen; Escape leaves at any point and the game is there when you come back, across restarts",
-      "T hides the clock if it rushes you; your times still count"
+      "The classic board, mine counter and clock, redrawn for the light and dark panel",
+      "Mouse as in the original: click opens, right-click flags, both buttons open around a number",
+      "One hand: the arrows move, `enter` opens, `/` flags, `n` starts over, `d` picks the level",
+      "The first click is always safe; beginner, intermediate and expert, each with a best time",
+      "Leave at any point and the game waits, across restarts; `t` hides the clock"
     ],
     "permissions": [],
     "platforms": [

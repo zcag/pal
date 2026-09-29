@@ -17,6 +17,8 @@ setDefaultTimeout(process.env.CI ? 15_000 : 5_000);
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
 /** The bundled extensions, for the integration tests. */
 export const BUNDLED = resolve(import.meta.dir, "../../extensions");
+/** A bundled extension's `icon` as its pal.json has it: a logo tile's path is the manifest's to keep (app/scripts/brand-icons.ts), not a test's to copy. */
+export const bundledIcon = (name: string) => JSON.parse(readFileSync(join(BUNDLED, name, "pal.json"), "utf8")).icon;
 /** Absolute import specifiers for fixture extensions written outside the repo (the SDK by path; `@zcag/pal` by name works too, through the link the host makes). */
 export const API = resolve(import.meta.dir, "../../sdk/src/index.ts");
 export const PROTOCOL = resolve(import.meta.dir, "../../sdk/src/protocol.ts");

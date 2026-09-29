@@ -1,7 +1,7 @@
 {
   "name": "files",
   "title": "Files",
-  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; by contents too, as a second section or alone with a ' prefix; the recently used files before you type, and as a palette of their own; what is selected in Finder, on the empty root and as a palette of its own. Enter on a folder browses it (sorted by name, date or size, `..` and `←` up). Open, open with another app, reveal, Quick Look, open in a terminal, copy the path, the file or the text in an image (OCR), rename, move or copy to a folder, compress, trash.",
+  "description": "Find files by name or contents through the system's search index, browse folders, and act on files: open, reveal, Quick Look, rename, move, compress or trash. Recent files show before you type, and on macOS what you selected in Finder.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -77,20 +77,15 @@
     }
   ],
   "store": {
-    "tagline": "File search over the OS index, recent files before you type",
+    "tagline": "Find, browse and act on files, recent ones before you type",
     "category": "productivity",
     "features": [
-      "Spotlight (`mdfind -name`) on macOS; `fd`, else `locate`, else a bounded `find` on Linux, one process per keystroke, killed after 3 s",
-      "Exact and prefix name matches first, at most `limit` rows, the folder as the subtitle, size and date on the right",
-      "Contents too: files whose text has the query as a second section, the first matching line as the subtitle (Spotlight's text index on macOS, `rg` or `grep` on Linux, 1 s at most); `'query` or `content:query` searches contents only",
-      "Copy text (OCR, `cmd+shift+t`) on an image or a PDF's first page: the Vision framework on macOS, `tesseract` on Linux",
-      "Before you type: the files used in the last seven days; the same rows as the Recent Files palette",
-      "Selected in Finder: open pal over a Finder window (or the Desktop) with files marked and they lead the empty root under \"Selected in Finder\", every file action on each; an \"N items\" row runs Open, Reveal, Quick Look, Copy paths, Copy files, Compress and Trash on all of them at once. The Finder Selection palette lists the whole selection with a filter (macOS; the palette says why when Finder is not in front)",
-      "Enter (or `→`) on a folder browses it as a level whose crumb is the folder: a `..` row (`←` or Backspace goes up from anywhere), the entries sorted by name, date or size from the dropdown, pictures with their thumbnails, `cmd+.` for hidden files; `~/` or `/` typed lists that folder the same way",
-      "Open with… (`cmd+o`) lists the apps the OS registers for the file, the default tagged",
-      "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Open in Terminal (`cmd+t`, the folder or the file's), Move to Trash (`cmd+d`, asks first)",
-      "Rename (`cmd+shift+r`, the name typed in the bar), Move to (`cmd+m`) and Copy to (`cmd+alt+c`) a folder, each a form; Compress (`cmd+shift+z`) zips the file, or every marked row, next to it",
-      "The detail pane: path, size, modified, kind, an image's pixel size and Finder's tags (Spotlight, macOS), and the first 40 lines of a text file"
+      "Search by name through Spotlight on macOS or `fd`/`locate` on Linux; by contents with a `'` prefix",
+      "Recent files and the Finder selection before you type anything",
+      "`enter` on a folder browses it, sorted by name, date or size",
+      "Open with, reveal, Quick Look, copy the path or file, open in a terminal",
+      "Rename, move, copy, compress or trash, one file or several at once",
+      "Copy the text out of an image or PDF (`cmd+shift+t`)"
     ],
     "permissions": [
       "automation"

@@ -163,6 +163,10 @@ pub struct Listing {
     pub title: String,
     pub description: String,
     pub tagline: String,
+    /// `store.features`: the "What it does" bullets, so a browse card or
+    /// page shows them without fetching the manifest. Absent in an index
+    /// from before 0.9.
+    pub features: Vec<String>,
     pub category: String,
     pub keywords: Vec<String>,
     pub icon: serde_json::Value,
@@ -772,6 +776,9 @@ pub(crate) mod tests {
         let i = Index::parse("x", br#"{"format":1,"name":"x","generated_at":"t","extra":1,"extensions":[{"name":"a","new":true,"builds":[{"hash":"h","seq":1,"protocol":1,"url":"u","sig":"s","z":0}]}]}"#).unwrap();
         assert_eq!(i.extensions[0].builds[0].hash, "h");
         assert!(i.extensions[0].runs_on("macos"));
+        assert!(i.extensions[0].listing.features.is_empty(), "an index from before 0.9 has no features");
+        let f = Index::parse("x", br#"{"format":1,"name":"x","generated_at":"t","extensions":[{"name":"a","listing":{"tagline":"t","features":["One","Two"]}}]}"#).unwrap();
+        assert_eq!(f.extensions[0].listing.features, ["One", "Two"]);
         assert!(matches!(Index::parse("x", br#"{"format":2,"whatever":[]}"#), Err(Error::Format(_, 2))));
         assert!(matches!(Index::parse("x", b"[]"), Err(Error::Parse(..))));
     }

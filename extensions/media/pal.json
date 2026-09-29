@@ -1,7 +1,7 @@
 {
   "name": "media",
   "title": "Now Playing",
-  "description": "What is playing in Spotify, Music, a browser or any MPRIS player: play, pause, skip.",
+  "description": "Control what is playing in Spotify, Music, a browser or any other player: play, pause and skip from the panel, with the track on the bar.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -171,12 +171,12 @@
     "tagline": "Play, pause and skip Spotify, Music, a browser or any MPRIS player",
     "category": "media",
     "features": [
-      "One row per running player: the track, artist and album, the cover, `12:34 / 1:06:03`, a `playing` / `paused` / `stopped` tag",
-      "macOS: every player the system's Now Playing sees (a browser, VLC), through the bundled MediaRemote adapter, on macOS 15.4 and later too; a track change reaches the bar the moment it happens",
-      "`enter` plays or pauses and the tag follows; `cmd+right` and `cmd+left` skip",
-      "`cmd+c` copies `artist - title`; `cmd+o` opens the track (Spotify's `spotify:track:` link) or the app",
-      "Live: the current track is a root result, so its title or artist finds it without opening the palette",
-      "A bar item with the playing track; its popover shows the cover large, the track, a progress bar ticking every second and the transport as keys, refreshed the moment a track changes (macOS) or within seconds (Linux)"
+      "One row per player with the track, artist, cover and progress",
+      "Every player the system knows about on macOS (a browser, VLC), and MPRIS players on Linux",
+      "`enter` plays or pauses, `cmd+right` and `cmd+left` skip",
+      "`cmd+c` copies `artist - title`, `cmd+o` opens the track or the app",
+      "The playing track is found from the root by its title or artist",
+      "A bar item with the track; its popover shows the cover, progress and controls"
     ],
     "permissions": [
       "automation"

@@ -60,8 +60,14 @@ export type Detail = { markdown?: string; metadata?: Metadata[] };
  * load (an `icon://` one from `api.ts`, or any http(s) url). `template` is
  * for a bar item on the macOS menu bar: the image is a mask the system tints.
  */
-/** A brand tile (`tile()` in icon.ts): a rounded square in one of the twelve brand colours with a white mark; `badge` is one or two characters in its corner (an instance's mark, docs/design/instances.md). */
-export type TileIcon = { tile: ({ glyph: string; svg?: undefined } | { svg: string; glyph?: undefined }) & { bg: TileColorName; badge?: string } };
+/**
+ * A brand tile (`tile()` in icon.ts): a rounded square in one of the twelve
+ * brand colours, or a product's own `#rrggbb`, with a mark in `fg` (white
+ * by default). `box` is an svg mark's viewBox side (16 by default; a
+ * Simple Icons path is 24). `badge` is one or two characters in its corner
+ * (an instance's mark, docs/design/instances.md).
+ */
+export type TileIcon = { tile: ({ glyph: string; svg?: undefined } | { svg: string; glyph?: undefined }) & { bg: TileColorName | `#${string}`; box?: number; fg?: `#${string}`; badge?: string } };
 /** A glyph in a colour: a brand name, or a hex colour of the extension's own. */
 export type TintedIcon = { glyph: string; color: TileColorName | `#${string}` };
 export type TileColorName = "red" | "orange" | "amber" | "green" | "teal" | "cyan" | "blue" | "indigo" | "violet" | "pink" | "slate" | "ink";

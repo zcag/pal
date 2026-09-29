@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
 import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
 import type { Item, PaletteMeta, View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, marksOf, stored, writeTool } from "../harness.ts";
+import { Host, bundledIcon, marksOf, stored, writeTool } from "../harness.ts";
 import { GmailMock, personal } from "./gmail-mock.ts";
 
 const P = "gmail";
@@ -147,8 +147,10 @@ describe("gmail", () => {
     const by = Object.fromEntries(host.loaded().map((l) => [l.extension, l]));
     expect(by[P].palettes.map((p: PaletteMeta) => p.title)).toEqual(["Inbox (Personal)", "Search Mail (Personal)", "Labels (Personal)", "Compose (Personal)", "Drafts (Personal)"]);
     expect(by[W].palettes.map((p: PaletteMeta) => p.title)).toEqual(["Inbox (Work)", "Search Mail (Work)", "Labels (Work)", "Compose (Work)", "Drafts (Work)"]);
-    expect(by[P].palettes[0].icon).toEqual({ tile: { glyph: "\u{f01ee}", bg: "red" } });
-    expect(by[W].palettes[0].icon).toEqual({ tile: { glyph: "\u{f01ee}", bg: "amber", badge: "W" } });
+    // The Gmail logo; the work instance's tint takes its colour, the badge its corner.
+    const logo = bundledIcon("gmail");
+    expect(by[P].palettes[0].icon).toEqual(logo);
+    expect(by[W].palettes[0].icon).toEqual({ tile: { ...logo.tile, bg: "amber", badge: "W" } });
     expect(by[P].palettes.map((p: PaletteMeta) => [p.live, p.input, p.lazy, p.ttl, p.tier])).toEqual([[true, false, true, undefined, undefined], [false, true, undefined, undefined, undefined], [false, false, true, 3600, "catalog"], [false, false, undefined, undefined, undefined], [true, false, true, undefined, undefined]]);
     expect(by[P].palettes[0].detail).toBe("lazy");
     expect(by[P].bar.map((b: { id: string }) => b.id)).toEqual(["unread"]);

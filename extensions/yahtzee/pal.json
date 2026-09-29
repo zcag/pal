@@ -1,7 +1,7 @@
 {
   "name": "yahtzee",
   "title": "Yahtzee",
-  "description": "Solo Yahtzee: five dice, three rolls a round, thirteen rounds. The card shows what every category would score with the dice as they lie; play with the mouse or one-handed on the arrows, Enter and space. The game in progress, the best score and the average persist.",
+  "description": "Solo Yahtzee: five dice, three rolls a round, thirteen rounds, with the card showing what every category would score. Play with the mouse or one-handed on the arrow keys; your game in progress, best score and average are kept.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -13,16 +13,15 @@
   "repo": "bundled",
   "license": "MIT",
   "store": {
-    "tagline": "Solo Yahtzee with the scores in plain sight; mouse or one hand on the keys",
+    "tagline": "Solo Yahtzee with the scores in plain sight, by mouse or keys",
     "category": "fun",
     "features": [
-      "Five ivory dice that tumble when thrown (held ones stay put), a scorecard in two columns under them, the total at the bottom; everything fits the panel at once, compact included",
-      "The card shows what each open category would score with the dice as they lie, and the dice a category counts light up while its row is picked; the total shows what it would add (`+25`)",
-      "One-handed: `←` `→` pick a die and Enter holds it, `↑` or `space` rolls, `↓` lands on the category that adds most, the arrows move between the open ones and Enter scores; `1` to `5` hold and `R` rolls too",
-      "The upper bonus as a bar to 63, with the picked category's share in a lighter shade; greyed once it is out of reach",
-      "Hasbro's rules in full: 35 for 63 in the upper section, 100 for each further Yahtzee while the Yahtzee box holds 50, and the Joker rules for where it may go",
-      "A Yahtzee gets a banner and confetti, a score drops into its row while the total counts up, game over shows the final score with the best and the average",
-      "Escape leaves at any point; the game and the record are there when you come back, across restarts"
+      "The scorecard shows what each open category would score with the dice as they lie",
+      "One-handed: the arrows pick and hold dice, `space` rolls, `↓` jumps to the best category, `enter` scores",
+      "The upper bonus as a bar toward 63, greyed once it is out of reach",
+      "Hasbro's rules in full, including Yahtzee bonuses and the Joker rules",
+      "Dice that tumble, confetti for a Yahtzee, and the final score beside your best and average",
+      "Leave any time and pick the game up again, even after a restart"
     ],
     "permissions": [],
     "platforms": [

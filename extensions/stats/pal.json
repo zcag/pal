@@ -1,7 +1,7 @@
 {
   "name": "stats",
   "title": "Stats",
-  "description": "CPU, memory, disk, network and load on the bar, each its own item that stays off the strip until it has something to say, with a popover of the breakdown: per-core bars, the memory segments, every volume, every interface, the busiest processes, and a sparkline of the last minutes. The same facts as rows in a palette.",
+  "description": "CPU, memory, disk, network and load on the bar, each item hidden until it has something to say, with a popover of the breakdown and a sparkline of the last few minutes. The same numbers as a list in the panel.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -45,16 +45,15 @@
     }
   ],
   "store": {
-    "tagline": "CPU, memory, disk, network and load: quiet until they are not",
+    "tagline": "CPU, memory, disk, network and load: quiet until they matter",
     "category": "system",
     "features": [
-      "Five bar items off one 3 s sampler, each hidden by its rules while quiet: CPU from 70%, memory from 80% or under pressure, a disk past 85% or under 20 GB free, the network past 1 MB/s, the load past the core count; amber, then red",
-      "Popovers with the breakdown: per-core bars and the five busiest processes with a Kill key, the memory segments (app, wired, compressed, cached) and the five largest, every volume with its bar and free space (Enter reveals it), every interface with its address and rates, the load tiles",
-      "A sparkline of the last three minutes in every popover and in the palette's detail pane, drawn in the theme's ink",
-      "The strip's label per item: a share, a sparkline of glyphs, one bar per core, the busiest process, the free space, the rates",
-      "A palette of the same facts as rows, Enter copies the value; Activity Monitor, the Processes palette, Reveal in Finder, Kill",
-      "`pal://stats/cpu` opens the popover, `?palette=1` the palette on that section",
-      "No root: os.cpus(), vm_stat and sysctl, netstat, df, ps on macOS; /proc on Linux"
+      "Five bar items that appear only when it counts: CPU from 70%, memory from 80%, a nearly full disk, a busy network, high load",
+      "Popovers with the breakdown: per-core bars, memory segments, every volume and interface, the busiest processes",
+      "Kill a runaway process from its popover, after a confirm",
+      "A sparkline of the last three minutes in every popover and in the list's detail pane",
+      "Choose what each bar item shows: a percentage, a sparkline, per-core bars, the busiest process, free space or rates",
+      "The same numbers as a list: `enter` copies a value; open Activity Monitor or reveal a volume in Finder"
     ],
     "permissions": [],
     "platforms": [

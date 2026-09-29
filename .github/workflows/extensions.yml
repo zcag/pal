@@ -42,18 +42,8 @@ on:
         description: "Re-sign both indexes and every build in them with the current key"
         type: boolean
         default: false
-  workflow_call:
-    inputs:
-      ref:
-        type: string
-        required: true
-      promote:
-        type: string
-        default: ""
-      yank:
-        type: string
-        default: ""
-      reindex:
+      release:
+        description: "An app release (release.yml): build ref into edge, then promote exactly those builds to stable"
         type: boolean
         default: false
 
@@ -92,7 +82,7 @@ jobs:
     env:
       # A dispatch that promotes, yanks or re-signs publishes what is already
       # built; everything else builds.
-      BUILD: ${{ github.event_name != 'workflow_dispatch' || (inputs.promote == '' && inputs.yank == '' && !inputs.reindex) }}
+      BUILD: ${{ github.event_name != 'workflow_dispatch' || inputs.release || (inputs.promote == '' && inputs.yank == '' && !inputs.reindex) }}
     steps:
       - uses: actions/checkout@v4
         with:

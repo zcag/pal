@@ -30,6 +30,17 @@ describe("Icon: tile", () => {
     expect(html).toContain('<svg class="pal-icon__mark" viewBox="0 0 16 16"><path d="M2 2h5v5H2z"></path></svg>');
     expect(html).not.toContain("pal-icon__glyph");
   });
+  it("a logo tile: the product's own hex as --brand (no data-brand), the mark in fg, the path in its own box", () => {
+    const html = render({ kind: "tile", bg: "#1ED760", fg: "#000000", box: 24, svg: "M0 0h24v24H0z" }, "md");
+    expect(html).toContain('style="--brand:#1ED760;color:#000000"');
+    expect(html).not.toContain("data-brand");
+    expect(html).toContain("data-logo");
+    expect(html).toContain('<svg class="pal-icon__mark" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"></path></svg>');
+    // A brand colour with a mark colour of its own keeps data-brand; without fg nothing is inline, as before.
+    expect(render({ kind: "tile", bg: "amber", fg: "#000000", glyph: "\uf408" })).toContain('data-brand="amber" style="color:#000000"');
+    expect(render(svg)).not.toContain("style=");
+    expect(render(svg)).not.toContain("data-logo");
+  });
   it("a badge is a pill in the corner, only when the tile has one", () => {
     const html = render({ kind: "tile", bg: "amber", glyph: "\uf408", badge: "W" }, "md");
     expect(html).toContain("data-badged");
@@ -56,6 +67,17 @@ describe("iconOf: the wire forms", () => {
     expect(iconOf({ tile: { glyph: "\uf408", bg: "amber", badge: "W" } }, "GitHub")).toEqual({ kind: "tile", bg: "amber", glyph: "\uf408", badge: "W" });
     expect(iconOf({ tile: { svg: "M0 0h1v1z", bg: "amber", badge: "Work" } }, "x")).toEqual({ kind: "tile", bg: "amber", svg: "M0 0h1v1z", badge: "Wo" });
     expect(iconOf({ tile: { glyph: "\uf408", bg: "amber", badge: " " } }, "x")).toEqual({ kind: "tile", bg: "amber", glyph: "\uf408" });
+  });
+  it("{ tile } in a product's own colours: a #rrggbb bg, fg and box are kept; a bad fg or box is dropped, the tile stays", () => {
+    const d = "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0z";
+    expect(iconOf({ tile: { svg: d, box: 24, bg: "#1ED760", fg: "#000000" } }, "Spotify")).toEqual({ kind: "tile", bg: "#1ED760", fg: "#000000", box: 24, svg: d });
+    expect(iconOf({ tile: { svg: d, box: 0, bg: "#EA4335", fg: "white" } }, "Gmail")).toEqual({ kind: "tile", bg: "#EA4335", svg: d });
+    expect(iconOf({ tile: { glyph: "\uf408", box: 24, bg: "#EA4335" } }, "Gmail")).toEqual({ kind: "tile", bg: "#EA4335", glyph: "\uf408" });
+    expect(iconOf({ tile: { svg: d, bg: "#EA4" } }, "Gmail")).toEqual({ kind: "glyph", value: "G" });
+  });
+  it("brandOf: a logo tile's rows take the nearest brand colour to its hex", () => {
+    const of = (bg: string) => brandOf({ icon: { tile: { svg: "M0 0", box: 24, bg } } });
+    expect([of("#EA4335"), of("#1ED760"), of("#2496ED"), of("#F46800"), of("#18BCF2"), of("#7C3AED"), of("#181717"), of("#8A8A8A")]).toEqual(["red", "green", "cyan", "orange", "cyan", "violet", "ink", "slate"]);
   });
   it("a tile with a colour off the palette falls back to its glyph, else the initial", () => {
     expect(iconOf({ tile: { glyph: "", bg: "mauve" } }, "GitHub")).toEqual({ kind: "glyph", value: "" });

@@ -1,7 +1,7 @@
 {
   "name": "downloads",
   "title": "Downloads",
-  "description": "Your Downloads folder newest first (and the browsers' own download folders when they differ): size, kind or a thumbnail, age, sections by day, a download still coming in with its rate. Open, reveal, copy the file or its path, move to the Trash, move to a folder, rename; several at once; clear what is older than 30 days. The newest download of the last ten minutes sits in the root's Now section.",
+  "description": "Your Downloads folder newest first, with thumbnails and downloads still in progress: open, reveal, move, rename or trash files, and clear out old ones in one go.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -61,12 +61,12 @@
     "tagline": "Your downloads newest first: open, reveal, trash, tidy",
     "category": "productivity",
     "features": [
-      "~/Downloads and the browsers' own download folders when they differ, newest first, sections Today, Yesterday, This week, Older; listed again on every show",
-      "Each row with its size, a kind glyph or a 64 px thumbnail (images and PDFs, cached) and its age; the detail pane shows the page it came from (Spotlight's `kMDItemWhereFroms`)",
-      "A download still coming in (`.crdownload`, `.part`, `.download`) leads the list under Downloading with its size growing as a rate, or Safari's own percentage",
-      "Enter opens, cmd+Enter reveals, cmd+c copies the file, cmd+shift+c its path, cmd+d moves to the Trash (asks first); Tab marks several for open, reveal, copy and trash",
-      "cmd+m moves a file to a folder through a form; cmd+shift+r renames it to the name typed in the bar",
-      "Clear older than 30 days (the count and size in the row, asks first) and Open Downloads as the last rows; the newest download of the last ten minutes in the root's Now section"
+      "Downloads newest first, grouped by day, with size, age and a thumbnail for images and PDFs",
+      "Downloads in progress at the top with their speed",
+      "Open, reveal, copy the file or its path, or move it to the Trash (asks first)",
+      "Move a file to a folder or rename it; `tab` marks several at once",
+      "Clear everything older than 30 days in one row",
+      "Your newest download shows in the main list for ten minutes"
     ],
     "permissions": [
       "automation"

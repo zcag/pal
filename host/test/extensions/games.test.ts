@@ -17,7 +17,7 @@ const ROOT = join(import.meta.dir, "../../../extensions");
 const ext = (name: string, loaded = true) => ({ name, version: "0.1.0", root: ROOT, loaded, store: false, bundled: true });
 const INSTALLED = [...["games", "snake", "solitaire", "blackjack", "minesweeper", "yahtzee", "crossword", "sudoku", "2048", "gifs", "calc"].map((n) => ext(n)), ext("wordle", false), { ...ext("gone"), root: "/nowhere" }];
 const PLATFORM = process.platform === "darwin" ? "macos" : "linux";
-const listing = (title: string, over: Partial<AvailableExtension["listing"]> = {}) => ({ title, description: "", tagline: `${title}, the game`, category: "fun", keywords: [], icon: { tile: { glyph: "g", bg: "green" } }, author: "pal", platforms: null, play: true, palettes: [{ id: title.toLowerCase(), title, kind: "view" }], screenshots: [], requires: [], suggests: [], ...over });
+const listing = (title: string, over: Partial<AvailableExtension["listing"]> = {}) => ({ title, description: "", tagline: `${title}, the game`, features: [], category: "fun", keywords: [], icon: { tile: { glyph: "g", bg: "green" } }, author: "pal", platforms: null, play: true, palettes: [{ id: title.toLowerCase(), title, kind: "view" }], screenshots: [], requires: [], suggests: [], ...over });
 const offer = (name: string, over: Partial<AvailableExtension> = {}, l: Partial<AvailableExtension["listing"]> = {}): AvailableExtension => ({ name, registry: "pal", installed: false, bundled: false, installable: true, listing: listing(name[0].toUpperCase() + name.slice(1), l), ...over });
 const AVAILABLE = [
   offer("pong"),
