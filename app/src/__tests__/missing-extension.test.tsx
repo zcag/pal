@@ -41,11 +41,11 @@ describe("missingExtension", () => {
   });
   it("words the card for each state", () => {
     const base = { kind: "missing" as const, extension: "snippets", from: "store" as const, phase: "idle" as const };
-    expect(missingCard({ ...base, info: { title: "Snippets", state: "absent", installable: true, tagline: "Text you reuse" } })).toEqual({ title: "Snippets isn't installed", hint: "Text you reuse", note: undefined });
-    expect(missingCard({ ...base, info: { title: "Snippets", state: "off" } }).title).toBe("Snippets is turned off");
+    expect(missingCard({ ...base, info: { title: "Snippets", state: "not_installed", installable: true, tagline: "Text you reuse" } })).toEqual({ title: "Snippets isn't installed", hint: "Text you reuse", note: undefined });
+    expect(missingCard({ ...base, info: { title: "Snippets", state: "disabled" } }).title).toBe("Snippets is turned off");
     expect(missingCard({ ...base, info: { title: "snippets", state: "unknown" } }).hint).toBe("No registry you follow lists it.");
-    expect(missingCard({ ...base, info: { title: "DPI", state: "absent", installable: false, blocked: "not for this platform" } }).hint).toBe("It can't be installed here: not for this platform.");
-    expect(missingCard({ ...base, phase: "error", error: "offline", info: { title: "Snippets", state: "absent", installable: true } }).note).toBe("offline");
+    expect(missingCard({ ...base, info: { title: "DPI", state: "not_installed", installable: false, blocked: "not for this platform" } }).hint).toBe("It can't be installed here: not for this platform.");
+    expect(missingCard({ ...base, phase: "error", error: "offline", info: { title: "Snippets", state: "not_installed", installable: true } }).note).toBe("offline");
   });
 });
 
@@ -53,7 +53,7 @@ describe("a push into a missing extension", () => {
   it("shows the card, installs on Enter from the store, then opens the palette once the index lists it", async () => {
     const install = vi.fn(async () => {});
     const opened = vi.fn();
-    const p: Props = { missing: async () => ({ title: "Snippets", state: "absent", installable: true, tagline: "Text you reuse" }), install, opened };
+    const p: Props = { missing: async () => ({ title: "Snippets", state: "not_installed", installable: true, tagline: "Text you reuse" }), install, opened };
     await render([clipboard], p);
     await act(() => { launcher.current!.open("snippets/snippets"); });
     await flush();
@@ -62,16 +62,16 @@ describe("a push into a missing extension", () => {
     expect(el.querySelector(".pal-empty__action button")?.textContent).toBe("Install");
     await enter();
     await flush();
-    expect(install).toHaveBeenCalledWith("snippets", expect.objectContaining({ state: "absent" }), "store");
+    expect(install).toHaveBeenCalledWith("snippets", expect.objectContaining({ state: "not_installed" }), "store");
     expect(el.textContent).toContain("Opening…");
     await render([clipboard, snippets], p);
     await flush();
     expect(el.textContent).not.toContain("isn't installed");
     expect(el.querySelector("input")?.getAttribute("placeholder")).toBe("Search Snippets…");
-    expect(opened).toHaveBeenCalledWith("snippets");
+    expect(opened).toHaveBeenCalledWith("snippets/snippets");
   });
   it("says a failed install under the card and keeps Install", async () => {
-    const p: Props = { missing: async () => ({ title: "Snippets", state: "absent", installable: true }), install: async () => { throw new Error("offline: pal.cagdas.io is not reachable"); } };
+    const p: Props = { missing: async () => ({ title: "Snippets", state: "not_installed", installable: true }), install: async () => { throw new Error("offline: pal.cagdas.io is not reachable"); } };
     await render([clipboard], p);
     await act(() => { launcher.current!.open("snippets/snippets"); });
     await flush();
@@ -81,7 +81,7 @@ describe("a push into a missing extension", () => {
     expect(el.querySelector(".pal-empty__action button")?.textContent).toBe("Install");
   });
   it("offers Turn on for one turned off, and nothing for one no registry lists", async () => {
-    await render([clipboard], { missing: async () => ({ title: "Snippets", state: "off" }), install: async () => {} });
+    await render([clipboard], { missing: async () => ({ title: "Snippets", state: "disabled" }), install: async () => {} });
     await act(() => { launcher.current!.open("snippets/snippets"); });
     await flush();
     expect(el.textContent).toContain("Snippets is turned off");
@@ -91,6 +91,18 @@ describe("a push into a missing extension", () => {
     await flush();
     expect(el.textContent).toContain("tan isn't installed");
     expect(el.querySelector(".pal-empty__action")).toBeNull();
+  });
+  it("a link's card takes what the core said and installs from its registry as a deep link", async () => {
+    const ask = vi.fn(async (): Promise<MissingInfo> => ({ title: "x", state: "unknown" }));
+    const install = vi.fn(async () => {});
+    await render([clipboard], { missing: ask, install });
+    await act(() => { launcher.current!.missing("weather", "weather/weather", { title: "Weather", state: "not_installed", installable: true, registry: "pal", tagline: "The forecast" }); });
+    await flush();
+    expect(ask).not.toHaveBeenCalled();
+    expect(el.textContent).toContain("Weather isn't installed");
+    await enter();
+    await flush();
+    expect(install).toHaveBeenCalledWith("weather", expect.objectContaining({ registry: "pal" }), "deeplink");
   });
   it("without the store's answer a push opens as it always did", async () => {
     await render([clipboard], {});

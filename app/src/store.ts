@@ -72,8 +72,8 @@ export const store = {
   forgetLeftover: (name: string) => invoke<void>("store_forget_leftover", { name }),
   /** The Store palette in the panel. */
   openStore: () => invoke<void>("settings_open_store"),
-  /** A palette of `extension` opened (the usage counts; the core dedupes per show). */
-  opened: (extension: string) => invoke<void>("usage_opened", { extension }),
+  /** A palette opened, by its `ext/palette` key (the usage counts; the core dedupes per show). */
+  opened: (palette: string) => invoke<void>("usage_opened", { palette }),
 };
 
 /** The listing a name is known by: pal's registry's first, else any registry's. */
@@ -87,20 +87,20 @@ export async function missingInfo(extension: string): Promise<MissingInfo> {
   const a = listed(s, name);
   const title = a?.listing.title || name;
   const icon = a ? iconOf(a.listing.icon, title) : undefined;
-  if (s.disabled.includes(name)) return { title, icon, tagline: a?.listing.tagline, state: "off" };
-  return a ? { title, icon, tagline: a.listing.tagline, state: "absent", installable: a.installable, blocked: a.blocked } : { title, state: "unknown" };
+  if (s.disabled.includes(name)) return { title, icon, tagline: a?.listing.tagline, state: "disabled" };
+  return a ? { title, icon, tagline: a.listing.tagline, state: "not_installed", installable: a.installable, blocked: a.blocked, registry: a.registry } : { title, state: "unknown" };
 }
 
 /** The card's fix: turn it on, or install it from the registry that offers it here; resolves once it is loaded. */
 export async function installMissing(extension: string, info: MissingInfo, from: MissingFrom): Promise<void> {
   const name = extension.split("@")[0];
-  if (info.state === "off") return store.setDisabled(name, false);
-  const s = await store.state();
-  ok(await store.install(name, s.available.find((a) => a.name === name && a.installable)?.registry ?? null, from));
+  if (info.state === "disabled") return store.setDisabled(name, false);
+  const registry = info.registry ?? (await store.state()).available.find((a) => a.name === name && a.installable)?.registry ?? null;
+  ok(await store.install(name, registry, from));
 }
 
-/** A palette of `extension` entered, for the usage counts; never in the way. */
-export const opened = (extension: string) => { store.opened(extension).catch(() => {}); };
+/** A palette entered (its `ext/palette` key), for the usage counts; never in the way. */
+export const opened = (palette: string) => { store.opened(palette).catch(() => {}); };
 
 /** An operation's result as a thrown error when it did not go through, so a caller can `await` it like any command. */
 export function ok(r: OpResult): OpResult {

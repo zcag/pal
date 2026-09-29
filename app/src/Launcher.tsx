@@ -34,14 +34,14 @@ const CLEAR_ACTION: Action = { id: CLEAR, title: "Clear selection", icon: { kind
 const OPEN: Action = { id: "open", title: "Open" };
 /** The missing card's one action: Turn on for one turned off, Install for one a registry offers here, none otherwise (or while it runs). */
 const missingAction = (v: MissingLevel): Action | undefined =>
-  !v.info || v.phase === "busy" || v.phase === "ready" ? undefined : v.info.state === "off" ? { id: MISSING, title: "Turn on" } : v.info.state === "absent" && v.info.installable ? { id: MISSING, title: "Install" } : undefined;
+  !v.info || v.phase === "busy" || v.phase === "ready" ? undefined : v.info.state === "disabled" ? { id: MISSING, title: "Turn on" } : v.info.state === "not_installed" && v.info.installable ? { id: MISSING, title: "Install" } : undefined;
 /** The card's words: what is missing, what to do, and how it went. */
 export function missingCard(v: MissingLevel): { title: string; hint?: string; note?: string } {
   const name = v.info?.title ?? v.extension;
-  const title = v.info?.state === "off" ? `${name} is turned off` : `${name} isn't installed`;
-  if (v.phase === "busy") return { title, hint: v.info?.state === "off" ? "Turning it on…" : "Installing…" };
+  const title = v.info?.state === "disabled" ? `${name} is turned off` : `${name} isn't installed`;
+  if (v.phase === "busy") return { title, hint: v.info?.state === "disabled" ? "Turning it on…" : "Installing…" };
   if (v.phase === "ready") return { title, hint: "Opening…" };
-  const hint = !v.info ? undefined : v.info.state === "off" ? "Its palettes and hotkeys do nothing until it is turned on." : v.info.state === "unknown" ? "No registry you follow lists it." : v.info.installable ? v.info.tagline : v.info.blocked ? `It can't be installed here: ${v.info.blocked}.` : "It can't be installed here.";
+  const hint = !v.info ? undefined : v.info.state === "disabled" ? "Its palettes and hotkeys do nothing until it is turned on." : v.info.state === "unknown" ? "No registry you follow lists it." : v.info.installable ? v.info.tagline : v.info.blocked ? `It can't be installed here: ${v.info.blocked}.` : "It can't be installed here.";
   return { title, hint, note: v.phase === "error" ? v.error : undefined };
 }
 /** After the last keystroke at the root, before the inline and fallback sections are asked for (the local hits paint first; a keystroke inside this cancels the ask). */
@@ -162,8 +162,13 @@ export type Level =
  * the push carried; `info` is what the store says of it, asked on arrival.
  */
 export type MissingLevel = { kind: "missing"; extension: string; palette?: string; args?: unknown; query?: string; title?: string; from: MissingFrom; info?: MissingInfo; phase: "idle" | "busy" | "ready" | "error"; error?: string };
-/** What the shell knows of a missing extension (App asks the store): listed and installable, listed but not for here (`blocked`), turned off, or known to no registry. */
-export type MissingInfo = { title: string; icon?: IconSpec; tagline?: string; state: "absent" | "off" | "unknown"; installable?: boolean; blocked?: string };
+/**
+ * What the shell knows of a missing extension, the core's `Missing` shape
+ * (a deep link's payload) or built from the store's state for a push:
+ * listed and installable (`registry` it installs from), listed but not for
+ * here (`blocked`), turned off, or known to no registry.
+ */
+export type MissingInfo = { title: string; icon?: IconSpec; tagline?: string; state: "not_installed" | "disabled" | "unknown"; installable?: boolean; blocked?: string; registry?: string };
 /** Where the missing card came from, for the install's usage count. */
 export type MissingFrom = "store" | "deeplink";
 
@@ -247,8 +252,8 @@ export type LauncherHandle = {
   update(u: ViewUpdate): void;
   /** A trigger fired (`pal://trigger`): a view level on top whose palette lists it under `on` asks for its tree again. */
   trigger(name: string): void;
-  /** A link named an extension that is not loaded (the core's `DEEPLINK {missing}`): the root, then its card. */
-  missing(extension: string, palette?: string): void;
+  /** A link named an extension that is not loaded (the core's `DEEPLINK {missing}`): the root, then its card, with what the core said of it when given (else the store is asked). */
+  missing(extension: string, palette?: string, info?: MissingInfo): void;
 };
 
 export type LauncherProps = {
@@ -310,8 +315,8 @@ export type LauncherProps = {
   missing?: (extension: string) => Promise<MissingInfo>;
   /** Install (or, for one turned off, turn on) a missing extension; resolves once it is loaded, rejects with the reason. */
   onInstallMissing?: (extension: string, info: MissingInfo, from: MissingFrom) => Promise<void>;
-  /** A palette of `extension` was entered (the usage counts). */
-  onOpened?: (extension: string) => void;
+  /** A palette was entered, by its `ext/palette` key (the usage counts, `usage_opened`). */
+  onOpened?: (palette: string) => void;
 };
 
 const haystack = (i: Item) => [i.name, i.subtitle, ...(i.keywords ?? [])].filter(Boolean).join(" ");
@@ -751,12 +756,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     setSel((s) => markRange(s, viewRows, c >= 0 ? c : i, i));
   };
   /** Into a palette: a view palette opens as a view level (its tree asked for), any other as a list; `q` is typed into it on arrival, `title` is the crumb when the push named one. */
-  // An extension that is not loaded gets its card instead of an empty level (`missing`); a palette entered is counted for the extension (`onOpened`).
+  // An extension that is not loaded gets its card instead of an empty level (`missing`); a palette entered is counted by its key (`onOpened`).
   const enter = useCallback((palette: string, args?: unknown, q?: string, title?: string, placeholder?: string) => {
     const gone = props.missing ? missingExtension(palette, sources) : undefined;
     if (gone) return push({ kind: "missing", extension: gone, palette, args, query: q, title, from: "store", phase: "idle" });
     const s = byKey.get(palette);
-    if (s?.extension) onOpened?.(s.extension);
+    if (s?.extension) onOpened?.(palette);
     push(s?.view === "view" ? { kind: "view", palette, args, title } : { kind: "palette", palette, args, title, placeholder });
     if (q) nav.setQuery(q);
   }, [byKey, sources, onOpened, props.missing]);
@@ -777,12 +782,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (!own.length) return;
     const s = own.find((x) => sourceKey(x) === view.palette) ?? own[0];
     const key = sourceKey(s);
-    onOpened?.(s.extension);
+    onOpened?.(key);
     nav.replace(s.view === "view" ? { kind: "view", palette: key, args: view.args, title: view.title } : { kind: "palette", palette: key, args: view.args, title: view.title });
     if (view.query) nav.setQuery(view.query);
   }, [view, byKey]); // eslint-disable-line react-hooks/exhaustive-deps
   /** A link to a missing extension (the core's DEEPLINK): the root under the card, so Escape lands there. */
-  const missingFromLink = (extension: string, palette?: string) => { reset(); push({ kind: "missing", extension, palette, from: "deeplink", phase: "idle" }); };
+  const missingFromLink = (extension: string, palette?: string, info?: MissingInfo) => { reset(); push({ kind: "missing", extension, palette, info, from: "deeplink", phase: "idle" }); };
   /** The card's Enter: install (or turn on), then the palette it was for, once its source is in (the effect below). */
   const installMissing = () => {
     const top = level.current;
