@@ -2066,3 +2066,14 @@ due card, every answer is saved before the next card comes, Escape anywhere lose
   gifs (tiles with a glyph, pictures after), spotify (rows before the like state and playlists). Skipped: navidrome (covers are
   URLs the webview loads, rows already show on `search3`). Google's results as rows were deferred at "Google Search" above for
   want of this.
+
+## Extension distribution (2026-09-29)
+
+Proposed, not built: `docs/design/distribution.md`. Built and signed packages
+(tree hash for identity, CI `seq` for order, an integer `PROTOCOL`), static
+signed registries anyone can run (ours first, edge then stable by
+`make ext-release`), one update check in the core, `[store] installed/disabled`
+with reconcile, no host restart on install, rollback, a slim bundled core with
+a two-release migration, uninstalled extensions in root search and Games,
+anonymous usage counts behind a Settings switch. UI first: the TOML mirrors
+what the UI does, for backup and versioning. pal is public, pal-site private.
