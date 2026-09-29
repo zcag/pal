@@ -8,7 +8,7 @@ import { setDefaultTimeout } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewUpdate, Window } from "../../sdk/src/index.ts";
+import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewNode, ViewUpdate, Window } from "../../sdk/src/index.ts";
 
 // A test's own budget grows with its waits (`until` triples them on the CI runner): at bun's 5 s a test was killed while its 7.5 s wait
 // still ran, and that wait's error landed on whichever test came next.
@@ -97,6 +97,9 @@ function plainText<T extends Item[]>(items: T, toast?: unknown): T {
  * or still empty (a shell's `>>` creates it before the command writes, so a
  * wait on `.length > 0` would otherwise pass on one empty line).
  */
+/** A view tree's markable rows (`NodeBase.mark`), in order: what the shell lets the user mark for a `multi` action. */
+export const marksOf = (n: ViewNode): string[] => [...(typeof n.mark === "string" ? [n.mark] : []), ...(n.type === "stack" ? n.children.flatMap(marksOf) : [])];
+
 export const logLines = (file: string): string[] => {
   try {
     return readFileSync(file, "utf8").trim().split("\n").filter(Boolean);

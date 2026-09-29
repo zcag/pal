@@ -190,17 +190,18 @@ export default { palettes: {
     expect(r.error).toMatch(/array/);
   });
 
-  test("filter and args reach list, pick and detail as ctx; absent ones make ctx undefined", async () => {
+  test("filter and args reach list, pick and detail as ctx; absent ones make a list's ctx undefined; a pick always has ctx.ids, [id] or the marked ones", async () => {
     expect(await host.list("ext", "main", "hello", { filter: "f1", args: { n: 1 } })).toEqual([{ id: "q", name: "hello", ctx: { filter: "f1", args: { n: 1 } } }]);
     expect(await host.list("ext", "main")).toEqual([{ id: "q", name: "", ctx: null }]);
-    expect(await host.pick("ext", "main", "i", "act", { filter: "f2" })).toEqual({ id: "i", action: "act", ctx: { filter: "f2" } });
-    expect(await host.pick("ext", "main", "i")).toEqual({ id: "i", action: null, ctx: null });
+    expect(await host.pick("ext", "main", "i", "act", { filter: "f2" })).toEqual({ id: "i", action: "act", ctx: { filter: "f2", ids: ["i"] } });
+    expect(await host.pick("ext", "main", "i")).toEqual({ id: "i", action: null, ctx: { ids: ["i"] } });
+    expect(await host.pick("ext", "main", "i", "act", { ids: ["i", "j"] })).toEqual({ id: "i", action: "act", ctx: { ids: ["i", "j"] } });
     expect(await host.detail("ext", "main", "d", { args: [1] })).toMatchObject({ markdown: expect.stringContaining("d [1]") });
   });
 
-  test("a form's values reach pick as ctx.values (null, as the core sends when there are none, makes no ctx); a bad form answer is refused", async () => {
-    expect(await host.pick("ext", "main", "f", "save", { values: { name: "x", pin: true } })).toEqual({ id: "f", action: "save", ctx: { values: { name: "x", pin: true } } });
-    expect(await host.request<unknown>("pick", { extension: "ext", palette: "main", id: "i", args: null, values: null })).toEqual({ id: "i", action: null, ctx: null });
+  test("a form's values reach pick as ctx.values (null, as the core sends when there are none, is left out); a bad form answer is refused", async () => {
+    expect(await host.pick("ext", "main", "f", "save", { values: { name: "x", pin: true } })).toEqual({ id: "f", action: "save", ctx: { values: { name: "x", pin: true }, ids: ["f"] } });
+    expect(await host.request<unknown>("pick", { extension: "ext", palette: "main", id: "i", args: null, values: null })).toEqual({ id: "i", action: null, ctx: { ids: ["i"] } });
     expect((await host.call("pick", { extension: "ext", palette: "main", id: "badform" })).error).toMatch(/pick  form: no fields/);
   });
 

@@ -69,6 +69,7 @@ export function checkView(v: unknown, where = "view"): View {
   const moving = new Set<string>();
   /** Action ids some node runs on a click: a hidden action reached this way needs no shortcut. */
   const clicked = new Set<string>();
+  const marks = new Set<string>();
   const walk = (n: ViewNode, depth: number, path: string) => {
     if (!n || typeof n !== "object" || typeof (n as { type?: unknown }).type !== "string") throw new Error(`${where}: ${path} is not a node`);
     if (++count > MAX_NODES) throw new Error(`${where}: more than ${MAX_NODES} nodes`);
@@ -78,6 +79,11 @@ export function checkView(v: unknown, where = "view"): View {
       clicked.add(n.action);
     }
     if (n.selected !== undefined && n.selected !== true) throw new Error(`${where}: ${path} selected must be true`);
+    if (n.mark !== undefined) {
+      if (typeof n.mark !== "string" || !n.mark) throw new Error(`${where}: ${path} mark must be a row id`);
+      if (marks.has(n.mark)) throw new Error(`${where}: ${path} mark "${n.mark}" is used elsewhere in the tree (a mark must be unique in the view)`);
+      marks.add(n.mark);
+    }
     const t = n.transition;
     if (t !== undefined) {
       if (!t || typeof t !== "object") throw new Error(`${where}: ${path} transition must be an object`);

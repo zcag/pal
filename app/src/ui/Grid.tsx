@@ -4,7 +4,7 @@ import { Icon } from "./Icon";
 import { CHECK, Highlight } from "./Row";
 import { keepFocus, useCmdHeld } from "./keys";
 import { domId, flatten, useGridColumns, useHover, useMetrics, observeRect, ensureVisible } from "./virtual";
-import { clickWithModifier, type Hit, type ListHandle } from "./List";
+import { clickRow, type Hit, type ListHandle } from "./List";
 import type { Item } from "./types";
 
 export type GridProps = {
@@ -17,6 +17,8 @@ export type GridProps = {
   marked?: (item: Item) => boolean;
   /** A cmd+click (ctrl on Linux): mark or unmark the tile instead of picking it. */
   onToggle?: (index: number) => void;
+  /** A shift+click: mark the tiles from the range's anchor to this one. */
+  onRange?: (index: number) => void;
   columns?: number;
   /** Tile width / height. */
   aspect?: number;
@@ -33,7 +35,7 @@ export type GridProps = {
  * be close; a change of column count renews the item keys, which drops the
  * virtualiser's size cache so every row measures again.
  */
-export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, columns = 6, aspect = 1, ordinals, label }, ref) {
+export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, columns = 6, aspect = 1, ordinals, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const cols = useGridColumns(scroller, metrics, columns);
@@ -97,7 +99,7 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
                 const i = row.index + k;
                 const isMarked = marked?.(item);
                 return (
-                  <div key={i} id={domId(id, i)} role="gridcell" aria-selected={i === cursor} aria-checked={isMarked || undefined} className="pal-tile" data-active={i === cursor || undefined} data-marked={isMarked || undefined} onMouseMove={hover(i)} onMouseDown={keepFocus} onClick={(e) => (onToggle && clickWithModifier(e) ? onToggle(i) : onPick?.(i))}>
+                  <div key={i} id={domId(id, i)} role="gridcell" aria-selected={i === cursor} aria-checked={isMarked || undefined} className="pal-tile" data-active={i === cursor || undefined} data-marked={isMarked || undefined} onMouseMove={hover(i)} onMouseDown={keepFocus} onClick={clickRow(i, { onPick, onToggle, onRange })}>
                     <div className="pal-tile__box" style={{ aspectRatio: aspect }}>
                       <Icon icon={item.icon} size="lg" />
                       {(ordinals || cmdHeld) && i < 9 && <kbd className="pal-row__ordinal pal-tile__ordinal" aria-hidden>{i + 1}</kbd>}

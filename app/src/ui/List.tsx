@@ -20,6 +20,8 @@ export type ListProps = {
   marked?: (item: Item) => boolean;
   /** A cmd+click (ctrl on Linux): mark or unmark the row instead of picking it. */
   onToggle?: (index: number) => void;
+  /** A shift+click: mark the rows from the range's anchor to this one instead of picking it. */
+  onRange?: (index: number) => void;
   /** Every row wears its number (1 to 9) whether or not cmd is held: the sidebar, where cmd+N is the pick. */
   ordinals?: boolean;
   label?: string;
@@ -27,6 +29,15 @@ export type ListProps = {
 
 /** A click with the platform's primary modifier toggles a mark; any other picks. */
 export const clickWithModifier = (e: { metaKey: boolean; ctrlKey: boolean }) => (isMac ? e.metaKey : e.ctrlKey);
+/** What a click on a markable row or tile means (List, Grid, a view's `mark` node): toggle its mark, mark the range to it, or the plain click. */
+export const clickIntent = (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): "toggle" | "range" | "click" => (clickWithModifier(e) ? "toggle" : e.shiftKey ? "range" : "click");
+/** The click handler of row `i`: a mark's toggle or range where the level marks, else the pick. */
+export const clickRow = (i: number, on: { onPick?: (i: number) => void; onToggle?: (i: number) => void; onRange?: (i: number) => void }) => (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => {
+  const how = on.onToggle ? clickIntent(e) : "click";
+  if (how === "toggle") on.onToggle!(i);
+  else if (how === "range" && on.onRange) on.onRange(i);
+  else on.onPick?.(i);
+};
 
 /**
  * Virtualised list with section headers. Items are shown in the order given;
@@ -34,7 +45,7 @@ export const clickWithModifier = (e: { metaKey: boolean; ctrlKey: boolean }) => 
  * scroll with the rows, as in Raycast: a sticky one would sit over the
  * cursor row whenever the cursor is the first in its section.
  */
-export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, ordinals, label }, ref) {
+export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, ordinals, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item)), [hits]);
@@ -95,7 +106,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
               ordinal={ordinals || cmdHeld ? i + 1 : undefined}
               marked={marked?.(row.items[0])}
               onHover={hover(i)}
-              onClick={(e) => (onToggle && clickWithModifier(e) ? onToggle(i) : onPick?.(i))}
+              onClick={clickRow(i, { onPick, onToggle, onRange })}
             />
           );
         })}

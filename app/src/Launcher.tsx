@@ -8,7 +8,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffec
 import {
   ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, SurfaceContext, Toast, View,
   followCursor, groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
-  hasSurface, isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection, type SurfaceHandle, type SurfaceHost,
+  hasSurface, anchorOf, idsOf, isMarked, markRange, markable, multiActions, pickIds, prune, step, toggle, viewCursor, viewMarks, type Selection, type SurfaceHandle, type SurfaceHost,
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
@@ -30,6 +30,7 @@ const LIST_ID = "results";
 const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
 /** The shell's own actions, kept apart from an item's by the prefix. */
 const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh", TIPS = "pal:welcome", LINK = "pal:link", FORGET = "pal:forget", CLEAR = "pal:clear", COMPACT = "pal:compact", BIG = "pal:big", CORNER = "pal:corner";
+const CLEAR_ACTION: Action = { id: CLEAR, title: "Clear selection", icon: { kind: "glyph", value: "×" }, section: "pal" };
 const OPEN: Action = { id: "open", title: "Open" };
 /** After the last keystroke at the root, before the inline and fallback sections are asked for (the local hits paint first; a keystroke inside this cancels the ask). */
 const ROOT_DEBOUNCE = 120;
@@ -398,6 +399,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const surfaceView = isView && hasSurface(spec?.tree);
   const bridge = props.surface;
   const viewPalette = view.kind === "view" ? view.palette : undefined;
+  /** A view level's markable rows (`NodeBase.mark`), in the tree's order: what cmd/shift clicks and shifted arrows mark there, as a list's rows. */
+  const viewRows = useMemo(() => (viewPalette !== undefined ? viewMarks(spec?.tree, viewPalette) : []), [spec?.tree, viewPalette]);
   /** The game's panel (`onPanelMode`): its remembered mode on entering the level, normal on leaving it. A hide keeps it; the shell puts it back to normal on a show that starts over. */
   const [panelMode, setPanelMode] = useState<PanelMode>("normal");
   const gamePalette = surfaceView ? viewPalette : undefined;
@@ -606,8 +609,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const current: Item | undefined = hits[cur.cursor]?.item;
   /** A list level: rows to mark and pick (the root, a palette, a menu). */
   const isList = view.kind === "root" || view.kind === "palette" || view.kind === "menu";
-  /** A marked row on screen (the cursor's when it is one): the row a multi pick is addressed to and whose actions the selection offers. */
-  const anchor = useMemo<Item | undefined>(() => (sel ? (current && isMarked(sel, current) ? current : hits.find((h) => isMarked(sel, h.item))?.item) : undefined), [sel, current, hits]);
+  /** The marked row a multi pick is addressed to and whose actions' order and titles the selection offers: the cursor's when it is marked, else the first marked (on screen or filtered off it). */
+  const anchor = useMemo<Item | undefined>(() => anchorOf(sel, current), [sel, current]);
   const marked = useCallback((item: Item) => isMarked(sel, item), [sel]);
   // A palette that asks for it opens with the pane; leaving resets. cmd+i still toggles.
   useEffect(() => setShowDetail(view.kind === "palette" && !!byKey.get(view.palette)?.showDetail), [view]);
@@ -690,6 +693,16 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const pop = () => { nav.pop(); cur.reset(); setPaletteFilter(undefined); setSel(null); setHold(false); };
   /** Mark or unmark the row at `i` (cmd+click, `x`); a row that cannot be marked is left alone. */
   const toggleAt = (i: number) => { const item = hits[i]?.item; if (item && markable(item)) { cur.set(i); setSel((s) => toggle(s, item)); } };
+  /** Mark every row from the anchor (the row last toggled, else the cursor's) to the row at `i` (shift+click). */
+  const rangeAt = (i: number) => { if (!hits[i]) return; const from = cur.cursor; cur.set(i); setSel((s) => markRange(s, hits.map((h) => h.item), from, i)); };
+  /** A cmd or shift click on a view's row (`NodeBase.mark`): toggle it, or mark the range to it from the anchor (else the view's cursor). */
+  const markView = (id: string, how: "toggle" | "range") => {
+    const i = viewRows.findIndex((r) => r.id === id);
+    if (i < 0) return;
+    if (how === "toggle") return setSel((s) => toggle(s, viewRows[i]!));
+    const c = viewRows.findIndex((r) => r.id === viewCursor(spec?.tree));
+    setSel((s) => markRange(s, viewRows, c >= 0 ? c : i, i));
+  };
   /** Into a palette: a view palette opens as a view level (its tree asked for), any other as a list; `q` is typed into it on arrival, `title` is the crumb when the push named one. */
   const enter = useCallback((palette: string, args?: unknown, q?: string, title?: string, placeholder?: string) => {
     push(byKey.get(palette)?.view === "view" ? { kind: "view", palette, args, title } : { kind: "palette", palette, args, title, placeholder });
@@ -829,10 +842,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       { id: BIG, title: panelMode === "big" ? "Normal panel size" : "Enlarge panel", icon: { kind: "glyph", value: panelMode === "big" ? "⇲" : "⇱" }, shortcut: "cmd+shift+f", section: "pal" },
       { id: CORNER, title: panelMode === "corner" ? "Normal panel size" : "Panel in the corner", icon: { kind: "glyph", value: panelMode === "corner" ? "⇱" : "⇲" }, shortcut: "cmd+shift+j", section: "pal" },
     ] : [];
-    if (view.kind === "view") return [...(view.spec?.actions ?? []), ...(linkable ? [link] : []), ...panel];
+    // Rows marked in a view: its multi actions, and the hidden ones its keys route (the arrows still move the cursor); then the way out.
+    if (view.kind === "view") return sel ? [...(view.spec?.actions ?? []).filter((x) => x.multi || x.hidden), CLEAR_ACTION] : [...(view.spec?.actions ?? []), ...(linkable ? [link] : []), ...panel];
     if (view.kind === "form") return linkable ? [{ ...link, hidden: true }] : [];
-    // Rows marked: only what works on several (the marked row's `multi` actions), and the way out.
-    if (sel) return [...multiActions(anchor?.actions), { id: CLEAR, title: "Clear selection", icon: { kind: "glyph", value: "×" }, section: "pal" }];
+    // Rows marked: only what works on several (the `multi` actions every marked row carries), and the way out.
+    if (sel) return [...multiActions(sel.items, anchor), CLEAR_ACTION];
     if (current) {
       const isPalette = current.palette === PALETTES, isTip = current.palette === WELCOME, isAsk = !!current.push;
       a.push(...(current.actions ?? [isPalette ? { ...OPEN, title: `Open ${current.name}` } : isAsk ? { ...OPEN, title: current.name } : OPEN]));
@@ -853,6 +867,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   }, [current, view, showDetail, byKey, onSettings, onRefresh, onWelcome, onLink, onForget, onCompact, onPanelMode, panelMode, surfaceView, compact, scope, args, query, sel, anchor]);
   /** The actions on show: Enter and ⌘Enter are the first two of these, the footer and the panel list them; a `hidden` action only routes its key. */
   const listed = useMemo(() => actions.filter((a) => !a.hidden), [actions]);
+  /** What Enter and ⌘Enter run: the listed actions, less "Clear selection" (Escape's), which is never a row's primary. */
+  const runnable = useMemo(() => (sel ? listed.filter((a) => a.id !== CLEAR) : listed), [listed, sel]);
 
   // The envelope's copy/open/hide are the caller's; the toast shows here, a
   // push/show opens its level, a view replaces the tree of the view level it
@@ -907,12 +923,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
    * early lands on the hand it was meant for, or on nothing if that hand
    * is over.
    */
-  const pickView = (a: Action, values?: FormValues) => {
+  const pickView = (a: Action, values?: FormValues, ids?: string[]) => {
     if (view.kind !== "view" || !view.spec || busy) return;
     const s = byKey.get(view.palette);
     setBusy(true);
     const item: Item = { id: view.spec.id ?? VIEW_ID, name: view.spec.title ?? titleOf(view.palette), palette: view.palette, source: s && { extension: s.extension, palette: s.palette } };
-    pickItem(item, a.id, values ? { ...ctx, values } : ctx).finally(() => setBusy(false));
+    pickItem(item, a.id, values || ids ? { ...ctx, ...(values && { values }), ...(ids && { ids }) } : ctx).finally(() => setBusy(false));
   };
 
   /**
@@ -950,18 +966,39 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (cmd.type === "submit" || cmd.type === "cancel") return false;
     // A click on a node carrying `action` (View.tsx): the action of that id, listed or hidden, with what the control read (a slider's fraction).
     if (cmd.type === "action") { const a = actions.find((x) => x.id === cmd.id); if (!a) return false; if (cmd.values && !a.confirm) { setActionsOpen(false); focus(); return pickView(a, cmd.values); } return run(a); }
-    const a = cmd.type === "primary" ? listed[0]
-      : cmd.type === "secondary" ? listed[1]
-      // A shifted arrow with no action of its own is the plain arrow's.
-      : cmd.type === "shortcut" ? actions.find((x) => hasShortcut(x, cmd.combo)) ?? (shiftedArrow(cmd.combo) && view.spec.keys === "actions" ? actions.find((x) => hasShortcut(x, shiftedArrow(cmd.combo)!)) : undefined)
-      : view.spec.keys === "actions" ? actions.find((x) => hasShortcut(x, cmd.key)) : undefined;
+    if (cmd.type === "primary" || cmd.type === "secondary") {
+      const a = runnable[cmd.type === "primary" ? 0 : 1];
+      return a ? run(a) : sel && cmd.type === "primary" ? noMulti() : false;
+    }
+    const combo = cmd.type === "shortcut" ? cmd.combo : view.spec.keys === "actions" ? cmd.key : undefined;
+    if (combo === undefined) return false;
+    let a = actions.find((x) => hasShortcut(x, combo));
+    // A shifted arrow with no action of its own is the plain arrow's; over markable rows it also marks, from the row the cursor leaves to the one it lands on (the effect below, once the tree is in).
+    const dir = !a && cmd.type === "shortcut" && view.spec.keys === "actions" ? shiftedArrow(combo) : undefined;
+    if (dir) { a = actions.find((x) => hasShortcut(x, dir)); if (a && viewRows.length) stepFrom.current = viewCursor(view.spec.tree) ?? null; }
+    if (!a && sel) { const one = view.spec.actions.find((x) => !x.hidden && hasShortcut(x, combo)); if (one) return oneRow(one); }
     return a ? run(a) : false;
   };
+  /** The row a shifted arrow left, while its action's tree is on the way; null when the cursor was on no markable row. */
+  const stepFrom = useRef<string | null | undefined>(undefined);
+  /** A step's marks are set in this commit: the queue waits for the render that has them, so a key queued behind the arrow runs over them. */
+  const stepped = useRef(false);
+  // A new tree in a view: marks of rows it no longer has drop out, and a shifted arrow's step marks from the row it left to the one it landed on.
+  useEffect(() => {
+    if (viewPalette === undefined) { stepFrom.current = undefined; return; }
+    const from = stepFrom.current;
+    stepFrom.current = undefined;
+    const i = from ? viewRows.findIndex((r) => r.id === from) : -1, j = viewRows.findIndex((r) => r.id === viewCursor(spec?.tree));
+    setSel((s) => { const kept = s && s.palette === viewPalette ? prune(s, viewRows) : s; return from !== undefined && j >= 0 ? step(kept, viewRows, i >= 0 ? i : j, j) ?? (i < 0 && markable(viewRows[j]!) ? toggle(kept, viewRows[j]!) : null) : kept; });
+    if (from !== undefined) { stepped.current = true; bump((n) => n + 1); }
+  }, [spec?.tree]);
+  const [, bump] = useState(0);
   // The queue drains one key per settled tree; leaving the level, or landing on another, drops what was waiting.
   const lastLevel = useRef(levelKey);
   useEffect(() => {
     if (lastLevel.current !== levelKey) { lastLevel.current = levelKey; queue.current.length = 0; return; }
     if (levelKey === null || busy || view.kind !== "view" || !view.spec) return;
+    if (stepped.current) { stepped.current = false; return; }
     // A key no action carries any more (the hand is over) is dropped, and the next one tried.
     while (queue.current.length) if (viewCommand(queue.current.shift()!) !== false) break;
   });
@@ -992,7 +1029,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case SUBMENU: if (current && view.kind === "menu") push(menuLevel(view.key, current.name, view.submenus[current.id] ?? [])); break;
       default:
         // A surface's level: the page runs its actions (`pal.onAction`), the extension hears of them only if the page tells it.
-        if (view.kind === "view") return surfaceView ? surfaceRef.current?.post({ pal: "action", id: a.id }) : pickView(a);
+        if (view.kind === "view") {
+          if (surfaceView) return surfaceRef.current?.post({ pal: "action", id: a.id });
+          // A multi action over the view's marked rows: every marked id rides in the ctx, the cursor's first; the marks go with it.
+          if (sel && a.multi && !busy) { const ids = pickIds(sel, viewRows.find((r) => r.id === viewCursor(view.spec?.tree))); setSel(null); return pickView(a, undefined, ids); }
+          return pickView(a);
+        }
         // The picker's answer: the marked ids, else the row's; the level is the CLI's, so nothing else runs.
         if (picker) {
           const ids = sel ? pickIds(sel, current) : current && !current.disabled ? [current.id] : [];
@@ -1000,8 +1042,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
           return;
         }
         // A multi action: one pick addressed to the marked row on screen, every marked id in the ctx; the marks go with it.
-        if (sel && a.multi) {
-          if (!anchor) return;
+        if (sel && a.multi && anchor) {
           const ids = pickIds(sel, current);
           setSel(null);
           pickItem(anchor, a.id, { ...ctx, ids });
@@ -1094,10 +1135,14 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if ((dir === "up" || (dir === "down" && histIdx >= 0)) && recall(dir === "up" ? 1 : -1) !== false) return;
     cur.move((dir === "down" ? 1 : -1) * (isGrid ? (list.current?.columns() ?? columns) : 1));
   };
-  /** A shifted arrow in a list level: the row under the cursor is marked (never unmarked), then the cursor moves; LaunchBar's Shift+Down range. */
+  /** A shifted arrow in a list level: Mail's range (`step`), the row left and the row landed on marked, or the row left unmarked on the way back toward where the range started. */
   const markAndMove = (dir: "up" | "down" | "left" | "right"): boolean | void => {
-    if (isList && current && markable(current)) setSel((s) => markRow(s, current));
-    return move(dir);
+    if (!isList || (!isGrid && (dir === "left" || dir === "right"))) return move(dir);
+    const back = dir === "up" || dir === "left";
+    const by = isGrid && (dir === "up" || dir === "down") ? (list.current?.columns() ?? columns) : 1;
+    const from = cur.cursor, to = Math.max(0, Math.min(from + (back ? -by : by), hits.length - 1));
+    setSel((s) => step(s, hits.map((h) => h.item), from, to));
+    cur.set(to);
   };
 
   /** A cmd+N pick (`ordinals`) on a row the cursor was not on waits for the cursor's render: `run` reads the row under it. */
@@ -1127,8 +1172,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       },
       // Enter and cmd+enter are a row's: with nothing under the cursor the shell's actions wait in the panel.
       // A form's fields take them first (Form's own scope); reaching here means focus is elsewhere, so the form is asked to submit.
-      primary: () => (view.kind === "show" ? pop() : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (listed[0]?.id === CLEAR ? noMulti() : run(listed[0])) : current && listed[0] ? run(listed[0]) : false),
-      secondary: () => (view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "secondary" }) : current && listed[1] ? run(listed[1]) : false),
+      primary: () => (view.kind === "show" ? pop() : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] ? run(listed[0]) : false),
+      secondary: () => (view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "secondary" }) : sel ? (runnable[1] ? run(runnable[1]) : false) : current && listed[1] ? run(listed[1]) : false),
       actions: () => (listed.length ? setActionsOpen(true) : false),
       // Under the switcher's hold Escape is the cancel, whatever is typed: the hide reaches the shell (switcher.rs `on_hidden`).
       escape: () => (hold ? onHide() : view.kind === "view" && viewInput ? viewCommand({ type: "cancel" }) : sel ? setSel(null) : query ? setQuery("") : nav.depth > 1 ? pop() : picker ? onPickReply?.(picker.token, null) : onHide()),
@@ -1150,6 +1195,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         if (view.kind === "view") return viewCommand({ type: "shortcut", combo });
         const a = actions.find((x) => hasShortcut(x, combo)) ?? menuShortcut(combo);
         if (a) return run(a);
+        // A row's own key while rows are marked, for an action that works on one: say so rather than run it on one, or nothing.
+        const one = sel && anchor?.actions?.find((x) => !x.hidden && hasShortcut(x, combo));
+        if (one) return oneRow(one);
         // A shifted arrow nothing claims marks the row and moves the cursor in a list; elsewhere it moves as the bare arrow does.
         const dir = shiftedArrow(combo);
         return dir ? markAndMove(dir) : false;
@@ -1180,14 +1228,16 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const back = crumb && { ...crumb, onBack: nav.depth > 1 ? pop : undefined };
   const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" ? "" : isMenu ? `Search ${view.title}…` : (view.kind === "palette" ? view.placeholder : undefined) ?? scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
   /** What Enter runs and the footer names: the field's submit while a view's text field is open, else the first listed action. */
-  const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : sel && listed[0]?.id === CLEAR ? undefined : listed[0];
+  const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : runnable[0];
   const onPickAt = (i: number) => { cur.set(i); const a = listed[0]; if (a) run(a); };
   /** Enter with rows marked and nothing that works on several: say so rather than pick one. */
   const noMulti = () => setToast({ style: "failure", title: "Nothing here works on several rows", message: "Clear the selection (Escape) to pick one" });
+  /** A single-row action's key with rows marked. */
+  const oneRow = (a: Action) => setToast({ style: "failure", title: `${a.title} works on one row`, message: "Clear the selection (Escape) first" });
   const body = view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : view.kind === "view"
-    ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} /></SurfaceContext.Provider> : null)
+    ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} marked={sel && sel.palette === viewPalette ? idsOf(sel) : undefined} onMark={viewRows.length ? markView : undefined} /></SurfaceContext.Provider> : null)
     : form
     // The title is the search row's (as for a view), so the form draws none of its own.
     ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>
@@ -1199,22 +1249,22 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
           note={query && view.kind === "root" && sources.length > 0 && extensions < 2 ? `${extensions === 0 ? "No extensions are" : "Only one extension is"} loaded, so there is little to find. Settings (${isMac ? "⌘," : "Ctrl+,"}) › Extensions lists them; the Welcome tips link the guide to adding more.` : undefined}
         />
       : isGrid
-        ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} columns={columns} ordinals={ordinals} />
-        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} ordinals={ordinals} />;
+        ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} columns={columns} ordinals={ordinals} />
+        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} />;
 
   /** The footer's primary hint and Enter handler, one place: the footer draws it, or the search row's right side in compact mode. */
   const primaryHint = isShow ? { title: "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || current) && primaryAction ? { title: primaryAction.title } : undefined;
-  const onPrimary = () => (isShow ? pop() : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : sel ? (listed[0]?.id === CLEAR ? noMulti() : run(listed[0])) : current && listed[0] && run(listed[0]));
+  const onPrimary = () => (isShow ? pop() : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? sel?.ids.length : undefined} />}
+      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
       aside={!compact && showDetail && !isShow && !isView && !isForm && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :
         <Footer
           icon={isShow || isView || isForm ? levelIcon : current?.icon}
           title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView || isForm ? viewTitle : current?.name}
           note={updating && !isShow && !isView && !isForm && !isMenu ? "updating…" : undefined}
-          count={sel?.ids.length}
+          count={(sel ? sel.items.length : undefined)}
           primary={primaryHint}
           actions={listed.length > 0}
           onPrimary={onPrimary}
@@ -1225,7 +1275,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         <>
           <Presence show={!!toast} dur="base">{toast && <Toast toast={toast} />}</Presence>
           <Presence show={actionsOpen}><ActionPanel actions={actions} onRun={run} onClose={closeActions} title={isView ? viewTitle : current?.name} /></Presence>
-          <Presence show={!!confirming}>{confirming && <Confirm title={confirming.confirm!} action={confirming.title} destructive={confirming.style === "destructive"} onConfirm={() => run(confirming, true)} onCancel={closeConfirm} />}</Presence>
+          <Presence show={!!confirming}>{confirming && <Confirm title={confirming.confirm!} message={sel && confirming.multi ? `On ${sel.items.length} selected ${sel.items.length === 1 ? "row" : "rows"}` : undefined} action={confirming.title} destructive={confirming.style === "destructive"} onConfirm={() => run(confirming, true)} onCancel={closeConfirm} />}</Presence>
         </>
       }
     >

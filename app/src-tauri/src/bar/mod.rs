@@ -1156,7 +1156,7 @@ pub fn on_settings_changed(app: &AppHandle, exts: &[String]) {
 /// `bar/action`: the extension's `onAction`, its Effect run with `window`
 /// as the one the pick came from; a `keep` renders the item again. The
 /// envelope comes back for the page.
-pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, window: &str, values: Option<Value>) -> Result<Value, String> {
+pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, window: &str, values: Option<Value>, ids: Option<Vec<String>>) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
     let e = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?;
     let r = if e.fixture {
@@ -1170,6 +1170,10 @@ pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, wind
         // What a control in the popover read (`BarCtx.values`): the view's text field on Enter, a form's fields, a slider's fraction.
         if let Some(v) = values.filter(|v| v.is_object()) {
             ctx["values"] = v;
+        }
+        // A `multi` action over the view's marked rows (`BarCtx.ids`).
+        if let Some(ids) = ids.filter(|i| !i.is_empty()) {
+            ctx["ids"] = json!(ids);
         }
         host.request("bar/action", json!({ "extension": ext, "id": id, "action": action, "ctx": ctx })).await?
     };

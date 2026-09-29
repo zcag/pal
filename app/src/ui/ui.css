@@ -818,3 +818,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-bar-page[data-sidebar] .pal-search__input { font-size: var(--pal-text-base, 13px); }
 .pal-bar-page[data-sidebar] .pal-empty { padding: var(--pal-space-3, 12px); }
 .pal-bar-page[data-sidebar] .pal-empty__title { font-size: var(--pal-text-sm, 12px); }
+
+/* A view's markable row (`mark`, View.tsx): a shift+click selects rows, never text. Marked, it takes the list's marked tint and an accent bar down its leading edge, over whatever surface it wears. */
+.pal-view [data-mark] { user-select: none; }
+.pal-view .pal-view__node[data-marked] { position: relative; background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16)); }
+.pal-view .pal-view__node[data-marked]::before { content: ""; position: absolute; left: 0; top: var(--pal-space-2, 8px); bottom: var(--pal-space-2, 8px); width: 3px; border-radius: 2px; background: var(--pal-accent, #9f97ff); }

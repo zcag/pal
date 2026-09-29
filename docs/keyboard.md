@@ -20,8 +20,9 @@ spelled `⌘K` in prose and `cmd+k` where a file or a manifest names them
 | `home`, `end`, `pageup`, `pagedown` | Scroll the list |
 | `cmd+c` | Any other modifier combo runs the action carrying that shortcut |
 | `h`, `space`, `backspace` | In a view level with bare-key actions (`keys: "actions"`), a bare key runs the action carrying it; with a text field up it is typing |
-| `shift+↑`, `shift+↓` | A shifted arrow runs the action carrying it (a view's big step); in a list it marks the row under the cursor and moves |
-| `cmd`-click | Mark or unmark one row |
+| `shift+↑`, `shift+↓` | A shifted arrow runs the action carrying it (a view's big step). In a list, and in a view whose rows can be marked (an inbox popover), it marks the row it leaves and the row it lands on, as Mail does; the opposite arrow takes the last one back |
+| `cmd`-click | Mark or unmark one row (a list's, or a popover inbox's) |
+| `shift`-click | Mark every row from the one last marked (else the cursor's) to this one |
 | `tab`, `x` | In a palette that opts in (`multi`: Files, Windows, `pal pick --multi`; none has a filter dropdown), mark the row and step down; `x` only while nothing is typed, so a name can still be searched |
 | `→`, `←`, `backspace` | In a list while nothing is typed: the row's action carrying that key (a folder's Browse on `→`; `←` and `backspace` also reach the `..` row's Go up from anywhere in a browsed folder). With text in the box the arrows move the caret as usual; a `backspace` no row claims goes back a level (above) |
 

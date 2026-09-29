@@ -120,7 +120,8 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
       return { items };
     },
     // An effect carrying a view is checked like a `view` answer: the UI draws it the same way. A form likewise.
-    pick: async (p) => fix(checkEffect((await inContext(p, () => palette(p).pick(String(p.id), p.action, ctxOf(p)))) ?? {}, `${paletteKey(p)}: pick ${p.action ?? ""}`), p),
+    // `ctx.ids` always: the marked ids of a multi pick, else the one, so a handler has one path (`Ctx.ids`).
+    pick: async (p) => fix(checkEffect((await inContext(p, () => palette(p).pick(String(p.id), p.action, { ...ctxOf(p), ids: Array.isArray(p.ids) && p.ids.length ? p.ids.map(String) : [String(p.id)] }))) ?? {}, `${paletteKey(p)}: pick ${p.action ?? ""}`), p),
     // The tree a view palette opens with; `filter`/`args` reach it as ctx like a list.
     view: async (p) => {
       const pal = palette(p);

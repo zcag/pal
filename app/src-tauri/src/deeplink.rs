@@ -652,7 +652,7 @@ fn run(app: &AppHandle, route: Route, trusted: bool) {
                     }
                     on_main(&app, panel::hide);
                 }
-                match crate::bar::action(&app, &key, &action, "link", crate::bar::popover::WINDOW, None).await {
+                match crate::bar::action(&app, &key, &action, "link", crate::bar::popover::WINDOW, None, None).await {
                     Ok(r) => {
                         if let Some(t) = r["toast"]["title"].as_str() {
                             hud::show(&app, t);

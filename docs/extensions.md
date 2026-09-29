@@ -359,14 +359,32 @@ is left to the load-time check.
   on any row of the level, so a `..` row's Go up works from anywhere in a
   browsed folder. With text in the box the keys keep their native effect.
 - Several rows at once: an action with `multi: true` is offered while rows are
-  marked (`⇧↓`, `⌘`-click, and `Tab` or, with nothing typed, a bare `x` in a
-  palette that declares `multi: true` itself), and `Enter` runs it as one
-  `pick(id, action, ctx)` where `id` is the first marked row and `ctx.ids` every
-  marked one, in order. An action without `multi` is single-row only and is not
-  listed while rows are marked. Frecency records nothing for a multi pick. The
-  bundled Files (open, reveal, the copies, trash), Windows (close, minimize),
-  Clipboard (copy joined, delete) and Bookmarks (open) do this; the pattern is
-  `const ids = ctx?.ids ?? [id]` and a loop.
+  marked (`⇧↓`, `⌘`-click, `⇧`-click for a range, and `Tab` or, with nothing
+  typed, a bare `x` in a palette that declares `multi: true` itself), and
+  `Enter` runs it as one `pick(id, action, ctx)` where `id` is the cursor's row
+  when it is marked, else the first marked, and `ctx.ids` every marked one.
+  Marked rows stay marked while the query filters them off screen.
+  - **What is offered** is the `multi` actions *every* marked row carries (by
+    id), in the addressed row's order. A row that should be markable either
+    way next to its opposites carries both: Gmail's unread row has "Mark as
+    read" on `⌘↵` and "Mark as unread" at the end, a read row the other way
+    round, so a mix of read and unread offers both. A `hidden` action is never
+    run over marks. An action without `multi` is single-row only: it is not
+    listed, and its key says so rather than run it on one row.
+  - **`ctx.ids` is always there on a pick**, `[id]` for a single one, so one
+    loop serves both: `const ids = ctx?.ids ?? [id]` (the `??` only for a
+    test calling `pick` without a ctx). Frecency records nothing for a multi
+    pick.
+  - The bundled Files (open, reveal, the copies, trash), Windows (close,
+    minimize), Clipboard (copy joined, delete), Bookmarks (open), Gmail and
+    WhatsApp (read, unread, archive, star), the notifications of GitHub,
+    Slack and Tela (mark read), Docker (stop, start, restart, remove),
+    Processes (kill), Applications (quit), Browser Tabs (close, copy) and
+    the history rows of Shell, Translate, GIFs, Google, Speedtest, YouTube
+    and Colors (remove) do this. A `confirm` on a multi action gets the
+    count under its question ("On 3 selected rows").
+  - **A view's rows** mark the same way (a bar popover's inbox): see `mark`
+    under view nodes.
 - `dialog`: the path is typed into the open or save panel the app in
   front has up (macOS: its Go to Folder sheet, `⌘⇧G`, the path
   pasted, Return; GTK: `Ctrl+L`), the panel hidden first; the HUD says
@@ -662,6 +680,20 @@ some node runs needs no shortcut. A click inside nested controls lands
 on the innermost. **`selected`**: an accent ring on the node's box, the
 keys' cursor when arrows walk a grid; one per tree is the idea. Both are
 checked (`checkView`): an `action` naming no action of the view is refused.
+
+**`mark`**: the id of the row the node draws (a message, a notification),
+unique in the tree. The shell then marks those rows as it marks a list's:
+`⌘`-click toggles one, `⇧`-click marks the range from the last marked (else
+from the `selected` row), and a shifted arrow marks the `selected` row and
+the one the view's arrow action lands on (the plain arrow's action runs,
+so the extension still owns the cursor). A marked node is tinted with an
+accent bar; the footer counts them. While any is marked only the view's
+`multi` actions are listed (its `hidden` ones still route their keys, so
+the arrows move on), `Escape` clears the marks first, and a `multi` action
+runs once with every marked id in `ctx.ids` (the cursor's first when it is
+marked), after which the marks go. Ids a new tree no longer has drop out
+of the marks. The extension keeps no selection state at all: it draws
+`mark`, declares `multi`, and reads `ctx.ids`.
 
 Unknown node types are skipped, not errors, so a newer extension still
 draws on an older app. `key` makes a node the same node across trees: the
@@ -1138,7 +1170,9 @@ export default defineExtension({
   key of the view, Enter on the first listed action, a click on a node
   carrying `action`. What a control read rides in `ctx.values`: the
   view's text field on Enter (`input`), a form's fields by id, a
-  slider's clicked fraction (`value`).
+  slider's clicked fraction (`value`). A `multi` action run over the
+  view's marked rows (`mark`) has them in `ctx.ids`; without marks it
+  is absent and the action means the cursor's row.
 - `bar.update(id, item)` in `@zcag/pal` **pushes** an item from the
   extension's own side, for a webhook, a file watcher or a poll it runs
   itself: the core draws it as if `render` had answered. `bar.refresh(id)`

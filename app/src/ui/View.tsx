@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type Ref } from "react";
+import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type Ref } from "react";
 import { Kbd } from "./Kbd";
+import { clickIntent } from "./List";
 import { Tag } from "./Row";
 import { Presence } from "./presence";
 import { Surface } from "./Surface";
@@ -66,6 +67,9 @@ const MoveContext = createContext<Moves | null>(null);
 /** What a click on a node carrying `action` runs (`NodeBase.action`): the view's action of that id, with `values` from a control (a slider's clicked fraction). Null where nothing listens (the gallery's static shots). */
 export type ViewActionHandler = (id: string, values?: Record<string, string>) => void;
 const ActionContext = createContext<ViewActionHandler | null>(null);
+/** The marks of the view's rows (`NodeBase.mark`): which ids are marked, and what a cmd or shift click on one asks of the shell. Null where the level does not mark (a static shot). */
+type Marks = { marked: ReadonlySet<string>; onMark?: (id: string, how: "toggle" | "range") => void };
+const MarkContext = createContext<Marks | null>(null);
 
 const ms = (v: string) => (v.trim().endsWith("ms") ? parseFloat(v) : parseFloat(v) * 1000) || 0;
 
@@ -95,13 +99,14 @@ function movingKeys(tree: ViewNode, into = new Set<string>()): Set<string> {
  * tree slides from there (a FLIP: measured before the commit, animated
  * after it, `--pal-motion-move`).
  */
-export function View({ tree, label, autoFocus, rootRef, onAction }: { tree: ViewNode; label?: string; /** Take focus on mount: the level has no input, so the document itself is what the keys and a screen reader land on. */ autoFocus?: boolean; /** The document element, for a caller that hands focus back to it (after a `View.input` field closes). */ rootRef?: Ref<HTMLDivElement>; /** A click on a node carrying `action`: run that view action. */ onAction?: ViewActionHandler }) {
+export function View({ tree, label, autoFocus, rootRef, onAction, marked, onMark }: { tree: ViewNode; label?: string; /** Take focus on mount: the level has no input, so the document itself is what the keys and a screen reader land on. */ autoFocus?: boolean; /** The document element, for a caller that hands focus back to it (after a `View.input` field closes). */ rootRef?: Ref<HTMLDivElement>; /** A click on a node carrying `action`: run that view action. */ onAction?: ViewActionHandler; /** The marked rows' ids (`NodeBase.mark`), drawn tinted. */ marked?: string[]; /** A cmd+click (toggle) or shift+click (range) on a node carrying `mark`. */ onMark?: (id: string, how: "toggle" | "range") => void }) {
   const root = useRef<HTMLDivElement>(null);
   useImperativeHandle(rootRef, () => root.current as HTMLDivElement, []);
   useEffect(() => { if (autoFocus) root.current?.focus({ preventScroll: true }); }, [autoFocus]);
   const moves = useRef<Moves>({ els: new Map(), boxes: new Map(), anims: new Map(), moving: new Set(), gen: 0 }).current;
   // The keys' cursor (`selected`) stays in view: a tree taller than the popover's cap scrolls to it, nearest edge, after each tree lands.
   useEffect(() => { root.current?.querySelector<HTMLElement>("[data-selected]")?.scrollIntoView?.({ block: "nearest" }); }, [tree]);
+  const marks = useMemo<Marks | null>(() => (marked || onMark ? { marked: new Set(marked), onMark } : null), [marked?.join("\0"), onMark]);
   const last = useRef<ViewNode | null>(null);
   if (last.current !== tree) {
     // Before the commit, with the old tree still in the DOM: where every moving node is now, transform and all, so the slide starts from what is on screen. Boxes of keys not in the new tree are dropped.
@@ -115,7 +120,9 @@ export function View({ tree, label, autoFocus, rootRef, onAction }: { tree: View
     <div ref={root} className="pal-view" role="document" aria-label={label} tabIndex={autoFocus ? -1 : undefined}>
       <MoveContext.Provider value={moves}>
         <ActionContext.Provider value={onAction ?? null}>
-          <Node node={tree} />
+          <MarkContext.Provider value={marks}>
+            <Node node={tree} />
+          </MarkContext.Provider>
         </ActionContext.Provider>
       </MoveContext.Provider>
     </div>
@@ -246,13 +253,26 @@ function Node({ node }: { node: ViewNode }) {
   const onAction = useContext(ActionContext);
   useEffect(() => { if (key !== undefined) (ref as { current: HTMLElement | null }).current?.dispatchEvent(new CustomEvent(MOUNT_EVENT, { bubbles: true, detail: key })); }, []);
   const action = typeof node.action === "string" && node.action ? node.action : undefined;
+  const marks = useContext(MarkContext);
+  const mark = typeof node.mark === "string" && node.mark ? node.mark : undefined;
+  const onMark = mark ? marks?.onMark : undefined;
   // A node with `action` is a control: a pointer, a hover lift, and the click runs the action; the ring of `selected` marks the keys' cursor. A click inside a nested control stops at the innermost one.
-  const motion: { ref: Ref<never>; "data-enter"?: string; "data-action"?: string; "data-selected"?: string; role?: string; onClick?: (e: MouseEvent<HTMLElement>) => void } = {
+  // A node with `mark` is a row the shell marks: cmd+click toggles it, shift+click marks the range to it (a list's rows, List.tsx), a plain click is its action's.
+  const click = (e: MouseEvent<HTMLElement>) => {
+    const how = onMark ? clickIntent(e) : "click";
+    if (how !== "click") { e.stopPropagation(); return onMark!(mark!, how); }
+    if (action) { e.stopPropagation(); if (node.type !== "slider") onAction?.(action); }
+  };
+  const motion: { ref: Ref<never>; "data-enter"?: string; "data-action"?: string; "data-selected"?: string; "data-mark"?: string; "data-marked"?: string; "aria-checked"?: boolean; role?: string; onClick?: (e: MouseEvent<HTMLElement>) => void; onMouseDown?: (e: MouseEvent<HTMLElement>) => void } = {
     ref: ref as Ref<never>,
     "data-enter": t?.enter,
     "data-action": action,
     "data-selected": node.selected ? "" : undefined,
-    ...(action && { role: "button", onClick: (e: MouseEvent<HTMLElement>) => { e.stopPropagation(); if (node.type !== "slider") onAction?.(action); } }),
+    ...(mark && marks && { "data-mark": "", "data-marked": marks.marked.has(mark) ? "" : undefined, "aria-checked": marks.marked.has(mark) || undefined }),
+    ...(action && { role: "button" }),
+    ...((action || onMark) && { onClick: click }),
+    // A shift+click would otherwise select the text between the two rows.
+    ...(onMark && { onMouseDown: (e: MouseEvent<HTMLElement>) => { if (e.shiftKey) e.preventDefault(); } }),
   };
   /** The staggered entrance, merged into each node's own style. */
   const mstyle: CSSProperties | undefined = delay ? { animationDelay: `calc(var(--pal-dur-fast, 80ms) * ${delay})` } : undefined;

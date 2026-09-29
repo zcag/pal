@@ -44,7 +44,7 @@ export type Action = {
   section?: string;
   /** Routes its key, is never listed (not in the panel, the footer, nor the Enter / ⌘Enter pair). */
   hidden?: true;
-  /** Runs over the marked rows as one pick (`ctx.ids`); the only actions listed while rows are marked. */
+  /** Runs over the marked rows as one pick (`ctx.ids`); the only actions listed while rows are marked (in a view, hidden ones still route their keys). */
   multi?: true;
   /** Takes the row's `Item.args` (`ctx.values`); when any action says so, only those do, else the primary does. */
   args?: true;
@@ -140,8 +140,8 @@ export type GradientLayer = { stops: HexColor[]; direction?: "right" | "down" | 
 /** `enter` on a new key, `exit` on a gone one, `delay` in steps of `--pal-dur-fast`, `move` slides a key found at another box in the previous tree. */
 export type Transition = { enter?: "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right" | "flip" | "pop"; exit?: "fade" | "none"; delay?: number; move?: true };
 
-/** `action`: a click runs that view action; `selected`: the accent ring of the keys' cursor. */
-type NodeBase = { key?: string; transition?: Transition; action?: string; selected?: true };
+/** `action`: a click runs that view action; `selected`: the accent ring of the keys' cursor; `mark`: the row id the node stands for, which the shell marks (cmd/shift click, shifted arrows) for `multi` actions. */
+type NodeBase = { key?: string; transition?: Transition; action?: string; selected?: true; mark?: string };
 
 /** Steps of the 4 px grid, `--pal-space-N`. */
 export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;

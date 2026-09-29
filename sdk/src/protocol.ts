@@ -132,16 +132,21 @@ export type Action = {
    */
   shortcut?: string | string[];
   style?: "destructive";
-  /** Ask first; the question shown, with the action's title as the go-ahead. */
+  /** Ask first; the question shown, with the action's title as the go-ahead. A `multi` action run over marked rows gets "On 3 selected rows" under it, so a question worded for one row still says how many it touches. */
   confirm?: string;
   /** Takes the row's `Item.args` (`ctx.values`); when any action says so, only those do, else the primary does. */
   args?: true;
   /**
-   * Works on several rows at once: with rows marked (cmd+click, shift+↑↓,
-   * Tab or `x` in a `multi` palette) the action panel lists only the actions that
-   * say so, and Enter runs the first over the marked rows as one `pick`
-   * whose `ctx.ids` is every marked id (`id` is the first). An action
-   * without it is single-row only.
+   * Works on several rows at once: with rows marked (cmd+click, shift+click
+   * for a range, shift+↑↓, Tab or `x` in a `multi` palette) the action
+   * panel lists only the actions that say so and that every marked row
+   * carries (by id), and Enter runs the first over the marked rows as one
+   * `pick` whose `ctx.ids` is every marked id (`id` is the first). An
+   * action without it is single-row only. Give a row every action that
+   * may apply to a mix (a read message's "Mark as unread" and an unread
+   * one's "Mark as read" both, the one that does not apply `hidden` is not
+   * enough: hidden ones never run over marks), or the mix offers neither.
+   * A view's rows are marked the same way when drawn with `NodeBase.mark`.
    */
   multi?: true;
   /**
@@ -216,6 +221,18 @@ type NodeBase = {
   action?: string;
   /** Draws the node as the one the keys are on: an accent ring on its box. One per view is the idea (a cursor), not a rule. */
   selected?: true;
+  /**
+   * The id of the row this node draws (a message, a notification): the
+   * shell can mark it, as it marks a palette's rows. Cmd+click toggles it,
+   * shift+click marks the range to it, a shifted arrow marks the cursor's
+   * row (the `selected` node carrying `mark`) and the one the arrow's
+   * action moves to. Marked nodes draw a tint and a check; while any is
+   * marked only the view's `Action.multi` actions are listed (hidden ones
+   * still route their keys), and one runs with every marked id in
+   * `ctx.ids` (a bar item's `BarCtx.ids`), the marks then dropped. Ids
+   * gone from the next tree drop out of the marks. Unique per view.
+   */
+  mark?: string;
 };
 
 /** Spacing in steps of the 4 px grid (`--pal-space-1..6`); 0 is none. */
@@ -575,7 +592,12 @@ export type Ctx = {
   values?: FormValues;
   /** On a `list`: the root's inline section asks (`Palette.inline`), so a palette that lists hints for an empty query can answer only what matched. */
   inline?: true;
-  /** On a `pick` of an `Action.multi` action: every marked id, the pick's `id` first. Absent on a single pick. */
+  /**
+   * On a `pick`: the ids it runs on, always, the pick's `id` first. Every
+   * marked id for an `Action.multi` action run over marked rows, else just
+   * `[id]`, so one loop serves both: `for (const id of ctx.ids)`. A test
+   * calling `pick` directly may leave ctx out, hence `ctx?.ids ?? [id]`.
+   */
   ids?: string[];
   /** The level is in the bar popover (420 px wide, `docs/extensions.md`, bar items): a `view` lays out for it, a `list` may cut its rows. Absent in the panel. */
   compact?: true;
@@ -892,7 +914,7 @@ export type ManifestBar = { title: string; description?: string; refresh?: BarRe
  * out for that width; the core sets it on every bar call today, since
  * the popover is the only surface a bar item draws on.
  */
-export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "state" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo; /** The item's own settings (`ManifestBar.settings`) as they apply: the declared defaults under `[bar.items."<key>".settings]`. The host always fills it, falling back to the declared defaults key by key; a test calling `render` directly may leave it out. */ settings?: Record<string, unknown> };
+export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "state" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** On `onAction`: the rows it runs on. A `multi` action with rows marked (`NodeBase.mark`): every marked id, the cursor's first when it is marked. Any other action: absent. */ ids?: string[]; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo; /** The item's own settings (`ManifestBar.settings`) as they apply: the declared defaults under `[bar.items."<key>".settings]`. The host always fills it, falling back to the declared defaults key by key; a test calling `render` directly may leave it out. */ settings?: Record<string, unknown> };
 
 /**
  * Which instance of a `multi` extension the code runs as (`instance()` in

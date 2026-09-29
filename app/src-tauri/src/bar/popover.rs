@@ -723,12 +723,12 @@ pub fn bar_engage(app: AppHandle, window: tauri::Window) {
 /// The sidebar has no item: its rows are a palette level's, picked the
 /// usual way (`index::pick`), so nothing of its reaches here.
 #[tauri::command]
-pub async fn bar_action(app: AppHandle, window: tauri::Window, key: String, action: String, values: Option<Value>) -> Result<Value, String> {
+pub async fn bar_action(app: AppHandle, window: tauri::Window, key: String, action: String, values: Option<Value>, ids: Option<Vec<String>>) -> Result<Value, String> {
     if from_sidebar(&window) {
         return Err(format!("{key}: the sidebar has no bar item to act on"));
     }
     let anchor = lock(&app.state::<Popover>().anchors).get(&key).map_or("hotkey", |(_, a)| a);
-    super::action(&app, &key, &action, anchor, WINDOW, values).await
+    super::action(&app, &key, &action, anchor, WINDOW, values, ids).await
 }
 
 /// `cmd+r` in the popover: render the item again; in the sidebar, list

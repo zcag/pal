@@ -107,9 +107,9 @@ export default function BarPage() {
     const key = showing.current?.key;
     if (item.source || !key || (item.palette !== key && item.palette !== barKey(key))) return core.pick(item, query, action, ctx);
     const t0 = performance.now();
-    // What a control read rides along (`ctx.values` in the extension's `onAction`): the text field on Enter, a form's fields, a slider's fraction.
-    const r = await invoke<Effect>("bar_action", { key, action: action ?? item.id, values: ctx?.values ?? null });
-    mark(`bar action ${key} ${action ?? item.id} ms`, performance.now() - t0);
+    // What a control read rides along (`ctx.values` in the extension's `onAction`): the text field on Enter, a form's fields, a slider's fraction; a multi action's marked rows (`ctx.ids`).
+    const r = await invoke<Effect>("bar_action", { key, action: action ?? item.id, values: ctx?.values ?? null, ids: ctx?.ids ?? null });
+    mark(`bar action ${key} ${action ?? item.id}${ctx?.ids ? ` x${ctx.ids.length}` : ""} ms`, performance.now() - t0);
     if (!staysOpen(r)) hide();
     return r;
   }, [core.pick]);
