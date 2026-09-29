@@ -348,6 +348,7 @@ function scoped(kind: "check" | "reveal", scope: Scope) {
 function run(id: string) {
   if (!helpEl.hidden) closeHelp();
   if (id === "next") return void goNext();
+  if (id === "skip") return void (opened && skip());
   if (id === "browse") return screen === "browse" ? backToPlay() : openBrowse();
   if (id === "stats") return screen === "stats" ? backToPlay() : void openStats();
   if (id === "keys") return openHelp();
@@ -366,6 +367,14 @@ function run(id: string) {
   if (id === "restart") return ask("Start this puzzle over? The grid empties and the clock goes back to zero.", "Start over", restart);
 }
 
+/** Off the list for good: Next, the first open and the Now row pass it by; opening it from Browse takes the skip back. */
+async function skip() {
+  const id = p.id;
+  await send({ op: "skip", id });
+  await goNext();
+  if (opened?.puzzle.id !== id) note("Skipped: Next passes it by, Browse still has it");
+}
+
 function restart() {
   void send({ op: "restart", id: p.id });
   doneEl.hidden = true;
@@ -380,7 +389,7 @@ function restart() {
 }
 
 const COMBOS: Record<string, string> = {
-  "cmd+n": "next", "cmd+o": "browse", "cmd+s": "stats", "cmd+p": "pause", "cmd+t": "clock", "cmd+shift+o": "site",
+  "cmd+n": "next", "cmd+shift+n": "skip", "cmd+o": "browse", "cmd+s": "stats", "cmd+p": "pause", "cmd+t": "clock", "cmd+shift+o": "site",
   "cmd+e": "check-word", "cmd+alt+e": "check-square", "cmd+shift+e": "check-puzzle",
   "cmd+u": "reveal-word", "cmd+alt+u": "reveal-square", "cmd+shift+u": "reveal-puzzle",
   "alt+backspace": "clear-word", "cmd+alt+backspace": "clear-puzzle", "cmd+l": "clues",

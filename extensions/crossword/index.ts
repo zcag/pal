@@ -34,7 +34,7 @@ const config = (): Config => {
 
 // ---- what the page gets -------------------------------------------------------------
 
-export type State = "solved" | "helped" | "started" | "new";
+export type State = "solved" | "helped" | "started" | "skipped" | "new";
 export type Opened = {
   puzzle: Puzzle;
   saved?: Saved;
@@ -57,16 +57,17 @@ export type SourcesView = { sources: { id: SourceId; title: string; lang?: "tr";
 
 function stateOf(d: Data, id: string): Pick<Entry, "state" | "ms" | "filled" | "total"> {
   const s = d.progress[id];
-  if (!s) return { state: d.solves.some((x) => x.id === id) ? "solved" : "new" };
+  if (!s) return { state: d.solves.some((x) => x.id === id) ? "solved" : d.skipped[id] ? "skipped" : "new" };
   const pr = progressOf(s);
   if (s.done) return { state: s.helped ? "helped" : "solved", ms: s.done.ms };
+  if (d.skipped[id]) return { state: "skipped" };
   return pr.filled ? { state: "started", filled: pr.filled, total: pr.total, ms: s.ms } : { state: "new" };
 }
 const entry = (d: Data, l: Listed): Entry => ({ ...l, ...stateOf(d, l.id), ...(SOURCES[l.source].fits?.(l) === false && { big: true }) });
 /** Days a source listed but had no puzzle for (HaberTürk lists every day by its date): Next passes them by. */
 const missing = new Set<string>();
 const isMissing = (e: unknown) => /no .*puzzle|not found/i.test((e as Error).message);
-/** Played means solved or started: Next never offers one of those, nor a day with no puzzle. */
+/** Played means solved, started or skipped: Next never offers one of those, nor a day with no puzzle. */
 const played = (d: Data) => (id: string) => missing.has(id) || stateOf(d, id).state !== "new";
 
 // ---- opening a puzzle ----------------------------------------------------------------
@@ -93,8 +94,9 @@ async function first(d: Data): Promise<Opened> {
   const last = d.last && d.progress[d.last];
   if (d.last && last && !last.done && progressOf(last).filled) return opened(d, d.last, { date: d.meta[d.last]?.date, slug: d.meta[d.last]?.slug });
   const src = SOURCES[config().source];
-  const t = await today(src, now());
-  if (!t) throw new Error(`${src.title} has no puzzle listed`);
+  const top = await today(src, now());
+  if (!top) throw new Error(`${src.title} has no puzzle listed`);
+  const t = d.skipped[top.id] ? (await nextAfter(d, undefined, src.id)) ?? top : top;
   try { return await opened(d, t.id, { date: t.date, slug: t.slug }); }
   catch (e) {
     // Today's not up yet (HaberTürk lists a day by its date): the latest day that has one, played or not.
@@ -162,6 +164,7 @@ type Msg =
   | { op: "save"; id: string; play: Saved }
   | { op: "solved"; id: string; play: Saved }
   | { op: "restart"; id: string }
+  | { op: "skip"; id: string }
   | { op: "month"; source?: string; year?: number; month?: number }
   | { op: "newest"; page?: number }
   | { op: "progress" }
@@ -180,6 +183,8 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       // An id names the puzzle (its date, from a list, rides along); a date alone is that day's of the source.
       const id = m.id ?? (m.date ? undefined : args?.id), date = m.date ?? (id ? undefined : args?.date);
       const src = SOURCES[sourceId(m.source ?? args?.source ?? config().source)];
+      // Opening one by name (from a list) is choosing it: a skip is taken back.
+      if (id && d.skipped[id]) { delete d.skipped[id]; await save(); }
       try {
         return id ? await opened(d, id, { date: date ?? d.meta[id]?.date, slug: d.meta[id]?.slug }) : date ? await byDate(d, src, date) : await first(d);
       } catch (e) { return offline(d, e, id ? sourceOf(id) : src); }
@@ -215,6 +220,12 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       return record(d, m.id, m.play);
     case "restart":
       delete d.progress[m.id];
+      await save();
+      return null;
+    case "skip":
+      if (!d.meta[m.id]) return null;
+      d.skipped[m.id] = now();
+      if (d.last === m.id) delete d.last;
       await save();
       return null;
     case "month": {
@@ -257,6 +268,7 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
 /** ⌘K on the level: each goes to the page (`pal.onAction`), which has the solve; the page also takes the keys itself. */
 export const actions = (c = config()): Action[] => [
   { id: "next", title: "Next puzzle", shortcut: "cmd+n" },
+  { id: "skip", title: "Skip this puzzle", shortcut: "cmd+shift+n" },
   { id: "browse", title: "Browse puzzles", shortcut: "cmd+o" },
   { id: "stats", title: "Stats", shortcut: "cmd+s" },
   { id: "check-word", title: "Check word", shortcut: "cmd+e" },
@@ -289,7 +301,7 @@ async function suggest(): Promise<Row[]> {
   const t = src.day(now());
   if (ofSource(d.solves, src.id).some((s) => s.date === t)) return [];
   const id = Object.keys(d.meta).find((k) => d.meta[k].date === t && sourceOf(k).id === src.id);
-  if (id && d.progress[id]?.done) return [];
+  if (id && (d.progress[id]?.done || d.skipped[id])) return [];
   const started = id && d.progress[id] && progressOf(d.progress[id]).filled > 0;
   const { streak } = statsOf(d, src.id);
   return [{

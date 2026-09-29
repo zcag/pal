@@ -72,7 +72,7 @@ async function replies(play: Play, extra: Record<string, unknown>[] = []) {
   mkdirSync(join(dir, "cache", "puzzles"), { recursive: true });
   writeFileSync(join(dir, "cache", "lists", "daily-2026-09.json"), JSON.stringify({ at: NOW, v: month }));
   writeFileSync(join(dir, "cache", "puzzles", `${ID}.json`), JSON.stringify({ raw: TALL, date: TODAY, slug: month[0].slug }));
-  const data: Data = { v: 1, progress: { [ID]: { ...encode(play, puzzle), touched: NOW - 15 * 60_000 } }, solves, meta: { [ID]: { title: TALL.title!, author: TALL.author!, date: TODAY, slug: month[0].slug, w: 5, h: 5 } }, last: ID };
+  const data: Data = { v: 1, progress: { [ID]: { ...encode(play, puzzle), touched: NOW - 15 * 60_000 } }, solves, meta: { [ID]: { title: TALL.title!, author: TALL.author!, date: TODAY, slug: month[0].slug, w: 5, h: 5 } }, skipped: {}, last: ID };
   writeFileSync(join(dir, "progress.json"), JSON.stringify(data));
   process.env.PAL_CROSSWORD_DIR = dir;
   process.env.PAL_CROSSWORD_URL = "http://127.0.0.1:9";

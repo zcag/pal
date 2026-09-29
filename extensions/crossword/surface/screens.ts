@@ -20,17 +20,18 @@ export function dateLong(date: string, short = false): string {
 }
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** The little mark a puzzle wears in a list: solved, solved with help, started (a pie of how far), new. */
+/** The little mark a puzzle wears in a list: solved, solved with help, started (a pie of how far), skipped, new. */
 function mark(e: Entry | undefined): string {
   if (!e) return "";
   if (e.state === "solved" || e.state === "helped") return `<i class="m ${e.state}"><svg viewBox="0 0 16 16"><path d="M4.2 8.4l2.6 2.5 5-5.4"/></svg></i>`;
   if (e.state === "started") return `<i class="m started" style="--f:${Math.round(((e.filled ?? 0) / Math.max(1, e.total ?? 1)) * 100)}%"></i>`;
-  return `<i class="m new"></i>`;
+  return `<i class="m ${e.state === "skipped" ? "skipped" : "new"}"></i>`;
 }
 function stateLine(e: Entry): string {
   if (e.state === "solved") return `Solved in ${clockText(e.ms ?? 0)}`;
   if (e.state === "helped") return `Finished with help in ${clockText(e.ms ?? 0)}`;
   if (e.state === "started") return `Started: ${e.filled} of ${e.total} squares, ${clockText(e.ms ?? 0)}`;
+  if (e.state === "skipped") return "Skipped: Next passes it by";
   return "Not played yet";
 }
 
@@ -230,7 +231,7 @@ export class Browse {
       ol.innerHTML = `<li class="empty">${progress ? "Nothing half-done. A puzzle you leave partway waits here." : error ? `Couldn't load the newest minis: ${esc(error)}` : "Nothing here yet"}</li>`;
       return;
     }
-    ol.innerHTML = rows.map((e, i) => `<li data-row="${i}" class="${i === this.row ? "cur" : ""}${e.big && !progress ? " big" : ""}">${mark(e)}<span class="ttl">${esc(e.title)}</span><span class="by">${esc(progress ? [title(e.source), e.date && dateLong(e.date, true)].filter(Boolean).join(" · ") : e.author)}</span><span class="size">${e.w}×${e.h}</span><span class="st">${e.state === "new" ? "" : e.state === "started" ? `${e.filled}/${e.total}` : clockText(e.ms ?? 0)}</span></li>`).join("")
+    ol.innerHTML = rows.map((e, i) => `<li data-row="${i}" class="${i === this.row ? "cur" : ""}${(e.big && !progress) || e.state === "skipped" ? " big" : ""}">${mark(e)}<span class="ttl">${esc(e.title)}</span><span class="by">${esc(progress ? [title(e.source), e.date && dateLong(e.date, true)].filter(Boolean).join(" · ") : e.author)}</span><span class="size">${e.w}×${e.h}</span><span class="st">${e.state === "new" || e.state === "skipped" ? "" : e.state === "started" ? `${e.filled}/${e.total}` : clockText(e.ms ?? 0)}</span></li>`).join("")
       + (!progress && this.more ? `<li class="more">More as you scroll</li>` : "");
     ol.querySelector<HTMLElement>(".cur")?.scrollIntoView({ block: "nearest" });
   }

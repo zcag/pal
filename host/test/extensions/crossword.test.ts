@@ -285,7 +285,7 @@ describe("the extension", () => {
   test("the view is one surface with its actions", async () => {
     const v = await host.request<{ tree: unknown; actions: { id: string; shortcut?: unknown }[] }>("view", { extension: "crossword", palette: "crossword" });
     expect(v.tree).toEqual({ type: "surface", src: "surface/index.html" });
-    expect(v.actions.slice(0, 4).map((a) => [a.id, a.shortcut])).toEqual([["next", "cmd+n"], ["browse", "cmd+o"], ["stats", "cmd+s"], ["check-word", "cmd+e"]]);
+    expect(v.actions.slice(0, 5).map((a) => [a.id, a.shortcut])).toEqual([["next", "cmd+n"], ["skip", "cmd+shift+n"], ["browse", "cmd+o"], ["stats", "cmd+s"], ["check-word", "cmd+e"]]);
   });
 
   test("the first open is today's daily mini, fetched once and kept", async () => {
@@ -412,5 +412,23 @@ describe("the extension", () => {
     expect(await host.pick("crossword", "crossword", "today")).toEqual({ push: { extension: "crossword", palette: "crossword", args: { date: "2026-09-25", source: "crosshare" } } });
     const byDate = await send<Opened>({ op: "open" }, { date: "2026-09-24" });
     expect(byDate.puzzle.id).toBe("dump");
+  });
+
+  test("a skipped puzzle is passed by (Next, the first open, the Now row, In progress) until it is opened from a list", async () => {
+    await send({ op: "skip", id: "dump" });
+    await send({ op: "skip", id: "tall" });
+    expect(saved().skipped).toMatchObject({ dump: expect.any(Number), tall: expect.any(Number) });
+    // Today's skipped, the half-done one skipped: the first open is the next unplayed, not either.
+    expect((await send<Opened>({ op: "open" })).puzzle.id).toBe("old");
+    expect((await send<Opened>({ op: "next", from: "cart" })).puzzle.id).toBe("old");
+    expect(await suggestions()).toEqual([]);
+    expect((await send<Entry[]>({ op: "progress" })).map((e) => e.id)).toEqual(["cart"]);
+    const m = await send<MonthView>({ op: "month", year: 2026, month: 9 });
+    expect(m.days.map((e) => [e.id, e.state])).toEqual([["tall", "skipped"], ["dump", "skipped"], ["big", "new"], ["cart", "started"]]);
+    // Opened by name: the skip is taken back, the solve where it was left.
+    const o = await send<Opened>({ op: "open", id: "tall" });
+    expect(o.saved?.fill).toBe(`#TA${".".repeat(21)}#`);
+    expect(saved().skipped.tall).toBeUndefined();
+    expect(await suggestions()).toHaveLength(1);
   });
 });

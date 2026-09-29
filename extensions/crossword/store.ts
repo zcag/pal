@@ -9,6 +9,8 @@
 //             constructor, date, size), so the lists and the offline page
 //             can name a puzzle
 //   last:     the puzzle open last, which the next open resumes while unsolved
+//   skipped:  puzzle id → when it was skipped: Next, the first open and the Now
+//             row pass it by until it is opened again from a list
 //
 // Written whole and atomically (a temp file, then a rename). Saves arrive a
 // key at a time, so writes coalesce: while one is on disk the latest state
@@ -20,7 +22,7 @@ import type { Saved } from "./game.ts";
 import type { Solve } from "./stats.ts";
 
 export type Meta = { title: string; author: string; date?: string; slug?: string; w: number; h: number };
-export type Data = { v: 1; progress: Record<string, Saved & { touched: number }>; solves: Solve[]; meta: Record<string, Meta>; last?: string };
+export type Data = { v: 1; progress: Record<string, Saved & { touched: number }>; solves: Solve[]; meta: Record<string, Meta>; skipped: Record<string, number>; last?: string };
 
 /** `PAL_CROSSWORD_DIR`, else pal's data directory. */
 export function dataDir(): string {
@@ -30,7 +32,7 @@ export function dataDir(): string {
 }
 
 const file = () => join(dataDir(), "progress.json");
-const empty = (): Data => ({ v: 1, progress: {}, solves: [], meta: {} });
+const empty = (): Data => ({ v: 1, progress: {}, solves: [], meta: {}, skipped: {} });
 
 let cache: Data | null = null;
 let writing: Promise<void> | null = null;

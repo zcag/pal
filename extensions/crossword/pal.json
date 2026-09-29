@@ -124,6 +124,11 @@
         "keys": "cmd+n"
       },
       {
+        "title": "Skip this puzzle",
+        "description": "Next, the first open and the Now row pass it by from then on; opening it from Browse takes the skip back.",
+        "keys": "cmd+shift+n"
+      },
+      {
         "title": "Browse puzzles",
         "description": "The daily minis by month, or the newest minis.",
         "keys": "cmd+o"

@@ -444,6 +444,8 @@ body.top.nolists #done-go { margin: 0; flex: none; }
 .m.started { background: conic-gradient(var(--pie) var(--f), color-mix(in srgb, var(--pie) 22%, transparent) 0); }
 .m.new { width: 6px; height: 6px; margin: 3px; background: color-mix(in srgb, var(--pal-fg, #000) 22%, transparent); }
 .day .m.new { opacity: 0.8; }
+.m.skipped { width: 8px; height: 2px; margin: 5px 2px; border-radius: 1px; background: color-mix(in srgb, var(--pal-fg, #000) 30%, transparent); }
+.day.skipped span { color: var(--pal-fg-faint, #8e8e98); text-decoration: line-through; }
 
 #peek {
   flex: 1; min-width: 0; align-self: stretch; margin-bottom: 4px; padding: 16px 18px; border-radius: 12px;

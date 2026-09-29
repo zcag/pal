@@ -76,7 +76,10 @@ Enter on the finish) stays with the puzzle's source and goes to an
 unplayed one: today's while it is open, then back from the puzzle's day, a
 month's list at a time (four months at most a step); for Crosshare, the
 newest minis too (first after a newest mini, last after a daily).
-Anything solved or started is skipped. The next puzzle is looked up and
+Anything solved or started is skipped. **Skip** (⌘⇧N) moves on and
+leaves the puzzle out for good: Next, the first open and the Now row pass
+it by, and Browse shows its day struck through; opening it from Browse takes the
+skip back. The next puzzle is looked up and
 fetched 1.5 s after one opens (`prefetch`), so Next is instant.
 
 ## Playing
@@ -129,7 +132,7 @@ source, the last played on top (Enter picks it up where it was left); then
 a tab per source (Tab walks them), Crosshare's newest minis as a list right
 after it. A source's tab is its calendar, month by
 month (`[` `]`, bounded by what it has), each day marked solved (gold),
-solved with help (grey), started (a pie of how far) or new, with the day's
+solved with help (grey), started (a pie of how far), skipped (a dash) or new, with the day's
 puzzle beside it. Enter plays, ⌫ goes back.
 
 **Stats** (⌘S), per source (a tab each, the one being played lit): solved,
