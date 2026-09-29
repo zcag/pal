@@ -280,6 +280,7 @@ pub fn synthetic_meta(source: &Source) -> Option<PaletteMeta> {
         s if *s == welcome::source() => "Welcome",
         s if *s == commands::source() => "pal",
         s if *s == crate::fallback::source() => "Fallback",
+        s if *s == crate::store::source() => "More extensions",
         _ => return None,
     };
     Some(PaletteMeta { name: source.palette.clone(), title: title.into(), ..Default::default() })

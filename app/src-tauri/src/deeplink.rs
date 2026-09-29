@@ -93,12 +93,16 @@ pub enum Route {
     /// the pick as `ctx.values`; `fill` (the `form` route) prefills the
     /// form the pick answers with.
     Run { source: Source, id: String, action: Option<String>, args: Option<Value>, values: Option<BTreeMap<String, String>>, fill: Option<BTreeMap<String, String>> },
-    /// `pal install <spec>` after the confirm card.
-    Install { spec: String },
+    /// `pal install <spec>` after the confirm card; `open`, a palette of it
+    /// to open once it has loaded.
+    Install { spec: String, open: Option<String> },
     /// `pal update [name]` after the confirm card.
     Update { name: Option<String> },
     /// `pal remove <name>` after the confirm card.
     Remove { name: String },
+    /// `pal registry add <url>` after the confirm card: the registry
+    /// followed, `key` pinned (else the key its index announces).
+    RegistryAdd { url: String, key: Option<String> },
     /// `pal instance add <name> <suffix>` after the confirm card: the
     /// `[instances."<name>@<suffix>"]` table written (docs/design/instances.md).
     InstanceAdd { name: String, suffix: String, title: Option<String>, tint: Option<String> },
@@ -252,18 +256,19 @@ pub const ROUTES: &[Spec] = &[
     Spec { pattern: "confetti", doc: "a celebration in the HUD; ?text= the capsule's line", build: |c| Ok(Route::Confetti { text: c.query.get("text") }) },
     Spec {
         pattern: "install/{spec...}",
-        doc: "install an extension: a store name, github:user/repo[/dir][@ref], a github.com url, a directory",
+        doc: "install an extension: a store name, github:user/repo[/dir][@ref], a github.com url, a directory; ?open= a palette of it to open once it loads",
         build: |c| {
             let spec = c.part("spec").to_string();
             if spec.trim().is_empty() {
                 return Err("install: no spec".into());
             }
-            Ok(Route::Install { spec })
+            Ok(Route::Install { spec, open: c.query.get("open") })
         },
     },
     Spec { pattern: "update", doc: "update every installed extension that has an update", build: |_| Ok(Route::Update { name: None }) },
     Spec { pattern: "update/{name}", doc: "update an installed extension (a source install: fetch its source again)", build: |c| Ok(Route::Update { name: Some(c.part("name").into()) }) },
     Spec { pattern: "remove/{name}", doc: "remove an installed extension", build: |c| Ok(Route::Remove { name: c.part("name").into() }) },
+    Spec { pattern: "registry/add", doc: "?url= follow a registry (its index.json), &key= its public key when the index does not announce one", build: |c| Ok(Route::RegistryAdd { url: c.query.need("url")?, key: c.query.get("key").map(|k| k.replace(' ', "+")) }) },
     Spec {
         pattern: "instance/add/{name}/{suffix}",
         doc: "add an instance of a multi extension: [instances.\"<name>@<suffix>\"]; ?title= its name, ?tint= its tile colour",
@@ -583,7 +588,7 @@ fn asks(app: &AppHandle, route: &Route, trusted: bool, always: bool) -> bool {
     if trusted {
         return false;
     }
-    if always || matches!(route, Route::Install { .. } | Route::Update { .. } | Route::Remove { .. } | Route::InstanceAdd { .. } | Route::InstanceRemove { .. }) {
+    if always || matches!(route, Route::Install { .. } | Route::Update { .. } | Route::Remove { .. } | Route::RegistryAdd { .. } | Route::InstanceAdd { .. } | Route::InstanceRemove { .. }) {
         return true;
     }
     settings::config(app).general.deeplink_confirm.asks(route.extension())
@@ -614,7 +619,7 @@ fn run(app: &AppHandle, route: Route, trusted: bool) {
         }
         Route::Open { source, query, filter } => {
             if !known_palette(app, &source) {
-                return hud::show(app, &format!("pal: no palette {}/{}", source.extension, source.palette));
+                return no_palette(app, &source);
             }
             settled(app, move |app| {
                 crate::show_in(app, Some(format!("{}/{}", source.extension, source.palette)));
@@ -627,9 +632,13 @@ fn run(app: &AppHandle, route: Route, trusted: bool) {
             let app = app.clone();
             tauri::async_runtime::spawn(async move { run_item(&app, route, trusted).await });
         }
-        Route::Install { spec } => {
+        Route::Install { spec, open } => {
             let app = app.clone();
-            tauri::async_runtime::spawn(async move { install(&app, &spec, trusted).await });
+            tauri::async_runtime::spawn(async move { install(&app, &spec, open.as_deref(), trusted).await });
+        }
+        Route::RegistryAdd { url, key } => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move { registry_add(&app, url, key, trusted).await });
         }
         Route::Update { .. } | Route::Remove { .. } | Route::InstanceAdd { .. } | Route::InstanceRemove { .. } => {
             let app = app.clone();
@@ -747,6 +756,16 @@ fn known_palette(app: &AppHandle, source: &Source) -> bool {
     crate::registry::registered_palettes(app).iter().any(|(_, s)| s == source)
 }
 
+/// A link to a palette the app does not have: its extension's install or
+/// turn-on card when that is what is missing (`store::Missing`), else the
+/// HUD says so.
+fn no_palette(app: &AppHandle, source: &Source) {
+    match crate::store::missing(app, &format!("{}/{}", source.extension, source.palette)) {
+        Some(m) => crate::store::show_missing(app, m),
+        None => hud::show(app, &format!("pal: no palette {}/{}", source.extension, source.palette)),
+    }
+}
+
 /// The name the card shows for `id`: the row's, when the index has it.
 fn item_name(app: &AppHandle, source: &Source, id: &str) -> Option<String> {
     index::with_index(app, |ix| ix.get(source, id).map(|i| i.name.clone()))
@@ -813,7 +832,7 @@ async fn run_item(app: &AppHandle, route: Route, trusted: bool) {
     let Route::Run { source, id, action, args, values, fill } = &route else { return };
     let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
     if !known_palette(app, source) {
-        return hud::show(app, &format!("pal: no palette {}/{}", source.extension, source.palette));
+        return no_palette(app, source);
     }
     if asks(app, &route, trusted, false) {
         let (title, message) = run_question(source, id, item_name(app, source, id).as_deref(), action.as_deref(), fill.is_some());
@@ -885,7 +904,10 @@ async fn run_ext(app: &AppHandle, route: Route, trusted: bool) {
     }
 }
 
-async fn install(app: &AppHandle, spec: &str, trusted: bool) {
+/// `install/<spec>`: the card (from a link), the HUD while it installs,
+/// then, once the host has loaded it, the palette `open` names, or the
+/// root with its name typed.
+async fn install(app: &AppHandle, spec: &str, open: Option<&str>, trusted: bool) {
     if !trusted {
         let (title, message) = install_question(spec);
         match confirm(app, &title, &message, "Install").await {
@@ -898,21 +920,57 @@ async fn install(app: &AppHandle, spec: &str, trusted: bool) {
         }
     }
     hud::show(app, "Installing\u{2026}");
-    match settings::extensions_install(app.clone(), app.state(), spec.to_string()).await {
-        Ok(i) => {
-            hud::show(app, &format!("Installed {} {}", i.name, i.version));
-            // The root, with the name typed: its palette rows land as the host loads it.
-            let name = i.name.clone();
-            on_main(app, move |app| {
-                crate::show(app);
-                events::emit_to(app, crate::WINDOW, events::DEEPLINK, json!({ "reset": true, "query": name }));
+    let from = if trusted { pal_core::usage::From::Cli } else { pal_core::usage::From::Deeplink };
+    let r = if pal_core::extensions::Spec::is_bare_name(spec) { crate::store::install(app, spec.trim(), None, from).await } else { crate::store::install_source(app, spec).await };
+    match (r.ok, r.loaded) {
+        (true, Some(false)) => hud::show(app, &format!("{} is installed but did not load: {}", r.name, r.error.unwrap_or_default())),
+        (true, _) => {
+            hud::show(app, &format!("Installed {}", r.name));
+            let name = r.name.clone();
+            let target = open.map(|p| Source::new(&name, p));
+            let app2 = app.clone();
+            settled(app, move |app| match &target {
+                Some(t) if known_palette(&app2, t) => crate::show_in(app, Some(format!("{}/{}", t.extension, t.palette))),
+                _ => {
+                    crate::show(app);
+                    events::emit_to(app, crate::WINDOW, events::DEEPLINK, json!({ "reset": true, "query": name }));
+                }
             });
         }
-        Err(e) => {
+        (false, _) => {
+            let e = r.error.unwrap_or_default();
             eprintln!("deeplink\tinstall failed\t{spec}\t{e}");
             on_main(app, panel::hide);
             hud::show(app, &format!("Install failed: {e}"));
         }
+    }
+}
+
+/// `registry/add?url=&key=`: the registry fetched and checked first, then
+/// the card with its name, URL, how many extensions it lists and the key
+/// that is pinned (the link's, else the one its index announces; with
+/// neither the HUD asks for the key), then followed.
+async fn registry_add(app: &AppHandle, url: String, key: Option<String>, trusted: bool) {
+    let p = match crate::store::preview(app, url.clone(), key.clone()).await {
+        Ok(p) => p,
+        Err(e) => return hud::show(app, &format!("pal: {e}")),
+    };
+    if !trusted {
+        let title = format!("Follow the registry {}?", p.name);
+        let message = format!("{}\n{} extensions \u{b7} key {}\nIts extensions update by themselves unless you turn that off for it in Settings \u{203a} Extensions.", p.url, p.count, if p.key_id.is_empty() { p.key.clone() } else { p.key_id.clone() });
+        match confirm(app, &title, &message, "Follow").await {
+            Some(true) => on_main(app, panel::hide),
+            Some(false) => {
+                on_main(app, panel::hide);
+                return eprintln!("deeplink\tregistry\tdeclined");
+            }
+            None => return eprintln!("deeplink\tregistry\tunanswered"),
+        }
+    }
+    // The key the card showed is the one pinned.
+    match crate::store::registry_add(app, url, Some(p.key)).await {
+        Ok(p) => hud::show(app, &format!("Following {} ({} extensions)", p.name, p.count)),
+        Err(e) => hud::show(app, &format!("pal: {e}")),
     }
 }
 
@@ -938,24 +996,20 @@ async fn store(app: &AppHandle, route: Route, trusted: bool) {
         }
     }
     let r: Result<String, String> = match route {
-        Route::Update { name: Some(n) } => settings::extensions_update(app.clone(), app.state(), n).await.map(|i| format!("Updated {} {}", i.name, i.version)),
-        Route::Update { name: None } => {
-            let all = tauri::async_runtime::spawn_blocking(|| pal_core::extensions::Store::locate().list()).await.map_err(|e| e.to_string()).and_then(|r| r.map_err(|e| e.to_string()));
-            match all {
-                Ok(all) => {
-                    let mut n = 0;
-                    for i in all.iter().filter(|i| i.record.is_some()) {
-                        match settings::extensions_update(app.clone(), app.state(), i.name.clone()).await {
-                            Ok(_) => n += 1,
-                            Err(e) => eprintln!("deeplink\tupdate\t{}\t{e}", i.name),
-                        }
-                    }
-                    Ok(format!("Updated {n} {}", if n == 1 { "extension" } else { "extensions" }))
-                }
-                Err(e) => Err(e),
+        Route::Update { name } => {
+            let from = if trusted { pal_core::usage::From::Cli } else { pal_core::usage::From::Deeplink };
+            let all = crate::store::update(app, name.into_iter().collect(), from).await;
+            let (done, failed): (Vec<_>, Vec<_>) = all.iter().partition(|r| r.ok);
+            match (done.len(), failed.first()) {
+                (0, Some(f)) => Err(f.error.clone().unwrap_or_default()),
+                (1, None) => Ok(format!("Updated {}", done[0].name)),
+                (n, _) => Ok(format!("Updated {n} {}{}", if n == 1 { "extension" } else { "extensions" }, if failed.is_empty() { String::new() } else { format!(", {} failed", failed.len()) })),
             }
         }
-        Route::Remove { name } => settings::extensions_remove(app.clone(), app.state(), name.clone()).await.map(|()| format!("Removed {name}")),
+        Route::Remove { name } => {
+            let r = crate::store::remove(app, &name, false, if trusted { pal_core::usage::From::Cli } else { pal_core::usage::From::Deeplink }).await;
+            if r.ok { Ok(format!("Removed {name}")) } else { Err(r.error.unwrap_or_default()) }
+        }
         Route::InstanceAdd { name, suffix, title, tint } => {
             let app = app.clone();
             tauri::async_runtime::spawn_blocking(move || settings::instances_add(app.clone(), app.state(), name, suffix, title, tint)).await.map_err(|e| e.to_string()).and_then(|r| r).map(|key| format!("Added {key}"))
@@ -1089,10 +1143,12 @@ mod tests {
 
     #[test]
     fn install_keeps_the_spec_whole() {
-        assert_eq!(parse("pal://install/github:zcag/pal/examples/hello-extension@pali"), Ok(Route::Install { spec: "github:zcag/pal/examples/hello-extension@pali".into() }));
-        assert_eq!(parse("pal://install//Users/me/ext"), Ok(Route::Install { spec: "/Users/me/ext".into() }), "a local directory keeps its leading slash");
-        assert_eq!(parse("pal://install/https%3A%2F%2Fgithub.com%2Fu%2Fr"), Ok(Route::Install { spec: "https://github.com/u/r".into() }));
-        assert_eq!(parse("pal://install/wordle"), Ok(Route::Install { spec: "wordle".into() }), "a store name");
+        let install = |spec: &str, open: Option<&str>| Ok(Route::Install { spec: spec.into(), open: open.map(String::from) });
+        assert_eq!(parse("pal://install/github:zcag/pal/examples/hello-extension@pali"), install("github:zcag/pal/examples/hello-extension@pali", None));
+        assert_eq!(parse("pal://install//Users/me/ext"), install("/Users/me/ext", None), "a local directory keeps its leading slash");
+        assert_eq!(parse("pal://install/https%3A%2F%2Fgithub.com%2Fu%2Fr"), install("https://github.com/u/r", None));
+        assert_eq!(parse("pal://install/wordle"), install("wordle", None), "a store name");
+        assert_eq!(parse("pal://install/weather?open=forecast"), install("weather", Some("forecast")), "the palette to open once it loads");
         assert!(parse("pal://install").is_err());
         assert!(parse("pal://install/").is_err());
         assert!(pal_core::extensions::Spec::parse("github:zcag/pal/examples/hello-extension@pali").is_ok(), "the site's button emits what the store parses");
@@ -1104,6 +1160,19 @@ mod tests {
         assert_eq!(parse("pal://update/wordle"), Ok(Route::Update { name: Some("wordle".into()) }));
         assert_eq!(parse("pal://remove/wordle"), Ok(Route::Remove { name: "wordle".into() }));
         assert!(parse("pal://remove").is_err(), "remove needs a name");
+    }
+
+    #[test]
+    fn registry_add_takes_the_url_and_maybe_the_key() {
+        assert_eq!(
+            parse("pal://registry/add?url=https%3A%2F%2Facme.github.io%2Fpal%2Findex.json&key=RWQabc%2B%2F1"),
+            Ok(Route::RegistryAdd { url: "https://acme.github.io/pal/index.json".into(), key: Some("RWQabc+/1".into()) }),
+            "both percent-decoded; a + in a key survives only encoded"
+        );
+        assert_eq!(parse("pal://registry/add?url=u&key=RWQa+b/c").map(|r| matches!(r, Route::RegistryAdd { key: Some(k), .. } if k == "RWQa+b/c")), Ok(true), "a key pasted unencoded keeps its + (a key has no spaces)");
+        assert_eq!(parse("pal://registry/add?url=https://a/index.json"), Ok(Route::RegistryAdd { url: "https://a/index.json".into(), key: None }), "the key the index announces, or a refusal then");
+        assert_eq!(parse("pal://registry/add"), Err("url is required".into()));
+        assert_eq!(parse("pal://registry/list").map(|r| matches!(r, Route::Ext { .. })), Ok(true), "only add is a route of the app's");
     }
 
     #[test]
@@ -1169,7 +1238,7 @@ mod tests {
             ("pal://extensions", "Settings"), ("pal://reload", "Reload"), ("pal://quit", "Quit"), ("pal://commands/theme", "Command"), ("pal://run/pal/commands/theme", "Command"),
             ("pal://open/a/b", "Open"), ("pal://open?url=x", "OpenUrl"), ("pal://run/a/b/c", "Run"), ("pal://form/a/b/c", "Run"), ("pal://copy?text=x", "Copy"), ("pal://paste?text=x", "Paste"),
             ("pal://hud?text=x", "Hud"), ("pal://toast?title=x", "Toast"), ("pal://confetti", "Confetti"), ("pal://install/x", "Install"), ("pal://update", "Update"), ("pal://update/x", "Update"),
-            ("pal://remove/x", "Remove"), ("pal://instance/add/gmail/work", "InstanceAdd"), ("pal://instance/remove/gmail@work", "InstanceRemove"), ("pal://bar/a/b", "Bar"), ("pal://timer/start", "Ext"),
+            ("pal://remove/x", "Remove"), ("pal://registry/add?url=u", "RegistryAdd"), ("pal://instance/add/gmail/work", "InstanceAdd"), ("pal://instance/remove/gmail@work", "InstanceRemove"), ("pal://bar/a/b", "Bar"), ("pal://timer/start", "Ext"),
         ];
         assert_eq!(examples.len(), ROUTES.len(), "one example per table row");
         for (link, variant) in examples {

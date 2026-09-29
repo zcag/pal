@@ -32,6 +32,9 @@ const RESTART_DELAY: Duration = Duration::from_millis(500);
 /// write of the request counts too, since a host that stopped reading
 /// fills its pipe.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+/// A `reload` waits for the load itself: the host gives an extension's
+/// import 10 s (`PAL_LOAD_TIMEOUT_MS`), then its instances start.
+const RELOAD_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long `stop` waits for the host to exit on EOF before quitting
 /// anyway: an extension's own shutdown (a file flush) gets this long.
 const STOP_TIMEOUT: Duration = Duration::from_secs(2);
@@ -47,6 +50,20 @@ pub const HOST_EXITED: &str = "the extension host exited before it answered; try
 
 type Reply = oneshot::Sender<Result<Value, String>>;
 
+/// The answer to `reload` (`Reloaded` in sdk/src/protocol.ts): whether the
+/// name loaded (a `multi` one: any instance), the load's error, the root
+/// it came from, and whether it is turned off.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Deserialize)]
+pub struct Reloaded {
+    pub loaded: bool,
+    #[serde(default)]
+    pub error: Option<String>,
+    #[serde(default)]
+    pub root: Option<String>,
+    #[serde(default)]
+    pub disabled: bool,
+}
+
 /// Where the host and its extensions come from, decided once at start.
 ///
 /// The bun binary is the sidecar next to our executable (tauri-build copies
@@ -56,10 +73,8 @@ type Reply = oneshot::Sender<Result<Value, String>>;
 /// script and the bundled extensions are the repo's own files in a debug
 /// build (so edits reload live) and the resource tree staged by
 /// `scripts/build-extensions.sh` otherwise; a release binary run from the
-/// repo, without that tree, falls back to the repo. Then the user's store
-/// (`pal_core::extensions::Store::locate`, `<data dir>/extensions`) and
-/// every `general.extension_dirs` entry, in that order, so a later root's
-/// extension replaces an earlier one's by name.
+/// repo, without that tree, falls back to the repo. The roots are
+/// [`roots`]: a later root's extension replaces an earlier one's by name.
 #[derive(Debug)]
 struct Layout {
     bun: PathBuf,
@@ -89,18 +104,37 @@ pub(crate) fn base(resource_dir: Option<PathBuf>) -> PathBuf {
     }
 }
 
+/// Whether the extensions come from a checkout (a debug build, or a
+/// release binary run from the repo): a dev layout, where the repo's
+/// extensions win over the store's.
+pub(crate) fn dev_layout(base: &Path) -> bool {
+    base == Path::new(REPO)
+}
+
+/// The roots in load order, a later one winning a name: the bundled tree,
+/// the store (`<data dir>/extensions`, `pal_core::extensions::Store`), then
+/// every `general.extension_dirs` entry. In a dev layout the repo comes
+/// after the store, so a registry build installed there never shadows the
+/// file being edited.
+pub(crate) fn roots(base: &Path, store: &Path, extra: Vec<PathBuf>, dev: bool) -> Vec<PathBuf> {
+    let (bundled, store) = (base.join("extensions"), store.to_path_buf());
+    let mut roots = if dev { vec![store, bundled] } else { vec![bundled, store] };
+    roots.extend(extra);
+    roots
+}
+
 /// What the store's rules and the update check need to know of the other
 /// roots (`pal_core::updates::Inputs`): the bundled extensions with their
-/// builds, and the names a local root provides. Run from the repo (a dev
-/// layout), every name in it is local: edits there are never shadowed by a
-/// registry build nor updated from one.
+/// builds, and the names a local root provides. In a dev layout every name
+/// in the repo is local: edits there are never shadowed by a registry
+/// build nor updated from one.
 pub(crate) fn store_inputs(base: &Path, config: &pal_core::config::Config) -> pal_core::updates::Inputs {
     let names_in = |dir: &Path| -> Vec<String> {
         std::fs::read_dir(dir).into_iter().flatten().flatten().filter(|e| e.path().join("pal.json").is_file()).map(|e| e.file_name().to_string_lossy().into_owned()).collect()
     };
     let bundled = pal_core::updates::bundled_builds(&base.join("extensions"));
     let mut local: std::collections::BTreeSet<String> = config.general.extension_dirs().iter().flat_map(|d| names_in(d)).collect();
-    if base == Path::new(REPO) {
+    if dev_layout(base) {
         local.extend(bundled.keys().cloned());
     }
     pal_core::updates::Inputs { bundled, local }
@@ -116,8 +150,7 @@ impl Layout {
     fn resolve(app: &AppHandle) -> Layout {
         let bun = bun();
         let base = base(app.path().resource_dir().ok());
-        let mut roots = vec![base.join("extensions"), pal_core::extensions::Store::locate().dir().to_path_buf()];
-        roots.extend(crate::settings::config(app).general.extension_dirs());
+        let roots = roots(&base, pal_core::extensions::Store::locate().dir(), crate::settings::config(app).general.extension_dirs(), dev_layout(&base));
         Layout { bun, host: base.join("host/src/host.ts"), roots }
     }
 }
@@ -296,6 +329,18 @@ impl Host {
     /// One request, its reply or the first of: a write that fails (host
     /// down), the host exiting (`fail_pending`), [`REQUEST_TIMEOUT`].
     pub async fn request(&self, method: &str, params: Value) -> Result<Value, String> {
+        self.request_within(method, params, REQUEST_TIMEOUT).await
+    }
+
+    /// `reload {extension}` (host.ts): the host reads `name` from disk
+    /// again now and answers once that load is done. Sent right after a
+    /// store swap: the host's watcher then skips the same change.
+    pub async fn reload(&self, name: &str) -> Result<Reloaded, String> {
+        let v = self.request_within("reload", json!({ "extension": name }), RELOAD_TIMEOUT).await?;
+        serde_json::from_value(v).map_err(|e| format!("reload {name}: {e}"))
+    }
+
+    async fn request_within(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
         lock(&self.pending).insert(id, tx);
@@ -303,7 +348,7 @@ impl Host {
             self.write_line(&json!({ "id": id, "method": method, "params": params })).await?;
             rx.await.unwrap_or_else(|_| Err("host dropped request".into()))
         };
-        let r = tokio::time::timeout(REQUEST_TIMEOUT, exchange).await.unwrap_or_else(|_| Err(format!("the host did not answer {method} within {} s", REQUEST_TIMEOUT.as_secs())));
+        let r = tokio::time::timeout(timeout, exchange).await.unwrap_or_else(|_| Err(format!("the host did not answer {method} within {} s", timeout.as_secs())));
         if r.is_err() {
             lock(&self.pending).remove(&id);
         }
@@ -347,4 +392,25 @@ pub fn partial(app: &AppHandle, func: &str, params: Value) -> Result<Value, Stri
     let window = params["stream"]["window"].as_str().ok_or("list.partial: no stream")?;
     events::emit_to(app, window, events::PARTIAL, json!({ "n": params["stream"]["n"], "items": params["items"] }));
     Ok(Value::Null)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_repo_wins_over_the_store_in_a_dev_layout_only() {
+        let (base, store, extra) = (Path::new("/app"), Path::new("/data/pal/extensions"), vec![PathBuf::from("/dots/pal")]);
+        assert_eq!(roots(base, store, extra.clone(), false), [PathBuf::from("/app/extensions"), store.into(), extra[0].clone()], "release: bundled, store, extension_dirs");
+        assert_eq!(roots(base, store, extra.clone(), true), [store.into(), PathBuf::from("/app/extensions"), extra[0].clone()], "dev: the repo after the store");
+        assert!(dev_layout(Path::new(REPO)) && !dev_layout(base));
+    }
+
+    #[test]
+    fn a_reload_answer_reads_with_or_without_its_optionals() {
+        let r: Reloaded = serde_json::from_value(json!({ "loaded": false, "root": "/r", "disabled": true })).unwrap();
+        assert_eq!(r, Reloaded { loaded: false, error: None, root: Some("/r".into()), disabled: true });
+        let r: Reloaded = serde_json::from_value(json!({ "loaded": false, "error": "boom" })).unwrap();
+        assert_eq!(r.error.as_deref(), Some("boom"));
+    }
 }

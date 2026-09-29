@@ -113,6 +113,11 @@ impl Table {
         self.effective.iter().filter(|(o, _)| o.extension == extension).cloned().collect()
     }
 
+    /// Whether a view of the extension `name` (any instance of it) is open.
+    pub fn shows(&self, name: &str) -> bool {
+        self.effective.iter().any(|(o, _)| pal_core::config::instance::name_of(&o.extension) == name)
+    }
+
     fn settle(&mut self) -> Vec<Change> {
         let now: BTreeSet<(Open, bool)> = self.slots.iter().filter(|(_, s)| s.visible).filter_map(|(w, s)| s.open.clone().map(|o| (o, is_compact(w)))).collect();
         let mut changes: Vec<Change> = self.effective.difference(&now).map(|(o, c)| Change { open: o.clone(), compact: *c, shown: false }).collect();
@@ -163,6 +168,9 @@ fn announce(app: &AppHandle, changes: Vec<Change>) {
         for w in with(app, |t| t.holding(&c.open, c.compact)) {
             events::emit_to(app, &w, events::VIEW, json!({ "extension": c.open.extension, "palette": c.open.palette, "bar": c.open.bar, "id": c.open.id, "shown": c.shown }));
         }
+        if !c.shown {
+            crate::store::on_view_hidden(app, &c.open.extension);
+        }
         let Some(host) = host.clone() else { continue };
         let method = if c.shown { "view/shown" } else { "view/hidden" };
         let params = shown_params(&c.open, c.compact);
@@ -185,6 +193,12 @@ pub fn view_open(app: AppHandle, window: tauri::Window, open: Option<Open>) {
 pub fn set_visible(app: &AppHandle, window: &str, visible: bool, clear: bool) {
     let changes = with(app, |t| t.set_visible(window, visible, clear));
     announce(app, changes);
+}
+
+/// Whether a view (a game surface's included) of the extension `name` is
+/// on screen: an update to it waits until none is (store.rs).
+pub fn shown(app: &AppHandle, name: &str) -> bool {
+    app.try_state::<Views>().is_some_and(|_| with(app, |t| t.shows(name)))
 }
 
 /// The host loaded (or reloaded) `extension`: the new module hears about the levels already open.
@@ -286,6 +300,17 @@ mod tests {
         assert_eq!(t.report("bar", Some(popover.clone())), vec![Change { open: popover.clone(), compact: true, shown: true }]);
         assert_eq!(t.targets("spotify", None, Some("playing"), None), vec!["bar".to_string()]);
         assert!(t.targets("spotify", Some("playing"), None, None).is_empty());
+    }
+
+    #[test]
+    fn an_extension_shows_while_any_instance_has_a_visible_view() {
+        let mut t = Table::default();
+        t.report("main", Some(Open { extension: "gmail@work".into(), palette: Some("inbox".into()), bar: None, id: "view".into() }));
+        assert!(!t.shows("gmail"), "reported, not visible");
+        t.set_visible("main", true, false);
+        assert!(t.shows("gmail") && !t.shows("gmail@work") && !t.shows("hue"));
+        t.set_visible("main", false, false);
+        assert!(!t.shows("gmail"), "a hidden panel keeps its level, nothing shows");
     }
 
     #[test]
