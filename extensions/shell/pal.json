@@ -146,6 +146,7 @@
   },
   "palettes": {
     "shell": {
+      "title": "Shell",
       "kind": "input",
       "inline": true,
       "match": "^[$>] \\S",
@@ -174,6 +175,7 @@
       ]
     },
     "history": {
+      "title": "Shell History",
       "kind": "input",
       "description": "Every command run here, newest first, with its exit code and duration; Enter runs it again.",
       "keys": [

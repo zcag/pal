@@ -128,6 +128,7 @@
   },
   "palettes": {
     "ssh": {
+      "title": "SSH Hosts",
       "tier": "primary",
       "kind": "list",
       "description": "Every Host in your ssh config, and what it connects to.",

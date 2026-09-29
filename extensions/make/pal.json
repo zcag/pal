@@ -122,6 +122,7 @@
   },
   "palettes": {
     "make": {
+      "title": "Makefile Targets",
       "kind": "list",
       "description": "Every target of every Makefile in the project folders, one section per project.",
       "keys": [

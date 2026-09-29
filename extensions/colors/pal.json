@@ -191,6 +191,7 @@
   },
   "palettes": {
     "picker": {
+      "title": "Colour Picker",
       "kind": "view",
       "rank": 0,
       "description": "The colour under the keys: every notation, tints, shades, harmonies, contrast and the nearest tokens; `p` picks from the screen, a digit types a notation.",
@@ -254,6 +255,7 @@
       ]
     },
     "colors": {
+      "title": "Named Colours",
       "tier": "catalog",
       "kind": "grid",
       "rank": 1,
@@ -297,6 +299,7 @@
       ]
     },
     "history": {
+      "title": "Colour History",
       "kind": "live",
       "rank": 2,
       "description": "Every picked and copied colour, newest first, with when and where from; Pick Colour from Screen at the top.",
@@ -324,6 +327,7 @@
       ]
     },
     "convert": {
+      "title": "Convert Colour",
       "kind": "input",
       "rank": 3,
       "inline": true,

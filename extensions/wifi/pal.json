@@ -95,6 +95,7 @@
   },
   "palettes": {
     "wifi": {
+      "title": "Wi-Fi",
       "kind": "live",
       "description": "Current, known and available networks with their signal.",
       "keys": [

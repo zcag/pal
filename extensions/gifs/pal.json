@@ -131,6 +131,7 @@
   },
   "palettes": {
     "gifs": {
+      "title": "GIFs",
       "kind": "grid",
       "fallback": "Search GIFs for “{query}”",
       "description": "Type to search; nothing typed lists what is trending. Every tile is an animated preview; Enter copies the GIF file.",
@@ -169,6 +170,7 @@
       ]
     },
     "favourites": {
+      "title": "Favourite GIFs",
       "kind": "grid",
       "description": "The GIFs kept with cmd+f, newest first; the same actions, and cmd+d removes one.",
       "keys": [

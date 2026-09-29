@@ -74,6 +74,7 @@
   },
   "palettes": {
     "store": {
+      "title": "Store",
       "tier": "primary",
       "kind": "input",
       "description": "The site's extensions, narrowed by the query and the filter; Enter installs, updates or opens the page.",

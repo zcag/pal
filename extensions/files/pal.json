@@ -199,6 +199,7 @@
   },
   "palettes": {
     "files": {
+      "title": "Files",
       "dialog": true,
       "kind": "input",
       "inline": true,
@@ -261,6 +262,7 @@
       ]
     },
     "browse": {
+      "title": "Browse Folder",
       "kind": "input",
       "description": "A folder's contents, pushed by Browse on a folder row (or by typing a path ending in `/`): a `..` row first, then the entries under the dropdown's sort (name, date, size), hidden ones with `show_hidden`, at most 500. The crumb is the folder; typing filters by name.",
       "keys": [
@@ -382,6 +384,7 @@
       ]
     },
     "recent": {
+      "title": "Recent Files",
       "tier": "primary",
       "kind": "live",
       "ttl": 60,

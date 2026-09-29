@@ -115,6 +115,7 @@
   },
   "palettes": {
     "bookmarks": {
+      "title": "Bookmarks",
       "tier": "primary",
       "kind": "list",
       "description": "The links in the file and the browsers, by name, folder and keyword.",
@@ -134,6 +135,7 @@
       ]
     },
     "history": {
+      "title": "Browser History",
       "kind": "input",
       "description": "What the browsers visited (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Firefox; every profile), searched by title and address on every keystroke, newest first; the last visit on the right. Each browser's history file is copied under pal's cache before it is read, since a running browser holds it locked; the copy follows the file, at most every 30 s. Safari's history needs Full Disk Access and is not read.",
       "keys": [

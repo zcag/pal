@@ -82,6 +82,7 @@
   },
   "palettes": {
     "bluetooth": {
+      "title": "Bluetooth",
       "kind": "live",
       "description": "Every paired device, the connected ones first, with battery when the OS reports it.",
       "keys": [

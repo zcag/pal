@@ -104,6 +104,7 @@
   },
   "palettes": {
     "items": {
+      "title": "1Password",
       "kind": "list",
       "lazy": "visit",
       "description": "Every item you can see, favourites first.",

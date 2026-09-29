@@ -180,6 +180,7 @@
   },
   "palettes": {
     "system": {
+      "title": "System",
       "tier": "primary",
       "kind": "live",
       "description": "What this machine can do from here; Keep Awake takes how long in the bar.",

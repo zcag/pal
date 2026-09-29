@@ -122,6 +122,7 @@
   },
   "palettes": {
     "solitaire": {
+      "title": "Solitaire",
       "kind": "view",
       "description": "The table. Escape leaves mid-game; it is there when you come back.",
       "keys": [

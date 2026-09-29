@@ -115,6 +115,7 @@
   },
   "palettes": {
     "emoji": {
+      "title": "Emoji",
       "tier": "catalog",
       "kind": "grid",
       "ttl": 30,

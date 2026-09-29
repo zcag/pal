@@ -138,6 +138,7 @@
   },
   "palettes": {
     "generate": {
+      "title": "Generate",
       "kind": "input",
       "description": "Type nothing for a value of everything, a mode word to narrow it, or a mode and text to hash, encode, decode, draw or take apart.",
       "keys": [

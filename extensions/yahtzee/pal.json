@@ -73,6 +73,7 @@
   },
   "palettes": {
     "yahtzee": {
+      "title": "Yahtzee",
       "kind": "view",
       "description": "The dice and the card. Escape leaves mid-game; it is there when you come back.",
       "keys": [

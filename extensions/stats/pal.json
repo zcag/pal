@@ -124,6 +124,7 @@
   },
   "palettes": {
     "stats": {
+      "title": "Stats",
       "kind": "live",
       "description": "CPU, load, memory, swap, every volume, every interface, the busiest and largest processes, uptime: one row each, the value as the name, Enter copies it.",
       "keywords": [

@@ -89,6 +89,7 @@
   },
   "palettes": {
     "privacy": {
+      "title": "Camera, Mic & Screen",
       "kind": "live",
       "description": "Every app using the camera, the microphone or the screen now, cameras first.",
       "keys": [

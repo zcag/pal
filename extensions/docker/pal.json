@@ -159,6 +159,7 @@
   },
   "palettes": {
     "docker": {
+      "title": "Docker Containers",
       "kind": "live",
       "lazy": true,
       "description": "Every container, running first: start, stop, restart, logs, a shell, remove.",
@@ -190,6 +191,7 @@
       ]
     },
     "images": {
+      "title": "Docker Images",
       "kind": "live",
       "lazy": true,
       "description": "Local images: run one (name and ports typed in the bar), remove, copy the id.",
@@ -209,6 +211,7 @@
       ]
     },
     "compose": {
+      "title": "Compose Projects",
       "kind": "live",
       "lazy": true,
       "description": "Compose projects docker knows of: up, down, restart, logs.",

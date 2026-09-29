@@ -150,6 +150,7 @@
   },
   "palettes": {
     "translate": {
+      "title": "Translate",
       "kind": "input",
       "inline": true,
       "match": "^\\s*(?:[a-z][a-z-]{1,24}\\s*>\\s*[a-z][a-z-]{1,24}|>[a-z][a-z-]{1,24}|[a-z][a-z-]{1,24}\\s*:)\\s+\\S",
@@ -178,6 +179,7 @@
       ]
     },
     "history": {
+      "title": "Translation History",
       "kind": "live",
       "description": "Translations you copied, pasted or spoke, newest first; Enter copies the translation again.",
       "keys": [

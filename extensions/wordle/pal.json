@@ -91,6 +91,7 @@
   },
   "palettes": {
     "wordle": {
+      "title": "Wordle",
       "kind": "view",
       "description": "The board. Escape leaves mid-game; the game is there when you come back.",
       "keys": [

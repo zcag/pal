@@ -159,6 +159,7 @@
   },
   "palettes": {
     "turkish": {
+      "title": "Turkish",
       "kind": "input",
       "description": "What you type (or the selection, else the clipboard) deasciified, asciified, and in the Turkish upper, lower and title cases; Enter pastes the row.",
       "keys": [

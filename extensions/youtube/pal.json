@@ -150,6 +150,7 @@
   },
   "palettes": {
     "search": {
+      "title": "YouTube",
       "kind": "input",
       "inline": true,
       "match": "^\\s*yt\\s*:\\s*\\S",
@@ -179,6 +180,7 @@
       ]
     },
     "channels": {
+      "title": "YouTube Channels",
       "kind": "input",
       "description": "Channels by name; Enter lists the channel's latest videos. Subscriptions need OAuth and are not listed.",
       "keys": [
@@ -197,6 +199,7 @@
       ]
     },
     "later": {
+      "title": "Watch Later",
       "kind": "live",
       "description": "Videos kept with cmd+s, newest first; the same actions, and cmd+d removes one.",
       "keys": [

@@ -244,6 +244,7 @@
   },
   "palettes": {
     "images": {
+      "title": "Images",
       "kind": "input",
       "description": "The images selected in Finder, on the clipboard or at a typed path; every operation an action on a row, the results next to their sources.",
       "keys": [

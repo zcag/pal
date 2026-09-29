@@ -96,6 +96,7 @@
   },
   "palettes": {
     "snake": {
+      "title": "Snake II",
       "kind": "view",
       "description": "The phone's screen. Escape pauses the game and leaves; Continue waits in the menu.",
       "keys": [

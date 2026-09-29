@@ -74,6 +74,7 @@
   },
   "palettes": {
     "unicode": {
+      "title": "Unicode Characters",
       "tier": "catalog",
       "kind": "grid",
       "description": "The bundled character table, by block; recently copied characters first.",

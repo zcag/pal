@@ -23,6 +23,7 @@
   ],
   "palettes": {
     "media": {
+      "title": "Now Playing",
       "description": "One row per player with the track and its artwork.",
       "kind": "live",
       "keys": [

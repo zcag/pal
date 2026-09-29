@@ -99,6 +99,7 @@
   },
   "palettes": {
     "audio": {
+      "title": "Audio",
       "kind": "live",
       "description": "Every output and input, the defaults tagged, with their volume.",
       "keys": [

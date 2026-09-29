@@ -109,6 +109,7 @@
   },
   "palettes": {
     "calc": {
+      "title": "Calculator",
       "kind": "input",
       "inline": true,
       "match": "\\d[-+*/^%=()a-z\\s]|[-+*/^%=()a-z]\\s*\\d|\\b(now|today|tomorrow|yesterday|next|last|unix|epoch)\\b|^time in |\\s+time$|\\bweek\\b|^@?1\\d{9}$",

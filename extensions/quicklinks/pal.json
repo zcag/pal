@@ -140,6 +140,7 @@
   },
   "palettes": {
     "quicklinks": {
+      "title": "Quicklinks",
       "tier": "primary",
       "kind": "list",
       "inline": true,

@@ -142,6 +142,7 @@
   },
   "palettes": {
     "blackjack": {
+      "title": "Blackjack",
       "kind": "view",
       "description": "The table. Escape leaves mid-hand; the hand is there when you come back.",
       "keys": [

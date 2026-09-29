@@ -314,6 +314,7 @@
   },
   "palettes": {
     "google": {
+      "title": "Google Search",
       "kind": "input",
       "description": "Type to get Google's suggestions; Enter searches, Tab completes, cmd+Enter lists the results here with a provider. Nothing typed lists recent searches.",
       "keys": [

@@ -208,6 +208,7 @@
   },
   "palettes": {
     "diff": {
+      "title": "Diff",
       "kind": "view",
       "description": "The two newest copies diffed; keys for other pairs, side by side, whitespace, the folds, the tool.",
       "keywords": [

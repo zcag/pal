@@ -106,6 +106,7 @@
   },
   "palettes": {
     "snippets": {
+      "title": "Snippets",
       "tier": "primary",
       "kind": "list",
       "description": "Every snippet by name and keyword, plus Create Snippet.",

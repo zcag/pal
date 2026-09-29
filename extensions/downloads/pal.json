@@ -151,6 +151,7 @@
   },
   "palettes": {
     "downloads": {
+      "title": "Downloads",
       "kind": "live",
       "tier": "primary",
       "description": "The downloads folder (and the browsers' when different) newest first with size, kind or thumbnail and age, a download in progress first; the last rows clear what is old and open the folder.",

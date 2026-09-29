@@ -134,6 +134,7 @@
   ],
   "palettes": {
     "typing": {
+      "title": "Typing",
       "kind": "view",
       "description": "The test. Type the words (in zen, anything; Enter ends it); Tab starts a new one; Escape leaves (a test in progress is dropped).",
       "keys": [

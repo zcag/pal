@@ -119,6 +119,7 @@
   },
   "palettes": {
     "network": {
+      "title": "Network",
       "kind": "live",
       "ttl": 60,
       "description": "Live rows, listed again when the panel shows and the last listing is over a minute old; ⌘R lists now and fetches the public IP again.",

@@ -101,6 +101,7 @@
   },
   "palettes": {
     "power": {
+      "title": "Battery & Power",
       "kind": "view",
       "description": "The level, six hours of draw and the battery's health on the left; on the right, tabs for what uses power now and what used the battery today, this week and ever.",
       "keys": [

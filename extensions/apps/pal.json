@@ -95,6 +95,7 @@
   },
   "palettes": {
     "apps": {
+      "title": "Applications",
       "tier": "primary",
       "kind": "list",
       "description": "Everything that launches.",

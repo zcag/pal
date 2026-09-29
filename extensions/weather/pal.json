@@ -24,6 +24,7 @@
   ],
   "palettes": {
     "weather": {
+      "title": "Weather",
       "kind": "live",
       "description": "Current temperature, condition, feels-like temperature, humidity and wind for the configured place."
     }

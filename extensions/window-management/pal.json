@@ -148,6 +148,7 @@
   },
   "palettes": {
     "window-management": {
+      "title": "Window Management",
       "kind": "list",
       "description": "One row per layout; Enter applies it to the window you were in.",
       "keys": [
@@ -162,6 +163,7 @@
       ]
     },
     "arrange": {
+      "title": "Arrange Window",
       "kind": "input",
       "description": "Pick a window first, then the layout.",
       "keys": [

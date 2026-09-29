@@ -133,6 +133,7 @@
   },
   "palettes": {
     "windows": {
+      "title": "Windows",
       "tier": "primary",
       "kind": "live",
       "description": "What is open right now, most recently used first.",

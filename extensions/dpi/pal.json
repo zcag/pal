@@ -181,6 +181,7 @@
   },
   "palettes": {
     "dpi": {
+      "title": "DPI Bypass",
       "kind": "live",
       "description": "Turn the bypass on or off, repair a half-on one, read the status, run the test, open the log, build byedpi.",
       "keys": [
@@ -203,6 +204,7 @@
       ]
     },
     "test": {
+      "title": "Bypass Test",
       "kind": "view",
       "description": "The bypass tested end to end: a row per url with its HTTP code, the time and whether it is a blocked site or a control, landing one by one.",
       "keys": [

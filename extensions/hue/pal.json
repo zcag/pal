@@ -215,6 +215,7 @@
   },
   "palettes": {
     "rooms": {
+      "title": "Hue Rooms",
       "kind": "live",
       "lazy": true,
       "tier": "primary",
@@ -247,6 +248,7 @@
       ]
     },
     "lights": {
+      "title": "Hue Lights",
       "kind": "live",
       "lazy": true,
       "description": "Every light by room with its colour as a swatch, its brightness and temperature, and whether the bridge can reach it. Enter toggles, cmd+Enter opens it under the keys.",
@@ -278,6 +280,7 @@
       ]
     },
     "scenes": {
+      "title": "Hue Scenes",
       "kind": "live",
       "lazy": true,
       "tier": "primary",
@@ -302,6 +305,7 @@
       ]
     },
     "light": {
+      "title": "Hue Light",
       "kind": "view",
       "description": "A light or a room under the keys: the tile in its colour, brightness on the arrows and digits, colour temperature and colour on strips, presets, the room's scenes, effects, the scope and the transition.",
       "keys": [
@@ -360,6 +364,7 @@
       ]
     },
     "setup": {
+      "title": "Set up Hue",
       "kind": "view",
       "description": "Pairing: the bridges found on the network, press-link with a countdown, the key kept and the certificate pinned.",
       "keys": [
@@ -390,6 +395,7 @@
       ]
     },
     "sensors": {
+      "title": "Hue Sensors",
       "kind": "live",
       "lazy": true,
       "description": "Motion, temperature, light level, buttons and dials with their last event, contact sensors, and each device's battery. Enter copies the reading, cmd+e enables or disables the sensor.",
@@ -409,6 +415,7 @@
       ]
     },
     "automations": {
+      "title": "Hue Automations",
       "kind": "live",
       "lazy": true,
       "description": "The bridge's automations (wake up, go to sleep, timers, motion) with their status. Enter enables or disables one.",
@@ -424,6 +431,7 @@
       ]
     },
     "entertainment": {
+      "title": "Hue Entertainment",
       "kind": "live",
       "lazy": true,
       "description": "Entertainment areas with their type and lights; Enter starts streaming, cmd+Enter stops it.",

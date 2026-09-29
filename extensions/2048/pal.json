@@ -77,6 +77,7 @@
   },
   "palettes": {
     "2048": {
+      "title": "2048",
       "kind": "view",
       "description": "The board. Escape leaves mid-game; it is there when you come back.",
       "keys": [

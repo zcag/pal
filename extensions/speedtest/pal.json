@@ -128,6 +128,7 @@
   },
   "palettes": {
     "speedtest": {
+      "title": "Speedtest",
       "kind": "view",
       "on": [
         "show"
@@ -153,6 +154,7 @@
       ]
     },
     "history": {
+      "title": "Speedtest History",
       "kind": "live",
       "description": "Finished runs, newest first, with a Trend row that draws the last twenty as bars.",
       "keys": [

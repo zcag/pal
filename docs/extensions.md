@@ -227,7 +227,9 @@ A palette is described in two files, and each fact has one home:
   `on` (the triggers that list it again while it shows: `clipboard`, a
   copy recorded; a view's re-ask it), `rank`, `settings`, and the
   extension's `icon` and `keywords`. The store and
-  the settings window read these without running the code.
+  the settings window read these without running the code, and so does a
+  registry's listing: a palette with no `title` here is its bare key in
+  the Store and in root search.
 - **The code holds the behaviour and what only it can know**: `list`,
   `pick`, `detail`, `view`, `filters`, `placeholder`, `showDetail`,
   `columns`, and the flags `live` and `input`.

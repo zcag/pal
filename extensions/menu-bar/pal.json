@@ -56,6 +56,7 @@
   },
   "palettes": {
     "menu-bar": {
+      "title": "Menu Bar Items",
       "tier": "primary",
       "kind": "live",
       "description": "The menus of the app in front; Enter presses the item.",

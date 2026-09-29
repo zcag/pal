@@ -50,6 +50,7 @@
   },
   "palettes": {
     "games": {
+      "title": "Games",
       "kind": "live",
       "description": "Every installed game; Enter opens it.",
       "keys": [

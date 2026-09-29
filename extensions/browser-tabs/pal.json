@@ -116,6 +116,7 @@
   },
   "palettes": {
     "tabs": {
+      "title": "Browser Tabs",
       "tier": "primary",
       "kind": "live",
       "lazy": true,

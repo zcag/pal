@@ -306,6 +306,23 @@ describe("the bundled extensions", () => {
       host.kill();
     }
   }, 30_000);
+
+  // A registry lists palettes from the manifest alone (sdk/pack listingOf),
+  // so one without a title is its bare key in the Store and root search.
+  // The one exception is a title the code picks per platform, which the
+  // manifest cannot say; its palette is named after the extension, so the
+  // listing falls back to the extension's title.
+  test("every manifest palette has a title", () => {
+    const perPlatform = ["services.services"];
+    const missing = [];
+    for (const name of readdirSync(BUNDLED)) {
+      const file = `${BUNDLED}/${name}/pal.json`;
+      if (!existsSync(file)) continue;
+      const m = JSON.parse(readFileSync(file, "utf8")) as Manifest;
+      for (const [key, p] of Object.entries(m.palettes ?? {})) if (p.title === undefined) missing.push(`${name}.${key}`);
+    }
+    expect(missing).toEqual(perPlatform);
+  });
 });
 
 describe("bar item settings", () => {

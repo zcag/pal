@@ -140,6 +140,7 @@
   },
   "palettes": {
     "maps": {
+      "title": "Maps",
       "kind": "input",
       "inline": true,
       "match": "^\\s*(?:maps?|go)\\s*:\\s*\\S",

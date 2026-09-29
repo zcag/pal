@@ -115,6 +115,7 @@
   },
   "palettes": {
     "minesweeper": {
+      "title": "Minesweeper",
       "kind": "view",
       "description": "The board, the extension's own page. Escape leaves mid-game; the board and the clock wait for you.",
       "keys": [

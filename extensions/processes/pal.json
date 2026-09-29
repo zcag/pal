@@ -83,6 +83,7 @@
   },
   "palettes": {
     "processes": {
+      "title": "Processes",
       "kind": "input",
       "description": "Every process, by CPU then memory.",
       "keys": [
