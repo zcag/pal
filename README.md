@@ -52,10 +52,16 @@ what it can without leaving the search bar:
 - **Answers inline.** `3pm in tokyo`, `12 usd to try`, `days until 25
   dec`, `210k / 12`, `#ff8800`, `~/Downloads`: a sum, a currency, a date,
   a colour or a path is answered in the first row.
-- **193 palettes in 80 extensions, bundled.** Clipboard History, Files
-  and Window Management next to GitHub, Gmail, Slack, Spotify, Calendar,
-  Google Search, Hue, Home Assistant, Docker, Obsidian, 1Password,
-  Immich, flashcards and a shelf of games ([Palettes](docs/palettes.md)).
+- **193 palettes in 80 extensions.** 33 come with pal, the ones that need
+  no account or setup (Clipboard History, Files, Window Management,
+  Audio, Wi-Fi, Media, Timer and more); the rest install in a keystroke
+  when you want them: GitHub, Gmail, Slack, Spotify, Calendar, Google
+  Search, Hue, Home Assistant, Docker, Obsidian, 1Password, Immich,
+  flashcards and a shelf of games. Type a name and an extension you
+  don't have yet shows up to install ([Palettes](docs/palettes.md)).
+- **Updates on their own.** Extensions update between pal releases,
+  signed and checked, and one that breaks is put back by itself. Anyone
+  can publish a registry of their own ([registries](docs/registry.md)).
 - **A menu bar of its own.** 26 extensions put an item on the bar: the
   lyric playing, the next meeting, who holds your camera, your open PRs.
   An item hides while it has nothing to say, and a click opens a popover
@@ -68,9 +74,9 @@ what it can without leaving the search bar:
   list back ([`notes/linux.md`](notes/linux.md),
   [`notes/decisions.md`](notes/decisions.md)).
 - **Yours.** Every palette and bar item, the bundled ones included, is a
-  directory with a `pal.json` and an `index.ts`. Settings are one TOML
-  file for your dotfiles, and every action is a `pal` command and a
-  `pal://` link.
+  directory with a `pal.json` and an `index.ts`. Everything is set in
+  Settings and mirrored to one TOML file for your dotfiles, and every
+  action is a `pal` command and a `pal://` link.
 
 ## A tour
 
