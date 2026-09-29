@@ -69,6 +69,95 @@ const QUIT_FLUSH: Duration = Duration::from_secs(2);
 /// the app version of the last run (a change is an app update).
 const LEGACY_DONE: &str = "store-legacy-converted";
 const LAST_VERSION: &str = "last-version";
+/// The bundled names as of the last start: a name that has left the bundle
+/// since and is in use is listed in `[store] installed`, so it is installed
+/// from the registry rather than gone.
+const LAST_BUNDLED: &str = "last-bundled";
+/// Every extension bundled up to 0.8, for a machine that has no
+/// `LAST_BUNDLED` yet (one coming straight from 0.7 or before). A fresh
+/// install's config uses none of them, so nothing is listed there.
+const BUNDLED_UNTIL_0_8: [&str; 80] = [
+    "2048",
+    "apps",
+    "audio",
+    "blackjack",
+    "bluetooth",
+    "bookmarks",
+    "browser-tabs",
+    "calc",
+    "calendar",
+    "clipboard",
+    "colors",
+    "crossword",
+    "diff",
+    "displays",
+    "docker",
+    "downloads",
+    "dpi",
+    "emoji",
+    "files",
+    "flashcards",
+    "games",
+    "generate",
+    "gifs",
+    "github",
+    "gmail",
+    "google",
+    "grafana",
+    "home-assistant",
+    "hue",
+    "icons",
+    "images",
+    "immich",
+    "make",
+    "maps",
+    "media",
+    "menu-bar",
+    "minesweeper",
+    "network",
+    "obsidian",
+    "odak",
+    "onepassword",
+    "otp",
+    "power",
+    "privacy",
+    "processes",
+    "quicklinks",
+    "screenshots",
+    "scripts",
+    "services",
+    "sessions",
+    "shell",
+    "shortcuts",
+    "slack",
+    "snake",
+    "snippets",
+    "solitaire",
+    "space",
+    "speedtest",
+    "spotify",
+    "ssh",
+    "states",
+    "stats",
+    "store",
+    "sudoku",
+    "system",
+    "tela",
+    "theater",
+    "timer",
+    "translate",
+    "turkish",
+    "typing",
+    "unicode",
+    "weather",
+    "whatsapp",
+    "wifi",
+    "window-management",
+    "windows",
+    "wordle",
+    "yahtzee",
+    "youtube",
+];
 
 // ---- the state -------------------------------------------------------------
 
@@ -687,20 +776,35 @@ fn prepare(m: &Manager, config: &Config, version: &str, data: &std::path::Path, 
         }
         let _ = pal_core::fs::write_atomic(&data.join(LAST_VERSION), version);
     }
-    let used = pal_core::extensions::migrate::in_use(config, data, Some(frecency), &bundled);
-    let add = to_list(&bundled, &used, &config.store.installed());
+    let before: BTreeSet<String> = match std::fs::read_to_string(data.join(LAST_BUNDLED)) {
+        Ok(t) => t.lines().map(str::trim).filter(|l| !l.is_empty()).map(String::from).collect(),
+        Err(_) => BUNDLED_UNTIL_0_8.iter().map(|s| s.to_string()).collect(),
+    };
+    let known: BTreeSet<String> = bundled.union(&before).cloned().collect();
+    let used = pal_core::extensions::migrate::in_use(config, data, Some(frecency), &known);
+    let add = to_list(&candidates(&bundled, &before), &used, &config.store.installed());
     if !add.is_empty() {
         match m.config.store_add_installed_all(PAL, &add) {
             Ok(()) => eprintln!("store\tmigration\tlisted [{}]", add.join(",")),
             Err(e) => eprintln!("store\tmigration\tfailed\t{e}"),
         }
     }
+    let _ = pal_core::fs::write_atomic(&data.join(LAST_BUNDLED), bundled.iter().cloned().collect::<Vec<_>>().join("\n"));
     add
 }
 
-/// The migration's list: the bundled extensions in use that `[store]
-/// installed` does not name yet. Only bundled names qualify, so a name the
-/// user removed (never a bundled one: those cannot be) is never listed again.
+/// The names the migration may list: every bundled one (used during a
+/// release that still bundles it) and every one that left the bundle since
+/// the last start (a jump over releases, 0.7 straight to 0.9, included).
+/// A registry-only name the user removed is in neither.
+fn candidates(bundled: &BTreeSet<String>, before: &BTreeSet<String>) -> BTreeSet<String> {
+    bundled.union(before).cloned().collect()
+}
+
+/// The migration's list: the candidates in use that `[store] installed`
+/// does not name yet. Only bundled names and names that just left the
+/// bundle qualify, so a registry extension the user removed is never listed
+/// again.
 fn to_list(bundled: &BTreeSet<String>, used: &BTreeSet<String>, listed: &[(String, String)]) -> Vec<String> {
     bundled.intersection(used).filter(|n| !listed.iter().any(|(_, l)| l == *n)).cloned().collect()
 }
@@ -1285,6 +1389,18 @@ mod tests {
         let listed = vec![("pal".to_string(), "calc".to_string()), ("acme".into(), "todo".into())];
         assert_eq!(to_list(&set(&["calc", "clipboard", "emoji", "timer"]), &set(&["calc", "clipboard", "timer", "weather", "todo"]), &listed), ["clipboard", "timer"], "in use and bundled, not yet listed");
         assert!(to_list(&set(&[]), &set(&["weather"]), &[]).is_empty(), "a registry-only name is never listed by it (the user may have removed it)");
+    }
+
+    #[test]
+    fn a_name_that_left_the_bundle_is_listed_when_used() {
+        // 0.7 straight to the slim bundle: weather left, hue left unused, calc stays.
+        let before: BTreeSet<String> = BUNDLED_UNTIL_0_8.iter().map(|s| s.to_string()).collect();
+        let now = set(&["calc", "clipboard"]);
+        let c = candidates(&now, &before);
+        assert_eq!(to_list(&c, &set(&["calc", "weather"]), &[]), ["calc", "weather"]);
+        // The start after: weather is no longer bundled nor just left, so removing it later sticks.
+        assert!(to_list(&candidates(&now, &now), &set(&["weather"]), &[]).is_empty());
+        assert!(BUNDLED_UNTIL_0_8.windows(2).all(|w| w[0] < w[1]), "sorted, no duplicates");
     }
 
     #[test]

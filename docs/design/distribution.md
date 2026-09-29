@@ -509,7 +509,15 @@ code of the extensions it drops.
    This release also converts existing store installs whose source is
    `github:zcag/pal/extensions/<n>` to `registry = "pal"`, and deletes a
    source copy that shadows a core extension (problem 4).
-2. **The slim release** only reconciles. What can't be installed (offline)
+2. **The slim release** lists, on its first start, every name that left
+   the bundle and is in use by the same test, then reconciles. Each start
+   records the bundled names (`<data dir>/last-bundled`); a machine without
+   that record (straight from 0.7 or before, since the updater only ever
+   offers the latest release) compares with the 80 bundled up to 0.8,
+   compiled in. So a jump over 0.8 loses nothing its config, hotkeys, bar
+   or frecency shows in use; 0.8's record of opens only adds to that. The
+   same holds for any extension that leaves the bundle later.
+   What can't be installed (offline)
    stays listed, shows in Needs you, and is retried. The cache and frecency
    of a listed extension are **not pruned** while it is pending; today
    `host/ready` prunes caches of unknown extensions (`index.rs:323`,
