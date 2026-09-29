@@ -99,9 +99,11 @@ const search = async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
 let root: Root, el: HTMLDivElement;
 const launcher: { current: LauncherHandle | null } = { current: null };
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
+/** Open answers with a form (the one test that says so). */
+let formOnOpen = false;
 const mount = async () => {
   await act(async () => {
-    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} onPick={(i, _q, action, ctx) => { picks.push({ id: i.id, action, ctx }); }} onHide={() => {}} />);
+    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} onPick={(i, _q, action, ctx) => { picks.push({ id: i.id, action, ctx }); if (formOnOpen && action === "open" && !ctx?.values) return { form: { title: "Where to", fields: [{ kind: "text", id: "folder", label: "Folder" }], submit: { id: "move", title: "Move" } } }; }} onHide={() => {}} />);
   });
   await flush();
 };
@@ -225,5 +227,18 @@ describe("marked rows in the Launcher", () => {
     await key("o", { ctrlKey: true, shiftKey: true });
     expect(picks).toEqual([]);
     expect(el.querySelector(".pal-toast")?.textContent).toContain("Reveal works on one row");
+  });
+  it("a form a multi pick answers with submits over the same marked rows", async () => {
+    formOnOpen = true;
+    await mount();
+    await act(() => { launcher.current!.open("files/files"); }); await flush();
+    await click("a.txt", { ctrlKey: true });
+    await click("b.txt", { ctrlKey: true });
+    await key("Enter"); await flush();
+    expect(el.querySelector(".pal-form")).not.toBeNull();
+    await act(() => { el.querySelector<HTMLFormElement>(".pal-form form, form")!.requestSubmit(); }); await flush();
+    formOnOpen = false;
+    // The cursor's row (the last clicked) first, as the pick that opened the form had them.
+    expect(picks.at(-1)).toMatchObject({ id: "/b.txt", action: "move", ctx: { ids: ["/b.txt", "/a.txt"], values: { folder: "" } } });
   });
 });

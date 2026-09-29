@@ -65,6 +65,29 @@ export async function intoFolderPick(op: "move" | "copy", path: string, values: 
   return { keep: true, toast: { title: op === "move" ? "Moved" : "Copied", message: `${basename(path)} to ${tilde(folder)}` } };
 }
 
+/**
+ * Move to… / Copy to… over one path or several (a multi pick's
+ * `ctx.ids`): `moveForm`/`copyForm`, its id every path one per line so the
+ * submit gets them back (`intoFolderManyPick`), its title the count.
+ */
+export function intoFolderForm(op: "move" | "copy", paths: string[], errors?: Form["errors"]): Form {
+  const f = (op === "move" ? moveForm : copyForm)(paths[0]!, errors);
+  return paths.length > 1 ? { ...f, id: paths.join("\n"), title: `${op === "move" ? "Move" : "Copy"} ${paths.length} items` } : f;
+}
+
+/** The submit of `intoFolderForm`: each path in turn; the first refusal is the form again for what is left, with what already went said in the error. */
+export async function intoFolderManyPick(op: "move" | "copy", id: string, values?: FormValues): Promise<Effect> {
+  const paths = id.split("\n");
+  if (paths.length === 1) return intoFolderPick(op, id, values);
+  let done = 0;
+  for (const p of paths) {
+    const r = await intoFolderPick(op, p, values);
+    if (r.form) return { form: intoFolderForm(op, paths.slice(done), { folder: `${done ? `${done} done; then ` : ""}${r.form.errors?.folder ?? "failed"}` }) };
+    done++;
+  }
+  return { keep: true, toast: { title: op === "move" ? "Moved" : "Copied", message: `${paths.length} items to ${tilde(home(String(values?.folder ?? "").trim()))}` } };
+}
+
 // ---- archives -----------------------------------------------------------------
 
 /** `<stem>.zip` next to `first` (`stem-2.zip` and on while taken). */

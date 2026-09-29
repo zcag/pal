@@ -506,8 +506,8 @@ export type Effect = {
   copy?: string | CopyText;
   /** The files themselves onto the clipboard (file URLs on macOS, `text/uri-list` on Linux); "Copied" in the HUD like `copy`. A backend that cannot take a file list makes the pick a failure toast. */
   copy_files?: string[];
-  /** A url or a path, given to the OS opener. */
-  open?: string;
+  /** A url or a path, given to the OS opener; a list opens each in order (a `multi` action's marked rows: `{ open: rows.map((r) => r.url) }`). */
+  open?: string | string[];
   /**
    * Hide, then paste into the app that was in front: a history entry by id,
    * or text (which the watcher then records). Without Accessibility on

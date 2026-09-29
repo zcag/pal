@@ -375,6 +375,18 @@ is left to the load-time check.
     loop serves both: `const ids = ctx?.ids ?? [id]` (the `??` only for a
     test calling `pick` without a ctx). Frecency records nothing for a multi
     pick.
+  - One effect answers the whole pick, so the effects that act on a target
+    take several: `open` takes a list of urls or paths (each given to the
+    OS opener in order), `copy_files` a list of files, and a `copy` joins
+    the rows' text one per line.
+  - When the single pick already does the right thing per row,
+    `eachId(ctx?.ids ?? [id], (x) => pickOne(x, action), "notifications")`
+    from `@zcag/pal` runs it once per id in turn and folds the effects:
+    every `open` in one list, the copies one per line, the first toast with
+    the count, the first failure instead when one failed (`foldEffects`
+    folds effects you already have).
+  - A multi action that answers `{ form }` (Move to…, Snooze…) gets the
+    marked ids back on the form's submit, in `ctx.ids` beside `ctx.values`.
   - The bundled Files (open, reveal, the copies, trash), Windows (close,
     minimize), Clipboard (copy joined, delete), Bookmarks (open), Gmail and
     WhatsApp (read, unread, archive, star), the notifications of GitHub,

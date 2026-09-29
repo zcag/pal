@@ -138,7 +138,7 @@ export type Level =
   | { kind: "palette"; palette: string; args?: unknown; /** The crumb, when the push named one (`Effect.push.title`: the folder being browsed). */ title?: string; /** The search box's, when the push named one. */ placeholder?: string }
   | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string }
   | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec; /** The crumb, when `palette` is not a source (a bar item's key). */ title?: string }
-  | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number }
+  | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number; /** The marked rows of the multi pick that opened it (`ctx.ids`): its submit runs over them too. */ ids?: string[] }
   | { kind: "menu"; key: string; title: string; rows: Item[]; submenus: Record<string, BarMenuNode[]>; pick?: { token: number; multi: boolean } };
 
 /** A menu level for a bar item's `nodes`. */
@@ -888,7 +888,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     }
     if (e.form) {
       if (submit && top.kind === "form") nav.replace({ ...top, spec: toForm(e.form) });
-      else push({ kind: "form", palette: item.palette!, args: c?.args, spec: toForm(e.form), from: item, action, key: ++formSeq.current });
+      else push({ kind: "form", palette: item.palette!, args: c?.args, spec: toForm(e.form), from: item, action, key: ++formSeq.current, ...(c?.ids && { ids: c.ids }) });
     }
   };
   // A failed pick names what it tried, in the extensions' own voice: "Could not open", "Could not copy URL", "Could not submit".
@@ -910,7 +910,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (view.kind !== "form" || busy) return;
     setBusy(true);
     const item: Item = { ...view.from, id: view.spec.id ?? view.from.id };
-    pickItem(item, view.spec.submit.id, { ...ctx, values }, true).finally(() => setBusy(false));
+    pickItem(item, view.spec.submit.id, { ...ctx, values, ...(view.ids && { ids: view.ids }) }, true).finally(() => setBusy(false));
   };
   /** Enter from outside the fields (the footer's hint): the form validates and submits as from inside. */
   const requestSubmit = () => formEl.current?.querySelector("form")?.requestSubmit();

@@ -21,6 +21,7 @@ export type { Tile, TileColor, TileIcon, TileMark, TintedIcon } from "./icon.ts"
 export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W, row, text, toast } from "./rows.ts";
 export { appName, bytes, errorMessage, htmlText, mdEscape, oneLine, slug, truncate } from "./text.ts";
 export { EXEC_MS, exec, run } from "./exec.ts";
+export { eachId, foldEffects } from "./multi.ts";
 export type { Exec, ExecOptions } from "./exec.ts";
 export { listProcesses, parsePs, PS_ARGV, PS_MS } from "./procs.ts";
 export type { Proc } from "./procs.ts";

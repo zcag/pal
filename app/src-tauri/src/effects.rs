@@ -149,7 +149,13 @@ pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Resul
             hud::show(app, "Copied");
         }
     }
-    if let Some(target) = envelope.get("open").and_then(Value::as_str) {
+    // One target, or several (a multi pick's marked rows), each given to the OS opener in order.
+    let targets: Vec<&str> = match envelope.get("open") {
+        Some(Value::String(s)) => vec![s.as_str()],
+        Some(Value::Array(a)) => a.iter().filter_map(Value::as_str).collect(),
+        _ => Vec::new(),
+    };
+    for target in targets {
         let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
         // tokio's Command: the child is reaped when it exits, where a
         // dropped `std` Child stays a zombie until pal does.
