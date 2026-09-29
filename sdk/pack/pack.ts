@@ -14,6 +14,8 @@ export type Listing = {
   title: string;
   description?: string;
   tagline?: string;
+  /** `store.features`: the "What it does" bullets a browse card or page shows. */
+  features: string[];
   category?: string;
   keywords: string[];
   icon?: unknown;
@@ -64,7 +66,8 @@ export type BuildOptions = {
 };
 
 /**
- * The listing from the manifest: the store block's shelf fields, the
+ * The listing from the manifest: the store block's shelf fields (the
+ * tagline, the features, the category, ...), the
  * palettes as the manifest declares them (a title the manifest leaves to
  * the code is the extension's for a palette named after it, else the
  * key), absolute screenshot urls.
@@ -84,6 +87,7 @@ export function listingOf(m: Json, screenshotsBase?: string): Listing {
     title: str(m.title) ?? m.name,
     description: str(m.description),
     tagline: str(store.tagline),
+    features: strs(store.features),
     category: str(store.category),
     keywords: strs(m.keywords),
     icon: m.icon,

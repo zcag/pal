@@ -25,7 +25,7 @@ const available: AvailableExtension[] = readdirSync(BUNDLED).filter((n) => exist
   return {
     name, registry: "pal", installed: CORE.has(name) || FROM_REGISTRY.includes(name), bundled: CORE.has(name), installable: true, build: build(name, 3),
     listing: {
-      title: m.title ?? name, description: m.description ?? "", tagline: s.tagline ?? "", category: s.category ?? "", keywords: m.keywords ?? [], icon: m.icon ?? null, author: m.author ?? "",
+      title: m.title ?? name, description: m.description ?? "", tagline: s.tagline ?? "", features: s.features ?? [], category: s.category ?? "", keywords: m.keywords ?? [], icon: m.icon ?? null, author: m.author ?? "",
       platforms: s.platforms ?? null, play: !!s.play, palettes: Object.entries(m.palettes ?? {}).map(([id, p]: [string, any]) => ({ id, title: p.title ?? m.title ?? id, kind: p.kind ?? "list" })),
       screenshots: (s.screenshots ?? []).filter((x: { kind?: string }) => x.kind !== "bar").map((x: { file: string; caption?: string }) => ({ url: `https://pal.cagdas.io/extensions/${name}/screenshots/${x.file}`, caption: x.caption })),
       requires: m.requires ?? [], suggests: m.suggests ?? [],

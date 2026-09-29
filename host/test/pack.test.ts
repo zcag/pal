@@ -24,7 +24,7 @@ const json = (file: string) => JSON.parse(readFileSync(file, "utf8"));
 function source(dir: string, name: string, extra: Record<string, unknown> = {}, list = `[{ id: "a", name: "A" }]`) {
   const d = join(dir, name);
   mkdirSync(join(d, "surface"), { recursive: true });
-  const store = { tagline: "t", category: "fun", platforms: ["macos"], play: true, screenshots: [{ file: "1-list.png", caption: "The list", kind: "panel" }] };
+  const store = { tagline: "t", features: ["Does one thing", "Does another"], category: "fun", platforms: ["macos"], play: true, screenshots: [{ file: "1-list.png", caption: "The list", kind: "panel" }] };
   writeFileSync(join(d, "pal.json"), manifest(name, { title: "Thing", store, palettes: { [name]: { kind: "view" }, other: { title: "Other", kind: "list" } }, ...extra } as Partial<Manifest>));
   writeFileSync(join(d, "index.ts"), `import { settings } from "@zcag/pal";\nimport { rows } from "./game.ts";\nconst s = settings.get();\nexport default { palettes: { ${name}: { title: "Thing", list: () => rows(String(s.greeting ?? "none")), pick: () => {} }, other: { title: "Other", list: () => ${list}, pick: () => {} } } };\n`);
   writeFileSync(join(d, "game.ts"), `export const rows = (g: string) => [{ id: "g", name: g }];\n`);
@@ -60,7 +60,7 @@ describe("build", () => {
     expect(e.build).toEqual({ hash: await treeHash(join(out, "thing")), seq: 1790000000, protocol: PROTOCOL, commit: "abc", size: statSync(join(out, "thing.tar.gz")).size });
     expect(json(join(out, "thing.entry.json"))).toEqual(e);
     expect(e.listing).toEqual({
-      title: "Thing", tagline: "t", category: "fun", keywords: [], platforms: ["macos"], play: true,
+      title: "Thing", tagline: "t", features: ["Does one thing", "Does another"], category: "fun", keywords: [], platforms: ["macos"], play: true,
       palettes: [{ id: "thing", title: "Thing", kind: "view" }, { id: "other", title: "Other", kind: "list" }],
       screenshots: [{ url: "https://pal.cagdas.io/extensions/thing/screenshots/1-list.png", caption: "The list" }],
       requires: [], suggests: [],
@@ -124,7 +124,7 @@ describe("build", () => {
 
 describe("listing", () => {
   test("absent fields are left out or empty; a palette without a title is its key", () => {
-    expect(listingOf({ name: "n", palettes: { list: {}, n: {} } })).toEqual({ title: "n", keywords: [], platforms: [], play: false, palettes: [{ id: "list", title: "list", kind: "list" }, { id: "n", title: "n", kind: "list" }], screenshots: [], requires: [], suggests: [] });
+    expect(listingOf({ name: "n", palettes: { list: {}, n: {} } })).toEqual({ title: "n", features: [], keywords: [], platforms: [], play: false, palettes: [{ id: "list", title: "list", kind: "list" }, { id: "n", title: "n", kind: "list" }], screenshots: [], requires: [], suggests: [] });
   });
 });
 

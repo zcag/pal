@@ -173,7 +173,7 @@ export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 
 const build = (hash: string, daysAgo: number) => ({ hash, seq: Math.floor((now - daysAgo * d) / 1000), protocol: 3, commit: hash.slice(0, 12), url: `https://pal.cagdas.io/registry/pkg/x/${hash}.tar.gz`, manifest: "", sig: "" });
 const info = (hash: string, daysAgo: number) => { const { hash: h, seq, protocol, commit } = build(hash, daysAgo); return { hash: h, seq, protocol, commit }; };
 const listing = (title: string, tagline: string, category: string, glyph: string, bg: string, palettes: string[] = [title], extra: Partial<Listing> = {}): Listing => ({
-  title, tagline, description: `${tagline}.`, category, keywords: [], icon: { tile: { glyph, bg } }, author: "pal", platforms: null, play: category === "fun",
+  title, tagline, description: `${tagline}.`, features: [], category, keywords: [], icon: { tile: { glyph, bg } }, author: "pal", platforms: null, play: category === "fun",
   palettes: palettes.map((p) => ({ id: p.toLowerCase(), title: p, kind: category === "fun" ? "view" : "list" })), screenshots: [], requires: [], suggests: [], ...extra,
 });
 
