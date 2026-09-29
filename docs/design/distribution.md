@@ -449,14 +449,33 @@ and fallbacks can point at an extension that isn't installed or is disabled.
 
 ## What is bundled
 
-A small core ships in the app, for a first run without network and for every
-core feature's dependency:
-- apps, files, calc, clipboard, snippets, windows, window-management, system,
-  quicklinks, emoji, shell;
-- store, games, settings-related ones.
+Decided 2026-09-30 (option B of three): the 33 extensions that work with no
+account or setup and that a Mac user expects on day one. They are the first
+run without network, and they include every core feature's dependency.
 
-The list is to confirm, and the usage counts should inform it. It is a build
-input (a file listing names), not something hard-coded in the loader.
+- **Launcher**: apps, files, calc, clipboard, snippets, windows,
+  window-management, system, quicklinks, emoji.
+- **Plumbing**:
+  - store and games, which are the way to everything else;
+  - states, for `[states]` and bar hiding;
+  - scripts, which the v1 migration writes into (`firstrun.rs:13`).
+- **Day one**: bookmarks, browser-tabs, downloads, audio, bluetooth, displays,
+  wifi, network, media, screenshots, timer, processes, power, menu-bar,
+  shortcuts, unicode, generate, colors, shell.
+
+The other 47 are in our registry only:
+- **Games**: 2048, blackjack, crossword, minesweeper, snake, solitaire,
+  sudoku, typing, wordle, yahtzee.
+- **An account, a server or another app**: gmail, github, slack, whatsapp,
+  google, youtube, gifs, translate, calendar, spotify, obsidian, onepassword,
+  otp, grafana, home-assistant, hue, immich, tela, odak, theater.
+- **Developer**: docker, ssh, make, services, sessions, diff.
+- **Other**: stats, weather, maps, speedtest, space, privacy, images, icons,
+  flashcards, turkish, dpi.
+
+The list lives in a file (`extensions/bundled.txt`) that the build reads, not
+in the loader, so moving one across is a one-line change. The usage counts
+will settle the borderline ones (stats, weather, ssh).
 
 **Built in comes from the root, not `repo: "bundled"`.** All 80 manifests say
 `repo: "bundled"`, and Settings and the Overview branch on it
@@ -611,7 +630,6 @@ Each step ships on its own, and nothing is taken away until the last one.
 
 ## Open
 
-- The exact core list.
 - Whether root search also shows third-party registries' extensions, or ours
   only (leaning ours only).
 - `seq` from the CI run number or from a counter the site hands out
