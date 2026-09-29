@@ -2,7 +2,7 @@
 
 ## 0.9.0 · 2026-09-30
 
-- **A lighter pal**: 33 extensions come with pal now, the ones that work with no account or setup; the other 47 install when you want them. Type a name and one you don't have shows below your results, Games lists every game, and Settings › Extensions has them all. The ones you used in 0.8 are installed for you on first start, with their settings and progress as you left them.
+- **A lighter pal**: 33 extensions come with pal now, the ones that work with no account or setup; the other 47 install when you want them. Type a name and one you don't have shows below your results, Games lists every game, and Settings › Extensions has them all. The ones you use are installed for you on first start, from whichever version you come, with their settings and progress as you left them.
 
 ## 0.8.0 · 2026-09-30
 
