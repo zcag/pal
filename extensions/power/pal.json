@@ -1,7 +1,7 @@
 {
   "name": "power",
   "title": "Battery & Power",
-  "description": "Battery level and time left, and with the optional power watcher everything about where the power goes: the draw over the last hours, what uses power now and why, and what used the battery today, this week and ever, in watt-hours.",
+  "description": "Battery level and time left, and with the optional power watcher, where the power goes: the draw over the last hours, what uses power now and why, and what used the battery today, this week and ever.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -26,12 +26,12 @@
     "tagline": "Battery level, and exactly what is draining it",
     "category": "system",
     "features": [
-      "The level, where the power comes from and the time left, from macOS `pmset` or Linux `upower`, in one plain sentence (`Drawing 12 W · 1 h 48 min left`, `Charging at 38 W · full in 40 min`)",
-      "With the `power` watcher: six hours of draw as a chart, the stretches on the charger shaded and the charge level dashed over it, and today's watt-hours as a share of a full charge",
-      "Now: the watcher's warning in words, the draw split between the apps and chip and the screen and the rest, and the processes using power with their watts and why (CPU, wakeups, disk, network)",
-      "Today, 7 days and All time: what used the battery in watt-hours with each one's share, the screen and short-lived processes named plainly; a window spent on the charger ranks by activity instead",
-      "Battery health, cycle count and temperature as tiles; Enter finds the process in Processes, cmd+C copies its name",
-      "The bar stays quiet while healthy by default and returns for a low battery, a warning or a heavy draw; hover shows the popover (the level, the last hour, the warning, the top four), a click opens the palette"
+      "The level, the power source and the time left in one sentence (`Drawing 12 W · 1 h 48 min left`)",
+      "With the `power` watcher: six hours of draw as a chart, with charging stretches and the charge level over it",
+      "What uses power now: the split between apps, chip and screen, and each process with its watts and why",
+      "What used the battery today, over 7 days and all time, in watt-hours and as a share",
+      "Battery health, cycle count and temperature at a glance",
+      "A bar item that stays hidden while all is well and shows up for a low battery or a heavy draw"
     ],
     "permissions": [],
     "platforms": [

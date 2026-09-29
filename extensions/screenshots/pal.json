@@ -1,7 +1,7 @@
 {
   "name": "screenshots",
   "title": "Screenshots",
-  "description": "Capture an area, a window or the screen to a file or the clipboard, and browse the screenshots you took newest first with thumbnails: open, reveal, copy the image, its path or a markdown tag, read its text, trash it.",
+  "description": "Capture an area, a window or the whole screen to a file or the clipboard, then find the screenshots you took, newest first with thumbnails. Open, reveal, copy the image, its path or a markdown link, read its text, or trash it.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -86,12 +86,12 @@
     "tagline": "Take a screenshot, then find, copy or read the ones you took",
     "category": "system",
     "features": [
-      "Capture area, Capture window and Capture screen rows: `screencapture` on macOS (the panel hides first), `grim` with `slurp` on Linux; Enter to a file or the clipboard per the setting, `cmd+enter` after a timer, `cmd+c` to the other destination",
-      "The folder's screenshots and recordings newest first, each with a thumbnail, its pixel size, its file size and its age; the HUD names the file a capture landed in",
-      "Open, Reveal in Finder, Copy image (the file onto the clipboard), Copy path, Copy as markdown image (`![name](path)`), Copy text (OCR through the Vision framework), Move to Trash",
-      "Rows can be marked (`tab`, `x`): open, reveal, copy and trash run over all of them",
-      "A screenshot taken in the last two minutes leads the empty root's Now section",
-      "The detail pane (`cmd+i`) shows the picture itself with its folder, size, pixels and time"
+      "Capture an area, a window or the screen, to a file or the clipboard, now or after a timer",
+      "Your screenshots and recordings newest first, with a thumbnail, pixel size, file size and age",
+      "Copy the image, its path or a markdown image link, or copy the text in it (macOS)",
+      "Mark several with `tab` to open, copy or trash them together",
+      "A screenshot from the last two minutes is the first thing you see when the panel opens",
+      "`cmd+i` shows the picture large with its folder, size and time"
     ],
     "permissions": [],
     "platforms": [

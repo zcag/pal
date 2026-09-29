@@ -1,7 +1,7 @@
 {
   "name": "emoji",
   "title": "Emoji",
-  "description": "An emoji picker: a grid of glyphs by category, recently used first, searched by name, keyword and :shortcode:. Copies or pastes the emoji (with your skin tone), or copies its :shortcode:.",
+  "description": "An emoji picker: every emoji in a grid, recently used first, found by name, keyword or :shortcode:. Copy or paste it in your skin tone.",
   "version": "0.2.0",
   "icon": {
     "tile": {
@@ -67,13 +67,12 @@
     "tagline": "Every emoji in a grid; copy or paste it, or its :shortcode:",
     "category": "reference",
     "features": [
-      "Every emoji in the bundled list as a grid, Recently used first (the last 24 you copied or pasted), then Unicode's groups from Smileys & Emotion to Flags",
+      "Every emoji in a grid by category, the ones you used lately first",
       "Search by name, keyword or shortcode: `thumbs`, `celebrate`, `:thumbs_up:`",
-      "Your own words too: the `keywords` setting adds `ship` and `deploy` to the rocket (`rocket: ship deploy`)",
-      "`Enter` copies the emoji, `cmd+enter` pastes it into the app in front; `paste_by_default` swaps the two",
+      "Add your own keywords: `ship` and `deploy` for the rocket",
+      "`enter` copies, `cmd+enter` pastes into the app in front (or the other way round, a setting)",
       "`cmd+shift+c` copies the `:shortcode:`",
-      "A skin tone setting applied to the 329 emoji that take one, in the tile, on copy and on paste",
-      "Live with a 30 s ttl, so the recents follow what you used"
+      "A skin tone setting, applied everywhere it can be"
     ],
     "permissions": [
       "accessibility"

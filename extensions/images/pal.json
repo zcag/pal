@@ -1,7 +1,7 @@
 {
   "name": "images",
   "title": "Images",
-  "description": "Compress, resize, convert, rotate, crop, strip metadata, make an icon set, read the text: the images selected in Finder, on the clipboard or at a typed path, with the tools on the machine (sips, pngquant, oxipng, mozjpeg, cwebp, avifenc, ImageMagick) and TinyPNG when you give it a key. Every result lands next to its source with a suffix, its path copied.",
+  "description": "Compress, resize, convert, crop and strip the images selected in Finder or on the clipboard, with the tools already on your machine. Every result is saved next to the original, its path copied.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -104,17 +104,15 @@
     }
   ],
   "store": {
-    "tagline": "Compress, resize, convert and strip images, local first",
+    "tagline": "Compress, resize and convert images, locally",
     "category": "media",
     "features": [
-      "The images at hand before you type: the Finder selection (a folder's images too), an image or files on the clipboard; a typed path lists a file, a folder or completions",
-      "Compress with pngquant, oxipng, mozjpeg (cjpeg), cwebp, avifenc, gifsicle, ImageMagick or sips, whichever the machine has, in the order you set; the row says which tool did it and the size before and after",
-      "Optimise for web: cap the long side, encode at the quality, strip what is left, as a view with the before and after of every image and the total saved",
-      "Resize (width, height, fit, percent, @2x and @1x), Convert (PNG, JPEG, WebP, AVIF, HEIC, PDF, TIFF, GIF), Rotate and flip, Crop to an aspect centred or pad to a square, Grayscale, Strip metadata (lossless for PNG and JPEG)",
-      "Make an icon set: the .iconset, the .icns (iconutil), favicon.ico, and the touch and Android sizes, in a folder next to the image",
-      "Get info in the detail pane: dimensions, format, colour profile, camera, lens, exposure, date, location (exiftool when installed); Copy text (OCR) through the Vision framework or tesseract",
-      "Every result is written next to the source with a suffix (-compressed, @0.5x, .webp) and its path copied; the image itself when the input was the clipboard. Replace writes over the source and keeps the original for Restore",
-      "Several at once: the All row, marked rows, a folder; a long batch reports in the HUD when it lands. TinyPNG with an API key for the strongest compression"
+      "Works on the images at hand: the Finder selection, the clipboard or a typed path",
+      "Compress with whatever is installed (pngquant, oxipng, mozjpeg, cwebp, avifenc, ImageMagick), or TinyPNG with a key",
+      "Resize, convert (PNG, JPEG, WebP, AVIF, HEIC, PDF), rotate, crop, grayscale and strip metadata",
+      "Optimise for web: resize, compress and strip in one step, with the size saved per image",
+      "Make an icon set (`.icns`, favicon, touch and Android sizes); read the text in an image",
+      "Results land next to the original with a suffix; Replace keeps the original for Restore"
     ],
     "permissions": [
       "automation"

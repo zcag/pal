@@ -1,15 +1,16 @@
 {
   "name": "hue",
   "title": "Hue",
-  "description": "Philips Hue over the bridge's CLIP v2 API: rooms, lights and scenes at the root, a light or a room under the keys with its colour, brightness and temperature, sensors, automations and entertainment areas, a bar item for the home, and a guided pairing that finds the bridge and waits for its button.",
+  "description": "Your Philips Hue lights, rooms and scenes under the keys, kept live as they change. Set colour, brightness and warmth, check sensors, and see the home at a glance from the menu bar.",
   "keywords": [
     "lights"
   ],
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "󰌵",
-      "bg": "amber"
+      "svg": "M20.672 9.6c-2.043 0-3.505 1.386-3.682 3.416h-.664c-.247 0-.395.144-.395.384 0 .24.148.384.395.384h.661c.152 2.09 1.652 3.423 3.915 3.423.944 0 1.685-.144 2.332-.453.158-.075.337-.217.292-.471a.334.334 0 0 0-.15-.242c-.104-.065-.25-.072-.422-.02a7.93 7.93 0 0 0-.352.12c-.414.146-.771.273-1.599.273-1.75 0-2.908-1.023-2.952-2.605v-.025h5.444c.313 0 .492-.164.505-.463v-.058C23.994 9.865 21.452 9.6 20.672 9.6zm2.376 3.416h-5l.004-.035c.121-1.58 1.161-2.601 2.649-2.601 1.134 0 2.347.685 2.347 2.606zM9.542 10.221c0-.335-.195-.534-.52-.534s-.52.2-.52.534v2.795h1.04zm4.29 3.817c0 1.324-.948 2.361-2.16 2.361-1.433 0-2.13-.763-2.13-2.333v-.282h-1.04v.34c0 2.046.965 3.083 2.868 3.083 1.12 0 1.943-.486 2.443-1.445l.02-.036v.861c0 .334.193.534.519.534.325 0 .52-.2.52-.534v-2.803h-1.04zm.52-4.351c-.326 0-.52.2-.52.534v2.795h1.04v-2.795c0-.335-.195-.534-.52-.534zM3.645 9.6c-1.66 0-2.31 1.072-2.471 1.4l-.135.278V7.355c0-.347-.199-.562-.52-.562-.32 0-.519.215-.519.562v5.661h1.039v-.015c0-1.249.72-2.592 2.304-2.592 1.29 0 2.001.828 2.001 2.332v.275h1.04v-.246c0-2.044-.973-3.17-2.739-3.17zM0 16.558c0 .347.199.563.52.563.32 0 .519-.216.519-.563v-2.774H0zm5.344 0c0 .347.2.563.52.563s.52-.216.52-.563v-2.774h-1.04z",
+      "box": 24,
+      "bg": "#0065D3"
     }
   },
   "author": "pal",
@@ -67,13 +68,12 @@
     "tagline": "Every Hue light, room and scene, live, under the keys",
     "category": "integration",
     "features": [
-      "Rooms and scenes at the root: `living room` and Enter toggles the room, `relax` and Enter plays the scene; the rows carry the room's colour as a tile and a scene's palette as a five-swatch strip",
-      "A light or a room under the keys: the big tile in its colour, brightness on the arrows and the digits, colour temperature along a warm-to-cool strip, hue and saturation on a colour plane, the presets, the room's scenes, the effects, apply to this light or the whole room, the transition length",
-      "Live: one event stream per bridge keeps the model current, so the rows and the bar follow a change made in the Hue app or on a switch without a request",
-      "Sensors: motion, temperature, light level, buttons and dials with their last event, batteries; automations enabled or disabled; entertainment areas started and stopped",
-      "The bar item: how many lights are on and the main room's colour as a dot; the popover is the home in reach: the rooms as colour tiles (a tap toggles, the chevron opens the room's lights with sliders), the scenes as swatch tiles on the digits, the sensors, everything on or off",
-      "Set up Hue finds the bridge (the cloud endpoint and mDNS), waits for its button with a countdown, pins its certificate and keeps the key; several bridges make one home",
-      "Deep links: `pal://hue/toggle?room=kitchen`, `pal://hue/scene?name=relax&room=living-room`, `pal://hue/off`"
+      "Rooms and scenes at the root: type `living room` to toggle it, `relax` to play the scene",
+      "A light or room in full: brightness on the arrows, warmth, colour, presets, scenes and effects",
+      "Live: changes made in the Hue app or on a switch show up at once",
+      "Sensors with their last reading and battery; automations and entertainment areas on or off",
+      "A bar item with the lights that are on; its popover toggles rooms and plays scenes",
+      "Guided setup finds the bridge and waits for its button; several bridges act as one home"
     ],
     "permissions": [
       "network"

@@ -1,7 +1,7 @@
 {
   "name": "snake",
   "title": "Snake II",
-  "description": "Snake II exactly as the Nokia 3310 plays it, on the phone's own 84 by 48 screen: its menus, nine levels, five mazes, the bonus creatures, the split-second before a crash, the top score and its fireworks, the buzzer. Arrows steer (2 4 6 8), Enter is the phone's Menu and Select, Backspace its C.",
+  "description": "Snake II exactly as the Nokia 3310 plays it, on the phone's own 84 by 48 screen: its menus, nine levels, five mazes, the bonus creatures and the top score with its fireworks. The arrows steer, Enter is Menu and Select, Backspace is C.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -34,13 +34,12 @@
     "tagline": "The Nokia 3310's Snake II, pixel for pixel and step for step",
     "category": "fun",
     "features": [
-      "The phone's firmware as the reference: every screen, sprite, maze, rule, delay and tone was read off the real 3310 firmware (v6.07) running in an emulator, and the tests replay 123 of its recorded runs frame by frame",
-      "The 84 by 48 screen drawn pixel for pixel in whole multiples, taller than wide as the 3310's are, lit green in the menus and unlit in play as the phone keeps its backlight",
-      "Its menus as the phone draws them: New game, Level with its nine bars, Mazes with the tick, Top score with the coin cup, Instructions, and Continue after a pause",
-      "Nine levels (656 ms a step down to 88 ms), No maze and Mazes 1 to 5, food worth the level, a bonus creature after every five foods with its countdown from 20",
-      "The split-second before a crash: a blocked step waits about 100 ms, so a late turn still saves the snake",
-      "Game over, the blink, and on a new top score the fireworks with the jingle; the phone's random numbers, so the first food after a power-on is where it was on the phone",
-      "Arrows as 2 4 6 8 (the phone's scroll keys in a menu), Enter as Menu and Select, Backspace as C, the digits, `*` and `#` as the keypad; Escape pauses and leaves, and Continue is there when you come back"
+      "Every screen, sprite, maze, speed and sound taken from the real 3310 firmware and checked against it",
+      "The 84 by 48 screen drawn pixel for pixel, lit green in the menus as the phone does",
+      "The phone's menus: New game, Level, Mazes, Top score, Instructions and Continue",
+      "Nine levels, no maze or mazes 1 to 5, and a bonus creature after every five foods",
+      "The split second before a crash, so a late turn still saves the snake",
+      "The keypad as the phone had it: arrows as 2 4 6 8, `enter` for Menu, `backspace` for C; Escape pauses"
     ],
     "permissions": [],
     "platforms": [

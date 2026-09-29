@@ -3,11 +3,10 @@
 // `item list`, `item get` and `account list` in the CLI's shapes and logging
 // every call, so the cache and the arguments can be checked.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { tile } from "../../../sdk/src/icon.ts";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Host, writeTool } from "../harness.ts";
+import { Host, writeTool, bundledIcon } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-op-"));
 const state = join(dir, "state");
@@ -60,7 +59,7 @@ const pick = (id: string, action?: string) => host.pick("onepassword", "items", 
 describe("onepassword", () => {
   test("meta: indexed with the ttl and one filter per configured vault", () => {
     expect(host.loaded().find((l) => l.extension === "onepassword")!.palettes[0]).toMatchObject({
-      name: "items", title: "1Password", live: false, input: false, icon: tile("blue", "\u{f0bc4}"), ttl: 300,
+      name: "items", title: "1Password", live: false, input: false, icon: bundledIcon("onepassword"), ttl: 300,
       filters: [{ id: "all", title: "All vaults" }, { id: "Personal", title: "Personal" }, { id: "Work", title: "Work" }],
     });
   });

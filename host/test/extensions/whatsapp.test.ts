@@ -14,7 +14,7 @@ import { chatLink, conversationMarkdown, mediaLabel, msgOf, msgOfDb, opener, pic
 import { initial, initialIcon, render, type BarState } from "../../../extensions/whatsapp/view.ts";
 import type { Item, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { Host, marksOf, stored } from "../harness.ts";
+import { Host, marksOf, stored, bundledIcon } from "../harness.ts";
 import { KEY, SESSION_ID, WhatsAppMock, m } from "./whatsapp-mock.ts";
 
 const X = "whatsapp";
@@ -160,7 +160,7 @@ describe("whatsapp", () => {
   test("meta: the tile, four palettes (chats live primary with a pane, unread live, search input, contacts an hourly catalog), the bar item, two links, the settings", () => {
     const loaded = host.loaded().find((l) => l.extension === X)!;
     expect(loaded.warnings).toEqual([]);
-    expect(loaded.manifest.icon).toEqual({ tile: { glyph: "\u{f05a3}", bg: "green" } });
+    expect(loaded.manifest.icon).toEqual(bundledIcon("whatsapp"));
     expect(loaded.palettes.map((p) => [p.name, p.title, p.live, p.input, p.lazy, p.ttl, p.tier, p.detail])).toEqual([
       ["chats", "Chats", true, false, true, undefined, "primary", "lazy"],
       ["unread", "Unread", true, false, true, undefined, undefined, "lazy"],

@@ -1,7 +1,7 @@
 {
   "name": "audio",
   "title": "Audio",
-  "description": "Output and input devices: switch the default, set the volume, mute.",
+  "description": "Switch the sound output or input, set the volume and mute, from a list of every audio device.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -16,12 +16,11 @@
     "tagline": "Switch the output or input, set the volume, mute",
     "category": "system",
     "features": [
-      "Every output and input in two sections, the default of each direction tagged `default`, the volume on the right, `muted` where it is",
-      "`enter` makes the row the default for its direction; a headset shows once under Output and once under Input",
-      "`cmd+shift+v` sets the volume to the percent typed in the bar",
-      "`cmd+m` toggles mute and stays in the list",
-      "The transport (`bluetooth`, `usb`, `builtin`, `hdmi`) in the subtitle when the OS reports it",
-      "Live: the defaults and volumes are read again on every show"
+      "Every output and input in two sections, the default tagged, the volume and mute state on the right",
+      "`enter` makes a device the default for output or input",
+      "`cmd+shift+v` sets the volume to the percent you type",
+      "`cmd+m` toggles mute",
+      "The connection (Bluetooth, USB, built-in, HDMI) in the subtitle when the system reports it"
     ],
     "permissions": [],
     "platforms": [

@@ -25,6 +25,15 @@ Vleugels (https://www.kenney.nl), shipped in the app bundle's
 `Resources/surface-kit` with its license (`LICENSE-kenney.txt`). CC0 1.0
 (public domain dedication); credit is not required and is given here.
 
+## Simple Icons
+
+The product logos on the tiles of the extensions that are those products
+(GitHub, Gmail, Spotify, ...) are paths from Simple Icons
+(https://simpleicons.org), copied into each `pal.json` by
+`app/scripts/brand-icons.ts`. CC0 1.0 (public domain dedication); credit
+is not required and is given here. The logos themselves are trademarks of
+their owners, used to name their products.
+
 ## Flashcards' Spanish word pack
 
 `extensions/flashcards/packs/spanish-words.json`, bundled into the

@@ -1,7 +1,7 @@
 {
   "name": "blackjack",
   "title": "Blackjack",
-  "description": "Blackjack on a felt table with a real deck: arrows and Enter play a hand one-handed (up hit, down stand), or click the moves. The bankroll and the record persist.",
+  "description": "Blackjack on a felt table with a real shoe, played one-handed with the arrows or with the mouse. Your bankroll and record are kept across restarts.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -64,12 +64,11 @@
     "tagline": "Blackjack on felt, arrows or mouse; the bankroll persists",
     "category": "fun",
     "features": [
-      "A casino table in the panel: the Kenney deck dealt from a shoe in the order a dealer deals (player, dealer, player, hole), the hole card turning over, a split's hands sliding apart, chips for the bet",
-      "One-handed: `up` and `down` set the bet and `Enter` deals; then `up` hit, `down` stand, `right` double, `left` split; letters `H S D P` too",
-      "Every move is a button with its keys on it, and `cmd+k` lists the legal ones; the title line says the phase (`Place your bet`, `Your turn`, `Dealer busts`)",
-      "A win glows, a bust shakes, a blackjack gets a flourish; the bankroll counts to its new value and totals read `Soft 17`",
-      "Dealer stands on 17 (H17 by setting), blackjack pays 3:2, a dealer blackjack is checked at once, doubling after a split allowed, no surrender; insurance by setting",
-      "Escape leaves at any point; the hand, the bankroll and the record are there when you come back, across restarts"
+      "A casino table in the panel: cards dealt in dealer order, the hole card flipping, chips for the bet",
+      "One-handed: arrows set the bet, `enter` deals, then `up` hit, `down` stand, `right` double, `left` split",
+      "Every move is a button with its key on it; the title says what happens next",
+      "Standard rules: dealer stands on 17, blackjack pays 3:2, double after split; H17 and insurance as settings",
+      "Leave with `escape` any time; the hand, the bankroll and the record are there when you come back"
     ],
     "permissions": [],
     "platforms": [

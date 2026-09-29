@@ -1,7 +1,7 @@
 {
   "name": "store",
   "title": "Store",
-  "description": "Every extension your registries list, in the panel: search by name, tagline or category, read the description, palettes and screenshots in the detail pane, install with Enter. What is installed is tagged, what has an update leads under Updates, and the Registries filter shows where they come from.",
+  "description": "Browse every extension your registries list, read its description and screenshots, and install it with Enter. Updates lead the list, and marked rows install, update or remove together.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -13,15 +13,15 @@
   "repo": "bundled",
   "license": "MIT",
   "store": {
-    "tagline": "Browse and install extensions without leaving the panel",
+    "tagline": "Browse, install and update extensions without leaving the panel",
     "category": "system",
     "features": [
-      "Every extension pal's registry and any registry you added lists, with its tile, tagline and how it stands (installed, comes with pal, update, needs a newer pal), narrowed by what you type",
-      "The dropdown filters to Installed, Updates, Registries, or a shelf (Productivity, Developer, System, Media, Reference, Fun, Integration)",
-      "The detail pane (`cmd+i`) shows the description, the palettes and the screenshots, with where it comes from, its build and whether it updates by itself",
-      "Enter installs an absent extension after a confirm and waits for it to load, updates one that has an update, and opens an installed one; a toast says how it went",
-      "Marked rows install, update or remove together; `ctrl+x` removes one installed from a registry (its settings and data stay)",
-      "The registries are fetched when the list opens and on `cmd+r`, the cached rows shown meanwhile; a registry that does not answer says so above the list"
+      "Every listed extension with its icon, tagline and status (installed, built in, update available), filtered as you type",
+      "Narrow to Installed, Updates, a registry, or a category like Developer, Media or Fun",
+      "`cmd+i` shows the description, palettes and screenshots, where it comes from and whether it updates itself",
+      "`enter` installs (after a confirm), updates, or opens an extension you already have",
+      "Mark several rows to install, update or remove them together; `ctrl+x` removes one and keeps its settings",
+      "`cmd+r` fetches the registries again; one that does not answer says so above the list"
     ],
     "permissions": [
       "network"

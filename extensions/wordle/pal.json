@@ -1,7 +1,7 @@
 {
   "name": "wordle",
   "title": "Wordle",
-  "description": "The five-letter word game in the panel, keyboard only: type a word, Enter submits, the tiles flip. A daily puzzle from the date, practice games on N, the streak and the stats persist.",
+  "description": "The five-letter word game in the panel, keyboard only: a daily puzzle, the same everywhere, and practice words once it is done. Your streak and stats are kept.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -34,13 +34,12 @@
     "tagline": "Wordle in the panel: a daily puzzle, practice words, stats",
     "category": "fun",
     "features": [
-      "The board as a view level: letters type into the row, Enter submits, the row flips tile by tile into green, amber and grey; the on-screen keyboard colours as the letters are found",
-      "A daily puzzle seeded from the date (`daily` setting): opening on a new day starts it, one word a day, the same on every machine",
-      "`N` for a practice word once the day's puzzle is done (or any time with dailies off, as `cmd+n` mid-game)",
-      "A word not in the list, or a hard-mode slip, is a red badge over the board; hard mode keeps greens in place and makes ambers count",
-      "The result view: played, win %, streak and best, the guess distribution as bars, `C` copies the emoji grid for sharing",
-      "Escape leaves at any point; the game and the stats are there when you come back, across restarts",
-      "The word lists ship with the extension (public domain sources, see the README); nothing is fetched"
+      "Type a guess and press `enter`; the tiles flip green, amber or grey and the keyboard colours as you go",
+      "A daily puzzle from the date, the same on every machine; `n` for practice words once it is done",
+      "Hard mode keeps greens in place and makes ambers count; an unknown word is flagged over the board",
+      "Stats: played, win %, streak and the guess distribution; `c` copies the emoji grid to share",
+      "Leave any time and come back to the same game, even after a restart",
+      "The word lists ship with it; nothing is fetched"
     ],
     "permissions": [],
     "platforms": [

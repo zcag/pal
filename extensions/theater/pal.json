@@ -1,7 +1,7 @@
 {
   "name": "theater",
   "title": "Theater",
-  "description": "Your home media stack in one place: Jellyfin, Jellyseerr, Radarr, Sonarr, Lidarr, Prowlarr, NZBHydra2, Bazarr, SABnzbd, qBittorrent, Navidrome, Audiobookshelf, Kavita, Shelfmark, Filebrowser and Homepage. Every service is a settings group; only the ones you fill in light up.",
+  "description": "Your self-hosted media stack in one place: Jellyfin, Jellyseerr, Radarr, Sonarr, Lidarr, Prowlarr, Bazarr, SABnzbd, qBittorrent, Navidrome, Audiobookshelf, Kavita and more. Fill in the services you run and only those appear.",
   "keywords": [
     "media",
     "plex",
@@ -1379,16 +1379,15 @@
     }
   },
   "store": {
-    "tagline": "Jellyfin, the arrs, the download clients, music, books: one extension",
+    "tagline": "Jellyfin, the arr apps, downloads, music and books in one place",
     "category": "productivity",
     "features": [
-      "Theater: every configured service as a row with live health, Enter to its web UI, cmd+Enter into its palette",
-      "Jellyfin: Continue Watching and Latest with posters, search with a detail pane, Now Playing, play on a device, mark played, favourite",
-      "Jellyseerr: requests with Approve and Decline, Request a title through TMDB search, 4K when enabled",
-      "Radarr, Sonarr, Lidarr: queue, calendar, wanted, history, add with the default profile, sync the Trakt watchlist now",
-      "SABnzbd and qBittorrent as one Downloads queue: pause, resume, delete, a speed limit; history with failure reasons",
-      "Prowlarr and NZBHydra2 searches, indexer health; Navidrome, Audiobookshelf and Kavita with cover art; Shelfmark book requests; Bazarr wanted subtitles",
-      "Four bar items: downloads speed, who is watching, pending requests, the arr queue; each hidden when it has nothing to say"
+      "Every service you set up as a row with its health; `enter` opens its web page, `cmd+enter` its list",
+      "Jellyfin: Continue Watching and Latest with posters, search, Now Playing, play on a device",
+      "Jellyseerr requests to approve or decline, and new requests from a title search",
+      "Radarr, Sonarr and Lidarr: queue, calendar, wanted and history; add a title with the default profile",
+      "SABnzbd and qBittorrent as one downloads queue: pause, resume, delete, limit the speed",
+      "Bar items for download speed, who is watching, pending requests and the arr queue, hidden when idle"
     ],
     "permissions": [
       "network",

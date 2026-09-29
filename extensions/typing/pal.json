@@ -1,7 +1,7 @@
 {
   "name": "typing",
   "title": "Typing",
-  "description": "A typing test in the manner of monkeytype: common English words, a smooth caret, a timed, a counted or a free (zen) test, a pace caret and stop on error, and a result with wpm, accuracy, raw speed, consistency and a chart of the test second by second. Personal bests per test kind and the history persist, with a stats page: progress chart, bests, every past test.",
+  "description": "A typing test in the style of monkeytype: common English words, a smooth caret, timed, word-count or free tests, and a result with wpm, accuracy, consistency and a chart. Personal bests and every past test are kept, with a stats page to follow your progress.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -13,17 +13,15 @@
   "repo": "bundled",
   "license": "MIT",
   "store": {
-    "tagline": "Monkeytype-style typing test: wpm, accuracy, a chart, personal bests",
+    "tagline": "A monkeytype-style typing test with wpm, accuracy and personal bests",
     "category": "fun",
     "features": [
-      "Common English words in three lines that scroll as you go, a caret that glides from letter to letter, the letters coloured as you type them: right, wrong, extra, and a word left wrong underlined",
-      "Time (15, 30, 60, 120 seconds), words (10, 25, 50, 100) or zen (type anything, Enter ends it), punctuation and numbers on top; picked on the bar above the words, with the arrows before you start, or from ⌘K",
-      "The clock starts on the first key; the bar and the hints fade while you type",
-      "A pace caret to race your best, your average or your last test; stop on error by letter or by word; both settings, also switched from ⌘K",
-      "The result: wpm and accuracy large, raw speed, consistency, the letters right, wrong, extra and missed, and a chart of the wpm, the raw speed and the mistakes second by second",
-      "Personal bests for every kind of test, a new one marked; the average of your last ten of that kind beside it",
-      "Stats and history: tests, time typing, highest and average wpm, accuracy and consistency, all tests or one kind; a progress chart with the average of ten; the bests for every length; every past test in a table",
-      "Tab starts a new test at any point, R on the result repeats the same words"
+      "Common English words that scroll as you type, each letter marked right, wrong or extra",
+      "Timed (15 to 120 seconds), by word count (10 to 100) or zen, with punctuation and numbers if you like",
+      "A pace caret to race your best, average or last test; stop on error by letter or by word",
+      "Results: wpm, accuracy, raw speed, consistency, and a second-by-second chart with the mistakes",
+      "Personal bests per kind of test, the average of your last ten, and a stats page with a progress chart",
+      "`tab` starts a new test any time; `r` on the result repeats the same words"
     ],
     "permissions": [],
     "platforms": [

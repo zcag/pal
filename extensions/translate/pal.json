@@ -1,7 +1,7 @@
 {
   "name": "translate",
   "title": "Translate",
-  "description": "Translate what you type, the selected text or the clipboard as you type, with the source detected: the translation as the first row (copy, paste, speak), the alternatives, a romanisation when the script is not Latin, dictionary entries for a word, and a Swap row. Google's web endpoint without a key, or DeepL with one; a history of what you copied.",
+  "description": "Translate what you type, the selected text or the clipboard, with the language detected as you type. Alternatives, dictionary entries and romanisation included; uses Google Translate without a key, or DeepL with one.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -70,12 +70,12 @@
     "tagline": "Translate typed, selected or copied text as you type",
     "category": "productivity",
     "features": [
-      "Translated as you type, 350 ms after the last key; the source language detected, the target from the `to` setting or the system language",
-      "A prefix names the target once: `tr: hello`, `>de hello`, `en>tr merhaba`, `german: hello`; at the root those answer inline under a Translate section",
-      "Nothing typed: the selected text in the app in front, else the newest clipboard text",
-      "Rows: the translation (Enter copies, cmd+Enter pastes, cmd+shift+s speaks it aloud), the detected language, the alternatives, a romanisation of either side when the script is not Latin, dictionary entries for a word, and Swap, which translates the result back",
-      "Google's web endpoint without a key (unofficial: it may refuse a network it takes for a bot, or change), or DeepL with a free key",
-      "Translation History: what was copied, pasted or spoken, newest first, with Translate again"
+      "Translates as you type, the source detected, into the language you set or the system's",
+      "Name the target inline: `tr: hello`, `>de hello`, `en>tr merhaba`; works at the root too",
+      "With nothing typed, starts from the selected text or the newest clipboard text",
+      "`enter` copies, `cmd+enter` pastes, `cmd+shift+s` reads it aloud; Swap translates the result back",
+      "Alternatives, dictionary entries for a single word, and romanisation for non-Latin scripts",
+      "Google Translate needs no key (unofficial, some networks are refused), or DeepL with a free key; a history of what you used"
     ],
     "permissions": [
       "network",

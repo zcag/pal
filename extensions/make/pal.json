@@ -1,7 +1,7 @@
 {
   "name": "make",
   "title": "Makefile Targets",
-  "description": "The targets of every Makefile under your project folders. Enter runs one in a terminal (or in the background, with a toast), variables or flags typed in the bar first.",
+  "description": "Every Makefile target under your project folders in one list. Enter runs it in a terminal or in the background, with variables typed in first.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -65,11 +65,11 @@
     "tagline": "Every Makefile target under your projects, Enter runs it",
     "category": "developer",
     "features": [
-      "Every target of every Makefile two levels under the `projects` folders, one section per project; `pal test` finds a project's target from the root",
-      "Descriptions from `## text` on the rule line or the comment above it, shown after the folder in the subtitle",
-      "`enter` opens a terminal in the project folder running `make <target>`; the window waits for Enter so a quick target's output stays readable",
-      "`terminal = \"background\"` runs it unseen: a toast with the exit status and the last line, the whole output in the panel when it failed",
-      "The detail pane shows the recipe; `cmd+l` opens the whole Makefile in the panel, `cmd+c` copies `make -C <dir> <target>`"
+      "Every target of every Makefile in your project folders, one section per project",
+      "Each target's `## description` shown beside it",
+      "`enter` runs `make <target>` in a terminal in the project folder, left open so you can read the output",
+      "Or run it in the background: a notice with the exit status, the full output when it failed",
+      "The side pane shows the recipe; `cmd+l` opens the whole Makefile, `cmd+c` copies the command"
     ],
     "permissions": [
       "make",

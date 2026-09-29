@@ -1,7 +1,7 @@
 {
   "name": "otp",
   "title": "Verification Codes",
-  "description": "One-time codes from your recent text messages, newest first. Enter pastes the code into the app in front.",
+  "description": "One-time codes from your recent text messages, newest first, with who sent them. Enter pastes the code into the app in front; a bar item shows a new code as it arrives.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -128,15 +128,14 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "One-time codes from your texts, newest first; Enter pastes",
+    "tagline": "Paste one-time codes from your text messages",
     "category": "integration",
     "features": [
-      "Reads Messages' own database (`~/Library/Messages/chat.db`), one read-only query per listing, the last 24 hours by default",
-      "A message counts when it names a code (code, kod, şifre, OTP, PIN, verification, `G-123456`) and carries 4 to 8 digits that are not an amount, a date or a phone number",
-      "The sender as Messages knows it, a contact's name for a number or email in Contacts, the code as a green tag with how long ago it arrived",
-      "Live: the code that just arrived is the first row and a root result; Today and Earlier sections",
-      "A bar item that shows the newest code for a minute after it arrives; its popover has the code large, the sender, the minute counting down and the two codes before it, Enter copies",
-      "A copied code is concealed: clipboard managers skip it, pal's history never sees it, and the previous clipboard is back after 30 s"
+      "Codes from the last 24 hours of Messages on macOS, newest first, the sender named from Contacts",
+      "Spots codes in English and Turkish messages, skipping amounts, dates and phone numbers",
+      "A code that just arrived is the first row and shows up at the root",
+      "A bar item shows the newest code for a minute, with the sender and the codes before it",
+      "Copied codes stay out of clipboard history, and the previous clipboard comes back after 30 seconds"
     ],
     "permissions": [
       "full-disk-access",

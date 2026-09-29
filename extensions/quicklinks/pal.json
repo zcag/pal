@@ -1,7 +1,7 @@
 {
   "name": "quicklinks",
   "title": "Quicklinks",
-  "description": "Your own links, with a {query} placeholder for search URLs: open one, fill it in, or copy it. Created and edited in the panel (a browser to open with, the url filled from the tab in front), a library of ready-made searches, imported and exported as JSON.",
+  "description": "Your own links, opened with Enter, with a {query} slot for search URLs that you fill in from the search bar. Create and edit them in the panel, start from a library of ready-made searches, and import or export them as JSON.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -31,18 +31,15 @@
     }
   ],
   "store": {
-    "tagline": "Your own links, with a {query} slot for search URLs",
+    "tagline": "Your own links, with a slot for search terms",
     "category": "productivity",
     "features": [
-      "Enter opens the link; one with `{query}` in its url (`https://github.com/search?q={query}`) takes it as a typed argument in the search bar (one field per placeholder name), percent-encoded",
-      "`{selection}`, `{clipboard}` and `{files}` in a url are filled without asking (the text selected in the app in front, the newest copy, the paths selected in Finder), so `https://translate.google.com/?text={selection}` opens in one Enter",
-      "Create Quicklink is a form (name, url, keywords, the browser to open with), its url and name filled from the tab in front; Edit (`cmd+e`) opens it filled in, a url with no scheme is refused under the field",
-      "Browse Library: 25 ready-made searches (Google, Wikipedia, GitHub, npm, MDN, Stack Overflow, Maps...) added to your links with Enter, or searched with at once (`cmd+enter`)",
-      "Keywords are extra words the search matches; the placeholder shows as a tag, the favicon comes from the site",
-      "`prefer_existing_tab`: a link whose page is open in a browser tab switches to that tab instead of opening another",
-      "Raycast's `{argument}` and `{argument name=\"Repo\"}` are read the same way as `{query}`",
-      "Import Quicklinks and Export Quicklinks move the list as a JSON array of `{name, url, keywords?, app?}` (Raycast's export is read too)",
-      "An `import` file adds read-only links next to your own, read on every listing"
+      "`enter` opens a link; a url with `{query}` asks for the term right in the search bar",
+      "`{selection}`, `{clipboard}` and `{files}` fill in by themselves, so one `enter` translates the selected text",
+      "Create a link from the tab in front, pick the browser it opens in, edit with `cmd+e`",
+      "A library of 25 ready-made searches (Google, Wikipedia, GitHub, npm, MDN, Maps and more)",
+      "Optionally switch to a tab that already has the page open instead of opening another",
+      "Import and export as JSON; Raycast's quicklinks export is read as is"
     ],
     "permissions": [],
     "platforms": [

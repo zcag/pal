@@ -1,7 +1,7 @@
 {
   "name": "space",
   "title": "Disk Space",
-  "description": "What is taking the space: a root (home, a volume, any folder) scanned into a tree, drawn as a zoomable treemap of boxes inside boxes (Enter zooms in, Backspace out, the arrows walk the boxes), the same children as rows beside it, the biggest files and folders as lists, and cleanup suggestions (caches, stale node_modules and target folders, Xcode's DerivedData, old downloads, the Trash) with their sizes. Mark boxes and trash them together; every delete goes to the Trash after a confirm. Scans persist compactly, so reopening is instant and Rescan is explicit.",
+  "description": "See what fills your disk as a zoomable map of boxes sized by space, with the biggest files and folders listed and cleanup suggestions like caches and old build folders. Everything deleted goes to the Trash after a confirm.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -85,17 +85,14 @@
     }
   ],
   "store": {
-    "tagline": "Big file finder and cleanup: a zoomable treemap of what fills the disk",
+    "tagline": "See what fills your disk, and clean it up",
     "category": "system",
     "features": [
-      "A treemap of boxes inside boxes, squarified so they stay near square, area by size: Enter zooms into a folder, Backspace out, the arrows walk the boxes by position, Tab by size",
-      "Scans are a parallel Bun walk (a million-file home in 7 s, four times du), drawn live as they run; sizes on disk or apparent, hard links once, other volumes skipped, symlinks never followed",
-      "Colour by kind or by depth; the same children as rows beside the board with size, share and count; a footer line about the focused box",
-      "Mark boxes with `m` and trash them together: the marked total in the header, one confirm, everything to the Trash (never a silent delete)",
-      "Largest Files and Largest Folders under any scanned root, with Quick Look, reveal, open, copy path and a multi-select trash",
-      "Cleanup Suggestions: user caches, package caches, Xcode's DerivedData, stale node_modules and target folders, old downloads, the Trash, each with its size and a confirmed action",
-      "Scans persist compactly (the biggest nodes), so reopening is instant; Rescan is explicit; a zoom into a folder the saved scan cut rescans just that folder",
-      "`pal://space/scan?root=~/proj` and `pal://space/largest?root=…` from anywhere"
+      "A zoomable map of any folder or volume: `enter` zooms in, `backspace` out, the arrows move around",
+      "Fast scans that draw as they run, and reopen instantly next time",
+      "The largest files and folders, with Quick Look, reveal and copy path",
+      "Cleanup suggestions: caches, stale `node_modules` and `target` folders, Xcode's DerivedData, old downloads",
+      "Mark several boxes with `m` and move them to the Trash together, after one confirm"
     ],
     "permissions": [
       "Full Disk Access, for ~/Library/Mail and the like (unreadable folders are counted and named)"

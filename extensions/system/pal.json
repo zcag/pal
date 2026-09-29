@@ -1,7 +1,7 @@
 {
   "name": "system",
   "title": "System",
-  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake (for a while, until a time, or while an app runs, with a countdown on the bar), quit or unhide every app, dismiss notifications. Quick Look on the Finder selection.",
+  "description": "System commands from the keyboard: sleep, lock, restart, shut down, empty the trash, dark mode, volume, brightness, eject, quit every app, clear notifications. Keep the computer awake for a while, until a time or while an app runs, with a countdown on the bar.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -42,15 +42,12 @@
     "tagline": "Sleep, lock, restart, dark mode, volume, keep awake",
     "category": "system",
     "features": [
-      "Indexed rows with keywords, so `mute`, `sleep` or `power off` at the root finds the command",
-      "Only what this machine can run is listed: Brightness needs the `brightness` CLI on macOS, Do Not Disturb a Shortcut named \"Toggle Do Not Disturb\"",
-      "Empty Trash shows what is in the Trash on the right (`3 items`, `empty`); Toggle Dark Mode carries the current appearance as a tag",
-      "Keep Awake takes how long in the bar (`45m`, `2h`, `14:30`, `forever`; blank is the default), `cmd+enter` keeps awake until turned off, `cmd+u` opens a form for a time, an app to follow and the display; the row reads Allow Sleep with the time left while a run is on",
-      "A bar item with a coffee glyph and the countdown (∞ without an end), hidden while off; its popover has the presets on the digits, the display switch and Allow sleep. `caffeinate` (or `systemd-inhibit`) does the timing itself, so the run ends on time even with pal down, and a restarted pal finds it again by its pid",
-      "Quit All Apps closes every open app but Finder and pal (each asked the way its Quit menu asks, so unsaved work still prompts), Unhide All Apps brings hidden ones back, Dismiss Notifications clears what is on screen (Notification Center over Accessibility on macOS; the daemon's CLI on Linux)",
-      "Log Out, Restart, Shut Down, Empty Trash and Quit All Apps ask first, unless `confirm_destructive` is off",
-      "Quick Look Finder Selection (macOS): the Quick Look panel over what is marked in Finder, the names as the subtitle; the row is inert and says why while nothing is selected or Finder is not in front. `pal://system/run?id=quick-look-selection` for a hotkey",
-      "pal hides before running, so the command lands on the desktop, not on pal; a failure keeps the panel open with the tool's message"
+      "Type `mute`, `sleep` or `power off` at the root to find the command",
+      "Only what this machine can do is listed; Empty Trash shows how much is in it, Dark Mode the current look",
+      "Keep Awake for `45m`, `2h`, until `14:30` or while an app runs; the bar counts down, and it ends on time even if pal quits",
+      "Quit All Apps asks each app the usual way, so unsaved work still prompts; Unhide All Apps and Dismiss Notifications too",
+      "Log Out, Restart, Shut Down and Empty Trash ask first (a setting)",
+      "Quick Look on what is selected in Finder (macOS)"
     ],
     "permissions": [
       "automation",

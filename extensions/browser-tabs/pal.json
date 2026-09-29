@@ -1,7 +1,7 @@
 {
   "name": "browser-tabs",
   "title": "Browser Tabs",
-  "description": "Every open tab of your browsers with its favicon. Enter switches to it; close, mute and copy from the action panel.",
+  "description": "Every tab open in your browsers, with its favicon: `enter` switches to it, and you can close, mute or copy it from the list.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -54,12 +54,11 @@
     "tagline": "Switch to any open tab of Chrome, Safari or Firefox",
     "category": "productivity",
     "features": [
-      "A Chromium browser started with `--remote-debugging-port=9222` lists over the DevTools protocol, with `playing` and `muted` tags",
-      "Safari and Chrome over one AppleScript run on macOS, so a Chrome without the port still lists",
-      "Firefox's tabs from its session file, read-only: they list, and Focus raises its window",
-      "Live: listed again on every show, so tab titles are root results; the url, the host and the browser are keywords",
-      "Filters: All, Audible (what is playing sound), This window",
-      "Close (`cmd+w`), Mute (`cmd+m`, the page's media elements), Copy URL (`cmd+c`), Copy as markdown link (`cmd+shift+c`)"
+      "Tabs from Chrome, Safari and Firefox, and any Chromium browser with remote debugging on",
+      "Tab titles show up in the main search, so typing a page's name finds it",
+      "Filters for All, Playing sound and This window",
+      "Close (`cmd+w`), mute (`cmd+m`), copy the address (`cmd+c`) or a markdown link (`cmd+shift+c`)",
+      "Firefox tabs can be listed and focused, but not closed or muted"
     ],
     "permissions": [
       "automation",

@@ -1,7 +1,7 @@
 {
   "name": "apps",
   "title": "Applications",
-  "description": "Installed applications with their own icons: .app bundles on macOS (running ones tagged, with Quit and Hide; the System Settings panes as rows), .desktop entries on Linux (their own actions as secondary actions).",
+  "description": "Launch any installed app by name, with its own icon. On macOS, running apps can be quit or hidden and the System Settings panes are rows too; on Linux, an app's own actions are one key away.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -26,13 +26,12 @@
     "tagline": "Every installed app, with its icon, a keystroke from launch",
     "category": "productivity",
     "features": [
-      "macOS: `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, one level deep so the Utilities folders come along",
-      "Linux: `.desktop` entries from every XDG data dir and the flatpak exports, hidden and `NoDisplay` ones skipped",
-      "The bundle id and the display name are keywords, so `com.apple.` or `Chrome` finds the app",
-      "A running app carries a green `Running` tag and gains Quit (`cmd+q`) and Hide (`cmd+h`)",
-      "35 System Settings panes as rows on macOS: `Keyboard`, `Displays`, `Privacy & Security`, found by words like `dark mode` or `dns`",
-      "A `.desktop` file's own actions (`New Private Window`) are the row's secondary actions on Linux",
-      "`cmd+i` shows the path, bundle id, version and whether it runs"
+      "Every app in your Applications folders on macOS, every `.desktop` entry and flatpak on Linux",
+      "Found by name or bundle id, so `Chrome` or `com.apple.` both work",
+      "Running apps are tagged, with Quit (`cmd+q`) and Hide (`cmd+h`)",
+      "System Settings panes as rows on macOS, found by words like `dark mode` or `dns`",
+      "On Linux, an app's own actions (`New Private Window`) as secondary actions",
+      "`cmd+i` shows the path, bundle id and version"
     ],
     "permissions": [
       "automation"

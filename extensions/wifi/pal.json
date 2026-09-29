@@ -16,13 +16,12 @@
     "tagline": "Join, forget or inspect Wi-Fi networks; switch the radio",
     "category": "system",
     "features": [
-      "Sections Current, Known and Available: the current network with its IP, channel, security and signal (`▂▄▆█ 92%`), saved networks tagged `in range` when a scan sees them",
-      "`enter` joins: a saved or open network at once, a secured new one with the password typed into the bar's field, or after a form when none was",
-      "`cmd+shift+c` copies a saved network's password (the keychain prompts on macOS)",
-      "`ctrl+x` forgets a network, after a confirm; `cmd+c` copies the IP or the network's name",
-      "A Scan for Networks row on macOS, where a scan takes seconds; a Wi-Fi row turns the radio off or on",
-      "macOS shows network names only with Location access: the first listing inside the palette asks once (never at startup or on a show), the Wi-Fi names row asks on Enter, a refusal keeps it as the row that opens the pane",
-      "Live: read again on every show"
+      "Current, Known and Available sections, with signal, channel, security and IP for the network you are on",
+      "`enter` joins a network, asking for the password in the search bar when it needs one",
+      "`cmd+shift+c` copies a saved network's password (macOS asks for your keychain)",
+      "`ctrl+x` forgets a network after a confirm; `cmd+c` copies the name or IP",
+      "Turn Wi-Fi off or on, and scan for networks on macOS",
+      "On macOS network names need Location access; it asks once, only when you open the list"
     ],
     "permissions": [
       "location",

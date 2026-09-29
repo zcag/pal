@@ -1,7 +1,7 @@
 {
   "name": "window-management",
   "title": "Window Management",
-  "description": "Halves, thirds, quarters, maximize, larger and smaller, resize to a size, nudge by a step, center, fullscreen, minimize, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
+  "description": "Move and resize the focused window, or any window, from the keyboard: halves, thirds, quarters, maximize, center, resize to a size, nudge, fullscreen, the next display, and back to where it was.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -66,18 +66,15 @@
     }
   ],
   "store": {
-    "tagline": "Halves, thirds, quarters, resize, nudge, fullscreen: any window",
+    "tagline": "Snap, resize and move any window from the keyboard",
     "category": "productivity",
     "features": [
-      "Thirty-two rows: Left Half, Right Third, Top Left Quarter, Maximize, Almost Maximize, Maximize Height, Maximize Width, Center, Reasonable Size, Larger, Smaller, Resize to…, Move Left / Right / Up / Down, Next Display, Toggle Fullscreen, Minimize, Unminimize, Restore",
-      "Enter applies the layout to the window you were in: pal hides first, so the window behind the panel is the one moved, and the HUD names the layout",
-      "Apply to… (`cmd+enter`) picks a window from the open ones first; Arrange Window goes the other way round, a window then its layout",
-      "Restore puts the window back where it was before a run of layouts; moving it by hand in between starts a new run",
-      "`gap` keeps pixels between windows and the screen edge; the halves, thirds and quarters are equal cells with the gap between them; `step` is how far a Move nudges",
-      "Larger and Smaller scale the window by 10% about its centre and keep it on screen; Toggle Fullscreen is the app's own full screen (a Space on macOS); Unminimize brings back the window Minimize last put away",
-      "Resize to… takes a size (`1280x720`, or one number for a square) and, when you want it, a place, typed into the search bar; the window keeps its centre otherwise and stays on its display",
-      "`cycle` makes a repeated Left Half step through two thirds and a third, so one hotkey pressed again cycles the sizes",
-      "Per-layout global hotkeys in `[palettes.window-management.item_hotkeys]` move the focused window without showing pal"
+      "32 layouts: halves, thirds, quarters, maximize, center, larger, smaller, move, next display, fullscreen, minimize",
+      "Acts on the window you were in; `cmd+enter` picks another window first",
+      "Restore puts a window back where it was before a run of layouts",
+      "Resize to a size typed in the search bar (`1280x720`), keeping the window centred",
+      "A gap between windows and a nudge step to set; with `cycle` on, Left Half again steps through two thirds and a third",
+      "Global hotkeys per layout move the focused window without opening the panel"
     ],
     "permissions": [
       "accessibility"

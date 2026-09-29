@@ -1,7 +1,7 @@
 {
   "name": "states",
   "title": "States",
-  "description": "The named variables pal reads: the ones you declare in `[states]`, the built-ins (the hour, the weekday, the front app, the network), what extensions publish. Set one by hand for a while, reset it, declare a new one; a bar item shows what is being held by hand.",
+  "description": "Named values your setup can react to: the ones you declare, built-ins like the hour, the front app and the network, and what extensions publish. Set one by hand for a while, reset it, or declare a new one.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -19,13 +19,13 @@
     "working"
   ],
   "store": {
-    "tagline": "Named variables: declare, set by hand, compose, hide bar items on",
+    "tagline": "See, set and declare the named states your setup reacts to",
     "category": "system",
     "features": [
-      "Every state with its live value and which layer answers: set by hand, its expression, a publisher, the default",
-      "Set true or false until reset, or for 15 minutes, an hour, three hours, until tomorrow; any value and duration typed into the row",
-      "New state writes `[states.<name>]` to the config file with an expression, a default and a description",
-      "A bar item that shows only while a state is held by hand, with the time left"
+      "Every state with its live value and where it comes from: set by hand, its expression, an extension, the default",
+      "Hold one true or false for 15 minutes, an hour, three hours or until tomorrow, or type any value and duration",
+      "New state adds one to your config file with an expression, a default and a description",
+      "A bar item that shows while a state is held by hand, with the time left"
     ],
     "screenshots": [
       {

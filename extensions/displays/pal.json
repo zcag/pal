@@ -1,7 +1,7 @@
 {
   "name": "displays",
   "title": "Displays",
-  "description": "Every display with its mode and brightness; resolution and HiDPI scaling, rotation, mirroring and the main display through displayplacer; brightness, contrast, volume and the input source of an external monitor over DDC; arrangement presets.",
+  "description": "Every display with its mode and brightness: change resolution, scaling, rotation and mirroring, set an external monitor's brightness and input source, and save arrangements to switch between.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -40,14 +40,15 @@
     }
   ],
   "store": {
-    "tagline": "Resolution, brightness, rotation, mirroring and input source, plus arrangement presets",
+    "tagline": "Resolution, brightness, rotation and input source for every display",
     "category": "system",
     "features": [
-      "One row per display: its name, the mode it is in (resolution, refresh rate, HiDPI), rotation, main and mirror tags, the brightness as the accessory",
-      "Enter drills into the display: Brightness, Contrast and Volume as sliders with keys, the input source, every mode it can take (a confirm when the resolution changes, with Undo one row away), rotation, mirroring, Make main",
-      "Arrangement presets: save the current arrangement under a name, apply it from the palette, the bar or `pal://displays/preset?name=`",
-      "The built-in display through the `brightness` CLI, external monitors over DDC/CI (`m1ddc` on Apple Silicon, `ddcctl` on Intel, `ddcutil` on Linux); modes and arrangement through `displayplacer`; each optional, with a row that says what to install",
-      "A bar item with the external display's brightness, its popover a slider per display"
+      "One row per display with its resolution, refresh rate, rotation and brightness",
+      "Brightness, contrast and volume as sliders, for external monitors too (over DDC)",
+      "Switch the input source of an external monitor",
+      "Change the resolution with an easy undo, rotate, mirror or make a display the main one",
+      "Save the arrangement under a name and apply it again from the list, the bar or a link",
+      "Each tool it uses is optional; a row says what to install when one is missing"
     ],
     "permissions": [],
     "platforms": [
