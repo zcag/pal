@@ -10,7 +10,8 @@ import manifest from "./pal.json" with { type: "json" };
 
 pinClock();
 const installed = readdirSync(BUNDLED, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => ({ name: d.name, version: "0.1.0", root: BUNDLED, loaded: true, store: false, bundled: true }));
-const host = await Host.bundled({ core: { "extensions.list": () => installed } });
+// Nothing on offer: the pictures show the games that come with pal.
+const host = await Host.bundled({ core: { "extensions.list": () => installed, "store.state": () => ({ available: [] }) } });
 try {
   const items = await host.list("games", "games");
   writeFixture("games", {
