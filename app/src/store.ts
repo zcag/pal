@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { iconOf } from "./items";
+import type { MissingFrom, MissingInfo } from "./Launcher";
 
 export type Build = { hash: string; seq: number; protocol: number; commit: string; url: string; manifest: string; size?: number; sig: string; yanked?: boolean };
 export type BuildInfo = { hash: string; seq: number; protocol: number; commit: string };
@@ -73,6 +75,32 @@ export const store = {
   /** A palette of `extension` opened (the usage counts; the core dedupes per show). */
   opened: (extension: string) => invoke<void>("usage_opened", { extension }),
 };
+
+/** The listing a name is known by: pal's registry's first, else any registry's. */
+export const listed = (s: StoreState, name: string): Available | undefined =>
+  s.available.find((a) => a.name === name && s.registries.some((r) => r.ours && r.name === a.registry)) ?? s.available.find((a) => a.name === name);
+
+/** The panel's missing card (Launcher `missing`): what the store knows of an extension a push or link named (an instance key is its extension's), turned off, listed here, or unknown. */
+export async function missingInfo(extension: string): Promise<MissingInfo> {
+  const name = extension.split("@")[0];
+  const s = await store.state();
+  const a = listed(s, name);
+  const title = a?.listing.title || name;
+  const icon = a ? iconOf(a.listing.icon, title) : undefined;
+  if (s.disabled.includes(name)) return { title, icon, tagline: a?.listing.tagline, state: "off" };
+  return a ? { title, icon, tagline: a.listing.tagline, state: "absent", installable: a.installable, blocked: a.blocked } : { title, state: "unknown" };
+}
+
+/** The card's fix: turn it on, or install it from the registry that offers it here; resolves once it is loaded. */
+export async function installMissing(extension: string, info: MissingInfo, from: MissingFrom): Promise<void> {
+  const name = extension.split("@")[0];
+  if (info.state === "off") return store.setDisabled(name, false);
+  const s = await store.state();
+  ok(await store.install(name, s.available.find((a) => a.name === name && a.installable)?.registry ?? null, from));
+}
+
+/** A palette of `extension` entered, for the usage counts; never in the way. */
+export const opened = (extension: string) => { store.opened(extension).catch(() => {}); };
 
 /** An operation's result as a thrown error when it did not go through, so a caller can `await` it like any command. */
 export function ok(r: OpResult): OpResult {
