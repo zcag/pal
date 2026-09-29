@@ -1,5 +1,7 @@
 //! Updates: the check against the release manifest (`plugins.updater.endpoints`
-//! in tauri.conf.json: `latest.json` on the latest GitHub release, written
+//! in tauri.conf.json: pal.cagdas.io's `/update/<target>/<arch>/<version>`,
+//! which answers the latest GitHub release's `latest.json` and counts the
+//! check, then that `latest.json` itself when the site fails; it is written
 //! by `.github/workflows/release.yml`), and the install.
 //!
 //! The check runs once after startup and then daily while
