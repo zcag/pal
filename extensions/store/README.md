@@ -30,7 +30,12 @@ pal's own registry's extensions have one. An extension that comes with
 pal is turned off in Settings › Extensions, never removed.
 
 What has an update leads the list under an **Updates** heading (unless
-the filter already narrows to updates).
+the filter already narrows to updates). Opened on All with nothing typed,
+**Featured** follows (the first three of Spotify, GitHub, Solitaire,
+Calendar, Translate, Disk Space, Hue and Typing that are not installed and
+install here; Settings' Browse has the same row), then a section per
+category, each by title. A search or a filter is one list, the
+extensions whose title the words start first.
 
 Marked extensions (cmd-click, shift-click, shift+arrows) install, update
 or remove together, open their pages, or copy their install commands one
@@ -39,8 +44,9 @@ several.
 
 ## The detail pane
 
-`cmd+i` on a row: the description, the palettes, the screenshots from the
-listing, and what it installs first; the metadata lists the author, where
+`cmd+i` on a row: the description, what it does (the listing's
+features, when its index has them), the palettes, the screenshots from
+the listing, and what it installs first; the metadata lists the author, where
 it comes from, its status, its build (short hash and date), whether it
 updates by itself, category, platforms, the `pal install` line and, for
 pal's registry, a link to the page.

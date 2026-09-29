@@ -55,8 +55,8 @@ try {
   writeFixture("store", {
     palettes: { store: { title: manifest.title, icon: manifest.icon, input: true, placeholder: meta.placeholder, filters: meta.filters, byQuery, details } },
     shots: {
-      "1-browse": { palette: "store", keys: ["down*2"], caption: "The store as it opens: what has an update first, then every listed extension with how it stands" },
-      "2-detail": { palette: "store", keys: ["type:git", "cmd+i"], caption: "cmd+I opens the detail pane: what the extension is, its palettes and pictures, where it comes from" },
+      "1-browse": { palette: "store", keys: ["down*2"], caption: "The store as it opens: an update that waits, three featured, then a section per category with how each stands" },
+      "2-detail": { palette: "store", keys: ["type:git", "cmd+i"], caption: "cmd+I opens the detail pane: what the extension is and does, its palettes and pictures, where it comes from" },
       "3-actions": { palette: "store", keys: ["down*3", "cmd+k"], caption: "Install on Enter; the store page and the install command a keystroke away" },
     },
   });

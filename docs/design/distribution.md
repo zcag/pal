@@ -538,15 +538,29 @@ Unused extensions are simply not installed, and they stay visible.
   - Enter shows the listing with Install. After the install it opens the
     palette that was searched for.
 - **Games.** The Games palette (`extensions/games/index.ts:17`) adds every game
-  in the index for this platform, marked *Not installed*. Enter installs it,
-  waits for it to load, then starts it. This is through a new SDK call,
-  `extensions.available()`, which any shelf palette can use.
+  in the index for this platform, under *Not installed* after the installed
+  ones. Enter installs it, waits for it to load, then starts it. This is
+  through a new SDK call, `extensions.available()`, which any shelf palette
+  can use.
 - **Settings › Extensions.**
-  - The "Get more extensions" card becomes a browse section in the page:
-    categories, search, install.
-  - A Registries section sits beside it.
+  - The page has two views, switched at its top: Installed (the home) and
+    Browse. "Get more extensions" on the home opens Browse.
+  - Browse lists every extension the registries list as cards (the tile,
+    the tagline, the first feature, where it comes from, Install or Open),
+    installed ones drawn flat with a check. The categories sit above as
+    pills with their counts, and the search narrows as you type. With
+    neither, a Featured row (three with their first screenshot) leads and
+    each category is a shelf.
+  - A card opens the listing's page: the screenshots large in the scheme in
+    force, the description and features, the palettes, the facts (where
+    from, what it runs on, what it installs first, the build, the command)
+    and three related ones.
+  - The Registries section and the source install sit under Browse.
   - Updates, registry problems, pending installs, left-over references and
-    rollbacks go to Needs you.
+    rollbacks go to Needs you, on the home.
+- **Store palette.** Opened on All with nothing typed: the updates, three
+  featured, then a section per category, by title. A search is one list, the title's
+  matches first. The Featured list is the same in both places.
 - **First run.** A welcome row, "Pick extensions", opens the Store on its
   categories. This keeps the standing decision in `welcome.rs:1-3`: no wizard,
   no prompt until asked for.

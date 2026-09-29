@@ -255,7 +255,9 @@ describe("SettingsExtensions", () => {
     expect(git[0]).toBe("github");
     expect(git).not.toContain("hue");
     expect(names(browseRows(all, "fun", "")).slice(0, 2)).toEqual(["2048", "blackjack"]);
-    expect(browseRows(all, "fun", "").at(-1)?.installed).toBe(true);
+    // Installed or not, the order is the title's: a card that installs stays where it is.
+    const fun = browseRows(all, "fun", "").map((a) => (a.listing.title || a.name).toLowerCase());
+    expect(fun).toEqual([...fun].sort((a, b) => a.localeCompare(b)));
     expect(browseRows(all, "all", "daily").some((a) => a.name === "wordle")).toBe(true);
     const cats = categoriesOf(all);
     expect(cats.map((c) => c.id)).toEqual(["productivity", "developer", "system", "media", "reference", "fun", "integration"]);

@@ -39,8 +39,8 @@ async function current(force: boolean, now: number): Promise<{ state: StoreState
  * that did not answer), then what has an update under its own heading,
  * then the rest. Opened on everything with nothing typed, the rest is a
  * Featured section (three worth meeting first) and a section per
- * category, what is not installed leading each; a search or a filter
- * lists one run of rows, the title's matches first.
+ * category; a search or a filter lists one run of rows, the title's
+ * matches first.
  */
 function rows(state: StoreState, filter: string, query: string, now: number, error?: string): Item[] {
   const out: Item[] = [];

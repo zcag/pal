@@ -200,7 +200,7 @@ const withCode = (s: string): ReactNode[] => s.split(/`([^`]*)`/g).map((part, i)
 /** The card's line under the tagline: the first feature, else the description when it says more than the tagline. */
 export function whatLine(l: Listing): string | undefined {
   const f = featuresOf(l)[0];
-  if (f) return plainText(f);
+  if (f) return cap(plainText(f));
   const d = l.description.trim();
   const t = l.tagline.trim().replace(/\.$/, "").toLowerCase();
   return d && (!t || !d.toLowerCase().startsWith(t)) ? d : undefined;
@@ -223,8 +223,9 @@ export const featuredOf = (available: Available[], n = 3): Available[] =>
  * name, title, tagline, category, keywords or a palette's title, or start
  * a word of the description or a feature (inside a word there, "git"
  * would find every "digit"). With a query the title's matches lead (every
- * word starts a word of the title, then a word inside it); within that,
- * and without a query, what is not installed comes first, each by title.
+ * word starts a word of the title, then a word inside it), then by title.
+ * Installed or not changes nothing here: a card that installs stays where
+ * it is, and the card itself says which it is.
  */
 export function browseRows(available: Available[], category: string, query: string): Available[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -240,7 +241,7 @@ export function browseRows(available: Available[], category: string, query: stri
   };
   return available
     .filter((a) => (category === "all" || a.listing.category === category) && (!words.length || matches(a)))
-    .sort((x, y) => rank(x) - rank(y) || Number(x.installed) - Number(y.installed) || title(x).localeCompare(title(y)));
+    .sort((x, y) => rank(x) - rank(y) || title(x).localeCompare(title(y)));
 }
 
 /** What a Browse card or a listing's page is doing: installing, done, or why it failed. */

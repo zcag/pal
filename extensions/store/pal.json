@@ -16,7 +16,7 @@
     "tagline": "Browse, install and update extensions without leaving the panel",
     "category": "system",
     "features": [
-      "Every listed extension with its icon, tagline and status (installed, built in, update available), filtered as you type",
+      "Opens on three featured extensions and a section per category, each row with its icon, tagline and status (installed, built in, update available); typing searches them all",
       "Narrow to Installed, Updates, a registry, or a category like Developer, Media or Fun",
       "`cmd+i` shows the description, palettes and screenshots, where it comes from and whether it updates itself",
       "`enter` installs (after a confirm), updates, or opens an extension you already have",
@@ -33,11 +33,11 @@
     "screenshots": [
       {
         "file": "1-browse.png",
-        "caption": "The store as it opens: what has an update first, then every listed extension with how it stands"
+        "caption": "The store as it opens: an update that waits, three featured, then a section per category with how each stands"
       },
       {
         "file": "2-detail.png",
-        "caption": "cmd+I opens the detail pane: what the extension is, its palettes and pictures, where it comes from"
+        "caption": "cmd+I opens the detail pane: what the extension is and does, its palettes and pictures, where it comes from"
       },
       {
         "file": "3-actions.png",

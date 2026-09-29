@@ -1543,11 +1543,17 @@ listed extension with its tile, its tagline as the subtitle, how it
 stands (`update`, `needs a newer pal`, `not updated`, `comes with pal`,
 `installed`, or why it cannot be installed here), the registry's name
 when it is not pal's, and the category on the right. What has an update
-leads the list under an **Updates** heading. The detail pane (`⌘I`)
-shows the description, the palettes and the listing's screenshots, with
-the author, where it comes from, its status, its build (short hash and
-date), whether it updates by itself, category, platforms, the `pal
-install` line and, for pal's registry, a link to the page.
+leads the list under an **Updates** heading. Opened on All with nothing
+typed, the rest follows as **Featured** (three worth meeting first that
+are not installed: Spotify, GitHub, Solitaire, Calendar, Translate, Disk
+Space, Hue, Typing, in that order) and then a section per category, by
+title (the section names the category, so the row does not). A search or a filter is one list, the extensions whose
+title the words start first. The detail pane (`⌘I`) shows the
+description, what it does (the listing's features), the palettes and the
+listing's screenshots, with the author, where it comes from, its status,
+its build (short hash and date), whether it updates by itself, category,
+platforms, the `pal install` line and, for pal's registry, a link to the
+page.
 
 | standing | `Enter` | `⌘Enter` | `⌘C` | `⌃X` |
 | --- | --- | --- | --- | --- |
@@ -3107,8 +3113,9 @@ Every game in one list: one row per game with its tile and tagline,
 sorted by name, and Enter opens that game as its own level (Escape comes
 back to the list). Nothing is kept here: every open reads the installed
 extensions' manifests and lists each view palette of a loaded extension
-the store shelves under Fun, then every game the registries list for this
-machine that is not installed, tagged **Not installed**. Enter on one of
+the store shelves under Fun, then, under a **Not installed** heading,
+every game the registries list for this machine that is not installed
+(the installed ones then sit under **Installed**). Enter on one of
 those installs it from its registry, waits for it to load, then opens it
 (its row says **Installing…** meanwhile); an install that fails stays at
 the top of the list as a row saying why. No settings.

@@ -22,7 +22,7 @@
     "category": "fun",
     "features": [
       "One row per game with its tile and tagline; typing narrows the list",
-      "Games you have not installed yet are listed too, tagged Not installed",
+      "Games you have not installed yet are listed too, under Not installed",
       "`enter` opens a game, or installs it, waits for it to load and opens it",
       "A failed install stays as a row saying why; `escape` comes back to the list"
     ],
@@ -34,7 +34,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Every game pal has, by name, each with its tile and what it is"
+        "caption": "The games you have first, then every other game pal's registry offers, each with its tile and what it is; Enter installs one and starts it"
       },
       {
         "file": "2-search.png",

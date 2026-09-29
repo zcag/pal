@@ -74,11 +74,11 @@ export function select(all: Standing[], filter: string | undefined, query: strin
 export const featured = (all: Standing[], n = 3): Standing[] =>
   FEATURED.map((name) => all.find((s) => s.a.name === name && !s.a.installed && s.a.installable)).filter((s): s is Standing => !!s).slice(0, n);
 
-/** The standings as shelves: a category each in the filter's order (one no filter names after them, by title; none last as Other), what is not installed first on each, then by title. */
+/** The standings as shelves: a category each in the filter's order (one no filter names after them, by title; none last as Other), each in the order it came in (select's). */
 export function shelves(all: Standing[]): { title: string; rows: Standing[] }[] {
   const rank = (c: string) => { const i = (CATEGORIES as readonly string[]).indexOf(c); return i < 0 ? (c ? CATEGORIES.length : CATEGORIES.length + 1) : i; };
   const cats = [...new Set(all.map((s) => s.a.listing.category))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-  return cats.map((c) => ({ title: categoryTitle(c), rows: all.filter((s) => s.a.listing.category === c).sort((x, y) => Number(x.a.installed) - Number(y.a.installed) || titleOf(x).localeCompare(titleOf(y))) }));
+  return cats.map((c) => ({ title: categoryTitle(c), rows: all.filter((s) => s.a.listing.category === c) }));
 }
 
 const shortHash = (h: string) => h.slice(0, 7);
