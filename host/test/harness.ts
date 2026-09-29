@@ -73,8 +73,8 @@ export type Options = {
 export type Loaded = { extension: string; root: string; palettes: PaletteMeta[]; bar: BarMeta[]; manifest: Manifest; warnings: string[] };
 export type Failed = { extension: string; root: string; message: string; manifest: Manifest };
 export type Hello = {
-  version: string; bun: string; pid: number; roots: string[];
-  extensions: { name: string; root?: string; manifest: Manifest; loaded: boolean; palettes: PaletteMeta[]; warnings: string[]; bar: BarMeta[] }[];
+  protocol: number; protocolMin: number; bun: string; pid: number; roots: string[];
+  extensions: { name: string; extension: string; root?: string; manifest: Manifest; loaded: boolean; disabled: boolean; palettes: PaletteMeta[]; warnings: string[]; bar: BarMeta[] }[];
   errors: Record<string, string>;
 };
 

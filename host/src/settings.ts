@@ -27,13 +27,20 @@ let roots: string[] = [];
 export const setRoots = (r: string[]) => { roots = [...new Set(r.flatMap((x) => [real(x), x]).map((x) => x.replace(/\/+$/, "") + "/"))]; };
 const real = (p: string) => { try { return realpathSync(p); } catch { return p; } };
 
-/** `<root>/<name>/...` frames on the stack name the extension. A path may hold spaces (the store is under `Application Support` on macOS), so it runs from its first `/`. */
+/**
+ * `<root>/<name>/...` frames on the stack name the extension. A path may
+ * hold spaces (the store is under `Application Support` on macOS), so it
+ * runs from its first `/`. `<root>/node_modules/...` is the SDK the
+ * packages share (the bundled root's copy, build-extensions.sh), whose
+ * `settings.get` is on the stack above the extension's frame: skipped.
+ */
 function fromStack(): string | undefined {
   for (const line of (new Error().stack ?? "").split("\n")) {
     const path = line.match(/(\/[^()]+?)(?:\?t=\d+)?:\d+:\d+\)?$/)?.[1];
     if (!path) continue;
     const root = roots.find((r) => path.startsWith(r));
-    if (root) return path.slice(root.length).split("/")[0];
+    const name = root && path.slice(root.length).split("/")[0];
+    if (name && name !== "node_modules") return name;
   }
 }
 

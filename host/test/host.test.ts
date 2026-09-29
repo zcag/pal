@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { BarItem, BarMeta } from "../../sdk/src/protocol.ts";
+import { PROTOCOL, PROTOCOL_MIN, type BarItem, type BarMeta } from "../../sdk/src/protocol.ts";
 import { API, HOST, Host, Root, manifest, simpleExt } from "./harness.ts";
 
 describe("loading", () => {
@@ -36,9 +36,9 @@ describe("loading", () => {
     expect(await host.list("bare_import", "p")).toEqual([{ id: "a", name: "hey" }]);
   });
 
-  test("hello: version, bun, pid, roots, every extension with its manifest and load state, errors", async () => {
+  test("hello: the protocol range, bun, pid, roots, every extension with its manifest and load state, errors", async () => {
     const h = await host.hello();
-    expect(h.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect([h.protocolMin, h.protocol]).toEqual([PROTOCOL_MIN, PROTOCOL]);
     expect(h.bun).toBe(Bun.version);
     expect(h.pid).toBe(host.pid);
     expect(h.roots).toEqual([root.dir]);

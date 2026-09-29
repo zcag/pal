@@ -11,12 +11,21 @@
 // app/scripts/build-extensions.sh). Later roots win on a name clash, so the
 // core passes the bundled root first and the user's own last. A root that
 // does not exist yet is picked up when it appears (its parent is watched).
+//
+// What decides whether a found extension loads: a copy stamped with a
+// `protocol` outside [PROTOCOL_MIN, PROTOCOL] is passed over for the same
+// name in an earlier root (and reported failed when there is none); one the
+// core lists as turned off (`core/store.disabled`, then `disabled/changed`)
+// is announced as `extension/disabled` and parked; one whose `requires`
+// names an extension that is missing or off fails with that, and loads once
+// it is there. The core's `reload {extension}` loads one name on demand and
+// answers when that load is done (docs/design/distribution.md).
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { isTileIcon } from "../../sdk/src/icon.ts";
-import { checkBarRules, checkBarSettings, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
-import type { BarMeta, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, StatesChanged } from "../../sdk/src/protocol.ts";
+import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
+import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance } from "./instances.ts";
@@ -27,7 +36,6 @@ import { update as updateStates } from "./states.ts";
 import { transpile } from "./surface.ts";
 import { forget as forgetViews, viewMethods } from "./views.ts";
 
-const VERSION = "0.0.1";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
 if (ROOTS.length === 0) ROOTS.push(resolve(import.meta.dir, "../../extensions"));
 setRoots(ROOTS);
@@ -38,7 +46,8 @@ const ROOT_TIMEOUT_MS = Number(process.env.PAL_ROOT_TIMEOUT_MS) || 1500;
 /** What a worker's answer to a sections request gets on top of `ROOT_TIMEOUT_MS`, which its palettes are held to inside: only a dead worker runs it out. */
 const WORKER_SLACK_MS = 250;
 
-type Found = { root: string; entry: string };
+/** Where a name loads from; `refused` when the only copies were built for a protocol this host does not run (the reason). */
+type Found = { root: string; entry: string; refused?: string };
 const exts = new Map<string, Extension>();
 const found = new Map<string, Found>();
 const errors = new Map<string, string>();
@@ -48,6 +57,10 @@ const manifests = new Map<string, Manifest>();
 const checked = new Map<string, { metas: PaletteMeta[]; warnings: string[] }>();
 /** Every instance of a `multi` extension, by key, each in its own worker (docs/design/instances.md); `exts` holds the inline, non-`multi` ones by name. */
 const workers = new Map<string, WorkerInstance>();
+/** The names the core has turned off (`[store] disabled`): found, announced, never loaded. */
+let disabled = new Set<string>();
+/** Per extension held back by its `requires`, the reason: a change there is what reloads it. */
+const blocked = new Map<string, string>();
 
 const send = (msg: Response | Notification) => process.stdout.write(JSON.stringify(msg) + "\n");
 // stdout is the protocol: an extension's console.log would land between the
@@ -69,17 +82,47 @@ async function entry(root: string, name: string): Promise<Found | undefined> {
 /** `node_modules` (the `@zcag/pal` link lives there) and dotfiles are never extensions. */
 const isExtensionName = (name: string) => !!name && name !== "node_modules" && !name.startsWith(".");
 
-/** Every extension across the roots; a later root replaces an earlier one's entry. */
-async function discover(): Promise<Map<string, Found>> {
-  const map = new Map<string, Found>();
+/** Whether this host runs a package stamped `protocol`; unstamped (source, hand-made) always. */
+const runs = (protocol: unknown) => protocol === undefined || (typeof protocol === "number" && protocol >= PROTOCOL_MIN && protocol <= PROTOCOL);
+const refusal = (protocol: unknown) => `built for protocol ${JSON.stringify(protocol)}; this pal runs ${PROTOCOL_MIN === PROTOCOL ? `protocol ${PROTOCOL}` : `${PROTOCOL_MIN} to ${PROTOCOL}`}`;
+const protocolOf = (dir: string): Promise<unknown> => Bun.file(`${dir}/pal.json`).json().then((m) => m?.protocol, () => undefined);
+/** Each skipped copy is said once, not on every look. */
+const skipped = new Set<string>();
+
+/**
+ * Where `name` loads from: the last root with a copy this host can run. A
+ * copy built for another protocol is passed over for an earlier root's;
+ * when every copy is, the last one is returned `refused`.
+ */
+async function locate(name: string): Promise<Found | undefined> {
+  let best: Found | undefined;
   for (const root of ROOTS) {
-    if (!(await exists(root))) continue;
-    const names = (await readdir(root, { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory() && isExtensionName(d.name)).map((d) => d.name);
-    for (const name of names) {
-      const f = await entry(root, name);
-      if (f) map.set(name, f);
+    const f = await entry(root, name);
+    if (!f) continue;
+    const protocol = await protocolOf(`${root}/${name}`);
+    if (runs(protocol)) {
+      best = f;
+      continue;
     }
+    const why = refusal(protocol);
+    if (!skipped.has(`${f.entry}\0${why}`)) log(`skipping ${name} in ${root}: ${why}`);
+    skipped.add(`${f.entry}\0${why}`);
+    if (!best || best.refused) best = { ...f, refused: why };
   }
+  return best;
+}
+
+/** Every extension across the roots, each where `locate` puts it. */
+async function discover(): Promise<Map<string, Found>> {
+  const names = new Set<string>();
+  for (const root of ROOTS) {
+    for (const d of await readdir(root, { withFileTypes: true }).catch(() => [])) if (d.isDirectory() && isExtensionName(d.name)) names.add(d.name);
+  }
+  const map = new Map<string, Found>();
+  await Promise.all([...names].map(async (name) => {
+    const f = await locate(name);
+    if (f) map.set(name, f);
+  }));
   return map;
 }
 
@@ -103,27 +146,56 @@ async function manifestOf(dir: string, name: string): Promise<Manifest> {
   }
 }
 
-/** Never rejects: a failed load is `extension/error`, anything else a log line, and the other extensions still serve. */
-async function load(name: string) {
-  try {
-    await reload(name);
-  } catch (e) {
-    log(`load ${name} failed: ${describe(e)}`);
+/** One load of a name at a time: a watcher's, the core's `reload` and an `instances/changed` for the same name queue behind each other rather than race. */
+const queues = new Map<string, Promise<void>>();
+function serial(name: string, task: () => Promise<void>): Promise<void> {
+  const run = (queues.get(name) ?? Promise.resolve()).then(task).catch((e) => log(`load ${name} failed: ${describe(e)}`));
+  queues.set(name, run);
+  run.then(() => { if (queues.get(name) === run) queues.delete(name); });
+  return run;
+}
+
+/** Never rejects: a failed load is `extension/error`, anything else a log line, and the other extensions still serve. Then the extensions requiring it look again. */
+const load = (name: string) => serial(name, () => reload(name)).then(() => { recheck(name); });
+
+/** Why `manifest`'s `requires` holds it back, or undefined: a required extension turned off, or none on disk this host can run. */
+async function missingDep(manifest: Manifest): Promise<string | undefined> {
+  for (const dep of depNames(manifest, "requires")) {
+    if (disabled.has(dep)) return `needs ${dep}, which is turned off`;
+    const f = await locate(dep);
+    if (!f || f.refused) return `needs ${dep}, which is not installed`;
+  }
+}
+
+/** `name` loaded, went, or was turned on or off: each extension requiring it loads again when that changes whether it may. */
+async function recheck(name: string) {
+  for (const [dep, m] of manifests) {
+    if (dep === name || disabled.has(dep) || found.get(dep)?.refused || !depNames(m, "requires").includes(name)) continue;
+    if ((await missingDep(m)) !== blocked.get(dep)) load(dep);
   }
 }
 
 async function reload(name: string) {
-  const f = found.get(name) ?? (await discover()).get(name);
+  const f = found.get(name) ?? (await locate(name));
+  blocked.delete(name);
   if (!f) return drop(name);
   found.set(name, f);
   const t0 = performance.now();
   const manifest = await manifestOf(`${f.root}/${name}`, name);
   manifests.set(name, manifest);
+  if (f.refused) return fail(name, f, manifest, f.refused);
+  if (disabled.has(name)) return park(name, f, manifest);
+  const missing = await missingDep(manifest);
+  if (missing) {
+    blocked.set(name, missing);
+    return fail(name, f, manifest, missing);
+  }
   // A `multi` extension runs every instance in a worker, the default too; the inline copy, if it was one before, goes.
   if (manifest.multi) {
     await dispose(name);
     exts.delete(name);
     checked.delete(name);
+    errors.delete(name);
     forgetDetails(name);
     return reloadInstances(name, f, manifest);
   }
@@ -149,7 +221,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
-    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest));
+    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest), ...checkDeps(manifest));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
@@ -165,6 +237,43 @@ async function reload(name: string) {
   }
 }
 
+/** Not loaded for a reason found before its code runs (its protocol, a missing requirement): what was loaded goes, and the reason is its `extension/error`. */
+async function fail(name: string, f: Found, manifest: Manifest, message: string) {
+  await unload(name);
+  errors.set(name, message);
+  log(`failed ${name}: ${message}`);
+  notify("extension/error", { extension: name, root: f.root, message, manifest });
+}
+
+/**
+ * Turned off: what was loaded goes (`extension/removed` for it, for each
+ * instance of a `multi` one, and for a failed one's row), then
+ * `extension/disabled` with the manifest, which keeps it listed with an
+ * Enable switch.
+ */
+async function park(name: string, f: Found, manifest: Manifest) {
+  const shown = exts.has(name) || errors.has(name);
+  const failedInstances = [...errors.keys()].filter((k) => k !== name && nameOf(k) === name && !workers.has(k));
+  await unload(name);
+  for (const k of failedInstances) {
+    errors.delete(k);
+    notify("extension/removed", { extension: k, name });
+  }
+  errors.delete(name);
+  if (shown) notify("extension/removed", { extension: name });
+  log(`${name} is turned off`);
+  notify("extension/disabled", { extension: name, root: f.root, manifest });
+}
+
+/** Whatever of `name` runs, inline or as instances, stopped; its manifest stays. */
+async function unload(name: string) {
+  await dispose(name);
+  exts.delete(name);
+  checked.delete(name);
+  forgetDetails(name);
+  await stopInstances(name);
+}
+
 /**
  * The directory is gone from every root (deleted, or its entry file
  * removed): whatever was loaded from it leaves. The resident module cannot
@@ -174,14 +283,10 @@ async function reload(name: string) {
 async function drop(name: string) {
   if (!manifests.has(name)) return;
   const multi = manifests.get(name)?.multi;
-  await dispose(name);
-  await stopInstances(name);
+  await unload(name);
   found.delete(name);
-  exts.delete(name);
-  checked.delete(name);
   errors.delete(name);
   manifests.delete(name);
-  forgetDetails(name);
   log(`removed ${name}`);
   // A `multi` extension's instances each said their own `extension/removed` in `stopInstances`.
   if (!multi) notify("extension/removed", { extension: name });
@@ -266,7 +371,7 @@ async function stopInstances(name: string, keep: string[] = []) {
 }
 
 /** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
-const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed"]);
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "disabled/changed", "reload"]);
 
 /** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
 const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
@@ -312,8 +417,33 @@ async function loadRoot(root: string) {
 
 async function loadAll() {
   for (const root of ROOTS) if (await exists(root)) await linkApi(root).catch((e) => log(`link pal in ${root} failed: ${describe(e)}`));
+  // A core without the method (older, or a test harness) answers an error or nothing: nothing is turned off.
+  try {
+    disabled = names(await call("store.disabled", {}, { timeout: 2000 }));
+  } catch (e) {
+    log(`turned-off extensions unavailable (${describe(e)}); none`);
+  }
   for (const [name, f] of await discover()) found.set(name, f);
   await Promise.all([...found.keys()].map(load));
+}
+
+const names = (v: unknown) => new Set(Array.isArray(v) ? v.filter((n): n is string => typeof n === "string") : []);
+
+/** `disabled/changed`: the names whose state flipped load again, which parks a newly disabled one and loads a newly enabled one (and what requires either looks again). */
+async function setDisabled(next: Set<string>) {
+  const flipped = [...new Set([...disabled, ...next])].filter((n) => disabled.has(n) !== next.has(n));
+  disabled = next;
+  await Promise.all(flipped.map(load));
+}
+
+/** What `reload` answers about `name` once its load is done. */
+function reloaded(name: string): Reloaded {
+  const root = found.get(name)?.root;
+  if (!root) return { loaded: false, error: `no extension ${name}` };
+  if (disabled.has(name) && !found.get(name)?.refused) return { loaded: false, root, disabled: true };
+  const error = [...errors].find(([k]) => nameOf(k) === name)?.[1];
+  const loaded = manifests.get(name)?.multi ? instancesOf(name).some((w) => w.loaded) : exts.has(name);
+  return { loaded, ...(error !== undefined && { error }), root };
 }
 
 // ---- watching --------------------------------------------------------------
@@ -323,13 +453,53 @@ async function loadAll() {
 
 const watchers = new Map<string, FSWatcher>();
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
+/** Per name, what its files looked like when a watcher's or the core's `reload` last read them (`fingerprint`). */
+const seen = new Map<string, string>();
 
-/** Coalesces the burst of events one save produces into one reload. */
+/**
+ * Every copy of `name` across the roots as it is on disk: each file's path,
+ * inode, mtime and size, `node_modules` and dotfiles left out. Equal means
+ * nothing a load reads changed.
+ */
+async function fingerprint(name: string): Promise<string> {
+  const lines: string[] = [];
+  const walk = async (dir: string, rel: string) => {
+    for (const d of (await readdir(dir, { withFileTypes: true }).catch(() => [])).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      if (d.name.startsWith(".") || d.name === "node_modules") continue;
+      const s = await lstat(`${dir}/${d.name}`).catch(() => undefined);
+      lines.push(`${rel}${d.name} ${s?.ino} ${s?.mtimeMs} ${s?.size}`);
+      if (d.isDirectory()) await walk(`${dir}/${d.name}`, `${rel}${d.name}/`);
+    }
+  };
+  for (const root of ROOTS) {
+    const s = await stat(`${root}/${name}`).catch(() => undefined);
+    lines.push(`${root} ${s?.ino} ${s?.mtimeMs}`);
+    if (s) await walk(`${root}/${name}`, "");
+  }
+  return lines.join("\n");
+}
+
+/** A load that reads the disk afresh (the watcher's, the core's `reload`), noting what it read; `unlessSeen` skips it when that is what the last such load read. */
+const loadFresh = (name: string, unlessSeen: boolean) =>
+  serial(name, async () => {
+    const fp = await fingerprint(name);
+    if (unlessSeen && seen.get(name) === fp) return log(`${name} unchanged since its last load`);
+    seen.set(name, fp);
+    found.delete(name);
+    await reload(name);
+  }).then(() => { recheck(name); });
+
+/**
+ * Coalesces the burst of events one save produces into one reload. A new
+ * directory, or one whose entry moved roots: look again; a removed one
+ * falls through to `drop`, or to the root it still has. When the core
+ * swapped the directory and asked for a `reload` itself, that load already
+ * read these files: the events it caused are skipped rather than loading
+ * (and failing) the same build twice.
+ */
 function schedule(name: string) {
   clearTimeout(timers.get(name));
-  // A new directory, or one whose entry moved roots: look again. A removed
-  // one falls through to `drop` inside `load`, or to the root it still has.
-  timers.set(name, setTimeout(() => { timers.delete(name); found.delete(name); load(name); }, 50));
+  timers.set(name, setTimeout(() => { timers.delete(name); loadFresh(name, true); }, 50));
 }
 
 function watchRoot(root: string) {
@@ -419,26 +589,27 @@ async function sections(kind: SectionKind, query: unknown): Promise<Section[]> {
   return (await Promise.all([inline, ...asks])).flat();
 }
 
-/** What `hello` says about one loaded or failed extension (instance). */
-type Hello = { name: string; extension: string; root?: string; manifest: Manifest; loaded: boolean; instance: ReturnType<typeof loadedInstance>; palettes: PaletteMeta[]; warnings: string[]; bar: BarMeta[] };
+/** What `hello` says about one loaded, failed or turned-off extension (instance). */
+type Hello = { name: string; extension: string; root?: string; manifest: Manifest; loaded: boolean; disabled: boolean; instance: ReturnType<typeof loadedInstance>; palettes: PaletteMeta[]; warnings: string[]; bar: BarMeta[] };
 
 /** Every extension for `hello`: the inline ones by name, every worker by key; a `multi` extension without a running instance (every one failed) once, unloaded. */
 function helloExtensions(): Hello[] {
   const out: Hello[] = [];
   for (const [name, manifest] of manifests) {
     if (manifest.multi && instancesOf(name).length) continue;
-    out.push({ name, extension: name, root: found.get(name)?.root, manifest, loaded: exts.has(name), instance: { key: name, isDefault: true }, palettes: checked.get(name)?.metas ?? [], warnings: checked.get(name)?.warnings ?? [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] });
+    out.push({ name, extension: name, root: found.get(name)?.root, manifest, loaded: exts.has(name), disabled: disabled.has(name), instance: { key: name, isDefault: true }, palettes: checked.get(name)?.metas ?? [], warnings: checked.get(name)?.warnings ?? [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] });
   }
   for (const w of workers.values()) {
     const manifest = manifests.get(w.name) ?? { name: w.name, title: w.name };
-    out.push({ name: w.name, extension: w.key, root: found.get(w.name)?.root, manifest, loaded: !!w.loaded, instance: loadedInstance(w.inst), palettes: w.loaded?.palettes ?? [], warnings: w.loaded?.warnings ?? [], bar: w.loaded?.bar ?? [] });
+    out.push({ name: w.name, extension: w.key, root: found.get(w.name)?.root, manifest, loaded: !!w.loaded, disabled: false, instance: loadedInstance(w.inst), palettes: w.loaded?.palettes ?? [], warnings: w.loaded?.warnings ?? [], bar: w.loaded?.bar ?? [] });
   }
   return out;
 }
 
 const methods: Record<string, (params: any) => unknown> = {
   hello: () => ({
-    version: VERSION,
+    protocol: PROTOCOL,
+    protocolMin: PROTOCOL_MIN,
     bun: Bun.version,
     pid: process.pid,
     roots: ROOTS,
@@ -475,6 +646,15 @@ const methods: Record<string, (params: any) => unknown> = {
   "instances/changed": async (p) => {
     const name = String(p?.extension ?? "");
     if (manifests.has(name)) await load(name);
+  },
+  // Notification from the core: the whole set of turned-off extensions.
+  "disabled/changed": (p: DisabledChanged) => setDisabled(names(p?.names)),
+  // The core swapped a directory (an install, update or rollback): load that name from disk now and say how it went.
+  reload: async (p: Reload) => {
+    const name = String(p?.extension ?? "");
+    if (!name) throw new Error("reload: no extension");
+    await loadFresh(name, false);
+    return reloaded(name);
   },
 };
 
