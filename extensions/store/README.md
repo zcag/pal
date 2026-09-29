@@ -1,52 +1,64 @@
 # Store
 
-pal.cagdas.io's extension list in the panel. An input palette: what you
-type narrows the list by name, title, tagline, category and author, the
-dropdown (`tab`) filters to Installed, Updates, or one of the site's
-shelves. Every row is one extension with its tile, its tagline and chips
-for what it brings (`menu bar`, `links`, `accounts`), an `Installed` or
-`bundled` tag, and `Update to x.y.z` when the site has a newer version of
-a store-installed one.
+Every extension your registries list, in the panel: pal's own registry
+first, then any you added (Settings › Extensions › Registries). An input
+palette: what you type narrows the list by name, title, tagline,
+category, keywords and palette titles; the dropdown (`tab`) filters to
+Installed, Updates, Registries, or one of the shelves. Every row is one
+listed extension with its tile, its tagline and how it stands: `update`,
+`needs a newer pal`, `not updated` (its registry no longer lists it),
+`comes with pal`, `installed`, or why it cannot be installed here. A row
+from a registry other than pal's carries that registry's name.
 
 ## Rows and actions
 
 | standing | Enter | cmd+Enter | cmd+c | ctrl+x |
 | --- | --- | --- | --- | --- |
 | not installed | Install (asks first) | Open store page | Copy `pal install <name>` | |
-| from the store, current | Open store page | Update (asks first) | Copy install command | Remove (asks first) |
-| from the store, behind | Update (asks first) | Open store page | Copy install command | Remove (asks first) |
-| bundled with pal | Open store page | | Copy install command | |
+| not for this machine | Open store page | | Copy install command | |
+| installed, update ready | Update | Open | Copy install command | Remove (asks first) |
+| installed | Open (its first palette) | Open store page | Copy install command | Remove (asks first) |
+| comes with pal | Open | Open store page | Copy install command | |
 
-Install, Update and Remove go through the core's `pal://install`,
-`pal://update` and `pal://remove` routes: the HUD says what is happening,
-the extension host restarts with the change, and an install reopens the
-root with the extension's name typed so its palettes are one keystroke
-away. The panel's confirm card is the only question; the link's card is
-skipped since Enter here is your hand.
+Install, Update and Remove go through the core (`extensions.install`,
+`update`, `remove` in the SDK) and wait until the extension is loaded, or
+gone: a toast says how it went and the list relists in place. A failure
+names the extension and the reason, including one that installed but
+failed to load. Whether something has an update is the core's one check;
+the palette compares nothing. The store page is on pal.cagdas.io, so only
+pal's own registry's extensions have one. An extension that comes with
+pal is turned off in Settings › Extensions, never removed.
 
-What is behind leads the list under an **Updates** heading (unless the
-filter already narrows to updates). A bundled extension is never
-updated from here: it ships with pal and moves with the app.
+What has an update leads the list under an **Updates** heading (unless
+the filter already narrows to updates).
 
-Marked extensions (cmd-click, shift-click, shift+arrows) install, update or remove in turn, open their pages, or copy their install commands one per line; the questions name no extension, so they read for one or several.
+Marked extensions (cmd-click, shift-click, shift+arrows) install, update
+or remove together, open their pages, or copy their install commands one
+per line; the questions name no extension, so they read for one or
+several.
 
 ## The detail pane
 
-`cmd+i` on a row: the description, "What it does" (the manifest's
-features), the screenshots (loaded from the site), and a keys table per
-palette; the metadata lists the author, the version (with the installed
-one when they differ), category, licence, platforms, what it needs, the
-`pal install` line and a link to the page.
+`cmd+i` on a row: the description, the palettes, the screenshots from the
+listing, and what it installs first; the metadata lists the author, where
+it comes from, its status, its build (short hash and date), whether it
+updates by itself, category, platforms, the `pal install` line and, for
+pal's registry, a link to the page.
+
+## Registries
+
+The Registries filter lists each registry with how its last check went,
+its channel and whether its extensions update by themselves, plus an Add
+registry row; Enter on any of them opens Settings › Extensions ›
+Registries, where they are added, removed and switched.
 
 ## The list
 
-Fetched from `https://pal.cagdas.io/api/extensions` at most once an
-hour, trimmed to what the rows and the pane need, and kept in the
-extension's storage across restarts. `cmd+r` fetches now. Offline with a
-list from before, the rows show under a "Showing the list from N min
-ago" note; with none, one row says the site is not reachable.
-
-`PAL_STORE_API` points the palette at another server (the tests serve a
-fixture).
+The core keeps the registries' indexes (`extensions.state()`, cheap).
+The first listing in ten minutes, and `cmd+r`, fetch every registry
+(`extensions.refresh()`); the cached rows show at once and the fresh ones
+replace them. A registry that did not answer says so above the list,
+with how old its list is; a fetch that failed says why.
+`PAL_STORE_REFRESH_MS` changes the ten minutes.
 
 No settings.

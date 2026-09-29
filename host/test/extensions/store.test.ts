@@ -1,224 +1,207 @@
-// store against a local stand-in for pal.cagdas.io's `/api/extensions`
-// (store-fixture.json, five entries of the real answer, served by Bun and
-// reached through `PAL_STORE_API`), with a canned `extensions.list`: calc
-// bundled, timer installed from the store and behind, wordle installed
-// from the store and current, github and gmail absent. The rows and their
-// chips, the filters, the Updates section, the detail pane, the picks
-// reaching the core, the cache (one fetch per hour, Refresh forces one),
-// and the offline rows.
+// store against a canned core: `store.state` answers store-fixture.json
+// (pal's registry and acme's; calc comes with pal, timer has an update
+// that waits, wordle is current, todo from acme needs a newer pal, github
+// and gmail are absent, dpi is not for this platform), `store.refresh`
+// the same after counting the fetch, and install, update and remove are
+// recorded and answered. The rows and their tags, the filters (Registries
+// included), the Updates section, the detail pane, the picks reaching the
+// core and saying how they went, the cached rows streamed before a fetch,
+// a registry that did not answer, a fetch that failed, and no registry yet.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Item } from "../../../sdk/src/index.ts";
-import { actionsFor, detail, newer, select, staleNote, standing, trim, trimAll, type Listing } from "../../../extensions/store/store.ts";
-import { Host, stored } from "../harness.ts";
+import type { Item, StoreResult, StoreState } from "../../../sdk/src/index.ts";
+import { actionsFor, detail, registryRows, select, staleNote, standings, targetOf } from "../../../extensions/store/store.ts";
+import { Host } from "../harness.ts";
 
-const fixture = JSON.parse(readFileSync(join(import.meta.dir, "store-fixture.json"), "utf8"));
-let fetches = 0;
-let down = false;
-const server = Bun.serve({
-  port: 0,
-  fetch() {
-    fetches++;
-    if (down) return new Response("nope", { status: 503 });
-    return new Response(JSON.stringify(fixture), { headers: { "content-type": "application/json" } });
-  },
-});
-
-const INSTALLED = [
-  { name: "calc", version: "0.2.0", root: "/app/extensions", loaded: true, store: false, bundled: true },
-  { name: "timer", version: "0.0.9", root: "/data/extensions", loaded: true, store: true, bundled: false },
-  { name: "wordle", version: "0.1.0", root: "/data/extensions", loaded: true, store: true, bundled: false },
-];
-const storeCalls: { method: string; params: unknown }[] = [];
+const fixture: StoreState = JSON.parse(readFileSync(join(import.meta.dir, "store-fixture.json"), "utf8"));
+let state: StoreState = fixture;
+let refreshes = 0;
+let refreshFails: string | null = null;
+let answer: (name: string) => StoreResult = (name) => ({ name, ok: true, loaded: true });
+const calls: { method: string; params: any }[] = [];
 
 let host: Host;
 beforeAll(async () => {
-  process.env.PAL_STORE_API = `http://127.0.0.1:${server.port}/api/extensions`;
   host = await Host.bundled({
     core: {
-      "extensions.list": () => INSTALLED,
-      "extensions.install": (p: unknown) => { storeCalls.push({ method: "install", params: p }); return null; },
-      "extensions.update": (p: unknown) => { storeCalls.push({ method: "update", params: p }); return null; },
-      "extensions.remove": (p: unknown) => { storeCalls.push({ method: "remove", params: p }); return null; },
+      "store.state": () => state,
+      "store.refresh": () => { refreshes++; if (refreshFails) throw new Error(refreshFails); return state; },
+      "store.install": (p: any) => { calls.push({ method: "install", params: p }); return answer(p.name); },
+      "store.update": (p: any) => { calls.push({ method: "update", params: p }); return p.names.map(answer); },
+      "store.remove": (p: any) => { calls.push({ method: "remove", params: p }); return answer(p.name); },
     },
   });
 });
-afterAll(() => { host?.kill(); server.stop(true); delete process.env.PAL_STORE_API; });
+afterAll(() => host?.kill());
 
 const list = (q?: string, ctx?: { filter?: string; refresh?: boolean }) => host.list("store", "store", q, ctx);
-const pick = (id: string, action?: string) => host.pick("store", "store", id, action);
+const pick = (id: string, action?: string, ctx?: { ids?: string[] }) => host.pick("store", "store", id, action, ctx);
 const tags = (i: Item) => (i.accessories ?? []).map((a) => ("tag" in a ? a.tag : "text" in a ? a.text : "")).filter(Boolean);
-const names = (rows: Item[]) => rows.map((r) => r.id);
+const ids = (rows: Item[]) => rows.map((r) => r.id);
+const NOW = 1790000000 * 1000 + 5 * 60_000;
 
 describe("the pure parts", () => {
-  test("trim keeps what the rows and the pane need, and drops the rest", () => {
-    const l = trim(fixture.extensions.find((e: { name: string }) => e.name === "timer"))!;
-    expect(l.name).toBe("timer");
-    expect(l.title).toBe("Timer");
-    expect(l.tagline).toBeTruthy();
-    expect(l.icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
-    expect(l.bar).toBe(true);
-    expect(l.links).toBe(true);
-    expect(l.multi).toBe(false);
-    expect(l.category).toBe("productivity");
-    expect(l.screenshots.length).toBeGreaterThan(0);
-    expect(l.screenshots[0].url).toStartWith("https://pal.cagdas.io/");
-    expect(l.palettes[0].keys.length).toBeGreaterThan(0);
-    expect(JSON.stringify(l)).not.toContain('"settings"');
-    expect(trim({})).toBeNull();
-    expect(trimAll({ extensions: [{ name: "b", title: "B" }, { name: "a", title: "A" }] }).map((x) => x.name)).toEqual(["a", "b"]);
-    expect(trimAll("junk")).toEqual([]);
-  });
-  test("a dark panel shows each screenshot's dark twin, a light one (or a missing twin) the light picture", () => {
-    const l = trim({ name: "demo", panel_screenshots: ["https://x/a.png", "https://x/b.png"], panel_screenshots_dark: ["https://x/a-dark.png", ""], manifest: { store: { screenshots: [{ file: "a.png", caption: "A" }, { file: "b.png", caption: "B" }] } } })!;
-    expect(l.screenshots).toEqual([{ url: "https://x/a.png", dark: "https://x/a-dark.png", caption: "A" }, { url: "https://x/b.png", dark: "", caption: "B" }]);
-    const fresh = standing(l, []);
-    expect(detail(l, fresh, true).markdown).toContain("![A](https://x/a-dark.png)");
-    expect(detail(l, fresh, true).markdown).toContain("![B](https://x/b.png)");
-    expect(detail(l, fresh).markdown).toContain("![A](https://x/a.png)");
-  });
-
-  test("newer compares dotted versions, never an unparseable pair as newer", () => {
-    expect(newer("0.2.0", "0.1.9")).toBe(true);
-    expect(newer("0.10.0", "0.9.0")).toBe(true);
-    expect(newer("1.0.0", "1.0.0")).toBe(false);
-    expect(newer("v1.0.1", "1.0.0")).toBe(true);
-    expect(newer("", "1.0.0")).toBe(false);
-    expect(newer("1.0.0-beta", "1.0.0")).toBe(false);
+  const all = standings(fixture);
+  const of = (name: string) => all.find((s) => s.a.name === name)!;
+  test("each listed extension stands as the core says: its status, ours or not; nothing compared here", () => {
+    expect(of("timer").status?.state).toBe("update");
+    expect(targetOf(of("timer").status)?.hash).toBe("7272727272727272");
+    expect(of("calc").status?.origin).toBe("bundled");
+    expect(of("github").status).toBeUndefined();
+    expect(of("todo").ours).toBe(false);
+    expect(of("calc").ours).toBe(true);
   });
   test("select honours the filter and every word of the query", () => {
-    const all = trimAll(fixture);
-    const inst = INSTALLED;
-    expect(select(all, inst, "installed", "").map((l) => l.name)).toEqual(["calc", "timer", "wordle"]);
-    expect(select(all, inst, "updates", "").map((l) => l.name)).toEqual(["timer"]);
-    expect(select(all, inst, "fun", "").map((l) => l.name)).toEqual(["wordle"]);
-    expect(select(all, inst, "all", "git hub").map((l) => l.name)).toEqual(["github"]);
-    expect(select(all, inst, undefined, "pal productivity").map((l) => l.name)).toEqual(["calc", "timer"]);
+    const names = (f: string | undefined, q = "") => select(all, f, q).map((s) => s.a.name);
+    expect(names("installed")).toEqual(["calc", "timer", "todo", "wordle"]);
+    expect(names("updates")).toEqual(["timer"]);
+    expect(names("fun")).toEqual(["wordle"]);
+    expect(names("all", "pull")).toEqual(["github"]);
+    expect(names(undefined, "acme")).toEqual(["todo"]);
+    expect(names(undefined, "pal productivity")).toEqual(["calc", "timer"]);
   });
-  test("actions follow the standing, the detail carries the facts", () => {
-    const l = trimAll(fixture).find((x) => x.name === "timer")!;
-    expect(actionsFor(l, { behind: false }).map((a) => a.id)).toEqual(["install", "page", "copy-command"]);
-    expect(actionsFor(l, { installed: INSTALLED[1], behind: true }).map((a) => a.id)).toEqual(["update", "page", "remove", "copy-command"]);
-    expect(actionsFor(l, { installed: INSTALLED[2], behind: false }).map((a) => a.id)).toEqual(["page", "update", "remove", "copy-command"]);
-    expect(actionsFor(l, { installed: INSTALLED[0], behind: false }).map((a) => a.id)).toEqual(["page", "copy-command"]);
-    const d = detail(l, { installed: INSTALLED[1], behind: true });
+  test("actions follow the standing", () => {
+    const a = (name: string) => actionsFor(of(name)).map((x) => x.id);
+    expect(a("github")).toEqual(["install", "page", "copy-command"]);
+    expect(actionsFor(of("github"))[0].confirm).toBe("Install from the pal registry?");
+    expect(a("timer")).toEqual(["update", "open", "page", "remove", "copy-command"]);
+    expect(a("wordle")).toEqual(["open", "page", "remove", "copy-command"]);
+    // Comes with pal: turned off in Settings, never removed from here.
+    expect(a("calc")).toEqual(["open", "page", "copy-command"]);
+    expect(a("dpi")).toEqual(["page", "copy-command"]);
+    // A third party's: no site page; the confirm names where it updates from.
+    expect(a("todo")).toEqual(["open", "remove", "copy-command"]);
+    expect(actionsFor({ ...of("todo"), a: { ...of("todo").a, installed: false }, status: undefined })[0].confirm).toBe("Install from acme? It updates from there.");
+  });
+  test("the detail carries the listing and the facts", () => {
+    const d = detail(of("timer"));
     expect(d.markdown).toContain("# Timer");
-    expect(d.markdown).toContain("## What it does");
-    expect(d.markdown).toContain("](https://pal.cagdas.io/extensions/timer/screenshots/");
-    expect(d.markdown).toContain("| key | does |");
-    expect(d.metadata).toContainEqual({ label: "Version", value: "0.1.0 (installed 0.0.9)" });
-    expect(d.metadata).toContainEqual({ label: "Install", value: "pal install timer" });
+    expect(d.markdown).toContain("## Palettes");
+    expect(d.markdown).toContain("![Running timers](https://pal.cagdas.io/extensions/timer/screenshots/1-list.png)");
+    expect(d.markdown).toContain("](https://pal.cagdas.io/extensions/timer/screenshots/2-bar.png)");
+    expect(d.metadata).toContainEqual({ label: "Status", value: "Update ready: 7272727 (2026-09-15)" });
+    expect(d.metadata).toContainEqual({ label: "Build", value: "7171717 (2026-08-29)" });
+    expect(d.metadata).toContainEqual({ label: "Updates", value: "Wait for you" });
+    expect(d.metadata).toContainEqual({ label: "From", value: "The pal registry" });
     expect(d.metadata!.at(-1)).toEqual({ label: "Page", link: { text: "pal.cagdas.io", href: "https://pal.cagdas.io/extensions/timer" } });
-    expect(staleNote(Date.now() - 5 * 60_000, Date.now())).toBe("Showing the list from 5 min ago");
-    expect(staleNote(Date.now() - 3 * 3600_000, Date.now())).toBe("Showing the list from 3 hours ago");
+    expect(detail(of("gmail")).markdown).toContain("Installing it installs browser-tabs first.");
+    expect(detail(of("dpi")).metadata).toContainEqual({ label: "Status", value: "Not for this platform" });
+    expect(detail(of("calc")).metadata).toContainEqual({ label: "From", value: "Comes with pal" });
+    expect(detail(of("todo")).metadata).toContainEqual({ label: "Status", value: "Its next build needs a newer pal" });
+  });
+  test("the registries: one row each and one to add, the stale note says why and how old", () => {
+    const rows = registryRows(fixture.registries, NOW);
+    expect(ids(rows)).toEqual(["registry:pal", "registry:acme", "registry:add"]);
+    expect(rows[0].subtitle).toBe("6 extensions, checked 5 min ago");
+    const down = { ...fixture.registries[1], last_error: "unreachable: connection refused" };
+    expect(registryRows([down], NOW)[0].subtitle).toBe("Unreachable: connection refused; last worked 3 hours ago");
+    expect(staleNote(down, NOW)).toBe("acme: unreachable: connection refused; showing its list from 3 hours ago");
   });
 });
 
 describe("store", () => {
-  test("meta: an input palette with the filters", async () => {
+  test("meta: an input palette with the filters", () => {
     const meta = host.loaded().find((l) => l.extension === "store")!.palettes[0];
     expect(meta.input).toBe(true);
     expect(meta.tier).toBe("primary");
-    expect(meta.filters!.map((f) => f.id)).toEqual(["all", "installed", "updates", "productivity", "developer", "system", "media", "reference", "fun", "integration"]);
+    expect(meta.filters!.map((f) => f.id)).toEqual(["all", "installed", "updates", "registries", "productivity", "developer", "system", "media", "reference", "fun", "integration"]);
     expect(meta.detail).toBe("lazy");
   });
-  test("rows: every extension by title, the chips, the standing tags, what is behind under Updates first", async () => {
-    const rows = await list();
-    expect(fetches).toBe(1);
-    expect(names(rows)).toEqual(["timer", "calc", "github", "gmail", "wordle"]);
-    const timer = rows[0];
-    expect(timer.section).toBe("Updates");
-    expect(timer.name).toBe("Timer");
-    expect(tags(timer)).toEqual(["menu bar", "links", "update to 0.1.0", "Productivity"]);
-    expect(timer.actions!.map((a) => a.id)).toEqual(["update", "page", "remove", "copy-command"]);
-    // The questions name no extension, so they read for one or several marked; every action takes marked rows.
-    expect(timer.actions![0].confirm).toBe("Update to the store's version? The source is fetched again.");
-    expect(timer.actions!.every((a) => a.multi)).toBe(true);
-    const calc = rows[1];
-    expect(calc.section).toBe("Extensions");
-    expect(tags(calc)).toEqual(["bundled", "Productivity"]);
-    expect(calc.actions!.map((a) => a.id)).toEqual(["page", "copy-command"]);
-    expect(tags(rows[2])).toEqual(["menu bar", "accounts", "Developer"]);
-    expect(rows[2].actions![0]).toMatchObject({ id: "install", confirm: "Install from pal.cagdas.io?" });
-    expect(tags(rows[4])).toEqual(["installed", "Fun"]);
-    expect(rows[4].icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
-    expect(rows[4].keywords).toContain("pal");
+  test("the first listing fetches every registry, the cached rows shown first; later ones reuse it until Refresh", async () => {
+    const { items, partials } = await host.listStream("store", "store", "");
+    expect(refreshes).toBe(1);
+    expect(partials).toHaveLength(1);
+    expect(ids(partials[0])).toEqual(ids(items));
+    await list("git");
+    expect(refreshes).toBe(1);
+    const again = await host.listStream("store", "store", "", { refresh: true });
+    expect(refreshes).toBe(2);
+    expect(again.partials).toHaveLength(1);
   });
-  test("the query narrows, the filters narrow, nothing found says so", async () => {
-    expect(names(await list("word"))).toEqual(["wordle"]);
-    expect(names(await list("", { filter: "installed" }))).toEqual(["timer", "calc", "wordle"]);
+  test("rows: every listed extension by title, how it stands, what has an update under Updates first", async () => {
+    const rows = await list();
+    expect(ids(rows)).toEqual(["pal/timer", "pal/calc", "pal/dpi", "pal/github", "pal/gmail", "acme/todo", "pal/wordle"]);
+    expect(rows[0].section).toBe("Updates");
+    expect(tags(rows[0])).toEqual(["update", "Productivity"]);
+    expect(rows[1].section).toBe("Extensions");
+    expect(tags(rows[1])).toEqual(["comes with pal", "Productivity"]);
+    expect(tags(rows[2])).toEqual(["not for this platform", "System"]);
+    expect(tags(rows[3])).toEqual(["Developer"]);
+    expect(tags(rows[5])).toEqual(["needs a newer pal", "acme", "Productivity"]);
+    expect(tags(rows[6])).toEqual(["installed", "Fun"]);
+    expect(rows[3].icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
+  });
+  test("the query and the filters narrow, nothing found says so, Registries lists the registries", async () => {
+    expect(ids(await list("word"))).toEqual(["pal/wordle"]);
+    expect(ids(await list("", { filter: "installed" }))).toEqual(["pal/timer", "pal/calc", "acme/todo", "pal/wordle"]);
     const updates = await list("", { filter: "updates" });
-    expect(names(updates)).toEqual(["timer"]);
+    expect(ids(updates)).toEqual(["pal/timer"]);
     expect(updates[0].section).toBeUndefined();
-    expect(names(await list("", { filter: "integration" }))).toEqual(["gmail"]);
+    expect(ids(await list("", { filter: "integration" }))).toEqual(["pal/gmail"]);
     const none = await list("zzz");
     expect(none).toHaveLength(1);
-    expect(none[0].name).toContain("Nothing in the store matches");
+    expect(none[0].name).toContain("Nothing listed matches");
     expect(none[0].actions).toEqual([]);
-    expect(fetches).toBe(1);
+    expect(ids(await list("", { filter: "registries" }))).toEqual(["registry:pal", "registry:acme", "registry:add"]);
+    expect(ids(await list("acme", { filter: "registries" }))).toEqual(["registry:acme"]);
   });
-  test("the detail pane: description, features, screenshots, keys; the installed version beside the site's", async () => {
-    const d = await host.detail("store", "store", "timer");
-    expect(d.markdown).toContain("## What it does");
-    expect(d.markdown).toMatch(/!\[.*\]\(https:\/\/pal\.cagdas\.io\/extensions\/timer\/screenshots\/.+\.png\)/);
-    expect(d.markdown).toContain("| `");
-    expect(d.metadata).toContainEqual({ label: "Version", value: "0.1.0 (installed 0.0.9)" });
-    expect((await host.detail("store", "store", "calc")).metadata).toContainEqual({ label: "Version", value: "0.2.0, bundled" });
+  test("the detail pane", async () => {
+    const d = await host.detail("store", "store", "pal/timer");
+    expect(d.markdown).toContain("# Timer");
+    expect(d.metadata).toContainEqual({ label: "Updates", value: "Wait for you" });
   });
-  test("picks: install, update and remove reach the core and hide; the page opens; the command copies", async () => {
-    expect(await pick("github")).toEqual({ hide: true });
-    expect(storeCalls.pop()).toEqual({ method: "install", params: { spec: "github" } });
-    expect(await pick("timer")).toEqual({ hide: true });
-    expect(storeCalls.pop()).toEqual({ method: "update", params: { name: "timer" } });
-    expect(await pick("wordle", "remove")).toEqual({ hide: true });
-    expect(storeCalls.pop()).toEqual({ method: "remove", params: { name: "wordle" } });
-    expect(await pick("wordle")).toEqual({ open: "https://pal.cagdas.io/extensions/wordle" });
-    expect(await pick("calc", "page")).toEqual({ open: "https://pal.cagdas.io/extensions/calc" });
-    expect(await pick("calc", "copy-command")).toEqual({ copy: "pal install calc", hud: "Copied pal install calc" });
-    await expect(pick("nope")).rejects.toThrow("no extension nope");
-    // Marked extensions: each reaches the core in turn; the pages open, the commands copy one per line.
-    expect(await host.pick("store", "store", "timer", "remove", { ids: ["timer", "wordle"] })).toEqual({ hide: true });
-    expect(storeCalls.slice(-2)).toEqual([{ method: "remove", params: { name: "timer" } }, { method: "remove", params: { name: "wordle" } }]);
-    expect(await host.pick("store", "store", "calc", "page", { ids: ["calc", "wordle"] })).toEqual({ open: ["https://pal.cagdas.io/extensions/calc", "https://pal.cagdas.io/extensions/wordle"] });
-    expect(await host.pick("store", "store", "calc", "copy-command", { ids: ["calc", "wordle"] })).toEqual({ copy: "pal install calc\npal install wordle", hud: "Copied 2 install commands" });
+  test("picks: install, update and remove wait for the core and say how it went; the list stays and relists", async () => {
+    calls.length = 0;
+    expect(await pick("pal/github")).toEqual({ keep: true, toast: { title: "Installed GitHub" } });
+    expect(calls.pop()).toEqual({ method: "install", params: { name: "github", registry: "pal", from: "store" } });
+    expect(await pick("pal/timer")).toEqual({ keep: true, toast: { title: "Updated Timer" } });
+    expect(calls.pop()).toEqual({ method: "update", params: { names: ["timer"], from: "store" } });
+    expect(await pick("pal/wordle", "remove")).toEqual({ keep: true, toast: { title: "Removed Wordle" } });
+    expect(calls.pop()).toEqual({ method: "remove", params: { name: "wordle", forget: false } });
+    expect(await pick("pal/wordle")).toEqual({ push: { extension: "wordle", palette: "wordle" } });
+    expect(await pick("pal/calc", "page")).toEqual({ open: "https://pal.cagdas.io/extensions/calc" });
+    expect(await pick("pal/calc", "copy-command")).toEqual({ copy: "pal install calc", hud: "Copied pal install calc" });
+    expect(await pick("registry:add")).toEqual({ open: "pal://settings/extensions?anchor=extensions:registries" });
+    await expect(pick("pal/nope")).rejects.toThrow("no extension pal/nope");
+    // Marked extensions: each reaches the core, in one update or in turn; the pages open, the commands copy one per line.
+    expect(await pick("pal/github", "install", { ids: ["pal/github", "pal/gmail"] })).toEqual({ keep: true, toast: { title: "Installed 2 extensions" } });
+    expect(calls.slice(-2).map((c) => c.params.name)).toEqual(["github", "gmail"]);
+    expect(await pick("pal/timer", "update", { ids: ["pal/timer", "pal/wordle"] })).toEqual({ keep: true, toast: { title: "Updated 2 extensions" } });
+    expect(calls.at(-1)).toEqual({ method: "update", params: { names: ["timer", "wordle"], from: "store" } });
+    expect(await pick("pal/calc", "page", { ids: ["pal/calc", "pal/wordle"] })).toEqual({ open: ["https://pal.cagdas.io/extensions/calc", "https://pal.cagdas.io/extensions/wordle"] });
   });
-  test("the cache: stored once, reused across listings, refetched on Refresh", async () => {
-    const c = stored.get("store\0cache") as { fetched_at: number; listings: Listing[] };
-    expect(c.listings).toHaveLength(5);
-    expect(JSON.stringify(c).length).toBeLessThan(256 * 1024);
-    await list();
-    expect(fetches).toBe(1);
-    await list("", { refresh: true });
-    expect(fetches).toBe(2);
-  });
-  test("offline: the stale list with a note leads; with no list at all, one row says so", async () => {
-    down = true;
-    const rows = await list("", { refresh: true });
-    expect(fetches).toBe(3);
-    expect(rows[0].name).toMatch(/^Showing the list from \d+ min ago$/);
-    expect(rows[0].subtitle).toContain("503");
-    expect(rows[0].actions).toEqual([]);
-    expect(names(rows).slice(1)).toEqual(["timer", "calc", "github", "gmail", "wordle"]);
-    expect(names(await list())).toEqual(["timer", "calc", "github", "gmail", "wordle"]);
-    down = false;
-  });
-});
-
-describe("store with nothing cached", () => {
-  test("an unreachable site with no list yet is one hint row", async () => {
-    stored.delete("store\0cache");
-    const port = server.port;
-    process.env.PAL_STORE_API = "http://127.0.0.1:1/api/extensions";
-    const fresh = await Host.bundled({ core: { "extensions.list": () => INSTALLED } });
+  test("a failure says which and why, and one that installed but failed to load says so too", async () => {
+    answer = (name) => (name === "gmail" ? { name, ok: false, error: "offline: pal.cagdas.io is not reachable" } : { name, ok: true, loaded: false, error: "SyntaxError at index.ts:3" });
     try {
-      const rows = await fresh.list("store", "store");
-      expect(rows).toHaveLength(1);
-      expect(rows[0].name).toBe("pal.cagdas.io is not reachable");
-      expect(rows[0].actions).toEqual([]);
+      expect(await pick("pal/gmail")).toEqual({ keep: true, toast: { style: "failure", title: "Could not install Gmail", message: "offline: pal.cagdas.io is not reachable" } });
+      expect(await pick("pal/github")).toEqual({ keep: true, toast: { style: "failure", title: "Could not install GitHub", message: "SyntaxError at index.ts:3" } });
     } finally {
-      fresh.kill();
-      process.env.PAL_STORE_API = `http://127.0.0.1:${port}/api/extensions`;
+      answer = (name) => ({ name, ok: true, loaded: true });
+    }
+  });
+  test("a registry that did not answer, and a fetch that failed, lead the rows; the cached list still shows", async () => {
+    state = { ...fixture, registries: [fixture.registries[0], { ...fixture.registries[1], last_error: "unreachable: connection refused" }] };
+    refreshFails = "the core could not fetch";
+    try {
+      const rows = await list("", { refresh: true });
+      expect(rows[0]).toMatchObject({ id: "hint:refresh", name: "Could not check the registries", subtitle: "the core could not fetch" });
+      expect(rows[1].name).toMatch(/^acme: unreachable: connection refused; showing its list from/);
+      expect(rows[1].actions).toEqual([]);
+      expect(ids(rows).slice(2)).toContain("pal/github");
+    } finally {
+      state = fixture;
+      refreshFails = null;
+    }
+  });
+  test("no registry answered yet: one row says so", async () => {
+    state = { ...fixture, available: [] };
+    try {
+      const rows = await list();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].name).toBe("No registry has answered yet");
+    } finally {
+      state = fixture;
     }
   });
 });

@@ -1,215 +1,182 @@
-// The store as data: what pal.cagdas.io's `/api/extensions` answers,
-// trimmed to what the rows and the detail pane need (so the cache fits
-// the storage cap), matched against the query and the filter, compared
-// with what is installed, and rendered as rows and details. Pure; the
-// fetch, the clock and the installed list come in as arguments.
-import type { Accessory, Action, Detail, Item, Metadata, TileIcon } from "@zcag/pal";
+// The store as data: the core's `StoreState` (every extension the
+// registries list, how each installed one stands with the one update
+// check, the registries' health) matched against the query and the filter
+// and rendered as rows and details. Nothing is compared here: an update is
+// what the core says is one. Pure; the state and the clock come in as
+// arguments.
+import type { Accessory, Action, AvailableExtension, Detail, Item, Metadata, StoreBuildInfo, StoreRegistry, StoreState, StoreStatus, TileIcon } from "@zcag/pal";
 
-/** One extension as the site lists it, trimmed (`trim`). */
-export type Listing = {
-  name: string;
-  title: string;
-  description: string;
-  version: string;
-  icon?: TileIcon | string;
-  author: string;
-  url: string;
-  tagline: string;
-  category: string;
-  /** `kind` on the site: `bundled` ships with pal, anything else is a community extension. */
-  kind: string;
-  /** The panel pictures: the light one and its dark twin (the site's `panel_screenshots_dark`, empty when there is none). */
-  screenshots: { url: string; dark: string; caption: string }[];
-  bar: boolean;
-  links: boolean;
-  multi: boolean;
-  features: string[];
-  permissions: string[];
-  platforms: string[];
-  license?: string;
-  /** Per palette: its title and key table, for the detail's keys table. */
-  palettes: { key: string; title: string; keys: { keys: string; title: string }[] }[];
-};
-
-/** What the cache holds: the trimmed list and when it was fetched (unix ms). */
-export type Cache = { fetched_at: number; listings: Listing[] };
-
-/** `InstalledExtension` from the core, the part the rows read. */
-export type Installed = { name: string; version: string; store: boolean; bundled: boolean };
-
-/** How long a fetched list is good for. */
-const CACHE_MS = 60 * 60 * 1000;
-/** The description is cut here in the cache; the site page has the rest. */
-const DESCRIPTION_MAX = 600;
-const FEATURES_MAX = 8;
+/** Where Settings keeps the registries (the Registries section of Settings › Extensions). */
+export const REGISTRIES_LINK = "pal://settings/extensions?anchor=extensions:registries";
+/** pal's site has a page per extension of its own registry. */
+const SITE = "https://pal.cagdas.io/extensions";
 
 const CATEGORIES = ["productivity", "developer", "system", "media", "reference", "fun", "integration"] as const;
 const CATEGORY_TITLE: Record<string, string> = { productivity: "Productivity", developer: "Developer", system: "System", media: "Media", reference: "Reference", fun: "Fun", integration: "Integration" };
-const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? c[0].toUpperCase() + c.slice(1) : "Other");
+export const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? c[0].toUpperCase() + c.slice(1) : "Other");
+const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-/** The palette's filter dropdown: everything, what is installed, what is behind, then the site's shelves. */
-export const FILTERS = [{ id: "all", title: "All" }, { id: "installed", title: "Installed" }, { id: "updates", title: "Updates" }, ...CATEGORIES.map((c) => ({ id: c, title: categoryTitle(c) }))];
+/** The filter dropdown: everything, what is installed, what has an update, the registries, then the shelves. */
+export const FILTERS = [{ id: "all", title: "All" }, { id: "installed", title: "Installed" }, { id: "updates", title: "Updates" }, { id: "registries", title: "Registries" }, ...CATEGORIES.map((c) => ({ id: c, title: categoryTitle(c) }))];
 
-const str = (v: unknown, max = Infinity): string => (typeof v === "string" ? (v.length > max ? `${v.slice(0, max - 1)}…` : v) : "");
-const strs = (v: unknown, max = Infinity): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, max) : []);
+/** How one listed extension stands on this machine: the core's status when installed, and whether it has something to install. */
+export type Standing = { a: AvailableExtension; status?: StoreStatus; ours: boolean; busy: boolean };
 
-/** One raw API entry to a `Listing`; `null` for an entry without a name. */
-export function trim(raw: unknown): Listing | null {
-  if (!raw || typeof raw !== "object") return null;
-  const e = raw as Record<string, unknown>;
-  const name = str(e.name);
-  if (!name) return null;
-  const manifest = (e.manifest && typeof e.manifest === "object" ? e.manifest : {}) as Record<string, unknown>;
-  const store = (manifest.store && typeof manifest.store === "object" ? manifest.store : {}) as Record<string, unknown>;
-  const captions = Array.isArray(store.screenshots) ? store.screenshots.map((s) => (s && typeof s === "object" ? str((s as { caption?: unknown }).caption) : "")) : [];
-  const urls = strs(e.panel_screenshots).length ? strs(e.panel_screenshots) : strs(e.screenshots);
-  // At the same index as panel_screenshots; `strs` drops the empty ones, so read the array as it is.
-  const darks = Array.isArray(e.panel_screenshots_dark) ? e.panel_screenshots_dark.map((d) => (typeof d === "string" ? d : "")) : [];
-  const icon = e.icon && typeof e.icon === "object" && "tile" in (e.icon as object) ? (e.icon as TileIcon) : typeof e.icon === "string" ? e.icon : undefined;
-  const palettes = Object.entries((manifest.palettes && typeof manifest.palettes === "object" ? manifest.palettes : {}) as Record<string, Record<string, unknown>>).map(([key, p]) => ({
-    key,
-    title: str(p?.title) || key,
-    keys: Array.isArray(p?.keys) ? (p.keys as { keys?: unknown; title?: unknown }[]).filter((k) => k && typeof k.keys === "string" && typeof k.title === "string").map((k) => ({ keys: k.keys as string, title: k.title as string })) : [],
-  }));
-  return {
-    name,
-    title: str(e.title) || name,
-    description: str(e.description, DESCRIPTION_MAX),
-    version: str(e.version),
-    icon,
-    author: str(e.author),
-    url: str(e.url) || `https://pal.cagdas.io/extensions/${name}`,
-    tagline: str(e.tagline) || str(e.description).split(/(?<=\.)\s/)[0] || "",
-    category: str(e.category),
-    kind: str(e.kind) || "community",
-    screenshots: urls.map((url, i) => ({ url, dark: darks[i] ?? "", caption: captions[i] ?? "" })),
-    bar: e.has_bar === true,
-    links: e.has_links === true,
-    multi: e.multi === true,
-    features: strs(store.features, FEATURES_MAX),
-    permissions: strs(store.permissions),
-    platforms: strs(store.platforms),
-    license: str(manifest.license) || undefined,
-    palettes,
-  };
-}
+/** The build an Update would install: an update, or a pulled build's replacement. */
+export const targetOf = (s: StoreStatus | undefined) => (s?.state === "update" ? s.to : s?.state === "yanked" ? s.replacement ?? undefined : undefined);
 
-/** The API's `{ extensions: [...] }` (or a bare array) to listings, by title. */
-export function trimAll(body: unknown): Listing[] {
-  const list = Array.isArray(body) ? body : body && typeof body === "object" && Array.isArray((body as { extensions?: unknown }).extensions) ? (body as { extensions: unknown[] }).extensions : [];
-  return list.map(trim).filter((l): l is Listing => l !== null).sort((a, b) => a.title.localeCompare(b.title));
-}
-
-/** Whether a cache fetched at `at` still counts at `now`. */
-export const fresh = (c: Cache | null | undefined, now: number): c is Cache => !!c && now - c.fetched_at < CACHE_MS;
-
-/** `a` newer than `b`: dotted numbers compared in order, a pre-release word older than the number it stands beside; an empty version never compares newer. */
-export function newer(a: string, b: string): boolean {
-  const parse = (v: string) => v.trim().replace(/^v/, "").split(/[.-]/).map((p) => (/^\d+$/.test(p) ? Number(p) : p));
-  const [x, y] = [parse(a), parse(b)];
-  if (!a.trim() || !b.trim()) return false;
-  for (let i = 0; i < Math.max(x.length, y.length); i++) {
-    const [p, q] = [x[i] ?? 0, y[i] ?? 0];
-    if (p === q) continue;
-    if (typeof p === "number" && typeof q === "number") return p > q;
-    // A word where the other has a number (or nothing): a pre-release, older than the release.
-    if (typeof p === "number") return true;
-    if (typeof q === "number") return false;
-    return p > q;
-  }
-  return false;
-}
-
-/** How one listing stands against the machine: not installed, bundled with pal, or from the store (and behind when the site is newer). */
-type Standing = { installed?: Installed; behind: boolean };
-export function standing(l: Listing, installed: Installed[]): Standing {
-  const i = installed.find((x) => x.name === l.name);
-  return { installed: i, behind: !!i && i.store && newer(l.version, i.version) };
-}
-
-/** What the query is matched against: name, title, tagline, category, author. */
-const haystack = (l: Listing) => [l.name, l.title, l.tagline, l.category, l.author, ...l.palettes.map((p) => p.title)].join(" ").toLowerCase();
-
-/** The listings the filter admits, narrowed by every word of the query. */
-export function select(listings: Listing[], installed: Installed[], filter: string | undefined, query: string): Listing[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  return listings.filter((l) => {
-    const s = standing(l, installed);
-    if (filter === "installed" && !s.installed) return false;
-    if (filter === "updates" && !s.behind) return false;
-    if (filter && filter !== "all" && filter !== "installed" && filter !== "updates" && l.category !== filter) return false;
-    const h = haystack(l);
-    return words.every((w) => h.includes(w));
+/** Every listed extension with its standing; a name two registries list shows once per registry. */
+export function standings(state: StoreState): Standing[] {
+  const ours = new Set(state.registries.filter((r) => r.ours).map((r) => r.name));
+  return state.available.map((a) => {
+    const status = state.statuses.find((s) => s.name === a.name);
+    // The installed copy is this row's only when it came from this registry (a bundled one counts as ours).
+    const mine = a.installed && (!status?.registry || status.registry === a.registry || (status.origin === "bundled" && ours.has(a.registry)));
+    return { a, status: mine ? status : undefined, ours: ours.has(a.registry), busy: state.busy.includes(a.name) };
   });
 }
 
+/** What the query is matched against: name, title, tagline, category, author, keywords, palette titles. */
+const haystack = (a: AvailableExtension) => [a.name, a.listing.title, a.listing.tagline, a.listing.category, a.listing.author, a.registry, ...a.listing.keywords, ...a.listing.palettes.map((p) => p.title)].join(" ").toLowerCase();
+
+/** The standings the filter admits, narrowed by every word of the query, by title. */
+export function select(all: Standing[], filter: string | undefined, query: string): Standing[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return all.filter((s) => {
+    if (filter === "installed" && !s.a.installed) return false;
+    if (filter === "updates" && !targetOf(s.status)) return false;
+    if (filter && !["all", "installed", "updates"].includes(filter) && s.a.listing.category !== filter) return false;
+    const h = haystack(s.a);
+    return words.every((w) => h.includes(w));
+  }).sort((x, y) => (x.a.listing.title || x.a.name).localeCompare(y.a.listing.title || y.a.name));
+}
+
+const shortHash = (h: string) => h.slice(0, 7);
+export const buildDate = (seq: number) => new Date(seq * 1000).toISOString().slice(0, 10);
+export const buildLine = (b: StoreBuildInfo) => `${shortHash(b.hash)} (${buildDate(b.seq)})`;
+
 // Every action also takes marked extensions (`multi`): each installed, updated or removed in turn, the pages opened, the commands one per line. The questions name none, so they read for one or several.
+const OPEN: Action = { id: "open", title: "Open" };
 const INSTALL: Action = { id: "install", title: "Install", multi: true };
 const UPDATE: Action = { id: "update", title: "Update", multi: true };
-const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "ctrl+x", style: "destructive", multi: true };
+const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "ctrl+x", style: "destructive", multi: true, confirm: "Remove? Its settings and data stay for a reinstall." };
 const PAGE: Action = { id: "page", title: "Open store page", multi: true };
 const COPY_COMMAND: Action = { id: "copy-command", title: "Copy install command", shortcut: "cmd+c", multi: true };
 
-/** The row's actions by standing: Install first while absent, Update first while behind, the store page for a bundled one. */
-export function actionsFor(_l: Listing, s: Standing): Action[] {
-  if (!s.installed) return [{ ...INSTALL, confirm: "Install from pal.cagdas.io?" }, { ...PAGE, shortcut: "cmd+enter" }, COPY_COMMAND];
-  if (s.installed.store) {
-    const update = { ...UPDATE, confirm: "Update to the store's version? The source is fetched again." };
-    return [...(s.behind ? [update, { ...PAGE, shortcut: "cmd+enter" }] : [PAGE, { ...update, shortcut: "cmd+enter" }]), { ...REMOVE, confirm: "Remove? The directory is deleted; the settings stay in the config file." }, COPY_COMMAND];
-  }
-  return [PAGE, COPY_COMMAND];
+/**
+ * The row's actions by standing: Install first while absent (none when
+ * nothing runs here), Update first while the core has one, else Open (its
+ * first palette); Remove only for a registry copy (one that comes with pal
+ * is turned off in Settings, not removed); the site page for pal's own.
+ */
+export function actionsFor(s: Standing): Action[] {
+  const page = s.ours ? [PAGE] : [];
+  const tail = [...(s.status?.origin === "store" ? [REMOVE] : []), COPY_COMMAND];
+  if (!s.a.installed) return s.a.installable ? [{ ...INSTALL, confirm: s.ours ? "Install from the pal registry?" : `Install from ${s.a.registry}? It updates from there.` }, ...page.map((p) => ({ ...p, shortcut: "cmd+enter" })), COPY_COMMAND] : [...page, COPY_COMMAND];
+  const open = s.a.listing.palettes.length ? [OPEN] : [];
+  if (targetOf(s.status)) return [UPDATE, ...open.map((o) => ({ ...o, shortcut: "cmd+enter" })), ...page, ...tail];
+  return [...open, ...page.map((p) => ({ ...p, ...(open.length && { shortcut: "cmd+enter" }) })), ...tail];
 }
 
-/** The row: the tile, the title, the tagline, the chips. `section` puts it under a heading (Updates). */
-export function row(l: Listing, s: Standing, section?: string): Item {
+/** The tag that says how it stands: an update, a problem, installed, or why it cannot be. */
+function standingTag(s: Standing): Accessory | undefined {
+  const st = s.status;
+  if (s.busy) return { tag: "working…", color: "blue" };
+  if (targetOf(st)) return { tag: st?.state === "yanked" ? "pulled: update" : "update", color: "amber" };
+  if (st?.state === "needs_newer_pal") return { tag: "needs a newer pal", color: "amber" };
+  if (st?.state === "no_longer_listed") return { tag: "not updated", color: "amber" };
+  if (s.a.installed) return s.a.bundled ? { tag: "comes with pal", color: "grey" } : { tag: "installed", color: "green" };
+  if (!s.a.installable) return { text: s.a.blocked ?? "not for here" };
+  return undefined;
+}
+
+/** The row: the tile, the title, the tagline, how it stands, the registry when it is not pal's, the shelf. */
+export function row(s: Standing, section?: string): Item {
   const accessories: Accessory[] = [];
-  if (l.bar) accessories.push({ tag: "menu bar", color: "blue" });
-  if (l.links) accessories.push({ tag: "links", color: "violet" });
-  if (l.multi) accessories.push({ tag: "accounts", color: "teal" });
-  if (s.behind) accessories.push({ tag: `update to ${l.version}`, color: "amber" });
-  else if (s.installed?.bundled) accessories.push({ tag: "bundled", color: "grey" });
-  else if (s.installed) accessories.push({ tag: "installed", color: "green" });
-  if (l.category) accessories.push({ text: categoryTitle(l.category) });
+  const tag = standingTag(s);
+  if (tag) accessories.push(tag);
+  if (!s.ours) accessories.push({ tag: s.a.registry, color: "violet" });
+  if (s.a.listing.category) accessories.push({ text: categoryTitle(s.a.listing.category) });
+  const icon = s.a.listing.icon as TileIcon | string | undefined;
   return {
-    id: l.name,
-    name: l.title,
-    subtitle: l.tagline,
-    icon: l.icon,
-    keywords: [l.name, l.author, l.category].filter(Boolean),
+    id: `${s.a.registry}/${s.a.name}`,
+    name: s.a.listing.title || s.a.name,
+    subtitle: s.a.listing.tagline,
+    ...(icon && { icon }),
+    keywords: [s.a.name, s.a.listing.author, s.a.listing.category, ...s.a.listing.keywords].filter(Boolean),
     accessories,
     ...(section && { section }),
-    actions: actionsFor(l, s),
+    actions: actionsFor(s),
   };
+}
+
+/** The status line of an installed one, in words. */
+export function statusText(s: StoreStatus | undefined): string | undefined {
+  switch (s?.state) {
+    case "up_to_date": return "Up to date";
+    case "update": return `Update ready: ${buildLine(s.to)}`;
+    case "needs_newer_pal": return "Its next build needs a newer pal";
+    case "yanked": return s.replacement ? `This build was pulled; ${buildLine(s.replacement)} replaces it` : "This build was pulled by its registry";
+    case "no_longer_listed": return cap(s.why);
+    case "unchecked": return "Not checked yet";
+    case "source": return "Installed from source: never updated by itself";
+    default: return undefined;
+  }
 }
 
 const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 
-/** The detail pane: description, features, screenshots (the dark twin on a dark panel), the keys per palette; the facts as metadata. */
-export function detail(l: Listing, s: Standing, dark = false): Detail {
-  const parts: string[] = [`# ${l.title}`, "", l.description || l.tagline];
-  if (l.features.length) parts.push("", "## What it does", "", ...l.features.map((f) => `- ${f}`));
-  if (l.screenshots.length) parts.push("", ...l.screenshots.map((sh) => `![${esc(sh.caption)}](${(dark && sh.dark) || sh.url})`));
-  for (const p of l.palettes) {
-    if (!p.keys.length) continue;
-    parts.push("", `## ${p.title}`, "", "| key | does |", "| --- | --- |", ...p.keys.map((k) => `| \`${esc(k.keys)}\` | ${esc(k.title)} |`));
-  }
+/** The detail pane: the description, the palettes, the screenshots; the facts as metadata. */
+export function detail(s: Standing): Detail {
+  const l = s.a.listing;
+  const parts: string[] = [`# ${l.title || s.a.name}`, "", l.description || l.tagline];
+  if (l.palettes.length) parts.push("", "## Palettes", "", ...l.palettes.map((p) => `- ${p.title}`));
+  const shots = l.screenshots.map((x) => (typeof x === "string" ? { url: x, caption: "" } : { url: x.url, caption: x.caption ?? "" })).filter((x) => x.url);
+  if (shots.length) parts.push("", ...shots.map((x) => `![${esc(x.caption)}](${x.url})`));
+  if (l.requires.length) parts.push("", `Installing it installs ${l.requires.join(", ")} first.`);
+  const st = statusText(s.status);
+  const build = s.status?.installed ?? s.a.build;
   const metadata: Metadata[] = [
     ...(l.author ? [{ label: "Author", value: l.author }] : []),
-    { label: "Version", value: s.installed ? (s.behind ? `${l.version} (installed ${s.installed.version})` : s.installed.bundled ? `${l.version}, bundled` : `${l.version}, installed`) : l.version || "unstated" },
+    { label: "From", value: s.a.bundled ? "Comes with pal" : s.ours ? "The pal registry" : `The ${s.a.registry} registry` },
+    { label: "Status", value: s.a.installed ? st ?? "Installed" : s.a.installable ? "Not installed" : cap(s.a.blocked ?? "Not available here") },
+    ...(build ? [{ label: s.a.installed ? "Build" : "Latest build", value: buildLine(build) }] : []),
+    ...(s.status && s.status.origin !== "local" && s.status.state !== "source" ? [{ label: "Updates", value: s.status.auto_update ? "Automatic" : "Wait for you" }] : []),
     ...(l.category ? [{ label: "Category", value: categoryTitle(l.category) }] : []),
-    ...(l.license ? [{ label: "License", value: l.license }] : []),
-    ...(l.platforms.length ? [{ label: "Platforms", value: l.platforms.join(", ") }] : []),
-    { label: "Needs", value: l.permissions.length ? l.permissions.join(", ") : "nothing beyond the panel" },
-    { label: "Install", value: `pal install ${l.name}` },
-    { label: "Page", link: { text: "pal.cagdas.io", href: l.url } },
+    ...(l.platforms?.length ? [{ label: "Platforms", value: l.platforms.join(", ") }] : []),
+    { label: "Install", value: `pal install ${s.a.name}` },
+    ...(s.ours ? [{ label: "Page", link: { text: "pal.cagdas.io", href: pageOf(s) } }] : []),
   ];
   return { markdown: parts.join("\n"), metadata };
 }
 
-/** "Showing the list from N min ago" for a stale cache shown while the site is unreachable. */
-export function staleNote(fetchedAt: number, now: number): string {
-  const min = Math.max(1, Math.round((now - fetchedAt) / 60_000));
-  if (min < 60) return `Showing the list from ${min} min ago`;
+export const pageOf = (s: Standing) => `${SITE}/${s.a.name}`;
+
+/** "5 min ago", "3 hours ago" from unix seconds. */
+export function ago(secs: number, now: number): string {
+  const min = Math.max(1, Math.round((now - secs * 1000) / 60_000));
+  if (min < 60) return `${min} min ago`;
   const h = Math.round(min / 60);
-  return `Showing the list from ${h} ${h === 1 ? "hour" : "hours"} ago`;
+  if (h < 48) return `${h} ${h === 1 ? "hour" : "hours"} ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+/** A registry whose last check failed, in a line: why, and how old the list shown is. */
+export const staleNote = (r: StoreRegistry, now: number) => `${r.ours ? "pal's registry" : r.name}: ${r.last_error}${r.last_ok ? `; showing its list from ${ago(r.last_ok, now)}` : ""}`;
+
+/** The Registries filter: one row per registry and one to add another, each opening Settings › Extensions › Registries. */
+export function registryRows(regs: StoreRegistry[], now: number): Item[] {
+  const settings: Action = { id: "registries", title: "Open in Settings" };
+  return [
+    ...regs.map((r): Item => ({
+      id: `registry:${r.name}`,
+      name: r.ours ? "pal" : r.name,
+      subtitle: r.last_error ? `${cap(r.last_error)}${r.last_ok ? `; last worked ${ago(r.last_ok, now)}` : ""}` : `${r.count} ${r.count === 1 ? "extension" : "extensions"}${r.last_checked ? `, checked ${ago(r.last_checked, now)}` : ""}`,
+      icon: r.last_error ? "\u{f0164}" : "\u{f01a7}",
+      keywords: [r.url],
+      accessories: [...(r.last_error ? [{ tag: "unreachable", color: "red" } as Accessory] : []), { text: r.channel }, { tag: r.auto_update ? "auto-update" : "updates wait", color: "grey" }],
+      actions: [settings],
+    })),
+    { id: "registry:add", name: "Add registry", subtitle: "A URL and its key, in Settings › Extensions › Registries", icon: "\u{f0415}", actions: [{ id: "registries", title: "Add in Settings" }] },
+  ];
 }

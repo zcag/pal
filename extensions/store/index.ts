@@ -1,59 +1,69 @@
-// Store: pal.cagdas.io's extension list in the panel. An input palette
-// over the site's `/api/extensions` (fetched at most once an hour, kept in
-// memory and in `storage`; the shell's Refresh forces a fetch), narrowed
-// by what you type and by the filter dropdown (All, Installed, Updates,
-// the site's shelves). Every row is one extension with its tile, tagline
-// and chips; the detail pane (cmd+i) has the description, the features,
-// the screenshots and the keys of each palette. Enter installs an absent
-// one (a confirm first, then `pal://install/<name>` through the core: the
-// HUD says Installing…, the host restarts, the root opens with the name
-// typed), updates a store-installed one that is behind, and opens the
-// store page of a bundled one. The pure parts are in store.ts.
-import { errorMessage, extensions, hint, state, storage, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
-import { actionsFor, detail, FILTERS, fresh, row, select, staleNote, standing, trimAll, type Cache, type Installed, type Listing } from "./store.ts";
+// Store: every extension the registries list, in the panel. An input
+// palette over the core's store state (`extensions.state()`, cached and
+// cheap; `extensions.refresh()` fetches every registry, on the first
+// listing of a while and on the shell's Refresh), narrowed by what you type
+// and the filter dropdown (All, Installed, Updates, Registries, the
+// shelves). Every row is one listed extension with how it stands; the
+// detail pane (cmd+i) has the description, the palettes, the screenshots
+// and the facts. Enter installs an absent one, updates one the core has an
+// update for, opens an installed one; each waits for the core and says how
+// it went. The pure parts are in store.ts.
+import { errorMessage, extensions, hint, type Ctx, type Effect, type Extension, type Item, type StoreResult, type StoreState } from "@zcag/pal";
+import { FILTERS, REGISTRIES_LINK, detail, pageOf, registryRows, row, select, staleNote, standings, targetOf, type Standing } from "./store.ts";
 
-/** The site's list; `PAL_STORE_API` points the tests at a local server. */
-const API = (process.env.PAL_STORE_API || "https://pal.cagdas.io/api/extensions").replace(/\/$/, "");
-const FETCH_MS = 10_000;
-/** The one storage key: `{ fetched_at, listings }`. */
-const KEY = "cache";
-/** The hint rows' glyph (md-information_outline) and the offline one's (md-cloud_off_outline). */
+/** How long a fetch of the registries stands before a listing asks for another (the core also fetches every 6 hours and when Settings opens). `PAL_STORE_REFRESH_MS` sets it for the tests. */
+const REFRESH_MS = Number(process.env.PAL_STORE_REFRESH_MS) || 10 * 60_000;
+/** The hint rows' glyph for a registry that did not answer (md-cloud_off_outline). */
 const OFFLINE = "\u{f0164}";
 
-let cache: Cache | null = null;
-/** One fetch at a time: a keystroke while the first is in flight waits for it. */
-let inflight: Promise<Cache> | null = null;
+let refreshedAt = 0;
+let last: StoreState | null = null;
+/** One fetch at a time: a keystroke while it runs waits for the same one. */
+let inflight: Promise<StoreState> | null = null;
 
-async function fetchListings(): Promise<Cache> {
-  const res = await fetch(API, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(FETCH_MS) });
-  if (!res.ok) throw new Error(`pal.cagdas.io answered ${res.status}`);
-  const c: Cache = { fetched_at: Date.now(), listings: trimAll(await res.json()) };
-  cache = c;
-  // The trimmed list is well under the storage cap today; a list that outgrows it stays in memory only.
-  await storage.set(KEY, c).catch((e) => console.error(`[store] cache not stored: ${errorMessage(e)}`));
-  return c;
-}
-
-/** The listings: the memory cache, else the stored one, fetched when older than an hour or when `force`. Answers what it has and why. */
-async function listings(force: boolean): Promise<{ cache: Cache | null; error?: string }> {
-  const now = Date.now();
-  if (!cache) cache = ((await storage.get<Cache>(KEY).catch(() => null)) ?? null) as Cache | null;
-  if (cache && !Array.isArray(cache.listings)) cache = null;
-  if (!force && fresh(cache, now)) return { cache };
+/** The state, fetched afresh when asked or when the last fetch is old; a failed fetch answers the cached state and why. */
+async function current(force: boolean, now: number): Promise<{ state: StoreState; error?: string }> {
+  if (!force && now - refreshedAt < REFRESH_MS) return { state: (last = await extensions.state()) };
   try {
-    inflight ??= fetchListings().finally(() => { inflight = null; });
-    return { cache: await inflight };
+    inflight ??= extensions.refresh().finally(() => { inflight = null; });
+    const state = await inflight;
+    refreshedAt = now;
+    return { state: (last = state) };
   } catch (e) {
-    return { cache, error: errorMessage(e) };
+    return { state: (last = await extensions.state()), error: errorMessage(e) };
   }
 }
 
-async function installed(): Promise<Installed[]> {
-  try { return await extensions.list(); } catch { return []; }
+/** The rows for a state: problems first (a fetch that failed, a registry that did not answer), then what has an update under its own heading, then the rest. */
+function rows(state: StoreState, filter: string, query: string, now: number, error?: string): Item[] {
+  const out: Item[] = [];
+  if (error) out.push(hint("refresh", "Could not check the registries", error, { icon: OFFLINE }));
+  for (const r of state.registries) if (r.last_error) out.push(hint(`stale:${r.name}`, staleNote(r, now), "Settings › Extensions › Registries has it", { icon: OFFLINE }));
+  if (filter === "registries") return [...out, ...registryRows(state.registries, now).filter((i) => !query || `${i.name} ${i.subtitle ?? ""} ${i.keywords?.join(" ") ?? ""}`.toLowerCase().includes(query.toLowerCase()))];
+  if (!state.available.length) return [...out, hint("none", "No registry has answered yet", "Refresh (cmd+r) asks again", { icon: OFFLINE })];
+  const chosen = select(standings(state), filter, query);
+  // What has an update leads, under its own heading, unless the filter already narrows to it.
+  const behind = filter === "updates" ? [] : chosen.filter((s) => targetOf(s.status));
+  out.push(...behind.map((s) => row(s, "Updates")));
+  out.push(...chosen.filter((s) => !behind.includes(s)).map((s) => row(s, behind.length ? "Extensions" : undefined)));
+  if (!chosen.length) out.push(hint("none", query ? `Nothing listed matches “${query}”` : filter === "updates" ? "Everything installed is up to date" : filter === "installed" ? "Nothing from a registry is installed" : "Nothing listed on this shelf", "The Registries filter shows where extensions come from"));
+  return out;
 }
 
+/** The standing a row id (`<registry>/<name>`) names, in the last state listed. */
+async function standingOf(id: string): Promise<Standing | undefined> {
+  const state = last ?? (last = await extensions.state());
+  return standings(state).find((s) => `${s.a.registry}/${s.a.name}` === id);
+}
 
-const byName = (name: string): Listing | undefined => cache?.listings.find((l) => l.name === name);
+/** Several results as one toast, or the reason when any did not go through (the rows relist either way). */
+function said(verb: string, results: StoreResult[], titles: Map<string, string>): Effect {
+  const failed = results.filter((r) => !r.ok || r.loaded === false);
+  const name = (r: StoreResult) => titles.get(r.name) ?? r.name;
+  if (failed.length) return { keep: true, toast: { style: "failure", title: `Could not ${verb.toLowerCase()} ${failed.map(name).join(", ")}`, message: failed.map((r) => r.error ?? (r.loaded === false ? "it failed to load" : "")).filter(Boolean).join("; ") } };
+  const past = { Install: "Installed", Update: "Updated", Remove: "Removed" }[verb] ?? verb;
+  return { keep: true, toast: { title: results.length === 1 ? `${past} ${name(results[0])}` : `${past} ${results.length} extensions` } };
+}
 
 export default {
   palettes: {
@@ -61,40 +71,44 @@ export default {
       title: "Store",
       input: true,
       filters: FILTERS,
-      placeholder: "Search the store",
+      placeholder: "Search every registry",
       list: async (query = "", ctx?: Ctx): Promise<Item[]> => {
-        const [{ cache: c, error }, have] = await Promise.all([listings(!!ctx?.refresh), installed()]);
-        if (!c) return [hint("offline", "pal.cagdas.io is not reachable", error ?? "No list yet; try again when online", { icon: OFFLINE })];
-        const rows: Item[] = [];
-        if (error) rows.push(hint("stale", staleNote(c.fetched_at, Date.now()), `pal.cagdas.io is not reachable: ${error}`, { icon: OFFLINE }));
+        const now = Date.now();
         const filter = ctx?.filter ?? FILTERS[0].id;
-        const chosen = select(c.listings, have, filter, query);
-        // What is behind leads, under its own heading, unless the filter already narrows to it.
-        const behind = filter === "updates" ? [] : chosen.filter((l) => standing(l, have).behind);
-        rows.push(...behind.map((l) => row(l, standing(l, have), "Updates")));
-        rows.push(...chosen.filter((l) => !behind.includes(l)).map((l) => row(l, standing(l, have), behind.length ? "Extensions" : undefined)));
-        if (!chosen.length) rows.push(hint("none", query ? `Nothing in the store matches “${query}”` : filter === "updates" ? "Everything installed from the store is current" : filter === "installed" ? "Nothing from the store is installed" : "The store lists nothing", "pal.cagdas.io/extensions has the full site"));
-        return rows;
+        const stale = !!ctx?.refresh || now - refreshedAt >= REFRESH_MS;
+        // A fetch of every registry is slow: the cached state's rows show first.
+        if (stale) { last = await extensions.state(); ctx?.partial?.(rows(last, filter, query, now)); }
+        const { state, error } = await current(stale, now);
+        return rows(state, filter, query, now, error);
       },
       pick: async (id, action, ctx): Promise<Effect | void> => {
-        const l = byName(id);
-        if (!l) throw new Error(`no extension ${id} in the store`);
-        const s = standing(l, await installed());
-        const a = action ?? actionsFor(l, s)[0].id;
+        if (id.startsWith("registry:")) return { open: REGISTRIES_LINK };
+        const s = await standingOf(id);
+        if (!s) throw new Error(`no extension ${id} in the store`);
+        const a = action ?? row(s).actions![0]?.id;
         // The marked extensions (`ctx.ids`), the addressed one first, else the one.
-        const all = (ctx?.ids ?? [id]).map(byName).filter((x): x is Listing => !!x);
+        const all = (await Promise.all((ctx?.ids ?? [id]).map(standingOf))).filter((x): x is Standing => !!x);
+        const titles = new Map(all.map((x) => [x.a.name, x.a.listing.title || x.a.name]));
         switch (a) {
-          case "install": for (const x of all) await extensions.install(x.name); return { hide: true };
-          case "update": for (const x of all) await extensions.update(x.name); return { hide: true };
-          case "remove": for (const x of all) await extensions.remove(x.name); return { hide: true };
-          case "copy-command": { const cmds = all.map((x) => `pal install ${x.name}`); return { copy: cmds.join("\n"), hud: cmds.length > 1 ? `Copied ${cmds.length} install commands` : `Copied ${cmds[0]}` }; }
-          default: return { open: all.length > 1 ? all.map((x) => x.url) : l.url };
+          case "install": {
+            const results: StoreResult[] = [];
+            for (const x of all) results.push(await extensions.install(x.a.name, { registry: x.a.registry, from: "store" }));
+            return said("Install", results, titles);
+          }
+          case "update": return said("Update", await extensions.update(all.map((x) => x.a.name)), titles);
+          case "remove": {
+            const results: StoreResult[] = [];
+            for (const x of all) results.push(await extensions.remove(x.a.name));
+            return said("Remove", results, titles);
+          }
+          case "open": { const p = s.a.listing.palettes[0]; return p ? { push: { extension: s.a.name, palette: p.id } } : undefined; }
+          case "copy-command": { const cmds = all.map((x) => `pal install ${x.a.name}`); return { copy: cmds.join("\n"), hud: cmds.length > 1 ? `Copied ${cmds.length} install commands` : `Copied ${cmds[0]}` }; }
+          default: return { open: all.length > 1 ? all.map(pageOf) : pageOf(s) };
         }
       },
       detail: async (id) => {
-        const l = byName(id);
-        if (!l) return;
-        return detail(l, standing(l, await installed()), (await state.get("theme").catch(() => undefined)) === "dark");
+        const s = await standingOf(id);
+        return s && detail(s);
       },
     },
   },
