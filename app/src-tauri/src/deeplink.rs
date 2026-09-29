@@ -953,7 +953,10 @@ async fn install(app: &AppHandle, spec: &str, open: Option<&str>, trusted: bool)
 async fn registry_add(app: &AppHandle, url: String, key: Option<String>, trusted: bool) {
     let p = match crate::store::preview(app, url.clone(), key.clone()).await {
         Ok(p) => p,
-        Err(e) => return hud::show(app, &format!("pal: {e}")),
+        Err(e) => {
+            eprintln!("deeplink\tregistry refused\t{e}");
+            return hud::show(app, &format!("pal: {e}"));
+        }
     };
     if !trusted {
         let title = format!("Follow the registry {}?", p.name);
@@ -1019,7 +1022,10 @@ async fn store(app: &AppHandle, route: Route, trusted: bool) {
     };
     match r {
         Ok(t) => hud::show(app, &t),
-        Err(e) => hud::show(app, &format!("pal: {e}")),
+        Err(e) => {
+            eprintln!("deeplink\tstore failed\t{e}");
+            hud::show(app, &format!("pal: {e}"));
+        }
     }
 }
 

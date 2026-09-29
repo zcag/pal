@@ -150,7 +150,15 @@ impl Layout {
     fn resolve(app: &AppHandle) -> Layout {
         let bun = bun();
         let base = base(app.path().resource_dir().ok());
-        let roots = roots(&base, pal_core::extensions::Store::locate().dir(), crate::settings::config(app).general.extension_dirs(), dev_layout(&base));
+        let store = pal_core::extensions::Store::locate();
+        // There before the host starts, so the host links the SDK into it
+        // (`linkApi`) before anything there imports `@zcag/pal`: Bun keeps a
+        // failed package lookup for the life of the process, and the first
+        // install (reloaded, not restarted) would never load.
+        if let Err(e) = std::fs::create_dir_all(store.dir()) {
+            eprintln!("host	store dir	{}	{e}", store.dir().display());
+        }
+        let roots = roots(&base, store.dir(), crate::settings::config(app).general.extension_dirs(), dev_layout(&base));
         Layout { bun, host: base.join("host/src/host.ts"), roots }
     }
 }

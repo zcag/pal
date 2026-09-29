@@ -430,10 +430,12 @@ pub async fn install_source(app: &AppHandle, spec: &str) -> OpResult {
     }
 }
 
-/// Updates `names` (every one with an update when empty), each as the one
-/// check says: its registry's newer build, a yanked build's replacement, or
+/// Updates `names` (every one with an update when empty; the indexes
+/// fetched first unless that just happened), each as the one check says: its registry's newer build, a yanked build's replacement, or
 /// a source install's source fetched again.
 pub async fn update(app: &AppHandle, names: Vec<String>, from: From) -> Vec<OpResult> {
+    // Asked for: against indexes no older than a moment ago.
+    fetch(app, COALESCE).await;
     let statuses = blocking(app, |m| Ok(m.check())).await.unwrap_or_default();
     let todo: Vec<Result<Status, OpResult>> = if names.is_empty() {
         statuses.into_iter().filter(|s| s.target().is_some()).map(Ok).collect()
@@ -700,20 +702,25 @@ fn to_list(bundled: &BTreeSet<String>, used: &BTreeSet<String>, listed: &[(Strin
 /// `max_age`), then installs what `[store] installed` lists and is missing,
 /// applies what updates by itself, and answers the state after.
 pub async fn refresh(app: &AppHandle, max_age: Duration) -> StoreState {
-    {
-        let s = svc(app);
-        let mut last = s.fetched.lock().await;
-        if !last.is_some_and(|t| t.elapsed() < max_age) {
-            let t0 = Instant::now();
-            let out = blocking(app, |m| Ok(m.refresh())).await.unwrap_or_default();
-            let failed: Vec<String> = out.iter().filter_map(|(n, r)| r.as_ref().err().map(|e| format!("{n}: {e}"))).collect();
-            eprintln!("store\trefreshed\t{} registries\t{:.0}ms{}", out.len(), t0.elapsed().as_secs_f64() * 1000.0, if failed.is_empty() { String::new() } else { format!("\t{}", failed.join("; ")) });
-            *last = Some(Instant::now());
-        }
-    }
+    fetch(app, max_age).await;
     reconcile(app).await;
     auto_apply(app).await;
     compute(app).await
+}
+
+/// Every registry's index fetched, unless the last fetch is younger than
+/// `max_age`; one fetch at a time (a second waits, then finds it fresh).
+async fn fetch(app: &AppHandle, max_age: Duration) {
+    let s = svc(app);
+    let mut last = s.fetched.lock().await;
+    if last.is_some_and(|t| t.elapsed() < max_age) {
+        return;
+    }
+    let t0 = Instant::now();
+    let out = blocking(app, |m| Ok(m.refresh())).await.unwrap_or_default();
+    let failed: Vec<String> = out.iter().filter_map(|(n, r)| r.as_ref().err().map(|e| format!("{n}: {e}"))).collect();
+    eprintln!("store\tfetched\t{} registries\t{:.0}ms{}", out.len(), t0.elapsed().as_secs_f64() * 1000.0, if failed.is_empty() { String::new() } else { format!("\t{}", failed.join("; ")) });
+    *last = Some(Instant::now());
 }
 
 /// A refresh for an open (the Store palette, Settings › Extensions), in the
