@@ -183,8 +183,9 @@ Pages site.
 - the Store palette's Registries section;
 - Settings › Extensions.
 
-The confirm shows the URL, how many extensions it lists, and its key, which is
-pinned then. An index signed by a key that is neither the pin nor a signed
+The confirm shows the URL, how many extensions it lists, its key (pinned
+then), and that its extensions update automatically unless that is turned off
+for it. An index signed by a key that is neither the pin nor a signed
 `next_key` is refused and shown as a problem on that registry. Ours is always
 present, first, and cannot be removed.
 
@@ -345,7 +346,7 @@ disabled = ["hue"]
 name = "acme"
 url = "https://acme.github.io/pal/index.json"
 key = "RWQ…"
-auto_update = false
+auto_update = true                                # overrides the global switch for this registry
 channel = "stable"
 ```
 
@@ -394,9 +395,13 @@ One check, in the core. Settings, the Store palette, the bar badge,
   - On macOS that leads to the app update.
   - On a Linux `.deb`, which can't self-update (`updater.rs:150`), it shows the
     apt/dpkg command.
-- **Applying.** Ours is automatic by default. Other registries follow
-  `auto_update`, which defaults to off; off means a Needs you row. Deferred
-  while the extension is shown, and rolled back on a failed load (above).
+- **Applying.** Automatic by default, for every registry: Settings ›
+  Extensions has "Update extensions automatically" (on), mirrored as
+  `general.auto_update_extensions`, and each registry's row can override it
+  (`auto_update`). Trust was given when the registry was added and every
+  build is signed with its pinned key, so a third party's updates are held to
+  the same bar as ours. Off means a Needs you row per update. Deferred while
+  the extension is shown, and rolled back on a failed load (above).
 - **After an app update**: a store copy whose hash equals the new bundled one,
   or whose seq is lower, is deleted.
 - **Tests.** A fixture registry served by the host tests covers:
@@ -609,7 +614,5 @@ Each step ships on its own, and nothing is taken away until the last one.
 - The exact core list.
 - Whether root search also shows third-party registries' extensions, or ours
   only (leaning ours only).
-- Whether first-party auto-update stays default-on after the edge/stable gate
-  exists (leaning yes: stable is already a decision).
 - `seq` from the CI run number or from a counter the site hands out
   (leaning run number: no state on the site).
