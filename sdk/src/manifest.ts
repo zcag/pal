@@ -327,6 +327,30 @@ export function checkBarSettings(manifest: Manifest): string[] {
   });
 }
 
+/** A name an extension can have: its directory and config key (`pal_core::extensions::safe_name`). */
+export const isExtensionName = (v: unknown): v is string => typeof v === "string" && v.length <= 64 && /^[a-z0-9_][a-z0-9._-]*$/.test(v) && !v.includes("..");
+
+/** The valid names in `requires` or `suggests`, the extension's own left out: what the host acts on, whatever `checkDeps` said about the rest. */
+export const depNames = (manifest: Manifest, key: "requires" | "suggests"): string[] => {
+  const v = manifest[key];
+  return Array.isArray(v) ? [...new Set(v.filter((n) => isExtensionName(n) && n !== manifest.name))] : [];
+};
+
+/** `requires` and `suggests`: each a list of extension names; anything else is a warning and left out. */
+export function checkDeps(manifest: Manifest): string[] {
+  const warnings: string[] = [];
+  for (const key of ["requires", "suggests"] as const) {
+    const v = manifest[key] as unknown;
+    if (v === undefined) continue;
+    if (!Array.isArray(v)) { warnings.push(`${key}: not a list of extension names`); continue; }
+    for (const n of v) {
+      if (!isExtensionName(n)) warnings.push(`${key}: ${JSON.stringify(n)} is not an extension name (lowercase letters, digits, "-", "_", ".")`);
+      else if (n === manifest.name) warnings.push(`${key}: names the extension itself`);
+    }
+  }
+  return warnings;
+}
+
 export function checkLinks(manifest: Manifest, ext: Extension): string[] {
   const warnings: string[] = [];
   const links = manifest.links;

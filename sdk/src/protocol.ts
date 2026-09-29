@@ -2,10 +2,16 @@
 // `list` answers and `pick` returns) and the wire shapes of the Rust core
 // <-> extension host stdio link. One file so both sides compile against it.
 //
-// PROVISIONAL: pal is unreleased (0.x) and these shapes still move; a
-// change that breaks an extension bumps the minor version of `@zcag/pal`
-// until 1.0. What is marked provisional below is likelier to move than the
-// rest.
+// PROVISIONAL: pal is unreleased (0.x) and these shapes still move. What
+// is marked provisional below is likelier to move than the rest.
+//
+// Versioning is `PROTOCOL`, not the package version: an integer that goes
+// up when a change to this contract, the SDK or the host breaks extensions
+// built before it. A package is stamped with the `PROTOCOL` it was built
+// against (`pal.json` `protocol`, written by `pal-pack`), and a host runs
+// the packages whose stamp is in `[PROTOCOL_MIN, PROTOCOL]`, skipping the
+// rest (docs/registry.md, "Protocol"). `pal_core::registry` carries the
+// same two numbers, kept equal by a test.
 //
 // The wire: one JSON object per line, both directions. Both sides send
 // requests: the core asks the host to `list`/`pick`/`detail`/`view`, the
@@ -16,6 +22,11 @@
 // side numbers its own requests, so ids only have to be unique per
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
+
+/** The extension protocol this SDK and host speak: bumped by a change that breaks extensions built before it. */
+export const PROTOCOL = 1;
+/** The oldest `protocol` a package may be stamped with and still load here. */
+export const PROTOCOL_MIN = 1;
 
 /** A request on the wire: the sender's own `id`, echoed by the `Response`. */
 export type Request = { id: number; method: string; params?: unknown };
@@ -1090,6 +1101,17 @@ export type Manifest = {
    * `{instance}` for where the instance's title goes.
    */
   multi?: boolean;
+  /**
+   * The `PROTOCOL` the package was built against, stamped by `pal-pack`;
+   * never written by hand. A host whose `[PROTOCOL_MIN, PROTOCOL]` does not
+   * hold it skips this copy. Absent (a source checkout, a hand-made
+   * extension): runs everywhere.
+   */
+  protocol?: number;
+  /** Extensions this one does not load without (their names); installing it installs them, and it loads once they are there and turned on. */
+  requires?: string[];
+  /** Extensions some of its actions use (their names): the actions that need one hide while it is missing. */
+  suggests?: string[];
 };
 
 /**
@@ -1110,6 +1132,28 @@ export type ExtensionLoaded = {
   manifest: Manifest;
   warnings: string[];
 };
+
+/**
+ * `extension/disabled` (host to core): the extension is turned off (`[store]
+ * disabled`), so it is found but not loaded; its manifest rides along so
+ * Settings can list it with an Enable switch. One that was loaded is
+ * `extension/removed` first (each instance of a `multi` one).
+ */
+export type ExtensionDisabled = { extension: string; root: string; manifest: Manifest };
+
+/** `disabled/changed` (core to host): every extension turned off now. The host loads the ones no longer listed and parks the newly listed. `core/store.disabled` answers the same list at start. */
+export type DisabledChanged = { names: string[] };
+
+/**
+ * `reload {extension}` (core to host): rediscovers the name across the
+ * roots and loads it, answering once that load finished: `loaded` (a
+ * `multi` extension: any instance), the load's `error` (a `multi` one: the
+ * first instance's), the `root` it came from. `disabled` when it is turned
+ * off (not loaded, not an error). The core sends it after swapping a
+ * directory, to learn whether the new build loaded.
+ */
+export type Reload = { extension: string };
+export type Reloaded = { loaded: boolean; error?: string; root?: string; disabled?: true };
 
 /** Resolved values one extension sees: manifest defaults with the file's keys on top. */
 export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Record<string, Record<string, unknown>> };
