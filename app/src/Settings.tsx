@@ -488,6 +488,7 @@ export default function Settings() {
     state: storeState,
     loaded: storeLoaded,
     install: async (name, registry) => { ok(await store.install(name, registry, "settings")); },
+    installSource: async (spec) => { ok(await store.installSource(spec)); },
     update: onExtUpdate,
     remove: async (name, forget) => { ok(await store.remove(name, forget)); },
     setDisabled: (name, disabled) => store.setDisabled(name, disabled),

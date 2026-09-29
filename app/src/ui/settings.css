@@ -1151,6 +1151,9 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xbrow__blocked { flex: none; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-xbrow__error { flex-basis: 100%; margin: 0; padding-left: 32px; color: var(--pal-destructive, #ff6e66); font-size: var(--pal-text-xs, 11px); }
 .pal-xbrowse__foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pal-space-1, 4px) var(--pal-space-3, 12px); margin: var(--pal-space-2, 8px) 0 0; padding: 0 var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xsource { display: flex; flex-wrap: wrap; align-items: end; gap: var(--pal-space-2, 8px); margin: var(--pal-space-3, 12px) 0 0; padding: 0 var(--pal-space-1, 4px); }
+.pal-xsource .pal-instances__field { flex: 1 1 260px; }
+.pal-xsource .pal-instances__note { flex-basis: 100%; margin: 0; }
 .pal-xbrowse__foot code { font-family: var(--pal-font-mono, ui-monospace, monospace); }
 
 /* Registries: a card of rows, each with its URL, how the last check went, its channel, its switch and Remove. */

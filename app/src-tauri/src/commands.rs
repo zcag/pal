@@ -589,9 +589,10 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             if spec.is_empty() {
                 return Ok(install_form(Some("a source is needed")));
             }
-            match settings::extensions_install(app.clone(), spec).await {
-                Ok(r) => Ok(toast(&format!("Installed {}", r.name), "Loaded and ready", "success")),
-                Err(e) => Ok(install_form(Some(&e))),
+            let r = crate::store::install_spec(app, &spec, pal_core::usage::From::Store).await;
+            match (r.ok, r.error) {
+                (true, None) => Ok(toast(&format!("Installed {}", r.name), "Loaded and ready", "success")),
+                (_, e) => Ok(install_form(Some(&e.unwrap_or_else(|| format!("{}: failed", r.name))))),
             }
         }
         Plan::RestartHost => {

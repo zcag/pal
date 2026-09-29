@@ -157,7 +157,8 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
           failed={failed[name]}
           store={store}
           onChange={onChange}
-          onUpdate={store && target ? () => act(name, "Updating…", () => store.update([name])) : undefined}
+          onUpdate={store && (target || current.status?.state === "source") ? () => act(name, "Updating…", () => store.update([name])) : undefined}
+          updateLabel={current.status?.state === "source" ? "Fetch source again" : undefined}
           onDisabled={store ? (off) => act(name, off ? "Turning off…" : "Turning on…", () => store.setDisabled(name, off)) : undefined}
           onRemove={store && current.status?.origin === "store" ? (forget) => act(name, "Removing…", async () => { await store.remove(name, forget); onSelect(undefined); }) : undefined}
           onOpenLink={onOpenLink}
@@ -315,8 +316,10 @@ type PaneProps = {
   failed?: string;
   store?: ExtensionsStore;
   onChange: (key: string, values: SettingValues) => void;
-  /** Update now: offered while the check has a build to install. */
+  /** Update now: offered while the check has a build to install, and for a source install (its source fetched again). */
   onUpdate?: () => void;
+  /** The update button's words when it is not an update proper ("Fetch source again"). */
+  updateLabel?: string;
   /** Turn off (`true`) or on. */
   onDisabled?: (disabled: boolean) => void;
   /** Remove, and with `forget` its settings, storage, cache, ranking and secrets too; a store copy only. */
@@ -339,7 +342,7 @@ type PaneProps = {
 export const forgetText = (e: SettingsExtension) =>
   `Deletes ${e.extTitle ?? e.title}'s folder and everything it kept: its settings in the config file ([extensions.${e.name}], its palettes' and bar items' tables${e.multi ? ", every instance" : ""}), its stored data and cache, its search ranking, and its keychain secrets. A reinstall starts from nothing.`;
 
-function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, store, onChange, onUpdate, onDisabled, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem }: PaneProps) {
+function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, store, onChange, onUpdate, updateLabel, onDisabled, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem }: PaneProps) {
   const multi = !!ext.multi;
   // The instance whose settings show: the selected one when it is of this extension, else the default (or the first).
   const [localInstance, setLocalInstance] = useState<string | undefined>(undefined);
@@ -484,7 +487,7 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
       {(onUpdate || onDisabled || onRemove) && (
         <footer className="pal-pane__foot">
           <span className="pal-pane__note">{note}</span>
-          {onUpdate && <button type="button" className="pal-button" data-small data-primary disabled={!!busy} onClick={onUpdate}>Update now</button>}
+          {onUpdate && <button type="button" className="pal-button" data-small data-primary disabled={!!busy} onClick={onUpdate}>{updateLabel ?? "Update now"}</button>}
           {onDisabled && <button type="button" className="pal-button" data-small data-primary={ext.disabled || undefined} disabled={!!busy} onClick={() => onDisabled(!ext.disabled)}>{ext.disabled ? "Turn on" : "Turn off"}</button>}
           {onRemove && <ArmedButton label="Remove" arm="Settings and data stay. Click again" disabled={!!busy} onConfirm={() => onRemove(false)} data-small />}
           {onRemove && <button type="button" className="pal-button" data-small data-destructive disabled={!!busy || forgetting} onClick={() => setForgetting(true)}>Remove and forget…</button>}

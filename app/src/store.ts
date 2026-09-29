@@ -62,6 +62,8 @@ export const store = {
   state: () => invoke<StoreState>("store_state").then(storeOf),
   refresh: () => invoke<StoreState>("store_refresh").then(storeOf),
   install: (name: string, registry: string | null, from: From) => invoke<OpResult>("store_install", { name, registry, from }),
+  /** A name from the registries, or a source: a folder, `github:user/repo[/sub][@ref]`, a GitHub URL. */
+  installSource: (spec: string) => invoke<OpResult>("store_install_source", { spec }),
   update: (names: string[], from: From) => invoke<OpResult[]>("store_update", { names, from }),
   remove: (name: string, forget: boolean) => invoke<OpResult>("store_remove", { name, forget }),
   setDisabled: (name: string, disabled: boolean) => invoke<void>("store_set_disabled", { name, disabled }),

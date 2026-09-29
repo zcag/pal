@@ -15,7 +15,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::secrets::{platform_store, SecretRef};
 use pal_core::config::{instance, Config, ConfigFile, Diagnostic, Error, Loaded, Watcher};
-use pal_core::extensions::{Installed, Store};
+use pal_core::extensions::Store;
 use pal_core::frecency::Frecency;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -1146,51 +1146,6 @@ pub fn settings_reset_frecency(app: AppHandle, frecency: State<'_, Mutex<Frecenc
 pub async fn settings_restart_host(host: State<'_, Arc<Host>>) -> Result<(), String> {
     host.restart().await;
     Ok(())
-}
-
-// ---- the extension store ---------------------------------------------------
-// The work is `crate::store`'s (one `pal_core::manage::Manager`, the host
-// told to reload the one extension, no restart); these are the commands the
-// Settings page had before the Store's own (`store_*`), kept for it and for
-// the panel's install form.
-
-/// A bare name installs from the registries, anything else is a source (a
-/// directory, GitHub). Answers once the host has loaded it.
-#[tauri::command]
-pub async fn extensions_install(app: AppHandle, spec: String) -> Result<Installed, String> {
-    let r = if pal_core::extensions::Spec::is_bare_name(&spec) { crate::store::install(&app, spec.trim(), None, pal_core::usage::From::Settings).await } else { crate::store::install_source(&app, &spec).await };
-    installed(r)
-}
-
-/// The update the one check offers for `name`, or a source install's
-/// source fetched again.
-#[tauri::command]
-pub async fn extensions_update(app: AppHandle, name: String) -> Result<Installed, String> {
-    let r = crate::store::update(&app, vec![name], pal_core::usage::From::Settings).await.pop().ok_or("nothing to update")?;
-    installed(r)
-}
-
-#[tauri::command]
-pub async fn extensions_remove(app: AppHandle, name: String) -> Result<(), String> {
-    let r = crate::store::remove(&app, &name, false, pal_core::usage::From::Settings).await;
-    if r.ok { Ok(()) } else { Err(r.error.unwrap_or_default()) }
-}
-
-/// An operation's outcome as these commands answer it: the store copy it
-/// left, or its error (a load failure included).
-fn installed(r: crate::store::OpResult) -> Result<Installed, String> {
-    match (r.ok, r.loaded, r.error) {
-        (true, Some(false), Some(e)) => Err(format!("{} is installed but did not load: {e}", r.name)),
-        (true, ..) => Store::locate().get(&r.name).map_err(|e| e.to_string()),
-        (false, _, e) => Err(e.unwrap_or_else(|| format!("{}: failed", r.name))),
-    }
-}
-
-/// Extensions with an update, on demand: every registry's index is fetched
-/// first. The result is remembered (`Checks`).
-#[tauri::command]
-pub async fn extensions_check_updates(app: AppHandle) -> Result<Vec<Update>, String> {
-    check_extensions(&app).await
 }
 
 // ---- instances -------------------------------------------------------------

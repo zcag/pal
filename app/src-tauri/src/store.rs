@@ -35,7 +35,7 @@ use pal_core::config::instance::name_of;
 use pal_core::config::secrets::{platform_store, SecretRef};
 use pal_core::config::{Config, Plan};
 use pal_core::extensions::refs::{self, LeftOver};
-use pal_core::extensions::{Error, Kind};
+use pal_core::extensions::{Error, Kind, Spec};
 use pal_core::index::{Item, Source};
 use pal_core::manage::{Available, Manager};
 use pal_core::registry::{self, Channel, ListingPalette, RegistryStatus, PAL};
@@ -414,6 +414,13 @@ fn install_with<'a>(app: &'a AppHandle, name: String, registry: Option<String>, 
             }
         }
     })
+}
+
+/// What an install field takes: a bare name from the registries, anything
+/// else a source (a directory, `github:user/repo[/sub][@ref]`, a GitHub URL).
+pub async fn install_spec(app: &AppHandle, spec: &str, from: From) -> OpResult {
+    let spec = spec.trim();
+    if Spec::is_bare_name(spec) { install(app, spec, None, from).await } else { install_source(app, spec).await }
 }
 
 /// A source install (`pal install --from`'s spellings), then its load.
@@ -1119,6 +1126,12 @@ pub async fn store_refresh(app: AppHandle) -> StoreState {
 #[tauri::command]
 pub async fn store_install(app: AppHandle, name: String, registry: Option<String>, from: From) -> OpResult {
     install(&app, &name, registry.as_deref(), from).await
+}
+
+/// Settings' install field: a name or a source (`install_spec`).
+#[tauri::command]
+pub async fn store_install_source(app: AppHandle, spec: String) -> OpResult {
+    install_spec(&app, &spec, From::Settings).await
 }
 
 #[tauri::command]

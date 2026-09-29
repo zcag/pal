@@ -20,6 +20,8 @@ export type ExtensionsStore = {
   /** The core answered at least once: before that, empty lists mean "not known yet". */
   loaded?: boolean;
   install: (name: string, registry: string | null) => Promise<void>;
+  /** A folder or a GitHub source, installed as is (`pal install --from`); never updated from a registry. */
+  installSource?: (spec: string) => Promise<void>;
   update: (names: string[]) => Promise<void>;
   remove: (name: string, forget: boolean) => Promise<void>;
   setDisabled: (name: string, disabled: boolean) => Promise<void>;
@@ -239,9 +241,30 @@ export function Browse({ store, installing, onInstall, onSelect }: { store: Exte
       </div>
       <p className="pal-xbrowse__foot">
         {store.openStore && <button type="button" className="pal-link" onClick={store.openStore}>Open the Store palette</button>}
-        <span>Installing from a folder or GitHub for development: <code>pal install --from</code> in a terminal.</span>
       </p>
+      {store.installSource && <SourceInstall run={store.installSource} />}
     </section>
+  );
+}
+
+/** A folder or a GitHub source, for an extension no registry lists (your own, one in development). */
+function SourceInstall({ run }: { run: (spec: string) => Promise<void> }) {
+  const [spec, setSpec] = useState("");
+  const [state, setState] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done" } | { kind: "error"; message: string }>({ kind: "idle" });
+  const busy = state.kind === "busy";
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!spec.trim() || busy) return;
+    setState({ kind: "busy" });
+    try { await run(spec.trim()); setState({ kind: "done" }); setSpec(""); } catch (err) { setState({ kind: "error", message: String(err) }); }
+  };
+  return (
+    <form className="pal-xsource" onSubmit={submit} aria-label="Install from a folder or GitHub" aria-busy={busy}>
+      <label className="pal-instances__field"><span>From a folder or GitHub</span><input className="pal-inline" type="text" value={spec} placeholder="~/code/my-extension or github:user/repo" spellCheck={false} readOnly={busy} onChange={(e) => { setSpec(e.target.value); if (state.kind !== "busy") setState({ kind: "idle" }); }} /></label>
+      <button type="submit" className="pal-button" data-small disabled={busy || !spec.trim()}>{busy ? "Installing…" : "Install"}</button>
+      {state.kind === "done" && <p className="pal-instances__note" role="status">Installed. A source install never updates from a registry; its page has Update to fetch the source again.</p>}
+      {state.kind === "error" && <p className="pal-instances__note" data-error role="alert">{state.message}</p>}
+    </form>
   );
 }
 

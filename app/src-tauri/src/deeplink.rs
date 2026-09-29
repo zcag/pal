@@ -921,7 +921,7 @@ async fn install(app: &AppHandle, spec: &str, open: Option<&str>, trusted: bool)
     }
     hud::show(app, "Installing\u{2026}");
     let from = if trusted { pal_core::usage::From::Cli } else { pal_core::usage::From::Deeplink };
-    let r = if pal_core::extensions::Spec::is_bare_name(spec) { crate::store::install(app, spec.trim(), None, from).await } else { crate::store::install_source(app, spec).await };
+    let r = crate::store::install_spec(app, spec, from).await;
     match (r.ok, r.loaded) {
         (true, Some(false)) => hud::show(app, &format!("{} is installed but did not load: {}", r.name, r.error.unwrap_or_default())),
         (true, _) => {
