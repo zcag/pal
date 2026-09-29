@@ -68,7 +68,8 @@
         "description": "Asks first mid-game; the record is kept.",
         "keys": "n"
       }
-    ]
+    ],
+    "play": true
   },
   "palettes": {
     "yahtzee": {

@@ -91,7 +91,8 @@
         "description": "The buzzer on or off.",
         "keys": "cmd+t"
       }
-    ]
+    ],
+    "play": true
   },
   "palettes": {
     "snake": {

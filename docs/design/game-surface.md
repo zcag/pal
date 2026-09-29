@@ -106,7 +106,8 @@ The type is `SurfaceKit` in `@zcag/pal` (`declare const pal: SurfaceKit`).
 | `onShown(fn)`, `onHidden(fn)` | the panel shown again with the level, or hidden: pause the loop |
 | `ready()` | the first frame is drawn; the app reveals the frame |
 
-Outside pal (`window.parent === window`) the kit is a stub: storage in
+Outside pal (`window.parent === window`, or a frame loaded with `?web`)
+the kit is a stub: storage in
 `localStorage`, settings from `?settings=<json>`, the theme from
 `?theme=dark|light` or the OS with `tokens.css` linked, sends logged. The
 same serving for a plain browser, `.ts` transpiled and the kit mapped, is

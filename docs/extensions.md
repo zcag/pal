@@ -799,6 +799,13 @@ export default defineExtension({
   from `?settings=<json>`, the theme from `?theme=dark|light` or the OS. A
   page's TypeScript is typechecked against the DOM by
   `host/tsconfig.surface.json` (`make test` runs it).
+- **On the web.** A game that needs nothing from its extension (every
+  `pal.send` only tells it something, and the page does without the
+  reply) can say `"play": true` in its `store` block, and
+  [palplay.cagdas.io](https://palplay.cagdas.io) serves it the same way,
+  the kit a stub in a frame loaded with `?web` and the settings at their
+  defaults; its page on pal.cagdas.io links there. Keep the page's
+  own keys off ⌘ combos the browser keeps (⌘T, ⌘N, ⌘W).
 
 ## Live views: push and pull
 

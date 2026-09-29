@@ -110,7 +110,8 @@
         "description": "No running time on screen; again to bring it back. Times still count.",
         "keys": "t"
       }
-    ]
+    ],
+    "play": true
   },
   "palettes": {
     "minesweeper": {

@@ -73,7 +73,8 @@
         "description": "Before the first key: up and down switch time and words, left and right the length.",
         "keys": "up, down, left, right"
       }
-    ]
+    ],
+    "play": true
   },
   "settings": [
     {

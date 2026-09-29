@@ -12,13 +12,15 @@
 // and `data-theme` on <html>, again on every flip. Escape and ⌘K go to
 // the panel, and so does any cmd combo the page does not preventDefault.
 //
-// Opened in a plain browser (`window.parent === window`) it is a stub, so
-// a page is developed and screenshot in Chrome as is: storage in
+// Opened in a plain browser (`window.parent === window`), or framed with
+// `?web` (palplay.cagdas.io's game page), it is a stub, so a page is
+// developed, screenshot and played in a browser as is: storage in
 // localStorage, settings from `?settings=<json>`, the theme from
 // `?theme=dark|light` or the OS (tokens.css linked for the values), sends
 // logged to the console.
 (() => {
-  const inPal = window.parent !== window;
+  const q = new URLSearchParams(location.search);
+  const inPal = window.parent !== window && !q.has("web");
   const root = document.documentElement;
   const handlers = { message: [], action: [], settings: [], theme: [], shown: [], hidden: [] };
   // A message, an action or settings that arrive before the page listens (its module runs after this script, and the app
@@ -40,7 +42,6 @@
 
   if (!inPal) {
     // ---- the browser stub ------------------------------------------------
-    const q = new URLSearchParams(location.search);
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = "/__pal/tokens.css";

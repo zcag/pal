@@ -117,7 +117,8 @@
         "description": "No running time beside the table; again to bring it back.",
         "keys": "t"
       }
-    ]
+    ],
+    "play": true
   },
   "palettes": {
     "solitaire": {

@@ -137,7 +137,8 @@
         "description": "A fresh bankroll and record; asks first.",
         "keys": "n"
       }
-    ]
+    ],
+    "play": true
   },
   "palettes": {
     "blackjack": {
