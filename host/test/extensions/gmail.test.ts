@@ -165,14 +165,15 @@ describe("gmail", () => {
     expect(m1.keywords).toEqual(["Mara Lind", "mara@example.com", "Personal"]);
     expect(m1.accessories).toEqual([{ date: Date.parse("Wed, 16 Sep 2026 09:12:00 +0000") }]);
     expect(m1.actions).toEqual([
-      { id: "open", title: "Open in Gmail" },
+      { id: "open", title: "Open in Gmail", multi: true },
       { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true },
       { id: "archive", title: "Archive", shortcut: "cmd+e", multi: true },
       { id: "star", title: "Star", shortcut: "cmd+s", multi: true },
       { id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true },
-      { id: "copy", title: "Copy link", shortcut: "cmd+c" },
-      // The other way too, so marked rows that mix read and unread share both.
+      { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
+      // The other way too, so marked rows that mix read and unread (starred and not) share both.
       { id: "unread", title: "Mark as unread", multi: true },
+      { id: "unstar", title: "Unstar", multi: true },
     ]);
     // The quick reply's text is the row's typed argument (send on for this account only).
     expect(m1.args).toEqual([{ id: "body", placeholder: "Quick reply", required: true }]);
@@ -241,6 +242,9 @@ describe("gmail", () => {
     expect(await host.pick(P, "inbox", "m1")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1" });
     expect(await host.pick(P, "inbox", "m8", "open")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#all/t8" });
     expect(await host.pick(P, "inbox", "m1", "copy")).toEqual({ copy: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1" });
+    // Marked rows: every thread opened, every link copied on its own line.
+    expect(await host.pick(P, "inbox", "m1", "open", { ids: ["m1", "m8"] })).toEqual({ open: ["https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1", "https://mail.google.com/mail/?authuser=someone%40gmail.com#all/t8"] });
+    expect(await host.pick(P, "inbox", "m1", "copy", { ids: ["m1", "m8"] })).toEqual({ copy: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1\nhttps://mail.google.com/mail/?authuser=someone%40gmail.com#all/t8" });
     expect(await host.pick(P, "inbox", "m1", "read")).toEqual({ keep: true, toast: { title: "Marked read", message: "Parser review before standup?" } });
     expect(modifies().at(-1)).toEqual({ ids: ["m1"], removeLabelIds: ["UNREAD"] });
     // The next listing (the cache dropped) has it under Recent; the count fell.
@@ -374,11 +378,15 @@ describe("gmail", () => {
     const rows = await list(P, "drafts");
     expect(rows.map((r) => [r.id, r.name, r.subtitle])).toEqual([["r1", "Packing list", "To Ola Berg · Boots, the good torch, cards."], ["r2", "(no subject)", "No recipient"]]);
     expect(rows[0].actions).toEqual([
-      { id: "open", title: "Open in Gmail" },
+      { id: "open", title: "Open in Gmail", multi: true },
       { id: "send", title: "Send draft", shortcut: "cmd+enter", confirm: 'Send "Packing list" to Ola Berg?' },
-      { id: "discard", title: "Discard draft", shortcut: "cmd+d", style: "destructive", confirm: 'Discard "Packing list"?' },
+      { id: "discard", title: "Discard draft", shortcut: "cmd+d", style: "destructive", confirm: "Discard for good?", multi: true },
     ]);
     expect(await host.pick(P, "drafts", "r1")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#drafts/td1" });
+    // Marked drafts open together.
+    const both = await host.pick(P, "drafts", "r1", "open", { ids: ["r1", "r2"] });
+    expect(both.open).toHaveLength(2);
+    expect((both.open as string[])[0]).toBe("https://mail.google.com/mail/?authuser=someone%40gmail.com#drafts/td1");
     expect(await host.pick(P, "drafts", "r1", "send")).toEqual({ keep: true, toast: { title: "Sent", message: "Packing list" } });
     expect(mock.calls("/users/me/drafts/send").at(-1)!.body).toEqual({ id: "r1" });
     expect(await host.pick(P, "drafts", "r2", "discard")).toEqual({ keep: true, toast: { title: "Discarded", message: "(no subject)" } });
@@ -424,6 +432,12 @@ describe("gmail", () => {
     expect(viewOf(await host.barAction(W, "unread", "focus:w1"))).toMatchObject({ id: "unread" });
     expect(await host.barAction(W, "unread", "star")).toMatchObject({ view: { id: "unread" } });
     expect(modifies().at(-1)).toEqual({ ids: ["w1"], addLabelIds: ["STARRED"] });
+    // Marked rows star as Gmail's button does: all of them unless every one is starred already, then all unstarred.
+    expect(await host.barAction(W, "unread", "star", { reason: "open", ids: ["w1", "w2"] })).toMatchObject({ hud: "Starred 2" });
+    expect(modifies().at(-1)).toEqual({ ids: ["w1", "w2"], addLabelIds: ["STARRED"] });
+    expect(await host.barAction(W, "unread", "star", { reason: "open", ids: ["w1", "w2"] })).toMatchObject({ hud: "Unstarred 2" });
+    expect(modifies().at(-1)).toEqual({ ids: ["w1", "w2"], removeLabelIds: ["STARRED"] });
+    expect(await host.barAction(W, "unread", "copy", { reason: "open", ids: ["w1", "w2"] })).toMatchObject({ copy: expect.stringContaining("\n") });
     // Marked rows (`ctx.ids`): one batchModify for them all.
     expect(await host.barAction(W, "unread", "read", { reason: "open", ids: ["w1", "w2"] })).toEqual({ keep: true, hud: "Marked 2 read" });
     expect(modifies().at(-1)).toEqual({ ids: ["w1", "w2"], removeLabelIds: ["UNREAD"] });

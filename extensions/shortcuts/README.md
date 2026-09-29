@@ -15,6 +15,8 @@ bar's field (the row's argument; a pick without it, from `pal run` or a
 hotkey, asks in a form whose textarea takes a longer text). `cmd+o`
 opens the shortcut in the Shortcuts app.
 
+Marked shortcuts (cmd-click, shift-click, shift+arrows) run, run with the clipboard, or copy their names together, each run with its own HUD; Run with input and Open in Shortcuts are one shortcut's.
+
 ## Keyboard
 
 | keys | action |

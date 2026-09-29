@@ -106,16 +106,17 @@ const OPS: Action[] = [
   { id: "icons", title: "Make an icon set", shortcut: "cmd+shift+f", multi: true },
 ];
 const TINY: Action = { id: "tinypng", title: "Compress with TinyPNG", shortcut: "cmd+t", multi: true };
-const OCR: Action = { id: "ocr", title: "Copy text (OCR)", shortcut: "cmd+shift+t" };
+// Every file action takes marked images too: the texts and infos a blank line apart, the images as files on the clipboard, a window each.
+const OCR: Action = { id: "ocr", title: "Copy text (OCR)", shortcut: "cmd+shift+t", multi: true };
 const FILE: Action[] = [
-  { id: "info", title: "Copy info", shortcut: "cmd+shift+i" },
+  { id: "info", title: "Copy info", shortcut: "cmd+shift+i", multi: true },
   { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true },
-  { id: "copy-image", title: "Copy image", shortcut: "cmd+shift+p" },
-  { id: "open", title: "Open", shortcut: "cmd+o" },
-  { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", shortcut: "cmd+shift+e" },
+  { id: "copy-image", title: "Copy image", shortcut: "cmd+shift+p", multi: true },
+  { id: "open", title: "Open", shortcut: "cmd+o", multi: true },
+  { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", shortcut: "cmd+shift+e", multi: true },
 ];
-const RESTORE: Action = { id: "restore", title: "Restore original", shortcut: "cmd+shift+z" };
-const TRASH: Action = { id: "trash", title: "Move result to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move the result to the Trash? The source stays." };
+const RESTORE: Action = { id: "restore", title: "Restore original", shortcut: "cmd+shift+z", multi: true };
+const TRASH: Action = { id: "trash", title: "Move result to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move to the Trash? The sources stay.", multi: true };
 
 let ocrOk: boolean | undefined;
 const ocrAvailable = async () => (ocrOk ??= await ocr.available().catch(() => false));
@@ -598,19 +599,31 @@ async function pick(id: string, action: string | undefined, ctx?: Ctx): Promise<
     case "resize": case "convert": case "rotate": case "crop": return { push: { extension: "images", palette: "images", args: { op: action, files } satisfies LevelArgs, title: `${LEVEL_TITLE[action]} ${files.length === 1 ? basename(one) : `${files.length} images`}` } };
     case "ocr": {
       let text: string;
-      try { text = await ocr.image({ path: one }); } catch (e) { return fail("Could not read the text", errorMessage(e)); }
-      if (!text) return fail("No text in the image", basename(one));
+      try { text = (await Promise.all(files.map((f) => ocr.image({ path: f })))).filter(Boolean).join("\n\n"); } catch (e) { return fail("Could not read the text", errorMessage(e)); }
+      if (!text) return fail(files.length > 1 ? "No text in the images" : "No text in the image", files.length > 1 ? `${files.length} images` : basename(one));
       return { copy: text, hud: "Copied text" };
     }
     case "info": {
-      const info = await infoOf(one);
-      return { copy: infoLines(info, one, await sizeOf(one)).map((m) => `${m.label}: ${m.value ?? m.tags?.map((t) => t.text).join(", ")}`).join("\n"), hud: "Copied info" };
+      const infos = await Promise.all(files.map(async (f) => infoLines(await infoOf(f), f, await sizeOf(f)).map((m) => `${m.label}: ${m.value ?? m.tags?.map((t) => t.text).join(", ")}`).join("\n")));
+      return { copy: infos.join("\n\n"), hud: "Copied info" };
     }
     case "copy": return { copy: files.join("\n") };
-    case "copy-image": return (await copyImage(one)) ? { hud: "Image copied" } : { copy_files: [one] };
-    case "open": return { open: one };
+    // One image as a picture; several as the files themselves (a clipboard holds one picture).
+    case "copy-image": return files.length > 1 ? { copy_files: files } : (await copyImage(one)) ? { hud: "Image copied" } : { copy_files: [one] };
+    case "open": return { open: files.length > 1 ? files : one };
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...files] : ["xdg-open", dirname(one)]); return { hide: true };
     case "restore": {
+      if (files.length > 1) {
+        let n = 0;
+        for (const f of files) {
+          const r = resultOf(f);
+          if (!r?.kept) continue;
+          try { await restoreOriginal(r.kept, r.source, r.output); } catch (e) { return fail(n ? `Restored ${n}, then failed` : "Could not restore", errorMessage(e)); }
+          results.delete(f);
+          n++;
+        }
+        return n ? { keep: true, toast: { title: `Restored ${n} originals` } } : fail("No original kept", "None of the results replaced its source");
+      }
       const r = resultOf(one);
       if (!r?.kept) return fail("No original kept", "The result did not replace its source");
       try { await restoreOriginal(r.kept, r.source, r.output); } catch (e) { return fail("Could not restore", errorMessage(e)); }
@@ -619,9 +632,9 @@ async function pick(id: string, action: string | undefined, ctx?: Ctx): Promise<
     }
     case "trash": {
       const r = resultOf(one);
-      try { await trash(one); } catch (e) { return fail("Could not move to Trash", errorMessage(e)); }
-      results.delete(one);
-      return { keep: true, toast: { title: "Moved to Trash", message: `${basename(one)}${r && r.source !== one ? `; ${basename(r.source)} stays` : ""}` } };
+      let n = 0;
+      try { for (const f of files) { await trash(f); results.delete(f); n++; } } catch (e) { return fail(n ? `Moved ${n} to the Trash, then failed` : "Could not move to Trash", errorMessage(e)); }
+      return { keep: true, toast: { title: "Moved to Trash", message: files.length > 1 ? `${files.length} results; the sources stay` : `${basename(one)}${r && r.source !== one ? `; ${basename(r.source)} stays` : ""}` } };
     }
   }
 }

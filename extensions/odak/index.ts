@@ -72,25 +72,35 @@ async function recordCompleted(ids: string[], at: number) {
   await storage.set("completed", kept, EXTENSION).catch(() => {});
 }
 
+const URGENT: Action = { id: "urgent", title: "Mark urgent", multi: true }, NOT_URGENT: Action = { id: "not-urgent", title: "Not urgent", multi: true };
+
+/**
+ * Marked todos (`multi`): complete, snooze to tomorrow, the flag either
+ * way (the one that flips the row on ⌘U, the other at the end, so a mix
+ * offers both), open their links, the copies a line each, delete, and
+ * the Snooze… and Move… forms (their submit gets the marks back in
+ * `ctx.ids`). Edit and subtask stay one todo's.
+ */
 function openActions(t: Todo): Action[] {
   return [
     { id: "complete", title: "Complete", multi: true },
     { id: "edit", title: "Edit…", shortcut: "cmd+e" },
-    { id: "tomorrow", title: "Snooze to tomorrow", shortcut: "cmd+t" },
-    { id: "snooze", title: "Snooze…", shortcut: "cmd+s" },
-    { id: "move", title: "Move to section…", shortcut: "cmd+m" },
-    { id: "urgent", title: t.urgent ? "Not urgent" : "Mark urgent", shortcut: "cmd+u" },
+    { id: "tomorrow", title: "Snooze to tomorrow", shortcut: "cmd+t", multi: true },
+    { id: "snooze", title: "Snooze…", shortcut: "cmd+s", multi: true },
+    { id: "move", title: "Move to section…", shortcut: "cmd+m", multi: true },
+    { ...(t.urgent ? NOT_URGENT : URGENT), shortcut: "cmd+u" },
     { id: "subtask", title: "Add subtask…", shortcut: "cmd+n" },
-    ...(linkIn(t.text) ? [{ id: "link", title: "Open link", shortcut: "cmd+l" }] : []),
+    ...(linkIn(t.text) ? [{ id: "link", title: "Open link", shortcut: "cmd+l", multi: true } as Action] : []),
     { id: "open", title: "Open odak", shortcut: "cmd+o" },
-    { id: "copy", title: "Copy text", shortcut: "cmd+c" },
-    { id: "copy-link", title: "Copy link", shortcut: "cmd+shift+c" },
+    { id: "copy", title: "Copy text", shortcut: "cmd+c", multi: true },
+    { id: "copy-link", title: "Copy link", shortcut: "cmd+shift+c", multi: true },
     { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this todo? Its subtasks go with it.", multi: true },
+    t.urgent ? URGENT : NOT_URGENT,
   ];
 }
 const DONE_ACTIONS: Action[] = [
   { id: "reopen", title: "Reopen", multi: true },
-  { id: "copy", title: "Copy text", shortcut: "cmd+c" },
+  { id: "copy", title: "Copy text", shortcut: "cmd+c", multi: true },
   { id: "open", title: "Open odak", shortcut: "cmd+o" },
   { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this todo?", multi: true },
 ];
@@ -185,9 +195,12 @@ export function snoozeOptions(t0: number): { id: string; title: string }[] {
   return [[1, "Tomorrow"], [3, "In 3 days"], [monday, "Next Monday"], [7, "Next week"], [30, "In a month"]].map(([n, title]) => { const day = addDays(t0, n as number); return { id: isoDay(day), title: `${title}, ${dayName(day)}` }; });
 }
 
-const snoozeForm = (t: Todo, values?: FormValues, errors?: Record<string, string>): Form => ({
-  id: t.id,
-  title: `Snooze ${truncate(t.text, 40)}`,
+/** What a form over `ts` is about: the todo, or the count of marked ones. */
+const formSubject = (ts: Todo[]) => (ts.length > 1 ? `${ts.length} todos` : truncate(ts[0]!.text, 40));
+
+const snoozeForm = (ts: Todo[], values?: FormValues, errors?: Record<string, string>): Form => ({
+  id: ts[0]!.id,
+  title: `Snooze ${formSubject(ts)}`,
   fields: [
     { kind: "select", id: "day", label: "Until", options: snoozeOptions(now()), default: values ? str(values.day) : snoozeOptions(now())[0].id },
     { kind: "text", id: "typed", label: "Or a day", default: values ? str(values.typed) : "", placeholder: "fri, 20 sep, in 2 weeks, 2026-10-01", description: "Typed here, it wins over the choice above." },
@@ -196,24 +209,36 @@ const snoozeForm = (t: Todo, values?: FormValues, errors?: Record<string, string
   errors,
 });
 
-async function snoozeTo(t: Todo, day: number): Promise<Effect> {
-  try { await update(t.id, { deadline: isoDay(day), urgent: !!t.urgent }); } catch (e) { return failed("snooze", e); }
+async function snoozeTo(t: Todo | Todo[], day: number): Promise<Effect> {
+  const ts = Array.isArray(t) ? t : [t];
+  try { for (const x of ts) await update(x.id, { deadline: isoDay(day), urgent: !!x.urgent }); } catch (e) { return failed("snooze", e); }
   bar.refresh("today").catch(() => {});
-  return toast(`Snoozed to ${dayLabel(day, now())}`, truncate(t.text, 60));
+  return toast(`Snoozed to ${dayLabel(day, now())}`, ts.length > 1 ? `${ts.length} todos` : truncate(ts[0]?.text ?? "", 60));
 }
 
-async function saveSnooze(t: Todo, values: FormValues): Promise<Effect> {
+/** The flag set on every todo of `ts` (marked rows, or one); the toast counts. */
+async function setUrgent(ts: Todo[], urgent: boolean): Promise<Effect> {
+  try { for (const x of ts) await update(x.id, { urgent }); } catch (e) { return failed("change the flag", e); }
+  bar.refresh("today").catch(() => {});
+  return toast(urgent ? "Urgent" : "Not urgent", ts.length > 1 ? `${ts.length} todos` : truncate(ts[0]?.text ?? "", 60));
+}
+
+/** The todos of `ids` still there, in order. */
+const findAll = async (ids: string[]): Promise<Todo[]> => (await Promise.all(ids.map(find))).filter((x): x is Todo => !!x);
+
+async function saveSnooze(ts: Todo[], values: FormValues): Promise<Effect> {
   const typed = str(values.typed).trim();
   const day = typed ? parseWhen(typed, now()) : dayOf(str(values.day));
-  if (day === undefined) return { form: snoozeForm(t, values, { typed: "Not a day: fri, 20 sep, in 2 weeks, 2026-10-01" }) };
-  return snoozeTo(t, day);
+  if (day === undefined) return { form: snoozeForm(ts, values, { typed: "Not a day: fri, 20 sep, in 2 weeks, 2026-10-01" }) };
+  return snoozeTo(ts, day);
 }
 
-async function moveForm(t: Todo, errors?: Record<string, string>): Promise<Form> {
+async function moveForm(ts: Todo[], errors?: Record<string, string>): Promise<Form> {
   const names = await sectionNames();
+  const t = ts[0]!;
   return {
     id: t.id,
-    title: `Move ${truncate(t.text, 40)}`,
+    title: `Move ${formSubject(ts)}`,
     fields: [names.length
       ? { kind: "select", id: "section", label: "To", options: names.map((n) => ({ id: n, title: n })), default: targetSection(names, t.section) }
       : { kind: "text", id: "section", label: "To", required: true, default: t.section }],
@@ -222,12 +247,16 @@ async function moveForm(t: Todo, errors?: Record<string, string>): Promise<Form>
   };
 }
 
-async function saveMove(t: Todo, values: FormValues): Promise<Effect> {
+/** Every todo of `ts` into the section; a failure is the form again, saying how many already went. */
+async function saveMove(ts: Todo[], values: FormValues): Promise<Effect> {
   const section = str(values.section).trim();
-  if (!section) return { form: await moveForm(t, { section: "Required" }) };
-  try { await move(t.id, section); } catch (e) { return { form: await moveForm(t, { section: errorMessage(e) }) }; }
+  if (!section) return { form: await moveForm(ts, { section: "Required" }) };
+  let n = 0;
+  for (const t of ts) {
+    try { await move(t.id, section); n++; } catch (e) { return { form: await moveForm(ts.slice(n), { section: `${n ? `${n} moved; then ` : ""}${errorMessage(e)}` }) }; }
+  }
   bar.refresh("today").catch(() => {});
-  return toast(`Moved to ${section}`, truncate(t.text, 60));
+  return toast(`Moved to ${section}`, ts.length > 1 ? `${ts.length} todos` : truncate(ts[0]!.text, 60));
 }
 
 // ---- picks on a todo -----------------------------------------------------------------------
@@ -250,24 +279,31 @@ async function complete(ids: string[], reopen = false): Promise<Effect> {
 
 async function pickTodo(t: Todo, action: string | undefined, ctx?: Ctx): Promise<Effect | void> {
   const ids = ctx?.ids ?? [t.id];
+  /** The marked todos still there (a form's submit gets the marks back in `ctx.ids`), else this one. */
+  const all = async () => (ids.length > 1 ? await findAll(ids) : [t]);
   switch (action) {
     case "edit:save": return saveEdit(t, ctx?.values ?? {});
-    case "snooze:save": return saveSnooze(t, ctx?.values ?? {});
-    case "move:save": return saveMove(t, ctx?.values ?? {});
+    case "snooze:save": return saveSnooze(await all(), ctx?.values ?? {});
+    case "move:save": return saveMove(await all(), ctx?.values ?? {});
     case "edit": return { form: await editForm(t) };
-    case "snooze": return { form: snoozeForm(t) };
-    case "tomorrow": return snoozeTo(t, addDays(now(), 1));
-    case "move": return { form: await moveForm(t) };
-    case "urgent": {
-      try { await update(t.id, { urgent: !t.urgent }); } catch (e) { return failed("change the flag", e); }
-      bar.refresh("today").catch(() => {});
-      return toast(t.urgent ? "Not urgent" : "Urgent", truncate(t.text, 60));
-    }
+    case "snooze": return { form: snoozeForm(await all()) };
+    case "tomorrow": return snoozeTo(ids.length > 1 ? await findAll(ids) : t, addDays(now(), 1));
+    case "move": return { form: await moveForm(await all()) };
+    // The row's own flag flipped; over marked rows each id says which way.
+    case "urgent": return setUrgent(ids.length > 1 ? await findAll(ids) : [t], ids.length > 1 ? true : !t.urgent);
+    case "not-urgent": return setUrgent(ids.length > 1 ? await findAll(ids) : [t], false);
     case "subtask": return { push: { extension: EXTENSION, palette: "add", args: { parent: t.id }, title: `Subtask of ${truncate(t.text, 30)}` } };
-    case "link": return { open: linkIn(t.text) ?? webUrl() };
+    case "link": {
+      const links = ids.length > 1 ? (await findAll(ids)).map((x) => linkIn(x.text)).filter((l): l is string => !!l) : [];
+      return { open: links.length > 1 ? links : linkIn(t.text) ?? webUrl() };
+    }
     case "open": return { open: webUrl() };
-    case "copy": return { copy: t.text };
-    case "copy-link": return { copy: linkIn(t.text) ?? webUrl() };
+    case "copy": return { copy: ids.length > 1 ? (await findAll(ids)).map((x) => x.text).join("\n") : t.text };
+    case "copy-link": {
+      if (ids.length === 1) return { copy: linkIn(t.text) ?? webUrl() };
+      const links = (await findAll(ids)).map((x) => linkIn(x.text)).filter((l): l is string => !!l);
+      return { copy: links.length ? links.join("\n") : webUrl() };
+    }
     case "delete": {
       let n = 0;
       for (const id of ids) { try { await remove(id); n++; } catch (e) { return failed("delete", e); } }
@@ -522,15 +558,20 @@ async function todayAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return r.toast?.style === "failure" ? r : { keep: true, hud: ids.length > 1 ? `Done: ${ids.length} todos` : `Done: ${truncate(st.rows.find((x) => x.id === ids[0])?.text ?? cur?.text ?? "", 50)}` };
     }
     case "urgent": {
+      // Marked rows: all flagged, unless every one already is, then all cleared; else the cursor's flipped.
+      if (ctx?.ids) {
+        const ts = await findAll(ctx.ids);
+        const r = await setUrgent(ts, !ts.every((x) => x.urgent));
+        return r.toast?.style === "failure" ? r : { keep: true, hud: `${r.toast?.title}: ${ts.length} todos` };
+      }
       if (!cur) return { keep: true };
       try { await update(cur.id, { urgent: !cur.urgent }); } catch (e) { return failed("change the flag", e); }
       return { keep: true };
     }
     case "tomorrow": {
-      if (!cur) return { keep: true };
-      const t = await find(cur.id);
-      if (!t) return { keep: true };
-      const r = await snoozeTo(t, addDays(now(), 1));
+      const ts = await findAll(ctx?.ids ?? (cur ? [cur.id] : []));
+      if (!ts.length) return { keep: true };
+      const r = await snoozeTo(ts, addDays(now(), 1));
       return r.toast?.style === "failure" ? r : { keep: true, toast: r.toast };
     }
   }

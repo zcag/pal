@@ -75,13 +75,13 @@ export function actions(st: BarState): Action[] {
   const cur = st.rows[st.focus];
   const clicks: Action[] = st.rows.map((r): Action => ({ id: `focus:${r.id}`, title: `Go to ${r.who}`, hidden: true }));
   return [
-    { id: "open", title: cur ? `Open ${cur.subject || "message"} in Gmail` : "Open Gmail" },
+    { id: "open", title: cur ? `Open ${cur.subject || "message"} in Gmail` : "Open Gmail", multi: true },
     ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m", multi: true } as Action] : []),
-    ...(cur ? [{ id: "star", title: cur.starred ? "Remove star" : "Star", shortcut: "s" } as Action] : []),
+    ...(cur ? [{ id: "star", title: cur.starred ? "Remove star" : "Star", shortcut: "s", multi: true } as Action] : []),
     ...(st.rows.length ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-gmail", title: "Open Gmail", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },
-    ...(cur ? [{ id: "copy", title: "Copy the subject", shortcut: "cmd+c" } as Action] : []),
+    ...(cur ? [{ id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true } as Action] : []),
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
     { id: "up", title: "Previous row", shortcut: ["up", "k"], hidden: true },
     ...clicks,

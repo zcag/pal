@@ -105,18 +105,23 @@ const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { retur
 const nid = (path: string) => `note:${path}`;
 const pathOf = (id: string) => (id.startsWith("note:") ? id.slice(5) : undefined);
 
-/** Open in Obsidian or in the editor first, per `open_with`; the other on cmd+enter. */
+/**
+ * Open in Obsidian or in the editor first, per `open_with`; the other on
+ * cmd+enter. Marked notes (`multi`): the editor takes them all in one
+ * call and the copies put one a line; Obsidian's URI shows one note in
+ * its pane, so opening several there would leave only the last.
+ */
 function noteActions(): Action[] {
   const editorFirst = conf().open_with === "editor";
   const obsidian: Action = { id: "obsidian", title: "Open in Obsidian" };
-  const editor: Action = { id: "editor", title: "Open in editor" };
+  const editor: Action = { id: "editor", title: "Open in editor", multi: true };
   return [
     ...(editorFirst ? [editor, { ...obsidian, shortcut: "cmd+enter" }] : [obsidian, { ...editor, shortcut: "cmd+enter" }]),
-    { id: "copy-link", title: "Copy wikilink", shortcut: "cmd+c" },
+    { id: "copy-link", title: "Copy wikilink", shortcut: "cmd+c", multi: true },
     { id: "read", title: "Read in pal", shortcut: "cmd+shift+r" },
     { id: "backlinks", title: "Backlinks", shortcut: "cmd+b" },
     { id: "outgoing", title: "Outgoing links", shortcut: "cmd+l" },
-    { id: "copy-path", title: "Copy path", shortcut: "cmd+shift+c" },
+    { id: "copy-path", title: "Copy path", shortcut: "cmd+shift+c", multi: true },
     // Takes the row's typed argument (the line); Enter on the row still opens the note.
     { id: "append", title: "Append a line", shortcut: "cmd+shift+a", args: true },
   ];
@@ -203,7 +208,7 @@ async function outgoingRows(i: Index, path: string | undefined, actions: Action[
   return t.links.map((l) => {
     const n = resolve(l, i.notes);
     if (n) return noteRow(n, actions, { section, icon: ICON.out });
-    return { id: `missing:${l}`, name: l, subtitle: "Not a note yet", icon: ICON.missing, section, actions: [{ id: "create", title: "Create the note" }, { id: "copy-link", title: "Copy wikilink", shortcut: "cmd+c" }] };
+    return { id: `missing:${l}`, name: l, subtitle: "Not a note yet", icon: ICON.missing, section, actions: [{ id: "create", title: "Create the note" }, { id: "copy-link", title: "Copy wikilink", shortcut: "cmd+c", multi: true }] };
   });
 }
 
@@ -212,17 +217,18 @@ async function outgoingRows(i: Index, path: string | undefined, actions: Action[
 /** Obsidian's own URI: the app switches to the vault and the file. */
 const openInObsidian = (i: Index, path: string): Effect => ({ open: obsidianUrl(i.name, path) });
 
-/** The editor setting split on spaces with the file's absolute path last; the OS opener for the empty setting. */
-function openInEditor(i: Index, path: string): Effect {
+/** The editor setting split on spaces with the files' absolute paths last (several marked notes in one call); the OS opener for the empty setting. */
+function openInEditor(i: Index, paths: string | string[]): Effect {
+  const list = typeof paths === "string" ? [paths] : paths;
   const cmd = conf().editor?.trim();
-  const abs = join(i.root, path);
-  if (!cmd) return { open: abs };
+  const abs = list.map((p) => join(i.root, p));
+  if (!cmd) return { open: abs.length === 1 ? abs[0]! : abs };
   const argv = cmd.split(/\s+/);
   if (!Bun.which(argv[0]) && !argv[0].startsWith("/")) return toast(`${argv[0]} is not installed`, "Settings › Extensions › Obsidian: the editor command", "failure");
   try {
-    Bun.spawn([...argv, abs], { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref();
+    Bun.spawn([...argv, ...abs], { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref();
   } catch (e) { return failed("start the editor", e); }
-  return { hud: `Opened ${basename(path, ".md")} in ${basename(argv[0])}` };
+  return { hud: `Opened ${list.length > 1 ? `${list.length} notes` : basename(list[0]!, ".md")} in ${basename(argv[0])}` };
 }
 
 const open = (i: Index, path: string, how?: "obsidian" | "editor"): Effect => ((how ?? conf().open_with) === "editor" ? openInEditor(i, path) : openInObsidian(i, path));
@@ -429,7 +435,7 @@ async function tagRows(ctx?: Ctx): Promise<Item[]> {
   const rows = [...counts.values()].sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag)).map((c): Item => ({
     id: `tag:${c.tag}`, name: `#${c.tag}`, icon: ICON.tag, keywords: c.tag.split("/"),
     accessories: [{ text: `${c.n} note${c.n === 1 ? "" : "s"}` }],
-    actions: [{ id: "notes", title: "Notes with the tag" }, { id: "copy", title: "Copy tag", shortcut: "cmd+c" }],
+    actions: [{ id: "notes", title: "Notes with the tag" }, { id: "copy", title: "Copy tag", shortcut: "cmd+c", multi: true }],
   }));
   return rows.length ? rows : [hint("none", "No tags", "A #tag in a note's text or a tags: line in its front matter shows here", { icon: ICON.tag })];
 }
@@ -482,6 +488,16 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
     const i = await ix(true);
     await remember(path);
     return { ...open(i, path), hud: `Created ${basename(path, ".md")}` };
+  }
+  // Marked rows (`ctx.ids`): the editor opens every note at once, the copies put one a line.
+  const ids = ctx?.ids ?? [id];
+  if (ids.length > 1) {
+    const i = await ix();
+    const paths = ids.map(pathOf).filter((p): p is string => p !== undefined && i.byPath.has(p));
+    if (action === "editor") return openInEditor(i, paths);
+    if (action === "copy-path") return { copy: paths.map((p) => join(i.root, p)).join("\n") };
+    if (action === "copy-link") return { copy: ids.map((x) => (x.startsWith("missing:") ? `[[${x.slice(8)}]]` : i.byPath.get(pathOf(x) ?? "") ? wikilink(i.byPath.get(pathOf(x)!)!, i.notes) : "")).filter(Boolean).join("\n") };
+    if (action === "copy") return { copy: ids.filter((x) => x.startsWith("tag:")).map((x) => `#${x.slice(4)}`).join("\n") };
   }
   if (id.startsWith("tag:")) {
     const tag = id.slice(4);

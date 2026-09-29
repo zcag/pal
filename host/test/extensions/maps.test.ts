@@ -143,6 +143,11 @@ describe("maps", () => {
     expect(await pick("place:Gym", "other")).toEqual({ open: "maps://?q=Kad%C4%B1k%C3%B6y%20Sports%20Hall" });
     expect(await pick("to", "copy_address")).toEqual({ copy: "kadıköy" });
     expect(await pick("nope")).toMatchObject({ keep: true, toast: { style: "failure" } });
+    // Marked places: Open opens each, the copies a line each; directions stay one place's.
+    const multi = (await list("kadıköy")).find((i) => i.id === "search")!.actions!.filter((a) => a.multi).map((a) => a.id);
+    expect(multi).toEqual(["open", "copy_address", "copy_link"]);
+    expect(await pick("search", "open", { ids: ["search", "place:Gym"] })).toEqual({ open: ["https://www.google.com/maps/search/?api=1&query=kad%C4%B1k%C3%B6y", "https://www.google.com/maps/search/?api=1&query=Kad%C4%B1k%C3%B6y%20Sports%20Hall"] });
+    expect(await pick("search", "copy_address", { ids: ["search", "place:Gym"] })).toEqual({ copy: "kadıköy\nKadıköy Sports Hall" });
   });
 
   test("Apple Maps as the app: maps:// urls open, the other app is Google, Copy link is the web form", async () => {

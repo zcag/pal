@@ -31,12 +31,13 @@ const rows = new Map<string, Row>((data as Row[]).map((r) => [hex(r.cp), r]));
 /** A space or a format character draws nothing on a tile, so its tile is the open box; the name says which it is. */
 const glyph = (r: Row) => { if (r.s === "Spaces") return "␣"; const ch = String.fromCodePoint(r.cp); return /\p{Extended_Pictographic}/u.test(ch) ? ch + TEXT : ch; };
 
+// Every action works on marked characters too: the characters (and the references) run together as a string, the code points a space apart.
 const ACTIONS: Action[] = [
-  { id: "copy", title: "Copy character" },
-  { id: "paste", title: "Paste" },
-  { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" },
-  { id: "entity", title: "Copy HTML entity", shortcut: "cmd+shift+e" },
-  { id: "numeric", title: "Copy numeric reference", shortcut: "cmd+shift+n" },
+  { id: "copy", title: "Copy character", multi: true },
+  { id: "paste", title: "Paste", multi: true },
+  { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u", multi: true },
+  { id: "entity", title: "Copy HTML entity", shortcut: "cmd+shift+e", multi: true },
+  { id: "numeric", title: "Copy numeric reference", shortcut: "cmd+shift+n", multi: true },
 ];
 
 const item = (r: Row, section: string): Item => ({
@@ -54,8 +55,9 @@ async function recent(): Promise<string[]> {
   return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string" && rows.has(id)) : [];
 }
 
-async function remember(id: string) {
-  const ids = [id, ...(await recent()).filter((x) => x !== id)].slice(0, RECENT_MAX);
+/** `picked` lead the Recent section, the first newest. */
+async function remember(picked: string[]) {
+  const ids = [...picked, ...(await recent()).filter((x) => !picked.includes(x))].slice(0, RECENT_MAX);
   await storage.set(RECENT_KEY, ids);
 }
 
@@ -97,17 +99,18 @@ export default {
         const rest = (data as Row[]).filter((r) => !used.includes(hex(r.cp))).map((r) => item(r, r.s));
         return [...top, ...rest];
       },
-      pick: async (id, action) => {
-        const r = rows.get(id);
-        if (!r) return { toast: { title: "Unknown character", message: id, style: "failure" } };
-        await remember(id);
-        const ch = String.fromCodePoint(r.cp);
+      pick: async (id, action, ctx) => {
+        if (!rows.has(id)) return { toast: { title: "Unknown character", message: id, style: "failure" } };
+        // The marked characters in marking order (`ctx.ids`, the picked one first), else the one.
+        const rs = (ctx?.ids ?? [id]).map((i) => rows.get(i)).filter((r): r is Row => !!r);
+        await remember(rs.map((r) => hex(r.cp)));
+        const chars = rs.map((r) => String.fromCodePoint(r.cp)).join("");
         switch (action) {
-          case "paste": return { paste: { text: ch } };
-          case "codepoint": return { copy: codePoint(r.cp) };
-          case "entity": return { copy: entity(r) };
-          case "numeric": return { copy: numeric(r.cp) };
-          default: return { copy: ch };
+          case "paste": return { paste: { text: chars } };
+          case "codepoint": return { copy: rs.map((r) => codePoint(r.cp)).join(" ") };
+          case "entity": return { copy: rs.map(entity).join("") };
+          case "numeric": return { copy: rs.map((r) => numeric(r.cp)).join("") };
+          default: return { copy: chars };
         }
       },
       detail: (id) => { const r = rows.get(id); return r ? detail(r) : undefined; },

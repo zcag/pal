@@ -645,8 +645,28 @@ function setBody(values: Ctx["values"] | undefined, range: [number, number] | un
   return { body, said: said.join(", ") };
 }
 
+const DID: Record<string, string> = { on: "Turned on", off: "Turned off", identify: "Blinking", activate: "Activated", dynamic: "Playing", enable: "Enabled", disable: "Disabled" };
+
+/**
+ * A multi pick (`ctx.ids`) as the single pick of each row in turn: the
+ * copies joined a line each, the first failure stopping it, else one HUD
+ * with the count. A toggle over several goes one way for all, as a room's
+ * switch does: off when any is on, else on (`anyOn`).
+ */
+async function each(ids: string[], action: string | undefined, noun: string, one: (id: string, action: string | undefined) => Promise<Effect>, anyOn?: () => boolean): Promise<Effect> {
+  const act = action === "toggle" || action === "toggle_enabled" ? (anyOn?.() ? (action === "toggle" ? "off" : "disable") : (action === "toggle" ? "on" : "enable")) : action;
+  const copies: string[] = [];
+  for (const id of ids) {
+    const e = await one(id, act);
+    if (e.toast?.style === "failure") return e;
+    if (typeof e.copy === "string") copies.push(e.copy);
+  }
+  return copies.length ? { copy: copies.join("\n") } : { keep: true, hud: `${DID[act ?? ""] ?? "Done"}: ${ids.length} ${noun}` };
+}
+
 /** Enter on a room row toggles it; the other actions open, list, copy, or set a level typed in the bar. */
 async function pickRoom(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
+  if ((ctx?.ids?.length ?? 0) > 1) return each(ctx!.ids!, action, "rooms", (x, a) => pickRoom(x, a), () => ctx!.ids!.some((x) => { const r = findRoom(x); return !!r && aggregate(r).anyOn; }));
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
   if (id === "hint:error") return { keep: true };
   const r = findRoom(id);
@@ -674,6 +694,7 @@ async function pickRoom(id: string, action: string | undefined, ctx?: Ctx): Prom
 }
 
 async function pickLight(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
+  if ((ctx?.ids?.length ?? 0) > 1) return each(ctx!.ids!, action, "lights", (x, a) => pickLight(x, a), () => ctx!.ids!.some((x) => !!findLight(x)?.on));
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
   if (id === "hint:error") return { keep: true };
   const l = findLight(id);
@@ -699,7 +720,8 @@ async function pickLight(id: string, action: string | undefined, ctx?: Ctx): Pro
   return { keep: true };
 }
 
-async function pickScene(id: string, action: string | undefined): Promise<Effect> {
+async function pickScene(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
+  if ((ctx?.ids?.length ?? 0) > 1) return each(ctx!.ids!, action, "scenes", (x, a) => pickScene(x, a));
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
   if (id === "hint:error") return { keep: true };
   const s = findScene(id);
@@ -711,6 +733,33 @@ async function pickScene(id: string, action: string | undefined): Promise<Effect
     case "copy_id": return { copy: s.id };
   }
   return { keep: true };
+}
+
+/** Enable or disable follows the sensor (`toggle_enabled`), or goes the way `enable`/`disable` says (marked rows, `each`); a value copies. */
+async function pickSensor(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
+  if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
+  if (id === "hint:error") return { keep: true };
+  if ((ctx?.ids?.length ?? 0) > 1) return each(ctx!.ids!, action, "sensors", (x, a) => pickSensor(x, a), () => ctx!.ids!.some((x) => !!sensorsOf(home).find((s) => s.id === x)?.enabled));
+  const s = sensorsOf(home).find((x) => x.id === id);
+  if (!s) return toast("Unknown sensor", id, "failure");
+  if (action === "copy_id") return { copy: s.id };
+  if ((action === "toggle_enabled" || action === "enable" || action === "disable") && s.enabled !== undefined) {
+    const to = action === "toggle_enabled" ? !s.enabled : action === "enable";
+    const type = { motion: "motion", temperature: "temperature", light_level: "light_level", button: "button", rotary: "relative_rotary", contact: "contact" }[s.kind];
+    try { await clients.get(s.bridge)!.put(type, s.rid, { enabled: to }); applyLocally(s.bridge, s.rid, { enabled: to }); return { keep: true, hud: `${s.name}: ${to ? "enabled" : "disabled"}` }; } catch (e) { return failed(`change ${s.name}`, e); }
+  }
+  return { copy: s.value };
+}
+
+async function pickAutomation(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
+  if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
+  if (id === "hint:error") return { keep: true };
+  if ((ctx?.ids?.length ?? 0) > 1) return each(ctx!.ids!, action, "automations", (x, a) => pickAutomation(x, a), () => ctx!.ids!.some((x) => !!automationsOf(home).find((a) => a.id === x)?.enabled));
+  const a = automationsOf(home).find((x) => x.id === id);
+  if (!a) return toast("Unknown automation", id, "failure");
+  if (action === "copy_id") return { copy: a.id };
+  const to = action === "enable" ? true : action === "disable" ? false : !a.enabled;
+  try { await clients.get(a.bridge)!.put("behavior_instance", a.rid, { enabled: to }); applyLocally(a.bridge, a.rid, { enabled: to }); return { keep: true, hud: `${a.name}: ${to ? "enabled" : "disabled"}` }; } catch (e) { return failed(`change ${a.name}`, e); }
 }
 
 export default {
@@ -744,7 +793,7 @@ export default {
         const args = (ctx?.args ?? {}) as Args;
         return scenesOf(home).filter((s) => !args.scenes || s.room?.id === args.scenes).map((s) => sceneRow(s, several(), bridgeName(s.bridge)));
       }, ctx),
-      pick: (id, action) => pickScene(id, action),
+      pick: (id, action, ctx) => pickScene(id, action, ctx),
     },
     light: {
       title: "Hue Light",
@@ -771,44 +820,26 @@ export default {
       live: true,
       placeholder: "Search sensors and switches",
       list: (_q, ctx) => rows(() => sensorRows(sensorsOf(home), several(), bridgeName), ctx),
-      pick: async (id, action) => {
-        if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-        if (id === "hint:error") return { keep: true };
-        const s = sensorsOf(home).find((x) => x.id === id);
-        if (!s) return toast("Unknown sensor", id, "failure");
-        if (action === "copy_id") return { copy: s.id };
-        if (action === "toggle_enabled" && s.enabled !== undefined) {
-          const type = { motion: "motion", temperature: "temperature", light_level: "light_level", button: "button", rotary: "relative_rotary", contact: "contact" }[s.kind];
-          try { await clients.get(s.bridge)!.put(type, s.rid, { enabled: !s.enabled }); applyLocally(s.bridge, s.rid, { enabled: !s.enabled }); return { keep: true, hud: `${s.name}: ${s.enabled ? "disabled" : "enabled"}` }; } catch (e) { return failed(`change ${s.name}`, e); }
-        }
-        return { copy: s.value };
-      },
+      pick: (id, action, ctx) => pickSensor(id, action, ctx),
     },
     automations: {
       title: "Hue Automations",
       live: true,
       placeholder: "Search automations",
       list: (_q, ctx) => rows(() => automationsOf(home).map((a) => automationRow(a, several(), bridgeName(a.bridge))), ctx),
-      pick: async (id, action) => {
-        if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-        if (id === "hint:error") return { keep: true };
-        const a = automationsOf(home).find((x) => x.id === id);
-        if (!a) return toast("Unknown automation", id, "failure");
-        if (action === "copy_id") return { copy: a.id };
-        try { await clients.get(a.bridge)!.put("behavior_instance", a.rid, { enabled: !a.enabled }); applyLocally(a.bridge, a.rid, { enabled: !a.enabled }); return { keep: true, hud: `${a.name}: ${a.enabled ? "disabled" : "enabled"}` }; } catch (e) { return failed(`change ${a.name}`, e); }
-      },
+      pick: (id, action, ctx) => pickAutomation(id, action, ctx),
     },
     entertainment: {
       title: "Hue Entertainment",
       live: true,
       placeholder: "Search entertainment areas",
       list: (_q, ctx) => rows(() => entertainmentOf(home).map((e) => entertainmentRow(e, several(), bridgeName(e.bridge))), ctx),
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
         if (id === "hint:error") return { keep: true };
+        if (action === "copy_id") return { copy: (ctx?.ids ?? [id]).join("\n") };
         const e = entertainmentOf(home).find((x) => x.id === id);
         if (!e) return toast("Unknown area", id, "failure");
-        if (action === "copy_id") return { copy: e.id };
         const start = (action ?? (e.active ? "stop" : "start")) === "start";
         try { await clients.get(e.bridge)!.put("entertainment_configuration", e.rid, { action: start ? "start" : "stop" }); applyLocally(e.bridge, e.rid, { status: start ? "active" : "inactive" }); return { keep: true, hud: `${e.name}: ${start ? "streaming" : "stopped"}` }; } catch (err) { return failed(`${start ? "start" : "stop"} ${e.name}`, err); }
       },

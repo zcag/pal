@@ -49,6 +49,8 @@ the whole of it; older ones are not shown.
 | `up` / `down` | Scroll |
 | `escape` | Back |
 
+Marked sessions resume (the ended ones), open or reveal their transcripts, open their folders, copy their resume commands, ids or folders one per line, or take SIGTERM together; the popover marks its rows for the same.
+
 ## Where the files are
 
 | agent | files | resume |

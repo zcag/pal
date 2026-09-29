@@ -24,12 +24,13 @@ const GLYPH = {
   wait: "\u{f051f}", // md-timer_sand
 };
 
-const OPEN: Action = { id: "open", title: "Open" };
+// Marked places (`multi`): Open opens each (to compare), the copies put one a line. Directions and the other app stay one place's.
+const OPEN: Action = { id: "open", title: "Open", multi: true };
 const DIRECTIONS: Action = { id: "directions", title: "Directions from here" };
 const FROM_HOME: Action = { id: "from_home", title: "Directions from home", shortcut: "cmd+h" };
 const FROM_WORK: Action = { id: "from_work", title: "Directions from work", shortcut: "cmd+w" };
-const COPY_ADDRESS: Action = { id: "copy_address", title: "Copy address", shortcut: "cmd+c" };
-const COPY_LINK: Action = { id: "copy_link", title: "Copy link", shortcut: "cmd+l" };
+const COPY_ADDRESS: Action = { id: "copy_address", title: "Copy address", shortcut: "cmd+c", multi: true };
+const COPY_LINK: Action = { id: "copy_link", title: "Copy link", shortcut: "cmd+l", multi: true };
 const OTHER_APP: Action = { id: "other", title: "Open in the other app", shortcut: "cmd+shift+o" };
 
 const DEBOUNCE_MS = 250;
@@ -160,9 +161,12 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (!h) return toast("Row is gone", "The listing changed; pick again", "failure");
   const s = S();
   const mode = modeOf(ctx);
-  if (action === "copy_address") return { copy: h.kind === "place" ? h.address : h.to };
-  if (action === "copy_link") return { copy: webUrl(urlFor(h, undefined, mode, s, s.app)) };
+  // Every marked row still held (`ctx.ids`), else the one.
+  const all = (ctx?.ids ?? [id]).map((x) => held.get(x)).filter((x): x is Held => !!x);
+  if (action === "copy_address") return { copy: all.map((x) => (x.kind === "place" ? x.address : x.to)).join("\n") };
+  if (action === "copy_link") return { copy: all.map((x) => webUrl(urlFor(x, undefined, mode, s, s.app))).join("\n") };
   if (action === "other") return { open: urlFor(h, undefined, mode, s, s.app === "apple" ? "google" : "apple") };
+  if (action === "open" && all.length > 1) return { open: all.map((x) => urlFor(x, undefined, mode, s, s.app)) };
   return { open: urlFor(h, action, mode, s, s.app) };
 }
 

@@ -134,7 +134,26 @@ describe("youtube", () => {
     expect(await pick(lofi.id, "later")).toMatchObject({ keep: true, toast: { title: "Saved for later", message: lofi.title } });
     expect(await pick("nope")).toMatchObject({ keep: true, toast: { style: "failure" } });
     expect(playerArgv("auto", "u")).toEqual({ title: "mpv", argv: [join(bins, "mpv"), "u"] });
+    expect(playerArgv("auto", ["u", "v"])).toEqual({ title: "mpv", argv: [join(bins, "mpv"), "u", "v"] });
     expect(playerArgv("iina", "u")).toBeUndefined();
+  });
+
+  test("marked videos: every video action runs over them (tabs, one playlist, the urls a line each, one save, each channel once); a marked channel row opens and copies them all", async () => {
+    await list("lofi");
+    await list("jazz");
+    const two = { ids: [lofi.id, jazz.id] };
+    const rows = await list("jazz");
+    expect(rows[0]!.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "play", "copy_url", "later", "channel"]);
+    const url = (v: { id: string }) => `https://www.youtube.com/watch?v=${v.id}`;
+    expect(await host.pick("youtube", "search", lofi.id, "open", two)).toEqual({ open: [url(lofi), url(jazz)] });
+    expect(await host.pick("youtube", "search", lofi.id, "copy_url", two)).toEqual({ copy: `${url(lofi)}\n${url(jazz)}` });
+    expect(await host.pick("youtube", "search", lofi.id, "channel", two)).toEqual({ open: [...new Set([lofi, jazz].map((v) => `https://www.youtube.com/channel/${v.channelId}`))] });
+    const n = playedLog().length;
+    expect(await host.pick("youtube", "search", lofi.id, "play", two)).toEqual({ hud: "Playing 2 videos in mpv" });
+    await host.until(() => playedLog().length > n, 2000, "the player ran");
+    expect(playedLog().at(-1)).toBe(`${url(lofi)} ${url(jazz)}`);
+    expect(await host.pick("youtube", "search", lofi.id, "later", two)).toMatchObject({ toast: { title: "Saved for later", message: "2 videos" } });
+    expect(names(await host.list("youtube", "later")).slice(0, 2)).toEqual([lofi.title, jazz.title]);
   });
 
   test("channels: hints while empty (the subscriptions note), a search by name with the avatar and subscribers, Enter pushes the channel's videos, cmd+enter opens it", async () => {

@@ -66,7 +66,7 @@ function prNode(pr: PR, focused: boolean, st: PrState): ViewNode {
       { type: "badge", key: "state", text: s.text, color: s.color },
       text(ago(pr.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
-    { key: pr.id, padding: 1, minHeight: 42, radius: true, action: `focus:${pr.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+    { key: pr.id, mark: pr.id, padding: 1, minHeight: 42, radius: true, action: `focus:${pr.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -80,16 +80,16 @@ function issueNode(x: IssueBucketed, focused: boolean, st: IssueState): ViewNode
       column([text(i.title, { size: "md", weight: focused ? "semibold" : "medium", minWidth: 0 }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "t", gap: 0, grow: true }),
       text(ago(i.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
-    { key: i.id, padding: 1, minHeight: 42, radius: true, action: `focus:${i.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+    { key: i.id, mark: i.id, padding: 1, minHeight: 42, radius: true, action: `focus:${i.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
   );
 }
 
 function prActions(st: PrState): Action[] {
   const rows = shownPrs(st);
   return [
-    { id: "open", title: "Open on GitHub", shortcut: "enter" },
-    { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"] },
-    { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"] },
+    { id: "open", title: "Open on GitHub", shortcut: "enter", multi: true },
+    { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"], multi: true },
+    { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"], multi: true },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     { id: "pal", title: "Open Pull Requests palette", shortcut: "p" },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
@@ -101,9 +101,9 @@ function prActions(st: PrState): Action[] {
 function issueActions(st: IssueState): Action[] {
   const rows = shownIssues(st);
   return [
-    { id: "open", title: "Open on GitHub", shortcut: "enter" },
-    { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"] },
-    { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"] },
+    { id: "open", title: "Open on GitHub", shortcut: "enter", multi: true },
+    { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"], multi: true },
+    { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"], multi: true },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     { id: "pal", title: "Open Issues palette", shortcut: "p" },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
@@ -230,11 +230,11 @@ export function actions(st: NotifState): Action[] {
   const rows = shown(st.list);
   const list: Action[] = rows.length
     ? [
-      { id: "open", title: "Open on GitHub", shortcut: "o" },
+      { id: "open", title: "Open on GitHub", shortcut: "o", multi: true },
       { id: "read", title: "Mark read", shortcut: "m", multi: true },
       { id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" },
       { id: "pal", title: "Open in pal", shortcut: "p" },
-      { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+      { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
       { id: "down", title: "Next", shortcut: ["down", "j"], hidden: true },
       { id: "up", title: "Previous", shortcut: ["up", "k"], hidden: true },
       ...rows.map((n): Action => ({ id: `focus:${n.id}`, title: `Focus ${n.title}`, hidden: true })),

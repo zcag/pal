@@ -13,7 +13,7 @@ import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { QueryError, dashboardUrl, exploreUrl, flatPanels, fmt, instances, labelsKey, matchersLine, savedQueries, seriesOf, silenceMatchers, spanMs, standalone, timeParam, unconfigured, withUnit, type AmAlert, type RuleGroup, type Settings } from "../../../extensions/grafana/api.ts";
 import { sparkline } from "../../../extensions/grafana/spark.ts";
 import { render as renderBar } from "../../../extensions/grafana/view.ts";
-import { Host } from "../harness.ts";
+import { Host, marksOf } from "../harness.ts";
 import { BASE, SETTINGS, VIEWER, calls, reset, seen, server, state } from "./grafana-mock.ts";
 
 const E = "grafana";
@@ -154,11 +154,14 @@ describe("dashboards", () => {
     const rows = await list("grafana");
     expect(ids(rows)).toEqual(["node", "home", "battery", "backups"]);
     expect(rows[0].icon).toEqual({ glyph: "\u{f04ce}", color: "amber" });
-    expect(rows[0].actions!.find((a) => a.id === "star")!.title).toBe("Unstar");
+    // The one that flips the star is on ⌘S, the other at the end, so marked dashboards that mix starred and not go either way.
+    expect(rows[0].actions!.find((a) => a.shortcut === "cmd+s")).toEqual({ id: "unstar", title: "Unstar", shortcut: "cmd+s", multi: true });
+    expect(rows[0].actions!.at(-1)).toEqual({ id: "star", title: "Star", multi: true });
     expect(rows[1]).toMatchObject({ name: "Home", subtitle: "The nav grid and the health snapshot", icon: "\u{f056e}", keywords: ["home", "cagdas", "General"], accessories: [{ tag: "General", color: "blue" }, { tag: "cagdas" }] });
     expect(rows[2].subtitle).toBe("General");
     expect(rows[3].accessories).toEqual([{ tag: "Infra", color: "blue" }, { tag: "backup" }, { tag: "cagdas" }]);
-    expect(rows[1].actions!.map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["range", "cmd+enter"], ["copy", "cmd+c"], ["star", "cmd+s"], ["kiosk", "cmd+f"], ["uid", "cmd+u"], ["folder", "right"]]);
+    expect(rows[1].actions!.map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["range", "cmd+enter"], ["copy", "cmd+c"], ["star", "cmd+s"], ["kiosk", "cmd+f"], ["uid", "cmd+u"], ["folder", "right"], ["unstar", undefined]]);
+    expect(rows[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "star", "kiosk", "uid", "unstar"]);
     expect(calls("GET", "/api/search?type=dash-db&limit=5000")).toHaveLength(1);
   });
 
@@ -199,11 +202,25 @@ describe("dashboards", () => {
     expect(await pick("grafana", "battery", "star")).toMatchObject({ keep: true, toast: { title: "Starred Battery & Power" } });
     expect(calls("POST", "/api/user/stars/dashboard/uid/battery")).toHaveLength(1);
     expect(ids(await list("grafana"))).toEqual(["battery", "home", "backups", "node"]);
-    expect(await pick("grafana", "battery", "star")).toMatchObject({ toast: { title: "Unstarred Battery & Power" } });
+    expect(await pick("grafana", "battery", "unstar")).toMatchObject({ toast: { title: "Unstarred Battery & Power" } });
     expect(calls("DELETE", "/api/user/stars/dashboard/uid/battery")).toHaveLength(1);
     expect(ids(await list("grafana"))).toEqual(["home", "battery", "backups", "node"]);
     host.changeSettings(E, { settings: { ...SETTINGS, token: VIEWER } });
     expect((await pick("grafana", "battery", "star")).toast).toMatchObject({ style: "failure", title: "Could not star Battery & Power", message: expect.stringContaining("Editor role") });
+  });
+
+  test("marked dashboards: a tab each (a folder's too), the urls and uids a line each, one star call for each not yet starred", async () => {
+    state.starred.add("node");
+    await list("grafana");
+    const two = { ids: ["home", "node"] };
+    expect(await pick("grafana", "home", "open", two)).toEqual({ open: [`${BASE}/d/home/home`, `${BASE}/d/node/node-exporter-full`] });
+    expect(await pick("grafana", "home", "copy", two)).toEqual({ copy: `${BASE}/d/home/home\n${BASE}/d/node/node-exporter-full` });
+    expect(await pick("grafana", "home", "uid", two)).toEqual({ copy: "home\nnode" });
+    expect(await pick("grafana", "home", "kiosk", two)).toEqual({ open: [`${BASE}/d/home/home?kiosk`, `${BASE}/d/node/node-exporter-full?kiosk`] });
+    expect(await pick("grafana", "home", "star", two)).toMatchObject({ toast: { title: "Starred 2 dashboards" } });
+    expect(calls("POST", "/api/user/stars/dashboard/uid/home")).toHaveLength(1);
+    expect(calls("POST", "/api/user/stars/dashboard/uid/node")).toHaveLength(0);
+    expect(await pick("grafana", "folder:infra", "open", { ids: ["folder:infra", "folder:"] })).toEqual({ open: [`${BASE}/dashboards/f/infra/`, `${BASE}/dashboards`] });
   });
 
   test("the pane: the description, the facts, and the first three time series panels as sparklines from one query call (a templated panel skipped, a collapsed row's panel reached, the unit on the caption)", async () => {
@@ -269,7 +286,9 @@ describe("alerts", () => {
     expect(rows[0].keywords).toEqual(["firing", "alerts", "sensor.front_door_battery", "Front door", "archer", "warning"]);
     expect(rows[2]).toMatchObject({ icon: { glyph: "\u{f009a}", color: "amber" }, accessories: [{ tag: "pending", color: "amber" }, { text: "critical" }, { date: "2026-09-21T22:50:00Z" }] });
     expect(rows[0].actions!.map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["dashboard", "cmd+enter"], ["silence:1h", "cmd+s"], ["silence:4h", "cmd+shift+s"], ["silence:1d", "cmd+d"], ["copy", "cmd+c"], ["labels", "cmd+l"]]);
-    expect(rows[0].actions![2].confirm).toBe("Silence HA battery low (entity=sensor.front_door_battery, friendly_name=Front door, host=archer, severity=warning) for 1 hour?");
+    // Worded for one alert or several (the shell adds how many); every action takes marked alerts.
+    expect(rows[0].actions![2].confirm).toBe("Silence for 1 hour? Every instance matching the labels stays quiet until then.");
+    expect(rows[0].actions!.every((a) => a.multi)).toBe(true);
     expect(calls("GET", "/api/prometheus/grafana/api/v1/rules?state=firing&state=pending")).toHaveLength(1);
     expect(calls("GET", "/api/alertmanager/grafana/api/v2/alerts")).toHaveLength(1);
     expect(calls("GET", "/api/alertmanager/grafana/api/v2/silences")).toHaveLength(1);
@@ -348,6 +367,16 @@ describe("alerts", () => {
     expect((await pick("alerts", rows[0].id, "silence:4h")).toast).toMatchObject({ style: "failure", title: "Could not silence HA battery low", message: expect.stringContaining("Editor role") });
     expect((await list("alerts"))[0].accessories).not.toContainEqual({ tag: "silenced" });
   });
+
+  test("marked alerts: a silence each (one POST each), then one expiry each; the rules a tab each, the summaries a line each", async () => {
+    const rows = await list("alerts");
+    const all = { ids: rows.map((x) => x.id) };
+    expect(await pick("alerts", rows[0].id, "silence:1h", all)).toMatchObject({ toast: { title: "Silenced 3 alerts for 1 hour" } });
+    expect(calls("POST", "/api/alertmanager/grafana/api/v2/silences")).toHaveLength(3);
+    expect(await pick("alerts", rows[0].id, "unsilence", all)).toMatchObject({ toast: { title: "Expired 3 silences" } });
+    expect(await pick("alerts", rows[0].id, "copy", all)).toEqual({ copy: "Front door at 8%\nKeypad at 12%\nmarko / at 88%" });
+    expect((await pick("alerts", rows[0].id, "open", all)).open).toHaveLength(3);
+  });
 });
 
 describe("query", () => {
@@ -393,7 +422,7 @@ describe("query", () => {
     expect(await pick("query", rows[1].id, "series")).toEqual({ copy: 'up{host="marko", job="node"} 0' });
     expect(await pick("query", rows[1].id, "all")).toEqual({ copy: 'up{host="archer", job="node"}\t1\nup{host="marko", job="node"}\t0' });
     expect(await pick("query", rows[1].id, "expr")).toEqual({ copy: "up" });
-    expect(JSON.parse(new URL((await pick("query", rows[1].id, "explore")).open!).searchParams.get("panes")!).pal.queries[0].expr).toBe("up");
+    expect(JSON.parse(new URL((await pick("query", rows[1].id, "explore")).open as string).searchParams.get("panes")!).pal.queries[0].expr).toBe("up");
     const f = (await pick("query", rows[1].id, "save")).form as Form;
     expect(f).toMatchObject({ id: "save", title: "Save query", submit: { id: "saved", title: "Save" } });
     expect(f.fields.map((x) => [x.id, (x as { default?: string }).default])).toEqual([["name", undefined], ["expr", "up"]]);
@@ -405,6 +434,12 @@ describe("query", () => {
     expect((await pick("query", "q:5", "remove")).toast).toMatchObject({ title: "Removed Up" });
     expect(host.written.get(E)!.queries).toBeUndefined();
     expect((await list("query", "")).at(-1)).toMatchObject({ id: "q:4" });
+    // Marked saved queries: the expressions a line each, Explore a tab each, one write for the removal.
+    const two = { ids: ["q:0", "q:1"] };
+    expect((await pick("query", "q:0", "expr", two)).copy).toBe(`${savedQueries(host.manifests.get(E)!.settings!.find((s) => s.id === "queries")!.default as string[]).slice(0, 2).map((q) => q.expr).join("\n")}`);
+    expect((await pick("query", "q:0", "explore", two)).open).toHaveLength(2);
+    expect((await pick("query", "q:0", "remove", two)).toast).toMatchObject({ title: "Removed 2 saved queries" });
+    expect(host.written.get(E)!.queries).toHaveLength(3);
   });
 });
 
@@ -458,6 +493,13 @@ describe("bar", () => {
     const u = await host.barAction(E, "alerts", "unsilence");
     expect(u.keep).toBe(true);
     expect(texts(viewOf(u).tree)).not.toContain("[silenced]");
+    // Rows the shell marks: every alert, and the keys run over the marked ones (`ctx.ids`).
+    expect(marksOf(viewOf(item.menu).tree)).toEqual(rows);
+    expect(viewOf(item.menu).actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "dashboard", "silence:1h", "silence:4h", "silence:1d", "copy"]);
+    const m = await host.barAction(E, "alerts", "silence:1h", { reason: "open", ids: rows.slice(1) });
+    expect(m).toMatchObject({ keep: true, hud: "Silenced 2 alerts for 1 hour" });
+    expect(texts(viewOf(m).tree).filter((t) => t === "[silenced]")).toHaveLength(2);
+    expect(await host.barAction(E, "alerts", "copy", { reason: "open", ids: rows.slice(0, 2) })).toEqual({ copy: "Front door at 8%\nKeypad at 12%" });
   });
 
   test("unconfigured is hidden with the states withdrawn; a dead host is an error (the core marks it stale)", async () => {

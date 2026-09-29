@@ -382,19 +382,20 @@ const FILTERS = [{ id: "all", title: "All" }, { id: "claude", title: "Claude" },
 const SEND_ARGS: Arg[] = [{ id: "text", placeholder: "Line to type into the session", required: true }];
 const resumeCommand = (s: Session) => (s.agent === "claude" ? `claude --resume ${s.id}` : s.agent === "codex" ? `codex resume ${s.id}` : `copilot --resume=${s.id}`);
 
+// Every one but the Transcript view also runs over marked sessions (`multi`): each opened, the copies one per line.
 const OPEN_ACTIONS: Action[] = [
   { id: "view", title: "Transcript", shortcut: "cmd+t" },
-  { id: "transcript", title: "Open transcript in the editor", shortcut: "cmd+o" },
-  { id: "reveal", title: process.platform === "darwin" ? "Reveal transcript in Finder" : "Show transcript in file manager", shortcut: "cmd+shift+o" },
-  { id: "folder", title: "Open folder" },
-  { id: "editor", title: "Open in editor", shortcut: "cmd+e" },
-  { id: "copy-resume", title: "Copy resume command", shortcut: "cmd+c" },
-  { id: "copy-id", title: "Copy session id", shortcut: "cmd+shift+c" },
-  { id: "copy-cwd", title: "Copy folder path" },
+  { id: "transcript", title: "Open transcript in the editor", shortcut: "cmd+o", multi: true },
+  { id: "reveal", title: process.platform === "darwin" ? "Reveal transcript in Finder" : "Show transcript in file manager", shortcut: "cmd+shift+o", multi: true },
+  { id: "folder", title: "Open folder", multi: true },
+  { id: "editor", title: "Open in editor", shortcut: "cmd+e", multi: true },
+  { id: "copy-resume", title: "Copy resume command", shortcut: "cmd+c", multi: true },
+  { id: "copy-id", title: "Copy session id", shortcut: "cmd+shift+c", multi: true },
+  { id: "copy-cwd", title: "Copy folder path", multi: true },
 ];
 
 function actionsOf(s: Session): Action[] {
-  if (s.state === "ended") return [{ id: "resume", title: "Resume in a terminal" }, ...OPEN_ACTIONS];
+  if (s.state === "ended") return [{ id: "resume", title: "Resume in a terminal", multi: true }, ...OPEN_ACTIONS];
   return [
     { id: "focus", title: "Focus the terminal" },
     ...(s.pane ? [{ id: "send", title: "Send the line", shortcut: "cmd+enter", args: true as const }] : []),
@@ -596,16 +597,37 @@ async function act(s: Session, action: string | undefined, values?: Record<strin
   }
 }
 
+/** The actions that run over marked sessions (`multi`), the palette's and the popover's alike. */
+const MULTI = new Set(["resume", "transcript", "reveal", "folder", "editor", "copy-resume", "copy-id", "copy-cwd", "kill"]);
+const COPIES: Record<string, (s: Session) => string> = { "copy-resume": resumeCommand, "copy-id": (s) => s.id, "copy-cwd": (s) => s.cwd };
+
+/**
+ * A multi action over marked sessions: the copies joined one per line,
+ * the folders opened once each, SIGTERM to every one with a process,
+ * the rest (resume, open, reveal) run for each in turn, the first
+ * failure answering. Resume skips a session that is still running.
+ */
+async function actMany(list: Session[], action: string): Promise<Effect> {
+  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
+  if (COPIES[action]) return { copy: list.map(COPIES[action]).join("\n") };
+  if (action === "folder") return { open: [...new Set(list.map((s) => s.cwd))] };
+  if (action === "kill") {
+    let n = 0;
+    for (const s of list) if (s.pid) await run(["kill", "-TERM", String(s.pid)]).then(() => n++).catch(() => {});
+    last = undefined;
+    return { keep: true, hud: `Sent SIGTERM to ${plural(n, "session")}` };
+  }
+  const todo = action === "resume" ? list.filter((s) => s.state === "ended") : action === "editor" ? [...new Map(list.map((s) => [s.cwd, s])).values()] : list;
+  if (!todo.length) return toast("Nothing to resume", "Every marked session is still running", "failure");
+  for (const s of todo) { const r = await act(s, action); if (r.toast?.style === "failure") return r; }
+  return { hide: true };
+}
+
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id.startsWith("hint:")) return { keep: true };
   if (!last) await scan();
   const ids = ctx?.ids ?? [id];
-  if (action === "kill" && ids.length > 1) {
-    let n = 0;
-    for (const k of ids) { const s = by(k); if (s?.pid) { await run(["kill", "-TERM", String(s.pid)]).then(() => n++).catch(() => {}); } }
-    last = undefined;
-    return { keep: true, hud: `Sent SIGTERM to ${n} session${n === 1 ? "" : "s"}` };
-  }
+  if (action && MULTI.has(action) && ids.length > 1) return actMany(ids.map(by).filter((s): s is NonNullable<typeof s> => !!s), action);
   const s = by(id);
   if (!s) return toast("Session not found", "It may have gone stale; the list is refreshed", "failure");
   if (action && TRANSCRIPT_ACTIONS.has(action)) return transcriptAction(s, action, ctx?.values as Record<string, string | boolean> | undefined);
@@ -670,6 +692,8 @@ async function popoverAction(action: string, ctx: BarCtx): Promise<Effect> {
     barFocus = rows[(i + (action === "down" ? 1 : rows.length - 1)) % rows.length].key;
     return redraw();
   }
+  // The marked rows (`BarCtx.ids`) for a multi action.
+  if (ctx.ids && ctx.ids.length > 1 && MULTI.has(action)) return actMany(ctx.ids.map((k) => rows.find((r) => r.key === k)).filter((x): x is Session => !!x), action);
   const s = current(st);
   if (!s) return { keep: true };
   switch (action) {

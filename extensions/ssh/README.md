@@ -33,6 +33,8 @@ Ping sends one echo to the `HostName` (else the name) with a 2 s wait and
 toasts the round trip (`web-1.example.com: 3 ms`), or why it did not
 answer; the panel stays open.
 
+Marked hosts (cmd-click, shift-click, shift+arrows) take every action: a terminal each for Connect, one line each for the copies, and one toast for the pings.
+
 ## Keyboard
 
 | keys | action |

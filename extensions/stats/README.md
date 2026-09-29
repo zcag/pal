@@ -97,6 +97,8 @@ pane has the sparkline and every figure. A push with `args: { section }`
 (what `pal://stats/cpu?palette=1` and the popover's `s` do) lists that
 section's rows only.
 
+Marked rows in the palette copy their values one per line, reveal their volumes, or kill their processes; in the CPU and Memory popovers the process rows can be marked for one Kill over them all, in Disks the volumes for Reveal and Copy path, in Network the interfaces for Copy address.
+
 ## Links and states
 
 `pal://stats/cpu`, `memory`, `disk`, `network`, `load` open the item's

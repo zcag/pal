@@ -129,7 +129,7 @@ describe("screenshots", () => {
     expect(recent[0]).toMatchObject({ name: "Screenshot 2026-09-17 at 14.03.22.png", subtitle: "1440×900 · 64 B", icon: { image: `icon://localhost/file?path=${encodeURIComponent(one)}&size=48` } });
     expect(recent[0].accessories).toEqual([{ date: expect.any(Number) }]);
     expect(recent[0].actions!.map((a) => a.id)).toEqual(["open", "reveal", "copy-image", "copy-path", "copy-markdown", "copy-text", "trash"]);
-    expect(recent[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy-image", "copy-path", "trash"]);
+    expect(recent[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy-image", "copy-path", "copy-markdown", "copy-text", "trash"]);
     expect(recent[2]).toMatchObject({ name: "Screen Recording 2026-09-15 at 12.00.00.mov", subtitle: "3 B", icon: "\u{f0567}" });
     expect(recent[2].actions!.map((a) => a.id)).toEqual(["open", "reveal", "copy-image", "copy-path", "trash"]);
   });
@@ -164,7 +164,11 @@ describe("screenshots", () => {
     expect(await pick(one, "copy-markdown")).toEqual({ copy: `![Screenshot 2026-09-17 at 14.03.22](${folder.replace(/ /g, "%20")}/Screenshot%202026-09-17%20at%2014.03.22.png)`, hud: "Copied markdown image" });
     expect(await pick(one, "copy-text")).toEqual({ copy: "HELLO PAL", hud: "Copied text" });
     expect(await pick(two, "copy-text")).toMatchObject({ keep: true, toast: { title: "No text found" } });
+    // Marked shots: a markdown tag a line; the texts read in turn, one with none left out.
+    expect((await pick(one, "copy-markdown", { ids: [one, two] })).copy!.toString().split("\n")).toHaveLength(2);
+    expect(await pick(one, "copy-text", { ids: [one, two] })).toEqual({ copy: "HELLO PAL", hud: "Copied text" });
     expect(await pick(one)).toEqual({ open: one });
+    expect(await pick(one, "open", { ids: [one, two] })).toEqual({ open: [one, two] });
   });
 
   test("detail: the picture itself over its facts", async () => {

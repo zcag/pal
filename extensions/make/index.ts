@@ -106,10 +106,11 @@ export function parse(text: string): Target[] {
 const ARGS: Arg[] = [{ id: "extra", placeholder: "Variables or flags: VERBOSE=1 -j4 (optional)" }];
 const extraWords = (ctx?: Ctx) => String(ctx?.values?.extra ?? "").trim().split(/\s+/).filter(Boolean);
 
+// Marked targets (`multi`): Run makes them in one call (one project's), Copy puts a command a line, Open opens each project once.
 const ACTIONS: Action[] = [
-  { id: "run", title: "Run" },
-  { id: "copy", title: "Copy command", shortcut: "cmd+c" },
-  { id: "open", title: "Open project", shortcut: "cmd+o" },
+  { id: "run", title: "Run", multi: true },
+  { id: "copy", title: "Copy command", shortcut: "cmd+c", multi: true },
+  { id: "open", title: "Open project", shortcut: "cmd+o", multi: true },
   { id: "makefile", title: "Show Makefile", shortcut: "cmd+l" },
 ];
 
@@ -159,10 +160,10 @@ function detail(id: string): Detail | undefined {
 
 // ---- run ----------------------------------------------------------------------
 
-/** `make <target> <extra>` in the project folder, awaited up to `WAIT_MS`; the toast carries the exit status, a failure its output too. */
-async function background(dir: string, target: string, extra: string[]) {
-  const proc = Bun.spawn(["make", target, ...extra], { cwd: dir, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const cmd = ["make", target, ...extra].join(" ");
+/** `make <targets> <extra>` in the project folder, awaited up to `WAIT_MS`; the toast carries the exit status, a failure its output too. */
+async function background(dir: string, targets: string[], extra: string[]) {
+  const proc = Bun.spawn(["make", ...targets, ...extra], { cwd: dir, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const cmd = ["make", ...targets, ...extra].join(" ");
   const outP = new Response(proc.stdout).text(), errP = new Response(proc.stderr).text();
   const code = await Promise.race([proc.exited, Bun.sleep(WAIT_MS).then(() => undefined)]);
   if (code === undefined) {
@@ -186,24 +187,29 @@ export default {
       pick: async (id, action = "run", ctx) => {
         const r = rows.get(id);
         if (!r) return toast("Target not listed", "Refresh the palette with cmd+r", "failure");
-        const { dir } = r.project, { name } = r.target;
+        // Every marked target (`ctx.ids`), else the one.
+        const all = (ctx?.ids ?? [id]).map((x) => rows.get(x)).filter((x): x is { project: Project; target: Target } => !!x);
+        const { dir } = r.project;
         switch (action) {
-          case "copy": return { copy: `make -C ${terminal.quote(dir)} ${terminal.quote(name)}` };
-          case "open": return { open: dir };
+          case "copy": return { copy: all.map((x) => `make -C ${terminal.quote(x.project.dir)} ${terminal.quote(x.target.name)}`).join("\n") };
+          case "open": { const dirs = [...new Set(all.map((x) => x.project.dir))]; return { open: dirs.length === 1 ? dirs[0]! : dirs }; }
           case "makefile": {
             let text = "";
             try { text = readFileSync(r.project.file, "utf8"); } catch (e) { return toast("Could not read the Makefile", errorMessage(e), "failure"); }
             return { show: { title: `${basename(r.project.file)} in ${tilde(dir)}`, markdown: fence(text.replace(/\n+$/, ""), "make") } };
           }
         }
+        // Several targets are one `make a b` in their project: marked across projects there is no one folder to run in.
+        if (all.some((x) => x.project.dir !== dir)) return toast("Targets of several projects", "Mark targets of one project to run them together", "failure");
+        const names = all.map((x) => x.target.name);
         const want = S().terminal;
         const extra = extraWords(ctx);
-        if (want === "background") return background(dir, name, extra);
+        if (want === "background") return background(dir, names, extra);
         // The window stays until Enter, so a quick target's output is not gone with it.
-        const q = [name, ...extra].map(terminal.quote).join(" ");
-        const script = `make ${q}; s=$?; printf '\\n[make %s exited %s] Enter closes ' ${terminal.quote(name)} "$s"; read -r _`;
+        const q = [...names, ...extra].map(terminal.quote).join(" ");
+        const script = `make ${q}; s=$?; printf '\\n[make %s exited %s] Enter closes ' ${terminal.quote(names.join(" "))} "$s"; read -r _`;
         const why = terminal.open(["sh", "-c", script], want, dir);
-        return why ? toast("Could not open a terminal", why, "failure") : { hud: `make ${[name, ...extra].join(" ")}` };
+        return why ? toast("Could not open a terminal", why, "failure") : { hud: `make ${[...names, ...extra].join(" ")}` };
       },
       detail,
     },

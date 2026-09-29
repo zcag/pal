@@ -28,6 +28,8 @@ What is behind leads the list under an **Updates** heading (unless the
 filter already narrows to updates). A bundled extension is never
 updated from here: it ships with pal and moves with the app.
 
+Marked extensions (cmd-click, shift-click, shift+arrows) install, update or remove in turn, open their pages, or copy their install commands one per line; the questions name no extension, so they read for one or several.
+
 ## The detail pane
 
 `cmd+i` on a row: the description, "What it does" (the manifest's

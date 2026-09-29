@@ -44,17 +44,18 @@ function row(e: StateEntry, now: number): Item {
   const subtitle = e.error ? `Error: ${e.error}` : e.description ?? (e.expr ? `= ${e.expr}` : e.builtin ? "Built-in" : manual ? "Set by hand" : `Published by ${sourceText(e)}`);
   const accessories: Accessory[] = [valueTag(e.value), { tag: manual ? (e.until ? `held · ${left(e.until - now)}` : "held") : sourceText(e), color: manual ? "amber" : e.error ? "red" : "muted" }];
   const boolean = typeof e.value === "boolean" || e.value === null;
+  // Every action but the typed value also takes marked states (`multi`); Set true/false sets them all to what the addressed row would become.
   const actions: Action[] = e.builtin
-    ? [{ id: "copy", title: "Copy name" }]
+    ? [{ id: "copy", title: "Copy name", multi: true }]
     : [
-        ...(boolean ? [{ id: "toggle", title: e.value ? "Set false" : "Set true" }] : []),
+        ...(boolean ? [{ id: "toggle", title: e.value ? "Set false" : "Set true", multi: true as const }] : []),
         { id: "set", title: "Set a value for a while", args: true },
-        { id: "hold-1h", title: "Set true for 1 hour" },
-        { id: "hold-3h", title: "Set true for 3 hours" },
-        { id: "hold-tomorrow", title: "Set true until tomorrow" },
-        ...(manual ? [{ id: "reset", title: "Reset", shortcut: "cmd+r" }] : []),
-        { id: "copy", title: "Copy name" },
-        ...(e.declared ? [{ id: "undeclare", title: "Remove from config", shortcut: "cmd+backspace", style: "destructive" as const, confirm: `Remove [states.${e.name}] from the config file?` }] : []),
+        { id: "hold-1h", title: "Set true for 1 hour", multi: true },
+        { id: "hold-3h", title: "Set true for 3 hours", multi: true },
+        { id: "hold-tomorrow", title: "Set true until tomorrow", multi: true },
+        ...(manual ? [{ id: "reset", title: "Reset", shortcut: "cmd+r", multi: true as const }] : []),
+        { id: "copy", title: "Copy name", multi: true },
+        ...(e.declared ? [{ id: "undeclare", title: "Remove from config", shortcut: "cmd+backspace", style: "destructive" as const, multi: true as const, confirm: "Remove its [states] entry from the config file?" }] : []),
       ];
   return { id: e.name, name: e.name, subtitle, icon: GLYPH, keywords: ["state", e.name, sourceText(e)], accessories, args: SET_ARGS, actions };
 }
@@ -72,7 +73,7 @@ async function list(_query?: string, ctx?: { filter?: string }): Promise<Item[]>
 /** Midnight tonight, local, as unix ms. */
 const tomorrow = () => { const d = new Date(clock()); d.setHours(24, 0, 0, 0); return d.getTime(); };
 
-async function pick(id: string, action?: string, ctx?: { values?: Record<string, string | boolean> }): Promise<Effect> {
+async function pick(id: string, action?: string, ctx?: { values?: Record<string, string | boolean>; ids?: string[] }): Promise<Effect> {
   const v = ctx?.values;
   if (id === NEW) {
     if (!v) return form(NEW_ARGS, NEW, "New state", { id: "declare", title: "Declare" });
@@ -82,14 +83,17 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
     try { await state.declare(name, { ...(expr && { expr }), ...(description && { description }), ...(def && { default: parse(def) }) }); } catch (e) { return failed("declare the state", e); }
     return toast(`Declared ${name}`, "Written to [states] in the config file");
   }
+  // The marked states (`ctx.ids`), the addressed one first, else the one.
+  const ids = ctx?.ids ?? [id];
+  const each = async (f: (n: string) => Promise<unknown>) => { for (const n of ids) await f(n); };
   try {
     switch (action) {
-      case "copy": return { copy: id };
-      case "reset": await state.reset(id); return { keep: true };
-      case "undeclare": await state.undeclare(id); return toast(`Removed [states.${id}]`);
-      case "hold-1h": await state.hold(id, true, clock() + 3_600_000); return { keep: true };
-      case "hold-3h": await state.hold(id, true, clock() + 3 * 3_600_000); return { keep: true };
-      case "hold-tomorrow": await state.hold(id, true, tomorrow()); return { keep: true };
+      case "copy": return { copy: ids.join("\n") };
+      case "reset": await each((n) => state.reset(n)); return { keep: true };
+      case "undeclare": await each((n) => state.undeclare(n)); return toast(ids.length > 1 ? `Removed ${ids.length} states` : `Removed [states.${id}]`, ids.length > 1 ? ids.map((n) => `[states.${n}]`).join(", ") : undefined);
+      case "hold-1h": await each((n) => state.hold(n, true, clock() + 3_600_000)); return { keep: true };
+      case "hold-3h": await each((n) => state.hold(n, true, clock() + 3 * 3_600_000)); return { keep: true };
+      case "hold-tomorrow": await each((n) => state.hold(n, true, tomorrow())); return { keep: true };
       case "set": {
         const raw = String(v?.value ?? "").trim();
         if (!raw) return form(SET_ARGS, id, `Set ${id}`, { id: "set", title: "Set" });
@@ -104,7 +108,8 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
         const raw = String(v?.value ?? "").trim();
         if (raw) return pick(id, "set", ctx);
         const cur = await state.get(id);
-        await state.hold(id, !(cur === true));
+        // Marked: every one to the value the addressed row flips to.
+        await each((n) => state.hold(n, !(cur === true)));
         return { keep: true };
       }
     }

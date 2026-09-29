@@ -22,7 +22,9 @@ const FOCUS: Action = { id: "focus", title: "Focus" };
 const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true };
 const COPY: Action = { id: "copy-url", title: "Copy URL", shortcut: "cmd+c", multi: true };
 const MARKDOWN: Action = { id: "copy-markdown", title: "Copy as markdown link", shortcut: "cmd+shift+c", multi: true };
-const mute = (muted: boolean): Action => ({ id: "mute", title: muted ? "Unmute" : "Mute", shortcut: "cmd+m" });
+// Mute and Unmute both ride on every tab that can (the one that flips it on ⌘M, the other at the end), so marked tabs that mix muted and not can go either way.
+const MUTE: Action = { id: "mute", title: "Mute", multi: true }, UNMUTE: Action = { id: "unmute", title: "Unmute", multi: true };
+const mute = (muted: boolean): Action[] => [{ ...(muted ? UNMUTE : MUTE), shortcut: "cmd+m" }, muted ? MUTE : UNMUTE];
 
 // ---- rows -------------------------------------------------------------------------
 
@@ -37,7 +39,8 @@ function item(t: tabs.Tab, browsers: number, windowsOf: number): Item {
   if (t.media?.audible) accessories.push({ tag: "playing", color: "green" });
   else if (t.media?.muted) accessories.push({ tag: "muted" });
   // Close is destructive, so it sits last (the brief) and never on cmd+enter.
-  const actions = t.src === "cdp" ? [FOCUS, COPY, mute(!!t.media?.muted), MARKDOWN, CLOSE] : t.src === "as" ? [FOCUS, COPY, MARKDOWN, CLOSE] : [{ ...FOCUS, title: "Focus window" }, COPY, MARKDOWN];
+  const [flip, other] = mute(!!t.media?.muted);
+  const actions = t.src === "cdp" ? [FOCUS, COPY, flip!, MARKDOWN, CLOSE, other!] : t.src === "as" ? [FOCUS, COPY, MARKDOWN, CLOSE] : [{ ...FOCUS, title: "Focus window" }, COPY, MARKDOWN];
   const app = MAC ? appPath(t.browser) : undefined;
   return {
     id: t.id,
@@ -96,9 +99,11 @@ export default {
             // One at a time: a browser closing two of its tabs at once over AppleScript or CDP races its own tab list.
             try { for (const x of all) await tabs.close(x); } catch (e) { return failed(all.length > 1 ? "close the tabs" : "close the tab", e); }
             return all.length > 1 ? { keep: true, toast: { title: `Closed ${all.length} tabs` } } : { keep: true };
-          case "mute":
-            try { await tabs.mute(t, !t.media?.muted); } catch (e) { return failed(t.media?.muted ? "unmute the tab" : "mute the tab", e); }
-            return { keep: true };
+          case "mute": case "unmute": {
+            const on = action === "mute";
+            try { for (const x of all) await tabs.mute(x, on); } catch (e) { return failed(`${action} the ${all.length > 1 ? "tabs" : "tab"}`, e); }
+            return all.length > 1 ? { keep: true, toast: { title: `${on ? "Muted" : "Unmuted"} ${all.length} tabs` } } : { keep: true };
+          }
           default: return tabs.focus(t);
         }
       },

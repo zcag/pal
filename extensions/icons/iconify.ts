@@ -104,12 +104,13 @@ export async function search(query: string, sets: string[]): Promise<Hit[]> {
 /** nf-md-magnify, nf-md-alert: the hint rows. */
 const GLYPH = { search: "\u{f0349}", warn: "\u{f0026}" };
 
+// Every action takes marked icons: the copies a line each, a tab each, a file each.
 export const ACTIONS: Action[] = [
-  { id: "svg", title: "Copy SVG" },
-  { id: "name", title: "Copy name" },
-  { id: "data", title: "Copy as data URL", shortcut: "cmd+shift+d" },
-  { id: "open", title: "Open on Iconify", shortcut: "cmd+o" },
-  { id: "save", title: "Save SVG…", shortcut: "cmd+s" },
+  { id: "svg", title: "Copy SVG", multi: true },
+  { id: "name", title: "Copy name", multi: true },
+  { id: "data", title: "Copy as data URL", shortcut: "cmd+shift+d", multi: true },
+  { id: "open", title: "Open on Iconify", shortcut: "cmd+o", multi: true },
+  { id: "save", title: "Save SVG…", shortcut: "cmd+s", multi: true },
 ];
 
 const row = (h: Hit): Item => ({ id: h.id, name: h.name, subtitle: h.set, icon: { image: dataUrl(h.svg, TILE_INK) }, keywords: [h.id, h.prefix], section: h.set });
@@ -144,22 +145,28 @@ export async function list(query = "", ctx?: Ctx): Promise<Item[]> {
 /** The hit a pick names: from the searches made this run (a pick after a restart is a toast). */
 const hitOf = (id: string): Hit | undefined => { for (const hits of searches.values()) { const h = hits.find((x) => x.id === id); if (h) return h; } };
 
-export async function pick(id: string, action?: string): Promise<Effect> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id.startsWith("hint:")) return { keep: true };
-  const h = hitOf(id);
-  if (!h) return { toast: { title: "Search again first", message: `${id} is not in this run's results`, style: "failure" } };
+  const ids = (ctx?.ids ?? [id]).filter((x) => !x.startsWith("hint:"));
+  const hs = ids.map(hitOf);
+  const miss = ids.find((_, i) => !hs[i]);
+  if (miss) return { toast: { title: "Search again first", message: `${miss} is not in this run's results`, style: "failure" } };
+  const all = hs as Hit[];
   switch (action) {
-    case "name": return { copy: h.id };
-    case "data": return { copy: dataUrl(h.svg) };
-    case "open": return { open: `${SITE}/${h.prefix}/${h.name}/` };
+    case "name": return { copy: all.map((h) => h.id).join("\n") };
+    case "data": return { copy: all.map((h) => dataUrl(h.svg)).join("\n") };
+    case "open": { const urls = all.map((h) => `${SITE}/${h.prefix}/${h.name}/`); return { open: urls.length > 1 ? urls : urls[0]! }; }
     case "save": {
       const dir = home(conf().save_to || "~/Downloads");
       await mkdir(dir, { recursive: true });
-      let path = join(dir, fileName(h.id));
-      for (let n = 2; await stat(path).then(() => true, () => false); n++) path = join(dir, fileName(`${h.id}-${n}`));
-      await writeFile(path, h.svg + "\n");
-      return { hud: `Saved ${path.replace(home("~"), "~")}` };
+      let path = "";
+      for (const h of all) {
+        path = join(dir, fileName(h.id));
+        for (let n = 2; await stat(path).then(() => true, () => false); n++) path = join(dir, fileName(`${h.id}-${n}`));
+        await writeFile(path, h.svg + "\n");
+      }
+      return { hud: all.length > 1 ? `Saved ${all.length} SVGs to ${dir.replace(home("~"), "~")}` : `Saved ${path.replace(home("~"), "~")}` };
     }
-    default: return { copy: h.svg };
+    default: return { copy: all.map((h) => h.svg).join("\n") };
   }
 }

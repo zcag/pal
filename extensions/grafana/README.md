@@ -18,7 +18,9 @@ when set, `cmd+enter` asks for a range in a form (from, to, kiosk),
 `cmd+f` opens it in kiosk mode, `cmd+s` stars or unstars it (the token's
 own stars, `/api/user/stars`: a service account has its own list, which
 is what sorts first here), `cmd+c` copies the URL, `cmd+u` the uid, and
-`→` drills into the dashboard's folder. The filter (`tab`) is All,
+`→` drills into the dashboard's folder. Marked dashboards (`cmd`-click,
+`shift`-click) open, copy, star and unstar together; so do marked alerts
+(open, silence, expire, copy) and saved queries. The filter (`tab`) is All,
 Starred, Folders; Folders lists every folder with a dashboard in it and
 `enter` drills in. Listed every 15 minutes, `cmd+r` sooner.
 

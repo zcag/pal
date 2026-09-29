@@ -1,7 +1,9 @@
 // Paired Bluetooth devices over the core's bluetooth capability: one row
 // per device with a glyph for its kind, a connected tag and the battery
 // as an accessory. Enter toggles the connection (Disconnect asks first),
-// ⌘C copies the address. Live: the connected state is read again on
+// ⌘C copies the address. Marked rows connect, disconnect or copy together
+// (a keyboard and a mouse after a restart); each row carries both
+// Connect and Disconnect, the one it needs first, so a mix offers both. Live: the connected state is read again on
 // every show; the list is the OS's, connected first then by name.
 import { bluetooth, errorMessage, failed, hint, toast, truncate, xdg, type Accessory, type Action, type BarCtx, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
 import { GLYPH, KIND, batteries, render as renderBattery, rows as batteryRows, type BarState } from "./view.ts";
@@ -14,15 +16,16 @@ const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.BluetoothSettings"
 const LINUX_SETTINGS: string[][] = [["gnome-control-center", "bluetooth"], ["systemsettings", "kcm_bluetooth"], ["blueman-manager"]];
 const BATTERY = "\u{f0083}"; // md-battery-alert
 let barFocus: string | undefined;
+// The question reads for one device or several (the confirm card counts marked rows under it).
+const CONNECT: Action = { id: "connect", title: "Connect", multi: true };
+const DISCONNECT: Action = { id: "disconnect", title: "Disconnect", confirm: "Disconnect from this computer?", multi: true };
+const COPY: Action = { id: "copy", title: "Copy address", shortcut: "cmd+c", multi: true };
 
 function item(d: BluetoothDevice): Item {
   const accessories: Accessory[] = [];
   if (d.battery !== null) accessories.push({ text: d.battery_detail ?? `${d.battery}%` });
   if (d.connected) accessories.push({ tag: "connected", color: "green" });
-  const actions: Action[] = d.connected
-    ? [{ id: "toggle", title: "Disconnect", confirm: `Disconnect ${d.name}?` }]
-    : [{ id: "toggle", title: "Connect" }];
-  actions.push({ id: "copy", title: "Copy address", shortcut: "cmd+c" });
+  const actions: Action[] = d.connected ? [DISCONNECT, COPY, CONNECT] : [CONNECT, COPY, DISCONNECT];
   return {
     id: d.address,
     name: d.name,
@@ -124,18 +127,25 @@ export default {
           return [hint("error", "Bluetooth is not available", errorMessage(e), { icon: xdg("dialog-error")! })];
         }
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         if (id === "hint:error") return { keep: true };
-        if (action === "copy") return { copy: id };
-        // Read the state again rather than trust the row: the list may have been up a while.
-        const d = (await bluetooth.devices().catch(() => [] as BluetoothDevice[])).find((d) => d.address === id);
-        const name = d?.name ?? id;
-        if (d?.connected) {
-          try { await bluetooth.disconnect(id); } catch (e) { return failed(`disconnect ${name}`, e); }
-          return { hud: `Disconnected ${name}` };
+        const ids = (ctx?.ids ?? [id]).filter((x) => !x.startsWith("hint:"));
+        if (action === "copy") return { copy: ids.join("\n") };
+        // Read the state again rather than trust the rows: the list may have been up a while.
+        const all = await bluetooth.devices().catch(() => [] as BluetoothDevice[]);
+        const d = all.find((d) => d.address === id);
+        // A bare pick (an item hotkey) or the old `toggle` flips the one device.
+        const want = action === "connect" || action === "disconnect" ? action : d?.connected ? "disconnect" : "connect";
+        // Only the devices not already there: connecting a connected one is nothing to do.
+        const todo = ids.map((x) => all.find((d) => d.address === x) ?? { address: x, name: x, connected: want === "connect" }).filter((d) => d.connected === (want === "disconnect"));
+        const done: string[] = [];
+        for (const t of todo) {
+          try { await (want === "disconnect" ? bluetooth.disconnect(t.address) : bluetooth.connect(t.address)); } catch (e) { return failed(`${want === "disconnect" ? "disconnect" : "connect to"} ${t.name}`, e); }
+          done.push(t.name);
         }
-        try { await bluetooth.connect(id); } catch (e) { return failed(`connect to ${name}`, e); }
-        return { hud: `Connected to ${name}` };
+        const verb = want === "disconnect" ? "Disconnected" : "Connected to";
+        if (!done.length) return { hud: want === "disconnect" ? "Nothing to disconnect" : "Already connected" };
+        return { hud: done.length === 1 ? `${verb} ${done[0]}` : `${verb} ${done.length} devices` };
       },
     },
   },

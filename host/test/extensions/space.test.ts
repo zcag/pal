@@ -392,6 +392,12 @@ describe("render.ts", () => {
     expect(old.subtitle).toBe("Measuring… By date");
     expect(old.accessories).toEqual([{ text: "3 files" }, { text: "5.0 MB…" }]);
     expect(old.actions![2]).toMatchObject({ id: "trash-old", title: "Trash the 3 files", confirm: "Move 3 files (5.0 MB) older than 30 days to the Trash?" });
+    // Stale folders and caches come in several: marked ones are trashed, revealed and copied together, the question naming none; the map is one's.
+    const stale = suggestionRow({ id: "nm", name: "node_modules", path: "/h/p/node_modules", note: "x", size: MB, action: "trash", section: "Stale build folders" }, 30, true);
+    expect(stale.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["reveal", "trash", "copy"]);
+    expect(stale.actions![2].confirm).not.toContain("/h/p");
+    const cache = suggestionRow({ id: "c", name: "Cache", path: "/h/Library/Caches/x", note: "x", size: MB, action: "trash-contents", section: "Caches" }, 30, true);
+    expect(cache.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["reveal", "trash-contents", "copy"]);
   });
 });
 
@@ -576,6 +582,8 @@ describe("space over the wire", () => {
     await expect(host.request("link", { extension: "space", route: "scan", params: { root: join(root, "notes.txt") } })).rejects.toThrow("not a folder");
     // Forget: the saved scan goes, the folder stays.
     expect(await host.pick("space", "space", `root:${root}`, "forget")).toMatchObject({ toast: { title: "Forgotten" } });
+    // Marked saved scans are forgotten in one write.
+    expect(await host.pick("space", "space", `root:${root}`, "forget", { ids: [`root:${root}`, "root:/nowhere"] })).toMatchObject({ toast: { title: "Forgotten", message: "2 scans" } });
     expect((stored.get("space\0roots") as any)[root]).toBeUndefined();
   });
 });

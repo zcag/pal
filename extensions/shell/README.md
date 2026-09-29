@@ -73,6 +73,8 @@ copies it, `cmd+d` removes the entry; the last row clears the history
 keystroke so a command just run is there, and its rows never reach the
 root, where an `enter` would run one.
 
+Marked history rows copy as one command per line, a script's worth, and are removed in one write.
+
 ## What looks destructive
 
 With `confirm` on (the default) the Run action asks first when any

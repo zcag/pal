@@ -192,7 +192,8 @@ async function publicIp(url: string, refresh: boolean): Promise<Public | { error
 // ---- rows ------------------------------------------------------------------
 
 const ACTIONS: Action[] = [
-  { id: "copy", title: "Copy" },
+  // Marked rows (`multi`): every value, one a line (the addresses to paste into a config at once).
+  { id: "copy", title: "Copy", multi: true },
   { id: "settings", title: "Open Network settings" },
 ];
 const SECTION = { machine: "This machine", internet: "Internet", network: "Network" };
@@ -396,10 +397,11 @@ export default {
         const { s, withPublic } = await snapshot(ctx);
         return rows(s, withPublic);
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         if (action === "settings") return openNetworkSettings();
-        const value = (await lookup(id))?.value;
-        return value === undefined ? toast("Row is gone", "The rows were listed again", "failure") : { copy: value };
+        const values: string[] = [];
+        for (const x of ctx?.ids ?? [id]) { const v = (await lookup(x))?.value; if (v !== undefined) values.push(v); }
+        return values.length ? { copy: values.join("\n") } : toast("Row is gone", "The rows were listed again", "failure");
       },
       detail: async (id) => (await lookup(id))?.detail,
     },

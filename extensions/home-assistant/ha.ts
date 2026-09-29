@@ -136,7 +136,9 @@ export const accessories = (s: State): Accessory[] => [
   { date: s.last_changed },
 ];
 
-const A = (id: string, title: string, extra: Partial<Action> = {}): Action => ({ id, title, ...extra });
+/** The actions that stay one entity's: a value typed for it, a form, a drill-in. Every other works over marked rows, each entity in turn (`multi`). */
+const SINGLE = new Set(["brightness", "volume", "temperature", "attributes", "call"]);
+const A = (id: string, title: string, extra: Partial<Action> = {}): Action => ({ id, title, ...(!SINGLE.has(id) && { multi: true }), ...extra });
 const COMMON: Action[] = [
   A("copy_id", "Copy entity id", { shortcut: "cmd+c" }),
   A("attributes", "Show attributes", { shortcut: "cmd+shift+a" }),
@@ -154,8 +156,8 @@ export function actions(s: State): Action[] {
     case "climate": own = [A("temperature", "Set temperature"), A("on", "Turn on"), A("off", "Turn off")]; break;
     case "cover": own = s.state === "open" ? [A("close", "Close"), A("open", "Open"), A("stop", "Stop")] : [A("open", "Open"), A("close", "Close"), A("stop", "Stop")]; break;
     case "lock": own = s.state === "locked"
-      ? [A("unlock", "Unlock", { confirm: `Unlock ${name(s)}?` }), A("lock", "Lock", { confirm: `Lock ${name(s)}?` })]
-      : [A("lock", "Lock", { confirm: `Lock ${name(s)}?` }), A("unlock", "Unlock", { confirm: `Unlock ${name(s)}?` })]; break;
+      ? [A("unlock", "Unlock", { confirm: "Unlock it?" }), A("lock", "Lock", { confirm: "Lock it?" })]
+      : [A("lock", "Lock", { confirm: "Lock it?" }), A("unlock", "Unlock", { confirm: "Unlock it?" })]; break;
     case "media_player": own = [A("play_pause", s.state === "playing" ? "Pause" : "Play"), A("next", "Next track"), A("previous", "Previous track"), A("volume", "Set volume", { shortcut: "cmd+u", args: true }), A("off", "Turn off")]; break;
     case "scene": own = [A("activate", "Activate")]; break;
     case "script": own = [A("run", "Run")]; break;

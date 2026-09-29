@@ -40,6 +40,12 @@ Files, Links (text that is one url) and Colors.
 | `cmd+shift+d` | Clear history: every entry, pinned ones included; asks first |
 | `tab` | Cycle the kind filter |
 
+Marked entries (`cmd`-click, `shift`-click, `shift+↓`): Paste, Copy and
+Paste as plain text join their text one per line, Open link opens every
+link, Copy image file copies every image, Pin, Unpin and Delete go over
+each. Edit, Name, Save, Snippet, QR and Copy text from image stay one
+entry's.
+
 `primary_action = "copy"` swaps the first two, so `enter` copies and
 `cmd+enter` pastes.
 

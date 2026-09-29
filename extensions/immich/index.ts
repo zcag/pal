@@ -113,19 +113,21 @@ const previewFile = async (c: Client, id: string): Promise<string> => { await ca
 
 // ---- rows ---------------------------------------------------------------------------------------
 
-const OPEN: Action = { id: "open", title: "Open in Immich" };
-const COPY_LINK: Action = { id: "link", title: "Copy link" };
-const COPY_IMAGE: Action = { id: "image", title: "Copy image", shortcut: "cmd+shift+c" };
+// Every photo action takes marked tiles: a tab each, the links and names a line each, the previews as files, Quick Look over them all.
+const OPEN: Action = { id: "open", title: "Open in Immich", multi: true };
+const COPY_LINK: Action = { id: "link", title: "Copy link", multi: true };
+const COPY_IMAGE: Action = { id: "image", title: "Copy image", shortcut: "cmd+shift+c", multi: true };
 const DOWNLOAD: Action = { id: "download", title: "Download preview", shortcut: "cmd+s", multi: true };
 const DOWNLOAD_ORIGINAL: Action = { id: "original", title: "Download original", shortcut: "cmd+shift+s", multi: true };
 const FAV: Action = { id: "fav", title: "Favourite", shortcut: "cmd+f", multi: true };
 const UNFAV: Action = { id: "unfav", title: "Unfavourite", shortcut: "cmd+f", multi: true };
 const ALBUM: Action = { id: "album", title: "Add to album…", shortcut: "cmd+shift+a", multi: true };
-const QUICK_LOOK: Action = { id: "quick-look", title: "Quick Look", shortcut: "cmd+y" };
-const COPY_FILE: Action = { id: "file", title: "Copy file name", shortcut: "cmd+shift+f" };
+const QUICK_LOOK: Action = { id: "quick-look", title: "Quick Look", shortcut: "cmd+y", multi: true };
+const COPY_FILE: Action = { id: "file", title: "Copy file name", shortcut: "cmd+shift+f", multi: true };
 const MORE: Action = { id: "more", title: "Load more" };
 
-const assetActions = (a: Asset): Action[] => [OPEN, COPY_LINK, COPY_IMAGE, ...(MAC ? [QUICK_LOOK] : []), DOWNLOAD, DOWNLOAD_ORIGINAL, a.favorite ? UNFAV : FAV, ALBUM, COPY_FILE];
+/** The favourite that flips the photo is on ⌘F; the other rides at the end, without a key, so marked tiles that mix both can go either way. */
+const assetActions = (a: Asset): Action[] => [OPEN, COPY_LINK, COPY_IMAGE, ...(MAC ? [QUICK_LOOK] : []), DOWNLOAD, DOWNLOAD_ORIGINAL, a.favorite ? UNFAV : FAV, ALBUM, COPY_FILE, { ...(a.favorite ? FAV : UNFAV), shortcut: undefined }];
 
 /** What the last listings showed, by id: `pick` and `detail` need the asset. */
 const held = new Map<string, Asset>();
@@ -305,8 +307,13 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
     switch (action) {
       case "link": return { copy: ids.map((x) => photoUrl(c, x)).join("\n") };
       case "file": return { copy: assets.map((x) => x.file).join("\n") };
-      case "image": { const p = await previewFile(c, a.id); return (await copyImage(p)) ? { hud: "Image copied" } : { copy_files: [p], hud: "Copied as a file" }; }
-      case "quick-look": { const p = await previewFile(c, a.id); Bun.spawn(["qlmanage", "-p", p], { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); return { hide: true }; }
+      case "image": {
+        // One photo as a picture; several as the preview files (a clipboard holds one picture).
+        if (assets.length > 1) return { copy_files: await Promise.all(assets.map((x) => previewFile(c, x.id))), hud: `Copied ${assets.length} photos as files` };
+        const p = await previewFile(c, a.id);
+        return (await copyImage(p)) ? { hud: "Image copied" } : { copy_files: [p], hud: "Copied as a file" };
+      }
+      case "quick-look": { const ps = await Promise.all(assets.map((x) => previewFile(c, x.id))); Bun.spawn(["qlmanage", "-p", ...ps], { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); return { hide: true }; }
       case "download": return await downloadPreviews(c, assets);
       case "original": return downloadOriginals(c, assets);
       case "fav": case "unfav": {
@@ -316,7 +323,7 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
         return { keep: true, toast: { title: on ? "Favourited" : "Unfavourited", message: assets.length === 1 ? titleOf(a) : `${assets.length} photos` } };
       }
       case "album": return { push: { extension: EXT, palette: "albums", args: { add: ids, title: assets.length === 1 ? titleOf(a) : `${assets.length} photos` }, title: "Add to album" } };
-      default: return { open: photoUrl(c, a.id) };
+      default: return { open: ids.length > 1 ? ids.map((x) => photoUrl(c, x)) : photoUrl(c, a.id) };
     }
   } catch (e) { return failure(action ?? "open", e); }
 }
@@ -337,8 +344,9 @@ async function detail(id: string): Promise<Detail | void> {
 
 const heldAlbums = new Map<string, Album>();
 const ALBUM_OPEN: Action = { id: "open", title: "Open the album" };
-const ALBUM_WEB: Action = { id: "web", title: "Open in Immich" };
-const ALBUM_LINK: Action = { id: "link", title: "Copy link", shortcut: "cmd+c" };
+// Marked albums (and people, below): a tab each, the links a line each; opening one is a drill-in, one album's.
+const ALBUM_WEB: Action = { id: "web", title: "Open in Immich", multi: true };
+const ALBUM_LINK: Action = { id: "link", title: "Copy link", shortcut: "cmd+c", multi: true };
 const ALBUM_ADD: Action = { id: "add", title: "Add here" };
 
 const range = (a: Album): string => (a.start && a.end ? (takenIso(a.start) === takenIso(a.end) ? takenDay(a.start) : `${takenDay(a.start)} – ${takenDay(a.end)}`) : "");
@@ -412,9 +420,10 @@ async function albumPick(id: string, action?: string, ctx?: Ctx): Promise<Effect
   }
   const a = heldAlbums.get(id);
   if (!a) return toast("Album is gone", "The listing changed; pick again", "failure");
+  const urls = (ctx?.ids ?? [id]).filter((x) => heldAlbums.has(x)).map((x) => albumUrl(c, x));
   switch (action) {
-    case "web": return { open: albumUrl(c, a.id) };
-    case "link": return { copy: albumUrl(c, a.id) };
+    case "web": return { open: urls.length > 1 ? urls : urls[0]! };
+    case "link": return { copy: urls.join("\n") };
     case "add": {
       if (!args?.add?.length) return { push: { extension: EXT, palette: "immich", args: { album: a.id, title: a.name }, title: a.name } };
       try {
@@ -434,8 +443,8 @@ async function albumPick(id: string, action?: string, ctx?: Ctx): Promise<Effect
 
 const heldPeople = new Map<string, Person>();
 const PERSON_OPEN: Action = { id: "open", title: "The person's photos" };
-const PERSON_WEB: Action = { id: "web", title: "Open in Immich" };
-const PERSON_LINK: Action = { id: "link", title: "Copy link", shortcut: "cmd+c" };
+const PERSON_WEB: Action = { id: "web", title: "Open in Immich", multi: true };
+const PERSON_LINK: Action = { id: "link", title: "Copy link", shortcut: "cmd+c", multi: true };
 
 async function allPeople(c: Client, refresh?: boolean): Promise<Person[]> {
   if (peopleCache && !refresh && Date.now() - peopleCache.at < 60_000) return peopleCache.list;
@@ -461,7 +470,7 @@ async function peopleRows(_query = "", ctx?: Ctx): Promise<Item[]> {
   } catch (e) { return [failedRow(e)]; }
 }
 
-async function peoplePick(id: string, action?: string): Promise<Effect> {
+async function peoplePick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id === "setup") return settingsOpen();
   if (id.startsWith("hint:")) return { keep: true };
   const c = client();
@@ -469,9 +478,10 @@ async function peoplePick(id: string, action?: string): Promise<Effect> {
   if (id === "unnamed") return { open: `${c.web}/people` };
   const p = heldPeople.get(id);
   if (!p) return toast("Person is gone", "The listing changed; pick again", "failure");
+  const urls = (ctx?.ids ?? [id]).filter((x) => heldPeople.has(x)).map((x) => personUrl(c, x));
   switch (action) {
-    case "web": return { open: personUrl(c, p.id) };
-    case "link": return { copy: personUrl(c, p.id) };
+    case "web": return { open: urls.length > 1 ? urls : urls[0]! };
+    case "link": return { copy: urls.join("\n") };
     default: return { push: { extension: EXT, palette: "immich", args: { person: p.id, title: p.name }, title: p.name } };
   }
 }

@@ -6,7 +6,7 @@
 // bazarr); http.ts is the one client; view.ts draws the four bar
 // popovers (downloads, playing, requests, queue), each hidden when it
 // has nothing to say.
-import { errorMessage, hint, imageData, tile, toast, type BarCtx, type BarItem, type Detail, type Effect, type Extension, type Item, type Palette } from "@zcag/pal";
+import { errorMessage, hint, imageData, tile, toast, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette } from "@zcag/pal";
 import { EXTENSION, GLYPH, HEALTH_MS, SERVICES, cached, conf, configured, forget, needsSetup, service, speed as fmtSpeed, pct, settingsLink, type Service, type ServiceId } from "./http.ts";
 import { SEARCH_WAIT_MS, debounced, guard, pickHint, setupRow } from "./rows.ts";
 import * as jellyfin from "./jellyfin.ts";
@@ -67,11 +67,12 @@ function serviceRow(s: Service, h: Health | { error: string }): Item {
     section: "Services",
     accessories: [down ? { tag: "down", color: "red" } : h.warn ? { tag: "attention", color: "amber" } : { tag: "up", color: "green" }],
     detail: { metadata: [{ label: "URL", link: { text: conf(s.id).url.replace(/^https?:\/\//, ""), href: conf(s.id).url } }, ...(!down && h.version ? [{ label: "Version", value: h.version }] : []), { label: "Status", value: down ? h.error : h.note || "up" }, ...(drill.length ? [{ label: "In pal", value: drill.map((d) => d.title).join(", ") }] : [])] },
+    // Open and Copy also take marked services (`multi`): each web UI opened, the URLs one per line; a palette is one level.
     actions: [
-      { id: "open", title: `Open ${s.title}` },
+      { id: "open", title: `Open ${s.title}`, multi: true },
       ...(s.palette ? [{ id: `palette:${s.palette}`, title: "Open in pal", shortcut: "cmd+enter" }] : []),
       ...drill.filter((d) => d.id !== `palette:${s.palette}`),
-      { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+      { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
     ],
   };
 }
@@ -84,13 +85,15 @@ async function theaterRows(refresh: boolean): Promise<Item[]> {
   return [...rows, ...off.map((s) => setupRow(s.id))];
 }
 
-async function pickTheater(id: string, action?: string): Promise<Effect | void> {
+async function pickTheater(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id === "hint:none") return { open: "pal://settings/extensions?anchor=extensions:theater:jellyfin_url" };
   if (id.startsWith("hint:")) return pickHint(id);
   const s = service(id.slice(8) as ServiceId);
   if (action?.startsWith("palette:")) return { push: { extension: EXTENSION, palette: action.slice(8) } };
-  if (action === "copy") return { copy: conf(s.id).url };
-  return { open: conf(s.id).url };
+  // The marked services (`ctx.ids`), else the one.
+  const urls = (ctx?.ids ?? [id]).filter((x) => x.startsWith("service:")).map((x) => conf(service(x.slice(8) as ServiceId).id).url);
+  if (action === "copy") return { copy: urls.join("\n") };
+  return { open: urls.length > 1 ? urls : conf(s.id).url };
 }
 
 // ---- bar items -----------------------------------------------------------------------
@@ -116,7 +119,7 @@ async function renderDownloads(ctx: BarCtx): Promise<BarItem> {
   return { icon: st.paused ? GLYPH.pause : GLYPH.sab, title, tooltip: st.paused ? `${st.items.length} in the queue, paused` : `${active} downloading, ${fmtSpeed(st.speed)}`, states, menu, ...(st.errors.length && { stale: true }) };
 }
 
-async function downloadsAction(action: string): Promise<Effect | void> {
+async function downloadsAction(action: string, ctx?: BarCtx): Promise<Effect | void> {
   const st = await downloads.downloadsState();
   const rows = (await downloadsPop(st)).rows;
   const cur = rows[cursorOf("downloads", rows)];
@@ -129,8 +132,10 @@ async function downloadsAction(action: string): Promise<Effect | void> {
     case "toggle-all": try { st.paused ? await downloads.resumeAll() : await downloads.pauseAll(); } catch (e) { return toast("Could not pause", errorMessage(e), "failure"); } return { keep: true, hud: st.paused ? "Resumed" : "Paused" };
     case "toggle": case "delete": {
       if (!cur) return { keep: true };
-      const r = await downloads.pick(`dl:${cur.id}`, action === "delete" ? "delete" : cur.paused ? "resume" : "pause");
-      return r?.toast?.style === "failure" ? r : redraw();
+      // The marked rows (`ctx.ids`), paused or resumed as the cursor's reads; else the cursor's.
+      const ids = (ctx?.ids ?? [cur.id]).map((x) => `dl:${x}`);
+      const r = await downloads.pick(ids[0]!, action === "delete" ? "delete" : cur.paused ? "resume" : "pause", { ids });
+      return r?.toast?.style === "failure" ? r : { ...(await redraw()), ...(ids.length > 1 && { hud: `${action === "delete" ? "Deleted" : cur.paused ? "Resumed" : "Paused"} ${ids.length}` }) };
     }
     case "open": return { open: cur ? downloads.clientUrl(cur.id.startsWith("sab:") ? "sab" : "qbit") : downloads.clientUrl(configured("sab") ? "sab" : "qbit") };
   }
@@ -189,7 +194,7 @@ async function renderRequests(ctx: BarCtx): Promise<BarItem> {
   return { icon: GLYPH.seerr, badge: list.length, tooltip: `${list.length} pending request${list.length === 1 ? "" : "s"}`, states, menu };
 }
 
-async function requestsAction(action: string): Promise<Effect | void> {
+async function requestsAction(action: string, ctx?: BarCtx): Promise<Effect | void> {
   const list = await seerr.requests("pending");
   const rows = (await requestsPop(list)).rows;
   const cur = rows[cursorOf("requests", rows)];
@@ -199,7 +204,15 @@ async function requestsAction(action: string): Promise<Effect | void> {
     case "down": move("requests", rows, 1); return draw();
     case "up": move("requests", rows, -1); return draw();
     case "open-pal": return { push: { extension: EXTENSION, palette: "seerr-requests" } };
-    case "approve": case "decline": { if (!cur) return { keep: true }; const r = await seerr.pick(`req:${cur.id}`, action); if (r?.toast?.style === "failure") return r; forget("seerr:requests"); return { keep: true, hud: action === "approve" ? "Approved" : "Declined" }; }
+    case "approve": case "decline": {
+      if (!cur) return { keep: true };
+      // The marked requests (`ctx.ids`), else the cursor's.
+      const ids = (ctx?.ids ?? [cur.id]).map((x) => `req:${x}`);
+      const r = await seerr.pick(ids[0]!, action, { ids });
+      if (r?.toast?.style === "failure") return r;
+      forget("seerr:requests");
+      return { keep: true, hud: `${action === "approve" ? "Approved" : "Declined"}${ids.length > 1 ? ` ${ids.length}` : ""}` };
+    }
     case "open": return cur ? seerr.pick(`req:${cur.id}`) : { open: `${seerr.seerrUrl()}/requests` };
   }
 }
@@ -227,7 +240,7 @@ async function renderQueue(ctx: BarCtx): Promise<BarItem> {
   return { icon: GLYPH.queue, title: String(list.length), ...(stuck && { badge: stuck }), tooltip: `${list.length} in the queues${stuck ? `, ${stuck} need${stuck === 1 ? "s" : ""} attention` : ""}`, states, menu };
 }
 
-async function queueAction(action: string): Promise<Effect | void> {
+async function queueAction(action: string, ctx?: BarCtx): Promise<Effect | void> {
   const list = await arrQueues(false);
   const rows = queuePop(list).rows;
   const cur = rows[cursorOf("queue", rows)];
@@ -238,7 +251,18 @@ async function queueAction(action: string): Promise<Effect | void> {
     case "down": move("queue", rows, 1); return draw();
     case "up": move("queue", rows, -1); return draw();
     case "open-pal": return { push: { extension: EXTENSION, palette: app ?? (["radarr", "sonarr", "lidarr"] as arr.ArrId[]).find(configured) ?? "radarr" } };
-    case "remove": { if (!app) return { keep: true }; const r = await arr.pick(`queue:${app}:${id}`, "remove"); if (r?.toast?.style === "failure") return r; forget(`${app}:queue`); return draw(true); }
+    case "remove": {
+      if (!app) return { keep: true };
+      // The marked rows (`ctx.ids`, `app:id` across the three apps), else the cursor's; one pick per app.
+      const marked = ctx?.ids ?? [cur!.id];
+      for (const a of [...new Set(marked.map((x) => x.slice(0, x.indexOf(":"))))]) {
+        const ids = marked.filter((x) => x.startsWith(`${a}:`)).map((x) => `queue:${x}`);
+        const r = await arr.pick(ids[0]!, "remove", { ids });
+        if (r?.toast?.style === "failure") return r;
+        forget(`${a}:queue`);
+      }
+      return { ...(await draw(true)), ...(marked.length > 1 && { hud: `Removed ${marked.length}` }) };
+    }
     case "open": return app ? arr.pick(`queue:${app}:${id}`, "open") : { open: arr.arrUrl((["radarr", "sonarr", "lidarr"] as arr.ArrId[]).find(configured) ?? "radarr") };
   }
 }

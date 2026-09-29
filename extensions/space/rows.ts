@@ -59,17 +59,23 @@ export type Suggestion = {
   section: string;
 };
 
-/** A suggestion as a row: the size (with an ellipsis while measuring), the count, and the one destructive action it offers, asked first. */
+/**
+ * A suggestion as a row: the size (with an ellipsis while measuring), the
+ * count, and the one destructive action it offers, asked first. Marked
+ * suggestions of a kind go together (`multi`): stale folders trashed,
+ * caches emptied, revealed, their paths copied; the question then counts
+ * them, so it names none. The Trash and the old downloads are one row each.
+ */
 export function suggestionRow(g: Suggestion, staleDays: number, mac: boolean): Item {
   const size = bytes(g.size ?? 0);
   const destructive: Action = g.action === "empty-trash"
     ? { id: "empty-trash", title: "Empty Trash", shortcut: "cmd+d", style: "destructive", confirm: `Empty the Trash (${size})? This cannot be undone.` }
-    : g.action === "trash" ? { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: `Move ${tilde(g.path)} (${size}) to the Trash?` }
+    : g.action === "trash" ? { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", multi: true, confirm: "Move to the Trash? Everything in it goes along; the Trash can give it back." }
     : g.action === "trash-old" ? { id: "trash-old", title: `Trash the ${count(g.files ?? 0)}`, shortcut: "cmd+d", style: "destructive", confirm: `Move ${count(g.files ?? 0)} (${size}) older than ${staleDays} days to the Trash?` }
-    : { id: "trash-contents", title: "Trash the contents", shortcut: "cmd+d", style: "destructive", confirm: `Move everything in ${tilde(g.path)} (${size}) to the Trash?` };
+    : { id: "trash-contents", title: "Trash the contents", shortcut: "cmd+d", style: "destructive", multi: true, confirm: "Move everything in it to the Trash? The folder itself stays." };
   return {
     id: g.id, name: g.name, subtitle: g.measuring ? `Measuring… ${g.note}` : g.note, icon: g.action === "empty-trash" ? TRASH_GLYPH : GLYPH.folder, keywords: [basename(g.path)], section: g.section,
     accessories: [...(g.files !== undefined ? [{ text: count(g.files) }] : []), { text: g.measuring ? `${size}…` : size }],
-    actions: [{ id: "map", title: "Show in the map" }, { id: "reveal", title: mac ? "Reveal in Finder" : "Show in file manager" }, destructive, { id: "copy", title: "Copy path", shortcut: "cmd+c" }],
+    actions: [{ id: "map", title: "Show in the map" }, { id: "reveal", title: mac ? "Reveal in Finder" : "Show in file manager", multi: true }, destructive, { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true }],
   };
 }

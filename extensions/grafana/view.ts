@@ -2,8 +2,9 @@
 // index.ts fetches, this draws the state the tests pass in. Firing then
 // pending, each instance a row with a colour rail (red, amber, grey once
 // silenced), the rule's name, the summary under it, the severity and the
-// age; a cursor (`selected`) the arrows move and a click sets; the keys
-// as keycap hints. Nothing firing is one calm line. The shape GitHub's
+// age; a cursor (`selected`) the arrows move and a click sets; rows the
+// shell can mark (`mark`) for the open, silence and copy keys over them
+// all; the keys as keycap hints. Nothing firing is one calm line. The shape GitHub's
 // and Gmail's popovers take.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import { DURATIONS, type AlertInstance, labelsLine } from "./api.ts";
@@ -40,7 +41,7 @@ function alertRow(a: AlertInstance, focused: boolean, st: BarState): ViewNode {
       column([text(a.rule, { size: "md", weight: focused ? "semibold" : "medium", width: TEXT_W }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "body", gap: 0, grow: true }),
       text(a.since ? ago(a.since, { now: st.now, short: true }) : "", { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
-    { key: a.id, padding: 1, radius: true, action: `focus:${a.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+    { key: a.id, mark: a.id, padding: 1, radius: true, action: `focus:${a.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -67,14 +68,14 @@ export function actions(st: BarState): Action[] {
   const cur = st.rows[st.focus];
   const silences: Action[] = cur
     ? cur.silencedBy.length
-      ? [{ id: "unsilence", title: "Expire the silence", shortcut: ["s", "u"], confirm: `Expire the silence on ${cur.rule}? It will page again.` }]
-      : Object.entries(DURATIONS).map(([k, d], i): Action => ({ id: `silence:${k}`, title: `Silence for ${d.title}`, shortcut: ["s", "f", "d"][i], confirm: `Silence ${cur.rule} (${labelsLine(cur.labels) || "every instance"}) for ${d.title}?` }))
+      ? [{ id: "unsilence", title: "Expire the silence", shortcut: ["s", "u"], confirm: "Expire the silence? It will page again.", multi: true }]
+      : Object.entries(DURATIONS).map(([k, d], i): Action => ({ id: `silence:${k}`, title: `Silence for ${d.title}`, shortcut: ["s", "f", "d"][i], confirm: `Silence for ${d.title}? Every instance matching the labels stays quiet until then.`, multi: true }))
     : [];
   return [
-    ...(cur ? [{ id: "open", title: "Open the rule in Grafana" } as Action] : [{ id: "site", title: "Open the alert list in Grafana", shortcut: "a" } as Action]),
-    ...(cur ? [{ id: "dashboard", title: cur.dashboardUrl ? "Open the dashboard" : "Open the alert list", shortcut: "o" } as Action] : []),
+    ...(cur ? [{ id: "open", title: "Open the rule in Grafana", multi: true } as Action] : [{ id: "site", title: "Open the alert list in Grafana", shortcut: "a" } as Action]),
+    ...(cur ? [{ id: "dashboard", title: cur.dashboardUrl ? "Open the dashboard" : "Open the alert list", shortcut: "o", multi: true } as Action] : []),
     ...silences,
-    ...(cur ? [{ id: "copy", title: "Copy the summary", shortcut: ["c", "cmd+c"] } as Action] : []),
+    ...(cur ? [{ id: "copy", title: "Copy the summary", shortcut: ["c", "cmd+c"], multi: true } as Action] : []),
     { id: "pal", title: "Open Grafana Alerts in pal", shortcut: "p" },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     ...(cur ? [{ id: "site", title: "Open the alert list in Grafana", shortcut: "a" } as Action] : []),

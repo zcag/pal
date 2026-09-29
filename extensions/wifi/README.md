@@ -30,7 +30,7 @@ interface, or with no backend, the one row says so.
 | `cmd+shift+c` | Copy password: the saved password onto the clipboard | the current row and known rows |
 | `cmd+c` | Copy IP: the interface's IPv4 address | the current row |
 | `cmd+c` | Copy name: the network's name | a known or available row |
-| `ctrl+x` | Forget: removes the saved network, after a confirm ("Forget X? Its password goes with it.") | the current row and known rows |
+| `ctrl+x` | Forget: removes the saved network, after a confirm ("Forget, and delete the saved password too?"); over marked networks too, each forgotten | the current row and known rows |
 | `enter` | Scan: a fresh scan, then the list again | the Scan row |
 | `enter` | Turn off / Turn on: the radio | the Wi-Fi row |
 | `enter` | Open System Settings: the Location Services pane | the Location row |

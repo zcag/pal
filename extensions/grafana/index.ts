@@ -55,15 +55,19 @@ async function dashboards(c: Client, refresh = false): Promise<Dashboard[]> {
 const folderOf = (d: Dashboard) => d.folderTitle ?? "General";
 const folderKey = (d: Dashboard) => d.folderUid ?? "";
 
+const STAR: Action = { id: "star", title: "Star", multi: true }, UNSTAR: Action = { id: "unstar", title: "Unstar", multi: true };
+
+/** Every action but the time range form and the folder drill-in takes marked dashboards; the one that flips the star is on ⌘S, the other at the end, so a mix of starred and not can go either way. */
 function dashActions(d: Dashboard): Action[] {
   return [
-    { id: "open", title: "Open in Grafana" },
+    { id: "open", title: "Open in Grafana", multi: true },
     { id: "range", title: "Open with a time range", shortcut: "cmd+enter" },
-    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
-    { id: "star", title: d.isStarred ? "Unstar" : "Star", shortcut: "cmd+s" },
-    { id: "kiosk", title: "Open in kiosk mode", shortcut: "cmd+f" },
-    { id: "uid", title: "Copy uid", shortcut: "cmd+u" },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
+    { ...(d.isStarred ? UNSTAR : STAR), shortcut: "cmd+s" },
+    { id: "kiosk", title: "Open in kiosk mode", shortcut: "cmd+f", multi: true },
+    { id: "uid", title: "Copy uid", shortcut: "cmd+u", multi: true },
     { id: "folder", title: `Show folder ${folderOf(d)}`, shortcut: "right" },
+    d.isStarred ? STAR : UNSTAR,
   ];
 }
 
@@ -86,7 +90,7 @@ function folderRows(rows: Dashboard[]): Item[] {
   for (const d of rows) { const k = folderKey(d); counts.set(k, { title: folderOf(d), n: (counts.get(k)?.n ?? 0) + 1 }); }
   return [...counts].sort(([, a], [, b]) => a.title.localeCompare(b.title)).map(([uid, f]) => ({
     id: `folder:${uid}`, name: f.title, subtitle: `${f.n} ${f.n === 1 ? "dashboard" : "dashboards"}`, icon: GLYPH.folder, keywords: ["folder"],
-    actions: [{ id: "show", title: "Show dashboards" }, { id: "open", title: "Open the folder in Grafana", shortcut: "cmd+enter" }],
+    actions: [{ id: "show", title: "Show dashboards" }, { id: "open", title: "Open the folder in Grafana", shortcut: "cmd+enter", multi: true }],
   }));
 }
 
@@ -131,9 +135,12 @@ async function pickDashboard(id: string, action: string | undefined, ctx: Ctx | 
   if (id.startsWith("hint:")) return;
   const c = client();
   const s = settings.get<Settings>();
+  const ids = (ctx?.ids ?? [id]).filter((x) => !x.startsWith("hint:"));
+  const folderUrl = (uid: string) => (uid ? `${c.url}/dashboards/f/${encodeURIComponent(uid)}/` : `${c.url}/dashboards`);
+  if (ids.length > 1) return pickDashboards(c, s, ids, action, folderUrl);
   if (id.startsWith("folder:")) {
     const uid = id.slice(7);
-    if (action === "open") return { open: uid ? `${c.url}/dashboards/f/${encodeURIComponent(uid)}/` : `${c.url}/dashboards` };
+    if (action === "open") return { open: folderUrl(uid) };
     const title = (await dashboards(c)).find((d) => folderKey(d) === uid);
     return { push: { extension: EXTENSION, palette: "grafana", args: { folder: uid } satisfies Args, title: title ? folderOf(title) : "Folder" } };
   }
@@ -149,14 +156,37 @@ async function pickDashboard(id: string, action: string | undefined, ctx: Ctx | 
     case "copy": return { copy: dashboardUrl(c.url, d) };
     case "uid": return { copy: d.uid };
     case "kiosk": return { open: dashboardUrl(c.url, d, { kiosk: true, from: s.time_range.trim() || undefined }) };
-    case "star": {
-      try { await (d.isStarred ? c.unstar(d.uid) : c.star(d.uid)); } catch (e) { return failed(`${d.isStarred ? "unstar" : "star"} ${d.title}`, e); }
-      d.isStarred = !d.isStarred;
+    case "star": case "unstar": {
+      const on = action === "star";
+      try { await (on ? c.star(d.uid) : c.unstar(d.uid)); } catch (e) { return failed(`${on ? "star" : "unstar"} ${d.title}`, e); }
+      d.isStarred = on;
       dashCache = undefined;
-      return toast(d.isStarred ? `Starred ${d.title}` : `Unstarred ${d.title}`);
+      return toast(on ? `Starred ${d.title}` : `Unstarred ${d.title}`);
     }
     case "folder": return { push: { extension: EXTENSION, palette: "grafana", args: { folder: folderKey(d) } satisfies Args, title: folderOf(d) } };
     default: return { open: dashboardUrl(c.url, d, { from: s.time_range.trim() || undefined }) };
+  }
+}
+
+/** Marked dashboards or folders (`ctx.ids`): a tab each, the urls or uids a line each, one star call each (skipping those already so). */
+async function pickDashboards(c: Client, s: Settings, ids: string[], action: string | undefined, folderUrl: (uid: string) => string): Promise<Effect | void> {
+  const all = await dashboards(c);
+  const ds = ids.filter((x) => !x.startsWith("folder:")).map((x) => all.find((d) => d.uid === x) ?? { uid: x, title: x, url: `/d/${x}`, tags: [], isStarred: false });
+  const from = s.time_range.trim() || undefined;
+  switch (action) {
+    case "copy": return { copy: ds.map((d) => dashboardUrl(c.url, d)).join("\n") };
+    case "uid": return { copy: ds.map((d) => d.uid).join("\n") };
+    case "kiosk": return { open: ds.map((d) => dashboardUrl(c.url, d, { kiosk: true, from })) };
+    case "star": case "unstar": {
+      const on = action === "star", todo = ds.filter((d) => d.isStarred !== on);
+      for (const d of todo) {
+        try { await (on ? c.star(d.uid) : c.unstar(d.uid)); } catch (e) { return failed(`${on ? "star" : "unstar"} ${d.title}`, e); }
+        d.isStarred = on;
+      }
+      dashCache = undefined;
+      return toast(`${on ? "Starred" : "Unstarred"} ${ids.length} dashboards`);
+    }
+    default: return { open: ids.map((x) => (x.startsWith("folder:") ? folderUrl(x.slice(7)) : dashboardUrl(c.url, ds.find((d) => d.uid === x)!, { from }))) };
   }
 }
 
@@ -273,16 +303,21 @@ async function alerts(c: Client, refresh = false): Promise<{ list: AlertInstance
 
 const stateColor = (a: AlertInstance): TagColor => (a.state === "firing" ? "red" : "amber");
 
+/**
+ * An alert's actions, every one of them over marked alerts too (a tab
+ * each, a silence or an expiry each, a line each). The questions name no
+ * rule, so they read right over several (the shell says how many).
+ */
 function alertActions(a: AlertInstance): Action[] {
   const silence: Action[] = a.silencedBy.length
-    ? [{ id: "unsilence", title: "Expire silence", shortcut: "cmd+e", style: "destructive", confirm: `Expire the silence on ${a.rule}? It will page again.` }]
-    : Object.entries(DURATIONS).map(([k, d], i): Action => ({ id: `silence:${k}`, title: `Silence for ${d.title}`, shortcut: ["cmd+s", "cmd+shift+s", "cmd+d"][i], confirm: `Silence ${a.rule} (${labelsLine(a.labels) || "every instance"}) for ${d.title}?` }));
+    ? [{ id: "unsilence", title: "Expire silence", shortcut: "cmd+e", style: "destructive", confirm: "Expire the silence? It will page again.", multi: true }]
+    : Object.entries(DURATIONS).map(([k, d], i): Action => ({ id: `silence:${k}`, title: `Silence for ${d.title}`, shortcut: ["cmd+s", "cmd+shift+s", "cmd+d"][i], confirm: `Silence for ${d.title}? Every instance matching the labels stays quiet until then.`, multi: true }));
   return [
-    { id: "open", title: "Open rule in Grafana" },
-    ...(a.dashboardUrl ? [{ id: "dashboard", title: "Open dashboard", shortcut: "cmd+enter" } as Action] : []),
+    { id: "open", title: "Open rule in Grafana", multi: true },
+    ...(a.dashboardUrl ? [{ id: "dashboard", title: "Open dashboard", shortcut: "cmd+enter", multi: true } as Action] : []),
     ...silence,
-    { id: "copy", title: "Copy summary", shortcut: "cmd+c" },
-    { id: "labels", title: "Copy labels", shortcut: "cmd+l" },
+    { id: "copy", title: "Copy summary", shortcut: "cmd+c", multi: true },
+    { id: "labels", title: "Copy labels", shortcut: "cmd+l", multi: true },
   ];
 }
 
@@ -312,9 +347,9 @@ function silenceRow(s: Silence): Item {
     keywords: ["silence", ...s.matchers.map((m) => m.value)],
     accessories: [{ tag: s.status?.state === "pending" ? "starts later" : "silence" }, { date: s.endsAt }],
     actions: [
-      { id: "expire", title: "Expire silence", style: "destructive", confirm: `Expire the silence on ${line}? What it covers will page again.` },
-      { id: "open", title: "Open in Grafana", shortcut: "cmd+enter" },
-      { id: "copy", title: "Copy matchers", shortcut: "cmd+c" },
+      { id: "expire", title: "Expire silence", style: "destructive", confirm: "Expire the silence? What it covers will page again.", multi: true },
+      { id: "open", title: "Open in Grafana", shortcut: "cmd+enter", multi: true },
+      { id: "copy", title: "Copy matchers", shortcut: "cmd+c", multi: true },
     ],
   };
 }
@@ -366,10 +401,42 @@ async function expire(c: Client, ids: string[], what: string): Promise<Effect> {
   return toast(`Expired the silence on ${what}`);
 }
 
-async function pickAlert(id: string, action: string | undefined): Promise<Effect | void> {
+const summaryOf = (a: AlertInstance) => a.summary ?? `${a.rule}: ${labelsLine(a.labels)}`;
+const labelsOf = (a: AlertInstance) => Object.entries(a.labels).filter(([k]) => !k.startsWith("__")).sort(([x], [y]) => x.localeCompare(y)).map(([k, v]) => `${k}="${v}"`).join(", ");
+
+/**
+ * Marked alerts and silences (`ctx.ids`, the palette's rows or the
+ * popover's): the rules or dashboards a tab each, the copies a line each,
+ * a silence for each alert not yet silenced, an expiry for each silence.
+ */
+async function alertMany(c: Client, ids: string[], action: string | undefined): Promise<Effect> {
+  const { list, silences } = await alerts(c);
+  const as = ids.map((x) => list.find((a) => a.id === x)).filter((a): a is AlertInstance => !!a);
+  const ss = ids.filter((x) => x.startsWith("silence:")).map((x) => silences.find((s) => s.id === x.slice(8))).filter((s): s is Silence => !!s);
+  switch (action) {
+    case "dashboard": return { open: as.map((a) => a.dashboardUrl ?? alertsUrl(c.url)) };
+    case "copy": return { copy: [...as.map(summaryOf), ...ss.map((s) => matchersLine(s.matchers))].join("\n") };
+    case "labels": return { copy: as.map(labelsOf).join("\n") };
+    case "unsilence": case "expire": {
+      const gone = [...new Set([...as.flatMap((a) => a.silencedBy), ...ss.map((s) => s.id)])];
+      const r = await expire(c, gone, `${ids.length} alerts`);
+      return r.toast?.style === "failure" ? r : toast(`Expired ${gone.length} ${gone.length === 1 ? "silence" : "silences"}`);
+    }
+  }
+  if (action?.startsWith("silence:")) {
+    const todo = as.filter((a) => !a.silencedBy.length);
+    for (const a of todo) { const r = await silence(c, a, action.slice(8)); if (r.toast?.style === "failure") return r; }
+    return toast(`Silenced ${todo.length} alerts for ${DURATIONS[action.slice(8)]?.title ?? action.slice(8)}`);
+  }
+  return { open: [...as.map((a) => ruleUrl(c.url, a.ruleUid)), ...ss.map((s) => silenceUrl(c.url, s.id))] };
+}
+
+async function pickAlert(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect | void> {
   if (id === "hint:setup") return action === "settings" ? settingsLink() : undefined;
   if (id.startsWith("hint:")) return;
   const c = client();
+  const ids = (ctx?.ids ?? [id]).filter((x) => !x.startsWith("hint:"));
+  if (ids.length > 1) return alertMany(c, ids, action);
   const { list, silences } = await alerts(c);
   if (id.startsWith("silence:")) {
     const s = silences.find((x) => x.id === id.slice(8));
@@ -384,8 +451,8 @@ async function pickAlert(id: string, action: string | undefined): Promise<Effect
   if (!a) return toast("That alert is no longer firing", "The list was refreshed", "success");
   switch (action) {
     case "dashboard": return { open: a.dashboardUrl ?? alertsUrl(c.url) };
-    case "copy": return { copy: a.summary ?? `${a.rule}: ${labelsLine(a.labels)}` };
-    case "labels": return { copy: Object.entries(a.labels).filter(([k]) => !k.startsWith("__")).sort(([x], [y]) => x.localeCompare(y)).map(([k, v]) => `${k}="${v}"`).join(", ") };
+    case "copy": return { copy: summaryOf(a) };
+    case "labels": return { copy: labelsOf(a) };
     case "unsilence": return expire(c, a.silencedBy, a.rule);
     default:
       if (action?.startsWith("silence:")) return silence(c, a, action.slice(8));
@@ -421,8 +488,9 @@ let lastExpr = "";
 let inflight: AbortController | undefined;
 
 const QUERY_ACTIONS: Action[] = [
-  { id: "value", title: "Copy value" },
-  { id: "series", title: "Copy series and value", shortcut: "cmd+enter" },
+  // Marked series copy a line each; the rest are about the one expression every row shares.
+  { id: "value", title: "Copy value", multi: true },
+  { id: "series", title: "Copy series and value", shortcut: "cmd+enter", multi: true },
   { id: "explore", title: "Open in Explore", shortcut: "cmd+o" },
   { id: "expr", title: "Copy expression", shortcut: "cmd+c" },
   { id: "all", title: "Copy every series", shortcut: "cmd+shift+a" },
@@ -435,9 +503,9 @@ function savedRows(): Item[] {
     id: `q:${i}`, name: q.name, subtitle: q.expr, icon: tinted(GLYPH.saved, "amber"), keywords: ["saved"],
     actions: [
       { id: "run", title: "Run" },
-      { id: "explore", title: "Open in Explore", shortcut: "cmd+o" },
-      { id: "expr", title: "Copy expression", shortcut: "cmd+c" },
-      { id: "remove", title: "Remove saved query", shortcut: "cmd+backspace", style: "destructive", confirm: `Remove ${q.name} from the saved queries?` },
+      { id: "explore", title: "Open in Explore", shortcut: "cmd+o", multi: true },
+      { id: "expr", title: "Copy expression", shortcut: "cmd+c", multi: true },
+      { id: "remove", title: "Remove saved query", shortcut: "cmd+backspace", style: "destructive", confirm: "Remove from the saved queries?", multi: true },
     ],
   }));
 }
@@ -506,6 +574,22 @@ async function pickQuery(id: string, action: string | undefined, ctx: Ctx | unde
     await settings.set("queries", [...lines, `${name} = ${expr}`]);
     return toast(`Saved ${name}`, "Listed before you type, and under Settings › Extensions › Grafana");
   }
+  const ids = ctx?.ids ?? [id];
+  if (ids.length > 1) {
+    // Marked saved queries: Explore a tab each, the expressions a line each, one settings write for the removal; marked series a line each.
+    const saved = savedQueries(lines), qs = ids.filter((x) => x.startsWith("q:")).map((x) => saved[Number(x.slice(2))]).filter((q) => !!q);
+    switch (action) {
+      case "explore": { const c = client(), uid = (await datasource(c)).uid; return { open: qs.map((q) => exploreUrl(c.url, uid, q.expr)) }; }
+      case "expr": return { copy: qs.map((q) => q.expr).join("\n") };
+      case "remove": {
+        const gone = new Set(qs.map((q) => `${q.name}\0${q.expr}`));
+        await settings.set("queries", lines.filter((l) => { const q = savedQueries([l])[0]; return !q || !gone.has(`${q.name}\0${q.expr}`); }));
+        return toast(`Removed ${qs.length} saved queries`);
+      }
+    }
+    const ss = ids.map((x) => seriesById.get(x)).filter((x): x is Series => !!x);
+    return { copy: ss.map((x) => (action === "series" ? `${x.name} ${fmt(x.value)}` : fmt(x.value))).join("\n") };
+  }
   if (id.startsWith("q:")) {
     const q = savedQueries(lines)[Number(id.slice(2))];
     if (!q) return toast("That saved query is gone", undefined, "failure");
@@ -569,7 +653,7 @@ async function alertsItem(ctx: BarCtx): Promise<BarItem> {
 }
 
 /** A key or a click in the popover: Enter opens the focused rule, `o` its dashboard, `s`/`f`/`d` silence it (or `s` expires the silence), `c` copies, `p` pushes the palette, arrows and a click move the cursor; a change answers the fresh tree with `keep` so the strip follows. */
-async function alertsAction(action: string): Promise<Effect | void> {
+async function alertsAction(action: string, ctx?: BarCtx): Promise<Effect | void> {
   if (action === "pal") return { push: { extension: EXTENSION, palette: "alerts" } };
   const c = client();
   if (action === "site") return { open: alertsUrl(c.url) };
@@ -582,6 +666,11 @@ async function alertsAction(action: string): Promise<Effect | void> {
     if (!list.length) return { keep: true };
     barFocus = list[(st.focus + (action === "down" ? 1 : list.length - 1)) % list.length].id;
     return redraw();
+  }
+  // Marked rows (`ctx.ids`): the palette's handling, then the popover redrawn where the rails changed.
+  if (ctx?.ids?.length) {
+    const r = await alertMany(c, ctx.ids, action);
+    return r.toast?.style === "failure" || !(action === "unsilence" || action.startsWith("silence:")) ? r : { keep: true, view: renderBar(barState(list)), hud: r.toast?.title };
   }
   const cur = list[st.focus];
   if (!cur) return { keep: true };
@@ -617,8 +706,8 @@ export default {
       placeholder: "Search alerts",
       filters: [{ id: "all", title: "Firing and pending" }, { id: "firing", title: "Firing" }, { id: "pending", title: "Pending" }, { id: "silenced", title: "Silenced" }],
       list: (_query, ctx) => alertRows(ctx),
-      pick: async (id, action): Promise<Effect | void> => {
-        try { return await pickAlert(id, action); } catch (e) { return failed(`reach Grafana for ${id}`, e); }
+      pick: async (id, action, ctx): Promise<Effect | void> => {
+        try { return await pickAlert(id, action, ctx); } catch (e) { return failed(`reach Grafana for ${id}`, e); }
       },
       detail: async (id): Promise<Detail | void> => {
         if (id.startsWith("hint:") || id.startsWith("silence:")) return;

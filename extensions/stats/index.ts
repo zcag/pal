@@ -224,8 +224,22 @@ function kill(pid: number, name: string): Effect | undefined {
   try { process.kill(pid, "SIGTERM"); } catch (e) { return toast(`Could not kill ${name}`, String((e as Error)?.message ?? e), "failure"); }
 }
 
-async function onAction(id: ItemId, action: string): Promise<Effect | void> {
+async function onAction(id: ItemId, action: string, ctx?: BarCtx): Promise<Effect | void> {
   const s = last ?? (await ensure());
+  // The marked rows (`ctx.ids`: pids, mounts, interface names) for a multi action.
+  const marked = ctx?.ids;
+  if (marked?.length) {
+    if (action === "kill") {
+      const procs = s.procs ?? [];
+      for (const pid of marked) { const p = procs.find((x) => String(x.pid) === pid); const failed = kill(Number(pid), p?.name ?? pid); if (failed) return failed; }
+      await new Promise((r) => setTimeout(r, 300));
+      const next = await tick({ procs: true });
+      return { keep: true, view: popoverOf(id, next), hud: `Sent SIGTERM to ${marked.length} processes` };
+    }
+    if (action === "reveal") return { open: marked };
+    if (action === "copy" && id === "disk") return { copy: marked.join("\n") };
+    if (action === "copy" && id === "network") { const all = ifaces(s); return { copy: marked.map((n) => all.find((i) => i.name === n)?.addr ?? n).join("\n") }; }
+  }
   const redraw = (): Effect => ({ view: popoverOf(id, s) });
   const ids = rowIds(id, s);
   const at = focusIndex(id, ids);
@@ -270,7 +284,8 @@ export const detailOf = (id: string) => known.get(id)?.detail;
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((p): p is [string, string] => !!p[1]).map(([label, value]) => ({ label, value }));
 /** The sparkline as the detail pane's picture: the same SVG the popover draws, as a markdown image. */
 const sparkMd = (series: SparkSeries[], o: { max?: number; floor?: number; theme: Theme }) => `![](${sparkline(series, { width: INNER_W, height: 48, ...o })})`;
-const COPY = { id: "copy", title: "Copy" };
+// Copy, Reveal and Kill also take marked rows (`multi`): the values one per line, the volumes each opened, SIGTERM to each process.
+const COPY = { id: "copy", title: "Copy", multi: true as const };
 const MONITOR = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "cmd+o" } : { id: "processes", title: "Open Processes", shortcut: "cmd+o" };
 const POPOVER = { id: "popover", title: "Open bar popover", shortcut: "cmd+p" };
 
@@ -311,14 +326,14 @@ export function rows(s: Sample, only?: string, c = live()): Item[] {
     const share = v.total ? (v.used / v.total) * 100 : 0;
     out.push(row(`disk:${v.mount}`, `${gb(v.free)} free`, [v.name, `${gb(v.used)} of ${gb(v.total)} used`, v.readOnly ? "read-only" : undefined].filter(Boolean).join(" · "), GLYPH.disk, SECTION.disk, v.mount, {
       metadata: meta([["Volume", v.name], ["Mount", v.mount], ["Device", v.device], ["File system", v.fs], ["Used", `${gb(v.used)} (${pct(share)})`], ["Free", gb(v.free)], ["Total", gb(v.total)]]),
-    }, { keywords: ["disk", "volume", "storage", "free", v.name], accessories: [...(level ? [{ tag: level === "crit" ? "nearly full" : "filling up", color: colorOf(level) }] : []), { text: pct(share) }], actions: [COPY, { id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "cmd+r" }, POPOVER] }));
+    }, { keywords: ["disk", "volume", "storage", "free", v.name], accessories: [...(level ? [{ tag: level === "crit" ? "nearly full" : "filling up", color: colorOf(level) }] : []), { text: pct(share) }], actions: [COPY, { id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "cmd+r", multi: true }, POPOVER] }));
   }
   if (!vols.length) out.push(hint("disk:none", "No volumes read", "df answered nothing", { section: SECTION.disk, icon: GLYPH.disk }));
   const list = ifaces(s, c);
   for (const i of list) {
     out.push(row(`if:${i.name}`, `↓ ${rate(i.down)} ↑ ${rate(i.up)}`, [i.name, i.kind, i.ssid, i.addr].filter(Boolean).join(" · "), GLYPH.network, SECTION.network, i.addr ?? `${i.name}`, {
       metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid], ["IPv4", i.addr], ["Down", rate(i.down)], ["Up", rate(i.up)], ["Received", gb(i.rx)], ["Sent", gb(i.tx)]]),
-    }, { keywords: ["network", "interface", "throughput", i.name, ...(i.ssid ? [i.ssid] : [])], actions: [{ id: "copy", title: "Copy address" }, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
+    }, { keywords: ["network", "interface", "throughput", i.name, ...(i.ssid ? [i.ssid] : [])], actions: [{ id: "copy", title: "Copy address", multi: true }, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
   }
   out.push(row("net", `↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, "All physical links", GLYPH.network, SECTION.network, `↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, {
     markdown: sparkMd([{ values: history.get("down"), color: "blue" }, { values: history.get("up"), color: "violet" }], { floor: 1024, theme }),
@@ -327,7 +342,7 @@ export function rows(s: Sample, only?: string, c = live()): Item[] {
   const procs = s.procs ?? [];
   const procRow = (p: Proc, section: string, n: number): Item => row(`proc:${p.pid}:${section === SECTION.busiest ? "cpu" : "mem"}`, p.name, `${p.cpu.toFixed(1)}% cpu · ${gb(p.rss * 1024)} · pid ${p.pid}`, MAC && p.comm.includes(".app/Contents/MacOS/") ? { app: p.comm.slice(0, p.comm.indexOf(".app/") + 4) } : GLYPH.process, section, String(p.pid), {
     metadata: meta([["Command", p.comm], ["PID", String(p.pid)], ["CPU", `${p.cpu.toFixed(1)}%`], ["Memory", gb(p.rss * 1024)]]),
-  }, { keywords: [String(p.pid), "process"], accessories: [{ text: `#${n + 1}` }], actions: [{ id: "copy", title: "Copy PID" }, { id: "kill", title: "Kill", shortcut: "cmd+backspace", style: "destructive", confirm: `Send SIGTERM to ${p.name} (${p.pid})?` }, MONITOR, POPOVER] });
+  }, { keywords: [String(p.pid), "process"], accessories: [{ text: `#${n + 1}` }], actions: [{ id: "copy", title: "Copy PID", multi: true }, { id: "kill", title: "Kill", shortcut: "cmd+backspace", style: "destructive", multi: true, confirm: "Send SIGTERM? A process may lose what it has not saved." }, MONITOR, POPOVER] });
   topByCpu(procs).forEach((p, n) => out.push(procRow(p, SECTION.busiest, n)));
   topByMemory(procs).forEach((p, n) => out.push(procRow(p, SECTION.largest, n)));
   out.push(row("uptime", uptimeText(s.uptime), `Uptime · since ${when(now() - s.uptime * 1000)}`, GLYPH.uptime, SECTION.system, uptimeText(s.uptime), { metadata: meta([["Uptime", uptimeText(s.uptime)], ["Seconds", String(Math.round(s.uptime))]]) }, { keywords: ["uptime", "since", "boot"], actions: [COPY] }));
@@ -353,25 +368,30 @@ export default {
         const only = (ctx?.args as { section?: string } | undefined)?.section;
         return rows(s, only);
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         const s = last ?? (await ensure());
+        // The marked rows (`ctx.ids`), else the one.
+        const marked = ctx?.ids ?? [id];
         if (action === "monitor") return openMonitor();
         if (action === "processes") return { push: { extension: "processes", palette: "processes" } };
         if (action === "addresses") return { push: { extension: "network", palette: "network" } };
         if (action === "popover") return { open: `pal://bar/${EXTENSION}/${itemOfRow(id)}` };
-        if (action === "reveal") { const v = known.get(id)?.value; return v ? { open: v } : { keep: true }; }
+        if (!known.has(id)) rows(s);
+        if (action === "reveal") { const vs = marked.map((m) => known.get(m)?.value).filter((v): v is string => !!v); return vs.length ? { open: vs.length === 1 ? vs[0]! : vs } : { keep: true }; }
         if (action === "kill") {
-          const pid = Number(id.split(":")[1]);
-          const p = s.procs?.find((x) => x.pid === pid);
-          const failed = kill(pid, p?.name ?? String(pid));
-          if (failed) return failed;
+          // A process listed twice (busiest and largest) is one pid.
+          const pids = [...new Set(marked.map((m) => Number(m.split(":")[1])))];
+          for (const pid of pids) {
+            const p = s.procs?.find((x) => x.pid === pid);
+            const failed = kill(pid, p?.name ?? String(pid));
+            if (failed) return failed;
+          }
           await new Promise((r) => setTimeout(r, 300));
           await tick({ procs: true });
-          return { keep: true };
+          return pids.length > 1 ? { keep: true, hud: `Sent SIGTERM to ${pids.length} processes` } : { keep: true };
         }
-        if (!known.has(id)) rows(s);
-        const value = known.get(id)?.value;
-        return value ? { copy: value } : { keep: true };
+        const values = marked.map((m) => known.get(m)?.value).filter((v): v is string => !!v);
+        return values.length ? { copy: values.join("\n") } : { keep: true };
       },
       detail: async (id) => {
         if (!known.has(id)) rows(last ?? (await ensure()));
@@ -380,11 +400,11 @@ export default {
     },
   },
   bar: {
-    cpu: { render: (ctx) => render("cpu", ctx), onAction: (a) => onAction("cpu", a) },
-    memory: { render: (ctx) => render("memory", ctx), onAction: (a) => onAction("memory", a) },
-    disk: { render: (ctx) => render("disk", ctx), onAction: (a) => onAction("disk", a) },
-    network: { render: (ctx) => render("network", ctx), onAction: (a) => onAction("network", a) },
-    load: { render: (ctx) => render("load", ctx), onAction: (a) => onAction("load", a) },
+    cpu: { render: (ctx) => render("cpu", ctx), onAction: (a, ctx) => onAction("cpu", a, ctx) },
+    memory: { render: (ctx) => render("memory", ctx), onAction: (a, ctx) => onAction("memory", a, ctx) },
+    disk: { render: (ctx) => render("disk", ctx), onAction: (a, ctx) => onAction("disk", a, ctx) },
+    network: { render: (ctx) => render("network", ctx), onAction: (a, ctx) => onAction("network", a, ctx) },
+    load: { render: (ctx) => render("load", ctx), onAction: (a, ctx) => onAction("load", a, ctx) },
   },
   link: (route: string, params: LinkParams) => {
     if (!isItem(route)) throw new Error(`no stats route "${route}"`);

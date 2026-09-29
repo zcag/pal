@@ -131,7 +131,8 @@ async function historyRows(): Promise<Item[]> {
   for (const r of list) out.push({
     id: runId(r), name: `↓ ${speed(r.download)} Mbps  ↑ ${speed(r.upload)} Mbps  ·  ${ms(r.ping)}`, subtitle: [r.server, r.isp, TITLE[r.tool]].filter(Boolean).join(" · "), icon: GLYPH.gauge, accessories: [{ date: r.startedAt }],
     detail: { markdown: `**${summary(r)}**`, metadata: [{ label: "When", value: when(r.startedAt) }, { label: "Tool", value: TITLE[r.tool] }, ...(r.ip ? [{ label: "IP", value: r.ip }] : []), ...(r.url ? [{ label: "Result", link: { text: r.url.replace(/^https?:\/\//, ""), href: r.url } }] : [])] },
-    actions: [{ id: "copy", title: "Copy result" }, ...(r.url ? [{ id: "open", title: "Open the result page", shortcut: "cmd+o" }] : []), { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", multi: true }],
+    // Every action also takes marked runs (`multi`): one dated line each, their pages, one write.
+    actions: [{ id: "copy", title: "Copy result", multi: true }, ...(r.url ? [{ id: "open", title: "Open the result page", shortcut: "cmd+o", multi: true as const }] : []), { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", multi: true }],
   });
   out.push({ id: "clear", name: "Clear history", subtitle: `${list.length} ${list.length === 1 ? "run" : "runs"}`, icon: GLYPH.broom, actions: [{ id: "clear", title: "Clear history", style: "destructive", confirm: "Forget every run?" }] });
   return out;
@@ -143,6 +144,11 @@ async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effe
   if (id === "clear") { await storage.remove(RUNS); return toast("History cleared"); }
   const r = list.find((x) => runId(x) === id);
   if (!r) return toast("Run is gone", undefined, "failure");
+  // The marked runs (`ctx.ids`), else the one.
+  const marked = (ctx?.ids ?? [id]).map((i) => list.find((x) => runId(x) === i)).filter((x): x is Run => !!x);
+  const line = (x: Run) => `${isoDay(x.startedAt)} ${clock(x.startedAt)}  ${summary(x)}`;
+  if (marked.length > 1 && action === "open") return { open: marked.flatMap((x) => (x.url ? [x.url] : [])) };
+  if (marked.length > 1 && (action === "copy" || action === undefined)) return { copy: marked.map(line).join("\n") };
   switch (action) {
     case "open": return r.url ? { open: r.url } : { keep: true };
     case "remove": {

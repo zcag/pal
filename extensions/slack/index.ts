@@ -8,7 +8,7 @@
 // rows' `args`); an unread row's Reply and a conversation's Send take the
 // message the same way. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { ago, argsForm, clock, errorMessage, failed, hint, imageData, now, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { ago, argsForm, clock, errorMessage, foldEffects, failed, hint, imageData, now, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
@@ -99,8 +99,8 @@ function unreadActions(u: Unread): Action[] {
     { id: "open", title: "Open in Slack" },
     ...(u.kind !== "thread" ? [{ id: "reply", title: "Reply", args: true as const }] : []),
     ...(u.kind !== "thread" && u.latest ? [{ id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true as const }] : []),
-    { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" },
-    { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+    { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o", multi: true },
+    { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
   ];
 }
 
@@ -179,8 +179,14 @@ const replyForm = (u: Unread, errors?: Record<string, string>, text = ""): Form 
   errors,
 });
 
+/** Marked rows' single effects as one: every url opened in order, every copy on its own line (`foldEffects`). */
+const fold = foldEffects;
+/** Open in browser and Copy link over marked rows (`ctx.ids`): each row's own pick, folded. Opening in the app stays one row: Slack shows one conversation at a time. */
+const MULTI_LINKS = new Set(["browser", "copy"]);
+
 async function pickUnread(u: Unread, action?: string, ctx?: Ctx): Promise<Effect> {
   const ts = u.top?.ts;
+  if (action && MULTI_LINKS.has(action) && ctx?.ids && ctx.ids.length > 1) return fold(await Promise.all(ctx.ids.map(async (id) => pickUnread(await findUnread(id), action))));
   switch (action) {
     case "browser": return { open: webLink(u.domain, u.cid, ts) };
     case "copy": return { copy: webLink(u.domain, u.cid, ts) };
@@ -221,7 +227,7 @@ function convRow(c: Conversation, multi: boolean): Item {
       ...(c.members > 2 ? [{ text: plural(c.members, "member") }] : []),
     ],
     args: MESSAGE_ARGS,
-    actions: [{ id: "open", title: "Open in Slack" }, { id: "send", title: "Send a message", shortcut: "cmd+shift+r", args: true }, { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
+    actions: [{ id: "open", title: "Open in Slack" }, { id: "send", title: "Send a message", shortcut: "cmd+shift+r", args: true }, { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }],
   };
 }
 
@@ -236,6 +242,7 @@ async function convRows(ctx?: Ctx): Promise<Item[]> {
 const sendForm = (c: Conversation, errors?: Record<string, string>): Effect => ({ form: argsForm(MESSAGE_ARGS, `Message ${c.name}`, { id: "send", title: "Send" }, errors) });
 
 async function pickConv(c: Conversation, action?: string, ctx?: Ctx): Promise<Effect> {
+  if (action && MULTI_LINKS.has(action) && ctx?.ids && ctx.ids.length > 1) return fold(ctx.ids.map((id) => convs.get(id)).filter((x): x is Conversation => !!x).map((x) => (action === "browser" ? { open: webLink(x.domain, x.id) } : { copy: webLink(x.domain, x.id) })));
   switch (action) {
     case "browser": return { open: webLink(c.domain, c.id) };
     case "copy": return { copy: webLink(c.domain, c.id) };
@@ -267,7 +274,7 @@ function hitRow(h: SearchHit): Item {
     icon: h.avatar ? { image: h.avatar } : ICON.im,
     keywords: [h.who, h.where.replace(/^#/, "")].filter(Boolean),
     accessories: [{ date: ms(h.ts) }],
-    actions: [{ id: "open", title: "Open in Slack" }, { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" }, { id: "copy", title: "Copy text", shortcut: "cmd+c" }],
+    actions: [{ id: "open", title: "Open in Slack" }, { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o", multi: true }, { id: "copy", title: "Copy text", shortcut: "cmd+c", multi: true }],
   };
 }
 
@@ -488,7 +495,8 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return { keep: true, hud: `${u.where}: read` };
     }
     case "open": return cur ? pickUnread(await findUnread(cur.id)) : { open: "slack://open" };
-    case "browser": case "copy": return cur ? pickUnread(await findUnread(cur.id), action) : { keep: true };
+    // The marked rows (`BarCtx.ids`) or the cursor's.
+    case "browser": case "copy": return ctx?.ids ? pickUnread(await findUnread(ctx.ids[0]!), action, { ids: ctx.ids }) : cur ? pickUnread(await findUnread(cur.id), action) : { keep: true };
   }
   // A menu-era id (`dm:T1/D_MARA`): the row itself, as a link or the CLI names it.
   if (rows.has(action) || /^(dm|mention|thread|channel):/.test(action)) return pickUnread(await findUnread(action));
@@ -520,11 +528,11 @@ export default {
       input: true,
       placeholder: "Text, from:@name, in:#channel, has:link",
       list: (query, ctx) => guard(() => searchRows(query, ctx)),
-      pick: (id, action) => {
+      pick: (id, action, ctx) => {
         if (id.startsWith("hint:")) return pickHint(id);
-        const h = hits.get(id);
-        if (!h) throw new Error(`no message ${id}`);
-        return pickHit(h, action);
+        const one = (x: string) => { const h = hits.get(x); if (!h) throw new Error(`no message ${x}`); return pickHit(h, action); };
+        // Marked messages: each opened in the browser, or each text copied on its own line.
+        return action && MULTI_LINKS.has(action) && ctx?.ids && ctx.ids.length > 1 ? fold(ctx.ids.map(one)) : one(id);
       },
     },
     status: {

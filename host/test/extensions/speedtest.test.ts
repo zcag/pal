@@ -240,6 +240,11 @@ describe("speedtest", () => {
     expect((await host.pick("speedtest", "history", "trend", "copy_all")).copy).toContain("↓ 93.0 Mbps · ↑ 28.0 Mbps");
     expect(await host.pick("speedtest", "history", rows[3].id)).toEqual({ copy: "↓ 93.2 Mbps · ↑ 29.6 Mbps · ping 12.4 ms (jitter 1.0 ms) · Example Net, Istanbul · Turk Telekom" });
     expect(await host.pick("speedtest", "history", rows[3].id, "open")).toEqual({ open: "https://www.speedtest.net/result/c/d5ac8c40" });
+    // Marked runs: one dated line each, the pages of those that have one.
+    expect(rows.slice(1, -1).every((r) => r.actions!.every((a) => a.multi))).toBe(true);
+    const copied = (await host.pick("speedtest", "history", rows[3].id, "copy", { ids: [rows[3].id, rows[1].id] })).copy as string;
+    expect(copied.split("\n")).toEqual([expect.stringMatching(/^\d{4}-\d\d-\d\d .+↓ 93.2 Mbps/), expect.stringMatching(/^\d{4}-\d\d-\d\d .+↓ 93.0 Mbps/)]);
+    expect(await host.pick("speedtest", "history", rows[3].id, "open", { ids: [rows[3].id, rows[1].id] })).toEqual({ open: ["https://www.speedtest.net/result/c/d5ac8c40"] });
     expect(await host.pick("speedtest", "history", rows[3].id, "remove")).toMatchObject({ keep: true, toast: { title: "Removed" } });
     const left = await host.list("speedtest", "history");
     expect(left.length).toBe(4);

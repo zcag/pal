@@ -23,18 +23,19 @@ const GLYPH = {
   web: "\u{f059f}", // md-web
 };
 
-const SEARCH: Action = { id: "search", title: "Search Google" };
+// Marked rows: the searches or results each open (a tab each), the copies a line each. Results here, Open in Google Search and an answer stay one row's.
+const SEARCH: Action = { id: "search", title: "Search Google", multi: true };
 const RESULTS: Action = { id: "results", title: "Results here", shortcut: "cmd+enter" };
 const HERE: Action = { id: "here", title: "Open in Google Search", shortcut: "cmd+enter" };
-const BACKGROUND: Action = { id: "background", title: "Search in the background", shortcut: "cmd+b" };
-const COPY: Action = { id: "copy", title: "Copy text", shortcut: "cmd+c" };
-const COPY_SEARCH: Action = { id: "copy_link", title: "Copy search link", shortcut: "cmd+l" };
+const BACKGROUND: Action = { id: "background", title: "Search in the background", shortcut: "cmd+b", multi: true };
+const COPY: Action = { id: "copy", title: "Copy text", shortcut: "cmd+c", multi: true };
+const COPY_SEARCH: Action = { id: "copy_link", title: "Copy search link", shortcut: "cmd+l", multi: true };
 const REMOVE: Action = { id: "remove", title: "Remove from recent searches", shortcut: "ctrl+x", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear recent searches", style: "destructive", confirm: "Forget every recent search?" };
-const OPEN: Action = { id: "open", title: "Open" };
-const OPEN_BG: Action = { id: "background", title: "Open in the background", shortcut: "cmd+enter" };
-const COPY_LINK: Action = { id: "copy_link", title: "Copy link", shortcut: "cmd+c" };
-const COPY_MD: Action = { id: "copy_md", title: "Copy as Markdown link", shortcut: "cmd+shift+c" };
+const OPEN: Action = { id: "open", title: "Open", multi: true };
+const OPEN_BG: Action = { id: "background", title: "Open in the background", shortcut: "cmd+enter", multi: true };
+const COPY_LINK: Action = { id: "copy_link", title: "Copy link", shortcut: "cmd+c", multi: true };
+const COPY_MD: Action = { id: "copy_md", title: "Copy as Markdown link", shortcut: "cmd+shift+c", multi: true };
 const COPY_ANSWER: Action = { id: "copy", title: "Copy answer", shortcut: "cmd+c" };
 
 /** Suggestions listed in the palette, and at the root under Search the web. */
@@ -255,8 +256,26 @@ async function detail(id: string): Promise<Detail> {
 
 const resultsLevel = (q: string): Effect => ({ push: { extension: EXT, palette: PALETTE, args: { results: q }, title: q } });
 
+/** A multi pick over result and text rows (`ctx.ids`): the urls opened (a text row's is its search), the links or texts a line each. */
+async function pickMany(ids: string[], action: string | undefined, s: Settings): Promise<Effect | void> {
+  const rows = ids.map(parse).filter((p) => p.text && p.kind !== "a");
+  const result = (text: string) => listed.get(text) ?? { title: text, url: text, snippet: "" };
+  const urlOf = (p: { kind: string; text: string }) => (p.kind === "r" ? result(p.text).url : searchUrl(p.text, s));
+  switch (action) {
+    case "copy": return { copy: rows.map((p) => p.text).join("\n") };
+    case "copy_link": return { copy: rows.map(urlOf).join("\n") };
+    case "copy_md": return { copy: rows.map((p) => { const r = result(p.text); return `[${r.title.replace(/[[\]]/g, "\\$&")}](${r.url})`; }).join("\n") };
+  }
+  for (const p of rows) if (p.kind !== "r") await keep(p.text);
+  const urls = rows.map(urlOf), app = s.browser === "default" ? "" : s.browser, background = action === "background";
+  if (!app && !background) return { open: urls };
+  for (const u of urls) { const e = openUrl(u, { app, background }); if (e.toast?.style === "failure") return e; }
+  return background ? toast("Opened in the background", `${urls.length} tabs`) : { hide: true };
+}
+
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   const s = S();
+  if ((ctx?.ids?.length ?? 0) > 1 && action !== "remove") return pickMany(ctx!.ids!, action, s);
   const { kind, text } = parse(id);
   if (kind === "r") {
     const r = listed.get(text) ?? { title: text, url: text, snippet: "" };

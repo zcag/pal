@@ -35,12 +35,14 @@ const char = (g: Glyph) => String.fromCodePoint(parseInt(g.code, 16));
 const codePoint = (code: string) => `U+${code.toUpperCase()}`;
 const label = (set: string) => SETS[set] ?? set;
 
+// Every copy takes marked icons: the glyphs side by side, the code points a space apart, names and classes a line each (`joined`).
 const ACTIONS: Action[] = [
-  { id: "glyph", title: "Copy glyph" },
-  { id: "codepoint", title: "Copy code point" },
-  { id: "name", title: "Copy name", shortcut: "cmd+shift+n" },
-  { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c" },
+  { id: "glyph", title: "Copy glyph", multi: true },
+  { id: "codepoint", title: "Copy code point", multi: true },
+  { id: "name", title: "Copy name", shortcut: "cmd+shift+n", multi: true },
+  { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c", multi: true },
 ];
+const joined = (action: string | undefined, parts: string[]) => parts.join(action === "codepoint" ? " " : action === "name" || action === "class" ? "\n" : "");
 
 const item = (g: Glyph, section: string): Item => ({
   id: g.id,
@@ -74,9 +76,9 @@ const detail = (g: Glyph): Detail => ({
 // ---- freedesktop -----------------------------------------------------------
 
 const XDG_ACTIONS: Action[] = [
-  { id: "name", title: "Copy name" },
-  { id: "glyph", title: "Copy glyph" },
-  { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" },
+  { id: "name", title: "Copy name", multi: true },
+  { id: "glyph", title: "Copy glyph", multi: true },
+  { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u", multi: true },
 ];
 const xdgRows: Item[] = Object.entries(XDG_ICONS).map(([name, glyph]) => {
   const nf = byCode.get(glyph.codePointAt(0)!.toString(16).padStart(4, "0"));
@@ -95,16 +97,16 @@ export default {
         const used = await recent();
         return [...used.map((id) => item(byId.get(id)!, RECENT)), ...glyphs.filter((g) => !used.includes(g.id)).map((g) => item(g, label(g.set)))];
       },
-      pick: async (id, action) => {
-        const g = byId.get(id);
-        if (!g) return { toast: { title: "Unknown glyph", message: id, style: "failure" } };
-        await remember(id);
-        switch (action) {
-          case "codepoint": return { copy: codePoint(g.code) };
-          case "name": return { copy: g.id };
-          case "class": return { copy: `nf ${g.id}` };
-          default: return { copy: char(g) };
+      pick: async (id, action, ctx) => {
+        const gs = (ctx?.ids ?? [id]).map((x) => byId.get(x));
+        const miss = (ctx?.ids ?? [id]).find((_, i) => !gs[i]);
+        if (miss) return { toast: { title: "Unknown glyph", message: miss, style: "failure" } };
+        const parts: string[] = [];
+        for (const g of gs as Glyph[]) {
+          await remember(g.id);
+          parts.push(action === "codepoint" ? codePoint(g.code) : action === "name" ? g.id : action === "class" ? `nf ${g.id}` : char(g));
         }
+        return { copy: joined(action, parts) };
       },
       detail: (id) => { const g = byId.get(id); return g ? detail(g) : undefined; },
     },
@@ -114,14 +116,12 @@ export default {
       columns: 10,
       actions: XDG_ACTIONS,
       list: () => xdgRows,
-      pick: (id, action) => {
-        const glyph = XDG_ICONS[id];
-        if (!glyph) return { toast: { title: "Unknown icon name", message: id, style: "failure" } };
-        switch (action) {
-          case "glyph": return { copy: glyph };
-          case "codepoint": return { copy: codePoint(glyph.codePointAt(0)!.toString(16).padStart(4, "0")) };
-          default: return { copy: id };
-        }
+      pick: (id, action, ctx) => {
+        const ids = ctx?.ids ?? [id];
+        const miss = ids.find((x) => !XDG_ICONS[x]);
+        if (miss) return { toast: { title: "Unknown icon name", message: miss, style: "failure" } };
+        const act = action ?? "name";
+        return { copy: joined(act, ids.map((x) => { const glyph = XDG_ICONS[x]!; return act === "glyph" ? glyph : act === "codepoint" ? codePoint(glyph.codePointAt(0)!.toString(16).padStart(4, "0")) : x; })) };
       },
     },
     iconify: {

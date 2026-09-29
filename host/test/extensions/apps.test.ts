@@ -141,6 +141,19 @@ describe.skipIf(!mac)("apps", () => {
     expect(await pick("/Applications/Google Chrome.app", "copy-id")).toEqual({ copy: "com.google.Chrome" });
   });
 
+  test("marked rows: every app action is multi; open launches each, the copies go one per line; a pane's Open stays single, its url copies", async () => {
+    const acts = host.loaded().find((l) => l.extension === "apps")!.palettes[0].actions!;
+    expect(acts.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy-path", "copy-id", "quit", "hide"]);
+    const two = ["/Applications/Google Chrome.app", fakeApp];
+    expect(await host.pick("apps", "apps", two[0]!, "open", { ids: two })).toEqual({ open: two });
+    expect(await host.pick("apps", "apps", two[0]!, "copy-path", { ids: two })).toEqual({ copy: two.join("\n") });
+    expect(await host.pick("apps", "apps", two[0]!, "copy-id", { ids: two })).toEqual({ copy: "com.google.Chrome\nio.pal.test.fake" });
+    const kb = "pane:com.apple.Keyboard-Settings.extension", tp = "pane:com.apple.Trackpad-Settings.extension";
+    const pane = (await list()).find((i) => i.id === kb)!;
+    expect(pane.actions!.map((a) => [a.id, !!a.multi])).toEqual([["open", false], ["copy-url", true]]);
+    expect(await host.pick("apps", "apps", kb, "copy-url", { ids: [kb, tp] })).toEqual({ copy: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension\nx-apple.systempreferences:com.apple.Trackpad-Settings.extension" });
+  });
+
   test("detail: the path, bundle id and version of an app; a pane's url", async () => {
     const d = await host.detail("apps", "apps", "/Applications/Google Chrome.app");
     expect(d.markdown).toBe("# Google Chrome");
@@ -162,6 +175,7 @@ describe.skipIf(!mac)("apps", () => {
     expect(await pick(fakeApp, "quit")).toEqual({ keep: true, toast: { title: "Pal Fake is not running" } });
     expect(await pick(fakeApp, "hide")).toEqual({ keep: true, toast: { title: "Pal Fake is not running" } });
     expect(await host.pick("apps", "apps", fakeApp, "quit", { ids: [fakeApp, "/Applications/Pal Not There.app"] })).toEqual({ keep: true, toast: { title: "None of them is running" } });
+    expect(await host.pick("apps", "apps", fakeApp, "hide", { ids: [fakeApp, "/Applications/Pal Not There.app"] })).toEqual({ keep: true, toast: { title: "None of them is running" } });
   });
 
   test("a folders change drops the cache and the extra folder's apps show up", async () => {

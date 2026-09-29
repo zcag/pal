@@ -39,6 +39,8 @@ nothing to say. Only the services you fill in light up.
 | Releases | `theater-shelfmark-releases` | pushed from Request a book | downloads the release (asks first) |
 | Subtitles | `theater-bazarr` | indexed, 5 min | opens in Bazarr |
 
+Marked rows (cmd-click, shift-click, shift+arrows) work together wherever one action suits several: queue items removed, wanted items searched in one command, lookup hits added, downloads paused, resumed or deleted, history removed, requests approved or declined, results requested, releases grabbed or sent, indexers tested, Jellyfin items marked played or favourite, Navidrome rows starred, Audiobookshelf items finished, subtitles searched, and the links and titles copied one per line. The downloads, requests and queue popovers mark their rows too.
+
 ## Setting up
 
 Everything is under Settings › Extensions › Theater, one group per

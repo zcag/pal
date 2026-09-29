@@ -11,7 +11,7 @@
 // front (`tabs.active`). The library level offers ready-made
 // searches (library.ts); an `import` file adds read-only links; the
 // Import and Export rows move links in and out as JSON files.
-import { argsForm, browsers, clipboard, errorMessage, expand, hasPlaceholders, home, openUrl, selection, settings, storage, tabs, type Action, type Arg, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, browsers, clipboard, errorMessage, expand, hasPlaceholders, home, openUrl, selection, settings, storage, tabs, toast, type Action, type Arg, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { LIBRARY, LIBRARY_ID, libraryEntry, libraryId } from "./library.ts";
 import { asLinks, badUrl, fill, fillNamed, fromJson, placeholder, placeholders, splitKeywords, type Link } from "./links.ts";
 
@@ -38,12 +38,13 @@ const ICON = { create: "\u{f0c94}", library: "\u{f0ba9}", import: "\u{f0120}", e
 /** The "Open with" choice that is no app: the OS opener. */
 const DEFAULT_APP = "default";
 
-const OPEN: Action = { id: "open", title: "Open" };
-const COPY: Action = { id: "copy", title: "Copy URL", shortcut: "cmd+c" };
+// Marked rows (`multi`): Open opens each (a `{query}` link that still asks is left out), Copy puts a url a line, Delete and Add take them all.
+const OPEN: Action = { id: "open", title: "Open", multi: true };
+const COPY: Action = { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true };
 const EDIT: Action = { id: "edit", title: "Edit", shortcut: "cmd+e" };
-const DELETE: Action = { id: "delete", title: "Delete", shortcut: "ctrl+x", style: "destructive", confirm: "Delete this quicklink?" };
+const DELETE: Action = { id: "delete", title: "Delete", shortcut: "ctrl+x", style: "destructive", confirm: "Delete from your quicklinks?", multi: true };
 /** The library level: Enter adds the search to your links, cmd+enter searches with it right away, cmd+c copies its url. */
-const ADD: Action = { id: "add", title: "Add to my quicklinks" };
+const ADD: Action = { id: "add", title: "Add to my quicklinks", multi: true };
 const SEARCH: Action = { id: "search", title: "Search with it" };
 
 const own = async () => asLinks(await storage.get(KEY));
@@ -67,6 +68,31 @@ async function openLink(l: Link, url = l.url): Promise<Effect> {
     if (tab) return tabs.focus(tab);
   }
   return openUrl(url, { app: l.app });
+}
+
+/**
+ * Every marked row opened as its link says (`openLink`: the tab, the
+ * app, the OS opener); a `{query}` link that still asks for a value is
+ * left out, since nothing was typed for it. The OS opener's urls go out
+ * together as one `open` list.
+ */
+async function openMany(ids: string[]): Promise<Effect> {
+  const urls: string[] = [];
+  let asked = 0;
+  for (const x of ids) {
+    let e: Effect;
+    if (x.startsWith(OPEN_ID)) e = { open: x.slice(OPEN_ID.length) };
+    else {
+      const l = await find(x);
+      if (!l) continue;
+      if (argsOf(l).length) { asked++; continue; }
+      e = await openLink(l, hasPlaceholders(l.url) ? await fillSilent(l.url) : l.url);
+    }
+    if (e.toast?.style === "failure") return e;
+    if (e.open) urls.push(...(Array.isArray(e.open) ? e.open : [e.open]));
+  }
+  if (!urls.length && asked) return toast("These ask for a value", "A {query} link opens one at a time, with what you type", "failure");
+  return urls.length ? { open: urls } : { hide: true };
 }
 
 /** The `import` file's links, ids prefixed so they never collide with stored ones; a missing or broken file lists nothing and says so on stderr. */
@@ -216,12 +242,20 @@ async function libraryRows(): Promise<Item[]> {
   }));
 }
 
-/** A library pick: add the entry to your links (once), search with it (the drill-in, through the stored link when there is one), or copy its url. */
-async function libraryPick(id: string, action?: string): Promise<Effect> {
+/** A library pick: add the entry to your links (once), search with it (the drill-in, through the stored link when there is one), or copy its url; add and copy take every marked entry (`ids`). */
+async function libraryPick(id: string, action?: string, ids: string[] = [id]): Promise<Effect> {
   const e = libraryEntry(id);
   if (!e) throw new Error(`no library entry ${id}`);
   const links = await own();
   const mine = links.find((l) => l.url === e.url);
+  if (ids.length > 1 && (action === "add" || action === "copy")) {
+    const es = ids.map(libraryEntry).filter((x): x is NonNullable<typeof x> => !!x);
+    if (action === "copy") return { copy: es.map((x) => x.url).join("\n") };
+    const have = new Set(links.map((l) => l.url));
+    const fresh = es.filter((x) => !have.has(x.url));
+    if (fresh.length) await storage.set(KEY, [...links, ...fresh.map((x) => ({ id: crypto.randomUUID(), name: x.name, url: x.url, keywords: x.keywords }))]);
+    return { keep: true, toast: { title: fresh.length ? `Added ${fresh.length}` : "Already there", message: fresh.length ? fresh.map((x) => x.name).join(", ") : `${es.length} searches` } };
+  }
   switch (action ?? (mine ? "search" : "add")) {
     case "copy": return { copy: e.url };
     case "search": {
@@ -302,7 +336,19 @@ export default {
           const l = args.library ? undefined : await find(args.link);
           return openLink(l ?? { id, name: id, url: id }, await fillSilent(id));
         }
-        if (args?.library || id.startsWith(LIBRARY_ID)) return libraryPick(id, action);
+        if (args?.library || id.startsWith(LIBRARY_ID)) return libraryPick(id, action, ctx?.ids);
+        // Marked rows: every url copied a line each, opened each, or deleted at once.
+        const ids = ctx?.ids ?? [id];
+        if (ids.length > 1) {
+          if (action === "copy") return { copy: (await Promise.all(ids.map(async (x) => (x.startsWith(OPEN_ID) ? x.slice(OPEN_ID.length) : (await find(x))?.url)))).filter(Boolean).join("\n") };
+          if (action === "delete") {
+            const gone = new Set(ids);
+            const links = await own();
+            await storage.set(KEY, links.filter((x) => !gone.has(x.id)));
+            return { keep: true, toast: { title: `Deleted ${links.filter((x) => gone.has(x.id)).length}`, message: links.filter((x) => gone.has(x.id)).map((x) => x.name).join(", ") } };
+          }
+          if (action === "open" || action === undefined) return openMany(ids);
+        }
         if (id.startsWith(OPEN_ID)) { const url = id.slice(OPEN_ID.length); return action === "copy" ? { copy: url } : { open: url }; }
         if (id === IMPORT || id === EXPORT) return action === "save" ? transfer(id, ctx?.values ?? {}) : { form: pathForm(id) };
         if (action === "save") return save(id, ctx?.values ?? {});

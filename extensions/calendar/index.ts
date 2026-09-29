@@ -75,8 +75,9 @@ function actions(e: CalendarEvent): Action[] {
   if (google) out.push({ id: "open", title: "Open in Google Calendar" });
   else if (MAC) out.push({ id: "open", title: "Open in Calendar" });
   if (e.conference_url) out.push({ id: "copy_link", title: "Copy conference link", shortcut: "cmd+shift+c" });
-  out.push({ id: "copy_details", title: "Copy event details", shortcut: "cmd+c" });
-  if (MAC && !google) out.push({ id: "delete", title: e.recurring ? "Delete this occurrence" : "Delete event", shortcut: "ctrl+x", style: "destructive", confirm: `Delete "${e.title}"${e.recurring ? " on " + dayName(e.start) : ""}?` });
+  // Marked events copy as one agenda and delete together; the question reads for one or several (the confirm card counts the marked rows).
+  out.push({ id: "copy_details", title: "Copy event details", shortcut: "cmd+c", multi: true });
+  if (MAC && !google) out.push({ id: "delete", title: e.recurring ? "Delete this occurrence" : "Delete event", shortcut: "ctrl+x", style: "destructive", confirm: e.recurring ? "Delete from your calendar? A repeating event loses only this occurrence." : "Delete from your calendar?", multi: true });
   return out;
 }
 
@@ -422,10 +423,25 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | vo
     if (action === "create" && ctx?.values) return create(ctx.values);
     return { form: await form() };
   }
+  const ids = ctx?.ids ?? [id];
+  if (ids.length > 1 && (action === "copy_details" || action === "delete")) return pickEvents(ids, action);
   let e: CalendarEvent | undefined;
   try { e = await find(id); } catch (err) { return failed("read the event", err); }
   if (!e) return { keep: true, toast: { title: "Event not found", message: "It may have been moved or deleted; the list is fresh now", style: "failure" } };
   return pickEvent(e, action);
+}
+
+/** Marked events (`ctx.ids`): their details as one agenda, in time order, or each deleted; an event gone meanwhile is skipped. */
+async function pickEvents(ids: string[], action: "copy_details" | "delete"): Promise<Effect> {
+  let es: CalendarEvent[];
+  try { es = (await Promise.all(ids.map(find))).filter((e): e is CalendarEvent => !!e); } catch (err) { return failed("read the events", err); }
+  if (action === "copy_details") return { copy: [...es].sort((a, b) => a.start - b.start).map(details).join("\n\n") };
+  for (const e of es) {
+    try { await calendar.delete(e.id, e.occurrence); } catch (err) { forget(); return failed(`delete ${e.title}`, err); }
+    table.delete(rowId(e));
+  }
+  forget();
+  return { keep: true, toast: { title: `Deleted ${es.length} ${es.length === 1 ? "event" : "events"}`, style: "success" } };
 }
 
 async function detail(id: string): Promise<Detail | void> {

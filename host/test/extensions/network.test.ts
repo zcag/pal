@@ -165,7 +165,7 @@ describe("network on macOS tools", () => {
     // Each row carries its kind's glyph: Wi-Fi, Ethernet, Tailscale, hostname, public IP, gateway, DNS.
     expect(items.map((i) => i.icon)).toEqual(["\u{f05a9}", "\u{f05a9}", "\u{f0200}", "\u{f0582}", "\u{f0582}", "\u{f0322}", "\u{f0322}", "\u{f01e7}", "\u{f1087}", "\u{f01d6}", "\u{f01d6}", "\u{f01d6}"]);
     expect(wifi.keywords).toEqual(["en0", "wifi", "wlan", "ssid", "ip", "lan", "local", "Cafe Wifi"]);
-    expect(wifi.actions).toEqual([{ id: "copy", title: "Copy" }, { id: "settings", title: "Open Network settings" }]);
+    expect(wifi.actions).toEqual([{ id: "copy", title: "Copy", multi: true }, { id: "settings", title: "Open Network settings" }]);
     expect(items[7].keywords).toEqual(["public", "wan", "external", "ip", "TR", "AS1 Example ISP"]);
     expect(items[9].keywords).toEqual(["dns", "nameserver", "resolver"]);
   });
@@ -174,6 +174,8 @@ describe("network on macOS tools", () => {
     expect(await host.pick("network", "network", "if:en0:192.168.1.131")).toEqual({ copy: "192.168.1.131" });
     expect(await host.pick("network", "network", "public", "copy")).toEqual({ copy: "203.0.113.9" });
     expect(await host.pick("network", "network", "hostname")).toEqual({ copy: hostname() });
+    // Marked rows: every value, one a line.
+    expect(await host.pick("network", "network", "public", "copy", { ids: ["public", "if:en0:192.168.1.131"] })).toEqual({ copy: "203.0.113.9\n192.168.1.131" });
     expect(await host.pick("network", "network", "dns:fd7a:115c:a1e0::53")).toEqual({ copy: "fd7a:115c:a1e0::53" });
     expect(await host.pick("network", "network", "gateway", "settings")).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
     expect(await host.pick("network", "network", "if:en9:1.2.3.4")).toEqual({ keep: true, toast: { title: "Row is gone", message: "The rows were listed again", style: "failure" } });

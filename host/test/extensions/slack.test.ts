@@ -258,6 +258,7 @@ describe("slack", () => {
       expect(await pick("unreads", "dm:T1/D_MARA")).toEqual({ open: "slack://channel?team=T1&id=D_MARA&message=1789580400.000200" });
       expect(await pick("unreads", "dm:T1/D_MARA", "browser")).toEqual({ open: "https://acme.slack.com/archives/D_MARA/p1789580400000200" });
       expect(await pick("unreads", "dm:T1/D_MARA", "copy")).toEqual({ copy: "https://acme.slack.com/archives/D_MARA/p1789580400000200" });
+      expect((await pick("unreads", "dm:T1/D_MARA", "browser", { ids: ["dm:T1/D_MARA", "thread:T1/C_ENG"] })).open).toHaveLength(2);
       expect(await pick("unreads", "thread:T1/C_ENG")).toEqual({ open: "slack://channel?team=T1&id=C_ENG" });
       expect(await pick("unreads", "channel:T1/C_GEN")).toEqual({ open: "slack://channel?team=T1&id=C_GEN" });
     });
@@ -392,9 +393,9 @@ describe("slack", () => {
       const rows = all.filter((n): n is Extract<ViewNode, { type: "stack" }> => n.type === "stack" && !!n.action?.startsWith("focus:"));
       expect(rows.map((r) => r.action)).toEqual(["focus:dm:T1/D_MARA", "focus:mention:T1/C_ENG", "focus:thread:T1/C_ENG"]);
       expect(rows.map((r) => !!r.selected)).toEqual([true, false, false]);
-      // The rows that can be read can be marked; the thread row cannot. `m` runs over the marks.
-      expect(marksOf(view.tree)).toEqual(["dm:T1/D_MARA", "mention:T1/C_ENG"]);
-      expect(view.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
+      // Every row can be marked; `m` (skipping the thread), Open in browser and Copy link run over the marks.
+      expect(marksOf(view.tree)).toEqual(["dm:T1/D_MARA", "mention:T1/C_ENG", "thread:T1/C_ENG"]);
+      expect(view.actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["read", "browser", "copy"]);
       expect(texts(view)).toEqual(expect.arrayContaining(["mara", "and the doc is up", "#eng", "mara: @cagdas the build on #ops is red", "3 new replies in threads you follow"]));
       // Mara's avatar was fetched once into a data url (the picture host needs no session); the thread row is a hash tile.
       const images = all.filter((n): n is Extract<ViewNode, { type: "image" }> => n.type === "image");
@@ -558,6 +559,7 @@ describe("slack", () => {
       expect(sendForm.fields.map((x) => [x.id, x.kind, !!x.required])).toEqual([["text", "text", true]]);
       expect(((await pick("channels", "T1/C_GEN", "send", { values: { text: "" } })).form as Form).errors).toEqual({ text: "Required" });
       expect(await pick("channels", "T1/C_GEN", "browser")).toEqual({ open: "https://acme.slack.com/archives/C_GEN" });
+      expect((await pick("channels", "T1/C_GEN", "browser", { ids: ["T1/C_GEN", "T1/C_ENG"] })).open).toEqual(["https://acme.slack.com/archives/C_GEN", "https://acme.slack.com/archives/C_ENG"]);
     });
   });
 
@@ -572,6 +574,10 @@ describe("slack", () => {
       expect(await pick("search", items[0].id, "browser")).toEqual({ open: "https://acme.slack.com/archives/C_ENG/p1789570000000100" });
       expect(await pick("search", items[1].id, "browser")).toEqual({ open: "https://acme.slack.com/archives/D_TOM/p1789560000000100" });
       expect(await pick("search", items[0].id, "copy")).toEqual({ copy: "the parser @cagdas asked about" });
+      // Marked messages: each opened in the browser, each text on its own line.
+      const ids = [items[0].id, items[1].id];
+      expect(await pick("search", ids[0]!, "browser", { ids })).toEqual({ open: ["https://acme.slack.com/archives/C_ENG/p1789570000000100", "https://acme.slack.com/archives/D_TOM/p1789560000000100"] });
+      expect((await pick("search", ids[0]!, "copy", { ids })).copy).toMatch(/^the parser @cagdas asked about\n/);
       expect((await list("search", "nothing here"))[0]).toMatchObject({ id: "hint:empty" });
     });
 

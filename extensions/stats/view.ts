@@ -69,7 +69,8 @@ const head = (key: string, big: string, label: string, badge: ViewNode, sub?: st
 ];
 const section = (key: string, title: string, extra?: ViewNode): ViewNode => row([text(title, { size: "xs", weight: "semibold", color: "muted" }), ...(extra ? [{ type: "spacer" as const }, extra] : [])], { key: `h-${key}`, gap: 1, minHeight: 20 });
 const hints = (pairs: [string | string[], string, string?][]): ViewNode => row(pairs.flatMap(([k, what, action]) => keyHint(k, what, { action })), { key: "hints", gap: 1, minHeight: 22 });
-const focusable = (key: string, children: ViewNode[], focused: boolean, action: string): ViewNode => row(children, { key, padding: 1, minHeight: 26, radius: true, action, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } });
+/** A row the arrows and a click focus (`focus:<id>`), which the shell can also mark (`mark`: the same id) for the popover's `multi` actions: kill processes, reveal or copy volumes, copy addresses. */
+const focusable = (key: string, children: ViewNode[], focused: boolean, action: string): ViewNode => row(children, { key, mark: action.slice(6), padding: 1, minHeight: 26, radius: true, action, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } });
 
 /** A process row: the name takes what the two number columns leave. */
 const procRow = (p: Proc, focused: boolean): ViewNode =>
@@ -91,7 +92,7 @@ const paletteActions: Action[] = [{ id: "palette", title: "Open Stats palette", 
 const monitorAction: Action = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "enter" } : { id: "processes", title: "Open Processes", shortcut: ["enter", "p"] };
 const processesAction: Action[] = MAC ? [{ id: "processes", title: "Open Processes palette", shortcut: "p" }] : [];
 const MONITOR_HINT = MAC ? "monitor" : "processes";
-const killAction = (p: Proc | undefined): Action[] => (p ? [{ id: "kill", title: `Kill ${p.name}`, shortcut: "x", style: "destructive", confirm: `Send SIGTERM to ${p.name} (${p.pid})?` }] : []);
+const killAction = (p: Proc | undefined): Action[] => (p ? [{ id: "kill", title: `Kill ${p.name}`, shortcut: "x", style: "destructive", multi: true, confirm: "Send SIGTERM? A process may lose what it has not saved." }] : []);
 
 // ---- cpu -------------------------------------------------------------------
 
@@ -197,7 +198,7 @@ export function renderDisk(st: DiskPopover): View {
   });
   return {
     title: vols.length === 1 ? `${vols[0].name} ${pct(vols[0].total ? (vols[0].used / vols[0].total) * 100 : 0)}` : `${vols.length} volumes`, id: "disk", keys: "actions",
-    actions: [{ id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "enter" }, { id: "copy", title: "Copy path", shortcut: ["c", "cmd+c"] }, ...paletteActions, ...moveActions(vols.map((v) => v.mount), "volume")],
+    actions: [{ id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "enter", multi: true }, { id: "copy", title: "Copy path", shortcut: ["c", "cmd+c"], multi: true }, ...paletteActions, ...moveActions(vols.map((v) => v.mount), "volume")],
     tree: column([
       ...head("disk", vols.length ? `${gb(vols[focus].free)}` : "–", vols.length ? `free on ${vols[focus].name}` : "Disks", levelBadge(worst, "room")),
       ...(cards.length ? cards : [text("No volumes read", { key: "empty", style: "muted", size: "sm" })]),
@@ -223,7 +224,7 @@ export function renderNetwork(st: NetworkPopover): View {
   const peak = Math.max(1024, ...st.downHistory, ...st.upHistory);
   return {
     title: `Network ↓ ${rate(st.down)} ↑ ${rate(st.up)}`, id: "network", keys: "actions",
-    actions: [{ id: "addresses", title: "All addresses", shortcut: "enter" }, { id: "copy", title: "Copy address", shortcut: ["c", "cmd+c"] }, ...paletteActions, ...moveActions(ifaces.map((i) => i.name), "interface")],
+    actions: [{ id: "addresses", title: "All addresses", shortcut: "enter" }, { id: "copy", title: "Copy address", shortcut: ["c", "cmd+c"], multi: true }, ...paletteActions, ...moveActions(ifaces.map((i) => i.name), "interface")],
     tree: column([
       row([
         column([text(rate(st.down), { key: "down", style: "title", size: "lg", color: "blue" }), text("down", { style: "muted", size: "xs" })], { key: "d", gap: 0 }),

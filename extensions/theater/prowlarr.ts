@@ -46,10 +46,11 @@ export function releaseRow(r: Release): Item {
       ...(torrent ? [{ text: `${r.seeders ?? 0} seeds` }] : [{ text: `${r.grabs ?? 0} grabs` }]),
     ],
     detail: { metadata: [{ label: "Indexer", value: `${r.indexer} (${r.protocol})` }, { label: "Size", value: bytes(r.size) }, { label: "Age", value: r.publishDate ? ago(r.publishDate) : ageText(r.age) }, ...(torrent ? [{ label: "Peers", value: `${r.seeders ?? 0} seeders, ${r.leechers ?? 0} leechers` }] : [{ label: "Grabs", value: String(r.grabs ?? 0) }]), ...(r.categories?.length ? [{ label: "Categories", value: r.categories.map((c) => c.name).join(", ") }] : []), ...(r.infoUrl ? [{ label: "Page", link: { text: "Open", href: r.infoUrl } }] : [])] },
+    // Every action also takes marked releases (`multi`): each grabbed (the question names none), each page opened, the links one per line.
     actions: [
-      { id: "grab", title: "Grab through Prowlarr", confirm: `Send ${truncate(r.title, 60)} to the download client through Prowlarr?` },
-      ...(r.infoUrl ? [{ id: "page", title: "Open release page", shortcut: "cmd+enter" }] : []),
-      { id: "copy", title: torrent && r.magnetUrl ? "Copy magnet link" : "Copy download link", shortcut: "cmd+c" },
+      { id: "grab", title: "Grab through Prowlarr", multi: true, confirm: "Send to the download client through Prowlarr?" },
+      ...(r.infoUrl ? [{ id: "page", title: "Open release page", shortcut: "cmd+enter", multi: true as const }] : []),
+      { id: "copy", title: torrent && r.magnetUrl ? "Copy magnet link" : "Copy download link", shortcut: "cmd+c", multi: true },
     ],
   };
 }
@@ -77,10 +78,11 @@ export function hydraRow(it: HydraItem): Item {
     keywords: [indexer, it.category ?? ""],
     section: indexer,
     accessories: [{ tag: indexer, color: "amber" }, ...(grabs ? [{ text: `${grabs} grabs` }] : [])],
+    // Send, the page and Copy also take marked results (`multi`); Open is Hydra's one page.
     actions: [
-      configured("sab") ? { id: "send", title: "Send to SABnzbd", confirm: `Send ${truncate(it.title, 60)} to SABnzbd?` } : { id: "open", title: "Open in NZBHydra2" },
-      ...(it.comments ? [{ id: "page", title: "Open release page", shortcut: "cmd+enter" }] : []),
-      { id: "copy", title: "Copy NZB link", shortcut: "cmd+c" },
+      configured("sab") ? { id: "send", title: "Send to SABnzbd", multi: true, confirm: "Send to SABnzbd?" } : { id: "open", title: "Open in NZBHydra2" },
+      ...(it.comments ? [{ id: "page", title: "Open release page", shortcut: "cmd+enter", multi: true as const }] : []),
+      { id: "copy", title: "Copy NZB link", shortcut: "cmd+c", multi: true },
     ],
   };
 }
@@ -112,37 +114,52 @@ export async function indexerRows(refresh: boolean): Promise<Item[]> {
         keywords: [x.protocol, x.privacy ?? ""],
         section: x.protocol === "torrent" ? "Torrent indexers" : "Usenet indexers",
         accessories: [!x.enable ? { tag: "disabled", color: "grey" } : down ? { tag: `failing, retry ${ago(st!.disabledTill!)}`, color: "red" } : { tag: "ok", color: "green" }],
-        actions: [{ id: "open", title: "Open in Prowlarr" }, { id: "test", title: "Test the indexer", shortcut: "cmd+enter" }],
+        // Marked indexers are tested in turn (`multi`); the list page is one.
+        actions: [{ id: "open", title: "Open in Prowlarr" }, { id: "test", title: "Test the indexer", shortcut: "cmd+enter", multi: true }],
       };
     });
     return [...warnings, ...rows, ...(rows.length ? [] : [hint("none", "No indexers", "Add one under Indexers on Prowlarr", { icon: GLYPH.prowlarr })])];
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
   if (id.startsWith("health:")) return { open: `${prowlarrUrl()}/system/status` };
+  // The marked rows of this kind (`ctx.ids`), as their keys; the one otherwise.
+  const keys = (prefix: string) => (ctx?.ids ?? [id]).filter((x) => x.startsWith(prefix)).map((x) => x.slice(prefix.length));
   if (id.startsWith("indexer:")) {
-    if (action === "test") { try { await testIndexer(Number(id.slice(8))); return toast("Indexer OK", "Prowlarr's test passed"); } catch (e) { return toast("Test failed", String((e as Error).message), "failure"); } }
+    if (action === "test") {
+      const ids = keys("indexer:").map(Number);
+      const failed: string[] = [];
+      for (const n of ids) { try { await testIndexer(n); } catch (e) { failed.push(String((e as Error).message)); } }
+      if (failed.length) return toast(ids.length > 1 ? `${failed.length} of ${ids.length} tests failed` : "Test failed", failed.join("; "), "failure");
+      return toast(ids.length > 1 ? `${ids.length} indexers OK` : "Indexer OK", "Prowlarr's test passed");
+    }
     return { open: `${prowlarrUrl()}/indexers` };
   }
   if (id.startsWith("rel:")) {
     const r = releases.get(id.slice(4));
     if (!r) throw new Error("that search result is gone; search again");
+    const rs = keys("rel:").map((k) => releases.get(k)).filter((x): x is NonNullable<typeof x> => !!x);
     switch (action) {
-      case "page": return { open: r.infoUrl ?? prowlarrUrl() };
-      case "copy": return { copy: r.magnetUrl ?? r.downloadUrl ?? r.infoUrl ?? "" };
-      default: try { await grab(r); return { hud: `Grabbed ${truncate(r.title, 40)}` }; } catch (e) { return toast("Could not grab", String((e as Error).message), "failure"); }
+      case "page": return { open: rs.length > 1 ? rs.map((x) => x.infoUrl ?? prowlarrUrl()) : r.infoUrl ?? prowlarrUrl() };
+      case "copy": return { copy: rs.map((x) => x.magnetUrl ?? x.downloadUrl ?? x.infoUrl ?? "").join("\n") };
+      default:
+        for (const x of rs) { try { await grab(x); } catch (e) { return toast("Could not grab", String((e as Error).message), "failure"); } }
+        return { hud: rs.length > 1 ? `Grabbed ${rs.length} releases` : `Grabbed ${truncate(r.title, 40)}` };
     }
   }
   if (id.startsWith("nzb:")) {
     const it = hydraItems.get(id.slice(4));
     if (!it) throw new Error("that search result is gone; search again");
+    const its = keys("nzb:").map((k) => hydraItems.get(k)).filter((x): x is NonNullable<typeof x> => !!x);
     switch (action) {
-      case "page": return { open: it.comments ?? hydraUrl() };
-      case "copy": return { copy: it.link };
+      case "page": return { open: its.length > 1 ? its.map((x) => x.comments ?? hydraUrl()) : it.comments ?? hydraUrl() };
+      case "copy": return { copy: its.map((x) => x.link).join("\n") };
       case "open": return { open: hydraUrl() };
-      default: try { await sab.addUrl(it.link, it.title); return { hud: `Sent ${truncate(it.title, 40)} to SABnzbd` }; } catch (e) { return toast("Could not send", String((e as Error).message), "failure"); }
+      default:
+        for (const x of its) { try { await sab.addUrl(x.link, x.title); } catch (e) { return toast("Could not send", String((e as Error).message), "failure"); } }
+        return { hud: its.length > 1 ? `Sent ${its.length} to SABnzbd` : `Sent ${truncate(it.title, 40)} to SABnzbd` };
     }
   }
 }

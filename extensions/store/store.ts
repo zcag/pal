@@ -143,18 +143,19 @@ export function select(listings: Listing[], installed: Installed[], filter: stri
   });
 }
 
-const INSTALL: Action = { id: "install", title: "Install" };
-const UPDATE: Action = { id: "update", title: "Update" };
-const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "ctrl+x", style: "destructive" };
-const PAGE: Action = { id: "page", title: "Open store page" };
-const COPY_COMMAND: Action = { id: "copy-command", title: "Copy install command", shortcut: "cmd+c" };
+// Every action also takes marked extensions (`multi`): each installed, updated or removed in turn, the pages opened, the commands one per line. The questions name none, so they read for one or several.
+const INSTALL: Action = { id: "install", title: "Install", multi: true };
+const UPDATE: Action = { id: "update", title: "Update", multi: true };
+const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "ctrl+x", style: "destructive", multi: true };
+const PAGE: Action = { id: "page", title: "Open store page", multi: true };
+const COPY_COMMAND: Action = { id: "copy-command", title: "Copy install command", shortcut: "cmd+c", multi: true };
 
 /** The row's actions by standing: Install first while absent, Update first while behind, the store page for a bundled one. */
-export function actionsFor(l: Listing, s: Standing): Action[] {
-  if (!s.installed) return [{ ...INSTALL, confirm: `Install ${l.title} from pal.cagdas.io?` }, { ...PAGE, shortcut: "cmd+enter" }, COPY_COMMAND];
+export function actionsFor(_l: Listing, s: Standing): Action[] {
+  if (!s.installed) return [{ ...INSTALL, confirm: "Install from pal.cagdas.io?" }, { ...PAGE, shortcut: "cmd+enter" }, COPY_COMMAND];
   if (s.installed.store) {
-    const update = { ...UPDATE, confirm: `Update ${l.title} to ${l.version}? Its source is fetched again.` };
-    return [...(s.behind ? [update, { ...PAGE, shortcut: "cmd+enter" }] : [PAGE, { ...update, shortcut: "cmd+enter" }]), { ...REMOVE, confirm: `Remove ${l.title}? Its directory is deleted; its settings stay in the config file.` }, COPY_COMMAND];
+    const update = { ...UPDATE, confirm: "Update to the store's version? The source is fetched again." };
+    return [...(s.behind ? [update, { ...PAGE, shortcut: "cmd+enter" }] : [PAGE, { ...update, shortcut: "cmd+enter" }]), { ...REMOVE, confirm: "Remove? The directory is deleted; the settings stay in the config file." }, COPY_COMMAND];
   }
   return [PAGE, COPY_COMMAND];
 }

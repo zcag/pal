@@ -119,7 +119,7 @@ describe("downloads", () => {
     // The file rows' actions once, on the palette (2026-09-17: eight per row were 40% of the listing).
     const actions = l.palettes[0].actions!;
     expect(actions.map((a) => a.id)).toEqual(FILE_ACTIONS);
-    expect(actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy-file", "copy-path", "trash"]);
+    expect(actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", ...(MAC ? ["quick-look"] : []), "copy-file", "copy-path", "move", "trash"]);
     expect(actions.at(-1)).toMatchObject({ id: "trash", shortcut: "cmd+d", style: "destructive", confirm: expect.any(String) });
   });
 
@@ -165,10 +165,9 @@ describe("downloads", () => {
     expect(typeof byName(items, "notes.txt").icon).toBe("string");
   });
 
-  test("picks: open (the rest through the opener on a multi pick), reveal, copy file, copy path, the folder row", async () => {
+  test("picks: open (every marked one in the effect), reveal, copy file, copy path, the folder row", async () => {
     expect(await pick(report)).toEqual({ open: report });
-    expect(await pick(report, "open", { ids: [report, notes] })).toEqual({ open: report });
-    await host.until(() => opened().some((l) => l === notes), 2000, "the second file opened");
+    expect(await pick(report, "open", { ids: [report, notes] })).toEqual({ open: [report, notes] });
     expect(await pick(report, "reveal", { ids: [report, notes] })).toEqual({ hide: true });
     if (MAC) await host.until(() => opened().some((l) => l === `-R ${report} ${notes}`), 2000, "revealed");
     expect(await pick(report, "copy-file", { ids: [report, notes] })).toEqual({ copy_files: [report, notes] });
@@ -201,6 +200,12 @@ describe("downloads", () => {
     expect(await pick(renamed, "move-submit", { values: { folder: target } })).toEqual({ keep: true, toast: { title: "Moved", message: `notes-renamed.txt to ${target}` } });
     expect(existsSync(join(target, "notes-renamed.txt"))).toBe(true);
     expect(existsSync(renamed)).toBe(false);
+    // Marked rows: one form for them all, each moved in turn.
+    const a = join(root, "multi-a.txt"), b = join(root, "multi-b.txt");
+    writeFileSync(a, "a"); writeFileSync(b, "b");
+    expect(await pick(a, "move", { ids: [a, b] })).toMatchObject({ form: { id: `${a}\n${b}`, title: "Move 2 items", submit: { id: "move-submit" } } });
+    expect(await pick(`${a}\n${b}`, "move-submit", { values: { folder: target } })).toEqual({ keep: true, toast: { title: "Moved", message: `2 items to ${target}` } });
+    expect(existsSync(join(target, "multi-a.txt")) && existsSync(join(target, "multi-b.txt"))).toBe(true);
   });
 
   test("trash: one file, then marked rows together; a missing file is a failure toast; Clear older than 30 days trashes the old ones", async () => {

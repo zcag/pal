@@ -42,8 +42,8 @@ import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
 /** `[extensions.files]`, defaults in pal.json. */
 type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[]; content_search: boolean; ocr_concealed: boolean; terminal: string };
-/** The args of the level "Open with…" pushes: which file the rows open. */
-type OpenWith = { open_with: string };
+/** The args of the level "Open with…" pushes: which file the rows open (the first of `files`, marked rows, which all open in the app picked). */
+type OpenWith = { open_with: string; files?: string[] };
 const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | undefined)?.open_with;
 /** The args of the level "Browse" pushes: the folder listed. */
 const browseOf = (ctx?: Ctx): string | undefined => (ctx?.args as Browse | undefined)?.browse;
@@ -215,18 +215,18 @@ const ACTIONS: Action[] = [
   { id: "open", title: "Open", multi: true },
   { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", multi: true },
   ...(MAC ? [{ id: "quick-look", title: "Quick Look", shortcut: "cmd+y", multi: true as const }] : []),
-  { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
+  { id: "open-with", title: "Open with…", shortcut: "cmd+o", multi: true },
   { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true },
   { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true },
   { id: "terminal", title: "Open in Terminal", shortcut: "cmd+t" },
   { id: "rename", title: "Rename", shortcut: "cmd+shift+r", args: true },
-  { id: "move", title: "Move to…", shortcut: "cmd+m" },
-  { id: "copy-to", title: "Copy to…", shortcut: "cmd+alt+c" },
+  { id: "move", title: "Move to…", shortcut: "cmd+m", multi: true },
+  { id: "copy-to", title: "Copy to…", shortcut: "cmd+alt+c", multi: true },
   { id: "compress", title: "Compress", shortcut: "cmd+shift+z", multi: true },
   { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?", multi: true },
 ];
 /** An image or a PDF gets OCR after Copy file: its text onto the clipboard. */
-const OCR_ACTION: Action = { id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t" };
+const OCR_ACTION: Action = { id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t", multi: true };
 const ocrable = (p: string, k: Kind) => k === "image" || extname(p).toLowerCase() === ".pdf";
 /**
  * The open or save panel in front while the panel is up (`dialog.current`,
@@ -341,7 +341,7 @@ const totalSize = (es: Entry[]) => bytes(es.reduce((n, e) => n + (e.dir ? 0 : e.
 
 /** The "N items" row: names and total size, the multi actions of `ACTIONS` over every item; at the root Enter opens the palette, inside it Enter opens them all. */
 function allRow(es: Entry[], atRoot: boolean): Item {
-  const titles: Record<string, string> = { open: "Open all", reveal: MAC ? "Reveal all in Finder" : "Show all in file manager", "quick-look": "Quick Look all", copy: "Copy paths", "copy-file": "Copy files", compress: "Compress together", trash: "Move all to Trash" };
+  const titles: Record<string, string> = { open: "Open all", reveal: MAC ? "Reveal all in Finder" : "Show all in file manager", "quick-look": "Quick Look all", copy: "Copy paths", "copy-file": "Copy files", "open-with": "Open all with…", move: "Move all to…", "copy-to": "Copy all to…", compress: "Compress together", trash: "Move all to Trash" };
   const actions = ACTIONS.filter((a) => a.multi).map((a) => ({ ...a, title: titles[a.id] ?? a.title, ...(a.id === "trash" && { confirm: `Move ${es.length} items to the Trash?` }) }));
   return {
     id: ALL,
@@ -540,43 +540,44 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "dialog": return { dialog: id };
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
     case "quick-look": files.quickLook(ids); return { hide: true };
-    case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith, title: `Open ${basename(id)} with`, placeholder: "Search apps" } };
+    case "open-with": return { push: { extension: "files", palette, args: { open_with: id, ...(ids.length > 1 && { files: ids }) } satisfies OpenWith, title: ids.length > 1 ? `Open ${ids.length} files with` : `Open ${basename(id)} with`, placeholder: "Search apps" } };
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
     case "terminal": return openTerminal(id);
     // The bar's name; blank (or a pick without values) is the form with the current name filled, as `rename-submit` (the form's submit) comes back.
     case "rename": return String(values?.name ?? "").trim() ? files.renamePick(id, values) : { form: files.renameForm(id) };
-    case "move": return { form: files.moveForm(id) };
-    case "copy-to": return { form: files.copyForm(id) };
+    case "move": return { form: files.intoFolderForm("move", ids) };
+    case "copy-to": return { form: files.intoFolderForm("copy", ids) };
     case "rename-submit": return files.renamePick(id, values);
-    case "move-submit": return files.intoFolderPick("move", id, values);
-    case "copy-submit": return files.intoFolderPick("copy", id, values);
+    case "move-submit": return files.intoFolderManyPick("move", id, values);
+    case "copy-submit": return files.intoFolderManyPick("copy", id, values);
     case "compress": {
       let out: string;
       try { out = await files.archive(ids); } catch (e) { return failed("compress", e); }
       return { keep: true, toast: { title: "Compressed", message: tilde(out) } };
     }
     case "copy-text": {
+      // Several: each file's text, a blank line between.
       let text: string;
-      try { text = await ocr.image({ path: id }); } catch (e) { return failed("read the text", e); }
-      if (!text) return { keep: true, toast: { title: "No text found", message: basename(id) } };
+      try { text = (await Promise.all(ids.map((p) => ocr.image({ path: p })))).filter(Boolean).join("\n\n"); } catch (e) { return failed("read the text", e); }
+      if (!text) return { keep: true, toast: { title: "No text found", message: ids.length > 1 ? `${ids.length} files` : basename(id) } };
       return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
     }
     case "trash":
       try { for (const p of ids) await trash(p); } catch (e) { return failed("move to Trash", e); }
       return { keep: true, toast: { title: "Moved to Trash", message: ids.length === 1 ? basename(id) : `${ids.length} items` } };
     default:
-      // Several: every one through the opener; the effect carries one, so the rest go here.
-      for (const p of ids.slice(1)) spawnDetached([MAC ? "open" : "xdg-open", p]);
-      return { open: id };
+      // Several: every one through the opener (`open` takes a list).
+      return { open: ids.length > 1 ? ids : id };
   }
 }
 
-/** The "Open with…" level: the apps for `file`, or the pick of one. */
-const openWithPick = async (file: string, id: string) => {
-  try { await appsApi.openWith(file, id); } catch (e) { return failed("open", e); }
+/** The "Open with…" level: the apps for `file`, or the pick of one, which opens every file the level was pushed for. */
+const openWithPick = async (file: string, id: string, ctx?: Ctx) => {
+  try { for (const f of (ctx?.args as OpenWith | undefined)?.files ?? [file]) await appsApi.openWith(f, id); } catch (e) { return failed("open", e); }
   return { hide: true as const };
 };
+
 const openWithDetail = (file: string, id: string): Detail => ({ metadata: [{ label: "Application", value: tilde(id) }, { label: "Opens", value: tilde(file) }] });
 
 const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle, { icon: ICON });
@@ -638,7 +639,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "files", ctx);
+        return file ? openWithPick(file, id, ctx) : fileAction(id, action, "files", ctx);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
@@ -660,7 +661,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "browse", ctx);
+        return file ? openWithPick(file, id, ctx) : fileAction(id, action, "browse", ctx);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
@@ -690,7 +691,7 @@ export default {
       },
       pick: async (id, action, ctx) => {
         const file = openWithOf(ctx);
-        if (file) return openWithPick(file, id);
+        if (file) return openWithPick(file, id, ctx);
         if (id !== ALL) return fileAction(id, action, "selection", ctx);
         if (action === "show") return { push: { extension: "files", palette: "selection" } };
         const ids = (await selectedEntries()).map((e) => e.path);
@@ -719,7 +720,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "recent", ctx);
+        return file ? openWithPick(file, id, ctx) : fileAction(id, action, "recent", ctx);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);

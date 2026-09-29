@@ -36,7 +36,7 @@ message came) and a link into the web client.
 | Send a message | `⌘⇧R` | `send` on. The message is the row's typed argument: with the cursor on the chat, Tab into the Message field in the bar (and a Reply choice that quotes the chat's latest incoming message, when the listing knows one), `⌘⇧R` sends; Enter on the row still opens the chat. A pick without the values (`pal run`, a hotkey) is a form: the text, and a box to quote |
 | React to the latest message | `⌘⇧E` | `send` on. WhatsApp's six quick reactions, or remove yours |
 | Open in the web client | `⌘⇧O` | |
-| Copy number / Copy name | `⌘C` | the number as `+905...`; a group's name |
+| Copy number / Copy name | `⌘C` | the number as `+905...`; a group's name; marked chats one per line |
 
 **Unread** is the same rows over the chats with something unread, direct
 messages first then groups, so the root carries them; "Nothing unread"
@@ -50,6 +50,8 @@ chat's conversation. **Contacts** is every saved contact (the ones the
 phone has a name for) with the number, one row per number; `Enter`
 opens a chat, `⌘C` copies the number, `⌘⇧C` copies a vCard 3.0
 (`FN` and `TEL`), so the person lands in Contacts or another phone.
+Marked rows copy together, one per line (several vCards make one
+`.vcf`); opening stays one chat, since WhatsApp shows one at a time.
 
 ## The bar item
 

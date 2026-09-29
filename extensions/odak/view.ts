@@ -69,8 +69,8 @@ export function actions(st: BarState): Action[] {
   if (cur) {
     // Enter and x complete every marked row when the shell has some marked (`mark` on the rows, `ctx.ids`).
     acts.push({ id: "complete", title: "Complete", shortcut: "x", multi: true });
-    acts.push({ id: "urgent", title: cur.urgent ? "Not urgent" : "Mark urgent", shortcut: "u" });
-    acts.push({ id: "tomorrow", title: "Snooze to tomorrow", shortcut: "t" });
+    acts.push({ id: "urgent", title: cur.urgent ? "Not urgent" : "Mark urgent", shortcut: "u", multi: true });
+    acts.push({ id: "tomorrow", title: "Snooze to tomorrow", shortcut: "t", multi: true });
   }
   if (!st.field) acts.push({ id: "new", title: "New todo", shortcut: "n" });
   acts.push({ id: "open-odak", title: "Open odak", shortcut: "o" }, { id: "open-pal", title: "Open in pal", shortcut: "p" }, { id: "refresh", title: "Refresh", shortcut: "r" });

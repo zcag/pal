@@ -126,8 +126,8 @@ stale bar item) instead of piling onto the limit.
 | `cmd+enter` | Reply: the message typed in the bar's field posts to the conversation, into the thread for a threaded mention (a form when picked without it) | Unreads, not a thread row |
 | `cmd+shift+r` | Mark as read, up to the latest message | Unreads, not a thread row |
 | `cmd+shift+r` | Send a message: the message typed in the bar's field, posted to the conversation (a form when picked without it) | Channels |
-| `cmd+shift+o` | Open in browser (the web client's archive page) | Unreads, Channels, Search |
-| `cmd+c` | Copy link (Copy text on a search hit) | Unreads, Channels, Search |
+| `cmd+shift+o` | Open in browser (the web client's archive page); marked rows each in a tab | Unreads, Channels, Search |
+| `cmd+c` | Copy link (Copy text on a search hit); marked rows one per line | Unreads, Channels, Search |
 | `enter` | Set status, Clear status, Pause notifications, End Do Not Disturb, Set away / active; on "Set a status…" the bar takes the status text, the emoji (`:speech_balloon:` unless you say) and the expiry (none, 30m, 1h, 2h, 4h, tomorrow), on "Do Not Disturb for…" the minutes | Status |
 | `cmd+i` | The detail pane: the unread run | Unreads |
 

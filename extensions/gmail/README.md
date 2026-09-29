@@ -129,11 +129,17 @@ Archive and Star join the row's actions.
 | Open in Gmail | `Enter` | `https://mail.google.com/mail/?authuser=<address>#inbox/<threadId>` (`#all/` off the inbox; Gmail redirects to the account's `/u/N/` slot with the fragment kept) |
 | Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify`; works over marked rows too, a mix of read and unread included |
 | Archive | `⌘E` | send on; out of the inbox; marked rows too |
-| Star / Unstar | `⌘S` | send on; marked rows too |
+| Star / Unstar | `⌘S` | send on; marked rows too, both offered when they mix starred and not |
 | Reply | `⌘⇧R` | send on; the text typed in the bar's field (the sender and the `Re:` subject implied) or, without it, the form; then `messages.send` in the thread |
-| Copy link | `⌘C` | |
+| Copy link | `⌘C` | marked rows too, one link per line |
 | Search label | `⌘Enter` | on a label row: Search Mail with `label:<name>` typed |
-| Send draft / Discard draft | `⌘Enter` / `⌘D` | send on; each asks first |
+| Send draft / Discard draft | `⌘Enter` / `⌘D` | send on; each asks first; Discard (and Open) take marked drafts too, Send one at a time |
+
+Marked rows (`⌘`-click, `⇧`-click, `⇧↓`) take Open (each thread in the
+browser), the marks, Archive, the star and Copy link at once; Reply stays
+one message. In the popover `Enter` opens every marked message, `m` marks
+them read, `s` stars them all (or, when every one is starred, unstars
+them, as Gmail's own button does) and `⌘C` copies their links.
 
 The letter keys the design asked for (`e`, `s`) would type into the
 search box in a list palette (docs/keyboard.md), so they are `⌘E` and

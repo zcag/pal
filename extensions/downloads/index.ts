@@ -155,10 +155,10 @@ async function thumbnail(e: Entry): Promise<string | undefined> {
 
 const OPEN: Action = { id: "open", title: "Open", multi: true };
 const REVEAL: Action = { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", multi: true };
-const QUICK_LOOK: Action = { id: "quick-look", title: "Quick Look", shortcut: "cmd+y" };
+const QUICK_LOOK: Action = { id: "quick-look", title: "Quick Look", shortcut: "cmd+y", multi: true };
 const COPY_FILE: Action = { id: "copy-file", title: "Copy file", shortcut: "cmd+c", multi: true };
 const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+shift+c", multi: true };
-const MOVE: Action = { id: "move", title: "Move to folder…", shortcut: "cmd+m" };
+const MOVE: Action = { id: "move", title: "Move to folder…", shortcut: "cmd+m", multi: true };
 const RENAME: Action = { id: "rename", title: "Rename", shortcut: "cmd+shift+r", args: true };
 /** The row's one field in the bar, a new name; only Rename reads it, and blank falls back to the form with the current name filled. */
 const RENAME_ARGS: Arg[] = [{ id: "name", placeholder: "Rename to" }];
@@ -262,22 +262,20 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const ids = ctx?.ids ?? [id];
   switch (action) {
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
-    case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
+    case "quick-look": files.quickLook(ids); return { hide: true };
     case "copy-file": return { copy_files: ids };
     case "copy-path": return { copy: ids.join("\n") };
     // The bar's name; blank (or a pick without values) is the form with the current name filled, as `rename-submit` (the form's submit) comes back.
     case "rename": return String(ctx?.values?.name ?? "").trim() ? files.renamePick(id, ctx?.values) : { form: files.renameForm(id) };
-    case "move": return { form: files.moveForm(id) };
+    case "move": return { form: files.intoFolderForm("move", ids) };
     case "rename-submit": return files.renamePick(id, ctx?.values);
-    case "move-submit": return files.intoFolderPick("move", id, ctx?.values);
+    case "move-submit": return files.intoFolderManyPick("move", id, ctx?.values);
     case "trash": {
       let n = 0;
       try { for (const p of ids) { await trash(p); n++; } } catch (e) { return failure(n ? `Moved ${n} to the Trash, then failed` : "Could not move to Trash", e); }
       return { keep: true, toast: { title: "Moved to Trash", message: ids.length === 1 ? basename(id) : `${ids.length} items` } };
     }
-    default:
-      for (const p of ids.slice(1)) spawnDetached([MAC ? "open" : "xdg-open", p]);
-      return { open: id };
+    default: return { open: ids.length > 1 ? ids : id };
   }
 }
 

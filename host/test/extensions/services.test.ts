@@ -108,9 +108,11 @@ describe("services (systemd)", () => {
     expect(items[1].accessories).toEqual([{ text: "disabled" }, { tag: "inactive/dead", color: "grey" }]);
     expect(items[2].subtitle).toBeUndefined();
     expect(items[2].accessories).toEqual([{ tag: "failed", color: "red" }]);
-    expect(items[0].actions!.map((a) => [a.id, a.confirm ?? null])).toEqual([["stop", null], ["logs", null], ["restart", null], ["disable", null], ["copy", null]]);
-    expect(items[1].actions!.map((a) => a.id)).toEqual(["start", "logs", "restart", "enable", "copy"]);
-    expect(items[2].actions!.map((a) => a.id)).toEqual(["start", "logs", "restart", "copy"]);
+    expect(items[0].actions!.map((a) => [a.id, a.confirm ?? null])).toEqual([["stop", null], ["logs", null], ["restart", null], ["disable", null], ["copy", null], ["start", null], ["enable", null]]);
+    // The opposite verbs ride at the end, so marked units in both states share them; every action works over marked units.
+    expect(items[1].actions!.map((a) => a.id)).toEqual(["start", "logs", "restart", "enable", "copy", "stop", "disable"]);
+    expect(items[2].actions!.map((a) => a.id)).toEqual(["start", "logs", "restart", "copy", "stop"]);
+    expect(items.every((i) => i.actions!.every((a) => a.multi))).toBe(true);
     expect(items.every((i) => i.section === undefined)).toBe(true);
     expect(called().slice(-2)).toEqual(["systemctl --user --no-pager list-units --type=service --all --output=json", "systemctl --user --no-pager list-unit-files --type=service --output=json"]);
   });
@@ -118,8 +120,8 @@ describe("services (systemd)", () => {
   test("system units ask before stop, restart and disable; failed and running span both scopes in sections", async () => {
     const system = await list("system");
     expect(system.map((i) => i.id)).toEqual(["system:docker.service", "system:cups.service"]);
-    expect(system[0].actions!.map((a) => [a.id, !!a.confirm])).toEqual([["stop", true], ["logs", false], ["restart", true], ["disable", true], ["copy", false]]);
-    expect(system[1].actions!.map((a) => [a.id, !!a.confirm])).toEqual([["start", false], ["logs", false], ["restart", true], ["enable", false], ["copy", false]]);
+    expect(system[0].actions!.map((a) => [a.id, !!a.confirm])).toEqual([["stop", true], ["logs", false], ["restart", true], ["disable", true], ["copy", false], ["start", false], ["enable", false]]);
+    expect(system[1].actions!.map((a) => [a.id, !!a.confirm])).toEqual([["start", false], ["logs", false], ["restart", true], ["enable", false], ["copy", false], ["stop", true], ["disable", true]]);
     const failed = await list("failed");
     expect(failed.map((i) => [i.id, i.section])).toEqual([["user:broken.service", "User"]]);
     const running = await list("running");
@@ -136,6 +138,23 @@ describe("services (systemd)", () => {
     expect(await pick("user:agent-chrome.service", "disable")).toMatchObject({ toast: { title: "Disabled agent-chrome.service" } });
     expect(await pick("user:backup.service", "copy")).toEqual({ copy: "backup.service" });
     expect(await pick("user:missing.service")).toEqual({ keep: true, toast: { title: "Unit not listed", message: "List again first", style: "failure" } });
+  });
+
+  test("marked units: one systemctl per scope names them all (root asked once for the system ones); logs and copy take them all", async () => {
+    await list("running");
+    const both = { ids: ["user:agent-chrome.service", "system:docker.service"] };
+    writeFileSync(join(dir, "allow"), "plain");
+    expect(await host.pick("services", "services", "user:agent-chrome.service", "restart", both)).toEqual({ keep: true, toast: { title: "Restarted 2 units" } });
+    expect(called().slice(-2)).toEqual(["systemctl --user --no-pager --no-ask-password restart agent-chrome.service", "systemctl --no-pager --no-ask-password restart docker.service"]);
+    rmSync(join(dir, "allow"));
+    await list();
+    const users = { ids: ["user:agent-chrome.service", "user:backup.service"] };
+    expect(await host.pick("services", "services", "user:agent-chrome.service", "stop", users)).toEqual({ keep: true, toast: { title: "Stopped 2 units" } });
+    expect(called().at(-1)).toBe("systemctl --user --no-pager --no-ask-password stop agent-chrome.service backup.service");
+    expect(await host.pick("services", "services", "user:agent-chrome.service", "copy", users)).toEqual({ copy: "agent-chrome.service\nbackup.service" });
+    const r = await host.pick("services", "services", "user:agent-chrome.service", "logs", users);
+    expect(r.show!.title).toBe("2 units logs");
+    expect(called().at(-1)).toBe("journalctl --user -u agent-chrome.service -u backup.service -n 200 --no-pager");
   });
 
   test("logs: journalctl -u, --user for a user unit, as a show level", async () => {
@@ -173,7 +192,7 @@ describe("services (systemd)", () => {
   test("confirm_user asks for user units too", async () => {
     host.changeSettings("services", { settings: { ttl: 5, confirm_user: true } });
     const items = await list();
-    expect(items[0].actions![0]).toMatchObject({ id: "stop", confirm: "Stop this user unit?" });
+    expect(items[0].actions![0]).toMatchObject({ id: "stop", confirm: "Stop with the user manager?" });
     host.changeSettings("services", { settings: { ttl: 5 } });
   });
 });
@@ -199,10 +218,12 @@ describe("services (launchd)", () => {
     expect(items.map((i) => [i.id, i.section])).toEqual([["io.cagdas.bt-follow", agents], ["io.cagdas.chrome-cdp", agents], ["com.google.keystone.agent", sysAgents]]);
     const [follow, cdp, keystone] = items;
     expect(cdp).toMatchObject({ name: "io.cagdas.chrome-cdp", subtitle: "/Users/x/.local/bin/chrome-cdp", keywords: ["io.cagdas.chrome-cdp.plist"], accessories: [{ text: "pid 412" }, { tag: "running", color: "green" }] });
-    expect(cdp.actions!.map((a) => a.id)).toEqual(["unload", "restart", "show", "open", "copy"]);
+    expect(cdp.actions!.map((a) => a.id)).toEqual(["unload", "restart", "show", "open", "copy", "load"]);
+    // Everything but Show plist works over marked jobs; Load and Unload both ride on every row that can take them.
+    expect(cdp.actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["show"]);
     expect(cdp.actions![0].confirm).toBeTruthy();
     expect(follow.accessories).toEqual([{ tag: "not loaded", color: "grey" }]);
-    expect(follow.actions!.map((a) => a.id)).toEqual(["load", "show", "open", "copy"]);
+    expect(follow.actions!.map((a) => a.id)).toEqual(["load", "show", "open", "copy", "unload"]);
     expect(keystone.detail!.metadata).toEqual([{ label: "Label", value: "com.google.keystone.agent" }, { label: "Plist", value: join(sysAgents, "com.google.keystone.agent.plist") }, { label: "Program", value: "/Library/Google/ksagent" }, { label: "State", value: "not loaded" }]);
   });
 
@@ -212,6 +233,7 @@ describe("services (launchd)", () => {
     expect(loaded[0].accessories).toEqual([{ tag: "exit -9", color: "red" }]);
     expect(loaded[1].accessories).toEqual([{ tag: "loaded", color: "blue" }]);
     expect(loaded[1].actions!.map((a) => a.id)).toEqual(["unload", "restart", "copy"]);
+    expect(loaded[0].actions!.map((a) => a.id)).toEqual(["unload", "restart", "copy"]);
     expect(loaded[2].subtitle).toBe("/Users/x/.local/bin/chrome-cdp");
     expect((await list("running")).map((i) => i.id)).toEqual(["io.cagdas.chrome-cdp"]);
   });
@@ -234,6 +256,15 @@ describe("services (launchd)", () => {
     expect(r.show!.markdown).toMatch(/^````xml\n<\?xml version="1.0"[\s\S]*<string>io.cagdas.chrome-cdp<\/string>[\s\S]*\n````$/);
     expect(await pick("io.cagdas.chrome-cdp", "open")).toEqual({ open: join(agents, "io.cagdas.chrome-cdp.plist") });
     expect(await pick("io.cagdas.chrome-cdp", "copy")).toEqual({ copy: "io.cagdas.chrome-cdp" });
+  });
+
+  test("marked jobs: open and copy take them all; unload skips the ones the listing shows not loaded", async () => {
+    await list();
+    const two = { ids: ["io.cagdas.chrome-cdp", "io.cagdas.bt-follow"] };
+    expect(await host.pick("services", "services", "io.cagdas.chrome-cdp", "open", two)).toEqual({ open: [join(agents, "io.cagdas.chrome-cdp.plist"), join(agents, "io.cagdas.bt-follow.plist")] });
+    expect(await host.pick("services", "services", "io.cagdas.chrome-cdp", "copy", two)).toEqual({ copy: "io.cagdas.chrome-cdp\nio.cagdas.bt-follow" });
+    expect(await host.pick("services", "services", "io.cagdas.chrome-cdp", "unload", two)).toEqual({ keep: true, toast: { title: "Unloaded io.cagdas.chrome-cdp" } });
+    expect(called().at(-1)).toBe(`launchctl bootout ${gui}/io.cagdas.chrome-cdp`);
   });
 
   test("a missing agent folder is skipped; none at all is a hint", async () => {

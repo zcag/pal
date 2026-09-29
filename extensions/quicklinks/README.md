@@ -41,6 +41,8 @@ link asks for, its keywords and where it came from.
 | `cmd+c` | Copy URL, as stored (placeholder included); inside the library's drill-in, the filled url |
 | `cmd+e` | Edit: the form, filled in |
 | `ctrl+x` | Delete, after a confirm |
+
+Marked rows (`⌘`-click, `⇧↓`): Open opens each (a `{query}` link that still asks for its value is left out), Copy URL puts one a line, Delete takes them all; in the library, Add and Copy URL take several too.
 | `cmd+i` | The detail pane |
 
 An imported link (from the `import` file) has Open and Copy URL only.

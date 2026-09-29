@@ -38,10 +38,11 @@ export const titleOf = (type: "movie" | "tv", tmdb: number): Promise<Title> => c
 const table = new Map<number, SeerrRequest>();
 const results = new Map<string, SeerrResult>();
 
+// Every action also takes marked requests (`multi`): each approved or declined, each opened, the links one per line.
 const REQ_ACTIONS = (r: SeerrRequest): Action[] => [
-  { id: "open", title: "Open in Jellyseerr" },
-  ...(r.status === 1 ? [{ id: "approve", title: "Approve", shortcut: "cmd+enter" } as Action, { id: "decline", title: "Decline", shortcut: "cmd+shift+d", style: "destructive", confirm: "Decline this request?" } as Action] : []),
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  { id: "open", title: "Open in Jellyseerr", multi: true },
+  ...(r.status === 1 ? [{ id: "approve", title: "Approve", shortcut: "cmd+enter", multi: true } as Action, { id: "decline", title: "Decline", shortcut: "cmd+shift+d", style: "destructive", multi: true, confirm: "Decline? The requester sees it declined." } as Action] : []),
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
 ];
 
 export async function requestRow(r: SeerrRequest, section?: string): Promise<Item> {
@@ -95,11 +96,12 @@ export function resultRow(r: SeerrResult, fourK: boolean): Item {
     section: r.mediaType === "tv" ? "Series" : "Movies",
     accessories: [...(ms ? [{ tag: ms.text, color: ms.color }] : []), ...(r.voteAverage ? [{ text: `★ ${r.voteAverage.toFixed(1)}` }] : [])],
     detail: { markdown: [r.posterPath ? `![poster](${POSTER(r.posterPath, 342)})` : "", r.overview ?? "_No overview._"].filter(Boolean).join("\n\n"), metadata: [{ label: "Type", value: r.mediaType === "tv" ? "Series" : "Movie" }, ...(year ? [{ label: "Year", value: year }] : []), ...(ms ? [{ label: "Status", tags: [{ text: ms.text, color: ms.color }] }] : []), { label: "TMDB", link: { text: String(r.id), href: `https://www.themoviedb.org/${r.mediaType}/${r.id}` } }] },
+    // Every action also takes marked results (`multi`): each requested (the questions name none), each opened, the links one per line.
     actions: [
-      ...(already ? [{ id: "open", title: "Open in Jellyseerr" } as Action, { id: "request", title: "Request again", confirm: `Request ${title} again?` } as Action] : [{ id: "request", title: "Request", confirm: `Request ${title}${year ? ` (${year})` : ""} on Jellyseerr?` } as Action]),
-      ...(fourK ? [{ id: "request4k", title: "Request in 4K", shortcut: "cmd+enter", confirm: `Request ${title} in 4K?` } as Action] : []),
-      ...(already ? [] : [{ id: "open", title: "Open in Jellyseerr", shortcut: "cmd+o" } as Action]),
-      { id: "tmdb", title: "Copy TMDB link", shortcut: "cmd+c" },
+      ...(already ? [{ id: "open", title: "Open in Jellyseerr", multi: true } as Action, { id: "request", title: "Request again", multi: true, confirm: "Request again on Jellyseerr?" } as Action] : [{ id: "request", title: "Request", multi: true, confirm: "Request on Jellyseerr?" } as Action]),
+      ...(fourK ? [{ id: "request4k", title: "Request in 4K", shortcut: "cmd+enter", multi: true, confirm: "Request in 4K on Jellyseerr?" } as Action] : []),
+      ...(already ? [] : [{ id: "open", title: "Open in Jellyseerr", shortcut: "cmd+o", multi: true } as Action]),
+      { id: "tmdb", title: "Copy TMDB link", shortcut: "cmd+c", multi: true },
     ],
   };
 }
@@ -114,29 +116,39 @@ export async function searchRows(q: string): Promise<Item[]> {
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return id === "hint:empty" && action === "request" ? { push: { extension: "theater", palette: "seerr-request" } } : pickHint(id);
+  // The marked rows of the same kind (`ctx.ids`), the addressed one first, else the one.
+  const marked = (prefix: string) => (ctx?.ids ?? [id]).filter((x) => x.startsWith(prefix)).map((x) => x.slice(prefix.length));
   if (id.startsWith("req:")) {
     const r = table.get(Number(id.slice(4))) ?? (await requests("all", true)).find((x) => x.id === Number(id.slice(4)));
     if (!r) throw new Error(`no request ${id}`);
-    const url = mediaUrl(r.type, r.media.tmdbId);
+    const rs = marked("req:").map((k) => table.get(Number(k))).filter((x): x is SeerrRequest => !!x);
+    const urls = rs.map((x) => mediaUrl(x.type, x.media.tmdbId));
     switch (action) {
-      case "copy": return { copy: url };
-      case "approve": try { await approve(r.id); } catch (e) { return toast("Could not approve", String((e as Error).message), "failure"); } table.set(r.id, { ...r, status: 2 }); return toast("Approved", await titleOf(r.type, r.media.tmdbId).then((t) => t.title).catch(() => undefined));
-      case "decline": try { await decline(r.id); } catch (e) { return toast("Could not decline", String((e as Error).message), "failure"); } table.set(r.id, { ...r, status: 3 }); return toast("Declined");
-      default: return { open: url };
+      case "copy": return { copy: urls.join("\n") };
+      case "approve": {
+        for (const x of rs) { try { await approve(x.id); } catch (e) { return toast("Could not approve", String((e as Error).message), "failure"); } table.set(x.id, { ...x, status: 2 }); }
+        return toast("Approved", rs.length > 1 ? `${rs.length} requests` : await titleOf(r.type, r.media.tmdbId).then((t) => t.title).catch(() => undefined));
+      }
+      case "decline": {
+        for (const x of rs) { try { await decline(x.id); } catch (e) { return toast("Could not decline", String((e as Error).message), "failure"); } table.set(x.id, { ...x, status: 3 }); }
+        return toast("Declined", rs.length > 1 ? `${rs.length} requests` : undefined);
+      }
+      default: return { open: urls.length > 1 ? urls : mediaUrl(r.type, r.media.tmdbId) };
     }
   }
   if (id.startsWith("result:")) {
     const r = results.get(id.slice(7));
     if (!r || r.mediaType === "person") throw new Error(`no result ${id}`);
     const title = r.title ?? r.name ?? "";
+    const rs = marked("result:").map((k) => results.get(k)).filter((x): x is SeerrResult & { mediaType: "movie" | "tv" } => !!x && x.mediaType !== "person");
     switch (action) {
-      case "tmdb": return { copy: `https://www.themoviedb.org/${r.mediaType}/${r.id}` };
-      case "open": return { open: mediaUrl(r.mediaType, r.id) };
+      case "tmdb": return { copy: rs.map((x) => `https://www.themoviedb.org/${x.mediaType}/${x.id}`).join("\n") };
+      case "open": return { open: rs.length > 1 ? rs.map((x) => mediaUrl(x.mediaType, x.id)) : mediaUrl(r.mediaType, r.id) };
       default: {
-        try { await request(r.mediaType, r.id, action === "request4k"); } catch (e) { return toast("Could not request", String((e as Error).message), "failure"); }
-        return { hud: `Requested ${truncate(title, 40)}${action === "request4k" ? " in 4K" : ""}` };
+        for (const x of rs) { try { await request(x.mediaType, x.id, action === "request4k"); } catch (e) { return toast("Could not request", String((e as Error).message), "failure"); } }
+        return { hud: `Requested ${rs.length > 1 ? `${rs.length} titles` : truncate(title, 40)}${action === "request4k" ? " in 4K" : ""}` };
       }
     }
   }

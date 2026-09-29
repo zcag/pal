@@ -42,6 +42,10 @@ first action of the tile under the cursor.
 | `cmd+i` | The detail pane |
 | `cmd+k` | Every action |
 
+Every action works over marked characters too (`cmd`-click, `shift`-click,
+`shift+↑↓`): the characters, entities and references run together as one
+string (`→⌘`), the code points are a space apart (`U+2192 U+2318`).
+
 ## Setup
 
 Nothing to install. Pasting is a synthesised Cmd+V, which macOS only

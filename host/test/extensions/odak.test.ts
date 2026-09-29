@@ -100,11 +100,15 @@ describe("odak", () => {
     test("the actions: Complete first, the rest on their keys, Open link only on a row with a link, Delete asks", async () => {
       const items = await list("odak");
       const pr = items.find((i) => i.name.startsWith("Review the parser"))!;
-      expect(pr.actions!.map((a) => [a.id, a.shortcut])).toEqual([["complete", undefined], ["edit", "cmd+e"], ["tomorrow", "cmd+t"], ["snooze", "cmd+s"], ["move", "cmd+m"], ["urgent", "cmd+u"], ["subtask", "cmd+n"], ["link", "cmd+l"], ["open", "cmd+o"], ["copy", "cmd+c"], ["copy-link", "cmd+shift+c"], ["delete", "cmd+d"]]);
-      expect(pr.actions!.at(-1)).toMatchObject({ style: "destructive", multi: true, confirm: expect.stringContaining("subtasks") });
+      expect(pr.actions!.map((a) => [a.id, a.shortcut])).toEqual([["complete", undefined], ["edit", "cmd+e"], ["tomorrow", "cmd+t"], ["snooze", "cmd+s"], ["move", "cmd+m"], ["urgent", "cmd+u"], ["subtask", "cmd+n"], ["link", "cmd+l"], ["open", "cmd+o"], ["copy", "cmd+c"], ["copy-link", "cmd+shift+c"], ["delete", "cmd+d"], ["not-urgent", undefined]]);
+      expect(pr.actions!.find((a) => a.id === "delete")).toMatchObject({ style: "destructive", multi: true, confirm: expect.stringContaining("subtasks") });
+      // Over marked rows: what a loop can do to each, Snooze… and Move… too (their submit gets the marks back); Edit and a subtask stay one todo's.
+      expect(pr.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["complete", "tomorrow", "snooze", "move", "urgent", "link", "copy", "copy-link", "delete", "not-urgent"]);
       const ship = items.find((i) => i.name === "Ship the release notes")!;
       expect(ship.actions!.map((a) => a.id)).not.toContain("link");
-      expect(ship.actions!.find((a) => a.id === "urgent")!.title).toBe("Not urgent");
+      // An urgent row has Not urgent on ⌘U and Mark urgent at the end, so marked rows of both kinds offer both.
+      expect(ship.actions!.find((a) => a.shortcut === "cmd+u")!.title).toBe("Not urgent");
+      expect(ship.actions!.at(-1)!.id).toBe("urgent");
     });
 
     test("the pane: the text bold with the subtasks as a task list; section, tags, urgent, due with the day, under, subtasks, link, id", async () => {
@@ -157,6 +161,18 @@ describe("odak", () => {
       expect(ITEMS.filter((t) => t.done).map((t) => t.text)).toContain("Learn the accordion");
       expect(await pick("done", a, "reopen", { ids: [a, b] })).toEqual({ keep: true, toast: { title: "Reopened", message: "2 todos" } });
       expect(item("Book the dentist").done).toBe(false);
+      // The flag both ways, snooze and the copy over the same two (a todo's id is its content's hash, so it is read again after each change).
+      const both = async () => { await list("odak"); return [id("Book the dentist"), id("Learn the accordion")]; };
+      let ids = await both();
+      expect(await pick("odak", ids[0]!, "urgent", { ids })).toEqual({ keep: true, toast: { title: "Urgent", message: "2 todos" } });
+      expect([item("Book the dentist").urgent, item("Learn the accordion").urgent]).toEqual([true, true]);
+      ids = await both();
+      expect(await pick("odak", ids[0]!, "not-urgent", { ids })).toEqual({ keep: true, toast: { title: "Not urgent", message: "2 todos" } });
+      ids = await both();
+      expect(await pick("odak", ids[0]!, "tomorrow", { ids })).toEqual({ keep: true, toast: { title: "Snoozed to Wed 23 Sep", message: "2 todos" } });
+      expect([item("Book the dentist").deadline, item("Learn the accordion").deadline]).toEqual(["2026-09-23", "2026-09-23"]);
+      ids = await both();
+      expect(await pick("odak", ids[0]!, "copy", { ids })).toEqual({ copy: `${item("Book the dentist").text}\n${item("Learn the accordion").text}` });
     });
 
     test("Snooze to tomorrow writes the day with the flag kept; Snooze… is a form whose typed day wins over the choice, and a day it cannot read stays in the form", async () => {
@@ -174,6 +190,11 @@ describe("odak", () => {
       expect(item("Book the dentist").deadline).toBe("2026-10-06");
       expect((await list("odak")).find((i) => i.name === "Book the dentist")!.id).toBe(id("Book the dentist"));
       expect(await pick("odak", id("Book the dentist"), "snooze:save", { values: { day: "2026-09-28", typed: "" } })).toMatchObject({ toast: { title: "Snoozed to Mon 28 Sep" } });
+      // Marked rows: the form counts them, and its submit (the marks back in ctx.ids) snoozes each.
+      const two = [id("Book the dentist"), id("Ship the release notes")];
+      expect(((await pick("odak", two[0]!, "snooze", { ids: two })).form as Form).title).toBe("Snooze 2 todos");
+      expect(await pick("odak", two[0]!, "snooze:save", { values: { day: "2026-09-29", typed: "" }, ids: two })).toEqual({ keep: true, toast: { title: "Snoozed to Tue 29 Sep", message: "2 todos" } });
+      expect([item("Book the dentist").deadline, item("Ship the release notes").deadline]).toEqual(["2026-09-29", "2026-09-29"]);
     });
 
     test("Move… lists the file's sections with the row's chosen; the move lands the line at the end of the new section, subtasks along", async () => {
@@ -183,6 +204,11 @@ describe("odak", () => {
       expect(await pick("odak", ship, "move:save", { values: { section: "Next" } })).toEqual({ keep: true, toast: { title: "Moved to Next", message: "Ship the release notes" } });
       expect((await list("odak")).filter((i) => i.section === "Next").map((i) => i.name)).toEqual(["Book the dentist", "Pick a marketing project to start", "Ship the release notes", "Write the changelog entry"]);
       expect(ITEMS.filter((t) => t.section === "Next").map((t) => t.text).slice(-2)).toEqual(["Ship the release notes", "Write the changelog entry"]);
+      // Marked rows: one form for them all, each moved on its submit.
+      const two = [id("Ship the release notes"), id("Book the dentist")];
+      expect(((await pick("odak", two[0]!, "move", { ids: two })).form as Form).title).toBe("Move 2 todos");
+      expect(await pick("odak", two[0]!, "move:save", { values: { section: "Someday" }, ids: two })).toEqual({ keep: true, toast: { title: "Moved to Someday", message: "2 todos" } });
+      expect([item("Ship the release notes").section, item("Book the dentist").section]).toEqual(["Someday", "Someday"]);
     });
 
     test("Edit…: the form holds the todo; Save writes text, tags, the flag and a day, moves when the section changed, and the row comes back under its new id; a cleared day is refused with the reason", async () => {
@@ -348,6 +374,11 @@ describe("odak", () => {
       // Marked rows (`ctx.ids`): x completes them all, whatever the cursor is on.
       expect(await host.barAction("odak", "today", "complete", { reason: "open", ids: [id("Ship the release"), id("Write the changelog")] })).toEqual({ keep: true, hud: "Done: 2 todos" });
       expect([item("Ship the release").done, item("Write the changelog").done, !!item("Call the bank").done]).toEqual([true, true, false]);
+      // u flags them all (or clears them when all are); t snoozes them all.
+      const two = () => [id("Call the bank"), id("Book the dentist")];
+      expect((await host.barAction("odak", "today", "urgent", { reason: "open", ids: two() })).hud).toMatch(/: 2 todos$/);
+      await list("odak");
+      expect(await host.barAction("odak", "today", "tomorrow", { reason: "open", ids: two() })).toMatchObject({ keep: true, toast: { message: "2 todos" } });
     });
 
     test("n opens the field (the search row types a todo), Enter adds it through the add grammar and closes the field, an empty one is refused, Escape closes", async () => {

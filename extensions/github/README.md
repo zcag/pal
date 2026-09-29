@@ -93,6 +93,14 @@ computes per result; yours carry them from the cached lists.
 | `cmd+k` | Copy reference (`owner/repo#n`), Copy owner/name, Open issues, Open pull requests, Open repositories | the rest, without a shortcut |
 | `cmd+i` | The detail pane (open by default in Pull Requests and Issues) | |
 
+Marked rows (`⌘`-click, `⇧`-click for a range, `⇧↑`/`⇧↓`) take every
+action above at once except Checkout branch, Open path and Mark all as
+read: several PRs or issues open in one go, the copies land one per line,
+mute, unmute, merge, close and mark ready go through them all (the
+question says how many). The PR, issue and notification popovers mark the
+same way: `Enter` opens each marked row, `c` copies them, `m` mutes (or,
+in notifications, marks read) them all.
+
 ## Setup
 
 Sign in one of two ways: install the [gh CLI](https://cli.github.com) and

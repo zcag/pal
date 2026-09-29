@@ -167,11 +167,12 @@ async function runNow(c: Command, values?: Record<string, unknown>) {
 // ---- rows -------------------------------------------------------------------------------
 
 const RUN: Action = { id: "run", title: "Run" };
-const OPEN: Action = { id: "open", title: "Open script", shortcut: "cmd+o" };
+// Marked commands (`multi`): Open opens each file, Copy path puts one a line. Run stays one command's: each answers its own way (a HUD, its output, its rows).
+const OPEN: Action = { id: "open", title: "Open script", shortcut: "cmd+o", multi: true };
 const COPY_OUTPUT: Action = { id: "copy_output", title: "Copy output", shortcut: "cmd+c" };
 /** The header's arguments as the row's (`Item.args`): typed in the bar before Run or Copy output; the values reach the script as `$1..$n` in header order. */
 const barArgs = (c: Command): BarArg[] => c.args.map((a) => ({ id: a.name, placeholder: a.placeholder, required: !a.optional }));
-const COPY_PATH: Action = { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" };
+const COPY_PATH: Action = { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c", multi: true };
 
 /** An `inline` command's last output, by id, with when it was made. */
 const inline = new Map<string, { at: number; text: string }>();
@@ -326,9 +327,10 @@ export function commands(): { palette: Palette; dispose: () => void } {
       if (id.startsWith("hint:")) return;
       const c = byId(id);
       if (!c) return toast("Command not found", "The file left the commands folder; cmd+r lists again", "failure");
+      const paths = (ctx?.ids ?? [id]).map(byId).filter((x): x is Command => !!x).map((x) => x.path);
       switch (action) {
-        case "open": return { open: c.path };
-        case "copy_path": return { copy: c.path };
+        case "open": return { open: paths.length > 1 ? paths : c.path };
+        case "copy_path": return { copy: paths.join("\n") };
         case "copy_output": case "copy_args": {
           if (c.args.length && !ctx?.values) return { form: form(c, { id: "copy_output", title: "Copy output" }) };
           const r = await runNow(c, ctx?.values);

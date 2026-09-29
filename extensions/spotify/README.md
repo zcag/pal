@@ -62,6 +62,8 @@ or its `spotify:playlist:` link) is one "Play <name>" row; a name that
 is not among your playlists is a hint row saying so. The playing track
 is also a row of the root's Now section (Enter opens the lyrics view).
 
+Marked tracks (cmd-click, shift-click, shift+arrows) play as one list, queue in order, like or unlike together (as the row the pick is on reads), go to a playlist in one request (Add to playlist asks through a form, "Add 3 tracks") and copy their links one per line; marked playlists, albums and artists copy their links. Open is one row's.
+
 ## The lyrics view
 
 The cover large at the left with the track, artist and album under it,

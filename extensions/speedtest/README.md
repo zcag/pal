@@ -51,6 +51,8 @@ history. The first row, **Trend**, draws the last twenty runs as bars,
 download in blue and upload in green, each against the best of its own,
 with the ping beside; Enter there copies the history as text.
 
+Marked runs copy as one dated line each, open their result pages, or are removed together.
+
 ## Setup
 
 Settings, `[extensions.speedtest]`:

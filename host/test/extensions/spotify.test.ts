@@ -207,7 +207,7 @@ describe("spotify", () => {
 
     test("the flow: Enter on the row opens the authorize url and pal listens; the redirect exchanges the code with PKCE, stores the tokens, tells the HUD and renders the bar item again", async () => {
       const r = await pick("search", "hint:signin");
-      const url = new URL(r.open!);
+      const url = new URL(r.open as string);
       expect(url.origin).toBe(`http://127.0.0.1:${accounts.port}`);
       expect(url.pathname).toBe("/authorize");
       const q = Object.fromEntries(url.searchParams);
@@ -294,6 +294,9 @@ describe("spotify, signed in", () => {
       expect(artist).toMatchObject({ name: "Radiohead", subtitle: "art rock, alternative", accessories: [{ text: "12.3M followers" }] });
       expect(album).toMatchObject({ subtitle: "Radiohead · 2007", accessories: [{ text: "10 tracks" }] });
       expect(album.actions!.map((a) => a.id)).toEqual(["play", "tracks", "open", "copy"]);
+      // Marked tracks play, queue, like, go to a playlist and copy together; a container only copies.
+      expect(weird.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["play", "queue", "like", "add", "copy"]);
+      expect(album.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy"]);
       expect(playlist).toMatchObject({ name: "Focus", subtitle: "Cagdas · Deep work", accessories: [{ text: "42 tracks" }] });
       expect(playlist.actions!.map((a) => a.id)).toEqual(["play", "tracks", "shuffle", "open", "copy"]);
       expect(show).toMatchObject({ name: "Conan O'Brien Needs A Friend", subtitle: "Team Coco" });
@@ -315,6 +318,19 @@ describe("spotify, signed in", () => {
       expect(calls("DELETE", "/v1/me/tracks?ids=t1")).toHaveLength(1);
       expect(await pick("search", "track:t1", "open")).toEqual({ open: "spotify:track:t1" });
       expect(await pick("search", "track:t1", "copy")).toEqual({ copy: "https://open.spotify.com/track/t1" });
+      // Marked tracks: one play of them all in order, each queued, liked in one call, the links one per line.
+      const two = { ids: ["track:t2", "track:t1"] };
+      expect(await pick("search", "track:t2", "play", two)).toEqual({ hud: "Playing 2 tracks" });
+      expect(calls("PUT", "/v1/me/player/play").at(-1)!.body).toEqual({ uris: ["spotify:track:t2", "spotify:track:t1"] });
+      const q = calls("POST", "/v1/me/player/queue").length;
+      expect(await pick("search", "track:t2", "queue", two)).toMatchObject({ keep: true, toast: { title: "Added to queue", message: "2 tracks" } });
+      expect(calls("POST", "/v1/me/player/queue").length).toBe(q + 2);
+      // Like over marks follows the addressed row: t2 is liked, so both are unliked in one call.
+      expect(await pick("search", "track:t2", "like", two)).toMatchObject({ toast: { title: "Removed from Liked Songs", message: "2 tracks" } });
+      expect(calls("DELETE", "/v1/me/tracks").at(-1)!.path).toMatch(/ids=t2(,|%2C)t1$/);
+      // And back, so the lyrics view below finds t2 liked.
+      await pick("search", "track:t2", "like");
+      expect((await pick("search", "track:t1", "copy", { ids: ["track:t1", "album:al1"] })).copy).toBe("https://open.spotify.com/track/t1\nhttps://open.spotify.com/album/al1");
       expect(await pick("search", "album:al1")).toEqual({ hud: "Playing In Rainbows" });
       expect(calls("PUT", "/v1/me/player/play").at(-1)!.body).toEqual({ context_uri: "spotify:album:al1" });
       expect(await pick("search", "playlist:p1", "shuffle")).toEqual({ hud: "Playing Focus shuffled" });
@@ -345,6 +361,11 @@ describe("spotify, signed in", () => {
       state.forbid = false;
       // An artist row has no playlist to go into.
       expect(await pick("search", "artist:ar1", "add", { values: { playlist: "p1" } })).toEqual({ keep: true });
+      // Marked tracks: the form counts them, its submit (the marks back in ctx.ids) posts every uri in one call; an artist among them is left out.
+      const marked = ["track:t1", "track:zz", "artist:ar1"];
+      expect((await pick("search", "track:t1", "add", { ids: marked })).form).toMatchObject({ title: "Add 2 tracks" });
+      expect(await pick("search", "track:t1", "add", { values: { playlist: "p3" }, ids: marked })).toMatchObject({ keep: true, toast: { title: "Added to Road Trip", message: "2 tracks" } });
+      expect(calls("POST", "/v1/playlists/p3/tracks").at(-1)!.body).toEqual({ uris: ["spotify:track:t1", "spotify:track:zz"] });
     });
   });
 

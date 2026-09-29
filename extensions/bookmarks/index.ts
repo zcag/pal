@@ -9,7 +9,7 @@
 // A second palette, `history` (history.ts), searches the same browsers'
 // visit history; browsers.ts is what the two share.
 import { errorMessage, failed, hint, home, settings, xdg, type Action, type Extension, type Item } from "@zcag/pal";
-import { BROWSERS, HOME, MAC, chromiumProfiles, copied, exists, firefoxProfiles, openIn, spawnDetached, type Firefox } from "./browsers.ts";
+import { BROWSERS, HOME, MAC, chromiumProfiles, copied, exists, firefoxProfiles, openIn, type Firefox } from "./browsers.ts";
 import { historyPalette } from "./history.ts";
 import { bareUrl, chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks, titleOf, type FirefoxRow, type Found } from "./sources.ts";
 
@@ -18,9 +18,12 @@ type Settings = { file: string; browsers: string[]; exclude_folders: string[] };
 type Row = { name?: string; url?: string; subtitle?: string; icon?: string; keywords?: string[] };
 
 // Open works on marked rows too (`multi`): every one in a tab of the default browser.
+// All of them work on marked rows: the links open together, the copies go one per line.
 const OPEN: Action = { id: "open", title: "Open in browser", multi: true };
-const COPY: Action = { id: "copy", title: "Copy link", shortcut: "cmd+c" };
-const COPY_MD: Action = { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c" };
+const COPY: Action = { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true };
+const COPY_MD: Action = { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c", multi: true };
+/** Open in the browser the bookmark came from; keyed per browser, so marked rows from two browsers never share an "Open in Chrome" that opens Firefox's. */
+export const openInAction = (app: string, section: string): Action => ({ id: `open-in:${app}`, title: `Open in ${section.replace(/ \(.*\)$/, "")}`, multi: true });
 
 // ---- browsers --------------------------------------------------------------
 
@@ -133,7 +136,7 @@ async function list(): Promise<Item[]> {
         url: f.url,
         accessories: f.folder.length ? [{ text: f.folder.join(" / ") }] : [],
         section: src.section,
-        actions: [OPEN, COPY, COPY_MD, ...(src.browser ? [{ id: "open-in", title: `Open in ${src.section.replace(/ \(.*\)$/, "")}` }] : [])],
+        actions: [OPEN, COPY, COPY_MD, ...(src.browser ? [openInAction(src.browser, src.section)] : [])],
       });
     }
   }
@@ -149,22 +152,21 @@ export default {
       actions: [OPEN, COPY, COPY_MD],
       list,
       pick: async (id, action, ctx) => {
+        // Every marked url (`ctx.ids`), else the one.
+        const ids = ctx?.ids ?? [id];
+        const inBrowser = action?.startsWith("open-in");
         // A pick on a row restored from the persisted index, before this run has listed.
-        if (!known.has(id) && (action === "copy-markdown" || action === "open-in")) await list();
-        // A multi pick's marked urls: all but the first through the opener here, the first as the effect (one url each).
-        if (ctx?.ids && ctx.ids.length > 1 && (action === "open" || action === undefined)) {
-          for (const url of ctx.ids.slice(1)) spawnDetached([MAC ? "open" : "xdg-open", url]);
-        }
-        switch (action) {
-          case "copy": return { copy: id };
-          case "copy-markdown": return { copy: markdownLink(known.get(id)?.name ?? id, id) };
+        if (ids.some((u) => !known.has(u)) && (action === "copy-markdown" || inBrowser)) await list();
+        switch (inBrowser ? "open-in" : action) {
+          case "copy": return { copy: ids.join("\n") };
+          case "copy-markdown": return { copy: ids.map((u) => markdownLink(known.get(u)?.name ?? u, u)).join("\n") };
           case "open-in": {
-            const app = known.get(id)?.browser;
-            if (!app) return { open: id };
-            try { openIn(id, app); } catch (e) { return failed(`open in ${app}`, e); }
-            return { hide: true };
+            // A row with no browser of its own (a file row) goes to the opener.
+            const bare = ids.filter((u) => !known.get(u)?.browser);
+            for (const u of ids) { const app = known.get(u)?.browser; if (!app) continue; try { openIn(u, app); } catch (e) { return failed(`open in ${app}`, e); } }
+            return bare.length ? { open: bare.length > 1 ? bare : bare[0]! } : { hide: true };
           }
-          default: return { open: id };
+          default: return { open: ids.length > 1 ? ids : id };
         }
       },
     },

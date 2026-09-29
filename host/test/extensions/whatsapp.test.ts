@@ -252,6 +252,7 @@ describe("whatsapp", () => {
     expect(await host.pick(X, "chats", HIKE)).toEqual({ open: "https://web.whatsapp.com/", hud: "Weekend hike is a group: WhatsApp opens at the top" });
     expect(await host.pick(X, "chats", MARA, "copy-number")).toEqual({ copy: "+905551234567" });
     expect(await host.pick(X, "chats", HIKE, "copy-name")).toEqual({ copy: "Weekend hike" });
+    expect(await host.pick(X, "chats", MARA, "copy-number", { ids: [MARA, TOMAS] })).toEqual({ copy: "+905551234567\n+905559876543" });
     // The app, when the setting says so.
     host.changeSettings(X, { settings: settings({ open: "app" }) });
     await host.until(() => host.coreCalls.length > 0);
@@ -378,6 +379,10 @@ describe("whatsapp", () => {
     expect(await host.pick(X, "contacts", rows[5].id)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });
     expect(await host.pick(X, "contacts", rows[5].id, "copy-number")).toEqual({ copy: "+905551234567" });
     expect(await host.pick(X, "contacts", rows[5].id, "copy-vcard")).toEqual({ copy: vcard("Mara Lind", "905551234567"), hud: "Copied Mara Lind as a vCard" });
+    // Marked contacts: every number, or every vCard (one .vcf holds several), one per line.
+    const two = [rows[5].id, rows[6].id];
+    expect(await host.pick(X, "contacts", two[0]!, "copy-number", { ids: two })).toEqual({ copy: "+905551234567\n+905551112233" });
+    expect(await host.pick(X, "contacts", two[0]!, "copy-vcard", { ids: two })).toEqual({ copy: `${vcard("Mara Lind", "905551234567")}\n${vcard("Ola Berg", "905551112233")}`, hud: "Copied Mara Lind as a vCard and 1 more" });
   });
 
   test("the bar item: the count of unread chats, urgent for a direct one, the popover's rows with the pictures as data urls; one list shared with the palettes", async () => {

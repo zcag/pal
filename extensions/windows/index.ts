@@ -89,10 +89,10 @@ function spaceItem(s: Workspace, all: Window[]): Item {
 }
 
 const FOCUS: Action = { id: "focus", title: "Focus" };
-// Close and minimize work on marked rows too (`multi`); focus is one window by nature.
+// Close, minimize and hide the app work on marked rows too (`multi`); focus is one window by nature, and bringing several apps forward leaves only the last in front.
 const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true };
 const MINIMIZE: Action = { id: "minimize", title: "Minimize", shortcut: "cmd+m", multi: true };
-const HIDE_APP: Action = { id: "hide-app", title: "Hide app", shortcut: "cmd+h" };
+const HIDE_APP: Action = { id: "hide-app", title: "Hide app", shortcut: "cmd+h", multi: true };
 const SHOW_APP: Action = { id: "show-app", title: "Show app", shortcut: "cmd+shift+h" };
 const MINIMIZE_ALL: Action = { id: "minimize-all", title: "Minimize all of this app", shortcut: "cmd+shift+m" };
 const CLOSE_ALL: Action = { id: "close-all", title: "Close all of this app", shortcut: "cmd+shift+w", style: "destructive", confirm: "Close every window of this app?" };
@@ -162,10 +162,13 @@ export default {
             try { for (const t of targets) if (close || !t.minimized) await (close ? windows.close(t.id) : windows.minimize(t.id)); } catch (e) { return failed(`${close ? "close" : "minimize"} every window of ${w?.app ?? "the app"}`, e); }
             return { keep: true };
           }
-          case "hide-app":
-            if (!w) return failed("hide the app", "the window is gone");
-            try { await hideApp(w.pid); } catch (e) { return failed(`hide ${w.app}`, e); }
+          case "hide-app": {
+            // Each marked window's app once.
+            const apps = [...new Map(ids.map((i) => all.find((x) => x.id === i)).filter((x): x is Window => !!x).map((x) => [x.pid, x])).values()];
+            if (!apps.length) return failed("hide the app", "the window is gone");
+            for (const a of apps) { try { await hideApp(a.pid); } catch (e) { return failed(`hide ${a.app}`, e); } }
             return { keep: true };
+          }
           // The app forward, unhidden, every window back: the panel hides as it comes up.
           case "show-app":
             try { await windows.activate(id); } catch (e) { return failed("show the app", e); }

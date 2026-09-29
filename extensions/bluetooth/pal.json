@@ -71,7 +71,7 @@
     "actions": [
       {
         "title": "Connect / Disconnect",
-        "description": "Toggles the connection; Disconnect asks first; the HUD says which happened.",
+        "description": "Toggles the connection; Disconnect asks first; the HUD says which happened. Mark several devices to connect or disconnect them together.",
         "keys": "enter"
       },
       {

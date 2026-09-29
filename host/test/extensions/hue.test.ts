@@ -385,7 +385,12 @@ describe("over the wire against the mock bridge", () => {
     expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "72", kelvin: "2732" } })).toEqual({ keep: true, hud: "Sofa lamp: 72%, 2732 K" });
     const d = await host.detail(E, "lights", "light:sofa-lamp");
     expect(d.metadata!.find((m) => m.label === "Temperature")!.value).toBe("2732 K (366 mirek)");
-    expect(d.metadata!.find((m) => m.label === "Effects")!.value).toBe("candle, fire, sparkle");
+    expect(d.metadata!.find((m) => m.label === "Effects")!.value).toBe("candle, fire, sparkle");    // Marked lights: every switch, blink and copy goes over them all; opening and a typed level stay one light's.
+    expect(items.find((i) => i.id === "light:sofa-lamp")!.actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["open", "set"]);
+    const two = { ids: ["light:bedside", "light:wardrobe"] };
+    expect(await host.pick(E, "lights", "light:bedside", "copy_id", two)).toEqual({ copy: "light:bedside\nlight:wardrobe" });
+    expect(await host.pick(E, "lights", "light:bedside", "identify", two)).toEqual({ keep: true, hud: "Blinking: 2 lights" });
+    expect(mock.puts.slice(-2).map((p) => p.body)).toEqual([{ alert: { action: "breathe" } }, { alert: { action: "breathe" } }]);
   });
 
   test("scenes: strips, tags, a room's through args; Enter recalls with the transition, cmd+Enter dynamically, a smart scene activates", async () => {

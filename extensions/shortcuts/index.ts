@@ -23,13 +23,14 @@ const ICON = "\u{f040b}";
 const ICON_OFF = "\u{f05d6}";
 const ID_LINE = /^(.*) \(([0-9A-Fa-f-]{36})\)$/;
 
-const RUN: Action = { id: "run", title: "Run" };
-const RUN_CLIPBOARD: Action = { id: "clipboard", title: "Run with clipboard" };
+// Run, Run with clipboard and Copy name also take marked shortcuts (`multi`): each runs on its own, its outcome its own HUD. Open does not: Shortcuts shows one editor, each open would replace the last.
+const RUN: Action = { id: "run", title: "Run", multi: true };
+const RUN_CLIPBOARD: Action = { id: "clipboard", title: "Run with clipboard", multi: true };
 const RUN_TEXT: Action = { id: "text", title: "Run with input", shortcut: "cmd+t", args: true };
 /** The input typed in the bar for "Run with input"; the CLI cannot say which shortcuts take one, so every row offers it and Enter runs bare. */
 const INPUT_ARGS: Arg[] = [{ id: "input", placeholder: "Input", required: true }];
 const OPEN: Action = { id: "open", title: "Open in Shortcuts", shortcut: "cmd+o" };
-const COPY_NAME: Action = { id: "copy", title: "Copy name", shortcut: "cmd+c" };
+const COPY_NAME: Action = { id: "copy", title: "Copy name", shortcut: "cmd+c", multi: true };
 
 type Shortcut = { id: string; name: string; identifier: string; folder?: string };
 /** The last listing by row id: `pick` gets the id back and nothing else. */
@@ -126,9 +127,11 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | vo
   if (id.startsWith("hint:")) return;
   const s = known.get(id);
   if (!s) return toast("Shortcut not found", "List again (cmd+r) and retry", "failure");
+  // The marked shortcuts (`ctx.ids`), else the one; one the listing no longer has is left out.
+  const all = (ctx?.ids ?? [id]).map((i) => known.get(i)).filter((x): x is Shortcut => !!x);
   switch (action) {
     case "open": return { open: `shortcuts://open-shortcut?name=${encodeURIComponent(s.name)}` };
-    case "copy": return { copy: s.name };
+    case "copy": return { copy: all.map((x) => x.name).join("\n") };
     // The bar's input ("text"), or the form's on the way back ("run_text"); a bare pick gets the form, whose textarea takes a longer input than the bar.
     case "text": case "run_text": {
       if (!ctx?.values) return { form: textForm(s) };
@@ -140,11 +143,11 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | vo
     case "clipboard": {
       const text = (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text;
       if (!text) return toast("Nothing on the clipboard", "Copy some text first, or use Run with text", "failure");
-      void run(s, text);
+      for (const x of all) void run(x, text);
       return { hide: true };
     }
     default:
-      void run(s);
+      for (const x of all) void run(x);
       return { hide: true };
   }
 }

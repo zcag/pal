@@ -4,8 +4,9 @@
 // replies), each row the sender's avatar (a data url; an initial in a
 // colour hashed from the name while the picture is not at hand), the
 // conversation, the message on one line, the time and a count; a cursor
-// (`selected`) the arrows move and a click sets; rows that can be read
-// the shell can mark (`mark`) for `m` over them all; the channels that are
+// (`selected`) the arrows move and a click sets; rows the shell can mark
+// (`mark`) for `m`, open in browser and copy over them all (a thread is
+// skipped by `m`); the channels that are
 // only unread as a row of badges (a click opens one); the keys as
 // keycap hints. Replying turns the search row into a text field
 // (`View.input`) and the hints into Send / Cancel. Inbox zero is one
@@ -78,7 +79,7 @@ function rowNode(r: BarRow, focused: boolean, replying: boolean): ViewNode {
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
       count ? { type: "badge", key: "n", text: count, color: r.kind === "thread" ? "blue" : "red" } : { type: "spacer", key: "n", size: BADGE_W },
     ],
-    { key: r.id, ...(r.canRead && { mark: r.id }), padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, mark: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -124,8 +125,8 @@ export function actions(st: BarState): Action[] {
     { id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" },
     { id: "open-slack", title: "Open Slack", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },
-    { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" },
-    { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+    { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o", multi: true },
+    { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
     { id: "up", title: "Previous row", shortcut: ["up", "k"], hidden: true },
     ...clicks,

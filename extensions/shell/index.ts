@@ -198,7 +198,8 @@ async function historyRows(query = ""): Promise<Item[]> {
     accessories: [e.timedOut ? { tag: "killed", color: "red" } : { tag: `exit ${e.code ?? "?"}`, color: e.code === 0 ? "green" : "red" }, { date: e.at }],
     actions: [
       S().confirm && looksDestructive(e.cmd) ? { ...RUN, title: "Run again", confirm: `Run “${short(e.cmd, 60)}” again? It looks like it removes, overwrites or escalates.`, style: "destructive" } : { ...RUN, title: "Run again" },
-      TERMINAL, COPY_CMD, REMOVE,
+      // Marked history rows copy as one command per line (a script's worth); running several is left to one at a time, since the view shows one run.
+      TERMINAL, { ...COPY_CMD, multi: true }, REMOVE,
     ],
   }));
   if (!list.length) return [hint("empty", "Nothing ran yet", "Commands you run in Shell land here with their exit codes", { icon: GLYPH.history })];
@@ -213,7 +214,7 @@ async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effe
   const cmd = id.slice(2);
   switch (action) {
     case "terminal": return openTerminal(cmd);
-    case "copy_cmd": return { copy: cmd };
+    case "copy_cmd": return { copy: (ctx?.ids ?? [id]).filter((x) => x.startsWith("h:")).map((x) => x.slice(2)).join("\n") };
     case "remove": {
       // Marked rows (`ctx.ids`) go in one write.
       const gone = new Set((ctx?.ids ?? [id]).filter((x) => x.startsWith("h:")).map((x) => x.slice(2)));

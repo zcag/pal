@@ -257,6 +257,10 @@ describe("translate", () => {
     expect(await pick("translation", "copy_source")).toEqual({ copy: "hello world" });
     expect((await pick("translation", "open")).open).toBe("https://translate.google.com/?sl=en&tl=tr&text=hello%20world&op=translate");
     expect(await pick("alt:0")).toEqual({ copy: "merhaba dünya" });
+    // Marked rows: Copy runs over them, one per line; the source they share is single-row.
+    const r = (await list("hello world")).find((x) => x.id === "translation")!;
+    expect(r.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy"]);
+    expect(await host.pick("translate", "translate", "translation", "copy", { ids: ["translation", "alt:0"] })).toEqual({ copy: "Selam Dünya\nmerhaba dünya" });
     const s = await pick("translation", "speak");
     expect(s).toMatchObject({ keep: true, toast: { title: "Speaking", message: "Selam Dünya" } });
     await host.until(() => spoken().length > 0, 2000, "the speaker ran");
@@ -287,6 +291,9 @@ describe("translate", () => {
     expect(await host.pick("translate", "history", id)).toEqual({ copy: "Selam Dünya" });
     expect(await host.pick("translate", "history", id, "paste")).toEqual({ paste: { text: "Selam Dünya" } });
     expect(await host.pick("translate", "history", id, "copy_source")).toEqual({ copy: "hello world" });
+    // Marked rows: the results, or the sources, one per line.
+    expect(await host.pick("translate", "history", id, "copy", { ids: [id, entries[2].id] })).toEqual({ copy: "Selam Dünya\nmerhaba dünya" });
+    expect(await host.pick("translate", "history", id, "copy_source", { ids: [id, entries[0].id] })).toEqual({ copy: "hello world\nhello" });
     expect(await host.pick("translate", "history", id, "again")).toEqual({ push: { extension: "translate", palette: "translate", query: "en>tr hello world" } });
     expect(await host.pick("translate", "history", id, "remove")).toMatchObject({ keep: true, toast: { title: "Removed" } });
     const left = await host.list("translate", "history");

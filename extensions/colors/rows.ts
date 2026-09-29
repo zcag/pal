@@ -62,10 +62,11 @@ export function conversions(c: RGB, s: Settings): Item[] {
 // ---- history -------------------------------------------------------------------------------------
 
 export const PICK_ROW = "pick";
+// Marked colours copy together, one per line (a palette to paste), and leave the history together; the picker is one colour's.
 export const HISTORY_ACTIONS: Action[] = [
   { id: "open", title: "Open in Picker" },
-  { id: "copy", title: "Copy" },
-  { id: "hex", title: "Copy hex", shortcut: "cmd+shift+c" },
+  { id: "copy", title: "Copy", multi: true },
+  { id: "hex", title: "Copy hex", shortcut: "cmd+shift+c", multi: true },
   { id: "delete", title: "Remove from History", shortcut: "cmd+d", style: "destructive", multi: true },
   { id: "clear", title: "Clear History", shortcut: "cmd+shift+d", style: "destructive", confirm: "Clear the colour history? Every picked and copied colour is forgotten." },
 ];
@@ -86,9 +87,9 @@ export function historyRows(st: State, s: Settings, now: number): Item[] {
 
 export const GRID_ACTIONS: Action[] = [
   { id: "open", title: "Open in Picker" },
-  { id: "copy", title: "Copy" },
-  { id: "hex", title: "Copy hex", shortcut: "cmd+shift+c" },
-  { id: "name", title: "Copy name", shortcut: "cmd+shift+n" },
+  { id: "copy", title: "Copy", multi: true },
+  { id: "hex", title: "Copy hex", shortcut: "cmd+shift+c", multi: true },
+  { id: "name", title: "Copy name", shortcut: "cmd+shift+n", multi: true },
 ];
 /** A set's row as a grid tile: the swatch fills the box, the hex is the subtitle, the token and the set are keywords. */
 export const gridItem = (r: Row, section: string): Item => ({ id: r.id, name: r.n.replace(/ \((?:light|dark|latte|frappe|macchiato|mocha|main|moon|dawn)\)$/i, ""), subtitle: r.v ? `${r.h} · ${r.v}` : r.h, icon: { image: swatch(r.h) }, keywords: [r.h, token(r), setInfo(r.s).title.toLowerCase(), ...(r.v ? [r.v] : [])], section });

@@ -115,6 +115,11 @@ describe("ssh", () => {
     expect(await pick("marko", "copy-command")).toEqual({ copy: "ssh marko" });
     expect(await pick("inner", "copy-jump")).toEqual({ copy: "ssh -J marko inner" });
     expect(await pick("marko", "copy-jump")).toEqual({ copy: "ssh marko" });
+    // Marked hosts: one per line, each in its own form.
+    const both = { ids: ["marko", "inner"] };
+    expect(await host.pick("ssh", "ssh", "marko", "copy-host", both)).toEqual({ copy: "marko\ninner" });
+    expect(await host.pick("ssh", "ssh", "marko", "copy-command", both)).toEqual({ copy: "ssh marko\nssh inner" });
+    expect(await host.pick("ssh", "ssh", "marko", "copy-jump", both)).toEqual({ copy: "ssh marko\nssh -J marko inner" });
   });
 
   test("connect: a shell without values or with a blank command; a typed command runs over ssh -t and the window waits for Enter", async () => {
@@ -126,6 +131,10 @@ describe("ssh", () => {
     const argv = opened();
     expect(argv.slice(-3, -1)).toEqual(["sh", "-c"]);
     expect(argv.at(-1)).toMatch(/^ssh -t marko 'uptime -p'; s=\$\?; printf .*read -r _$/);
+    // Marked hosts: a terminal each, in order.
+    expect(await host.pick("ssh", "ssh", "marko", "connect", { ids: ["marko", "inner"] })).toEqual({});
+    const last2 = readFileSync(join(dir, "terminal"), "utf8").trim().split("\n").slice(-2).map((l) => JSON.parse(l).slice(-2));
+    expect(last2).toEqual([["ssh", "marko"], ["ssh", "inner"]]);
   });
 
   test("ping: the round trip as a toast for a host that answers, a failure toast for one that does not", async () => {
@@ -134,6 +143,9 @@ describe("ssh", () => {
     expect(ok).toMatchObject({ keep: true, toast: { title: expect.stringMatching(/^127\.0\.0\.1: [\d.]+ ms$/) } });
     const bad = await pick("bare", "ping");
     expect(bad).toMatchObject({ keep: true, toast: { title: "bare did not answer", style: "failure" } });
+    // Marked hosts: pinged at once, one toast naming each.
+    const both = await host.pick("ssh", "ssh", "loop", "ping", { ids: ["loop", "bare"] });
+    expect(both).toMatchObject({ keep: true, toast: { title: "1 of 2 did not answer", style: "failure", message: expect.stringMatching(/^127\.0\.0\.1: [\d.]+ ms, bare: no answer$/) } });
   });
 
   test("a missing config lists one hint row rather than failing", async () => {

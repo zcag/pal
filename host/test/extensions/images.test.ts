@@ -583,7 +583,12 @@ describe("images: the palette (stand-in tools)", () => {
     expect(info.hud).toBe("Copied info");
     expect(info.copy).toBe(`Path: ${P("flat.png")}\nSize: ${bytes(statSync(P("flat.png")).size)}\nDimensions: 64 × 64 px\nFormat: PNG, 8 bits, alpha\nColour: RGB · sRGB IEC61966-2.1\nCamera: Canon EOS R5`);
     expect(await pick(P("flat.png"), "copy")).toEqual({ copy: P("flat.png") });
-    expect(await pick(P("flat.png"), "open")).toEqual({ open: P("flat.png") });
+    expect(await pick(P("flat.png"), "open")).toEqual({ open: P("flat.png") });    // Marked images: the texts and infos a blank line apart, the paths a line each, a window each, the images as files.
+    const two = { ids: [P("flat.png"), P("photo.png")] };
+    expect(await pick(P("flat.png"), "ocr", two)).toEqual({ copy: "text of flat.png\n\ntext of photo.png", hud: "Copied text" });
+    expect((await pick(P("flat.png"), "info", two)).copy!.toString().split("\n\n")).toHaveLength(2);
+    expect(await pick(P("flat.png"), "open", two)).toEqual({ open: two.ids });
+    expect(await pick(P("flat.png"), "copy-image", two)).toEqual({ copy_files: two.ids });
   });
 
   test("with TinyPNG's key unset its action is gone; with no encoders listed the hints name what to install", async () => {

@@ -58,7 +58,7 @@ beforeAll(async () => {
 afterAll(() => { host?.kill(); process.env.PATH = PATH; if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(root, { recursive: true, force: true }); });
 
 const list = () => host.list("make", "make");
-const pick = (id: string, action?: string, ctx?: { values?: Record<string, string> }, timeout?: number) => host.pick("make", "make", id, action, ctx, timeout);
+const pick = (id: string, action?: string, ctx?: { values?: Record<string, string>; ids?: string[] }, timeout?: number) => host.pick("make", "make", id, action, ctx, timeout);
 const id = (target: string, dir: string) => `${target}@${dir}`;
 
 describe("make", () => {
@@ -121,6 +121,19 @@ describe("make", () => {
     const r = await pick(id("up", deep), "makefile");
     expect(r.show).toEqual({ title: `GNUmakefile in ${deep}`, markdown: "````make\nup: ## Start the stack\n\tdocker compose up -d\ndown:\n\tdocker compose down\n````" });
     expect(await pick("nope@/nowhere")).toMatchObject({ keep: true, toast: { title: "Target not listed", style: "failure" } });
+  });
+
+  test("marked targets: copy a command a line, open each project once, run one project's targets as one make; across projects run says so", async () => {
+    await list();
+    expect(host.loaded().find((l) => l.extension === "make")!.palettes[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["run", "copy", "open"]);
+    const ids = [id("up", deep), id("down", deep)];
+    expect(await pick(ids[0]!, "copy", { ids })).toEqual({ copy: `make -C ${deep} up\nmake -C ${deep} down` });
+    expect(await pick(ids[0]!, "open", { ids })).toEqual({ open: deep });
+    expect(await pick(ids[0]!, "open", { ids: [ids[0]!, id("test", pal)] })).toEqual({ open: [deep, pal] });
+    expect(await pick(id("test", pal), "run", { ids: [id("test", pal), id("a", pal)] })).toEqual({ hud: "make test a" });
+    const script = (JSON.parse(readFileSync(join(root, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[]).find((a) => a.includes("make test a"))!;
+    expect(script).toContain("make test a; s=$?;");
+    expect(await pick(id("test", pal), "run", { ids: [id("test", pal), ids[0]!] })).toMatchObject({ toast: { title: "Targets of several projects", style: "failure" } });
   });
 
   // A background run waits for make itself; the CI runner's first make can take seconds, so these picks (and the test) get 20 s rather than the harness's 5.

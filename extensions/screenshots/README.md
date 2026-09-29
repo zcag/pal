@@ -43,7 +43,7 @@ recording.
 | `cmd+m` | Copy as markdown image: `![Screenshot 2026-09-17 at 14.03.22](/Users/x/Desktop/Screenshot%202026-09-17%20at%2014.03.22.png)` |
 | `cmd+shift+t` | Copy text (OCR): the text in the picture, through the core's OCR (Vision on macOS, `tesseract` on Linux); `ocr_concealed` keeps it out of the clipboard history |
 | `cmd+d` | Move to Trash, after a confirm |
-| `tab`, `x` | Mark rows: Open, Reveal, Copy image, Copy path and Move to Trash run over all of them |
+| `tab`, `x` | Mark rows: Open, Reveal, Copy image, Copy path, Copy as markdown image, Copy text (their texts a blank line apart) and Move to Trash run over all of them |
 
 The detail pane (`cmd+i`) shows the picture itself over its name,
 folder, size, pixels and the time it was taken.

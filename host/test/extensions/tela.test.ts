@@ -110,6 +110,11 @@ describe("tela", () => {
       expect(await pick("pages", "page:10")).toEqual({ open: `${BASE}/spaces/2/pages/10/indexing` });
       expect(stored.get("tela\0last")).toEqual({ id: 10, title: "Indexing", space: 2 });
       expect(await pick("pages", "page:10", "copy")).toEqual({ copy: `${BASE}/spaces/2/pages/10/indexing` });
+      // Marked pages: each opened, each link on its own line.
+      const both = await pick("pages", "page:10", "open", { ids: ["page:10", "page:11"] });
+      expect(both.open).toHaveLength(2);
+      expect((both.open as string[])[0]).toBe(`${BASE}/spaces/2/pages/10/indexing`);
+      expect((await pick("pages", "page:10", "copy", { ids: ["page:10", "page:11"] })).copy).toMatch(new RegExp(`^${BASE}/spaces/2/pages/10/indexing\n${BASE}/`));
       expect((await pick("pages", "page:10", "outline")).show).toEqual({ title: "Outline of Indexing", markdown: "- Indexing\n  - Steps" });
       expect(await pick("pages", "page:10", "backlinks")).toEqual({ push: { extension: "tela", palette: "backlinks", args: { page: 10, title: "Indexing" } } });
       const v = (await pick("pages", "page:10", "read")).view as View;

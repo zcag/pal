@@ -76,19 +76,21 @@ function mailAccessories(m: Mail): Accessory[] {
 }
 
 const READ: Action = { id: "read", title: "Mark as read", multi: true }, UNREAD: Action = { id: "unread", title: "Mark as unread", multi: true };
+const STAR: Action = { id: "star", title: "Star", multi: true }, UNSTAR: Action = { id: "unstar", title: "Unstar", multi: true };
 
 function mailActions(m: Mail): Action[] {
   const send = canSend();
   return [
-    { id: "open", title: "Open in Gmail" },
-    // The one that flips the row is on ⌘↵; the other rides at the end, so marked rows that mix read and unread can still be marked either way.
+    { id: "open", title: "Open in Gmail", multi: true },
+    // The one that flips the row is on ⌘↵ (⌘S for the star); the other rides at the end, so marked rows that mix read and unread (starred and not) can still be marked either way.
     { ...(m.unread ? READ : UNREAD), shortcut: "cmd+enter" },
     ...(send && m.inInbox ? [{ id: "archive", title: "Archive", shortcut: "cmd+e", multi: true } as Action] : []),
-    ...(send ? [{ id: m.starred ? "unstar" : "star", title: m.starred ? "Unstar" : "Star", shortcut: "cmd+s", multi: true } as Action] : []),
-    // The quick reply takes the row's typed argument (the text; the sender and the reply subject are implied); Enter on the row still opens the thread.
+    ...(send ? [{ ...(m.starred ? UNSTAR : STAR), shortcut: "cmd+s" }] : []),
+    // The quick reply takes the row's typed argument (the text; the sender and the reply subject are implied); Enter on the row still opens the thread. One message at a time.
     ...(send ? [{ id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true } as Action] : []),
-    { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+    { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
     m.unread ? UNREAD : READ,
+    ...(send ? [m.starred ? STAR : UNSTAR] : []),
   ];
 }
 
@@ -146,8 +148,10 @@ const values = (ctx?: Ctx) => ({ to: String(ctx?.values?.to ?? "").trim(), cc: S
 async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise<Effect> {
   const ids = ctx?.ids ?? [m.id];
   const n = ids.length;
+  // Every message the pick is for, the row's own first (a multi pick's marked rows).
+  const all = async () => (n > 1 ? Promise.all(ids.map(mail)) : [m]);
   switch (action) {
-    case "copy": return { copy: threadUrl(await address(), m.threadId, m.inInbox) };
+    case "copy": { const a = await address(); return { copy: (await all()).map((x) => threadUrl(a, x.threadId, x.inInbox)).join("\n") }; }
     case "read":
       try { await markRead(ids); } catch (e) { return failed("mark read", e); }
       dropInbox();
@@ -184,7 +188,11 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
       } catch (e) { return { form: replyForm(m, { body: errorMessage(e) }, v) }; }
       return toast("Sent", `Reply to ${who(m)}: ${truncate(v.subject, 60)}`);
     }
-    default: return { open: threadUrl(await address(), m.threadId, m.inInbox) };
+    default: {
+      const a = await address();
+      const urls = (await all()).map((x) => threadUrl(a, x.threadId, x.inInbox));
+      return { open: urls.length > 1 ? urls : urls[0]! };
+    }
   }
 }
 
@@ -304,15 +312,16 @@ async function draftRows(): Promise<Item[]> {
       keywords: [...d.mail.to.map((a) => a.email), "draft"],
       accessories: d.mail.date ? [{ date: d.mail.date }] : [],
       actions: [
-        { id: "open", title: "Open in Gmail" },
+        // Sending stays one draft at a time, each its own "to whom?"; opening and discarding take marked drafts too.
+        { id: "open", title: "Open in Gmail", multi: true },
         { id: "send", title: "Send draft", shortcut: "cmd+enter", confirm: `Send "${d.mail.subject || "(no subject)"}" to ${to || "no one"}?` },
-        { id: "discard", title: "Discard draft", shortcut: "cmd+d", style: "destructive", confirm: `Discard "${d.mail.subject || "(no subject)"}"?` },
+        { id: "discard", title: "Discard draft", shortcut: "cmd+d", style: "destructive", confirm: "Discard for good?", multi: true },
       ],
     } satisfies Item;
   });
 }
 
-async function pickDraft(id: string, action?: string): Promise<Effect> {
+async function pickDraft(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (!canSend()) return toast("Drafts are off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
   if (!draftRows_.has(id)) await draftRows();
   const d = draftRows_.get(id);
@@ -321,11 +330,14 @@ async function pickDraft(id: string, action?: string): Promise<Effect> {
     try { await draftSend(id); } catch (e) { return failed("send", e); }
     return toast("Sent", d.mail.subject || "(no subject)");
   }
+  const ids = ctx?.ids ?? [id];
   if (action === "discard") {
-    try { await draftDelete(id); } catch (e) { return failed("discard", e); }
-    return toast("Discarded", d.mail.subject || "(no subject)");
+    try { for (const x of ids) await draftDelete(x); } catch (e) { return failed("discard", e); }
+    return toast("Discarded", ids.length > 1 ? plural(ids.length, "draft") : d.mail.subject || "(no subject)");
   }
-  return { open: draftUrl(await address(), d.mail.threadId) };
+  const a = await address();
+  const urls = ids.map((x) => draftRows_.get(x)).filter((x): x is DraftRow => !!x).map((x) => draftUrl(a, x.mail.threadId));
+  return { open: urls.length > 1 ? urls : draftUrl(a, d.mail.threadId) };
 }
 
 // ---- the bar item ----------------------------------------------------------------------------
@@ -414,10 +426,14 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return redrawBar();
     }
     case "star": {
-      if (!cur) return { keep: true };
-      try { await star([cur.id], !cur.starred); } catch (e) { return failed(cur.starred ? "remove the star" : "star", e); }
+      // Marked rows as Gmail's own star button takes them: all starred, unless every one already is, then all unstarred.
+      const ids = ctx?.ids ?? (cur ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      const rows = await Promise.all(ids.map(mail));
+      const on = !rows.every((r) => r.starred);
+      try { await star(ids, on); } catch (e) { return failed(on ? "star" : "remove the star", e); }
       dropInbox();
-      return redrawBar();
+      return rows.length > 1 ? { ...(await redrawBar()), hud: `${on ? "Starred" : "Unstarred"} ${rows.length}` } : redrawBar();
     }
     case "read": {
       // The marked rows (`BarCtx.ids`), else the one under the cursor.
@@ -427,8 +443,9 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       dropInbox();
       return { keep: true, hud: ids.length > 1 ? `Marked ${ids.length} read` : "Marked read" };
     }
-    case "copy": return cur ? pickMail(await mail(cur.id), "copy") : { keep: true };
-    case "open": return cur ? pickMail(await mail(cur.id), "open") : { open: `${gmailBase(await address())}#inbox` };
+    // The marked rows (`BarCtx.ids`) or the cursor's: every thread's link on its own line, every thread opened.
+    case "copy": return ctx?.ids ? pickMail(await mail(ctx.ids[0]!), "copy", { ids: ctx.ids }) : cur ? pickMail(await mail(cur.id), "copy") : { keep: true };
+    case "open": return ctx?.ids ? pickMail(await mail(ctx.ids[0]!), "open", { ids: ctx.ids }) : cur ? pickMail(await mail(cur.id), "open") : { open: `${gmailBase(await address())}#inbox` };
   }
   // A click on a row's own action, from an older render.
   const m = action.match(/^(open|read):(.+)$/);
@@ -480,7 +497,7 @@ export default {
       live: true,
       lazy: true,
       list: () => guard(draftRows),
-      pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickDraft(id, action)),
+      pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickDraft(id, action, ctx)),
     },
   },
   bar: {

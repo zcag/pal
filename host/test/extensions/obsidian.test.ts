@@ -231,6 +231,15 @@ describe("the extension", () => {
     expect(await pick("notes", "note:infra/theater.md", "copy-link")).toEqual({ copy: "[[theater]]" });
     expect(await pick("notes", "note:infra/theater.md", "copy-path")).toEqual({ copy: join(vault, "infra/theater.md") });
     expect(stored.get("obsidian\0last")).toBe("infra/theater.md");
+    // Marked notes: the editor takes them all in one call; the copies are one a line; Obsidian stays one note's.
+    expect((await list("notes")).find((r) => r.id === "note:infra/theater.md")!.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["editor", "copy-link", "copy-path"]);
+    const both = ["note:infra/theater.md", "note:personal/projects/ken.md"];
+    const text = async () => (Bun.file(editorLog).size ? (await Bun.file(editorLog).text()).trim() : "");
+    expect((await pick("notes", both[0]!, "editor", { ids: both })).hud).toBe("Opened 2 notes in fake-editor");
+    await host.until(async () => (await text()).includes("ken"), 3000, "editor ran with both");
+    expect(await text()).toBe(`${join(vault, "infra/theater.md")} ${join(vault, "personal/projects/ken.md")}`);
+    expect(await pick("notes", both[0]!, "copy-link", { ids: [...both, "missing:Nowhere"] })).toEqual({ copy: "[[theater]]\n[[ken]]\n[[Nowhere]]" });
+    expect(await pick("notes", both[0]!, "copy-path", { ids: both })).toEqual({ copy: `${join(vault, "infra/theater.md")}\n${join(vault, "personal/projects/ken.md")}` });
     // Append a line takes the row's typed argument (Enter still opens); placeholders filled; a bare pick is a form, an empty line refused in it.
     const theater = (await list("notes")).find((r) => r.id === "note:infra/theater.md")!;
     expect(theater.args).toEqual([{ id: "text", placeholder: "A line to append", required: true }]);

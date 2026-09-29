@@ -63,7 +63,7 @@ describe("wifi", () => {
     const marvin = items.find((i) => i.id === "known:marvin")!;
     expect(marvin).toMatchObject({ subtitle: "WPA2 · channel 6", accessories: [{ text: "▂▄▆ 60%" }, { tag: "in range", color: "blue" }] });
     expect(marvin.actions!.map((a) => a.id)).toEqual(["join", "copy", "password", "forget"]);
-    expect(marvin.actions![3]).toMatchObject({ style: "destructive", confirm: "Forget marvin? Its password goes with it." });
+    expect(marvin.actions![3]).toMatchObject({ style: "destructive", confirm: "Forget, and delete the saved password too?", multi: true });
     expect(items.find((i) => i.id === "known:Cafe Wifi")).toMatchObject({ subtitle: "Saved", accessories: [] });
     expect(bySection("Available")).toEqual(["net:Open Cafe", "net:Neighbour", "scan"]);
     expect(items.find((i) => i.id === "net:Open Cafe")).toMatchObject({ subtitle: "Open · channel 1", accessories: [{ text: "▂▄▆ 55%" }] });
@@ -158,6 +158,10 @@ describe("wifi", () => {
   test("forget goes to the core and keeps the palette with a toast", async () => {
     expect(await pick("known:Cafe Wifi", "forget")).toEqual({ keep: true, toast: { title: "Forgot Cafe Wifi" } });
     expect(calls.at(-1)).toEqual({ method: "forget", params: { ssid: "Cafe Wifi" } });
+    // Marked networks (`ctx.ids`): each forgotten, one toast for them all.
+    const n = calls.length;
+    expect(await host.pick("wifi", "wifi", "known:Cafe Wifi", "forget", { ids: ["known:Cafe Wifi", "known:marvin"] })).toEqual({ keep: true, toast: { title: "Forgot 2 networks" } });
+    expect(calls.slice(n).filter((c) => c.method === "forget").map((c) => c.params)).toEqual([{ ssid: "Cafe Wifi" }, { ssid: "marvin" }]);
   });
 
   test("scan row runs a fresh scan; the power row flips the radio, and off lists only itself", async () => {

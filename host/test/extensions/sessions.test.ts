@@ -17,7 +17,7 @@ import { claude, codex, copilot, ps } from "../../../extensions/sessions/fixture
 import { agentOf, ancestors, appOf, cputime, kittyCandidates, kittyListenOn, kittyPids, kittyWindowOf, stepsFor, tool, ttyOf } from "../../../extensions/sessions/procs.ts";
 import { actions, render as renderPopover, shown, type Session } from "../../../extensions/sessions/view.ts";
 import { CAP, PAGE } from "../../../extensions/sessions/transcript.ts";
-import { Host, writeTool, logLines } from "../harness.ts";
+import { Host, marksOf, writeTool, logLines } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-sessions-"));
 const MAC = process.platform === "darwin";
@@ -312,7 +312,9 @@ describe("sessions: the palette", () => {
     expect(by[key("claude", ID.blocked)].actions!.map((a) => a.id)).toEqual(["focus", "send", "view", "transcript", "reveal", "folder", "editor", "copy-resume", "copy-id", "copy-cwd", "kill"]);
     expect(by[key("claude", ID.blocked)].args).toEqual([{ id: "text", placeholder: "Line to type into the session", required: true }]);
     expect(by[key("claude", ID.claude)].args).toBeUndefined();
-    expect(by[key("claude", ID.done)].actions![0]).toEqual({ id: "resume", title: "Resume in a terminal" });
+    expect(by[key("claude", ID.done)].actions![0]).toEqual({ id: "resume", title: "Resume in a terminal", multi: true });
+    // Everything but Focus, Send and the Transcript view also runs over marked sessions.
+    expect(by[key("claude", ID.blocked)].actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["focus", "send", "view"]);
     expect(by[key("claude", ID.done)].actions!.map((a) => a.id)).not.toContain("kill");
   }, 10_000);
 
@@ -567,6 +569,14 @@ describe("sessions: the palette", () => {
     expect(await pick(id, "kill", { ids: [id, key("codex", ID.codex), key("claude", ID.done)] })).toEqual({ keep: true, hud: "Sent SIGTERM to 2 sessions" });
     expect(since(n).filter((l) => l.startsWith("kill "))).toEqual(["kill -TERM 41000", "kill -TERM 75762"]);
     expect(await pick(key("claude", ID.done), "kill")).toMatchObject({ toast: { title: "Not running", style: "failure" } });
+    // Marked sessions: the copies one per line, each folder opened once, resume only the ended ones.
+    const marked = { ids: [id, key("codex", ID.codex), key("claude", ID.done)] };
+    expect(await pick(id, "copy-id", marked)).toEqual({ copy: [ID.blocked, ID.codex, ID.done].join("\n") });
+    expect(await pick(id, "copy-resume", { ids: [id, key("codex", ID.codex)] })).toEqual({ copy: `claude --resume ${ID.blocked}\ncodex resume ${ID.codex}` });
+    const folders = (await pick(id, "folder", marked)).open as string[];
+    expect(folders).toContain(CWD.api);
+    expect(new Set(folders).size).toBe(folders.length);
+    expect(await pick(id, "resume", { ids: [id, key("codex", ID.codex)] })).toMatchObject({ toast: { title: "Nothing to resume", style: "failure" } });
     n = asked().length;
     expect(await pick(id, "send", { values: { text: "yes, go ahead" } })).toEqual({ hud: "Sent to work:0.1" });
     expect(since(n).filter((l) => l.startsWith("tmux send"))).toEqual(["tmux send-keys -t work:0.1 -l yes, go ahead", "tmux send-keys -t work:0.1 Enter"]);
@@ -668,8 +678,12 @@ describe("sessions: the bar", () => {
     // The ring is on the first row; its actions lead with Focus and offer Send (a tmux pane) and Kill with a confirm.
     const rows = nodes(v.tree).filter((n) => n.type === "stack" && n.action?.startsWith("focus:"));
     expect(rows.map((r) => r.selected)).toEqual([true, undefined, undefined, undefined, undefined]);
-    expect(v.actions.slice(0, 7).map((a) => [a.id, a.shortcut])).toEqual([["focus", "enter"], ["view", ["t", "cmd+t"]], ["transcript", ["o", "cmd+o"]], ["copy-resume", ["r", "cmd+c"]], ["kill", ["x", "cmd+d"]], ["send", "s"], ["pal", "p"]]);
-    expect(v.actions.find((a) => a.id === "kill")).toMatchObject({ style: "destructive", confirm: "Send SIGTERM to Claude Code (pid 41000)?" });
+    // Resume rides along (without a key) while an ended row is listed, for marked rows.
+    expect(v.actions.slice(0, 8).map((a) => [a.id, a.shortcut])).toEqual([["focus", "enter"], ["view", ["t", "cmd+t"]], ["transcript", ["o", "cmd+o"]], ["copy-resume", ["r", "cmd+c"]], ["kill", ["x", "cmd+d"]], ["resume", undefined], ["send", "s"], ["pal", "p"]]);
+    expect(v.actions.find((a) => a.id === "kill")).toMatchObject({ style: "destructive", multi: true, confirm: "Send SIGTERM? The session ends; its transcript stays." });
+    // Every session row can be marked, and the multi actions run over the marks.
+    expect(marksOf(v.tree)).toEqual(rows.map((r) => r.key!));
+    expect(v.actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["transcript", "copy-resume", "kill", "resume"]);
   });
 
   test.skipIf(!MAC)("the keys: arrows and a click move the ring, o opens the transcript, r copies, x kills, p and s push the palette, Enter focuses or resumes", async () => {
@@ -697,7 +711,7 @@ describe("sessions: the bar", () => {
     v = view(await act(`focus:${key("claude", ID.blocked)}`));
     v = view(await act("up"));
     expect(ring(v)).toBe(key("claude", ID.done));
-    expect(v.actions[0]).toEqual({ id: "resume", title: "Resume in a terminal", shortcut: "enter" });
+    expect(v.actions[0]).toEqual({ id: "resume", title: "Resume in a terminal", multi: true, shortcut: "enter" });
     expect(keycaps(v)).toEqual(["enter", "t", "r", "p"]);
     expect(await act("resume")).toEqual({ hide: true });
     expect(terminalOpened().at(-1)).toMatch(new RegExp(`^cd ${CWD.notes} && exec (\\S*/)?claude --resume ${ID.done}$`));
@@ -730,6 +744,6 @@ describe("sessions: the bar", () => {
     expect(texts(v).join("\n")).not.toContain("more in pal");
     for (const x of sessions) expect(nodes(v.tree).some((n) => n.key === x.key)).toBe(true);
     expect(nodes(v.tree).find((x) => x.selected)?.key).toBe("claude:7");
-    expect(actions({ sessions, cursor: "claude:7", now: T }).map((a) => a.id)).toEqual(["focus", "view", "transcript", "copy-resume", "kill", "pal", "down", "up", "focus:claude:3", "focus:claude:2", "focus:claude:7", "focus:claude:1", "focus:claude:5", "focus:claude:6", "focus:claude:8", "focus:claude:4"]);
+    expect(actions({ sessions, cursor: "claude:7", now: T }).map((a) => a.id)).toEqual(["focus", "view", "transcript", "copy-resume", "kill", "resume", "pal", "down", "up", "focus:claude:3", "focus:claude:2", "focus:claude:7", "focus:claude:1", "focus:claude:5", "focus:claude:6", "focus:claude:8", "focus:claude:4"]);
   });
 });

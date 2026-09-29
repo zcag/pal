@@ -50,7 +50,8 @@ export function bookRow(b: Book): Item {
     keywords: [b.author ?? "", "book", "ebook"].filter(Boolean),
     section: "Books",
     detail: { markdown: [b.preview ? `![cover](${b.preview})` : "", `**${b.title}**${b.subtitle ? `\n\n${b.subtitle}` : ""}`].filter(Boolean).join("\n\n"), metadata: [...(b.author ? [{ label: "Author", value: b.author }] : []), ...(b.year ? [{ label: "Year", value: String(b.year) }] : []), ...(b.series_name ? [{ label: "Series", value: `${b.series_name}${b.series_position ? ` #${b.series_position}` : ""}` }] : []), ...(b.provider ? [{ label: "Provider", value: b.provider }] : []), ...(b.source_url ? [{ label: "Page", link: { text: "Open", href: b.source_url } }] : [])] },
-    actions: [{ id: "releases", title: "Find releases" }, { id: "open", title: "Open Shelfmark", shortcut: "cmd+enter" }, ...(b.source_url ? [{ id: "page", title: "Open the book's page", shortcut: "cmd+o" }] : [])],
+    // The pages of marked books open together (`multi`); the releases are one book's level.
+    actions: [{ id: "releases", title: "Find releases" }, { id: "open", title: "Open Shelfmark", shortcut: "cmd+enter" }, ...(b.source_url ? [{ id: "page", title: "Open the book's page", shortcut: "cmd+o", multi: true as const }] : [])],
   };
 }
 
@@ -89,27 +90,30 @@ export async function releaseRows(ctx?: Ctx): Promise<Item[]> {
         keywords: [r.format ?? "", r.source, r.indexer ?? ""].filter(Boolean),
         section: r.indexer ?? r.source,
         accessories: [{ tag: r.source, color: torrent ? "blue" : "amber" }, ...(torrent && r.seeders !== undefined ? [{ text: `${r.seeders} seeds` }] : [])],
-        actions: [{ id: "download", title: "Download into the library", confirm: `Download ${truncate(r.title, 60)} (${r.format ?? "?"}) through Shelfmark?` }, { id: "copy", title: "Copy release title", shortcut: "cmd+c" }],
+        // Marked releases copy together (`multi`); downloading several releases of one book would fetch it twice.
+        actions: [{ id: "download", title: "Download into the library", confirm: `Download ${truncate(r.title, 60)} (${r.format ?? "?"}) through Shelfmark?` }, { id: "copy", title: "Copy release title", shortcut: "cmd+c", multi: true }],
       };
     });
     return rows.length ? rows : [hint("none", "No release found", `No indexer has ${b.title}; usenet is thin for books, a torrent indexer on Prowlarr helps`, { icon: GLYPH.shelfmark })];
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
+  // The marked rows of this kind (`ctx.ids`), as their keys; the one otherwise.
+  const keys = (prefix: string) => (ctx?.ids ?? [id]).filter((x) => x.startsWith(prefix)).map((x) => x.slice(prefix.length));
   if (id.startsWith("status:")) return { open: shelfmarkUrl() };
   if (id.startsWith("book:")) {
     const b = books.get(id.slice(5));
     if (!b) throw new Error("that book is gone; search again");
     if (action === "open") return { open: shelfmarkUrl() };
-    if (action === "page") return { open: b.source_url ?? shelfmarkUrl() };
+    if (action === "page") { const urls = keys("book:").map((k) => books.get(k)?.source_url ?? shelfmarkUrl()); return { open: urls.length > 1 ? urls : b.source_url ?? shelfmarkUrl() }; }
     return { push: { extension: "theater", palette: "shelfmark-releases", args: { book: b.id }, title: `Releases for ${truncate(b.title, 30)}` } };
   }
   if (id.startsWith("release:")) {
     const key = id.slice(8), r = found.get(key), b = books.get(key.slice(0, key.lastIndexOf(":")));
     if (!r || !b) throw new Error("that release is gone; search again");
-    if (action === "copy") return { copy: r.title };
+    if (action === "copy") return { copy: keys("release:").map((k) => found.get(k)?.title ?? "").filter(Boolean).join("\n") };
     try { await download(b, r); return { hud: `Downloading ${truncate(b.title, 40)}` }; } catch (e) { return toast("Could not download", String((e as Error).message), "failure"); }
   }
 }

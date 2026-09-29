@@ -103,8 +103,8 @@ and so does the bar's popover (below), which lists what is still to come.
 | --- | --- |
 | `enter` | Join call when the event has a link, else Open in Calendar (macOS) or Open in Google Calendar (a Google account); Copy event details on Linux without a call |
 | `cmd+shift+c` | Copy conference link |
-| `cmd+c` | Copy event details: title, when, where and the link as text |
-| `ctrl+x` | Delete event, or Delete this occurrence of a repeating one; asks first; macOS, system calendar only |
+| `cmd+c` | Copy event details: title, when, where and the link as text; marked events copy as one agenda, in time order |
+| `ctrl+x` | Delete event, or Delete this occurrence of a repeating one; asks first; marked events delete together; macOS, system calendar only |
 | `cmd+i` | Details: the description as text (HTML stripped for a Google event), when with the duration, the calendar and its account, the location, the call, the organizer, every attendee with their reply, whether it repeats |
 | `tab` | Cycle the calendars |
 

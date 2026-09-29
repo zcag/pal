@@ -30,7 +30,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { argsForm, bar, clock, effects, errorMessage, exec, failed, hint, home, now as clockNow, settings, storage, toast, view as liveView, type Action, type Arg, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, bar, clock, effects, errorMessage, exec, failed, hint, home, now as clockNow, settings, storage, toast, view as liveView, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { KEY as POMODORO_KEY, STATS_KEY, asSession, dayOf, describe, minutesOf, nameOf, next as nextPhase, phaseWord, tally, type Config, type Phase, type Session, type Stats } from "./pomodoro.ts";
 import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
@@ -296,7 +296,7 @@ export function parseNew(input: string): { duration: string; name: string; ring:
 }
 
 /** A key or a click in the popover: the CLI is asked, the popover state patched, and the item re-rendered (`keep`), which carries the new tree. */
-async function popoverAction(action: string, ctx: { values?: Record<string, string> }): Promise<Effect> {
+async function popoverAction(action: string, ctx: BarCtx): Promise<Effect> {
   await loadRecent();
   const ts = await timers();
   const st = popoverState(ts);
@@ -325,6 +325,16 @@ async function popoverAction(action: string, ctx: { values?: Record<string, stri
     const n = ts.length ? (i + (action === "down" ? 1 : -1) + ts.length) % ts.length : -1;
     pop.cursor = ts[n]?.id;
     return { keep: true };
+  }
+  // Marked cards (`ctx.ids`): stop each, add to each running or paused one, and space pauses the running ones (or, none running, resumes the paused).
+  const marked = ctx.ids?.length ? ctx.ids.map((id) => ts.find((x) => x.id === id)).filter((x): x is Timer => !!x) : undefined;
+  if (marked && (action === "stop" || action === "add" || action === "toggle")) {
+    const err = action === "stop" ? await each("stop", marked.map((x) => x.id))
+      : action === "add" ? await addEach(marked.filter((x) => x.state !== "done").map((x) => x.id))
+      : marked.some((x) => x.state === "running") ? await each("pause", marked.map((x) => x.id)) : await each("resume", marked.map((x) => x.id));
+    if (err) return err;
+    if (action === "stop") pop.cursor = ts.find((x) => !marked.includes(x))?.id;
+    return { keep: true, hud: `${action === "stop" ? "Stopped" : action === "add" ? `Added ${ADD_MINUTES} minutes to` : marked.some((x) => x.state === "running") ? "Paused" : "Resumed"} ${marked.length} timers` };
   }
   if (!t) return { keep: true };
   const args = action === "toggle" ? (t.state === "done" ? ["done"] : t.state === "paused" ? ["resume", t.id] : ["pause", t.id]) : action === "add" ? ["add", ADD, t.id] : action === "stop" ? ["stop", t.id] : undefined;
@@ -364,13 +374,32 @@ const STATE: Record<State, { tag: string; color: string }> = { running: { tag: "
 /** The pomodoro session's own actions, on its timer's row: the next phase now, or the whole session off. */
 const POMODORO_ACTIONS: Action[] = [{ id: "skip", title: "Skip to the next phase", shortcut: "cmd+s" }, { id: "stop-pomodoro", title: "Stop pomodoro", shortcut: "cmd+shift+d", style: "destructive" }];
 
+const PAUSE: Action = { id: "pause", title: "Pause", multi: true }, RESUME: Action = { id: "resume", title: "Resume", multi: true };
+
+/** `ids`' timers put through `verb`, each only in the state the verb applies to (pause a running one, resume a paused one; stop any): what a marked pick of a mix does. */
+/** `ADD` onto each of `ids`. */
+async function addEach(ids: string[]): Promise<Effect | undefined> {
+  for (const id of ids) { try { await timer("add", ADD, id); } catch (e) { return failed("add to the timer", e); } }
+}
+
+async function each(verb: "pause" | "resume" | "stop", ids: string[]): Promise<Effect | undefined> {
+  const ts = await timers();
+  const want = verb === "pause" ? "running" : verb === "resume" ? "paused" : undefined;
+  for (const id of ids) {
+    if (want && ts.find((t) => t.id === id)?.state !== want) continue;
+    try { await timer(verb, id); } catch (e) { return failed(`${verb} the timer`, e); }
+  }
+}
+
 function row(t: Timer): Item {
   const left = secsLeft(t);
   const when = t.state === "done" ? `Landed ${fmt(now() - t.fired)} ago` : t.state === "paused" ? `Paused at ${fmt(left)}` : `${fmt(left)} left, done at ${clock(t.deadline * 1000)}`;
   const p = session?.timerId === t.id ? session : undefined;
   const subtitle = p ? `${describe(p)} · ${when}` : when;
-  const first: Action = t.state === "done" ? { id: "done", title: "Dismiss" } : t.state === "paused" ? { id: "resume", title: "Resume" } : { id: "pause", title: "Pause" };
-  const actions: Action[] = [first, { id: "add", title: "Add minutes", shortcut: "cmd++", args: true }, ...(p ? POMODORO_ACTIONS : []), { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive" }];
+  // Pause, Resume and Stop work on marked timers too; a running or paused row carries the other of the pair at the end, so a mix of them offers both. Dismiss clears every landed timer at once already.
+  const first: Action = t.state === "done" ? { id: "done", title: "Dismiss" } : t.state === "paused" ? RESUME : PAUSE;
+  const other: Action[] = t.state === "done" ? [] : [t.state === "paused" ? PAUSE : RESUME];
+  const actions: Action[] = [first, { id: "add", title: "Add minutes", shortcut: "cmd++", args: true }, ...(p ? POMODORO_ACTIONS : []), { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive", multi: true }, ...other];
   return { id: t.id, name: t.name, subtitle, icon: p ? TOMATO : GLYPH, keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), { tag: STATE[t.state].tag, color: STATE[t.state].color }], args: ADD_ARGS, actions };
 }
 
@@ -397,7 +426,7 @@ async function list(): Promise<Item[]> {
   return [...ts.map(row), newRow, ...(session ? [] : [pomodoroRow(conf())]), ...(n ? [statsRow(n)] : [])];
 }
 
-async function pick(id: string, action?: string, ctx?: { values?: Record<string, string | boolean> }): Promise<Effect> {
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id === POMODORO) return startPomodoro();
   if (id === STATS_ROW) return { keep: true };
   if (action === "skip") return skipPomodoro();
@@ -412,7 +441,9 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
     try { out = await timer(duration, ...(name ? [name] : []), ...(v.ring === "yes" || v.ring === true ? ["--ring"] : [])); } catch (e) { return { form: form({ duration: errorMessage(e) }) }; }
     return toast("Timer started", out);
   }
-  const args = action === "add" ? ["add", addDuration(ctx?.values), id] : action === "done" ? ["done"] : [action ?? "pause", id];
+  // The marked timers (`ctx.ids`), else the one.
+  if (action === undefined || action === "pause" || action === "resume" || action === "stop") return (await each(action ?? "pause", ctx?.ids ?? [id])) ?? { keep: true };
+  const args = action === "add" ? ["add", addDuration(ctx?.values), id] : action === "done" ? ["done"] : [action, id];
   try { await timer(...args); } catch (e) { return failed(`${action ?? "pause"} the timer`, e); }
   return { keep: true };
 }

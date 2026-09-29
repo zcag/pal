@@ -225,7 +225,7 @@ describe("bookmarks", () => {
       id: "http://ha.lan", name: "Home Assistant", subtitle: "http://ha.lan", icon: "🏠", keywords: ["ha", "home"], url: "http://ha.lan", section: "bookmarks.json",
     });
     expect(host.loaded().find((l) => l.extension === "bookmarks")!.palettes[0].actions).toEqual([
-      { id: "open", title: "Open in browser", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }, { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c" },
+      { id: "open", title: "Open in browser", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }, { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c", multi: true },
     ]);
     expect(items[1]).toMatchObject({ subtitle: "code", url: "https://github.com" });
     expect(items[1].icon).toBeUndefined();
@@ -241,7 +241,7 @@ describe("bookmarks", () => {
     const bun = items.find((i) => i.id === "https://bun.sh")!;
     expect(bun).toMatchObject({ name: "Bun", subtitle: "https://bun.sh", url: "https://bun.sh", keywords: ["Bookmarks Bar", "Dev"], accessories: [{ text: "Bookmarks Bar / Dev" }], section: "Chrome (Default)" });
     expect(bun.icon).toBeUndefined();
-    expect(bun.actions!.map((a) => [a.id, a.title])).toEqual([["open", "Open in browser"], ["copy", "Copy link"], ["copy-markdown", "Copy as markdown"], ["open-in", "Open in Chrome"]]);
+    expect(bun.actions!.map((a) => [a.id, a.title, !!a.multi])).toEqual([["open", "Open in browser", true], ["copy", "Copy link", true], ["copy-markdown", "Copy as markdown", true], ["open-in:Google Chrome", "Open in Chrome", true]]);
     // A bookmark saved without a name is named by its bare address, and the address is not said again under it.
     const keep = items.find((i) => i.id === "https://www.keep.google.com/")!;
     expect(keep.name).toBe("keep.google.com");
@@ -265,9 +265,11 @@ describe("bookmarks", () => {
     expect(await pick("https://bun.sh", "copy-markdown")).toEqual({ copy: "[Bun](https://bun.sh)" });
     // A file row has no browser of its own: open-in falls back to the opener.
     expect(await pick("http://ha.lan", "open-in")).toEqual({ open: "http://ha.lan" });
-    // Marked rows: the first is the effect, the rest go through the opener here (a lone id opens nothing extra). Open is the one multi action.
-    expect(await host.pick("bookmarks", "bookmarks", "http://ha.lan", "open", { ids: ["http://ha.lan"] })).toEqual({ open: "http://ha.lan" });
-    expect(host.loaded().find((l) => l.extension === "bookmarks")!.palettes[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open"]);
+    // Marked rows: one effect opening every url; the copies one per line.
+    const ids = ["http://ha.lan", "https://bun.sh"];
+    expect(await host.pick("bookmarks", "bookmarks", ids[0]!, "open", { ids })).toEqual({ open: ids });
+    expect(await host.pick("bookmarks", "bookmarks", ids[0]!, "copy", { ids })).toEqual({ copy: "http://ha.lan\nhttps://bun.sh" });
+    expect(await host.pick("bookmarks", "bookmarks", ids[0]!, "copy-markdown", { ids })).toEqual({ copy: "[Home Assistant](http://ha.lan)\n[Bun](https://bun.sh)" });
   });
 
   test("browsers and exclude_folders settings: an empty browser list is the file alone; a folder name drops its rows", async () => {
@@ -336,7 +338,7 @@ describe("history", () => {
     ]);
     expect(items[0]).toEqual({
       id: "https://bun.sh/docs", name: "Bun docs", subtitle: "https://bun.sh/docs", url: "https://bun.sh/docs", accessories: [{ date: T - 60_000 }], section: "Chrome (Default)",
-      actions: [{ id: "open-in", title: "Open in Chrome" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }, { id: "open", title: "Open in default browser", shortcut: "cmd+o" }],
+      actions: [{ id: "open-in:Google Chrome", title: "Open in Chrome", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }, { id: "open", title: "Open in default browser", shortcut: "cmd+o", multi: true }],
     });
     expect(items[1].actions![0].title).toBe("Open in Firefox");
     expect(items[4].name).toBe("https://example.com/untitled");
@@ -360,6 +362,10 @@ describe("history", () => {
     expect(await pick("https://bun.sh/docs", "open")).toEqual({ open: "https://bun.sh/docs" });
     // A url the last listing did not have (a stale row) falls back to the default browser.
     expect(await pick("https://nowhere.example")).toEqual({ open: "https://nowhere.example" });
+    // Marked visits: open together in the default browser, copy one per line.
+    const ids = ["https://bun.sh/docs", "https://developer.mozilla.org/"];
+    expect(await host.pick("bookmarks", "history", ids[0]!, "open", { ids })).toEqual({ open: ids });
+    expect(await host.pick("bookmarks", "history", ids[0]!, "copy", { ids })).toEqual({ copy: ids.join("\n") });
   });
 
   test("the copy under the cache follows the file: a visit written to Chrome's History shows once the copy is older than the minimum", async () => {

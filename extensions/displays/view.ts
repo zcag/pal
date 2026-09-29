@@ -125,20 +125,22 @@ function screenCard(p: PopoverScreen, selected: boolean, i: number): ViewNode {
   } else {
     kids.push(row([text(p.settable ? "Brightness could not be read" : s.builtin ? "Set with the keyboard's keys" : "No tool can set its brightness", { key: "na", style: "muted", size: "xs" })], { key: "level", gap: 1, minHeight: 18 }));
   }
-  return column(kids, { key: `screen-${s.id}`, gap: 1, padding: 2, surface: selected ? "elevated" : undefined, radius: true, action: `focus:${s.id}`, ...(selected && { selected: true }), transition: { enter: "fade", delay: Math.min(8, i) } });
+  // A card whose brightness can be set can be marked (`mark`): the brightness keys then move every marked screen at once.
+  return column(kids, { key: `screen-${s.id}`, ...(p.settable && { mark: s.id }), gap: 1, padding: 2, surface: selected ? "elevated" : undefined, radius: true, action: `focus:${s.id}`, ...(selected && { selected: true }), transition: { enter: "fade", delay: Math.min(8, i) } });
 }
 
 export function popoverActions(st: PopoverState): Action[] {
   const cur = st.screens[st.focus];
-  const canSet = !!cur?.settable && cur.level !== undefined;
+  // Offered while any screen can be set, and over marked screens (`multi`) each moves from its own level: the cursor's card need not be one.
+  const canSet = st.screens.some((p) => p.settable && p.level !== undefined);
   return [
     ...(cur ? [{ id: "open", title: `Open ${cur.screen.name} in pal` } as Action] : []),
     ...(canSet ? [
-      { id: "up", title: "Brighter", shortcut: ["right", "+", "="] } as Action,
-      { id: "down", title: "Dimmer", shortcut: ["left", "-"] } as Action,
-      { id: "fine-up", title: "Brighter by 1%", shortcut: ["shift+right", "."], hidden: true } as Action,
-      { id: "fine-down", title: "Dimmer by 1%", shortcut: ["shift+left", ","], hidden: true } as Action,
-      ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d): Action => ({ id: `preset:${digitLevel(d)}`, title: `Set ${digitLevel(d)}%`, shortcut: String(d), hidden: true })),
+      { id: "up", title: "Brighter", shortcut: ["right", "+", "="], multi: true } as Action,
+      { id: "down", title: "Dimmer", shortcut: ["left", "-"], multi: true } as Action,
+      { id: "fine-up", title: "Brighter by 1%", shortcut: ["shift+right", "."], hidden: true, multi: true } as Action,
+      { id: "fine-down", title: "Dimmer by 1%", shortcut: ["shift+left", ","], hidden: true, multi: true } as Action,
+      ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d): Action => ({ id: `preset:${digitLevel(d)}`, title: `Set ${digitLevel(d)}%`, shortcut: String(d), hidden: true, multi: true })),
     ] : []),
     ...(st.night !== undefined ? [{ id: "night", title: st.night ? "Night Shift off" : "Night Shift on", shortcut: "n" } as Action] : []),
     { id: "open-pal", title: "Open Displays in pal", shortcut: "p" },

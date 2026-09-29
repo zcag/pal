@@ -28,11 +28,12 @@ const GLYPH = {
   broom: "\u{f00e2}", // md-broom
 };
 
-const COPY: Action = { id: "copy", title: "Copy GIF" };
-const COPY_URL: Action = { id: "copy_url", title: "Copy URL" };
-const OPEN: Action = { id: "open", title: "Open in browser", shortcut: "cmd+o" };
-const SAVE: Action = { id: "save", title: "Save to Downloads", shortcut: "cmd+s" };
-const FAV: Action = { id: "fav", title: "Add to favourites", shortcut: "cmd+f" };
+// Every tile action but Clear works on marked tiles: the files, the urls one per line, a tab each, a file each, one favourites write.
+const COPY: Action = { id: "copy", title: "Copy GIF", multi: true };
+const COPY_URL: Action = { id: "copy_url", title: "Copy URL", multi: true };
+const OPEN: Action = { id: "open", title: "Open in browser", shortcut: "cmd+o", multi: true };
+const SAVE: Action = { id: "save", title: "Save to Downloads", shortcut: "cmd+s", multi: true };
+const FAV: Action = { id: "fav", title: "Add to favourites", shortcut: "cmd+f", multi: true };
 const UNFAV: Action = { id: "unfav", title: "Remove from favourites", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear favourites", style: "destructive", confirm: "Forget every favourite GIF?" };
 
@@ -90,9 +91,10 @@ const FAVS = "favourites";
 const isGif = (x: unknown): x is Gif => !!x && typeof x === "object" && typeof (x as Gif).id === "string" && typeof (x as Gif).gif === "string" && typeof (x as Gif).preview === "string";
 const favourites = async (): Promise<Gif[]> => ((await storage.get<Gif[]>(FAVS)) ?? []).filter(isGif);
 
-async function favour(g: Gif): Promise<void> {
-  const list = (await favourites()).filter((f) => f.id !== g.id);
-  await storage.set(FAVS, [g, ...list].slice(0, FAV_MAX));
+async function favour(gs: Gif[]): Promise<void> {
+  const ids = new Set(gs.map((g) => g.id));
+  const list = (await favourites()).filter((f) => !ids.has(f.id));
+  await storage.set(FAVS, [...gs, ...list].slice(0, FAV_MAX));
 }
 
 // ---- rows ---------------------------------------------------------------------------
@@ -165,32 +167,40 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   }
 }
 
-async function act(g: Gif, action: string | undefined): Promise<Effect> {
+/** Every GIF's file, downloaded (cached); the url of the first that fails instead. */
+async function paths(gs: Gif[]): Promise<string[] | { failed: string }> {
+  const out: string[] = [];
+  for (const g of gs) { const p = await download(g); if (!p) return { failed: g.gif }; out.push(p); }
+  return out;
+}
+
+/** `gs`: the GIF picked, or every marked one (`ctx.ids`), the picked first. */
+async function act(gs: Gif[], action: string | undefined): Promise<Effect> {
+  const g = gs[0]!, n = gs.length;
   switch (action) {
-    case "copy_url": return { copy: g.gif };
-    case "open": return { open: g.page || g.gif };
-    case "fav": await favour(g); return toast("Added to favourites", g.title);
+    case "copy_url": return { copy: gs.map((x) => x.gif).join("\n") };
+    case "open": return { open: n > 1 ? gs.map((x) => x.page || x.gif) : g.page || g.gif };
+    case "fav": await favour(gs); return toast("Added to favourites", n > 1 ? `${n} GIFs` : g.title);
     case "save": {
-      const path = await download(g);
-      if (!path) return toast("Could not download", g.gif, "failure");
+      const got = await paths(gs);
+      if (!Array.isArray(got)) return toast("Could not download", got.failed, "failure");
       const dir = home(S().save_to?.trim() || "~/Downloads");
       await mkdir(dir, { recursive: true });
-      const out = join(dir, fileName(g));
-      await writeFile(out, await readFile(path));
-      return { hud: `Saved ${fileName(g)}` };
+      for (let i = 0; i < n; i++) await writeFile(join(dir, fileName(gs[i]!)), await readFile(got[i]!));
+      return { hud: n > 1 ? `Saved ${n} GIFs` : `Saved ${fileName(g)}` };
     }
     default: {
-      const path = await download(g);
-      if (!path) return toast("Could not download", g.gif, "failure");
-      return { copy_files: [path], hud: "Copied GIF" };
+      const got = await paths(gs);
+      if (!Array.isArray(got)) return toast("Could not download", got.failed, "failure");
+      return { copy_files: got, hud: n > 1 ? `Copied ${n} GIFs` : "Copied GIF" };
     }
   }
 }
 
-async function pick(id: string, action?: string): Promise<Effect> {
-  const g = held.get(id);
-  if (!g) return toast("GIF is gone", "The listing changed; pick again", "failure");
-  return act(g, action);
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+  const gs = (ctx?.ids ?? [id]).map((i) => held.get(i));
+  if (gs.some((g) => !g)) return toast("GIF is gone", "The listing changed; pick again", "failure");
+  return act(gs as Gif[], action);
 }
 
 // ---- favourites palette ----------------------------------------------------------------
@@ -214,7 +224,9 @@ async function favPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> 
     await storage.set(FAVS, kept);
     return toast("Removed", n > 1 ? `${n} GIFs` : g.title);
   }
-  return act(g, action);
+  const favs = await favourites();
+  const gs = (ctx?.ids ?? [id]).map((i) => held.get(i) ?? favs.find((f) => f.id === i)).filter((x): x is Gif => !!x);
+  return act(gs.length ? gs : [g], action);
 }
 
 export default {

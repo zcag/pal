@@ -72,7 +72,7 @@ function card(t: Timer, st: PopoverState): ViewNode {
     ], { key: "head", gap: 2, align: "center" }),
     { type: "progress", key: "bar", value: progressOf(t, st.now), color },
   ];
-  return column(kids, { key: `t-${t.id}`, surface: "elevated", radius: true, padding: 3, gap: 2, action: `focus:${t.id}`, ...(selected && { selected: true }), transition: { enter: "fade", exit: "fade" } });
+  return column(kids, { key: `t-${t.id}`, mark: t.id, surface: "elevated", radius: true, padding: 3, gap: 2, action: `focus:${t.id}`, ...(selected && { selected: true }), transition: { enter: "fade", exit: "fade" } });
 }
 
 /** The durations on the tiles: the last used first, the defaults filling up behind them. */
@@ -114,9 +114,10 @@ export function actions(st: PopoverState): Action[] {
   const acts: Action[] = [];
   if (st.field) acts.push({ id: "start", title: "Start" });
   if (t) {
-    acts.push(t.state === "done" ? { id: "toggle", title: "Dismiss", shortcut: ["space", "d"] } : t.state === "paused" ? { id: "toggle", title: "Resume", shortcut: "space" } : { id: "toggle", title: "Pause", shortcut: "space" });
-    if (t.state !== "done") acts.push({ id: "add", title: "Add 5 minutes", shortcut: ["+", "="] });
-    acts.push({ id: "stop", title: "Stop", shortcut: "backspace", style: "destructive" });
+    // Space, + and backspace work on marked cards too (`mark`): pause (or resume), add, stop each.
+    acts.push(t.state === "done" ? { id: "toggle", title: "Dismiss", shortcut: ["space", "d"], multi: true } : t.state === "paused" ? { id: "toggle", title: "Resume", shortcut: "space", multi: true } : { id: "toggle", title: "Pause", shortcut: "space", multi: true });
+    if (t.state !== "done") acts.push({ id: "add", title: "Add 5 minutes", shortcut: ["+", "="], multi: true });
+    acts.push({ id: "stop", title: "Stop", shortcut: "backspace", style: "destructive", multi: true });
   }
   if (!st.field) acts.push({ id: "new", title: "New timer", shortcut: "n" });
   if (!st.field) acts.push(...(st.pomodoro ? [{ id: "skip", title: "Skip to the next phase", shortcut: "s" }, { id: "stop-pomodoro", title: "Stop pomodoro", shortcut: "cmd+shift+d", style: "destructive" as const }] : [{ id: "pomodoro", title: "Start pomodoro", shortcut: "p" }]));

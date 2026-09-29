@@ -125,10 +125,10 @@ describe("bluetooth", () => {
     expect(items[0]).toEqual({
       id: "14:28:76:8B:AE:C8", name: "AirPods Pro", subtitle: "Headphones", icon: XDG_ICONS["audio-headphones"], keywords: ["14:28:76:8B:AE:C8", "headphones"],
       accessories: [{ text: "L 80% · R 75% · Case 90%" }, { tag: "connected", color: "green" }],
-      actions: [{ id: "toggle", title: "Disconnect", confirm: "Disconnect AirPods Pro?" }, { id: "copy", title: "Copy address", shortcut: "cmd+c" }],
+      actions: [{ id: "disconnect", title: "Disconnect", confirm: "Disconnect from this computer?", multi: true }, { id: "copy", title: "Copy address", shortcut: "cmd+c", multi: true }, { id: "connect", title: "Connect", multi: true }],
     });
     expect(items[1].accessories).toEqual([{ text: "55%" }, { tag: "connected", color: "green" }]);
-    expect(items[2]).toMatchObject({ icon: XDG_ICONS["input-keyboard"], accessories: [], actions: [{ id: "toggle", title: "Connect" }, { id: "copy", title: "Copy address", shortcut: "cmd+c" }] });
+    expect(items[2]).toMatchObject({ icon: XDG_ICONS["input-keyboard"], accessories: [], actions: [{ id: "connect", title: "Connect", multi: true }, { id: "copy", title: "Copy address", shortcut: "cmd+c", multi: true }, { id: "disconnect", title: "Disconnect", confirm: "Disconnect from this computer?", multi: true }] });
     expect(items[3]).toMatchObject({ subtitle: "50:ED:3C:E5:7F:02", icon: XDG_ICONS["bluetooth"] });
   });
 
@@ -137,6 +137,16 @@ describe("bluetooth", () => {
     expect(await pick("E6:E6:EA:DB:E7:18")).toEqual({ hud: "Connected to Corne" });
     expect(await pick("E6:E6:EA:DB:E7:18", "toggle")).toEqual({ hud: "Disconnected Corne" });
     expect(calls).toEqual(["connect E6:E6:EA:DB:E7:18", "disconnect E6:E6:EA:DB:E7:18"]);
+  });
+
+  test("marked rows: connect only the ones that are not, disconnect only the connected ones, copy one address per line", async () => {
+    calls.length = 0;
+    const ids = ["14:28:76:8B:AE:C8", "E6:E6:EA:DB:E7:18"];
+    expect(await host.pick("bluetooth", "bluetooth", ids[0]!, "connect", { ids })).toEqual({ hud: "Connected to Corne" });
+    expect(await host.pick("bluetooth", "bluetooth", ids[0]!, "disconnect", { ids })).toEqual({ hud: "Disconnected 2 devices" });
+    expect(calls).toEqual(["connect E6:E6:EA:DB:E7:18", "disconnect 14:28:76:8B:AE:C8", "disconnect E6:E6:EA:DB:E7:18"]);
+    expect(await host.pick("bluetooth", "bluetooth", ids[0]!, "copy", { ids })).toEqual({ copy: ids.join("\n") });
+    await pick(ids[0]!, "connect");
   });
 
   test("copy address, and a refused connect is a failure toast", async () => {

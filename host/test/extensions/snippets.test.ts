@@ -129,7 +129,9 @@ describe("snippets", () => {
     expect(items[1]).toMatchObject({ name: "Signature", subtitle: "Best,", keywords: ["sig"], accessories: [{ tag: "sig" }] });
     expect(items[1].detail!.markdown).toContain("Best,\nCagdas");
     expect(items[1].actions!.map((a) => a.id)).toEqual(["paste", "copy", "edit", "delete"]);
-    expect(items[1].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete this snippet?" });
+    // Copy and Delete also take marked snippets; the question reads for one or several.
+    expect(items[1].actions![3]).toMatchObject({ style: "destructive", multi: true, confirm: "Delete? This cannot be undone." });
+    expect(items[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "delete"]);
     expect(items[2].keywords).toBeUndefined();
     expect(items[2].accessories).toEqual([{ text: "dynamic" }]);
   });
@@ -197,6 +199,14 @@ describe("snippets", () => {
     expect((await list()).map((i) => i.id)).not.toContain("stamp");
     expect((await host.call("pick", { extension: "snippets", palette: "snippets", id: "nope" })).error).toMatch(/no snippet nope/);
     expect((await host.hello()).pid).toBe(host.pid);
+  });
+  test("marked snippets: copied one per line in marking order, deleted in one write", async () => {
+    await pick("create", "save", { values: { name: "One", keyword: "", text: "first" } });
+    await pick("create", "save", { values: { name: "Two", keyword: "", text: "second" } });
+    const ids = (await list()).filter((i) => i.name === "One" || i.name === "Two").map((i) => i.id);
+    expect(await pick(ids[1]!, "copy", { ids: [ids[1]!, ids[0]!] })).toEqual({ copy: "second\nfirst" });
+    expect(await pick(ids[0]!, "delete", { ids })).toEqual({ keep: true, toast: { title: "Deleted", message: "2 snippets" } });
+    expect((await list()).map((i) => i.name)).not.toContain("One");
   });
   test("{snippet name=} reads another snippet by name or keyword through the extension", async () => {
     await pick("create", "save", { values: { name: "Wrap", keyword: "", text: "<{snippet name=shrug}> <{snippet name=sign-off}>" } });

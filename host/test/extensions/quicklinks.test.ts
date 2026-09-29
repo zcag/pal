@@ -113,7 +113,7 @@ describe("quicklinks at the root", () => {
   test("a typed web address lists one inline Open row (favicon from the url), picked by its id; a word does not match", async () => {
     const inline = (q: string) => host.request<{ extension: string; items: Item[] }[]>("inline", { query: q }).then((r) => r.find((s) => s.extension === "quicklinks")?.items);
     const rows = await inline("docs.rs/serde");
-    expect(rows).toEqual([{ id: "open:https://docs.rs/serde", name: "Open docs.rs/serde", subtitle: "https://docs.rs/serde", url: "https://docs.rs/serde", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect(rows).toEqual([{ id: "open:https://docs.rs/serde", name: "Open docs.rs/serde", subtitle: "https://docs.rs/serde", url: "https://docs.rs/serde", actions: [{ id: "open", title: "Open", multi: true }, { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true }] }]);
     expect((await inline("https://x.io/a?b"))![0].id).toBe("open:https://x.io/a?b");
     expect(await inline("github")).toBeUndefined();
     expect(await pick("open:https://docs.rs/serde")).toEqual({ open: "https://docs.rs/serde" });
@@ -122,7 +122,7 @@ describe("quicklinks at the root", () => {
   test("the fallback rows: every {query} link filled with the query, opened or copied by id", async () => {
     const r = await host.request<{ extension: string; items: Item[] }[]>("fallback", { query: "pal launcher" });
     const rows = r.find((s) => s.extension === "quicklinks")!.items;
-    expect(rows).toEqual([{ id: "open:https://github.com/search?q=pal%20launcher", name: "GitHub search", subtitle: "https://github.com/search?q=pal%20launcher", url: "https://github.com/search?q=pal%20launcher", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect(rows).toEqual([{ id: "open:https://github.com/search?q=pal%20launcher", name: "GitHub search", subtitle: "https://github.com/search?q=pal%20launcher", url: "https://github.com/search?q=pal%20launcher", actions: [{ id: "open", title: "Open", multi: true }, { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true }] }]);
     expect(await pick(rows[0].id)).toEqual({ open: "https://github.com/search?q=pal%20launcher" });
     expect(await host.request<unknown[]>("fallback", { query: "  " })).toEqual([]);
   });
@@ -141,7 +141,9 @@ describe("quicklinks", () => {
     expect(items[3].args).toBeUndefined();
     expect(items[2].icon).toBeUndefined();
     expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy", "edit", "delete"]);
-    expect(items[2].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete this quicklink?" });
+    expect(items[2].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete from your quicklinks?", multi: true });
+    // Over marked rows: open each, copy a url a line, delete them all; editing stays one link's.
+    expect(items[2].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "delete"]);
     expect(items[2].detail!.markdown).toContain("https://github.com/search?q={query}");
     expect(items[3].accessories).toBeUndefined();
     // The app it opens with is an accessory and a metadata line; `{selection}` is no tag (nothing is asked for).
@@ -205,7 +207,7 @@ describe("quicklinks", () => {
     const wiki = rows.find((r) => r.name === "Wikipedia")!;
     expect(await pick(wiki.id, "search", ctx)).toEqual({ push: { extension: "quicklinks", palette: "quicklinks", args: { link: wiki.id, library: wiki.id }, title: "Wikipedia" } });
     const drill = await host.list("quicklinks", "quicklinks", "bun", { args: { link: wiki.id, library: wiki.id } });
-    expect(drill).toEqual([{ id: "https://en.wikipedia.org/w/index.php?search=bun", name: "Open Wikipedia", subtitle: "https://en.wikipedia.org/w/index.php?search=bun", url: "https://en.wikipedia.org/w/index.php?search=bun", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect(drill).toEqual([{ id: "https://en.wikipedia.org/w/index.php?search=bun", name: "Open Wikipedia", subtitle: "https://en.wikipedia.org/w/index.php?search=bun", url: "https://en.wikipedia.org/w/index.php?search=bun", actions: [{ id: "open", title: "Open", multi: true }, { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true }] }]);
     expect(await pick(drill[0].id, "open", { args: { link: wiki.id, library: wiki.id } })).toEqual({ open: "https://en.wikipedia.org/w/index.php?search=bun" });
     expect(await pick(wiki.id, "copy", ctx)).toEqual({ copy: "https://en.wikipedia.org/w/index.php?search={query}" });
     expect((stored.get("quicklinks\0links") as object[]).some((l) => (l as { name: string }).name === "Wikipedia")).toBe(false);
@@ -249,7 +251,7 @@ describe("quicklinks", () => {
     expect(hint).toHaveLength(1);
     expect(hint[0]).toMatchObject({ id: "gh", name: "Type the query", actions: [] });
     const rows = await host.list("quicklinks", "quicklinks", "bun test", { args: { link: "gh" } });
-    expect(rows).toEqual([{ id: "https://github.com/search?q=bun%20test", name: "Open GitHub search", subtitle: "https://github.com/search?q=bun%20test", url: "https://github.com/search?q=bun%20test", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect(rows).toEqual([{ id: "https://github.com/search?q=bun%20test", name: "Open GitHub search", subtitle: "https://github.com/search?q=bun%20test", url: "https://github.com/search?q=bun%20test", actions: [{ id: "open", title: "Open", multi: true }, { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true }] }]);
     expect(await pick(rows[0].id, "open", { args: { link: "gh" } })).toEqual({ open: "https://github.com/search?q=bun%20test" });
     expect(await pick(rows[0].id, "copy", { args: { link: "gh" } })).toEqual({ copy: "https://github.com/search?q=bun%20test" });
     expect(await host.list("quicklinks", "quicklinks", "x", { args: { link: "nope" } })).toEqual([]);
@@ -299,10 +301,28 @@ describe("quicklinks", () => {
     expect(links[1]).toEqual({ id: "ha", name: "HA", url: "http://ha.lan:8123", keywords: ["home"] });
   });
 
+  test("marked rows: copy a url a line; open each, a {query} link left out; the library adds several at once", async () => {
+    expect(await pick("gh", "copy", { ids: ["gh", "ha"] })).toEqual({ copy: "https://github.com/search?q={query}\nhttp://ha.lan:8123" });
+    expect(await pick("gh", "open", { ids: ["gh", "gone"] })).toMatchObject({ toast: { title: "These ask for a value", style: "failure" } });
+    expect(await pick("gh", "open", { ids: ["gh", "open:https://example.com/a", "open:https://example.com/b"] })).toEqual({ open: ["https://example.com/a", "https://example.com/b"] });
+    const ctx = { args: { library: true } };
+    const before = (stored.get("quicklinks\0links") as object[]).length;
+    expect(await pick("library:1", "add", { ...ctx, ids: ["library:1", "library:2"] })).toMatchObject({ keep: true, toast: { title: "Added 2" } });
+    const links = stored.get("quicklinks\0links") as { name: string }[];
+    expect(links.length).toBe(before + 2);
+    stored.set("quicklinks\0links", links.slice(0, before));
+  });
+
   test("delete drops the link and lists again", async () => {
     expect(await pick("ha", "delete")).toEqual({ keep: true, toast: { title: "Deleted", message: "HA" } });
     expect((stored.get("quicklinks\0links") as { id: string }[]).map((l) => l.id)).not.toContain("ha");
     expect((await list()).map((i) => i.id)).not.toContain("ha");
+    // Marked links go at once.
+    const kept = stored.get("quicklinks\0links") as { id: string }[];
+    const left = kept.map((l) => l.id);
+    expect(await pick(left[0]!, "delete", { ids: left.slice(0, 2) })).toMatchObject({ keep: true, toast: { title: "Deleted 2" } });
+    expect((stored.get("quicklinks\0links") as { id: string }[]).map((l) => l.id)).toEqual(left.slice(2));
+    stored.set("quicklinks\0links", kept);
   });
 
   test("an unknown id, and an imported row's edit, are errors, not crashes", async () => {

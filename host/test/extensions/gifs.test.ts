@@ -140,6 +140,18 @@ describe("gifs", () => {
     expect(await pick("giphy:nope")).toMatchObject({ keep: true, toast: { style: "failure" } });
   });
 
+  test("marked tiles: every tile action but Clear takes them; the files together, the urls a line each, a tab each, a file each", async () => {
+    const [a, b] = await list("");
+    expect((await list(""))[0].actions!.filter((x) => x.multi).map((x) => x.id)).toEqual(["copy", "copy_url", "open", "save", "fav"]);
+    const ctx = { ids: [a.id, b.id] };
+    const e = await host.pick("gifs", "gifs", a.id, "copy", ctx);
+    expect(e.copy_files).toHaveLength(2);
+    expect(e.hud).toBe("Copied 2 GIFs");
+    expect((await host.pick("gifs", "gifs", a.id, "copy_url", ctx)).copy!.toString().split("\n")).toHaveLength(2);
+    expect((await host.pick("gifs", "gifs", a.id, "open", ctx)).open).toHaveLength(2);
+    expect(await host.pick("gifs", "gifs", a.id, "save", ctx)).toEqual({ hud: "Saved 2 GIFs" });
+  });
+
   test("Favourites: what was kept, newest first, with Remove instead of Add and a Clear row; empty says so", async () => {
     const [dance] = await list("happy");
     await pick(dance.id, "fav");

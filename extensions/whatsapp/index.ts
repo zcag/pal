@@ -9,7 +9,7 @@
 // reaction and no message field anywhere, whatever the key could do.
 // With it on, a chat row takes the message in the search bar (`args`)
 // for "Send a message"; a bare pick gets the same as a form.
-import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+import { eachId, errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { ApiError, NoKey, RateLimited, SessionError, Unreachable, base, conf, log, markChatRead, markChatUnread, react as apiReact, reply as apiReply, reset as resetApi, sendText } from "./api.ts";
 import { PANE_MSGS, REACTIONS, RUN_MSGS, chat, chatLink, clock, contacts, conversation, conversationMarkdown, dropChats, isGroupId, loadChats, oneLine, currentOpener as opener, phoneOf, prettyPhone, resetData, search, vcard, type Chat, type Hit, type Person } from "./data.ts";
 import { RECENT_ROWS, initialIcon, render as renderBar, type BarRow, type BarState } from "./view.ts";
@@ -58,7 +58,8 @@ function chatActions(c: Chat): Action[] {
     // Send takes the row's typed arguments (the message, and whether it quotes); Enter on the row still opens the chat.
     ...(send ? [{ id: "reply", title: "Send a message", shortcut: "cmd+shift+r", args: true as const }, { id: "react", title: "React to the latest message", shortcut: "cmd+shift+e" }] : []),
     { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" },
-    c.group ? { id: "copy-name", title: "Copy name", shortcut: "cmd+c" } : { id: "copy-number", title: "Copy number", shortcut: "cmd+c" },
+    // Opening stays one chat: WhatsApp shows one at a time. Copying takes marked chats too, one per line.
+    c.group ? { id: "copy-name", title: "Copy name", shortcut: "cmd+c", multi: true } : { id: "copy-number", title: "Copy number", shortcut: "cmd+c", multi: true },
     c.unread > 0 ? UNREAD : READ,
   ];
 }
@@ -223,7 +224,13 @@ async function unreadRows(ctx?: Ctx): Promise<Item[]> {
   return list.map((c) => chatRow(c, c.group ? "Groups" : "Direct messages"));
 }
 
-const pickChatRow = async (id: string, action?: string, ctx?: Ctx): Promise<Effect | void> => (id.startsWith("hint:") ? pickHint(id) : pickChat(await chat(id), action, ctx));
+/** Marked rows' copies (`ctx.ids`, each row's own pick) on one clipboard, one per line; the first failure instead, when one failed (`eachId`). */
+const copyEach = (ids: string[], one: (id: string) => Promise<Effect>) => eachId(ids, one);
+const COPIES = new Set(["copy", "copy-name", "copy-number", "copy-vcard"]);
+const many = (action: string | undefined, ctx: Ctx | undefined): ctx is Ctx & { ids: string[] } => !!action && COPIES.has(action) && !!ctx?.ids && ctx.ids.length > 1;
+
+const pickChatRow = async (id: string, action?: string, ctx?: Ctx): Promise<Effect | void> =>
+  id.startsWith("hint:") ? pickHint(id) : many(action, ctx) ? copyEach(ctx.ids, async (x) => pickChat(await chat(x), action)) : pickChat(await chat(id), action, ctx);
 const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await chatPane(await chat(id)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };
 
 // ---- search -----------------------------------------------------------------------------------------
@@ -242,7 +249,7 @@ function hitRow(h: Hit): Item {
     icon: isGroupId(h.chatId) ? ICON.group : initialIcon(h.chat),
     keywords: [h.chat, h.who],
     accessories: [{ date: h.at }],
-    actions: [{ id: "open", title: "Open chat" }, { id: "copy", title: "Copy message", shortcut: "cmd+c" }, { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" }],
+    actions: [{ id: "open", title: "Open chat" }, { id: "copy", title: "Copy message", shortcut: "cmd+c", multi: true }, { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" }],
   };
 }
 
@@ -283,8 +290,8 @@ function personRow(p: Person): Item {
     keywords: [p.phone, prettyPhone(p.phone)],
     actions: [
       { id: "open", title: "Open chat" },
-      { id: "copy-number", title: "Copy number", shortcut: "cmd+c" },
-      { id: "copy-vcard", title: "Copy as vCard", shortcut: "cmd+shift+c" },
+      { id: "copy-number", title: "Copy number", shortcut: "cmd+c", multi: true },
+      { id: "copy-vcard", title: "Copy as vCard", shortcut: "cmd+shift+c", multi: true },
       { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" },
     ],
   };
@@ -456,11 +463,10 @@ export default {
       input: true,
       placeholder: "Words from any message",
       list: (query, ctx) => guard(() => searchRows(query, ctx)),
-      pick: (id, action) => {
+      pick: (id, action, ctx) => {
         if (id.startsWith("hint:")) return pickHint(id);
-        const h = hits.get(id);
-        if (!h) throw new Error(`no message ${id}`);
-        return pickHit(h, action);
+        const one = (x: string) => { const h = hits.get(x); if (!h) throw new Error(`no message ${x}`); return pickHit(h, action); };
+        return many(action, ctx) ? copyEach(ctx.ids, one) : one(id);
       },
       detail: async (id) => { const h = hits.get(id); if (!h) return; try { return await chatPane(await chat(h.chatId)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } },
     },
@@ -469,7 +475,8 @@ export default {
       lazy: true,
       placeholder: "A name or a number",
       list: (_q, ctx) => guard(() => contactRows(ctx)),
-      pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickPerson(id, action)),
+      // Marked contacts' numbers or vCards (one .vcf holds several) on one clipboard.
+      pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : many(action, ctx) ? copyEach(ctx.ids, (x) => pickPerson(x, action)) : pickPerson(id, action)),
     },
   },
   bar: {

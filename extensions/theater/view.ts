@@ -44,7 +44,8 @@ const ROW_W = INNER_W - 2 * 4 * ROW_PAD;
 const GLYPH_W = 28, RIGHT_W = 64, GAP = 8;
 const TEXT_W = ROW_W - GLYPH_W - RIGHT_W - 2 * GAP;
 
-function rowNode(r: PopRow, focused: boolean): ViewNode {
+/** A row; `markable` where the popover has actions that run over several (`mark`: downloads, requests, the queue; not what plays, paused one device at a time). */
+function rowNode(r: PopRow, focused: boolean, markable: boolean): ViewNode {
   const lead: ViewNode = r.image
     ? { type: "image", key: "g", src: r.image, width: 24, height: 24, mask: "rounded" }
     : text(r.glyph ?? "\u{f0997}", { key: "g", style: "glyph", size: "md", color: r.glyphColor ?? "muted", width: GLYPH_W });
@@ -56,7 +57,7 @@ function rowNode(r: PopRow, focused: boolean): ViewNode {
   if (r.right) right.push(text(r.right, { key: "r", style: "number", size: "xs", color: "muted" }));
   return row(
     [{ type: "stack", key: "lead", direction: "column", align: "center", children: [lead] }, column(body, { key: "body", gap: 1 }), column(right, { key: "right", gap: 1, align: "end" })],
-    { key: r.id, padding: ROW_PAD, gap: 2, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, ...(markable && { mark: r.id }), padding: ROW_PAD, gap: 2, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -79,11 +80,12 @@ export function actions(st: PopState): Action[] {
   switch (st.kind) {
     case "downloads":
       own.push({ id: "toggle-all", title: st.allPaused ? "Resume everything" : "Pause everything", shortcut: "space" });
-      if (cur) own.push({ id: "toggle", title: cur.paused ? "Resume the item" : "Pause the item", shortcut: "cmd+enter" }, { id: "delete", title: "Delete the item", shortcut: "backspace", style: "destructive", confirm: `Delete ${cur.title}?` });
+      // Over marked rows: Pause or Resume them all as the cursor's row reads, Delete them all; the question names none.
+      if (cur) own.push({ id: "toggle", title: cur.paused ? "Resume the item" : "Pause the item", shortcut: "cmd+enter", multi: true }, { id: "delete", title: "Delete the item", shortcut: "backspace", style: "destructive", multi: true, confirm: "Delete, with the files, from the download client?" });
       break;
     case "playing": if (cur) own.push({ id: "playpause", title: cur.paused ? "Resume" : "Pause", shortcut: "space" }); break;
-    case "requests": if (cur) own.push({ id: "approve", title: "Approve", shortcut: "a" }, { id: "decline", title: "Decline", shortcut: "d", style: "destructive", confirm: `Decline ${cur.title}?` }); break;
-    case "queue": if (cur) own.push({ id: "remove", title: "Remove from the queue", shortcut: "backspace", style: "destructive", confirm: `Remove ${cur.title} from the queue?` }); break;
+    case "requests": if (cur) own.push({ id: "approve", title: "Approve", shortcut: "a", multi: true }, { id: "decline", title: "Decline", shortcut: "d", style: "destructive", multi: true, confirm: "Decline? The requester sees it declined." }); break;
+    case "queue": if (cur) own.push({ id: "remove", title: "Remove from the queue", shortcut: "backspace", style: "destructive", multi: true, confirm: "Remove from the queue and the download client? Nothing is blocklisted." }); break;
   }
   return [
     { id: "open", title: cur ? `Open ${cur.title}` : "Open" },
@@ -110,7 +112,7 @@ export function render(st: PopState): View {
   } else {
     const kids: ViewNode[] = [];
     if (st.summary) kids.push(text(st.summary, { key: "summary", size: "xs", color: "muted" }));
-    kids.push(column(st.rows.map((r, i) => rowNode(r, i === st.focus)), { key: "rows", gap: 0 }), hints(st));
+    kids.push(column(st.rows.map((r, i) => rowNode(r, i === st.focus, st.kind !== "playing")), { key: "rows", gap: 0 }), hints(st));
     tree = column(kids, { key: "compact", padding: OUTER, gap: 2 });
   }
   return { tree, actions: actions(st), title: st.title, id: st.kind, keys: "actions" };

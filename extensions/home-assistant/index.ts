@@ -107,16 +107,38 @@ async function callService(c: Client, id: string, ctx?: Ctx): Promise<Effect> {
   }
 }
 
+/**
+ * Marked entities (`ctx.ids`): the copies a line each, Home Assistant a
+ * tab each, a service call each on the entity's own domain (the first
+ * refusal stops it, naming the entity).
+ */
+async function pickEntities(c: Client, ids: string[], act: string): Promise<Effect> {
+  switch (act) {
+    case "copy_id": return { copy: ids.join("\n") };
+    case "copy_value": return { copy: (await Promise.all(ids.map((i) => c.state(i)))).map((s) => s.state).join("\n") };
+    case "open_ha": return { open: (await Promise.all(ids.map((i) => c.state(i)))).map((s) => haUrl(c.url, s)) };
+  }
+  const service = SERVICE[act];
+  if (!service) return failed(act, new Error("unknown action"));
+  for (const i of ids) {
+    try { await c.call(domainOf(i), service, { entity_id: i }); } catch (e) { return failed(`${service.replace(/_/g, " ")} ${i}`, e); }
+  }
+  const said = service.replace(/_/g, " ");
+  return toast(`${said[0]!.toUpperCase()}${said.slice(1)}: ${ids.length} entities`);
+}
+
 /** A pick on an entity row or one of its drill-ins; a request that fails is a toast, so the caller wraps this. */
 async function pickEntity(id: string, action: string | undefined, ctx: Ctx | undefined): Promise<Effect | void> {
   const args = (ctx?.args ?? {}) as Args;
   if (id === "hint:setup") return;
   const c = client();
-  // The attribute level: every row copies its value (or its name).
+  const ids = (ctx?.ids ?? [id]).filter((x) => !x.startsWith("hint:"));
+  // The attribute level: every row copies its value (or its name); marked rows a line each.
   if (args.attributes) {
     const s = await c.state(args.attributes);
-    return { copy: action === "copy_key" ? id : id === "state" ? s.state : asText(s.attributes[id]) };
+    return { copy: ids.map((k) => (action === "copy_key" ? k : k === "state" ? s.state : asText(s.attributes[k]))).join("\n") };
   }
+  if (ids.length > 1 && action) return pickEntities(c, ids, action);
   // No action id (an item hotkey, a bare pick): the row's primary action.
   const act = action ?? actions(await c.state(id))[0].id;
   /** A drill-in level, its crumb the entity's name. */
@@ -192,7 +214,7 @@ export default {
       },
       pick: async (id, action, ctx): Promise<Effect | void> => {
         if (id === "hint:setup") return;
-        if (action === "copy_id") return { copy: id };
+        if (action === "copy_id") return { copy: (ctx?.ids ?? [id]).join("\n") };
         let c: Client;
         try { c = client(); } catch (e) { return failed("reach Home Assistant", e); }
         if (action === "call" && ctx?.values) return callService(c, id, ctx);

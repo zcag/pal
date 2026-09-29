@@ -33,6 +33,11 @@ answered from a cache.
 | `cmd+i` | The detail pane |
 | `cmd+d` | In Watch Later: remove |
 
+Mark several videos (`cmd`-click, `shift`-click, `shift+↑↓`) and every
+action but the detail runs over them: the browser opens a tab each, the
+player gets them as one playlist, the urls are copied one per line, Watch
+later saves them all, and each channel opens once.
+
 mpv and VLC need `yt-dlp` on PATH to play a YouTube url; IINA brings its
 own.
 

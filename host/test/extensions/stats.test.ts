@@ -11,7 +11,7 @@ import { parsePs } from "../../../sdk/src/procs.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { counted, cpuDelta, DISK, diskLevel, History, levelOf, macMemory, parseDf, parseIpAddr, parseMacMount, parseMeminfo, parseNetstat, parseProcMounts, parseProcNetDev, parsePsi, parseVmStat, rates, shownIface, volumes, type Sample, type Volume } from "../../../extensions/stats/sample.ts";
 import { colorOf, gb, ink, INNER_W, load, memorySegments, pct, rate, rateShort, renderCpu, renderDisk, renderLoad, renderMemory, renderNetwork, sparkGlyphs, sparkline, uptimeText } from "../../../extensions/stats/view.ts";
-import { Host } from "../harness.ts";
+import { Host, marksOf } from "../harness.ts";
 
 const VM_STAT = `Mach Virtual Memory Statistics: (page size of 16384 bytes)
 Pages free:                              274962.
@@ -311,7 +311,9 @@ describe("stats popovers", () => {
     expect(v.title).toBe("CPU 78%");
     // Enter is Activity Monitor on macOS, the Processes palette elsewhere (where `p` has no row of its own).
     expect(v.actions.map((a) => a.id)).toEqual([...(process.platform === "darwin" ? ["monitor", "kill", "copy", "processes"] : ["processes", "kill", "copy"]), "palette", "down", "up", "focus:4321", "focus:9999", "focus:100", "focus:101", "focus:102"]);
-    expect(v.actions[1]).toMatchObject({ title: "Kill sysmond", style: "destructive", confirm: "Send SIGTERM to sysmond (9999)?", shortcut: "x" });
+    expect(v.actions[1]).toMatchObject({ title: "Kill sysmond", style: "destructive", multi: true, confirm: "Send SIGTERM? A process may lose what it has not saved.", shortcut: "x" });
+    // Every process row can be marked (its pid), for a Kill over them all.
+    expect(marksOf(v.tree)).toEqual(["4321", "9999", "100", "101", "102"]);
     const flat = JSON.stringify(v.tree);
     expect(flat).toContain('"text":"high"');
     expect(flat).toContain("5 cores · load 3.26 3.25 2.91 · up 1 d 1 h");
@@ -433,9 +435,12 @@ describe("stats in the host", () => {
     const down = await host.barAction("stats", "cpu", "down");
     expect(down).toMatchObject({ view: { id: "cpu" } });
     const first = await host.barAction("stats", "disk", "focus:/");
-    expect(JSON.stringify(first)).toContain('"key":"vol-/","padding":1');
+    expect(JSON.stringify(first)).toContain('"key":"vol-/","mark":"/","padding":1');
     expect(await host.barAction("stats", "disk", "copy")).toEqual({ copy: "/" });
     expect(await host.barAction("stats", "disk", "reveal")).toEqual({ open: "/" });
+    // Marked volumes: each revealed, the paths one per line.
+    expect(await host.barAction("stats", "disk", "reveal", { reason: "open", ids: ["/", "/tmp"] })).toEqual({ open: ["/", "/tmp"] });
+    expect(await host.barAction("stats", "disk", "copy", { reason: "open", ids: ["/", "/tmp"] })).toEqual({ copy: "/\n/tmp" });
     expect(await host.barAction("stats", "cpu", "copy")).toEqual({ copy: expect.stringMatching(/^\d+%$/) });
     expect(await host.barAction("stats", "load", "copy")).toEqual({ copy: expect.stringMatching(/^[\d.]+ [\d.]+ [\d.]+$/) });
     expect(await host.barAction("stats", "cpu", "palette")).toEqual({ push: { extension: "stats", palette: "stats", args: { section: "cpu" } } });
@@ -458,6 +463,9 @@ describe("stats in the host", () => {
     expect(disk).toMatchObject({ section: "Disks", name: expect.stringMatching(/free$/), actions: [{ id: "copy" }, { id: "reveal", shortcut: "cmd+r" }, { id: "popover" }] });
     expect(await host.pick("stats", "stats", disk.id)).toEqual({ copy: disk.id.slice(5) });
     expect(await host.pick("stats", "stats", "cpu")).toEqual({ copy: rows[0].name });
+    // Marked rows: the values one per line.
+    expect(((await host.pick("stats", "stats", "cpu", "copy", { ids: ["cpu", disk.id] })).copy as string).split("\n")).toEqual([expect.stringMatching(/^\d+%$/), disk.id.slice(5)]);
+    expect(rows.find((r) => r.id === "cpu")!.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy"]);
     expect(await host.pick("stats", "stats", "cpu", "popover")).toEqual({ open: "pal://bar/stats/cpu" });
     expect(await host.pick("stats", "stats", disk.id, "popover")).toEqual({ open: "pal://bar/stats/disk" });
     const detail = await host.detail("stats", "stats", "cpu");

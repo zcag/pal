@@ -86,7 +86,7 @@
     "actions": [
       {
         "title": "Open in browser",
-        "description": "The system's default browser.",
+        "description": "The system's default browser. Every action here works on several marked rows: they open together, copies go one per line.",
         "keys": "enter"
       },
       {

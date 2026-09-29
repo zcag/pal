@@ -31,7 +31,8 @@ const GLYPH = {
   wait: "\u{f051f}", // md-timer_sand
 };
 
-const COPY: Action = { id: "copy", title: "Copy" };
+// Copy works on marked rows too (one per line): several alternatives, several past translations.
+const COPY: Action = { id: "copy", title: "Copy", multi: true };
 const PASTE: Action = { id: "paste", title: "Paste" };
 const SPEAK: Action = { id: "speak", title: "Speak", shortcut: "cmd+shift+s" };
 const COPY_SOURCE: Action = { id: "copy_source", title: "Copy the source text", shortcut: "cmd+shift+c" };
@@ -176,10 +177,16 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   }
 }
 
-async function pick(id: string, action?: string): Promise<Effect> {
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const h = held.get(id);
   if (!h) return toast("Translation is gone", "The listing changed; pick again", "failure");
   if (id === "swap") return { push: { extension: "translate", palette: "translate", query: `${h.to}>${h.from} ${h.text}` } };
+  // Marked rows (`ctx.ids`): copied one per line, each remembered.
+  const hs = (ctx?.ids ?? [id]).map((i) => held.get(i)).filter((x): x is Held => !!x);
+  if (hs.length > 1 && (action === undefined || action === "copy")) {
+    for (const x of [...hs].reverse()) await remember(x);
+    return { copy: hs.map((x) => x.text).join("\n") };
+  }
   switch (action) {
     case "paste": await remember(h); return { paste: { text: h.text } };
     case "speak": {
@@ -208,7 +215,8 @@ async function historyRows(): Promise<Item[]> {
   const rows = list.map((e): Item => ({
     id: historyId(e), name: short(e.result), subtitle: `${short(e.text, 60)} · ${pair(e.from, e.to)}`, icon: GLYPH.translate, keywords: [e.text],
     accessories: [{ date: e.at }], detail: historyDetail(e),
-    actions: [COPY, PASTE, SPEAK, AGAIN, COPY_SOURCE, REMOVE],
+    // A result row's source is the one text they share; past translations each have their own, so there it is multi too.
+    actions: [COPY, PASTE, SPEAK, AGAIN, { ...COPY_SOURCE, multi: true }, REMOVE],
   }));
   rows.push({ id: "clear", name: "Clear history", subtitle: `${list.length} ${list.length === 1 ? "translation" : "translations"}`, icon: GLYPH.broom, actions: [CLEAR] });
   return rows;
@@ -219,11 +227,13 @@ async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effe
   const list = await history();
   const e = list.find((x) => historyId(x) === id);
   if (!e) return toast("Entry is gone", undefined, "failure");
+  // Marked rows (`ctx.ids`), in marking order.
+  const marked = (ctx?.ids ?? [id]).map((i) => list.find((x) => historyId(x) === i)).filter((x): x is Entry => !!x);
   switch (action) {
     case "paste": return { paste: { text: e.result } };
     case "speak": return (await speak(e.result, e.to)) ? toast("Speaking", short(e.result, 60)) : toast("Nothing can speak here", "Install spd-say or espeak", "failure");
     case "again": return { push: { extension: "translate", palette: "translate", query: `${e.from === "auto" ? "" : e.from}>${e.to} ${e.text}` } };
-    case "copy_source": return { copy: e.text };
+    case "copy_source": return { copy: marked.map((x) => x.text).join("\n") };
     case "remove": {
       // Marked rows (`ctx.ids`) go in one write.
       const gone = new Set(ctx?.ids ?? [id]);
@@ -231,7 +241,7 @@ async function historyPick(id: string, action?: string, ctx?: Ctx): Promise<Effe
       await storage.set("history", kept);
       return toast("Removed", n > 1 ? `${n} translations` : short(e.result, 60));
     }
-    default: return { copy: e.result };
+    default: return { copy: marked.map((x) => x.result).join("\n") };
   }
 }
 

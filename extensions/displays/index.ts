@@ -90,7 +90,8 @@ function screenRow(s: Screen, snap: Snapshot, level: number | undefined): Item {
   const actions: Action[] = [{ id: "open", title: "Open" }];
   if (can) actions.push({ id: "set-brightness", title: "Set brightness", shortcut: "cmd+b", args: true });
   if (canArrange(t) && !s.main && !s.mirrorOf) actions.push({ id: "make-main", title: "Make main", shortcut: "cmd+shift+m" });
-  actions.push({ id: "copy-id", title: "Copy display id", shortcut: "cmd+c" });
+  // Marked displays copy their ids together, one per line (a script's list); the rest is one display's.
+  actions.push({ id: "copy-id", title: "Copy display id", shortcut: "cmd+c", multi: true });
   return {
     id: `display:${s.id}`,
     name: s.name,
@@ -284,7 +285,10 @@ async function rootPick(id: string, action: string | undefined, ctx: Ctx | undef
       case "set-brightness": return setTyped(s, "brightness", ctx?.values ? String(ctx.values.brightness ?? "") : undefined, t, id, "brightness", `Brightness: ${s.name}`);
       case "set": return setTyped(s, "brightness", ctx?.values ? String(ctx.values.brightness ?? "") : undefined, t, id, "brightness", `Brightness: ${s.name}`);
       case "make-main": return makeMain(snap, s);
-      case "copy-id": return { copy: s.id, hud: `Copied ${s.id}` };
+      case "copy-id": {
+        const ids = (ctx?.ids ?? [id]).filter((x) => x.startsWith("display:")).map((x) => x.slice(8));
+        return { copy: ids.join("\n"), hud: ids.length > 1 ? `Copied ${ids.length} display ids` : `Copied ${s.id}` };
+      }
       default: return { push: { extension: EXT, palette: "displays", args: { display: s.id } satisfies Args, title: s.name } };
     }
   }
@@ -458,10 +462,15 @@ async function barAction(action: string, ctx?: BarCtx): Promise<Effect> {
   const target = action.startsWith("set:") ? snap.screens.find((s) => s.id === action.slice(4)) : scroll ? barScreen(snap) : st.screens[st.focus]?.screen;
   if (!target) return { keep: true };
   if (action === "open") return { push: { extension: EXT, palette: "displays", args: { display: target.id } satisfies Args, title: target.name } };
-  const next = nextLevel(action.startsWith("set:") ? "set" : scroll ? action.slice(7) : action, await read(target, "brightness", t), st.step, ctx?.values);
-  if (next === undefined || !settable(target, "brightness", t)) return { keep: true };
-  const level = Math.max(floorOf(target), Math.min(100, Math.round(next)));
-  try { await write(target, "brightness", level, t); } catch (e) { return failed("set brightness", e); }
+  // Marked cards (`ctx.ids`): every one of them, each from its own level; else the one the key or the click is on.
+  const targets = ctx?.ids?.length && !action.startsWith("set:") && !scroll ? snap.screens.filter((s) => ctx.ids!.includes(s.id)) : [target];
+  let level = 0;
+  for (const s of targets) {
+    const next = nextLevel(action.startsWith("set:") ? "set" : scroll ? action.slice(7) : action, await read(s, "brightness", t), st.step, ctx?.values);
+    if (next === undefined || !settable(s, "brightness", t)) continue;
+    level = Math.max(floorOf(s), Math.min(100, Math.round(next)));
+    try { await write(s, "brightness", level, t); } catch (e) { return failed(`set ${s.name} brightness`, e); }
+  }
   return scroll ? { keep: true, hud: `${target.name} ${level}%` } : redraw();
 }
 

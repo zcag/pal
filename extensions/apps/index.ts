@@ -26,12 +26,13 @@ const MAC_ROOTS: [string, string][] = [
   [`${HOME}/Applications`, "User"],
 ];
 
-const OPEN: Action = { id: "open", title: "Open" };
+// Every app action works on marked rows too (`multi`): launch, quit, hide or reveal several, copy their paths or ids one per line.
+const OPEN: Action = { id: "open", title: "Open", multi: true };
 const QUIT: Action = { id: "quit", title: "Quit", shortcut: "cmd+q", multi: true };
-const HIDE: Action = { id: "hide", title: "Hide", shortcut: "cmd+h" };
-const REVEAL: Action = { id: "reveal", title: "Reveal in Finder", shortcut: "cmd+shift+r" };
-const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+c" };
-const COPY_ID: Action = { id: "copy-id", title: "Copy bundle id", shortcut: "cmd+shift+c" };
+const HIDE: Action = { id: "hide", title: "Hide", shortcut: "cmd+h", multi: true };
+const REVEAL: Action = { id: "reveal", title: "Reveal in Finder", shortcut: "cmd+shift+r", multi: true };
+const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+c", multi: true };
+const COPY_ID: Action = { id: "copy-id", title: "Copy bundle id", shortcut: "cmd+shift+c", multi: true };
 /** The palette's actions: what every macOS row does unless it is running (Quit and Hide move up) or has no bundle id; a row says so only then. */
 const MAC_ACTIONS: Action[] = [OPEN, REVEAL, COPY_PATH, COPY_ID, QUIT, HIDE];
 
@@ -155,7 +156,8 @@ const panes = (): Item[] =>
     subtitle: "System Settings",
     icon: { app: SETTINGS_APP },
     keywords: ["settings", "preferences", "system settings", ...keywords],
-    actions: [{ id: "open", title: "Open" }, { id: "copy-url", title: "Copy URL", shortcut: "cmd+c" }],
+    // Open stays single: System Settings is one window, a second pane replaces the first. The urls copy one per line.
+    actions: [{ id: "open", title: "Open" }, { id: "copy-url", title: "Copy URL", shortcut: "cmd+c", multi: true }],
   }));
 
 /** Graceful quit through AppleScript (the app may ask to save), else SIGTERM to its processes. */
@@ -171,30 +173,31 @@ async function quitMac(path: string, pids: number[]) {
 
 const hideMac = (pid: number) => run(["osascript", "-e", `tell application "System Events" to set visible of (first process whose unix id is ${pid}) to false`], { ms: OSASCRIPT_MS });
 
-/** Quit every marked app that is running (`ctx.ids`); the ones that are not are skipped, and the toast counts what was quit. */
-async function quitMany(ids: string[]) {
+/** Quit or hide every marked app that is running (`ctx.ids`); the ones that are not are skipped, and the toast counts what was done. */
+async function quitMany(ids: string[], action: "quit" | "hide" = "quit") {
   if (!ids.every((id) => macApps.has(id))) await apps();
   const running = await runningPids();
   const up = ids.filter((id) => running.get(id)?.length);
   if (!up.length) return { keep: true as const, toast: { title: "None of them is running" } };
   const failures: string[] = [];
-  await Promise.all(up.map((id) => quitMac(id, running.get(id)!).catch(() => { failures.push(macApps.get(id)?.name ?? id); })));
+  await Promise.all(up.map((id) => (action === "quit" ? quitMac(id, running.get(id)!) : hideMac(running.get(id)![0]!)).catch(() => { failures.push(macApps.get(id)?.name ?? id); })));
   cache = undefined;
-  if (failures.length) return { keep: true as const, toast: { title: `Could not quit ${failures.join(", ")}`, style: "failure" as const } };
-  return { keep: true as const, toast: { title: up.length === 1 ? `Quit ${macApps.get(up[0]!)?.name ?? up[0]}` : `Quit ${up.length} apps` } };
+  const verb = action === "quit" ? "Quit" : "Hid";
+  if (failures.length) return { keep: true as const, toast: { title: `Could not ${action} ${failures.join(", ")}`, style: "failure" as const } };
+  return { keep: true as const, toast: { title: up.length === 1 ? `${verb} ${macApps.get(up[0]!)?.name ?? up[0]}` : `${verb} ${up.length} apps` } };
 }
 
 async function pickMac(id: string, action?: string, ctx?: Ctx) {
   const ids = ctx?.ids ?? [id];
-  if (action === "quit" && ids.length > 1) return quitMany(ids);
-  if (id.startsWith(PANE)) return action === "copy-url" ? { copy: paneUrl(id.slice(PANE.length)) } : { open: paneUrl(id.slice(PANE.length)) };
+  if ((action === "quit" || action === "hide") && ids.length > 1) return quitMany(ids, action);
+  if (id.startsWith(PANE)) return action === "copy-url" ? { copy: ids.map((p) => paneUrl(p.slice(PANE.length))).join("\n") } : { open: paneUrl(id.slice(PANE.length)) };
   // A pick on a row restored from the persisted index, before this run has listed.
-  if (!macApps.has(id)) await apps();
+  if (!ids.every((x) => macApps.has(x))) await apps();
   const app = macApps.get(id);
   switch (action) {
-    case "reveal": spawnDetached(["open", "-R", id]); return { hide: true as const };
-    case "copy-path": return { copy: id };
-    case "copy-id": return { copy: app?.bundleId ?? id };
+    case "reveal": spawnDetached(["open", "-R", ...ids]); return { hide: true as const };
+    case "copy-path": return { copy: ids.join("\n") };
+    case "copy-id": return { copy: ids.map((x) => macApps.get(x)?.bundleId ?? x).join("\n") };
     case "quit":
     case "hide": {
       const pids = (await runningPids()).get(id) ?? [];
@@ -204,7 +207,7 @@ async function pickMac(id: string, action?: string, ctx?: Ctx) {
       cache = undefined;
       return { keep: true as const };
     }
-    default: return { open: id };
+    default: return { open: ids.length > 1 ? ids : id };
   }
 }
 
@@ -328,11 +331,14 @@ async function detailLinux(id: string): Promise<Detail> {
   return { markdown: `# ${e?.id.slice(0, -8) ?? id}`, metadata };
 }
 
-async function pickLinux(id: string, action?: string) {
-  if (action === "copy-path") return { copy: id };
+async function pickLinux(id: string, action?: string, ctx?: Ctx) {
+  const ids = ctx?.ids ?? [id];
+  if (action === "copy-path") return { copy: ids.join("\n") };
   // A pick on a row restored from the persisted index, before this run has listed.
-  if (!entries.has(id)) await apps();
-  launchLinux(id, action?.startsWith(ACTION) ? action.slice(ACTION.length) : undefined);
+  if (!ids.every((x) => entries.has(x))) await apps();
+  // A desktop action is one row's own; Open launches every marked row.
+  if (action?.startsWith(ACTION)) return launchLinux(id, action.slice(ACTION.length));
+  for (const x of ids) launchLinux(x);
 }
 
 // ---- palette -------------------------------------------------------------
@@ -363,7 +369,7 @@ export default {
       // The Linux rows carry their own (a .desktop file's actions differ per app).
       ...(!LINUX && { actions: MAC_ACTIONS }),
       list: (_query, ctx) => apps(ctx?.refresh),
-      pick: (id, action, ctx) => (LINUX ? pickLinux(id, action) : pickMac(id, action, ctx)),
+      pick: (id, action, ctx) => (LINUX ? pickLinux(id, action, ctx) : pickMac(id, action, ctx)),
       detail: (id) => (LINUX ? detailLinux(id) : detailMac(id)),
     },
   },

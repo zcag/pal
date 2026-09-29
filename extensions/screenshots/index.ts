@@ -86,9 +86,9 @@ const OPEN: Action = { id: "open", title: "Open", multi: true };
 const REVEAL: Action = { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", multi: true };
 const COPY_IMAGE: Action = { id: "copy-image", title: "Copy image", shortcut: "cmd+c", multi: true };
 const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+shift+c", multi: true };
-const COPY_MARKDOWN: Action = { id: "copy-markdown", title: "Copy as markdown image", shortcut: "cmd+m" };
-const COPY_TEXT: Action = { id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t" };
-const TRASH: Action = { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?", multi: true };
+const COPY_MARKDOWN: Action = { id: "copy-markdown", title: "Copy as markdown image", shortcut: "cmd+m", multi: true };
+const COPY_TEXT: Action = { id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t", multi: true };
+const TRASH: Action = { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move to the Trash?", multi: true };
 const IMAGE_ACTIONS: Action[] = [OPEN, REVEAL, COPY_IMAGE, COPY_PATH, COPY_MARKDOWN, COPY_TEXT, TRASH];
 const VIDEO_ACTIONS: Action[] = [OPEN, REVEAL, COPY_IMAGE, COPY_PATH, TRASH];
 
@@ -206,11 +206,13 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
     case "copy-image": return { copy_files: ids };
     case "copy-path": return { copy: ids.join("\n") };
-    case "copy-markdown": return { copy: markdownImage(id), hud: "Copied markdown image" };
+    case "copy-markdown": return { copy: ids.map(markdownImage).join("\n"), hud: ids.length > 1 ? `Copied ${ids.length} markdown images` : "Copied markdown image" };
     case "copy-text": {
-      let text: string;
-      try { text = await ocr.image({ path: id }); } catch (e) { return failure("Could not read the text", e); }
-      if (!text) return toast("No text found", basename(id));
+      // Every marked shot read in turn, their texts a blank line apart; one with none is left out.
+      const texts: string[] = [];
+      try { for (const p of ids) { const t = await ocr.image({ path: p }); if (t) texts.push(t); } } catch (e) { return failure("Could not read the text", e); }
+      if (!texts.length) return toast("No text found", ids.length > 1 ? `${ids.length} screenshots` : basename(id));
+      const text = texts.join("\n\n");
       return { copy: S().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
     }
     case "trash": {
@@ -218,9 +220,7 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
       try { for (const p of ids) { await trash(p); n++; } } catch (e) { return failure(n ? `Moved ${n} to the Trash, then failed` : "Could not move to Trash", e); }
       return toast("Moved to Trash", ids.length === 1 ? basename(id) : `${ids.length} items`);
     }
-    default:
-      for (const p of ids.slice(1)) spawnDetached([MAC ? "open" : "xdg-open", p]);
-      return { open: id };
+    default: return { open: ids.length > 1 ? ids : id };
   }
 }
 

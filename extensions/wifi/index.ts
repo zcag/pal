@@ -40,7 +40,8 @@ const signalAccessory = (signal: number | null): Accessory[] => (signal === null
 const joinAction: Action = { id: "join", title: "Join" };
 const copyPassword: Action = { id: "password", title: "Copy password", shortcut: "cmd+shift+c" };
 const copyName: Action = { id: "copy", title: "Copy name", shortcut: "cmd+c" };
-const forget = (ssid: string): Action => ({ id: "forget", title: "Forget", shortcut: "ctrl+x", style: "destructive", confirm: `Forget ${ssid}? Its password goes with it.` });
+// Forget works on marked networks too (clearing out old saved ones), so its question names no one network: the confirm card counts the marked rows under it.
+const forget: Action = { id: "forget", title: "Forget", shortcut: "ctrl+x", style: "destructive", confirm: "Forget, and delete the saved password too?", multi: true };
 
 function available(n: WifiNetwork): Item {
   return {
@@ -90,7 +91,7 @@ export default {
           const details = [cur.ip, cur.channel && `channel ${cur.channel}`, cur.security].filter(Boolean).join(" · ");
           const actions: Action[] = [];
           if (cur.ip) actions.push({ id: "copy_ip", title: "Copy IP", shortcut: "cmd+c" });
-          if (cur.ssid) actions.push(copyPassword, forget(cur.ssid));
+          if (cur.ssid) actions.push(copyPassword, forget);
           items.push({
             id: `current:${cur.ssid ?? ""}`,
             name: cur.ssid ?? "Connected network",
@@ -115,7 +116,7 @@ export default {
             icon: WIFI,
             keywords: ["wifi", "network", "saved"],
             accessories: n ? [...signalAccessory(n.signal), { tag: "in range", color: "blue" }] : [],
-            actions: [joinAction, copyName, copyPassword, forget(k.ssid)],
+            actions: [joinAction, copyName, copyPassword, forget],
             section: "Known",
           });
         }
@@ -184,8 +185,10 @@ export default {
             try { return { copy: await wifi.password(ssid) }; } catch (e) { return failed("read the password", e); }
           }
           case "forget": {
-            try { await wifi.forget(ssid); } catch (e) { return failed(`forget ${ssid}`, e); }
-            return toast(`Forgot ${ssid}`);
+            // The marked networks (`ctx.ids`), else the one.
+            const ssids = (ctx?.ids ?? [id]).map(ssidOf).filter(Boolean);
+            for (const x of ssids) { try { await wifi.forget(x); } catch (e) { return failed(`forget ${x}`, e); } }
+            return toast(ssids.length > 1 ? `Forgot ${ssids.length} networks` : `Forgot ${ssid}`);
           }
           default: {
             // A saved or open network joins at once; a secured new one joins with the password from the bar's field or the form, and is asked in a form when none was typed.

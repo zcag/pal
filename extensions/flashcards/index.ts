@@ -19,7 +19,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { appendFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { effects, hint, now as clock, settings, view, type Action, type Effect, type Extension, type Item as Row, type View, type ViewPalette } from "@zcag/pal";
+import { effects, hint, now as clock, settings, view, type Action, type Ctx, type Effect, type Extension, type Item as Row, type View, type ViewPalette } from "@zcag/pal";
 import { roles } from "./apkg.ts";
 import * as ankiweb from "./ankiweb.ts";
 import { parsePack, readFolder, type Pack } from "./packs.ts";
@@ -526,10 +526,12 @@ async function packRows(): Promise<Row[]> {
       },
       actions: [
         { id: "study", title: "Study this pack" },
-        { id: inRot ? "remove" : "add", title: inRot ? "Stop practising (progress is kept)" : "Add to practice", shortcut: "cmd+enter" },
+        // Marked packs join practice or leave it together; the one that flips this pack is on ⌘↵, the other at the end, so a mix goes either way.
+        { ...(inRot ? PRACTICE_OFF : PRACTICE_ON), shortcut: "cmd+enter" },
         ...(w ? [{ id: "weak", title: `Refresher: ${w} weak cards`, shortcut: "cmd+r" }] : []),
         ...(p.path ? [{ id: "reveal", title: "Show the file", shortcut: "cmd+shift+o" }] : []),
         { id: "folder", title: "Open the packs folder" },
+        inRot ? PRACTICE_ON : PRACTICE_OFF,
       ],
     } satisfies Row;
   });
@@ -539,11 +541,19 @@ async function packRows(): Promise<Row[]> {
   return rows;
 }
 
-async function packPick(id: string, action?: string): Promise<Effect | void> {
+const PRACTICE_ON: Action = { id: "add", title: "Add to practice", multi: true };
+const PRACTICE_OFF: Action = { id: "remove", title: "Stop practising (progress is kept)", multi: true };
+
+async function packPick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id === "browse") return { push: { extension: EXT, palette: "flashcard-anki" } };
   if (action === "folder" || id === "hint:add-your-own") { await mkdir(packsDir(), { recursive: true }); return { open: packsDir() }; }
   if (action === "reveal") { const p = (await packs()).find((x) => x.id === id); return p?.path ? { open: packsDir() } : undefined; }
-  if (action === "add" || action === "remove") { await setActive(id, action === "add"); return { keep: true, hud: action === "add" ? "Added to practice" : "No longer practising" }; }
+  if (action === "add" || action === "remove") {
+    const ids = ctx?.ids ?? [id];
+    for (const x of ids) await setActive(x, action === "add");
+    const many = ids.length > 1 ? `${ids.length} packs ` : "";
+    return { keep: true, hud: action === "add" ? (many ? `${many}added to practice` : "Added to practice") : (many ? `${many}no longer practised` : "No longer practising") };
+  }
   if (action === "weak") return { push: { extension: EXT, palette: STUDY, args: { pack: id, mode: "weak" } } };
   return { push: { extension: EXT, palette: STUDY, args: { pack: id } } };
 }
@@ -577,8 +587,8 @@ async function ankiRows(q = ""): Promise<Row[]> {
         ...(pct !== null ? [{ text: `${pct}% of ${d.up + d.down} liked` }] : []),
       ],
       actions: added
-        ? [{ id: "study", title: "Study it" }, { id: "open", title: "Open on AnkiWeb", shortcut: "cmd+enter" }]
-        : [{ id: "add", title: "Add to Flashcards" }, { id: "open", title: "Open on AnkiWeb", shortcut: "cmd+enter" }],
+        ? [{ id: "study", title: "Study it" }, ANKI_OPEN]
+        : [{ id: "add", title: "Add to Flashcards", multi: true }, ANKI_OPEN],
     } satisfies Row;
   });
 }
@@ -629,11 +639,20 @@ async function addAnki(id: number, title: string) {
   }
 }
 
-async function ankiPick(id: string, action?: string): Promise<Effect | void> {
+/** Marked decks: a page each, a download each. */
+const ANKI_OPEN: Action = { id: "open", title: "Open on AnkiWeb", shortcut: "cmd+enter", multi: true };
+
+async function ankiPick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return;
   const n = Number(id);
-  if (action === "open") return { open: ankiweb.pageOf(n) };
+  const ids = (ctx?.ids ?? [id]).filter((x) => !x.startsWith("hint:")).map(Number);
+  if (action === "open") return { open: ids.length > 1 ? ids.map((x) => ankiweb.pageOf(x)) : ankiweb.pageOf(n) };
   if (action === "study") return { push: { extension: EXT, palette: STUDY, args: { pack: `anki-${n}` } } };
+  if (ids.length > 1) {
+    const todo = ids.filter((x) => !downloading.has(x));
+    for (const x of todo) addAnki(x, (await ankiweb.info(x).catch(() => null))?.title ?? "the deck");
+    return { toast: { title: `Downloading ${todo.length} decks`, message: "Each joins your practice when it is in" }, keep: true };
+  }
   if (downloading.has(n)) return { toast: { title: "Already downloading" }, keep: true };
   const title = (await ankiweb.info(n).catch(() => null))?.title ?? "the deck";
   addAnki(n, title);

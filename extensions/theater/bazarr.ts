@@ -34,16 +34,23 @@ export async function rows(refresh: boolean): Promise<Item[]> {
     ];
     if (!p.length) summary.push(hint("providers", "No subtitle provider enabled", "Bazarr can fetch nothing until one is enabled under Settings › Providers", { icon: GLYPH.alert, section: "Providers" }));
     if (bad.length && bad.length === p.filter((x) => x.name !== "embeddedsubtitles").length) summary.push(hint("down", "Every online provider is throttled", "Bazarr can fetch nothing until one comes back", { icon: GLYPH.alert, section: "Providers" }));
-    const movies = m.data.map((x): Item => ({ id: `movie:${x.radarrId}`, name: x.title, subtitle: `Wants ${langs(x.missing_subtitles).join(", ")}${x.sceneName ? ` · ${truncate(x.sceneName, 50)}` : ""}`, icon: GLYPH.radarr, keywords: ["movie", ...langs(x.missing_subtitles)], section: "Movies wanting subtitles", accessories: x.missing_subtitles.map((l) => ({ tag: l.code2, color: "amber" })), actions: [{ id: "open", title: "Open in Bazarr" }, { id: "search", title: "Search subtitles now", shortcut: "cmd+enter" }] }));
-    const episodes = e.data.map((x): Item => ({ id: `episode:${x.sonarrEpisodeId}`, name: `${x.seriesTitle} ${x.episode_number}${x.episodeTitle ? ` · ${x.episodeTitle}` : ""}`, subtitle: `Wants ${langs(x.missing_subtitles).join(", ")}`, icon: GLYPH.sonarr, keywords: ["episode", x.seriesTitle, ...langs(x.missing_subtitles)], section: "Episodes wanting subtitles", accessories: x.missing_subtitles.map((l) => ({ tag: l.code2, color: "amber" })), actions: [{ id: "open", title: "Open in Bazarr" }, { id: "search", title: "Search subtitles now", shortcut: "cmd+enter" }] }));
+    const movies = m.data.map((x): Item => ({ id: `movie:${x.radarrId}`, name: x.title, subtitle: `Wants ${langs(x.missing_subtitles).join(", ")}${x.sceneName ? ` · ${truncate(x.sceneName, 50)}` : ""}`, icon: GLYPH.radarr, keywords: ["movie", ...langs(x.missing_subtitles)], section: "Movies wanting subtitles", accessories: x.missing_subtitles.map((l) => ({ tag: l.code2, color: "amber" })), actions: [{ id: "open", title: "Open in Bazarr", multi: true }, { id: "search", title: "Search subtitles now", shortcut: "cmd+enter", multi: true }] }));
+    const episodes = e.data.map((x): Item => ({ id: `episode:${x.sonarrEpisodeId}`, name: `${x.seriesTitle} ${x.episode_number}${x.episodeTitle ? ` · ${x.episodeTitle}` : ""}`, subtitle: `Wants ${langs(x.missing_subtitles).join(", ")}`, icon: GLYPH.sonarr, keywords: ["episode", x.seriesTitle, ...langs(x.missing_subtitles)], section: "Episodes wanting subtitles", accessories: x.missing_subtitles.map((l) => ({ tag: l.code2, color: "amber" })), actions: [{ id: "open", title: "Open in Bazarr" }, { id: "search", title: "Search subtitles now", shortcut: "cmd+enter", multi: true }] }));
     return [...summary, ...movies, ...(m.total > movies.length ? [hint("more-movies", `${m.total - movies.length} more movies on Bazarr's Wanted page`, undefined, { section: "Movies wanting subtitles" })] : []), ...episodes, ...(e.total > episodes.length ? [hint("more-episodes", `${e.total - episodes.length} more episodes on Bazarr's Wanted page`, undefined, { section: "Episodes wanting subtitles" })] : [])];
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
   const u = bazarrUrl();
+  const ids = ctx?.ids ?? [id];
   try {
+    // Marked movies and episodes (`ctx.ids`, `multi`): each searched for; marked movies each opened (an episode opens the one Wanted page).
+    if (ids.length > 1 && action === "search") {
+      for (const x of ids) { if (x.startsWith("movie:")) await searchMovie(Number(x.slice(6))); else if (x.startsWith("episode:")) await searchEpisode(Number(x.slice(8))); }
+      return toast("Searching", `Bazarr is looking for subtitles for ${ids.length} items`);
+    }
+    if (ids.length > 1 && id.startsWith("movie:") && action !== "search") return { open: ids.filter((x) => x.startsWith("movie:")).map((x) => `${u}/movies/${x.slice(6)}`) };
     if (id === "cmd:search") {
       if (action !== "search-all") return { open: `${u}/wanted/movies` };
       await Promise.all([runTask("wanted_search_missing_subtitles_movies"), runTask("wanted_search_missing_subtitles_series")]);

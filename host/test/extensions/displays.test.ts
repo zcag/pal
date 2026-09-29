@@ -10,7 +10,7 @@ import { popover, sliderView } from "../../../extensions/displays/view.ts";
 import { resolveScreen } from "../../../extensions/displays/index.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored, writeTool } from "../harness.ts";
+import { Host, marksOf, stored, writeTool } from "../harness.ts";
 import { BRIGHTNESS_L, BUILTIN, DDCCTL, DDCUTIL_DETECT, DELL, DISPLAYPLACER, DISPLAYPLACER_MIRRORED, HYPRCTL, M1DDC_LIST, PROFILER, WLR_RANDR, XRANDR } from "./displays-fixtures.ts";
 
 const walk = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(walk) : [])];
@@ -137,6 +137,9 @@ describe("displays: views", () => {
     expect(texts(v)).toContain("[main]");
     expect(walk(v.tree).find((n) => n.selected)?.key).toBe("screen-2");
     expect(v.actions.map((a) => a.id)).toEqual(["open", "up", "down", "fine-up", "fine-down", "preset:10", "preset:20", "preset:30", "preset:40", "preset:50", "preset:60", "preset:70", "preset:80", "preset:90", "preset:100", "night", "open-pal", "next", "prev", "focus:2", "set:2", "focus:1"]);
+    // Only a card whose brightness can be set can be marked; the brightness keys work over marked cards.
+    expect(marksOf(v.tree)).toEqual(["2"]);
+    expect(v.actions.filter((a) => a.multi).map((a) => a.id).slice(0, 5)).toEqual(["up", "down", "fine-up", "fine-down", "preset:10"]);
     const none = popover({ screens: [], focus: 0, step: 5 });
     checkView(none, "test");
     expect(none.title).toBe("No displays");
@@ -232,6 +235,9 @@ describe("displays: macOS with every tool", () => {
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "set-brightness", "copy-id"]);
     expect(rows[1]).toMatchObject({ name: "Built-in Liquid Retina XDR Display", subtitle: "1800×1169 @ 120 Hz · HiDPI", accessories: [{ text: "50%" }] });
     expect(rows[1].actions!.map((a) => a.id)).toEqual(["open", "set-brightness", "make-main", "copy-id"]);
+    // Marked displays copy their ids together; the rest is one display's.
+    expect(rows[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy-id"]);
+    expect(await host.pick("displays", "displays", "display:2", "copy-id", { ids: ["display:2", "display:1"] })).toEqual({ copy: "2\n1", hud: "Copied 2 display ids" });
     expect(rows[2]).toMatchObject({ name: "Night Shift", accessories: [{ tag: "on", color: "amber" }] });
     expect(rows.find((r) => r.section === "Setup")).toBeUndefined();
     expect(rows[1].detail).toMatchObject({ metadata: expect.arrayContaining([{ label: "Persistent id", value: BUILTIN }, { label: "Origin", value: "(-1800, 271)" }, { label: "Modes", value: "8 listed" }]) });
@@ -372,6 +378,12 @@ describe("displays: macOS with every tool", () => {
     expect(await host.barAction("displays", "brightness", "scroll-down")).toEqual({ keep: true, hud: "DELL U2720Q 65%" });
     expect(sliders(viewOf(await host.barAction("displays", "brightness", "set:2", { reason: "open", values: { value: "0.2" } }))).map((s) => s.value)).toEqual([0.2, 0.55]);
     expect(logOf(f)).toEqual(["brightness -d 0 0.55", `m1ddc display ${DELL} set luminance 65`, `m1ddc display ${DELL} set luminance 20`]);
+    // Marked cards (`ctx.ids`): each brightens from its own level.
+    clearLog(f);
+    expect(sliders(viewOf(await host.barAction("displays", "brightness", "up", { reason: "open", ids: ["2", "1"] }))).map((s) => s.value)).toEqual([0.25, 0.6]);
+    expect(logOf(f)).toEqual([`m1ddc display ${DELL} set luminance 25`, "brightness -d 0 0.60"]);
+    // And back, so what follows reads the levels it expects.
+    expect(sliders(viewOf(await host.barAction("displays", "brightness", "down", { reason: "open", ids: ["2", "1"] }))).map((s) => s.value)).toEqual([0.2, 0.55]);
     expect(await host.barAction("displays", "brightness", "open")).toEqual({ push: { extension: "displays", palette: "displays", args: { display: "1" }, title: "Built-in Liquid Retina XDR Display" } });
     expect(await host.barAction("displays", "brightness", "open-pal")).toEqual({ push: { extension: "displays", palette: "displays" } });
     expect(await host.barAction("displays", "brightness", "night")).toMatchObject({ hud: "Night Shift off" });

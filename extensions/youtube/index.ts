@@ -28,11 +28,12 @@ const GLYPH = {
   broom: "\u{f00e2}", // md-broom
 };
 
-const OPEN: Action = { id: "open", title: "Open in browser" };
-const PLAY: Action = { id: "play", title: "Play in player" };
-const COPY_URL: Action = { id: "copy_url", title: "Copy URL", shortcut: "cmd+c" };
-const LATER: Action = { id: "later", title: "Watch later", shortcut: "cmd+s" };
-const CHANNEL: Action = { id: "channel", title: "Open the channel", shortcut: "cmd+shift+o" };
+// Every video action but none works on marked rows too: tabs, a playlist, the URLs one per line, a batch saved, each channel once.
+const OPEN: Action = { id: "open", title: "Open in browser", multi: true };
+const PLAY: Action = { id: "play", title: "Play in player", multi: true };
+const COPY_URL: Action = { id: "copy_url", title: "Copy URL", shortcut: "cmd+c", multi: true };
+const LATER: Action = { id: "later", title: "Watch later", shortcut: "cmd+s", multi: true };
+const CHANNEL: Action = { id: "channel", title: "Open the channel", shortcut: "cmd+shift+o", multi: true };
 const REMOVE: Action = { id: "remove", title: "Remove from Watch Later", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear Watch Later", style: "destructive", confirm: "Forget every saved video?" };
 
@@ -63,22 +64,26 @@ const which = (name: string): string | undefined => {
 };
 const app = (name: string) => (MAC && !process.env.PAL_YOUTUBE_PATH && existsSync(`/Applications/${name}.app`) ? name : undefined);
 
-/** The player the setting names, or the first installed for `auto`: IINA (macOS), then mpv, then VLC; nothing means the browser. */
-export function playerArgv(player: Player, url: string): { title: string; argv: string[] } | undefined {
+/** The player the setting names, or the first installed for `auto`: IINA (macOS), then mpv, then VLC; nothing means the browser. Several urls are one playlist, in order. */
+export function playerArgv(player: Player, urls: string | string[]): { title: string; argv: string[] } | undefined {
+  const url = [urls].flat();
   const want = (p: Exclude<Player, "auto" | "browser">) => player === "auto" || player === p;
-  if (want("iina")) { if (app("IINA")) return { title: "IINA", argv: ["open", "-a", "IINA", url] }; const b = which("iina"); if (b) return { title: "IINA", argv: [b, url] }; }
-  if (want("mpv")) { const b = which("mpv"); if (b) return { title: "mpv", argv: [b, url] }; }
-  if (want("vlc")) { if (app("VLC")) return { title: "VLC", argv: ["open", "-a", "VLC", url] }; const b = which("vlc"); if (b) return { title: "VLC", argv: [b, url] }; }
+  if (want("iina")) { if (app("IINA")) return { title: "IINA", argv: ["open", "-a", "IINA", ...url] }; const b = which("iina"); if (b) return { title: "IINA", argv: [b, ...url] }; }
+  if (want("mpv")) { const b = which("mpv"); if (b) return { title: "mpv", argv: [b, ...url] }; }
+  if (want("vlc")) { if (app("VLC")) return { title: "VLC", argv: ["open", "-a", "VLC", ...url] }; const b = which("vlc"); if (b) return { title: "VLC", argv: [b, ...url] }; }
   return undefined;
 }
 
-function play(v: Video): Effect {
-  const url = watchUrl(v.id);
-  const p = playerArgv(S().player ?? "auto", url);
-  if (!p) return S().player === "browser" || S().player === "auto" ? { open: url } : toast(`${S().player} is not installed`, "Set Player under Settings › Extensions › YouTube", "failure");
+/** One url as itself (what a single pick always answered), several as the list `open` takes. */
+const oneOrMany = (urls: string[]) => (urls.length === 1 ? urls[0]! : urls);
+
+function play(vs: Video[]): Effect {
+  const urls = vs.map((v) => watchUrl(v.id));
+  const p = playerArgv(S().player ?? "auto", urls);
+  if (!p) return S().player === "browser" || S().player === "auto" ? { open: oneOrMany(urls) } : toast(`${S().player} is not installed`, "Set Player under Settings › Extensions › YouTube", "failure");
   try { Bun.spawn(p.argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); }
   catch (e) { return failed(`start ${p.title}`, e); }
-  return { hud: `Playing in ${p.title}` };
+  return { hud: vs.length > 1 ? `Playing ${vs.length} videos in ${p.title}` : `Playing in ${p.title}` };
 }
 
 // ---- watch later --------------------------------------------------------------------------
@@ -159,25 +164,29 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   } catch (e) { return [failedRow(e, q)]; }
 }
 
-async function act(v: Video, action: string | undefined): Promise<Effect> {
+/** `vs`: the picked video, or every marked one (the picked first). */
+async function act(vs: Video[], action: string | undefined): Promise<Effect> {
+  const v = vs[0]!, n = vs.length;
   switch (action) {
-    case "play": return play(v);
-    case "copy_url": return { copy: watchUrl(v.id) };
-    case "channel": return { open: channelUrl(v.channelId) };
+    case "play": return play(vs);
+    case "copy_url": return { copy: vs.map((x) => watchUrl(x.id)).join("\n") };
+    case "channel": return { open: oneOrMany([...new Set(vs.map((x) => channelUrl(x.channelId)))]) };
     case "later": {
-      const list = (await later()).filter((x) => x.id !== v.id);
-      await storage.set(LATER_KEY, [v, ...list].slice(0, LATER_MAX));
-      return toast("Saved for later", v.title);
+      const ids = new Set(vs.map((x) => x.id));
+      const list = (await later()).filter((x) => !ids.has(x.id));
+      await storage.set(LATER_KEY, [...vs, ...list].slice(0, LATER_MAX));
+      return toast("Saved for later", n > 1 ? `${n} videos` : v.title);
     }
     case "remove": await storage.set(LATER_KEY, (await later()).filter((x) => x.id !== v.id)); return toast("Removed", v.title);
-    default: return { open: watchUrl(v.id) };
+    default: return { open: oneOrMany(vs.map((x) => watchUrl(x.id))) };
   }
 }
 
-async function pick(id: string, action?: string): Promise<Effect> {
-  const v = held.get(id) ?? (await later()).find((x) => x.id === id);
-  if (!v) return toast("Video is gone", "The listing changed; pick again", "failure");
-  return act(v, action);
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+  const saved = await later();
+  const vs = (ctx?.ids ?? [id]).map((i) => held.get(i) ?? saved.find((x) => x.id === i)).filter((x): x is Video => !!x);
+  if (!vs.length || vs[0]!.id !== id) return toast("Video is gone", "The listing changed; pick again", "failure");
+  return act(vs, action);
 }
 
 // ---- channels ---------------------------------------------------------------------------------
@@ -203,18 +212,20 @@ async function channelRows(query = ""): Promise<Item[]> {
       heldChannels.set(c.id, c);
       return {
         id: c.id, name: c.title, subtitle: [count(c.subscribers, "subscribers"), c.description?.replace(/\s+/g, " ").slice(0, 80)].filter(Boolean).join(" · "), icon: c.avatar ? { image: c.avatar } : GLYPH.channel, url: channelUrl(c.id),
-        actions: [{ id: "videos", title: "Latest videos" }, { id: "open", title: "Open the channel" }, { id: "copy_url", title: "Copy URL", shortcut: "cmd+c" }],
+        actions: [{ id: "videos", title: "Latest videos" }, { id: "open", title: "Open the channel", multi: true }, { id: "copy_url", title: "Copy URL", shortcut: "cmd+c", multi: true }],
       };
     });
   } catch (e) { return [failedRow(e, q)]; }
 }
 
-async function channelPick(id: string, action?: string): Promise<Effect> {
+async function channelPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const c = heldChannels.get(id);
   if (!c) return toast("Channel is gone", undefined, "failure");
+  // The marked channels (`ctx.ids`), else the one.
+  const urls = (ctx?.ids ?? [id]).filter((i) => heldChannels.has(i)).map(channelUrl);
   switch (action) {
-    case "open": return { open: channelUrl(c.id) };
-    case "copy_url": return { copy: channelUrl(c.id) };
+    case "open": return { open: oneOrMany(urls) };
+    case "copy_url": return { copy: urls.join("\n") };
     default: return { push: { extension: EXT, palette: "search", args: { channel: c.id, title: c.title } } };
   }
 }
@@ -238,7 +249,7 @@ async function laterPick(id: string, action?: string, ctx?: Ctx): Promise<Effect
     await storage.set(LATER_KEY, kept);
     return toast("Removed", n === 1 ? all.find((x) => gone.has(x.id))!.title : `${n} videos`);
   }
-  return pick(id, action);
+  return pick(id, action, ctx);
 }
 
 export default {

@@ -47,11 +47,11 @@ is in storage, so a restart of the host picks it up where it was.
 
 | keys | action | what |
 | --- | --- | --- |
-| `enter` | Pause / Resume / Dismiss | pause a running timer, resume a paused one, dismiss a landed one (`timer done`) |
+| `enter` | Pause / Resume / Dismiss | pause a running timer, resume a paused one, dismiss a landed one (`timer done`); Pause and Resume work over marked timers too, each only where it applies |
 | `cmd++` | Add minutes | `timer add <n>m <id>`, `n` the row's `add` argument in the bar (5 when blank, or on a pick without it) |
 | `cmd+s` | Skip to the next phase | on the pomodoro's timer: `timer stop <id>`, then the next phase's timer |
 | `cmd+shift+d` | Stop pomodoro | on the pomodoro's timer: the cycle over |
-| `cmd+d` | Stop | `timer stop <id>`, the timer is gone |
+| `cmd+d` | Stop | `timer stop <id>`, the timer is gone; over marked timers too |
 | `enter` on New timer | Start | arguments `duration` (required), `name`, `ring` (Silent / Ring the phone) in the bar |
 | `enter` on Start Pomodoro | Start pomodoro | the first round's timer |
 
@@ -105,6 +105,7 @@ move it. It ticks every second while it is up (the fs watcher and the
 | `+` | add five minutes (`timer add 5m <id>`) |
 | `backspace` | stop it (`timer stop <id>`) |
 | `up` / `down` | move the ring to another timer |
+| `cmd`-click, `shift`-click, `shift+↑↓` | mark cards; then `backspace` stops each, `+` adds to each, `space` pauses the running ones (or, none running, resumes the paused ones) |
 | `n` | start one: the search row becomes a field (`25m tea`; a trailing `ring` rings the phone), `enter` starts it, `escape` closes the field; under it the last durations used are tiles that start one on a click |
 | `p` | start a pomodoro (while none runs) |
 | `s` | skip to the pomodoro's next phase (while one runs); `cmd+shift+d` stops the cycle |

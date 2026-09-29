@@ -38,7 +38,7 @@ previous one.
 | `enter` | Focus: hides the panel, then raises the window |
 | `cmd+w` | Close the window; the palette stays open and lists again |
 | `cmd+m` | Minimize; not offered on a window that already is |
-| `cmd+h` | Hide app (macOS): System Events hides the window's process; not offered on a hidden app |
+| `cmd+h` | Hide app (macOS): System Events hides the window's process; not offered on a hidden app; over marked windows, each app once |
 | `cmd+shift+h` | Show app (macOS, on a hidden app's window): the app comes forward with every window it had, and the panel hides |
 | `cmd+shift+m` | Minimize all of this app; on an app with more than one window |
 | `cmd+shift+w` | Close all of this app, after a confirm; on an app with more than one window |

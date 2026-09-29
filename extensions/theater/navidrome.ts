@@ -27,13 +27,14 @@ const dur = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStar
 
 type Held = { kind: "artist" | "album" | "song"; starred: boolean; url: string; name: string };
 const held = new Map<string, Held>();
-const STAR = (starred: boolean) => ({ id: "star", title: starred ? "Unstar" : "Star", shortcut: "cmd+s" });
-const COPY = { id: "copy", title: "Copy link", shortcut: "cmd+c" };
+// Every action also takes marked rows (`multi`): each opened, the links one per line, Star or Unstar on them all as the addressed row reads.
+const STAR = (starred: boolean) => ({ id: "star", title: starred ? "Unstar" : "Star", shortcut: "cmd+s", multi: true as const });
+const COPY = { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true as const };
 
 export async function artistRow(a: Artist, section = "Artists"): Promise<Item> {
   held.set(`artist:${a.id}`, { kind: "artist", starred: !!a.starred, url: artistUrl(a.id), name: a.name });
   const img = await cover(a.coverArt);
-  return { id: `artist:${a.id}`, name: a.name, subtitle: a.albumCount ? `${a.albumCount} album${a.albumCount === 1 ? "" : "s"}` : "Artist", icon: img ? { image: img } : GLYPH.person, section, accessories: a.starred ? [{ tag: "starred", color: "amber" }] : [], actions: [{ id: "open", title: "Open in Navidrome" }, STAR(!!a.starred), COPY] };
+  return { id: `artist:${a.id}`, name: a.name, subtitle: a.albumCount ? `${a.albumCount} album${a.albumCount === 1 ? "" : "s"}` : "Artist", icon: img ? { image: img } : GLYPH.person, section, accessories: a.starred ? [{ tag: "starred", color: "amber" }] : [], actions: [{ id: "open", title: "Open in Navidrome", multi: true }, STAR(!!a.starred), COPY] };
 }
 export async function albumRow(a: Album, section = "Albums"): Promise<Item> {
   held.set(`album:${a.id}`, { kind: "album", starred: !!a.starred, url: albumUrl(a.id), name: a.name });
@@ -42,14 +43,14 @@ export async function albumRow(a: Album, section = "Albums"): Promise<Item> {
     id: `album:${a.id}`, name: a.name, subtitle: [a.artist, a.year, a.genre, a.songCount ? `${a.songCount} tracks` : ""].filter(Boolean).join(" · "), icon: img ? { image: img } : GLYPH.album, keywords: [a.artist ?? "", a.genre ?? ""].filter(Boolean), section,
     accessories: [...(a.starred ? [{ tag: "starred", color: "amber" }] : []), ...(a.created ? [{ date: a.created }] : [])],
     detail: { markdown: img ? `![cover](${await cover(a.coverArt, 300)})` : undefined, metadata: [{ label: "Artist", value: a.artist ?? "" }, ...(a.year ? [{ label: "Year", value: String(a.year) }] : []), ...(a.genre ? [{ label: "Genre", value: a.genre }] : []), ...(a.songCount ? [{ label: "Tracks", value: `${a.songCount}${a.duration ? ` · ${Math.round(a.duration / 60)} min` : ""}` }] : []), ...(a.created ? [{ label: "Added", value: ago(a.created) }] : [])] },
-    actions: [{ id: "open", title: "Open in Navidrome" }, STAR(!!a.starred), COPY],
+    actions: [{ id: "open", title: "Open in Navidrome", multi: true }, STAR(!!a.starred), COPY],
   };
 }
 export async function songRow(s: Song, section = "Songs"): Promise<Item> {
   const url = s.albumId ? albumUrl(s.albumId) : navUrl();
   held.set(`song:${s.id}`, { kind: "song", starred: !!s.starred, url, name: s.title });
   const img = await cover(s.coverArt);
-  return { id: `song:${s.id}`, name: s.title, subtitle: [s.artist, s.album, dur(s.duration)].filter(Boolean).join(" · "), icon: img ? { image: img } : GLYPH.song, keywords: [s.artist ?? "", s.album ?? ""].filter(Boolean), section, accessories: s.starred ? [{ tag: "starred", color: "amber" }] : [], actions: [{ id: "open", title: "Open the album in Navidrome" }, STAR(!!s.starred), COPY] };
+  return { id: `song:${s.id}`, name: s.title, subtitle: [s.artist, s.album, dur(s.duration)].filter(Boolean).join(" · "), icon: img ? { image: img } : GLYPH.song, keywords: [s.artist ?? "", s.album ?? ""].filter(Boolean), section, accessories: s.starred ? [{ tag: "starred", color: "amber" }] : [], actions: [{ id: "open", title: "Open the album in Navidrome", multi: true }, STAR(!!s.starred), COPY] };
 }
 
 export async function homeRows(refresh: boolean): Promise<Item[]> {
@@ -73,18 +74,23 @@ export async function searchRows(q: string): Promise<Item[]> {
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
   const h = held.get(id);
   if (!h) throw new Error(`no row ${id}`);
+  // The marked rows (`ctx.ids`), the addressed one first, else the one.
+  const all = (ctx?.ids ?? [id]).flatMap((k) => { const x = held.get(k); return x ? [{ k, x }] : []; });
   switch (action) {
-    case "copy": return { copy: h.url };
+    case "copy": return { copy: all.map(({ x }) => x.url).join("\n") };
     case "star": {
-      try { await star(id.slice(id.indexOf(":") + 1), !h.starred); } catch (e) { return toast("Could not star", String((e as Error).message), "failure"); }
-      held.set(id, { ...h, starred: !h.starred });
-      return toast(h.starred ? "Unstarred" : "Starred", h.name);
+      const to = !h.starred;
+      for (const { k, x } of all) {
+        try { await star(k.slice(k.indexOf(":") + 1), to); } catch (e) { return toast("Could not star", String((e as Error).message), "failure"); }
+        held.set(k, { ...x, starred: to });
+      }
+      return toast(to ? "Starred" : "Unstarred", all.length > 1 ? `${all.length} items` : h.name);
     }
-    default: return { open: h.url };
+    default: return { open: all.length > 1 ? [...new Set(all.map(({ x }) => x.url))] : h.url };
   }
 }
 

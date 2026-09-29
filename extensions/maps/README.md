@@ -37,6 +37,8 @@ root's inline ask never waits on it.
 | `cmd+shift+o` | Open in the other app: Apple Maps when Google is chosen, and the other way |
 | `tab` | Next travel mode |
 
+Marked places (`⌘`-click, `⇧↓`): Open opens each, to compare; Copy the address and Copy the link put one a line. Directions stay one place's.
+
 ## Setup
 
 Settings, `[extensions.maps]`:

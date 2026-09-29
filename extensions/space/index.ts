@@ -250,7 +250,8 @@ const ROOT_ACTIONS: Action[] = [
   { id: "folders", title: "Largest folders", shortcut: "cmd+shift+l" },
   { id: "rescan", title: "Scan again", shortcut: "cmd+shift+r" },
 ];
-const FORGET: Action = { id: "forget", title: "Forget the saved scan", shortcut: "cmd+shift+d", style: "destructive", confirm: "Forget this scan? The folder itself is untouched." };
+/** Marked saved scans are forgotten together (`multi`); opening one is a level of its own, so the rest stay single. */
+const FORGET: Action = { id: "forget", title: "Forget the saved scan", shortcut: "cmd+shift+d", style: "destructive", multi: true, confirm: "Forget the saved scan? The folder itself is untouched." };
 
 async function rootRows(): Promise<Item[]> {
   const saved = await roots();
@@ -289,7 +290,14 @@ async function rootPick(id: string, action: string | undefined, ctx?: Ctx): Prom
   switch (action) {
     case "largest": return pushTo("largest", { root }, `Largest in ${rootLabel(root)}`);
     case "folders": return pushTo("folders", { root }, `Largest folders in ${rootLabel(root)}`);
-    case "forget": { const all = await roots(); delete all[root]; await storage.set("roots", all); scans.delete(root); uis.delete(root); return toast("Forgotten", tilde(root)); }
+    case "forget": {
+      // The marked scans (`ctx.ids`), else the one.
+      const gone = (ctx?.ids ?? [id]).filter((x) => x.startsWith("root:")).map((x) => x.slice(5));
+      const all = await roots();
+      for (const r of gone) { delete all[r]; scans.delete(r); uis.delete(r); }
+      await storage.set("roots", all);
+      return toast("Forgotten", gone.length > 1 ? `${gone.length} scans` : tilde(root));
+    }
     case "rescan": await ensure(root, true); return pushTo("map", { root }, rootLabel(root));
     default: return pushTo("map", { root }, rootLabel(root));
   }
@@ -475,11 +483,28 @@ async function cleanupRows(): Promise<Item[]> {
   return rows;
 }
 
-async function cleanupPick(id: string, action: string | undefined): Promise<Effect> {
+async function cleanupPick(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
   if (id === "hint:scan-home" || action === "scan-home") { await ensure(HOME); return pushTo("map", { root: HOME }, "Home"); }
   if (id.startsWith("hint:")) return { keep: true };
-  const g = (await suggestions()).find((x) => x.id === id);
+  const sugg = await suggestions();
+  const g = sugg.find((x) => x.id === id);
   if (!g) return { keep: true };
+  // The marked suggestions (`ctx.ids`), else the one.
+  const marked = (ctx?.ids ?? [id]).map((i) => sugg.find((x) => x.id === i)).filter((x): x is Suggestion => !!x);
+  if (marked.length > 1) {
+    switch (action) {
+      case "reveal": for (const x of marked) spawnDetached(MAC ? ["open", "-R", x.path] : ["xdg-open", x.path]); return { hide: true };
+      case "copy": return { copy: marked.map((x) => x.path).join("\n") };
+      case "trash": { const r = await trashPaths(marked.map((x) => x.path), `${marked.length} folders`); for (const x of marked) measures.delete(x.path); return r; }
+      case "trash-contents": {
+        const targets = (await Promise.all(marked.map(async (x) => (await readdir(x.path).catch(() => [] as string[])).map((n) => join(x.path, n))))).flat();
+        if (!targets.length) return toast("Nothing to trash", `${marked.length} folders are empty`);
+        const r = await trashPaths(targets, `${count(targets.length, "item")} from ${marked.length} folders`);
+        for (const x of marked) measures.delete(x.path);
+        return r;
+      }
+    }
+  }
   switch (action) {
     case "reveal": spawnDetached(MAC ? ["open", "-R", g.path] : ["xdg-open", g.path]); return { hide: true };
     case "copy": return { copy: g.path };

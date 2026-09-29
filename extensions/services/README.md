@@ -44,6 +44,8 @@ and a tag: `running` (green), `loaded` (blue, no process right now), `exit
 N` (red, the last exit was not 0), `not loaded` (grey, a plist launchd has
 not been given). A binary plist is read through `plutil`.
 
+Marked units (cmd-click, shift-click, shift+arrows) take every action at once: one `systemctl` per scope names them all, so a system scope asks for root once; Start and Stop (Enable and Disable) ride on every row so a mix of states shares them. Marked launchd jobs load, unload, restart, open and copy together; Show plist is one job's.
+
 ## Keyboard
 
 Linux:

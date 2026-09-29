@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { checkView } from "../../../sdk/src/index.ts";
 import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, marksOf, stored } from "../harness.ts";
 import { BASE, JF_USER, SETTINGS, calls, seen, server, state } from "./theater-mock.ts";
 
 let host: Host;
@@ -67,6 +67,8 @@ describe("theater", () => {
       expect(await pick("theater", "service:jellyfin", "palette:jellyfin")).toEqual({ push: { extension: "theater", palette: "jellyfin" } });
       expect(await pick("theater", "service:radarr", "palette:radarr-wanted")).toEqual({ push: { extension: "theater", palette: "radarr-wanted" } });
       expect(await pick("theater", "service:sab", "copy")).toEqual({ copy: `${BASE}/sab` });
+      // Marked services: each web UI opened, the URLs one per line.
+      expect(await pick("theater", "service:sab", "open", { ids: ["service:sab", "service:jellyfin"] })).toEqual({ open: [`${BASE}/sab`, `${BASE}/jellyfin`] });
     });
 
     test("a service that is down is a red row naming the error; one that rejects the key too", async () => {
@@ -140,6 +142,10 @@ describe("theater", () => {
       expect(calls("DELETE", "/jellyfin/UserPlayedItems/aaa1")).toHaveLength(1);
       expect(await pick("jellyfin", "item:bbb2", "favourite")).toMatchObject({ toast: { title: "Removed from favourites" } });
       expect(calls("DELETE", "/jellyfin/UserFavoriteItems/bbb2")).toHaveLength(1);
+      // Marked items: played set on them all as the addressed one flips (aaa1 is unplayed again, so played), the links one per line.
+      expect(await pick("jellyfin", "item:aaa1", "played", { ids: ["item:aaa1", "item:bbb2"] })).toMatchObject({ toast: { title: "Marked played", message: "2 items" } });
+      expect(calls("POST", "/jellyfin/UserPlayedItems/bbb2")).toHaveLength(1);
+      expect(await pick("jellyfin", "item:aaa1", "copy", { ids: ["item:aaa1", "item:bbb2"] })).toEqual({ copy: `${BASE}/jellyfin/web/#/details?id=aaa1\n${BASE}/jellyfin/web/#/details?id=bbb2` });
       expect(await pick("jellyfin", "item:aaa1", "play")).toEqual({ push: { extension: "theater", palette: "jellyfin-play", args: { item: "aaa1", name: "Snatch" }, title: "Play Snatch on" } });
       const devices = await list("jellyfin-play", "", { args: { item: "aaa1", name: "Snatch" } });
       expect(devices.map((d) => [d.id, d.name, d.subtitle])).toEqual([["session:s1", "Living room TV", "Jellyfin Tizen · cagdas · playing Chapter Four: Commit ... to Y…"], ["session:s2", "iPhone", "Swiftfin · guest · active 10 min ago"]]);
@@ -180,6 +186,10 @@ describe("theater", () => {
       expect(await pick("seerr-requests", "req:11", "approve")).toMatchObject({ toast: { title: "Approved", message: "Dune" } });
       expect(calls("POST", "/seerr/api/v1/request/11/approve")).toHaveLength(1);
       expect(await pick("seerr-requests", "req:11", "decline")).toMatchObject({ toast: { title: "Declined" } });
+      // Marked requests: opened and copied together.
+      expect(rows[0].actions!.every((a) => a.multi)).toBe(true);
+      const one = (await pick("seerr-requests", "req:12", "copy")).copy;
+      expect(await pick("seerr-requests", "req:11", "copy", { ids: ["req:11", "req:12"] })).toEqual({ copy: `${BASE}/seerr/movie/438631\n${one}` });
     });
 
     test("request a title: TMDB hits without people, a requested one tagged, Enter requests, cmd+Enter in 4K when the server allows it (movies here)", async () => {
@@ -193,6 +203,11 @@ describe("theater", () => {
       expect(await pick("seerr-request", "result:movie:693134", "request4k")).toEqual({ hud: "Requested Dune: Part Two in 4K" });
       expect(calls("POST", "/seerr/api/v1/request").at(-1)!.body).toMatchObject({ is4k: true });
       expect(await pick("seerr-request", "result:movie:693134", "tmdb")).toEqual({ copy: "https://www.themoviedb.org/movie/693134" });
+      // Marked results: each requested, the links one per line.
+      const n = calls("POST", "/seerr/api/v1/request").length;
+      expect(await pick("seerr-request", "result:movie:693134", "request", { ids: ["result:movie:693134", "result:movie:438631"] })).toEqual({ hud: "Requested 2 titles" });
+      expect(calls("POST", "/seerr/api/v1/request").length).toBe(n + 2);
+      expect(await pick("seerr-request", "result:movie:693134", "tmdb", { ids: ["result:movie:693134", "result:movie:438631"] })).toEqual({ copy: "https://www.themoviedb.org/movie/693134\nhttps://www.themoviedb.org/movie/438631" });
       expect(ids(await list("seerr-request", "nothing"))).toEqual(["hint:none"]);
     });
   });
@@ -217,6 +232,9 @@ describe("theater", () => {
       expect(await pick("sonarr", "queue:sonarr:902")).toEqual({ open: `${BASE}/sonarr/series/ted-lasso` });
       expect(await pick("sonarr", "queue:sonarr:902", "remove")).toMatchObject({ toast: { title: "Removed from the queue", message: "Ted Lasso S4E1 · Home" } });
       expect(calls("DELETE", "/sonarr/api/v3/queue/902")[0]!.path).toContain("removeFromClient=true&blocklist=false");
+      // Marked queue rows: the question names none, every action takes them.
+      const q = (await list("sonarr")).find((r) => r.id.startsWith("queue:"));
+      if (q) { expect(q.actions!.every((a) => a.multi)).toBe(true); expect(q.actions!.find((a) => a.id === "remove")!.confirm).toBe("Remove from the queue and the download client? Nothing is blocklisted."); }
     });
 
     test("wanted: the newest with a line saying how many more; Enter searches, cmd+Enter opens", async () => {
@@ -228,6 +246,9 @@ describe("theater", () => {
       expect(calls("POST", "/sonarr/api/v3/command").at(-1)!.body).toEqual({ name: "EpisodeSearch", episodeIds: [2054] });
       expect(await pick("radarr-wanted", "wanted:radarr:5", "search")).toMatchObject({ toast: { title: "Searching" } });
       expect(calls("POST", "/radarr/api/v3/command").at(-1)!.body).toEqual({ name: "MoviesSearch", movieIds: [5] });
+      // Marked wanted rows: one command searching for them all.
+      await pick("radarr-wanted", "wanted:radarr:5", "search", { ids: ["wanted:radarr:5", "wanted:radarr:6"] });
+      expect(calls("POST", "/radarr/api/v3/command").at(-1)!.body).toEqual({ name: "MoviesSearch", movieIds: [5, 6] });
       expect(ids(await list("lidarr-wanted"))).toEqual(["hint:none:lidarr"]);
     });
 
@@ -246,6 +267,10 @@ describe("theater", () => {
       expect(await pick("radarr-add", "hit:radarr:1143770", "add")).toEqual({ hud: "Added Oppenheimer After Trinity to Radarr" });
       expect(calls("POST", "/radarr/api/v3/movie").at(-1)!.body).toEqual({ qualityProfileId: 7, rootFolderPath: "/data/library/radarr", monitored: true, title: "Oppenheimer After Trinity", tmdbId: 1143770, year: 2023, minimumAvailability: "released", addOptions: { searchForMovie: true } });
       expect(await pick("radarr-add", "hit:radarr:872585", "open")).toEqual({ open: `${BASE}/radarr/movie/872585` });
+      // Marked hits: every action takes them; the questions name none; the external pages open together.
+      expect(rows[1].actions!.every((a) => a.multi)).toBe(true);
+      expect(rows[1].actions![0].confirm).toBe("Add to Radarr with the default profile and start a search?");
+      expect(await pick("radarr-add", "hit:radarr:872585", "ext", { ids: ["hit:radarr:872585", "hit:radarr:1143770"] })).toEqual({ open: ["https://www.themoviedb.org/movie/872585", "https://www.themoviedb.org/movie/1143770"] });
       const series = await list("sonarr-add", "ted lasso");
       expect(series[0]).toMatchObject({ id: "hit:sonarr:383203", subtitle: "Apple TV · continuing", accessories: [{ tag: "in library", color: "green" }] });
       const artists = await list("lidarr-add", "snarky");
@@ -263,7 +288,9 @@ describe("theater", () => {
       expect(rows[2]).toMatchObject({ name: "Oppenheimer.2023.1080p.WEB-DL", subtitle: "movies · 4.4 MB/s · 13 min left · 7.45 GB", section: "SABnzbd", accessories: [{ tag: "downloading", color: "blue" }, { text: "75%" }] });
       expect(rows[3]).toMatchObject({ name: "ted.lasso.s04e04.1080p.web.h264-cakes", subtitle: "tv-sonarr · 1.2 MB/s · 15 min left · 3.31 GB", section: "qBittorrent", accessories: [{ tag: "downloading", color: "blue" }, { text: "42%" }] });
       expect(rows[5]).toMatchObject({ accessories: [{ tag: "stalled", color: "amber" }, { text: "0%" }] });
-      expect(rows[2].actions!.map((a) => a.id)).toEqual(["open", "pause", "delete", "copy"]);
+      // Resume rides at the end, so marked downloads in both states share Pause and Resume.
+      expect(rows[2].actions!.map((a) => a.id)).toEqual(["open", "pause", "delete", "copy", "resume"]);
+      expect(rows[2].actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["open"]);
       // qBittorrent signed in with the user and password (the mock refuses a login without a Referer), once per settings change.
       expect(calls("POST", "/qbit/api/v2/auth/login").length).toBeGreaterThanOrEqual(1);
     });
@@ -272,6 +299,9 @@ describe("theater", () => {
       expect(await pick("downloads", "dl:sab:SABnzbd_nzo_1", "pause")).toMatchObject({ toast: { title: "Paused" } });
       expect(calls("GET", "/sab/api").at(-1)!.path).toContain("mode=queue&name=pause&value=SABnzbd_nzo_1");
       expect(await pick("downloads", "dl:qbit:f7e9", "pause")).toMatchObject({ toast: { title: "Paused" } });
+      expect(calls("POST", "/qbit/api/v2/torrents/stop").at(-1)!.body).toBe("hashes=f7e9");
+      // Marked downloads of both clients: each paused on its own client.
+      expect(await pick("downloads", "dl:sab:SABnzbd_nzo_1", "pause", { ids: ["dl:sab:SABnzbd_nzo_1", "dl:qbit:f7e9"] })).toMatchObject({ toast: { title: "Paused", message: "2 items" } });
       expect(calls("POST", "/qbit/api/v2/torrents/stop").at(-1)!.body).toBe("hashes=f7e9");
       expect(await pick("downloads", "dl:qbit:f7e9", "delete")).toMatchObject({ toast: { title: "Deleted" } });
       expect(calls("POST", "/qbit/api/v2/torrents/delete").at(-1)!.body).toBe("hashes=f7e9&deleteFiles=true");
@@ -320,6 +350,10 @@ describe("theater", () => {
       expect(await pick("prowlarr-search", rows[0].id, "grab")).toEqual({ hud: "Grabbed ubuntu-24.04-desktop-amd64" });
       expect(calls("POST", "/prowlarr/api/v1/search").at(-1)!.body).toEqual({ guid: "https://nzbgeek.info/geekseek.php?guid=1", indexerId: 1 });
       expect(await pick("prowlarr-search", rows[1].id, "copy")).toEqual({ copy: "magnet:?xt=urn:btih:ABC" });
+      // Marked releases: each grabbed.
+      const n = calls("POST", "/prowlarr/api/v1/search").length;
+      expect(await pick("prowlarr-search", rows[0].id, "grab", { ids: rows.map((r) => r.id) })).toEqual({ hud: "Grabbed 2 releases" });
+      expect(calls("POST", "/prowlarr/api/v1/search").length).toBe(n + 2);
       expect(ids(await list("prowlarr-search", "ub"))).toEqual(["hint:search"]);
     });
 
@@ -344,6 +378,8 @@ describe("theater", () => {
       expect(await pick("navidrome-search", "song:so1", "star")).toMatchObject({ toast: { title: "Unstarred", message: "Chonks" } });
       expect(calls("GET", "/navidrome/rest/unstar.view")).toHaveLength(1);
       expect(await pick("navidrome-search", "album:al1", "star")).toMatchObject({ toast: { title: "Starred" } });
+      // Marked rows: Star or Unstar as the addressed row reads (al1 is starred now, so both are unstarred).
+      expect(await pick("navidrome-search", "album:al1", "star", { ids: ["album:al1", "artist:ar1"] })).toMatchObject({ toast: { title: "Unstarred", message: "2 items" } });
     });
 
     test("Audiobookshelf: continue listening with the progress, then what was added; search over books and authors; mark finished", async () => {
@@ -394,6 +430,8 @@ describe("theater", () => {
       expect(await pick("bazarr", "episode:1970", "search")).toMatchObject({ toast: { title: "Searching" } });
       expect(calls("PATCH", "/bazarr/api/episodes/subtitles")[0]!.path).toContain("sonarrepisodeid=1970");
       expect(await pick("bazarr", "movie:48")).toEqual({ open: `${BASE}/bazarr/movies/48` });
+      // Marked movies and episodes: each searched for.
+      expect(await pick("bazarr", "movie:48", "search", { ids: ["movie:48", "episode:1970"] })).toMatchObject({ toast: { title: "Searching", message: "Bazarr is looking for subtitles for 2 items" } });
     });
   });
 
@@ -408,6 +446,9 @@ describe("theater", () => {
       expect(nodes(v.tree, "progress")).toHaveLength(4);
       expect(v.actions.map((a) => a.id).slice(0, 5)).toEqual(["open", "toggle-all", "toggle", "delete", "open-pal"]);
       expect(nodes(v.tree, "stack").find((n) => n.selected)?.key).toBe("sab:SABnzbd_nzo_1");
+      // Every download can be marked; Pause/Resume and Delete run over the marks.
+      expect(marksOf(v.tree)).toHaveLength(4);
+      expect(v.actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["toggle", "delete"]);
       const down = viewOf(await host.barAction("theater", "downloads", "down"));
       expect(nodes(down.tree, "stack").find((n) => n.selected)?.key).toBe("qbit:f7e9");
       expect(await host.barAction("theater", "downloads", "open")).toEqual({ open: `${BASE}/qbit` });
@@ -426,6 +467,8 @@ describe("theater", () => {
       expect(checkView(v, "test")).toBe(v);
       expect(texts(v.tree)).toContain("Barry S1E4 · Chapter Four: Commit ... to YOU");
       expect(nodes(v.tree, "image")).toHaveLength(1);
+      // Pausing is one device at a time: no marks here.
+      expect(marksOf(v.tree)).toEqual([]);
       expect(await host.barAction("theater", "playing", "playpause")).toMatchObject({ view: expect.any(Object) });
       expect(calls("POST", "/jellyfin/Sessions/s1/Playing/PlayPause").length).toBeGreaterThanOrEqual(2);
     });
@@ -436,7 +479,8 @@ describe("theater", () => {
       const v = viewOf(item);
       expect(texts(v.tree)).toContain("Dune (2021)");
       expect(v.actions.filter((a) => !a.hidden).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["approve", "a"], ["decline", "d"], ["open-pal", "p"]]);
-      expect(await host.barAction("theater", "requests", "approve")).toEqual({ keep: true, hud: "Approved" });
+      expect(marksOf(v.tree)).toEqual(["11"]);
+      expect(await host.barAction("theater", "requests", "approve", { reason: "open", ids: ["11"] })).toEqual({ keep: true, hud: "Approved" });
       expect(calls("POST", "/seerr/api/v1/request/11/approve").length).toBeGreaterThanOrEqual(2);
     });
 
@@ -446,8 +490,11 @@ describe("theater", () => {
       const v = viewOf(item);
       expect(texts(v.tree)[0]).toBe("1 moving, 1 needs attention");
       expect(texts(v.tree)).toContain("Ted Lasso S4E1 · Home");
-      expect(await host.barAction("theater", "queue", "remove")).toMatchObject({ view: expect.any(Object) });
-      expect(calls("DELETE", "/radarr/api/v3/queue/901")).toHaveLength(1);
+      expect(marksOf(v.tree)).toHaveLength(2);
+      // Marked rows across the apps: each removed from its own app's queue.
+      const marks = marksOf(v.tree);
+      expect(await host.barAction("theater", "queue", "remove", { reason: "open", ids: marks })).toMatchObject({ view: expect.any(Object), hud: "Removed 2" });
+      for (const m of marks) expect(calls("DELETE", `/${m.split(":")[0]}/api/v3/queue/${m.split(":")[1]}`).length).toBeGreaterThanOrEqual(1);
     });
 
     test("each item hides with its empty shape when there is nothing to say", async () => {

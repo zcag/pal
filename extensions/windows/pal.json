@@ -106,7 +106,7 @@
       },
       {
         "title": "Hide app",
-        "description": "macOS: hides the window's process through System Events. Not offered on a hidden app.",
+        "description": "macOS: hides the window's process through System Events; marked windows hide their apps at once. Not offered on a hidden app.",
         "keys": "cmd+h"
       },
       {

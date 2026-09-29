@@ -73,7 +73,7 @@
       },
       {
         "title": "Forget",
-        "description": "Removes the saved network, after a confirm.",
+        "description": "Removes the saved network, after a confirm; several marked networks at once.",
         "keys": "ctrl+x"
       },
       {

@@ -463,12 +463,15 @@ describe("calendar extension", () => {
       expect(withCall).toEqual(["join", "open", "copy_link", "copy_details", "delete"]);
       expect(without).toEqual(["open", "copy_details", "delete"]);
       expect(items[0].actions![4]).toMatchObject({ title: "Delete this occurrence", style: "destructive", shortcut: "ctrl+x" });
-      expect(items[0].actions![4].confirm).toBe('Delete "Standup" on Wed 16 Sep?');
+      expect(items[0].actions![4].confirm).toBe("Delete from your calendar? A repeating event loses only this occurrence.");
+      expect(items[1].actions![2].confirm).toBe("Delete from your calendar?");
       expect(items[1].actions![2].title).toBe("Delete event");
     } else {
       expect(withCall).toEqual(["join", "copy_link", "copy_details"]);
       expect(without).toEqual(["copy_details"]);
     }
+    // Marked events copy and delete together; joining, opening and the call link stay one event's.
+    expect(items[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(MAC ? ["copy_details", "delete"] : ["copy_details"]);
   });
 
   test("hide_declined off lists the declined event with a tag", async () => {
@@ -488,11 +491,17 @@ describe("calendar extension", () => {
     expect(await pick(s, "join")).toEqual({ open: ZOOM });
     expect(await pick(s, "copy_link")).toEqual({ copy: ZOOM });
     expect(await pick(s, "copy_details")).toEqual({ copy: details(events[0]) });
+    // Marked events: one agenda, in time order whatever the marking order.
+    expect(await host.pick(E, P, rid(events[2]), "copy_details", { ids: [rid(events[2]), s] })).toEqual({ copy: [events[0], events[2]].sort((a, b) => a.start - b.start).map(details).join("\n\n") });
     if (MAC) {
       expect(await pick(rid(events[2]))).toEqual({ hide: true });
       expect(last()).toEqual({ method: "open", params: { id: "next", occurrence: null } });
       expect(await pick(s, "delete")).toEqual({ keep: true, toast: { title: "Deleted", message: "Standup", style: "success" } });
       expect(last()).toEqual({ method: "delete", params: { id: "standup", occurrence: curStart } });
+      await list();
+      const n = calls.length;
+      expect(await host.pick(E, P, rid(events[1]), "delete", { ids: [rid(events[1]), rid(events[2])] })).toEqual({ keep: true, toast: { title: "Deleted 2 events", style: "success" } });
+      expect(calls.slice(n).filter((c) => c.method === "delete").map((c) => c.params.id)).toEqual([events[1].id, events[2].id]);
     } else {
       expect(await pick(rid(events[2]))).toEqual({ copy: details(events[2]) });
     }

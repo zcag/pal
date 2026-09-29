@@ -59,9 +59,10 @@ const customFor = (s: Settings) => {
 };
 
 const actions = (s: Settings): Action[] => {
-  const copy: Action = { id: "copy", title: "Copy emoji" };
-  const paste: Action = { id: "paste", title: "Paste emoji" };
-  return [...(s.paste_by_default ? [paste, copy] : [copy, paste]), { id: "shortcode", title: "Copy shortcode", shortcut: "cmd+shift+c" }];
+  // Marked emoji go together: the emoji side by side, the shortcodes a space apart.
+  const copy: Action = { id: "copy", title: "Copy emoji", multi: true };
+  const paste: Action = { id: "paste", title: "Paste emoji", multi: true };
+  return [...(s.paste_by_default ? [paste, copy] : [copy, paste]), { id: "shortcode", title: "Copy shortcode", shortcut: "cmd+shift+c", multi: true }];
 };
 
 function item(r: Row, s: Settings, section: string, extra: Map<string, string[]>): Item {
@@ -105,12 +106,16 @@ export default {
       // the extension reloads (a file edit, or Settings > Restart host).
       columns: settings.palette<PaletteSettings>("emoji").columns,
       list,
-      pick: async (id, action) => {
-        const r = byEmoji.get(id);
-        if (action === "shortcode") return { copy: r ? `:${r.name}:` : id };
+      pick: async (id, action, ctx) => {
+        const ids = ctx?.ids ?? [id];
+        if (action === "shortcode") return { copy: ids.map((e) => { const r = byEmoji.get(e); return r ? `:${r.name}:` : e; }).join(" ") };
         const s = settings.get<Settings>();
-        const text = r ? withSkinTone(r.emoji, s.skin_tone, !!r.skin) : id;
-        if (r) await remember(id);
+        let text = "";
+        for (const e of ids) {
+          const r = byEmoji.get(e);
+          text += r ? withSkinTone(r.emoji, s.skin_tone, !!r.skin) : e;
+          if (r) await remember(e);
+        }
         const paste = action === "paste" || (action === undefined && s.paste_by_default);
         return paste ? { paste: { text } } : { copy: text };
       },

@@ -66,6 +66,8 @@ describe("over the wire", () => {
     expect(byId(r, "hour").actions?.map((a) => a.id)).toEqual(["copy"]); // a built-in is only copied
     expect(byId(r, "sessions/working").subtitle).toBe("Published by sessions");
     expect(byId(r, "deep").actions?.map((a) => a.id)).toEqual(["toggle", "set", "hold-1h", "hold-3h", "hold-tomorrow", "copy", "undeclare"]);
+    // All but the typed value also take marked states.
+    expect(byId(r, "deep").actions?.filter((a) => !a.multi).map((a) => a.id)).toEqual(["set"]);
   });
 
   test("filters: held, mine, from extensions, built-in", async () => {
@@ -93,6 +95,17 @@ describe("over the wire", () => {
 
     await host.pick("states", "states", "working", "reset");
     expect(table.entries.get("working")).toMatchObject({ value: false, source: "expr" });
+
+    // Marked states: held together, reset together, copied one per line; the flip follows the addressed row.
+    const both = { ids: ["working", "deep"] };
+    await host.pick("states", "states", "working", "hold-1h", both);
+    expect([table.entries.get("working")!.source, table.entries.get("deep")!.source]).toEqual(["manual", "manual"]);
+    await host.pick("states", "states", "working", "reset", both);
+    expect([table.entries.get("working")!.source, table.entries.get("deep")!.source]).toEqual(["expr", "default"]);
+    await host.pick("states", "states", "working", "toggle", both);
+    expect([table.entries.get("working")!.value, table.entries.get("deep")!.value]).toEqual([true, true]);
+    await host.pick("states", "states", "working", "reset", both);
+    expect(await host.pick("states", "states", "working", "copy", both)).toEqual({ copy: "working\ndeep" });
   });
 
   test("a typed value with a duration sets by hand; a bad duration asks again", async () => {

@@ -75,6 +75,8 @@ describe("shortcuts", () => {
     expect(items[2]).toMatchObject({ name: "Lights on", icon: "\u{f040b}", keywords: ["Home"], detail: { metadata: [{ label: "Name", value: "Lights on" }, { label: "Folder", value: "Home" }, { label: "Identifier", value: "A60321F9-5380-4AC8-BFF0-D736CE80DD10" }] } });
     expect(items[0].keywords).toBeUndefined();
     expect(items[0].actions!.map((a) => [a.id, a.shortcut])).toEqual([["run", undefined], ["clipboard", undefined], ["text", "cmd+t"], ["open", "cmd+o"], ["copy", "cmd+c"]]);
+    // Marked shortcuts run (bare or with the clipboard) and copy; the input and Open are one shortcut's.
+    expect(items[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["run", "clipboard", "copy"]);
     // Run with input takes the row's typed argument; Enter still runs the shortcut bare.
     expect(items[0].actions![2]).toEqual({ id: "text", title: "Run with input", shortcut: "cmd+t", args: true });
     expect(items[0].args).toEqual([{ id: "input", placeholder: "Input", required: true }]);
@@ -90,6 +92,11 @@ describe("shortcuts", () => {
     expect(await nextHud()).toBe("Open App: Done");
     expect(await pick("Standup notes")).toEqual({ hide: true });
     expect(await nextHud()).toBe("Standup notes: The operation couldn’t be completed. Standup failed");
+    // Marked shortcuts: each runs, each its own HUD.
+    const n = runs().length, huds = () => host.coreCalls.filter((c) => c.method === "effects.run").length, h0 = huds();
+    expect(await pick("Lights on", "run", { ids: ["Lights on", "Open App"] })).toEqual({ hide: true });
+    await host.until(() => huds() >= h0 + 2, 3000, "both HUDs");
+    expect(runs().slice(n).map((l) => l.split("\t")[0]).sort()).toEqual(["26FFEA3C-3ACD-430A-88E4-3ACC00F3F250", "A60321F9-5380-4AC8-BFF0-D736CE80DD10"]);
   });
 
   test.skipIf(!MAC)("cmd+Enter runs it with the newest clipboard text as the input file; an empty clipboard is a toast", async () => {
@@ -120,6 +127,7 @@ describe("shortcuts", () => {
     await list();
     expect(await pick("Lights on", "open")).toEqual({ open: "shortcuts://open-shortcut?name=Lights%20on" });
     expect(await pick("Lights on", "copy")).toEqual({ copy: "Lights on" });
+    expect(await pick("Lights on", "copy", { ids: ["Lights on", "Open App"] })).toEqual({ copy: "Lights on\nOpen App" });
     expect(await pick("gone", "run")).toEqual({ keep: true, toast: { title: "Shortcut not found", message: "List again (cmd+r) and retry", style: "failure" } });
   });
 

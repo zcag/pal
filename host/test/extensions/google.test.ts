@@ -187,6 +187,13 @@ describe("google", () => {
     expect(ids(await list("5", { args: { results: "2+2" } }))).toEqual(["r:https://site5.com/5"]);
     expect(await pick("r:https://site1.com/1", "copy_md")).toEqual({ copy: "[2+2 1](https://site1.com/1)" });
     expect(await pick("a:2+2", "copy")).toEqual({ copy: "4" });
+    // Marked results: a tab each, the links and Markdown links a line each; marked searches copy their texts.
+    const two = { ids: ["r:https://site1.com/1", "r:https://site2.com/2"] };
+    expect(await host.pick("google", "google", two.ids[0], "open", two)).toEqual({ open: ["https://site1.com/1", "https://site2.com/2"] });
+    expect(await host.pick("google", "google", two.ids[0], "copy_link", two)).toEqual({ copy: "https://site1.com/1\nhttps://site2.com/2" });
+    expect(await host.pick("google", "google", two.ids[0], "copy_md", two)).toEqual({ copy: "[2+2 1](https://site1.com/1)\n[2+2 2](https://site2.com/2)" });
+    expect(await host.pick("google", "google", "s:a", "copy", { ids: ["s:a", "s:b"] })).toEqual({ copy: "a\nb" });
+    expect(level[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "background", "copy_link", "copy_md"]);
     settle({ provider: "serpapi", serpapi_key: "bad" });
     const bad = await list("", { args: { results: "other" } });
     expect(bad[0]).toMatchObject({ id: "hint:failed", subtitle: "SerpApi answered 401: Invalid API key." });

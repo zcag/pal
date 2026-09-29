@@ -46,6 +46,8 @@ root, and the rows around the list are its tools:
 A keyword with a space in it is refused with the message under the field,
 as is a path that cannot be read or written.
 
+Marked snippets copy together (the texts one per line) or are deleted in one go; Paste and Edit are one snippet's.
+
 ## Keyboard
 
 | keys | action |

@@ -3,7 +3,9 @@
 Every display with its mode and brightness; Enter drills into one for its
 controls (brightness, contrast, volume as sliders, the input source), its
 modes (resolution, refresh rate, HiDPI scaling), rotation, mirroring and
-Make main; arrangement presets; a bar item with a slider per display. The
+Make main; arrangement presets; a bar item with a slider per display
+(mark several cards, `cmd`-click or `shift+↓`, and the brightness keys
+move them all). The
 palette's full description, keys and settings are in `docs/palettes.md`
 ("Displays").
 

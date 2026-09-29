@@ -80,7 +80,7 @@ keys go away next release.
 
 | keys | action |
 | --- | --- |
-| `enter` | Copy the value |
+| `enter` | Copy the value; with rows marked (`⌘`-click, `⇧↓`), every value, one a line |
 | `cmd+enter` | Open Network settings: the Network pane of System Settings on macOS; on Linux the first of `gnome-control-center network`, `systemsettings kcm_networkmanagement`, `nm-connection-editor` installed |
 | `cmd+i` | Hide or show the detail pane (open by default here) |
 | `cmd+r` | List again, and fetch the public IP again |

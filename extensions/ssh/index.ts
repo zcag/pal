@@ -17,13 +17,14 @@ type HostEntry = { name: string; file: string; hostname?: string; user?: string;
 
 const LINUX = process.platform === "linux";
 const ICON = xdg("network-server") ?? "⌁";
-const CONNECT: Action = { id: "connect", title: "Connect" };
+// Every action also takes marked hosts (`multi`): a terminal each, the copies one per line, the pings at once with one toast.
+const CONNECT: Action = { id: "connect", title: "Connect", multi: true };
 /** Connect's one argument in the bar: blank is a shell, a command runs there and the window waits for Enter. Optional, so a bare pick (a hotkey, `pal run`) still connects. */
 const ARGS: Arg[] = [{ id: "command", placeholder: "Command (blank: a shell)" }];
-const COPY_HOST: Action = { id: "copy-host", title: "Copy host", shortcut: "cmd+c" };
-const COPY_COMMAND: Action = { id: "copy-command", title: "Copy ssh command", shortcut: "cmd+shift+c" };
-const COPY_JUMP: Action = { id: "copy-jump", title: "Copy ssh -J command", shortcut: "cmd+shift+j" };
-const PING: Action = { id: "ping", title: "Ping", shortcut: "cmd+p" };
+const COPY_HOST: Action = { id: "copy-host", title: "Copy host", shortcut: "cmd+c", multi: true };
+const COPY_COMMAND: Action = { id: "copy-command", title: "Copy ssh command", shortcut: "cmd+shift+c", multi: true };
+const COPY_JUMP: Action = { id: "copy-jump", title: "Copy ssh -J command", shortcut: "cmd+shift+j", multi: true };
+const PING: Action = { id: "ping", title: "Ping", shortcut: "cmd+p", multi: true };
 const PING_MS = 3000;
 const KNOWN = "Known hosts";
 
@@ -166,27 +167,36 @@ export default {
       placeholder: "Connect to a host",
       list,
       pick: async (id, action, ctx?: Ctx) => {
-        const cmd = `ssh ${id}`;
         // A pick on a row restored from the persisted index, before this run has listed.
         if (!hosts.size) list();
-        const h = hosts.get(id);
+        // The marked hosts (`ctx.ids`), else the one.
+        const ids = ctx?.ids ?? [id];
+        const jumpCmd = (n: string) => { const j = hosts.get(n)?.jump; return j ? `ssh -J ${j} ${n}` : `ssh ${n}`; };
         switch (action) {
-          case "copy-host": return { copy: id };
-          case "copy-command": return { copy: cmd };
-          case "copy-jump": return { copy: h?.jump ? `ssh -J ${h.jump} ${id}` : cmd };
+          case "copy-host": return { copy: ids.join("\n") };
+          case "copy-command": return { copy: ids.map((n) => `ssh ${n}`).join("\n") };
+          case "copy-jump": return { copy: ids.map(jumpCmd).join("\n") };
           case "ping": {
-            const target = h?.hostname ?? id;
-            const r = await ping(target);
-            return r.ok ? toast(`${target}: ${r.ms < 10 ? r.ms.toFixed(1) : Math.round(r.ms)} ms`) : toast(`${target} did not answer`, r.why, "failure");
+            const targets = ids.map((n) => hosts.get(n)?.hostname ?? n);
+            const rs = await Promise.all(targets.map(ping));
+            const fmt = (r: { ms: number }) => `${r.ms < 10 ? r.ms.toFixed(1) : Math.round(r.ms)} ms`;
+            if (targets.length === 1) { const r = rs[0]!; return r.ok ? toast(`${targets[0]}: ${fmt(r)}`) : toast(`${targets[0]} did not answer`, r.why, "failure"); }
+            const down = targets.filter((_, i) => !rs[i]!.ok);
+            const lines = targets.map((t, i) => { const r = rs[i]!; return `${t}: ${r.ok ? fmt(r) : "no answer"}`; }).join(", ");
+            return toast(down.length ? `${down.length} of ${targets.length} did not answer` : `All ${targets.length} answered`, lines, down.length ? "failure" : undefined);
           }
         }
         // A command typed in the bar: run over a tty (so htop and the like work) and the window stays until Enter, as make's Run does.
         const command = String(ctx?.values?.command ?? "").trim();
-        const argv = command
-          ? ["sh", "-c", `ssh -t ${terminal.quote(id)} ${terminal.quote(command)}; s=$?; printf '\\n[ssh %s exited %s] Enter closes ' ${terminal.quote(id)} "$s"; read -r _`]
-          : ["ssh", id];
-        const why = terminal.open(argv, settings.get<Settings>().terminal);
-        return why ? toast("Could not open a terminal", why, "failure") : {};
+        // A terminal per marked host, in order; the first that cannot open says why.
+        for (const n of ids) {
+          const argv = command
+            ? ["sh", "-c", `ssh -t ${terminal.quote(n)} ${terminal.quote(command)}; s=$?; printf '\\n[ssh %s exited %s] Enter closes ' ${terminal.quote(n)} "$s"; read -r _`]
+            : ["ssh", n];
+          const why = terminal.open(argv, settings.get<Settings>().terminal);
+          if (why) return toast("Could not open a terminal", why, "failure");
+        }
+        return {};
       },
     },
   },

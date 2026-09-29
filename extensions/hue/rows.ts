@@ -43,45 +43,46 @@ const onTag = (on: boolean) => (on ? tag("on", "green") : tag("off", "grey"));
 export const BRIGHTNESS_ARG: Arg = { id: "brightness", placeholder: "Brightness %", kind: "number" };
 export const KELVIN_ARG: Arg = { id: "kelvin", placeholder: "Colour temperature K", kind: "number" };
 export const SET: Action = { id: "set", title: "Set brightness or temperature", shortcut: "cmd+shift+b", args: true };
+// Marked rows (`multi`): switching, blinking, scenes and the copies go over them all; opening, drilling in and a typed level stay one row's, and only one entertainment area streams at a time.
 export const ROOM_ACTIONS: Action[] = [
-  { id: "toggle", title: "Toggle", shortcut: "enter" },
+  { id: "toggle", title: "Toggle", shortcut: "enter", multi: true },
   { id: "open", title: "Open room", shortcut: "cmd+enter" },
-  { id: "on", title: "Turn on" },
-  { id: "off", title: "Turn off" },
+  { id: "on", title: "Turn on", multi: true },
+  { id: "off", title: "Turn off", multi: true },
   SET,
   { id: "scenes", title: "Scenes of the room", shortcut: "cmd+s" },
   { id: "lights", title: "Lights in the room", shortcut: "cmd+l" },
-  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
+  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c", multi: true },
 ];
 export const LIGHT_ACTIONS: Action[] = [
-  { id: "toggle", title: "Toggle", shortcut: "enter" },
+  { id: "toggle", title: "Toggle", shortcut: "enter", multi: true },
   { id: "open", title: "Open light", shortcut: "cmd+enter" },
-  { id: "on", title: "Turn on" },
-  { id: "off", title: "Turn off" },
+  { id: "on", title: "Turn on", multi: true },
+  { id: "off", title: "Turn off", multi: true },
   SET,
-  { id: "identify", title: "Blink to find it", shortcut: "cmd+b" },
-  { id: "copy_hex", title: "Copy colour", shortcut: "cmd+c" },
-  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
+  { id: "identify", title: "Blink to find it", shortcut: "cmd+b", multi: true },
+  { id: "copy_hex", title: "Copy colour", shortcut: "cmd+c", multi: true },
+  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c", multi: true },
 ];
 export const SCENE_ACTIONS: Action[] = [
-  { id: "activate", title: "Activate", shortcut: "enter" },
-  { id: "dynamic", title: "Play dynamically", shortcut: "cmd+enter" },
+  { id: "activate", title: "Activate", shortcut: "enter", multi: true },
+  { id: "dynamic", title: "Play dynamically", shortcut: "cmd+enter", multi: true },
   { id: "room", title: "Open room", shortcut: "cmd+o" },
-  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
+  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c", multi: true },
 ];
 export const SENSOR_ACTIONS: Action[] = [
-  { id: "copy_value", title: "Copy value", shortcut: "enter" },
-  { id: "toggle_enabled", title: "Enable or disable", shortcut: "cmd+e" },
-  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
+  { id: "copy_value", title: "Copy value", shortcut: "enter", multi: true },
+  { id: "toggle_enabled", title: "Enable or disable", shortcut: "cmd+e", multi: true },
+  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c", multi: true },
 ];
 export const AUTOMATION_ACTIONS: Action[] = [
-  { id: "toggle_enabled", title: "Enable or disable", shortcut: "enter" },
-  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
+  { id: "toggle_enabled", title: "Enable or disable", shortcut: "enter", multi: true },
+  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c", multi: true },
 ];
 export const ENTERTAINMENT_ACTIONS: Action[] = [
   { id: "start", title: "Start streaming", shortcut: "enter" },
   { id: "stop", title: "Stop streaming", shortcut: "cmd+enter" },
-  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
+  { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c", multi: true },
 ];
 
 const withBridge = (text: string, bridge: string, several: boolean) => (several ? `${text} · ${bridge}` : text);

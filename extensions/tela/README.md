@@ -125,7 +125,10 @@ and network. The popover is a view of its own: every one as a row
 (the kind's glyph, what happened, the comment's snippet, the time),
 with a cursor the arrows move and a click sets. Enter opens the focused
 comment in tela, `m` marks it read, `a` marks them all, `o` opens tela,
-`p` the Comments palette.
+`p` the Comments palette. Marked rows (`⌘`-click, `⇧`-click, `⇧↓`):
+`Enter` opens each, `m` marks them all read. In the palettes, marked
+pages, spaces and comments open and copy together, marked comments mark
+read together and marked recent questions are forgotten together.
 
 ## What it does not do
 

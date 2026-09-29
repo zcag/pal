@@ -169,7 +169,11 @@ describe("entities", () => {
     expect(items.filter((i) => i.args).map((i) => i.id)).toEqual(["light.hall", "light.kitchen", "climate.living", "media_player.tv"]);
     expect(ids("cover.blind")).toEqual(["close", "open", "stop", "copy_id", "attributes", "open_ha"]);
     expect(ids("lock.front")).toEqual(["unlock", "lock", "copy_id", "attributes", "open_ha"]);
-    expect(items.find((i) => i.id === "lock.front")!.actions![0]).toMatchObject({ title: "Unlock", confirm: "Unlock Front door?" });
+    // Worded for one lock or several (the shell adds how many).
+    expect(items.find((i) => i.id === "lock.front")!.actions![0]).toMatchObject({ title: "Unlock", confirm: "Unlock it?", multi: true });
+    // Every action takes marked entities but a typed value, a form and the attribute drill-in.
+    expect(items.find((i) => i.id === "light.kitchen")!.actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["brightness", "attributes"]);
+    expect(items.find((i) => i.id === "climate.living")!.actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["temperature", "attributes"]);
     // Show attributes is not on cmd+i, the shell's detail toggle; no two actions of a row share a key.
     for (const i of items) {
       const keys = i.actions!.flatMap((a) => (typeof a.shortcut === "string" ? [a.shortcut] : a.shortcut ?? []));
@@ -193,6 +197,13 @@ describe("entities", () => {
     expect((await list()).map((i) => i.id)).toEqual(["sensor.temp", "light.hall", "light.kitchen"]);
     expect((await list({ filter: "scene" })).map((i) => i.id)).toEqual(["scene.movie"]);
     host.changeSettings(E, { settings: base });
+  });
+  test("marked entities: a service call each on its own domain, the ids and values a line each, Home Assistant a tab each", async () => {
+    const n = calls.length;
+    expect(await pick("light.hall", "off", { ids: ["light.hall", "switch.fan"] })).toMatchObject({ keep: true, toast: { title: "Turn off: 2 entities" } });
+    expect(calls.slice(n)).toEqual([{ path: "light.turn_off", body: { entity_id: "light.hall" } }, { path: "switch.turn_off", body: { entity_id: "switch.fan" } }]);
+    expect(await pick("light.hall", "copy_id", { ids: ["light.hall", "switch.fan"] })).toEqual({ copy: "light.hall\nswitch.fan" });
+    expect((await pick("light.hall", "open_ha", { ids: ["light.hall", "switch.fan"] })).open).toHaveLength(2);
   });
   test("toggle posts the service with the entity id, then keeps the palette open with the new state in a toast; a bare pick runs the primary", async () => {
     expect(await pick("light.hall", "toggle")).toEqual({ keep: true, toast: { title: "Hall: on" } });

@@ -7,7 +7,7 @@
 // the accent ring; a click moves it. Every session is a row, the popover
 // scrolls. A key-hint row closes the tree.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
-import { AGENT_TITLE, type Agent, type Pending, type Tokens } from "./agents.ts";
+import { type Agent, type Pending, type Tokens } from "./agents.ts";
 
 /** `blocked` is the guess (a call without a result, the process idle), `waiting` is your turn, `ended` a file still warm with no process behind it. */
 export type State = "blocked" | "waiting" | "working" | "ended";
@@ -88,7 +88,7 @@ function sessionRow(s: Session, focused: boolean, st: PopoverState): ViewNode {
       { type: "badge", key: "state", text: tagOf(s), color: STATE[s.state].color },
       text(ago(s.stateAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
-    { key: s.key, padding: 1, minHeight: 42, radius: true, action: `focus:${s.key}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+    { key: s.key, mark: s.key, padding: 1, minHeight: 42, radius: true, action: `focus:${s.key}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -120,12 +120,16 @@ export function actions(st: PopoverState): Action[] {
   const rows = shown(st.sessions);
   const s = current(st);
   if (!s) return [{ id: "pal", title: "Open Sessions in pal", shortcut: "p" }];
+  // Over marked rows (`mark`) the multi ones run on them all; Resume and Kill stay offered while any row can take them, whichever the cursor is on.
+  const anyEnded = rows.some((x) => x.state === "ended"), anyRunning = rows.some((x) => x.state !== "ended");
+  const resume: Action = { id: "resume", title: "Resume in a terminal", multi: true };
   return [
-    s.state === "ended" ? { id: "resume", title: "Resume in a terminal", shortcut: "enter" } : { id: "focus", title: "Focus the terminal", shortcut: "enter" },
+    s.state === "ended" ? { ...resume, shortcut: "enter" } : { id: "focus", title: "Focus the terminal", shortcut: "enter" },
     { id: "view", title: "Transcript", shortcut: ["t", "cmd+t"] },
-    { id: "transcript", title: "Open transcript in the editor", shortcut: ["o", "cmd+o"] },
-    { id: "copy-resume", title: "Copy resume command", shortcut: ["r", "cmd+c"] },
-    ...(s.state !== "ended" ? [{ id: "kill", title: "Kill", shortcut: ["x", "cmd+d"], style: "destructive" as const, confirm: `Send SIGTERM to ${AGENT_TITLE[s.agent]} (pid ${s.pid ?? "?"})?` }] : []),
+    { id: "transcript", title: "Open transcript in the editor", shortcut: ["o", "cmd+o"], multi: true },
+    { id: "copy-resume", title: "Copy resume command", shortcut: ["r", "cmd+c"], multi: true },
+    ...(anyRunning ? [{ id: "kill", title: "Kill", shortcut: ["x", "cmd+d"], style: "destructive" as const, multi: true as const, confirm: "Send SIGTERM? The session ends; its transcript stays." }] : []),
+    ...(s.state !== "ended" && anyEnded ? [resume] : []),
     ...(s.pane ? [{ id: "send", title: "Send a line (in pal)", shortcut: "s" }] : []),
     { id: "pal", title: "Open Sessions in pal", shortcut: "p" },
     { id: "down", title: "Next", shortcut: ["down", "j"], hidden: true as const },

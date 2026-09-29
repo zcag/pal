@@ -8,7 +8,7 @@
 // (`render.ts` over the SDK's `md`), the form that comments on it. Editing a
 // page's body is not the panel's job (tela's MCP does that). One bar
 // item, `inbox`: unread mentions and replies, hidden at zero.
-import { ago, argsForm, clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
+import { ago, argsForm, clipboard, dayNameYear, eachId, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, EXTENSION, askUrl, baseUrl, conf, keysUrl, log, notesUrl, pageUrl, researchOn, searchUrl, spaceUrl } from "./api.ts";
 import {
   RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, recent, research, search, spaceName, spaceTree, spaces,
@@ -65,9 +65,9 @@ const pid = (id: string) => (id.startsWith("page:") ? Number(id.slice(5)) : NaN)
 
 /** What a page row can do; the view a page opens as offers the same set. */
 const PAGE_ACTIONS: Action[] = [
-  { id: "open", title: "Open in tela" },
+  { id: "open", title: "Open in tela", multi: true },
   { id: "read", title: "Read in pal", shortcut: "cmd+enter" },
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
   { id: "outline", title: "Outline", shortcut: "cmd+shift+o" },
   { id: "backlinks", title: "Backlinks", shortcut: "cmd+b" },
   { id: "comment", title: "Comment on page", shortcut: "cmd+shift+m" },
@@ -325,7 +325,7 @@ async function ask(question: string, limit = RESEARCH_LIMIT): Promise<Effect> {
   return { view: researchView(current) };
 }
 
-const ASK_ACTIONS: Action[] = [{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter" }, { id: "forget", title: "Forget question", shortcut: "cmd+shift+d", style: "destructive" }];
+const ASK_ACTIONS: Action[] = [{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter" }, { id: "forget", title: "Forget question", shortcut: "cmd+shift+d", style: "destructive", multi: true }];
 
 async function researchRows(query = ""): Promise<Item[]> {
   if (!researchOn()) return [hint("research-off", "Research is off", "Turn it on under Settings › Extensions › tela; Search works without it", { actions: [{ id: "settings", title: "Open settings" }] })];
@@ -387,8 +387,8 @@ async function pickResearch(id: string, action?: string, ctx?: Ctx): Promise<Eff
 
 const SPACE_ACTIONS: Action[] = [
   { id: "pages", title: "Open pages" },
-  { id: "open", title: "Open in tela", shortcut: "cmd+enter" },
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  { id: "open", title: "Open in tela", shortcut: "cmd+enter", multi: true },
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
   { id: "new", title: "New page here", shortcut: "cmd+n" },
 ];
 
@@ -441,10 +441,10 @@ async function catalogRows(kind: "deck" | "sheet", refresh: boolean): Promise<It
 const notifTable = new Map<number, Notification>();
 
 const NOTIF_ACTIONS: Action[] = [
-  { id: "open", title: "Open in tela" },
+  { id: "open", title: "Open in tela", multi: true },
   { id: "read-page", title: "Read page in pal", shortcut: "cmd+enter" },
   { id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true },
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
   { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
 ];
 
@@ -488,16 +488,10 @@ async function findNotif(id: number): Promise<Notification> {
 /** Every notification in `ids` marked read, one request each (tela has no batch call). */
 const markEach = (ids: number[]) => Promise.all(ids.map((i) => markRead(i)));
 
-async function pickNotif(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+async function pickNotif(id: string, action?: string): Promise<Effect> {
   if (action === "read-all") {
     try { await markAllRead(); } catch (e) { return failed("mark all read", e); }
     return toast("All read");
-  }
-  // Marked rows (`ctx.ids`): each one read.
-  const ids = ctx?.ids ?? [id];
-  if (action === "read" && ids.length > 1) {
-    try { await markEach(ids.map((x) => Number(x.slice(6)))); } catch (e) { return failed("mark read", e); }
-    return toast("Marked read", `${ids.length} notifications`);
   }
   const n = await findNotif(Number(id.slice(6)));
   switch (action) {
@@ -589,7 +583,8 @@ async function inboxAction(action: string, ctx?: BarCtx): Promise<Effect> {
       try { await markEach(ids.map(Number)); } catch (e) { return failed("mark read", e); }
       return { keep: true, hud: ids.length > 1 ? `Marked ${ids.length} read` : "Marked read" };
     }
-    case "open": return cur ? pickNotif(`notif:${cur.id}`) : { open: baseUrl() || "https://telawiki.com" };
+    // The marked rows (`BarCtx.ids`) or the cursor's, each opened.
+    case "open": return ctx?.ids ? each(ctx.ids.map((x) => `notif:${x}`), (x) => pickNotif(x)) : cur ? pickNotif(`notif:${cur.id}`) : { open: baseUrl() || "https://telawiki.com" };
   }
   // A click on a row's own action, from an older render.
   return pickNotif(action);
@@ -608,6 +603,14 @@ async function backlinkRows(ctx?: Ctx): Promise<Item[]> {
 
 // ---- the extension ----------------------------------------------------------------------------
 
+const NOUNS: Record<string, string> = { page: "pages", notif: "notifications", space: "spaces", ask: "questions" };
+
+/** A multi pick as one pick per id, folded (`eachId`), the toast naming the rows by the first id's kind. */
+const each = (ids: string[], one: (id: string) => Promise<Effect | void> | Effect | void) => eachId(ids, one, ids.length > 1 ? NOUNS[ids[0]!.split(":")[0]!] ?? "items" : undefined);
+
+/** Every palette's pick: marked rows (`ctx.ids`) through `pickAny` one by one, folded. */
+const pickMany = (id: string, action?: string, ctx?: Ctx) => each(ctx?.ids ?? [id], (x) => pickAny(x, action, ctx && { ...ctx, ids: [x] }));
+
 /** A pick from any palette whose rows are pages, hints or commands; the view and form ids land here too. */
 async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) {
@@ -618,7 +621,7 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
   if (id === "new") return action === "save" ? saveNewPage(ctx?.values ?? {}) : { form: await newPageForm() };
   if (id.startsWith("cmd:")) return pickCommand(id, action, ctx);
   if (id.startsWith("space:")) return pickSpace(id, action, ctx);
-  if (id.startsWith("notif:")) return pickNotif(id, action, ctx);
+  if (id.startsWith("notif:")) return pickNotif(id, action);
   if (id === "research" || id.startsWith("ask:")) return pickResearch(id, action, ctx);
   const n = pid(id);
   if (Number.isFinite(n)) return pickPage(n, action, ctx);
@@ -634,7 +637,7 @@ export default {
       input: true,
       placeholder: "Words, “a phrase”, -excluded",
       list: (query) => guard(() => searchRows(query)),
-      pick: pickAny,
+      pick: pickMany,
       detail: pageDetailOf,
     },
     research: {
@@ -642,20 +645,20 @@ export default {
       input: true,
       placeholder: "A question for the wiki",
       list: (query) => guard(() => researchRows(query)),
-      pick: pickAny,
+      pick: pickMany,
     },
     pages: {
       title: "Pages",
       placeholder: "A page by title or space",
       list: (_q, ctx) => guard(() => { const a = ctx?.args as { space?: number } | undefined; return a?.space ? spaceRows(a.space, !!ctx?.refresh) : rootRows(!!ctx?.refresh); }),
-      pick: pickAny,
+      pick: pickMany,
       detail: pageDetailOf,
     },
     spaces: {
       title: "Spaces",
       placeholder: "A space by name",
       list: (_q, ctx) => guard(() => spaceRowsAll(!!ctx?.refresh)),
-      pick: pickAny,
+      pick: pickMany,
     },
     "new-page": {
       title: "New Page",
@@ -666,21 +669,21 @@ export default {
         const rows = all.slice().sort((a, b) => Number(b.id === def) - Number(a.id === def)).map((s): Item => ({ id: `space:${s.id}`, name: `New page in ${s.name}`, subtitle: s.description || undefined, icon: ICON.plus, keywords: [s.slug, "create", "write"], accessories: s.id === def ? [{ tag: "default", color: "blue" }] : [], actions: [{ id: "new", title: "New page" }] }));
         return rows.length ? rows : [hint("none", "No spaces", "The token sees none; tela's home page creates one")];
       }),
-      pick: async (id, action, ctx) => (id.startsWith("space:") && action !== "new:save" ? { form: await newPageForm(Number(id.slice(6))) } : pickAny(id, action, ctx)),
+      pick: async (id, action, ctx) => (id.startsWith("space:") && action !== "new:save" ? { form: await newPageForm(Number(id.slice(6))) } : pickMany(id, action, ctx)),
     },
     decks: {
       title: "Decks",
       placeholder: "A deck by title or space",
       showDetail: true,
       list: (_q, ctx) => guard(() => catalogRows("deck", !!ctx?.refresh)),
-      pick: pickAny,
+      pick: pickMany,
       detail: pageDetailOf,
     },
     sheets: {
       title: "Sheets",
       placeholder: "A sheet by title or space",
       list: (_q, ctx) => guard(() => catalogRows("sheet", !!ctx?.refresh)),
-      pick: pickAny,
+      pick: pickMany,
       detail: pageDetailOf,
     },
     comments: {
@@ -688,13 +691,13 @@ export default {
       placeholder: "Who, or which page",
       live: true,
       list: (_q, ctx) => guard(() => commentRows(!!ctx?.refresh)),
-      pick: pickAny,
+      pick: pickMany,
     },
     backlinks: {
       title: "Backlinks",
       placeholder: "A linking page by title",
       list: (_q, ctx) => guard(() => backlinkRows(ctx)),
-      pick: pickAny,
+      pick: pickMany,
       detail: pageDetailOf,
     },
   },

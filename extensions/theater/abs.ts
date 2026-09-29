@@ -39,7 +39,8 @@ export async function itemRow(it: LibraryItem, section: string, progress?: Progr
     section,
     accessories: [...(it.mediaType === "podcast" ? [{ tag: "podcast", color: "teal" }] : []), ...(p ? [{ text: `${Math.round(p * 100)}%` }] : []), ...(progress?.isFinished ? [{ tag: "finished", color: "green" }] : []), { date: progress?.lastUpdate ?? it.addedAt }],
     detail: { markdown: [img ? `![cover](${await cover(it.id, 300)})` : "", m.description ?? ""].filter(Boolean).join("\n\n"), metadata: [...(m.authorName ? [{ label: "Author", value: m.authorName }] : []), ...(m.narratorName ? [{ label: "Narrator", value: m.narratorName }] : []), ...(m.publishedYear ? [{ label: "Year", value: m.publishedYear }] : []), ...(it.media.duration ? [{ label: "Length", value: hours(it.media.duration) }] : []), ...(progress ? [{ label: "Progress", value: progress.isFinished ? "Finished" : `${Math.round(progress.progress * 100)}%, ${ago(progress.lastUpdate)}` }] : []), { label: "Added", value: ago(it.addedAt) }] },
-    actions: [{ id: "open", title: "Open in Audiobookshelf" }, ...(progress && !progress.isFinished ? [{ id: "finish", title: "Mark finished", shortcut: "cmd+shift+p", confirm: `Mark ${m.title ?? "it"} finished?` }] : []), { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
+    // Every action also takes marked items (`multi`): each opened or marked finished (the question names none), the links one per line.
+    actions: [{ id: "open", title: "Open in Audiobookshelf", multi: true }, ...(progress && !progress.isFinished ? [{ id: "finish", title: "Mark finished", shortcut: "cmd+shift+p", multi: true as const, confirm: "Mark finished?" }] : []), { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }],
   };
 }
 
@@ -73,14 +74,18 @@ export async function searchRows(q: string): Promise<Item[]> {
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
   if (id.startsWith("author:")) { const [, lib, a] = id.split(":"); return { open: `${absUrl()}/author/${a}?library=${lib}` }; }
   const key = id.slice(5), it = held.get(key);
+  // The marked items (`ctx.ids`, `item:<id>`), else the one.
+  const keys = (ctx?.ids ?? [id]).filter((x) => x.startsWith("item:")).map((x) => x.slice(5));
   switch (action) {
-    case "copy": return { copy: itemUrl(key) };
-    case "finish": try { await finish(key); return toast("Marked finished", it?.media.metadata.title); } catch (e) { return toast("Could not mark", String((e as Error).message), "failure"); }
-    default: return { open: itemUrl(key) };
+    case "copy": return { copy: keys.map(itemUrl).join("\n") };
+    case "finish":
+      try { for (const k of keys) await finish(k); } catch (e) { return toast("Could not mark", String((e as Error).message), "failure"); }
+      return toast("Marked finished", keys.length > 1 ? `${keys.length} items` : it?.media.metadata.title);
+    default: return { open: keys.length > 1 ? keys.map(itemUrl) : itemUrl(key) };
   }
 }
 

@@ -40,6 +40,8 @@ the toast says so.
 | --- | --- |
 | `enter` | Run: `make <target>` in a terminal in the project folder, or in the background; argument `extra` (optional): variables or flags after the target |
 | `cmd+c` | Copy command: `make -C <dir> <target>` |
+
+Marked targets (`⌘`-click, `⇧↓`) of one project run as one `make a b`; Copy command puts one a line, Open project opens each project once.
 | `cmd+o` | Open project: the folder in the file manager |
 | `cmd+l` | Show Makefile: the whole file in the panel, `esc` goes back |
 | `cmd+i` | The detail pane with the recipe |

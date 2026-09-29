@@ -10,7 +10,7 @@
 // first. The rows: the title (the url when it has none), the url under it
 // and as the favicon's source, when it was last visited on the right, the
 // browser as the section; Enter opens it in the browser it came from.
-import { errorMessage, failed, settings, type Action, type Effect, type Item } from "@zcag/pal";
+import { errorMessage, failed, settings, type Action, type Ctx, type Effect, type Item } from "@zcag/pal";
 import { BROWSERS, chromiumProfiles, copied, firefoxProfiles, openIn } from "./browsers.ts";
 
 /** `[extensions.bookmarks]`, the key this palette reads. */
@@ -82,8 +82,9 @@ export function merge(lists: { section: string; app: string; rows: Visit[] }[]):
   return out;
 }
 
-const COPY: Action = { id: "copy", title: "Copy link", shortcut: "cmd+c" };
-const OPEN_DEFAULT: Action = { id: "open", title: "Open in default browser", shortcut: "cmd+o" };
+// Visits open and copy together too: the tabs of a morning's reading, the links one per line.
+const COPY: Action = { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true };
+const OPEN_DEFAULT: Action = { id: "open", title: "Open in default browser", shortcut: "cmd+o", multi: true };
 /** The short browser name for the action title (`Chrome (Work)` is `Chrome`). */
 const short = (section: string) => section.replace(/ \(.*\)$/, "");
 
@@ -99,7 +100,8 @@ function row(v: Visit & { section: string; app: string }): Item {
     url: v.url,
     accessories: [{ date: v.at }],
     section: v.section,
-    actions: [{ id: "open-in", title: `Open in ${short(v.section)}` }, COPY, OPEN_DEFAULT],
+    // Keyed per browser, so marked visits from two browsers never share an "Open in Chrome" that opens Firefox's.
+    actions: [{ id: `open-in:${v.app}`, title: `Open in ${short(v.section)}`, multi: true }, COPY, OPEN_DEFAULT],
   };
 }
 
@@ -112,15 +114,16 @@ async function list(text = ""): Promise<Item[]> {
   return merge(lists).map(row);
 }
 
-async function pick(id: string, action?: string): Promise<Effect> {
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+  const ids = ctx?.ids ?? [id];
   switch (action) {
-    case "copy": return { copy: id };
-    case "open": return { open: id };
+    case "copy": return { copy: ids.join("\n") };
+    case "open": return { open: ids.length > 1 ? ids : id };
     default: {
-      const app = known.get(id);
-      if (!app) return { open: id };
-      try { openIn(id, app); } catch (e) { return failed(`open in ${app}`, e); }
-      return { hide: true };
+      // Each in the browser it was visited in; one that browser is unknown for goes to the opener.
+      const bare = ids.filter((u) => !known.get(u));
+      for (const u of ids) { const app = known.get(u); if (!app) continue; try { openIn(u, app); } catch (e) { return failed(`open in ${app}`, e); } }
+      return bare.length ? { open: bare.length > 1 ? bare : bare[0]! } : { hide: true };
     }
   }
 }

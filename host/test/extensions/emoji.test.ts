@@ -44,7 +44,7 @@ describe("emoji", () => {
     expect(grin.icon).toBe("😀");
     expect(grin.keywords!.slice(0, 2)).toEqual(["grinning_face", ":grinning_face:"]);
     expect(grin.keywords).toContain("smile");
-    expect(grin.actions).toEqual([{ id: "copy", title: "Copy emoji" }, { id: "paste", title: "Paste emoji" }, { id: "shortcode", title: "Copy shortcode", shortcut: "cmd+shift+c" }]);
+    expect(grin.actions).toEqual([{ id: "copy", title: "Copy emoji", multi: true }, { id: "paste", title: "Paste emoji", multi: true }, { id: "shortcode", title: "Copy shortcode", shortcut: "cmd+shift+c", multi: true }]);
     expect(new Set(items.map((i) => i.id)).size).toBe(1906);
   });
 
@@ -57,6 +57,10 @@ describe("emoji", () => {
     expect(await pick("😀", "shortcode")).toEqual({ copy: ":grinning_face:" });
     expect(await pick("not-an-emoji", "shortcode")).toEqual({ copy: "not-an-emoji" });
     expect((await list()).slice(0, 3).map((i) => i.id)).toEqual(["😀", "👍", "🍕"]);
+    // Marked emoji go together: side by side, the shortcodes a space apart.
+    expect(await host.pick("emoji", "emoji", "🍕", "copy", { ids: ["🍕", "😀"] })).toEqual({ copy: "🍕😀" });
+    expect(await host.pick("emoji", "emoji", "🍕", "paste", { ids: ["🍕", "😀"] })).toEqual({ paste: { text: "🍕😀" } });
+    expect(await host.pick("emoji", "emoji", "😀", "shortcode", { ids: ["😀", "👍"] })).toEqual({ copy: ":grinning_face: :thumbs_up:" });
   });
 
   test("skin_tone tones the tile and what is copied for the emoji that take one; paste_by_default puts Paste first", async () => {

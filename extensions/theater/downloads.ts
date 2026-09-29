@@ -60,11 +60,13 @@ export function downloadRow(d: Download): Item {
     keywords: [CLIENT_TITLE[d.client], d.category, d.state.text].filter(Boolean),
     section: CLIENT_TITLE[d.client],
     accessories: [{ tag: d.state.text, color: d.state.color }, { text: pct(d.progress) }],
+    // All but Open also take marked downloads (`multi`), of either client. Pause and Resume both ride on every row, the one that flips it on ⌘↵, so a mix still shares them.
     actions: [
       { id: "open", title: `Open ${CLIENT_TITLE[d.client]}` },
-      { id: d.paused ? "resume" : "pause", title: d.paused ? "Resume" : "Pause", shortcut: "cmd+enter" },
-      { id: "delete", title: "Delete", shortcut: "cmd+backspace", style: "destructive", confirm: `Delete ${truncate(d.name, 50)} and its files from ${CLIENT_TITLE[d.client]}?` },
-      { id: "copy", title: "Copy name", shortcut: "cmd+c" },
+      { id: d.paused ? "resume" : "pause", title: d.paused ? "Resume" : "Pause", shortcut: "cmd+enter", multi: true },
+      { id: "delete", title: "Delete", shortcut: "cmd+backspace", style: "destructive", multi: true, confirm: "Delete, with the files, from the download client?" },
+      { id: "copy", title: "Copy name", shortcut: "cmd+c", multi: true },
+      { id: d.paused ? "pause" : "resume", title: d.paused ? "Pause" : "Resume", multi: true },
     ],
   };
 }
@@ -127,10 +129,11 @@ export async function queueRows(refresh: boolean): Promise<Item[]> {
   });
 }
 
-const HISTORY_ACTIONS = (client: "sab" | "qbit", name: string): Action[] => [
+// Remove and Copy also take marked rows (`multi`); the question names none.
+const HISTORY_ACTIONS = (client: "sab" | "qbit"): Action[] => [
   { id: "open", title: `Open ${CLIENT_TITLE[client]}` },
-  { id: "forget", title: client === "sab" ? "Remove from history" : "Remove torrent", shortcut: "cmd+backspace", style: "destructive", confirm: client === "sab" ? `Remove ${truncate(name, 50)} from SABnzbd's history?` : `Remove ${truncate(name, 50)} from qBittorrent (the files stay)?` },
-  { id: "copy", title: "Copy name", shortcut: "cmd+c" },
+  { id: "forget", title: client === "sab" ? "Remove from history" : "Remove torrent", shortcut: "cmd+backspace", style: "destructive", multi: true, confirm: client === "sab" ? "Remove from SABnzbd's history?" : "Remove from qBittorrent? The files stay." },
+  { id: "copy", title: "Copy name", shortcut: "cmd+c", multi: true },
 ];
 
 export async function historyRows(refresh: boolean): Promise<Item[]> {
@@ -140,7 +143,7 @@ export async function historyRows(refresh: boolean): Promise<Item[]> {
     try {
       for (const h of await sab.history(refresh)) {
         const failed = h.status === "Failed";
-        rows.push({ id: `hist:sab:${h.nzo_id}`, name: h.name, subtitle: [h.category, bytes(h.bytes), failed && h.fail_message ? truncate(h.fail_message, 90) : ""].filter(Boolean).join(" · "), icon: tinted(GLYPH.sab, failed ? "red" : "slate"), keywords: ["sabnzbd", h.category, h.status.toLowerCase()], section: "SABnzbd", accessories: [{ tag: failed ? "failed" : h.status.toLowerCase(), color: failed ? "red" : h.status === "Completed" ? "green" : "grey" }, { date: h.completed * 1000 }], detail: failed ? { markdown: `**Failed**\n\n${h.fail_message}` } : { metadata: [{ label: "Status", value: h.status }, { label: "Size", value: bytes(h.bytes) }, ...(h.storage ? [{ label: "Stored", value: h.storage }] : []), { label: "Finished", value: ago(h.completed * 1000) }] }, actions: HISTORY_ACTIONS("sab", h.name) });
+        rows.push({ id: `hist:sab:${h.nzo_id}`, name: h.name, subtitle: [h.category, bytes(h.bytes), failed && h.fail_message ? truncate(h.fail_message, 90) : ""].filter(Boolean).join(" · "), icon: tinted(GLYPH.sab, failed ? "red" : "slate"), keywords: ["sabnzbd", h.category, h.status.toLowerCase()], section: "SABnzbd", accessories: [{ tag: failed ? "failed" : h.status.toLowerCase(), color: failed ? "red" : h.status === "Completed" ? "green" : "grey" }, { date: h.completed * 1000 }], detail: failed ? { markdown: `**Failed**\n\n${h.fail_message}` } : { metadata: [{ label: "Status", value: h.status }, { label: "Size", value: bytes(h.bytes) }, ...(h.storage ? [{ label: "Stored", value: h.storage }] : []), { label: "Finished", value: ago(h.completed * 1000) }] }, actions: HISTORY_ACTIONS("sab") });
       }
     } catch (e) { rows.push(...failure(e)); }
   }
@@ -148,7 +151,7 @@ export async function historyRows(refresh: boolean): Promise<Item[]> {
     try {
       for (const t of (await qbit.torrents(refresh)).filter(qbit.isDone)) {
         const failed = t.state === "error" || t.state === "missingFiles";
-        rows.push({ id: `hist:qbit:${t.hash}`, name: t.name, subtitle: [t.category, bytes(t.size), `ratio ${t.ratio.toFixed(2)}`].filter(Boolean).join(" · "), icon: tinted(GLYPH.qbit, failed ? "red" : "slate"), keywords: ["qbittorrent", t.category, t.state], section: "qBittorrent", accessories: [{ tag: failed ? qbit.stateText(t).text : "done", color: failed ? "red" : "green" }, ...(t.completion_on > 0 ? [{ date: t.completion_on * 1000 }] : [])], actions: HISTORY_ACTIONS("qbit", t.name) });
+        rows.push({ id: `hist:qbit:${t.hash}`, name: t.name, subtitle: [t.category, bytes(t.size), `ratio ${t.ratio.toFixed(2)}`].filter(Boolean).join(" · "), icon: tinted(GLYPH.qbit, failed ? "red" : "slate"), keywords: ["qbittorrent", t.category, t.state], section: "qBittorrent", accessories: [{ tag: failed ? qbit.stateText(t).text : "done", color: failed ? "red" : "green" }, ...(t.completion_on > 0 ? [{ date: t.completion_on * 1000 }] : [])], actions: HISTORY_ACTIONS("qbit") });
       }
     } catch (e) { rows.push(...failure(e)); }
   }
@@ -167,15 +170,19 @@ export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effe
   }
   const m = /^(dl|hist):(sab|qbit):(.+)$/.exec(id);
   if (!m) return;
-  const client = m[2] as "sab" | "qbit", key = m[3];
-  const name = () => (client === "sab" ? sab.queue().then((q) => q.slots.find((s) => s.nzo_id === key)?.filename) : qbit.torrents().then((ts) => ts.find((t) => t.hash === key)?.name)).catch(() => undefined);
+  const client = m[2] as "sab" | "qbit";
+  // The marked rows (`ctx.ids`), each with its own client, else the one.
+  const rows = (ctx?.ids ?? [id]).map((x) => /^(dl|hist):(sab|qbit):(.+)$/.exec(x)).filter((x): x is RegExpExecArray => !!x).map((x) => ({ client: x[2] as "sab" | "qbit", key: x[3]! }));
+  const nameOf = (r: { client: "sab" | "qbit"; key: string }) => (r.client === "sab" ? sab.queue().then((q) => q.slots.find((s) => s.nzo_id === r.key)?.filename) : qbit.torrents().then((ts) => ts.find((t) => t.hash === r.key)?.name)).catch(() => undefined);
+  const each = async (f: (r: { client: "sab" | "qbit"; key: string }) => Promise<unknown>) => { for (const r of rows) await f(r); };
+  const n = rows.length > 1 ? `${rows.length} items` : undefined;
   try {
     switch (action) {
-      case "copy": return { copy: (await name()) ?? key };
-      case "pause": client === "sab" ? await sab.pauseItem(key) : await qbit.pause(key); return toast("Paused");
-      case "resume": client === "sab" ? await sab.resumeItem(key) : await qbit.resume(key); return toast("Resumed");
-      case "delete": client === "sab" ? await sab.deleteItem(key) : await qbit.remove(key, true); return toast("Deleted");
-      case "forget": client === "sab" ? await sab.deleteHistory(key) : await qbit.remove(key, false); return toast("Removed");
+      case "copy": return { copy: (await Promise.all(rows.map(async (r) => (await nameOf(r)) ?? r.key))).join("\n") };
+      case "pause": await each((r) => (r.client === "sab" ? sab.pauseItem(r.key) : qbit.pause(r.key))); return toast("Paused", n);
+      case "resume": await each((r) => (r.client === "sab" ? sab.resumeItem(r.key) : qbit.resume(r.key))); return toast("Resumed", n);
+      case "delete": await each((r) => (r.client === "sab" ? sab.deleteItem(r.key) : qbit.remove(r.key, true))); return toast("Deleted", n);
+      case "forget": await each((r) => (r.client === "sab" ? sab.deleteHistory(r.key) : qbit.remove(r.key, false))); return toast("Removed", n);
       default: return { open: clientUrl(client) };
     }
   } catch (e) { return toast(`Could not ${action}`, String((e as Error).message), "failure"); }

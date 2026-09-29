@@ -132,13 +132,15 @@ describe("store", () => {
     expect(timer.name).toBe("Timer");
     expect(tags(timer)).toEqual(["menu bar", "links", "update to 0.1.0", "Productivity"]);
     expect(timer.actions!.map((a) => a.id)).toEqual(["update", "page", "remove", "copy-command"]);
-    expect(timer.actions![0].confirm).toContain("Update Timer");
+    // The questions name no extension, so they read for one or several marked; every action takes marked rows.
+    expect(timer.actions![0].confirm).toBe("Update to the store's version? The source is fetched again.");
+    expect(timer.actions!.every((a) => a.multi)).toBe(true);
     const calc = rows[1];
     expect(calc.section).toBe("Extensions");
     expect(tags(calc)).toEqual(["bundled", "Productivity"]);
     expect(calc.actions!.map((a) => a.id)).toEqual(["page", "copy-command"]);
     expect(tags(rows[2])).toEqual(["menu bar", "accounts", "Developer"]);
-    expect(rows[2].actions![0]).toMatchObject({ id: "install", confirm: "Install GitHub from pal.cagdas.io?" });
+    expect(rows[2].actions![0]).toMatchObject({ id: "install", confirm: "Install from pal.cagdas.io?" });
     expect(tags(rows[4])).toEqual(["installed", "Fun"]);
     expect(rows[4].icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
     expect(rows[4].keywords).toContain("pal");
@@ -175,6 +177,11 @@ describe("store", () => {
     expect(await pick("calc", "page")).toEqual({ open: "https://pal.cagdas.io/extensions/calc" });
     expect(await pick("calc", "copy-command")).toEqual({ copy: "pal install calc", hud: "Copied pal install calc" });
     await expect(pick("nope")).rejects.toThrow("no extension nope");
+    // Marked extensions: each reaches the core in turn; the pages open, the commands copy one per line.
+    expect(await host.pick("store", "store", "timer", "remove", { ids: ["timer", "wordle"] })).toEqual({ hide: true });
+    expect(storeCalls.slice(-2)).toEqual([{ method: "remove", params: { name: "timer" } }, { method: "remove", params: { name: "wordle" } }]);
+    expect(await host.pick("store", "store", "calc", "page", { ids: ["calc", "wordle"] })).toEqual({ open: ["https://pal.cagdas.io/extensions/calc", "https://pal.cagdas.io/extensions/wordle"] });
+    expect(await host.pick("store", "store", "calc", "copy-command", { ids: ["calc", "wordle"] })).toEqual({ copy: "pal install calc\npal install wordle", hud: "Copied 2 install commands" });
   });
   test("the cache: stored once, reused across listings, refetched on Refresh", async () => {
     const c = stored.get("store\0cache") as { fetched_at: number; listings: Listing[] };

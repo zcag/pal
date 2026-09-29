@@ -10,7 +10,7 @@
 // caches; they deliberately do not make a combined GitHub cluster.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { argsForm, bar, clock, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { argsForm, bar, clock, eachId, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, entry, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
@@ -140,14 +140,22 @@ async function issues(refresh?: boolean): Promise<IssueLists> {
   return { assigned: keep(l.assigned), mentioned: keep(l.mentioned), created: keep(l.created) };
 }
 
-/** The mute toggle as a row action, and its pick: the list re-lists (`keep`) and the bar item re-renders off the cache. */
-const muteAction = (id: string): Action => ({ id: "mute", title: muted.has(id) ? "Unmute" : "Mute", shortcut: "cmd+m" });
-async function pickMute(id: string, item: "prs" | "issues", what: string): Promise<Effect> {
-  const on = !muted.has(id);
+/**
+ * Mute and Unmute as row actions: the one that flips the row on ⌘M, the
+ * other at the end of the list, so marked rows that mix muted and not
+ * offer both. Their pick: the list re-lists (`keep`) and the bar item
+ * re-renders off the cache.
+ */
+const MUTE: Action = { id: "mute", title: "Mute", multi: true }, UNMUTE: Action = { id: "unmute", title: "Unmute", multi: true };
+const muteAction = (id: string): Action => ({ ...(muted.has(id) ? UNMUTE : MUTE), shortcut: "cmd+m" });
+const otherMute = (id: string): Action => (muted.has(id) ? MUTE : UNMUTE);
+async function pickMute(id: string, item: "prs" | "issues", what: string, on: boolean): Promise<Effect> {
   await setMuted(id, on);
   bar.refresh(item).catch(() => {});
   return toast(on ? "Muted" : "Unmuted", what);
 }
+
+const each = (ids: string[], one: (id: string) => Promise<Effect | void> | Effect | void, noun: string) => eachId(ids, one, noun);
 
 // ---- pull requests --------------------------------------------------------
 
@@ -174,16 +182,19 @@ function prAccessories(pr: PR): Accessory[] {
 function prActions(pr: PR): Action[] {
   const open = pr.state === "open";
   return [
-    { id: "open", title: "Open" },
-    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+    // Checkout is the one single-row action: a clone has one branch out at a time.
+    { id: "open", title: "Open", multi: true },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
     ...(open && hasGh() && clonePath(pr.repo) ? [{ id: "checkout", title: "Checkout branch", shortcut: "cmd+shift+o" }] : []),
-    { id: "branch", title: "Copy branch name", shortcut: "cmd+b" },
-    { id: "checks", title: "Open checks", shortcut: "cmd+shift+k" },
-    { id: "files", title: "Open files changed", shortcut: "cmd+shift+f" },
-    { id: "ref", title: "Copy reference" },
+    { id: "branch", title: "Copy branch name", shortcut: "cmd+b", multi: true },
+    { id: "checks", title: "Open checks", shortcut: "cmd+shift+k", multi: true },
+    { id: "files", title: "Open files changed", shortcut: "cmd+shift+f", multi: true },
+    { id: "ref", title: "Copy reference", multi: true },
     ...(open ? [muteAction(pr.id)] : []),
-    ...(open && pr.draft ? [{ id: "ready", title: "Mark ready for review", shortcut: "cmd+shift+r" }] : []),
-    ...(open && !pr.draft && pr.mergeable === "MERGEABLE" ? [{ id: "merge", title: "Merge", shortcut: "cmd+shift+m", confirm: `Merge #${pr.number} into ${pr.base}?` }] : []),
+    ...(open && pr.draft ? [{ id: "ready", title: "Mark ready for review", shortcut: "cmd+shift+r", multi: true as const }] : []),
+    // The question names no number: over marked rows the shell adds how many.
+    ...(open && !pr.draft && pr.mergeable === "MERGEABLE" ? [{ id: "merge", title: "Merge", shortcut: "cmd+shift+m", confirm: "Merge into the base branch?", multi: true as const }] : []),
+    ...(open ? [otherMute(pr.id)] : []),
   ];
 }
 
@@ -253,7 +264,7 @@ async function pickPR(pr: PR, action?: string): Promise<Effect> {
     case "copy": return { copy: pr.url };
     case "branch": return { copy: pr.head };
     case "ref": return { copy: pr.id };
-    case "mute": return pickMute(pr.id, "prs", `#${pr.number} ${truncate(pr.title, 60)}`);
+    case "mute": case "unmute": return pickMute(pr.id, "prs", `#${pr.number} ${truncate(pr.title, 60)}`, action === "mute");
     case "checks": return { open: `${pr.url}/checks` };
     case "files": return { open: `${pr.url}/files` };
     case "checkout": {
@@ -374,7 +385,7 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
   };
 }
 
-async function prsAction(action: string): Promise<Effect> {
+async function prsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "pal") return { push: { extension: "github", palette: "prs" } };
   const lists = await prs(action === "refresh");
   const st = prBarState(lists);
@@ -389,16 +400,17 @@ async function prsAction(action: string): Promise<Effect> {
   if (action === "refresh") return redraw();
   const focused = rows[st.focus];
   if (!focused) return { keep: true };
-  if (action === "copy") return { copy: focused.url };
+  // The marked rows (`BarCtx.ids`), else the focused one.
+  const ids = ctx?.ids ?? [focused.id];
   if (action === "mute") {
-    await setMuted(focused.id, true);
+    for (const id of ids) await setMuted(id, true);
     // The cursor stays at its index: the next PR slides under it.
     const next = prBarState(await prs());
     const at = Math.min(st.focus, Math.max(0, shownPrs(next).length - 1));
     barFocus.prs = shownPrs(next)[at]?.id;
-    return { keep: true, view: renderPrs({ ...next, focus: at }) };
+    return { keep: true, view: renderPrs({ ...next, focus: at }), ...(ids.length > 1 && { hud: `Muted ${ids.length}` }) };
   }
-  return pickPR(focused);
+  return each(ids, async (id) => pickPR(await findPr(id), action === "copy" ? "copy" : undefined), "pull requests");
 }
 
 // ---- issues ---------------------------------------------------------------
@@ -407,10 +419,11 @@ const issueTable = new Map<string, Issue>();
 
 function issueActions(i: Issue): Action[] {
   return [
-    { id: "open", title: "Open" },
-    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
-    { id: "ref", title: "Copy reference" },
-    ...(i.state === "open" ? [muteAction(i.id), { id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: `Close #${i.number}?` }] : []),
+    { id: "open", title: "Open", multi: true },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
+    { id: "ref", title: "Copy reference", multi: true },
+    // The question names no number: over marked rows the shell adds how many.
+    ...(i.state === "open" ? [muteAction(i.id), { id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: "Close on GitHub?", multi: true as const }, otherMute(i.id)] : []),
   ];
 }
 
@@ -466,7 +479,7 @@ async function pickIssue(i: Issue, action?: string): Promise<Effect> {
   switch (action) {
     case "copy": return { copy: i.url };
     case "ref": return { copy: i.id };
-    case "mute": return pickMute(i.id, "issues", `#${i.number} ${truncate(i.title, 60)}`);
+    case "mute": case "unmute": return pickMute(i.id, "issues", `#${i.number} ${truncate(i.title, 60)}`, action === "mute");
     case "close":
       try { await closeIssue(i); } catch (e) { return failed("close", e); }
       forget("issues");
@@ -580,7 +593,7 @@ async function issuesItem(ctx: BarCtx): Promise<BarItem> {
   };
 }
 
-async function issuesAction(action: string): Promise<Effect> {
+async function issuesAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "pal") return { push: { extension: "github", palette: "issues" } };
   const lists = await issues(action === "refresh");
   const st = issueBarState(lists);
@@ -595,15 +608,16 @@ async function issuesAction(action: string): Promise<Effect> {
   if (action === "refresh") return redraw();
   const focused = rows[st.focus]?.issue;
   if (!focused) return { keep: true };
-  if (action === "copy") return { copy: focused.url };
+  // The marked rows (`BarCtx.ids`), else the focused one.
+  const ids = ctx?.ids ?? [focused.id];
   if (action === "mute") {
-    await setMuted(focused.id, true);
+    for (const id of ids) await setMuted(id, true);
     const next = issueBarState(await issues());
     const at = Math.min(st.focus, Math.max(0, shownIssues(next).length - 1));
     barFocus.issues = shownIssues(next)[at]?.issue.id;
-    return { keep: true, view: renderIssues({ ...next, focus: at }) };
+    return { keep: true, view: renderIssues({ ...next, focus: at }), ...(ids.length > 1 && { hud: `Muted ${ids.length}` }) };
   }
-  return pickIssue(focused);
+  return each(ids, async (id) => pickIssue(await findIss(id), action === "copy" ? "copy" : undefined), "issues");
 }
 
 // ---- repositories --------------------------------------------------------
@@ -615,13 +629,13 @@ const cloneUrl = (r: Repo) => (conf().clone_protocol === "https" ? r.https : r.s
 function repoActions(r: Repo): Action[] {
   const local = clonePath(r.id);
   return [
-    { id: "open", title: "Open on GitHub" },
-    ...(local ? [{ id: "editor", title: "Open in editor", shortcut: "cmd+e" }, { id: "folder", title: "Open folder", shortcut: "cmd+o" }] : []),
-    { id: "clone", title: "Copy clone URL", shortcut: "cmd+shift+c" },
-    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
-    { id: "name", title: "Copy owner/name" },
-    { id: "issues", title: "Open issues" },
-    { id: "pulls", title: "Open pull requests" },
+    { id: "open", title: "Open on GitHub", multi: true },
+    ...(local ? [{ id: "editor", title: "Open in editor", shortcut: "cmd+e", multi: true as const }, { id: "folder", title: "Open folder", shortcut: "cmd+o", multi: true as const }] : []),
+    { id: "clone", title: "Copy clone URL", shortcut: "cmd+shift+c", multi: true },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
+    { id: "name", title: "Copy owner/name", multi: true },
+    { id: "issues", title: "Open issues", multi: true },
+    { id: "pulls", title: "Open pull requests", multi: true },
     // Takes the row's typed argument, a path inside the repository; Enter on the row still opens its front page.
     { id: "path", title: "Open path", shortcut: "cmd+p", args: true },
   ];
@@ -771,7 +785,7 @@ function userRow(u: User, section?: string): Item {
     section,
     accessories: [{ tag: u.org ? "org" : "user", color: "grey" }],
     detail: { markdown: `# ${u.login}\n\n${u.bio || ""}`, metadata: [{ label: "Profile", link: { text: u.url, href: u.url } }] },
-    actions: [{ id: "open", title: "Open profile" }, { id: "copy", title: "Copy login", shortcut: "cmd+c" }, { id: "repos", title: "Open repositories" }],
+    actions: [{ id: "open", title: "Open profile", multi: true }, { id: "copy", title: "Copy login", shortcut: "cmd+c", multi: true }, { id: "repos", title: "Open repositories", multi: true }],
   };
 }
 
@@ -782,9 +796,9 @@ const pickUser = (u: User, action?: string): Effect => (action === "copy" ? { co
 const notifTable = new Map<string, Notification>();
 
 const NOTIF_ACTIONS: Action[] = [
-  { id: "open", title: "Open" },
+  { id: "open", title: "Open", multi: true },
   { id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true },
-  { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+  { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
   { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
 ];
 
@@ -847,6 +861,8 @@ async function pickNotif(id: string, action?: string, ctx?: Ctx): Promise<Effect
     return toast("All notifications read");
   }
   if (id === SUMMARY) return { open: "https://github.com/notifications" };
+  // Open and copy over marked rows: each one's own pick, folded (`read` takes them all in one go below).
+  if (action !== "read" && ctx?.ids && ctx.ids.length > 1) return each(ctx.ids.filter((x) => x !== SUMMARY), (x) => pickNotif(x, action), "notifications");
   const n = await findNotif(id);
   switch (action) {
     case "copy": return { copy: n.url };
@@ -931,7 +947,7 @@ async function notifAction(action: string, ctx?: BarCtx): Promise<Effect> {
   }
   if (!focused) return { keep: true };
   switch (action) {
-    case "copy": return { copy: focused.url };
+    case "copy": return each(ctx?.ids ?? [focused.id], (id) => pickNotif(id, "copy"), "notifications");
     case "read": {
       // The marked rows (`BarCtx.ids`), else the focused one.
       const ids = ctx?.ids ?? [focused.id];
@@ -942,7 +958,8 @@ async function notifAction(action: string, ctx?: BarCtx): Promise<Effect> {
       barFocus.notifications = shownNotifs(next.list)[at]?.id;
       return { keep: true, view: renderNotifs({ ...next, cursor: at }), ...(ids.length > 1 && { hud: `Marked ${ids.length} read` }) };
     }
-    default: return pickNotif(focused.id);
+    // Enter/`o`: each marked thread read and opened, else the focused one.
+    default: return each(ctx?.ids ?? [focused.id], (id) => pickNotif(id), "notifications");
   }
 }
 
@@ -1042,7 +1059,7 @@ export default {
       showDetail: true,
       filters: PR_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await prRows(ctx))]),
-      pick: async (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickPR(await findPr(id), action)),
+      pick: async (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : each(ctx?.ids ?? [id], async (x) => pickPR(await findPr(x), action), "pull requests")),
       detail: async (id) => (id.startsWith("hint:") ? undefined : pane(async () => prPane(await findPr(id)))),
     },
     issues: {
@@ -1053,7 +1070,7 @@ export default {
       pick: async (id, action, ctx) => {
         if (id.startsWith("hint:")) return pickHint(id);
         if (id === CREATE) return action === "save" ? saveIssue(ctx?.values ?? {}) : { form: await issueForm() };
-        return pickIssue(await findIss(id), action);
+        return each(ctx?.ids ?? [id], async (x) => pickIssue(await findIss(x), action), "issues");
       },
       detail: async (id) => (id.startsWith("hint:") || id === CREATE ? undefined : pane(async () => issuePane(await findIss(id)))),
     },
@@ -1064,9 +1081,11 @@ export default {
       pick: async (id, action, ctx) => {
         if (id.startsWith("hint:")) return pickHint(id);
         if (id === CREATE) return action === "save" ? saveRepo(ctx?.values ?? {}) : { form: await repoForm() };
-        const r = await findRepo(id);
-        if (!r) throw new Error(`no repository ${id}`);
-        return pickRepo(r, action, ctx);
+        return each(ctx?.ids ?? [id], async (x) => {
+          const r = await findRepo(x);
+          if (!r) throw new Error(`no repository ${x}`);
+          return pickRepo(r, action, ctx);
+        }, "repositories");
       },
     },
     notifications: {
@@ -1081,7 +1100,8 @@ export default {
       placeholder: "Text, repo:owner/name, is:pr, author:login",
       filters: SEARCH_FILTERS,
       list: (query, ctx) => guard(() => searchRows(query, ctx)),
-      pick: pickAny,
+      // Marked results may mix kinds (a PR, a repository, a user): each is its own kind's pick, folded.
+      pick: (id, action, ctx) => each(ctx?.ids ?? [id], (x) => pickAny(x, action, ctx), "results"),
       detail: async (id) => {
         const pr = prTable.get(id), issue = issueTable.get(id);
         if (pr) return pane(() => prPane(pr));

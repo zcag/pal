@@ -57,7 +57,7 @@ describe("windows", () => {
       id: "w1", name: "~/proj/pal", subtitle: "kitty", keywords: ["net.kovidgoyal.kitty", "kitty"], icon: { app: "/Applications/kitty.app" }, accessories: [], section: "kitty",
       actions: [
         { id: "focus", title: "Focus" }, { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true }, { id: "minimize", title: "Minimize", shortcut: "cmd+m", multi: true },
-        ...(MAC ? [{ id: "hide-app", title: "Hide app", shortcut: "cmd+h" }] : []),
+        ...(MAC ? [{ id: "hide-app", title: "Hide app", shortcut: "cmd+h", multi: true as const }] : []),
         { id: "minimize-all", title: "Minimize all of this app", shortcut: "cmd+shift+m" },
         { id: "close-all", title: "Close all of this app", shortcut: "cmd+shift+w", style: "destructive", confirm: "Close every window of this app?" },
       ],

@@ -92,7 +92,10 @@ draws the note as a view through the same markdown renderer tela's pages
 use: headings, lists, tasks, callouts as tinted cards, quotes and code on
 sunken wells, tables as aligned columns, links under their paragraph.
 Backlinks (`⌘B`) and Outgoing links (`⌘L`) push those palettes with the
-row; Copy path (`⌘⇧C`) is the absolute path. Append a line (`⌘⇧A`) takes
+row; Copy path (`⌘⇧C`) is the absolute path. Marked notes (`⌘`-click,
+`⇧↓`) open in the editor together (one call with every path), and Copy
+wikilink and Copy path put one a line; Open in Obsidian stays one note's,
+since its URI shows one note in the pane. Append a line (`⌘⇧A`) takes
 the line as the row's typed argument (Tab into the field in the bar;
 `{clipboard}`, `{selection}`, `{date}`, `{time}` filled in) and lands it
 at the end of the note; a pick without it asks in a form. The pane (`⌘I`) is the note

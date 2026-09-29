@@ -73,9 +73,9 @@ describe("docker", () => {
     expect(proxy).toMatchObject({ name: "theater-proxy", subtitle: "caddy:2-alpine", keywords: ["b5d74103f8fe", "caddy:2-alpine", "theater"], accessories: [{ text: "80, 443" }, { text: "Up 27 hours" }, { tag: "running", color: "green" }] });
     expect(api.accessories).toEqual([{ text: "8080:80" }, { text: "Up 2 minutes" }, { tag: "running", color: "green" }]);
     expect(old.accessories).toEqual([{ text: "Exited (0) 3 days ago" }, { tag: "exited", color: "grey" }]);
-    expect(proxy.actions!.map((a) => a.id)).toEqual(["stop", "logs", "shell", "restart", "remove", "copy-id"]);
+    expect(proxy.actions!.map((a) => a.id)).toEqual(["stop", "logs", "shell", "restart", "remove", "copy-id", "start"]);
     expect(proxy.actions![0].confirm).toBeTruthy();
-    expect(old.actions!.map((a) => a.id)).toEqual(["start", "logs", "remove", "copy-id"]);
+    expect(old.actions!.map((a) => a.id)).toEqual(["start", "logs", "remove", "copy-id", "stop"]);
     expect(proxy.detail!.metadata!.map((m) => m.label)).toEqual(["Id", "Image", "Command", "Status", "Created", "Ports", "Mounts", "Networks", "Compose project"]);
     expect(called().at(-1)).toBe("ps -a --format {{json .}}");
   });
@@ -91,7 +91,7 @@ describe("docker", () => {
 
   test("marked containers and images: stop, start, restart, remove and copy id in one docker call over every id, the toast counting them", async () => {
     const items = await list();
-    for (const i of items) expect(i.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(i.id === "aa11bb22cc33" ? ["start", "remove", "copy-id"] : ["stop", "restart", "remove", "copy-id"]);
+    for (const i of items) expect(i.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(i.id === "aa11bb22cc33" ? ["start", "remove", "copy-id", "stop"] : ["stop", "restart", "remove", "copy-id", "start"]);
     const marked = (id: string, action: string, ids: string[], palette = "docker") => host.pick("docker", palette, id, action, { ids });
     expect(await marked("b5d74103f8fe", "restart", ["b5d74103f8fe", "dd44ee55ff66"])).toEqual({ keep: true, toast: { title: "Restarted 2 containers" } });
     expect(called().at(-1)).toBe("restart b5d74103f8fe dd44ee55ff66");
@@ -181,6 +181,11 @@ describe("docker", () => {
     expect((await pick("theater", "logs", "compose")).show!.title).toBe("Logs theater");
     expect(called().at(-1)).toBe("compose -f /home/someone/srv/theater/compose.yml logs --no-color --tail 200");
     expect(await pick("theater", "open", "compose")).toEqual({ open: "/home/someone/srv/theater" });
+    // Marked projects: one compose run after another, the folders opened together; Logs stays one project's.
+    expect(items[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["up", "restart", "down", "open"]);
+    expect(await host.pick("docker", "compose", "theater", "restart", { ids: ["theater", "lab"] })).toEqual({ keep: true, toast: { title: "Restarted: 2 projects" } });
+    expect(called().slice(-2)).toEqual(["compose -f /home/someone/srv/theater/compose.yml restart", "compose -f /home/someone/proj/lab/compose.yml -f /home/someone/proj/lab/compose.override.yml restart"]);
+    expect(await host.pick("docker", "compose", "theater", "open", { ids: ["theater", "lab"] })).toEqual({ open: ["/home/someone/srv/theater", "/home/someone/proj/lab"] });
   });
 
   test("daemon down: one inert hint row naming it, in every palette", async () => {

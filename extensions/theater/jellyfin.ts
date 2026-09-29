@@ -78,12 +78,13 @@ const table = new Map<string, JfItem>();
 const remember = (it: JfItem) => { table.set(it.Id, it); return it; };
 const find = async (id: string) => table.get(id) ?? remember(await item(id));
 
+// All but Play also take marked items (`multi`): each opened, the links one per line, and played or favourite set on them all to what the addressed item flips to (a season marked watched at once).
 const ITEM_ACTIONS: Action[] = [
-  { id: "open", title: "Open in Jellyfin" },
+  { id: "open", title: "Open in Jellyfin", multi: true },
   { id: "play", title: "Play on a device", shortcut: "cmd+enter" },
-  { id: "played", title: "Mark played / unplayed", shortcut: "cmd+shift+p" },
-  { id: "favourite", title: "Favourite / unfavourite", shortcut: "cmd+f" },
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  { id: "played", title: "Mark played / unplayed", shortcut: "cmd+shift+p", multi: true },
+  { id: "favourite", title: "Favourite / unfavourite", shortcut: "cmd+f", multi: true },
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
 ];
 
 export function itemRow(it: JfItem, section?: string): Item {
@@ -232,22 +233,29 @@ export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effe
   }
   if (!id.startsWith("item:")) return;
   const it = await find(id.slice(5));
+  // The marked items (`ctx.ids`), the addressed one first, else the one.
+  const all = await Promise.all((ctx?.ids ?? [id]).filter((x) => x.startsWith("item:")).map((x) => find(x.slice(5))));
+  const what = all.length > 1 ? `${all.length} items` : it.Name;
   switch (action) {
-    case "copy": return { copy: webUrl(it.Id) };
+    case "copy": return { copy: all.map((x) => webUrl(x.Id)).join("\n") };
     case "play": return { push: { extension: "theater", palette: "jellyfin-play", args: { item: it.Id, name: it.Name }, title: `Play ${truncate(it.Name, 30)} on` } };
     case "played": {
       const to = !it.UserData?.Played;
-      try { await setPlayed(it.Id, to); } catch (e) { return toast("Could not mark", String((e as Error).message), "failure"); }
-      remember({ ...it, UserData: { ...it.UserData, Played: to, PlaybackPositionTicks: 0 } });
-      return toast(to ? "Marked played" : "Marked unplayed", it.Name);
+      for (const x of all) {
+        try { await setPlayed(x.Id, to); } catch (e) { return toast("Could not mark", String((e as Error).message), "failure"); }
+        remember({ ...x, UserData: { ...x.UserData, Played: to, PlaybackPositionTicks: 0 } });
+      }
+      return toast(to ? "Marked played" : "Marked unplayed", what);
     }
     case "favourite": {
       const to = !it.UserData?.IsFavorite;
-      try { await setFavorite(it.Id, to); } catch (e) { return toast("Could not favourite", String((e as Error).message), "failure"); }
-      remember({ ...it, UserData: { ...it.UserData, IsFavorite: to } });
-      return toast(to ? "Added to favourites" : "Removed from favourites", it.Name);
+      for (const x of all) {
+        try { await setFavorite(x.Id, to); } catch (e) { return toast("Could not favourite", String((e as Error).message), "failure"); }
+        remember({ ...x, UserData: { ...x.UserData, IsFavorite: to } });
+      }
+      return toast(to ? "Added to favourites" : "Removed from favourites", what);
     }
-    default: return { open: webUrl(it.Id) };
+    default: return { open: all.length > 1 ? all.map((x) => webUrl(x.Id)) : webUrl(it.Id) };
   }
 }
 

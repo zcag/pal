@@ -255,8 +255,8 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(alpha.actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     expect(alpha.actions!.at(-1)).toMatchObject({ id: "trash", style: "destructive", confirm: expect.any(String) });
     expect(alpha.actions!.find((a) => a.id === "copy-file")).toEqual({ id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true });
-    // Open, reveal, Quick Look, both copies, compress and the trash take marked rows; Open with is one file's.
-    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", ...(MAC ? ["quick-look"] : []), "copy", "copy-file", "compress", "trash"]);
+    // Every action but Terminal and Rename (one place, one name) takes marked rows.
+    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", ...(MAC ? ["quick-look"] : []), "open-with", "copy", "copy-file", "move", "copy-to", "compress", "trash"]);
     expect(alpha.actions!.filter((a) => ["terminal", "rename", "move", "copy-to", "compress"].includes(a.id)).map((a) => a.shortcut)).toEqual(["cmd+t", "cmd+shift+r", "cmd+m", "cmd+alt+c", "cmd+shift+z"]);
     // The bar's one field on every file row, a new name: only Rename reads it.
     expect(alpha.args).toEqual([{ id: "name", placeholder: "Rename to" }]);
@@ -369,7 +369,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
   test("Copy text (OCR) is offered on images and PDFs, before the trash", async () => {
     expect((await list("photo"))[0].actions!.map((a) => a.id)).toEqual(OCR_ACTIONS);
     expect((await list("scan"))[0].actions!.map((a) => a.id)).toEqual(OCR_ACTIONS);
-    expect((await list("photo"))[0].actions!.find((a) => a.id === "copy-text")).toEqual({ id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t" });
+    expect((await list("photo"))[0].actions!.find((a) => a.id === "copy-text")).toEqual({ id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t", multi: true });
   });
 
   test("pick: open by default, copy path, copy file (reveal is not exercised: it would raise Finder)", async () => {
@@ -432,6 +432,15 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(await host.pick("files", "files", p, "move-submit", { values: { folder: join(d, "moved") } })).toEqual({ keep: true, toast: { title: "Moved", message: `to-move.txt to ${join(d, "moved")}` } });
     expect(await Bun.file(p).exists()).toBe(false);
     expect(await Bun.file(join(d, "moved", "to-move.txt")).exists()).toBe(true);
+    // Marked rows: one form for them all (its id every path), each moved or copied in turn; a refusal is the form again for what is left.
+    const x = join(d, "x.txt"), y = join(d, "y.txt");
+    writeFileSync(x, "x\n"); writeFileSync(y, "y\n");
+    expect(await host.pick("files", "files", x, "copy-to", { ids: [x, y] })).toEqual({ form: { ...copyForm(x), id: `${x}\n${y}`, title: "Copy 2 items" } });
+    const both = join(d, "both");
+    expect(await host.pick("files", "files", `${x}\n${y}`, "copy-submit", { values: { folder: both } })).toEqual({ keep: true, toast: { title: "Copied", message: `2 items to ${both}` } });
+    expect(await host.pick("files", "files", `${x}\n${y}`, "move-submit", { values: { folder: both } })).toMatchObject({ form: { id: `${x}\n${y}`, errors: { folder: expect.stringContaining("exists already") } } });
+    expect(await host.pick("files", "files", `${x}\n${y}`, "move-submit", { values: { folder: join(d, "moved") } })).toEqual({ keep: true, toast: { title: "Moved", message: `2 items to ${join(d, "moved")}` } });
+    expect(await Bun.file(join(d, "moved", "y.txt")).text()).toBe("y\n");
   });
 
   test("compress: one zip next to the file named after it (-2 when taken), the marked rows together into one named after the first", async () => {
@@ -489,6 +498,12 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(opened).toEqual([{ path: p, app: "/Applications/kitty.app" }]);
     expect(await host.pick("files", "files", "/Applications/kitty.app", undefined, ctx)).toEqual({ hide: true });
     expect(await host.pick("files", "files", "/System/Applications/Notes.app", "open-with", ctx)).toEqual({ keep: true, toast: { title: "Could not open", message: "Notes refused", style: "failure" } });
+    // Marked rows: the level is pushed for them all, and the app picked opens each.
+    const q = join(dir, "notes.md");
+    expect(await host.pick("files", "files", p, "open-with", { ids: [p, q] })).toEqual({ push: { extension: "files", palette: "files", args: { open_with: p, files: [p, q] }, title: "Open 2 files with", placeholder: "Search apps" } });
+    opened.length = 0;
+    expect(await host.pick("files", "files", "/Applications/kitty.app", "open-with", { args: { open_with: p, files: [p, q] } })).toEqual({ hide: true });
+    expect(opened).toEqual([{ path: p, app: "/Applications/kitty.app" }, { path: q, app: "/Applications/kitty.app" }]);
   });
 
   test("trash of a missing file is a failure toast, palette kept", async () => {
@@ -501,7 +516,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
 describe.skipIf(!HAS_FIND)("the Finder selection", () => {
   const sel = (q?: string, ctx?: Ctx) => host.list("files", "selection", q, ctx);
   const suggest = async () => (await host.request<{ extension: string; palette: string; items: Item[] }[]>("suggest")).find((s) => s.extension === "files" && s.palette === "selection")?.items;
-  const ALL_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "copy", "copy-file", "compress", "trash"];
+  const ALL_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "open-with", "copy", "copy-file", "move", "copy-to", "compress", "trash"];
 
   test("nothing selected: no suggestion, and the palette says why (Finder in front or not; Linux has none)", async () => {
     expect(await suggest()).toBeUndefined();
@@ -538,7 +553,7 @@ describe.skipIf(!HAS_FIND)("the Finder selection", () => {
     expect(rows.map((r) => r.id)).toEqual(["selection:all", a, png, dot, folder]);
     expect(rows[0]).toMatchObject({ name: "4 items", subtitle: "report-alpha.txt, photo.png, .report-hidden.txt, reports", icon: "\u{f1032}", accessories: [{ text: "42 B" }] });
     expect(rows[0].actions!.map((x) => x.id)).toEqual(ALL_ACTIONS);
-    expect(rows[0].actions!.map((x) => x.title)).toEqual(["Open all", "Reveal all in Finder", "Quick Look all", "Copy paths", "Copy files", "Compress together", "Move all to Trash"]);
+    expect(rows[0].actions!.map((x) => x.title)).toEqual(["Open all", "Reveal all in Finder", "Quick Look all", "Open all with…", "Copy paths", "Copy files", "Move all to…", "Copy all to…", "Compress together", "Move all to Trash"]);
     expect(rows[0].actions!.at(-1)).toMatchObject({ confirm: "Move 4 items to the Trash?", style: "destructive" });
     expect(rows[2].icon).toEqual({ image: `icon://localhost/file?path=${encodeURIComponent(png)}&size=24` });
     expect(rows[4].actions![0].id).toBe("browse");

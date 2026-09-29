@@ -22,9 +22,9 @@ beforeAll(async () => {
 afterAll(() => { host.kill(); mock.stop(); delete process.env.PAL_ICONIFY_API; rmSync(saveTo, { recursive: true, force: true }); });
 
 const list = () => host.list("icons", "icons");
-const ICONIFY_ACTIONS = [{ id: "svg", title: "Copy SVG" }, { id: "name", title: "Copy name" }, { id: "data", title: "Copy as data URL", shortcut: "cmd+shift+d" }, { id: "open", title: "Open on Iconify", shortcut: "cmd+o" }, { id: "save", title: "Save SVG…", shortcut: "cmd+s" }];
-const NF_ACTIONS = [{ id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point" }, { id: "name", title: "Copy name", shortcut: "cmd+shift+n" }, { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c" }];
-const XDG_ACTIONS = [{ id: "name", title: "Copy name" }, { id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" }];
+const ICONIFY_ACTIONS = [{ id: "svg", title: "Copy SVG", multi: true as const }, { id: "name", title: "Copy name", multi: true as const }, { id: "data", title: "Copy as data URL", shortcut: "cmd+shift+d", multi: true as const }, { id: "open", title: "Open on Iconify", shortcut: "cmd+o", multi: true as const }, { id: "save", title: "Save SVG…", shortcut: "cmd+s", multi: true as const }];
+const NF_ACTIONS = [{ id: "glyph", title: "Copy glyph", multi: true as const }, { id: "codepoint", title: "Copy code point", multi: true as const }, { id: "name", title: "Copy name", shortcut: "cmd+shift+n", multi: true as const }, { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c", multi: true as const }];
+const XDG_ACTIONS = [{ id: "name", title: "Copy name", multi: true as const }, { id: "glyph", title: "Copy glyph", multi: true as const }, { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u", multi: true as const }];
 const pick = (id: string, action?: string) => host.pick("icons", "icons", id, action);
 
 describe("icons", () => {
@@ -74,6 +74,11 @@ describe("icons", () => {
     expect(items).toHaveLength(10995);
     expect(items.filter((i) => i.id === "nf-md-account")).toHaveLength(1);
     expect(items[2].section).toBe("Material Design");
+    // Marked icons: the glyphs side by side, the code points a space apart, names and classes a line each.
+    const two = { ids: ["nf-md-account", "nf-fa-github"] };
+    expect(await host.pick("icons", "icons", "nf-md-account", "glyph", two)).toEqual({ copy: `\u{f0004}${items[0].icon}` });
+    expect(await host.pick("icons", "icons", "nf-md-account", "name", two)).toEqual({ copy: "nf-md-account\nnf-fa-github" });
+    expect((await host.pick("icons", "icons", "nf-md-account", "codepoint", two)).copy).toMatch(/^U\+F0004 U\+[0-9A-F]+$/);
   });
 
   test("detail: the set, the version, name, code point, class and escape", async () => {

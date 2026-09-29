@@ -68,6 +68,13 @@ Compose projects:
 | `cmd+d` | Down, after a confirm |
 | `cmd+o` | Open the project folder |
 
+Marked rows (`cmd`-click, `shift`-click, `shift+↓`): containers start,
+stop, restart and remove together and copy their ids one per line (a
+running row carries Start at its end and a stopped one Stop, so a mix can
+go either way); images remove and copy together; Compose projects go up,
+down or restart one after another and their folders open together. Logs,
+Shell and Run stay one row's.
+
 ## Setup
 
 Docker (or Podman) installed and its daemon running; the CLI is looked up

@@ -11,7 +11,7 @@ import { checkView } from "../../../sdk/src/view.ts";
 import { fmt, parseNew, readTimers, unquote } from "../../../extensions/timer/index.ts";
 import { asSession, next, tally, type Session } from "../../../extensions/timer/pomodoro.ts";
 import { DEFAULT_RECENT, actions, render as renderPopover, type PopoverState, type Timer } from "../../../extensions/timer/view.ts";
-import { Host, writeTool, logLines } from "../harness.ts";
+import { Host, logLines, marksOf, writeTool } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-timer-"));
 const dir = join(base, "state");
@@ -38,7 +38,7 @@ const put = (id: string, s: Spec) => writeFileSync(join(dir, `${id}.state`), [
   `id=${id}`, `name=${(s.name ?? id).replace(/ /g, "\\ ")}`, `total=${s.total ?? 1500}`, `deadline=${s.deadline ?? 0}`, `left=${s.left ?? 0}`, `state=${s.state}`,
   "ring=0", "quiet=0", `auto=${s.auto ? 1 : 0}`, "pid=0", `fired=${s.fired ?? 0}`, "",
 ].join("\n"));
-const clear = () => { for (const f of ["tea", "eggs", "pizza", "stale", "old", "over"]) if (existsSync(join(dir, `${f}.state`))) unlinkSync(join(dir, `${f}.state`)); };
+const clear = () => { for (const f of ["tea", "eggs", "rice", "pizza", "stale", "old", "over"]) if (existsSync(join(dir, `${f}.state`))) unlinkSync(join(dir, `${f}.state`)); };
 const asked = () => logLines(log);
 
 let host: Host;
@@ -136,9 +136,11 @@ describe("timer", () => {
     expect(items[0]).toMatchObject({ name: "pizza", subtitle: expect.stringMatching(/^Landed 0:1[0-2] ago$/), accessories: [{ tag: "done", color: "red" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["done", "add", "stop"]);
     expect(items[1]).toMatchObject({ name: "tea", subtitle: expect.stringMatching(/^(10:00|9:59) left, done at /), accessories: [{ tag: "running", color: "blue" }] });
-    expect(items[1].actions!.map((a) => a.id)).toEqual(["pause", "add", "stop"]);
+    // The other of the pair rides at the end, so a running and a paused timer marked together offer both.
+    expect(items[1].actions!.map((a) => a.id)).toEqual(["pause", "add", "stop", "resume"]);
     expect(items[2]).toMatchObject({ name: "eggs", subtitle: "Paused at 0:30", accessories: [{ tag: "paused", color: "amber" }] });
-    expect(items[2].actions!.map((a) => a.id)).toEqual(["resume", "add", "stop"]);
+    expect(items[2].actions!.map((a) => a.id)).toEqual(["resume", "add", "stop", "pause"]);
+    expect(items[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["pause", "stop", "resume"]);
     // The bar's field on a timer row: minutes for Add only; five when blank or absent (a hotkey).
     expect(items[1].args).toEqual([{ id: "add", placeholder: "Minutes to add", kind: "number", default: "5" }]);
     expect(items[1].actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["add"]);
@@ -153,6 +155,30 @@ describe("timer", () => {
     expect(existsSync(join(dir, "eggs.state"))).toBe(false);
     expect(asked()).toEqual(["pause tea", "resume tea", "add 5m tea", "add 15m tea", "add 5m tea", "done", "stop eggs"]);
     clear();
+  });
+
+  test("marked timers: pause pauses the running ones, resume resumes the paused ones, stop stops them all; the popover's cards mark, and space, + and backspace run over them", async () => {
+    put("tea", { state: "running", deadline: now() + 600 });
+    // A deadline too, since the stand-in's resume flips the state only.
+    put("eggs", { state: "paused", left: 30, deadline: now() + 1200 });
+    put("rice", { state: "running", deadline: now() + 900 });
+    const at = asked().length;
+    try {
+    const many = (action: string, ids: string[]) => host.pick("timer", "timers", ids[0]!, action, { ids });
+    expect(await many("pause", ["tea", "eggs", "rice"])).toEqual({ keep: true });
+    expect(await many("resume", ["eggs", "tea", "rice"])).toEqual({ keep: true });
+    expect(asked().slice(at)).toEqual(["pause tea", "pause rice", "resume eggs", "resume tea", "resume rice"]);
+    const act = (action: string, ids: string[]) => host.barAction("timer", "timer", action, { reason: "open", compact: true, ids });
+    const v = ((await render()).menu as { view: View }).view;
+    expect(marksOf(v.tree).sort()).toEqual(["eggs", "rice", "tea"]);
+    expect(v.actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["toggle", "add", "stop"]);
+    const b = asked().length;
+    expect(await act("toggle", ["tea", "rice"])).toEqual({ keep: true, hud: "Paused 2 timers" });
+    expect(await act("toggle", ["tea", "rice"])).toEqual({ keep: true, hud: "Resumed 2 timers" });
+    expect(await act("add", ["tea", "eggs"])).toEqual({ keep: true, hud: "Added 5 minutes to 2 timers" });
+    expect(await act("stop", ["tea", "eggs", "rice"])).toEqual({ keep: true, hud: "Stopped 3 timers" });
+    expect(asked().slice(b)).toEqual(["pause tea", "pause rice", "resume tea", "resume rice", "add 5m tea", "add 5m eggs", "stop tea", "stop eggs", "stop rice"]);
+    } finally { clear(); }
   });
 
   test("New timer: the bar's values start it; a pick without them is the same fields as a form; a duration the CLI refuses comes back as its error under the field", async () => {
@@ -209,7 +235,7 @@ describe("timer", () => {
     expect(all.some((n) => n.type === "badge" && n.text === "done")).toBe(true);
     expect(all.some((n) => n.type === "badge" && n.text === "paused")).toBe(true);
     // The first card is the landed one: Enter dismisses; the keys of the hints row are the actions.
-    expect(v.actions[0]).toEqual({ id: "toggle", title: "Dismiss", shortcut: ["space", "d"] });
+    expect(v.actions[0]).toEqual({ id: "toggle", title: "Dismiss", shortcut: ["space", "d"], multi: true });
     expect(v.actions.map((a) => a.id)).toEqual(["toggle", "stop", "new", "pomodoro", "open", "up", "down", "focus:pizza", "focus:tea", "focus:eggs"]);
     expect(all.filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["space", "backspace", "up", "down", "n", "p", "o"]);
     expect(v.input).toBeUndefined();
@@ -305,7 +331,7 @@ describe("timer", () => {
     expect(await ids()).toEqual(["Pomodoro-1-of-2", "new"]);
     const r = (await list())[0];
     expect(r).toMatchObject({ name: "Pomodoro 1 of 2", subtitle: expect.stringMatching(/^Round 1 of 2, work · (25:00|24:59) left/), icon: "\u{f025b}", keywords: ["timer", "running", "pomodoro", "work"], accessories: [{ tag: "work", color: "violet" }, { tag: "running", color: "blue" }] });
-    expect(r.actions!.map((a) => a.id)).toEqual(["pause", "add", "skip", "stop-pomodoro", "stop"]);
+    expect(r.actions!.map((a) => a.id)).toEqual(["pause", "add", "skip", "stop-pomodoro", "stop", "resume"]);
     expect(sessionStored().at(-1)).toMatchObject({ round: 1, of: 2, phase: "work", timerId: "Pomodoro-1-of-2", timerName: "Pomodoro 1 of 2" });
     expect(await pick("pomodoro")).toMatchObject({ keep: true, toast: { title: "A pomodoro is running", message: "Round 1 of 2, work" } });
     // The strip names the round; the tooltip the phase.

@@ -384,6 +384,9 @@ describe("colors over the wire", () => {
     expect(l.palettes[1].actions!.map((a) => a.id)).toEqual(["open", "copy", "hex", "name"]);
     expect(l.palettes[1].columns).toBe(8);
     expect(l.palettes[2].actions!.map((a) => a.id)).toEqual(["open", "copy", "hex", "delete", "clear"]);
+    // Marked tiles and history rows copy together; the picker is one colour's, Clear the whole history's.
+    expect(l.palettes[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "hex", "name"]);
+    expect(l.palettes[2].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "hex", "delete"]);
     expect(l.manifest.settings!.map((s) => s.id)).toEqual(["format", "uppercase", "alpha", "sets", "history_size"]);
   });
 
@@ -466,6 +469,7 @@ describe("colors over the wire", () => {
     expect(items[1].subtitle).toMatch(/^picked from the screen · just now$/);
     expect(await host.pick("colors", "history", "#663399")).toEqual({ push: { extension: "colors", palette: "picker", args: { color: "#663399", from: "history" } } });
     expect(await host.pick("colors", "history", "#663399", "copy")).toEqual({ copy: "#663399" });
+    expect(await host.pick("colors", "history", "#663399", "hex", { ids: ["#663399", "#0000ff"] })).toEqual({ copy: "#663399\n#0000ff" });
     expect(await host.pick("colors", "history", "#0000ff", "delete")).toEqual({ keep: true });
     expect((await host.list("colors", "history")).map((i) => i.id)).not.toContain("#0000ff");
     // Marked colours (`ctx.ids`) go in one write.
@@ -490,6 +494,9 @@ describe("colors over the wire", () => {
     expect(await host.pick("colors", "colors", "tw/slate-500", "copy")).toEqual({ copy: "#64748b" });
     expect(await host.pick("colors", "colors", "apple/dark/blue", "name")).toEqual({ copy: "systemBlue" });
     expect(historyOf()[0]).toMatchObject({ c: "#64748b", from: "set", name: "slate-500" });
+    // Marked tiles: one copy, a line each.
+    expect(await host.pick("colors", "colors", "tw/slate-500", "name", { ids: ["tw/slate-500", "apple/dark/blue"] })).toEqual({ copy: "slate-500\nsystemBlue" });
+    expect(await host.pick("colors", "colors", "tw/slate-500", "copy", { ids: ["apple/dark/blue", "tw/slate-500"] })).toEqual({ copy: `${(await host.pick("colors", "colors", "apple/dark/blue", "copy")).copy}\n#64748b` });
     expect(await host.pick("colors", "colors", "nope")).toMatchObject({ toast: { title: "Unknown colour" } });
     const d = await host.detail("colors", "colors", "m3/primary-40");
     expect(d.markdown).toContain("md.sys.color.primary");

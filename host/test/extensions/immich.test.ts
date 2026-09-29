@@ -140,8 +140,11 @@ describe("immich", () => {
     expect(items[0].subtitle).toBe("IMG-20260921-WA0012.jpg");
     expect(dataUrl(items[0])).toMatch(/^data:image\/png;base64,/);
     expect(Buffer.from(dataUrl(items[0]).slice("data:image/png;base64,".length), "base64").equals(picture(1, 96, 72))).toBe(true);
-    expect(items[0].actions!.map((a) => a.id)).toEqual(process.platform === "darwin" ? ["open", "link", "image", "quick-look", "download", "original", "fav", "album", "file"] : ["open", "link", "image", "download", "original", "fav", "album", "file"]);
+    expect(items[0].actions!.map((a) => a.id)).toEqual(process.platform === "darwin" ? ["open", "link", "image", "quick-look", "download", "original", "fav", "album", "file", "unfav"] : ["open", "link", "image", "download", "original", "fav", "album", "file", "unfav"]);
     expect(items[1].actions!.find((a) => a.id === "unfav")).toMatchObject({ title: "Unfavourite", shortcut: "cmd+f", multi: true });
+    // Every photo action takes marked tiles; the other favourite rides at the end without a key, so a mix goes either way.
+    expect(items[0].actions!.every((a) => a.multi)).toBe(true);
+    expect(items[0].actions!.at(-1)).toEqual({ id: "unfav", title: "Unfavourite", multi: true });
     expect(items[0].detail!.metadata).toEqual([{ label: "Taken", value: "21 Sep 2026 18:18" }, { label: "Size", value: "946 × 2048 · 120 KB · JPEG" }, { label: "File", value: "IMG-20260921-WA0012.jpg" }]);
     expect(items[4].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Place", link: { text: "Serdivan, Sakarya, Türkiye", href: "https://www.google.com/maps/search/?api=1&query=40.760042,30.364075" } }, { label: "Camera", value: "Apple iPhone 13 mini" }, { label: "Lens", value: "iPhone 13 mini back dual wide camera 5.1mm f/1.6" }, { label: "Exposure", value: "ƒ/1.6 · 1/100 s · ISO 100 · 5.1 mm" }, { label: "Size", value: "4032 × 3024 · 2.6 MB · HEIC" }]));
     expect(items.at(-1)).toMatchObject({ name: "More…", subtitle: "24 shown", actions: [{ id: "more", title: "Load more" }] });
@@ -226,6 +229,9 @@ describe("immich", () => {
     expect(await pick(receipt.id, "link")).toEqual({ copy: `https://photos.example.com/photos/${uuid(1)}` });
     expect(await pick(receipt.id, "file")).toEqual({ copy: "IMG-20260921-WA0012.jpg" });
     expect(await pick(receipt.id, "link", { ids: [uuid(1), uuid(5)] })).toEqual({ copy: `https://photos.example.com/photos/${uuid(1)}\nhttps://photos.example.com/photos/${uuid(5)}` });
+    // Marked tiles: a tab each, the previews as files.
+    expect(await pick(receipt.id, "open", { ids: [uuid(1), uuid(5)] })).toEqual({ open: [`https://photos.example.com/photos/${uuid(1)}`, `https://photos.example.com/photos/${uuid(5)}`] });
+    expect(await pick(receipt.id, "image", { ids: [uuid(1), uuid(5)] })).toEqual({ copy_files: [join(cache, "previews", `${uuid(1)}.jpg`), join(cache, "previews", `${uuid(5)}.jpg`)], hud: "Copied 2 photos as files" });
     expect(await pick(receipt.id, "image")).toEqual({ hud: "Image copied" });
     expect(readFileSync(copyLog, "utf8").trim()).toBe(`${join(cache, "previews", `${uuid(1)}.jpg`)} jpeg`);
     // A pick after a restart: the asset is fetched by id.
@@ -303,6 +309,11 @@ describe("immich", () => {
     expect(e).toEqual({ push: { extension: "immich", palette: "immich", args: { album: "a1", title: "Trip to Bolu" }, title: "Trip to Bolu" } });
     expect(await host.pick("immich", "albums", "a1", "web")).toEqual({ open: "https://photos.example.com/albums/a1" });
     expect(await host.pick("immich", "albums", "a1", "link")).toEqual({ copy: "https://photos.example.com/albums/a1" });
+    // Marked albums: a tab each, the links a line each; opening one is a drill-in, not theirs.
+    expect(rows[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["web", "link"]);
+    const albumIds = [rows[1].id, rows[2].id];
+    expect(await host.pick("immich", "albums", albumIds[0], "web", { ids: albumIds })).toEqual({ open: albumIds.map((x) => `https://photos.example.com/albums/${x}`) });
+    expect(await host.pick("immich", "albums", albumIds[0], "link", { ids: albumIds })).toEqual({ copy: albumIds.map((x) => `https://photos.example.com/albums/${x}`).join("\n") });
     const inside = await list("", { args: e.push!.args });
     expect(last().body).toMatchObject({ albumIds: ["a1"], order: "desc" });
     expect(inside.every((i) => i.section === undefined)).toBe(true);

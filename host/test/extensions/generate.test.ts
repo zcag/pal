@@ -183,7 +183,10 @@ describe("generate", () => {
     const items = await list("");
     expect(ids(items)).toEqual(["uuid4", "uuid7", "ulid", "nanoid", "password", "passphrase", "number", "hex", "bytes", "lorem", "colour", "hint:hash", "hint:encode", "hint:qr", "hint:jwt"]);
     expect(items[0].name).toMatch(/^[0-9a-f-]{36}$/);
-    expect(items[0].actions).toEqual([{ id: "copy", title: "Copy" }, { id: "paste", title: "Paste" }]);
+    expect(items[0].actions).toEqual([{ id: "copy", title: "Copy", multi: true }, { id: "paste", title: "Paste", multi: true }]);
+    // Marked rows go together, one value per line, in the order given.
+    expect(await host.pick("generate", "generate", "uuid4", "copy", { ids: ["uuid4", "uuid7"] })).toEqual({ copy: `${items[0].name}\n${items[1].name}` });
+    expect(await host.pick("generate", "generate", "uuid7", "paste", { ids: ["uuid7", "ulid"] })).toEqual({ paste: { text: `${items[1].name}\n${items[2].name}` } });
     expect(items[0].detail!.markdown).toContain(items[0].name);
     expect(items[4]).toMatchObject({ subtitle: "Password, 20 characters, letters, digits and symbols", accessories: [{ tag: "very strong", color: "teal" }, { text: "129 bits" }] });
     expect(items[4].name).toHaveLength(20);

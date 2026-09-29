@@ -105,20 +105,27 @@ const project = (labels = "") => labels.split(",").find((l) => l.startsWith("com
 /** The bar's fields on a container row: how many log lines, and a command for Shell (blank: a shell); only Logs and Shell read them. */
 const LINES_ARG: Arg = { id: "lines", placeholder: "Log lines", kind: "number", default: String(LOG_LINES) };
 const COMMAND_ARG: Arg = { id: "command", placeholder: "Command for Shell (blank: a shell)" };
+// The questions read for one container or several (the confirm card counts marked rows under them).
+const STOP: Action = { id: "stop", title: "Stop", confirm: "Stop? The processes get SIGTERM, then SIGKILL after docker's grace period.", multi: true };
+const START: Action = { id: "start", title: "Start", multi: true };
+const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove? A running container is stopped first; its writable layer is lost.", multi: true };
+const COPY_ID: Action = { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true };
+// Start rides at the end of a running row and Stop at the end of a stopped one, so marked rows mixing the two can still be started or stopped together (docker lets a started one start again, a stopped one stop).
 const RUNNING: Action[] = [
-  { id: "stop", title: "Stop", confirm: "Stop this container?", multi: true },
+  STOP,
   { id: "logs", title: "Logs", shortcut: "cmd+l", args: true },
   { id: "shell", title: "Shell", shortcut: "cmd+t", args: true },
   { id: "restart", title: "Restart", shortcut: "cmd+shift+r", multi: true },
-  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? It is stopped first; its writable layer is lost.", multi: true },
-  { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true },
+  REMOVE,
+  COPY_ID,
+  START,
 ];
 const STOPPED: Action[] = [
-  { id: "start", title: "Start", multi: true },
+  START,
   { id: "logs", title: "Logs", shortcut: "cmd+l", args: true },
-  // Same wording as a running row's: marked rows mixing the two show the anchor's.
-  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? It is stopped first; its writable layer is lost.", multi: true },
-  { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true },
+  REMOVE,
+  COPY_ID,
+  STOP,
 ];
 
 function container(r: PsRow): Item {
@@ -208,7 +215,7 @@ type ImageRow = { ID: string; Repository: string; Tag: string; Size: string; Cre
 const IMAGE_ACTIONS: Action[] = [
   { id: "run", title: "Run" },
   { id: "copy-id", title: "Copy id", shortcut: "cmd+c", multi: true },
-  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this image? A container still using it keeps docker from removing it.", multi: true },
+  { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove? docker keeps an image a container still uses.", multi: true },
 ];
 /** Run's arguments, typed in the bar: both optional (docker picks a name, no port published), so Enter with them blank runs the image bare. */
 const RUN_ARGS: Arg[] = [
@@ -268,12 +275,13 @@ async function pickImage(id: string, action = "run", values?: Record<string, str
 /** `docker compose ls --format json`: one array; `ConfigFiles` is comma separated. */
 type ComposeRow = { Name: string; Status: string; ConfigFiles: string };
 
+// Marked projects go up, down or restart one after the other, and their folders open together; Logs is one project's.
 const COMPOSE_ACTIONS: Action[] = [
-  { id: "up", title: "Up" },
+  { id: "up", title: "Up", multi: true },
   { id: "logs", title: "Logs", shortcut: "cmd+l" },
-  { id: "restart", title: "Restart", shortcut: "cmd+shift+r" },
-  { id: "down", title: "Down", shortcut: "cmd+d", style: "destructive", confirm: "Stop and remove this project's containers and networks?" },
-  { id: "open", title: "Open project folder", shortcut: "cmd+o" },
+  { id: "restart", title: "Restart", shortcut: "cmd+shift+r", multi: true },
+  { id: "down", title: "Down", shortcut: "cmd+d", style: "destructive", confirm: "Stop and remove the project's containers and networks?", multi: true },
+  { id: "open", title: "Open project folder", shortcut: "cmd+o", multi: true },
 ];
 
 /** `running(35)`, `exited(2)`, `running(1), exited(1)`: the leading word decides the tag. */
@@ -304,17 +312,22 @@ async function listCompose(): Promise<Item[]> {
   return items.length ? items : [hint("No Compose projects", "Bring one up with compose up and it lists here")];
 }
 
-async function pickCompose(id: string, action = "up") {
+async function pickCompose(id: string, action = "up", ids = [id]) {
   const files = composeFiles.get(id);
-  if (!files?.length) return toast("Project not listed", "List again first", "failure");
-  const compose = ["compose", ...files.flatMap((f) => ["-f", f])];
+  if (!files?.length || ids.some((p) => !composeFiles.get(p)?.length)) return toast("Project not listed", "List again first", "failure");
+  const composeOf = (p: string) => ["compose", ...composeFiles.get(p)!.flatMap((f) => ["-f", f])];
   switch (action) {
-    case "open": return { open: dirname(files[0]) };
-    case "logs": return logs(`Logs ${id}`, [...compose, "logs", "--no-color", "--tail", String(LOG_LINES)]);
+    case "open": { const dirs = ids.map((p) => dirname(composeFiles.get(p)![0]!)); return { open: dirs.length > 1 ? dirs : dirs[0]! }; }
+    case "logs": return logs(`Logs ${id}`, [...composeOf(id), "logs", "--no-color", "--tail", String(LOG_LINES)]);
     case "up": case "down": case "restart": {
-      const r = await docker([...compose, action, ...(action === "up" ? ["-d"] : [])], COMPOSE_MS);
+      // One project after another: each compose run takes its own time, and a slow one leaves the rest to finish without us.
       const done = { up: "Up", down: "Down", restart: "Restarted" }[action];
-      return r.pending ? pending(`compose ${action} ${id}`) : r.code === 0 ? { keep: true as const, toast: { title: `${done}: ${id}` } } : fail(`compose ${action} failed`, r);
+      for (const p of ids) {
+        const r = await docker([...composeOf(p), action, ...(action === "up" ? ["-d"] : [])], COMPOSE_MS);
+        if (r.pending) return pending(`compose ${action} ${p}`);
+        if (r.code !== 0) return fail(`compose ${action} ${p} failed`, r);
+      }
+      return { keep: true as const, toast: { title: ids.length > 1 ? `${done}: ${ids.length} projects` : `${done}: ${id}` } };
     }
   }
   return { keep: true as const };
@@ -344,7 +357,7 @@ export default {
       ttl: TTL,
       placeholder: "Search Compose projects",
       list: listCompose,
-      pick: (id, action) => pickCompose(id, action),
+      pick: (id, action, ctx) => pickCompose(id, action, ctx?.ids),
     },
   },
 } satisfies Extension;

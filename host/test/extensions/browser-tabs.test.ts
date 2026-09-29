@@ -163,7 +163,7 @@ describe("browser-tabs", () => {
     expect(st.url).toBeUndefined();
     expect(st.icon).toBeDefined();
     expect(radio.accessories).toEqual([{ text: "Google Chrome" }, { text: "window 1" }, { tag: "muted" }]);
-    expect(yt.actions!.map((a) => a.id)).toEqual(["focus", "copy-url", "mute", "copy-markdown", "close"]);
+    expect(yt.actions!.map((a) => a.id)).toEqual(["focus", "copy-url", "mute", "copy-markdown", "close", "unmute"]);
     expect(yt.actions![2].title).toBe("Mute");
     expect(radio.actions![2].title).toBe("Unmute");
     expect(yt.actions![4]).toMatchObject({ shortcut: "cmd+w", style: "destructive" });
@@ -209,7 +209,7 @@ describe("browser-tabs", () => {
     expect(host.coreCalls.at(-1)!.method).toBe("windows.list");
   });
 
-  test("close and mute over DevTools keep the palette open; mute flips by the tab's state", async () => {
+  test("close and mute over DevTools keep the palette open; the muted tab's ⌘M is Unmute; marked tabs mute together", async () => {
     await list();
     http.length = 0;
     expect(await pick("cdp:T3", "close")).toEqual({ keep: true });
@@ -221,10 +221,14 @@ describe("browser-tabs", () => {
     await list();
     const n = ws.length;
     expect(await pick("cdp:T1", "mute")).toEqual({ keep: true });
-    expect(await pick("cdp:T4", "mute")).toEqual({ keep: true });
-    const evals = ws.slice(n).filter((m) => m.method === "Runtime.evaluate").map((m) => m.params.expression);
+    expect(await pick("cdp:T4", "unmute")).toEqual({ keep: true });
+    expect(await host.pick("browser-tabs", "tabs", "cdp:T1", "mute", { ids: ["cdp:T1", "cdp:T4"] })).toEqual({ keep: true, toast: { title: "Muted 2 tabs" } });
+    const evals = ws.slice(n).filter((m) => m.method === "Runtime.evaluate" && m.params.expression.includes("e.muted=")).map((m) => m.params.expression);
+    expect(evals).toHaveLength(4);
     expect(evals[0]).toContain("e.muted=true");
     expect(evals[1]).toContain("e.muted=false");
+    expect(evals[2]).toContain("e.muted=true");
+    expect(evals[3]).toContain("e.muted=true");
   });
 
   test("a Firefox tab's focus needs a Firefox window; none open is a failure toast", async () => {

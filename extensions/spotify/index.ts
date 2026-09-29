@@ -488,15 +488,16 @@ const acc = (t: Track, ...more: Accessory[]): Accessory[] => [{ text: ms(t.durat
 const picture = (e: { thumb?: string; cover?: string }, fallback: string) => (e.thumb || e.cover ? { image: (e.thumb ?? e.cover)! } : fallback);
 
 /** The tail every track row shares, whatever its primary: the playlist picked in the bar (`args: true` takes the row's select), open, copy. */
+// Marked tracks (`multi`) play as one list, queue in order, like or unlike together (as the row the pick is addressed to reads), go to a playlist in one call (the form's submit gets the marks back in `ctx.ids`) and copy one link per line; Open is one page of the app.
 const TRACK_TAIL: Action[] = [
-  { id: "add", title: "Add to playlist", shortcut: "cmd+p", args: true },
+  { id: "add", title: "Add to playlist", shortcut: "cmd+p", args: true, multi: true },
   { id: "open", title: "Open in Spotify", shortcut: "cmd+o" },
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
 ];
-const LIKE = (t: Track): Action[] => (t.kind === "track" ? [{ id: "like", title: likes.get(t.id) ? "Unlike" : "Like", shortcut: "cmd+l" }] : []);
+const LIKE = (t: Track): Action[] => (t.kind === "track" ? [{ id: "like", title: likes.get(t.id) ? "Unlike" : "Like", shortcut: "cmd+l", multi: true }] : []);
 const TRACK_ACTIONS = (t: Track, context?: string): Action[] => [
-  { id: "play", title: context ? "Play from here" : "Play" },
-  { id: "queue", title: "Add to queue", shortcut: "cmd+enter" },
+  { id: "play", title: context ? "Play from here" : "Play", multi: true },
+  { id: "queue", title: "Add to queue", shortcut: "cmd+enter", multi: true },
   ...LIKE(t), ...TRACK_TAIL,
 ];
 
@@ -521,7 +522,8 @@ const containerActions = (kind: "artist" | "album" | "playlist" | "show"): Actio
   ...(kind === "playlist" || kind === "album" ? [{ id: "tracks", title: "Show tracks", shortcut: "cmd+enter" }] : []),
   ...(kind === "playlist" ? [{ id: "shuffle", title: "Play shuffled", shortcut: "cmd+s" }] : []),
   { id: "open", title: "Open in Spotify", shortcut: "cmd+o" },
-  { id: "copy", title: "Copy link", shortcut: "cmd+c" },
+  // Marked artists, albums, playlists and shows copy together; playing is one context at a time.
+  { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
 ];
 
 function artistRow(a: Artist, section?: string, extra: Partial<Item> = {}): Item {
@@ -549,18 +551,45 @@ async function pickEntity(id: string, action = "play", ctx?: Ctx): Promise<Effec
   const known = table.get(id);
   const args = ctx?.args as { playlist?: string; album?: string } | undefined;
   const playable = e.kind === "track" || e.kind === "episode";
+  // Marked rows (`ctx.ids`), the one addressed first; a lone id is this pick's own (a queue row arrives here as its track, while ctx.ids still names the queue row).
+  const marked = (ctx?.ids && ctx.ids.length > 1 ? ctx.ids : [id]).map((i) => ({ id: i, e: parseId(i) })).filter((x): x is { id: string; e: NonNullable<ReturnType<typeof parseId>> } => !!x.e);
   try {
+    if (marked.length > 1) {
+      const tracks = marked.filter((x) => x.e.kind === "track" || x.e.kind === "episode");
+      switch (action) {
+        case "copy": return { copy: marked.map((x) => table.get(x.id)?.url ?? x.e.url).join("\n") };
+        case "play":
+          await play({ uris: tracks.map((x) => x.e.uri) });
+          holdUntil = 0;
+          return { hud: `Playing ${tracks.length} tracks` };
+        case "queue":
+          for (const x of tracks) await enqueue(x.e.uri);
+          forgetQueue();
+          return { keep: true, toast: { title: "Added to queue", message: `${tracks.length} tracks` } };
+        case "like": {
+          // As the addressed row reads: Unlike when it is liked, else Like, for them all.
+          const ids = marked.filter((x) => x.e.kind === "track").map((x) => x.e.id);
+          const was = likes.get(e.id) ?? (await contains([e.id]))[0] ?? false;
+          await (was ? unlike(ids) : like(ids));
+          for (const i of ids) likes.set(i, !was);
+          return { keep: true, toast: { title: was ? "Removed from Liked Songs" : "Added to Liked Songs", message: `${ids.length} tracks` } };
+        }
+      }
+    }
     switch (action) {
       case "add": {
-        if (!playable) return { keep: true };
+        // Every marked track or episode (the form's submit gets the marks back), else this one.
+        const uris = marked.filter((x) => x.e.kind === "track" || x.e.kind === "episode").map((x) => x.e.uri);
+        if (!uris.length) return { keep: true };
+        const what = uris.length > 1 ? `${uris.length} tracks` : known?.name;
         const mine = (await playlistsOf().catch(() => undefined))?.mine;
-        // Without the bar's values (a hotkey, `pal run`): the same select as a form.
-        if (!ctx?.values) return { form: argsForm(PLAYLIST_ARGS(mine), `Add ${known?.name ?? "to playlist"}`, { id: "add", title: "Add" }) };
+        // Without the bar's values (a hotkey, `pal run`, marked rows): the same select as a form.
+        if (!ctx?.values) return { form: argsForm(PLAYLIST_ARGS(mine), `Add ${what ?? "to playlist"}`, { id: "add", title: "Add" }) };
         const to = mine?.find((p) => p.id === String(ctx.values!.playlist));
         if (!to) return toast(mine ? (mine.length ? "Pick a playlist" : "No playlist to add to") : "Playlists are still loading", mine?.length ? undefined : "Only your own and collaborative playlists take a track", "failure");
-        await addToPlaylist(to.id, e.uri);
-        to.tracks++;
-        return { keep: true, toast: { title: `Added to ${to.name}`, message: known?.name } };
+        await addToPlaylist(to.id, uris);
+        to.tracks += uris.length;
+        return { keep: true, toast: { title: `Added to ${to.name}`, message: what } };
       }
       case "play":
         // A track from a playlist or album level plays inside that context, so the rest follows.

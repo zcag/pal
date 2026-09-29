@@ -70,8 +70,12 @@ to tomorrow (`⌘T`), Snooze… (`⌘S`: tomorrow, in 3 days, next Monday, next
 week, in a month, or a day typed), Move to section… (`⌘M`), Mark urgent
 (`⌘U`), Add subtask… (`⌘N`), Open link (`⌘L`, when the text has one), Open
 odak (`⌘O`), Copy text (`⌘C`), Copy link (`⌘⇧C`: the todo's, else
-odak's), Delete (`⌘D`, asks; the subtasks go with it). Complete, Reopen
-and Delete take several marked rows (`Tab` marks).
+odak's), Delete (`⌘D`, asks; the subtasks go with it). Complete, Reopen,
+Snooze to tomorrow, Mark urgent and Not urgent (both on every row, so a
+mix of flagged and not can go either way), Open link, the copies (a line
+each), Delete, and the Snooze… and Move to section… forms (one form for
+them all, "Snooze 3 todos") take several marked rows (`Tab` marks); Edit
+and Add subtask stay one todo's.
 
 The root's **Now** section shows what is overdue or due today, from the
 cache alone.

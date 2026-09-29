@@ -34,7 +34,8 @@ export async function seriesRow(s: Series, section: string): Promise<Item> {
     section,
     accessories: [...(p > 0 && p < 1 ? [{ text: `${Math.round(p * 100)}%` }] : p >= 1 ? [{ tag: "read", color: "green" }] : []), ...(s.latestReadDate && !s.latestReadDate.startsWith("0001") ? [{ date: s.latestReadDate }] : s.created ? [{ date: s.created }] : [])],
     detail: { markdown: img ? `![cover](${img})` : undefined, metadata: [...(s.libraryName ? [{ label: "Library", value: s.libraryName }] : []), { label: "Format", value: FORMAT[s.format ?? 2] ?? "" }, { label: "Pages", value: read ? `${read} of ${s.pages} read` : String(s.pages) }, ...(s.wordCount ? [{ label: "Words", value: s.wordCount.toLocaleString("en") }] : []), ...(s.created ? [{ label: "Added", value: ago(s.created) }] : [])] },
-    actions: [{ id: "open", title: "Open in Kavita" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
+    // Both also take marked series (`multi`): each opened, the links one per line.
+    actions: [{ id: "open", title: "Open in Kavita", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }],
   };
 }
 
@@ -64,11 +65,15 @@ export async function searchRows(q: string): Promise<Item[]> {
   });
 }
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
   const [kind, key] = id.split(":");
   const u = kavitaUrl();
-  if (kind === "series") { const s = held.get(Number(key)); const url = s ? seriesUrl(s) : u; return action === "copy" ? { copy: url } : { open: url }; }
+  if (kind === "series") {
+    // The marked series (`ctx.ids`), else the one.
+    const urls = (ctx?.ids ?? [id]).filter((x) => x.startsWith("series:")).map((x) => { const s = held.get(Number(x.slice(7))); return s ? seriesUrl(s) : u; });
+    return action === "copy" ? { copy: urls.join("\n") } : { open: urls.length > 1 ? urls : urls[0] ?? u };
+  }
   if (kind === "collection") return { open: `${u}/collections/${key}` };
   if (kind === "list") return { open: `${u}/lists/${key}` };
   return { open: u };

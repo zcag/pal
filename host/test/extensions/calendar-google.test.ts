@@ -122,7 +122,7 @@ describe("google source", () => {
     expect(items.map((i) => i.section)).toEqual(["Today", "Today", "Today", "Tomorrow", "This week"]);
     const sync = items[0];
     expect(sync).toMatchObject({ id: rid("work:sync", "2026-09-16T10:12:00Z"), icon: { glyph: "\u{f00ee}", color: "#4986e7" }, accessories: [{ tag: "in 12 min", color: "blue" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
-    expect(sync.actions).toEqual([{ id: "join", title: "Join call" }, { id: "open", title: "Open in Google Calendar" }, { id: "copy_link", title: "Copy conference link", shortcut: "cmd+shift+c" }, { id: "copy_details", title: "Copy event details", shortcut: "cmd+c" }]);
+    expect(sync.actions).toEqual([{ id: "join", title: "Join call" }, { id: "open", title: "Open in Google Calendar" }, { id: "copy_link", title: "Copy conference link", shortcut: "cmd+shift+c" }, { id: "copy_details", title: "Copy event details", shortcut: "cmd+c", multi: true }]);
     expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy_details"]);
     expect(items[1]).toMatchObject({ icon: { glyph: "\u{f00ee}", color: "#9fe1e7" }, subtitle: "11:00 – 12:00 · Room 4", accessories: [{ tag: "maybe", color: "amber" }, { text: "4 people" }, { tag: "Join", color: "green" }] });
     expect(items[2]).toMatchObject({ name: "Dentist", subtitle: "15:30 – 16:15 · Kadıköy", accessories: [] });

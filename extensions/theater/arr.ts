@@ -134,10 +134,11 @@ export function queueRow(id: ArrId, r: QueueRecord, section = "Queue"): Item {
       ...(left && p < 1 ? [{ text: eta(left) }] : []),
     ],
     detail: { markdown: [image ? `![poster](${image})` : "", `**${subjectOf(r)}**`, r.title, ...(st.message ? [`> ${st.message}`] : []), ...(r.statusMessages?.flatMap((m) => (m.messages ?? []).map((x) => `- ${x}`)) ?? [])].filter(Boolean).join("\n\n"), metadata: [{ label: "State", tags: [{ text: st.text, color: st.color }] }, { label: "Progress", value: `${pct(p)} of ${bytes(r.size)}` }, ...(left ? [{ label: "Time left", value: eta(left) }] : []), ...(r.downloadClient ? [{ label: "Client", value: `${r.downloadClient}${r.protocol ? ` (${r.protocol})` : ""}` }] : []), ...(r.indexer ? [{ label: "Indexer", value: r.indexer }] : [])] },
+    // All three also take marked queue rows (`multi`); the question names none, so it reads for one or several.
     actions: [
-      { id: "open", title: `Open in ${A(id).title}` },
-      { id: "remove", title: "Remove from queue", shortcut: "cmd+backspace", style: "destructive", confirm: `Remove ${truncate(subjectOf(r), 40)} from the queue and the download client? It is not blocklisted.` },
-      { id: "copy", title: "Copy release title", shortcut: "cmd+c" },
+      { id: "open", title: `Open in ${A(id).title}`, multi: true },
+      { id: "remove", title: "Remove from queue", shortcut: "cmd+backspace", style: "destructive", multi: true, confirm: "Remove from the queue and the download client? Nothing is blocklisted." },
+      { id: "copy", title: "Copy release title", shortcut: "cmd+c", multi: true },
     ],
   };
 }
@@ -159,7 +160,8 @@ const upcoming = (id: ArrId, x: Movie | Episode | Album): Item => {
 };
 
 const wantedRow = (id: ArrId, x: Movie | Episode | Album): Item => {
-  const search: Action = { id: "search", title: "Search now" }, open: Action = { id: "open", title: `Open in ${A(id).title}`, shortcut: "cmd+enter" };
+  // Marked wanted rows are searched for in one command.
+  const search: Action = { id: "search", title: "Search now", multi: true }, open: Action = { id: "open", title: `Open in ${A(id).title}`, shortcut: "cmd+enter" };
   if (id === "radarr") {
     const m = x as Movie;
     return { id: `wanted:radarr:${m.id}`, name: `${m.title}${m.year ? ` (${m.year})` : ""}`, subtitle: [m.status, m.digitalRelease ? `digital ${dayNameYear(new Date(m.digitalRelease).getTime())}` : ""].filter(Boolean).join(" · "), icon: posterOf(m) ? { image: posterOf(m)! } : GLYPH.radarr, keywords: ["missing"], accessories: m.monitored === false ? [{ tag: "unmonitored", color: "grey" }] : [], detail: { markdown: m.overview }, actions: [search, open], url: `${arrUrl("radarr")}/movie/${m.tmdbId}` };
@@ -245,14 +247,15 @@ export async function lookupRows(id: ArrId, q: string): Promise<Item[]> {
       const inLibrary = !!x.id;
       const image = posterOf(x);
       const sub = "artistName" in x ? [x.artistType, x.disambiguation].filter(Boolean).join(" · ") : "network" in x ? [x.network, x.status].filter(Boolean).join(" · ") : truncate((x as Movie).overview ?? "", 100);
-      const ext = id === "radarr" ? `https://www.themoviedb.org/movie/${key}` : id === "sonarr" ? `https://thetvdb.com/dereferrer/series/${key}` : `https://musicbrainz.org/artist/${key}`;
+      const ext = extUrl(id, String(key));
       return {
         id: `hit:${id}:${key}`, name: `${name}${year}`, subtitle: sub || undefined, icon: image ? { image } : GLYPH[id], keywords: [app.noun],
         accessories: inLibrary ? [{ tag: "in library", color: "green" }] : [],
         detail: { markdown: [image ? `![poster](${image})` : "", x.overview ?? "_No overview._"].filter(Boolean).join("\n\n") },
+        // Every action also takes marked hits (`multi`): each added (the questions name none), each page opened.
         actions: inLibrary
-          ? [{ id: "open", title: `Open in ${app.title}` }, { id: "ext", title: id === "radarr" ? "Open on TMDB" : id === "sonarr" ? "Open on TVDB" : "Open on MusicBrainz", shortcut: "cmd+o" }]
-          : [{ id: "add", title: "Add and search", confirm: `Add ${name}${year} to ${app.title} with the default profile and start a search?` }, { id: "add-quiet", title: "Add without searching", shortcut: "cmd+enter", confirm: `Add ${name}${year} to ${app.title} without searching?` }, { id: "ext", title: id === "radarr" ? "Open on TMDB" : id === "sonarr" ? "Open on TVDB" : "Open on MusicBrainz", shortcut: "cmd+o" }],
+          ? [{ id: "open", title: `Open in ${app.title}`, multi: true }, { id: "ext", title: id === "radarr" ? "Open on TMDB" : id === "sonarr" ? "Open on TVDB" : "Open on MusicBrainz", shortcut: "cmd+o", multi: true }]
+          : [{ id: "add", title: "Add and search", multi: true, confirm: `Add to ${app.title} with the default profile and start a search?` }, { id: "add-quiet", title: "Add without searching", shortcut: "cmd+enter", multi: true, confirm: `Add to ${app.title} without searching?` }, { id: "ext", title: id === "radarr" ? "Open on TMDB" : id === "sonarr" ? "Open on TVDB" : "Open on MusicBrainz", shortcut: "cmd+o", multi: true }],
         url: ext,
       };
     });
@@ -262,7 +265,10 @@ export async function lookupRows(id: ArrId, q: string): Promise<Item[]> {
 
 export const detail = async (id: string): Promise<Detail | void> => { const r = id.startsWith("queue:") ? queueTable.get(id.slice(6)) : undefined; return r ? queueRow(r.movie ? "radarr" : r.series ? "sonarr" : "lidarr", r).detail : undefined; };
 
-export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Effect | void> {
+/** The external page of a lookup hit (TMDB, TVDB, MusicBrainz), by its key. */
+const extUrl = (app: ArrId, key: string) => (app === "radarr" ? `https://www.themoviedb.org/movie/${key}` : app === "sonarr" ? `https://thetvdb.com/dereferrer/series/${key}` : `https://musicbrainz.org/artist/${key}`);
+
+export async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) {
     const m = /^hint:more:(\w+)$/.exec(id);
     if (m && action === "open") return { open: `${arrUrl(m[1] as ArrId)}/wanted/missing` };
@@ -271,6 +277,8 @@ export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Eff
   const [kind, appId, ...rest] = id.split(":");
   const app = appId as ArrId;
   const key = rest.join(":");
+  // The marked rows of the same kind and app (`ctx.ids`), as their keys; the one otherwise.
+  const keys = (ctx?.ids ?? [id]).filter((x) => x.startsWith(`${kind}:${app}:`)).map((x) => x.split(":").slice(2).join(":"));
   switch (kind) {
     case "cmd": {
       if (key === "add") return { push: { extension: "theater", palette: `${app}-add` } };
@@ -283,23 +291,35 @@ export async function pick(id: string, action?: string, _ctx?: Ctx): Promise<Eff
     case "health": return { open: `${arrUrl(app)}/system/status` };
     case "queue": {
       const r = queueTable.get(`${app}:${key}`);
-      if (action === "copy") return { copy: r?.title ?? "" };
-      if (action === "remove") { try { await removeFromQueue(app, Number(key)); } catch (e) { return toast("Could not remove", String((e as Error).message), "failure"); } queueTable.delete(`${app}:${key}`); return toast("Removed from the queue", r ? truncate(subjectOf(r), 50) : undefined); }
+      const rs = keys.map((k) => queueTable.get(`${app}:${k}`));
+      if (action === "copy") return { copy: rs.map((x) => x?.title ?? "").filter(Boolean).join("\n") };
+      if (action === "remove") {
+        for (const k of keys) { try { await removeFromQueue(app, Number(k)); } catch (e) { return toast("Could not remove", String((e as Error).message), "failure"); } queueTable.delete(`${app}:${k}`); }
+        return toast("Removed from the queue", keys.length > 1 ? `${keys.length} releases` : r ? truncate(subjectOf(r), 50) : undefined);
+      }
+      if (keys.length > 1) return { open: rs.map((x) => (x ? webOf(app, x) : `${arrUrl(app)}/activity/queue`)) };
       return { open: r ? webOf(app, r) : `${arrUrl(app)}/activity/queue` };
     }
     case "cal": case "history": return; // the row's url opens
     case "wanted": {
       if (action === "open" || action === undefined) return;
-      const body = app === "radarr" ? { name: "MoviesSearch", movieIds: [Number(key)] } : app === "sonarr" ? { name: "EpisodeSearch", episodeIds: [Number(key)] } : { name: "AlbumSearch", albumIds: [Number(key)] };
+      const ids = keys.map(Number);
+      const body = app === "radarr" ? { name: "MoviesSearch", movieIds: ids } : app === "sonarr" ? { name: "EpisodeSearch", episodeIds: ids } : { name: "AlbumSearch", albumIds: ids };
       try { await command(app, body); } catch (e) { return toast("Could not search", String((e as Error).message), "failure"); }
-      return toast("Searching", `${A(app).title} is looking for it now`);
+      return toast("Searching", ids.length > 1 ? `${A(app).title} is looking for ${ids.length} now` : `${A(app).title} is looking for it now`);
     }
     case "hit": {
       const x = hits.get(`${app}:${key}`);
       if (!x) throw new Error(`no lookup hit ${id}`);
-      if (action === "ext") return;
-      if (action === "open") return { open: webOf(app, app === "radarr" ? { movie: x as Movie } : app === "sonarr" ? { series: x as Series } : { artist: x as Artist }) };
-      try { const name = await add(app, x, action !== "add-quiet"); return { hud: `Added ${truncate(name, 40)} to ${A(app).title}` }; } catch (e) { return toast("Could not add", String((e as Error).message), "failure"); }
+      const xs = keys.map((k) => hits.get(`${app}:${k}`)).filter((h): h is NonNullable<typeof h> => !!h);
+      if (action === "ext") return keys.length > 1 ? { open: keys.map((k) => extUrl(app, k)) } : undefined;
+      const web = (h: typeof x) => webOf(app, app === "radarr" ? { movie: h as Movie } : app === "sonarr" ? { series: h as Series } : { artist: h as Artist });
+      if (action === "open") return { open: xs.length > 1 ? xs.map(web) : web(x) };
+      try {
+        let name = "";
+        for (const h of xs) name = await add(app, h, action !== "add-quiet");
+        return { hud: xs.length > 1 ? `Added ${xs.length} to ${A(app).title}` : `Added ${truncate(name, 40)} to ${A(app).title}` };
+      } catch (e) { return toast("Could not add", String((e as Error).message), "failure"); }
     }
   }
 }

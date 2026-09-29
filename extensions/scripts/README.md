@@ -104,6 +104,8 @@ In Script Commands:
 | `cmd+c` | Copy output: run it and copy what it printed |
 | `cmd+shift+c` | Copy the file's path |
 
+Marked commands (`⌘`-click, `⇧↓`): Open script opens each file, Copy path puts one a line. Run stays one command's, since each answers in its own mode.
+
 ## Setup
 
 Point `config` at the file that holds the tables. The default is pal's

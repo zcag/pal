@@ -19,9 +19,10 @@ const EXPORT = "export";
 const EXPORT_DEFAULT = "~/Downloads/pal-snippets.json";
 
 const PASTE: Action = { id: "paste", title: "Paste" };
-const COPY: Action = { id: "copy", title: "Copy", shortcut: "cmd+c" };
+// Copy and Delete also take marked snippets (`multi`): the texts one per line, one write for the deletes. Paste is the one text into the app.
+const COPY: Action = { id: "copy", title: "Copy", shortcut: "cmd+c", multi: true };
 const EDIT: Action = { id: "edit", title: "Edit", shortcut: "cmd+e" };
-const DELETE: Action = { id: "delete", title: "Delete", shortcut: "ctrl+x", style: "destructive", confirm: "Delete this snippet?" };
+const DELETE: Action = { id: "delete", title: "Delete", shortcut: "ctrl+x", style: "destructive", multi: true, confirm: "Delete? This cannot be undone." };
 
 const all = async () => asSnippets(await core.call("snippets.list"));
 const store = (snippets: Snippet[]) => core.call("snippets.set", { snippets });
@@ -140,14 +141,19 @@ export default {
         if (id === IMPORT || id === EXPORT) return action === "save" ? transfer(id, ctx?.values ?? {}) : { form: pathForm(id) };
         if (action === "save") return save(id, ctx?.values ?? {});
         if (id === CREATE) { const create = (ctx?.args as { create?: string } | undefined)?.create; return { form: form(undefined, undefined, typeof create === "string" ? create : undefined) }; }
-        const s = (await all()).find((x) => x.id === id);
+        const list = await all();
+        const s = list.find((x) => x.id === id);
         if (!s) throw new Error(`no snippet ${id}`);
+        // The marked snippets (`ctx.ids`), in marking order, else the one.
+        const ids = ctx?.ids ?? [id];
+        const marked = ids.map((i) => list.find((x) => x.id === i)).filter((x): x is Snippet => !!x);
         switch (action) {
-          case "copy": return { copy: await expand(s.text, SOURCES) };
+          case "copy": return { copy: (await Promise.all(marked.map((x) => expand(x.text, SOURCES)))).join("\n") };
           case "edit": return { form: form(s) };
           case "delete": {
-            await store((await all()).filter((x) => x.id !== id));
-            return toast("Deleted", s.name);
+            const gone = new Set(ids);
+            await store(list.filter((x) => !gone.has(x.id)));
+            return toast("Deleted", marked.length > 1 ? `${marked.length} snippets` : s.name);
           }
           default: return { paste: { text: await expand(s.text, SOURCES) } };
         }

@@ -10,7 +10,7 @@
 // one machine, against fake binaries on PATH).
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { hint as hintRow, home, settings, toast, xdg, type Accessory, type Action, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
+import { hint as hintRow, home, settings, toast, xdg, type Accessory, type Action, type Ctx, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
 
 /** `[extensions.services]`, defaults in pal.json. */
 type Settings = { ttl: number; confirm_user: boolean; agent_dirs: string[] };
@@ -77,19 +77,32 @@ const ACTIVE_COLOR: Record<string, TagColor> = { active: "green", failed: "red",
 const units = new Map<string, { scope: Scope; unit: string; active: boolean; enabled?: string }>();
 
 const systemctl = (scope: Scope, ...args: string[]) => ["systemctl", ...(scope === "user" ? ["--user"] : []), "--no-pager", ...args];
-const journalctl = (scope: Scope, unit: string) => ["journalctl", ...(scope === "user" ? ["--user"] : []), "-u", unit, "-n", String(LOG_LINES), "--no-pager"];
+const journalctl = (scope: Scope, units: string[]) => ["journalctl", ...(scope === "user" ? ["--user"] : []), ...units.flatMap((u) => ["-u", u]), "-n", String(LOG_LINES), "--no-pager"];
 
+/**
+ * A unit's actions, every one of them also over marked units (`multi`):
+ * one `systemctl` per scope names them all, so a system scope asks for
+ * root once. Start and Stop (Enable and Disable) ride on every row, the
+ * one that flips it first and the other at the end, so marked units in
+ * both states still share them; the verb on a unit already there is a
+ * no-op to systemd. The question is worded for one unit or several.
+ */
 function unitActions(scope: Scope, active: boolean, enabled?: string): Action[] {
   const ask = scope === "system" || S().confirm_user;
-  const confirm = (what: string) => (ask ? { confirm: `${what} this ${scope} unit?` } : {});
+  const confirm = (what: string) => (ask ? { confirm: `${what} with the ${scope} manager?` } : {});
+  const START: Action = { id: "start", title: "Start", multi: true }, STOP: Action = { id: "stop", title: "Stop", multi: true, ...confirm("Stop") };
   // A static, generated or transient unit has no [Install] section: nothing to enable.
-  const flip: Action[] = enabled && ["static", "generated", "transient", "masked"].includes(enabled) ? [] : [enabled === "enabled" ? { id: "disable", title: "Disable", shortcut: "cmd+e", ...confirm("Disable") } : { id: "enable", title: "Enable", shortcut: "cmd+e" }];
+  const fixed = enabled && ["static", "generated", "transient", "masked"].includes(enabled);
+  const ENABLE: Action = { id: "enable", title: "Enable", multi: true }, DISABLE: Action = { id: "disable", title: "Disable", multi: true, ...confirm("Disable") };
+  const on = enabled === "enabled";
   return [
-    active ? { id: "stop", title: "Stop", ...confirm("Stop") } : { id: "start", title: "Start" },
-    { id: "logs", title: "Logs", shortcut: "cmd+l" },
-    { id: "restart", title: "Restart", shortcut: "cmd+shift+r", ...confirm("Restart") },
-    ...flip,
-    { id: "copy", title: "Copy unit name", shortcut: "cmd+c" },
+    active ? STOP : START,
+    { id: "logs", title: "Logs", shortcut: "cmd+l", multi: true },
+    { id: "restart", title: "Restart", shortcut: "cmd+shift+r", multi: true, ...confirm("Restart") },
+    ...(fixed ? [] : [{ ...(on ? DISABLE : ENABLE), shortcut: "cmd+e" }]),
+    { id: "copy", title: "Copy unit name", shortcut: "cmd+c", multi: true },
+    active ? START : STOP,
+    ...(fixed ? [] : [on ? ENABLE : DISABLE]),
   ];
 }
 
@@ -177,23 +190,36 @@ async function privileged(argv: string[]): Promise<Run> {
   return { ...pk, err: `Not permitted: ${plain.err.split("\n")[0]}\nsudo -n: ${sudo.err.split("\n")[0] || `exit ${sudo.code}`}\npkexec: ${pk.err.split("\n")[0] || `exit ${pk.code}`}` };
 }
 
-async function pickSystemd(id: string, action?: string) {
+/** The toast's name for what a verb ran on: the unit, or how many. */
+const named = (names: string[], one: string, many: string) => (names.length === 1 ? names[0]! : `${names.length} ${many}`) || one;
+
+async function pickSystemd(id: string, action?: string, ctx?: Ctx) {
   const u = units.get(id);
   if (!u) return fail("Unit not listed", "List again first");
   action ??= u.active ? "stop" : "start";
+  // The marked units (`ctx.ids`), else the one; those no longer listed are left out.
+  const all = (ctx?.ids ?? [id]).map((i) => units.get(i)).filter((x): x is NonNullable<typeof x> => !!x);
+  const names = all.map((x) => x.unit);
   switch (action) {
-    case "copy": return { copy: u.unit };
+    case "copy": return { copy: names.join("\n") };
     case "logs": {
-      const r = await run(journalctl(u.scope, u.unit), LIST_MS);
-      return show(`${u.unit} logs`, r.out || r.err);
+      // One journal for them all, interleaved by time, per scope.
+      const outs = await Promise.all((["user", "system"] as Scope[]).filter((sc) => all.some((x) => x.scope === sc)).map((sc) => run(journalctl(sc, all.filter((x) => x.scope === sc).map((x) => x.unit)), LIST_MS)));
+      return show(`${named(names, u.unit, "units")} logs`, outs.map((r) => r.out || r.err).join("\n"));
     }
     case "start": case "stop": case "restart": case "enable": case "disable": {
-      const argv = systemctl(u.scope, "--no-ask-password", action, u.unit);
-      const r = u.scope === "system" ? await privileged(argv) : await run(argv, ACT_MS);
       const done = { start: "Started", stop: "Stopped", restart: "Restarted", enable: "Enabled", disable: "Disabled" }[action];
-      if (r.pending) return pending(`${action} ${u.unit}`);
-      if (r.code !== 0) return fail(`Could not ${action} ${u.unit}`, r.err.startsWith("Not permitted") ? r.err : lastLine(r));
-      return toast(`${done} ${u.unit}`);
+      // One systemctl per scope with every unit of it: the system scope asks for root once.
+      for (const sc of ["user", "system"] as Scope[]) {
+        const units_ = all.filter((x) => x.scope === sc).map((x) => x.unit);
+        if (!units_.length) continue;
+        const argv = systemctl(sc, "--no-ask-password", action, ...units_);
+        const r = sc === "system" ? await privileged(argv) : await run(argv, ACT_MS);
+        const what = named(units_, u.unit, "units");
+        if (r.pending) return pending(`${action} ${what}`);
+        if (r.code !== 0) return fail(`Could not ${action} ${what}`, r.err.startsWith("Not permitted") ? r.err : lastLine(r));
+      }
+      return toast(`${done} ${named(names, u.unit, "units")}`);
     }
   }
   return { keep: true as const };
@@ -255,12 +281,22 @@ async function agents(dirs: string[]): Promise<Agent[]> {
 
 const shortPath = (p: string) => (p.startsWith(home("~") + "/") ? "~" + p.slice(home("~").length) : p);
 
+/**
+ * A job's actions. All but Show plist also run over marked jobs (`multi`),
+ * one `launchctl` each. Load rides on a loaded job too (at the end) and
+ * Unload on an unloaded one, so marked jobs in both states share them; a
+ * job already there is skipped.
+ */
 function jobActions(loaded: boolean, plist?: string): Action[] {
+  const UNLOAD: Action = { id: "unload", title: "Unload", multi: true, confirm: "Unload? launchd stops it and forgets it until it is loaded again." };
+  const LOAD: Action = { id: "load", title: "Load", multi: true };
   const a: Action[] = [];
-  if (loaded) a.push({ id: "unload", title: "Unload", confirm: "Unload this job? launchd stops it and forgets it until it is loaded again." }, { id: "restart", title: "Restart", shortcut: "cmd+shift+r" });
-  else if (plist) a.push({ id: "load", title: "Load" });
-  if (plist) a.push({ id: "show", title: "Show plist", shortcut: "cmd+l" }, { id: "open", title: "Open plist file", shortcut: "cmd+o" });
-  a.push({ id: "copy", title: "Copy label", shortcut: "cmd+c" });
+  if (loaded) a.push(UNLOAD, { id: "restart", title: "Restart", shortcut: "cmd+shift+r", multi: true });
+  else if (plist) a.push(LOAD);
+  if (plist) a.push({ id: "show", title: "Show plist", shortcut: "cmd+l" }, { id: "open", title: "Open plist file", shortcut: "cmd+o", multi: true });
+  a.push({ id: "copy", title: "Copy label", shortcut: "cmd+c", multi: true });
+  if (loaded && plist) a.push(LOAD);
+  else if (!loaded) a.push(UNLOAD);
   return a;
 }
 
@@ -305,20 +341,32 @@ async function listLaunchd(filter = "agents"): Promise<Item[]> {
   return all.length ? all.map((j) => jobItem(j.label, j, byLabel.get(j.label))) : [hint("No running jobs", "launchctl list shows none with a pid")];
 }
 
-async function pickLaunchd(id: string, action?: string) {
+async function pickLaunchd(id: string, action?: string, ctx?: Ctx) {
   const j = jobs.get(id);
   if (!j) return fail("Job not listed", "List again first");
   action ??= j.loaded ? "unload" : "load";
+  // The marked jobs (`ctx.ids`), else the one; those no longer listed are left out.
+  const ids = (ctx?.ids ?? [id]).filter((i) => jobs.has(i));
   switch (action) {
-    case "copy": return { copy: id };
-    case "open": return j.plist ? { open: j.plist } : fail("No plist", "This job was loaded without one in the agent folders");
+    case "copy": return { copy: ids.join("\n") };
+    case "open": {
+      const plists = ids.map((i) => jobs.get(i)!.plist).filter((p): p is string => !!p);
+      return plists.length ? { open: plists.length === 1 ? plists[0]! : plists } : fail("No plist", "This job was loaded without one in the agent folders");
+    }
     case "show": return j.plist ? show(basename(j.plist), await plistXml(j.plist).catch((e) => String(e)), "xml") : fail("No plist", "This job was loaded without one in the agent folders");
     case "load": case "unload": case "restart": {
-      const argv = action === "load" ? ["launchctl", "bootstrap", domain(), j.plist ?? ""] : action === "unload" ? ["launchctl", "bootout", `${domain()}/${id}`] : ["launchctl", "kickstart", "-k", `${domain()}/${id}`];
-      if (action === "load" && !j.plist) return fail("No plist", "Nothing to load this job from");
-      const r = await run(argv, ACT_MS);
+      if (action === "load" && ids.length === 1 && !j.plist) return fail("No plist", "Nothing to load this job from");
+      // Over marked jobs, one the listing shows already there (or with nothing to load it from) is skipped; the one row is always tried, launchctl answers.
+      const todo = ids.length === 1 ? ids : ids.filter((i) => { const x = jobs.get(i)!; return action === "load" ? !x.loaded && !!x.plist : x.loaded; });
+      if (!todo.length) return toast(`Nothing to ${action}`, `Every marked job is already ${action === "load" ? "loaded" : "not loaded"}`);
       const done = { load: "Loaded", unload: "Unloaded", restart: "Restarted" }[action];
-      return r.pending ? pending(`${action} ${id}`) : r.code === 0 ? toast(`${done} ${id}`) : fail(`Could not ${action} ${id}`, lastLine(r));
+      for (const i of todo) {
+        const argv = action === "load" ? ["launchctl", "bootstrap", domain(), jobs.get(i)!.plist!] : action === "unload" ? ["launchctl", "bootout", `${domain()}/${i}`] : ["launchctl", "kickstart", "-k", `${domain()}/${i}`];
+        const r = await run(argv, ACT_MS);
+        if (r.pending) return pending(`${action} ${i}`);
+        if (r.code !== 0) return fail(`Could not ${action} ${i}`, lastLine(r));
+      }
+      return toast(`${done} ${todo.length === 1 ? todo[0] : `${todo.length} jobs`}`);
     }
   }
   return { keep: true as const };
@@ -333,7 +381,7 @@ export default {
       placeholder: BACKEND === "systemd" ? "Unit name or description" : "Label",
       filters: BACKEND === "systemd" ? SYSTEMD_FILTERS : LAUNCHD_FILTERS,
       list: (_query, ctx) => (BACKEND === "systemd" ? listSystemd(ctx?.filter) : listLaunchd(ctx?.filter)),
-      pick: (id, action) => (BACKEND === "systemd" ? pickSystemd(id, action) : pickLaunchd(id, action)),
+      pick: (id, action, ctx) => (BACKEND === "systemd" ? pickSystemd(id, action, ctx) : pickLaunchd(id, action, ctx)),
     },
   },
 } satisfies Extension;

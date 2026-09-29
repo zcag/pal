@@ -58,7 +58,7 @@ export function actions(st: BarState): Action[] {
   const cur = st.rows[st.focus];
   const clicks: Action[] = st.rows.map((r): Action => ({ id: `focus:${r.id}`, title: `Go to ${r.title}`, hidden: true }));
   return [
-    { id: "open", title: cur ? "Open the comment in tela" : "Open tela" },
+    { id: "open", title: cur ? "Open the comment in tela" : "Open tela", multi: true },
     ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m", multi: true } as Action] : []),
     ...(st.rows.length ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-tela", title: "Open tela", shortcut: "o" },

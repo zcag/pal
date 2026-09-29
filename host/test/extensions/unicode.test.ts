@@ -71,6 +71,21 @@ describe("unicode", () => {
     expect(await pick("nope")).toEqual({ toast: { title: "Unknown character", message: "nope", style: "failure" } });
   });
 
+  test("marked characters: every action is multi and runs over them in marking order, the characters and references run together, the code points a space apart; they lead Recent", async () => {
+    const l = host.loaded().find((l) => l.extension === "unicode")!;
+    expect(l.palettes[0].actions!.every((a) => a.multi)).toBe(true);
+    const two = { ids: ["2192", "2318"] };
+    const many = (action?: string) => host.pick("unicode", "unicode", "2192", action, two);
+    expect(await many()).toEqual({ copy: "→⌘" });
+    expect(await many("paste")).toEqual({ paste: { text: "→⌘" } });
+    expect(await many("codepoint")).toEqual({ copy: "U+2192 U+2318" });
+    expect(await many("entity")).toEqual({ copy: "&rarr;&#x2318;" });
+    expect(await many("numeric")).toEqual({ copy: "&#x2192;&#x2318;" });
+    expect((await list()).slice(0, 2).map((i) => i.id)).toEqual(["2192", "2318"]);
+    // Back to the order the next test reads.
+    await pick("2318"); await pick("1F5B1");
+  });
+
   test("the picked characters lead the next listing in a Recent section, newest first, and leave their block", async () => {
     const items = await list();
     expect(items.slice(0, 3).map((i) => [i.id, i.section])).toEqual([["1F5B1", "Recent"], ["2318", "Recent"], ["2192", "Recent"]]);

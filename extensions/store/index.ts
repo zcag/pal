@@ -76,17 +76,19 @@ export default {
         if (!chosen.length) rows.push(hint("none", query ? `Nothing in the store matches “${query}”` : filter === "updates" ? "Everything installed from the store is current" : filter === "installed" ? "Nothing from the store is installed" : "The store lists nothing", "pal.cagdas.io/extensions has the full site"));
         return rows;
       },
-      pick: async (id, action): Promise<Effect | void> => {
+      pick: async (id, action, ctx): Promise<Effect | void> => {
         const l = byName(id);
         if (!l) throw new Error(`no extension ${id} in the store`);
         const s = standing(l, await installed());
         const a = action ?? actionsFor(l, s)[0].id;
+        // The marked extensions (`ctx.ids`), the addressed one first, else the one.
+        const all = (ctx?.ids ?? [id]).map(byName).filter((x): x is Listing => !!x);
         switch (a) {
-          case "install": await extensions.install(l.name); return { hide: true };
-          case "update": await extensions.update(l.name); return { hide: true };
-          case "remove": await extensions.remove(l.name); return { hide: true };
-          case "copy-command": return { copy: `pal install ${l.name}`, hud: `Copied pal install ${l.name}` };
-          default: return { open: l.url };
+          case "install": for (const x of all) await extensions.install(x.name); return { hide: true };
+          case "update": for (const x of all) await extensions.update(x.name); return { hide: true };
+          case "remove": for (const x of all) await extensions.remove(x.name); return { hide: true };
+          case "copy-command": { const cmds = all.map((x) => `pal install ${x.name}`); return { copy: cmds.join("\n"), hud: cmds.length > 1 ? `Copied ${cmds.length} install commands` : `Copied ${cmds[0]}` }; }
+          default: return { open: all.length > 1 ? all.map((x) => x.url) : l.url };
         }
       },
       detail: async (id) => {

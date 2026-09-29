@@ -445,6 +445,13 @@ describe("the extension", () => {
     expect(await host.pick("flashcards", "flashcard-packs", "spanish-phrases")).toEqual({ push: { extension: "flashcards", palette: "flashcards", args: { pack: "spanish-phrases" } } });
     await host.pick("flashcards", "flashcard-packs", "spanish-phrases", "add");
     expect(saved().active).toContain("spanish-phrases");
+    // Marked packs leave practice and join it again together; both ways are on every pack, so a mix goes either way.
+    expect(words.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["remove", "add"]);
+    const two = { ids: ["spanish-phrases", "my-cards"] };
+    expect(await host.pick("flashcards", "flashcard-packs", "spanish-phrases", "remove", two)).toEqual({ keep: true, hud: "2 packs no longer practised" });
+    expect(saved().active).not.toContain("my-cards");
+    expect(await host.pick("flashcards", "flashcard-packs", "spanish-phrases", "add", two)).toEqual({ keep: true, hud: "2 packs added to practice" });
+    expect(saved().active).toEqual(expect.arrayContaining(two.ids));
     rmSync(join(dir, "packs", "broken.json"));
   });
 
@@ -466,6 +473,7 @@ describe("the extension", () => {
     expect(d.markdown).toContain("| el gato | the cat |");
     expect(d.metadata).toContainEqual({ label: "Audio", value: "1 recordings, played on Tab" });
     expect(await host.pick("flashcards", "flashcard-anki", "42", "open")).toEqual({ open: "https://ankiweb.net/shared/info/42" });
+    expect(await host.pick("flashcards", "flashcard-anki", "42", "open", { ids: ["42", "43"] })).toEqual({ open: ["https://ankiweb.net/shared/info/42", "https://ankiweb.net/shared/info/43"] });
     expect(await host.pick("flashcards", "flashcard-anki", "42", "add")).toMatchObject({ toast: { title: "Downloading Spanish Animals" }, keep: true });
     await host.until(() => saved().active?.includes("anki-42") ?? false, 5000, "the deck in practice");
     // The deck joins practice a beat before the download's own state settles; the row follows that state, so wait for it too (a CI runner saw "Downloading…").

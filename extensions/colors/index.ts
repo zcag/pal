@@ -190,18 +190,21 @@ export default {
         const shown = (data as Row[]).filter((r) => s.sets.includes(r.s));
         return [...used.map((id) => gridItem(rows.get(id)!, RECENT)), ...shown.filter((r) => !used.includes(r.id)).map((r) => gridItem(r, sectionOf(r)))];
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         const r = rows.get(id);
         if (!r) return { toast: { title: "Unknown colour", message: id, style: "failure" } };
         const s = current();
-        await rememberRecent(id);
-        const c = rgbOf(r);
-        switch (action) {
-          case "copy": await commit(c, "set", token(r)); return { copy: write(c, s) };
-          case "hex": await commit(c, "set", token(r)); return { copy: write(c, s, "hex") };
-          case "name": return { copy: token(r) };
-          default: return { push: { extension: NAME, palette: "picker", args: { color: r.h, from: "set", name: token(r) } } };
+        // Marked tiles (`ctx.ids`) copy as one, a line each, and each joins the recent row and the history as a single copy would.
+        const all = (ctx?.ids ?? [id]).map((x) => rows.get(x)).filter((x): x is Row => !!x);
+        if (action === "copy" || action === "hex" || action === "name") {
+          for (const x of all) {
+            await rememberRecent(x.id);
+            if (action !== "name") await commit(rgbOf(x), "set", token(x));
+          }
+          return { copy: all.map((x) => (action === "name" ? token(x) : write(rgbOf(x), s, action === "hex" ? "hex" : undefined))).join("\n") };
         }
+        await rememberRecent(id);
+        return { push: { extension: NAME, palette: "picker", args: { color: r.h, from: "set", name: token(r) } } };
       },
       detail: (id) => { const r = rows.get(id); return r ? detailOf(rgbOf(r), r.n, current(), r) : undefined; },
     },
@@ -217,9 +220,10 @@ export default {
         const before = await load();
         const c = parse(id);
         if (!c) return { toast: { title: "Unknown colour", message: id, style: "failure" } };
+        const all = (ctx?.ids ?? [id]).map(parse).filter((x): x is RGB => !!x);
         switch (action) {
-          case "copy": return { copy: write(c, s) };
-          case "hex": return { copy: write(c, s, "hex") };
+          case "copy": return { copy: all.map((x) => write(x, s)).join("\n") };
+          case "hex": return { copy: all.map((x) => write(x, s, "hex")).join("\n") };
           // Marked colours (`ctx.ids`) go in one write.
           case "delete": { const gone = new Set(ctx?.ids ?? [id]); await save(before, { ...before, history: before.history.filter((e) => !gone.has(e.c)) }); return { keep: true }; }
           case "clear": await save(before, apply(before, { kind: "clear" }, s.history_size)); return { keep: true };

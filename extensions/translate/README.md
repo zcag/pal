@@ -57,6 +57,10 @@ words never do. `enter` copies the translation again, `cmd+enter` pastes,
 source pinned), `cmd+shift+c` copies the source, `cmd+d` removes the
 entry; the last row clears the history (asks first). The palette is live:
 its rows are at the root, so a past translation is found by either text.
+Marked entries (`cmd`-click, `shift`-click, `shift+↑↓`) copy together,
+one per line (`enter` the translations, `cmd+shift+c` the sources), and
+`cmd+d` removes them all; marked result rows (the translation, its
+alternatives) copy together the same way.
 
 ## Keyboard
 

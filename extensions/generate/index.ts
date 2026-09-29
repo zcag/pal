@@ -7,7 +7,7 @@
 // copies on Enter and pastes on cmd+Enter; the shell's Refresh (cmd+r)
 // lists again, which is how a value is regenerated. The values are made in
 // `gen.ts`, the QR code in `qr.ts`; this file is the rows.
-import { ago, clipboard, errorMessage, hint, now, settings, toast, truncate, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { ago, clipboard, errorMessage, hint, now, settings, toast, truncate, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { base64, base64Decode, base64url, CHARSET_TITLES, CHARSETS, entropy, hash, HASHES, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randomBase64, randomColor, randomHex, randomNumber, rgbOf, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid4, uuid7, WORDS, type Charset, type HashAlgo } from "./gen.ts";
 import { encode as encodeQr, toDataUrl, toSvg } from "./qr.ts";
 
@@ -32,8 +32,9 @@ const GLYPH = {
   alert: "\u{f05d6}", // md-alert_circle_outline
 };
 
-const COPY: Action = { id: "copy", title: "Copy" };
-const PASTE: Action = { id: "paste", title: "Paste" };
+// Marked rows (the hashes of one text, both UUIDs) go together, one value per line.
+const COPY: Action = { id: "copy", title: "Copy", multi: true };
+const PASTE: Action = { id: "paste", title: "Paste", multi: true };
 const COPY_ALL: Action = { id: "copy_all", title: "Copy all", shortcut: "cmd+shift+c" };
 const PICKER: Action = { id: "picker", title: "Open in Colour Picker", shortcut: "cmd+o" };
 const SHOW_QR: Action = { id: "show", title: "Show QR code" };
@@ -306,16 +307,18 @@ async function list(query = ""): Promise<Item[]> {
   }
 }
 
-function pick(id: string, action?: string): Effect {
-  const h = held.get(id);
-  if (!h) return toast("Value is gone", "The listing changed; pick again", "failure");
+function pick(id: string, action?: string, ctx?: Ctx): Effect {
+  const hs = (ctx?.ids ?? [id]).map((i) => held.get(i));
+  const h = hs[0];
+  if (!h || hs.some((x) => !x)) return toast("Value is gone", "The listing changed; pick again", "failure");
+  const joined = hs.map((x) => x!.value).join("\n");
   switch (action) {
-    case "paste": return { paste: { text: h.value } };
+    case "paste": return { paste: { text: joined } };
     case "copy_all": return { copy: h.all ?? h.value };
     case "picker": return { push: { extension: "colors", palette: "picker", args: { color: h.color, from: "typed" } } };
     case "copy_svg": return { copy: h.svg ?? h.value };
     case "show": return { show: { title: "QR code", markdown: `![QR code](${toDataUrl(h.svg!)})\n\n\`${h.qrText}\`` } };
-    default: return { copy: h.value };
+    default: return { copy: joined };
   }
 }
 
