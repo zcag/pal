@@ -20,7 +20,10 @@ Turning sharing off deletes the id; turning it on again makes a new one.
 
 Every request pal makes to pal.cagdas.io (registry, packages, updates)
 carries `User-Agent: pal/<version> (<os>; <arch>)`, and `X-Pal-Install: <id>`
-while sharing is on. On top of that, while sharing is on, pal sends batches
+while sharing is on. The app's own update check asks
+`https://pal.cagdas.io/update/<target>/<arch>/<version>`, with `?i=<id>`
+while sharing is on: a query parameter rather than the header, since the
+site redirects that request to GitHub, which never gets the id. On top of that, while sharing is on, pal sends batches
 to `POST https://pal.cagdas.io/api/events`:
 
 ```json

@@ -1771,8 +1771,12 @@ rolled away from is not offered again on this machine.
 (`[extensions.<name>]`, `[palettes.<id>]`), and so does its storage, so a
 reinstall finds its settings; delete them by hand if you want them gone.
 
-After each of these the extension host is restarted, so the new set is
-loaded and a removed extension is gone from the root.
+A running app follows each of these at once, whichever did it (Settings,
+the Store, a link, the CLI): the host loads or drops that one extension,
+nothing else restarts. An update that fails to load where the build before
+it loaded is rolled back by itself, and Settings says so with the error.
+An extension's `requires` are installed before it; one that others
+require is not removed until they are.
 
 ## Writing one
 
