@@ -148,28 +148,95 @@ to the site with a bearer token (`PAL_PUBLISH_TOKEN`):
 
 ## Running your own
 
-`pal-pack` ships in `@zcag/pal`:
+`pal-pack` ships in `@zcag/pal`. By hand, with a key made once (below):
 
 ```sh
-bunx pal-pack build extensions/*     # → dist/<name>/ and dist/<name>.tar.gz, prints each entry
-bunx pal-pack statements dist        # → dist/<name>.statement, to sign
-minisign -S -s key -m dist/*.statement
-bunx pal-pack index dist --name acme --base https://acme.github.io/pal --out site
-minisign -S -s key -m site/index.json
+bunx --package @zcag/pal pal-pack build extensions/* --out dist   # → dist/<name>/, <name>.tar.gz, <name>.entry.json
+bunx --package @zcag/pal pal-pack statements dist                 # → dist/<name>.statement, to sign
+for f in dist/*.statement; do minisign -S -s acme.key -m "$f"; done
+bunx --package @zcag/pal pal-pack index dist --name acme --base https://acme.github.io/pal --out site
+minisign -S -s acme.key -m site/index.json
 ```
 
-or the Action, which does all of it and deploys to GitHub Pages:
+`site/` is then the registry: `index.json`, its `.minisig` and
+`pkg/<name>/<hash>.tar.gz|.json`. A later publish adds `--merge` with the
+live `index.json`, so the builds already listed stay, and their packages
+must still be served beside it.
+
+**The key.** A minisign key pair without a password, since CI has no one
+to type it:
+
+```sh
+minisign -G -W -p acme.pub -s acme.key
+```
+
+`acme.key` (the whole file) is the secret; the second line of `acme.pub`
+(`RWQ…`) is the public key users pin. Keep a copy of the secret somewhere
+safe: without it, every user has to remove the registry and add it again.
+
+**The Action** does all of it and deploys to GitHub Pages:
 
 ```yaml
-- uses: zcag/pal/.github/actions/registry@main
-  with:
-    name: acme
-    extensions: extensions/*
-    key: ${{ secrets.PAL_REGISTRY_KEY }}
+# .github/workflows/registry.yml
+name: registry
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write      # deploy to Pages
+  id-token: write   # the Pages deployment's OIDC token
+
+concurrency:
+  group: registry
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.registry.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: registry
+        uses: zcag/pal/.github/actions/registry@main
+        with:
+          name: acme
+          extensions: extensions/*
+          key: ${{ secrets.PAL_REGISTRY_KEY }}
+          public-key: RWQ…
 ```
 
+- Settings › Pages › Source: **GitHub Actions**, and `acme.key`'s text as
+  the repository secret `PAL_REGISTRY_KEY`.
+- Inputs: `name` (the registry's name), `extensions` (a glob, default
+  `extensions/*`), `key`, `public-key` (the live index is checked against
+  it before a run builds on it, and a `key` that is not its pair fails the
+  run), `base-url` (default the repository's Pages URL, a custom domain
+  included) and `next-key` (below). Output: `url`, the index's URL.
+- A run builds every extension and keeps the builds whose hash is not
+  already the live index's newest; with none, nothing is deployed. It signs
+  them and the index, and deploys the site with the packages of every build
+  the index still lists.
+- The run's summary prints the index URL, the public key and the
+  `pal://registry/add?url=…` link, for a README.
+- **Yanking** a build: `pal-pack index <an empty dir> --merge index.json
+  --yank name@hash`, then sign and deploy that index as above.
+- **Rotating the key:**
+  1. Run with `next-key` set to the new public key: the index, signed by
+     the old key, announces it.
+  2. Once users have had time to fetch that index (apps check every 6
+     hours), set `key` to the new secret, `public-key` to the new key then
+     the old one (`RWQnew… RWQold…`), and drop `next-key`. That run finds
+     the live index signed by the old key and re-signs it and every build
+     in it with the new one.
+  3. Then `public-key` is the new key alone.
+
 Users add it with `pal registry add <url>` or a `pal://registry/add?url=<url>`
-link; the key shown then is pinned.
+link, where `<url>` is the index's; the key shown then is pinned.
 
 ## Calls the app makes to pal.cagdas.io
 

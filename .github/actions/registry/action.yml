@@ -1,0 +1,146 @@
+# A pal extension registry on GitHub Pages (docs/registry.md "Running your
+# own"): packs the repository's extensions with pal-pack, signs each build and
+# the index with the registry's minisign key, and deploys the index and the
+# packages to the repository's Pages site. Builds whose hash is already the
+# live index's newest are left as they are, so a run that changed nothing
+# deploys nothing.
+#
+# The job needs `pages: write` and `id-token: write`, the repository's Pages
+# source set to "GitHub Actions", an ubuntu runner, and a checkout of the
+# repository before this step.
+name: pal registry
+description: Build, sign and deploy a pal extension registry to GitHub Pages.
+author: zcag
+branding:
+  icon: package
+  color: purple
+
+inputs:
+  name:
+    description: The registry's name, the one users' `[[store.registries]]` shows.
+    required: true
+  extensions:
+    description: The extension directories, a shell glob.
+    default: extensions/*
+  key:
+    description: The minisign secret key, the whole file's text, made without a password (`minisign -G -W`).
+    required: true
+  public-key:
+    description: Its public key, the second line of the `.pub` file (`RWQ...`). The live index is checked against it before a publish builds on it, and the run's summary prints it. During a key rotation, the new key then the old one, space separated.
+    required: true
+  base-url:
+    description: Where the site is served. Defaults to the repository's Pages URL (a custom domain included).
+    default: ""
+  next-key:
+    description: A public key the registry is moving to, announced in the index (docs/registry.md "Index").
+    default: ""
+
+outputs:
+  url:
+    description: The index URL, what users add.
+    value: ${{ steps.index.outputs.url }}
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+    - id: pages
+      uses: actions/configure-pages@v5
+    - name: minisign
+      shell: bash
+      run: |
+        command -v minisign > /dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends minisign; }
+    - name: Install dependencies
+      shell: bash
+      env:
+        EXTENSIONS: ${{ inputs.extensions }}
+      run: |
+        [ ! -f package.json ] || bun install
+        for d in $EXTENSIONS; do
+          if [ -f "$d/package.json" ]; then (cd "$d" && bun install); fi
+        done
+
+    # pal-pack from this action's own checkout of zcag/pal, so the packer
+    # always matches the action's ref. It has no dependencies; auto-install
+    # is off so bun fetches nothing for it.
+    - name: Build, sign and index
+      id: index
+      shell: bash
+      env:
+        NAME: ${{ inputs.name }}
+        EXTENSIONS: ${{ inputs.extensions }}
+        KEY: ${{ inputs.key }}
+        PUBKEYS: ${{ inputs.public-key }}
+        NEXT_KEY: ${{ inputs.next-key }}
+        BASE: ${{ inputs.base-url || steps.pages.outputs.base_url }}
+        ACTION: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        r=$ACTION/registry.sh
+        pack() { bun --no-install "$ACTION/../../../sdk/bin/pal-pack.ts" "$@"; }
+        W=$RUNNER_TEMP/pal-registry base=${BASE%/}
+        rm -rf "$W"; mkdir -p "$W"
+        (umask 077; printf '%s\n' "$KEY" > "$W/key")
+
+        $r fetch "$base/index.json" "$W/live.json"
+        # The first run after a key swap re-signs every listed build.
+        rekeyed=$( [ ! -f "$W/live.json" ] || $r rekey "$W/live.json" "$W/key")
+        # shellcheck disable=SC2086 # the glob is the input
+        pack build $EXTENSIONS --out "$W/all" --seq "$(git show -s --format=%ct HEAD)" --commit "$(git rev-parse HEAD)"
+        $r changed "$W/all" "$W/live.json" | tee "$W/changed.txt"
+        awk '$2 == "new" { print $1 }' "$W/changed.txt" > "$W/new.txt"
+        echo "url=$base/index.json" >> "$GITHUB_OUTPUT"
+        live_next=$( [ -f "$W/live.json" ] && jq -r '.next_key // ""' "$W/live.json" || true)
+        if [ ! -s "$W/new.txt" ] && [ -f "$W/live.json" ] && [ "$live_next" = "$NEXT_KEY" ] && [ -z "$rekeyed" ]; then
+          echo "nothing to publish"; exit 0
+        fi
+
+        $r pick "$W/all" "$W/dist" "$W/new.txt"
+        pack statements "$W/dist"
+        shopt -s nullglob
+        $r sign "$W/key" "$W"/dist/*.statement
+        opts=(--name "$NAME" --base "$base" --out "$W/site")
+        [ ! -f "$W/live.json" ] || opts+=(--merge "$W/live.json")
+        [ -z "$NEXT_KEY" ] || opts+=(--next-key "$NEXT_KEY")
+        pack index "$W/dist" "${opts[@]}"
+        $r sign "$W/key" "$W/site/index.json"
+        $r verify "$W/site/index.json"
+        $r mirror "$W/site" "$base"
+        echo "publish=true" >> "$GITHUB_OUTPUT"
+        echo "site=$W/site" >> "$GITHUB_OUTPUT"
+    - name: Remove the key
+      if: always()
+      shell: bash
+      run: rm -f "$RUNNER_TEMP/pal-registry/key"
+
+    - if: steps.index.outputs.publish == 'true'
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{ steps.index.outputs.site }}
+    - if: steps.index.outputs.publish == 'true'
+      uses: actions/deploy-pages@v4
+
+    - name: Summary
+      shell: bash
+      env:
+        NAME: ${{ inputs.name }}
+        PUBKEY: ${{ inputs.public-key }}
+        URL: ${{ steps.index.outputs.url }}
+        PUBLISHED: ${{ steps.index.outputs.publish }}
+        ACTION: ${{ github.action_path }}
+      run: |
+        W=$RUNNER_TEMP/pal-registry
+        link="pal://registry/add?url=$(jq -rn --arg u "$URL" '$u | @uri')"
+        {
+          echo "## pal registry \`$NAME\`"
+          echo
+          echo "- Index: $URL"
+          echo "- Public key: \`${PUBKEY%% *}\`"
+          echo "- Add it: \`pal registry add $URL\`, or the link \`$link\`"
+          echo
+          if [ "$PUBLISHED" = true ]; then
+            "$ACTION/registry.sh" summary "$W/live.json" "$W/site/index.json"
+          else
+            echo "Nothing changed: every build is already the live index's newest."
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
