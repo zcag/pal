@@ -255,7 +255,7 @@ mod web {
     /// Bytes of the first candidate icon that decodes, within [`TIMEOUT`].
     pub fn fetch(origin: &Url, size: u32) -> Result<Vec<u8>> {
         let deadline = Instant::now() + TIMEOUT;
-        let agent = ureq::Agent::config_builder().user_agent("pal/0.1").build().new_agent();
+        let agent = crate::net::agent(TIMEOUT);
         let mut candidates = Vec::new();
         // A refused or unreadable page still leaves /favicon.ico to try.
         if let Ok((base, html)) = get(&agent, origin, deadline, MAX_HTML) {

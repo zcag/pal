@@ -255,6 +255,16 @@ pub fn civil_utc(secs: i64) -> (i64, u32, u32, u32, u32, u32) {
     (y, m, d, rem / 3600, rem / 60 % 60, rem % 60)
 }
 
+/// Days since the Unix epoch of a civil date: Howard Hinnant's
+/// `days_from_civil`, the inverse of [`civil_utc`]'s date part.
+pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * ((m + 9) % 12) + 2) / 5 + d - 1;
+    era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468
+}
+
 /// `20260916T070000Z`: the UTC stamp Calendar.app's `ical://ekevent/`
 /// link puts before a recurring event's id.
 pub fn ical_stamp(ms: i64) -> String {

@@ -17,6 +17,11 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. */
+export const PROTOCOL = 1;
+/** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
+export const PROTOCOL_MIN = 1;
+
 /** A request on the wire: the sender's own `id`, echoed by the `Response`. */
 export type Request = { id: number; method: string; params?: unknown };
 /** The answer to a `Request`: `result` on success, else `error` (a message). */
