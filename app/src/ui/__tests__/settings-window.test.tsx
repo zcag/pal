@@ -7,10 +7,12 @@ afterEach(() => vi.useRealTimers());
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
 import { SettingsWindow, settingsPages } from "../SettingsWindow";
 import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
-import { SettingsExtensions, extensionsIndex } from "../SettingsExtensions";
+import { SettingsExtensions, extensionsIndex, forgetText } from "../SettingsExtensions";
+import type { ExtensionsStore } from "../SettingsStore";
+import { EMPTY_STORE } from "../../store";
 import { SettingsAbout } from "../SettingsAbout";
 import { barItems } from "./settings-fixtures";
-import { settingsExtensions } from "../../gallery/data";
+import { settingsExtensions, settingsStore, storeExtensions, storeReferences } from "../../gallery/data";
 import { homeAssistant } from "./settings-fixtures";
 
 const noop = () => {};
@@ -86,42 +88,96 @@ describe("ExtensionPalettes", () => {
 });
 
 
+/** The store's callbacks as the page takes them, doing nothing: the markup is what these tests read. */
+const fakeStore = (state = settingsStore): ExtensionsStore => ({
+  state, loaded: true, install: async () => {}, update: async () => {}, remove: async () => {}, setDisabled: async () => {}, refresh: async () => {},
+  previewRegistry: async (url) => ({ name: "x", url, count: 0, key: "", key_id: "" }), addRegistry: async () => {}, removeRegistry: async () => {}, setRegistry: async () => {},
+  forgetLeftover: async () => {}, addUnlisted: async () => {}, references: storeReferences, openStore: noop,
+});
+const withStore = [...settingsExtensions, ...storeExtensions];
+
 describe("SettingsExtensions", () => {
-  it("an extension's page: the way back, the store's hero, the settings, the palettes, its bar items, and Update and Remove at its foot", () => {
-    const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} onInstall={async () => {}} onUpdate={noop} onRemove={noop} onOpenLink={noop} onOpenPalette={noop} bar={barItems} onOpenBarItem={noop} />);
-    expect(html).toContain("\u2039 Extensions</button>");
-    expect(html).not.toContain('class="pal-install__field"');
+  it("an extension's page: the way back, the hero with where it came from and its build, the settings, the palettes, its bar items, and what can be done to it at its foot", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} store={fakeStore()} onOpenLink={noop} onOpenPalette={noop} bar={barItems} onOpenBarItem={noop} />);
+    expect(html).toContain("‹ Extensions</button>");
     expect(html).toContain('class="pal-xpane__hero"');
     expect(html).toContain('class="pal-xpane__title">GitHub</h3>');
-    expect(html).toContain("v1.4.2");
-    expect(html).toContain("1.5.0 available");
+    expect(html).toContain("From the pal registry");
+    expect(html).toMatch(/>9f8e7d6, \d{1,2} \w{3} \d{4}</);
+    expect(html).toContain("Updates wait for you");
+    expect(html).toMatch(/Update ready: 3c4d5e6, \d{1,2} \w{3} \d{4}/);
     expect(html).toContain('data-anchor="extensions:github:token"');
-    expect(html).toContain('class="pal-xpane__palette"');
     expect(count(html, /class="pal-xpane__palette"/g)).toBe(3);
     expect(html).toContain('class="pal-pane__foot"');
-    expect(html).toContain("Update to 1.5.0");
+    expect(html).toContain(">Update now</button>");
+    expect(html).toContain(">Turn off</button>");
     expect(html).toContain(">Remove</button>");
+    expect(html).toContain(">Remove and forget…</button>");
     expect(html).toContain('aria-label="Bar items"');
     expect(html).toContain(">Open in Bar</button>");
+    // No version string stands in for the build, and nothing says "bundled".
+    expect(html).not.toContain("v1.4.2");
+    expect(html).not.toContain("bundled");
   });
-  it("the home: what needs you with its fix, what is in use with what it is set to, the rest as an index, the store card and the install field", () => {
-    const html = renderToStaticMarkup(<SettingsExtensions extensions={[...settingsExtensions, homeAssistant]} onSelect={noop} onChange={noop} onInstall={async () => {}} onUpdate={noop} onOpenStore={noop} bar={barItems} />);
+  it("the home: what needs you with its fix, what is in use, what is turned off, the rest as an index, Browse and the registries", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={[...withStore, homeAssistant]} onSelect={noop} onChange={noop} store={fakeStore()} bar={barItems} />);
     const section = (name: string) => html.slice(html.indexOf(`aria-label="${name}"`), html.indexOf("</section>", html.indexOf(`aria-label="${name}"`)));
-    expect(section("Needs you")).toContain("<b>GitHub</b>");
-    expect(section("Needs you")).toContain("<b>Home Assistant</b>");
-    expect(section("Needs you")).toContain(">Update</button>");
-    expect(section("Needs you")).toContain(">Set up</button>");
+    const needs = section("Needs you");
+    expect(needs).toContain("<b>GitHub</b>");
+    expect(needs).toContain("<b>Home Assistant</b>");
+    expect(needs).toContain(">Update</button>");
+    expect(needs).toContain(">Set up</button>");
+    // Every kind the store reports: failed, rolled back, pulled, too new, no longer listed, pending, a registry, left over, unlisted, turned off but pointed at.
+    for (const id of ["stats", "clipboard", "bookmarks", "weather", "hue", "pending:spotify", "registry:acme", "leftover:gmail", "unlisted:tan", "disabled:timer"]) expect(needs).toContain(`data-anchor="extensions:need:${id}"`);
+    expect(needs).toContain(">Update pal</button>");
+    expect(needs).toContain(">Retry</button>");
+    expect(needs).toContain(">Forget</button>");
+    expect(needs).toContain(">Add</button>");
+    expect(needs).toContain(">Turn on</button>");
     expect(section("In use")).toContain("Get more extensions");
+    expect(section("Turned off")).toContain("<b>Timer</b>");
+    expect(section("Turned off")).toContain('role="switch" aria-checked="false"');
     expect(section("Everything else")).toContain('placeholder="Find one"');
-    expect(html).toContain('class="pal-install__field"');
+    expect(section("Browse")).toContain("Comes with pal");
+    expect(section("Browse")).toContain(">Install</button>");
+    expect(section("Registries")).toContain("https://acme.github.io/pal/index.json");
+    expect(html).not.toContain('class="pal-install__field"');
     expect(html).not.toContain('class="pal-xpane__hero"');
   });
-  it("gives a built-in extension no footer and a store link", () => {
+  it("gives an extension that comes with pal Turn off and no Remove, and a store link", () => {
     const exts = settingsExtensions.map((e) => (e.name === "apps" ? { ...e, storeUrl: "https://pal.cagdas.io/extensions/apps" } : e));
-    const html = renderToStaticMarkup(<SettingsExtensions extensions={exts} selected="apps" onSelect={noop} onChange={noop} onUpdate={noop} onRemove={noop} onOpenLink={noop} />);
-    expect(html).not.toContain("pal-pane__foot");
-    expect(html).toContain("built in");
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={exts} selected="apps" onSelect={noop} onChange={noop} store={fakeStore()} onOpenLink={noop} />);
+    expect(html).toContain("Comes with pal");
+    expect(html).toContain(">Turn off</button>");
+    expect(html).not.toContain(">Remove</button>");
+    expect(html).not.toContain("Update now");
     expect(html).toContain(">Store page</button>");
+  });
+  it("without the store nothing can be done to an extension from its page", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} />);
+    expect(html).not.toContain("pal-pane__foot");
+    expect(html).not.toContain('aria-label="Browse"');
+  });
+  it("a turned-off extension's page says so and offers Turn on", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="timer" onSelect={noop} onChange={noop} store={fakeStore()} />);
+    expect(html).toContain("Turned off.");
+    expect(html).toContain(">Turn on</button>");
+    expect(html).toContain("None while it is turned off.");
+  });
+  it("a rolled-back update names its error on the page", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="clipboard" onSelect={noop} onChange={noop} store={fakeStore()} />);
+    expect(html).toContain("An update failed to load and was put back.");
+    expect(html).toContain("evaluating &#x27;row.icon&#x27;");
+  });
+  it("a listed extension that is not installed opens as its listing, with Install or why it cannot be", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="docker" onSelect={noop} onChange={noop} store={fakeStore()} />);
+    expect(html).toContain('class="pal-xpane__title">Docker</h3>');
+    expect(html).toContain("Not installed");
+    expect(html).toContain(">Install</button>");
+    expect(html).toContain("Containers</span>");
+    const dpi = renderToStaticMarkup(<SettingsExtensions extensions={withStore} selected="dpi" onSelect={noop} onChange={noop} store={fakeStore()} />);
+    expect(dpi).toContain("Not for this platform");
+    expect(dpi).not.toContain(">Install</button>");
   });
   it("calls out what is missing, the load error and the manifest warnings", () => {
     const html = renderToStaticMarkup(<SettingsExtensions extensions={[homeAssistant]} selected="home-assistant" onSelect={noop} onChange={noop} />);
@@ -140,10 +196,27 @@ describe("SettingsExtensions", () => {
     expect(count(html, /class="pal-xpane__shot"/g)).toBe(1);
     expect(html).toContain("<figcaption>Pull Requests</figcaption>");
   });
-  it("says so when there is nothing but the store card", () => {
-    const html = renderToStaticMarkup(<SettingsExtensions extensions={[]} onSelect={noop} onChange={noop} onInstall={async () => {}} onOpenStore={noop} />);
+  it("prefers the registry listing's screenshots on an extension's page", () => {
+    const state = { ...settingsStore, available: settingsStore.available.map((a) => (a.name === "github" ? { ...a, listing: { ...a.listing, screenshots: [{ url: "https://pal.cagdas.io/x/1.png", caption: "From the index" }, "https://pal.cagdas.io/x/2.png"] } } : a)) };
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={settingsExtensions} selected="github" onSelect={noop} onChange={noop} store={fakeStore(state)} />);
+    expect(count(html, /class="pal-xpane__shot"/g)).toBe(2);
+    expect(html).toContain("<figcaption>From the index</figcaption>");
+  });
+  it("says so when nothing is set up, and still offers more", () => {
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={[]} onSelect={noop} onChange={noop} store={fakeStore({ ...EMPTY_STORE })} />);
     expect(html).toContain("nothing set up yet");
     expect(html).toContain("Get more extensions");
+    expect(html).toContain("no registry has answered yet");
+  });
+  it("indexes Browse, Registries and every listed extension not installed", () => {
+    const idx = extensionsIndex(settingsExtensions, settingsStore.available);
+    expect(idx.find((e) => e.anchor === "extensions:browse")?.label).toBe("Browse extensions");
+    expect(idx.find((e) => e.anchor === "extensions:registries")?.label).toBe("Registries");
+    expect(idx.find((e) => e.anchor === "extensions:docker")?.hint).toContain("Not installed");
+    expect(idx.some((e) => e.anchor === "extensions:apps" && e.hint?.startsWith("Not installed"))).toBe(false);
+  });
+  it("Remove and forget's confirm says exactly what goes", () => {
+    expect(forgetText(settingsExtensions[2])).toBe("Deletes GitHub's folder and everything it kept: its settings in the config file ([extensions.github], its palettes' and bar items' tables, every instance), its stored data and cache, its search ranking, and its keychain secrets. A reinstall starts from nothing.");
   });
 });
 

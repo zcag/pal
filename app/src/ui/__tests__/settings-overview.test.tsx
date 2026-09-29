@@ -9,8 +9,8 @@ import { settingsExtensions } from "../../gallery/data";
 import { allGranted, barItems, homeAssistant, nothingGranted, otp } from "./settings-fixtures";
 
 const noop = () => {};
-/** The gallery's GitHub carries `latest`; without it nothing is pending. */
-const quiet = settingsExtensions.map((e) => ({ ...e, latest: undefined }));
+/** The gallery's GitHub has an update waiting; without its status nothing is pending. */
+const quiet = settingsExtensions.map((e) => ({ ...e, status: undefined }));
 const one = { hotkeys: [{ wanted: "ctrl+space", registered: true }], registered: true };
 const ok = { version: "0.1.0", hotkey: one, permissions: allGranted, extensions: quiet, bar: [], diagnostics: [] };
 
@@ -87,7 +87,9 @@ describe("overviewItems", () => {
     expect(youtube({ invidious_url: "https://yt.example" })).toEqual([]);
     // The fixture ships with pal: a fresh install lists no row for it.
     expect(overviewItems({ ...ok, extensions: [homeAssistant] })).toEqual([]);
-    const installed = { ...homeAssistant, bundled: false, repo: "github.com/x/ha" };
+    // Before the store answered where a copy came from, a default instance is not nagged about either.
+    expect(overviewItems({ ...ok, extensions: [{ ...homeAssistant, bundled: undefined }] })).toEqual([]);
+    const installed = { ...homeAssistant, bundled: false };
     const [item] = overviewItems({ ...ok, extensions: [installed] });
     expect(item.id).toBe("setup:home-assistant");
     expect(item.title).toBe("Home Assistant needs url and token");
@@ -134,6 +136,11 @@ describe("overviewItems", () => {
     const items = overviewItems({ ...ok, extensions: settingsExtensions });
     expect(items).toHaveLength(1);
     expect(items[0].action).toEqual({ label: "Update", updateExtension: "github" });
+    expect(items[0].title).toBe("GitHub: an update is ready");
+    expect(items[0].detail).toMatch(/^Build 3c4d5e6, \d+ \w{3} \d{4}; installed 9f8e7d6, \d+ \w{3} \d{4}\.$/);
+    // With auto-update on for its registry the core puts it in by itself: nothing to ask.
+    const auto = settingsExtensions.map((e) => (e.status?.state === "update" ? { ...e, status: { ...e.status, auto_update: true } } : e));
+    expect(overviewItems({ ...ok, extensions: auto })).toEqual([]);
   });
 });
 

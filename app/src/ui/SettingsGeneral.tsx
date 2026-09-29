@@ -23,6 +23,8 @@ export type SettingsGeneralProps = {
   onOpenOverview?: () => void;
   /** The theme file picker (`general.theme_file`), shown when given: `useThemeFile()` in Settings.tsx, a fixture in the gallery. */
   themeFile?: ThemeFileProps;
+  /** Opens a URL in the browser (the usage row's "What is sent"). */
+  onOpenLink?: (url: string) => void;
   /** The Shortcuts page, where the hotkey and the switcher chord went: the pointer at the top of this one. */
   onOpenShortcuts?: () => void;
 };
@@ -42,6 +44,9 @@ export const comboLabel = (s: string) => shortcutKeys(s).map((k) => (k === "␣"
 
 /** Every root hotkey for prose: "⌘Space, ⌃Space". */
 export const combosLabel = (list: string[]) => list.map(comboLabel).join(", ");
+
+/** What the usage switch sends, word for word. */
+export const USAGE_DOC = "https://pal.cagdas.io/docs/usage";
 
 const themes = [
   { id: "system", title: "System" },
@@ -71,6 +76,9 @@ const text = {
   backspace: { anchor: "general:backspace", hint: "Keyboard", label: "Backspace goes back", description: "With nothing typed, Backspace leaves the palette or level you are in, as cmd+backspace does; a row that uses Backspace itself (a folder's Go up) comes first.", keywords: "backspace back pop level keyboard escape" },
   login: { anchor: "general:login", hint: "Startup", label: "Launch at login", description: "The hotkey works from the moment you sign in. Either way pal relaunches itself after a crash; the report shows under About.", keywords: "autostart" },
   menubar: { anchor: "general:menubar", hint: "Startup", label: "Menu bar icon", description: "pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.", keywords: "tray" },
+  checkUpdates: { anchor: "general:check-updates", hint: "Updates", label: "Check for pal updates", description: "Once a day, and when the Overview opens. Off, only Check now looks.", keywords: "update release version new automatic" },
+  autoUpdate: { anchor: "general:auto-update", hint: "Updates", label: "Update extensions automatically", description: "A new build of an installed extension is put in place by itself, and put back if it fails to load. Off, each update waits under Settings › Extensions. A registry can have its own setting there.", keywords: "extensions store registry update automatic" },
+  usage: { anchor: "general:usage", hint: "Privacy", label: "Share anonymous usage", description: "Which extensions are installed and how often their palettes open, with a random id: never names, queries or files.", keywords: "privacy telemetry statistics analytics counts anonymous" },
   file: { anchor: "general:file", hint: "~/.config/pal/config.toml", label: "File", description: "Every setting in this window is a key in this file. Changing one here rewrites only that key, so your comments and formatting stay. Edit it by hand any time; pal picks the change up as you save.", keywords: "config toml edit reveal open editor" },
   frecency: { anchor: "general:frecency", hint: "Maintenance", label: "Search history", description: "What you picked, and for which query, ranks results. Forget all of it.", keywords: "reset ranking frecency" },
   host: { anchor: "general:host", hint: "Maintenance", label: "Extension host", description: "Every extension runs in one process. Restart it to reload them all from scratch.", keywords: "bun" },
@@ -89,7 +97,7 @@ export const generalIndex: SettingsIndexEntry[] = [
 ];
 
 /** pal's own settings: how it looks, how it starts, what the OS lets it do, and the file behind all of it; the keys are the Shortcuts page's. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, permissions, onRequestPermission, onOpenOverview, themeFile, onOpenShortcuts }: SettingsGeneralProps) {
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, permissions, onRequestPermission, onOpenOverview, themeFile, onOpenShortcuts, onOpenLink }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -149,6 +157,29 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           <SettingsSwitch checked={value.menuBarIcon} onChange={(v) => set("menuBarIcon", v)} label="Menu bar icon" />
         </SettingsRow>
       </SettingsGroup>
+
+      {(value.checkUpdates !== undefined || value.autoUpdate !== undefined) && (
+        <SettingsGroup title="Updates">
+          {value.checkUpdates !== undefined && (
+            <SettingsRow anchor={text.checkUpdates.anchor} label={text.checkUpdates.label} description={text.checkUpdates.description}>
+              <SettingsSwitch checked={value.checkUpdates} onChange={(v) => set("checkUpdates", v)} label={text.checkUpdates.label} />
+            </SettingsRow>
+          )}
+          {value.autoUpdate !== undefined && (
+            <SettingsRow anchor={text.autoUpdate.anchor} label={text.autoUpdate.label} description={text.autoUpdate.description}>
+              <SettingsSwitch checked={value.autoUpdate} onChange={(v) => set("autoUpdate", v)} label={text.autoUpdate.label} />
+            </SettingsRow>
+          )}
+        </SettingsGroup>
+      )}
+
+      {value.usage !== undefined && (
+        <SettingsGroup title="Privacy">
+          <SettingsRow anchor={text.usage.anchor} label={text.usage.label} description={<>{text.usage.description} {onOpenLink ? <button type="button" className="pal-link" onClick={() => onOpenLink(USAGE_DOC)}>What is sent</button> : <span>What is sent: {USAGE_DOC}</span>}</>}>
+            <SettingsSwitch checked={value.usage} onChange={(v) => set("usage", v)} label={text.usage.label} />
+          </SettingsRow>
+        </SettingsGroup>
+      )}
 
       <SettingsGroup title="Config file">
         <SettingsRow anchor={text.file.anchor} label={text.file.label} description={<>{text.file.description}{file.changed && <> Last picked up {relativeDate(file.changed)} ago.</>}</>}>

@@ -592,7 +592,6 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-meta-list { margin: var(--pal-space-3, 12px) 0 0; padding: var(--pal-space-1, 4px) var(--pal-space-3, 12px); background: var(--pal-bg-elevated, #26262d); border-radius: var(--pal-radius-tile, 10px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-meta-list .pal-meta { padding: var(--pal-space-2, 8px) 0; }
 .pal-meta-list .pal-meta + .pal-meta { border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
-.pal-extensions__latest { margin-left: var(--pal-space-2, 8px); color: var(--pal-tag-amber, #f0b25a); }
 
 /* The palettes table: pal's per-palette columns */
 .pal-table {
@@ -622,23 +621,6 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-table__row[data-disabled] .pal-table__name { color: var(--pal-fg-muted, #a3a4ae); }
 .pal-table__row[data-disabled] .pal-table__cell--name .pal-icon { opacity: 0.5; }
 
-/* Extensions: the install field over the two panes */
-.pal-extensions { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.pal-install { flex: none; padding: var(--pal-space-3, 12px) var(--pal-space-4, 16px); border-bottom: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
-.pal-install__field {
-  display: flex;
-  align-items: center;
-  gap: var(--pal-space-2, 8px);
-  height: var(--pal-settings-control-h, 30px);
-  padding: 0 3px 0 var(--pal-space-2, 8px);
-  border-radius: var(--pal-radius-control, 6px);
-  background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3));
-  box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08));
-}
-.pal-install__field:focus-within { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
-.pal-install__input { flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); caret-color: var(--pal-accent, #9f97ff); outline: none; }
-.pal-install__input::placeholder { color: var(--pal-fg-faint, #868794); font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif); }
-.pal-install__note { margin: var(--pal-space-2, 8px) 0 0; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
 
 /* About */
 .pal-about__hero { display: flex; flex-direction: column; align-items: center; padding: var(--pal-space-3, 12px) 0 var(--pal-space-5, 20px); text-align: center; }
@@ -850,7 +832,6 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xpane__tagline { margin: 2px 0 0; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
 .pal-xpane__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-1, 4px) var(--pal-space-3, 12px); margin: var(--pal-space-1, 4px) 0 0; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-xpane__meta .pal-tag { --pal-tag-h: 16px; }
-.pal-xpane__latest { color: var(--pal-tag-amber, #f0b25a); }
 .pal-xpane__hero > .pal-button { flex: none; }
 .pal-xpane__shots { display: flex; gap: var(--pal-space-2, 8px); margin: var(--pal-space-3, 12px) calc(var(--pal-space-5, 20px) * -1) 0; padding: 0 var(--pal-space-5, 20px) var(--pal-space-1, 4px); overflow-x: auto; scroll-snap-type: x proximity; }
 /* A shot is 42% of the pane, 200 to 300px wide, at the panel's 50:31: a wider window shows more of each. */
@@ -1125,7 +1106,6 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xrest span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pal-xrest:hover { background: var(--pal-bg-elevated, #26262d); color: var(--pal-fg, #ececf0); }
 .pal-xrest[data-dim] { opacity: 0.5; }
-.pal-xhome .pal-install { margin-top: var(--pal-space-5, 20px); }
 .pal-xpage { --pal-settings-measure: 720px; --pal-settings-label-w: 140px; }
 .pal-xpage__back { display: block; margin-bottom: var(--pal-space-3, 12px); padding: 2px 0; border: 0; background: none; color: var(--pal-accent, #9f97ff); font: inherit; font-size: var(--pal-text-sm, 12px); cursor: pointer; }
 .pal-xpage .pal-pane__foot { margin-top: var(--pal-space-4, 16px); padding: var(--pal-space-3, 12px) 0 0; }
@@ -1140,3 +1120,58 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xcard, .pal-xneed { --pal-grid-tile: 36px; --pal-icon-box: 36px; --pal-icon-glyph: 20px; --pal-icon-emoji: 22px; }
 .pal-xcard .pal-icon, .pal-xneed .pal-icon { flex: none; }
 .pal-xpage__back { text-align: left; }
+
+/* Extensions: what the store says. A Needs you row with no page of its own (a registry) has a dot for a tile; a leftover's two fixes sit side by side. */
+.pal-xneed__open:disabled { cursor: default; }
+.pal-xneed__text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; line-height: 1.35; }
+.pal-xneed > .pal-button { flex: none; }
+.pal-xneed__dot { flex: none; position: relative; width: 36px; height: 36px; border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
+.pal-xneed__dot::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: var(--pal-tag-amber, #f0b25a); }
+.pal-xneed[data-tone="bad"] .pal-xneed__dot::after { background: var(--pal-destructive, #ff6e66); }
+.pal-xhome__act { margin-left: auto; align-self: center; }
+.pal-xhome__off { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--pal-space-2, 8px); }
+.pal-xoff { display: flex; align-items: center; gap: var(--pal-space-2, 8px); padding: var(--pal-space-2, 8px) var(--pal-space-3, 12px); border-radius: var(--pal-radius-tile, 10px); box-shadow: inset 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xoff .pal-xneed__open .pal-icon { flex: none; opacity: 0.6; }
+.pal-xoff .pal-switch { flex: none; }
+
+/* Browse: the categories as small toggles, then one row per listed extension: tile, title and tagline, where it comes from, its button. */
+.pal-xbrowse__cats { display: flex; flex-wrap: wrap; gap: var(--pal-space-1, 4px); margin: 0 0 var(--pal-space-2, 8px); padding: 0 var(--pal-space-1, 4px); }
+.pal-settings .pal-xbrowse__cats .pal-button[aria-pressed="true"] { background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16)); color: var(--pal-accent, #9f97ff); box-shadow: none; }
+.pal-xbrowse__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 2px var(--pal-space-3, 12px); }
+.pal-xbrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; padding: 5px 6px; border-radius: var(--pal-radius-control, 6px); }
+.pal-xbrow:hover { background: var(--pal-bg-elevated, #26262d); }
+.pal-xbrow__open { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--pal-space-2, 8px); padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pal-xbrow__open .pal-icon { flex: none; }
+.pal-xbrow__text { min-width: 0; display: flex; flex-direction: column; }
+.pal-xbrow__text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--pal-weight-medium, 500); }
+.pal-xbrow__text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xbrow[data-installed] .pal-xbrow__text b { color: var(--pal-fg-muted, #a3a4ae); font-weight: var(--pal-weight-regular, 400); }
+.pal-xbrow__from { flex: none; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xbrow > .pal-button { flex: none; }
+.pal-xbrow__blocked { flex: none; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xbrow__error { flex-basis: 100%; margin: 0; padding-left: 32px; color: var(--pal-destructive, #ff6e66); font-size: var(--pal-text-xs, 11px); }
+.pal-xbrowse__foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pal-space-1, 4px) var(--pal-space-3, 12px); margin: var(--pal-space-2, 8px) 0 0; padding: 0 var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xbrowse__foot code { font-family: var(--pal-font-mono, ui-monospace, monospace); }
+
+/* Registries: a card of rows, each with its URL, how the last check went, its channel, its switch and Remove. */
+.pal-xregs { list-style: none; margin: 0; padding: var(--pal-space-1, 4px) var(--pal-space-3, 12px); border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xreg { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px) var(--pal-space-3, 12px); padding: var(--pal-space-2, 8px) 0; }
+.pal-xreg + .pal-xreg { border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xreg__text { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pal-xreg__text b { font-weight: var(--pal-weight-semibold, 600); }
+.pal-xreg__url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-muted, #a3a4ae); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
+.pal-xreg__line { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xreg[data-failed] .pal-xreg__line { color: var(--pal-destructive, #ff6e66); }
+.pal-xreg__auto { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
+.pal-xreg .pal-select, .pal-xreg .pal-button { flex: none; }
+.pal-xregs__add { margin-top: var(--pal-space-2, 8px); }
+.pal-xregs__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--pal-space-2, 8px) var(--pal-space-3, 12px); margin-top: var(--pal-space-2, 8px); padding: var(--pal-space-3, 12px); border-radius: var(--pal-radius-control, 6px); background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-xregs__form > .pal-instances__field { flex: 1 1 240px; }
+.pal-xregs__form > .pal-instances__note, .pal-xregs__form > .pal-xregs__preview { flex-basis: 100%; margin: 0; }
+.pal-xregs__preview { padding: var(--pal-space-2, 8px) var(--pal-space-3, 12px); border-radius: var(--pal-radius-tag, 4px); background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16)); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-xregs__preview code { font-family: var(--pal-font-mono, ui-monospace, monospace); }
+
+/* An extension's page: the listing's description, and Remove and forget's confirm over the foot. */
+.pal-xpane__desc { margin: var(--pal-space-3, 12px) 0 0; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-xforget { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-4, 16px); padding: var(--pal-space-3, 12px); border-left: 3px solid var(--pal-destructive, #ff6e66); border-radius: var(--pal-radius-tag, 4px); background: var(--pal-destructive-soft, rgba(255, 110, 102, 0.12)); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-xforget p { margin: 0; }

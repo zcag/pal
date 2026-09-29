@@ -156,8 +156,9 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
 import { lookDefaults, type BarConfig, type BarItem, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PermissionsStatus, type SettingSpec, type SettingsExtension } from "../ui/SettingsTypes";
+import type { Listing, StoreState } from "../store";
 
-export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", backspaceBack: true };
+export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
 /** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
 /** Every entry's fate as the gallery's General page fakes it: ⌘Space is Spotlight's, anything else registers. */
 export const settingsHotkeyStatus = (hotkeys: string[]): HotkeyStatus => {
@@ -168,6 +169,73 @@ export const settingsPermissions: PermissionsStatus = { accessibility: false };
 
 export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 2 * 60e3 };
 
+/** A build of the fixture registry: `seq` days ago, unix seconds. */
+const build = (hash: string, daysAgo: number) => ({ hash, seq: Math.floor((now - daysAgo * d) / 1000), protocol: 3, commit: hash.slice(0, 12), url: `https://pal.cagdas.io/registry/pkg/x/${hash}.tar.gz`, manifest: "", sig: "" });
+const info = (hash: string, daysAgo: number) => { const { hash: h, seq, protocol, commit } = build(hash, daysAgo); return { hash: h, seq, protocol, commit }; };
+const listing = (title: string, tagline: string, category: string, glyph: string, bg: string, palettes: string[] = [title], extra: Partial<Listing> = {}): Listing => ({
+  title, tagline, description: `${tagline}.`, category, keywords: [], icon: { tile: { glyph, bg } }, author: "pal", platforms: null, play: category === "fun",
+  palettes: palettes.map((p) => ({ id: p.toLowerCase(), title: p, kind: category === "fun" ? "view" : "list" })), screenshots: [], requires: [], suggests: [], ...extra,
+});
+
+/**
+ * The store as Settings › Extensions reads it, with every kind of Needs you
+ * row: an update that waits (auto-update off for pal's registry here), a
+ * pulled build with its replacement, a rolled-back update, one that needs a
+ * newer pal, one no longer listed, a pending install, a registry that
+ * failed, config left over from Gmail, a store folder not in the list, and
+ * Timer turned off while its hotkey and bar item still point at it.
+ */
+export const settingsStore: StoreState = {
+  auto_update: false,
+  usage: true,
+  registries: [
+    { name: "pal", url: "https://pal.cagdas.io/registry/index.json", channel: "stable", auto_update: false, key: "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3", count: 47, generated_at: "2026-09-29T12:00:00Z", last_checked: Math.floor((now - 5 * 60e3) / 1000), last_ok: Math.floor((now - 5 * 60e3) / 1000), ours: true },
+    { name: "acme", url: "https://acme.github.io/pal/index.json", channel: "edge", auto_update: true, key: "RWTacmeacmeacmeacmeacmeacmeacmeacmeacmeacmeacmeacme", count: 3, last_checked: Math.floor((now - 3 * 60e3) / 1000), last_ok: Math.floor((now - 2 * h) / 1000), last_error: "unreachable: connection refused", ours: false },
+  ],
+  statuses: [
+    { name: "apps", origin: "bundled", registry: "pal", installed: info("a1b2c3d4e5f6a7b8", 12), auto_update: false, state: "up_to_date" },
+    { name: "bookmarks", origin: "store", registry: "acme", installed: info("b0b0b0b0b0b0b0b0", 20), auto_update: true, state: "yanked", replacement: build("b1b1b1b1b1b1b1b1", 1) },
+    { name: "github", origin: "store", registry: "pal", installed: info("9f8e7d6c5b4a3928", 9), auto_update: false, state: "update", to: build("3c4d5e6f7a8b9c0d", 2) },
+    { name: "clipboard", origin: "store", registry: "pal", installed: info("c1c1c1c1c1c1c1c1", 6), auto_update: false, state: "up_to_date" },
+    { name: "weather", origin: "store", registry: "pal", installed: info("e1e1e1e1e1e1e1e1", 30), auto_update: false, state: "needs_newer_pal", protocol: 4 },
+    { name: "hue", origin: "store", registry: "acme", installed: info("f1f1f1f1f1f1f1f1", 40), auto_update: true, state: "no_longer_listed", why: "acme no longer lists it" },
+    { name: "stats", origin: "store", registry: "pal", installed: info("d1d1d1d1d1d1d1d1", 3), auto_update: false, state: "up_to_date" },
+    { name: "timer", origin: "bundled", registry: "pal", installed: info("7171717171717171", 12), auto_update: false, state: "up_to_date" },
+    { name: "tan", origin: "store", registry: null, installed: null, auto_update: false, state: "source" },
+  ],
+  available: [
+    { name: "apps", registry: "pal", listing: listing("Applications", "Every app, launched by name", "system", "\u{f003b}", "slate"), installed: true, bundled: true, installable: true, build: info("a1b2c3d4e5f6a7b8", 12) },
+    { name: "timer", registry: "pal", listing: listing("Timer", "Countdowns on the bar", "productivity", "\u{f0954}", "amber"), installed: true, bundled: true, installable: true, build: info("7171717171717171", 12) },
+    { name: "github", registry: "pal", listing: listing("GitHub", "Pull requests, issues and repositories", "developer", "", "ink", ["Pull requests", "Issues", "Repositories"]), installed: true, bundled: false, installable: true, build: info("3c4d5e6f7a8b9c0d", 2) },
+    { name: "weather", registry: "pal", listing: listing("Weather", "The forecast where you are", "reference", "\u{f0599}", "cyan"), installed: true, bundled: false, installable: false, blocked: "needs pal with protocol 4" },
+    { name: "spotify", registry: "pal", listing: listing("Spotify", "What is playing, and search to play", "media", "\u{f04c7}", "green", ["Spotify", "Search Spotify"]), installed: false, bundled: false, installable: true, build: info("5p5p5p5p5p5p5p5p", 4) },
+    { name: "gmail", registry: "pal", listing: listing("Gmail", "Your inbox, read and archived from the panel", "integration", "\u{f02ab}", "red", ["Inbox", "Search mail"]), installed: false, bundled: false, installable: true, build: info("6m6m6m6m6m6m6m6m", 8) },
+    { name: "2048", registry: "pal", listing: listing("2048", "Slide the tiles, make 2048", "fun", "\u{f0b64}", "orange"), installed: false, bundled: false, installable: true, build: info("2048204820482048", 15) },
+    { name: "wordle", registry: "pal", listing: listing("Wordle", "The daily five-letter word", "fun", "\u{f0b3a}", "green"), installed: false, bundled: false, installable: true, build: info("w0w0w0w0w0w0w0w0", 15) },
+    { name: "docker", registry: "pal", listing: listing("Docker", "Containers and images: start, stop, logs", "developer", "\u{f0868}", "blue", ["Containers", "Images"]), installed: false, bundled: false, installable: true, build: info("d0d0d0d0d0d0d0d0", 22) },
+    { name: "dpi", registry: "pal", listing: listing("DPI", "Display scaling in one keystroke", "system", "\u{f0379}", "teal"), installed: false, bundled: false, installable: false, blocked: "not for this platform" },
+    { name: "todo", registry: "acme", listing: listing("Todo", "A plain list of things to do", "productivity", "\u{f0134}", "violet", ["Todo"], { author: "acme" }), installed: false, bundled: false, installable: true, build: info("7d7d7d7d7d7d7d7d", 5) },
+  ],
+  pending: [{ name: "spotify", registry: "pal", error: "offline: pal.cagdas.io is not reachable", since: Math.floor((now - 3 * h) / 1000) }],
+  rolled_back: [{ name: "clipboard", hash: "c2c2c2c2c2c2c2c2", error: "TypeError: undefined is not an object (evaluating 'row.icon')", at: Math.floor((now - d) / 1000) }],
+  unlisted: ["tan"],
+  disabled: ["timer"],
+  leftovers: [{ name: "gmail", refs: [{ kind: "hotkey", what: "palettes.gmail hotkey ctrl+alt+g" }, { kind: "bar", what: "bar.items.\"gmail/unread\"" }, { kind: "config", what: "[extensions.gmail]" }] }],
+  busy: [],
+};
+const statusOf = (name: string) => settingsStore.statuses.find((s) => s.name === name);
+
+/** The extensions only the Extensions page fixture adds (a failed load, one too new, one no longer listed, one turned off, a hand-made one): kept out of `settingsExtensions`, which other pages' tests count. */
+export const storeExtensions: SettingsExtension[] = [
+  { name: "weather", key: "weather", title: "Weather", description: "The forecast where you are.", icon: { kind: "tile", bg: "cyan", glyph: "\u{f0599}" }, version: "0.1.0", bundled: false, status: statusOf("weather"), settings: [], values: {}, loaded: true, palettes: [{ id: "weather", title: "Weather", settings: [], config: { enabled: true, settings: {} } }] },
+  { name: "hue", key: "hue", title: "Hue", description: "Lights and scenes.", icon: { kind: "tile", bg: "amber", glyph: "\u{f0335}" }, version: "0.1.0", bundled: false, status: statusOf("hue"), settings: [], values: {}, loaded: true, palettes: [{ id: "hue", title: "Hue", settings: [], config: { enabled: true, settings: {} } }] },
+  { name: "stats", key: "stats", title: "Stats", description: "CPU, memory and network at a glance.", icon: { kind: "tile", bg: "teal", glyph: "\u{f0128}" }, version: "0.1.0", bundled: false, status: statusOf("stats"), settings: [], values: {}, loaded: false, error: "SyntaxError: Unexpected token '}' at index.ts:41", palettes: [] },
+  { name: "timer", key: "timer", title: "Timer", description: "Countdowns on the bar.", tagline: "Countdowns on the bar", icon: { kind: "tile", bg: "amber", glyph: "\u{f0954}" }, version: "0.1.0", bundled: true, status: statusOf("timer"), disabled: true, settings: [], values: {}, loaded: false, palettes: [] },
+  { name: "tan", key: "tan", title: "tan", description: "A hand-made extension in the store folder.", icon: { kind: "tile", bg: "slate", glyph: "t" }, version: "", bundled: false, status: statusOf("tan"), settings: [], values: {}, loaded: true, palettes: [{ id: "tan", title: "tan", settings: [], config: { enabled: true, settings: {} } }] },
+];
+/** What the Timer's config still points at while it is off. */
+export const storeReferences: Record<string, string[]> = { timer: ["the hotkey ctrl+alt+t", "the bar item timer/timer"] };
+
 export const settingsExtensions: SettingsExtension[] = [
   {
     name: "apps",
@@ -176,7 +244,8 @@ export const settingsExtensions: SettingsExtension[] = [
     description: "Installed apps and system settings panes, with their real icons.",
     icon: { kind: "tile", bg: "slate", glyph: "\u{f003b}" },
     version: "0.1.0",
-    repo: "bundled",
+    bundled: true,
+    status: statusOf("apps"),
     installed: now - 30 * d,
     settings: [
       { kind: "list", id: "folders", label: "Extra folders", description: "Scanned in addition to /Applications and ~/Applications.", placeholder: "/path/to/apps", default: [] },
@@ -195,6 +264,8 @@ export const settingsExtensions: SettingsExtension[] = [
     icon: { kind: "tile", bg: "orange", glyph: "\u{f00c0}" },
     version: "2.1.0",
     repo: "github.com/zcag/pal-browser",
+    bundled: false,
+    status: statusOf("bookmarks"),
     installed: now - 12 * d,
     settings: [
       { kind: "select", id: "browser", label: "Browser", options: [{ id: "chrome", title: "Google Chrome" }, { id: "firefox", title: "Firefox" }, { id: "safari", title: "Safari" }], default: "chrome" },
@@ -219,7 +290,8 @@ export const settingsExtensions: SettingsExtension[] = [
     description: "Pull requests, issues and repositories you can see with the token you give it.",
     icon: { kind: "tile", bg: "ink", glyph: "\uf408" },
     version: "1.4.2",
-    latest: "1.5.0",
+    bundled: false,
+    status: statusOf("github"),
     repo: "github.com/zcag/pal-github",
     installed: now - 5 * d,
     settings: [
@@ -247,7 +319,8 @@ export const settingsExtensions: SettingsExtension[] = [
     description: "Pull requests, issues and repositories you can see with the token you give it.",
     icon: { kind: "tile", bg: "violet", glyph: "\uf408", badge: "W" },
     version: "1.4.2",
-    latest: "1.5.0",
+    bundled: false,
+    status: statusOf("github"),
     repo: "github.com/zcag/pal-github",
     installed: now - 5 * d,
     settings: [
@@ -275,6 +348,8 @@ export const settingsExtensions: SettingsExtension[] = [
     icon: { kind: "tile", bg: "violet", glyph: "\u{f014d}" },
     version: "0.9.4",
     repo: "github.com/zcag/pal-clipboard",
+    bundled: false,
+    status: statusOf("clipboard"),
     installed: now - 20 * d,
     settings: [
       { kind: "number", id: "history", label: "History", description: "Older entries are dropped.", min: 10, max: 5000, step: 10, unit: "entries", default: 200 },

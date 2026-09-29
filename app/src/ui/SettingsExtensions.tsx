@@ -4,22 +4,24 @@ import { BRAND } from "./icons";
 import { Tag } from "./Row";
 import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
 import { ExtensionPalettes, type SettingsPalettesProps } from "./SettingsPalettes";
+import { availableOf, Browse, buildLine, ListingPane, listingIcon, needsOf, originLine, Registries, screenshotsOf, Shots, statusText, targetOf, updatesLine, type ExtensionsStore, type InstallState, type Need } from "./SettingsStore";
 import { badgedIcon, type BarItem, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
+import { flashAnchor } from "./SettingsWindow";
 import type { Brand } from "./types";
-import { relativeDate } from "./format";
+import { EMPTY_STORE, type Available } from "../store";
 
 export type SettingsExtensionsProps = {
   /** One entry per instance key; the list shows one row per extension name and the pane every instance of it. */
   extensions: SettingsExtension[];
-  /** The extension whose page is open (its name); none is the page's home. */
+  /** The extension whose page is open (its name: installed, or only listed by a registry); none is the page's home. */
   selected?: string;
   onSelect: (name: string | undefined) => void;
   /** The bar items, for what an extension has on the bar (its line on the home, its page's Bar items). */
   bar?: BarItem[];
   /** A bar item's pane on the Bar page. */
   onOpenBarItem?: (key: string) => void;
-  /** "Get more extensions": the Store palette, or the website. */
-  onOpenStore?: () => void;
+  /** The registries, the update check and every install, update, remove and switch; the page has no Browse, Registries or store rows without it. */
+  store?: ExtensionsStore;
   /** The instance whose settings the pane shows (a key); the default when unset. */
   selectedInstance?: string;
   onSelectInstance?: (key: string) => void;
@@ -33,10 +35,6 @@ export type SettingsExtensionsProps = {
   onInstanceRemove?: (key: string) => Promise<void>;
   /** `[instances.<key>] enabled`: parked or back. */
   onInstanceEnabled?: (key: string, enabled: boolean) => void;
-  /** Install from a spec (a github:user/repo[/subdir][@ref] or a github.com URL, a path). Rejects with the reason. */
-  onInstall?: (spec: string) => Promise<void>;
-  onUpdate?: (name: string) => Promise<void> | void;
-  onRemove?: (name: string) => Promise<void> | void;
   /** Opens a URL in the browser; the source link is plain text without it. */
   onOpenLink?: (url: string) => void;
   /** The palette unfolded under its row on the pane (its id), and the fold. */
@@ -48,14 +46,21 @@ export type SettingsExtensionsProps = {
   paletteItems?: SettingsPalettesProps["items"];
 };
 
-/** The search index: the extension once per name, its settings once per instance (`extensions:gmail@work:token`). */
-export const extensionsIndex = (extensions: SettingsExtension[]): SettingsIndexEntry[] =>
-  extensions.flatMap((e) => [
-    ...(e.instance && !e.instance.isDefault
-      ? [{ page: "extensions" as const, label: e.title, hint: `Instance of ${e.extTitle ?? e.name}`, anchor: `extensions:${e.key}`, keywords: `${e.key} ${e.instance.suffix ?? ""} instance account` }]
-      : [{ page: "extensions" as const, label: e.extTitle ?? e.title, hint: e.tagline ?? e.description ?? `Extension ${e.version}`, anchor: `extensions:${e.name}`, keywords: `${e.name} extension ${e.author ?? ""}` }]),
-    ...e.settings.map((s) => ({ page: "extensions" as const, label: s.label, hint: `${e.title} setting`, anchor: `extensions:${e.key}:${s.id}`, keywords: `${s.description ?? ""} ${e.key}` })),
-  ]);
+/** The search index: the extension once per name, its settings once per instance (`extensions:gmail@work:token`), Browse and Registries, and every listed extension not installed, which opens its page. */
+export const extensionsIndex = (extensions: SettingsExtension[], available: Available[] = []): SettingsIndexEntry[] => {
+  const have = new Set(extensions.map((e) => e.name));
+  return [
+    ...extensions.flatMap((e) => [
+      ...(e.instance && !e.instance.isDefault
+        ? [{ page: "extensions" as const, label: e.title, hint: `Instance of ${e.extTitle ?? e.name}`, anchor: `extensions:${e.key}`, keywords: `${e.key} ${e.instance.suffix ?? ""} instance account` }]
+        : [{ page: "extensions" as const, label: e.extTitle ?? e.title, hint: e.tagline ?? e.description ?? "Extension", anchor: `extensions:${e.name}`, keywords: `${e.name} extension ${e.author ?? ""}` }]),
+      ...e.settings.map((s) => ({ page: "extensions" as const, label: s.label, hint: `${e.title} setting`, anchor: `extensions:${e.key}:${s.id}`, keywords: `${s.description ?? ""} ${e.key}` })),
+    ]),
+    { page: "extensions", label: "Browse extensions", hint: "Install from a registry", anchor: "extensions:browse", keywords: "store install get more new download catalog" },
+    { page: "extensions", label: "Registries", hint: "Where extensions come from", anchor: "extensions:registries", keywords: "registry add key trust channel edge stable source index auto-update" },
+    ...available.filter((a) => !a.installed && !have.has(a.name)).map((a) => ({ page: "extensions" as const, label: a.listing.title || a.name, hint: `Not installed: ${a.listing.tagline}`, anchor: `extensions:${a.name}`, keywords: `${a.name} ${a.listing.keywords.join(" ")} install` })),
+  ];
+};
 
 /** One row per extension name: the default instance's entry, else the first of the name. */
 export const byName = (extensions: SettingsExtension[]): SettingsExtension[] => {
@@ -67,11 +72,12 @@ export const byName = (extensions: SettingsExtension[]): SettingsExtension[] => 
   return [...seen.values()];
 };
 
-const repoHref = (repo: string) => (repo === "bundled" || !repo.includes(".") ? undefined : `https://${repo.replace(/^https?:\/\//, "")}`);
+/** The manifest's `repo` as a link, when it is one. */
+const repoHref = (repo: string | undefined) => (!repo || !repo.includes(".") ? undefined : `https://${repo.replace(/^https?:\/\//, "")}`);
 
 /** What an extension is set to, in a line: a couple of its values, its accounts, what it has on the bar, the words that open its palettes. */
 function factsOf(e: SettingsExtension, all: SettingsExtension[], bar: BarItem[]): string[] {
-  const short = (v: string) => (v.length > 34 ? `${v.slice(0, 33)}\u2026` : v);
+  const short = (v: string) => (v.length > 34 ? `${v.slice(0, 33)}…` : v);
   const shown = (v: unknown) => (Array.isArray(v) ? (v.length ? `${v.slice(0, 3).join(", ")}${v.length > 3 ? ` +${v.length - 3}` : ""}` : "none") : typeof v === "boolean" ? (v ? "on" : "off") : String(v));
   const facts = e.settings.filter((s) => s.kind !== "secret" && !/command/i.test(s.id) && e.values[s.id] !== undefined).slice(0, 2).map((s) => {
     const v = e.values[s.id];
@@ -88,63 +94,72 @@ function factsOf(e: SettingsExtension, all: SettingsExtension[], bar: BarItem[])
 }
 const nameOf = (key: string) => key.split("@")[0];
 
-/** Why an extension is in Needs you, and the one button that fixes it. */
-type Need = { e: SettingsExtension; tone: "bad" | "warn" | "update"; line: string; fix: string };
-function needOf(e: SettingsExtension, all: SettingsExtension[]): Need | undefined {
-  const inst = instancesOf(e, all);
-  const failed = inst.find((i) => i.error);
-  if (failed) return { e, tone: "bad", line: "Failed to load", fix: "Open" };
-  const setup = inst.find((i) => i.loaded !== false && needsSetup(i).length);
-  if (setup) return { e, tone: "warn", line: `Set ${needsSetup(setup).map((s) => s.label.toLowerCase()).join(", ")}${setup.key !== e.key ? ` (${setup.instance?.title ?? setup.key})` : ""}`, fix: "Set up" };
-  if (e.latest) return { e, tone: "update", line: `${e.latest} is out`, fix: "Update" };
-  if (inst.some((i) => i.warnings?.length)) return { e, tone: "warn", line: "Its manifest has warnings", fix: "Open" };
-  return undefined;
-}
+/** What a button press is doing, per row: the label it shows meanwhile. */
+type Busy = Record<string, string>;
 
 /**
  * Settings › Extensions: the page's home is ordered by what you come here
- * to do. What needs you first (a failure, a missing token, an update,
- * each with its one fix), then what is in use (set up, on the bar, or
- * with more than one account; a line says what each is set to), then an
- * index of the rest at their defaults, with a card to get more. An
- * extension opens as a page of its own: the store's head, its accounts,
- * its settings, its palettes, its bar items.
+ * to do. What needs you first (a failure, a missing token, an update that
+ * waits, a pending install, a registry that failed, config left over; each
+ * with its fix), then what is in use (set up, on the bar, or with more than
+ * one account; a line says what each is set to), what is turned off, an
+ * index of the rest at their defaults, then Browse (every extension the
+ * registries list, installable in place) and the registries themselves.
+ * An extension opens as a page of its own: the store's head, its accounts,
+ * its settings, its palettes, its bar items, and what can be done to it; a
+ * listed one not installed opens as its listing with Install.
  */
-export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onInstall, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem, onOpenStore }: SettingsExtensionsProps) {
+export function SettingsExtensions({ extensions, selected, onSelect, selectedInstance, onSelectInstance, onChange, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem, store }: SettingsExtensionsProps) {
   const rows = byName(extensions);
   const current = rows.find((e) => e.name === selected);
-  /** What the last button press is doing, per extension, and how it ended. */
-  const [busy, setBusy] = useState<Record<string, "updating" | "removing">>({});
+  const [busy, setBusy] = useState<Busy>({});
   const [failed, setFailed] = useState<Record<string, string>>({});
+  const [installing, setInstalling] = useState<Record<string, InstallState>>({});
   const [query, setQuery] = useState("");
-  const act = async (name: string, what: "updating" | "removing", f?: (name: string) => Promise<void> | void) => {
+  /** Runs `f` for the row `id`, its button saying `label` meanwhile; a failure stays under the row until the next try. */
+  const act = async (id: string, label: string, f?: () => Promise<void> | void) => {
     if (!f) return;
-    setBusy((b) => ({ ...b, [name]: what }));
-    setFailed(({ [name]: _, ...rest }) => rest);
+    setBusy((b) => ({ ...b, [id]: label }));
+    setFailed(({ [id]: _, ...rest }) => rest);
     try {
-      await f(name);
+      await f();
     } catch (e) {
-      setFailed((x) => ({ ...x, [name]: String(e) }));
+      setFailed((x) => ({ ...x, [id]: String(e) }));
     } finally {
-      setBusy(({ [name]: _, ...rest }) => rest);
+      setBusy(({ [id]: _, ...rest }) => rest);
     }
   };
+  const install = async (name: string, registry: string | null) => {
+    if (!store) return;
+    setInstalling((s) => ({ ...s, [name]: { kind: "busy" } }));
+    try {
+      await store.install(name, registry);
+      setInstalling((s) => ({ ...s, [name]: { kind: "done" } }));
+    } catch (e) {
+      setInstalling((s) => ({ ...s, [name]: { kind: "error", message: String(e) } }));
+    }
+  };
+  const state = store?.state;
 
   if (current) {
+    const name = current.name;
+    const target = targetOf(current.status);
     return (
       <div className="pal-settings-page pal-xpage">
-        <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"\u2039"} Extensions</button>
+        <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"‹"} Extensions</button>
         <ExtensionPane
-          key={current.name}
+          key={name}
           ext={current}
           instances={instancesOf(current, extensions)}
           selectedInstance={selectedInstance}
           onSelectInstance={onSelectInstance}
-          busy={busy[current.name]}
-          failed={failed[current.name]}
+          busy={busy[name]}
+          failed={failed[name]}
+          store={store}
           onChange={onChange}
-          onUpdate={onUpdate && (() => act(current.name, "updating", onUpdate))}
-          onRemove={onRemove && (() => act(current.name, "removing", onRemove))}
+          onUpdate={store && target ? () => act(name, "Updating…", () => store.update([name])) : undefined}
+          onDisabled={store ? (off) => act(name, off ? "Turning off…" : "Turning on…", () => store.setDisabled(name, off)) : undefined}
+          onRemove={store && current.status?.origin === "store" ? (forget) => act(name, "Removing…", async () => { await store.remove(name, forget); onSelect(undefined); }) : undefined}
           onOpenLink={onOpenLink}
           openPalette={openPalette}
           onOpenPalette={onOpenPalette}
@@ -154,22 +169,65 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
           onInstanceRename={onInstanceRename}
           onInstanceRemove={onInstanceRemove}
           onInstanceEnabled={onInstanceEnabled}
-          bar={bar.filter((b) => nameOf(b.extension) === current.name)}
+          bar={bar.filter((b) => nameOf(b.extension) === name)}
           onOpenBarItem={onOpenBarItem}
         />
       </div>
     );
   }
+  const listed = store && selected ? availableOf(store.state, selected) : undefined;
+  if (store && listed) {
+    const off = store.state.disabled.includes(listed.name);
+    return (
+      <div className="pal-settings-page pal-xpage">
+        <button type="button" className="pal-xpage__back" onClick={() => onSelect(undefined)}>{"‹"} Extensions</button>
+        <ListingPane
+          key={listed.name}
+          a={listed}
+          store={store}
+          busy={installing[listed.name]}
+          onInstall={() => install(listed.name, listed.registry)}
+          extra={off && (
+            <p className="pal-callout">
+              <strong>Turned off.</strong> It is installed and does not load; its settings stay. <button type="button" className="pal-button" data-small disabled={!!busy[listed.name]} onClick={() => act(listed.name, "Turning on…", () => store.setDisabled(listed.name, false))}>{busy[listed.name] ?? "Turn on"}</button>
+              {failed[listed.name] && <span role="alert"> {failed[listed.name]}</span>}
+            </p>
+          )}
+        />
+      </div>
+    );
+  }
 
-  const needs = rows.map((e) => needOf(e, extensions)).filter((n): n is Need => !!n);
-  const needy = new Set(needs.map((n) => n.e.name));
-  const facts = new Map(rows.map((e) => [e.name, factsOf(e, extensions, bar)]));
-  const inUse = rows.filter((e) => !needy.has(e.name) && facts.get(e.name)!.length);
+  // Without the store only what the extensions themselves say (a failure, a missing setting, warnings) needs you.
+  const needs = needsOf(rows, extensions, state ?? EMPTY_STORE, store?.references);
+  const needy = new Set(needs.filter((n) => n.id === n.name).map((n) => n.name));
+  const on = rows.filter((e) => !e.disabled);
+  const facts = new Map(on.map((e) => [e.name, factsOf(e, extensions, bar)]));
+  const inUse = on.filter((e) => !needy.has(e.name) && facts.get(e.name)!.length);
   const used = new Set(inUse.map((e) => e.name));
   const q = query.trim().toLowerCase();
-  const rest = rows.filter((e) => !needy.has(e.name) && !used.has(e.name) && (!q || `${e.extTitle ?? e.title} ${e.name} ${e.tagline ?? e.description}`.toLowerCase().includes(q)));
+  const rest = on.filter((e) => !needy.has(e.name) && !used.has(e.name) && (!q || `${e.extTitle ?? e.title} ${e.name} ${e.tagline ?? e.description}`.toLowerCase().includes(q)));
+  // Turned off: the host's report of each (its manifest kept), and a name the config turns off that reported nothing (by its listing, else its name).
+  const offRows = [
+    ...rows.filter((e) => e.disabled).map((e) => ({ name: e.name, title: e.extTitle ?? e.title, icon: e.icon, line: e.tagline ?? e.description })),
+    ...(state?.disabled ?? []).filter((n) => !rows.some((e) => e.name === n)).map((n) => { const a = state && availableOf(state, n); return { name: n, title: a?.listing.title || n, icon: listingIcon(a?.listing, n), line: a?.listing.tagline ?? "Not installed" }; }),
+  ];
   const title = (e: SettingsExtension) => e.extTitle ?? e.title;
-  const fix = (n: Need) => (n.fix === "Update" ? act(n.e.name, "updating", onUpdate) : (onSelect(n.e.name), undefined));
+  const fix = (n: Need, kind: Need["fixes"][number]["kind"]) => {
+    if (!store) return;
+    const id = n.id;
+    switch (kind) {
+      case "open": case "setup": return onSelect(n.name);
+      case "update": return act(id, "Updating…", () => store.update([n.name]));
+      case "retry": case "install": return act(id, "Installing…", () => store.install(n.name, n.registry ?? null));
+      case "forget": return act(id, "Forgetting…", () => store.forgetLeftover(n.name));
+      case "add": return act(id, "Adding…", () => store.addUnlisted(n.name));
+      case "enable": return act(id, "Turning on…", () => store.setDisabled(n.name, false));
+      case "remove": return act(id, "Removing…", () => store.remove(n.name, false));
+      case "refresh": return act(id, "Checking…", store.refresh);
+      case "pal": return store.updatePal?.();
+    }
+  };
 
   return (
     <div className="pal-settings-page pal-xhome">
@@ -178,12 +236,14 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
           <h2 className="pal-xhome__h">Needs you<span>{needs.length}</span></h2>
           <div className="pal-xhome__needs">
             {needs.map((n) => (
-              <div key={n.e.name} className="pal-xneed" data-tone={n.tone} data-anchor={`extensions:${n.e.name}`}>
-                <button type="button" className="pal-xneed__open" onClick={() => onSelect(n.e.name)}>
-                  <Icon icon={badgedIcon(n.e.icon, undefined)} size="lg" />
-                  <span className="pal-xneed__text"><b>{title(n.e)}</b><span>{n.line}</span></span>
+              <div key={n.id} className="pal-xneed" data-tone={failed[n.id] ? "bad" : n.tone} data-anchor={`extensions:need:${n.id}`}>
+                <button type="button" className="pal-xneed__open" disabled={!n.open} onClick={() => onSelect(n.name)}>
+                  {n.icon ? <Icon icon={badgedIcon(n.icon, undefined)} size="lg" /> : <span className="pal-xneed__dot" aria-hidden />}
+                  <span className="pal-xneed__text"><b>{n.title}</b><span title={failed[n.id] ?? n.line}>{failed[n.id] ?? n.line}</span></span>
                 </button>
-                <button type="button" className="pal-button" data-small data-primary={n.tone === "update" || undefined} disabled={!!busy[n.e.name]} onClick={() => fix(n)}>{busy[n.e.name] === "updating" ? "Updating…" : n.fix}</button>
+                {busy[n.id] ? <button type="button" className="pal-button" data-small disabled>{busy[n.id]}</button> : n.fixes.map((f, i) => (
+                  <button key={f.kind} type="button" className="pal-button" data-small data-primary={(i === 0 && (n.tone === "update" || f.kind === "install" || f.kind === "retry")) || undefined} onClick={() => fix(n, f.kind)}>{f.label}</button>
+                ))}
               </div>
             ))}
           </div>
@@ -198,14 +258,30 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
               <span className="pal-xcard__text"><b>{title(e)}</b><span>{facts.get(e.name)!.join("; ")}</span></span>
             </button>
           ))}
-          {onOpenStore && (
-            <button type="button" className="pal-xcard pal-xcard--more" onClick={onOpenStore}>
+          {store && (
+            <button type="button" className="pal-xcard pal-xcard--more" onClick={() => flashAnchor("extensions:browse")}>
               <span className="pal-xcard__plus" aria-hidden>+</span>
-              <span className="pal-xcard__text"><b>Get more extensions</b><span>Browse the store, or install one from GitHub or a folder below</span></span>
+              <span className="pal-xcard__text"><b>Get more extensions</b><span>Browse what the registries list, below, and install in place</span></span>
             </button>
           )}
         </div>
       </section>
+      {offRows.length > 0 && store && (
+        <section className="pal-xhome__sec" aria-label="Turned off">
+          <h2 className="pal-xhome__h">Turned off<span>not loaded; their settings stay</span></h2>
+          <div className="pal-xhome__off">
+            {offRows.map((o) => (
+              <div key={o.name} className="pal-xoff" data-anchor={`extensions:${o.name}`}>
+                <button type="button" className="pal-xneed__open" onClick={() => onSelect(o.name)}>
+                  <Icon icon={o.icon} />
+                  <span className="pal-xneed__text"><b>{o.title}</b><span>{failed[o.name] ?? o.line}</span></span>
+                </button>
+                <SettingsSwitch checked={false} disabled={!!busy[o.name]} onChange={() => act(o.name, "Turning on…", () => store.setDisabled(o.name, false))} label={`Turn on ${o.title}`} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="pal-xhome__sec" aria-label="Everything else">
         <h2 className="pal-xhome__h">Everything else<span>{rest.length} at their defaults</span>
           <input className="pal-field__input pal-xhome__find" type="search" placeholder="Find one" aria-label="Find an extension" value={query} spellCheck={false} onChange={(e) => setQuery(e.target.value)} />
@@ -220,50 +296,9 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
           {rest.length === 0 && <p className="pal-pane__none">{q ? `Nothing else matches "${query}".` : "Every extension is in use."}</p>}
         </div>
       </section>
-      {onInstall && <InstallBar onInstall={onInstall} />}
+      {store && <Browse store={store} installing={installing} onInstall={(a) => install(a.name, a.registry)} onSelect={onSelect} />}
+      {store && <Registries store={store} />}
     </div>
-  );
-}
-
-/**
- * One field with Install at its end. Submit installs; the field is
- * read-only and says so while it runs, and the reason stays under it when
- * it fails.
- */
-function InstallBar({ onInstall }: { onInstall: (spec: string) => Promise<void> }) {
-  const [spec, setSpec] = useState("");
-  const [state, setState] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "error"; message: string } | { kind: "done"; spec: string }>({ kind: "idle" });
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const s = spec.trim();
-    if (!s || state.kind === "busy") return;
-    setState({ kind: "busy" });
-    try {
-      await onInstall(s);
-      setState({ kind: "done", spec: s });
-      setSpec("");
-    } catch (err) {
-      setState({ kind: "error", message: String(err) });
-    }
-  };
-  const busy = state.kind === "busy";
-  return (
-    <form className="pal-install" onSubmit={submit} aria-busy={busy}>
-      <div className="pal-install__field">
-        <input
-          className="pal-install__input"
-          aria-label="Install from GitHub"
-          placeholder="Install from GitHub: user/repo, github:user/repo/subdir@ref, or a URL"
-          value={spec}
-          readOnly={busy}
-          spellCheck={false}
-          onChange={(e) => setSpec(e.target.value)}
-        />
-        <button type="submit" className="pal-button" data-small data-primary disabled={busy || !spec.trim()}>{busy ? "Installing…" : "Install"}</button>
-      </div>
-      {state.kind === "error" && <p className="pal-install__note" role="alert" data-error>{state.message}</p>}
-      {state.kind === "done" && <p className="pal-install__note">Installed {state.spec}. The host is restarting; it lists below in a moment.</p>}
-    </form>
   );
 }
 
@@ -274,12 +309,18 @@ type PaneProps = {
   instances: SettingsExtension[];
   selectedInstance?: string;
   onSelectInstance?: (key: string) => void;
-  busy?: "updating" | "removing";
-  /** Why the last update/remove failed. */
+  /** What the last button press is doing ("Updating…"). */
+  busy?: string;
+  /** Why the last update, switch or remove failed. */
   failed?: string;
+  store?: ExtensionsStore;
   onChange: (key: string, values: SettingValues) => void;
+  /** Update now: offered while the check has a build to install. */
   onUpdate?: () => void;
-  onRemove?: () => void;
+  /** Turn off (`true`) or on. */
+  onDisabled?: (disabled: boolean) => void;
+  /** Remove, and with `forget` its settings, storage, cache, ranking and secrets too; a store copy only. */
+  onRemove?: (forget: boolean) => void;
   onOpenLink?: (url: string) => void;
   openPalette?: string;
   onOpenPalette?: (id: string | undefined) => void;
@@ -294,21 +335,34 @@ type PaneProps = {
   onOpenBarItem?: (key: string) => void;
 };
 
-function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, onChange, onUpdate, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem }: PaneProps) {
+/** Exactly what Remove and forget deletes, for its confirm. */
+export const forgetText = (e: SettingsExtension) =>
+  `Deletes ${e.extTitle ?? e.title}'s folder and everything it kept: its settings in the config file ([extensions.${e.name}], its palettes' and bar items' tables${e.multi ? ", every instance" : ""}), its stored data and cache, its search ranking, and its keychain secrets. A reinstall starts from nothing.`;
+
+function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, store, onChange, onUpdate, onDisabled, onRemove, onOpenLink, openPalette, onOpenPalette, onPalette, paletteItems, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled, bar = [], onOpenBarItem }: PaneProps) {
   const multi = !!ext.multi;
   // The instance whose settings show: the selected one when it is of this extension, else the default (or the first).
   const [localInstance, setLocalInstance] = useState<string | undefined>(undefined);
+  const [forgetting, setForgetting] = useState(false);
   const wanted = selectedInstance ?? localInstance;
   const inst = instances.find((i) => i.key === wanted) ?? instances.find((i) => i.instance?.isDefault) ?? instances[0] ?? ext;
   const selectInstance = (key: string) => { setLocalInstance(key); onSelectInstance?.(key); };
   const set = (id: string, v: SettingValue) => onChange(inst.key, { ...inst.values, [id]: v });
   const href = repoHref(ext.repo);
-  const bundled = ext.bundled ?? ext.repo === "bundled";
+  const status = ext.status;
+  const registries = store?.state.registries ?? [];
+  const origin = originLine(status, registries);
+  const updates = updatesLine(status);
+  const target = targetOf(status);
+  const listed = store && availableOf(store.state, ext.name);
   const missing = new Set(needsSetup(inst).map((s) => s.id));
   const link = (url: string | undefined, text: string) => (url && onOpenLink ? <button type="button" className="pal-link" onClick={() => onOpenLink(url)}>{text}</button> : <span>{text}</span>);
-  const shots = ext.screenshots?.filter((s) => s.kind !== "bar") ?? [];
+  // The listing's pictures (absolute, the registry's), else the manifest's own.
+  const shots = (listed ? screenshotsOf(listed.listing) : []).length ? screenshotsOf(listed!.listing) : ext.screenshots?.filter((s) => s.kind !== "bar") ?? [];
   const extTitle = ext.extTitle ?? ext.title;
   const errors = instances.filter((i) => i.error);
+  const rolled = store?.state.rolled_back.find((r) => r.name === ext.name);
+  const note = busy ?? statusText(status);
   return (
     <>
     <div className="pal-pane pal-xpane" data-anchor={`extensions:${ext.name}`}>
@@ -319,26 +373,21 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
           <p className="pal-xpane__tagline">{ext.tagline ?? ext.description}</p>
           <p className="pal-xpane__meta">
             {ext.author && <span>{ext.author}</span>}
-            <span>{ext.version ? `v${ext.version}` : "unversioned"}{ext.latest && <span className="pal-xpane__latest"> · {ext.latest} available</span>}</span>
-            {bundled ? <Tag text="built in" color="grey" /> : ext.source ? <span title={ext.source}>from {ext.source.replace(/^github:/, "")}</span> : href ? link(href, ext.repo) : <span>installed by hand</span>}
-            {ext.installed !== undefined && !bundled && <span>{relativeDate(ext.installed)} ago</span>}
+            {status?.origin === "bundled" ? <Tag text="Comes with pal" color="grey" /> : origin ? <span>{origin}</span> : ext.source ? <span title={ext.source}>from {ext.source.replace(/^github:/, "")}</span> : href ? link(href, ext.repo!) : null}
+            {status?.installed ? <span title={status.installed.commit ? `commit ${status.installed.commit}` : undefined}>{buildLine(status.installed)}</span> : ext.version ? <span>v{ext.version}</span> : null}
+            {updates && <span>{updates}</span>}
+            {ext.disabled && <Tag text="off" color="grey" />}
           </p>
         </div>
         {ext.storeUrl && onOpenLink && <button type="button" className="pal-button" data-small onClick={() => onOpenLink(ext.storeUrl!)}>Store page</button>}
       </header>
 
-      {shots.length > 0 && (
-        <div className="pal-xpane__shots" role="list" aria-label="Screenshots">
-          {shots.map((s) => (
-            <figure key={s.src} className="pal-xpane__shot" role="listitem" title={s.caption}>
-              <img src={s.src} alt={s.caption ?? ""} loading="lazy" draggable={false} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).hidden = true; }} />
-              {s.caption && <figcaption>{s.caption}</figcaption>}
-            </figure>
-          ))}
-        </div>
-      )}
+      <Shots shots={shots} />
 
       {failed && <p className="pal-callout" role="alert" data-level="error">{failed}</p>}
+      {ext.disabled && <p className="pal-callout"><strong>Turned off.</strong> It does not load: its palettes, bar items and hotkeys do nothing until it is turned on. Its settings stay.</p>}
+      {rolled && <p className="pal-callout" data-level="error"><strong>An update failed to load and was put back.</strong> <code>{rolled.error}</code> That build is not offered again here.</p>}
+      {target && <p className="pal-callout" data-level="warning"><strong>{statusText(status)}.</strong>{status?.auto_update ? " It goes in by itself once nothing of it is open." : ""}</p>}
       {errors.map((i) => <div key={i.key} className="pal-callout" role="alert" data-level="error"><strong>{multi && instances.length > 1 ? `${i.title} failed to load.` : "Failed to load."}</strong> <code>{i.error}</code> Fix the code and pal reloads it, or restart the host under General.</div>)}
       {ext.warnings?.map((w) => <p key={w} className="pal-callout" data-level="warning"><strong>Manifest:</strong> {w}</p>)}
       {missing.size > 0 && !inst.error && inst.loaded !== false && <p className="pal-callout" data-level="warning">{multi && instances.length > 1 ? `${inst.title} lists nothing` : "Nothing lists"} until {inst.settings.filter((s) => missing.has(s.id)).map((s) => s.label.toLowerCase()).join(" and ")} {missing.size === 1 ? "is" : "are"} set below.</p>}
@@ -391,7 +440,7 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
 
       <section className="pal-xpane__section" aria-label="Palettes">
         <h4 className="pal-xpane__h">Palettes{multi && instances.length > 1 && <span className="pal-xpane__h-note">{inst.title}</span>}</h4>
-        {inst.palettes.length === 0 ? <p className="pal-pane__none">None{inst.error ? " while it fails to load" : inst.instance && !inst.instance.enabled ? " while the instance is off" : ""}.</p> : onPalette ? (
+        {inst.palettes.length === 0 ? <p className="pal-pane__none">None{ext.disabled ? " while it is turned off" : inst.error ? " while it fails to load" : inst.instance && !inst.instance.enabled ? " while the instance is off" : ""}.</p> : onPalette ? (
           <ExtensionPalettes ext={inst} onChange={onPalette} items={paletteItems} open={openPalette} onOpen={(id) => onOpenPalette?.(id)} />
         ) : (
           <ul className="pal-xpane__palettes">
@@ -415,7 +464,7 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
               <li key={b.key} data-off={!b.config.enabled || undefined}>
                 <Icon icon={b.extIcon} />
                 <span className="pal-xpane__bar-text"><b>{b.title}</b>{b.description && <span>{b.description}</span>}</span>
-                <span className="pal-xpane__bar-state">{!b.config.enabled ? "off" : b.state?.hidden ? "hidden now" : "on the bar"}</span>
+                <span className="pal-xpane__bar-state">{ext.disabled || !b.config.enabled ? "off" : b.state?.hidden ? "hidden now" : "on the bar"}</span>
                 {onOpenBarItem && <button type="button" className="pal-button" data-small onClick={() => onOpenBarItem(b.key)}>Open in Bar</button>}
               </li>
             ))}
@@ -423,14 +472,22 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
         </section>
       )}
     </div>
-      {(onUpdate || onRemove) && !bundled && (
+      {forgetting && onRemove && (
+        <div className="pal-xforget" role="alertdialog" aria-label={`Remove and forget ${extTitle}`}>
+          <p>{forgetText(ext)}</p>
+          <span className="pal-button-row">
+            <button type="button" className="pal-button" data-small data-destructive onClick={() => { setForgetting(false); onRemove(true); }}>Remove and forget</button>
+            <button type="button" className="pal-button" data-small onClick={() => setForgetting(false)}>Cancel</button>
+          </span>
+        </div>
+      )}
+      {(onUpdate || onDisabled || onRemove) && (
         <footer className="pal-pane__foot">
-          {onUpdate && (ext.latest ? (
-            <button type="button" className="pal-button" data-small data-primary disabled={!!busy} onClick={onUpdate}>{busy === "updating" ? "Updating…" : `Update to ${ext.latest}`}</button>
-          ) : (
-            <span className="pal-pane__note">Up to date</span>
-          ))}
-          {onRemove && <ArmedButton label="Remove" arm="Remove? Click again" busy={busy === "removing" ? "Removing…" : undefined} disabled={!!busy} onConfirm={onRemove} data-small />}
+          <span className="pal-pane__note">{note}</span>
+          {onUpdate && <button type="button" className="pal-button" data-small data-primary disabled={!!busy} onClick={onUpdate}>Update now</button>}
+          {onDisabled && <button type="button" className="pal-button" data-small data-primary={ext.disabled || undefined} disabled={!!busy} onClick={() => onDisabled(!ext.disabled)}>{ext.disabled ? "Turn on" : "Turn off"}</button>}
+          {onRemove && <ArmedButton label="Remove" arm="Settings and data stay. Click again" disabled={!!busy} onConfirm={() => onRemove(false)} data-small />}
+          {onRemove && <button type="button" className="pal-button" data-small data-destructive disabled={!!busy || forgetting} onClick={() => setForgetting(true)}>Remove and forget…</button>}
         </footer>
       )}
     </>

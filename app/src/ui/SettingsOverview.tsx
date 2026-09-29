@@ -6,6 +6,7 @@ import { comboLabel, combosLabel } from "./SettingsGeneral";
 import { installing, progressLine, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 import { holdOf, needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionUser, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
 import { relativeDate } from "./format";
+import { buildLine } from "./SettingsStore";
 import type { Icon as IconSpec } from "./types";
 
 /**
@@ -129,14 +130,15 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
     }
   }
   // Nothing to work with: a row for an extension the user chose (installed
-  // from the store, or a second instance they added), not for a bundled
-  // one never touched: fifty ship with pal, a dozen of them want a token,
-  // and a fresh install must not open on "11 things to look at" for
-  // services it may never use. A bundled one says so in its own palette
-  // and on its Extensions page.
+  // from a registry, or a second instance they added), not for one that
+  // comes with pal and was never touched: a fresh install must not open on
+  // "11 things to look at" for services it may never use. A bundled one
+  // says so in its own palette and on its Extensions page. `bundled` is its
+  // store status's origin; until the store answered it is unknown, and an
+  // unknown default instance is left alone too.
   for (const e of v.extensions) {
     if (e.loaded === false) continue;
-    if ((e.bundled ?? e.repo === "bundled") && (!e.instance || e.instance.isDefault)) continue;
+    if (e.bundled !== false && (!e.instance || e.instance.isDefault)) continue;
     const missing = needsSetup(e);
     if (missing.length) {
       items.push({ id: `setup:${e.key}`, level: "attention", icon: e.icon, title: `${e.title} needs ${missing.map((s) => s.label.toLowerCase()).join(" and ")}`, detail: missing[0].description ?? `Its palettes list nothing until ${missing.map((s) => s.label.toLowerCase()).join(" and ")} ${missing.length === 1 ? "is" : "are"} set.`, action: { label: "Set up", go: { page: "extensions", anchor: `extensions:${e.key}:${missing[0].id}` } } });
@@ -168,12 +170,13 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
       items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from pal.cagdas.io."}`, link, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
     }
   }
+  // An extension update is a row only while it waits for the user: with auto-update on for its registry the core puts it in by itself.
   const updates = new Set<string>();
   for (const e of v.extensions) {
-    if (e.latest && !updates.has(e.name)) {
-      updates.add(e.name);
-      items.push({ id: `update:${e.name}`, level: "attention", icon: e.icon, title: `${e.extTitle ?? e.title} ${e.latest} is available`, detail: `Installed: ${e.version || "unversioned"}.`, action: { label: "Update", updateExtension: e.name } });
-    }
+    const s = e.status;
+    if (s?.state !== "update" || s.auto_update || updates.has(e.name)) continue;
+    updates.add(e.name);
+    items.push({ id: `update:${e.name}`, level: "attention", icon: e.icon, title: `${e.extTitle ?? e.title}: an update is ready`, detail: `Build ${buildLine(s.to)}${s.installed ? `; installed ${buildLine(s.installed)}` : ""}.`, action: { label: "Update", updateExtension: e.name } });
   }
   return items;
 }
