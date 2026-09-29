@@ -9,7 +9,8 @@ found:
 - uninstalled extensions visible where people look;
 - usage counts.
 
-Status: proposed; nothing implemented. Reviewed against the code and the site
+Status: decided, being built. The exact formats are in `../registry.md`, the
+usage payload in `../usage.md`. Reviewed against the code and the site
 the same day; the evidence pointers are from that review.
 
 ## Where it stands
@@ -93,7 +94,8 @@ calc.)
   A bundled copy and a store copy of the same build have the same hash. The
   build writes the bundled one's hash to `.pal-build.json` beside its
   manifest.
-- `seq`: an integer that only grows (the CI run number of the publish). "Newer"
+- `seq`: the committer time of the source commit (unix seconds), the same in
+  every workflow that builds it. "Newer"
   always means a higher `seq`; the hash only says whether two builds are the
   same.
 - `commit`: the source commit, for humans and bug reports.
@@ -339,6 +341,7 @@ A new top-level `[store]` table. `[extensions]` can't hold it, because
 
 ```toml
 [store]
+auto_update = true
 installed = ["weather", "spotify", "acme:todo"]   # registry-qualified when not ours
 disabled = ["hue"]
 
@@ -397,7 +400,7 @@ One check, in the core. Settings, the Store palette, the bar badge,
     apt/dpkg command.
 - **Applying.** Automatic by default, for every registry: Settings ›
   Extensions has "Update extensions automatically" (on), mirrored as
-  `general.auto_update_extensions`, and each registry's row can override it
+  `[store] auto_update`, and each registry's row can override it
   (`auto_update`). Trust was given when the registry was added and every
   build is signed with its pinned key, so a third party's updates are held to
   the same bar as ours. Off means a Needs you row per update. Deferred while
@@ -628,9 +631,9 @@ Each step ships on its own, and nothing is taken away until the last one.
 8. **Migration release**, then **the slim release**, once the counts show
    what is used.
 
-## Open
+## Decided along the way (2026-09-30)
 
-- Whether root search also shows third-party registries' extensions, or ours
-  only (leaning ours only).
-- `seq` from the CI run number or from a counter the site hands out
-  (leaning run number: no state on the site).
+- Root search shows uninstalled extensions from our registry only; other
+  registries' are in the Store and Games.
+- `seq` is the source commit's time, not a CI run number.
+- Auto-update is `[store] auto_update`, next to the lists it acts on.
