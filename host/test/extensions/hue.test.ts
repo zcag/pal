@@ -419,14 +419,20 @@ describe("over the wire against the mock bridge", () => {
     expect(v).toMatchObject({ title: "Ceiling", id: "light:ceiling" });
     expect(JSON.stringify(v.tree)).not.toContain('"key":"plane"');
     const pick = (action: string) => host.pick(E, "light", "light:ceiling", action);
-    let r = await pick("bri-");
+    // The first PUT is held in flight (the bridge has not answered), so the next keys land while it is out, whatever the runner's speed.
+    const release = mock.hold();
+    const first = pick("bri-");
+    await host.until(() => mock.puts.length > 0 && lastPut().body.dimming !== undefined, 1000, "the first PUT out");
     expect(lastPut()).toEqual({ type: "light", id: "light-2", body: { on: { on: true }, dimming: { brightness: 95 }, dynamics: { duration: 400 } } });
-    expect(JSON.stringify(r.view!.tree)).toContain("95%");
-    // A second key inside the 100 ms gap is queued and sent once, as the newest state.
+    // Keys while one is in flight are queued and sent once, as the newest state, after the gap.
     const n = mock.puts.length;
     await pick("bri-");
     await pick("bri--");
     expect(mock.puts.length).toBe(n);
+    release();
+    // Its answer comes once the bridge answered; which brightness it draws races the bridge's own event for the first PUT, so only that it is the view.
+    let r = await first;
+    expect(r.view).toBeDefined();
     await host.until(() => mock.puts.length === n + 1, 1000, "the coalesced PUT");
     expect(lastPut().body).toMatchObject({ dimming: { brightness: 70 } });
     await Bun.sleep(150);

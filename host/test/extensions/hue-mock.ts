@@ -35,6 +35,8 @@ export class MockBridge {
   readonly puts: { type: string; id: string; body: Record<string, unknown> }[] = [];
   /** Press-link attempts so far. */
   pairAttempts = 0;
+  /** While set, a PUT is recorded, then answered only once the gate opens: a write held in flight without a clock (`hold`). */
+  private held?: Promise<void>;
   /** `press()` arms the button; the next `POST /api` succeeds. */
   private armed = false;
   private clients = new Set<ReadableStreamDefaultController<Uint8Array>>();
@@ -63,6 +65,13 @@ export class MockBridge {
     const ev = { creationtime: new Date().toISOString(), data, id: `ev-${++this.seq}`, type };
     const line = `id: ${Math.floor(Date.now() / 1000)}:0\ndata: ${JSON.stringify([ev])}\n\n`;
     for (const c of this.clients) { try { c.enqueue(new TextEncoder().encode(line)); } catch { this.clients.delete(c); } }
+  }
+
+  /** Holds the next PUTs' answers until the returned function runs. */
+  hold(): () => void {
+    let open!: () => void;
+    this.held = new Promise((r) => { open = r; });
+    return () => { this.held = undefined; open(); };
   }
 
   /** Apply a change as a PUT would (merged into the resource) and stream it: what another app does. */
@@ -115,6 +124,7 @@ export class MockBridge {
       if (i < 0) return Response.json({ errors: [{ description: `resource ${id} not found` }], data: [] }, { status: 404 });
       const patch = (body ?? {}) as Record<string, unknown>;
       this.puts.push({ type, id, body: patch });
+      if (this.held) await this.held;
       const { dynamics, recall, alert, action, ...state } = patch;
       // The bridge reports a set effect as `effects.status`.
       const fx = (state.effects as { effect?: string } | undefined)?.effect;
