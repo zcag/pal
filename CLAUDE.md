@@ -71,7 +71,10 @@ Beyond the code, unasked:
   manifest drifted),
   pal's own tools keep glyph tiles;
 - store screenshots (`extensions/<ext>/fixture.ts`, `make shots EXT=<ext>`,
-  look at every PNG in both themes);
+  look at every PNG in both themes), committing the regenerated
+  `app/src/gallery/shots/*.json` with them; when a bar item's look changed,
+  also `PAL_UPDATE_PARITY=1 cargo test -p pal parity` and `npx vitest run
+  bar-parity` in app/, or CI fails on the stale strip snapshot;
 - pal-site: `scripts/subset-font.py ../pal` when a manifest gains a Nerd
   glyph, then its `./deploy.sh`; the landing's hand-picked lists
   (`showcase`, `featured`, `apiShots`, `popovers`, `barStrip` in
