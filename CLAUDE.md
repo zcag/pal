@@ -14,7 +14,13 @@ section of `notes/decisions.md`.
   UI control in the same change.
 - Quiet, plain words over jargon; animations are fine, never add
   `prefers-reduced-motion` handling.
-- `make test` before every push (it mirrors CI); CI runs on Linux too.
+- `make test` before every push (it mirrors CI); CI runs on Linux too. A push
+  that only touches extensions (their directories, their tests, the
+  bundled/registry-only lists) gets CI's extension mode
+  (`.github/scripts/ci-scope.ts`): run `make test-ext NAMES="a b"` (add
+  `APP=1` when a `pal.json` changed) instead, which is what CI runs then.
+  Push such a change on its own, not together with core/app/host work, or
+  it gets the full run.
 
 ## Extensions are distributed, not just bundled
 

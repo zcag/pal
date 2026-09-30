@@ -14,6 +14,18 @@ test:
 	cd host && bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.surface.json && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
 	cd sdk && npm pack --dry-run
 
+# An extension-only change (what ci.yml runs when .github/scripts/ci-scope.ts
+# says mode=ext): the host's typechecks (every extension, the surfaces), the
+# host's own tests (the contract every extension is held to: manifests, links,
+# packages, the bundled/registry lists) and the named extensions' tests; with
+# APP=1 (a pal.json changed) the app's typecheck and tests too, since its
+# gallery reads every manifest. No Rust. `make test` is still the full run.
+#   make test-ext NAMES="night-parade" [APP=1]
+.PHONY: test-ext
+test-ext:
+	$(if $(APP),npm --prefix sdk run build && cd app && npx tsc --noEmit && npx vitest run)
+	cd host && bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.surface.json && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml test/*.test.ts $(patsubst host/%,%,$(foreach n,$(NAMES),$(wildcard host/test/extensions/$(n).test.ts host/test/extensions/$(n)-*.test.ts))) && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
+
 # Sets one version everywhere it is written (tauri.conf.json is what the
 # bundle and the tag guard in release.yml read; the two Cargo.toml,
 # app/package.json and sdk/package.json (`@zcag/pal` on npm, published by
