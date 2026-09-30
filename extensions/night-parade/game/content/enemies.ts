@@ -35,7 +35,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   larva: { name: "Larva", sprite: "larva", hp: 12, speed: 26, dmg: 6, xp: 1, r: 6, gait: "chase", lore: "Slow, soft, and never alone." },
   mushroom: { name: "Mushroom", sprite: "mushroom", hp: 16, speed: 29, dmg: 7, xp: 2, r: 6, gait: "chase", death: "spores", lore: "Walks in rings. Leaves spores when it bursts." },
   snake: { name: "Snake", sprite: "snake", hp: 13, speed: 42, dmg: 9, xp: 2, r: 5, gait: "lunge", lore: "Coils, shivers, strikes." },
-  mole: { name: "Mole", sprite: "mole", hp: 20, speed: 46, dmg: 10, xp: 2, r: 6, gait: "burrow", lore: "Travels under the road. Watch for the dust." },
+  mole: { name: "Mole", sprite: "mole", hp: 20, speed: 46, dmg: 10, xp: 2, r: 6, gait: "burrow", lore: "Travels under the road. Watch for the earth heaving toward you." },
   tanuki: { name: "Tanuki", sprite: "racoon", hp: 22, speed: 36, dmg: 8, xp: 2, r: 6, gait: "weave", lore: "A trickster raccoon dog, running with the parade for the fun of it." },
   kappa: { name: "Kappa", sprite: "kappa", hp: 26, speed: 30, dmg: 8, xp: 3, r: 6, gait: "shoot", shot: { kind: "water", every: 2.8, speed: 90, dmg: 8, range: 110 }, lore: "River imp. Spits water from the dish on its head." },
   lantern: { name: "Chōchin-obake", sprite: "lantern", hp: 24, speed: 30, dmg: 10, xp: 3, r: 6, gait: "weave", flies: true, lore: "A paper lantern grown a tongue. The parade's own light." },

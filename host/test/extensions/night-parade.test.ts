@@ -206,6 +206,29 @@ test("a ring hazard hurts inside it at its moment, and not outside", () => {
   expect(s.p.hp).toBeCloseTo(hp - 30, 5);
 });
 
+test("a mole surfaces with time to step away: walked at, it bites only after its wind-up; turned from, never", () => {
+  const chase = (turn: boolean) => {
+    const s = night(1);
+    s.weapons.length = 0;
+    s.enemies.length = 0;
+    s.trickle = -1e9;
+    s.eventIdx = 999;
+    const m = spawnAt(s, "mole", s.p.x + 150, s.p.y, 1);
+    const hp = s.p.hp;
+    let up = -1;
+    for (let i = 0; i < 240 && s.p.hp === hp; i++) {
+      s.enemies = [m];
+      step(s, { x: m.under || !turn ? 1 : -1, y: 0, dash: false });
+      if (!m.under && up < 0) up = s.t;
+    }
+    return { up, hit: s.p.hp < hp ? s.t : -1 };
+  };
+  const at = chase(false);
+  expect(at.up).toBeGreaterThan(0);
+  expect(at.hit - at.up).toBeGreaterThan(0.6 - 1 / 120); // the wind-up, give or take the sum of steps
+  expect(chase(true).hit).toBe(-1);
+});
+
 describe("over the wire", () => {
   let host: Host;
   beforeAll(async () => { host = await Host.bundled(); });

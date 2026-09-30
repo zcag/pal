@@ -74,9 +74,9 @@ export function stepEnemies(s: State, g: Grid, dt: number) {
       case "burrow":
         if (e.wind > 0) { e.wind -= dt; speed = 0; }
         else if (e.under && d < 34) {
-          // Surfacing takes a moment (dust, then the mole), so you can step away.
+          // Surfacing takes a moment (dust, then the mole), so you can step away, even walking at it.
           e.under = false;
-          e.wind = 0.4;
+          e.wind = 0.6;
           e.clock = 3;
           s.fx.push(fx("rock", e.x, e.y, 0.4));
           s.events.push({ sfx: "burrow" });

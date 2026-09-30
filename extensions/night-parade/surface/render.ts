@@ -241,7 +241,7 @@ export function draw(v: View, s: State, time: number) {
   for (const e of s.enemies) {
     if (!onScreen(e.x, e.y, 90)) continue;
     if (e.prop) { items.push({ y: e.y, fn: () => deco(ctx, e.prop === "jar" ? JAR : STONE_LANTERN, e.x, e.y + (e.prop === "jar" ? 6 : 8), undefined, e.flash > 0) }); continue; }
-    if (e.under) { if (Math.random() < 0.4) parts.push({ x: e.x + (Math.random() - 0.5) * 8, y: e.y + 4, vx: 0, vy: -6, t: 0, life: 0.4, color: "#7a6048", size: 1, g: 10 }); continue; }
+    if (e.under) { mound(ctx, e.x, e.y + 4, time + e.id); if (Math.random() < 0.8) parts.push({ x: e.x + (Math.random() - 0.5) * 10, y: e.y + 3, vx: (Math.random() - 0.5) * 12, vy: -14, t: 0, life: 0.45, color: "#8a6e52", size: 1, g: 40 }); continue; }
     if (!e.hidden) shadows.push([e.x, e.y + (e.boss ? e.r * 0.8 : e.flies ? 9 : 6), e.r * (e.flies ? 0.8 : 1.1)]);
     items.push({ y: e.y, fn: () => (e.boss ? boss(ctx, e, s, time) : foe(ctx, e, time)) });
   }
@@ -317,6 +317,17 @@ function hero(ctx: CanvasRenderingContext2D, s: State, time: number) {
   }
   if (p.moving || !sh.idle || !ready(sh.idle)) walker(ctx, sh.walk, p.dir, p.walk, p.x, p.y, 1, 1, blink ? tinted(sh.walk, "#ffffff", "solid") : undefined, !p.moving);
   else ctx.drawImage(blink ? tinted(sh.idle, "#ffffff", "solid") : sh.idle.img, p.dir * 16, 0, 16, 16, Math.round(p.x - 8), Math.round(p.y - 10), 16, 16);
+}
+
+/** A burrower underground: the ridge of earth it pushes up, heaving as it digs, so it can be seen coming. */
+function mound(ctx: CanvasRenderingContext2D, x: number, y: number, t: number) {
+  const h = 1 + Math.sin(t * 14) * 0.25;
+  ctx.fillStyle = "#3e3024";
+  ctx.beginPath(); ctx.ellipse(x, y, 7.5, 3.2 * h, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#6e5640";
+  ctx.beginPath(); ctx.ellipse(x, y - 1, 5.5, 2.2 * h, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#94785a";
+  ctx.beginPath(); ctx.ellipse(x - 1, y - 1.8, 2.6, 1, 0, 0, Math.PI * 2); ctx.fill();
 }
 
 function foe(ctx: CanvasRenderingContext2D, e: Enemy, time: number) {
