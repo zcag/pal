@@ -483,7 +483,7 @@ always first):
 | `url` | string | | Its index (`.../index.json`); the signature is `<url>.minisig`. |
 | `key` | string | | The minisign public key its index and builds are signed with: pinned when the registry was added, moved when the registry announces its next key in a signed index. |
 | `auto_update` | bool | `[store] auto_update` | Whether this registry's updates install by themselves. |
-| `channel` | `"stable"`, `"edge"` | `"stable"` | Which of its indexes to follow. Only pal's own has both. |
+| `channel` | `"stable"`, `"edge"` | `"stable"` | Which of its indexes to follow. Only pal's own has both. A new channel is fetched as soon as the file is saved. |
 
 A table named `pal` sets only pal's own registry's `channel` and
 `auto_update`; its URL and keys are built in:

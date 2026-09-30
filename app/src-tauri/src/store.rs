@@ -15,7 +15,8 @@
 //! In the background, from the first `host/ready`: the migration steps of
 //! the last full-bundle release (`start`), then every registry fetched 30 s
 //! in and every 6 hours (and when the Store or Settings › Extensions opens,
-//! at most every 5 minutes), each time followed by the reconcile of
+//! at most every 5 minutes; at once when `[[store.registries]]` changes),
+//! each time followed by the reconcile of
 //! `[store] installed` and the updates that apply by themselves, deferred
 //! while the extension has a view up (`views::shown`). Usage counts go out
 //! a minute in, every 6 hours, and at quit.
@@ -33,7 +34,7 @@ use std::time::{Duration, Instant};
 
 use pal_core::config::instance::name_of;
 use pal_core::config::secrets::{platform_store, SecretRef};
-use pal_core::config::{Config, Plan};
+use pal_core::config::{Config, Plan, RegistryConfig};
 use pal_core::extensions::refs::{self, LeftOver};
 use pal_core::extensions::{Error, Kind, Spec};
 use pal_core::index::{Item, Source};
@@ -253,8 +254,9 @@ pub struct Service {
     state: Mutex<Option<StoreState>>,
     busy: Mutex<BTreeSet<String>>,
     names: Mutex<HashMap<String, Arc<AsyncMutex<()>>>>,
-    /// Held while the registries are fetched; when the last fetch ended.
-    fetched: AsyncMutex<Option<Instant>>,
+    /// Held while the registries are fetched; when the last fetch ended,
+    /// and the `[[store.registries]]` it fetched (another set is stale).
+    fetched: AsyncMutex<Option<(Instant, Vec<RegistryConfig>)>>,
     /// Per pending name: the last error, since when.
     pending: Mutex<BTreeMap<String, (Option<String>, u64)>>,
     rolled_back: Mutex<Vec<RolledBack>>,
@@ -820,18 +822,20 @@ pub async fn refresh(app: &AppHandle, max_age: Duration) -> StoreState {
 }
 
 /// Every registry's index fetched, unless the last fetch is younger than
-/// `max_age`; one fetch at a time (a second waits, then finds it fresh).
+/// `max_age` and was of the registries followed now; one fetch at a time (a
+/// second waits, then finds it fresh).
 async fn fetch(app: &AppHandle, max_age: Duration) {
     let s = svc(app);
     let mut last = s.fetched.lock().await;
-    if last.is_some_and(|t| t.elapsed() < max_age) {
+    let followed = settings::config(app).store.registries;
+    if last.as_ref().is_some_and(|(t, r)| t.elapsed() < max_age && *r == followed) {
         return;
     }
     let t0 = Instant::now();
     let out = blocking(app, |m| Ok(m.refresh())).await.unwrap_or_default();
     let failed: Vec<String> = out.iter().filter_map(|(n, r)| r.as_ref().err().map(|e| format!("{n}: {e}"))).collect();
     eprintln!("store\tfetched\t{} registries\t{:.0}ms{}", out.len(), t0.elapsed().as_secs_f64() * 1000.0, if failed.is_empty() { String::new() } else { format!("\t{}", failed.join("; ")) });
-    *last = Some(Instant::now());
+    *last = Some((Instant::now(), followed));
 }
 
 /// A refresh for an open (the Store palette, Settings › Extensions), in the
@@ -932,9 +936,15 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
             tauri::async_runtime::spawn(async move { host.restart().await });
         }
     }
-    if prev.store.installed != next.store.installed && svc(app).started.load(Ordering::SeqCst) {
+    if svc(app).started.load(Ordering::SeqCst) {
         let app = app.clone();
-        tauri::async_runtime::spawn(async move { reconcile(&app).await });
+        // Another registry or channel is another index, whether Settings or
+        // a hand edit changed it: fetched now, not at the next 6-hourly.
+        if prev.store.registries != next.store.registries {
+            tauri::async_runtime::spawn(async move { refresh(&app, ON_OPEN).await });
+        } else if prev.store.installed != next.store.installed {
+            tauri::async_runtime::spawn(async move { reconcile(&app).await });
+        }
     }
     settle(app);
 }
@@ -1283,11 +1293,7 @@ pub async fn registry_add(app: &AppHandle, url: String, key: Option<String>) -> 
     eprintln!("store\tregistry added\t{}\t{}", p.name, p.url);
     // The manager follows it from here (`apply_config`).
     settings::reload_now(app);
-    let n = p.name.clone();
-    if let Err(e) = blocking(app, move |m| m.registries.refresh(&n).map_err(|e| e.to_string())).await {
-        eprintln!("store\tregistry {}\tfirst fetch failed\t{e}", p.name);
-    }
-    compute(app).await;
+    refresh(app, ON_OPEN).await;
     Ok(PreviewView { name: p.name, url: p.url, count: p.count, key_id: p.key_id.unwrap_or_default(), key: p.key })
 }
 
@@ -1310,7 +1316,8 @@ pub async fn store_registry_set(app: AppHandle, name: String, auto_update: Optio
     tauri::async_runtime::spawn_blocking(move || file.store_set_registry(&n, a, c)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())?;
     settings::reload_now(&app);
     if channel.is_some() {
-        refresh(&app, Duration::ZERO).await;
+        // The fetch `apply_config` started, or this one: the state after it.
+        refresh(&app, ON_OPEN).await;
     }
     Ok(())
 }

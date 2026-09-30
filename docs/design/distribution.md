@@ -381,8 +381,10 @@ One check, in the core. Settings, the Store palette, the bar badge,
     the same way.
   - Equal hashes are never an update, whatever the seq.
 - **Fetching.**
-  - Each registry's index is fetched on start, every 6 hours, and whenever the
-    Store or Settings › Extensions opens.
+  - Each registry's index is fetched on start, every 6 hours, whenever the
+    Store or Settings › Extensions opens, and as soon as `[[store.registries]]`
+    changes (a registry added or removed, a channel switched, in Settings or
+    by hand).
   - Conditional requests (`If-None-Match`).
   - The core owns the cache at `<cache dir>/pal/registries/<name>.json`, not in
     extension storage (which is capped, `storage.rs:7`), and falls back to it
