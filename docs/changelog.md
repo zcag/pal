@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0 · 2026-09-30
+
+- **Read before you decide**: in the Gmail, WhatsApp, Slack and GitHub popovers, Space opens the row under the cursor in full: the whole mail, the chat's latest messages, a pull request's or issue's text and comments. Its keys still work there (`m` read, `s` star, `r` reply, Enter to open), and Space or Escape takes you back. In the compact panel, ⌘I does the same for any row with details.
+- **Ignore until it changes**: `i` in those popovers (⌘⇧I on a row) takes something out of the count and the list until there is news: a chat or a thread until its next message, a pull request until it is pushed to, reviewed, commented on or its checks change. Then it comes back by itself. Nothing is sent: a WhatsApp chat stays unread on your phone, with no blue ticks. The Ignored filter (Hidden in GitHub, next to Muted) lists them with Show again.
+- **Check for Updates checks your extensions too**, from Settings › About, the menu bar icon or pal's own row, and says what it found; About has Update All for any waiting on you.
+- **Settings › About** now holds the upkeep buttons (refresh every list, restart the extension host, reset the ranking) and links to the extension store, the changelog and a bug report.
+- **GitHub notifications** show the pull request or issue behind them in the detail pane.
+
 ## 0.9.1 · 2026-09-30
 
 - **Fixed: pal could freeze** while macOS showed a "pal wants to control …" prompt for a music app (Spotify, Music) that nobody had answered yet: the now-playing checks piled up behind it until the panel stopped opening. pal now checks once at a time and doesn't wait on the prompt.
