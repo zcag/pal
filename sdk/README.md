@@ -83,6 +83,7 @@ comment, `src/protocol.ts` is the contract.
 | `home()`, `tilde()`, `core.call()` | `~` expansion and its reverse; the raw bridge |
 | `hint()`, `toast()`, `failed()` | an inert row that tells the user something; a toast that keeps the panel open; the "Could not <what>" failure toast |
 | `text()`, `row()`, `column()`, `keycap()`, `keyHint()`, `POPOVER_W` | view node builders, the keycaps-plus-caption line, a bar popover's content width |
+| `ignoreStore()` | rows kept out of a list and its count until they change: each id with the stamp its row had (a newest message, an `updatedAt`), settled against every fetched list |
 | `preview()` | a popover row read in full: its `Detail` as an `Effect.show` carrying the view's actions that work on one row |
 | `bytes()`, `truncate()`, `oneLine()`, `slug()`, `errorMessage()`, `mdEscape()` | small text helpers |
 | `now()`, `clock()`, `dayName()`, `dayNameYear()`, `isoDay()`, `when()`, `ago()`, `parseDuration()` | the clock, in unix ms (`PAL_NOW` pins it for tests); a moment written as `14:05`, `Fri 18 Sep`, `Fri 18 Sep 2026`, `2026-09-18`, the clock today and the day before it otherwise, or how long ago (`5 min ago`, `2 h ago`; `5m`, `2h` with `short`) (never `toLocaleString`: the host's locale is not the user's); a duration as typed (`25m`, `1h30m`, a bare number as minutes) in seconds |

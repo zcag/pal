@@ -41,7 +41,7 @@ export const shownIssues = (st: IssueState): IssueBucketed[] => st.rows;
 const previewHint = (any: boolean) => (any ? keyHint("space", "preview", { action: "preview" }) : []);
 
 function barHints(any: boolean): ViewNode {
-  return row([...keyHint("enter", "open"), ...previewHint(any), ...keyHint("c", "copy"), ...keyHint("m", "mute"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal")], { key: "hints", gap: 1, minHeight: 22 });
+  return row([...keyHint("enter", "open"), ...previewHint(any), ...keyHint("c", "copy"), ...keyHint("m", "mute"), ...keyHint("i", "ignore"), ...keyHint("r", "refresh"), ...keyHint("p", "pal")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
 function status(pr: PR): { text: string; color: TagColor } {
@@ -94,6 +94,7 @@ function prActions(st: PrState): Action[] {
     ...(rows.length ? [{ id: "preview", title: "Preview", shortcut: "space" }] : []),
     { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"], multi: true },
     { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"], multi: true },
+    { id: "ignore", title: "Ignore until it changes", shortcut: ["i", "cmd+shift+i"], multi: true },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     { id: "pal", title: "Open Pull Requests palette", shortcut: "p" },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
@@ -109,6 +110,7 @@ function issueActions(st: IssueState): Action[] {
     ...(rows.length ? [{ id: "preview", title: "Preview", shortcut: "space" }] : []),
     { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"], multi: true },
     { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"], multi: true },
+    { id: "ignore", title: "Ignore until it changes", shortcut: ["i", "cmd+shift+i"], multi: true },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     { id: "pal", title: "Open Issues palette", shortcut: "p" },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },

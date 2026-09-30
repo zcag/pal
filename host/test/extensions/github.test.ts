@@ -183,6 +183,8 @@ beforeAll(async () => {
 });
 afterAll(() => { host.kill(); server.stop(true); process.env.PATH = PATH0; delete process.env.PAL_GITHUB_SEARCH_WAIT_MS; rmSync(dir, { recursive: true, force: true }); });
 
+/** The ids the mute-and-ignore store holds (`ignoreStore("hidden")`). */
+const hiddenIds = () => Object.keys((stored.get("github\0hidden") ?? {}) as Record<string, unknown>);
 const list = (palette: string, filter?: string, query?: string, refresh?: boolean) => host.list("github", palette, query, filter || refresh ? { ...(filter && { filter }), ...(refresh && { refresh }) } : undefined);
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("github", palette, id, action, ctx);
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
@@ -201,7 +203,7 @@ describe("github", () => {
   test("meta: five palettes, ttl on the indexed ones, notifications live, search input, lazy detail where there is a pane", () => {
     const metas = host.loaded().find((l) => l.extension === "github")!.palettes;
     expect(metas.map((m) => m.name)).toEqual(["prs", "issues", "repos", "notifications", "search"]);
-    expect(metas[0]).toMatchObject({ title: "Pull Requests", ttl: 300, live: false, input: false, detail: "lazy", showDetail: true, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }, { id: "muted", title: "Muted" }] });
+    expect(metas[0]).toMatchObject({ title: "Pull Requests", ttl: 300, live: false, input: false, detail: "lazy", showDetail: true, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }, { id: "muted", title: "Hidden" }] });
     expect(metas[1]).toMatchObject({ title: "Issues", ttl: 300, detail: "lazy" });
     expect(metas[2]).toMatchObject({ title: "Repositories", ttl: 300, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }] });
     expect(metas[3]).toMatchObject({ title: "Notifications", live: true, ttl: 60 });
@@ -252,10 +254,10 @@ describe("github", () => {
     test("actions: open, copy, branch, checks, files, ref; merge only when mergeable, ready only on a draft, checkout only for an open PR with a clone", async () => {
       const items = await list("prs");
       const by = (id: string) => items.find((i) => i.id === id)!.actions!.map((a) => a.id);
-      // Unmute rides at the end of an open PR's list, so marked PRs that mix muted and not offer both.
-      expect(by("acme/widgets#71")).toEqual(["open", "copy", "branch", "checks", "files", "ref", "mute", "unmute"]);
-      expect(by("zcag/pal#72")).toEqual(["open", "copy", "checkout", "branch", "checks", "files", "ref", "mute", "ready", "unmute"]);
-      expect(by("acme/api#9")).toEqual(["open", "copy", "branch", "checks", "files", "ref", "mute", "merge", "unmute"]);
+      // Unmute rides at the end of an open PR's list, so marked PRs that mix hidden and not offer both.
+      expect(by("acme/widgets#71")).toEqual(["open", "copy", "branch", "checks", "files", "ref", "mute", "ignore", "unmute"]);
+      expect(by("zcag/pal#72")).toEqual(["open", "copy", "checkout", "branch", "checks", "files", "ref", "mute", "ignore", "ready", "unmute"]);
+      expect(by("acme/api#9")).toEqual(["open", "copy", "branch", "checks", "files", "ref", "mute", "ignore", "merge", "unmute"]);
       expect(by("zcag/pal#50")).toEqual(["open", "copy", "branch", "checks", "files", "ref"]);
       // Every action works over marked PRs but Checkout (a clone has one branch out); the merge's question names no number, the shell adds the count.
       expect(items.find((i) => i.id === "zcag/pal#72")!.actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["checkout"]);
@@ -286,9 +288,9 @@ describe("github", () => {
       expect(await pick("prs", ids[0]!, "files", { ids })).toEqual({ open: ["https://github.com/acme/widgets/pull/71/files", "https://github.com/zcag/pal/pull/72/files"] });
       expect(await pick("prs", ids[0]!, "copy", { ids })).toEqual({ copy: "https://github.com/acme/widgets/pull/71\nhttps://github.com/zcag/pal/pull/72" });
       expect(await pick("prs", ids[0]!, "mute", { ids })).toEqual({ keep: true, toast: { title: "Muted", message: "2 pull requests" } });
-      expect(stored.get("github\0muted")).toEqual(ids);
+      expect(hiddenIds()).toEqual(ids);
       expect(await pick("prs", ids[0]!, "unmute", { ids })).toMatchObject({ toast: { title: "Unmuted", message: "2 pull requests" } });
-      expect(stored.get("github\0muted")).toEqual([]);
+      expect(hiddenIds()).toEqual([]);
     });
 
     test("checkout runs gh pr checkout in the clone", async () => {
@@ -341,8 +343,8 @@ describe("github", () => {
       expect(crash).toMatchObject({ name: "Crash on start", subtitle: "acme/widgets #5", icon: tinted("\uf41b", "green") });
       expect(crash.accessories).toEqual([{ tag: "bug", color: "grey" }, { tag: "p1", color: "grey" }, { text: "3 comments" }, { date: "2026-09-14T10:00:00Z" }]);
       expect(crash.keywords).toEqual(expect.arrayContaining(["widgets", "#5", "alice", "bug"]));
-      expect(crash.actions!.map((a) => a.id)).toEqual(["open", "copy", "ref", "mute", "close", "unmute"]);
-      expect(crash.actions![4]).toMatchObject({ style: "destructive", confirm: "Close on GitHub?", multi: true });
+      expect(crash.actions!.map((a) => a.id)).toEqual(["open", "copy", "ref", "mute", "ignore", "close", "unmute"]);
+      expect(crash.actions![5]).toMatchObject({ style: "destructive", confirm: "Close on GitHub?", multi: true });
       expect(crash.actions!.every((a) => a.multi)).toBe(true);
       expect(items[3]).toMatchObject({ icon: tinted("\uf41d", "violet"), accessories: [{ tag: "closed", color: "violet" }, { date: "2026-09-14T10:00:00Z" }] });
       expect(items[3].actions!.map((a) => a.id)).toEqual(["open", "copy", "ref"]);
@@ -706,9 +708,9 @@ describe("github", () => {
       const prView = viewOf(prs);
       expect(checkView(prView)).toBe(prView);
       expect(prView).toMatchObject({ title: "3 open pull requests", id: "prs", keys: "actions" });
-      expect(prView.actions.map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:zcag/pal#72", "focus:acme/api#9"]);
-      expect(prView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal"]);
-      expect(keycaps(prView)).toEqual(["enter", "space", "c", "m", "r", "p"]);
+      expect(prView.actions.map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "ignore", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:zcag/pal#72", "focus:acme/api#9"]);
+      expect(prView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "ignore", "refresh", "pal"]);
+      expect(keycaps(prView)).toEqual(["enter", "space", "c", "m", "i", "r", "p"]);
       expect(texts(prView)).toEqual(expect.arrayContaining(["Needs attention", "Waiting", "Review requested", "Directory readiness", "acme/widgets#71", "Fix the parser", "acme/api#9", "Draft thing", "zcag/pal#72"]));
       const ps = JSON.stringify(prView.tree);
       expect(ps.indexOf('"value":"Needs attention"')).toBeLessThan(ps.indexOf('"value":"Waiting"'));
@@ -726,16 +728,16 @@ describe("github", () => {
       const issueView = viewOf(issues);
       expect(checkView(issueView)).toBe(issueView);
       expect(issueView).toMatchObject({ title: "2 open issues", id: "issues", keys: "actions" });
-      expect(issueView.actions.map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#5", "focus:acme/api#8"]);
-      expect(issueView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal"]);
+      expect(issueView.actions.map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "ignore", "refresh", "pal", "down", "up", "focus:acme/widgets#5", "focus:acme/api#8"]);
+      expect(issueView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "ignore", "refresh", "pal"]);
       // Space reads the focused one in full, with the keys that work on one.
       for (const [bar, title] of [["prs", "#71 "], ["issues", "#5 "]] as const) {
         const pv = await host.barAction("github", bar, "preview") as { show: { title: string; markdown: string; actions: { id: string }[] } };
         expect(pv.show.title.startsWith(title)).toBe(true);
         expect(pv.show.markdown.length).toBeGreaterThan(0);
-        expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "copy", "mute"]);
+        expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "copy", "mute", "ignore"]);
       }
-      expect(keycaps(issueView)).toEqual(["enter", "space", "c", "m", "r", "p"]);
+      expect(keycaps(issueView)).toEqual(["enter", "space", "c", "m", "i", "r", "p"]);
       expect(texts(issueView)).toEqual(expect.arrayContaining(["Assigned to you", "Mentioning you", "Crash on start", "acme/widgets#5", "Slow endpoint", "acme/api#8", "3 comments", "1 comment"]));
       const is = JSON.stringify(issueView.tree);
       expect(is.indexOf('"value":"Assigned to you"')).toBeLessThan(is.indexOf('"value":"Mentioning you"'));
@@ -830,13 +832,13 @@ describe("github", () => {
       const ctx = { reason: "open" as const, compact: true as const };
       const prs = viewOf(await host.barAction("github", "prs", "focus:zcag/pal#72", ctx));
       expect(marksOf(prs.tree)).toEqual(expect.arrayContaining(["acme/widgets#71", "zcag/pal#72"]));
-      expect(prs.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "mute"]);
+      expect(prs.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "mute", "ignore"]);
       const ids = ["zcag/pal#72", "acme/widgets#71"];
       expect(await host.barAction("github", "prs", "open", { ...ctx, ids })).toEqual({ open: ["https://github.com/zcag/pal/pull/72", "https://github.com/acme/widgets/pull/71"] });
       expect(await host.barAction("github", "prs", "copy", { ...ctx, ids })).toEqual({ copy: "https://github.com/zcag/pal/pull/72\nhttps://github.com/acme/widgets/pull/71" });
       const issues = viewOf(await host.barAction("github", "issues", "focus:acme/api#8", ctx));
       expect(marksOf(issues.tree)).toContain("acme/api#8");
-      expect(issues.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "mute"]);
+      expect(issues.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "mute", "ignore"]);
       expect(await host.barAction("github", "issues", "open", { ...ctx, ids: ["acme/api#8", "acme/widgets#5"] })).toEqual({ open: ["https://github.com/acme/api/issues/8", "https://github.com/acme/widgets/issues/5"] });
     });
 
@@ -844,7 +846,7 @@ describe("github", () => {
       const ctx = { reason: "open" as const, compact: true as const };
       const before = { prs: ops("PRs").length, issues: ops("Issues").length };
       expect(await pick("prs", "acme/widgets#71", "mute")).toEqual({ keep: true, toast: { title: "Muted", message: "#71 Directory readiness" } });
-      expect(stored.get("github\0muted")).toEqual(["acme/widgets#71"]);
+      expect(stored.get("github\0hidden")).toMatchObject({ "acme/widgets#71": { stamp: null } });
       expect(ids(await list("prs"))).toEqual(["zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
       expect(ids(await list("prs", "reviews"))).toEqual(["acme/api#9"]);
       const strip = await host.render("github", "prs", { reason: "update" });
@@ -860,45 +862,75 @@ describe("github", () => {
       const view = viewOf(await host.barAction("github", "issues", "mute", ctx));
       expect(texts(view)).not.toContain("Crash on start");
       expect(JSON.stringify(view.tree)).toContain('"action":"focus:acme/api#8","selected":true');
-      expect(stored.get("github\0muted")).toEqual(["acme/widgets#71", "acme/widgets#5"]);
+      expect(hiddenIds()).toEqual(["acme/widgets#71", "acme/widgets#5"]);
       expect(ids(await list("issues"))).toEqual(["create", "acme/api#8", "zcag/pal#3"]);
       expect(ids(await list("issues", "muted"))).toEqual(["acme/widgets#5"]);
       expect(await host.render("github", "issues", { reason: "update" })).toMatchObject({ tooltip: "1 open issue", segments: [{ id: "mentioned", text: "@1" }] });
       // Back.
       expect(await pick("prs", "acme/widgets#71", "unmute")).toEqual({ keep: true, toast: { title: "Unmuted", message: "#71 Directory readiness" } });
       expect(await pick("issues", "acme/widgets#5", "unmute")).toMatchObject({ toast: { title: "Unmuted" } });
-      expect(stored.get("github\0muted")).toEqual([]);
+      expect(hiddenIds()).toEqual([]);
       expect(ids(await list("prs"))).toEqual(["acme/widgets#71", "zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
       expect(ids(await list("issues"))).toEqual(["create", "acme/widgets#5", "acme/api#8", "zcag/pal#3"]);
-      expect(await list("prs", "muted")).toMatchObject([{ id: "hint:none", name: "Nothing muted" }]);
+      expect(await list("prs", "muted")).toMatchObject([{ id: "hint:none", name: "Nothing hidden" }]);
       expect(ops("PRs")).toHaveLength(before.prs);
       expect(ops("Issues")).toHaveLength(before.issues);
     });
 
-    test("prune: a muted PR seen merged is dropped on the next list, one no list has carried for 31 days too, an open one stays however old its seen time; mutedSeen written back, the drops logged", async () => {
+    test("prune: the older muted keys move into the store; a muted PR seen merged goes on the next list, one no list has carried for 31 days too, an open one stays however old its seen time; the drops logged", async () => {
       const DAY = 24 * 60 * 60 * 1000;
       const now = Date.now();
       stored.clear();
-      // A merged PR, an open one last seen long ago, an id no list knows, and a closed issue with no seen time yet.
+      // The keys before the store: a merged PR, an open one last seen long ago, an id no list knows, and a closed issue with no seen time yet.
       stored.set("github\0muted", ["zcag/pal#50", "acme/widgets#71", "acme/old#1", "zcag/pal#3"]);
       stored.set("github\0mutedSeen", { "zcag/pal#50": now, "acme/widgets#71": now - 40 * DAY, "acme/old#1": now - 31 * DAY });
       const h = await Host.bundled({ settings: { github: { settings: { default_org: "acme", merged_days: 7 } } } });
       try {
         expect(ids(await h.list("github", "prs"))).toEqual(["zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
-        expect(stored.get("github\0muted")).toEqual(["acme/widgets#71", "zcag/pal#3"]);
-        expect(h.stderr).toContain("[github] unmuted zcag/pal#50 (merged), acme/old#1 (unseen for 30 days)");
-        // Seen in a list: the time moves up; never recorded: the clock starts now rather than at zero.
-        const seen = stored.get("github\0mutedSeen") as Record<string, number>;
-        expect(Object.keys(seen).sort()).toEqual(["acme/widgets#71", "zcag/pal#3"]);
-        expect(seen["acme/widgets#71"]).toBeGreaterThanOrEqual(now);
-        expect(seen["zcag/pal#3"]).toBeGreaterThanOrEqual(now);
-        // The issue lists settle the closed issue the same way; the Muted filter lists what is left.
+        expect(stored.has("github\0muted") || stored.has("github\0mutedSeen")).toBe(false);
+        expect(hiddenIds()).toEqual(["acme/widgets#71", "zcag/pal#3"]);
+        expect(h.stderr).toContain("[github] shown again zcag/pal#50 (merged), acme/old#1 (unseen for 30 days)");
+        // Seen in a list: the time moves up; never recorded: the clock starts now rather than at zero. A mute's stamp is null: it never changes.
+        const store = stored.get("github\0hidden") as Record<string, { stamp: string | null; seen: number }>;
+        expect(store["acme/widgets#71"]).toMatchObject({ stamp: null });
+        expect(store["acme/widgets#71"].seen).toBeGreaterThanOrEqual(now);
+        expect(store["zcag/pal#3"].seen).toBeGreaterThanOrEqual(now);
+        // The issue lists settle the closed issue the same way; the Hidden filter lists what is left.
         expect(ids(await h.list("github", "issues"))).toEqual(["create", "acme/widgets#5", "acme/api#8", "zcag/pal#3"]);
-        expect(stored.get("github\0muted")).toEqual(["acme/widgets#71"]);
-        expect(h.stderr).toContain("[github] unmuted zcag/pal#3 (closed)");
+        expect(hiddenIds()).toEqual(["acme/widgets#71"]);
+        expect(h.stderr).toContain("[github] shown again zcag/pal#3 (closed)");
         expect(ids(await h.list("github", "prs", undefined, { filter: "muted" }))).toEqual(["acme/widgets#71"]);
-        expect(await h.list("github", "issues", undefined, { filter: "muted" })).toMatchObject([{ id: "hint:none", name: "Nothing muted" }]);
+        expect(await h.list("github", "issues", undefined, { filter: "muted" })).toMatchObject([{ id: "hint:none", name: "Nothing hidden" }]);
       } finally { h.kill(); stored.clear(); }
+    });
+
+    test("ignore: a PR or issue leaves the lists and the count until it changes (an update, its checks, a comment), then comes back by itself; Show again brings it back by hand", async () => {
+      const ctx = { reason: "open" as const, compact: true as const };
+      expect(await pick("prs", "acme/api#9", "ignore")).toEqual({ keep: true, toast: { title: "Ignored until it changes", message: "#9 Fix the parser" } });
+      expect(stored.get("github\0hidden")).toMatchObject({ "acme/api#9": { stamp: expect.stringContaining("2026-09-15T10:00:00Z") } });
+      expect(ids(await list("prs"))).not.toContain("acme/api#9");
+      const rows = await list("prs", "muted");
+      expect(rows.map((r) => [r.id, r.section])).toEqual([["acme/api#9", "Ignored until it changes"]]);
+      expect(rows[0].actions!.find((a) => a.id === "unmute")).toMatchObject({ title: "Show again", shortcut: "cmd+m" });
+      // Its checks go green without a new updatedAt: that is a change too.
+      const nine = PRS.reviews[0] as Record<string, unknown>;
+      const checks = nine.commits;
+      nine.commits = { nodes: [{ commit: { statusCheckRollup: { state: "SUCCESS" } } }] };
+      try {
+        expect(ids(await list("prs", "all", undefined, true))).toContain("acme/api#9");
+        expect(hiddenIds()).not.toContain("acme/api#9");
+      } finally { nine.commits = checks; }
+      await list("prs", "all", undefined, true);
+      // The popover's i ignores the focused issue; a comment brings it back.
+      await host.barAction("github", "issues", "focus:acme/api#8", ctx);
+      expect(texts(viewOf(await host.barAction("github", "issues", "ignore", ctx)))).not.toContain("Slow endpoint");
+      expect(await host.render("github", "issues", { reason: "update" })).toMatchObject({ tooltip: "1 open issue" });
+      const eight = ISSUES.mentioned[1] as Record<string, unknown>;
+      eight.comments = { totalCount: 2 };
+      try {
+        expect(ids(await list("issues", "all", undefined, true))).toContain("acme/api#8");
+      } finally { eight.comments = { totalCount: 1 }; await list("issues", "all", undefined, true); }
+      expect(hiddenIds()).toEqual([]);
     });
 
     test("nothing open: prs and issues are hidden with an empty shape (the glyph, no segments, the popover saying so) for the core's show = always", async () => {

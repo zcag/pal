@@ -1706,6 +1706,16 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   `POPOVER_W` (396), the width a bar popover's view measures fixed widths
   against; `preview(detail, title, actions, ids)`, a row's preview
   (**Preview**, under View palettes).
+- Ignoring until it changes: `ignoreStore(key?, migrate?)` keeps ids out
+  of a list and its count, each with the stamp its row had when it was
+  ignored (the newest message's id or time, an `updatedAt`); `hides(id,
+  stamp)` is false again as soon as the row carries another stamp, and
+  `settle(rows, gone?)` over every fetched list drops what changed, what
+  `gone` names (a merged pull request) and what no list has carried for
+  30 days. A `null` stamp never changes: hidden until shown again by hand
+  (GitHub's mute). Stored under `key` in the extension's storage, local
+  only: an ignored chat stays unread where it lives. The inboxes put it on
+  `i` in their popovers and `cmd+shift+i` on their rows, with Show again.
 - Text: `bytes(n)` ("3.2 KB", "1.5 MB", "1.50 TB"), `truncate(s, n)` (an ellipsis as the
   last character), `oneLine(s)` (whitespace runs as one space, invisible
   characters such as a mail preheader's zero-width joiners out), `slug(s)`,

@@ -10,7 +10,7 @@
 // caches; they deliberately do not make a combined GitHub cluster.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { argsForm, bar, clock, eachId, errorMessage, failed, hint, home, preview, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { argsForm, bar, clock, eachId, errorMessage, failed, hint, home, ignoreStore, preview, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, entry, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
@@ -73,86 +73,83 @@ function thread(body: string, entries: { author: string; at: string; body: strin
   return parts.join("\n\n");
 }
 
-// ---- muted ----------------------------------------------------------------
-// A muted PR or issue is one he has decided not to be nagged about: out of
-// every list, count and popover, until unmuted from the palette's Muted
-// filter (or the row's own action, wherever it still turns up: Search). The
-// ids are kept in storage (`owner/repo#n`, one set for both kinds), loaded
-// once: this worker is the only writer. A mute is not forever: an id a
-// fetched list shows merged or closed is dropped on the spot, and one no list
-// has carried for thirty days is dropped too, off `mutedSeen` (id to the last
-// time a list had it; the mute itself starts the clock), so the set does not
-// collect every PR he ever muted.
+// ---- muted and ignored ------------------------------------------------------
+// A PR or issue can be kept out of every list, count and popover two ways,
+// one store (`ignoreStore`, the SDK's): muted (a `null` stamp) until
+// unmuted by hand from the palette's Hidden filter or the row's action;
+// ignored until it changes, its stamp what the row said when it was
+// ignored (`stampOf`: the update time, and for a PR its checks, review and
+// mergeability, which move without `updatedAt`), so a push, a comment, a
+// review or CI brings it back. Neither is forever: an id a fetched list
+// shows merged or closed goes on the spot, and one no list has carried for
+// thirty days goes too. The store took over the older `muted` and
+// `mutedSeen` keys on its first load.
 
 const MUTED = "muted", MUTED_SEEN = "mutedSeen";
-const UNSEEN_MS = 30 * 24 * 60 * 60 * 1000;
-/** A seen time is written back only once it has moved a day: the lists come every few minutes, the file need not. */
-const SEEN_STEP_MS = 24 * 60 * 60 * 1000;
-let muted = new Set<string>();
-let mutedSeen: Record<string, number> = {};
-const mutedReady = Promise.all([storage.get<string[]>(MUTED), storage.get<Record<string, number>>(MUTED_SEEN)])
-  .then(([ids, seen]) => { muted = new Set(ids ?? []); mutedSeen = seen ?? {}; }, (e) => log(`muted: ${errorMessage(e)}`));
-const saveMuted = () => Promise.all([storage.set(MUTED, [...muted]), storage.set(MUTED_SEEN, mutedSeen)]);
-async function setMuted(id: string, on: boolean) {
-  if (on) { muted.add(id); mutedSeen[id] = Date.now(); } else { muted.delete(id); delete mutedSeen[id]; }
-  await saveMuted();
-}
+const hidden = ignoreStore("hidden", async () => {
+  const [ids, seen] = await Promise.all([storage.get<string[]>(MUTED), storage.get<Record<string, number>>(MUTED_SEEN)]);
+  if (!ids?.length) return;
+  await Promise.all([storage.remove(MUTED), storage.remove(MUTED_SEEN)]);
+  return Object.fromEntries(ids.map((id) => [id, { stamp: null, seen: seen?.[id] ?? Date.now() }]));
+});
+const stampOf = (x: PR | Issue): string => (x.kind === "pr" ? [x.updatedAt, x.checks, x.review, x.mergeable].join("|") : [x.updatedAt, x.comments].join("|"));
+const isHidden = (x: PR | Issue) => hidden.hides(x.id, stampOf(x));
+/** Muted (by hand) rather than ignored (until it changes). */
+const isMuted = (id: string) => hidden.get(id)?.stamp === null;
 
-/** Muted ids a fetched list settles: seen merged or closed, or seen by no list for thirty days, are dropped and logged; the rest have their seen time moved up. */
-async function pruneMuted(list: { id: string; state: string }[]) {
-  const now = Date.now();
+/** The store settled against a fetched list: merged or closed, changed, or unseen for thirty days goes, logged. */
+async function settleHidden(list: (PR | Issue)[]) {
   const state = new Map(list.map((x) => [x.id, x.state]));
-  const dropped: [id: string, why: string][] = [];
-  let dirty = false;
-  for (const id of muted) {
-    const s = state.get(id);
-    if (s === "merged" || s === "closed") dropped.push([id, s]);
-    else if (s) { dirty ||= now - (mutedSeen[id] ?? 0) >= SEEN_STEP_MS; mutedSeen[id] = now; }
-    else if (!mutedSeen[id]) { mutedSeen[id] = now; dirty = true; }
-    else if (now - mutedSeen[id] > UNSEEN_MS) dropped.push([id, "unseen for 30 days"]);
-  }
-  for (const [id] of dropped) { muted.delete(id); delete mutedSeen[id]; }
-  if (dropped.length) log(`unmuted ${dropped.map(([id, why]) => `${id} (${why})`).join(", ")}`);
-  if (dropped.length || dirty) await saveMuted();
+  const dropped = await hidden.settle(list.map((x) => ({ id: x.id, stamp: stampOf(x) })), (id) => { const s = state.get(id); return s === "merged" || s === "closed" ? s : undefined; });
+  if (dropped.length) log(`shown again ${dropped.map(([id, why]) => `${id} (${why})`).join(", ")}`);
 }
 
-/** The fetched lists with the muted set settled against them; the Muted filter reads these, the counts and rows the stripped ones below. */
+/** The fetched lists with the store settled against them; the Hidden filter reads these, the counts and rows the stripped ones below. */
 async function prLists(refresh?: boolean): Promise<PRLists> {
-  const [l] = await Promise.all([fetchPrs(refresh), mutedReady]);
-  await pruneMuted([...l.mine, ...l.reviews, ...l.merged]);
+  const [l] = await Promise.all([fetchPrs(refresh), hidden.ready]);
+  await settleHidden([...l.mine, ...l.reviews, ...l.merged]);
   return l;
 }
 async function issueLists(refresh?: boolean): Promise<IssueLists> {
-  const [l] = await Promise.all([fetchIssues(refresh), mutedReady]);
-  await pruneMuted([...l.assigned, ...l.mentioned, ...l.created]);
+  const [l] = await Promise.all([fetchIssues(refresh), hidden.ready]);
+  await settleHidden([...l.assigned, ...l.mentioned, ...l.created]);
   return l;
 }
 
-/** The lists as every count and row sees them: the muted ones stripped. */
+/** The lists as every count and row sees them: the muted and ignored ones stripped. */
 async function prs(refresh?: boolean): Promise<PRLists> {
   const l = await prLists(refresh);
-  const keep = (xs: PR[]) => xs.filter((pr) => !muted.has(pr.id));
+  const keep = (xs: PR[]) => xs.filter((pr) => !isHidden(pr));
   return { mine: keep(l.mine), reviews: keep(l.reviews), merged: keep(l.merged) };
 }
 async function issues(refresh?: boolean): Promise<IssueLists> {
   const l = await issueLists(refresh);
-  const keep = (xs: Issue[]) => xs.filter((i) => !muted.has(i.id));
+  const keep = (xs: Issue[]) => xs.filter((i) => !isHidden(i));
   return { assigned: keep(l.assigned), mentioned: keep(l.mentioned), created: keep(l.created) };
 }
 
 /**
- * Mute and Unmute as row actions: the one that flips the row on ⌘M, the
- * other at the end of the list, so marked rows that mix muted and not
- * offer both. Their pick: the list re-lists (`keep`) and the bar item
- * re-renders off the cache.
+ * Mute, Ignore and their way back as row actions: a shown row has Mute on
+ * ⌘M and Ignore until it changes on ⌘⇧I, a hidden one Unmute (or Show
+ * again) on ⌘M; the other kind's are at the end of the list, so marked
+ * rows that mix hidden and shown offer both. Their pick: the list
+ * re-lists (`keep`) and the bar item re-renders off the cache.
  */
-const MUTE: Action = { id: "mute", title: "Mute", multi: true }, UNMUTE: Action = { id: "unmute", title: "Unmute", multi: true };
-const muteAction = (id: string): Action => ({ ...(muted.has(id) ? UNMUTE : MUTE), shortcut: "cmd+m" });
-const otherMute = (id: string): Action => (muted.has(id) ? MUTE : UNMUTE);
-async function pickMute(id: string, item: "prs" | "issues", what: string, on: boolean): Promise<Effect> {
-  await setMuted(id, on);
+const MUTE: Action = { id: "mute", title: "Mute", multi: true };
+const IGNORE: Action = { id: "ignore", title: "Ignore until it changes", multi: true };
+const unhide = (x: PR | Issue): Action => ({ id: "unmute", title: isMuted(x.id) ? "Unmute" : "Show again", multi: true });
+const hideActions = (x: PR | Issue): Action[] => (isHidden(x) ? [{ ...unhide(x), shortcut: "cmd+m" }] : [{ ...MUTE, shortcut: "cmd+m" }, { ...IGNORE, shortcut: "cmd+shift+i" }]);
+const otherHide = (x: PR | Issue): Action[] => (isHidden(x) ? [MUTE, IGNORE] : [unhide(x)]);
+/** Hide (`mute`: until unmuted; `ignore`: until it changes) or show again (`unmute`). */
+async function hide(xs: (PR | Issue)[], how: string) {
+  if (how === "unmute") await hidden.remove(xs.map((x) => x.id));
+  else await hidden.add(xs.map((x) => ({ id: x.id, stamp: how === "mute" ? null : stampOf(x) })));
+}
+async function pickHide(x: PR | Issue, item: "prs" | "issues", what: string, how: string): Promise<Effect> {
+  const title = how === "unmute" ? (isMuted(x.id) ? "Unmuted" : "Shown again") : how === "mute" ? "Muted" : "Ignored until it changes";
+  await hide([x], how);
   bar.refresh(item).catch(() => {});
-  return toast(on ? "Muted" : "Unmuted", what);
+  return toast(title, what);
 }
 
 const each = (ids: string[], one: (id: string) => Promise<Effect | void> | Effect | void, noun: string) => eachId(ids, one, noun);
@@ -190,11 +187,11 @@ function prActions(pr: PR): Action[] {
     { id: "checks", title: "Open checks", shortcut: "cmd+shift+k", multi: true },
     { id: "files", title: "Open files changed", shortcut: "cmd+shift+f", multi: true },
     { id: "ref", title: "Copy reference", multi: true },
-    ...(open ? [muteAction(pr.id)] : []),
+    ...(open ? hideActions(pr) : []),
     ...(open && pr.draft ? [{ id: "ready", title: "Mark ready for review", shortcut: "cmd+shift+r", multi: true as const }] : []),
     // The question names no number: over marked rows the shell adds how many.
     ...(open && !pr.draft && pr.mergeable === "MERGEABLE" ? [{ id: "merge", title: "Merge", shortcut: "cmd+shift+m", confirm: "Merge into the base branch?", multi: true as const }] : []),
-    ...(open ? [otherMute(pr.id)] : []),
+    ...(open ? otherHide(pr) : []),
   ];
 }
 
@@ -266,7 +263,7 @@ async function pickPR(pr: PR, action?: string): Promise<Effect> {
     case "copy": return { copy: pr.url };
     case "branch": return { copy: pr.head };
     case "ref": return { copy: pr.id };
-    case "mute": case "unmute": return pickMute(pr.id, "prs", `#${pr.number} ${truncate(pr.title, 60)}`, action === "mute");
+    case "mute": case "unmute": case "ignore": return pickHide(pr, "prs", `#${pr.number} ${truncate(pr.title, 60)}`, action);
     case "checks": return { open: `${pr.url}/checks` };
     case "files": return { open: `${pr.url}/files` };
     case "checkout": {
@@ -287,7 +284,7 @@ async function pickPR(pr: PR, action?: string): Promise<Effect> {
   }
 }
 
-const PR_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }, { id: "muted", title: "Muted" }];
+const PR_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }, { id: "muted", title: "Hidden" }];
 
 async function prRows(ctx?: Ctx): Promise<Item[]> {
   const filter = ctx?.filter ?? "all";
@@ -296,8 +293,10 @@ async function prRows(ctx?: Ctx): Promise<Item[]> {
   const add = (list: PR[], section: string) => { for (const pr of list) if (!seen.has(pr.id)) { seen.add(pr.id); rows.push(prRow(pr, section)); } };
   if (filter === "muted") {
     const l = await prLists(!!ctx?.refresh);
-    add([...l.mine, ...l.reviews].filter((pr) => muted.has(pr.id)), "Muted");
-    return rows.length ? rows : [hint("none", "Nothing muted", "Mute on a pull request keeps it out of the lists, the count and the bar item")];
+    const all = [...l.mine, ...l.reviews].filter(isHidden);
+    add(all.filter((pr) => isMuted(pr.id)), "Muted");
+    add(all, "Ignored until it changes");
+    return rows.length ? rows : [hint("none", "Nothing hidden", "Mute keeps a pull request out of the lists, the count and the bar item; Ignore does until it changes")];
   }
   const lists = await prs(!!ctx?.refresh);
   if (filter === "all" || filter === "mine") add(lists.mine, "Mine");
@@ -402,16 +401,16 @@ async function prsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "refresh") return redraw();
   const focused = rows[st.focus];
   if (!focused) return { keep: true };
-  if (action === "preview") return preview(await pane(() => prPane(focused)), `#${focused.number} ${focused.title}`, renderPrs(st).actions, ["open", "copy", "mute"]);
+  if (action === "preview") return preview(await pane(() => prPane(focused)), `#${focused.number} ${focused.title}`, renderPrs(st).actions, ["open", "copy", "mute", "ignore"]);
   // The marked rows (`BarCtx.ids`), else the focused one.
   const ids = ctx?.ids ?? [focused.id];
-  if (action === "mute") {
-    for (const id of ids) await setMuted(id, true);
+  if (action === "mute" || action === "ignore") {
+    await hide(await Promise.all(ids.map(findPr)), action);
     // The cursor stays at its index: the next PR slides under it.
     const next = prBarState(await prs());
     const at = Math.min(st.focus, Math.max(0, shownPrs(next).length - 1));
     barFocus.prs = shownPrs(next)[at]?.id;
-    return { keep: true, view: renderPrs({ ...next, focus: at }), ...(ids.length > 1 && { hud: `Muted ${ids.length}` }) };
+    return { keep: true, view: renderPrs({ ...next, focus: at }), ...(ids.length > 1 && { hud: `${action === "mute" ? "Muted" : "Ignored"} ${ids.length}` }) };
   }
   return each(ids, async (id) => pickPR(await findPr(id), action === "copy" ? "copy" : undefined), "pull requests");
 }
@@ -426,7 +425,7 @@ function issueActions(i: Issue): Action[] {
     { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true },
     { id: "ref", title: "Copy reference", multi: true },
     // The question names no number: over marked rows the shell adds how many.
-    ...(i.state === "open" ? [muteAction(i.id), { id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: "Close on GitHub?", multi: true as const }, otherMute(i.id)] : []),
+    ...(i.state === "open" ? [...hideActions(i), { id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: "Close on GitHub?", multi: true as const }, ...otherHide(i)] : []),
   ];
 }
 
@@ -482,7 +481,7 @@ async function pickIssue(i: Issue, action?: string): Promise<Effect> {
   switch (action) {
     case "copy": return { copy: i.url };
     case "ref": return { copy: i.id };
-    case "mute": case "unmute": return pickMute(i.id, "issues", `#${i.number} ${truncate(i.title, 60)}`, action === "mute");
+    case "mute": case "unmute": case "ignore": return pickHide(i, "issues", `#${i.number} ${truncate(i.title, 60)}`, action);
     case "close":
       try { await closeIssue(i); } catch (e) { return failed("close", e); }
       forget("issues");
@@ -532,7 +531,7 @@ async function saveIssue(values: Record<string, string | boolean>): Promise<Effe
   }
 }
 
-const ISSUE_FILTERS = [{ id: "all", title: "All" }, { id: "assigned", title: "Assigned" }, { id: "mentioned", title: "Mentioned" }, { id: "created", title: "Created" }, { id: "muted", title: "Muted" }];
+const ISSUE_FILTERS = [{ id: "all", title: "All" }, { id: "assigned", title: "Assigned" }, { id: "mentioned", title: "Mentioned" }, { id: "created", title: "Created" }, { id: "muted", title: "Hidden" }];
 const createIssueRow: Item = { id: CREATE, name: "Create issue", subtitle: "A new issue in one of your repositories", icon: ICON.plus, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create issue" }] };
 
 async function issueRows(ctx?: Ctx): Promise<Item[]> {
@@ -542,8 +541,10 @@ async function issueRows(ctx?: Ctx): Promise<Item[]> {
   const add = (list: Issue[], section: string) => { for (const i of list) if (!seen.has(i.id)) { seen.add(i.id); rows.push(issueRow(i, section)); } };
   if (filter === "muted") {
     const l = await issueLists(!!ctx?.refresh);
-    add([...l.assigned, ...l.mentioned, ...l.created].filter((i) => muted.has(i.id)), "Muted");
-    return rows.length > 1 ? rows.slice(1) : [hint("none", "Nothing muted", "Mute on an issue keeps it out of the lists, the count and the bar item")];
+    const all = [...l.assigned, ...l.mentioned, ...l.created].filter(isHidden);
+    add(all.filter((i) => isMuted(i.id)), "Muted");
+    add(all, "Ignored until it changes");
+    return rows.length > 1 ? rows.slice(1) : [hint("none", "Nothing hidden", "Mute keeps an issue out of the lists, the count and the bar item; Ignore does until it changes")];
   }
   const lists = await issues(!!ctx?.refresh);
   if (filter === "all" || filter === "assigned") add(lists.assigned, "Assigned");
@@ -611,15 +612,15 @@ async function issuesAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "refresh") return redraw();
   const focused = rows[st.focus]?.issue;
   if (!focused) return { keep: true };
-  if (action === "preview") return preview(await pane(() => issuePane(focused)), `#${focused.number} ${focused.title}`, renderIssues(st).actions, ["open", "copy", "mute"]);
+  if (action === "preview") return preview(await pane(() => issuePane(focused)), `#${focused.number} ${focused.title}`, renderIssues(st).actions, ["open", "copy", "mute", "ignore"]);
   // The marked rows (`BarCtx.ids`), else the focused one.
   const ids = ctx?.ids ?? [focused.id];
-  if (action === "mute") {
-    for (const id of ids) await setMuted(id, true);
+  if (action === "mute" || action === "ignore") {
+    await hide(await Promise.all(ids.map(findIss)), action);
     const next = issueBarState(await issues());
     const at = Math.min(st.focus, Math.max(0, shownIssues(next).length - 1));
     barFocus.issues = shownIssues(next)[at]?.issue.id;
-    return { keep: true, view: renderIssues({ ...next, focus: at }), ...(ids.length > 1 && { hud: `Muted ${ids.length}` }) };
+    return { keep: true, view: renderIssues({ ...next, focus: at }), ...(ids.length > 1 && { hud: `${action === "mute" ? "Muted" : "Ignored"} ${ids.length}` }) };
   }
   return each(ids, async (id) => pickIssue(await findIss(id), action === "copy" ? "copy" : undefined), "issues");
 }

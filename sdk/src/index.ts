@@ -2,7 +2,7 @@
 // helpers from api.ts, the contract's types from protocol.ts, the view,
 // form and bar item checkers, the icon table, the tile and tint helpers,
 // and the helpers the bundled extensions share (rows.ts, text.ts, exec.ts,
-// token.ts, png.ts, image.ts; `terminal`, `files`, `md`, `colors` and
+// token.ts, png.ts, image.ts, ignore.ts; `terminal`, `files`, `md`, `colors` and
 // `tabs` as namespaces). `runtime.ts` is the host's side and is not
 // re-exported here (`@zcag/pal/runtime`).
 import type { ExtensionFor, ManifestLike } from "./manifest.ts";
@@ -23,6 +23,8 @@ export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W,
 export { appName, bytes, errorMessage, htmlText, mdEscape, oneLine, slug, truncate } from "./text.ts";
 export { EXEC_MS, exec, run } from "./exec.ts";
 export { eachId, foldEffects } from "./multi.ts";
+export { IGNORE_UNSEEN_MS, ignoreStore } from "./ignore.ts";
+export type { IgnoreEntry, Ignored, IgnoreRow } from "./ignore.ts";
 export type { Exec, ExecOptions } from "./exec.ts";
 export { listProcesses, parsePs, PS_ARGV, PS_MS } from "./procs.ts";
 export type { Proc } from "./procs.ts";

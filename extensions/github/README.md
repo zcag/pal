@@ -16,7 +16,7 @@ check out, merge, close or mark read without leaving the keyboard.
 **Pull Requests** lists yours (`is:open author:@me`), the ones waiting on
 your review (`review-requested:@me`), and yours merged within
 `merged_days`, sectioned Mine, Review requested, Merged; the filter
-dropdown has the same three plus All and Muted. The row is the title with
+dropdown has the same three plus All and Hidden. The row is the title with
 `owner/repo #n` under it, a state dot (green open, grey draft, violet
 merged, red closed) and tags for the checks (`checks ✓` / `✗` / `…`),
 the review decision (approved, changes requested, review), draft and
@@ -33,13 +33,16 @@ latest comments and the milestone. **Create issue** at the top is a form
 
 **Mute** (`cmd+m` on a pull request or issue row, `m` in the bar
 popovers) keeps one out of every list, the bar counts and the popovers
-until you unmute it: the **Muted** filter of either palette lists what is
-muted, with Unmute on the row. The set is kept in pal's storage, not on
-GitHub, and a muted thing keeps its notifications. A mute ends on its own
-once it has nothing left to do: an id a fetched list shows merged or closed
-is dropped on that listing, and one no list has carried for thirty days is
-dropped too (the last sighting is kept beside the set, and the mute itself
-starts that clock), each drop logged.
+until you unmute it. **Ignore until it changes** (`cmd+shift+i` on a row,
+`i` in the popovers) does the same until anything about it moves: an
+update (a push, a comment, a review, an edit), its checks, its review
+decision or its mergeability, which then bring it back by themselves. The
+**Hidden** filter of either palette lists both, sectioned Muted and
+Ignored until it changes, with Unmute or Show again on the row. It is kept
+in pal's storage, not on GitHub, and a hidden thing keeps its
+notifications. Either ends on its own once it has nothing left to do: an
+id a fetched list shows merged or closed is dropped on that listing, and
+one no list has carried for thirty days is dropped too, each drop logged.
 
 **Repositories** is yours (owner or collaborator, by push date), your
 `default_org`'s recently pushed, and your starred ones, sectioned so. Rows
@@ -84,7 +87,8 @@ computes per result; yours carry them from the cached lists.
 | `cmd+shift+r` | Mark ready for review | a draft pull request |
 | `cmd+shift+m` | Merge, with `merge_method`; asks first | an open, mergeable pull request |
 | `cmd+shift+x` | Close issue; asks first | an open issue |
-| `cmd+m` | Mute / Unmute: out of the lists, counts and bar popovers | an open pull request or issue |
+| `cmd+m` | Mute / Unmute (Show again on an ignored one): out of the lists, counts and bar popovers | an open pull request or issue |
+| `cmd+shift+i` | Ignore until it changes: out of them until it is updated, its checks or review move | an open pull request or issue |
 | `cmd+e` | Open in editor (`code`, else the folder) | a repository with a local clone |
 | `cmd+o` | Open folder | a repository with a local clone |
 | `cmd+shift+c` | Copy clone URL (`clone_protocol`) | repositories |
@@ -100,7 +104,7 @@ read: several PRs or issues open in one go, the copies land one per line,
 mute, unmute, merge, close and mark ready go through them all (the
 question says how many). The PR, issue and notification popovers mark the
 same way: `Enter` opens each marked row, `c` copies them, `m` mutes (or,
-in notifications, marks read) them all. `Space` in a popover previews the
+in notifications, marks read) them all, `i` ignores them until they change. `Space` in a popover previews the
 row under the cursor: the pull request's or issue's text and latest
 comments (a notification's too, when it is about one), with Enter and
 its `c`/`m` keys still working there.

@@ -542,7 +542,7 @@
     "tagline": "Pull requests, issues, repos and notifications in the panel",
     "category": "developer",
     "features": [
-      "Your pull requests, the ones waiting on your review and what merged this week, with checks and review state",
+      "Your pull requests, the ones waiting on your review and what merged this week, with checks and review state; mute one, or ignore it until it changes",
       "A pull request or issue in full: the body, latest comments and reviews, every check, who approved",
       "Your repositories, your organisation's and your stars; `cmd+e` opens the local clone in the editor",
       "Notifications by reason; `enter` opens the thread and marks it read, `space` in the popover reads it first",
