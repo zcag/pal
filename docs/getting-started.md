@@ -284,7 +284,7 @@ The root list is more than the index's hits.
   `general.search_history = false` turns it off.
 - **Reset ranking.** ⌘K on any row has "Reset ranking for this item":
   its history of picks and the queries that found it are forgotten, so it
-  ranks as never used. Settings > General > Maintenance resets all of it.
+  ranks as never used. Settings > About > Maintenance resets all of it.
 - **Where a re-show lands.** Hide pal and press the hotkey again within
   90 s and you are where you left, level and query kept; later than that,
   at the root. `general.pop_to_root` is `"always"`, `"never"` or `"after
@@ -348,8 +348,7 @@ menu opens the Settings window: seven pages across the top. **Overview**
 is what needs attention (a hotkey that did not register, a missing
 permission, an extension that needs a token, a config file problem, an
 update) and the counts; **General** theme, position, startup,
-permissions, the config file and maintenance (reset the search history,
-restart the extension host, list everything again); **Shortcuts** every
+permissions and the config file; **Shortcuts** every
 hotkey in pal in one list; **Features** a card for each thing pal does on
 its own (clipboard history, text expansion, the window switcher, the
 sidebar, mouse and trackpad, keycast), its switch and its settings
@@ -360,7 +359,10 @@ a card that opens the store and a field that installs from GitHub or a
 folder; an extension opens as a page of its own with its accounts,
 settings, palettes (each unfolding to its hotkeys, rank and settings)
 and bar items; **Bar** the bar items, each with its own settings;
-**About** the version, the updater and the last crash. `/` focuses the window's search, which finds any
+**About** the version, the updater (pal's and the extensions'),
+maintenance (list everything again, restart the extension host, reset
+the search history), the links (docs, the store, the changelog, a bug
+report, the source) and the last crash. `/` focuses the window's search, which finds any
 setting on any page; `Esc` hides the window.
 
 Every change the window makes is a write to the config file, and every

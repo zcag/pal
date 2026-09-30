@@ -151,7 +151,7 @@ login shell itself, so it sees your own PATH either way.
 Every extension runs in one Bun process the app spawns (`host<TAB>spawn`,
 `host<TAB>ready` in the log). It is restarted by "Reload Extensions" at
 the root (`pal reload`, `pal://reload`), "Restart extension host" in the
-menu bar icon's menu and under Settings › General › Maintenance, and
+menu bar icon's menu and under Settings › About › Maintenance, and
 after every install, update and remove; a host that exits is respawned
 after half a second (`host<TAB>exit`). During the gap a pick fails with
 a "Could not open" toast (the action's own name: "Could not copy URL";

@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { SettingsAbout, installing, progressLine, type UpdateInfo, type UpdateProgress } from "../SettingsAbout";
+import { SettingsAbout, aboutIndex, installing, progressLine, type UpdateInfo, type UpdateProgress } from "../SettingsAbout";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -94,5 +94,16 @@ describe("the Extensions row", () => {
     expect(extRow().textContent).toContain("Gmail, Slack have updates waiting.");
     await act(async () => { extRow().querySelector("button")!.click(); });
     expect(update).toHaveBeenCalledWith(["gmail", "slack"]);
+  });
+});
+
+describe("Maintenance and Links", () => {
+  it("the moved maintenance rows and the links, each one findable", async () => {
+    const noop = () => {};
+    await act(() => { root.render(<SettingsAbout version="0.1.0" file="/x/config.toml" links={{ ...links, store: "https://pal.cagdas.io/extensions", changelog: "https://pal.cagdas.io/changelog?from=0.1.0", issues: "https://github.com/zcag/pal/issues/new" }} onOpenLink={noop} onResetFrecency={noop} onRestartHost={noop} onRefreshListings={noop} />); });
+    for (const a of ["about:refresh", "about:host", "about:frecency", "about:docs", "about:store", "about:changelog", "about:bug", "about:repo"]) expect(el.querySelector(`[data-anchor="${a}"]`)).not.toBeNull();
+    expect(el.querySelector('[data-anchor="about:frecency"] button')?.textContent).toBe("Reset Ranking");
+    const labels = aboutIndex.map((e) => e.label);
+    for (const l of ["Refresh listings", "Restart extension host", "Reset ranking", "Extension store", "Changelog", "Report a bug", "Extension updates"]) expect(labels).toContain(l);
   });
 });

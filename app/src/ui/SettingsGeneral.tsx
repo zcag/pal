@@ -1,6 +1,6 @@
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
-import { ArmedButton, SettingsGroup, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsGroup, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { permissionRows, type ConfigFileInfo, type GeneralConfig, type PermissionId, type PermissionsStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
@@ -11,10 +11,6 @@ export type SettingsGeneralProps = {
   file: ConfigFileInfo;
   onOpenFile?: () => void;
   onRevealFile?: () => void;
-  /** Maintenance, shown when wired: forget what was picked, restart the extension host, list every palette again. */
-  onResetFrecency?: () => void;
-  onRestartHost?: () => void;
-  onRefreshListings?: () => void;
   /** What the OS lets pal do; the Permissions group shows only when given (macOS). */
   permissions?: PermissionsStatus;
   /** The system prompt plus the System Settings pane for one permission. */
@@ -80,16 +76,13 @@ const text = {
   autoUpdate: { anchor: "general:auto-update", hint: "Updates", label: "Update extensions automatically", description: "A new build of an installed extension is put in place by itself, and put back if it fails to load. Off, each update waits under Settings › Extensions. A registry can have its own setting there.", keywords: "extensions store registry update automatic" },
   usage: { anchor: "general:usage", hint: "Privacy", label: "Share anonymous usage", description: "Which extensions are installed and how often their palettes open, with a random id: never names, queries or files.", keywords: "privacy telemetry statistics analytics counts anonymous" },
   file: { anchor: "general:file", hint: "~/.config/pal/config.toml", label: "File", description: "Every setting in this window is a key in this file. Changing one here rewrites only that key, so your comments and formatting stay. Edit it by hand any time; pal picks the change up as you save.", keywords: "config toml edit reveal open editor" },
-  frecency: { anchor: "general:frecency", hint: "Maintenance", label: "Search history", description: "What you picked, and for which query, ranks results. Forget all of it.", keywords: "reset ranking frecency" },
-  host: { anchor: "general:host", hint: "Maintenance", label: "Extension host", description: "Every extension runs in one process. Restart it to reload them all from scratch.", keywords: "bun" },
-  refresh: { anchor: "general:refresh", hint: "Maintenance", label: "Listings", description: "Every indexed palette is listed again now, whatever its cache says.", keywords: "refresh relist" },
 } as const;
 
-/** What the search field finds on this page: every row above, by its label, its description and its keywords. The search's own label is the row's, except where the group names it better (Hotkey, Permissions, Config file, Reset ranking). */
+/** What the search field finds on this page: every row above, by its label, its description and its keywords. The search's own label is the row's, except where the group names it better (Permissions, Config file). */
 export const generalIndex: SettingsIndexEntry[] = [
   ...(Object.entries(text) as [keyof typeof text, (typeof text)[keyof typeof text]][]).map(([id, r]): SettingsIndexEntry => ({
     page: "general",
-    label: id === "permissions" ? "Permissions" : id === "file" ? "Config file" : id === "frecency" ? "Reset ranking" : id === "host" ? "Restart extension host" : id === "refresh" ? "Refresh listings" : r.label,
+    label: id === "permissions" ? "Permissions" : id === "file" ? "Config file" : r.label,
     hint: r.hint,
     anchor: r.anchor,
     keywords: `${r.label} ${r.description} ${r.keywords}`,
@@ -97,7 +90,7 @@ export const generalIndex: SettingsIndexEntry[] = [
 ];
 
 /** pal's own settings: how it looks, how it starts, what the OS lets it do, and the file behind all of it; the keys are the Shortcuts page's. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, permissions, onRequestPermission, onOpenOverview, themeFile, onOpenShortcuts, onOpenLink }: SettingsGeneralProps) {
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, permissions, onRequestPermission, onOpenOverview, themeFile, onOpenShortcuts, onOpenLink }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -193,25 +186,6 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         </SettingsRow>
       </SettingsGroup>
 
-      {(onResetFrecency || onRestartHost || onRefreshListings) && (
-        <SettingsGroup title="Maintenance">
-          {onResetFrecency && (
-            <SettingsRow anchor={text.frecency.anchor} label={text.frecency.label} description={text.frecency.description}>
-              <ArmedButton label="Reset Ranking" arm="Forget it all? Click again" onConfirm={onResetFrecency} />
-            </SettingsRow>
-          )}
-          {onRestartHost && (
-            <SettingsRow anchor={text.host.anchor} label={text.host.label} description={text.host.description}>
-              <button type="button" className="pal-button" onClick={onRestartHost}>Restart</button>
-            </SettingsRow>
-          )}
-          {onRefreshListings && (
-            <SettingsRow anchor={text.refresh.anchor} label={text.refresh.label} description={text.refresh.description}>
-              <button type="button" className="pal-button" onClick={onRefreshListings}>Refresh All</button>
-            </SettingsRow>
-          )}
-        </SettingsGroup>
-      )}
     </div>
   );
 }

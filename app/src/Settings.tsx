@@ -66,7 +66,7 @@ type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; change
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
 type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
-type About = { docs: string; repo: string; changelog?: string; report?: CrashReport; panic?: PanicReport };
+type About = { docs: string; repo: string; changelog?: string; store?: string; issues?: string; report?: CrashReport; panic?: PanicReport };
 
 /** The store site, where every bundled extension has a page. */
 const STORE = "https://pal.cagdas.io/extensions";
@@ -674,9 +674,6 @@ export default function Settings() {
           file={{ path: view.path, changed: view.changed }}
           onOpenFile={() => invoke("settings_open_file").catch(fail)}
           onRevealFile={() => invoke("settings_reveal_file").catch(fail)}
-          onResetFrecency={() => invoke("settings_reset_frecency").catch(fail)}
-          onRestartHost={() => invoke("settings_restart_host").catch(fail)}
-          onRefreshListings={() => invoke("index_refresh", { source: null }).catch(fail)}
           permissions={permissions}
           onRequestPermission={requestPermission}
           onOpenOverview={() => go("overview", "overview:attention")}
@@ -737,6 +734,9 @@ export default function Settings() {
           onOpenReport={(file: ReportKind) => invoke("settings_open_file", { file }).catch(fail)}
           onRevealReport={(file: ReportKind) => invoke("settings_reveal_file", { file }).catch(fail)}
           diagnosticsText={() => diagnosticsText(view, extensions, barItems)}
+          onResetFrecency={() => invoke("settings_reset_frecency").catch(fail)}
+          onRestartHost={() => invoke("settings_restart_host").catch(fail)}
+          onRefreshListings={() => invoke("index_refresh", { source: null }).catch(fail)}
         />
       )}
     </SettingsWindow>

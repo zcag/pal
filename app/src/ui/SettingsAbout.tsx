@@ -1,7 +1,7 @@
 import { useState } from "react";
 import iconUrl from "../../design/icon.svg";
 import { relativeDate } from "./format";
-import { SettingsGroup, SettingsRow } from "./SettingsField";
+import { ArmedButton, SettingsGroup, SettingsRow } from "./SettingsField";
 import type { SettingsIndexEntry } from "./SettingsTypes";
 
 /** updater.rs `UpdateInfo`. */
@@ -51,8 +51,8 @@ export type SettingsAboutProps = {
   version: string;
   /** The config file's path. */
   file: string;
-  /** `changelog`: the changelog from this version on. */
-  links: { docs: string; repo: string; changelog?: string };
+  /** `changelog`: the changelog from this version on; `store` the extension store's page, `issues` a new bug report. */
+  links: { docs: string; repo: string; changelog?: string; store?: string; issues?: string };
   /** One check against the release manifest and every registry; answers the release's result, rejects with its reason (network, signature). */
   onCheckUpdates?: () => Promise<UpdateInfo>;
   /** Extensions whose update waits for the user (auto-update off for their registry); the rest update by themselves on a check. */
@@ -72,11 +72,26 @@ export type SettingsAboutProps = {
   onRevealReport?: (which: ReportKind) => void;
   /** The diagnostics text (`pal doctor`'s): versions, paths, permissions, what loaded. Copied for a bug report. */
   diagnosticsText?: () => Promise<string> | string;
+  /** Maintenance, shown when wired: forget what was picked, restart the extension host, list every palette again. */
+  onResetFrecency?: () => void;
+  onRestartHost?: () => void;
+  onRefreshListings?: () => void;
 };
+
+const maintenance = {
+  frecency: { anchor: "about:frecency", label: "Search history", search: "Reset ranking", description: "What you picked, and for which query, ranks results. Forget all of it.", keywords: "reset ranking frecency" },
+  host: { anchor: "about:host", label: "Extension host", search: "Restart extension host", description: "Every extension runs in one process. Restart it to reload them all from scratch.", keywords: "bun reload" },
+  refresh: { anchor: "about:refresh", label: "Listings", search: "Refresh listings", description: "Every indexed palette is listed again now, whatever its cache says.", keywords: "refresh relist index cache" },
+} as const;
 
 export const aboutIndex: SettingsIndexEntry[] = [
   { page: "about", label: "Check for updates", hint: "About", anchor: "about:updates", keywords: "version release" },
+  { page: "about", label: "Extension updates", hint: "About", anchor: "about:extensions", keywords: "update all extensions registry" },
+  ...Object.values(maintenance).map((m): SettingsIndexEntry => ({ page: "about", label: m.search, hint: "Maintenance", anchor: m.anchor, keywords: `${m.label} ${m.description} ${m.keywords}` })),
   { page: "about", label: "Documentation", hint: "About", anchor: "about:docs", keywords: "writing an extension guide" },
+  { page: "about", label: "Extension store", hint: "About", anchor: "about:store", keywords: "browse install extensions website" },
+  { page: "about", label: "Changelog", hint: "About", anchor: "about:changelog", keywords: "what's new release notes" },
+  { page: "about", label: "Report a bug", hint: "About", anchor: "about:bug", keywords: "issue github problem" },
   { page: "about", label: "Source code", hint: "About", anchor: "about:repo", keywords: "github" },
   { page: "about", label: "Copy diagnostics", hint: "About", anchor: "about:diagnostics", keywords: "doctor bug report" },
   { page: "about", label: "Last crash", hint: "About", anchor: "about:crash", keywords: "panic report" },
@@ -121,7 +136,7 @@ function ReportRow({ label, which, at, what, path, onOpen, onReveal }: { label: 
 }
 
 /** The app, its version, the update check, the last crash, and where the rest lives. */
-export function SettingsAbout({ version, file, links, onCheckUpdates, extensionUpdates, onUpdateExtensions, update, onInstallUpdate, progress, onOpenLink, onRevealFile, crash, panic, onOpenReport, onRevealReport, diagnosticsText }: SettingsAboutProps) {
+export function SettingsAbout({ version, file, links, onCheckUpdates, extensionUpdates, onUpdateExtensions, update, onInstallUpdate, progress, onOpenLink, onRevealFile, crash, panic, onOpenReport, onRevealReport, diagnosticsText, onResetFrecency, onRestartHost, onRefreshListings }: SettingsAboutProps) {
   const [check, setCheck] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done"; info: UpdateInfo } | { kind: "error"; message: string }>(update ? { kind: "done", info: update } : { kind: "idle" });
   const [installError, setInstallError] = useState<string | null>(null);
   const info = check.kind === "done" ? check.info : undefined;
@@ -195,8 +210,31 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, extensionU
         )}
       </SettingsGroup>
 
+      {(onResetFrecency || onRestartHost || onRefreshListings) && (
+        <SettingsGroup title="Maintenance">
+          {onRefreshListings && (
+            <SettingsRow anchor={maintenance.refresh.anchor} label={maintenance.refresh.label} description={maintenance.refresh.description}>
+              <button type="button" className="pal-button" data-small onClick={onRefreshListings}>Refresh All</button>
+            </SettingsRow>
+          )}
+          {onRestartHost && (
+            <SettingsRow anchor={maintenance.host.anchor} label={maintenance.host.label} description={maintenance.host.description}>
+              <button type="button" className="pal-button" data-small onClick={onRestartHost}>Restart</button>
+            </SettingsRow>
+          )}
+          {onResetFrecency && (
+            <SettingsRow anchor={maintenance.frecency.anchor} label={maintenance.frecency.label} description={maintenance.frecency.description}>
+              <ArmedButton label="Reset Ranking" arm="Forget it all? Click again" onConfirm={onResetFrecency} data-small />
+            </SettingsRow>
+          )}
+        </SettingsGroup>
+      )}
+
       <SettingsGroup title="Links">
         <SettingsRow anchor="about:docs" label="Documentation">{link(links.docs, "Writing an extension")}</SettingsRow>
+        {links.store && <SettingsRow anchor="about:store" label="Extension store">{link(links.store, links.store.replace(/^https?:\/\//, ""))}</SettingsRow>}
+        {links.changelog && <SettingsRow anchor="about:changelog" label="Changelog">{link(links.changelog, "What's new since this version")}</SettingsRow>}
+        {links.issues && <SettingsRow anchor="about:bug" label="Report a bug">{link(links.issues, "Open an issue on GitHub")}</SettingsRow>}
         <SettingsRow anchor="about:repo" label="Source code">{link(links.repo, links.repo.replace(/^https?:\/\//, ""))}</SettingsRow>
         <SettingsRow label="Config file">
           <span className="pal-settings-file">

@@ -1305,6 +1305,9 @@ pub struct About {
     repo: &'static str,
     /// The changelog from this version on (`commands::changelog_url`).
     changelog: String,
+    /// The extension store's page and a new bug report.
+    store: &'static str,
+    issues: &'static str,
     #[serde(flatten)]
     found: crash::Found,
 }
@@ -1312,7 +1315,7 @@ pub struct About {
 #[tauri::command]
 pub fn settings_about(app: AppHandle) -> About {
     let changelog = crate::commands::changelog_url(&app.package_info().version.to_string());
-    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO, changelog, found: crash::found(&app) }
+    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO, changelog, store: crate::commands::STORE, issues: crate::commands::ISSUES, found: crash::found(&app) }
 }
 
 /// A link on the page, in the browser. The webview has no handler for

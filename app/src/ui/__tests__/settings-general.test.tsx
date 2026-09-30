@@ -61,9 +61,8 @@ describe("SettingsGeneral permissions", () => {
     expect(permissionRows({ accessibility: true, input_monitoring: true }, { users: { full_disk_access: [{ who: "OTP", why: "reads the Messages database" }] } }).find((r) => r.id === "full_disk_access")?.state).toBe("unknown");
   });
   it("gives every row an anchor for the search", () => {
-    const html = page({ onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop });
-    for (const a of ["general:shortcuts", "general:theme", "general:position", "general:backspace", "general:login", "general:menubar", "general:file", "general:frecency", "general:host", "general:refresh"]) expect(html).toContain(`data-anchor="${a}"`);
-    expect(html).toContain("Refresh All");
+    const html = page({});
+    for (const a of ["general:shortcuts", "general:theme", "general:position", "general:backspace", "general:login", "general:menubar", "general:file"]) expect(html).toContain(`data-anchor="${a}"`);
   });
   it("is found by any word of a row's description, not only its label, and every indexed anchor is on the page", () => {
     const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);
@@ -73,7 +72,7 @@ describe("SettingsGeneral permissions", () => {
     expect(find("permissions grant")).toEqual(["Permissions"]);
     expect(find("comments")).toEqual(["Config file"]);
     expect(find("catppuccin")).toEqual(["Theme file"]);
-    const html = page({ permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
+    const html = page({ permissions: { accessibility: true, input_monitoring: true }, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
   });
   it("has the update and usage switches, found by their words, the usage one with a link to what is sent", () => {
@@ -88,9 +87,5 @@ describe("SettingsGeneral permissions", () => {
     expect(find("registry")).toEqual(["Update extensions automatically"]);
     // A page not handed them (an older caller) leaves the groups out.
     expect(page({ value: { ...general, checkUpdates: undefined, autoUpdate: undefined, usage: undefined } })).not.toContain('aria-label="Updates"');
-  });
-  it("Reset Ranking asks once before it forgets everything", () => {
-    const html = page({ onResetFrecency: noop });
-    expect(html).toMatch(/data-destructive[^>]*aria-live="polite"[^>]*>Reset Ranking</);
   });
 });
