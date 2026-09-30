@@ -127,6 +127,10 @@ export class Host {
   readonly notifications: Notification[] = [];
   /** Every `core/*` request the host made, in order, method without the prefix. */
   readonly coreCalls: { method: string; params: unknown }[] = [];
+  /** The last `core/<method>` request, as `coreCalls` records it: other extensions' background calls (a bundled host runs them all) land in between. */
+  lastCall(method: string) {
+    return this.coreCalls.findLast((c) => c.method === method);
+  }
   /** Lines on stdout that were not JSON: a corrupted protocol. */
   readonly garbage: string[] = [];
   readonly manifests = new Map<string, Manifest>();

@@ -202,11 +202,11 @@ describe("browser-tabs", () => {
   test("focus over DevTools: activate, bring to front, then the focus effect on the browser's window from windows.list", async () => {
     await list();
     http.length = 0;
-    const n = ws.length;
+    const n = ws.length, calls = host.coreCalls.length;
     expect(await pick("cdp:T2")).toEqual({ focus: "w2" });
     expect(http).toEqual(["/json/activate/T2"]);
     expect(ws.slice(n).map((m) => m.method)).toContain("Page.bringToFront");
-    expect(host.coreCalls.at(-1)!.method).toBe("windows.list");
+    expect(host.coreCalls.slice(calls).map((c) => c.method)).toContain("windows.list");
   });
 
   test("close and mute over DevTools keep the palette open; the muted tab's ⌘M is Unmute; marked tabs mute together", async () => {

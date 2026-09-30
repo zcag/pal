@@ -54,7 +54,7 @@ describe("clipboard", () => {
 
   test("list asks core/clipboard.list with the query and its own page size", async () => {
     await list("hello");
-    expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "hello", limit: 200 } });
+    expect(host.lastCall("clipboard.list")).toEqual({ method: "clipboard.list", params: { query: "hello", limit: 200 } });
   });
 
   test("rows: title, subtitle, icon per kind, accessories, url and colour detection, the pinned section", async () => {
@@ -79,11 +79,11 @@ describe("clipboard", () => {
 
   test("filters: the core's kinds are passed through; links and colours are text narrowed here", async () => {
     expect((await list("", "image")).map((i) => i.id)).toEqual(["3"]);
-    expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "", limit: 200, kind: "image" } });
+    expect(host.lastCall("clipboard.list")).toEqual({ method: "clipboard.list", params: { query: "", limit: 200, kind: "image" } });
     expect((await list("", "files")).map((i) => i.id)).toEqual(["4"]);
     expect((await list("", "text")).map((i) => i.id)).toEqual(["1", "2", "5", "6"]);
     expect((await list("", "links")).map((i) => i.id)).toEqual(["5"]);
-    expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "", limit: 200, kind: "text" } });
+    expect(host.lastCall("clipboard.list")).toEqual({ method: "clipboard.list", params: { query: "", limit: 200, kind: "text" } });
     expect((await list("", "colors")).map((i) => i.id)).toEqual(["6"]);
     expect((await list("", "all")).map((i) => i.id)).toEqual(["1", "2", "3", "4", "5", "6"]);
   });
@@ -147,7 +147,7 @@ describe("clipboard", () => {
   test("pick: Copy text from image runs OCR over the core and copies what it read; concealed when the setting says so; failures and empties are toasts", async () => {
     ocrText = "Total 42.00";
     expect(await pick("3", "copy-text")).toEqual({ copy: "Total 42.00", hud: "Copied text" });
-    expect(host.coreCalls.at(-1)).toEqual({ method: "ocr.image", params: { path: PNG } });
+    expect(host.lastCall("ocr.image")).toEqual({ method: "ocr.image", params: { path: PNG } });
     host.changeSettings("clipboard", { settings: { ocr_concealed: true } });
     expect(await pick("3", "copy-text")).toEqual({ copy: { text: "Total 42.00", concealed: true }, hud: "Copied text" });
     host.changeSettings("clipboard", {});
@@ -266,7 +266,7 @@ describe("clipboard", () => {
   test("settings: primary_action copy reorders; what is recorded and listed is the feature's (clipboard.list leaves excluded apps out), not a filter here", async () => {
     host.changeSettings("clipboard", { settings: { primary_action: "copy" } });
     const items = await list();
-    expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "", limit: 200 } });
+    expect(host.lastCall("clipboard.list")).toEqual({ method: "clipboard.list", params: { query: "", limit: 200 } });
     expect(items).toHaveLength(ENTRIES.length);
     expect(items[0].actions!.map((a) => a.id).slice(0, 2)).toEqual(["copy", "paste"]);
     host.changeSettings("clipboard", {});
