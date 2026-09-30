@@ -85,7 +85,7 @@
     "night-parade": {
       "title": "Night Parade",
       "kind": "view",
-      "description": "A night against the parade. Escape pauses; hiding the panel pauses too.",
+      "description": "A night against the parade. Escape or closing the panel pauses it, and it waits there for you.",
       "keys": [
         {
           "keys": "up",

@@ -1,8 +1,9 @@
 // Night Parade: a view palette whose body is the game's own page
-// (surface/index.html). The page keeps everything (the night in memory, the
+// (surface/index.html). The page keeps everything (the night, the
 // save in the extension's storage), so this side only opens it. The actions
 // reach the page as `pal.onAction`, never here. Escape is the panel's
-// (it leaves, and leaving pauses the night); the page's back is Backspace.
+// (it leaves, and leaving pauses the night and stores it, so it opens paused
+// next time); the page's back is Backspace.
 import type { Action, Extension, View } from "@zcag/pal";
 
 export const ACTIONS: Action[] = [

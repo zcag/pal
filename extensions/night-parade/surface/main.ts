@@ -3,7 +3,8 @@
 // frame, its events turned into sound, banners and particles), and the cards
 // over it (level-up, chest, pause, results). The save goes through the kit's
 // storage (localStorage in a browser, the extension's storage in pal);
-// hiding pal's panel pauses the night.
+// hiding pal's panel pauses the night and stores it, so closing pal and
+// opening it again finds the night where it was, paused.
 import { BOSSES, type BossKind } from "../game/content/bosses.ts";
 import { ENEMIES, type EnemyKind } from "../game/content/enemies.ts";
 import { HEROES, type HeroKind } from "../game/content/heroes.ts";
@@ -14,7 +15,7 @@ import { STAT_NAMES, statText, type StatKey } from "../game/content/stats.ts";
 import { WEAPONS, WEAPON_MAX, levelText, type WeaponKind } from "../game/content/weapons.ts";
 import { needed } from "../game/content/xp.ts";
 import { drive, loadout as botLoadout, pickChoice } from "../game/bot.ts";
-import { buy, earnedUnlocks, fresh, heroOpen, load, loadout, priceOf, refund, settle, weaponOpen, type Earned, type Save, type Scene } from "../game/meta.ts";
+import { buy, earnedUnlocks, fresh, heroOpen, load, loadout, packRun, priceOf, refund, settle, unpackRun, weaponOpen, type Earned, type Save, type Scene } from "../game/meta.ts";
 import { DT, banish, choose, clock, create, pairs, reroll, restat, resume, skip, step, type Choice, type State } from "../game/sim/index.ts";
 import { levelUp, openChest } from "../game/sim/progress.ts";
 import { spawnAt } from "../game/sim/core.ts";
@@ -212,7 +213,23 @@ function settings() {
 
 function begin() {
   if (!heroOpen(save, save.hero)) return;
-  run = create(loadout(save, (Date.now() ^ (save.totals.nights * 2654435761)) >>> 0));
+  enter(create(loadout(save, (Date.now() ^ (save.totals.nights * 2654435761)) >>> 0)));
+  audio.play("act1");
+  banner({ banner: ACTS[0].name, sub: ACTS[0].sub, tone: "act" });
+}
+
+/** A stored night back on screen: paused, or on the card it was left at, with its music waiting. */
+function carryOn(s: State) {
+  enter(s);
+  const boss = s.enemies.find((e) => e.boss)?.boss;
+  audio.play(boss ? (boss === "oni" ? "oni" : "boss") : (["act1", "act2", "act3"] as const)[actAt(s.t)]);
+  if (s.phase === "levelup") { audio.suspend(); levelCard(); }
+  else if (s.phase === "chest") { audio.suspend(); startChest(); }
+  else setPaused(true);
+}
+
+function enter(s: State) {
+  run = s;
   screen = "run";
   paused = false;
   earned = undefined;
@@ -223,8 +240,13 @@ function begin() {
   goldShown = -1;
   announced.clear();
   show("", false);
-  audio.play("act1");
-  banner({ banner: ACTS[0].name, sub: ACTS[0].sub, tone: "act" });
+}
+
+/** The night as it stands, stored (on hiding); none once it's over. */
+function keep() {
+  if (scene) return;
+  const live = screen === "run" && run && (run.phase === "play" || run.phase === "levelup" || run.phase === "chest");
+  pal.storage.set("run", live ? packRun(run!) : null).catch((e) => console.error("night-parade: keep", e));
 }
 
 function drain(s: State) {
@@ -502,6 +524,7 @@ function pauseCard() {
 function finish() {
   earned = settle(save, run!);
   persist();
+  keep();
   endAt = performance.now();
   if (earned.unlocks.length) setTimeout(() => audio.sfx("unlock"), 1600);
 }
@@ -682,9 +705,14 @@ pal.onHidden(() => {
   held.clear();
   if (screen === "run" && run?.phase === "play" && !paused) setPaused(true);
   audio.suspend();
+  keep();
 });
 pal.onShown(() => { if (!paused) audio.unsuspend(); });
-document.addEventListener("visibilitychange", () => { if (document.hidden && screen === "run" && run?.phase === "play" && !paused) setPaused(true); });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) return;
+  if (screen === "run" && run?.phase === "play" && !paused) setPaused(true);
+  keep();
+});
 
 // `?dev`: the page's state on window.np, so a headless check can jump ahead.
 if (new URLSearchParams(location.search).has("dev")) Object.assign(window, { np: { get run() { return run; }, get save() { return save; }, prof, restat, spawnAt, begin, key, results, title } });
@@ -733,12 +761,14 @@ function stage(sc: Scene) {
 async function boot() {
   save = load(await pal.storage.get("save").catch(() => null));
   scene = (await pal.storage.get("scene").catch(() => null)) as Scene | undefined ?? undefined;
+  const kept = scene ? undefined : unpackRun(await pal.storage.get("run").catch(() => null));
   view.numbers = save.settings.numbers;
   audio.volume(save.settings);
   useFont();
   fit();
   await loaded();
   if (scene) stage(scene);
+  else if (kept) carryOn(kept);
   else title();
   pal.ready();
   requestAnimationFrame(frame);

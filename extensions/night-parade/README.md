@@ -59,7 +59,7 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
 | `M` | Sound on or off |
 | Backspace | Back, on the title's screens |
 | `` ` `` | Frames a second and what's on the field |
-| Escape | Leave (the night pauses) |
+| Escape | Leave (the night pauses and is kept: closing pal and coming back finds it paused) |
 
 ⌘K lists Pause, Sound on or off, and Give up the night.
 

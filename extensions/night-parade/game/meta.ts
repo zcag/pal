@@ -132,6 +132,27 @@ export function earnedUnlocks(run: State): UnlockKind[] {
   return out;
 }
 
+// ---- a night left open -------------------------------------------------------------------------------------------------
+
+/**
+ * A night in progress, for the page to store when the panel hides and pick up
+ * when it opens again. The state is plain data but for its Sets and Maps,
+ * which go through JSON tagged; what's only for the eye (effects, numbers,
+ * undrained events) is left behind.
+ */
+export function packRun(s: State): unknown {
+  const bare = { ...s, fx: [], nums: [], events: [] };
+  return { v: 1, run: JSON.parse(JSON.stringify(bare, (_, x) => x instanceof Set ? { $set: [...x] } : x instanceof Map ? { $map: [...x] } : x)) };
+}
+
+/** A stored night back as a state, or undefined when there's none (or it's from another version). */
+export function unpackRun(raw: unknown): State | undefined {
+  if (!raw || typeof raw !== "object" || (raw as { v?: number }).v !== 1) return undefined;
+  const s = JSON.parse(JSON.stringify((raw as { run: unknown }).run), (_, x) =>
+    x && typeof x === "object" && "$set" in x ? new Set(x.$set) : x && typeof x === "object" && "$map" in x ? new Map(x.$map) : x) as State;
+  return s?.phase === "play" || s?.phase === "levelup" || s?.phase === "chest" ? s : undefined;
+}
+
 /**
  * A staged moment for the store's screenshots (fixture.ts writes it to the
  * page's storage; surface/main.ts `stage` plays it): a night from a seed with

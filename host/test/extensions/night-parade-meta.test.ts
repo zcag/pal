@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { night } from "../../../extensions/night-parade/game/bot.ts";
+import { night, play } from "../../../extensions/night-parade/game/bot.ts";
 import { SHRINE } from "../../../extensions/night-parade/game/content/meta.ts";
-import { buy, earnedUnlocks, fresh, load, loadout, priceOf, refund, settle, shrineStats } from "../../../extensions/night-parade/game/meta.ts";
+import { buy, earnedUnlocks, fresh, load, loadout, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../../../extensions/night-parade/game/meta.ts";
 
 test("a stored save loads with anything newer filled in", () => {
   const s = fresh();
@@ -117,4 +117,17 @@ test("a loadout locks unopened weapons and falls back from a locked hero", () =>
   expect(loadout(s, 1).omen).toBe(0);
   s.unlocked.push("omens");
   expect(loadout(s, 1).omen).toBe(3);
+});
+
+test("a night stored partway plays on exactly as the one left open", () => {
+  const a = play(night(7), undefined, 60);
+  const b = unpackRun(JSON.parse(JSON.stringify(packRun(a))))!;
+  expect(b.banished).toBeInstanceOf(Set);
+  expect(b.groups).toBeInstanceOf(Map);
+  play(a, undefined, 150);
+  play(b, undefined, 150);
+  expect([b.t, b.p.kills, b.p.level, b.p.hp, b.p.xp, b.enemies.length]).toEqual([a.t, a.p.kills, a.p.level, a.p.hp, a.p.xp, a.enemies.length]);
+  a.phase = "dead";
+  expect(unpackRun(packRun(a))).toBeUndefined();
+  expect(unpackRun(null)).toBeUndefined();
 });
