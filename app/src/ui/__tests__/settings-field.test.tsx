@@ -48,3 +48,19 @@ describe("SettingsField number", () => {
     expect(writes).toEqual([45, undefined]);
   });
 });
+
+describe("SettingsField slider", () => {
+  const volume: SettingSpec = { id: "volume", label: "Volume", kind: "number", min: 0, max: 100, step: 5, unit: "%", slider: true, default: 100 };
+  it("draws a slider at the value (the default while unset) with the value beside it, and writes where it's dragged", async () => {
+    await act(() => { root.render(<SettingsField spec={volume} value={undefined} onChange={(v) => writes.push(v)} />); });
+    expect(input().type).toBe("range");
+    expect(input().value).toBe("100");
+    expect(el.querySelector(".pal-slider .pal-number__unit")?.textContent).toBe("100%");
+    await type("40");
+    expect(writes).toEqual([40]);
+  });
+  it("without both bounds it stays a box", async () => {
+    await act(() => { root.render(<SettingsField spec={{ ...volume, max: undefined } as SettingSpec} value={50} onChange={(v) => writes.push(v)} />); });
+    expect(input().type).toBe("number");
+  });
+});

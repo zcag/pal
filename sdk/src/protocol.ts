@@ -1017,7 +1017,8 @@ export type SettingSpec = SettingBase &
     | { kind: "text"; placeholder?: string; default?: string }
     /** The file holds a `keychain:` or `env:` reference; the value never sits in it as plain text. */
     | { kind: "secret"; placeholder?: string; default?: string }
-    | { kind: "number"; min?: number; max?: number; step?: number; unit?: string; default?: number }
+    /** `slider` with both `min` and `max` draws a slider in place of the box (an app before it shows the box). */
+    | { kind: "number"; min?: number; max?: number; step?: number; unit?: string; slider?: boolean; default?: number }
     | { kind: "boolean"; text?: string; default?: boolean }
     | { kind: "select"; options: SettingOption[]; default?: string }
     | { kind: "hotkey"; default?: string }

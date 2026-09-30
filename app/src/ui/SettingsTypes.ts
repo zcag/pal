@@ -28,7 +28,7 @@ export type SettingSpec = Base & {
     | { kind: "text"; placeholder?: string; default?: string }
     /** The file holds a `keychain:` or `env:` reference; the value never sits in it as plain text. */
     | { kind: "secret"; placeholder?: string; default?: string }
-    | { kind: "number"; min?: number; max?: number; step?: number; unit?: string; default?: number }
+    | { kind: "number"; min?: number; max?: number; step?: number; unit?: string; slider?: boolean; default?: number }
     | { kind: "boolean"; text?: string; default?: boolean }
     | { kind: "select"; options: SettingOption[]; default?: string }
     | { kind: "hotkey"; default?: string }

@@ -200,6 +200,17 @@ export function numberProblem(spec: Extract<SettingSpec, { kind: "number" }>, te
   return undefined;
 }
 
+/** A number with `slider` and both bounds: dragged rather than typed, its value beside it. */
+function SliderControl({ spec, value, onChange, id }: { spec: Extract<SettingSpec, { kind: "number" }> & { min: number; max: number }; value: SettingValue; onChange: (v: SettingValue) => void; id: string }) {
+  const n = typeof value === "number" ? value : (spec.default ?? spec.min);
+  return (
+    <span className="pal-slider">
+      <input id={id} type="range" value={n} min={spec.min} max={spec.max} step={spec.step ?? "any"} onChange={(e) => onChange(Number(e.target.value))} />
+      <span className="pal-number__unit">{n}{spec.unit ?? ""}</span>
+    </span>
+  );
+}
+
 /** A number: what is typed stays in the box while it is out of range or not a number, with the reason under it, and nothing is written until it is fine (an empty box unsets). */
 function NumberControl({ spec, value, onChange, id }: { spec: Extract<SettingSpec, { kind: "number" }>; value: SettingValue; onChange: (v: SettingValue) => void; id: string }) {
   const shown = value === undefined ? "" : String(value);
@@ -227,7 +238,7 @@ function Control({ spec, value, onChange, id }: { spec: SettingSpec; value: Sett
     case "secret":
       return <SecretControl id={id} value={(value as string) ?? ""} placeholder={spec.placeholder} onChange={onChange} />;
     case "number":
-      return <NumberControl spec={spec} value={value} onChange={onChange} id={id} />;
+      return spec.slider && spec.min !== undefined && spec.max !== undefined ? <SliderControl spec={{ ...spec, min: spec.min, max: spec.max }} value={value} onChange={onChange} id={id} /> : <NumberControl spec={spec} value={value} onChange={onChange} id={id} />;
     case "boolean":
       return (
         <span className="pal-field__check">

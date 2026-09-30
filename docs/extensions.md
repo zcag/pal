@@ -89,7 +89,8 @@ whose code fails to load.
   items"); one the palettes read too stays here. The kinds and what each
   adds: `text` and `secret` (`placeholder`; a secret goes to the OS
   keychain, [Config](config.md#secrets)), `number` (`min`, `max`, `step`,
-  `unit`), `boolean` (`text`, the line beside the switch), `select`
+  `unit`; `slider: true` with both bounds draws a slider, a volume say,
+  where an older app shows the box), `boolean` (`text`, the line beside the switch), `select`
   (`options`, each `{ id, title }`), `hotkey`, `path` (`pick`: `file` or
   `folder`, `placeholder`), `list` (`placeholder`; the default a list of
   strings).
