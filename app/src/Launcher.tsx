@@ -12,7 +12,7 @@ import {
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, Icon as IconSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
-import { ASK_ID, ATTENTION, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
+import { ASK_ID, ATTENTION, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toAction, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
 import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
 import { paletteTitle } from "./fixtures";
@@ -148,7 +148,7 @@ export function rootHits(query: string, found: Hit[], inline: Hit[], fallback: H
 export type Level =
   | { kind: "root" }
   | { kind: "palette"; palette: string; args?: unknown; /** The crumb, when the push named one (`Effect.push.title`: the folder being browsed). */ title?: string; /** The search box's, when the push named one. */ placeholder?: string }
-  | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string }
+  | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string; /** A preview: what its actions pick (a row, or the view it came from), with the ctx of the level it was opened on; one run closes it. */ from?: Item; ctx?: Ctx; actions?: Action[]; /** The previewed row declares no actions: its pick carries none, as Enter on it would. */ bare?: true; /** The lazy rest of a row's detail is on its way. */ loading?: boolean }
   | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec; /** The crumb, when `palette` is not a source (a bar item's key). */ title?: string }
   | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number; /** The marked rows of the multi pick that opened it (`ctx.ids`): its submit runs over them too. */ ids?: string[] }
   | { kind: "menu"; key: string; title: string; rows: Item[]; submenus: Record<string, BarMenuNode[]>; pick?: { token: number; multi: boolean } }
@@ -696,6 +696,22 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const paneDetail = current && (lazyNow?.detail ?? current.detail);
   const paneLoading = !!lazyNow && !lazyNow.detail && !!lazyNow.slow;
 
+  /** A row with something to read: its own detail, or a lazy one the palette answers. */
+  const previewable = (item: Item) => !!item.source && (!!item.detail || (!!item.lazyDetail && !!props.detail));
+  /**
+   * The compact panel's ⌘I, where no pane fits: the row's detail as a level
+   * of its own, its actions still there (Enter the first), Escape back.
+   * The lazy rest follows into the same level.
+   */
+  const preview = (item: Item): boolean | void => {
+    if (!previewable(item)) return false;
+    const lv: Level = { kind: "show", detail: item.detail ?? {}, title: item.name, palette: item.palette, from: item, ctx, actions: item.actions ?? [OPEN], ...(!item.actions && { bare: true as const }), loading: !!item.lazyDetail && !!props.detail };
+    push(lv);
+    if (!lv.loading) return;
+    const done = (d?: DetailSpec) => nav.patch((v) => (v === lv ? { ...lv, detail: d ?? lv.detail, loading: false } : v));
+    props.detail!(item, ctx).then(done, () => done());
+  };
+
   // Fires on the paint after a reply: keystroke to painted list, invoke
   // included. The first list painted at all is the startup mark (the core
   // logs it against its own start).
@@ -936,6 +952,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (view.kind === "missing") return missingAction(view) ? [missingAction(view)!] : [];
     if (view.kind === "view") return sel ? [...(view.spec?.actions ?? []).filter((x) => x.multi || x.hidden), CLEAR_ACTION] : [...(view.spec?.actions ?? []), ...(linkable ? [link] : []), ...panel];
     if (view.kind === "form") return linkable ? [{ ...link, hidden: true }] : [];
+    if (view.kind === "show") return view.actions ?? [];
     // Rows marked: only what works on several (the `multi` actions every marked row carries), and the way out.
     if (sel) return [...multiActions(sel.items, anchor), CLEAR_ACTION];
     if (current) {
@@ -943,6 +960,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       a.push(...(current.actions ?? [isPalette ? { ...OPEN, title: `Open ${current.name}` } : isAsk ? { ...OPEN, title: current.name } : OPEN]));
       if (view.kind === "root" && !isPalette && !isTip && !isAsk && current.palette !== FALLBACK) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
       if (!compact) a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+      else if (previewable(current)) a.push({ id: DETAIL, title: "Preview", shortcut: "cmd+i", section: "View" });
     }
     if (linkable) a.push(link);
     // The shell's own, one "pal" section: a ranking to reset (a row frecency could have remembered: an indexed or palette row; not a tip, a fallback, a "more" row or a suggestion), the refresh, the panel's shape, Settings, the tips.
@@ -967,11 +985,13 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // level or, answering that form's submit, shows it again with its errors.
   // Any other answer to a submit closes the form first: the pick is done.
   const applyEffect = (item: Item, e: Effect, c: Ctx | undefined, submit = false, action?: string) => {
-    const top = level.current;
+    let top = level.current;
+    // An answer to a preview's action closes it and lands on the level it previewed (the view's next tree replaces that view's).
+    if (top.kind === "show" && top.from) { pop(); top = nav.stack[nav.stack.length - 2]?.view ?? top; }
     if (submit && !e.form && top.kind === "form") pop();
     if (e.toast) setToast({ style: e.toast.style ?? "success", title: e.toast.title, message: e.toast.message });
     if (e.push) enter(sourceKey(e.push), e.push.args, e.push.query, e.push.title, e.push.placeholder);
-    if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title, palette: item.palette });
+    if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title, palette: item.palette, ...(e.show.actions?.length && { from: item, ctx: c, actions: e.show.actions.map(toAction) }) });
     if (e.view) {
       // The next tree of the view it came from, if that is still the level on top; else a fresh level.
       if (top.kind === "view" && top.palette === item.palette) nav.replace({ ...top, spec: e.view });
@@ -987,7 +1007,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     Promise.resolve(onPick(item, query, action, c)).then(
       (r) => { applyEffect(item, (r ?? {}) as Effect, c, submit, action); setSuggestSeq((n) => n + 1); },
       (e) => {
-        const title = submit ? "submit" : item.actions?.find((x) => x.id === action)?.title ?? "open";
+        // A view's or a preview's item carries no actions: the level's name them.
+        const title = submit ? "submit" : (item.actions ?? actions).find((x) => x.id === action)?.title ?? "open";
         setToast({ style: "failure", title: `Could not ${title[0].toLowerCase()}${title.slice(1)}`, message: String(e) });
       },
     );
@@ -1105,7 +1126,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case REFRESH: onRefresh?.(view.kind === "palette" ? scope : undefined); break;
       case TIPS: onWelcome?.(); break;
       case LINK: { const l = linkFor(view, current, query); if (l) onLink?.(l); break; }
-      case DETAIL: setShowDetail((s) => !s); break;
+      case DETAIL: if (compact) { if (current) preview(current); } else setShowDetail((s) => !s); break;
       case COMPACT: onCompact?.(); break;
       case BIG: togglePanel("big"); break;
       case CORNER: togglePanel("corner"); break;
@@ -1120,6 +1141,14 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case BROWSE: if (current) push({ kind: "palette", palette: current.palette! }); break;
       case SUBMENU: if (current && view.kind === "menu") push(menuLevel(view.key, current.name, view.submenus[current.id] ?? [])); break;
       default:
+        // A preview's action: picked on what it previews, one at a time; the answer closes it (`applyEffect`).
+        if (view.kind === "show") {
+          const from = view.from;
+          if (!from || busy) return;
+          setBusy(true);
+          pickItem(from, view.bare ? undefined : a.id, view.ctx).finally(() => setBusy(false));
+          return;
+        }
         // A surface's level: the page runs its actions (`pal.onAction`), the extension hears of them only if the page tells it.
         if (view.kind === "view") {
           if (surfaceView) return surfaceRef.current?.post({ pal: "action", id: a.id });
@@ -1264,7 +1293,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       },
       // Enter and cmd+enter are a row's: with nothing under the cursor the shell's actions wait in the panel.
       // A form's fields take them first (Form's own scope); reaching here means focus is elsewhere, so the form is asked to submit.
-      primary: () => (view.kind === "show" ? pop() : view.kind === "missing" ? (listed[0] ? run(listed[0]) : false) : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] ? run(listed[0]) : false),
+      primary: () => (view.kind === "show" ? (listed[0] ? run(listed[0]) : pop()) : view.kind === "missing" ? (listed[0] ? run(listed[0]) : false) : view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "primary" }) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] ? run(listed[0]) : false),
       secondary: () => (view.kind === "form" ? requestSubmit() : view.kind === "view" ? viewCommand({ type: "secondary" }) : sel ? (runnable[1] ? run(runnable[1]) : false) : current && listed[1] ? run(listed[1]) : false),
       actions: () => (listed.length ? setActionsOpen(true) : false),
       // Under the switcher's hold Escape is the cancel, whatever is typed: the hide reaches the shell (switcher.rs `on_hidden`).
@@ -1278,7 +1307,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       } : view.kind === "view" && !viewInput ? ({ dir }) => { viewCommand(dir === 1 ? { type: "key", key: "tab" } : { type: "shortcut", combo: "shift+tab" }); }
       // fzf's Tab in a multi palette or picker (none of them has a filter dropdown): mark and step, whatever is typed.
       : multiLevel ? ({ dir }) => { if (current) { toggleAt(cur.cursor); cur.move(dir); } } : () => {},
-      detail: () => (view.kind === "view" || view.kind === "form" || compact ? false : setShowDetail((s) => !s)),
+      detail: () => (view.kind === "show" && view.from ? pop() : view.kind === "view" || view.kind === "form" || view.kind === "show" ? false : compact ? (current ? preview(current) : false) : setShowDetail((s) => !s)),
       shortcut: ({ combo }) => {
         if (combo === "cmd+," && onSettings) return onSettings();
         if (combo === "cmd+shift+m" && onCompact) return onCompact();
@@ -1299,6 +1328,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         if (isMenu && !query) { const a = menuShortcut(key); if (a) return run(a); }
         if (key === "x" && multiLevel && !query && current) { toggleAt(cur.cursor); cur.move(isGrid ? (list.current?.columns() ?? columns) : 1); return; }
         if (key === "backspace") return backspace();
+        // A preview's bare keys are its actions' (`m` marks read); Space closes it, as it opened it.
+        if (view.kind === "show" && view.from) { const a = actions.find((x) => hasShortcut(x, key)); if (a) return run(a); if (key === "space") return pop(); return false; }
         return view.kind === "view" && !viewInput ? viewCommand({ type: "key", key }) : false;
       },
     },
@@ -1331,7 +1362,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const body = card
     ? <Empty icon={(view.kind === "missing" && view.info?.icon) || { kind: "glyph", value: "\u{f03d7}" }} title={card.title} hint={card.hint} note={card.note} action={primaryAction && <button type="button" className="pal-button" data-primary onClick={() => run(primaryAction)}>{primaryAction.title}</button>} />
     : view.kind === "show"
-    ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
+    ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} loading={view.loading} /></div>
     : view.kind === "view"
     ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} marked={sel && sel.palette === viewPalette ? idsOf(sel) : undefined} onMark={viewRows.length ? markView : undefined} /></SurfaceContext.Provider> : null)
     : form
@@ -1349,8 +1380,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} />;
 
   /** The footer's primary hint and Enter handler, one place: the footer draws it, or the search row's right side in compact mode. */
-  const primaryHint = isShow ? { title: "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || isMissing || current) && primaryAction ? { title: primaryAction.title } : undefined;
-  const onPrimary = () => (isShow ? pop() : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : isMissing ? primaryAction && run(primaryAction) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
+  const primaryHint = isShow ? { title: listed[0]?.title ?? "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || isMissing || current) && primaryAction ? { title: primaryAction.title } : undefined;
+  const onPrimary = () => (isShow ? (listed[0] ? run(listed[0]) : pop()) : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : isMissing ? primaryAction && run(primaryAction) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
   return (
     <Panel
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}

@@ -19,7 +19,7 @@
 // opens that palette first; `keys` are pressed in order ("type:<text>",
 // "down", "down*3", "enter", "escape", "cmd+k", "wait:<ms>"); `raw` keeps true
 // colour (a colour picker's gradients). A bar shot is { target, state?,
-// popover?, caption } under the names `menubar`, `popover`, `sketchybar`,
+// popover?, keys?, caption } under the names `menubar`, `popover`, `sketchybar`,
 // `menubar-<state>`, `popover-<state>`. The browser is playwright-core's
 // own Chrome for Testing (`npx playwright-core install chromium`), never the
 // daily one.
@@ -152,7 +152,7 @@ for (const name of names) {
     for (const theme of THEMES) {
       const png = outDir ? `${name}-bar-${key}-${theme}.png` : `bar-${key}${theme === "dark" ? "-dark" : ""}.png`;
       try {
-        box = (await shoot({ url: barUrl(bar.key, shot, theme), viewport: { width: 720, height: shot.popover ? 540 : 60 }, scale: 2, theme, path: join(out, png), box: shot.popover ? ".g-bar__popover" : undefined })) ?? box;
+        box = (await shoot({ url: barUrl(bar.key, shot, theme), viewport: { width: 720, height: shot.popover ? 540 : 60 }, scale: 2, theme, keys: shot.keys, path: join(out, png), box: shot.popover ? ".g-bar__popover" : undefined })) ?? box;
         made.add(png);
         console.log(`${name}/${png}`);
       } catch (e) { failed++; broke++; console.error(`${name}/${png}: ${e.message.split("\n")[0]}`); }

@@ -19,7 +19,7 @@ export { expand, formatDate, hasPlaceholders, isoDate, isoTime, offsetDate, FORM
 export type { Sources as PlaceholderSources } from "./placeholders.ts";
 export { badged, checkIcon, isTileIcon, isTintedIcon, tile, tileBrand, tinted, MAX_BADGE, MAX_TILE_BOX, MAX_TILE_SVG, TILE_COLORS } from "./icon.ts";
 export type { Tile, TileColor, TileIcon, TileMark, TintedIcon } from "./icon.ts";
-export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W, row, text, toast } from "./rows.ts";
+export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W, preview, row, text, toast } from "./rows.ts";
 export { appName, bytes, errorMessage, htmlText, mdEscape, oneLine, slug, truncate } from "./text.ts";
 export { EXEC_MS, exec, run } from "./exec.ts";
 export { eachId, foldEffects } from "./multi.ts";

@@ -96,8 +96,8 @@ export type Effect = {
   keep?: true;
   /** Drill in: a level scoped to that palette, its `list` given `args`; `query` is typed into its search box. */
   push?: Push;
-  /** A detail-only level to read. */
-  show?: Detail & { title?: string };
+  /** A detail-only level to read; with `actions`, a row's preview whose actions pick the level it came from. */
+  show?: Detail & { title?: string; actions?: Action[] };
   /** A render tree: a new view level from a list, the next tree of the view it came from. */
   view?: ViewSpec;
   /** A prompt: a form level from a row, the same form again (with errors) from its submit. */
@@ -112,7 +112,7 @@ export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "objec
  * on the `pal:` prefix, and the host refuses those ids in a view, so an
  * extension's actions can never run the shell's code.
  */
-const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined, multi: a.multi === true || undefined, args: a.args === true || undefined });
+export const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined, multi: a.multi === true || undefined, args: a.args === true || undefined });
 
 /** A `View` off the wire as the UI keeps it; the host has checked the tree. */
 export const toView = (v: ViewSpec): ViewSpec => ({

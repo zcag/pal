@@ -15,11 +15,12 @@ spelled `⌘K` in prose and `cmd+k` where a file or a manifest names them
 | `cmd+backspace` | Pop a level when the query is empty |
 | `backspace` | With nothing typed: the row's action carrying it (a folder's Go up), else pop a level, as `cmd+backspace` does (`general.backspace_back`, on by default; never at the root); with text it deletes as usual |
 | `tab`, `shift+tab` | Cycle the filter dropdown, when there is one |
-| `cmd+i` | Toggle the detail pane |
+| `cmd+i` | Toggle the detail pane; in compact mode, where no pane fits, preview the row as a level of its own (its actions still there, `cmd+i` or `escape` back) |
 | `cmd+1` | Jump to row 1..9 (cmd+1 to cmd+9) |
 | `home`, `end`, `pageup`, `pagedown` | Scroll the list |
 | `cmd+c` | Any other modifier combo runs the action carrying that shortcut |
-| `h`, `space`, `backspace` | In a view level with bare-key actions (`keys: "actions"`), a bare key runs the action carrying it; with a text field up it is typing |
+| `h`, `space`, `backspace` | In a view level with bare-key actions (`keys: "actions"`), a bare key runs the action carrying it; with a text field up it is typing. In a popover inbox (Gmail, WhatsApp, Slack, GitHub) `space` previews the row under the cursor |
+| `m`, `space`, ... | In a preview, its actions' bare keys work (`m` marks read) and `enter` is the first; one run closes it; `space` or `escape` goes back |
 | `shift+↑`, `shift+↓` | A shifted arrow runs the action carrying it (a view's big step). In a list, and in a view whose rows can be marked (an inbox popover), it marks the row it leaves and the row it lands on, as Mail does; the opposite arrow takes the last one back |
 | `cmd`-click | Mark or unmark one row (a list's, or a popover inbox's) |
 | `shift`-click | Mark every row from the one last marked (else the cursor's) to this one |
@@ -56,7 +57,7 @@ without a key are reached through ⌘K.
 | `cmd+,` | Open Settings | the root |
 | `cmd+r` | Refresh everything (root) or Refresh (palette, or a bar menu) | the root, an indexed palette, a bar popover's menu |
 | `cmd+shift+b` | Browse (palette): drill into the palette a result came from | the root |
-| `cmd+i` | Show details / Hide details | everywhere but compact mode |
+| `cmd+i` | Show details / Hide details; Preview in compact mode | a row (Preview: one with details) |
 | `cmd+shift+m` | Compact panel / Full panel: flips `general.compact` ([Config](config.md#general)) | the root, a palette |
 | `cmd+shift+f` | Enlarge panel / Normal panel size: 90% of the screen, centred; remembered per game ([Config](config.md#palettesid)) | a game page |
 | `cmd+shift+j` | Panel in the corner / Normal panel size: 560 by 380 in the screen's bottom-right corner; remembered per game | a game page |

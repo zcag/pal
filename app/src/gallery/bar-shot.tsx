@@ -18,7 +18,7 @@ import type { BarMenu, BarMenuNode } from "../bar";
 import { Hud } from "../ui";
 import { BarStrip, MENUBAR_H, SKETCHYBAR_H, type BarStripItem } from "../ui/BarStrip";
 import { POPOVER_MAX_H, popoverHeight } from "../ui/popover-size";
-import { toItem, toView, type SourceInfo, type WireItem } from "../items";
+import { toItem, toView, type Effect, type SourceInfo, type WireItem } from "../items";
 import { manifestOf } from "./data";
 import type { Item } from "../ui/types";
 
@@ -34,8 +34,10 @@ export type BarFixture = {
   battery?: number;
   /** The rows a `{ palette }` menu opens on. */
   palette?: { title: string; placeholder?: string; rows: Item[] };
-  /** What shots.mjs saves (docs/design/screenshots.md): `menubar`, `popover`, `sketchybar`, and `menubar-<state>` / `popover-<state>`, each with its target, state and store caption; both themes of each. */
-  shots?: Record<string, { target: Target; state?: string; popover?: boolean; caption: string }>;
+  /** The extension's answers to a `{ view }` popover's actions, by action id (what `bar/action` returned while the fixture ran): a shot's `keys` reach them, a preview's `show`. */
+  effects?: Record<string, Effect>;
+  /** What shots.mjs saves (docs/design/screenshots.md): `menubar`, `popover`, `sketchybar`, and `menubar-<state>` / `popover-<state>`, each with its target, state, the keys pressed in the popover and store caption; both themes of each. */
+  shots?: Record<string, { target: Target; state?: string; popover?: boolean; keys?: string[]; caption: string }>;
 };
 type Target = "menubar" | "sketchybar";
 type Theme = "dark" | "light";
@@ -63,7 +65,7 @@ const menuOf = (m: BarMenu | undefined): "nodes" | "palette" | "view" | "none" =
  * its height the content's up to 480. A `nodes` menu is a menu level; a
  * `{ palette }` menu is that palette level over the fixture's rows; a
  * `{ view }` menu is that tree as the item's own view level (a pick from
- * it keeps the level, as the fixture cannot answer).
+ * it answers what the fixture recorded for that action, else keeps the level).
  */
 function Popover({ fx, item, x }: { fx: BarFixture; item: BarItem; x: number }) {
   const kind = menuOf(item.menu);
@@ -95,7 +97,7 @@ function Popover({ fx, item, x }: { fx: BarFixture; item: BarItem; x: number }) 
   }, []);
   return (
     <div ref={el} className="g-bar__popover pal-bar-page" data-urgent={item.urgent || undefined} title={item.tooltip} style={{ left: x, width: POPOVER_W, height: h }}>
-      <Launcher key={key} start={start} items={rows} sources={sources} search={rows ? undefined : async () => []} onPick={() => ({ keep: true })} onHide={() => {}} />
+      <Launcher key={key} start={start} items={rows} sources={sources} search={rows ? undefined : async () => []} onPick={(_i, _q, action) => (action && fx.effects?.[action]) || { keep: true }} onHide={() => {}} />
     </div>
   );
 }

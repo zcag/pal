@@ -2,7 +2,7 @@
 // draw, with action ids that cannot shadow the shell's. The form check, the
 // same way, for fields.
 import { describe, expect, test } from "bun:test";
-import { MAX_DEPTH, MAX_NODES, checkForm, checkView } from "../../sdk/src/view.ts";
+import { MAX_DEPTH, MAX_NODES, checkEffect, checkForm, checkView } from "../../sdk/src/view.ts";
 import type { Form, View, ViewNode } from "../../sdk/src/protocol.ts";
 
 const ok: View = { tree: { type: "stack", children: [{ type: "text", value: "hi" }] }, actions: [{ id: "go", title: "Go" }] };
@@ -140,6 +140,17 @@ describe("checkView", () => {
 });
 
 const okForm: Form = { title: "Add", fields: [{ kind: "text", id: "name", label: "Name" }, { kind: "select", id: "kind", label: "Kind", options: [] }], submit: { id: "save", title: "Save" } };
+
+describe("checkEffect", () => {
+  test("a show's actions follow a view's rules: the extension's own ids, once each", () => {
+    const ok = { show: { markdown: "x", actions: [{ id: "read", title: "Read", shortcut: "m" }] } };
+    expect(checkEffect(ok, "e")).toBe(ok);
+    expect(checkEffect({ show: { markdown: "x" } }, "e")).toBeDefined();
+    expect(() => checkEffect({ show: { actions: [{ id: "pal:settings", title: "x" }] } }, "e")).toThrow('e show: action id "pal:settings" is the shell\'s');
+    expect(() => checkEffect({ show: { actions: [{ id: "a", title: "x" }, { id: "a", title: "y" }] } }, "e")).toThrow("twice");
+    expect(() => checkEffect({ show: { actions: "no" } }, "e")).toThrow("actions must be an array");
+  });
+});
 
 describe("checkForm", () => {
   test("a well-formed form passes through untouched", () => expect(checkForm(okForm)).toBe(okForm));

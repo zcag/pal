@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // Compact mode (`general.compact`, `prefs.compact`): no footer, the
-// primary hint on the search row, no detail pane (cmd+i inert), and
+// primary hint on the search row, no detail pane (cmd+i previews the row
+// as a level of its own, its actions still there), and
 // cmd+shift+m or the "Compact panel" / "Full panel" action asking the
 // shell to flip the key (`onCompact`).
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -16,6 +17,7 @@ import type { SourceInfo } from "../items";
 let root: Root, el: HTMLDivElement;
 const launcher: { current: LauncherHandle | null } = { current: null };
 let flips = 0;
+const picks: string[] = [];
 const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 const SOURCES: SourceInfo[] = [{ extension: "apps", palette: "apps", title: "Apps", live: false, input: false, count: 2, stale: false }];
 const rows: Item[] = [
@@ -26,12 +28,12 @@ const search = async (q: string): Promise<Hit[]> => rows.filter((r) => !q || r.n
 const prefs = (compact: boolean): Prefs => ({ aliasSpace: true, backspaceBack: true, fallbacksAlways: false, searchHistory: true, now: [], compact });
 const mount = async (compact: boolean) => {
   await act(async () => {
-    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} prefs={prefs(compact)} onPick={() => {}} onHide={() => {}} onCompact={() => { flips++; }} onSettings={() => {}} />);
+    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} prefs={prefs(compact)} onPick={(item, _q, action) => { picks.push(`${item.id}:${action ?? ""}`); }} onHide={() => {}} onCompact={() => { flips++; }} onSettings={() => {}} />);
   });
   await flush();
 };
 beforeEach(() => {
-  el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); flips = 0;
+  el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); flips = 0; picks.length = 0;
   HTMLElement.prototype.getBoundingClientRect = function () { return { left: 0, top: 0, right: 600, bottom: 400, width: 600, height: 400, x: 0, y: 0, toJSON: () => ({}) } as DOMRect; };
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 400 });
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 600 });
@@ -44,14 +46,32 @@ const key = (k: string, init: KeyboardEventInit = {}) => act(() => { (document.a
 const actionTitles = () => [...el.querySelectorAll(".pal-action")].map((a) => a.textContent ?? "");
 
 describe("compact mode", () => {
-  it("folds the footer into the search row and keeps the detail pane closed", async () => {
+  it("folds the footer into the search row; cmd+i previews the row as a level, Enter still its action", async () => {
     await mount(true);
     expect(el.querySelector(".pal-footer")).toBeNull();
     expect(el.querySelector(".pal-search__hint")?.textContent).toContain("Open");
     await key("i", { metaKey: true, ctrlKey: true });
     await flush();
     expect(el.querySelector(".pal-panel__aside")).toBeNull();
-    expect(el.querySelector(".pal-detail")).toBeNull();
+    expect(el.querySelector(".pal-show .pal-detail")?.textContent).toContain("Alpha");
+    expect(el.querySelector(".pal-search__hint")?.textContent).toContain("Open");
+    // cmd+i again, like Escape, goes back to the list; Enter from the preview picks the row and closes it.
+    await key("i", { metaKey: true, ctrlKey: true });
+    await flush();
+    expect(el.querySelector(".pal-show")).toBeNull();
+    await key("i", { metaKey: true, ctrlKey: true });
+    await flush();
+    await key("Enter");
+    await flush();
+    expect(picks).toEqual(["a:"]);
+    expect(el.querySelector(".pal-show")).toBeNull();
+  });
+  it("a row with nothing to read has no preview", async () => {
+    await mount(true);
+    await key("ArrowDown");
+    await key("i", { metaKey: true, ctrlKey: true });
+    await flush();
+    expect(el.querySelector(".pal-show")).toBeNull();
   });
   it("keeps the footer and the pane in full mode", async () => {
     await mount(false);
@@ -76,6 +96,7 @@ describe("compact mode", () => {
     const titles = actionTitles();
     expect(titles.some((t) => t.includes("Full panel"))).toBe(true);
     expect(titles.some((t) => t.includes("Show details"))).toBe(false);
+    expect(titles.some((t) => t.includes("Preview"))).toBe(true);
     await key("Escape");
     await mount(false);
     await key("k", { metaKey: true, ctrlKey: true });

@@ -1,7 +1,7 @@
 // What a list palette and a view answer in the same shape everywhere: a
 // hint row (inert, the icon says "information"), the failure toast, the
 // view node builders and the keycap-plus-caption hint line.
-import type { Action, Arg, Effect, Form, Icon, Item, ViewNode } from "./protocol.ts";
+import type { Action, Arg, Detail, Effect, Form, Icon, Item, ViewNode } from "./protocol.ts";
 
 /** md-information_outline: the glyph of a hint row unless the extension says otherwise. */
 export const HINT_GLYPH = "\u{f02fd}";
@@ -22,6 +22,16 @@ export const hint = (id: string, name: string, subtitle?: string, extra: { icon?
 
 /** A toast over the list, the panel kept open; `message` and `style` only when given (the UI's default is a success). */
 export const toast = (title: string, message?: string, style?: "success" | "failure"): Effect => ({ keep: true, toast: { title, ...(message !== undefined && { message }), ...(style && { style }) } });
+
+/**
+ * A popover row read in full: its detail as a level of its own
+ * (`Effect.show`), carrying the view's actions named in `ids` (what works on
+ * that one row, run as from the view, the cursor still on it). Space opens
+ * it by convention (`{ id: "preview", shortcut: "space" }`).
+ */
+export const preview = (detail: Detail | void, title: string, actions: Action[], ids: string[]): Effect => ({
+  show: { ...detail, title, actions: actions.filter((a) => ids.includes(a.id)).map(({ multi: _, ...a }) => a) },
+});
 
 /** "Could not <what>" with the error's message, the panel kept open: what a pick answers when the OS or a service refused. */
 export const failed = (what: string, e: unknown): Effect => toast(`Could not ${what}`, String((e as { message?: unknown })?.message ?? e), "failure");

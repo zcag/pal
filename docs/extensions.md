@@ -376,7 +376,8 @@ is left to the load-time check.
   rather than the palette's title; `placeholder` its search box, "Search
   apps" where the palette's says "Search files"; `query` is typed into
   it), `show` (a
-  detail-only level: a `Detail` plus a `title`), `view` (a render tree, below),
+  detail-only level: a `Detail` plus a `title`; with `actions` it is a
+  row's **preview**, below), `view` (a render tree, below),
   `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
   of the `push` that opened the level, on a form's submit its `values`,
   and on a multi pick `ids` (below).
@@ -762,6 +763,22 @@ runs once with every marked id in `ctx.ids` (the cursor's first when it is
 marked), after which the marks go. Ids a new tree no longer has drop out
 of the marks. The extension keeps no selection state at all: it draws
 `mark`, declares `multi`, and reads `ctx.ids`.
+
+**Preview**: a row read in full before deciding what to do with it. The
+view declares `{ id: "preview", title: "Preview", shortcut: "space" }`
+(and a `keyHint("space", "preview", { action: "preview" })`, so a click
+opens it too) and answers it with `Effect.show` carrying `actions`: the
+SDK's `preview(detail, title, view.actions, ids)` builds it from the same
+`Detail` the palette's pane shows and the view actions named in `ids` (what
+works on that one row; `multi` dropped). The shell draws the detail as a
+level of its own and lists those actions: their keys work there, bare
+ones too (`m` marks read), `Enter` is the first, and a run is picked on
+the view as from its own keys (the cursor is still on the row). Its answer
+closes the preview and lands on the view (a next tree replaces the view's,
+a `keep` re-renders the item); a failed action leaves it open with the
+toast. `Space` or `Escape` goes back without a pick. Gmail, WhatsApp,
+Slack and GitHub's popovers do this. The compact panel's `⌘I` is the same
+level for a list row with details, since no pane fits beside it.
 
 Unknown node types are skipped, not errors, so a newer extension still
 draws on an older app. `key` makes a node the same node across trees: the
@@ -1687,7 +1704,8 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   (stacks, two steps of gap), `keycap(keys, action?)`, `keyHint(keys, what,
   { action?, size? })`: keycaps then a muted caption, the footer line;
   `POPOVER_W` (396), the width a bar popover's view measures fixed widths
-  against.
+  against; `preview(detail, title, actions, ids)`, a row's preview
+  (**Preview**, under View palettes).
 - Text: `bytes(n)` ("3.2 KB", "1.5 MB", "1.50 TB"), `truncate(s, n)` (an ellipsis as the
   last character), `oneLine(s)` (whitespace runs as one space, invisible
   characters such as a mail preheader's zero-width joiners out), `slug(s)`,

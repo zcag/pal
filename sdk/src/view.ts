@@ -6,7 +6,7 @@
 // tree over the limits is an error the extension sees, since a silently
 // trimmed board would mislead. The host runs these on every answer; an
 // extension's own tests can run them too (`checkView(render(state))`).
-import type { BarItem, BarMenu, BarMenuNode, Form, View, ViewNode } from "./protocol.ts";
+import type { Action, BarItem, BarMenu, BarMenuNode, Form, View, ViewNode } from "./protocol.ts";
 
 /** Nodes in one tree: a board is tens, a table hundreds; past this the UI would spend the frame on layout. */
 export const MAX_NODES = 2000;
@@ -41,14 +41,11 @@ const isPx = (x: unknown) => typeof x === "number" && Number.isFinite(x) && x >=
 /** `Action.shortcut` as a list: one string, an array of them, or none. */
 export const shortcutsOf = (a: { shortcut?: string | string[] }): string[] => (a.shortcut === undefined ? [] : Array.isArray(a.shortcut) ? a.shortcut : [a.shortcut]);
 
-/** Throws with the place and the reason; returns the view untouched. */
-export function checkView(v: unknown, where = "view"): View {
-  if (!v || typeof v !== "object") throw new Error(`${where}: not an object`);
-  const view = v as View;
-  if (!view.tree || typeof view.tree !== "object") throw new Error(`${where}: no tree`);
-  if (!Array.isArray(view.actions)) throw new Error(`${where}: actions must be an array`);
+/** A view's or a show's actions: ids of the extension's own, once each, with well-formed keys. Returns the ids. */
+function checkActions(actions: unknown, where: string): Set<string> {
+  if (!Array.isArray(actions)) throw new Error(`${where}: actions must be an array`);
   const ids = new Set<string>();
-  for (const a of view.actions) {
+  for (const a of actions as Action[]) {
     if (!a || typeof a.id !== "string" || !a.id) throw new Error(`${where}: an action has no id`);
     if (a.id.startsWith(SHELL_PREFIX)) throw new Error(`${where}: action id "${a.id}" is the shell's (${SHELL_PREFIX} is reserved)`);
     if (ids.has(a.id)) throw new Error(`${where}: action id "${a.id}" twice`);
@@ -56,6 +53,15 @@ export function checkView(v: unknown, where = "view"): View {
     if (a.shortcut !== undefined && (!shortcutsOf(a).length || !shortcutsOf(a).every((k) => typeof k === "string" && k))) throw new Error(`${where}: action "${a.id}" shortcut must be a key or a list of keys`);
     if (a.hidden !== undefined && a.hidden !== true) throw new Error(`${where}: action "${a.id}" hidden must be true`);
   }
+  return ids;
+}
+
+/** Throws with the place and the reason; returns the view untouched. */
+export function checkView(v: unknown, where = "view"): View {
+  if (!v || typeof v !== "object") throw new Error(`${where}: not an object`);
+  const view = v as View;
+  if (!view.tree || typeof view.tree !== "object") throw new Error(`${where}: no tree`);
+  const ids = checkActions(view.actions, where);
   if (view.keys !== undefined && view.keys !== "actions") throw new Error(`${where}: keys must be "actions"`);
   if (view.input !== undefined) {
     const inp = view.input;
@@ -189,8 +195,9 @@ export function checkForm(f: unknown, where = "form"): Form {
 /** An `Effect` answered by `pick`, `onAction` or `onOpen`: a `view` or `form` in it is checked like a direct answer, since the UI draws it the same way. Returns the effect untouched. */
 export function checkEffect<T>(r: T, where: string): T {
   if (r && typeof r === "object") {
-    const e = r as { view?: unknown; form?: unknown };
+    const e = r as { view?: unknown; form?: unknown; show?: { actions?: unknown } };
     if (e.view !== undefined) checkView(e.view, `${where} view`);
+    if (e.show && typeof e.show === "object" && e.show.actions !== undefined) checkActions(e.show.actions, `${where} show`);
     if (e.form !== undefined) checkForm(e.form, `${where} form`);
   }
   return r;

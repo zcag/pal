@@ -28,7 +28,10 @@ its store: "Avoid using screenshots in different themes").
 | `bar-sketchybar.png` | the item on a sketchybar | 1440 by 120 |
 
 Panel: two to six shots, the first the palette as it opens. Bar: the three
-required, the popover states optional. The popover is centred under its
+required, the popover states optional. A popover shot can press `keys` as a
+panel shot does; a `{ view }` popover answers them from the fixture's
+`effects` (what `bar/action` returned for each action id), so Space opens
+the recorded preview (`bar-popover-preview.png`). The popover is centred under its
 item, as `BarPage.tsx` places it, and top-aligned under the band; the canvas
 is the tallest popover's (480 pt) so every popover shot is the same size.
 

@@ -586,8 +586,15 @@ export type Effect = {
    * from the extension, never from the index.
    */
   push?: { extension: string; palette: string; args?: unknown; /** Typed into the level's search box on arrival (a fallback row carrying the root query in). */ query?: string; /** The level's crumb, in place of the palette's title: the folder being browsed, the file the apps are for. */ title?: string; /** The level's search box, in place of the palette's placeholder: "Search apps" for the apps a file opens with. */ placeholder?: string };
-  /** Show output: the UI pushes a detail-only level (the Detail, full width; `title` is the level's crumb). */
-  show?: Detail & { title?: string };
+  /**
+   * Show output: the UI pushes a detail-only level (the Detail, full width;
+   * `title` is the level's crumb). With `actions` it is a preview of a row:
+   * they are listed and their keys work there (bare keys too), Enter is the
+   * first, and one run picks the level the show came from with that action
+   * id, the show closing as its answer lands (a view's next tree, a toast).
+   * Without, Enter goes back.
+   */
+  show?: Detail & { title?: string; actions?: Action[] };
   /** A render tree (`View`): from a list, pushes a view level; from a view, replaces its tree. */
   view?: View;
   /** A prompt (`Form`): pushes a form level; from a form, shows it again (with `errors`). */

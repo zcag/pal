@@ -48,7 +48,7 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["cmd+backspace"], does: "Pop a level when the query is empty" },
   { keys: ["backspace"], does: "With nothing typed: the row's action carrying it, else pop a level (general.backspace_back)" },
   { keys: ["tab", "shift+tab"], does: "Cycle the filter dropdown, when there is one" },
-  { keys: ["cmd+i"], does: "Toggle the detail pane" },
+  { keys: ["cmd+i"], does: "Toggle the detail pane; in compact mode, preview the row" },
   { keys: ["cmd+1"], does: "Jump to row 1..9 (cmd+1 to cmd+9)" },
   { keys: ["home", "end", "pageup", "pagedown"], does: "Scroll the list" },
   { keys: ["cmd+c"], does: "Any other modifier combo runs the action carrying that shortcut" },
