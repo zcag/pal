@@ -30,7 +30,7 @@ import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance } from "./instances.ts";
 import { bindSdk, SDK } from "./sdk.ts";
-import { describe, forgetDetails, log, paletteMethods, sections as sectionsOf, timeout, type Section, type SectionKind } from "./serve.ts";
+import { describe, forgetDetails, importEntry, log, paletteMethods, sections as sectionsOf, timeout, type Section, type SectionKind } from "./serve.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
 import { update as updateStates } from "./states.ts";
 import { transpile } from "./surface.ts";
@@ -209,9 +209,8 @@ async function reload(name: string) {
   }
   await dispose(name);
   try {
-    // The query string defeats Bun's module cache on re-import; the old
-    // module instance stays resident, which is the price of no restart.
-    const mod = await timeout(context.run({ extension: name }, () => import(`${f.entry}?t=${Date.now()}`)), LOAD_TIMEOUT_MS, `import of ${name}`);
+    // The old module instance stays resident, which is the price of no restart.
+    const mod = await timeout(context.run({ extension: name }, () => importEntry(f.entry)), LOAD_TIMEOUT_MS, `import of ${name}`);
     const ext = mod.default as Extension;
     if (!ext?.palettes) throw new Error("default export has no palettes");
     exts.set(name, ext);

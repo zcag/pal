@@ -201,6 +201,24 @@ describe("reload", () => {
     }
   }, 40_000);
 
+  test("a source copy (index.ts) swapped for a package (index.js) loads the package, though Bun saw index.ts there", async () => {
+    const root = new Root({ ext: { "index.ts": simpleExt("ext", { list: `() => [{ id: "v", name: "source" }]` }) } });
+    const host = await Host.start({ roots: [root.dir] });
+    try {
+      expect((await host.list("ext", "ext"))[0].name).toBe("source");
+      const staged = join(root.dir, "..", `ext-staged-${Date.now()}`);
+      mkdirSync(staged);
+      writeFileSync(join(staged, "index.js"), simpleExt("ext", { list: `() => [{ id: "v", name: "package" }]` }));
+      rmSync(join(root.dir, "ext"), { recursive: true, force: true });
+      renameSync(staged, join(root.dir, "ext"));
+      expect(await host.request<Reloaded>("reload", { extension: "ext" })).toEqual({ loaded: true, root: root.dir });
+      expect((await host.list("ext", "ext"))[0].name).toBe("package");
+    } finally {
+      host.kill();
+      root.rm();
+    }
+  });
+
   test("a new extension: reload loads it at once and answers its root", async () => {
     const root = new Root();
     const host = await Host.start({ roots: [root.dir] });

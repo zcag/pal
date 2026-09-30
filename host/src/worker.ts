@@ -19,7 +19,7 @@ import type { Extension, InstanceInfo, ResolvedSettings } from "../../sdk/src/pr
 import { bind, type Caller } from "../../sdk/src/runtime.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { instanceInfo, instanceMeta, rewriteCall, type WorkerInit } from "./instances.ts";
-import { describe, log, paletteMethods, sections, timeout } from "./serve.ts";
+import { describe, importEntry, log, paletteMethods, sections, timeout } from "./serve.ts";
 import { context, resolved, subscribe, update } from "./settings.ts";
 import { onStates, update as updateStates } from "./states.ts";
 import { onView, viewMethods, views } from "./views.ts";
@@ -87,7 +87,7 @@ async function init(id: number, i: WorkerInit) {
   // The values before the code runs, so `settings.get()` at top level has them.
   update({ [key]: i.settings });
   try {
-    const mod = await timeout(context.run({ extension: key }, () => import(`${i.entry}?t=${Date.now()}`)), i.loadTimeout, `import of ${key}`);
+    const mod = await timeout(context.run({ extension: key }, () => importEntry(i.entry)), i.loadTimeout, `import of ${key}`);
     const loaded = mod.default as Extension;
     if (!loaded?.palettes) throw new Error("default export has no palettes");
     ext = loaded;

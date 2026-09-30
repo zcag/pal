@@ -6,6 +6,8 @@
 // its inline extensions and worker.ts the one instance it holds through
 // the same code. An effect that leaves here has its `push` (and a bar
 // menu's `palette`) spelled with the instance key (instances.ts).
+import { realpathSync } from "node:fs";
+import { dirname } from "node:path";
 import { checkLinkEffect, checkLinkParams, inlineMatches, isViewPalette as isView } from "../../sdk/src/manifest.ts";
 import { settings, storage } from "../../sdk/src/api.ts";
 import type { Ctx, Extension, FormValues, Item, Manifest, Palette, ViewPost } from "../../sdk/src/protocol.ts";
@@ -30,6 +32,21 @@ export function timeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> 
   let t: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<never>((_, rej) => { t = setTimeout(() => rej(tooLate(what, ms)), ms); });
   return Promise.race([p, late]).finally(() => clearTimeout(t));
+}
+
+/**
+ * An extension's entry, imported afresh (the query string defeats Bun's
+ * module cache). Bun also caches each directory's listing, under the path it
+ * was given and under the real one, and maps an import of `index.js` to an
+ * `index.ts` it saw there: after a swap from a source copy to a package it
+ * reads a file that is gone. Resolving a name that is not there makes it read
+ * the directory again, so both are asked for one.
+ */
+export function importEntry(entry: string): Promise<{ default?: unknown }> {
+  for (const dir of new Set([dirname(entry), dirname(realpathSync(entry))])) {
+    try { Bun.resolveSync(`${dir}/.pal-rescan`, dir); } catch { /* the miss is the point */ }
+  }
+  return import(`${entry}?t=${Date.now()}`);
 }
 
 // Bun raises BuildMessage (one) or AggregateError of them (many) for a file
