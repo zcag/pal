@@ -178,14 +178,15 @@ describe("reload", () => {
       swap("ext", simpleExt("ext", { list: `() => [{ id: "v", name: "2" }]` }));
       expect(await host.request<Reloaded>("reload", { extension: "ext" })).toEqual({ loaded: true, root: root.dir });
       expect((await host.list("ext", "ext"))[0].name).toBe("2");
-      await host.untilStderr("ext unchanged since its last load");
+      // The swap's own watcher events: FSEvents can hold them for seconds on a busy machine, so the wait is roomy (it ends at the line).
+      await host.untilStderr("ext unchanged since its last load", 10_000);
       expect(at(host.loaded(), "ext")).toHaveLength(2);
 
       swap("ext", "export default {{{");
       const r = await host.request<Reloaded>("reload", { extension: "ext" });
       expect(r.loaded).toBe(false);
       expect(r.error).toContain("index.ts:1:");
-      await host.until(() => host.stderr.split("ext unchanged since its last load").length > 2, 3000, "the second swap's events skipped");
+      await host.until(() => host.stderr.split("ext unchanged since its last load").length > 2, 10_000, "the second swap's events skipped");
       expect(at(host.failed(), "ext")).toHaveLength(1);
 
       expect(await host.request<Reloaded>("reload", { extension: "nope" })).toEqual({ loaded: false, error: "no extension nope" });
@@ -198,7 +199,7 @@ describe("reload", () => {
       host.kill();
       root.rm();
     }
-  });
+  }, 40_000);
 
   test("a new extension: reload loads it at once and answers its root", async () => {
     const root = new Root();
