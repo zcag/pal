@@ -9,7 +9,11 @@ import { NOW } from "../../app/scripts/fixture-kit.ts";
 import { Home, lightsOf, roomsOf, scenesOf, sensorsOf } from "./model.ts";
 import { freshPopover, renderPopover, type PopoverData } from "./popover.ts";
 import { fresh, render, renderSetup } from "./render.ts";
-import { G, ICON, automationRow, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
+import manifest from "./pal.json" with { type: "json" };
+import { G, automationRow, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
+
+/** The extension's own tile, the logo its manifest carries. */
+const ICON = manifest.icon;
 import { automationsOf } from "./model.ts";
 import { SAMPLE_BRIDGE_ID, SAMPLE_RESOURCES } from "./sample.ts";
 

@@ -15,7 +15,6 @@ export const G = {
   power: "\u{f0425}", copy: "\u{f018f}", refresh: "\u{f0450}", alert: "\u{f0026}", cog: "\u{f0493}", key: "\u{f0306}", contact: "\u{f081a}", check: "\u{f012c}", zone: "\u{f0765}",
   brightness: "\u{f00df}", creation: "\u{f0674}", fire: "\u{f0238}", candle: "\u{f05e2}", shimmer: "\u{f1545}", router: "\u{f0469}",
 };
-export const ICON = { tile: { glyph: G.bulb, bg: "amber" } };
 
 const svg = (body: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">${body}</svg>`)}`;
 /** A rounded square of the room's lit lights' colours as stripes, faded by the brightness (0..1); an off room is an outline. */
