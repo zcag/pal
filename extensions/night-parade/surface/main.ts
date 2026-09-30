@@ -758,12 +758,17 @@ function stage(sc: Scene) {
   if (sc.card === "chest") { openChest(s, 5); startChest(); }
 }
 
+/** pal's Settings › Volume, in percent, over the game's own music and sound. */
+const loudness = (s: Record<string, unknown>) => audio.master(typeof s.volume === "number" ? Math.max(0, Math.min(100, s.volume)) / 100 : 1);
+
 async function boot() {
   save = load(await pal.storage.get("save").catch(() => null));
   scene = (await pal.storage.get("scene").catch(() => null)) as Scene | undefined ?? undefined;
   const kept = scene ? undefined : unpackRun(await pal.storage.get("run").catch(() => null));
   view.numbers = save.settings.numbers;
   audio.volume(save.settings);
+  loudness(await pal.settings().catch(() => ({})));
+  pal.onSettings(loudness);
   useFont();
   fit();
   await loaded();

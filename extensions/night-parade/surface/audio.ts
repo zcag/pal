@@ -1,7 +1,8 @@
 // Sound: the pack's effects and tracks through Web Audio. Nothing plays
 // until a key has been pressed (the browser's rule). Busy sounds (hits,
 // gems) are throttled so a crowd doesn't roar, and music crossfades
-// between tracks. Music and effects have their own volume (settings).
+// between tracks. Music and effects have their own volume (the game's
+// settings), both under the overall one (pal's Settings).
 const A = "./assets/";
 
 /** Each effect's volume and the least time between two of it. */
@@ -19,12 +20,12 @@ const SFX: Record<string, [number, number]> = {
 export type Track = "title" | "act1" | "act2" | "act3" | "boss" | "oni" | "dawn";
 
 let ctx: AudioContext | undefined;
-let sfxBus: GainNode, musicBus: GainNode;
+let sfxBus: GainNode, musicBus: GainNode, masterBus: GainNode;
 const buffers = new Map<string, AudioBuffer>();
 const last = new Map<string, number>();
 let music: { track: Track; src: AudioBufferSourceNode; gain: GainNode } | undefined;
 let wanted: Track | undefined;
-let vol = { music: 0.6, sfx: 0.8 };
+let vol = { music: 0.6, sfx: 0.8 }, all = 1;
 
 async function load(name: string, path: string) {
   if (!ctx || buffers.has(name)) return;
@@ -38,10 +39,13 @@ export function wake() {
   ctx = new AudioContext();
   sfxBus = ctx.createGain();
   musicBus = ctx.createGain();
+  masterBus = ctx.createGain();
   sfxBus.gain.value = vol.sfx;
   musicBus.gain.value = vol.music;
-  sfxBus.connect(ctx.destination);
-  musicBus.connect(ctx.destination);
+  masterBus.gain.value = all;
+  sfxBus.connect(masterBus);
+  musicBus.connect(masterBus);
+  masterBus.connect(ctx.destination);
   const tracks: Track[] = ["title", "act1", "act2", "act3", "boss", "oni", "dawn"];
   tracks.sort((a, b) => (a === wanted ? -1 : b === wanted ? 1 : 0));
   for (const t of tracks) void load(`music:${t}`, `music/${t}.mp3`).then(() => { if (wanted === t && music?.track !== t) play(t); }).catch(() => {});
@@ -90,6 +94,12 @@ export function volume(v: { music: number; sfx: number }) {
   if (!ctx) return;
   musicBus.gain.setTargetAtTime(v.music, ctx.currentTime, 0.05);
   sfxBus.gain.setTargetAtTime(v.sfx, ctx.currentTime, 0.05);
+}
+
+/** The overall volume, 0 to 1, over music and effects alike. */
+export function master(v: number) {
+  all = v;
+  if (ctx) masterBus.gain.setTargetAtTime(v, ctx.currentTime, 0.05);
 }
 
 /** Pause everything (the panel hidden) and carry on. */

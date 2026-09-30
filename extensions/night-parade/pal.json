@@ -12,7 +12,20 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "settings": [],
+  "settings": [
+    {
+      "id": "volume",
+      "label": "Volume",
+      "kind": "number",
+      "description": "How loud the whole game is; music and sound keep their own balance in the game's settings.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "slider": true,
+      "default": 100
+    }
+  ],
   "store": {
     "tagline": "Last the night against the parade of a hundred demons",
     "category": "fun",
