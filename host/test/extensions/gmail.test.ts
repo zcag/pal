@@ -14,7 +14,7 @@ import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
 import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
 import type { Item, PaletteMeta, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { Host, bundledIcon, marksOf, stored, writeTool } from "../harness.ts";
-import { GmailMock, personal } from "./gmail-mock.ts";
+import { GmailMock, personal, work } from "./gmail-mock.ts";
 
 const P = "gmail";
 const W = "gmail@work";
@@ -173,9 +173,12 @@ describe("gmail", () => {
       { id: "star", title: "Star", shortcut: "cmd+s", multi: true },
       { id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true },
       { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
-      // The other way too, so marked rows that mix read and unread (starred and not) share both.
+      // Unread: kept out of the count until its thread changes, locally.
+      { id: "ignore", title: "Ignore until the next message", shortcut: "cmd+shift+i", multi: true },
+      // The other way too, so marked rows that mix read and unread (starred and not, ignored and not) share both.
       { id: "unread", title: "Mark as unread", multi: true },
       { id: "unstar", title: "Unstar", multi: true },
+      { id: "unignore", title: "Show again", multi: true },
     ]);
     // The quick reply's text is the row's typed argument (send on for this account only).
     expect(m1.args).toEqual([{ id: "body", placeholder: "Quick reply", required: true }]);
@@ -202,7 +205,7 @@ describe("gmail", () => {
   test("inbox (work): its own token, its own two unread, no archive, star or reply with send off, and no reply field", async () => {
     const rows = await list(W, "inbox");
     expect(rows.map((r) => [r.id, r.section])).toEqual([["w1", "Unread"], ["w2", "Unread"], ["w3", "Recent"]]);
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "unread"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "ignore", "unread", "unignore"]);
     expect(rows[0].args).toBeUndefined();
     expect(rows[2].actions!.map((a) => a.id)).toEqual(["open", "unread", "copy", "read"]);
     expect(tags(rows[0])).toEqual(["Reports"]);
@@ -414,8 +417,9 @@ describe("gmail", () => {
     // Four unread and four rows, so nothing is left to count.
     expect(t.some((x) => x.startsWith("and "))).toBe(false);
     // The keys the popover offers, as its hints and its actions.
-    expect(keycaps(v)).toEqual(["enter", "space", "m", "s", "a", "o", "p"]);
-    expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "read", "star", "read-all", "open-gmail", "open-pal", "copy"]);
+    // Over rows `o` gives its hint to `i` (Enter already opens Gmail); the key still works.
+    expect(keycaps(v)).toEqual(["enter", "space", "m", "s", "i", "a", "p"]);
+    expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "read", "star", "ignore", "read-all", "open-gmail", "open-pal", "copy"]);
     // Every row is clickable: a hidden focus action each.
     expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:m1", "focus:m2", "focus:m3", "focus:m4"]);
     // Every row can be marked (its message id), and `m` marks every marked row read at once.
@@ -435,7 +439,7 @@ describe("gmail", () => {
     // Space reads the row in full: the message's pane, its subject the title, the keys that work on one message.
     const pv = await host.barAction(W, "unread", "preview") as { show: { title: string; markdown: string; actions: { id: string; multi?: true }[] } };
     expect(pv.show).toMatchObject({ title: "Weekly report: search latency", markdown: expect.stringContaining("p95 is down 12%") });
-    expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "read", "star", "copy"]);
+    expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "read", "star", "ignore", "copy"]);
     expect(pv.show.actions.some((a) => a.multi)).toBe(false);
     expect(await host.barAction(W, "unread", "star")).toMatchObject({ view: { id: "unread" } });
     expect(modifies().at(-1)).toEqual({ ids: ["w1"], addLabelIds: ["STARRED"] });
@@ -450,6 +454,35 @@ describe("gmail", () => {
     expect(modifies().at(-1)).toEqual({ ids: ["w1", "w2"], removeLabelIds: ["UNREAD"] });
     expect(await host.render(W, "unread", { reason: "update" })).toMatchObject({ hidden: true, empty: { icon: "\u{f01ee}" } });
     await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });
+  });
+
+  test("ignore: a thread leaves the count, the popover and the inbox's Unread until someone writes in it again; nothing reaches Gmail; Show again brings it back by hand", async () => {
+    const before = mock.calls(/batchModify|modify/).length;
+    const ctx = { reason: "open" as const };
+    await host.render(W, "unread", { reason: "update" });
+    await host.barAction(W, "unread", "focus:w2");
+    const v = viewOf(await host.barAction(W, "unread", "ignore", ctx));
+    expect(marksOf(v.tree)).toEqual(["w1"]);
+    expect(stored.get(`${W}\0ignored`)).toMatchObject({ wt2: { stamp: "w2" } });
+    expect(await host.render(W, "unread", { reason: "every" })).toMatchObject({ badge: 1, tooltip: "1 unread message in someone@example.org" });
+    // Still findable, under the unread, with Show again on ⌘⇧I.
+    let rows = await list(W, "inbox");
+    expect(rows.map((r) => [r.id, r.section])).toEqual([["w1", "Unread"], ["w2", "Ignored until the next message"], ["w3", "Recent"]]);
+    expect(rows[1].actions!.find((a) => a.shortcut === "cmd+shift+i")).toMatchObject({ id: "unignore", title: "Show again" });
+    // A reply in the thread: the whole thread is back, the entry gone.
+    work.messages.push({ id: "w4", threadId: "wt2", labelIds: ["INBOX", "UNREAD"], from: "Dana Ruiz <dana@example.org>", to: "someone@example.org", subject: "Re: Offsite dates", date: "Wed, 16 Sep 2026 11:00:00 +0000", snippet: "Oct 13 it is.", text: "Oct 13 it is." });
+    try {
+      rows = await list(W, "inbox", "", { refresh: true });
+      expect(rows.filter((r) => r.section === "Unread").map((r) => r.id).sort()).toEqual(["w1", "w2", "w4"]);
+      expect(Object.keys(stored.get(`${W}\0ignored`) as object)).toEqual([]);
+      // By hand: ignore from the palette, Show again from the palette.
+      expect(await host.pick(W, "inbox", "w1", "ignore")).toMatchObject({ toast: { title: "Ignored until the next message" } });
+      expect((await list(W, "inbox")).find((r) => r.id === "w1")!.section).toBe("Ignored until the next message");
+      expect(await host.pick(W, "inbox", "w1", "unignore")).toMatchObject({ toast: { title: "Shown again" } });
+      expect((await list(W, "inbox")).find((r) => r.id === "w1")!.section).toBe("Unread");
+    } finally { work.messages.pop(); await list(W, "inbox", "", { refresh: true }); }
+    // Local only: no modify reached Gmail.
+    expect(mock.calls(/batchModify|modify/)).toHaveLength(before);
   });
 
   test("nothing unread: hidden, the empty shape (the glyph, the instance's title, no badge, the popover saying so) offered for the core's show = always", async () => {
@@ -468,7 +501,7 @@ describe("gmail", () => {
     host.changeSettings(P, { settings: { token_command: join(dir, "tok-personal.sh"), send: false, signature: "Cagdas" } });
     await Bun.sleep(50);
     const rows = await list(P, "inbox", "", { refresh: true });
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "unread"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "ignore", "unread", "unignore"]);
     expect(await list(P, "compose")).toEqual([]);
     expect(await list(P, "drafts")).toEqual([]);
     expect(await host.pick(P, "inbox", "m1", "archive")).toMatchObject({ toast: { title: "Archive is off" } });

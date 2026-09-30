@@ -87,9 +87,11 @@ function hints(st: BarState, cur: BarRow | undefined): ViewNode {
   const kids: ViewNode[] = [...keyHint("enter", "open")];
   if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }));
   if (cur && st.canSend) kids.push(...keyHint("r", "reply"));
-  if (cur && cur.n > 0) kids.push(...keyHint("m", "read"));
+  if (cur && cur.n > 0) kids.push(...keyHint("m", "read"), ...keyHint("i", "ignore"));
   if (st.rows.some((r) => r.n > 0)) kids.push(...keyHint("a", "all read"));
-  kids.push(...keyHint("o", "WhatsApp"), ...keyHint("p", "pal"));
+  // Over an unread row `i` takes the `o` hint's room (the row fits no more; Enter opens the chat anyway, and `o` still works).
+  if (!(cur && cur.n > 0)) kids.push(...keyHint("o", "WhatsApp"));
+  kids.push(...keyHint("p", "pal"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
 }
 
@@ -103,6 +105,7 @@ export function actions(st: BarState): Action[] {
     ...(cur && st.canSend ? [{ id: "reply", title: `Reply to ${cur.name}`, shortcut: "r" }] : []),
     // Offered while anything is unread, not only the cursor's chat: marked rows run it over them all.
     ...(st.rows.some((r) => r.n > 0) ? [{ id: "read", title: cur && cur.n > 0 ? `Mark ${cur.name} read` : "Mark as read", shortcut: "m", multi: true } as Action] : []),
+    ...(cur && cur.n > 0 ? [{ id: "ignore", title: "Ignore until the next message", shortcut: "i", multi: true } as Action] : []),
     ...(st.rows.some((r) => r.n > 0) ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-whatsapp", title: "Open WhatsApp", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },

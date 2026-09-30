@@ -8,7 +8,7 @@
 // rows' `args`); an unread row's Reply and a conversation's Send take the
 // message the same way. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { ago, argsForm, clock, errorMessage, foldEffects, failed, hint, imageData, now, preview, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { ago, argsForm, bar, clock, errorMessage, foldEffects, failed, hint, ignoreStore, imageData, now, preview, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
@@ -41,6 +41,36 @@ settings.onChange(() => { dropInbox(); rows.clear(); convs.clear(); resetData();
 
 /** A conversation can be a mention and a thread at once: the kind is part of the row id. */
 const rowId = (u: Unread) => `${u.kind}:${u.id}`;
+
+// ---- ignored ----------------------------------------------------------------------
+// A row ignored until the next message (`ignoreStore`, the SDK's): out of the
+// badge, the tooltip, the popover and the Unreads list until its newest
+// message moves (`latest`, with the count for a thread, whose replies do
+// not move it), then back by itself. Local only: nothing is marked read in
+// Slack. The Unreads palette's Ignored filter lists them with Show again.
+
+const ignored = ignoreStore("ignored");
+const stampOf = (u: Unread) => `${u.latest}:${u.n}`;
+const isIgnored = (u: Unread) => ignored.hides(rowId(u), stampOf(u));
+
+/** The inbox as the counts and rows see it: the store settled against it, the ignored rows out and the counts taken again without them. */
+async function shownInbox(refresh = false): Promise<Inbox> {
+  const i = await loadInbox(refresh);
+  const dropped = await ignored.settle(i.items.map((u) => ({ id: rowId(u), stamp: stampOf(u) })));
+  if (dropped.length) log(`shown again ${dropped.map(([id, why]) => `${id} (${why})`).join(", ")}`);
+  const hid = i.items.filter(isIgnored);
+  if (!hid.length) return i;
+  const items = i.items.filter((u) => !isIgnored(u));
+  const sum = (k: Unread["kind"]) => items.filter((u) => u.kind === k).reduce((n, u) => n + u.n, 0);
+  return { ...i, items, dm: sum("dm"), mention: sum("mention"), thread: sum("thread") };
+}
+
+/** Ignore (until the next message) or show again the rows `ids`: the palette and the bar item follow. */
+async function setIgnored(ids: string[], on: boolean): Promise<void> {
+  if (on) await ignored.add(await Promise.all(ids.map(async (id) => ({ id, stamp: stampOf(await findUnread(id)) }))));
+  else await ignored.remove(ids);
+  bar.refresh("unreads").catch(() => {});
+}
 
 /** The presence behind the direct message rows among `all` (by `Unread.id`), unless the `presence` setting is off: then no call and no dot. */
 const dots = (all: Unread[]): Promise<Map<string, Presence>> => (conf().presence === false ? Promise.resolve(new Map()) : presenceOf(all));
@@ -101,6 +131,7 @@ function unreadActions(u: Unread): Action[] {
     ...(u.kind !== "thread" && u.latest ? [{ id: "read", title: "Mark as read", shortcut: "cmd+shift+r", multi: true as const }] : []),
     { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o", multi: true },
     { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
+    isIgnored(u) ? { id: "unignore", title: "Show again", shortcut: "cmd+shift+i", multi: true } : { id: "ignore", title: "Ignore until the next message", shortcut: "cmd+shift+i", multi: true },
   ];
 }
 
@@ -118,8 +149,16 @@ function unreadRow(u: Unread, dot?: Presence): Item {
   };
 }
 
+const UNREAD_FILTERS = [{ id: "all", title: "All" }, { id: "ignored", title: "Ignored" }];
+
 async function unreadRows(ctx?: Ctx): Promise<Item[]> {
-  const i = await loadInbox(!!ctx?.refresh);
+  if (ctx?.filter === "ignored") {
+    const hid = (await loadInbox(!!ctx?.refresh)).items.filter(isIgnored);
+    if (!hid.length) return [hint("none", "Nothing ignored", "Ignore keeps a conversation out of the list and the count until a new message arrives")];
+    const p = await dots(hid);
+    return hid.map((u) => ({ ...unreadRow(u, p.get(u.id)), section: "Ignored until the next message" }));
+  }
+  const i = await shownInbox(!!ctx?.refresh);
   const all = [...i.items, ...i.quiet];
   if (!all.length) return [hint("none", "Nothing addressed to you", "No unread direct messages, mentions or threads, and every channel is read")];
   const p = await dots(all);
@@ -204,6 +243,11 @@ async function pickUnread(u: Unread, action?: string, ctx?: Ctx): Promise<Effect
       const n = await markReadIds(ctx?.ids ?? [rowId(u)]);
       if (typeof n !== "number") return n;
       return toast("Marked read", n > 1 ? plural(n, "conversation") : u.where);
+    }
+    case "ignore": case "unignore": {
+      const ids = ctx?.ids ?? [rowId(u)];
+      await setIgnored(ids, action === "ignore");
+      return toast(action === "ignore" ? "Ignored until the next message" : "Shown again", ids.length > 1 ? plural(ids.length, "conversation") : u.where);
     }
     default: return { open: deepLink(u.team, u.cid, ts) };
   }
@@ -432,7 +476,7 @@ async function barState(i: Inbox): Promise<BarState> {
 async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
   // The panel showing fires both this render and the palette's relist: an inbox under INBOX_FRESH_MS serves both. Only a push from the CLI or `bar.refresh` insists.
   let i: Inbox;
-  try { i = await loadInbox(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
+  try { i = await shownInbox(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
     if (e instanceof NotSignedIn) return { hidden: true, refresh: refreshSecs(ctx), states: { attention: null, dm: null, channels: null } };
     throw e;
   }
@@ -451,13 +495,13 @@ async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
 }
 
 /** The popover drawn again from the inbox at hand (no fetch): what a key that only moves the cursor answers. */
-const redraw = async (): Promise<Effect> => ({ view: renderBar(await barState(await loadInbox())) });
+const redraw = async (): Promise<Effect> => ({ view: renderBar(await barState(await shownInbox())) });
 
 async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: "slack", palette: "unreads" } };
   if (action === "open-slack") return { open: "slack://open" };
   if (action === "read-all") {
-    const i = await loadInbox();
+    const i = await shownInbox();
     const refused: string[] = [];
     for (const u of i.items) if (u.kind !== "thread" && u.latest) { try { await markRead(u); } catch (e) { refused.push(u.where); log(`mark ${u.cid}: ${errorMessage(e)}`); } }
     dropInbox();
@@ -465,7 +509,7 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   }
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(); }
   if (action.startsWith("open:")) return pickUnread(await findUnread(action.slice(5)));
-  const st = await barState(await loadInbox());
+  const st = await barState(await shownInbox());
   const cur = st.rows[st.focus];
   switch (action) {
     case "down": case "up": {
@@ -474,7 +518,16 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return redraw();
     }
     // The conversation under the cursor as a level to read, the row's keys still working there.
-    case "preview": return cur ? preview(await paneOf(cur.id), cur.where, barActions(st), ["open", ...(cur.canReply ? ["reply"] : []), ...(cur.canRead ? ["read"] : []), "browser", "copy"]) : { keep: true };
+    case "preview": return cur ? preview(await paneOf(cur.id), cur.where, barActions(st), ["open", ...(cur.canReply ? ["reply"] : []), ...(cur.canRead ? ["read"] : []), "ignore", "browser", "copy"]) : { keep: true };
+    // The marked rows (`BarCtx.ids`), else the one under the cursor; the cursor stays at its index, the next row slides under it.
+    case "ignore": {
+      const ids = ctx?.ids ?? (cur ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      await ignored.add(await Promise.all(ids.map(async (id) => ({ id, stamp: stampOf(await findUnread(id)) }))));
+      const next = await barState(await shownInbox());
+      barFocus = next.rows[Math.min(st.focus, Math.max(0, next.rows.length - 1))]?.id;
+      return { keep: true, view: renderBar(await barState(await shownInbox())), ...(ids.length > 1 && { hud: `Ignored ${ids.length}` }) };
+    }
     case "reply": if (cur?.canReply) { barReplying = cur.id; barDraft = ""; } return redraw();
     case "cancel": barReplying = undefined; barDraft = undefined; return redraw();
     case "send": {
@@ -512,6 +565,7 @@ export default {
     unreads: {
       title: "Unreads",
       live: true,
+      filters: UNREAD_FILTERS,
       list: (_q, ctx) => guard(() => unreadRows(ctx)),
       pick: async (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickUnread(await findUnread(id), action, ctx)),
       detail: paneOf,

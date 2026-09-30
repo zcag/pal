@@ -280,7 +280,7 @@
       "The inbox, unread first: sender, subject, snippet, labels and attachments at a glance",
       "`enter` opens the thread in Gmail, `cmd+enter` marks it read; the side pane shows the message as text",
       "Search with Gmail's own syntax (`from:`, `has:attachment`, `newer_than:7d`) and browse every label",
-      "An unread count on the bar, hidden at zero; its popover lists the unread messages and `space` reads one in full",
+      "An unread count on the bar, hidden at zero; its popover lists the unread messages, `space` reads one in full and `i` ignores a thread until someone writes in it again",
       "Several accounts side by side, each with its own tile badge, token and bar item",
       "Compose, reply, drafts, archive and star, only on accounts where you turn sending on"
     ],

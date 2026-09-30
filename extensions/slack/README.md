@@ -173,8 +173,9 @@ it.
 | `Space` | previews the row: the conversation read in full, with Enter, `r`, `m`, `⌘⇧O` and `⌘C` still working there |
 | `r` | reply: the search row becomes a text field, Enter posts it to the conversation (into the thread for a threaded mention), Escape cancels |
 | `m` | marks the row read, up to its latest message |
+| `i` | ignores the row until the next message: out of the count, the tooltip, the popover and the Unreads list until a newer message arrives, then back by itself. Local only: nothing is marked read in Slack. The Unreads palette's Ignored filter lists them, with Show again (`⌘⇧I`, which also ignores a row there) |
 | `a`, `⌘⇧A` | marks every listed conversation read |
-| `o` | opens Slack |
+| `o` | opens Slack (its hint gives way to `i` while a row is under the cursor) |
 | `p` | opens the Unreads palette in the popover |
 | `⌘⇧O`, `⌘C` | the row in the browser, its link copied |
 

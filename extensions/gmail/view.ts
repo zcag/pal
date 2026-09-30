@@ -65,9 +65,11 @@ function rowNode(r: BarRow, focused: boolean): ViewNode {
 
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {
   const kids: ViewNode[] = [...keyHint("enter", "open")];
-  if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }), ...keyHint("m", "read"), ...keyHint("s", cur.starred ? "unstar" : "star"));
+  if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }), ...keyHint("m", "read"), ...keyHint("s", cur.starred ? "unstar" : "star"), ...keyHint("i", "ignore"));
   if (st.rows.length) kids.push(...keyHint("a", "all read"));
-  kids.push(...keyHint("o", "Gmail"), ...keyHint("p", "pal"));
+  // Over rows the row is full: `o` (Gmail) gives its hint to `i`, Enter already opens Gmail at the message; `o` still works and ⌘K lists it.
+  if (!cur) kids.push(...keyHint("o", "Gmail"));
+  kids.push(...keyHint("p", "pal"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
 }
 
@@ -79,6 +81,7 @@ export function actions(st: BarState): Action[] {
     ...(cur ? [{ id: "preview", title: "Preview", shortcut: "space" } as Action] : []),
     ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m", multi: true } as Action] : []),
     ...(cur ? [{ id: "star", title: cur.starred ? "Remove star" : "Star", shortcut: "s", multi: true } as Action] : []),
+    ...(cur ? [{ id: "ignore", title: "Ignore until the next message", shortcut: "i", multi: true } as Action] : []),
     ...(st.rows.length ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),
     { id: "open-gmail", title: "Open Gmail", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },

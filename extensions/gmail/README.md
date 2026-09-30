@@ -24,10 +24,22 @@ palettes and a bar item over the Gmail API, one instance per account:
   the subject and its snippet, the time, a star or a paperclip), with a
   cursor the arrows move and a click sets. Enter opens the focused
   message in Gmail, `Space` previews it (the whole message, with `m`,
-  `s`, `⌘C` and Enter still working there), `m` marks it read, `s` stars it, `a` marks every
-  listed message read, `o` opens Gmail, `p` the Inbox palette. Mark
+  `s`, `i`, `⌘C` and Enter still working there), `m` marks it read, `s` stars it,
+  `i` ignores its thread until the next message (below), `a` marks every
+  listed message read, `o` opens Gmail (its hint gives way to `i` over
+  rows; the key still works), `p` the Inbox palette. Mark
   several rows (`⌘`-click, `⇧`-click for a range, `⇧↓`) and `m` marks
   them all read at once.
+
+**Ignore until the next message.** `i` in the popover, or "Ignore until
+the next message" (`⌘⇧I`) on an unread row in Inbox, keeps that message's thread
+out of the unread count, the popover and Inbox's Unread section until
+someone writes in the thread again: then the whole thread is back, the
+new reply with the rest. It is local: nothing is sent to Gmail, the mail
+stays unread there and on your other devices. The ignored threads stay
+in Inbox under "Ignored until the next message", where "Show again" (`⌘⇧I`)
+brings one back by hand. A thread read elsewhere drops out of the list,
+and one no inbox fetch has carried for thirty days is forgotten.
 
 ## Two accounts
 
@@ -133,6 +145,7 @@ Archive and Star join the row's actions.
 | Star / Unstar | `⌘S` | send on; marked rows too, both offered when they mix starred and not |
 | Reply | `⌘⇧R` | send on; the text typed in the bar's field (the sender and the `Re:` subject implied) or, without it, the form; then `messages.send` in the thread |
 | Copy link | `⌘C` | marked rows too, one link per line |
+| Ignore until the next message / Show again | `⌘⇧I` | an unread row; local, nothing reaches Gmail; marked rows too, both offered when they mix |
 | Search label | `⌘Enter` | on a label row: Search Mail with `label:<name>` typed |
 | Send draft / Discard draft | `⌘Enter` / `⌘D` | send on; each asks first; Discard (and Open) take marked drafts too, Send one at a time |
 

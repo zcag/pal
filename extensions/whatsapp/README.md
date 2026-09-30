@@ -61,8 +61,10 @@ and when the panel shows, after a wake and when the network is back.
 The popover lists them, direct messages then groups, each with the
 picture, the newest message and the time, and a cursor the arrows move
 and a click sets: `Enter` opens the chat, `Space` previews it (the
-latest messages, `r`, `m` and Enter still working there), `m` marks it read, `a` every
-listed one, `o` opens WhatsApp, `p` the Unread palette, `⌘⇧O` the web
+latest messages, `r`, `m` and Enter still working there), `m` marks it read,
+`i` ignores it until the next message (out of the count and the popover,
+still unread on the phone: no blue ticks, nothing sent), `a` every
+listed one, `o` opens WhatsApp (its hint gives way to `i` over an unread row; the key still works), `p` the Unread palette, `⌘⇧O` the web
 client; with `send` on, `r` turns the search row into a message field
 whose `Enter` sends to the focused chat. With `show = "always"` under
 `[bar.items."whatsapp/unread"]` (docs/config.md) the glyph stays on the

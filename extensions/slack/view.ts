@@ -106,7 +106,8 @@ function hints(st: BarState, cur: BarRow | undefined): ViewNode {
   if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }));
   if (cur?.canReply) kids.push(...keyHint("r", "reply"));
   if (cur?.canRead) kids.push(...keyHint("m", "read"));
-  kids.push(...keyHint("a", "all read"), ...keyHint("o", "Slack"), ...keyHint("p", "pal"));
+  // Over a row the line is full: `i` takes the place of `o` (Open Slack keeps its key, listed under the actions).
+  kids.push(...(cur ? keyHint("i", "ignore") : []), ...keyHint("a", "all read"), ...(cur ? [] : keyHint("o", "Slack")), ...keyHint("p", "pal"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
 }
 
@@ -124,6 +125,7 @@ export function actions(st: BarState): Action[] {
     ...(cur?.canReply ? [{ id: "reply", title: `Reply to ${cur.where}`, shortcut: "r" }] : []),
     // Offered while any row can be read: over marked rows (`mark`) the cursor's own row need not be one.
     ...(st.rows.some((r) => r.canRead) ? [{ id: "read", title: cur?.canRead ? `Mark ${cur.where} read` : "Mark read", shortcut: "m", multi: true as const }] : []),
+    ...(cur ? [{ id: "ignore", title: "Ignore until the next message", shortcut: "i", multi: true as const }] : []),
     { id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" },
     { id: "open-slack", title: "Open Slack", shortcut: "o" },
     { id: "open-pal", title: "Open in pal", shortcut: "p" },

@@ -331,7 +331,7 @@
       "`enter` opens the chat in WhatsApp, `cmd+enter` marks it read; the side pane shows the last twenty messages",
       "Full-text search across your whole archive, with who said it, where and when",
       "Contacts with their numbers: open a chat, copy the number or a vCard",
-      "A bar item counting unread chats, hidden at zero and red while a direct chat waits; `space` in its popover reads a chat",
+      "A bar item counting unread chats, hidden at zero and red while a direct chat waits; `space` in its popover reads a chat, `i` ignores it until the next message without the blue ticks",
       "Sending, replying and reacting stay off until you turn them on; your chats go only to your own gateway"
     ],
     "permissions": [

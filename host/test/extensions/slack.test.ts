@@ -212,7 +212,7 @@ describe("slack", () => {
       const [dm] = await list("unreads");
       expect(dm).toMatchObject({ name: "mara", subtitle: "and the doc is up", icon: { image: USERS.U_MARA.avatar } });
       expect(dm.accessories).toEqual([{ tag: "2", color: "red" }, { tag: "●", color: "green" }, { date: 1789580400000 }]);
-      expect(dm.actions!.map((a) => a.id)).toEqual(["open", "reply", "read", "browser", "copy"]);
+      expect(dm.actions!.map((a) => a.id)).toEqual(["open", "reply", "read", "browser", "copy", "ignore"]);
       // The reply is the row's typed argument (Enter still opens); a thread row has neither.
       expect(dm.actions![1]).toEqual({ id: "reply", title: "Reply", args: true });
       expect(dm.args).toEqual([{ id: "text", placeholder: "Message", required: true }]);
@@ -225,7 +225,7 @@ describe("slack", () => {
       expect(mention).toMatchObject({ name: "#eng", subtitle: "mara: @cagdas the build on #ops is red", icon: { image: USERS.U_MARA.avatar } });
       expect(mention.accessories![0]).toEqual({ tag: "1+", color: "red" });
       expect(thread).toMatchObject({ name: "#eng", subtitle: "3 new replies", icon: "\u{f028c}", accessories: [{ tag: "3", color: "blue" }] });
-      expect(thread.actions!.map((a) => a.id)).toEqual(["open", "browser", "copy"]);
+      expect(thread.actions!.map((a) => a.id)).toEqual(["open", "browser", "copy", "ignore"]);
     });
 
     test("quiet channels: named with the channel's glyph (a lock for a private one), the topic or purpose as the subtitle (else that there are new messages), newest first, no count", async () => {
@@ -395,7 +395,7 @@ describe("slack", () => {
       expect(rows.map((r) => !!r.selected)).toEqual([true, false, false]);
       // Every row can be marked; `m` (skipping the thread), Open in browser and Copy link run over the marks.
       expect(marksOf(view.tree)).toEqual(["dm:T1/D_MARA", "mention:T1/C_ENG", "thread:T1/C_ENG"]);
-      expect(view.actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["read", "browser", "copy"]);
+      expect(view.actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["read", "ignore", "browser", "copy"]);
       expect(texts(view)).toEqual(expect.arrayContaining(["mara", "and the doc is up", "#eng", "mara: @cagdas the build on #ops is red", "3 new replies in threads you follow"]));
       // Mara's avatar was fetched once into a data url (the picture host needs no session); the thread row is a hash tile.
       const images = all.filter((n): n is Extract<ViewNode, { type: "image" }> => n.type === "image");
@@ -405,8 +405,8 @@ describe("slack", () => {
       // Counts: the DM run of 2 in red, the thread's 3 in blue; the quiet channels as badges a click opens.
       const badges = all.filter((n): n is Extract<ViewNode, { type: "badge" }> => n.type === "badge");
       expect(badges.map((b) => [b.text, b.color, b.action])).toEqual(expect.arrayContaining([["2", "red", undefined], ["3", "blue", undefined], ["#ops", "grey", "open:channel:T1/C_OPS"], ["#general", "grey", "open:channel:T1/C_GEN"]]));
-      expect(keycaps(view)).toEqual(["enter", "space", "r", "m", "a", "o", "p"]);
-      expect(view.actions.slice(0, 7).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["preview", "space"], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-slack", "o"], ["open-pal", "p"]]);
+      expect(keycaps(view)).toEqual(["enter", "space", "r", "m", "i", "a", "p"]);
+      expect(view.actions.slice(0, 8).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["preview", "space"], ["reply", "r"], ["read", "m"], ["ignore", "i"], ["read-all", ["a", "cmd+shift+a"]], ["open-slack", "o"], ["open-pal", "p"]]);
     });
 
     test("keys: the cursor moves with the arrows and a click, Enter opens the focused row, the quiet badges open their channel, Open in pal pushes, Open Slack opens the app", async () => {
@@ -416,7 +416,7 @@ describe("slack", () => {
       expect(nodes(v1.tree).filter((n) => n.type === "stack" && !!n.selected).map((n) => n.action)).toEqual(["focus:mention:T1/C_ENG"]);
       r = await host.barAction("slack", "unreads", "down", ctx);
       const v2 = checkView(viewOf(r));
-      expect(keycaps(v2)).toEqual(["enter", "space", "a", "o", "p"]);
+      expect(keycaps(v2)).toEqual(["enter", "space", "i", "a", "p"]);
       expect(await host.barAction("slack", "unreads", "open", ctx)).toEqual({ open: "slack://channel?team=T1&id=C_ENG" });
       // A click on the first row: Enter opens it at the message.
       r = await host.barAction("slack", "unreads", "focus:dm:T1/D_MARA", ctx);
@@ -426,7 +426,7 @@ describe("slack", () => {
       // Space reads the conversation in full, with the keys that work on that one row.
       const pv = await host.barAction("slack", "unreads", "preview", ctx) as { show: { title: string; markdown: string; actions: { id: string }[] } };
       expect(pv.show.markdown.length).toBeGreaterThan(0);
-      expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "reply", "read", "browser", "copy"]);
+      expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "reply", "read", "ignore", "browser", "copy"]);
       expect(await host.barAction("slack", "unreads", "open:channel:T1/C_OPS", ctx)).toEqual({ open: "slack://channel?team=T1&id=C_OPS" });
       // The menu-era ids still open their row (links and the CLI spell them).
       expect(await host.barAction("slack", "unreads", "dm:T1/D_MARA")).toEqual({ open: "slack://channel?team=T1&id=D_MARA&message=1789580400.000200" });
@@ -474,6 +474,32 @@ describe("slack", () => {
       before = calls("conversations.mark").length;
       expect(await host.barAction("slack", "unreads", "read-all", ctx)).toEqual({ keep: true, hud: "Marked read" });
       expect(calls("conversations.mark").slice(before).map((c) => c.body.channel).sort()).toEqual(["C_ENG", "D_MARA"]);
+    });
+
+    test("ignore: a row leaves the badge, the tooltip, the popover and the Unreads list until a newer message, then comes back by itself; Show again brings it back by hand; nothing is marked in Slack", async () => {
+      const marks = calls("conversations.mark").length;
+      await host.barAction("slack", "unreads", "focus:dm:T1/D_MARA", ctx);
+      const v = checkView(viewOf(await host.barAction("slack", "unreads", "ignore", ctx)));
+      expect(texts(v)).not.toContain("mara");
+      expect(stored.get("slack\0ignored")).toMatchObject({ "dm:T1/D_MARA": { stamp: "1789580400.000200:2" } });
+      expect(await host.render("slack", "unreads", { reason: "update" })).toMatchObject({ badge: 4, tooltip: "1 mention, 3 thread replies; 2 channels unread", states: { attention: 4, dm: 0 } });
+      expect((await host.list("slack", "unreads")).map((r) => r.id)).not.toContain("dm:T1/D_MARA");
+      const hid = await host.list("slack", "unreads", undefined, { filter: "ignored" });
+      expect(hid.map((r) => [r.id, r.section])).toEqual([["dm:T1/D_MARA", "Ignored until the next message"]]);
+      expect(hid[0].actions!.at(-1)).toMatchObject({ id: "unignore", title: "Show again" });
+      // A newer message in the conversation: back by itself, the entry gone.
+      const im = (counts.ims as { latest: string }[])[0]!, was = im.latest;
+      im.latest = "1789580900.000100";
+      try {
+        expect(await host.render("slack", "unreads", { reason: "update" })).toMatchObject({ badge: 6 });
+        expect(stored.get("slack\0ignored")).toEqual({});
+      } finally { im.latest = was; await host.render("slack", "unreads", { reason: "update" }); }
+      // From the palette, and back with Show again.
+      expect(await host.pick("slack", "unreads", "mention:T1/C_ENG", "ignore")).toEqual({ keep: true, toast: { title: "Ignored until the next message", message: "#eng" } });
+      expect((await host.list("slack", "unreads")).map((r) => r.id)).not.toContain("mention:T1/C_ENG");
+      expect(await host.pick("slack", "unreads", "mention:T1/C_ENG", "unignore")).toEqual({ keep: true, toast: { title: "Shown again", message: "#eng" } });
+      expect((await host.list("slack", "unreads")).map((r) => r.id)).toContain("mention:T1/C_ENG");
+      expect(calls("conversations.mark")).toHaveLength(marks);
     });
 
     test("urgency is the manifest's dm rule over slack/dm, not the render's; the item's refresh setting under 10 s is clamped", async () => {

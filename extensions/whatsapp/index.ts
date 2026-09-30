@@ -9,7 +9,7 @@
 // reaction and no message field anywhere, whatever the key could do.
 // With it on, a chat row takes the message in the search bar (`args`)
 // for "Send a message"; a bare pick gets the same as a form.
-import { eachId, errorMessage, failed, hint, imageData, preview, settings, toast, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+import { bar, eachId, errorMessage, failed, hint, ignoreStore, imageData, preview, settings, toast, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { ApiError, NoKey, RateLimited, SessionError, Unreachable, base, conf, log, markChatRead, markChatUnread, react as apiReact, reply as apiReply, reset as resetApi, sendText } from "./api.ts";
 import { PANE_MSGS, REACTIONS, RUN_MSGS, chat, chatLink, clock, contacts, conversation, conversationMarkdown, dropChats, isGroupId, loadChats, oneLine, currentOpener as opener, phoneOf, prettyPhone, resetData, search, vcard, type Chat, type Hit, type Person } from "./data.ts";
 import { RECENT_ROWS, actions as barActions, initialIcon, render as renderBar, type BarRow, type BarState } from "./view.ts";
@@ -49,6 +49,36 @@ const chatIcon = (c: Chat) => (c.avatar ? { image: c.avatar } : c.group ? ICON.g
 
 const READ: Action = { id: "read", title: "Mark as read", multi: true }, UNREAD: Action = { id: "unread", title: "Mark as unread", multi: true };
 
+// ---- ignored ------------------------------------------------------------------------------------
+// An unread chat can be ignored until its next message: out of the count,
+// the popover and the Unread section, and still unread on the phone (no
+// blue ticks, nothing sent). The stamp is the newest message's time, so a
+// new message brings it back by itself; the Unread palette's Ignored
+// filter lists it with Show again, the Chats palette under its own section.
+
+const ignored = ignoreStore("ignored");
+const stampOf = (c: Chat) => String(c.at);
+const isIgnored = (c: Chat) => c.unread > 0 && ignored.hides(c.id, stampOf(c));
+/** Unread and not ignored: what counts. */
+const counts = (c: Chat) => c.unread > 0 && !isIgnored(c);
+/** The chat list with the ignored set settled against it: a chat whose newest message moved is shown again. */
+async function chats(refresh?: boolean): Promise<Chat[]> {
+  const [list] = await Promise.all([loadChats(refresh), ignored.ready]);
+  const dropped = await ignored.settle(list.map((c) => ({ id: c.id, stamp: stampOf(c) })));
+  if (dropped.length) log(`shown again ${dropped.map(([id, why]) => `${id} (${why})`).join(", ")}`);
+  return list;
+}
+const IGNORE: Action = { id: "ignore", title: "Ignore until the next message", shortcut: "cmd+shift+i", multi: true };
+const SHOW: Action = { id: "unignore", title: "Show again", shortcut: "cmd+shift+i", multi: true };
+async function pickIgnore(ids: string[], on: boolean): Promise<Effect> {
+  const list = await chats();
+  const picked = list.filter((c) => ids.includes(c.id));
+  if (on) await ignored.add(picked.map((c) => ({ id: c.id, stamp: stampOf(c) })));
+  else await ignored.remove(ids);
+  bar.refresh("unread").catch(() => {});
+  return toast(on ? "Ignored until the next message" : "Shown again", ids.length > 1 ? plural(ids.length, "chat") : picked[0]?.name ?? "");
+}
+
 function chatActions(c: Chat): Action[] {
   const send = canSend();
   return [
@@ -60,6 +90,7 @@ function chatActions(c: Chat): Action[] {
     { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" },
     // Opening stays one chat: WhatsApp shows one at a time. Copying takes marked chats too, one per line.
     c.group ? { id: "copy-name", title: "Copy name", shortcut: "cmd+c", multi: true } : { id: "copy-number", title: "Copy number", shortcut: "cmd+c", multi: true },
+    ...(isIgnored(c) ? [SHOW] : c.unread > 0 ? [IGNORE] : []),
     c.unread > 0 ? UNREAD : READ,
   ];
 }
@@ -200,6 +231,7 @@ async function pickChat(c: Chat, action: string | undefined, ctx?: Ctx): Promise
       try { await apiReact(c.id, target, emoji); } catch (e) { return { form: reactForm(c, { emoji: errorMessage(e) }) }; }
       return toast(emoji ? `Reacted ${emoji}` : "Reaction removed", c.name);
     }
+    case "ignore": case "unignore": return pickIgnore(ids, action === "ignore");
     case "web": return openChat(c, "web");
     case "copy-name": return { copy: c.name };
     case "copy-number": {
@@ -212,14 +244,22 @@ async function pickChat(c: Chat, action: string | undefined, ctx?: Ctx): Promise
 
 // ---- chats and unread -------------------------------------------------------------------------
 
+/** The section ignored unread chats are listed under, last. */
+const IGNORED = "Ignored until the next message";
+
 async function chatRows(ctx?: Ctx): Promise<Item[]> {
-  const list = await loadChats(!!ctx?.refresh);
+  const list = await chats(!!ctx?.refresh);
   if (!list.length) return [hint("empty", "No chats", "The session lists no chats yet; the phone's chats appear once WhatsApp Web has loaded them")];
-  return list.map((c) => chatRow(c, c.unread > 0 ? "Unread" : "Recent"));
+  return list.map((c) => chatRow(c, isIgnored(c) ? IGNORED : c.unread > 0 ? "Unread" : "Recent"));
 }
 
 async function unreadRows(ctx?: Ctx): Promise<Item[]> {
-  const list = (await loadChats(!!ctx?.refresh)).filter((c) => c.unread > 0);
+  const all = await chats(!!ctx?.refresh);
+  if (ctx?.filter === "ignored") {
+    const quiet = all.filter(isIgnored);
+    return quiet.length ? quiet.map((c) => chatRow(c, IGNORED)) : [hint("none", "Nothing ignored", "Ignore keeps an unread chat out of the list and the count until its next message", { icon: ICON.read })];
+  }
+  const list = all.filter(counts);
   if (!list.length) return [hint("none", "Nothing unread", "Every chat is read", { icon: ICON.read })];
   return list.map((c) => chatRow(c, c.group ? "Groups" : "Direct messages"));
 }
@@ -334,8 +374,8 @@ let barFocus: string | undefined, barReplying: string | undefined, barDraft: str
 
 /** Every unread chat, direct messages then groups; at nothing unread the newest `RECENT_ROWS` chats instead. */
 async function barRows(list: Chat[]): Promise<BarRow[]> {
-  const unread = list.filter((c) => c.unread > 0);
-  const picked = unread.length ? [...unread.filter((c) => !c.group), ...unread.filter((c) => c.group)] : list.slice(0, RECENT_ROWS);
+  const unread = list.filter(counts);
+  const picked = unread.length ? [...unread.filter((c) => !c.group), ...unread.filter((c) => c.group)] : list.filter((c) => !isIgnored(c)).slice(0, RECENT_ROWS);
   return Promise.all(picked.map(async (c): Promise<BarRow> => ({
     id: c.id, name: c.name, group: c.group, text: c.last ? oneLine(c.last) : c.group ? "Group" : "", time: c.at ? clock(c.at) : undefined, n: c.unread,
     avatar: c.avatar ? await imageData(c.avatar) : undefined,
@@ -352,11 +392,11 @@ async function barState(list: Chat[]): Promise<BarState> {
 async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   // The panel showing fires both this render and the palettes' relists: a list under CHATS_FRESH_MS serves all. Only a push from the CLI or `bar.refresh` insists.
   let list: Chat[];
-  try { list = await loadChats(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
+  try { list = await chats(ctx.reason === "cli" || ctx.reason === "update"); } catch (e) {
     if (e instanceof NoKey) return { hidden: true, states: { unread: null, direct: null } };
     throw e;
   }
-  const unread = list.filter((c) => c.unread > 0);
+  const unread = list.filter(counts);
   const direct = unread.filter((c) => !c.group).length, groups = unread.length - direct;
   const menu = { view: renderBar(await barState(list)) };
   // The facts (`whatsapp/unread`, `whatsapp/direct`): the manifest's rules hide the item at zero and make a direct message urgent.
@@ -368,19 +408,20 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
 }
 
 /** The popover drawn again from the list at hand (no fetch): what a key that only moves the cursor answers. */
-const redraw = async (): Promise<Effect> => ({ view: renderBar(await barState(await loadChats())) });
+const redraw = async (): Promise<Effect> => ({ view: renderBar(await barState(await chats())) });
 
 async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: "whatsapp", palette: "unread" } };
   if (action === "open-whatsapp") return { open: chatLink(undefined, opener()) };
   if (action === "read-all") {
     const refused: string[] = [];
-    for (const c of (await loadChats()).filter((c) => c.unread > 0)) { try { await markChatRead(c.id); } catch (e) { refused.push(c.name); log(`read ${c.id}: ${errorMessage(e)}`); } }
+    // What the popover lists: an ignored chat stays unread on the phone.
+    for (const c of (await chats()).filter(counts)) { try { await markChatRead(c.id); } catch (e) { refused.push(c.name); log(`read ${c.id}: ${errorMessage(e)}`); } }
     dropChats();
     return refused.length ? toast("Some could not be marked", refused.join(", "), "failure") : { keep: true, hud: "Marked read" };
   }
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(); }
-  const st = await barState(await loadChats());
+  const st = await barState(await chats());
   const cur = st.rows[st.focus];
   switch (action) {
     case "down": case "up": {
@@ -389,7 +430,17 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return redraw();
     }
     // The chat under the cursor as a level to read, the row's keys still working there.
-    case "preview": return cur ? preview(await paneOf(cur.id), cur.name, barActions(st), ["open", "reply", ...(cur.n > 0 ? ["read"] : []), "web"]) : { keep: true };
+    case "preview": return cur ? preview(await paneOf(cur.id), cur.name, barActions(st), ["open", "reply", ...(cur.n > 0 ? ["read", "ignore"] : []), "web"]) : { keep: true };
+    case "ignore": {
+      // The marked rows (`BarCtx.ids`), else the unread one under the cursor; the cursor stays at its index, the next chat slides under it.
+      const ids = ctx?.ids ?? (cur && cur.n > 0 ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      const list = await chats();
+      await ignored.add(list.filter((c) => ids.includes(c.id)).map((c) => ({ id: c.id, stamp: stampOf(c) })));
+      const next = await barState(list);
+      barFocus = next.rows[Math.min(st.focus, Math.max(0, next.rows.length - 1))]?.id;
+      return { keep: true, view: renderBar(await barState(list)), ...(ids.length > 1 && { hud: `Ignored ${ids.length}` }) };
+    }
     case "reply": if (cur && canSend()) { barReplying = cur.id; barDraft = ""; } return redraw();
     case "cancel": barReplying = undefined; barDraft = undefined; return redraw();
     case "send": {
@@ -456,6 +507,7 @@ export default {
       live: true,
       lazy: true,
       placeholder: "An unread chat",
+      filters: [{ id: "all", title: "All" }, { id: "ignored", title: "Ignored" }],
       list: (_q, ctx) => guard(() => unreadRows(ctx)),
       pick: pickChatRow,
       detail: paneOf,

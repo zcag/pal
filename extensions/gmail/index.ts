@@ -7,7 +7,7 @@
 // the account, and so does a mail row's quick reply (the text typed in
 // the search bar, the row's `args`). Every row id is the message id, so a
 // pick after a restart still finds it with one `messages.get`.
-import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, preview, settings, toast, TokenError, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { bar, bytes, clock, dayNameYear, errorMessage, failed, hint, ignoreStore, imageData, instance, preview, settings, toast, TokenError, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
 import { actions as barActions, render as renderBar, type BarRow, type BarState } from "./view.ts";
@@ -28,11 +28,53 @@ const MAX_CHIPS = 2;
 let last: Inbox | undefined;
 let loading: Promise<Inbox> | undefined;
 
-/** The inbox, fetched unless one younger than `INBOX_FRESH_MS` is at hand (or `refresh`); one fetch at a time. */
+/** The inbox, fetched unless one younger than `INBOX_FRESH_MS` is at hand (or `refresh`); one fetch at a time. Every fetch settles the ignored threads against it. */
 function loadInbox(refresh = false): Promise<Inbox> {
   if (!refresh && last && Date.now() - last.at < INBOX_FRESH_MS) return Promise.resolve(last);
-  loading ??= inbox().then((i) => (last = i)).finally(() => { loading = undefined; });
+  loading ??= inbox().then(async (i) => { await settleIgnored(i); return (last = i); }).finally(() => { loading = undefined; });
   return loading;
+}
+
+// ---- ignored ----------------------------------------------------------------------
+// A thread kept out of the unread count, the popover and the inbox's Unread
+// section until the next message, locally: nothing is sent to Gmail, the mail
+// stays unread there. Keyed by thread, its stamp the thread's newest
+// unread message: a mail conversation is quiet until someone writes in it
+// again, and then the whole thread comes back (its older unread with the
+// new reply), rather than the reply alone with the rest still hidden. One
+// read elsewhere leaves the unread list and goes after thirty days unseen.
+
+const ignored = ignoreStore("ignored");
+
+/** Each unread thread's stamp: the id of its newest unread message. */
+function threadStamps(i: Inbox): Map<string, string> {
+  const newest = new Map<string, Mail>();
+  for (const m of i.unread) { const n = newest.get(m.threadId); if (!n || m.date > n.date) newest.set(m.threadId, m); }
+  return new Map([...newest].map(([t, m]) => [t, m.id]));
+}
+
+async function settleIgnored(i: Inbox) {
+  const dropped = await ignored.settle([...threadStamps(i)].map(([id, stamp]) => ({ id, stamp })));
+  if (dropped.length) log(`shown again ${dropped.map(([id, why]) => `${id} (${why})`).join(", ")}`);
+}
+
+/** The unread messages split: what counts and shows, and what an ignored thread holds back. */
+function unreadOf(i: Inbox): { shown: Mail[]; hidden: Mail[] } {
+  const stamps = threadStamps(i);
+  const out = { shown: [] as Mail[], hidden: [] as Mail[] };
+  for (const m of i.unread) (ignored.hides(m.threadId, stamps.get(m.threadId)) ? out.hidden : out.shown).push(m);
+  return out;
+}
+
+/** Ignore (until the thread's next message) or show again (`unignore`) the threads of these messages. */
+async function ignoreMails(ms: Mail[], how: "ignore" | "unignore") {
+  const threads = [...new Set(ms.map((m) => m.threadId))];
+  if (how === "unignore") await ignored.remove(threads);
+  else {
+    const stamps = threadStamps(await loadInbox());
+    await ignored.add(threads.map((t) => ({ id: t, stamp: stamps.get(t) ?? ms.find((m) => m.threadId === t)!.id })));
+  }
+  bar.refresh("unread").catch(() => {});
 }
 const dropInbox = () => { last = undefined; };
 // New settings may mean another account or another token: nothing cached applies.
@@ -77,6 +119,8 @@ function mailAccessories(m: Mail): Accessory[] {
 
 const READ: Action = { id: "read", title: "Mark as read", multi: true }, UNREAD: Action = { id: "unread", title: "Mark as unread", multi: true };
 const STAR: Action = { id: "star", title: "Star", multi: true }, UNSTAR: Action = { id: "unstar", title: "Unstar", multi: true };
+const IGNORE: Action = { id: "ignore", title: "Ignore until the next message", multi: true }, SHOW: Action = { id: "unignore", title: "Show again", multi: true };
+const isIgnored = (m: Mail) => !!last && unreadOf(last).hidden.some((x) => x.id === m.id);
 
 function mailActions(m: Mail): Action[] {
   const send = canSend();
@@ -89,8 +133,11 @@ function mailActions(m: Mail): Action[] {
     // The quick reply takes the row's typed argument (the text; the sender and the reply subject are implied); Enter on the row still opens the thread. One message at a time.
     ...(send ? [{ id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true } as Action] : []),
     { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true },
+    // An unread one: kept out of the count until its thread changes (⌘⇧I either way), locally; the other rides at the end, as above.
+    ...(m.unread ? [{ ...(isIgnored(m) ? SHOW : IGNORE), shortcut: "cmd+shift+i" }] : []),
     m.unread ? UNREAD : READ,
     ...(send ? [m.starred ? STAR : UNSTAR] : []),
+    ...(m.unread ? [isIgnored(m) ? IGNORE : SHOW] : []),
   ];
 }
 
@@ -152,6 +199,9 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
   const all = async () => (n > 1 ? Promise.all(ids.map(mail)) : [m]);
   switch (action) {
     case "copy": { const a = await address(); return { copy: (await all()).map((x) => threadUrl(a, x.threadId, x.inInbox)).join("\n") }; }
+    case "ignore": case "unignore":
+      await ignoreMails(await all(), action);
+      return toast(action === "ignore" ? "Ignored until the next message" : "Shown again", n > 1 ? plural(n, "message") : m.subject || "(no subject)");
     case "read":
       try { await markRead(ids); } catch (e) { return failed("mark read", e); }
       dropInbox();
@@ -200,7 +250,9 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
 
 async function inboxRows(ctx?: Ctx): Promise<Item[]> {
   const i = await loadInbox(!!ctx?.refresh);
-  const rows = [...i.unread.map((m) => mailRow(m, "Unread")), ...i.recent.map((m) => mailRow(m, "Recent")), ...i.extra.flatMap((e) => e.mails.map((m) => mailRow(m, e.label)))];
+  const u = unreadOf(i);
+  // The ignored stay findable, under the unread, with Show again.
+  const rows = [...u.shown.map((m) => mailRow(m, "Unread")), ...u.hidden.map((m) => mailRow(m, "Ignored until the next message")), ...i.recent.map((m) => mailRow(m, "Recent")), ...i.extra.flatMap((e) => e.mails.map((m) => mailRow(m, e.label)))];
   return rows.length ? rows : [hint("empty", "The inbox is empty", "Nothing in the inbox yet; Search Mail reaches the rest")];
 }
 
@@ -353,7 +405,8 @@ let barFocus: string | undefined;
  * url), as WhatsApp's rows do.
  */
 async function barState(i: Inbox): Promise<BarState> {
-  const rows: BarRow[] = await Promise.all(i.unread.map(async (m) => {
+  const u = unreadOf(i);
+  const rows: BarRow[] = await Promise.all(u.shown.map(async (m) => {
     const src = m.icon?.image;
     const data = src && !src.startsWith("data:") ? await imageData(src) : src;
     return {
@@ -368,8 +421,11 @@ async function barState(i: Inbox): Promise<BarState> {
     };
   }));
   const focus = Math.max(0, rows.findIndex((r) => r.id === barFocus));
-  return { rows, focus, total: i.count, address: addressNow() || undefined };
+  return { rows, focus, total: shownCount(i), address: addressNow() || undefined };
 }
+/** The unread count less what ignored threads hold back (of the page fetched: past it Gmail's count stands). */
+const shownCount = (i: Inbox) => Math.max(0, i.count - unreadOf(i).hidden.length);
+
 /**
  * The inbox's unread count as the badge, hidden at zero, the account's
  * title beside the glyph when it has one (two accounts read apart on
@@ -392,12 +448,13 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   const title = ctx.instance?.title?.trim();
   const addr = addressNow();
   // At zero the item leaves the strip; the glyph, the account's title and the popover are the `empty` shape a `show = "always"` config keeps, muted.
-  if (i.count === 0) return { hidden: true, empty: { icon: ICON.mail, ...(title && { title }), tooltip: `No unread mail${addr ? ` in ${addr}` : ""}`, menu: { view: renderBar(await barState(i)) } } };
+  const count = shownCount(i);
+  if (count === 0) return { hidden: true, empty: { icon: ICON.mail, ...(title && { title }), tooltip: `No unread mail${addr ? ` in ${addr}` : ""}`, menu: { view: renderBar(await barState(i)) } } };
   return {
     icon: ICON.mail,
     ...(title && { title }),
-    badge: i.count,
-    tooltip: `${plural(i.count, "unread message")}${addr ? ` in ${addr}` : ""}`,
+    badge: count,
+    tooltip: `${plural(count, "unread message")}${addr ? ` in ${addr}` : ""}`,
     menu: { view: renderBar(await barState(i)) },
   };
 }
@@ -410,8 +467,7 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-gmail") return { open: `${gmailBase(await address())}#inbox` };
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(); }
   if (action === "read-all") {
-    const i = await loadInbox();
-    const ids = i.unread.map((m) => m.id);
+    const ids = unreadOf(await loadInbox()).shown.map((m) => m.id);
     if (!ids.length) return { keep: true };
     try { await markRead(ids); } catch (e) { return failed("mark read", e); }
     dropInbox();
@@ -436,7 +492,16 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       return rows.length > 1 ? { ...(await redrawBar()), hud: `${on ? "Starred" : "Unstarred"} ${rows.length}` } : redrawBar();
     }
     // The message under the cursor as a level to read, the row's keys still working there.
-    case "preview": return cur ? preview(await paneOf(cur.id), cur.subject || "(no subject)", barActions(st), ["open", "read", "star", "copy"]) : { keep: true };
+    case "preview": return cur ? preview(await paneOf(cur.id), cur.subject || "(no subject)", barActions(st), ["open", "read", "star", "ignore", "copy"]) : { keep: true };
+    // Local: nothing reaches Gmail. The marked rows' threads, else the cursor's; the next row slides under the cursor.
+    case "ignore": {
+      const ids = ctx?.ids ?? (cur ? [cur.id] : []);
+      if (!ids.length) return { keep: true };
+      await ignoreMails(await Promise.all(ids.map(mail)), "ignore");
+      const next = await barState(await loadInbox());
+      barFocus = next.rows[Math.min(st.focus, next.rows.length - 1)]?.id;
+      return { keep: true, view: renderBar(await barState(await loadInbox())), ...(ids.length > 1 && { hud: `Ignored ${ids.length}` }) };
+    }
     case "read": {
       // The marked rows (`BarCtx.ids`), else the one under the cursor.
       const ids = ctx?.ids ?? (cur ? [cur.id] : []);

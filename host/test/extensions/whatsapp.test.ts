@@ -117,8 +117,8 @@ describe("whatsapp helpers", () => {
     expect(stacks.map((s) => [s.action, !!s.selected])).toEqual([[`focus:${MARA}`, false], [`focus:${HIKE}`, true]]);
     expect(nodes(v.tree).find((n) => n.type === "tile")).toMatchObject({ text: "M", fill: "solid" });
     expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ mask: "circle", alt: "Weekend hike" });
-    expect(keycaps(v)).toEqual(["enter", "space", "r", "m", "a", "o", "p"]);
-    expect(v.actions.slice(0, 7).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["preview", "space"], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-whatsapp", "o"], ["open-pal", "p"]]);
+    expect(keycaps(v)).toEqual(["enter", "space", "r", "m", "i", "a", "p"]);
+    expect(v.actions.slice(0, 8).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["preview", "space"], ["reply", "r"], ["read", "m"], ["ignore", "i"], ["read-all", ["a", "cmd+shift+a"]], ["open-whatsapp", "o"], ["open-pal", "p"]]);
     // Every row can be marked (its chat id), and `m` runs over every marked row; offered even with the cursor on a read chat.
     expect(marksOf(v.tree)).toEqual([MARA, HIKE]);
     expect(v.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
@@ -126,7 +126,7 @@ describe("whatsapp helpers", () => {
     expect(onRead.actions.find((a) => a.id === "read")).toMatchObject({ title: "Mark as read", multi: true });
     // Send off: no reply key, no hint.
     const off = checkView(render({ rows, focus: 0, canSend: false }));
-    expect(keycaps(off)).toEqual(["enter", "space", "m", "a", "o", "p"]);
+    expect(keycaps(off)).toEqual(["enter", "space", "m", "i", "a", "p"]);
     expect(off.actions.map((a) => a.id)).not.toContain("reply");
     // Replying: the field, Send and Cancel first, the hints for them.
     const replying = checkView(render({ rows, focus: 0, canSend: true, replying: MARA, draft: "on my way" }));
@@ -196,7 +196,7 @@ describe("whatsapp", () => {
     expect(rows.find((r) => r.name === "Status")).toBeUndefined();
     // Read chats: Open, Mark as unread, web, copy; with send off no message or reaction, and no message field.
     // Each also carries the other way at the end, so marked chats that mix read and unread share both.
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "web", "copy-number", "unread"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "web", "copy-number", "ignore", "unread"]);
     expect(rows[0].args).toBeUndefined();
     expect(rows[3].actions!.map((a) => a.id)).toEqual(["open", "unread", "web", "copy-name", "read"]);
     expect(rows[0].actions!.at(-1)).toEqual({ id: "unread", title: "Mark as unread", multi: true });
@@ -296,7 +296,7 @@ describe("whatsapp", () => {
     host.changeSettings(X, { settings: settings({ send: true }) });
     await host.until(() => host.coreCalls.length > 0);
     const rows = await list("chats", "", { refresh: true });
-    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "reply", "react", "web", "copy-number", "unread"]);
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "reply", "react", "web", "copy-number", "ignore", "unread"]);
     // The message is the row's typed argument for Send (Enter still opens the chat); a quote choice when the latest message is theirs.
     expect(rows[0].actions![2]).toEqual({ id: "reply", title: "Send a message", shortcut: "cmd+shift+r", args: true });
     expect(rows[0].args).toEqual([{ id: "text", placeholder: "Message", required: true }, { id: "quote", placeholder: "Reply", kind: "select", default: "", options: [{ id: "", title: "New message" }, { id: "quote", title: "Quote “standup in 20?”" }] }]);
@@ -401,10 +401,40 @@ describe("whatsapp", () => {
     const images = nodes(view.tree).filter((n): n is Extract<ViewNode, { type: "image" }> => n.type === "image");
     expect(images.map((i) => [i.alt, i.src.slice(0, 26)])).toEqual([["Mara Lind", "data:image/svg+xml;base64,"], ["Weekend hike", "data:image/svg+xml;base64,"]]);
     expect(nodes(view.tree).find((n) => n.type === "tile")).toMatchObject({ text: "T", fill: "solid" });
-    expect(keycaps(view)).toEqual(["enter", "space", "r", "m", "a", "o", "p"]);
+    expect(keycaps(view)).toEqual(["enter", "space", "r", "m", "i", "a", "p"]);
     // Urgency is the manifest's dm rule over whatsapp/direct, not the render's.
     expect(item).not.toHaveProperty("urgent");
     expect(item.states).toEqual({ unread: 3, direct: 2 });
+  });
+
+  test("ignore: an unread chat leaves the count, the popover and the Unread section until its next message, still unread (nothing sent); Show again by hand", async () => {
+    const ctx = { reason: "open" as const, compact: true as const };
+    const TOMAS = "905559876543@c.us";
+    const posts = () => mock.calls(/./).length;
+    await host.render(X, "unread", { reason: "cli" });
+    const before = posts();
+    expect(await host.pick(X, "chats", TOMAS, "ignore")).toEqual({ keep: true, toast: { title: "Ignored until the next message", message: "Tomas Ruiz" } });
+    expect(posts()).toBe(before);
+    expect(await host.render(X, "unread", { reason: "update" })).toMatchObject({ badge: 2, states: { unread: 2, direct: 1 } });
+    expect((await list("unread")).map((r) => r.name)).toEqual(["Mara Lind", "Weekend hike"]);
+    const rows = await list("unread", "", { filter: "ignored" });
+    expect(rows.map((r) => [r.name, r.section])).toEqual([["Tomas Ruiz", "Ignored until the next message"]]);
+    expect(rows[0].accessories).toEqual(expect.arrayContaining([{ tag: "1", color: "green" }]));
+    expect(rows[0].actions!.find((a) => a.id === "unignore")).toMatchObject({ title: "Show again" });
+    // His next message: counted again, the entry gone.
+    const was = mock.chats;
+    mock.chats = was.map((c) => (c.id === TOMAS ? { ...c, unread: 2, at: m(0) } : c));
+    try {
+      expect(await host.render(X, "unread", { reason: "cli" })).toMatchObject({ badge: 3 });
+      expect(Object.keys((stored.get(`${X}\0ignored`) ?? {}) as object)).toEqual([]);
+    } finally { mock.chats = was; await host.render(X, "unread", { reason: "cli" }); }
+    // The popover's i ignores the chat under the cursor, the next slides under it; Show again brings it back.
+    await host.barAction(X, "unread", `focus:${TOMAS}`, ctx);
+    const v = checkView(viewOf(await host.barAction(X, "unread", "ignore", ctx)));
+    expect(texts(v)).not.toContain("Tomas Ruiz");
+    expect(await host.pick(X, "unread", TOMAS, "unignore")).toMatchObject({ toast: { title: "Shown again", message: "Tomas Ruiz" } });
+    expect(await host.render(X, "unread", { reason: "update" })).toMatchObject({ badge: 3 });
+    await host.barAction(X, "unread", "focus:254011223344556@lid", ctx);
   });
 
   test("popover keys: the cursor, Enter opens, m marks read, r opens the field and Enter sends, Escape cancels, a marks all, o and p; a chat id as the action", async () => {
@@ -420,7 +450,7 @@ describe("whatsapp", () => {
     const pv = await host.barAction(X, "unread", "preview", ctx) as { show: { title: string; markdown: string; actions: { id: string }[] } };
     expect(pv.show.title).toBe("Weekend hike");
     expect(pv.show.markdown.length).toBeGreaterThan(0);
-    expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "reply", "read", "web"]);
+    expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "reply", "read", "ignore", "web"]);
     // r: the field on the focused row; an empty send keeps it; Enter sends through send-text; Escape cancels.
     r = await host.barAction(X, "unread", "reply", ctx);
     expect(checkView(viewOf(r)).input).toEqual({ value: "", placeholder: "Message Weekend hike", submit: "send", cancel: "cancel" });
