@@ -55,6 +55,7 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
 | `1` `2` `3` (or `↑` `↓` and Enter) | Pick at a level-up |
 | `R` `X` `B` | Reroll, skip, banish (at a level-up) |
 | Enter, `P` | Pause or carry on; the pause card shows your build and stats |
+| `S` (paused) | The game's settings (music, sound, damage numbers, shake) over the paused night; Backspace goes back to it |
 | `Q` (paused) | Give up the night |
 | `M` | Sound on or off |
 | Backspace | Back, on the title's screens |

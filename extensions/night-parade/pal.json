@@ -117,6 +117,10 @@
           "title": "Pause: your build and stats"
         },
         {
+          "keys": "s",
+          "title": "Settings, while paused"
+        },
+        {
           "keys": "m",
           "title": "Sound on or off"
         }

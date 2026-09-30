@@ -37,6 +37,8 @@ let run: State | undefined;
 let demo: State = demoRun();
 let sel = 0;
 let paused = false;
+/** The game's settings open over the paused night. */
+let tuning = false;
 let earned: Earned | undefined;
 let codexTab = 0;
 let refundArmed = false;
@@ -196,8 +198,8 @@ function codex() {
 }
 
 const SETTINGS = ["music", "sfx", "numbers", "shake"] as const;
+/** The game's settings: from the title (its own screen) or over a paused night (`tuning`). */
 function settings() {
-  screen = "settings";
   const st = save.settings;
   const row = (i: number, name: string, v: string) => `<div class="setting${i === sel ? " sel" : ""}" data-i="${i}"><span>${name}</span>${v}</div>`;
   const meter = (x: number) => `<div class="meter"><i style="width:${x * 100}%"></i></div>`;
@@ -263,6 +265,7 @@ function drain(s: State) {
 function setPaused(p: boolean) {
   if (screen !== "run" || !run || run.phase !== "play") return;
   paused = p;
+  tuning = false;
   held.clear();
   if (p) { audio.suspend(); pauseCard(); } else { audio.unsuspend(); show("", false); }
 }
@@ -327,6 +330,7 @@ function key(code: string) {
       sel = 0;
       if (m === "Shrine") return shrine();
       if (m === "Codex") { codexTab = 0; return codex(); }
+      screen = "settings";
       return settings();
     }
     case "heroes":
@@ -356,21 +360,7 @@ function key(code: string) {
       }
       if (back) { audio.sfx("back"); sel = 2; return title(); }
       return;
-    case "settings": {
-      if (code === "ArrowUp" || code === "KeyW" || code === "ArrowDown" || code === "KeyS") { move(code, SETTINGS.length); return settings(); }
-      const st = save.settings, s = SETTINGS[sel], d = code === "ArrowLeft" || code === "KeyA" ? -1 : code === "ArrowRight" || code === "KeyD" || ok ? 1 : 0;
-      if (d) {
-        if (s === "music" || s === "sfx") st[s] = Math.max(0, Math.min(1, Math.round((st[s] + d * 0.1) * 10) / 10));
-        else st[s] = !st[s];
-        audio.volume(st);
-        view.numbers = st.numbers;
-        audio.sfx("move");
-        persist();
-        return settings();
-      }
-      if (back) { audio.sfx("back"); sel = 3; return title(); }
-      return;
-    }
+    case "settings": return settingsKey(code, ok, back, () => { sel = 3; title(); });
     case "run": return runKey(code, ok, back);
     case "results":
       if (ok) { audio.sfx("accept"); return begin(); }
@@ -378,9 +368,26 @@ function key(code: string) {
   }
 }
 
+function settingsKey(code: string, ok: boolean, back: boolean, leave: () => void) {
+  if (code === "ArrowUp" || code === "KeyW" || code === "ArrowDown" || code === "KeyS") { move(code, SETTINGS.length); return settings(); }
+  const st = save.settings, s = SETTINGS[sel], d = code === "ArrowLeft" || code === "KeyA" ? -1 : code === "ArrowRight" || code === "KeyD" || ok ? 1 : 0;
+  if (d) {
+    if (s === "music" || s === "sfx") st[s] = Math.max(0, Math.min(1, Math.round((st[s] + d * 0.1) * 10) / 10));
+    else st[s] = !st[s];
+    audio.volume(st);
+    view.numbers = st.numbers;
+    audio.sfx("move");
+    persist();
+    return settings();
+  }
+  if (back) { audio.sfx("back"); leave(); }
+}
+
 function runKey(code: string, ok: boolean, back: boolean) {
   const s = run!;
+  if (paused && tuning) return settingsKey(code, ok, back, () => { tuning = false; audio.suspend(); pauseCard(); });
   if (paused) {
+    if (code === "KeyS") { tuning = true; sel = 0; audio.unsuspend(); return settings(); }
     if (back || ok || code === "KeyP") setPaused(false);
     else if (code === "KeyQ") { paused = false; s.phase = "dead"; s.tally.killedBy = "surrender"; audio.unsuspend(); show("", false); finish(); }
     return;
@@ -517,7 +524,7 @@ function pauseCard() {
         ${s.items.map((it) => `<div class="brow">${img(iIcon(it.kind))}<span>${ITEMS[it.kind].name} ${pips(it.level, ITEMS[it.kind].max)}</span><span class="v"></span></div>`).join("")}</div>
       <div class="statlist">${statKeys.map((k) => `<span>${STAT_NAMES[k]}</span><b>${k === "maxHp" ? Math.round(st.maxHp) : statText(k, st[k] - (base[k] ?? 0))}</b>`).join("")}</div>
     </div>
-    ${keys([kbd("P"), "carry on"], [kbd("Q"), "give up the night"], [kbd("M"), "mute"])}
+    ${keys([kbd("P"), "carry on"], [kbd("S"), "settings"], [kbd("Q"), "give up the night"], [kbd("M"), "mute"])}
   </div>`);
 }
 
@@ -707,7 +714,7 @@ pal.onHidden(() => {
   audio.suspend();
   keep();
 });
-pal.onShown(() => { if (!paused) audio.unsuspend(); });
+pal.onShown(() => { if (!paused || tuning) audio.unsuspend(); });
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) return;
   if (screen === "run" && run?.phase === "play" && !paused) setPaused(true);
