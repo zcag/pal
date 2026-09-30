@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 · 2026-09-30
+
+- **Fixed: pal could freeze** while macOS showed a "pal wants to control …" prompt for a music app (Spotify, Music) that nobody had answered yet: the now-playing checks piled up behind it until the panel stopped opening. pal now checks once at a time and doesn't wait on the prompt.
+
 ## 0.9.0 · 2026-09-30
 
 - **A lighter pal**: 33 extensions come with pal now, the ones that work with no account or setup; the other 47 install when you want them. The ones you use are installed for you on first start, from whichever version you come, with their settings and progress as you left them.
