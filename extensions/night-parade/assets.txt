@@ -1,0 +1,230 @@
+# What the game uses of the Ninja Adventure pack (CC0), dest <- pack path.
+# scripts/assets.sh copies these into surface/assets/, sound converted to
+# .mp3. A dest ending in / takes every file the pack path's glob matches
+# (not *Disabled*).
+
+# heroes: walk (4 directions x 4 steps), idle (4 directions), dead, face
+sprites/kaze-walk.png           Actor/Character/NinjaBlue/SeparateAnim/Walk.png
+sprites/kaze-idle.png           Actor/Character/NinjaBlue/SeparateAnim/Idle.png
+sprites/kaze-dead.png           Actor/Character/NinjaBlue/SeparateAnim/Dead.png
+faces/kaze.png                  Actor/Character/NinjaBlue/Faceset.png
+sprites/tomoe-walk.png          Actor/Character/Samurai/SeparateAnim/Walk.png
+sprites/tomoe-idle.png          Actor/Character/Samurai/SeparateAnim/Idle.png
+sprites/tomoe-dead.png          Actor/Character/Samurai/SeparateAnim/Dead.png
+faces/tomoe.png                 Actor/Character/Samurai/Faceset.png
+sprites/seimei-walk.png         Actor/Character/SorcererBlack/SeparateAnim/Walk.png
+sprites/seimei-idle.png         Actor/Character/SorcererBlack/SeparateAnim/Idle.png
+sprites/seimei-dead.png         Actor/Character/SorcererBlack/SeparateAnim/Dead.png
+faces/seimei.png                Actor/Character/SorcererBlack/Faceset.png
+sprites/ennen-walk.png          Actor/Character/Monk/SeparateAnim/Walk.png
+sprites/ennen-idle.png          Actor/Character/Monk/SeparateAnim/Idle.png
+sprites/ennen-dead.png          Actor/Character/Monk/SeparateAnim/Dead.png
+faces/ennen.png                 Actor/Character/Monk/Faceset.png
+sprites/raiden-walk.png         Actor/Character/NinjaThunder/SeparateAnim/Walk.png
+sprites/raiden-dead.png         Actor/Character/NinjaThunder/SeparateAnim/Dead.png
+faces/raiden.png                Actor/Character/NinjaThunder/Faceset.png
+sprites/hayate-walk.png         Actor/Character/Tengu/SeparateAnim/Walk.png
+sprites/hayate-idle.png         Actor/Character/Tengu/SeparateAnim/Idle.png
+sprites/hayate-dead.png         Actor/Character/Tengu/SeparateAnim/Dead.png
+faces/hayate.png                Actor/Character/Tengu/Faceset.png
+
+# the parade (4 directions x 4 steps each)
+sprites/slime.png               Actor/Monster/Slime/Slime.png
+sprites/slime2.png              Actor/Monster/Slime2/Slime2.png
+sprites/bat.png                 Actor/Monster/BlueBat/SpriteSheet.png
+sprites/larva.png               Actor/Monster/Larva/Larva.png
+sprites/mushroom.png            Actor/Monster/Mushroom/mushroom.png
+sprites/snake.png               Actor/Monster/Snake/Snake.png
+sprites/mole.png                Actor/Monster/Mole/Mole.png
+sprites/racoon.png              Actor/Monster/Racoon/SpriteSheet.png
+sprites/kappa.png               Actor/Monster/KappaGreen/SpriteSheet.png
+sprites/lantern.png             Actor/Monster/LanternRed/SpriteSheet.png
+sprites/skull.png               Actor/Monster/Skull/SpriteSheet.png
+sprites/owl.png                 Actor/Monster/Owl/Owl.png
+sprites/spirit.png              Actor/Monster/Spirit/SpriteSheet.png
+sprites/skeleton.png            Actor/Character/Skeleton/SeparateAnim/Walk.png
+sprites/eye.png                 Actor/Monster/Eye/Eye.png
+sprites/octopus.png             Actor/Monster/Octopus/SpriteSheet.png
+sprites/bamboo.png              Actor/Monster/Bamboo/SpriteSheet.png
+sprites/cyclops.png             Actor/Monster/Cyclope/SpriteSheet.png
+sprites/imp.png                 Actor/Character/DemonRed/SeparateAnim/Walk.png
+sprites/onibi.png               Actor/Monster/Flam/SpriteSheet.png
+sprites/beast.png               Actor/Monster/Beast/Beast.png
+sprites/dragon.png              Actor/Monster/Dragon/SpriteSheet.png
+sprites/panda.png               Actor/Monster/Panda/SpriteSheet.png
+sprites/crow.png                Actor/Monster/YellowsBat/SpriteSheet.png
+sprites/goldracoon.png          Actor/Monster/GoldRacoon/SpriteSheet.png
+
+# bosses: strips of square frames at the strip's height (the samurai's are 96 wide)
+sprites/frog-idle.png           Actor/Boss/GiantFrog/Idle40x40.png
+sprites/frog-hit.png            Actor/Boss/GiantFrog/Hit.png
+sprites/frog-jump.png           Actor/Boss/GiantFrog/Jump.png
+faces/frog.png                  Actor/Boss/GiantFrog/Faceset.png
+sprites/tanuki-idle.png         Actor/Boss/GiantRacoon/Idle.png
+sprites/tanuki-attack.png       Actor/Boss/GiantRacoon/Attack.png
+sprites/tanuki-charge.png       Actor/Boss/GiantRacoon/Charge.png
+faces/tanuki.png                Actor/Boss/GiantRacoon/Faceset.png
+sprites/yurei-idle.png          Actor/Boss/GiantSpirit/Idle.png
+sprites/yurei-hit.png           Actor/Boss/GiantSpirit/Hit.png
+faces/yurei.png                 Actor/Boss/GiantSpirit/Faceset.png
+sprites/tengu-idle.png          Actor/Boss/TenguRed/Idle.png
+sprites/tengu-walk.png          Actor/Boss/TenguRed/Walk.png
+sprites/tengu-hit.png           Actor/Boss/TenguRed/Hit.png
+sprites/tengu-attack.png        Actor/Boss/TenguRed/Attack.png
+faces/tengu.png                 Actor/Boss/TenguRed/Faceset.png
+sprites/samurai-idle.png        Actor/Boss/GiantRedSamurai/Idle.png
+sprites/samurai-walk.png        Actor/Boss/GiantRedSamurai/Walk.png
+sprites/samurai-hit.png         Actor/Boss/GiantRedSamurai/Hit.png
+faces/samurai.png               Actor/Boss/GiantRedSamurai/Faceset.png
+sprites/oni-idle.png            Actor/Boss/DemonCyclop/Idle.png
+sprites/oni-walk.png            Actor/Boss/DemonCyclop/Walk.png
+sprites/oni-hit.png             Actor/Boss/DemonCyclop/Hit.png
+faces/oni.png                   Actor/Boss/DemonCyclop/Faceset.png
+
+# effects
+fx/slash.png                    FX/Attack/SlashCurved/SpriteSheet.png
+fx/slash-circle.png             FX/Attack/CircularSlash/SpriteSheet.png
+fx/claw.png                     FX/Attack/Claw/SpriteSheet.png
+fx/thunder.png                  FX/Elemental/Thunder/SpriteSheet.png
+fx/explosion.png                FX/Elemental/Explosion/SpriteSheet.png
+fx/flame.png                    FX/Elemental/Flam/SpriteSheet.png
+fx/rock-spike.png               FX/Elemental/RockSpike/SpriteSheet.png
+fx/rock.png                     FX/Elemental/Rock/SpriteSheet.png
+fx/ice.png                      FX/Elemental/Ice/SpriteSheet.png
+fx/ice-flake.png                FX/Elemental/Ice/SpriteSheetFlake.png
+fx/plant.png                    FX/Elemental/Plant/SpriteSheet.png
+fx/water.png                    FX/Elemental/Water/SpriteSheet.png
+fx/pillar.png                   FX/Elemental/WaterPillar/SpriteSheet.png
+fx/smoke.png                    FX/Smoke/Smoke/SpriteSheet.png
+fx/smoke-circle.png             FX/Smoke/SmokeCircular/SpriteSheet.png
+fx/circle.png                   FX/Magic/Circle/SpriteSheetWhite.png
+fx/spark.png                    FX/Magic/Spark/SpriteSheet.png
+fx/boost.png                    FX/Magic/Boost/SpriteSheet.png
+fx/aura.png                     FX/Magic/Aura/SpriteSheet.png
+fx/shield.png                   FX/Magic/Shield/SpriteSheetYellow.png
+fx/spirit.png                   FX/Magic/Spirit/SpriteSheet.png
+fx/spirit-blue.png              FX/Magic/Spirit/SpriteSheetBlue.png
+fx/arc.png                      FX/Slash/SpriteSheetArc.png
+fx/fog.png                      FX/Environment/Fog.png
+fx/leaf.png                     FX/Particle/Leaf.png
+fx/leaf-pink.png                FX/Particle/LeafPink.png
+fx/vase.png                     FX/Particle/Vase.png
+
+# shots, yours and theirs
+fx/shuriken.png                 FX/Projectile/Shuriken.png
+fx/shuriken-magic.png           FX/Projectile/ShurikenMagic.png
+fx/kunai.png                    FX/Projectile/Kunai.png
+fx/kunai-big.png                FX/Projectile/BigKunai.png
+fx/fireball.png                 FX/Projectile/Fireball.png
+fx/arrow.png                    FX/Projectile/Arrow.png
+fx/ice-spike.png                FX/Projectile/IceSpike.png
+fx/energy.png                   FX/Projectile/EnergyBall.png
+fx/energy-big.png               FX/Projectile/BigEnergyBall.png
+fx/cannonball.png               FX/Projectile/CanonBall.png
+fx/feather.png                  Items/Resource/feather.png
+fx/club.png                     Items/Weapons/Club/Sprite.png
+fx/lance.png                    Items/Weapons/Lance/Sprite.png
+fx/sickle.png                   Items/Tool/Sickle.png
+fx/caltrop.png                  Items/Projectile/Caltrop.png
+fx/bomb.png                     Items/Projectile/Bomb.png
+fx/dynamite.png                 Items/Projectile/Dynamite.png
+
+# pickups
+items/coin.png                  Items/Treasure/Coin2.png
+items/pouch.png                 Items/Object/Bag.png
+items/bag.png                   Items/Object/MoneyBag.png
+items/onigiri.png               Items/Food/Onigiri.png
+items/feast.png                 Items/Food/Sushi2.png
+items/flute.png                 Items/Object/PanFlute.png
+items/hourglass.png             Items/Object/Hourglass.png
+items/ofuda.png                 Items/Scroll/ScrollEmpty.png
+items/gourd.png                 Items/Object/Gourd.png
+items/chest-small.png           Items/Treasure/LittleTreasureChest.png
+items/chest-big.png             Items/Treasure/BigTreasureChest.png
+
+# icons for every weapon, item and shrine blessing
+icons/                          Ui/Skill Icon/*/*.png
+
+# the world
+tiles/floor.png                 Backgrounds/Tilesets/TilesetFloor.png
+tiles/detail.png                Backgrounds/Tilesets/TilesetFloorDetail.png
+tiles/nature.png                Backgrounds/Tilesets/TilesetNature.png
+tiles/element.png               Backgrounds/Tilesets/TilesetElement.png
+tiles/village.png               Backgrounds/Tilesets/TilesetVillageAbandoned.png
+tiles/flower.png                Backgrounds/Animated/Flower/SpriteSheet16x16.png
+
+# the numbers' font
+font/normal.ttf                 Ui/Font/NormalFont.ttf
+
+# sound
+sfx/hit.mp3                     Audio/Sounds/Hit & Impact/Hit1.wav
+sfx/crit.mp3                    Audio/Sounds/Hit & Impact/Hit5.wav
+sfx/hurt.mp3                    Audio/Sounds/Hit & Impact/Impact.wav
+sfx/block.mp3                   Audio/Sounds/Hit & Impact/Impact4.wav
+sfx/break.mp3                   Audio/Sounds/Hit & Impact/Hit8.wav
+sfx/throw.mp3                   Audio/Sounds/Whoosh & Slash/Whoosh.wav
+sfx/slash.mp3                   Audio/Sounds/Whoosh & Slash/Slash.wav
+sfx/thrust.mp3                  Audio/Sounds/Whoosh & Slash/Slash4.wav
+sfx/chain.mp3                   Audio/Sounds/Whoosh & Slash/Sword2.wav
+sfx/bow.mp3                     Audio/Sounds/Whoosh & Slash/Launch.wav
+sfx/fire.mp3                    Audio/Sounds/Elemental/Fireball.wav
+sfx/explosion.mp3               Audio/Sounds/Elemental/Explosion.wav
+sfx/pop.mp3                     Audio/Sounds/Elemental/Explosion5.wav
+sfx/thunder.mp3                 Audio/Sounds/Elemental/Explosion3.wav
+sfx/spirit.mp3                  Audio/Sounds/Magic & Skill/Spirit.wav
+sfx/gong.mp3                    Audio/Sounds/Magic & Skill/Magic4.wav
+sfx/rock.mp3                    Audio/Sounds/Hit & Impact/Impact3.wav
+sfx/ice.mp3                     Audio/Sounds/Magic & Skill/Magic2.wav
+sfx/blizzard.mp3                Audio/Sounds/Ambient/Wind2.wav
+sfx/geyser.mp3                  Audio/Sounds/Elemental/Water4.wav
+sfx/splash.mp3                  Audio/Sounds/Elemental/Water2.wav
+sfx/fuse.mp3                    Audio/Sounds/Elemental/Fire2.wav
+sfx/gust.mp3                    Audio/Sounds/Whoosh & Slash/Whoosh2.wav
+sfx/vines.mp3                   Audio/Sounds/Elemental/Grass.wav
+sfx/dash.mp3                    Audio/Sounds/Jump & Bounce/Jump2.wav
+sfx/gem.mp3                     Audio/Sounds/Bonus/Coin.wav
+sfx/coin.mp3                    Audio/Sounds/Bonus/Gold1.wav
+sfx/heal.mp3                    Audio/Sounds/Magic & Skill/Heal.wav
+sfx/chest.mp3                   Audio/Sounds/Bonus/PowerUp1.wav
+sfx/evolve.mp3                  Audio/Sounds/Bonus/PowerUp2.wav
+sfx/levelup.mp3                 Audio/Jingles/LevelUp1.wav
+sfx/accept.mp3                  Audio/Sounds/Menu/Accept.wav
+sfx/move.mp3                    Audio/Sounds/Menu/Move1.wav
+sfx/back.mp3                    Audio/Sounds/Menu/Cancel.wav
+sfx/reroll.mp3                  Audio/Sounds/Menu/Accept4.wav
+sfx/skip.mp3                    Audio/Sounds/Menu/Menu5.wav
+sfx/banish.mp3                  Audio/Sounds/Magic & Skill/Strange.wav
+sfx/buy.mp3                     Audio/Sounds/Bonus/Gold2.wav
+sfx/alert.mp3                   Audio/Sounds/Alert/Alert.wav
+sfx/roar.mp3                    Audio/Sounds/Voice/Voice5.wav
+sfx/victory.mp3                 Audio/Jingles/Success3.wav
+sfx/dawn.mp3                    Audio/Jingles/Success1.wav
+sfx/gameover.mp3                Audio/Jingles/GameOver.wav
+sfx/revive.mp3                  Audio/Sounds/Magic & Skill/Heal3.wav
+sfx/burrow.mp3                  Audio/Sounds/Jump & Bounce/Bounce3.wav
+sfx/shoot.mp3                   Audio/Sounds/Magic & Skill/Magic1.wav
+sfx/slam.mp3                    Audio/Sounds/Hit & Impact/Impact5.wav
+sfx/croak.mp3                   Audio/Sounds/Creature/Duck.wav
+sfx/stone.mp3                   Audio/Sounds/Hit & Impact/Impact2.wav
+sfx/poof.mp3                    Audio/Sounds/Magic & Skill/Fx.wav
+sfx/draw.mp3                    Audio/Sounds/Whoosh & Slash/Slash5.wav
+sfx/wail.mp3                    Audio/Sounds/Voice/Voice8.wav
+sfx/vanish.mp3                  Audio/Sounds/Magic & Skill/Magic5.wav
+sfx/feathers.mp3                Audio/Sounds/Creature/Wings.wav
+sfx/crows.mp3                   Audio/Sounds/Creature/Wings2.wav
+sfx/drum.mp3                    Audio/Sounds/Hit & Impact/Impact.wav
+sfx/sparkle.mp3                 Audio/Sounds/Bonus/Bonus2.wav
+sfx/flute.mp3                   Audio/Jingles/Secret2.wav
+sfx/freeze.mp3                  Audio/Sounds/Magic & Skill/Magic3.wav
+sfx/purify.mp3                  Audio/Jingles/Secret1.wav
+sfx/gourd.mp3                   Audio/Sounds/Bonus/Bonus3.wav
+sfx/unlock.mp3                  Audio/Jingles/Success2.wav
+
+# music: a track per act, bosses, the Oni, dawn, and the title
+music/title.mp3                 Audio/Musics/13 - Mystical.ogg
+music/act1.mp3                  Audio/Musics/26 - Lost Village.ogg
+music/act2.mp3                  Audio/Musics/37 - Dark Forest.ogg
+music/act3.mp3                  Audio/Musics/14 - Curse.ogg
+music/boss.mp3                  Audio/Musics/17 - Fight.ogg
+music/oni.mp3                   Audio/Musics/24 - Final Area.ogg
+music/dawn.mp3                  Audio/Musics/19 - Ascension.ogg

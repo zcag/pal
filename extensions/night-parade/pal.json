@@ -1,0 +1,113 @@
+{
+  "name": "night-parade",
+  "title": "Night Parade",
+  "description": "A survivors game: the Night Parade of One Hundred Demons marches through an abandoned village tonight, and you last until dawn. Six heroes, sixteen weapons that evolve, sixteen items, a fifteen-minute night in three acts with six bosses, a shrine for lasting upgrades, unlocks and harder omens. Built on the Ninja Adventure pack (CC0).",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "svg": "M6 1h4v1.5H6zM4.5 2.5h7v1h-7zM3.5 3.5h9v7h-9zM4.5 10.5h7v1h-7zM6 11.5h4v1.5H6zM7.5 13h1v2.5h-1z",
+      "bg": "red"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [],
+  "store": {
+    "tagline": "Last the night against the parade of a hundred demons",
+    "category": "fun",
+    "play": true,
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Move",
+        "description": "WASD too.",
+        "keys": "up, down, left, right"
+      },
+      {
+        "title": "Smoke dash",
+        "description": "A short burst you can't be hurt in.",
+        "keys": "space"
+      },
+      {
+        "title": "Pick at a level-up",
+        "description": "Or the arrows and Enter; R rerolls, X skips, B banishes.",
+        "keys": "1, 2, 3"
+      },
+      {
+        "title": "Pause",
+        "description": "Your build and stats; Q gives up the night.",
+        "keys": "esc"
+      },
+      {
+        "title": "Sound on or off",
+        "keys": "m"
+      }
+    ],
+    "features": [
+      "A fifteen-minute night in three acts (Dusk, Midnight, the Hour of the Ox), each with its own crowd, scripted events and a boss: the Tanuki, the Tengu, and the Oni at the head of the parade",
+      "Sixteen weapons, each with its own job, eight levels and an evolution when paired with the right item; sixteen items; reroll, skip and banish at level-ups",
+      "Six heroes with a starting weapon and a trait, four of them unlocked by playing",
+      "Telegraphed danger: rings and lines on the ground before a slam or a charge, a smoke dash to get out",
+      "A shrine for lasting upgrades between nights, a codex of everything found and defeated, and omens for harder nights once you've seen the dawn"
+    ],
+    "screenshots": [
+      {
+        "file": "1-night.png",
+        "caption": "Midnight, 8:06 into the night: shuriken, katana, thunder, fire talisman and spirit wisps against the Act II crowd"
+      },
+      {
+        "file": "2-tengu.png",
+        "caption": "10:10, the Tengu arrives; Storm of Stars and Crescent Moon already evolved"
+      },
+      {
+        "file": "3-levelup.png",
+        "caption": "A level-up: three choices with what each adds, the item that evolves a weapon you carry starred"
+      },
+      {
+        "file": "4-evolve.png",
+        "caption": "A golden chest: the shuriken with its Scroll evolves into Storm of Stars, and four more upgrades"
+      },
+      {
+        "file": "5-title.png",
+        "caption": "The title, with a night playing behind it"
+      },
+      {
+        "file": "6-heroes.png",
+        "caption": "Who walks tonight: six heroes, each with a starting weapon and a trait; four open up by playing"
+      }
+    ]
+  },
+  "palettes": {
+    "night-parade": {
+      "title": "Night Parade",
+      "kind": "view",
+      "description": "A night against the parade. Escape pauses; hiding the panel pauses too.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Move (arrows or WASD)"
+        },
+        {
+          "keys": "space",
+          "title": "Smoke dash"
+        },
+        {
+          "keys": "1",
+          "title": "Pick at a level-up (R reroll, X skip, B banish)"
+        },
+        {
+          "keys": "esc",
+          "title": "Pause: your build and stats"
+        },
+        {
+          "keys": "m",
+          "title": "Sound on or off"
+        }
+      ]
+    }
+  }
+}

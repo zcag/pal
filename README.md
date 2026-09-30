@@ -250,7 +250,9 @@ Grafana, Odak, Theater, Tela and States.
 Sudoku (made on your machine, graded by technique, three-step hints),
 daily Crosswords from Crosshare and the Turkish papers, Solitaire,
 Minesweeper, Snake II (the Nokia 3310's, frame for frame), Yahtzee,
-Wordle, 2048, Blackjack and a monkeytype-style Typing test. Each plays
+Wordle, 2048, Blackjack, a monkeytype-style Typing test, and Night
+Parade, a survivors game of fifteen-minute nights against a parade of
+yokai. Each plays
 one-handed on the arrows and Enter, and `⌘⇧F` plays it at 90% of the
 screen.
 

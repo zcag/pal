@@ -110,6 +110,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Now Playing](#now-playing-media) | `media` | live, normal | Play or pause |
 | [Menu Bar Items](#menu-bar-items-menu-bar) | `menu-bar` | live, primary | Press the menu item |
 | [Minesweeper](#minesweeper-minesweeper) | `minesweeper` | view (surface), normal | Open the cell (around a satisfied number); New game once over |
+| [Night Parade](#night-parade-night-parade) | `night-parade` | view (surface), normal | Pause or carry on (in the page, Enter pauses mid-night and picks on the menus and cards) |
 | [Network](#network-network) | `network` | live, normal | Copy the value |
 | [Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-notes` | indexed, primary | Open in Obsidian (or the editor, per the setting) |
 | [Search Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-search` | input, normal | Open in Obsidian (or the editor, per the setting) |
@@ -2701,6 +2702,33 @@ Per palette, `[palettes.icons.settings]` and `[palettes.icons-iconify.settings]`
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `10` (Iconify `8`) | Tiles per row in the grid. Read once when the extension loads. |
+
+## Night Parade (`night-parade`)
+
+A survivors game: the Night Parade of One Hundred Demons marches through
+an abandoned village tonight, and you last until dawn. Enter on the
+palette's row opens it as a view level whose body is the extension's own
+page (a `surface`). The design, and why each part is there, is
+[`extensions/night-parade/DESIGN.md`](../extensions/night-parade/DESIGN.md).
+
+- A night is fifteen minutes in three acts (Dusk, Midnight, the Hour of
+  the Ox), each with its own crowd and scripted events, mini-bosses at
+  2:30, 7:30 and 12:30 and bosses at 5:00, 10:00 and 15:00. Beat the Oni
+  and dawn breaks.
+- Weapons fire on their own. The arrows (or WASD) move, `space` dashes
+  (you can't be hurt in a dash), and each level offers three choices (four
+  with luck): `1` `2` `3` or the arrows and Enter; `R` rerolls, `X` skips,
+  `B` banishes, each with charges from the shrine.
+- Sixteen weapons, each with eight levels and an evolution when you carry
+  its item; sixteen items; six heroes, four of them unlocked by playing.
+  Your attacks break the enemy shots they touch.
+- Enter, `P` or ⌘K's Pause stops the night; the pause card shows your build
+  and stats, `Q` gives the night up. Escape leaves (the panel hidden pauses
+  it); Backspace is back on the page's own screens.
+- Between nights: gold buys lasting blessings at the shrine, the codex
+  keeps what you've found and defeated, and harder omens open after the
+  first dawn. The save is the extension's storage; sound and music are
+  the page's own settings (`M` mutes).
 
 ## Network (`network`)
 
