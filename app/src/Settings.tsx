@@ -379,12 +379,13 @@ export default function Settings() {
   // (`useStore`): every registry is fetched when the Extensions page opens.
   const { state: storeState, loaded: storeLoaded, refresh: storeRefresh } = useStore();
   const [checking, setChecking] = useState(false);
-  const check = useCallback((force: boolean) => {
+  // Answers what the core knows after, for the About page's row (the app's result, or its error).
+  const check = useCallback((force: boolean): Promise<Checks | undefined> => {
     setChecking(true);
-    Promise.all([
-      invoke<Checks>("settings_check_updates", { force }).then((checks) => setView((v) => (v ? { ...v, checks } : v)), (e) => setError(String(e))),
+    return Promise.all([
+      invoke<Checks>("settings_check_updates", { force }).then((checks) => { setView((v) => (v ? { ...v, checks } : v)); return checks; }, (e) => { setError(String(e)); return undefined; }),
       force ? storeRefresh() : undefined,
-    ]).finally(() => setChecking(false));
+    ]).then(([c]) => c).finally(() => setChecking(false));
   }, [storeRefresh]);
   useEffect(() => { if (page === "overview") check(false); }, [page, check]);
   useEffect(() => { if (page === "extensions") storeRefresh(); }, [page, storeRefresh]);
@@ -634,6 +635,8 @@ export default function Settings() {
   const fileName = view.path.split("/").pop() ?? "config.toml";
   // Off macOS every permission is a given (permissions.rs), so the rows have nothing to say.
   const permissions = isMac ? view.permissions : undefined;
+  // Extensions whose update waits for the user (auto-update off for their registry), as the Overview lists them: the About page's line.
+  const waiting = [...new Map(extensions.filter((e) => e.status?.state === "update" && !e.status.auto_update).map((e) => [e.name, { name: e.name, title: e.extTitle ?? e.title }])).values()];
   const attention = overviewItems({ version: view.version, hotkey: view.hotkey, permissions, extensions, bar: barItems, barSupported, diagnostics: view.diagnostics, update, users: permissionUsers(extensions, features) }).length;
   const sidebarLine = barSupported ? sidebarSummary(sidebar, sidebarPalettes) : undefined;
 
@@ -720,7 +723,10 @@ export default function Settings() {
           version={view.version}
           file={view.path}
           links={about}
-          onCheckUpdates={() => invoke<UpdateInfo>("check_updates").then((u) => { refresh(); return u; })}
+          // The same check as the Overview's "Check now": the release, and every registry (which puts auto-updates in by itself).
+          onCheckUpdates={() => check(true).then((c) => { refresh(); if (c?.app?.error) throw new Error(c.app.error); return c?.app?.value ?? { available: false }; })}
+          extensionUpdates={waiting}
+          onUpdateExtensions={(names) => onExtUpdate(names).catch(fail)}
           update={update}
           onInstallUpdate={installUpdate}
           progress={progress}

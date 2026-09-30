@@ -117,13 +117,10 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
         "updates" => {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
-                let line = match crate::updater::check(&app).await {
-                    Ok(crate::updater::UpdateInfo { available: true, version, installable, .. }) => format!("pal {} is available: {}", version.as_deref().unwrap_or("?"), if installable == Some(true) { "Settings > About installs it" } else { "download it from pal.cagdas.io" }),
-                    Ok(crate::updater::UpdateInfo { status: Some(s), .. }) => format!("Nothing to update to: {s}"),
-                    Ok(_) => "pal is up to date".into(),
-                    Err(e) => format!("Update check failed: {e}"),
-                };
-                crate::hud::show(&app, &line);
+                // The root row's toast, as one HUD line: the release and the extensions.
+                let t = crate::commands::updates_toast(&crate::settings::check_all(&app).await);
+                let (title, message) = (t["toast"]["title"].as_str().unwrap_or_default(), t["toast"]["message"].as_str().unwrap_or_default());
+                crate::hud::show(&app, &if message.is_empty() { title.to_string() } else { format!("{title}: {message}") });
             });
         }
         "quit" => crate::quit(app),

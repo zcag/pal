@@ -376,7 +376,6 @@ pub fn run() {
             features::feature_run,
             settings::settings_open,
             settings::settings_close,
-            updater::check_updates,
             updater::update_install,
             updater::update_progress,
             welcome::welcome_reset,

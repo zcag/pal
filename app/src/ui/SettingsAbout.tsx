@@ -53,8 +53,11 @@ export type SettingsAboutProps = {
   file: string;
   /** `changelog`: the changelog from this version on. */
   links: { docs: string; repo: string; changelog?: string };
-  /** One check against the release manifest; rejects with the reason (network, signature). */
+  /** One check against the release manifest and every registry; answers the release's result, rejects with its reason (network, signature). */
   onCheckUpdates?: () => Promise<UpdateInfo>;
+  /** Extensions whose update waits for the user (auto-update off for their registry); the rest update by themselves on a check. */
+  extensionUpdates?: { name: string; title: string }[];
+  onUpdateExtensions?: (names: string[]) => Promise<void>;
   /** The last check's answer, when one ran (the Overview's, the daily one); the row starts from it. */
   update?: UpdateInfo;
   /** "Install update": download, verify, install, relaunch; the progress arrives in `progress`. */
@@ -118,7 +121,7 @@ function ReportRow({ label, which, at, what, path, onOpen, onReveal }: { label: 
 }
 
 /** The app, its version, the update check, the last crash, and where the rest lives. */
-export function SettingsAbout({ version, file, links, onCheckUpdates, update, onInstallUpdate, progress, onOpenLink, onRevealFile, crash, panic, onOpenReport, onRevealReport, diagnosticsText }: SettingsAboutProps) {
+export function SettingsAbout({ version, file, links, onCheckUpdates, extensionUpdates, onUpdateExtensions, update, onInstallUpdate, progress, onOpenLink, onRevealFile, crash, panic, onOpenReport, onRevealReport, diagnosticsText }: SettingsAboutProps) {
   const [check, setCheck] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done"; info: UpdateInfo } | { kind: "error"; message: string }>(update ? { kind: "done", info: update } : { kind: "idle" });
   const [installError, setInstallError] = useState<string | null>(null);
   const info = check.kind === "done" ? check.info : undefined;
@@ -133,7 +136,7 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, update, on
     if (installError) return <span data-error>{installError}</span>;
     if (p) return progress?.phase === "failed" ? <span data-error>{p}</span> : p;
     if (check.kind === "error") return <span data-error>{check.message}</span>;
-    if (!info) return "Checked once a day against the latest release.";
+    if (!info) return "Checked once a day against the latest release, with every extension.";
     if (!info.available) return info.status ? `${info.status[0].toUpperCase()}${info.status.slice(1)}.` : "You have the latest version.";
     return info.installable ? `${info.version} is available. Install downloads it, verifies the signature and relaunches pal.` : `${info.version} is available${info.install_note ? `: ${info.install_note}` : " on pal.cagdas.io"}.`;
   };
@@ -157,6 +160,13 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, update, on
       setCheck({ kind: "error", message: String(e) });
     }
   };
+  const [updatingExt, setUpdatingExt] = useState(false);
+  const updateExtensions = async () => {
+    if (!onUpdateExtensions || !extensionUpdates?.length) return;
+    setUpdatingExt(true);
+    try { await onUpdateExtensions(extensionUpdates.map((e) => e.name)); } finally { setUpdatingExt(false); }
+  };
+  const extLine = !extensionUpdates?.length ? "Every extension is up to date, or updates by itself when a check finds one." : `${extensionUpdates.map((e) => e.title).join(", ")} ${extensionUpdates.length === 1 ? "has an update" : "have updates"} waiting.`;
   const link = (url: string, text: string) => (onOpenLink ? <button type="button" className="pal-link" onClick={() => onOpenLink(url)}>{text}</button> : <span>{text}</span>);
   return (
     <div className="pal-settings-page pal-about">
@@ -178,6 +188,11 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, update, on
             {onCheckUpdates && <button type="button" className="pal-button" data-small disabled={check.kind === "busy" || busy} onClick={run}>{check.kind === "busy" ? "Checking…" : "Check for Updates"}</button>}
           </span>
         </SettingsRow>
+        {extensionUpdates && (
+          <SettingsRow anchor="about:extensions" label="Extensions" description={extLine}>
+            {extensionUpdates.length > 0 && onUpdateExtensions && <button type="button" className="pal-button" data-small data-primary="" disabled={updatingExt} onClick={updateExtensions}>{updatingExt ? "Updating…" : extensionUpdates.length === 1 ? "Update" : "Update All"}</button>}
+          </SettingsRow>
+        )}
       </SettingsGroup>
 
       <SettingsGroup title="Links">

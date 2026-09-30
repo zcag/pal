@@ -5,11 +5,11 @@
 //! `.github/workflows/release.yml`), and the install.
 //!
 //! The check runs once after startup and then daily while
-//! `general.check_updates` is on; `check_updates` is the same check on
-//! demand, for the tray's "Check for updates…", the About page and the
-//! "Check for Updates" row; the Overview's runs through
-//! `settings::settings_check_updates`, which reads the remembered result
-//! first. A found update is kept (`Found`) so an install needs no second
+//! `general.check_updates` is on. On demand it runs beside the extensions'
+//! check, never alone: the tray's "Check for updates…", the "Check for
+//! Updates" row, the About page and the Overview all go through
+//! `settings::check_all` / `settings::settings_check_updates`, which
+//! remember both results. A found update is kept (`Found`) so an install needs no second
 //! round trip.
 //!
 //! The install (`install`, `update_install`) is `tauri-plugin-updater`'s
@@ -21,7 +21,7 @@
 //! `support()`: a debug build cannot (nothing to update to), a Linux deb
 //! or rpm cannot (the manifest carries the AppImage only; the package
 //! manager updates those), a bare binary on Linux cannot (it is not what
-//! the manifest ships). Nothing installs by itself: `check_updates` only
+//! the manifest ships). Nothing installs by itself: `general.check_updates` only
 //! gates the automatic check, an install is always the user's click.
 
 use std::sync::Mutex;
@@ -210,12 +210,6 @@ pub async fn check(app: &AppHandle) -> Result<UpdateInfo, String> {
     settings::remember_app_check(app, &info);
     commands::sync_update_row(app, info.as_ref().ok().filter(|i| i.available));
     info
-}
-
-/// `{ available, version?, notes?, installable?, install_note? }` for the page and the tray.
-#[tauri::command]
-pub async fn check_updates(app: AppHandle) -> Result<UpdateInfo, String> {
-    check(&app).await
 }
 
 /// The install state now (`Progress`), for a page that opened mid-way.

@@ -60,7 +60,8 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
 `tauri-plugin-updater` (`app/src-tauri/src/updater.rs`) checks for a newer
 release once 20 s after startup and then daily while `general.check_updates`
 is on (default), and on demand from the menu bar's "Check for updates…",
-Settings › About and the "Check for Updates" row. A found release is
+Settings › About and the "Check for Updates" row, each of which fetches
+every extension registry in the same go. A found release is
 offered in three places and installed only on a click: the plugin
 downloads the signed bundle (the progress on the HUD and on the About
 row), verifies it against the public key, replaces the `.app` or the

@@ -403,7 +403,31 @@ fn theme_name(t: Theme) -> &'static str {
 }
 
 /// What the update check says, as a toast; an installable release points at the row that installs it.
-pub fn updates_toast(r: &Result<updater::UpdateInfo, String>) -> Value {
+/// Both checks as one toast: the release's answer, then what the
+/// registries said (the extensions whose update waits for you; the rest
+/// updated by themselves during the check).
+pub fn updates_toast(c: &settings::Checks) -> Value {
+    let app = c.app.as_ref().map(|a| a.result().cloned().map_err(String::from)).unwrap_or_else(|| Err("did not run".into()));
+    let t = app_toast(&app);
+    let (mut title, mut message, style) = (t["toast"]["title"].as_str().unwrap_or_default().to_string(), t["toast"]["message"].as_str().unwrap_or_default().to_string(), t["toast"]["style"].as_str().unwrap_or("success").to_string());
+    let current = matches!(app, Ok(updater::UpdateInfo { available: false, status: None, .. }));
+    let ext = c.extensions.as_ref().map(|e| e.result());
+    let add = |m: &mut String, s: &str| { if !m.is_empty() { m.push_str(". ") } m.push_str(s) };
+    match ext {
+        Some(Ok(v)) if v.is_empty() => { if current { title = "pal and its extensions are up to date".into() } }
+        Some(Ok(v)) => {
+            let names = v.iter().map(|u| u.name.as_str()).collect::<Vec<_>>().join(", ");
+            let line = format!("{names} {} an update: Settings > About updates {}", if v.len() == 1 { "has" } else { "have" }, if v.len() == 1 { "it" } else { "them" });
+            if current { title = format!("{} {} an update", v.len(), if v.len() == 1 { "extension has" } else { "extensions have" }); message = line } else { add(&mut message, &line) }
+        }
+        Some(Err(e)) => add(&mut message, &format!("Extensions could not be checked: {e}")),
+        None => {}
+    }
+    toast(&title, &message, &style)
+}
+
+/// The release check's answer alone.
+fn app_toast(r: &Result<updater::UpdateInfo, String>) -> Value {
     match r {
         Ok(updater::UpdateInfo { available: true, version, installable, install_note, .. }) => {
             let v = version.as_deref().unwrap_or("?");
@@ -609,7 +633,7 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             });
             Ok(toast("Refreshing", "Every palette lists again", "success"))
         }
-        Plan::CheckUpdates => Ok(updates_toast(&updater::check_updates(app.clone()).await)),
+        Plan::CheckUpdates => Ok(updates_toast(&settings::check_all(app).await)),
         Plan::InstallUpdate => match updater::install(app).await {
             Ok(()) => Ok(json!({ "hide": true })),
             // Not installable here: the download page, where the build for this platform is.
@@ -814,18 +838,18 @@ mod tests {
         assert_eq!(next_theme(Theme::Dark), Theme::System);
         assert_eq!(theme_name(Theme::System), "system", "the config's spelling (serde lowercase)");
         assert_eq!(serde_json::to_value(Theme::Dark).unwrap(), json!(theme_name(Theme::Dark)));
-        let up = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(true), install_note: None }));
+        let up = app_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(true), install_note: None }));
         assert_eq!(up["toast"]["title"], "pal 0.2.0 is available");
         assert_eq!(up["toast"]["style"], "success");
         assert!(up["toast"]["message"].as_str().unwrap().starts_with("Install Update"), "names the row that installs it");
-        let deb = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(false), install_note: Some("installed from the .deb: use dpkg".into()) }));
+        let deb = app_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(false), install_note: Some("installed from the .deb: use dpkg".into()) }));
         assert_eq!(deb["toast"]["message"], "Installed from the .deb: use dpkg. Download it from pal.cagdas.io");
-        let same = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None }));
+        let same = app_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None }));
         assert_eq!(same["toast"]["title"], "pal is up to date");
-        let none = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: Some("no release published yet".into()), installable: None, install_note: None }));
+        let none = app_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: Some("no release published yet".into()), installable: None, install_note: None }));
         assert_eq!(none["toast"]["message"], "no release published yet", "a missing manifest is a fact, not a failure");
         assert_eq!(none["toast"]["style"], "success");
-        let err = updates_toast(&Err("no network".into()));
+        let err = app_toast(&Err("no network".into()));
         assert_eq!(err["toast"]["style"], "failure");
         assert_eq!(err["toast"]["message"], "no network");
         for t in [&up, &same, &err] {

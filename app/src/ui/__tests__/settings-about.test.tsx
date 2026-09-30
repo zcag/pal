@@ -78,3 +78,21 @@ describe("the Version row", () => {
     expect(row().querySelector("[data-error]")!.textContent).toContain("already being installed");
   });
 });
+
+describe("the Extensions row", () => {
+  const ext = (list: { name: string; title: string }[], onUpdateExtensions = vi.fn(async (_names: string[]) => {})) =>
+    act(() => { root.render(<SettingsAbout version="0.1.0" file="/x/config.toml" links={links} extensionUpdates={list} onUpdateExtensions={onUpdateExtensions} />); });
+  const extRow = () => el.querySelector<HTMLElement>('[data-anchor="about:extensions"]')!;
+  it("nothing waiting: says so, no button", async () => {
+    await ext([]);
+    expect(extRow().textContent).toContain("Every extension is up to date");
+    expect(extRow().querySelector("button")).toBeNull();
+  });
+  it("updates waiting: names them, Update All updates every one", async () => {
+    const update = vi.fn(async (_names: string[]) => {});
+    await ext([{ name: "gmail", title: "Gmail" }, { name: "slack", title: "Slack" }], update);
+    expect(extRow().textContent).toContain("Gmail, Slack have updates waiting.");
+    await act(async () => { extRow().querySelector("button")!.click(); });
+    expect(update).toHaveBeenCalledWith(["gmail", "slack"]);
+  });
+});

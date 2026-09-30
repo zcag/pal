@@ -642,6 +642,14 @@ pub struct Checked<T> {
 }
 
 impl<T> Checked<T> {
+    /// The answer as a result: its value, else its error.
+    pub fn result(&self) -> Result<&T, &str> {
+        match (&self.value, &self.error) {
+            (Some(v), _) => Ok(v),
+            (None, e) => Err(e.as_deref().unwrap_or("no answer")),
+        }
+    }
+
     pub fn at(at: u64, result: Result<T, String>) -> Self {
         let (value, error) = match result {
             Ok(v) => (Some(v), None),
@@ -736,6 +744,15 @@ pub fn checks_due(app: &AppHandle, force: bool) -> (bool, bool) {
     let st = app.state::<Settings>();
     let c = lock(&st.checks);
     (Checks::due(c.app.as_ref().map(|c| c.at), now, enabled, force) && (force || !cfg!(debug_assertions)), Checks::due(c.extensions.as_ref().map(|c| c.at), now, enabled, force))
+}
+
+/// Both checks now, whatever the setting says: the tray's "Check for
+/// updates…" and the root's "Check for Updates" row, as the Overview's
+/// "Check now" and the About page's button (`settings_check_updates` with
+/// `force`). Returns what is known after.
+pub async fn check_all(app: &AppHandle) -> Checks {
+    let _ = tokio::join!(crate::updater::check(app), check_extensions(app));
+    lock(&app.state::<Settings>().checks).clone()
 }
 
 /// The Overview's checks: both when `force` (its "Check now"), else each

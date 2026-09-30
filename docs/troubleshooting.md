@@ -232,7 +232,11 @@ loads with the reference string as its value.
 "Check for Updates" (the root row, the menu bar icon, Settings › About)
 answers on the HUD or as a toast: "pal `<version>` is available",
 "pal is up to date", "Nothing to update to: no release published yet",
-or "Could not check for updates" with the error. A build that cannot be
+or "Could not check for updates" with the error, then what the
+registries said: "pal and its extensions are up to date", "2 extensions
+have an update" (Settings › About's Extensions row updates them), or
+"Extensions could not be checked" with the registry's error. A build that cannot be
 installed over says why in place of the Install button: a development
 build, a `.deb` or `.rpm` (the package manager's), a bare Linux binary.
-The log has `updater<TAB>available|up to date|error`.
+The log has `updater<TAB>available|up to date|error` and
+`extensions<TAB>up to date|behind|check failed`.

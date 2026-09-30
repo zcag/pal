@@ -450,7 +450,10 @@ About, where the Version row gets an "Install `<version>`" button; the
 Overview, where it is a row with Install inline; and the root, where an
 "Install Update" row appears under the `pal` section until it is
 installed (Check for Updates, on the About page, the menu bar icon or the
-root row, runs a check any time).
+root row, runs a check any time). That check looks at the extensions too:
+it fetches every registry, puts in what updates by itself, and names the
+ones whose update waits for you (auto-update off for their registry);
+About's Extensions row has Update All for those.
 
 **What's New** opens [pal.cagdas.io/changelog](https://pal.cagdas.io/changelog)
 at the version you run, listing only the releases after it, with every
