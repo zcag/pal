@@ -272,8 +272,9 @@ export function draw(v: View, s: State, time: number) {
   night(v, s, cx, cy, halfW, halfH, time);
   world();
   foeShots(ctx, s, time);
-  // Numbers and your health above the dark, so they always read.
+  // Numbers, your health and the pointers above the dark, so they always read.
   if (v.numbers) numbers(ctx, s);
+  pointers(ctx, s, cx, cy, x0, y0, x1, y1, time);
   bar(ctx, p.x, p.y + 10, 16, p.hp / s.st.maxHp, p.hp / s.st.maxHp > 0.3 ? "#e8554e" : "#ffb347");
   if (p.dashCd > 0) bar(ctx, p.x, p.y + 13, 10, 1 - p.dashCd / (2.2 * (1 - s.st.dash)), "#9fd8ff");
   screen(v, s, time);
@@ -317,6 +318,42 @@ function hero(ctx: CanvasRenderingContext2D, s: State, time: number) {
   }
   if (p.moving || !sh.idle || !ready(sh.idle)) walker(ctx, sh.walk, p.dir, p.walk, p.x, p.y, 1, 1, blink ? tinted(sh.walk, "#ffffff", "solid") : undefined, !p.moving);
   else ctx.drawImage(blink ? tinted(sh.idle, "#ffffff", "solid") : sh.idle.img, p.dir * 16, 0, 16, 16, Math.round(p.x - 8), Math.round(p.y - 10), 16, 16);
+}
+
+/**
+ * What is worth going to while it is off the screen, pointed at from the
+ * edge: a chest, the golden tanuki before it gets away, a procession that
+ * leaves a chest if broken. The top edge sits below the HUD.
+ */
+function pointers(ctx: CanvasRenderingContext2D, s: State, cx: number, cy: number, x0: number, y0: number, x1: number, y1: number, time: number) {
+  const marks: { x: number; y: number; color: string; tier?: number }[] = [];
+  for (const o of s.pickups) if (o.kind === "chest") marks.push({ x: o.x, y: o.y, color: "#ffd166", tier: o.tier ?? 1 });
+  const groups = new Set<number>();
+  for (const e of s.enemies) {
+    if (e.kind === "goldtanuki") marks.push({ x: e.x, y: e.y, color: "#ffe45c" });
+    const g = e.path?.group;
+    if (g !== undefined && !groups.has(g) && s.groups.get(g)?.reward) { groups.add(g); marks.push({ x: e.x, y: e.y, color: "#ff9a4a" }); }
+  }
+  const l = x0 + 8, r = x1 - 8, t = y0 + 34, b = y1 - 8, pulse = 1 + 0.15 * Math.sin(time * 6);
+  for (const m of marks) {
+    if (m.x > l && m.x < r && m.y > t && m.y < b) continue;
+    const dx = m.x - cx, dy = m.y - cy, a = Math.atan2(dy, dx), ux = Math.cos(a), uy = Math.sin(a);
+    const f = Math.min(dx > 0 ? (r - cx) / dx : dx < 0 ? (l - cx) / dx : Infinity, dy > 0 ? (b - cy) / dy : dy < 0 ? (t - cy) / dy : Infinity);
+    const x = cx + dx * f, y = cy + dy * f, z = 4 * pulse;
+    if (m.tier) pickup(ctx, "chest", m.tier, x - ux * 13, y - uy * 13, time);
+    // A long, narrow head so its direction reads at a glance.
+    ctx.beginPath();
+    ctx.moveTo(x + ux * z * 1.3, y + uy * z * 1.3);
+    ctx.lineTo(x - ux * z * 0.7 - uy * z * 0.7, y - uy * z * 0.7 + ux * z * 0.7);
+    ctx.lineTo(x - ux * z * 0.3, y - uy * z * 0.3);
+    ctx.lineTo(x - ux * z * 0.7 + uy * z * 0.7, y - uy * z * 0.7 - ux * z * 0.7);
+    ctx.closePath();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(0,0,0,0.7)";
+    ctx.stroke();
+    ctx.fillStyle = m.color;
+    ctx.fill();
+  }
 }
 
 /** A burrower underground: the ridge of earth it pushes up, heaving as it digs, so it can be seen coming. */
