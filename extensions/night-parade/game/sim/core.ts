@@ -6,7 +6,7 @@ import { BOSSES, type BossKind } from "../content/bosses.ts";
 import { ENEMIES, type EnemyKind, type Gait, type ShotKind as FoeShotKind } from "../content/enemies.ts";
 import { HEROES, type HeroKind } from "../content/heroes.ts";
 import { ITEMS, type ItemKind } from "../content/items.ts";
-import { BREAK_DROPS, omen, type ChestTier, type PickupKind } from "../content/meta.ts";
+import { BLESSINGS, BREAK_DROPS, omen, type BlessingKind, type ChestTier, type PickupKind } from "../content/meta.ts";
 import { ELITE_TRAITS, type EliteTrait } from "../content/stage.ts";
 import { BASE, add, type Stats } from "../content/stats.ts";
 import { WEAPONS, levelStats, type WStats, type WeaponKind } from "../content/weapons.ts";
@@ -71,7 +71,8 @@ export type Item = { kind: ItemKind; level: number };
 export type Choice =
   | { type: "weapon"; kind: WeaponKind; level: number }
   | { type: "item"; kind: ItemKind; level: number }
-  | { type: "gold" } | { type: "food" };
+  | { type: "gold" } | { type: "food" }
+  | { type: "blessing"; kind: BlessingKind };
 export type ChestPrize = { type: "evolve"; kind: WeaponKind } | { type: "up"; choice: Choice } | { type: "gold"; n: number };
 export type Phase = "play" | "levelup" | "chest" | "dead" | "won";
 
@@ -106,6 +107,8 @@ export type State = {
   fx: Fx[]; nums: Num[]; gems: Gem[]; pickups: Pickup[];
   /** Level-ups waiting, the cards showing, the tools left, what's banished. */
   pending: number; choices: Choice[]; rerolls: number; skips: number; banishes: number; banished: Set<string>;
+  /** Blessings owed (an act began) and taken: taken ones add to the stats for the rest of the night. */
+  boons: number; blessed: BlessingKind[];
   chest?: ChestPrize[];
   /** Stage clocks: the trickle, the elites, the next event, blood moon and hourglass time left, the drums. */
   trickle: number; elites: number; eventIdx: number; moon: number; frozen: number; drums: boolean; act: number;
@@ -137,7 +140,7 @@ export function create(load: Loadout): State {
       invuln: 0, inked: 0, level: 1, xp: 0, gold: 0, kills: 0, revived: 0, healed: 0,
     },
     st: BASE, weapons: [], items: [], enemies: [], shots: [], zones: [], foeShots: [], hazards: [], fx: [], nums: [], gems: [], pickups: [],
-    pending: 0, choices: [], rerolls: load.rerolls, skips: load.skips, banishes: load.banishes, banished: new Set(),
+    pending: 0, choices: [], rerolls: load.rerolls, skips: load.skips, banishes: load.banishes, banished: new Set(), boons: 0, blessed: [],
     trickle: 0, elites: 0, eventIdx: 0, moon: 0, frozen: 0, drums: false, act: 0, groups: new Map(), chunks: new Set(),
     tally: { breaks: 0, specials: 0, lastHurt: 0, bosses: [], evolved: [], kinds: {}, hurtBy: {}, clean: 0 },
     events: [], nextId: 1,
@@ -154,6 +157,7 @@ export function create(load: Loadout): State {
 export function restat(s: State) {
   let st = add(add(BASE, HEROES[s.load.hero].stats), s.load.bonus);
   for (const it of s.items) st = add(st, { [ITEMS[it.kind].stat]: ITEMS[it.kind].per * it.level });
+  for (const b of s.blessed) st = add(st, BLESSINGS[b].per);
   s.st = st;
   for (const w of s.weapons) w.ws = weaponStats(s, w);
 }

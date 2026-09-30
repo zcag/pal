@@ -1,6 +1,7 @@
 // You: moving and dashing, picking things up, levelling, choosing, and
 // opening chests.
 import { ITEMS, type ItemKind } from "../content/items.ts";
+import { BLESSINGS, type BlessingKind } from "../content/meta.ts";
 import { WEAPONS, WEAPON_MAX, type WeaponKind } from "../content/weapons.ts";
 import { needed } from "../content/xp.ts";
 import { next, pick } from "../rng.ts";
@@ -140,6 +141,26 @@ export function pairs(s: State, c: Choice): boolean {
   return false;
 }
 
+/** What comes after a card or a chest: a blessing owed first, then a level-up waiting, else the night. */
+export function nextCard(s: State) {
+  if (s.boons > 0) bless(s);
+  else if (s.pending > 0) levelUp(s);
+}
+
+/** The act's blessing: three not yet taken, one to choose, for the rest of the night. */
+export function bless(s: State) {
+  const pool = (Object.keys(BLESSINGS) as BlessingKind[]).filter((b) => !s.blessed.includes(b));
+  const choices: Choice[] = [];
+  while (choices.length < 3 && pool.length) choices.push({ type: "blessing", kind: pool.splice(Math.floor(next(s.rng) * pool.length), 1)[0] });
+  if (!choices.length) { s.boons = 0; return levelUp(s); }
+  s.choices = choices;
+  s.phase = "levelup";
+  s.events.push({ sfx: "sparkle" }, { vfx: "levelup", x: s.p.x, y: s.p.y });
+}
+
+/** The cards showing are a blessing: no reroll, skip or banish, and no level used. */
+export const blessing = (s: State) => s.choices[0]?.type === "blessing";
+
 export function levelUp(s: State) {
   const pool = offers(s);
   const n = 3 + (next(s.rng) < s.st.luck * 0.6 ? 1 : 0);
@@ -159,6 +180,13 @@ export function levelUp(s: State) {
 export function apply(s: State, c: Choice) {
   if (c.type === "gold") s.p.gold += 25;
   else if (c.type === "food") heal(s, 30);
+  else if (c.type === "blessing") {
+    const before = s.st.maxHp;
+    s.blessed.push(c.kind);
+    restat(s);
+    s.p.hp = c.kind === "spring" ? s.st.maxHp : s.p.hp + Math.max(0, s.st.maxHp - before);
+    return;
+  }
   else if (c.type === "weapon") {
     const w = s.weapons.find((x) => x.kind === c.kind);
     if (w) w.level = c.level; else addWeapon(s, c.kind);
@@ -173,10 +201,11 @@ export function apply(s: State, c: Choice) {
 }
 
 function after(s: State) {
-  s.pending--;
+  if (blessing(s)) s.boons--;
+  else s.pending--;
   s.choices = [];
   s.phase = "play";
-  if (s.pending > 0) levelUp(s);
+  nextCard(s);
 }
 
 export function choose(s: State, i: number) {
@@ -187,7 +216,7 @@ export function choose(s: State, i: number) {
 }
 
 export function reroll(s: State) {
-  if (s.phase !== "levelup" || s.rerolls <= 0) return;
+  if (s.phase !== "levelup" || s.rerolls <= 0 || blessing(s)) return;
   s.rerolls--;
   s.phase = "play";
   levelUp(s);
@@ -195,7 +224,7 @@ export function reroll(s: State) {
 }
 
 export function skip(s: State) {
-  if (s.phase !== "levelup" || s.skips <= 0) return;
+  if (s.phase !== "levelup" || s.skips <= 0 || blessing(s)) return;
   s.skips--;
   s.p.gold += 5;
   s.events.push({ sfx: "skip" });
@@ -205,7 +234,7 @@ export function skip(s: State) {
 /** Banish choice i for the rest of the night, and deal again. */
 export function banish(s: State, i: number) {
   const c = s.choices[i];
-  if (s.phase !== "levelup" || s.banishes <= 0 || !c || (c.type !== "weapon" && c.type !== "item") || c.level > 1) return;
+  if (s.phase !== "levelup" || s.banishes <= 0 || blessing(s) || !c || (c.type !== "weapon" && c.type !== "item") || c.level > 1) return;
   s.banishes--;
   s.banished.add(c.kind);
   s.phase = "play";
@@ -251,5 +280,5 @@ export function resume(s: State) {
   if (s.phase !== "chest") return;
   s.chest = undefined;
   s.phase = "play";
-  if (s.pending > 0) levelUp(s);
+  nextCard(s);
 }

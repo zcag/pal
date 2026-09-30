@@ -9,14 +9,14 @@ import { BOSSES, type BossKind } from "../game/content/bosses.ts";
 import { ENEMIES, type EnemyKind } from "../game/content/enemies.ts";
 import { HEROES, type HeroKind } from "../game/content/heroes.ts";
 import { ITEMS, type ItemKind } from "../game/content/items.ts";
-import { OMEN_MAX, SHRINE, UNLOCKS, omen, type ShrineKind, type UnlockKind } from "../game/content/meta.ts";
+import { BLESSINGS, OMEN_MAX, SHRINE, UNLOCKS, omen, type ShrineKind, type UnlockKind } from "../game/content/meta.ts";
 import { ACTS, EVENTS, actAt } from "../game/content/stage.ts";
 import { STAT_NAMES, statText, type StatKey } from "../game/content/stats.ts";
 import { WEAPONS, WEAPON_MAX, levelText, type WeaponKind } from "../game/content/weapons.ts";
 import { needed } from "../game/content/xp.ts";
 import { drive, loadout as botLoadout, pickChoice } from "../game/bot.ts";
 import { buy, earnedUnlocks, fresh, heroOpen, load, loadout, packRun, priceOf, refund, settle, unpackRun, weaponOpen, type Earned, type Save, type Scene } from "../game/meta.ts";
-import { DT, banish, choose, clock, create, pairs, reroll, restat, resume, skip, step, type Choice, type State } from "../game/sim/index.ts";
+import { DT, banish, blessing, choose, clock, create, pairs, reroll, restat, resume, skip, step, type Choice, type State } from "../game/sim/index.ts";
 import { levelUp, openChest } from "../game/sim/progress.ts";
 import { spawnAt } from "../game/sim/core.ts";
 import type { SurfaceKit } from "@zcag/pal";
@@ -109,11 +109,14 @@ function title() {
     <div class="logo">Night Parade</div>
     <div class="jp">百 鬼 夜 行</div>
     <div class="tag">The hundred demons march tonight. Last until dawn.</div>
-    <div class="menu">${MENU.map((m, i) => `<div class="item${i === sel ? " sel" : ""}" data-i="${i}">${m}</div>`).join("")}</div>
+    <div class="menu">${MENU.map((m, i) => `<div class="item${i === sel ? " sel" : ""}" data-i="${i}">${m}${m === "Shrine" && affordable() ? ` <span class="afford">✦</span>` : ""}</div>`).join("")}</div>
     <div class="purse">${Math.floor(save.gold)} gold · ${save.totals.dawns} dawn${save.totals.dawns === 1 ? "" : "s"} seen</div>
     ${keys([kbd("↑", "↓"), "choose"], [kbd("↵"), "go"], [kbd("P"), "pause in the night"], [kbd("M"), "mute"])}
   </div>`, false);
 }
+
+/** Whether the gold buys a shrine rank now: the title marks the Shrine, the results say so. */
+const affordable = () => SHRINE_ORDER.some((k) => (save.shrine[k] ?? 0) < SHRINE[k].ranks && priceOf(save, k) <= save.gold);
 
 const HERO_ORDER = Object.keys(HEROES) as HeroKind[];
 
@@ -148,7 +151,7 @@ function shrine() {
     <h2>The shrine <small>${Math.floor(save.gold)} gold to offer</small></h2>
     <div class="shrine">${SHRINE_ORDER.map((sk, i) => {
       const sd = SHRINE[sk], n = save.shrine[sk] ?? 0, pr = priceOf(save, sk), max = n >= sd.ranks;
-      return `<div class="bless${i === sel ? " sel" : ""}" data-i="${i}">${img(iconUrl(sd.icon))}<div><div class="n">${sd.name}${pips(n, sd.ranks)}</div><div class="c ${max ? "max" : pr > save.gold ? "poor" : ""}">${max ? "complete" : `${pr} gold`}</div></div></div>`;
+      return `<div class="offering${i === sel ? " sel" : ""}" data-i="${i}">${img(iconUrl(sd.icon))}<div><div class="n">${sd.name}${pips(n, sd.ranks)}</div><div class="c ${max ? "max" : pr > save.gold ? "poor" : ""}">${max ? "complete" : `${pr} gold`}</div></div></div>`;
     }).join("")}</div>
     <div class="shrine-detail"><b style="color:var(--ink)">${d.name}</b>: ${d.text} ${owned >= d.ranks ? "All ranks offered." : price > save.gold ? `${price - Math.floor(save.gold)} more gold for the next rank.` : `Next rank: ${price} gold.`}</div>
     ${keys([kbd("←", "→", "↑", "↓"), "choose"], [kbd("↵"), "offer gold"], [kbd("R"), refundArmed ? "again to take it all back" : "refund everything"], [kbd("⌫"), "back"])}
@@ -435,6 +438,7 @@ type Shown = { icon: string; name: string; tag: string; what: string; hint?: str
 function describe(s: State, c: Choice): Shown {
   if (c.type === "gold") return { icon: iconUrl("Money"), name: "A purse", tag: "", what: "25 gold." };
   if (c.type === "food") return { icon: iconUrl("Dish"), name: "A meal", tag: "", what: "Heals 30." };
+  if (c.type === "blessing") { const b = BLESSINGS[c.kind]; return { icon: iconUrl(b.icon), name: b.name, tag: "", what: b.text }; }
   if (c.type === "weapon") {
     const d = WEAPONS[c.kind], has = s.items.some((it) => it.kind === d.evolveWith);
     return {
@@ -455,12 +459,12 @@ function levelCard() {
   const s = run!, n = s.choices.length;
   sel = Math.max(0, Math.min(n - 1, sel));
   show(`<div class="panel">
-    <h2>Level ${s.p.level - s.pending + 1} <small>choose one</small></h2>
+    <h2>${blessing(s) ? `A blessing <small>choose one for the rest of the night</small>` : `Level ${s.p.level - s.pending + 1} <small>choose one</small>`}</h2>
     <div class="list">${s.choices.map((c, i) => {
       const d = describe(s, c);
       return `<div class="opt${i === sel ? " sel" : ""}" data-i="${i}"><div class="ico">${img(d.icon)}</div><div><span class="name">${d.name}</span><span class="tag${d.tag === "New" ? " new" : ""}">${d.tag}</span><div class="what">${esc(d.what)}</div>${d.hint ? `<div class="hint${d.pair ? " pair" : ""}">${esc(d.hint)}</div>` : ""}</div><div class="side">${kbd(String(i + 1))}</div></div>`;
     }).join("")}</div>
-    <div class="tools"><span class="tool${s.rerolls ? "" : " none"}">${kbd("R")} Reroll ${s.rerolls}</span><span class="tool${s.skips ? "" : " none"}">${kbd("X")} Skip ${s.skips}</span><span class="tool${s.banishes ? "" : " none"}">${kbd("B")} Banish ${s.banishes}</span></div>
+    ${blessing(s) ? "" : `<div class="tools"><span class="tool${s.rerolls ? "" : " none"}">${kbd("R")} Reroll ${s.rerolls}</span><span class="tool${s.skips ? "" : " none"}">${kbd("X")} Skip ${s.skips}</span><span class="tool${s.banishes ? "" : " none"}">${kbd("B")} Banish ${s.banishes}</span></div>`}
   </div>`);
 }
 
@@ -521,7 +525,8 @@ function pauseCard() {
     <h2>Paused <small>${clock(s.t)} into the night, level ${s.p.level}, ${HEROES[s.load.hero].name}</small></h2>
     <div class="cols">
       <div class="build">${s.weapons.map((w) => `<div class="brow">${img(wIcon(w.kind))}<span>${w.evolved ? `<b style="color:var(--gold)">${WEAPONS[w.kind].evolved}</b>` : `${WEAPONS[w.kind].name} ${pips(w.level, WEAPON_MAX)}`}</span><span class="v">${Math.round(w.dmg).toLocaleString()}</span><div class="bar"><i style="width:${(w.dmg / total) * 100}%"></i></div></div>`).join("")}
-        ${s.items.map((it) => `<div class="brow">${img(iIcon(it.kind))}<span>${ITEMS[it.kind].name} ${pips(it.level, ITEMS[it.kind].max)}</span><span class="v"></span></div>`).join("")}</div>
+        ${s.items.map((it) => `<div class="brow">${img(iIcon(it.kind))}<span>${ITEMS[it.kind].name} ${pips(it.level, ITEMS[it.kind].max)}</span><span class="v"></span></div>`).join("")}
+        ${s.blessed.map((b) => `<div class="brow">${img(iconUrl(BLESSINGS[b].icon))}<span><b style="color:var(--gold)">${BLESSINGS[b].name}</b></span><span class="v"></span></div>`).join("")}</div>
       <div class="statlist">${statKeys.map((k) => `<span>${STAT_NAMES[k]}</span><b>${k === "maxHp" ? Math.round(st.maxHp) : statText(k, st[k] - (base[k] ?? 0))}</b>`).join("")}</div>
     </div>
     ${keys([kbd("P"), "carry on"], [kbd("S"), "settings"], [kbd("Q"), "give up the night"], [kbd("M"), "mute"])}
@@ -549,6 +554,7 @@ function results() {
     <p>${won ? "The sky pales, and the parade melts into the morning mist. You saw the dawn." : `You lasted ${clock(s.t)} of the night. ${byText}`}${earned?.record ? ` <b style="color:var(--gold)">A new best for ${HEROES[s.load.hero].name}.</b>` : ""}</p>
     <div class="facts"><div><b>${clock(s.t)}</b><span>survived</span></div><div><b>${p.level}</b><span>level</span></div><div><b>${p.kills.toLocaleString()}</b><span>defeated</span></div><div><b>+${earned?.gold ?? 0}</b><span>gold</span></div></div>
     <div class="build">${[...s.weapons].sort((a, b) => b.dmg - a.dmg).map((w) => `<div class="brow">${img(wIcon(w.kind))}<span>${w.evolved ? `<b style="color:var(--gold)">${WEAPONS[w.kind].evolved}</b>` : `${WEAPONS[w.kind].name} ${pips(w.level, WEAPON_MAX)}`}</span><span class="v">${Math.round(w.dmg).toLocaleString()} · ${w.kills} kills · ${Math.round(w.dmg / Math.max(1, s.t - w.since))}/s</span><div class="bar"><i style="width:${(w.dmg / total) * 100}%"></i></div></div>`).join("")}</div>
+    ${earned ? `<p class="gold-note">${earned.found} picked up, ${earned.bonus} for the night.${affordable() ? ` <b>${Math.floor(save.gold)} gold to spend at the shrine.</b>` : ""}</p>` : ""}
     ${earned?.unlocks.length ? `<div class="unlocks"><b>Unlocked</b>${earned.unlocks.map((u) => `<div>${UNLOCKS[u].name}</div>`).join("")}</div>` : ""}
     ${keys([kbd("↵"), "another night"], [kbd("⌫"), "to the title"])}
   </div>`);

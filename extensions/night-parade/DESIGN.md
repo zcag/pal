@@ -217,12 +217,19 @@ Sixteen. Most go to 5 levels.
 - **Three choices**, sometimes four (Luck). What you already carry comes up a
   little more often than something new; nothing offered is a dead end (a full
   slot bar offers only what you have).
-- **Reroll** (R), **Skip** (S, for a little experience) and **Banish** (B, then
+- **Reroll** (R), **Skip** (X, for a little gold) and **Banish** (B, then
   pick: that thing never comes up again this run) have charges from the shrine
   and some heroes.
 - Each card shows the icon, name, *New* or the level, the exact change, and
   for a weapon its item ("evolves with Scroll", starred when you hold it).
 - With everything maxed, the choices become gold or a meal.
+- **Blessings**: when Midnight (5:00) and the Hour of the Ox (10:00) begin,
+  a card of three blessings, one to keep for the rest of the night: +25%
+  damage, one more of every projectile, +25% area, −12% cooldown, +3 armor
+  and +40 health, +1.5 health a second (and a full heal), or +15% move speed
+  and pickup reach. No reroll, skip or banish; it uses no level, and a
+  level-up waiting comes after it. It is the power spike before each act's
+  bosses.
 
 ## Enemies
 
@@ -300,6 +307,10 @@ Ambient: fireflies, drifting leaves and petals, a slow ground fog, the moon.
 
 ## Between nights
 
+- **Gold**: what a night picks up, plus a bonus when it ends: 15 a minute
+  survived, 40 a boss beaten, 250 for the dawn, all times Greed. The results
+  screen shows both, and the title marks the Shrine while a rank is
+  affordable.
 - **The shrine**: spend gold on lasting stat upgrades (might, armor, health,
   recovery, cooldown, area, speed, duration, amount, move speed, magnet, luck,
   growth, greed, revival, rerolls, skips, banishes), each a few ranks, each rank
@@ -314,7 +325,11 @@ Ambient: fireflies, drifting leaves and petals, a slow ground fog, the moon.
 
 ## Tuning targets
 
-Checked with the bot (`scripts/survey.ts`, `scripts/bosstime.ts`) and by hand:
+Checked with the bot (`scripts/survey.ts`, `scripts/bosstime.ts`) and by hand.
+When the night is too hard, the answer is more for the player (power,
+abilities, faster progression, threats that read better), never a thinner or
+weaker parade.
+
 
 - A new player with Kaze reaches Midnight (5:00) on a first or second try and
   sees dawn within a few nights with a few shrine ranks.

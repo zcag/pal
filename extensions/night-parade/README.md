@@ -41,7 +41,11 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
   food, and rarer finds in the jars and stone lanterns along the road: the
   shakuhachi (every gem comes to you), the hourglass (the parade stops),
   the ofuda (the screen is purified), the sake gourd (nothing can hurt you).
-- **Between nights**: gold buys lasting blessings at the shrine (might,
+- **Blessings**: as Midnight and the Hour of the Ox begin, three blessings
+  to choose one from for the rest of the night (more damage, more
+  projectiles, more area, faster cooldowns, armor, healing, or speed).
+- **Between nights**: a night pays what you picked up plus a bonus for how
+  long you lasted, the bosses you beat and the dawn; gold buys lasting upgrades at the shrine (might,
   armor, health, recovery, cooldown, area and more, rerolls, skips and
   banishes), the codex keeps every weapon, item and enemy you've met, and
   after your first dawn the omens make the parade harder and pay more.
@@ -66,7 +70,7 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
 
 ## Setup
 
-None. The save (gold, blessings, unlocks, the codex, records) is the
+None. The save (gold, shrine ranks, unlocks, the codex, records) is the
 extension's storage; music and sound volume, damage numbers and screen
 shake are the page's own Settings.
 

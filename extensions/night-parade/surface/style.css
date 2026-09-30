@@ -122,12 +122,12 @@ kbd { display: inline-block; min-width: 17px; padding: 0 4px; border-radius: 4px
 
 /* shrine */
 .shrine { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-.bless { padding: 6px; border-radius: 9px; background: var(--panel2); display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: center; cursor: pointer; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); }
-.bless.sel { box-shadow: 0 0 0 1px var(--gold); }
-.bless img { width: 30px; height: 30px; border-radius: 5px; }
-.bless .n { font-size: 12px; font-weight: 600; }
-.bless .c { font: 10px "NP", monospace; color: var(--gold); }
-.bless .c.max { color: var(--green); } .bless .c.poor { color: var(--faint); }
+.offering { padding: 6px; border-radius: 9px; background: var(--panel2); display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: center; cursor: pointer; box-shadow: 0 0 0 1px rgba(255,255,255,0.05); }
+.offering.sel { box-shadow: 0 0 0 1px var(--gold); }
+.offering img { width: 30px; height: 30px; border-radius: 5px; }
+.offering .n { font-size: 12px; font-weight: 600; }
+.offering .c { font: 10px "NP", monospace; color: var(--gold); }
+.offering .c.max { color: var(--green); } .offering .c.poor { color: var(--faint); }
 .shrine-detail { margin-top: 8px; font-size: 12px; color: var(--dim); min-height: 18px; }
 
 /* codex */
@@ -178,6 +178,9 @@ kbd { display: inline-block; min-width: 17px; padding: 0 4px; border-radius: 4px
 .facts div { padding: 7px 4px; border-radius: 8px; background: var(--panel2); text-align: center; }
 .facts b { display: block; font: 16px "NP", monospace; font-weight: normal; }
 .facts span { font-size: 10.5px; color: var(--dim); }
+.gold-note { margin: 0 0 8px; font-size: 11px; color: var(--dim); }
+.gold-note b { color: var(--gold); font-weight: normal; }
+.menu .afford { color: var(--gold); }
 .unlocks { margin-top: 8px; padding: 8px 10px; border-radius: 9px; background: linear-gradient(90deg, rgba(255, 209, 102, 0.15), transparent); box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.4); }
 .unlocks b { color: var(--gold); font: 12px "NP", monospace; font-weight: normal; }
 .unlocks div { font-size: 12px; margin-top: 2px; }
@@ -194,7 +197,7 @@ kbd { display: inline-block; min-width: 17px; padding: 0 4px; border-radius: 4px
 }
 
 /* The pack's pixel font reads best in capitals, and its space is narrow. */
-.np, .panel h1, .panel h2, .menu .item, .title .logo, .banner b, #clock b, #lv, #stats, #bossbar span, .opt .tag, .facts b, .bless .c, .slot b, .title .purse, .unlocks b, .brow .v, .statlist b {
+.np, .panel h1, .panel h2, .menu .item, .title .logo, .banner b, #clock b, #lv, #stats, #bossbar span, .opt .tag, .facts b, .offering .c, .slot b, .title .purse, .unlocks b, .brow .v, .statlist b {
   text-transform: uppercase; word-spacing: 0.35em;
 }
 .panel h2 small { text-transform: none; word-spacing: normal; }

@@ -91,12 +91,17 @@ export function refund(s: Save) {
 
 // ---- a night's end ---------------------------------------------------------------------------------------------------
 
-export type Earned = { gold: number; unlocks: UnlockKind[]; record: boolean };
+/** What a night earned: `gold` is `found` (picked up) plus `bonus` (for how long it lasted, the bosses beaten and the dawn). */
+export type Earned = { gold: number; found: number; bonus: number; unlocks: UnlockKind[]; record: boolean };
+
+/** The gold a night pays on top of what was picked up: 15 a minute, 40 a boss, 250 for the dawn, with Greed. */
+export const nightBonus = (run: State) =>
+  Math.round((15 * Math.floor(run.t / 60) + 40 * run.tally.bosses.length + (run.phase === "won" ? 250 : 0)) * (1 + run.st.greed));
 
 /** Fold a finished night into the save: gold, records, the codex, and unlocks. */
 export function settle(save: Save, run: State): Earned {
   const p = run.p, won = run.phase === "won", hero = run.load.hero;
-  const gold = Math.round(p.gold);
+  const found = Math.round(p.gold), bonus = nightBonus(run), gold = found + bonus;
   save.gold += gold;
   save.totals.nights++;
   save.totals.kills += p.kills;
@@ -113,7 +118,7 @@ export function settle(save: Save, run: State): Earned {
   for (const k of run.tally.bosses) seen.bosses[k] = (seen.bosses[k] ?? 0) + 1;
   const unlocks = earnedUnlocks(run).filter((u) => !save.unlocked.includes(u));
   save.unlocked.push(...unlocks);
-  return { gold, unlocks, record };
+  return { gold, found, bonus, unlocks, record };
 }
 
 /** What this night earned, whether or not it was already unlocked. */
@@ -150,7 +155,10 @@ export function unpackRun(raw: unknown): State | undefined {
   if (!raw || typeof raw !== "object" || (raw as { v?: number }).v !== 1) return undefined;
   const s = JSON.parse(JSON.stringify((raw as { run: unknown }).run), (_, x) =>
     x && typeof x === "object" && "$set" in x ? new Set(x.$set) : x && typeof x === "object" && "$map" in x ? new Map(x.$map) : x) as State;
-  return s?.phase === "play" || s?.phase === "levelup" || s?.phase === "chest" ? s : undefined;
+  if (!(s?.phase === "play" || s?.phase === "levelup" || s?.phase === "chest")) return undefined;
+  s.boons ??= 0; // stored before blessings
+  s.blessed ??= [];
+  return s;
 }
 
 /**

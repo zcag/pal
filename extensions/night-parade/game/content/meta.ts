@@ -26,6 +26,20 @@ export const BREAK_DROPS: [PickupKind | "nothing", number][] = [
 
 export type ChestTier = 1 | 3 | 5;
 
+// ---- blessings -------------------------------------------------------------------------------------------------------
+
+/** What the night offers at Midnight and at the Hour of the Ox: one of three, for the rest of the night. */
+export type BlessingKind = "fury" | "hands" | "sky" | "haste" | "iron" | "spring" | "wind";
+export const BLESSINGS: Record<BlessingKind, { name: string; icon: string; per: Partial<Stats>; text: string }> = {
+  fury: { name: "Fury of the kami", icon: "AttackUpgrade", per: { might: 0.25 }, text: "+25% damage." },
+  hands: { name: "A thousand hands", icon: "Scroll", per: { amount: 1 }, text: "One more of every projectile." },
+  sky: { name: "Open sky", icon: "Mist", per: { area: 0.25 }, text: "+25% area." },
+  haste: { name: "Quick hands", icon: "Potion", per: { cooldown: 0.12 }, text: "−12% cooldown." },
+  iron: { name: "Iron skin", icon: "Helmet", per: { armor: 3, maxHp: 40 }, text: "+3 armor and +40 max health." },
+  spring: { name: "Sacred spring", icon: "Heal", per: { recovery: 1.5 }, text: "+1.5 health a second, and healed in full now." },
+  wind: { name: "Wind at your back", icon: "Boot", per: { move: 10, magnet: 30 }, text: "+15% move speed and +70% pickup reach." },
+};
+
 // ---- the shrine ------------------------------------------------------------------------------------------------------
 
 export type ShrineKind =
@@ -34,7 +48,7 @@ export type ShrineKind =
 
 export type ShrineDef = { name: string; icon: string; ranks: number; cost: number; per: Partial<Stats>; text: string };
 
-/** Each rank of each blessing; `per` is what one rank adds. Rerolls, skips and banishes are charges, not stats. */
+/** Each rank of each shrine upgrade; `per` is what one rank adds. Rerolls, skips and banishes are charges, not stats. */
 export const SHRINE: Record<ShrineKind, ShrineDef> = {
   might: { name: "Might", icon: "AttackUpgrade", ranks: 5, cost: 200, per: { might: 0.05 }, text: "+5% damage a rank." },
   armor: { name: "Armor", icon: "Helmet", ranks: 3, cost: 600, per: { armor: 1 }, text: "+1 armor a rank." },

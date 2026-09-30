@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { night, play } from "../../../extensions/night-parade/game/bot.ts";
 import { SHRINE } from "../../../extensions/night-parade/game/content/meta.ts";
-import { buy, earnedUnlocks, fresh, load, loadout, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../../../extensions/night-parade/game/meta.ts";
+import { buy, earnedUnlocks, fresh, load, loadout, nightBonus, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../../../extensions/night-parade/game/meta.ts";
 
 test("a stored save loads with anything newer filled in", () => {
   const s = fresh();
@@ -74,8 +74,9 @@ test("settle adds gold, keeps the best, fills the codex and unlocks", () => {
   run.tally.kinds.slime = 5;
   run.items.push({ kind: "tea", level: 1 });
   const e = settle(save, run);
-  expect(e.gold).toBe(43);
-  expect(save.gold).toBe(43);
+  // 43 picked up, and for the night 5 minutes at 15 and one boss at 40.
+  expect([e.found, e.bonus, e.gold]).toEqual([43, 115, 158]);
+  expect(save.gold).toBe(158);
   expect(e.record).toBe(true);
   expect(save.best.kaze).toEqual({ t: 320, dawn: false, level: 21, kills: 77 });
   expect(save.seen.weapons).toContain("shuriken");
@@ -84,7 +85,7 @@ test("settle adds gold, keeps the best, fills the codex and unlocks", () => {
   expect(save.seen.enemies.slime).toBe(5);
   expect(save.seen.bosses.tanuki).toBe(1);
   expect(e.unlocks).toEqual(expect.arrayContaining(["ennen", "yumi", "seimei", "geyser"]));
-  expect(save.totals).toEqual({ nights: 1, dawns: 0, kills: 77, gold: 43 });
+  expect(save.totals).toEqual({ nights: 1, dawns: 0, kills: 77, gold: 158 });
   // A shorter night isn't a record, and unlocks come once.
   const worse = night(2);
   Object.assign(worse, { t: 100, phase: "dead" });
@@ -130,4 +131,21 @@ test("a night stored partway plays on exactly as the one left open", () => {
   a.phase = "dead";
   expect(unpackRun(packRun(a))).toBeUndefined();
   expect(unpackRun(null)).toBeUndefined();
+});
+
+test("a night's bonus: 15 a minute, 40 a boss, 250 for the dawn, times Greed", () => {
+  const run = night(4);
+  Object.assign(run, { t: 900, phase: "won" });
+  run.tally.bosses.push("frog", "tanuki", "yurei", "tengu", "samurai", "oni");
+  expect(nightBonus(run)).toBe(15 * 15 + 6 * 40 + 250);
+  run.st = { ...run.st, greed: 0.5 };
+  expect(nightBonus(run)).toBe(Math.round((15 * 15 + 6 * 40 + 250) * 1.5));
+});
+
+test("a night stored before blessings loads with none", () => {
+  const packed = packRun(night(8)) as { v: number; run: Record<string, unknown> };
+  delete packed.run.boons;
+  delete packed.run.blessed;
+  const s = unpackRun(JSON.parse(JSON.stringify(packed)))!;
+  expect([s.boons, s.blessed]).toEqual([0, []]);
 });

@@ -7,7 +7,7 @@
 import { DT, hash, type State } from "./core.ts";
 import { stepBosses } from "./bosses.ts";
 import { stepEnemies, stepFoeShots, stepHazards } from "./enemies.ts";
-import { collect, levelUp, move, type Input } from "./progress.ts";
+import { collect, move, nextCard, type Input } from "./progress.ts";
 import { settleGroups, spawn } from "./spawn.ts";
 import { fireAll, stepShots, stepZones } from "./weapons.ts";
 
@@ -34,11 +34,11 @@ export function step(s: State, input: Input, dt = DT) {
   for (const n of s.nums) n.t += dt;
   s.nums = s.nums.filter((n) => n.t < 0.7);
   s.enemies = s.enemies.filter((e) => !e.dead);
-  if (s.phase === "play" && s.pending > 0) levelUp(s);
+  if (s.phase === "play") nextCard(s);
 }
 
 export { DT, create, restat, type Choice, type Enemy, type Loadout, type State, type Weapon } from "./core.ts";
-export { banish, choose, offers, pairs, reroll, resume, skip, type Input } from "./progress.ts";
+export { banish, blessing, choose, offers, pairs, reroll, resume, skip, type Input } from "./progress.ts";
 export { sickles, spirits } from "./weapons.ts";
 
 export const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;

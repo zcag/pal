@@ -3,11 +3,12 @@ import type { View } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
 import { night, play } from "../../../extensions/night-parade/game/bot.ts";
 import { BOSSES, type BossKind } from "../../../extensions/night-parade/game/content/bosses.ts";
+import { actAt } from "../../../extensions/night-parade/game/content/stage.ts";
 import { ITEMS, type ItemKind } from "../../../extensions/night-parade/game/content/items.ts";
 import { WEAPONS, WEAPON_MAX, type WeaponKind } from "../../../extensions/night-parade/game/content/weapons.ts";
 import { addWeapon, hazard, hurt, hurtPlayer, restat, spawnAt, spawnBoss, type State } from "../../../extensions/night-parade/game/sim/core.ts";
 import { SLOTS, levelUp, openChest } from "../../../extensions/night-parade/game/sim/progress.ts";
-import { banish, choose, offers, reroll, skip, step } from "../../../extensions/night-parade/game/sim/index.ts";
+import { banish, blessing, choose, offers, reroll, skip, step } from "../../../extensions/night-parade/game/sim/index.ts";
 
 const still = { x: 0, y: 0, dash: false };
 const run = (s: State, secs: number) => { for (let i = 0; i < secs * 60 && s.phase === "play"; i++) step(s, still); };
@@ -151,6 +152,7 @@ describe("bosses", () => {
       const s = night(30);
       s.p.invuln = 1e9;
       s.t = BOSSES[k].at - 0.05;
+      s.act = actAt(s.t); // the clock jumped: so did the act, or its blessing would stop the night first
       run(s, 0.2);
       expect(s.enemies.some((e) => e.boss === k)).toBe(true);
     });
@@ -227,6 +229,36 @@ test("a mole surfaces with time to step away: walked at, it bites only after its
   expect(at.up).toBeGreaterThan(0);
   expect(at.hit - at.up).toBeGreaterThan(0.6 - 1 / 120); // the wind-up, give or take the sum of steps
   expect(chase(true).hit).toBe(-1);
+});
+
+test("an act's start deals a blessing: three to choose, for the rest of the night; no reroll, skip or banish, no level used, a waiting level-up after", () => {
+  const s = night(5, "kaze", { rerolls: 1, skips: 1, banishes: 1 });
+  s.p.invuln = 1e9;
+  s.t = 299.99; // the next step crosses into Midnight
+  s.pending = 1; // a level-up waiting behind it
+  step(s, { x: 0, y: 0, dash: false });
+  expect(s.phase).toBe("levelup");
+  expect(blessing(s)).toBe(true);
+  expect(s.choices).toHaveLength(3);
+  const shown = s.choices;
+  reroll(s); skip(s); banish(s, 0);
+  expect(s.choices).toBe(shown);
+  expect([s.rerolls, s.skips, s.banishes]).toEqual([1, 1, 1]);
+  const might = s.st.might, amount = s.st.amount;
+  const i = s.choices.findIndex((c) => c.type === "blessing" && (c.kind === "fury" || c.kind === "hands"));
+  const took = i >= 0 ? i : 0;
+  const c = s.choices[took];
+  if (c.type !== "blessing") throw new Error("not a blessing");
+  const kind = c.kind;
+  choose(s, took);
+  expect(s.blessed).toEqual([kind]);
+  if (kind === "fury") expect(s.st.might).toBeCloseTo(might + 0.25, 9);
+  if (kind === "hands") expect(s.st.amount).toBe(amount + 1);
+  // The level-up that was waiting comes next, and it is a level-up.
+  expect(s.phase).toBe("levelup");
+  expect(blessing(s)).toBe(false);
+  expect(s.pending).toBe(1);
+  expect(s.boons).toBe(0);
 });
 
 describe("over the wire", () => {

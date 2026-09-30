@@ -16,6 +16,7 @@ export function spawn(s: State, dt: number) {
   const act = actAt(s.t);
   if (act !== s.act) {
     s.act = act;
+    s.boons++;
     s.events.push({ banner: ACTS[act].name, sub: ACTS[act].sub, tone: "act" }, { music: (["act1", "act2", "act3"] as const)[act] });
   }
   const alive = s.enemies.reduce((n, e) => n + (e.prop || e.path || e.dead ? 0 : 1), 0);
