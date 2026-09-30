@@ -67,6 +67,24 @@ describe("build", () => {
     });
   });
 
+  test("a page's imports in folders of their own are followed to any depth; one that leaves the extension fails the build", async () => {
+    const d = source(dir, "deep");
+    mkdirSync(join(d, "game", "sim"), { recursive: true });
+    mkdirSync(join(d, "game", "content"), { recursive: true });
+    writeFileSync(join(d, "surface", "page.ts"), `import { run } from "../game/sim/core.ts";\nrun();\n`);
+    writeFileSync(join(d, "game", "sim", "core.ts"), `import { DATA } from "../content/data.ts";\nimport type { T } from "./types.ts";\nexport const run = (): T => DATA;\n`);
+    writeFileSync(join(d, "game", "sim", "types.ts"), `export type T = number;\n`);
+    writeFileSync(join(d, "game", "content", "data.ts"), `export const DATA = 1;\n`);
+    writeFileSync(join(d, "game", "unused.ts"), `export const NOBODY = 0;\n`);
+    const out = join(dir, "dist-deep");
+    await build(d, { out, cwd: dir, seq: 1790000000, commit: "abc", dirOnly: true });
+    expect(readdirSync(join(out, "deep", "game")).sort()).toEqual(["content", "sim"]);
+    expect(readdirSync(join(out, "deep", "game", "sim")).sort()).toEqual(["core.ts", "types.ts"]);
+    expect(readdirSync(join(out, "deep", "game", "content"))).toEqual(["data.ts"]);
+    writeFileSync(join(d, "game", "content", "data.ts"), `export { DATA } from "../../../outside.ts";\n`);
+    await expect(build(d, { out, cwd: dir, seq: 1790000000, commit: "abc", dirOnly: true })).rejects.toThrow("outside the extension");
+  });
+
   test("reproducible: the same source twice is the same hash and the same tarball bytes; the header and entries are normalised", async () => {
     const [a, b] = [join(dir, "a"), join(dir, "b")];
     await build(join(dir, "thing"), { out: a, cwd: dir, seq: 5, commit: "" });

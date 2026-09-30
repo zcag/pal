@@ -23,7 +23,9 @@ weather/
   index.js        bun build of index.ts, @zcag/pal external
   *.js            chunks (--splitting)
   surface/        a game's page, when it has one
-  *.ts            the sources a surface imports, when it has one
+  *.ts            the sources a surface imports, when it has one: those
+                  beside index.ts and, followed to any depth, whatever
+                  they import in folders of their own (game/sim/core.ts)
 ```
 
 Nothing else: no `node_modules` (dependencies are inlined by `bun build`), no
