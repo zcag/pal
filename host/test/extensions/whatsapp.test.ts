@@ -205,7 +205,9 @@ describe("whatsapp", () => {
     // One session lookup, kept in storage; the histories only for the unread three, sized to their count (5 at most); one picture batch.
     expect(mock.calls("/api/sessions")).toHaveLength(1);
     expect(stored.get(`${X}\0session:main`)).toBe(SESSION_ID);
-    expect(mock.calls(/\/history$/).map((c) => [decodeURIComponent(c.path.split("/")[5]), c.query.limit])).toEqual([[MARA, "3"], [HIKE, "5"], [TOMAS, "1"]]);
+    // Fetched together, so in whatever order they land.
+    const byChat = (x: string[][]) => [...x].sort((a, b) => a[0].localeCompare(b[0]));
+    expect(byChat(mock.calls(/\/history$/).map((c) => [decodeURIComponent(c.path.split("/")[5]), c.query.limit]))).toEqual(byChat([[MARA, "3"], [HIKE, "5"], [TOMAS, "1"]]));
     // A second listing inside the window is the shared list: no new call.
     const n = mock.seen.length;
     await list("chats");
