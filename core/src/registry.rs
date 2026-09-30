@@ -35,7 +35,7 @@ use crate::fs::write_atomic;
 
 /// The SDK protocol this app speaks: the newest package `protocol` it runs.
 /// Equal to `PROTOCOL` in `sdk/src/protocol.ts` (a test reads it).
-pub const PROTOCOL: u32 = 1;
+pub const PROTOCOL: u32 = 2;
 /// The oldest package `protocol` this app still runs.
 pub const PROTOCOL_MIN: u32 = 1;
 /// The index `format` this reader understands; a higher one is refused.
@@ -705,7 +705,8 @@ pub(crate) mod tests {
     fn protocol_matches_the_sdk() {
         let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../sdk/src/protocol.ts")).unwrap();
         let read = |name: &str| -> u32 {
-            let line = text.lines().find(|l| l.starts_with(&format!("export const {name} = "))).unwrap_or_else(|| panic!("no {name} in protocol.ts"));
+            // `export const PROTOCOL: number = 2;` (typed wide, so the host can compare the two).
+            let line = text.lines().find(|l| l.starts_with(&format!("export const {name}: number = "))).unwrap_or_else(|| panic!("no {name} in protocol.ts"));
             line.split('=').nth(1).unwrap().trim().trim_end_matches(';').parse().unwrap()
         };
         assert_eq!(read("PROTOCOL"), PROTOCOL);

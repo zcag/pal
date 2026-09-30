@@ -10,8 +10,18 @@ Everything here is version 1. A reader refuses what it does not understand
 
 `PROTOCOL` is an integer in `sdk/src/protocol.ts` (and `pal_core::registry::PROTOCOL`,
 kept equal by a test). It goes up when a change to the SDK or the host breaks
-extensions built before it. An app runs packages whose `protocol` is in
-`[PROTOCOL_MIN, PROTOCOL]`; both numbers are in the same two places.
+extensions built before it, and when it adds something extensions built
+after it rely on (a new SDK export, a new `Effect` field): the SDK is
+external to a package, so a build calling `ignoreStore` would fail to load
+on an app without it, and the stamp keeps it from being offered there. An
+app runs packages whose `protocol` is in `[PROTOCOL_MIN, PROTOCOL]`; both
+numbers are in the same two places. `PROTOCOL_MIN` goes up only when the
+older builds really stop working.
+
+| protocol | what came with it |
+| --- | --- |
+| 1 | the first registry |
+| 2 | `preview()`, `ignoreStore()`, `Effect.show.actions` |
 
 ## Packages
 

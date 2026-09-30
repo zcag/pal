@@ -7,7 +7,8 @@
 //
 // Versioning is `PROTOCOL`, not the package version: an integer that goes
 // up when a change to this contract, the SDK or the host breaks extensions
-// built before it. A package is stamped with the `PROTOCOL` it was built
+// built before it, or adds what extensions built after it rely on (a new
+// SDK export, an Effect field an older app ignores wrongly). A package is stamped with the `PROTOCOL` it was built
 // against (`pal.json` `protocol`, written by `pal-pack`), and a host runs
 // the packages whose stamp is in `[PROTOCOL_MIN, PROTOCOL]`, skipping the
 // rest (docs/registry.md, "Protocol"). `pal_core::registry` carries the
@@ -23,10 +24,10 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. */
-export const PROTOCOL = 1;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. */
+export const PROTOCOL: number = 2;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
-export const PROTOCOL_MIN = 1;
+export const PROTOCOL_MIN: number = 1;
 
 /** A request on the wire: the sender's own `id`, echoed by the `Response`. */
 export type Request = { id: number; method: string; params?: unknown };

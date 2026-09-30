@@ -39,8 +39,10 @@ section of `notes/decisions.md`.
 - **Compatibility.** `PROTOCOL` / `PROTOCOL_MIN` in `sdk/src/protocol.ts`
   (and `pal_core::registry`, kept equal by a test) gate which packages an app
   runs. Bump `PROTOCOL` for any SDK or host change that breaks extensions
-  built before it; a build stamped with a protocol newer than the latest
-  released app is published but not offered until that app is out.
+  built before it, and for one that extensions built after it rely on (a
+  new SDK export, a new `Effect` field: the SDK is external to a package);
+  a build stamped with a protocol newer than the latest released app is
+  published but not offered until that app is out.
 - **Identity and order.** A build is its tree hash (`pal-tree-v1`), ordered
   by `seq` (the source commit's time). The manifest's `version` is for
   humans only; nothing compares it.
