@@ -80,7 +80,8 @@ const server = Bun.serve({
 const slow = Bun.serve({ port: 0, async fetch() { await Bun.sleep(2500); return Response.json([]); } });
 const redirecting = Bun.serve({ port: 0, fetch(req) { return new Response(null, { status: 301, headers: { location: new URL(req.url).pathname.replace(/^/, `http://127.0.0.1:${server.port}`) } }); } });
 const URL_ = `http://127.0.0.1:${server.port}`;
-const base = { url: URL_, token: TOKEN, favorites: ["sensor.temp"], timeout: 2 };
+// A roomy timeout: the parallel suite can hold a request past 2 s, and a redirect makes two of each; the timeout test sets its own.
+const base = { url: URL_, token: TOKEN, favorites: ["sensor.temp"], timeout: 10 };
 
 let host: Host;
 beforeAll(async () => { host = await Host.bundled({ settings: { [E]: { settings: base } } }); });

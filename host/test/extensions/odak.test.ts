@@ -369,8 +369,9 @@ describe("odak", () => {
       expect(await host.barAction("odak", "today", "open-odak")).toEqual({ open: BASE });
       expect(await host.barAction("odak", "today", "open-pal")).toEqual({ push: { extension: "odak", palette: "odak" } });
       const gets = calls("GET", "/todos").length;
+      // r answers once its own fetch is in: one asked after the press, never a background one already running.
       expect(await host.barAction("odak", "today", "refresh")).toEqual({ keep: true });
-      await host.until(() => calls("GET", "/todos").length > gets, 3000, "the refetch"); // the action answers before its fetch lands; a background refresh may land too, so at least one more
+      expect(calls("GET", "/todos").length).toBeGreaterThan(gets);
       // Marked rows (`ctx.ids`): x completes them all, whatever the cursor is on.
       expect(await host.barAction("odak", "today", "complete", { reason: "open", ids: [id("Ship the release"), id("Write the changelog")] })).toEqual({ keep: true, hud: "Done: 2 todos" });
       expect([item("Ship the release").done, item("Write the changelog").done, !!item("Call the bank").done]).toEqual([true, true, false]);

@@ -79,13 +79,14 @@ type Entry<T> = { at: number; data: T };
 const mem = new Map<string, Entry<unknown>>();
 const inflight = new Map<string, Promise<unknown>>();
 
-/** The value under `key` while younger than `ttlMs` (unless `refresh`), else `load()`; a loader that fails leaves a stale value standing (logged) when there is one, so an outage keeps the rows. */
+/** The value under `key` while younger than `ttlMs` (unless `refresh`), else `load()`; a loader that fails leaves a stale value standing (logged) when there is one, so an outage keeps the rows. A fetch already running is joined, except by a `refresh`: that one was asked for after it started, so it waits for it and fetches again. */
 export async function cached<T>(key: string, ttlMs: number, refresh: boolean, load: () => Promise<T>): Promise<T> {
   credentials();
   const have = mem.get(key) as Entry<T> | undefined;
   if (have && !refresh && Date.now() - have.at < ttlMs) return have.data;
-  const running = inflight.get(key) as Promise<T> | undefined;
-  if (running) return running;
+  let running = inflight.get(key) as Promise<T> | undefined;
+  if (running && !refresh) return running;
+  while (running) { await running.catch(() => undefined); running = inflight.get(key) as Promise<T> | undefined; }
   const p = (async () => {
     try {
       const data = await load();
