@@ -715,14 +715,18 @@ pub struct Update {
     pub name: String,
     pub current: String,
     pub latest: String,
+    /// It waits for the user; else it is going in by itself.
+    pub waits: bool,
 }
 
 /// The one update check (`pal_core::updates::check`) over freshly fetched
-/// indexes (`store::refresh`, which also applies what updates by itself),
-/// remembered.
+/// indexes (`store::check_now`), remembered: every extension behind, each
+/// marked whether it waits for the user or is going in by itself behind
+/// the answer.
 async fn check_extensions(app: &AppHandle) -> Result<Vec<Update>, String> {
-    let state = crate::store::refresh(app, Duration::ZERO).await;
-    let found: Vec<Update> = state.statuses.iter().filter_map(|s| Some(Update { current: s.installed.as_ref().map(|b| b.hash.clone()).unwrap_or_default(), latest: s.target()?.hash.clone(), name: s.name.clone() })).collect();
+    let state = crate::store::check_now(app).await;
+    let global = config(app).store.auto_update;
+    let found: Vec<Update> = state.statuses.iter().filter_map(|s| Some(Update { current: s.installed.as_ref().map(|b| b.hash.clone()).unwrap_or_default(), latest: s.target()?.hash.clone(), name: s.name.clone(), waits: crate::store::waits(s, global) })).collect();
     let failed: Vec<String> = state.registries.iter().filter_map(|r| r.status.last_error.clone()).collect();
     // A failed fetch never reads as "up to date".
     let r = if found.is_empty() && !failed.is_empty() { Err(failed.join("; ")) } else { Ok(found) };
@@ -1485,7 +1489,7 @@ mod tests {
 
     #[test]
     fn an_updated_or_removed_extension_is_no_longer_behind() {
-        let up = |name: &str| Update { name: name.into(), current: "a".into(), latest: "b".into() };
+        let up = |name: &str| Update { name: name.into(), current: "a".into(), latest: "b".into(), waits: true };
         let mut c = Checks { app: None, extensions: Some(Checked::at(1, Ok(vec![up("one"), up("two")]))) };
         c.forget("one");
         assert_eq!(c.extensions.as_ref().unwrap().value.as_ref().unwrap(), &[up("two")]);

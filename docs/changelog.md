@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 · 2026-09-30
+
+- **Fixed: Check for Updates could take minutes** while the extensions that update by themselves were installed, and each of them was installed twice. The check now answers as soon as it has looked, says which extensions are updating, and they go in behind it, once.
+
 ## 0.10.0 · 2026-09-30
 
 - **Read before you decide**: in the Gmail, WhatsApp, Slack and GitHub popovers, Space opens the row under the cursor in full: the whole mail, the chat's latest messages, a pull request's or issue's text and comments. Its keys still work there (`m` read, `s` star, `r` reply, Enter to open), and Space or Escape takes you back. In the compact panel, ⌘I does the same for any row with details.

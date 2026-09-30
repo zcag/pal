@@ -402,10 +402,9 @@ fn theme_name(t: Theme) -> &'static str {
     }
 }
 
-/// What the update check says, as a toast; an installable release points at the row that installs it.
 /// Both checks as one toast: the release's answer, then what the
-/// registries said (the extensions whose update waits for you; the rest
-/// updated by themselves during the check).
+/// registries said (the extensions whose update waits for you, and the ones
+/// going in by themselves behind the answer).
 pub fn updates_toast(c: &settings::Checks) -> Value {
     let app = c.app.as_ref().map(|a| a.result().cloned().map_err(String::from)).unwrap_or_else(|| Err("did not run".into()));
     let t = app_toast(&app);
@@ -414,11 +413,30 @@ pub fn updates_toast(c: &settings::Checks) -> Value {
     let ext = c.extensions.as_ref().map(|e| e.result());
     let add = |m: &mut String, s: &str| { if !m.is_empty() { m.push_str(". ") } m.push_str(s) };
     match ext {
-        Some(Ok(v)) if v.is_empty() => { if current { title = "pal and its extensions are up to date".into() } }
         Some(Ok(v)) => {
-            let names = v.iter().map(|u| u.name.as_str()).collect::<Vec<_>>().join(", ");
-            let line = format!("{names} {} an update: Settings > About updates {}", if v.len() == 1 { "has" } else { "have" }, if v.len() == 1 { "it" } else { "them" });
-            if current { title = format!("{} {} an update", v.len(), if v.len() == 1 { "extension has" } else { "extensions have" }); message = line } else { add(&mut message, &line) }
+            let (waiting, going): (Vec<&settings::Update>, Vec<&settings::Update>) = v.iter().partition(|u| u.waits);
+            let names = |us: &[&settings::Update]| us.iter().map(|u| u.name.as_str()).collect::<Vec<_>>().join(", ");
+            let n = |k: usize| format!("{k} extension{}", if k == 1 { "" } else { "s" });
+            if waiting.is_empty() && going.is_empty() && current {
+                title = "pal and its extensions are up to date".into();
+            }
+            if !waiting.is_empty() {
+                let line = format!("{} {} an update: Settings > About updates {}", names(&waiting), if waiting.len() == 1 { "has" } else { "have" }, if waiting.len() == 1 { "it" } else { "them" });
+                if current {
+                    title = format!("{} {} an update", n(waiting.len()), if waiting.len() == 1 { "has" } else { "have" });
+                    message = line;
+                } else {
+                    add(&mut message, &line);
+                }
+            }
+            if !going.is_empty() {
+                if current && waiting.is_empty() {
+                    title = format!("Updating {}", n(going.len()));
+                    message = names(&going);
+                } else {
+                    add(&mut message, &format!("Updating {} by itself: {}", n(going.len()), names(&going)));
+                }
+            }
         }
         Some(Err(e)) => add(&mut message, &format!("Extensions could not be checked: {e}")),
         None => {}

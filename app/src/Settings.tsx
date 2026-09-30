@@ -375,18 +375,19 @@ export default function Settings() {
   // runs when the Overview opens only while `general.check_updates` is on
   // and the last result is a day old, and is remembered, so a window
   // opened twice a day asks once; "Check now" (`force`) always runs, and
-  // fetches every registry too. The extensions' check is the store's
-  // (`useStore`): every registry is fetched when the Extensions page opens.
+  // fetches every registry too (`store::check_now`: the state reaches
+  // `useStore` on its event, and what updates by itself goes in behind the
+  // answer, so a second refresh from here would only race it). Every
+  // registry is also fetched when the Extensions page opens.
   const { state: storeState, loaded: storeLoaded, refresh: storeRefresh } = useStore();
   const [checking, setChecking] = useState(false);
   // Answers what the core knows after, for the About page's row (the app's result, or its error).
   const check = useCallback((force: boolean): Promise<Checks | undefined> => {
     setChecking(true);
-    return Promise.all([
-      invoke<Checks>("settings_check_updates", { force }).then((checks) => { setView((v) => (v ? { ...v, checks } : v)); return checks; }, (e) => { setError(String(e)); return undefined; }),
-      force ? storeRefresh() : undefined,
-    ]).then(([c]) => c).finally(() => setChecking(false));
-  }, [storeRefresh]);
+    return invoke<Checks>("settings_check_updates", { force })
+      .then((checks) => { setView((v) => (v ? { ...v, checks } : v)); return checks; }, (e) => { setError(String(e)); return undefined; })
+      .finally(() => setChecking(false));
+  }, []);
   useEffect(() => { if (page === "overview") check(false); }, [page, check]);
   useEffect(() => { if (page === "extensions") storeRefresh(); }, [page, storeRefresh]);
   const update = view?.checks.app?.value;

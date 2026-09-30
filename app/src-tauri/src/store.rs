@@ -257,6 +257,9 @@ pub struct Service {
     /// Held while the registries are fetched; when the last fetch ended,
     /// and the `[[store.registries]]` it fetched (another set is stale).
     fetched: AsyncMutex<Option<(Instant, Vec<RegistryConfig>)>>,
+    /// Held while the updates that apply by themselves go in: a second pass
+    /// waits, then finds them done, rather than installing each again.
+    applying: AsyncMutex<()>,
     /// Per pending name: the last error, since when.
     pending: Mutex<BTreeMap<String, (Option<String>, u64)>>,
     rolled_back: Mutex<Vec<RolledBack>>,
@@ -277,6 +280,7 @@ pub fn setup(app: &AppHandle) {
         busy: Mutex::new(BTreeSet::new()),
         names: Mutex::new(HashMap::new()),
         fetched: AsyncMutex::new(None),
+        applying: AsyncMutex::new(()),
         pending: Mutex::new(BTreeMap::new()),
         rolled_back: Mutex::new(Vec::new()),
         deferred: Mutex::new(BTreeSet::new()),
@@ -838,6 +842,26 @@ async fn fetch(app: &AppHandle, max_age: Duration) {
     *last = Some((Instant::now(), followed));
 }
 
+/// Check for Updates: every registry fetched now and the state computed,
+/// answered at once; what updates by itself then goes in behind it
+/// (`refresh`, which finds the fetch fresh), so the check never waits on
+/// twenty installs.
+pub async fn check_now(app: &AppHandle) -> StoreState {
+    fetch(app, Duration::ZERO).await;
+    let st = compute(app).await;
+    let bg = app.clone();
+    tauri::async_runtime::spawn(async move {
+        refresh(&bg, ON_OPEN).await;
+    });
+    st
+}
+
+/// Whether an update waits for the user: it does not apply by itself
+/// (`auto_plan`'s rule), with `global` the `[store] auto_update` switch.
+pub fn waits(s: &Status, global: bool) -> bool {
+    !(global && s.auto_update)
+}
+
 /// A refresh for an open (the Store palette, Settings › Extensions), in the
 /// background and at most every [`ON_OPEN`].
 pub fn refresh_soon(app: &AppHandle) {
@@ -866,7 +890,7 @@ async fn reconcile(app: &AppHandle) {
 fn auto_plan(statuses: Vec<Status>, global: bool, busy: impl Fn(&str) -> bool, shown: impl Fn(&str) -> bool) -> (Vec<Status>, Vec<String>) {
     let mut now = Vec::new();
     let mut later = Vec::new();
-    for s in statuses.into_iter().filter(|s| global && s.auto_update && s.target().is_some() && !busy(&s.name)) {
+    for s in statuses.into_iter().filter(|s| !waits(s, global) && s.target().is_some() && !busy(&s.name)) {
         if shown(&s.name) {
             later.push(s.name);
         } else {
@@ -877,6 +901,8 @@ fn auto_plan(statuses: Vec<Status>, global: bool, busy: impl Fn(&str) -> bool, s
 }
 
 async fn auto_apply(app: &AppHandle) {
+    let s = svc(app);
+    let _one = s.applying.lock().await;
     let global = settings::config(app).store.auto_update;
     let statuses = blocking(app, |m| Ok(m.check())).await.unwrap_or_default();
     let (now, later) = auto_plan(statuses, global, |n| is_busy(app, n), |n| crate::views::shown(app, n));

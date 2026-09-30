@@ -234,7 +234,9 @@ answers on the HUD or as a toast: "pal `<version>` is available",
 "pal is up to date", "Nothing to update to: no release published yet",
 or "Could not check for updates" with the error, then what the
 registries said: "pal and its extensions are up to date", "2 extensions
-have an update" (Settings › About's Extensions row updates them), or
+have an update" (Settings › About's Extensions row updates them),
+"Updating 3 extensions" (the ones that update by themselves go in behind
+the answer, so the check never waits on them), or
 "Extensions could not be checked" with the registry's error. A build that cannot be
 installed over says why in place of the Install button: a development
 build, a `.deb` or `.rpm` (the package manager's), a bare Linux binary.
