@@ -249,11 +249,22 @@ describe("index", () => {
 });
 
 describe("the bundled list", () => {
-  test("extensions/bundled.txt is sorted, has no duplicates, and every name is an extension directory", () => {
-    const names = readFileSync(join(BUNDLED, "bundled.txt"), "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
-    expect(names.length).toBeGreaterThan(0);
-    expect(names).toEqual([...new Set(names)].sort());
-    for (const n of names) expect(existsSync(join(BUNDLED, n, "index.ts")), n).toBe(true);
+  const list = (file: string) => readFileSync(join(BUNDLED, file), "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
+  test("bundled.txt and registry-only.txt are sorted, have no duplicates, and every name is an extension directory", () => {
+    for (const file of ["bundled.txt", "registry-only.txt"]) {
+      const names = list(file);
+      expect(names.length, file).toBeGreaterThan(0);
+      expect(names, file).toEqual([...new Set(names)].sort());
+      for (const n of names) expect(existsSync(join(BUNDLED, n, "index.ts")), `${file}: ${n}`).toBe(true);
+    }
+  });
+  test("every extension is decided: in exactly one of bundled.txt and registry-only.txt", () => {
+    const bundled = new Set(list("bundled.txt")), registry = new Set(list("registry-only.txt"));
+    const dirs = readdirSync(BUNDLED, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(BUNDLED, d.name, "pal.json"))).map((d) => d.name);
+    const undecided = dirs.filter((d) => !bundled.has(d) && !registry.has(d));
+    const both = dirs.filter((d) => bundled.has(d) && registry.has(d));
+    expect(undecided, "add each to extensions/bundled.txt or extensions/registry-only.txt (CLAUDE.md)").toEqual([]);
+    expect(both).toEqual([]);
   });
 });
 

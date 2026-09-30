@@ -1,0 +1,54 @@
+# The extensions that ship only through pal's registry, never in the app:
+# the other half of bundled.txt. Every directory under extensions/ is in
+# exactly one of the two (host/test/pack.test.ts), so a new extension is a
+# decision, not a default: bundled when it needs no account or setup and a
+# Mac user expects it on day one (or a core feature relies on it), here
+# otherwise (docs/design/distribution.md, "What is bundled").
+2048
+blackjack
+calendar
+crossword
+diff
+docker
+dpi
+flashcards
+gifs
+github
+gmail
+google
+grafana
+home-assistant
+hue
+icons
+images
+immich
+make
+maps
+minesweeper
+night-parade
+obsidian
+odak
+onepassword
+otp
+privacy
+services
+sessions
+slack
+snake
+solitaire
+space
+speedtest
+spotify
+ssh
+stats
+sudoku
+tela
+theater
+translate
+turkish
+typing
+weather
+whatsapp
+wordle
+yahtzee
+youtube

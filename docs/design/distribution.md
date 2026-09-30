@@ -477,7 +477,9 @@ The other 47 are in our registry only:
   flashcards, turkish, dpi.
 
 The list lives in a file (`extensions/bundled.txt`) that the build reads, not
-in the loader, so moving one across is a one-line change. The usage counts
+in the loader, so moving one across is a one-line change. The rest are named
+in `extensions/registry-only.txt`, and a test requires every extension to be
+in exactly one of the two: a new extension is a decision, never a default. The usage counts
 will settle the borderline ones (stats, weather, ssh).
 
 **Built in comes from the root, not `repo: "bundled"`.** All 80 manifests say

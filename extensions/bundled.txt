@@ -3,7 +3,8 @@
 # from our registry: installed from a search, the Games shelf, the Store or
 # Settings (docs/design/distribution.md, "What is bundled": the day-one set
 # that needs no account or setup, and what the core's features rely on).
-# Every name here must be a directory under extensions/.
+# Every name here must be a directory under extensions/; every other
+# extension is in registry-only.txt (a test checks both).
 apps
 audio
 bluetooth

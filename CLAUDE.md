@@ -18,13 +18,16 @@ section of `notes/decisions.md`.
 
 ## Extensions are distributed, not just bundled
 
-- **Bundled vs registry.** `extensions/bundled.txt` lists the extensions
-  built into the app (the ones that need no account or setup, plus what the
-  core's features rely on). Everything else ships only through pal's
-  registry. A new extension is registry-only unless it clearly belongs in
-  that core set; adding or moving a name is a one-line change there, and a
-  name that leaves the bundle is installed by itself on machines that use it
-  (the migration in `app/src-tauri/src/store.rs`).
+- **Bundled vs registry is a decision for every extension.**
+  `extensions/bundled.txt` lists the extensions built into the app (they
+  need no account or setup and a Mac user expects them on day one, or a
+  core feature relies on them); `extensions/registry-only.txt` lists the
+  rest, which ship only through pal's registry. Every extension directory
+  must be in exactly one of the two, and a test fails otherwise, so a new
+  extension gets a deliberate call: say which list and why when adding it.
+  Moving one is a one-line change; a name that leaves the bundle is
+  installed by itself on machines that use it (the migration in
+  `app/src-tauri/src/store.rs`).
 - **How a change reaches users.** A green push to main publishes every
   changed extension to the **edge** index (`.github/workflows/extensions.yml`).
   Users follow **stable**: `make ext-release [NAMES="a b"]` promotes edge to
