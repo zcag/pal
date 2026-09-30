@@ -65,7 +65,7 @@ function rowNode(r: BarRow, focused: boolean): ViewNode {
 
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {
   const kids: ViewNode[] = [...keyHint("enter", "open")];
-  if (cur) kids.push(...keyHint("m", "read"), ...keyHint("s", cur.starred ? "unstar" : "star"));
+  if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }), ...keyHint("m", "read"), ...keyHint("s", cur.starred ? "unstar" : "star"));
   if (st.rows.length) kids.push(...keyHint("a", "all read"));
   kids.push(...keyHint("o", "Gmail"), ...keyHint("p", "pal"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
@@ -76,6 +76,7 @@ export function actions(st: BarState): Action[] {
   const clicks: Action[] = st.rows.map((r): Action => ({ id: `focus:${r.id}`, title: `Go to ${r.who}`, hidden: true }));
   return [
     { id: "open", title: cur ? `Open ${cur.subject || "message"} in Gmail` : "Open Gmail", multi: true },
+    ...(cur ? [{ id: "preview", title: "Preview", shortcut: "space" } as Action] : []),
     ...(cur ? [{ id: "read", title: "Mark as read", shortcut: "m", multi: true } as Action] : []),
     ...(cur ? [{ id: "star", title: cur.starred ? "Remove star" : "Star", shortcut: "s", multi: true } as Action] : []),
     ...(st.rows.length ? [{ id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" } as Action] : []),

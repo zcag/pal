@@ -37,8 +37,11 @@ const allPrs = (st: PrState) => st.buckets.flatMap((b) => b.rows);
 export const shownPrs = (st: PrState): PR[] => allPrs(st);
 export const shownIssues = (st: IssueState): IssueBucketed[] => st.rows;
 
-function barHints(): ViewNode {
-  return row([...keyHint("enter", "open"), ...keyHint("c", "copy"), ...keyHint("m", "mute"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
+/** Space only over a row: an empty popover has nothing to read. */
+const previewHint = (any: boolean) => (any ? keyHint("space", "preview", { action: "preview" }) : []);
+
+function barHints(any: boolean): ViewNode {
+  return row([...keyHint("enter", "open"), ...previewHint(any), ...keyHint("c", "copy"), ...keyHint("m", "mute"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
 function status(pr: PR): { text: string; color: TagColor } {
@@ -88,6 +91,7 @@ function prActions(st: PrState): Action[] {
   const rows = shownPrs(st);
   return [
     { id: "open", title: "Open on GitHub", shortcut: "enter", multi: true },
+    ...(rows.length ? [{ id: "preview", title: "Preview", shortcut: "space" }] : []),
     { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"], multi: true },
     { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"], multi: true },
     { id: "refresh", title: "Refresh", shortcut: "r" },
@@ -102,6 +106,7 @@ function issueActions(st: IssueState): Action[] {
   const rows = shownIssues(st);
   return [
     { id: "open", title: "Open on GitHub", shortcut: "enter", multi: true },
+    ...(rows.length ? [{ id: "preview", title: "Preview", shortcut: "space" }] : []),
     { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"], multi: true },
     { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"], multi: true },
     { id: "refresh", title: "Refresh", shortcut: "r" },
@@ -122,7 +127,7 @@ export function renderPrs(st: PrState): View {
     kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...b.rows.map((pr) => prNode(pr, seen++ === focus, st)));
   }
   if (!rows.length) kids.push(empty("No open pull requests", "None of yours, and no review asked of you"));
-  kids.push({ type: "divider", key: "rule" }, barHints());
+  kids.push({ type: "divider", key: "rule" }, barHints(rows.length > 0));
   const n = allPrs(st).length;
   return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: prActions(st), title: `${n} open ${n === 1 ? "pull request" : "pull requests"}`, id: "prs", keys: "actions" };
 }
@@ -140,7 +145,7 @@ export function renderIssues(st: IssueState): View {
     kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...bucket.map((x) => issueNode(x, seen++ === focus, st)));
   }
   if (!rows.length) kids.push(empty("No open issues", "None assigned to you, mentioning you or opened by you"));
-  kids.push({ type: "divider", key: "rule" }, barHints());
+  kids.push({ type: "divider", key: "rule" }, barHints(rows.length > 0));
   const n = st.rows.length;
   return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: issueActions(st), title: `${n} open ${n === 1 ? "issue" : "issues"}`, id: "issues", keys: "actions" };
 }
@@ -209,8 +214,8 @@ function repoHeader(repo: string, count: number): ViewNode {
   return row([text(repo, { size: "xs", weight: "semibold", color: "muted", width: POPOVER_W - 48 }), { type: "spacer" }, { type: "badge", key: "n", text: String(count), color: "grey" }], { key: `repo:${repo}`, gap: 1, minHeight: 18, padding: 0 });
 }
 
-function hints(): ViewNode {
-  return row([...keyHint(["enter"], "open"), ...keyHint(["m"], "read"), ...keyHint(["a"], "all read"), ...keyHint(["p"], "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
+function hints(any: boolean): ViewNode {
+  return row([...keyHint(["enter"], "open"), ...previewHint(any), ...keyHint(["m"], "read"), ...keyHint(["a"], "all read"), ...keyHint(["p"], "in pal")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
 /** What a popover says with no rows; the PR and issue items reach it only by choice (the core's `show = "always"` keeping their `empty` shape), so it says why it is empty rather than showing bare hints. */
@@ -231,6 +236,7 @@ export function actions(st: NotifState): Action[] {
   const list: Action[] = rows.length
     ? [
       { id: "open", title: "Open on GitHub", shortcut: "o", multi: true },
+      { id: "preview", title: "Preview", shortcut: "space" },
       { id: "read", title: "Mark read", shortcut: "m", multi: true },
       { id: "read-all", title: "Mark all read", shortcut: ["a", "cmd+shift+a"], style: "destructive" },
       { id: "pal", title: "Open in pal", shortcut: "p" },
@@ -255,7 +261,7 @@ export function render(st: NotifState): View {
       kids.push(threadRow(n, i === cursor, st));
     });
   }
-  kids.push({ type: "divider", key: "rule" }, hints());
+  kids.push({ type: "divider", key: "rule" }, hints(rows.length > 0));
   const n = st.list.length;
   const title = `${n ? `${n} unread` : "Notifications"}${st.account ? ` (${st.account})` : ""}`;
   return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: actions(st), title, id: "notifications", keys: "actions" };

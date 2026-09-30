@@ -314,7 +314,7 @@
     "features": [
       "Direct messages, mentions and thread replies with avatars and the message; unread channels under them",
       "`enter` opens the message in Slack; reply or mark as read without leaving the panel",
-      "A bar item that counts only what is addressed to you, red while a direct message waits",
+      "A bar item that counts only what is addressed to you, red while a direct message waits; `space` in its popover reads the message",
       "Every channel and conversation you are in, with the topic and member count",
       "Search as you type with Slack's own filters: `from:@name`, `in:#channel`, `has:link`",
       "Set your status, presence and Do Not Disturb from the panel"

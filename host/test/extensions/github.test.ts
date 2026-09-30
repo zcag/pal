@@ -589,7 +589,7 @@ describe("github", () => {
       const view = (item.menu as { view: View }).view;
       expect(checkView(view)).toBe(view);
       expect(view).toMatchObject({ title: "3 unread", id: "notifications", keys: "actions" });
-      expect(view.actions.map((a) => a.id)).toEqual(["open", "read", "read-all", "pal", "copy", "down", "up", "focus:thread:1002", "focus:thread:1001", "focus:thread:1003"]);
+      expect(view.actions.map((a) => a.id)).toEqual(["open", "preview", "read", "read-all", "pal", "copy", "down", "up", "focus:thread:1002", "focus:thread:1001", "focus:thread:1003"]);
       const s = JSON.stringify(view.tree);
       // Newest first, grouped by repository: acme/api (the PR at 09:00, the release at 08:00), then acme/widgets.
       expect(s.indexOf('"repo:acme/api"')).toBeLessThan(s.indexOf('"thread:1002"'));
@@ -605,7 +605,7 @@ describe("github", () => {
       expect(view.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
       expect(s).toContain('"action":"focus:thread:1003"');
       expect(s).not.toContain('"action":"focus:thread:1003","selected"');
-      for (const k of ["enter", "m", "a", "p", "up", "down"]) expect(s).toContain(`"type":"keycap","keys":"${k}"`);
+      for (const k of ["enter", "space", "m", "a", "p"]) expect(s).toContain(`"type":"keycap","keys":"${k}"`);
     });
 
     test("the view over a made-up inbox: every thread is a row, grouped by repository (the popover scrolls), the ages read, every reason has a badge, nothing unread is All caught up", () => {
@@ -648,6 +648,11 @@ describe("github", () => {
       expect(tree(await host.barAction("github", "notifications", "focus:thread:1002", ctx))).toContain('"action":"focus:thread:1002","selected":true');
       expect(tree(await host.barAction("github", "notifications", "up", ctx))).toContain('"action":"focus:thread:1003","selected":true');
       expect(await host.barAction("github", "notifications", "copy", ctx)).toEqual({ copy: "https://github.com/acme/widgets/issues/5" });
+      // Space: the issue behind the thread read in full, under what the inbox says of it.
+      const pv = await host.barAction("github", "notifications", "preview", ctx) as { show: { title: string; markdown: string; metadata: { label: string }[]; actions: { id: string }[] } };
+      expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "read", "copy"]);
+      expect(pv.show.metadata.map((m) => m.label)).toContain("Reason");
+      expect(pv.show.markdown).not.toMatch(/^(# |_)/);
       // Enter on the focused thread (1003): marked read on the way to the browser.
       expect(await host.barAction("github", "notifications", "open", ctx)).toEqual({ open: "https://github.com/acme/widgets/issues/5" });
       expect(seen.find((s) => s.method === "PATCH" && s.path === "/notifications/threads/1003")).toBeDefined();
@@ -701,9 +706,9 @@ describe("github", () => {
       const prView = viewOf(prs);
       expect(checkView(prView)).toBe(prView);
       expect(prView).toMatchObject({ title: "3 open pull requests", id: "prs", keys: "actions" });
-      expect(prView.actions.map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:zcag/pal#72", "focus:acme/api#9"]);
-      expect(prView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal"]);
-      expect(keycaps(prView)).toEqual(["enter", "c", "m", "r", "p", "up", "down"]);
+      expect(prView.actions.map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:zcag/pal#72", "focus:acme/api#9"]);
+      expect(prView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal"]);
+      expect(keycaps(prView)).toEqual(["enter", "space", "c", "m", "r", "p"]);
       expect(texts(prView)).toEqual(expect.arrayContaining(["Needs attention", "Waiting", "Review requested", "Directory readiness", "acme/widgets#71", "Fix the parser", "acme/api#9", "Draft thing", "zcag/pal#72"]));
       const ps = JSON.stringify(prView.tree);
       expect(ps.indexOf('"value":"Needs attention"')).toBeLessThan(ps.indexOf('"value":"Waiting"'));
@@ -721,9 +726,16 @@ describe("github", () => {
       const issueView = viewOf(issues);
       expect(checkView(issueView)).toBe(issueView);
       expect(issueView).toMatchObject({ title: "2 open issues", id: "issues", keys: "actions" });
-      expect(issueView.actions.map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#5", "focus:acme/api#8"]);
-      expect(issueView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal"]);
-      expect(keycaps(issueView)).toEqual(["enter", "c", "m", "r", "p", "up", "down"]);
+      expect(issueView.actions.map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#5", "focus:acme/api#8"]);
+      expect(issueView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "copy", "mute", "refresh", "pal"]);
+      // Space reads the focused one in full, with the keys that work on one.
+      for (const [bar, title] of [["prs", "#71 "], ["issues", "#5 "]] as const) {
+        const pv = await host.barAction("github", bar, "preview") as { show: { title: string; markdown: string; actions: { id: string }[] } };
+        expect(pv.show.title.startsWith(title)).toBe(true);
+        expect(pv.show.markdown.length).toBeGreaterThan(0);
+        expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "copy", "mute"]);
+      }
+      expect(keycaps(issueView)).toEqual(["enter", "space", "c", "m", "r", "p"]);
       expect(texts(issueView)).toEqual(expect.arrayContaining(["Assigned to you", "Mentioning you", "Crash on start", "acme/widgets#5", "Slow endpoint", "acme/api#8", "3 comments", "1 comment"]));
       const is = JSON.stringify(issueView.tree);
       expect(is.indexOf('"value":"Assigned to you"')).toBeLessThan(is.indexOf('"value":"Mentioning you"'));

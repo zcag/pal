@@ -85,6 +85,7 @@ function section(title: string, key: string, rows: BarRow[], st: BarState, offse
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {
   if (st.replying) return row([...keyHint("enter", "send"), ...keyHint("escape", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
   const kids: ViewNode[] = [...keyHint("enter", "open")];
+  if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }));
   if (cur && st.canSend) kids.push(...keyHint("r", "reply"));
   if (cur && cur.n > 0) kids.push(...keyHint("m", "read"));
   if (st.rows.some((r) => r.n > 0)) kids.push(...keyHint("a", "all read"));
@@ -98,6 +99,7 @@ export function actions(st: BarState): Action[] {
   if (st.replying) return [{ id: "send", title: "Send" }, { id: "cancel", title: "Cancel reply" }, ...clicks];
   return [
     { id: "open", title: cur ? (cur.group ? "Open WhatsApp" : `Open chat with ${cur.name}`) : "Open WhatsApp" },
+    ...(cur ? [{ id: "preview", title: "Preview", shortcut: "space" }] : []),
     ...(cur && st.canSend ? [{ id: "reply", title: `Reply to ${cur.name}`, shortcut: "r" }] : []),
     // Offered while anything is unread, not only the cursor's chat: marked rows run it over them all.
     ...(st.rows.some((r) => r.n > 0) ? [{ id: "read", title: cur && cur.n > 0 ? `Mark ${cur.name} read` : "Mark as read", shortcut: "m", multi: true } as Action] : []),

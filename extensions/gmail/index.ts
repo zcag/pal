@@ -7,10 +7,10 @@
 // the account, and so does a mail row's quick reply (the text typed in
 // the search bar, the row's `args`). Every row id is the message id, so a
 // pick after a restart still finds it with one `messages.get`.
-import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, preview, settings, toast, TokenError, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
-import { render as renderBar, type BarRow, type BarState } from "./view.ts";
+import { actions as barActions, render as renderBar, type BarRow, type BarState } from "./view.ts";
 import { address, addressNow, archive, drafts, inbox, labelNames, labels, mail, markRead, markUnread, open, reset, search, star, type DraftRow, type Inbox, type Mail } from "./data.ts";
 import { buildRaw, displayName, draftUrl, gmailBase, labelQuery, labelTitle, labelUrl, mdEscape, messageText, quoted, replySubject, sectionOf, threadUrl, withSignature } from "./mail.ts";
 
@@ -435,6 +435,8 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       dropInbox();
       return rows.length > 1 ? { ...(await redrawBar()), hud: `${on ? "Starred" : "Unstarred"} ${rows.length}` } : redrawBar();
     }
+    // The message under the cursor as a level to read, the row's keys still working there.
+    case "preview": return cur ? preview(await paneOf(cur.id), cur.subject || "(no subject)", barActions(st), ["open", "read", "star", "copy"]) : { keep: true };
     case "read": {
       // The marked rows (`BarCtx.ids`), else the one under the cursor.
       const ids = ctx?.ids ?? (cur ? [cur.id] : []);

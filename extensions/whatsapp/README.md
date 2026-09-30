@@ -60,7 +60,8 @@ zero and red while a direct chat is among them by its rules (`quiet`, `dm` under
 and when the panel shows, after a wake and when the network is back.
 The popover lists them, direct messages then groups, each with the
 picture, the newest message and the time, and a cursor the arrows move
-and a click sets: `Enter` opens the chat, `m` marks it read, `a` every
+and a click sets: `Enter` opens the chat, `Space` previews it (the
+latest messages, `r`, `m` and Enter still working there), `m` marks it read, `a` every
 listed one, `o` opens WhatsApp, `p` the Unread palette, `⌘⇧O` the web
 client; with `send` on, `r` turns the search row into a message field
 whose `Enter` sends to the focused chat. With `show = "always"` under

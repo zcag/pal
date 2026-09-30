@@ -58,6 +58,8 @@ try {
   const item = await host.render("whatsapp", "unread", { reason: "cli" });
   const view = (item.menu as { view: View }).view;
   await host.barAction("whatsapp", "unread", `focus:${MARA}`, { reason: "open", compact: true });
+  // Space on the first row, before the reply field takes the popover's keys.
+  const preview = await host.barAction("whatsapp", "unread", "preview", { reason: "open", compact: true });
   const reply = (await host.barAction("whatsapp", "unread", "reply", { reason: "open", compact: true })).view as View;
   const bar = {
     key: "whatsapp/unread",
@@ -69,9 +71,11 @@ try {
       { id: "stale", item: { stale: true, tooltip: `${item.tooltip} (stale)` } },
       { id: "reply", item: { menu: { view: reply } } },
     ],
+    effects: { preview },
     shots: {
       "menubar": { target: "menubar", caption: "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct message waits" },
       "popover": { target: "menubar", popover: true, caption: "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys" },
+      "popover-preview": { target: "menubar", popover: true, keys: ["space", "wait:300"], caption: "Space reads the chat before deciding: the latest messages, with Enter, r and m still working there" },
       "popover-reply": { target: "menubar", popover: true, state: "reply", caption: "r turns the search row into a message field (send on); Enter sends it" },
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the count" },
     },

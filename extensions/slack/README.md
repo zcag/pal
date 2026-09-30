@@ -170,6 +170,7 @@ it.
 | key | does |
 | --- | --- |
 | Enter | opens the row in the Slack app, at the message |
+| `Space` | previews the row: the conversation read in full, with Enter, `r`, `m`, `⌘⇧O` and `⌘C` still working there |
 | `r` | reply: the search row becomes a text field, Enter posts it to the conversation (into the thread for a threaded mention), Escape cancels |
 | `m` | marks the row read, up to its latest message |
 | `a`, `⌘⇧A` | marks every listed conversation read |

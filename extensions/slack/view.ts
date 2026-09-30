@@ -103,6 +103,7 @@ function quietRow(st: BarState): ViewNode[] {
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {
   if (st.replying) return row([...keyHint("enter", "send"), ...keyHint("escape", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
   const kids: ViewNode[] = [...keyHint("enter", "open")];
+  if (cur) kids.push(...keyHint("space", "preview", { action: "preview" }));
   if (cur?.canReply) kids.push(...keyHint("r", "reply"));
   if (cur?.canRead) kids.push(...keyHint("m", "read"));
   kids.push(...keyHint("a", "all read"), ...keyHint("o", "Slack"), ...keyHint("p", "pal"));
@@ -119,6 +120,7 @@ export function actions(st: BarState): Action[] {
   if (st.replying) return [{ id: "send", title: "Send" }, { id: "cancel", title: "Cancel reply" }, ...clicks];
   return [
     { id: "open", title: cur ? `Open ${cur.where} in Slack` : "Open Slack" },
+    ...(cur ? [{ id: "preview", title: "Preview", shortcut: "space" }] : []),
     ...(cur?.canReply ? [{ id: "reply", title: `Reply to ${cur.where}`, shortcut: "r" }] : []),
     // Offered while any row can be read: over marked rows (`mark`) the cursor's own row need not be one.
     ...(st.rows.some((r) => r.canRead) ? [{ id: "read", title: cur?.canRead ? `Mark ${cur.where} read` : "Mark read", shortcut: "m", multi: true as const }] : []),

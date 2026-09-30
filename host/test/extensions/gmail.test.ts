@@ -414,8 +414,8 @@ describe("gmail", () => {
     // Four unread and four rows, so nothing is left to count.
     expect(t.some((x) => x.startsWith("and "))).toBe(false);
     // The keys the popover offers, as its hints and its actions.
-    expect(keycaps(v)).toEqual(["enter", "m", "s", "a", "o", "p"]);
-    expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "read", "star", "read-all", "open-gmail", "open-pal", "copy"]);
+    expect(keycaps(v)).toEqual(["enter", "space", "m", "s", "a", "o", "p"]);
+    expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "preview", "read", "star", "read-all", "open-gmail", "open-pal", "copy"]);
     // Every row is clickable: a hidden focus action each.
     expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:m1", "focus:m2", "focus:m3", "focus:m4"]);
     // Every row can be marked (its message id), and `m` marks every marked row read at once.
@@ -432,6 +432,11 @@ describe("gmail", () => {
     expect(modifies().at(-1)).toEqual({ ids: ["w2"], removeLabelIds: ["UNREAD"] });
     // The cursor moves and redraws, and the keys act on the row it is on.
     expect(viewOf(await host.barAction(W, "unread", "focus:w1"))).toMatchObject({ id: "unread" });
+    // Space reads the row in full: the message's pane, its subject the title, the keys that work on one message.
+    const pv = await host.barAction(W, "unread", "preview") as { show: { title: string; markdown: string; actions: { id: string; multi?: true }[] } };
+    expect(pv.show).toMatchObject({ title: "Weekly report: search latency", markdown: expect.stringContaining("p95 is down 12%") });
+    expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "read", "star", "copy"]);
+    expect(pv.show.actions.some((a) => a.multi)).toBe(false);
     expect(await host.barAction(W, "unread", "star")).toMatchObject({ view: { id: "unread" } });
     expect(modifies().at(-1)).toEqual({ ids: ["w1"], addLabelIds: ["STARRED"] });
     // Marked rows star as Gmail's button does: all of them unless every one is starred already, then all unstarred.

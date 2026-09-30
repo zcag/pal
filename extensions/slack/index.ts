@@ -8,14 +8,14 @@
 // rows' `args`); an unread row's Reply and a conversation's Send take the
 // message the same way. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { ago, argsForm, clock, errorMessage, foldEffects, failed, hint, imageData, now, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { ago, argsForm, clock, errorMessage, foldEffects, failed, hint, imageData, now, preview, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
   MAX_MSGS, MAX_QUIET, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, presenceOf, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
   type Conversation, type Inbox, type Msg, type Presence, type SearchHit, type Unread,
 } from "./data.ts";
-import { SECTION, render as renderBar, type BarRow, type BarState } from "./view.ts";
+import { SECTION, actions as barActions, render as renderBar, type BarRow, type BarState } from "./view.ts";
 
 /** Glyphs from the bundled Nerd Font's `md-` set: slack, at, forum, pound, lock, account, account-multiple, magnify, emoticon, bell-sleep, bell, account-check, account-off, check-all, open-in-new, inbox. */
 const ICON = { slack: "\u{f04b1}", dm: "\u{f0009}", mention: "\u{f0065}", thread: "\u{f028c}", channel: "\u{f0423}", private: "\u{f033e}", im: "\u{f0004}", mpim: "\u{f000e}", search: "\u{f0349}", status: "\u{f01f2}", dndOn: "\u{f00a0}", dndOff: "\u{f009a}", active: "\u{f0008}", away: "\u{f0012}", clear: "\u{f012d}", browser: "\u{f03cc}", inbox: "\u{f0687}" } as const;
@@ -148,6 +148,8 @@ async function unreadPane(u: Unread): Promise<Detail> {
   if (u.more) parts.push("_…and more before these._");
   return { markdown: parts.join("\n\n---\n\n"), metadata };
 }
+
+const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await unreadPane(await findUnread(id)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };
 
 async function findUnread(id: string): Promise<Unread> {
   const have = rows.get(id);
@@ -471,6 +473,8 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
       barFocus = st.rows[(st.focus + (action === "down" ? 1 : st.rows.length - 1)) % st.rows.length].id;
       return redraw();
     }
+    // The conversation under the cursor as a level to read, the row's keys still working there.
+    case "preview": return cur ? preview(await paneOf(cur.id), cur.where, barActions(st), ["open", ...(cur.canReply ? ["reply"] : []), ...(cur.canRead ? ["read"] : []), "browser", "copy"]) : { keep: true };
     case "reply": if (cur?.canReply) { barReplying = cur.id; barDraft = ""; } return redraw();
     case "cancel": barReplying = undefined; barDraft = undefined; return redraw();
     case "send": {
@@ -510,7 +514,7 @@ export default {
       live: true,
       list: (_q, ctx) => guard(() => unreadRows(ctx)),
       pick: async (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickUnread(await findUnread(id), action, ctx)),
-      detail: async (id) => { if (id.startsWith("hint:")) return; try { return await unreadPane(await findUnread(id)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } },
+      detail: paneOf,
     },
     channels: {
       title: "Channels",

@@ -405,8 +405,8 @@ describe("slack", () => {
       // Counts: the DM run of 2 in red, the thread's 3 in blue; the quiet channels as badges a click opens.
       const badges = all.filter((n): n is Extract<ViewNode, { type: "badge" }> => n.type === "badge");
       expect(badges.map((b) => [b.text, b.color, b.action])).toEqual(expect.arrayContaining([["2", "red", undefined], ["3", "blue", undefined], ["#ops", "grey", "open:channel:T1/C_OPS"], ["#general", "grey", "open:channel:T1/C_GEN"]]));
-      expect(keycaps(view)).toEqual(["enter", "r", "m", "a", "o", "p"]);
-      expect(view.actions.slice(0, 6).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-slack", "o"], ["open-pal", "p"]]);
+      expect(keycaps(view)).toEqual(["enter", "space", "r", "m", "a", "o", "p"]);
+      expect(view.actions.slice(0, 7).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["preview", "space"], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-slack", "o"], ["open-pal", "p"]]);
     });
 
     test("keys: the cursor moves with the arrows and a click, Enter opens the focused row, the quiet badges open their channel, Open in pal pushes, Open Slack opens the app", async () => {
@@ -416,13 +416,17 @@ describe("slack", () => {
       expect(nodes(v1.tree).filter((n) => n.type === "stack" && !!n.selected).map((n) => n.action)).toEqual(["focus:mention:T1/C_ENG"]);
       r = await host.barAction("slack", "unreads", "down", ctx);
       const v2 = checkView(viewOf(r));
-      expect(keycaps(v2)).toEqual(["enter", "a", "o", "p"]);
+      expect(keycaps(v2)).toEqual(["enter", "space", "a", "o", "p"]);
       expect(await host.barAction("slack", "unreads", "open", ctx)).toEqual({ open: "slack://channel?team=T1&id=C_ENG" });
       // A click on the first row: Enter opens it at the message.
       r = await host.barAction("slack", "unreads", "focus:dm:T1/D_MARA", ctx);
       expect(nodes(checkView(viewOf(r)).tree).filter((n) => n.type === "stack" && !!n.selected).map((n) => n.action)).toEqual(["focus:dm:T1/D_MARA"]);
       expect(await host.barAction("slack", "unreads", "open", ctx)).toEqual({ open: "slack://channel?team=T1&id=D_MARA&message=1789580400.000200" });
       expect(await host.barAction("slack", "unreads", "copy", ctx)).toEqual({ copy: "https://acme.slack.com/archives/D_MARA/p1789580400000200" });
+      // Space reads the conversation in full, with the keys that work on that one row.
+      const pv = await host.barAction("slack", "unreads", "preview", ctx) as { show: { title: string; markdown: string; actions: { id: string }[] } };
+      expect(pv.show.markdown.length).toBeGreaterThan(0);
+      expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "reply", "read", "browser", "copy"]);
       expect(await host.barAction("slack", "unreads", "open:channel:T1/C_OPS", ctx)).toEqual({ open: "slack://channel?team=T1&id=C_OPS" });
       // The menu-era ids still open their row (links and the CLI spell them).
       expect(await host.barAction("slack", "unreads", "dm:T1/D_MARA")).toEqual({ open: "slack://channel?team=T1&id=D_MARA&message=1789580400.000200" });

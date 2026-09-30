@@ -10,7 +10,7 @@
 // caches; they deliberately do not make a combined GitHub cluster.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { argsForm, bar, clock, eachId, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { argsForm, bar, clock, eachId, errorMessage, failed, hint, home, preview, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, entry, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
@@ -243,12 +243,14 @@ const REVIEW_WORD: Record<string, string> = { APPROVED: "approved", CHANGES_REQU
 async function prPane(pr: PR): Promise<Detail> {
   const s = splitId(pr.id)!;
   const d = await prDetail(s.owner, s.name, s.number);
-  const entries = [
-    ...d.latest.map((c) => ({ ...c, kind: "commented" })),
-    ...d.reviews.filter((r) => r.body.trim()).map((r) => ({ author: r.author, at: r.at, body: r.body, kind: REVIEW_WORD[r.state] ?? "reviewed" })),
-  ];
-  return { markdown: thread(d.body, entries), metadata: prMetadata(pr, d) };
+  return { markdown: prThread(d), metadata: prMetadata(pr, d) };
 }
+
+/** A pull request's text: its body, then the latest comments and the reviews that say something. */
+const prThread = (d: PRDetail) => thread(d.body, [
+  ...d.latest.map((c) => ({ ...c, kind: "commented" })),
+  ...d.reviews.filter((r) => r.body.trim()).map((r) => ({ author: r.author, at: r.at, body: r.body, kind: REVIEW_WORD[r.state] ?? "reviewed" })),
+]);
 
 async function findPr(id: string): Promise<PR> {
   const have = prTable.get(id);
@@ -400,6 +402,7 @@ async function prsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "refresh") return redraw();
   const focused = rows[st.focus];
   if (!focused) return { keep: true };
+  if (action === "preview") return preview(await pane(() => prPane(focused)), `#${focused.number} ${focused.title}`, renderPrs(st).actions, ["open", "copy", "mute"]);
   // The marked rows (`BarCtx.ids`), else the focused one.
   const ids = ctx?.ids ?? [focused.id];
   if (action === "mute") {
@@ -608,6 +611,7 @@ async function issuesAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "refresh") return redraw();
   const focused = rows[st.focus]?.issue;
   if (!focused) return { keep: true };
+  if (action === "preview") return preview(await pane(() => issuePane(focused)), `#${focused.number} ${focused.title}`, renderIssues(st).actions, ["open", "copy", "mute"]);
   // The marked rows (`BarCtx.ids`), else the focused one.
   const ids = ctx?.ids ?? [focused.id];
   if (action === "mute") {
@@ -802,6 +806,17 @@ const NOTIF_ACTIONS: Action[] = [
   { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
 ];
 
+/** A thread's pane: the pull request's or issue's text and latest comments when it is one, under what the inbox says of it. */
+async function notifPane(n: Notification): Promise<Detail> {
+  const metadata: Metadata[] = [repoLink(n.repo), { label: "Reason", value: REASON[n.reason] ?? n.reason }, { label: "Type", value: n.type }, { label: "Updated", value: when(n.updatedAt) }];
+  const m = n.url.match(/github\.com\/([^/]+)\/([^/]+)\/(pull|issues)\/(\d+)/);
+  if (!m) return { markdown: `# ${n.title}`, metadata };
+  const [, owner, name, kind, num] = m as unknown as [string, string, string, string, string];
+  if (kind === "pull") return { markdown: prThread(await prDetail(owner, name, +num)), metadata };
+  const d = await issueDetail(owner, name, +num);
+  return { markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata };
+}
+
 function notifRow(n: Notification): Item {
   notifTable.set(n.id, n);
   const reason = REASON[n.reason] ?? n.reason;
@@ -814,7 +829,6 @@ function notifRow(n: Notification): Item {
     url: n.url,
     section: reason,
     accessories: [{ tag: n.type === "PullRequest" ? "PR" : n.type.toLowerCase(), color: "grey" }, { date: n.updatedAt }],
-    detail: { markdown: `# ${n.title}`, metadata: [repoLink(n.repo), { label: "Reason", value: reason }, { label: "Type", value: n.type }, { label: "Updated", value: when(n.updatedAt) }] },
     actions: NOTIF_ACTIONS,
   };
 }
@@ -947,6 +961,7 @@ async function notifAction(action: string, ctx?: BarCtx): Promise<Effect> {
   }
   if (!focused) return { keep: true };
   switch (action) {
+    case "preview": return preview(await pane(() => notifPane(focused)), focused.title, renderNotifs(st).actions, ["open", "read", "copy"]);
     case "copy": return each(ctx?.ids ?? [focused.id], (id) => pickNotif(id, "copy"), "notifications");
     case "read": {
       // The marked rows (`BarCtx.ids`), else the focused one.
@@ -1093,6 +1108,7 @@ export default {
       live: true,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await notifRows(ctx))]),
       pick: (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickNotif(id, action, ctx)),
+      detail: async (id) => (id.startsWith("hint:") || id === SUMMARY ? undefined : pane(async () => notifPane(await findNotif(id)))),
     },
     search: {
       title: "Search GitHub",

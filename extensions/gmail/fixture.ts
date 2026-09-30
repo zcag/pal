@@ -72,9 +72,12 @@ try {
     key: "gmail/unread",
     title: "Unread",
     item,
+    // Space on the first row: the message read in full.
+    effects: { preview: await host.barAction(P, "unread", "preview") },
     shots: {
       "menubar": { target: "menubar", caption: "On the menu bar: the envelope with the unread count, the account's title beside it" },
       "popover": { target: "menubar", popover: true, caption: "A click opens the popover: every unread message with the sender, subject and time, a star or a paperclip; m marks one read, a marks them all" },
+      "popover-preview": { target: "menubar", popover: true, keys: ["space", "wait:300"], caption: "Space reads the message before deciding: the whole text, who and when, the attachment, with Enter, m and s still working there" },
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the envelope, the account's title and the count" },
     },
   }, { hosts }));

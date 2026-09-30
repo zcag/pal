@@ -117,8 +117,8 @@ describe("whatsapp helpers", () => {
     expect(stacks.map((s) => [s.action, !!s.selected])).toEqual([[`focus:${MARA}`, false], [`focus:${HIKE}`, true]]);
     expect(nodes(v.tree).find((n) => n.type === "tile")).toMatchObject({ text: "M", fill: "solid" });
     expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ mask: "circle", alt: "Weekend hike" });
-    expect(keycaps(v)).toEqual(["enter", "r", "m", "a", "o", "p"]);
-    expect(v.actions.slice(0, 6).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-whatsapp", "o"], ["open-pal", "p"]]);
+    expect(keycaps(v)).toEqual(["enter", "space", "r", "m", "a", "o", "p"]);
+    expect(v.actions.slice(0, 7).map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["preview", "space"], ["reply", "r"], ["read", "m"], ["read-all", ["a", "cmd+shift+a"]], ["open-whatsapp", "o"], ["open-pal", "p"]]);
     // Every row can be marked (its chat id), and `m` runs over every marked row; offered even with the cursor on a read chat.
     expect(marksOf(v.tree)).toEqual([MARA, HIKE]);
     expect(v.actions.find((a) => a.id === "read")).toMatchObject({ multi: true });
@@ -126,7 +126,7 @@ describe("whatsapp helpers", () => {
     expect(onRead.actions.find((a) => a.id === "read")).toMatchObject({ title: "Mark as read", multi: true });
     // Send off: no reply key, no hint.
     const off = checkView(render({ rows, focus: 0, canSend: false }));
-    expect(keycaps(off)).toEqual(["enter", "m", "a", "o", "p"]);
+    expect(keycaps(off)).toEqual(["enter", "space", "m", "a", "o", "p"]);
     expect(off.actions.map((a) => a.id)).not.toContain("reply");
     // Replying: the field, Send and Cancel first, the hints for them.
     const replying = checkView(render({ rows, focus: 0, canSend: true, replying: MARA, draft: "on my way" }));
@@ -137,7 +137,7 @@ describe("whatsapp helpers", () => {
     const recent = checkView(render({ rows: rows.map((r) => ({ ...r, n: 0 })), focus: 0, canSend: false }));
     expect(recent.title).toBe("WhatsApp");
     expect(texts(recent)).toEqual(expect.arrayContaining(["Recent", "Recent groups"]));
-    expect(keycaps(recent)).toEqual(["enter", "o", "p"]);
+    expect(keycaps(recent)).toEqual(["enter", "space", "o", "p"]);
     const zero = checkView(render({ rows: [], focus: 0, canSend: false }));
     expect(texts(zero)).toEqual(expect.arrayContaining(["Nothing unread", "Every chat is read"]));
   });
@@ -401,7 +401,7 @@ describe("whatsapp", () => {
     const images = nodes(view.tree).filter((n): n is Extract<ViewNode, { type: "image" }> => n.type === "image");
     expect(images.map((i) => [i.alt, i.src.slice(0, 26)])).toEqual([["Mara Lind", "data:image/svg+xml;base64,"], ["Weekend hike", "data:image/svg+xml;base64,"]]);
     expect(nodes(view.tree).find((n) => n.type === "tile")).toMatchObject({ text: "T", fill: "solid" });
-    expect(keycaps(view)).toEqual(["enter", "r", "m", "a", "o", "p"]);
+    expect(keycaps(view)).toEqual(["enter", "space", "r", "m", "a", "o", "p"]);
     // Urgency is the manifest's dm rule over whatsapp/direct, not the render's.
     expect(item).not.toHaveProperty("urgent");
     expect(item.states).toEqual({ unread: 3, direct: 2 });
@@ -416,6 +416,11 @@ describe("whatsapp", () => {
     expect(nodes(checkView(viewOf(r)).tree).filter((n) => n.type === "stack" && !!n.selected).map((n) => n.action)).toEqual([`focus:${HIKE}`]);
     expect(await host.barAction(X, "unread", "open", ctx)).toEqual({ open: "https://web.whatsapp.com/", hud: "Weekend hike is a group: WhatsApp opens at the top" });
     expect(await host.barAction(X, "unread", "web", ctx)).toMatchObject({ open: "https://web.whatsapp.com/" });
+    // Space reads the chat in full: its conversation pane, the keys that work on one chat.
+    const pv = await host.barAction(X, "unread", "preview", ctx) as { show: { title: string; markdown: string; actions: { id: string }[] } };
+    expect(pv.show.title).toBe("Weekend hike");
+    expect(pv.show.markdown.length).toBeGreaterThan(0);
+    expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "reply", "read", "web"]);
     // r: the field on the focused row; an empty send keeps it; Enter sends through send-text; Escape cancels.
     r = await host.barAction(X, "unread", "reply", ctx);
     expect(checkView(viewOf(r)).input).toEqual({ value: "", placeholder: "Message Weekend hike", submit: "send", cancel: "cancel" });

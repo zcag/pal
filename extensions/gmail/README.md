@@ -23,7 +23,8 @@ palettes and a bar item over the Gmail API, one instance per account:
   its own: every unread as a row (the sender's mark, who wrote it,
   the subject and its snippet, the time, a star or a paperclip), with a
   cursor the arrows move and a click sets. Enter opens the focused
-  message in Gmail, `m` marks it read, `s` stars it, `a` marks every
+  message in Gmail, `Space` previews it (the whole message, with `m`,
+  `s`, `⌘C` and Enter still working there), `m` marks it read, `s` stars it, `a` marks every
   listed message read, `o` opens Gmail, `p` the Inbox palette. Mark
   several rows (`⌘`-click, `⇧`-click for a range, `⇧↓`) and `m` marks
   them all read at once.

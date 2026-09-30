@@ -53,7 +53,8 @@ private).
 requested, Mentioned, Assigned, Your threads, Comments, State changed, CI,
 Security, Subscribed), newest first inside one; the first row is the
 unread count. Enter marks the thread read and opens it, so the count is
-honest when you come back.
+honest when you come back. The pane shows the pull request's or issue's
+text and latest comments behind a thread about one.
 
 **Search GitHub** takes GitHub's syntax as you type: free text,
 `repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Results come
@@ -99,7 +100,10 @@ read: several PRs or issues open in one go, the copies land one per line,
 mute, unmute, merge, close and mark ready go through them all (the
 question says how many). The PR, issue and notification popovers mark the
 same way: `Enter` opens each marked row, `c` copies them, `m` mutes (or,
-in notifications, marks read) them all.
+in notifications, marks read) them all. `Space` in a popover previews the
+row under the cursor: the pull request's or issue's text and latest
+comments (a notification's too, when it is about one), with Enter and
+its `c`/`m` keys still working there.
 
 ## Setup
 

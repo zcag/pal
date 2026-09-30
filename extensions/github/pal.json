@@ -545,7 +545,7 @@
       "Your pull requests, the ones waiting on your review and what merged this week, with checks and review state",
       "A pull request or issue in full: the body, latest comments and reviews, every check, who approved",
       "Your repositories, your organisation's and your stars; `cmd+e` opens the local clone in the editor",
-      "Notifications by reason; `enter` opens the thread and marks it read, `cmd+shift+a` marks all read",
+      "Notifications by reason; `enter` opens the thread and marks it read, `space` in the popover reads it first",
       "Search all of GitHub as you type, your own work first; `is:pr`, `author:` and `label:` work as on GitHub",
       "Create an issue or a repository, check out a branch or merge, without leaving the keyboard"
     ],
