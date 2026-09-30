@@ -130,8 +130,18 @@ pub struct NowPlaying {
 
 /// Every player that is running, playing ones first.
 pub fn now_playing() -> Result<NowPlaying> {
+    // One at a time: the bar polls every second, and a check that waits
+    // (macOS holding an Apple Events permission while its consent alert is
+    // up) must not pile the polls up behind it (101 threads, pal frozen,
+    // 2026-09-30). A call that finds one in flight gets the last answer.
+    static BUSY: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    static LAST: std::sync::Mutex<Option<NowPlaying>> = std::sync::Mutex::new(None);
+    let Ok(_one) = BUSY.try_lock() else {
+        return LAST.lock().unwrap_or_else(|e| e.into_inner()).clone().ok_or_else(|| Error::Failed("a now-playing check is still running".into()));
+    };
     let mut np = platform::now_playing()?;
     np.players.sort_by_key(|p| p.state.rank());
+    *LAST.lock().unwrap_or_else(|e| e.into_inner()) = Some(np.clone());
     Ok(np)
 }
 
@@ -728,6 +738,32 @@ end tell"#,
     /// wildcard event): `Some(true)` granted, `Some(false)` refused in
     /// System Settings, `None` never asked (or the check itself failed).
     fn automation(bundle: &str) -> Option<bool> {
+        // Bounded: with the app's consent alert up (asked elsewhere, or by
+        // macOS itself) the check blocks until someone answers it. Past the
+        // wait it counts as not asked yet; the thread finishes on its own.
+        // One check per app in flight: a wait that outlives its timeout keeps
+        // its thread until the alert is answered, and the next polls must not
+        // add one each.
+        static WAITING: std::sync::Mutex<std::collections::BTreeSet<String>> = std::sync::Mutex::new(std::collections::BTreeSet::new());
+        if !WAITING.lock().unwrap_or_else(|e| e.into_inner()).insert(bundle.to_string()) {
+            return None;
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        let b = bundle.to_string();
+        std::thread::spawn(move || {
+            let r = automation_now(&b);
+            WAITING.lock().unwrap_or_else(|e| e.into_inner()).remove(&b);
+            let _ = tx.send(r);
+        });
+        rx.recv_timeout(std::time::Duration::from_millis(AUTOMATION_WAIT_MS)).unwrap_or_else(|_| {
+            eprintln!("media\tautomation\t{bundle}\tno answer within {AUTOMATION_WAIT_MS} ms (a consent alert is up?)");
+            None
+        })
+    }
+
+    const AUTOMATION_WAIT_MS: u64 = 500;
+
+    fn automation_now(bundle: &str) -> Option<bool> {
         #[repr(C)]
         struct AEDesc {
             descriptor_type: u32,
