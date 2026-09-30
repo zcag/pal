@@ -36,7 +36,8 @@ done
 
 # A private gallery server: no hot reload, no watcher (PAL_SHOTS), on a free port, so a fixture another run writes cannot reload the page mid-shot.
 port=$(node -e 'const s = require("net").createServer().listen(0, () => { console.log(s.address().port); s.close(); })')
-(cd app && PAL_SHOTS=1 npx vite --port "$port" --strictPort >"$scratch/vite.log" 2>&1) &
+# exec: `$!` is then vite itself, so the trap's kill reaches it (through npx it left an orphan server per run).
+(cd app && PAL_SHOTS=1 exec node_modules/.bin/vite --port "$port" --strictPort >"$scratch/vite.log" 2>&1) &
 vite=$!
 for _ in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
 export SHOTS_URL="http://127.0.0.1:$port"
