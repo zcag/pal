@@ -77,15 +77,19 @@ const server = Bun.serve({
     return new Response("no", { status: 404 });
   },
 });
-const slow = Bun.serve({ port: 0, async fetch() { await Bun.sleep(2500); return Response.json([]); } });
+// A host that never answers: its requests wait on a promise released after the tests.
+let releaseSlow!: () => void;
+const slowHeld = new Promise<void>((r) => (releaseSlow = r));
+let slowSeen = 0;
+const slow = Bun.serve({ port: 0, async fetch() { slowSeen++; await slowHeld; return Response.json([]); } });
 const redirecting = Bun.serve({ port: 0, fetch(req) { return new Response(null, { status: 301, headers: { location: new URL(req.url).pathname.replace(/^/, `http://127.0.0.1:${server.port}`) } }); } });
 const URL_ = `http://127.0.0.1:${server.port}`;
-// A roomy timeout: the parallel suite can hold a request past 2 s, and a redirect makes two of each; the timeout test sets its own.
+// The timeout runs on the host's fake clock: only the timeout test, which sets its own, moves it that far.
 const base = { url: URL_, token: TOKEN, favorites: ["sensor.temp"], timeout: 10 };
 
 let host: Host;
 beforeAll(async () => { host = await Host.bundled({ settings: { [E]: { settings: base } } }); });
-afterAll(() => { host.kill(); server.stop(true); slow.stop(true); redirecting.stop(true); });
+afterAll(() => { host.kill(); releaseSlow(); server.stop(true); slow.stop(true); redirecting.stop(true); });
 
 const list = (ctx?: Parameters<Host["list"]>[3]) => host.list(E, "entities", "", ctx);
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick(E, "entities", id, action, ctx);
@@ -351,11 +355,16 @@ describe("when HA is not there", () => {
     host.changeSettings(E, { settings: { ...base, token: "wrong" } });
     expect((await hintRow()).name).toBe("Home Assistant rejected the token");
   });
-  test("a host that does not answer: the hint within the timeout; a dead port: the hint at once", async () => {
+  test("a host that does not answer: the hint at the timeout, not before; a dead port: the hint at once", async () => {
     host.changeSettings(E, { settings: { ...base, url: `http://127.0.0.1:${slow.port}`, timeout: 1 } });
-    const t0 = Date.now();
-    expect((await hintRow()).name).toMatch(/did not answer within 1 s/);
-    expect(Date.now() - t0).toBeLessThan(2000);
+    const n = slowSeen;
+    let answered = false;
+    const row = hintRow().finally(() => (answered = true));
+    await host.until(() => slowSeen > n, 3000, "the request out");
+    await host.advance(999);
+    expect(answered).toBe(false);
+    await host.advance(1);
+    expect((await row).name).toMatch(/did not answer within 1 s/);
     const dead = Bun.serve({ port: 0, fetch: () => new Response("x") });
     const port = dead.port;
     dead.stop(true);
