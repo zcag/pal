@@ -12,7 +12,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { ago, bytes, conceal, effects, errorMessage, exec, hint, home, ocr, pngSize, run, settings, thumbnailUrl, tilde, toast, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
-import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS, type Capture, type Destination, type Kind, type Mode } from "./shots.ts";
+import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, HIDE_SETTLE_MS, SUGGEST_MS, type Capture, type Destination, type Kind, type Mode } from "./shots.ts";
 
 /** `[extensions.screenshots]`, defaults in pal.json. */
 type Settings = { destination: Destination; folder: string; timer: number; sound: boolean; all_files: boolean; limit: number; ocr_concealed: boolean };
@@ -33,8 +33,6 @@ const THUMB_PX = 48;
 /** An interactive capture waits for the user; the tool is given this long before it is killed. */
 const CAPTURE_MS = 5 * 60_000;
 const TRASH_MS = 10_000;
-/** After the pick answers `hide`, the beat the panel takes to leave the screen before the capture starts (it would otherwise be in the shot, or take the interactive selection's first click). */
-const HIDE_SETTLE_MS = 250;
 const CAPTURE_SECTION = "Capture";
 const RECENT_SECTION = "Recent";
 

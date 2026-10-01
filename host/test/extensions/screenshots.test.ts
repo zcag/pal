@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
+import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, HIDE_SETTLE_MS, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
 import { Host, writeTool, logLines } from "../harness.ts";
@@ -143,15 +143,21 @@ describe("screenshots", () => {
   });
 
   test("capture: the pick hides at once, the stand-in gets the flags and the file lands in the folder, the HUD names it; the timer and the clipboard rows say so", async () => {
+    // The capture starts once the panel had its beat to leave (HIDE_SETTLE_MS): nothing before it.
     expect(await pick("capture:area")).toEqual({ hide: true });
+    await host.advance(HIDE_SETTLE_MS - 1);
+    expect(captures()).toEqual([]);
+    await host.advance(1);
     await host.until(() => huds.length === 1, 3000, "the saved HUD");
     expect(huds[0]).toMatch(/^Screenshot saved: Screenshot \d{4}-\d{2}-\d{2} at \d{2}\.\d{2}\.\d{2}\.png$/);
     expect(captures()[0]).toMatch(new RegExp(`^-i -x ${folder}/Screenshot `));
     expect(readdirSync(folder).some((n) => /^Screenshot \d{4}-\d{2}-\d{2} at/.test(n) && readFileSync(join(folder, n), "utf8") === "PNG")).toBe(true);
     expect(await pick("capture:window", "capture-delayed")).toEqual({ hide: true });
+    await host.advance(HIDE_SETTLE_MS);
     await host.until(() => captures().length === 2, 3000, "the delayed capture");
     expect(captures()[1]).toMatch(/^-i -W -T 3 -x /);
     expect(await pick("capture:screen", "capture-other")).toEqual({ hide: true });
+    await host.advance(HIDE_SETTLE_MS);
     await host.until(() => huds.length === 3, 3000, "the clipboard HUD");
     expect(captures()[2]).toBe("-c -x");
     expect(huds[2]).toBe("Copied to the clipboard");

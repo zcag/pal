@@ -8,6 +8,8 @@ export const IMAGE_EXT = ["png", "jpg", "jpeg"] as const;
 export const VIDEO_EXT = ["mov", "mp4"] as const;
 /** A screenshot taken within this is offered on the root's Now section. */
 export const SUGGEST_MS = 2 * 60_000;
+/** After the pick answers `hide`, the beat the panel takes to leave the screen before the capture starts (it would otherwise be in the shot, or take the interactive selection's first click). */
+export const HIDE_SETTLE_MS = 250;
 
 export type Kind = "image" | "video";
 
