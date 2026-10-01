@@ -46,9 +46,9 @@ const G = {
 const DEVICE_GLYPH: Record<string, string> = { Computer: G.laptop, Smartphone: G.phone, Tablet: G.phone, Speaker: G.speaker, TV: G.tv, CastVideo: G.cast, CastAudio: G.cast, Automobile: G.car, AVR: G.speaker, STB: G.tv, AudioDongle: G.cast, GameConsole: G.tv };
 
 /** How old a `/me/player` read may be for a tick (the clock carries the position between reads). */
-const SYNC_MS = Number(process.env.PAL_SPOTIFY_SYNC_MS) || 5000;
+const SYNC_MS = 5000;
 /** How long the popover keeps ticking after it was shown or used. */
-const TICK_WINDOW_MS = Number(process.env.PAL_SPOTIFY_TICK_MS) || 5 * 60_000;
+const TICK_WINDOW_MS = 5 * 60_000;
 const TICK_MS = 1000;
 /** An optimistic patch is served for this long before the API's answer replaces it. */
 const HOLD_MS = 1200;
@@ -163,7 +163,7 @@ function coverOf(t: Track | undefined): Promise<Cover | undefined> {
 // ---- the queue for the popover -------------------------------------------------
 
 /** The queue is asked at most this often while the popover shows (the 1 Hz loop reads the cache). */
-const QUEUE_MS = Number(process.env.PAL_SPOTIFY_QUEUE_MS) || 15_000;
+const QUEUE_MS = 15_000;
 /** The 64 px thumbs kept as data urls, this many at most. */
 const THUMB_KEEP = 24;
 let queueCache: { at: number; tracks: QueueTrack[] } | undefined;
