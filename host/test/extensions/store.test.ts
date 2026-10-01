@@ -127,6 +127,13 @@ describe("store", () => {
     const again = await host.listStream("store", "store", "", { refresh: true });
     expect(refreshes).toBe(2);
     expect(again.partials).toHaveLength(1);
+    // A fetch stands for ten minutes (store REFRESH_MS), told apart by Date.now, so by a second: the real time the test takes moves it too.
+    await host.advance(10 * 60_000 - 1000);
+    await list("");
+    expect(refreshes).toBe(2);
+    await host.advance(1000);
+    await list("");
+    expect(refreshes).toBe(3);
   });
   test("rows: what has an update under Updates first, then Featured, then a section per category, what is not installed leading each", async () => {
     const rows = await list();

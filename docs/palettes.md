@@ -1574,8 +1574,7 @@ Registries.
 
 The first listing in ten minutes and `⌘R` fetch every registry, the
 cached rows shown meanwhile; a registry that did not answer says so above
-the list, with how old its list is. `PAL_STORE_REFRESH_MS` changes the
-ten minutes. No settings.
+the list, with how old its list is. No settings.
 
 ## Scripts and data files (`scripts`)
 

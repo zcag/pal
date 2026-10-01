@@ -65,6 +65,5 @@ The first listing in ten minutes, and `cmd+r`, fetch every registry
 (`extensions.refresh()`); the cached rows show at once and the fresh ones
 replace them. A registry that did not answer says so above the list,
 with how old its list is; a fetch that failed says why.
-`PAL_STORE_REFRESH_MS` changes the ten minutes.
 
 No settings.

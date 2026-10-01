@@ -18,8 +18,8 @@ const PANE: Record<PrivacyUse["sensor"] | "all", string> = {
   all: "x-apple.systempreferences:com.apple.preference.security?Privacy",
 };
 const LINUX_SETTINGS = [["gnome-control-center", "privacy"], ["systemsettings"]];
-/** How often the open popover is redrawn: the durations move by the minute (the tests shorten it). */
-const POPOVER_TICK_MS = Number(process.env.PAL_PRIVACY_POPOVER_TICK_MS) || 30_000;
+/** How often the open popover is redrawn: the durations move by the minute. */
+const POPOVER_TICK_MS = 30_000;
 const nowS = () => Math.floor(Date.now() / 1000);
 
 async function settings(sensor: PrivacyUse["sensor"] | "all"): Promise<Effect> {

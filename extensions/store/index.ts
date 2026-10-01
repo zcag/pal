@@ -11,8 +11,8 @@
 import { errorMessage, extensions, hint, type Ctx, type Effect, type Extension, type Item, type StoreResult, type StoreState } from "@zcag/pal";
 import { FILTERS, REGISTRIES_LINK, detail, featured, pageOf, registryRows, row, select, shelves, staleNote, standingId, standings, targetOf, type Standing } from "./store.ts";
 
-/** How long a fetch of the registries stands before a listing asks for another (the core also fetches every 6 hours and when Settings opens). `PAL_STORE_REFRESH_MS` sets it for the tests. */
-const REFRESH_MS = Number(process.env.PAL_STORE_REFRESH_MS) || 10 * 60_000;
+/** How long a fetch of the registries stands before a listing asks for another (the core also fetches every 6 hours and when Settings opens). */
+const REFRESH_MS = 10 * 60_000;
 /** The hint rows' glyph for a registry that did not answer (md-cloud_off_outline). */
 const OFFLINE = "\u{f0164}";
 

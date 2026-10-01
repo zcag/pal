@@ -20,7 +20,7 @@ const LOUD_WATTS = 15;
 const MAC_SETTINGS = "x-apple.systempreferences:com.apple.Battery-Settings.extension";
 const LINUX_SETTINGS = [["gnome-control-center", "power"], ["systemsettings", "kcm_powerdevilprofilesconfig"]];
 /** The watcher samples every 30 s; an open palette re-reads a little faster so a new sample shows soon after it lands. */
-const LIVE_MS = Number(process.env.PAL_POWER_LIVE_MS) || 10_000;
+const LIVE_MS = 10_000;
 /** `power blame` reads the ring buffer; a window's answer is kept this long. */
 const USAGE_TTL = 60_000;
 const SPANS: Record<Exclude<Tab, "now">, () => string | undefined> = {
