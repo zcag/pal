@@ -6,7 +6,8 @@
 import { readFileSync } from "node:fs";
 
 const BUDGET_S = 30 * (process.env.CI ? 3 : 1);
-const TEST_BUDGET_S = 1 * (process.env.CI ? 3 : 1);
+/** The macOS runner starts a host ~6x slower than a Mac here (2026-10-01: the suite 84 s there, 11 s here, 55 s on the Linux runner); Linux holds the 3 s line every push runs too. */
+const TEST_BUDGET_S = 1 * (process.env.CI ? (process.platform === "darwin" ? 8 : 3) : 1);
 
 const xml = readFileSync(process.argv[2], "utf8");
 const files = new Map<string, number>();

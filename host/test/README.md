@@ -5,7 +5,7 @@
 
 They run **in parallel**: bun gives each file a worker process (`--parallel`, up to 8 locally, one per core on CI), so the suite
 takes about as long as its slowest file. `test/budget.ts` prints the slowest five after every run and **fails any file over 30 s**
-(90 s on CI) and any single test over 1 s (3 s on CI). The suite went from 4 min to 43 s on 2026-09-24; the rules below are what keeps it there.
+(90 s on CI) and any single test over 1 s (3 s on CI, 8 s on its macOS runner). The suite went from 4 min to 43 s on 2026-09-24; the rules below are what keeps it there.
 
 ## Stand-in tools: `writeTool`
 
@@ -52,7 +52,7 @@ file stay comparable. A timer under 100 ms is real: it orders work (the SDK's 33
 Two checks keep it so. `rules.test.ts` fails on a sleep or timer of 100 ms or more in any test source (a mock, a fake, a stand-in
 tool's shell `sleep`); a line inside a fixture extension's own source, which runs in the host on the fake clock, says so with
 `// on the host's clock`.
-`budget.ts` fails any single test over 1 s (3 s on CI), whatever made it slow.
+`budget.ts` fails any single test over 1 s (3 s on the Linux runner, 8 s on the far slower macOS one), whatever made it slow.
 
 ## Dates
 

@@ -246,7 +246,9 @@ describe("network on macOS with the SSID redacted", () => {
 });
 
 describe("network status: what the strip says about the network", () => {
-  const boot = (settings: Record<string, unknown>, opts: { ssid?: string; security?: string; signal?: number | null; route?: boolean; /** The interface carrying the default route; en5 is the cable. */ dev?: string } = {}) => {
+  /** The signal the core reports, read at each call: the one thing a bar may change without a host of its own. */
+  const live = new Map<string, number | null>();
+  const boot = (settings: Record<string, unknown>, opts: { ssid?: string; security?: string; signal?: number | null; route?: boolean; /** The interface carrying the default route; en5 is the cable. */ dev?: string } = {}, key = "") => {
     const summary = SUMMARY.replace("SSID : Cafe Wifi", `SSID : ${opts.ssid ?? "Cafe Wifi"}`).replace("Security : WPA2_PSK", `Security : ${opts.security ?? "WPA2_PSK"}`);
     const bin = fakeBin({
       ifconfig: heredoc(IFCONFIG),
@@ -256,14 +258,15 @@ describe("network status: what the strip says about the network", () => {
       scutil: `case "$1" in --dns) ${heredoc(SCUTIL_DNS)}\n;; --get) echo fakehost;; esac`,
     });
     dirs.push(bin);
-    return withPath(bin, "darwin", {}, { public_ip_url: "", ...settings }, { "wifi.status": () => ({ interface: "en0", powered: true, current: { ssid: opts.ssid ?? "Cafe Wifi", signal: opts.signal === undefined ? 72 : opts.signal, channel: "44", security: opts.security ?? "WPA2 Personal", ip: "192.168.1.131" } }) });
+    return withPath(bin, "darwin", {}, { public_ip_url: "", ...settings }, { "wifi.status": () => ({ interface: "en0", powered: true, current: { ssid: opts.ssid ?? "Cafe Wifi", signal: live.has(key) ? live.get(key)! : opts.signal === undefined ? 72 : opts.signal, channel: "44", security: opts.security ?? "WPA2 Personal", ip: "192.168.1.131" } }) });
   };
   /** One host per set of fake tools, kept for the file: a bar with other settings is a settings change on it, not a host start. */
   const hosts = new Map<string, Promise<Host>>();
   afterAll(async () => { for (const h of hosts.values()) (await h).kill(); });
-  const bar = async (settings: Record<string, unknown>, opts: Parameters<typeof boot>[1] = {}) => {
+  const bar = async (settings: Record<string, unknown>, { signal, ...opts }: Parameters<typeof boot>[1] = {}) => {
     const k = JSON.stringify(opts);
-    if (!hosts.has(k)) hosts.set(k, boot({}, opts));
+    live.set(k, signal === undefined ? 72 : signal);
+    if (!hosts.has(k)) hosts.set(k, boot({}, opts, k));
     const host = await hosts.get(k)!;
     host.changeSettings("network", { settings: { public_ip_url: "", ...settings } });
     return host.render("network", "status");
