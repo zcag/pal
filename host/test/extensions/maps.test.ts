@@ -4,7 +4,7 @@
 // copies, the other app), and the Places API (New) autocomplete against a
 // Bun mock (`PAL_MAPS_PLACES`).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { parsePredictions } from "../../../extensions/maps/index.ts";
+import { DEBOUNCE_MS, parsePredictions } from "../../../extensions/maps/index.ts";
 import { directionsUrl, matches, parse, parsePlaces, resolveEnd, searchUrl, webUrl } from "../../../extensions/maps/maps.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
@@ -88,6 +88,8 @@ afterAll(() => { host.kill(); places.stop(true); delete process.env.PAL_MAPS_PLA
 
 const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("maps", "maps", q, ctx);
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("maps", "maps", id, action, ctx);
+/** A listing that asks Google waits out the debounce on the host's clock first. */
+const debounced = async <T>(p: Promise<T>) => { await host.advance(DEBOUNCE_MS); return p; };
 const ids = (items: Item[]) => items.map((i) => i.id);
 
 describe("maps", () => {
@@ -170,7 +172,7 @@ describe("maps", () => {
 
   test("with a Places API key, predictions follow the rows after the debounce, pinned to their place id on open; a refused key is a hint row under the rows", async () => {
     host.changeSettings("maps", { settings: { ...SETTINGS, api_key: "good" } });
-    const items = await list("Kadıköy");
+    const items = await debounced(list("Kadıköy"));
     expect(ids(items).slice(-2)).toEqual(["pred:ChIJk", "pred:ChIJm"]);
     expect(items.at(-2)).toMatchObject({ name: "Kadıköy Sahili", subtitle: "İstanbul, Türkiye" });
     expect(seen.at(-1)).toEqual({ input: "Kadıköy", key: "good" });
@@ -178,20 +180,24 @@ describe("maps", () => {
     expect(await pick("pred:ChIJk", "copy_address")).toEqual({ copy: "Kadıköy Sahili, İstanbul, Türkiye" });
     // The same input again is answered from the cache.
     const n = seen.length;
-    await list("Kadıköy");
+    await debounced(list("Kadıköy"));
     expect(seen.length).toBe(n);
-    // Overtaken: the older listing answers the plain rows with a waiting hint and asks nothing.
-    const [a, b] = await Promise.all([list("Mod"), Bun.sleep(40).then(() => list("Moda"))]);
+    // Overtaken: the older listing answers the plain rows with a waiting hint and asks nothing; nothing is asked before the debounce ends.
+    const [pa, pb] = [list("Mod"), list("Moda")];
+    await host.advance(DEBOUNCE_MS - 1);
+    expect(seen.length).toBe(n);
+    await host.advance(1);
+    const [a, b] = await Promise.all([pa, pb]);
     expect(ids(a).at(-1)).toBe("hint:wait");
     expect(ids(b).at(-1)).toBe("pred:ChIJm");
     expect(seen.slice(n).map((s) => s.input)).toEqual(["Moda"]);
     expect(ids(await list("go: x", { inline: true }))).not.toContain("pred:ChIJk");
     // Streamed: the standing rows show first, the predictions join below them.
-    const r = await host.listStream("maps", "maps", "Kadıköy");
+    const r = await debounced(host.listStream("maps", "maps", "Kadıköy"));
     expect(r.partials.map(ids)).toEqual([ids(items).slice(0, -2)]);
     expect(ids(r.items)).toEqual(ids(items));
     host.changeSettings("maps", { settings: { ...SETTINGS, api_key: "bad" } });
-    const bad = await list("Taksim");
+    const bad = await debounced(list("Taksim"));
     expect(bad.at(-1)).toMatchObject({ id: "hint:failed", actions: [] });
     expect(bad.at(-1)!.name).toContain("refused the key");
     host.changeSettings("maps", { settings: SETTINGS });

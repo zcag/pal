@@ -33,7 +33,7 @@ const COPY_ADDRESS: Action = { id: "copy_address", title: "Copy address", shortc
 const COPY_LINK: Action = { id: "copy_link", title: "Copy link", shortcut: "cmd+l", multi: true };
 const OTHER_APP: Action = { id: "other", title: "Open in the other app", shortcut: "cmd+shift+o" };
 
-const DEBOUNCE_MS = 250;
+export const DEBOUNCE_MS = 250;
 const PLACES = process.env.PAL_MAPS_PLACES ?? "https://places.googleapis.com";
 const FETCH_MS = 4000;
 const S = () => settings.get<Settings>();
