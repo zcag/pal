@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SystemCommand, View } from "../../../sdk/src/index.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { argv, describe as describeRun, fmtClock, fmtLeft, fmtSpan, nextTick, parseTarget, reconcile, summary, type Awake } from "../../../extensions/system/awake.ts";
+import { argv, describe as describeRun, fmtClock, fmtLeft, fmtSpan, nextTick, parseTarget, reconcile, SETTLE_MS, summary, type Awake } from "../../../extensions/system/awake.ts";
 import { actions, render, type PopoverState } from "../../../extensions/system/view.ts";
 import { Host, stored, writeTool, logLines } from "../harness.ts";
 
@@ -151,7 +151,7 @@ describe("system", () => {
     expect(await host.request<unknown>("link", { extension: "system", route: "run", params: { id: "quick-look-selection" } })).toEqual({ hide: true });
     // The stand-in is detached; it lands within a moment.
     const log = () => Bun.file(qlLog).text().then((t) => t.trim().split("\n")).catch(() => [] as string[]);
-    for (let i = 0; i < 40 && (await log()).length < 4; i++) await Bun.sleep(50);
+    await host.until(async () => (await log()).length >= 4, 2000, "the Quick Look stand-in");
     // Two detached runs append at once; the order between them is theirs.
     expect((await log()).sort()).toEqual([...finder, ...finder].sort());
     expect(ran).not.toContain("quick-look-selection");
@@ -286,7 +286,21 @@ describe("keep awake: the row, the bar item and the link", () => {
   });
   afterAll(() => { h.kill(); for (const pid of pids) { try { process.kill(pid, "SIGTERM"); } catch { /* gone */ } } });
   const list = () => h.list("system", "system");
-  const pick = (action?: string, values?: Record<string, string | boolean>) => h.pick("system", "system", "keep-awake", action, values && { values });
+  /**
+   * A start waits SETTLE_MS on the host's clock to see the tool did not die at once; that wait begins after real work (the record
+   * read, the spawn), so the clock is moved on in its steps until the answer is in. Would belong in harness.ts.
+   */
+  const through = async <T>(p: Promise<T>, host = h): Promise<T> => {
+    let done = false;
+    p.finally(() => { done = true; }).catch(() => {});
+    while (!done) { await advance(SETTLE_MS, host); await Bun.sleep(10); }
+    return p;
+  };
+  /** How far h's clock was moved: a fresh host is brought to the same time before it reads h's record. */
+  let ahead = 0;
+  const advance = (ms: number, host = h) => { if (host === h) ahead += ms; return host.advance(ms); };
+  const pick = (action?: string, values?: Record<string, string | boolean>) => through(h.pick("system", "system", "keep-awake", action, values && { values }));
+  const barAction = (...a: Parameters<Host["barAction"]>) => through(h.barAction(...a));
   const awakeRow = async () => (await list()).find((i) => i.id === "keep-awake")!;
   const record = () => stored.get("system\0awake") as Awake | undefined;
   /** The Now section's rows from system: the run while one is on. */
@@ -337,8 +351,7 @@ describe("keep awake: the row, the bar item and the link", () => {
   test("Enter while on allows sleep: the process is gone, the record too, the item hidden", async () => {
     const pid = record()!.pid;
     expect(await pick()).toEqual({ hud: "Sleep allowed" });
-    await Bun.sleep(100);
-    expect(alive(pid)).toBe(false);
+    await h.until(() => !alive(pid), 2000, "the tool gone");
     expect(record()).toBeUndefined();
     expect(await h.render("system", "awake")).toMatchObject({ hidden: true });
     expect(await pick("sleep")).toEqual({ hud: "Not kept awake" });
@@ -366,8 +379,7 @@ describe("keep awake: the row, the bar item and the link", () => {
     const before = record()!;
     expect(await pick("display")).toEqual({ hud: "Display kept awake too" });
     expect(await lastAsk()).toBe("-di -w 11");
-    await Bun.sleep(100);
-    expect(alive(before.pid)).toBe(false);
+    await h.until(() => !alive(before.pid), 2000, "the old tool gone");
     const after = record()!;
     pids.push(after.pid);
     expect(after.pid).not.toBe(before.pid);
@@ -376,36 +388,36 @@ describe("keep awake: the row, the bar item and the link", () => {
   });
 
   test("the popover: a preset starts a run from now, the display switch flips it, the field takes a spelling, Enter allows sleep", async () => {
-    expect(await h.barAction("system", "awake", "preset:2")).toEqual({ keep: true, hud: "Awake for 2 h" });
+    expect(await barAction("system", "awake", "preset:2")).toEqual({ keep: true, hud: "Awake for 2 h" });
     expect(await lastAsk()).toBe("-di -t 7200");
     pids.push(record()!.pid);
-    expect(await h.barAction("system", "awake", "display")).toEqual({ keep: true, hud: "Display may sleep now" });
+    expect(await barAction("system", "awake", "display")).toEqual({ keep: true, hud: "Display may sleep now" });
     expect(await lastAsk()).toMatch(/^-i -t 7[12]\d\d$/);
     pids.push(record()!.pid);
-    expect(await h.barAction("system", "awake", "until")).toEqual({ keep: true });
+    expect(await barAction("system", "awake", "until")).toEqual({ keep: true });
     expect(((await h.render("system", "awake")).menu as { view: View }).view.input).toMatchObject({ submit: "start" });
-    expect(await h.barAction("system", "awake", "start", { reason: "open", values: { input: "15:00" } })).toMatchObject({ keep: true, hud: expect.stringMatching(/^Awake until 15:00$/) });
+    expect(await barAction("system", "awake", "start", { reason: "open", values: { input: "15:00" } })).toMatchObject({ keep: true, hud: expect.stringMatching(/^Awake until 15:00$/) });
     pids.push(record()!.pid);
     expect(((await h.render("system", "awake")).menu as { view: View }).view.input).toBeUndefined();
-    expect(await h.barAction("system", "awake", "start", { reason: "open", values: { input: "nope" } })).toMatchObject({ toast: { title: "Not a duration or a time" } });
-    expect(await h.barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
+    expect(await barAction("system", "awake", "start", { reason: "open", values: { input: "nope" } })).toMatchObject({ toast: { title: "Not a duration or a time" } });
+    expect(await barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
     expect(record()).toBeUndefined();
     // The item's own `presets` setting is what the digits pick from; left out, the declared ones again.
-    expect(await h.barAction("system", "awake", "preset:0", { reason: "open", settings: { presets: ["10m"] } })).toEqual({ keep: true, hud: "Awake for 10 min" });
+    expect(await barAction("system", "awake", "preset:0", { reason: "open", settings: { presets: ["10m"] } })).toEqual({ keep: true, hud: "Awake for 10 min" });
     pids.push(record()!.pid);
-    expect(await h.barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
+    expect(await barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
     expect(h.manifests.get("system")!.bar!.awake!.settings!.map((s) => s.id)).toEqual(["presets"]);
     // Off: the switch remembers the choice for the next run without starting one.
-    expect(await h.barAction("system", "awake", "display")).toEqual({ keep: true });
-    expect(await h.barAction("system", "awake", "default")).toEqual({ keep: true, hud: "Awake for 1 h" });
+    expect(await barAction("system", "awake", "display")).toEqual({ keep: true });
+    expect(await barAction("system", "awake", "default")).toEqual({ keep: true, hud: "Awake for 1 h" });
     expect(await lastAsk()).toBe("-i -t 3600");
     pids.push(record()!.pid);
-    expect(await h.barAction("system", "awake", "open")).toEqual({ push: { extension: "system", palette: "system" } });
-    await h.barAction("system", "awake", "sleep");
+    expect(await barAction("system", "awake", "open")).toEqual({ push: { extension: "system", palette: "system" } });
+    await barAction("system", "awake", "sleep");
   });
 
   test("the link: for and display, off, the bare toggle, run?id=keep-awake, a bad spelling", async () => {
-    const link = (params: Record<string, unknown> = {}) => h.request<any>("link", { extension: "system", route: "awake", params });
+    const link = (params: Record<string, unknown> = {}) => through(h.request<any>("link", { extension: "system", route: "awake", params }));
     expect(await link({ for: "2h", display: "1" })).toEqual({ hud: "Awake for 2 h" });
     expect(await lastAsk()).toBe("-di -t 7200");
     pids.push(record()!.pid);
@@ -414,7 +426,7 @@ describe("keep awake: the row, the bar item and the link", () => {
     expect(await link({ until: "forever" })).toEqual({ hud: "Awake until turned off" });
     expect(await lastAsk()).toBe("-di");
     pids.push(record()!.pid);
-    expect(await h.request<any>("link", { extension: "system", route: "run", params: { id: "keep-awake" } })).toEqual({ hud: "Sleep allowed" });
+    expect(await through(h.request<any>("link", { extension: "system", route: "run", params: { id: "keep-awake" } }))).toEqual({ hud: "Sleep allowed" });
     await expect(link({ for: "soon" })).rejects.toThrow(/not a duration or a time: "soon"/);
     await expect(link({ app: "Nope" })).rejects.toThrow(/no open window of an app named "Nope"/);
     expect(record()).toBeUndefined();
@@ -425,7 +437,9 @@ describe("keep awake: the row, the bar item and the link", () => {
     const pid = record()!.pid;
     const huds = () => h.coreCalls.filter((c) => c.method === "effects.run").map((c) => (c.params as any).effect.hud);
     const from = huds().length;
-    await h.until(() => !alive(pid), 4000, "the fake caffeinate's -t");
+    // The countdown's tick at the deadline finds the run over (past its end, the process is stale and killed), whatever the stand-in's own sleep.
+    await advance(1000);
+    await h.until(() => !alive(pid), 2000, "the run's process gone");
     await h.until(() => huds().length > from, 3000, "the HUD");
     expect(huds().at(-1)).toBe("Keep awake ended, sleep allowed");
     expect(record()).toBeUndefined();
@@ -453,10 +467,10 @@ describe("keep awake: the row, the bar item and the link", () => {
     const a = record()!;
     pids.push(a.pid);
     const h2 = await Host.bundled({ core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
+    await h2.advance(ahead);
     expect(await h2.render("system", "awake")).toMatchObject({ title: expect.stringMatching(/^(30m|29m)$/), states: { awake: true, awake_until: a.until } });
-    expect(await h2.pick("system", "system", "keep-awake")).toEqual({ hud: "Sleep allowed" });
-    await Bun.sleep(100);
-    expect(alive(a.pid)).toBe(false);
+    expect(await through(h2.pick("system", "system", "keep-awake"), h2)).toEqual({ hud: "Sleep allowed" });
+    await h.until(() => !alive(a.pid), 2000, "the tool gone");
     h2.kill();
   });
 });

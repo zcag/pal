@@ -25,7 +25,7 @@ export type Target = { until: number | null; how: "for" | "until" | "forever" };
 /** The tool, or what the tests put in its place (a script named like it); `null` when the machine lacks it (Linux without systemd). */
 export const TOOL: string | null = process.env.PAL_AWAKE_TOOL || (process.platform === "darwin" ? "caffeinate" : Bun.which("systemd-inhibit") ?? null);
 /** The tool gets this long to die at once (a refused inhibit); alive past it is a run. */
-const SETTLE_MS = 150;
+export const SETTLE_MS = 150;
 const FOREVER = new Set(["forever", "inf", "infinite", "infinity", "∞", "always", "indefinitely", "on", "0"]);
 
 /**
