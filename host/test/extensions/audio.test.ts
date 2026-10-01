@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { AudioDevice } from "../../../sdk/src/index.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
+import { FLASH_MS } from "../../../extensions/audio/index.ts";
 import { Host } from "../harness.ts";
 
 const walk = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(walk) : [])];
@@ -147,13 +148,16 @@ describe("audio", () => {
     expect((await host.render("audio", "volume", never)).title).toBeUndefined();
     expect((await host.render("audio", "volume", { reason: "load", settings: { level: "always" } })).title).toBe("56%");
     // Flash (the default): quiet again once an earlier one has lapsed, up on a change, gone by itself after.
-    await Bun.sleep(4500);
+    await host.advance(FLASH_MS);
     expect((await host.render("audio", "volume")).title).toBeUndefined();
     await host.barAction("audio", "volume", "down");
     expect((await host.render("audio", "volume")).title).toBe("56%");
-    await Bun.sleep(4500);
+    // Short of the timer by more than the real time the steps take (render reads Date too, which is real plus advanced): still up.
+    await host.advance(FLASH_MS - 100);
+    expect((await host.render("audio", "volume")).title).toBe("56%");
+    await host.advance(100);
     expect((await host.render("audio", "volume")).title).toBeUndefined();
-  }, 20000);
+  });
 
   test("the glyph says where the sound goes, and only falls through to the ramp when nothing else does", async () => {
     const glyph = async (patch: Partial<AudioDevice>) => {

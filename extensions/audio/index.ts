@@ -28,7 +28,7 @@ const RAMP: [number, string][] = [[67, "\u{f057e}"], [34, "\u{f0580}"], [1, "\u{
 const VOLUME_STEP = 5;
 const VOLUME_ITEM = "volume";
 /** How long the level stays up after a change, his `VOL_FLASH_SEC`. */
-const FLASH_MS = 3000;
+export const FLASH_MS = 3000;
 
 /** The volume item's settings, `[bar.items."audio/volume".settings]`, defaults in pal.json. */
 type VolumeSettings = { level: "flash" | "always" | "never" };
