@@ -48,16 +48,20 @@ const short = (text: string, n = 80) => truncate(oneLine(text), n);
 type Entry = { cmd: string; code: number | null; at: number; ms: number; cwd?: string; timedOut?: boolean };
 const history = async (): Promise<Entry[]> => ((await storage.get<Entry[]>("history")) ?? []).filter((e) => e && typeof e.cmd === "string");
 
-async function remember(r: Run, cwd: string): Promise<void> {
-  const list = (await history()).filter((e) => e.cmd !== r.cmd);
-  list.unshift({ cmd: r.cmd, code: r.code, at: r.startedAt, ms: r.ms, cwd, ...(r.timedOut && { timedOut: true }) });
-  await storage.set("history", list.slice(0, HISTORY_MAX));
+/** One write at a time: two runs ending together would each read the list before the other's write, and one entry would be lost. */
+let saving = Promise.resolve();
+function remember(r: Run, cwd: string): Promise<void> {
+  return (saving = saving.then(async () => {
+    const list = (await history()).filter((e) => e.cmd !== r.cmd);
+    list.unshift({ cmd: r.cmd, code: r.code, at: r.startedAt, ms: r.ms, cwd, ...(r.timedOut && { timedOut: true }) });
+    await storage.set("history", list.slice(0, HISTORY_MAX));
+  }).catch(() => {}));
 }
 
 // ---- running -----------------------------------------------------------------------
 
 /** The run the view shows, or the one in flight; `pick` from the view reaches it by the view id. */
-type Live = { cmd: string; cwd: string; startedAt: number; /** Which palette's level shows it: the pushes go there. */ palette: "shell" | "history"; result?: Run; ticker?: ReturnType<typeof setInterval> };
+type Live = { cmd: string; cwd: string; startedAt: number; /** Which palette's level shows it: the pushes go there. */ palette: "shell" | "history"; /** The run, settling as `result` is set. */ ran?: Promise<Run>; result?: Run; ticker?: ReturnType<typeof setInterval> };
 let live: Live | undefined;
 
 /** The tree for a run in flight, or done. */
@@ -105,7 +109,8 @@ function start(cmd: string, palette: Live["palette"]): Live {
   const l: Live = { cmd, cwd: cwdOf(s), startedAt: Date.now(), palette };
   if (live?.ticker) clearInterval(live.ticker);
   live = l;
-  run(cmd, { shell: shellArgv(s.shell), cwd: l.cwd, env: envTable(s.env ?? []), timeout: Math.max(1, s.timeout || 10) }).then(async (r) => {
+  l.ran = run(cmd, { shell: shellArgv(s.shell), cwd: l.cwd, env: envTable(s.env ?? []), timeout: Math.max(1, s.timeout || 10) });
+  l.ran.then(async (r) => {
     l.result = r;
     if (l.ticker) { clearInterval(l.ticker); l.ticker = undefined; }
     if (live === l) await push(l);
@@ -116,8 +121,7 @@ function start(cmd: string, palette: Live["palette"]): Live {
 
 /** Answers within the grace: the finished view, else the running one with a 1 Hz tick of the elapsed time pushed while it runs. */
 async function answer(l: Live): Promise<Effect> {
-  const t0 = Date.now();
-  while (!l.result && Date.now() - t0 < PICK_GRACE_MS) await Bun.sleep(25);
+  await Promise.race([l.ran, Bun.sleep(PICK_GRACE_MS)]);
   if (!l.result) l.ticker = setInterval(() => { if (live === l && !l.result) push(l); else if (l.ticker) clearInterval(l.ticker); }, 1000);
   return { view: viewOf(l) };
 }

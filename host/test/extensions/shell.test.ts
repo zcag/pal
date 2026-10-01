@@ -6,7 +6,7 @@
 // `view.update`, the timeout, the confirm on a destructive command, the
 // terminal action against a stand-in `open`/terminal, the history.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CAP, commandsOf, duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv } from "../../../extensions/shell/run.ts";
@@ -43,17 +43,14 @@ describe("run.ts", () => {
     else expect(terminalArgv("ls", "/tmp", sh, "", { TERMINAL: "foot" })).toEqual(["foot", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
   });
 
-  test("run: stdout and stderr apart, the exit code, the duration; a timeout kills the group and keeps what was printed; a shell that does not exist is an error in err; the cap keeps the tail", async () => {
+  // The timeout (it kills the group and keeps what was printed) is the palette's test below, on the host's fake clock.
+  test("run: stdout and stderr apart, the exit code, the duration; a shell that does not exist is an error in err; the cap keeps the tail", async () => {
     const sh = ["/bin/sh", "-c"];
     let r = await run("echo out; echo err >&2; exit 3", { shell: sh, cwd: "/tmp", env: {}, timeout: 5 });
     expect(r).toMatchObject({ out: "out\n", err: "err\n", code: 3, timedOut: false, truncated: false });
     expect(r.ms).toBeGreaterThanOrEqual(0);
     r = await run("echo $PAL_X; pwd", { shell: sh, cwd: "/tmp", env: { PAL_X: "hello" }, timeout: 5 });
     expect(r.out).toBe(`hello\n${realpathSync("/tmp")}\n`);
-    const t0 = Date.now();
-    r = await run("echo before; sleep 5; echo after", { shell: sh, cwd: "/tmp", env: {}, timeout: 1 });
-    expect(Date.now() - t0).toBeLessThan(3000);
-    expect(r).toMatchObject({ out: "before\n", code: null, timedOut: true });
     r = await run("true", { shell: ["/no/such/shell", "-c"], cwd: "/tmp", env: {}, timeout: 1 });
     expect(r.code).toBeNull();
     expect(r.err).toContain("/no/such/shell");
@@ -80,13 +77,20 @@ const stub = (name: string) => { const p = join(bin, name); writeTool(p, `#!/bin
 mkdirSync(bin);
 stub("open"); stub("osascript"); stub("x-terminal-emulator");
 const opened = () => logLines(openLog);
+// Two commands that outlast the pick: each drops a `.up` file once running (in the working directory), so the test moves the clock
+// only after the extension started its waits. LATE ends when the test makes `late.go`; KILLED only by the timeout.
+const LATE = "touch late.up; until [ -e late.go ]; do sleep 0.01; done; echo late";
+const KILLED = "echo partial; touch killed.up; sleep 10; echo never";
+const up = (name: string) => host.until(() => existsSync(join(dir, `${name}.up`)), 3000, `${name} running`);
 
+/** The extension's settings here: a 2 s timeout, under the pick grace (a test that outlasts the grace raises it). */
+const SETTINGS = { shell: "/bin/sh -c", cwd: dir, timeout: 2, env: ["PAL_GREETING=hi there"] };
 let host: Host;
 const oldPath = process.env.PATH;
 beforeAll(async () => {
   process.env.PATH = `${bin}:${oldPath}`;
   stored.clear();
-  host = await Host.bundled({ settings: { shell: { settings: { shell: "/bin/sh -c", cwd: dir, timeout: 2, env: ["PAL_GREETING=hi there"] } } } });
+  host = await Host.bundled({ settings: { shell: { settings: SETTINGS } } });
 });
 afterAll(() => { host.kill(); process.env.PATH = oldPath; rmSync(dir, { recursive: true, force: true }); });
 
@@ -115,7 +119,7 @@ describe("shell", () => {
     const rows = await list(`touch ${marker}`);
     expect(rows).toEqual([expect.objectContaining({ id: `run:touch ${marker}`, name: `Run: touch ${marker}`, keywords: [`touch ${marker}`] })]);
     expect(rows[0].actions).toEqual([{ id: "run", title: "Run" }, { id: "terminal", title: "Run in terminal" }, { id: "copy_cmd", title: "Copy command", shortcut: "cmd+c" }]);
-    await Bun.sleep(100);
+    await Bun.sleep(50);
     expect(existsSync(marker)).toBe(false);
     expect(await pick(rows[0].id, "copy_cmd")).toEqual({ copy: `touch ${marker}` });
     expect(existsSync(marker)).toBe(false);
@@ -148,33 +152,42 @@ describe("shell", () => {
   });
 
   test("a run that outlasts the pick grace answers a running view and pushes the result into the open level when it ends; Enter meanwhile says so", async () => {
-    const [row] = await list("sleep 1; echo late");
-    const t0 = Date.now();
-    const v = viewOf(await pick(row.id));
-    expect(Date.now() - t0).toBeLessThan(PICK_GRACE_MS + 800);
-    if (Date.now() - t0 < 1000) {
-      // Still running: the badge says so and Enter refuses.
-      expect(badges(v.tree)).toEqual(["running"]);
-      expect(await pick("run")).toMatchObject({ keep: true, toast: { title: "Still running" } });
-    }
+    host.changeSettings("shell", { settings: { ...SETTINGS, timeout: 10 } });
+    const [row] = await list(LATE);
+    let done = false;
+    const answered = pick(row.id).finally(() => { done = true; });
+    await up("late");
+    host.changeSettings("shell", { settings: SETTINGS });
+    await host.advance(PICK_GRACE_MS - 1);
+    expect(done).toBe(false);
+    await host.advance(1);
+    const v = viewOf(await answered);
+    // Still running: the badge says so and Enter refuses.
+    expect(badges(v.tree)).toEqual(["running"]);
+    expect(await pick("run")).toMatchObject({ keep: true, toast: { title: "Still running" } });
     host.viewShown("shell", { palette: "shell" }, "run");
-    const u = await host.nextViewUpdate("shell", { palette: "shell" }, (u) => badges((u.spec as { tree: ViewNode }).tree).includes("exit 0"), 4000);
+    writeFileSync(join(dir, "late.go"), "");
+    const u = await host.nextViewUpdate("shell", { palette: "shell" }, (u) => badges((u.spec as { tree: ViewNode }).tree).includes("exit 0"));
     expect(u).toMatchObject({ extension: "shell", palette: "shell", id: "run" });
     expect(texts((u.spec as { tree: ViewNode }).tree).at(-1)![0]).toBe("late");
     expect(await pick("run")).toEqual({ copy: "late\n", hud: "Copied output" });
     host.viewHidden("shell", { palette: "shell" }, "run");
-  }, 10_000);
+  });
 
-  test("the timeout kills the command: a red killed badge with the time, what it printed kept", async () => {
-    const [row] = await list("echo partial; sleep 10; echo never");
-    const v = viewOf(await pick(row.id));
-    host.viewShown("shell", { palette: "shell" }, "run");
-    const u = badges(v.tree).includes("running") ? await host.nextViewUpdate("shell", { palette: "shell" }, (u) => badges((u.spec as { tree: ViewNode }).tree).some((b) => b.startsWith("killed")), 5000) : { spec: { tree: v.tree } };
-    const tree = (u.spec as { tree: ViewNode }).tree;
-    expect(badges(tree)).toEqual([expect.stringMatching(/^killed after \d/)]);
+  test("the timeout kills the command's group: a red killed badge with the time, what it printed kept", async () => {
+    // The setting is 2 s, under the pick grace: the pick answers with the killed run, exactly at 2 s.
+    const [row] = await list(KILLED);
+    let done = false;
+    const answered = pick(row.id).finally(() => { done = true; });
+    await up("killed");
+    await host.advance(1999);
+    expect(done).toBe(false);
+    await host.advance(1);
+    // `sleep 10` holds the output pipe: the run ends only once the whole group is gone.
+    const tree = viewOf(await answered).tree;
+    expect(badges(tree)).toEqual([expect.stringMatching(/^killed after 2\.\d s$/)]); // 2 s on the clock plus the real time the run took
     expect(texts(tree).at(-1)![0]).toBe("partial");
-    host.viewHidden("shell", { palette: "shell" }, "run");
-  }, 10_000);
+  });
 
   test("Run again from the view runs the same command afresh", async () => {
     const stamp = join(dir, "stamp");
@@ -190,7 +203,7 @@ describe("shell", () => {
     host.changeSettings("shell", { settings: { shell: "/bin/sh -c", cwd: dir, timeout: 2, confirm: false } });
     [row] = await list("rm -rf build");
     expect(row.actions![0]).toEqual({ id: "run", title: "Run" });
-    host.changeSettings("shell", { settings: { shell: "/bin/sh -c", cwd: dir, timeout: 2, env: ["PAL_GREETING=hi there"] } });
+    host.changeSettings("shell", { settings: SETTINGS });
   });
 
   test("Run in terminal opens the terminal on the command in the working directory and hides; from the view too", async () => {
@@ -215,7 +228,7 @@ describe("shell", () => {
     const rows = await host.list("shell", "history", "");
     expect(rows.at(-1)).toMatchObject({ id: "clear", name: "Clear history" });
     const entries = rows.slice(0, -1);
-    expect(entries.map((r) => r.name).slice(0, 4)).toEqual(["git status", `echo x >> ${join(dir, "stamp")}; wc -l < ${join(dir, "stamp")}`, "echo partial; sleep 10; echo never", "sleep 1; echo late"]);
+    expect(entries.map((r) => r.name).slice(0, 4)).toEqual(["git status", `echo x >> ${join(dir, "stamp")}; wc -l < ${join(dir, "stamp")}`, KILLED, LATE]);
     expect(entries[1].accessories).toEqual([{ tag: "exit 0", color: "green" }, { date: expect.any(Number) }]);
     expect(entries[2].accessories![0]).toEqual({ tag: "killed", color: "red" });
     expect(entries.find((r) => r.name.startsWith("echo \"$PAL_GREETING\""))!.accessories![0]).toEqual({ tag: "exit 2", color: "red" });
@@ -224,7 +237,7 @@ describe("shell", () => {
     expect(entries.every((r) => r.icon)).toBe(true);
     // Filtered by substring; no Clear row then.
     const some = await host.list("shell", "history", "sleep");
-    expect(some.map((r) => r.name)).toEqual(["echo partial; sleep 10; echo never", "sleep 1; echo late"]);
+    expect(some.map((r) => r.name)).toEqual([KILLED, LATE]);
     const v = viewOf(await host.pick("shell", "history", "h:true"));
     expect(v.title).toBe("$ true");
     // The view's picks route through the history palette too.
@@ -234,7 +247,7 @@ describe("shell", () => {
     expect((await host.list("shell", "history", "")).map((r) => r.id)).not.toContain("h:true");
     // Marked rows (`ctx.ids`): copied one per line; removed in one write, the toast counting them.
     expect(entries[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy_cmd", "remove"]);
-    expect(await host.pick("shell", "history", some[0].id, "copy_cmd", { ids: some.map((r) => r.id) })).toEqual({ copy: "echo partial; sleep 10; echo never\nsleep 1; echo late" });
+    expect(await host.pick("shell", "history", some[0].id, "copy_cmd", { ids: some.map((r) => r.id) })).toEqual({ copy: `${KILLED}\n${LATE}` });
     expect(await host.pick("shell", "history", some[0].id, "remove", { ids: some.map((r) => r.id) })).toMatchObject({ keep: true, toast: { title: "Removed", message: "2 commands" } });
     expect(await host.list("shell", "history", "sleep")).toEqual([]);
     expect(await host.pick("shell", "history", "clear", "clear")).toMatchObject({ keep: true, toast: { title: "History cleared" } });
