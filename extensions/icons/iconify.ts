@@ -18,7 +18,7 @@ const SITE = "https://icon-sets.iconify.design";
 /** Hits per search (the API caps at 999; a grid past this is noise). */
 export const LIMIT = 64;
 /** Keystrokes closer than this share one search. */
-const DEBOUNCE_MS = 250;
+export const DEBOUNCE_MS = 250;
 const FETCH_MS = 6000;
 /**
  * Iconify draws in `currentColor`; a row icon has no colour of its own to

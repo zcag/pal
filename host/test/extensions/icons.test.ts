@@ -6,8 +6,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tile } from "../../../sdk/src/icon.ts";
+import type { Item } from "../../../sdk/src/protocol.ts";
 import { XDG_ICONS } from "../../../sdk/src/icons.ts";
-import { dataUrl, fileName, svgOf } from "../../../extensions/icons/iconify.ts";
+import { DEBOUNCE_MS, dataUrl, fileName, svgOf } from "../../../extensions/icons/iconify.ts";
 import { Host } from "../harness.ts";
 import { startMock, type Mock } from "./icons-mock.ts";
 
@@ -116,7 +117,12 @@ describe("icons columns setting", () => {
 });
 
 describe("iconify", () => {
-  const list = (q?: string, ctx?: { refresh?: boolean }) => host.list("icons", "iconify", q, ctx);
+  /** A listing with the debounce advanced past (a search waits it out on the host's clock). */
+  const list = async (q?: string, ctx?: { refresh?: boolean }) => {
+    const r = host.list("icons", "iconify", q, ctx);
+    await host.advance(DEBOUNCE_MS);
+    return r;
+  };
   const pick = (id: string, action?: string) => host.pick("icons", "iconify", id, action);
   const MDI_HOME = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8z"/></svg>';
 
@@ -151,7 +157,16 @@ describe("iconify", () => {
 
   test("typed at speed: the keystrokes share one search for the last word, and every reply is that word's rows", async () => {
     mock.hits.length = 0;
-    const replies = await Promise.all(["a", "ar", "arr", "arro", "arrow"].map((q, i) => Bun.sleep(i * 40).then(() => list(q))));
+    // A key every 40 ms, then the debounce runs out after the last one.
+    const pending: Promise<Item[]>[] = [];
+    for (const q of ["a", "ar", "arr", "arro", "arrow"]) {
+      if (pending.length) await host.advance(40);
+      pending.push(host.list("icons", "iconify", q));
+    }
+    await host.advance(DEBOUNCE_MS - 1);
+    expect(mock.hits).toEqual([]);
+    await host.advance(1);
+    const replies = await Promise.all(pending);
     expect(mock.hits.filter((h) => h.startsWith("/search"))).toEqual(["/search?query=arrow&limit=64"]);
     for (const r of replies) expect(r.map((i) => i.id)).toEqual(["mdi:arrow-left", "tabler:arrow-left"]);
   });
