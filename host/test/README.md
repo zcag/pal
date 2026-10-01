@@ -35,13 +35,23 @@ file stay comparable. A timer under 100 ms is real: it orders work (the SDK's 33
 - **Nothing moves on its own**, so "nothing happens" is checked exactly: `advance(999)`, no push; `advance(1)`, one.
 - **What an advance starts** (a fetch, a tool, a file write) is real I/O: wait for its result with `host.until`, `host.nextUpdate`
   or `host.nextViewUpdate`, which poll for a condition and return the moment it holds.
+- **A timer armed after real I/O** (a gap that starts when a reply lands, an idle check after a tool ran) can be missed by one advance
+  that lands first: `host.advanceUntil(step, pred)` steps the clock until a condition holds, `host.through(p, step)` until a request
+  answers. `host.after(p, ms)` is the plain case: advance, then the answer.
+- **The host's time** is `host.now()` (the wall clock plus `host.advanced`). A stand-in tool that stamps a time reads how far the clock
+  moved, in seconds, from `$PAL_TEST_AHEAD_FILE` (set for the host, so only for the tools it runs).
 - **A slow mock** holds its answer on a promise the test releases (`hue-mock.ts`'s `hold()`), or never answers when the test is
-  about the extension's timeout, which the test then advances past. It never sleeps.
+  about the extension's timeout, which the test then advances past. It never sleeps. **A slow stand-in tool** waits for a file the
+  test writes (dpi's `curl` and its gate); one that runs until it is killed says so with `never waited for` on the line.
+- **A bundled host loads every extension**, and their root sections are real machine state (sessions reads this Mac's Claude
+  sessions and waits on its idle check, files asks Spotlight): `Host.bundled({ only: ["odak"] })` turns the rest off, and the harness
+  refuses `suggest`, `inline` and `fallback` on a bundled host without `only`.
 - **Clean up in `finally`** anything that keeps a tick running (a running timer's state file): a failure otherwise leaves it pushing
   into the tests after it.
 
-Two checks keep it so. `rules.test.ts` fails on a sleep or timer of 100 ms or more in any test source (a mock, a fake, a fixture);
-a line inside a fixture extension's own source, which runs in the host on the fake clock, says so with `// on the host's clock`.
+Two checks keep it so. `rules.test.ts` fails on a sleep or timer of 100 ms or more in any test source (a mock, a fake, a stand-in
+tool's shell `sleep`); a line inside a fixture extension's own source, which runs in the host on the fake clock, says so with
+`// on the host's clock`.
 `budget.ts` fails any single test over 1 s (3 s on CI), whatever made it slow.
 
 ## Dates

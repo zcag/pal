@@ -17,6 +17,8 @@ const ALLOWED: Record<string, string> = {
 const LONGEST_SLEEP_MS = 100;
 /** A line that sleeps on purpose inside code the host runs (a fixture extension's source), where the fake clock is what it waits on. */
 const ON_HOST = "// on the host's clock";
+/** A stand-in's sleep the test never waits out: a process that runs until it is killed, or one left to finish after the test. */
+const NOT_WAITED = "never waited for";
 
 const sources = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? sources(join(dir, e.name)) : /\.tsx?$/.test(e.name) ? [join(dir, e.name)] : []));
 
@@ -34,14 +36,17 @@ describe("host test rules", () => {
   test("nothing waits on the real clock: no sleep or timer of 100 ms or more in a test, a mock or a fake", () => {
     const delay = (line: string) => {
       const m = /(?:Bun\.sleep|\bsleep)\(\s*([\d_]+)\s*\)|setTimeout\(.*,\s*([\d_]+)\s*\)/.exec(line);
-      return m ? Number((m[1] ?? m[2]).replaceAll("_", "")) : 0;
+      if (m) return Number((m[1] ?? m[2]).replaceAll("_", ""));
+      // A stand-in tool's shell `sleep` (a statement, not a word in a string the test compares): seconds, or a variable, taken as long.
+      const sh = /(?:^|[;)]|\bthen|\bdo|&&|\|\|)\s*sleep\s+("?\$|[\d.]+)/.exec(line);
+      return sh ? (sh[1].includes("$") ? Infinity : Number(sh[1]) * 1000) : 0;
     };
     const offenders = sources(ROOT)
       .map((p) => relative(ROOT, p))
       .filter((f) => f !== "rules.test.ts")
       .flatMap((f) => readFileSync(join(ROOT, f), "utf8").split("\n").map((line, i) => ({ at: `${f}:${i + 1}`, line })))
-      .filter(({ line }) => delay(line) >= LONGEST_SLEEP_MS && !line.includes(ON_HOST))
+      .filter(({ line }) => delay(line) >= LONGEST_SLEEP_MS && !line.includes(ON_HOST) && !line.includes(NOT_WAITED))
       .map(({ at, line }) => `${at}  ${line.trim().slice(0, 100)}`);
-    expect(offenders, "let time pass with host.advance(ms) (the host's fake clock), or hold a mock with a promise the test releases: README.md, Time").toEqual([]);
+    expect(offenders, "let time pass with host.advance(ms) (the host's fake clock), hold a mock with a promise the test releases, or have a stand-in wait for a file the test writes: README.md, Time").toEqual([]);
   });
 });

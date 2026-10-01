@@ -27,7 +27,7 @@ import { tileBrand } from "../../sdk/src/icon.ts";
 import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
 import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
-import { advance, advanced, ready as clockReady } from "./clock.ts";
+import { advance, advanced, ready as clockReady, timers as clockTimers } from "./clock.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance } from "./instances.ts";
 import { bindSdk, SDK } from "./sdk.ts";
@@ -372,7 +372,7 @@ async function stopInstances(name: string, keep: string[] = []) {
 }
 
 /** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
-const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "disabled/changed", "reload", "clock/advance"]);
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "disabled/changed", "reload", "clock/advance", "clock/timers"]);
 
 /** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
 const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
@@ -665,6 +665,8 @@ const methods: Record<string, (params: any) => unknown> = {
     await Promise.all([advance(ms), ...[...workers.values()].map((w) => w.advance(ms).catch(() => {}))]);
     return true;
   },
+  // The tests' clock: how long until each fake timer fires, this thread's and every worker's.
+  "clock/timers": async () => [...clockTimers(), ...(await Promise.all([...workers.values()].map((w) => w.timers().catch(() => [])))).flat()],
 };
 
 async function handle(line: string) {

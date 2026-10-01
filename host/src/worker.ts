@@ -18,7 +18,7 @@ import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes }
 import type { Extension, InstanceInfo, ResolvedSettings } from "../../sdk/src/protocol.ts";
 import { bind, type Caller } from "../../sdk/src/runtime.ts";
 import { barMetas, barMethods } from "./bar.ts";
-import { advance, ready as clockReady, skip } from "./clock.ts";
+import { advance, ready as clockReady, skip, timers } from "./clock.ts";
 import { instanceInfo, instanceMeta, rewriteCall, type WorkerInit } from "./instances.ts";
 import { describe, importEntry, log, paletteMethods, sections, timeout } from "./serve.ts";
 import { context, resolved, subscribe, update } from "./settings.ts";
@@ -147,6 +147,8 @@ function onMessage(m: any) {
     update({ [key]: m.settings as ResolvedSettings });
   } else if (typeof m?.advance === "number") {
     advance(m.advance).then(() => self.postMessage({ res: { id: m.id, result: true } }), (e) => self.postMessage({ res: { id: m.id, error: describe(e) } }));
+  } else if (m?.timers) {
+    self.postMessage({ res: { id: m.id, result: timers() } });
   } else if (m?.stop) {
     stop();
   }

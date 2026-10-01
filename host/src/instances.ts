@@ -169,6 +169,11 @@ export class WorkerInstance {
     return this.gone ? Promise.resolve() : this.ask({ advance: ms });
   }
 
+  /** The tests' clock: how long until each of the worker's fake timers fires. */
+  timers(): Promise<number[]> {
+    return this.gone ? Promise.resolve([]) : (this.ask({ timers: true }) as Promise<number[]>);
+  }
+
   /** `settings/changed` for this key. */
   settings(s: ResolvedSettings) {
     if (!this.gone) this.worker.postMessage({ settings: s });

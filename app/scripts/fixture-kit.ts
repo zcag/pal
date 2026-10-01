@@ -13,6 +13,10 @@
 // their addresses by the host you give (a subtitle that read `127.0.0.1:52891`
 // reads `odak.example.com`).
 import { writeFileSync } from "node:fs";
+import { Host } from "../../host/test/harness.ts";
+
+// A fixture's hosts run on the real clock: the tests' fake one (host/src/clock.ts) would hold every debounce until advanced.
+Host.realClock = true;
 
 /** The one clock every fixture and shot uses: 16 Sep 2026, 14:32 in `TZ` (11:32 UTC), the strip's clock; the same instant on every machine. shots-lib.mjs's NOW is this. */
 export const NOW = Date.UTC(2026, 8, 16, 11, 32, 0);

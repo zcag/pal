@@ -5,7 +5,7 @@
 // throwaway extension root under the OS temp dir. README.md has the rules a test
 // keeps (writeTool for fakes, no waiting on the real clock, the time budget).
 import { setDefaultTimeout } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewNode, ViewUpdate, Window } from "../../sdk/src/index.ts";
@@ -15,6 +15,8 @@ import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Ite
 setDefaultTimeout(process.env.CI ? 15_000 : 5_000);
 
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
+/** The requests that ask every loaded extension at once (the root's sections). */
+const ROOT_SECTIONS = new Set(["suggest", "inline", "fallback", "fallback/late"]);
 /** The bundled extensions, for the integration tests. */
 export const BUNDLED = resolve(import.meta.dir, "../../extensions");
 /** A bundled extension's `icon` as its pal.json has it: a logo tile's path is the manifest's to keep (app/scripts/brand-icons.ts), not a test's to copy. */
@@ -69,6 +71,8 @@ export type Options = {
   settings?: Overlay;
   /** Per request, ms. */
   timeout?: number;
+  /** The extensions to load; the rest of the roots' are turned off (`core/store.disabled`). A bundled host otherwise runs all of them, and their background work (sessions reading this machine's Claude sessions, downloads thumbnailing) slows the root sections. A `core["store.disabled"]` of the test's own wins over it. */
+  only?: string[];
 };
 
 /** `extension/loaded`: `warnings` is where the manifest and the code disagree about a palette (`checkPalettes`), empty when they agree. */
@@ -144,16 +148,31 @@ export class Host {
   private pending = new Map<number, { resolve: (r: Response) => void; timer: ReturnType<typeof setTimeout> }>();
   private waiters: { pred: (n: Notification) => boolean; resolve: (n: Notification) => void }[] = [];
   private seq = 0;
+  /** Hosts started from now on run on the real clock: the store-screenshot fixtures (app/scripts/fixture-kit.ts), which want the same picture every run, not speed. */
+  static realClock = false;
+  /** How far this host's clock was moved (`advance`). */
+  advanced = 0;
+  /**
+   * The same in whole seconds, for a stand-in tool stamping a time on the host's clock: the host and every tool it runs see the path as
+   * `$PAL_TEST_AHEAD_FILE`, so a shell fake says `$(( $(date +%s) + $(cat "$PAL_TEST_AHEAD_FILE") ))`.
+   */
+  readonly aheadFile = join(mkdtempSync(join(tmpdir(), "pal-clock-")), "ahead");
 
   private constructor(readonly opts: Options) {
+    writeFileSync(this.aheadFile, "0");
     // TZ and PAL_NOW by hand: bun 1.3 kept a `process.env.TZ` assigned at runtime out of the spread (seen on 1.3.14; calc.test.ts sets it), and the tests pin both at runtime (PAL_NOW is the extensions' clock, calendar/clock.ts).
     // TZ always: `bun test` runs in UTC with TZ unset, and a host left on the machine's zone saw another date than the test between local
     // midnight and the offset (wordle's "Daily #" one apart at 00:10 +03).
     const pinned = { ...Object.fromEntries(["TZ", "PAL_NOW"].filter((k) => process.env[k]).map((k) => [k, process.env[k]])), TZ: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone };
-    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...pinned, NO_COLOR: "1", PAL_TEST_CLOCK: "1" } });
+    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...pinned, NO_COLOR: "1", PAL_TEST_CLOCK: Host.realClock ? "" : "1", PAL_TEST_AHEAD_FILE: this.aheadFile } });
     this.exited = this.proc.exited;
     this.read();
     this.drainStderr();
+  }
+
+  /** Spawns without waiting for `host/ready`: a test of what holds it back. */
+  static spawn(opts: Options): Host {
+    return new Host(opts);
   }
 
   /** Spawns and resolves once the host says `host/ready`. */
@@ -210,6 +229,9 @@ export class Host {
 
   /** One request; the result, or a `HostError` for an error reply. */
   async request<T = unknown>(method: string, params?: unknown, timeout?: number): Promise<T> {
+    // Every bundled extension's root section is real machine state (sessions reads this Mac's Claude sessions, files asks Spotlight)
+    // and some wait on timers the fake clock holds: a test asks only the extensions it is about.
+    if (ROOT_SECTIONS.has(method) && this.opts.roots.includes(BUNDLED) && !this.opts.only) throw new Error(`${method} on a bundled host asks every extension: start it with only: [the extensions under test] (README.md, Time)`);
     const r = await this.call(method, params, timeout);
     if (r.error !== undefined) throw new HostError(method, r.error);
     return r.result as T;
@@ -219,7 +241,42 @@ export class Host {
 
   hello() { return this.request<Hello>("hello"); }
   /** Moves the host's clock (and every worker's) `ms` forward: the timers due on the way fire, `Date` reads that much later (src/clock.ts). Resolves once they ran; what they started (a fetch, a tool) is waited for with `until`. */
-  advance(ms: number) { return this.request<true>("clock/advance", { ms }); }
+  advance(ms: number) {
+    this.advanced += ms;
+    writeFileSync(this.aheadFile, String(Math.floor(this.advanced / 1000)));
+    return this.request<true>("clock/advance", { ms });
+  }
+  /** The host's time: the wall clock plus how far the test moved it. A fixture stamped on it reads as the extension's now. */
+  now() { return Date.now() + this.advanced; }
+  /** `p`'s answer once the clock moved `ms`: a request held by a debounce, a wait or a timeout the test knows the length of. */
+  async after<T>(p: Promise<T>, ms: number): Promise<T> {
+    await this.advance(ms);
+    return p;
+  }
+  /** How long until each of the host's fake timers fires, in ms (the host's and every worker's). */
+  timers() { return this.request<number[]>("clock/timers"); }
+  /** Whether a timer of `ms` is armed and not yet run down: one set for `ms` a moment ago reads a few real ms less, never more. */
+  async armed(ms: number) { return (await this.timers()).some((t) => t <= ms && t > ms - 50); }
+  /**
+   * Until `pred` holds: each time a timer of `step` is armed, the clock moves `step`. For a timer the extension arms only after real I/O
+   * (a reply, a tool's exit, a file read), which a plain advance could land before: the clock moves only once it is there, so never
+   * further than the extension asked for. Throws after `rounds` advances, or when neither comes within the wait.
+   */
+  async advanceUntil(step: number, pred: () => boolean, what = "condition", { rounds = 20 } = {}): Promise<void> {
+    for (let i = 0; i < rounds; i++) {
+      await this.until(async () => pred() || (await this.armed(step)), 3000, `${what}, or a ${step} ms timer`);
+      if (pred()) return;
+      await this.advance(step);
+    }
+    await this.until(pred, 3000, what);
+  }
+  /** `p`'s answer, the clock moved `step` each time a timer of `step` is armed (`advanceUntil`): a request whose answer waits on timers armed after real I/O. */
+  async through<T>(p: Promise<T>, step: number, opts?: { rounds?: number }): Promise<T> {
+    let done = false;
+    p.then(() => (done = true), () => (done = true));
+    await this.advanceUntil(step, () => done, "the answer", opts);
+    return p;
+  }
   list(extension: string, palette: string, query?: string, ctx?: Ctx) {
     return this.request<{ items: Item[] }>("list", { extension, palette, query, ...ctx }).then((r) => plainText(r.items));
   }
@@ -326,6 +383,7 @@ export class Host {
   kill() {
     for (const p of this.pending.values()) clearTimeout(p.timer);
     this.proc.kill();
+    rmSync(dirname(this.aheadFile), { recursive: true, force: true });
   }
 
   private async read() {
@@ -370,6 +428,10 @@ export class Host {
     const method = req.method.replace(/^core\//, "");
     this.coreCalls.push({ method, params: req.params });
     let fn = this.opts.core?.[method] ?? CORE[method];
+    if (method === "store.disabled" && this.opts.only && !this.opts.core?.[method]) {
+      const only = new Set(this.opts.only);
+      fn = () => this.opts.roots.flatMap((r) => readdirSync(r, { withFileTypes: true }).filter((d) => d.isDirectory() && !only.has(d.name)).map((d) => d.name));
+    }
     if (method === "settings.get") {
       const { extension, manifest } = req.params as { extension: string; manifest: Manifest };
       this.manifests.set(extension, manifest);

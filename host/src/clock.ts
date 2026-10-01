@@ -70,6 +70,13 @@ export function skip(ms: number) {
   start -= ms;
 }
 
+/** How long until each fake timer of this thread fires, in ms: what a test waits to see armed before it advances (`clock/timers`). */
+export function timers(): number[] {
+  if (!clock) return [];
+  const c = clock as unknown as { now: number; timers?: Map<number, { callAt: number }> };
+  return [...(c.timers?.values() ?? [])].map((t) => t.callAt - c.now);
+}
+
 /** Moves this thread's clock `ms` forward, firing every timer that comes due on the way (each after the promises before it settle). */
 export async function advance(ms: number): Promise<void> {
   if (!clock) throw new Error("clock/advance: the host runs on the real clock (PAL_TEST_CLOCK unset)");
