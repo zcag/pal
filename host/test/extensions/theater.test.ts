@@ -20,7 +20,15 @@ beforeAll(async () => {
 });
 afterAll(() => { host.kill(); server.stop(true); });
 
-const list = (palette: string, query?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("theater", palette, query, ctx);
+/** extensions/theater/rows.ts SEARCH_WAIT_MS: an input palette waits this long for more keystrokes before it asks (importing it would load the SDK outside a host). */
+const SEARCH_WAIT_MS = 300;
+const INPUT = new Set(["jellyfin-search", "seerr-request", "radarr-add", "sonarr-add", "lidarr-add", "prowlarr-search", "hydra-search", "navidrome-search", "abs-search", "kavita-search", "shelfmark"]);
+/** A listing; for an input palette the clock moves past its wait. */
+const list = async (palette: string, query?: string, ctx?: Parameters<Host["list"]>[3]) => {
+  const r = host.list("theater", palette, query, ctx);
+  if (INPUT.has(palette)) await host.advance(SEARCH_WAIT_MS);
+  return r;
+};
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("theater", palette, id, action, ctx);
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
 const texts = (n: ViewNode): string[] => (n.type === "text" ? [n.value] : n.type === "stack" ? n.children.flatMap(texts) : n.type === "badge" ? [`[${n.text}]`] : []);
@@ -131,6 +139,19 @@ describe("theater", () => {
       expect(ids(await list("jellyfin-search", "zzz"))).toEqual(["hint:none"]);
       expect(await pick("jellyfin-search", "hint:none", "request")).toEqual({ push: { extension: "theater", palette: "seerr-request" } });
       expect(ids(await list("jellyfin-search", "t"))).toEqual(["hint:search"]);
+    });
+
+    test("search waits SEARCH_WAIT_MS after the last keystroke: a newer query restarts it, and the older call answers the newer rows", async () => {
+      const n = calls("GET", "/jellyfin/Items").length;
+      const older = host.list("theater", "jellyfin-search", "tot");
+      await host.advance(SEARCH_WAIT_MS - 1);
+      const newer = host.list("theater", "jellyfin-search", "totor");
+      await host.advance(SEARCH_WAIT_MS - 1);
+      expect(calls("GET", "/jellyfin/Items").length).toBe(n);
+      await host.advance(1);
+      expect(ids(await newer)).toEqual(["item:ddd4"]);
+      expect(ids(await older)).toEqual(["item:ddd4"]);
+      expect(calls("GET", "/jellyfin/Items").slice(n).map((c) => new URL(c.path, BASE).searchParams.get("searchTerm"))).toEqual(["totor"]);
     });
 
     test("actions: open, copy, mark played (POST) and unplayed (DELETE), favourite, play pushes the device picker whose Enter plays there", async () => {
