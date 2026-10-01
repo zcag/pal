@@ -42,8 +42,7 @@ const coreFor = (asked: () => void) => ({
   "media.artwork": (p: { id: string }) => { asked(); const a = artworks[p.id]; if (!a) throw new Error(`no artwork ${p.id}`); return a; },
 });
 beforeAll(async () => {
-  process.env.PAL_MEDIA_TICK_MS = "100";
-  host = await Host.bundled({ core: coreFor(() => artworkAsked++) }).finally(() => delete process.env.PAL_MEDIA_TICK_MS);
+  host = await Host.bundled({ core: coreFor(() => artworkAsked++) });
 });
 /** The popover's tree of an item, checked as the host does. */
 const viewOf = (item: { menu?: unknown }): View => checkView((item.menu as { view: View }).view);
@@ -245,23 +244,27 @@ describe("media", () => {
     test("the popover's tick: while its level shows, the tree is pushed every tick with the position moved along by the clock, no player asked; hidden stops it", async () => {
       np = { players: [spotify, music, idle], system_wide: true };
       await host.render("media", "now-playing");
-      const before = host.viewUpdates("media", { bar: "now-playing" }).length;
+      const updates = () => host.viewUpdates("media", { bar: "now-playing" });
+      const before = updates().length;
       host.viewShown("media", { bar: "now-playing" }, "now", true);
-      const u = await host.nextViewUpdate("media", { bar: "now-playing" }, (x) => "actions" in x.spec);
+      // The extension's TICK_MS (1 s): nothing before it, one push at it, one more a second later.
+      await host.advance(999);
+      await Bun.sleep(30);
+      expect(updates().length).toBe(before);
+      await host.advance(1);
+      await host.until(() => updates().length === before + 1);
+      const u = updates()[before];
       expect(u).toMatchObject({ extension: "media", bar: "now-playing", spec: { id: "now", keys: "actions" } });
       const pos = texts(u.spec as View)[3];
       expect(pos).toMatch(/^0:1\d$/);
-      await Bun.sleep(1100);
-      const later = host.viewUpdates("media", { bar: "now-playing" });
-      expect(later.length).toBeGreaterThan(before + 5);
-      // The position moved on by about a second of clock.
-      const last = texts(later[later.length - 1].spec as View)[3];
-      expect(last >= pos).toBe(true);
+      await host.advance(1000);
+      await host.until(() => updates().length === before + 2);
+      // The position moved on by a second of clock.
+      expect(texts(updates()[before + 1].spec as View)[3] > pos).toBe(true);
       host.viewHidden("media", { bar: "now-playing" }, "now", true);
-      await Bun.sleep(150);
-      const n = host.viewUpdates("media", { bar: "now-playing" }).length;
-      await Bun.sleep(300);
-      expect(host.viewUpdates("media", { bar: "now-playing" }).length).toBe(n);
+      await host.advance(3000);
+      await Bun.sleep(30);
+      expect(updates().length).toBe(before + 2);
     });
 
     test("a paused player renders muted-less with playing false (the manifest's rule hides it); nothing at all is hidden with the empty shape; its actions reach the paused player", async () => {
@@ -287,22 +290,23 @@ describe("media", () => {
     let polled: Host;
     let asked = 0;
     beforeAll(async () => {
-      process.env.PAL_MEDIA_POLL_MS = "100";
-      polled = await Host.bundled({ core: { ...coreFor(() => {}), "media.now_playing": () => { asked++; return np; } } }).finally(() => delete process.env.PAL_MEDIA_POLL_MS);
+      polled = await Host.bundled({ core: { ...coreFor(() => {}), "media.now_playing": () => { asked++; return np; } } });
     });
     afterAll(() => polled.kill());
 
     test("stream: true means no poll (the core's media trigger renders the item); a later reply without it starts one", async () => {
       np = { players: [spotify], system_wide: true, stream: true };
       expect((await polled.render("media", "now-playing")).title).toBe("Blue Monday · New Order");
+      // The extension's POLL_MS is 5 s: a poll would have looked three times by now.
       const n = asked;
-      await Bun.sleep(350);
+      await polled.advance(15_000);
+      await Bun.sleep(30);
       expect(asked).toBe(n);
       expect(polled.updates("media", "now-playing")).toEqual([]);
       np = { players: [spotify], system_wide: true, stream: false };
       await polled.render("media", "now-playing");
-      await Bun.sleep(350);
-      expect(asked).toBeGreaterThan(n + 2);
+      await polled.advance(15_000);
+      await polled.until(() => asked === n + 4);
       np = { players: [spotify, music, idle], system_wide: true };
     });
   });

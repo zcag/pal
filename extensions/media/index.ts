@@ -42,10 +42,10 @@ const EXTENSION = "media";
 const ITEM = "now-playing";
 /** The bar's glyph (nf-fa-music), drawn from the bundled Nerd Font. */
 const BAR_GLYPH = "\uf001";
-/** Between the extension's own looks at the players while one plays; env for the tests. */
-const POLL_MS = Number(process.env.PAL_MEDIA_POLL_MS) || 5000;
-/** The popover's tick while it shows; env for the tests. */
-const TICK_MS = Number(process.env.PAL_MEDIA_TICK_MS) || 1000;
+/** Between the extension's own looks at the players while one plays. */
+const POLL_MS = 5000;
+/** The popover's tick while it shows. */
+const TICK_MS = 1000;
 /** A cover fetched by url for the popover: skipped past this many bytes. */
 const ARTWORK_MAX = 2 * 1024 * 1024;
 const ARTWORK_TIMEOUT_MS = 3000;
