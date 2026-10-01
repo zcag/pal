@@ -149,10 +149,10 @@ describe("downloads", () => {
     expect(chrome.actions!.map((a) => a.id)).toEqual(["reveal", "copy-path"]);
     expect(byName(items, "Movie.mp4").accessories![1]).toEqual({ text: "25% · 2.9 MB of 11.4 MB" });
     writeFileSync(partial, Buffer.alloc(501_000, 120));
-    await Bun.sleep(120);
+    await host.advance(1000); // the rate is over the time between two listings (Date, which the advance moves)
     items = await list();
     const text = (byName(items, "big.iso").accessories![1] as { text: string }).text;
-    expect(text).toMatch(/^489 KB · [\d.]+ (MB|KB)\/s$/);
+    expect(text).toMatch(/^489 KB · 4\d\d KB\/s$/); // 500,000 B over a second and the few real ms the listings took
   });
 
   test("an image gets a 64 px thumbnail as its icon, from the cache the second time; a document its glyph", async () => {
