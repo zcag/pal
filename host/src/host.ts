@@ -27,6 +27,7 @@ import { tileBrand } from "../../sdk/src/icon.ts";
 import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
 import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
+import { advance, advanced, ready as clockReady } from "./clock.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance } from "./instances.ts";
 import { bindSdk, SDK } from "./sdk.ts";
@@ -342,7 +343,7 @@ async function startInstance(inst: Instance, f: Found, manifest: Manifest, alone
   const w = new WorkerInstance(inst, call, log);
   workers.set(key, w);
   try {
-    const loaded = await w.start({ alone, entry: f.entry, manifest, settings, loadTimeout: LOAD_TIMEOUT_MS, rootTimeout: ROOT_TIMEOUT_MS }, LOAD_TIMEOUT_MS + 500);
+    const loaded = await w.start({ alone, entry: f.entry, manifest, settings, loadTimeout: LOAD_TIMEOUT_MS, rootTimeout: ROOT_TIMEOUT_MS, clock: advanced() }, LOAD_TIMEOUT_MS + 500);
     errors.delete(key);
     for (const x of loaded.warnings) log(`[${key}] manifest: ${x}`);
     // Two times: the import inside the worker, and the whole from spawn to loaded (the worker's own startup is the difference).
@@ -370,7 +371,7 @@ async function stopInstances(name: string, keep: string[] = []) {
 }
 
 /** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
-const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "disabled/changed", "reload"]);
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "disabled/changed", "reload", "clock/advance"]);
 
 /** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
 const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
@@ -655,6 +656,13 @@ const methods: Record<string, (params: any) => unknown> = {
     await loadFresh(name, false);
     return reloaded(name);
   },
+  // The tests' clock (clock.ts): this thread's and every worker's moves `ms` forward; answered once every timer due on the way ran.
+  "clock/advance": async (p) => {
+    const ms = Number(p?.ms);
+    if (!(ms >= 0)) throw new Error("clock/advance: ms");
+    await Promise.all([advance(ms), ...[...workers.values()].map((w) => w.advance(ms))]);
+    return true;
+  },
 };
 
 async function handle(line: string) {
@@ -697,6 +705,7 @@ async function handle(line: string) {
   process.exit(0);
 })().catch((e) => { log(`stdin failed: ${describe(e)}`); process.exit(1); });
 bindSdk();
+await clockReady;
 await loadAll();
 await watchExtensions();
 // `known`: every extension found on disk, loaded or not (the core keeps a failed one's cache), plus every instance key running.

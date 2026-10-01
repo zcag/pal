@@ -5,7 +5,7 @@
 
 They run **in parallel**: bun gives each file a worker process (`--parallel`, up to 8 locally, one per core on CI), so the suite
 takes about as long as its slowest file. `test/budget.ts` prints the slowest five after every run and **fails any file over 30 s**
-(90 s on CI). The suite went from 4 min to 43 s on 2026-09-24; the rules below are what keeps it there.
+(90 s on CI) and any single test over 1 s (3 s on CI). The suite went from 4 min to 43 s on 2026-09-24; the rules below are what keeps it there.
 
 ## Stand-in tools: `writeTool`
 
@@ -20,19 +20,29 @@ What a fake logged is read with `logLines(file)`: no lines while the file is mis
 file before the command writes, so a hand-rolled `split("\n")` reads one empty line there and a wait on `.length > 0` passes early
 (shell's and translate's CI flakes).
 
-## Time: never wait on the real clock
+## Time: the host runs on a fake clock
 
-- **A tick, a poll, a timeout** in an extension is read from an environment variable at module load, with the real value as the
-  default: `const TICK_MS = Number(process.env.PAL_OTP_TICK_MS) || 1000`. The test sets it short before starting its host
-  (otp, media, spotify, calendar do this). A test that waits out a real 1 s tick, or an 8 s "still running" timeout, is a test that
-  takes seconds; those are the files at the top of the budget list.
-- **Waiting for something** is `host.until`, `host.nextUpdate` or `host.nextViewUpdate`, never a fixed `Bun.sleep`. Their budgets
-  are tripled on CI, and so is the per-test timeout (5 s locally, 15 s on CI, `setDefaultTimeout` in `harness.ts`): a test with a
-  longer wait than that gives its own timeout as `test`'s third argument.
-- **Never wait for an exact value that time moves.** A countdown can already read `4:59` on its first push, and a tick that lands
-  late skips a second; check that it keeps falling instead (`timer.test.ts`, the pushes test).
+Every test host runs on a fake clock (`src/clock.ts`, switched on by the harness with `PAL_TEST_CLOCK`). In the host and in each
+extension worker, a timer of **100 ms or more** (a tick, a timeout, a debounce, a retry, `Bun.sleep`, `AbortSignal.timeout`) fires only
+when the test moves the clock: `await host.advance(ms)` runs every timer due on the way, in order, and answers once they ran. `Date`
+and `performance.now` read the real time plus how far the clock was advanced, so timestamps from a mock server, a stand-in tool or a
+file stay comparable. A timer under 100 ms is real: it orders work (the SDK's 33 ms push coalescing, a yield) rather than waits.
+
+- **Let time pass with `host.advance`**, never a sleep: an 8 s "still running" toast is `advance(8000)` and then the toast; a 1 Hz
+  tick is `advance(1000)` and one push. A request whose answer waits on a timer is started, the clock advanced, then awaited:
+  `const r = host.pick(...); await host.advance(8000); await r`. There are no `PAL_*_MS` knobs for tests to set; the real values
+  are what the test advances past.
+- **Nothing moves on its own**, so "nothing happens" is checked exactly: `advance(999)`, no push; `advance(1)`, one.
+- **What an advance starts** (a fetch, a tool, a file write) is real I/O: wait for its result with `host.until`, `host.nextUpdate`
+  or `host.nextViewUpdate`, which poll for a condition and return the moment it holds.
+- **A slow mock** holds its answer on a promise the test releases (`hue-mock.ts`'s `hold()`), or never answers when the test is
+  about the extension's timeout, which the test then advances past. It never sleeps.
 - **Clean up in `finally`** anything that keeps a tick running (a running timer's state file): a failure otherwise leaves it pushing
   into the tests after it.
+
+Two checks keep it so. `rules.test.ts` fails on a sleep or timer of 100 ms or more in any test source (a mock, a fake, a fixture);
+a line inside a fixture extension's own source, which runs in the host on the fake clock, says so with `// on the host's clock`.
+`budget.ts` fails any single test over 1 s (3 s on CI), whatever made it slow.
 
 ## Dates
 

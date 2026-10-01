@@ -150,7 +150,7 @@ export class Host {
     // TZ always: `bun test` runs in UTC with TZ unset, and a host left on the machine's zone saw another date than the test between local
     // midnight and the offset (wordle's "Daily #" one apart at 00:10 +03).
     const pinned = { ...Object.fromEntries(["TZ", "PAL_NOW"].filter((k) => process.env[k]).map((k) => [k, process.env[k]])), TZ: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone };
-    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...pinned, NO_COLOR: "1" } });
+    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...pinned, NO_COLOR: "1", PAL_TEST_CLOCK: "1" } });
     this.exited = this.proc.exited;
     this.read();
     this.drainStderr();
@@ -218,6 +218,8 @@ export class Host {
   notify(method: string, params?: unknown) { this.write({ method, params }); }
 
   hello() { return this.request<Hello>("hello"); }
+  /** Moves the host's clock (and every worker's) `ms` forward: the timers due on the way fire, `Date` reads that much later (src/clock.ts). Resolves once they ran; what they started (a fetch, a tool) is waited for with `until`. */
+  advance(ms: number) { return this.request<true>("clock/advance", { ms }); }
   list(extension: string, palette: string, query?: string, ctx?: Ctx) {
     return this.request<{ items: Item[] }>("list", { extension, palette, query, ...ctx }).then((r) => plainText(r.items));
   }

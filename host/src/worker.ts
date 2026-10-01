@@ -18,6 +18,7 @@ import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes }
 import type { Extension, InstanceInfo, ResolvedSettings } from "../../sdk/src/protocol.ts";
 import { bind, type Caller } from "../../sdk/src/runtime.ts";
 import { barMetas, barMethods } from "./bar.ts";
+import { advance, ready as clockReady, skip } from "./clock.ts";
 import { instanceInfo, instanceMeta, rewriteCall, type WorkerInit } from "./instances.ts";
 import { describe, importEntry, log, paletteMethods, sections, timeout } from "./serve.ts";
 import { context, resolved, subscribe, update } from "./settings.ts";
@@ -84,6 +85,7 @@ async function init(id: number, i: WorkerInit) {
   name = i.inst.name;
   info = instanceInfo(i.inst);
   rootTimeout = i.rootTimeout;
+  if (i.clock) skip(i.clock);
   // The values before the code runs, so `settings.get()` at top level has them.
   update({ [key]: i.settings });
   try {
@@ -124,8 +126,11 @@ async function stop() {
   self.postMessage({ stopped: true });
 }
 
-self.onmessage = (ev: MessageEvent) => {
-  const m = ev.data;
+// On the tests' clock the messages wait for it (clock.ts), in order: `init` imports the extension.
+let queue = clockReady;
+self.onmessage = (ev: MessageEvent) => { queue = queue.then(() => onMessage(ev.data)); };
+
+function onMessage(m: any) {
   if (m?.reply && typeof m.reply.id === "number") {
     const p = pending.get(m.reply.id);
     if (!p) return;
@@ -140,7 +145,9 @@ self.onmessage = (ev: MessageEvent) => {
     updateStates(m.states);
   } else if (m?.settings) {
     update({ [key]: m.settings as ResolvedSettings });
+  } else if (typeof m?.advance === "number") {
+    advance(m.advance).then(() => self.postMessage({ res: { id: m.id, result: true } }), (e) => self.postMessage({ res: { id: m.id, error: describe(e) } }));
   } else if (m?.stop) {
     stop();
   }
-};
+}

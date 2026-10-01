@@ -119,7 +119,7 @@ export function rewriteCall(method: string, params: unknown, key: string): unkno
 type WorkerLoaded = { palettes: PaletteMeta[]; bar: BarMeta[]; warnings: string[]; ms: number };
 
 /** `{ init }` to the worker: everything it needs to bind the SDK and import the entry. */
-export type WorkerInit = { inst: Instance; alone: boolean; entry: string; manifest: Manifest; settings: ResolvedSettings; loadTimeout: number; rootTimeout: number };
+export type WorkerInit = { inst: Instance; alone: boolean; entry: string; manifest: Manifest; settings: ResolvedSettings; loadTimeout: number; rootTimeout: number; /** How far the tests' clock was advanced when the worker started (clock.ts). */ clock?: number };
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; timer?: ReturnType<typeof setTimeout> };
 
@@ -162,6 +162,11 @@ export class WorkerInstance {
   /** One of the core's requests (`list`, `pick`, `bar/render`, `view/shown`, ...) answered by the worker; `ms` bounds the wait when given. */
   request(method: string, params: unknown, ms?: number): Promise<unknown> {
     return this.ask({ req: { method, params } }, ms);
+  }
+
+  /** The tests' clock (clock.ts): the worker's moves `ms` forward; resolves once its timers due on the way ran. */
+  advance(ms: number): Promise<unknown> {
+    return this.gone ? Promise.resolve() : this.ask({ advance: ms });
   }
 
   /** `settings/changed` for this key. */
