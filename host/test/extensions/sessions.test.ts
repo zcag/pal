@@ -16,6 +16,7 @@ import { acc, fold, parseWorkspace, pending, summarise, title, working as busy }
 import { claude, codex, copilot, ps } from "../../../extensions/sessions/fixture.ts";
 import { agentOf, ancestors, appOf, cputime, kittyCandidates, kittyListenOn, kittyPids, kittyWindowOf, stepsFor, tool, ttyOf } from "../../../extensions/sessions/procs.ts";
 import { actions, render as renderPopover, shown, type Session } from "../../../extensions/sessions/view.ts";
+import { IDLE_OVER_MS, STREAM_DEBOUNCE_MS, WATCH_DEBOUNCE_MS } from "../../../extensions/sessions/index.ts";
 import { CAP, PAGE } from "../../../extensions/sessions/transcript.ts";
 import { Host, marksOf, writeTool, logLines } from "../harness.ts";
 
@@ -34,8 +35,9 @@ const canned = (name: string, text: string) => {
     for (const [, pid, cwd] of text.matchAll(/^p(\d+)\nfcwd\nn(.*)$/gm)) { mkdirSync(join(proc, pid), { recursive: true }); symlinkSync(cwd, join(proc, pid, "cwd")); }
   }
 };
-// `@T@` in a cputime is the clock: a process whose cpu seconds grow with the wall clock is never idle.
-stub("ps", `sed "s/@T@/$(date +%s)/" ${JSON.stringify(join(out, "ps.out"))} 2>/dev/null`);
+// `@T@` in a cputime is the host's clock (the wall clock plus how far the test moved it, `out/ahead`): a process whose cpu seconds grow
+// with it is never idle.
+stub("ps", `sed "s/@T@/$(( $(date +%s) + $(cat ${JSON.stringify(join(out, "ahead"))}) ))/" ${JSON.stringify(join(out, "ps.out"))} 2>/dev/null`);
 stub("lsof", `cat ${JSON.stringify(join(out, "lsof.out"))} 2>/dev/null`);
 stub("tmux", `case "$1" in list-panes) cat ${JSON.stringify(join(out, "tmux-panes.out"))} 2>/dev/null ;; list-clients) cat ${JSON.stringify(join(out, "tmux-clients.out"))} 2>/dev/null ;; esac`);
 // kitty answers on the socket of the kitty process whose pid is 500 (`listen_on unix:/tmp/mykitty` in the conf below, the pid appended); any other socket is refused.
@@ -51,9 +53,26 @@ stub("code", "");
 const asked = () => logLines(log);
 const since = (n: number) => asked().slice(n);
 
-// The files: three directories, one session each to begin with, timestamps relative to the wall clock.
+// The host's clock: the wall clock plus how far the test moved it. The idle check's wait (IDLE_OVER_MS) begins after real work (the
+// files read, ps), so a request that may scan is answered by moving the clock on in steps until the answer is in (`through`; would
+// belong in harness.ts). A file written later is stamped on the host's time (`hostNow`).
+let ahead = 0;
+writeFileSync(join(out, "ahead"), "0");
+const advance = (ms: number) => { ahead += ms; writeFileSync(join(out, "ahead"), String(Math.floor(ahead / 1000))); return host.advance(ms); };
+const hostNow = () => Date.now() + ahead;
+const through = async <T>(p: Promise<T>, step = IDLE_OVER_MS / 4): Promise<T> => {
+  let done = false;
+  p.finally(() => { done = true; }).catch(() => {});
+  for (;;) {
+    for (let i = 0; i < 3 && !done; i++) await Bun.sleep(10);
+    if (done) return p;
+    await advance(step);
+  }
+};
+
+// The files: three directories, one session each to begin with, timestamps relative to the host's clock.
 const T = Date.now();
-const s = (n: number) => T - n * 1000;
+const s = (n: number) => T + ahead - n * 1000;
 const CWD = { pal: "/Users/me/proj/pal", api: "/Users/me/proj/api", notes: "/Users/me/notes", old: "/Users/me/proj/old" };
 const slug = (cwd: string) => cwd.replace(/[/.]/g, "-");
 const ID = { claude: "11111111-aaaa-4bbb-8ccc-000000000001", blocked: "22222222-aaaa-4bbb-8ccc-000000000002", done: "33333333-aaaa-4bbb-8ccc-000000000003", old: "44444444-aaaa-4bbb-8ccc-000000000004", codex: "01a0c042-8f4c-7511-9165-95ea099725a5", copilot: "81147628-5d64-4c65-993e-cbc814d1ce8d" };
@@ -169,10 +188,11 @@ beforeAll(async () => {
 });
 afterAll(() => { host.kill(); process.env.HOME = HOME0; process.env.PATH = PATH0; if (KITTY0 !== undefined) process.env.KITTY_LISTEN_ON = KITTY0; delete process.env.PAL_TERMINAL_LOG; delete process.env.PAL_PROC; rmSync(base, { recursive: true, force: true }); });
 
-const list = (filter?: string, refresh = true) => host.list("sessions", "sessions", undefined, { ...(filter && { filter }), ...(refresh && { refresh }) });
-const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("sessions", "sessions", id, action, ctx);
-const render = () => host.render("sessions", "sessions", { reason: "update" });
-const act = (action: string, values?: Record<string, string>) => host.barAction("sessions", "sessions", action, { reason: "open", compact: true, ...(values && { values }) });
+const list = (filter?: string, refresh = true) => through(host.list("sessions", "sessions", undefined, { ...(filter && { filter }), ...(refresh && { refresh }) }));
+const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => through(host.pick("sessions", "sessions", id, action, ctx));
+const render = () => through(host.render("sessions", "sessions", { reason: "update" }));
+const act = (action: string, values?: Record<string, string>) => through(host.barAction("sessions", "sessions", action, { reason: "open", compact: true, ...(values && { values }) }));
+const detail = (id: string) => through(host.detail("sessions", "sessions", id));
 const nodes = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(nodes) : [])];
 const texts = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "text" ? [n.value] : []));
 const badges = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "badge" ? [n.text] : []));
@@ -316,17 +336,17 @@ describe("sessions: the palette", () => {
     // Everything but Focus, Send and the Transcript view also runs over marked sessions.
     expect(by[key("claude", ID.blocked)].actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["focus", "send", "view"]);
     expect(by[key("claude", ID.done)].actions!.map((a) => a.id)).not.toContain("kill");
-  }, 10_000);
+  });
 
   test("a call left open is not blocked while the process burns cpu; a blocked one with no cpu stays so", async () => {
     canned("ps", procs("0:09.00"));
     let items = await list();
     expect(tag(items.find((i) => i.id === key("claude", ID.blocked))!)).toBe("working");
     canned("ps", procs("0:09.00"));
-    await Bun.sleep(2100);
+    await advance(2100);
     items = await list();
     expect(tag(items.find((i) => i.id === key("claude", ID.blocked))!)).toBe("waiting on you?");
-  }, 10_000);
+  });
 
   test("a working file not written for stale_minutes is an interrupted turn: your turn, not working", async () => {
     const quiet = "/Users/me/proj/quiet", id = "55555555-aaaa-4bbb-8ccc-000000000005";
@@ -355,7 +375,7 @@ describe("sessions: the palette", () => {
       expect(row.section).toBe("Working");
       expect(row.accessories).toContainEqual({ text: "ttys010" });
       expect(row.subtitle).toBe("Claude Code · elsewhere · main");
-      expect(Object.fromEntries((await host.detail("sessions", "sessions", key("claude", id))).metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Folder: moved, Process: "pid 53000 on ttys010" });
+      expect(Object.fromEntries((await detail(key("claude", id))).metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Folder: moved, Process: "pid 53000 on ttys010" });
     } finally {
       rmSync(claudeFile(id, start));
       canned("ps", procs());
@@ -377,7 +397,7 @@ describe("sessions: the palette", () => {
       expect(r.section).toBe("Working");
       expect(tag(r)).toBe("2 agents");
       expect(r.accessories).toContainEqual({ text: "2 agents running" });
-      expect((await host.detail("sessions", "sessions", key("claude", id))).metadata!.find((m) => m.label === "Subagents")!.value).toMatch(/^2 running \(the transcripts under ~\/\.claude\/projects\/-Users-me-proj-swarm\/77777777/);
+      expect((await detail(key("claude", id))).metadata!.find((m) => m.label === "Subagents")!.value).toMatch(/^2 running \(the transcripts under ~\/\.claude\/projects\/-Users-me-proj-swarm\/77777777/);
       const v = menuView(await render());
       expect(badges(v)).toContain("2 agents");
       expect((await render()).tooltip).toContain("working");
@@ -429,7 +449,7 @@ describe("sessions: the palette", () => {
   });
 
   test("the pane: the last exchange, the pending call with its command, the metadata", async () => {
-    const d = await host.detail("sessions", "sessions", key("claude", ID.blocked));
+    const d = await detail(key("claude", ID.blocked));
     expect(d.markdown).toContain("## deploy it");
     expect(d.markdown).toContain("> deploy it");
     expect(d.markdown).toContain("**Waiting on you?** `Bash` since");
@@ -437,11 +457,11 @@ describe("sessions: the palette", () => {
     const meta = Object.fromEntries(d.metadata!.map((m) => [m.label, m.value ?? m.tags]));
     expect(meta).toMatchObject({ Agent: "Claude Code 2.1.278", Model: "claude-opus-5", Folder: CWD.api, Branch: "main", Turns: "0", Session: ID.blocked, Transcript: `~/.claude/projects/${slug(CWD.api)}/${ID.blocked}.jsonl`, Process: "pid 41000 on ttys011, tmux work:0.1" });
     expect(meta.State).toEqual([{ text: "waiting on you?", color: "red" }]);
-    const c = await host.detail("sessions", "sessions", key("codex", ID.codex));
+    const c = await detail(key("codex", ID.codex));
     expect(c.markdown).toContain("**Codex**\n\nRefine rewrote the draft");
     expect(c.markdown).toContain("**Running** `shell` since");
     expect(Object.fromEntries(c.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Agent: "Codex 0.153.4", Tokens: "38k context, 42k total", Turns: "1, the last took 17 s" });
-    const p = await host.detail("sessions", "sessions", key("copilot", ID.copilot));
+    const p = await detail(key("copilot", ID.copilot));
     expect(p.markdown).not.toContain("since");
     expect(Object.fromEntries(p.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Agent: "Copilot CLI 1.0.30", Permissions: "allowAll", Process: "pid 29645 on ttys000" });
   });
@@ -512,17 +532,22 @@ describe("sessions: the palette", () => {
     const k = key("claude", ID.blocked);
     await pick(k, "view");
     host.viewShown("sessions", { palette: "sessions" }, k);
-    await Bun.sleep(100);
-    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.toolResult(ID.blocked, CWD.api, Date.now(), "tu-9") + "\n" + claude.text(ID.blocked, CWD.api, Date.now(), "Pushed.", "end_turn") + "\n", { flag: "a" });
-    const u = await host.nextViewUpdate("sessions", { palette: "sessions" }, (x) => x.id === k);
+    // An answer after the notification: the file is watched by then.
+    await detail(k);
+    const pushed = host.nextViewUpdate("sessions", { palette: "sessions" }, (x) => x.id === k);
+    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.toolResult(ID.blocked, CWD.api, hostNow(), "tu-9") + "\n" + claude.text(ID.blocked, CWD.api, hostNow(), "Pushed.", "end_turn") + "\n", { flag: "a" });
+    const u = await through(pushed, STREAM_DEBOUNCE_MS);
     const tree = (u.spec as View).tree;
     expect(texts({ tree, actions: [] })).toContain("Pushed.");
     expect(nodes(tree).flatMap((n) => (n.type === "tile" && n.key === "dot" ? [n.color] : []))).toEqual(["green"]);
     host.viewHidden("sessions", { palette: "sessions" }, k);
-    await Bun.sleep(100);
+    await detail(k);
     const before = host.viewUpdates("sessions", { palette: "sessions" }).length;
-    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.user(ID.blocked, CWD.api, Date.now(), "thanks") + "\n", { flag: "a" });
-    await Bun.sleep(700);
+    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.user(ID.blocked, CWD.api, hostNow(), "thanks") + "\n", { flag: "a" });
+    // Time for a watch event to land (were the file still watched), then past the debounce: nothing.
+    await Bun.sleep(50);
+    await advance(STREAM_DEBOUNCE_MS);
+    await Bun.sleep(20);
     expect(host.viewUpdates("sessions", { palette: "sessions" })).toHaveLength(before);
     // The list reads the new state: the turn ended, then a prompt: working. Then the file is put back as it was for the tests after this one.
     expect((await list()).find((i) => i.id === k)!.section).toBe("Working");
@@ -655,7 +680,7 @@ describe("sessions: the palette", () => {
     const item = (await list()).find((i) => i.id === key("claude", ID.claude))!;
     expect(item.section).toBe("Waiting on you?");
     expect(tag(item)).toBe("waiting on you");
-    const d = await host.detail("sessions", "sessions", key("claude", ID.claude));
+    const d = await detail(key("claude", ID.claude));
     expect(d.metadata!.find((m) => m.label === "State")!.tags).toEqual([{ text: "waiting on you", color: "red" }, { text: "from a hook", color: "grey" }]);
     expect(host.coreCalls.some((c) => c.method === "storage.set" && (c.params as { key: string }).key === `exact:claude:${ID.claude}`)).toBe(true);
     await host.request("link", { extension: "sessions", route: "state", params: { agent: "claude", session: ID.claude, state: "working" } });
@@ -722,13 +747,14 @@ describe("sessions: the bar", () => {
     expect(since(n).slice(-2)).toEqual(["kitten @ --to unix:/tmp/mykitty-500 focus-window --match id:7", "open -a kitty"]);
   });
 
-  test("a write under a watched directory asks the bar for a render within a second", async () => {
+  test("a write under a watched directory asks the bar for a render, debounced by WATCH_DEBOUNCE_MS", async () => {
     const n = host.coreCalls.filter((c) => c.method === "bar.refresh").length;
-    writeFileSync(claudeFile(ID.claude, CWD.pal), claude.user(ID.claude, CWD.pal, Date.now(), "and the README") + "\n", { flag: "a" });
-    await host.until(() => host.coreCalls.filter((c) => c.method === "bar.refresh").length > n, 2000, "bar.refresh");
+    const refreshed = host.until(() => host.coreCalls.filter((c) => c.method === "bar.refresh").length > n, 2000, "bar.refresh");
+    writeFileSync(claudeFile(ID.claude, CWD.pal), claude.user(ID.claude, CWD.pal, hostNow(), "and the README") + "\n", { flag: "a" });
+    await through(refreshed, WATCH_DEBOUNCE_MS);
     expect(host.coreCalls.filter((c) => c.method === "bar.refresh").at(-1)!.params).toEqual({ extension: "sessions", id: "sessions" });
     // The appended line was folded, not the whole file again: the prompt moved on.
-    expect((await host.detail("sessions", "sessions", key("claude", ID.claude))).markdown).toContain("> and the README");
+    expect((await detail(key("claude", ID.claude))).markdown).toContain("> and the README");
   });
 
   test("the mocks in pal.json pass checkBarItem; the popover over made-up sessions: every session a row in section order (the popover scrolls)", () => {

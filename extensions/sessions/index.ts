@@ -49,16 +49,16 @@ const EXTENSION = "sessions", ITEM = "sessions", PALETTE = "sessions";
 /** nf-md-creation, the sparkle, on the bar; nf-md-robot on the tile. */
 const GLYPH = "\u{f0674}";
 /** A tool call this old without a result is a candidate for `blocked`; the process must then be idle over this long. */
-const BLOCKED_AFTER_MS = 20_000, IDLE_OVER_MS = 2000, IDLE_CPU_S = 0.1;
+export const BLOCKED_AFTER_MS = 20_000, IDLE_OVER_MS = 2000, IDLE_CPU_S = 0.1;
 /** A subagent transcript written within this is a subagent still running for its parent. */
 const SUBAGENT_FRESH_MS = 90_000;
 /** A state told through the link holds this long. */
 const EXACT_MS = 10 * 60_000;
 /** Two reads within this reuse one scan (the bar and the palette ask together). */
 const SCAN_TTL_MS = 1500;
-const WATCH_DEBOUNCE_MS = 500;
+export const WATCH_DEBOUNCE_MS = 500;
 /** A write to a transcript shown in the view pushes the tree again this long after the last one. */
-const STREAM_DEBOUNCE_MS = 300;
+export const STREAM_DEBOUNCE_MS = 300;
 const CUT_PROMPT = 600, CUT_REPLY = 900;
 
 const conf = () => settings.get<Settings>(EXTENSION);
