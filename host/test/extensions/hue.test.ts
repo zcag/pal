@@ -9,7 +9,7 @@
 // and a bridge that rejects the key.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { GAMUTS, clampToGamut, hsvToRgb, inGamut, kelvin, kelvinToXy, lux, mirekOf, mirekToRgb, rgbToHsv, rgbToXy, temperatureStops, toHex, xyToRgb } from "../../../extensions/hue/color.ts";
-import { devicetype, hostPort, parseMdns, parseMdnsLookup, parseSse } from "../../../extensions/hue/api.ts";
+import { GROUP_GAP_MS, LIGHT_GAP_MS, devicetype, hostPort, parseMdns, parseMdnsLookup, parseSse } from "../../../extensions/hue/api.ts";
 import { ROOT_BRIDGE_PEM, ROOT_BRIDGE_SHA256 } from "../../../extensions/hue/cert.ts";
 import { Home, aggregate, automationsOf, deepMerge, entertainmentOf, lightsOf, roomsOf, scenesOf, sensorsOf, slug, swatchesOf } from "../../../extensions/hue/model.ts";
 import { PRESETS, fresh, render, renderSetup, shown } from "../../../extensions/hue/render.ts";
@@ -23,9 +23,6 @@ import { MockBridge, discoveryServer } from "./hue-mock.ts";
 const E = "hue";
 // Discovery is the cloud endpoint and mDNS; in the tests the cloud is a local server (set per describe) and mDNS a tool that prints nothing.
 process.env.PAL_HUE_MDNS = "true";
-// The rate gaps shorter than Hue's own (100 ms a light, 1 s a group), so the waits past them below (150 ms, 1100 ms) have slack on a slow CI runner; still long enough that two picks back to back land inside one.
-process.env.PAL_HUE_LIGHT_GAP_MS = "60";
-process.env.PAL_HUE_GROUP_GAP_MS = "600";
 const near = (a: number, b: number, eps = 0.01) => Math.abs(a - b) <= eps;
 
 describe("colour maths", () => {
@@ -254,8 +251,28 @@ describe("over the wire against the mock bridge", () => {
   const list = (palette: string, ctx?: Parameters<Host["list"]>[3]) => host.list(E, palette, "", ctx);
   const view = (palette: string, args?: unknown) => host.request<View>("view", { extension: E, palette, args });
   const lastPut = () => mock.puts[mock.puts.length - 1];
-  /** Waits for a PUT satisfying `pred` to arrive after the current ones (a group takes its 1 s gap). */
+  /** Waits for a PUT satisfying `pred` (one the extension sent after an advance: real I/O). */
   const untilPut = async (pred: (p: MockBridge["puts"][number]) => boolean, what = "a PUT") => { await host.until(() => mock.puts.some(pred), 2500, what); };
+  /**
+   * Moves the clock `ms` at a time until `pred` holds. The timer it waits on
+   * may be set only once a reply came back (a PUT's gap after a queued send,
+   * the next press-link attempt), which can land after an advance: another
+   * round fires it then.
+   */
+  const advanceUntil = async (ms: number, pred: () => boolean, what: string) => {
+    for (let i = 0; i < 10; i++) {
+      await host.advance(ms);
+      if (await host.until(pred, 300, what).then(() => true, () => false)) return;
+    }
+    throw new Error(`${what}: not after ten advances of ${ms} ms`);
+  };
+  /** A pick that PUTs, then the clock past the resource's gap until `count` more PUTs went out: at once, or after the gap when one was in flight. The gap it leaves is passed too, so the next pick sends at once. */
+  const putting = async <T>(pick: () => Promise<T>, gap = LIGHT_GAP_MS, count = 1): Promise<T> => {
+    const n = mock.puts.length;
+    const r = await pick();
+    await advanceUntil(gap, () => mock.puts.length >= n + count, "the PUT");
+    return r;
+  };
   const getsSince = (n: number) => mock.calls.slice(n).filter((c) => c.method === "GET" && c.path.startsWith("/clip/v2/resource"));
 
   test("loads with eight palettes, the bar item and the links, no warnings", async () => {
@@ -288,11 +305,14 @@ describe("over the wire against the mock bridge", () => {
     // Start pairing: the view says press the button and counts down; the bridge answers 101 meanwhile.
     const pressing = await host.pick(E, "setup", "setup", `pair:${mock.ip}`);
     expect(JSON.stringify(pressing.view!.tree)).toContain("Press the round button");
-    await host.until(() => mock.pairAttempts >= 2, 4000, "two press-link attempts");
+    // One attempt at once, the next a second later (index.ts startPairing's 1 s between attempts).
+    await host.until(() => mock.pairAttempts >= 1, 4000, "the first press-link attempt");
+    await advanceUntil(1000, () => mock.pairAttempts >= 2, "two press-link attempts");
     expect(stored.get(`${E}\0bridges`)).toBeUndefined();
     expect(host.written.get(E)).toBeUndefined();
     // The button.
     mock.press();
+    await advanceUntil(1000, () => mock.pairAttempts >= 3, "the attempt after the press");
     await host.until(() => Array.isArray(stored.get(`${E}\0bridges`)), 4000, "the record stored");
     // The address and the key went to the settings through `settings.set` (a separate call after the record: wait for it on a slow runner): the key to the keychain, the file gets the reference.
     await host.until(() => host.written.get(E) !== undefined, 4000, "the settings written");
@@ -332,11 +352,13 @@ describe("over the wire against the mock bridge", () => {
     expect(again.find((i) => i.id === "room:living-room")!.subtitle).toBe("Room · all off");
     const n = mock.puts.length;
     expect(await host.pick(E, "rooms", "room:living-room", "on")).toMatchObject({ keep: true });
-    // Inside the group's one-second gap the PUT waits; it goes out once, as the newest state.
+    // Inside the group's one-second gap the PUT waits; it goes out once, as the newest state, the moment the gap is over.
     expect(mock.puts.length).toBe(n);
+    await host.advance(GROUP_GAP_MS - 1);
+    expect(mock.puts.length).toBe(n);
+    await host.advance(1);
     await untilPut((p) => p.id === "gl-living" && (p.body as any).on?.on === true, "the queued group PUT");
     expect(lastPut().body).toEqual({ on: { on: true }, dynamics: { duration: 400 } });
-    await Bun.sleep(200);
     expect(await host.pick(E, "rooms", "room:living-room", "open")).toEqual({ push: { extension: E, palette: "light", args: { room: "room:living-room" } } });
     expect(await host.pick(E, "rooms", "room:living-room", "scenes")).toEqual({ push: { extension: E, palette: "scenes", args: { scenes: "room:living-room" } } });
     expect(await host.pick(E, "rooms", "room:living-room", "copy_id")).toEqual({ copy: "room:living-room" });
@@ -345,8 +367,7 @@ describe("over the wire against the mock bridge", () => {
     // Set takes the bar's brightness (and a temperature when a light in the room tunes white): one PUT on the grouped light; the primary Toggle runs bare.
     expect(living.args!.map((a) => a.id)).toEqual(["brightness", "kelvin"]);
     expect(living.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["set"]);
-    await Bun.sleep(1100);
-    expect(await host.pick(E, "rooms", "room:living-room", "set", { values: { brightness: "40", kelvin: "" } })).toEqual({ keep: true, hud: "Living room: 40%" });
+    expect(await putting(() => host.pick(E, "rooms", "room:living-room", "set", { values: { brightness: "40", kelvin: "" } }), GROUP_GAP_MS)).toEqual({ keep: true, hud: "Living room: 40%" });
     expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-living", body: { on: { on: true }, dimming: { brightness: 40 }, dynamics: { duration: 400 } } });
     expect(await host.pick(E, "rooms", "room:living-room", "set", { values: { brightness: "", kelvin: "" } })).toMatchObject({ keep: true, toast: { title: "Nothing to set", style: "failure" } });
     expect((await host.pick(E, "rooms", "room:living-room", "set")).form).toMatchObject({ title: "Set Living room", submit: { id: "set" }, fields: [{ id: "brightness" }, { id: "kelvin" }] });
@@ -361,7 +382,7 @@ describe("over the wire against the mock bridge", () => {
     expect(items.find((i) => i.id === "light:wardrobe")!.icon).toBe("\u{f0336}");
     const only = await list("lights", { args: { lights: "room:bedroom" } });
     expect(only.map((i) => i.id)).toEqual(["light:bedside", "light:wardrobe"]);
-    expect(await host.pick(E, "lights", "light:bedside", "toggle")).toMatchObject({ hud: "Bedside: on" });
+    expect(await putting(() => host.pick(E, "lights", "light:bedside", "toggle"))).toMatchObject({ hud: "Bedside: on" });
     expect(lastPut()).toEqual({ type: "light", id: "light-4", body: { on: { on: true }, dynamics: { duration: 400 } } });
     expect(await host.pick(E, "lights", "light:bedside", "identify")).toMatchObject({ toast: { title: "Bedside is blinking" } });
     expect(lastPut().body).toEqual({ alert: { action: "breathe" } });
@@ -369,20 +390,16 @@ describe("over the wire against the mock bridge", () => {
     // The bar's fields: brightness on every light, a temperature only where the light tunes white; Set puts them, 0 is off, kelvin lands as mirek inside the range.
     expect(sofa.args!.map((a) => a.id)).toEqual(["brightness", "kelvin"]);
     expect(items.find((i) => i.id === "light:wardrobe")!.args!.map((a) => a.id)).toEqual(["brightness"]);
-    await Bun.sleep(150);
-    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "55", kelvin: "2700" } })).toEqual({ keep: true, hud: "Sofa lamp: 55%, 2703 K" });
+    expect(await putting(() => host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "55", kelvin: "2700" } }))).toEqual({ keep: true, hud: "Sofa lamp: 55%, 2703 K" });
     expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: true }, dimming: { brightness: 55 }, color_temperature: { mirek: 370 }, dynamics: { duration: 400 } } });
-    await Bun.sleep(150);
-    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "0", kelvin: "" } })).toEqual({ keep: true, hud: "Sofa lamp: off" });
+    expect(await putting(() => host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "0", kelvin: "" } }))).toEqual({ keep: true, hud: "Sofa lamp: off" });
     expect(lastPut().body).toEqual({ on: { on: false }, dynamics: { duration: 400 } });
-    await Bun.sleep(150);
-    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "", kelvin: "9000" } })).toEqual({ keep: true, hud: "Sofa lamp: 6536 K" });
+    expect(await putting(() => host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "", kelvin: "9000" } }))).toEqual({ keep: true, hud: "Sofa lamp: 6536 K" });
     expect(lastPut().body).toEqual({ on: { on: true }, color_temperature: { mirek: 153 }, dynamics: { duration: 400 } });
     expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "bright", kelvin: "" } })).toMatchObject({ keep: true, toast: { title: "Not a brightness: bright", style: "failure" } });
     expect((await host.pick(E, "lights", "light:wardrobe", "set")).form).toMatchObject({ title: "Set Wardrobe", submit: { id: "set", title: "Set brightness or temperature" }, fields: [{ id: "brightness" }] });
     // Back to the sample's state (72 %, 2732 K) for the detail below.
-    await Bun.sleep(150);
-    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "72", kelvin: "2732" } })).toEqual({ keep: true, hud: "Sofa lamp: 72%, 2732 K" });
+    expect(await putting(() => host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "72", kelvin: "2732" } }))).toEqual({ keep: true, hud: "Sofa lamp: 72%, 2732 K" });
     const d = await host.detail(E, "lights", "light:sofa-lamp");
     expect(d.metadata!.find((m) => m.label === "Temperature")!.value).toBe("2732 K (366 mirek)");
     expect(d.metadata!.find((m) => m.label === "Effects")!.value).toBe("candle, fire, sparkle");    // Marked lights: every switch, blink and copy goes over them all; opening and a typed level stay one light's.
@@ -407,9 +424,7 @@ describe("over the wire against the mock bridge", () => {
     expect(lastPut().body).toEqual({ recall: { action: "dynamic_palette", duration: 400 } });
     // The recall set the lights: the stream told the model.
     await host.until(() => mock.puts.length >= 1 && (mock.find("light-1") as any).color.xy.x === 0.5451, 2000, "the scene applied on the mock");
-    await Bun.sleep(150);
-    const lights = await list("lights");
-    expect((lights.find((i) => i.id === "light:sofa-lamp") as any).brightness).toBe(100);
+    await host.until(async () => ((await list("lights")).find((i) => i.id === "light:sofa-lamp") as any).brightness === 100, 2000, "the scene's events in the model");
     expect(await host.pick(E, "scenes", "smart:living-room/natural-light", "activate")).toMatchObject({ hud: "Natural light: activated" });
     expect(lastPut()).toEqual({ type: "smart_scene", id: "smart-natural", body: { recall: { action: "activate" } } });
   });
@@ -433,41 +448,38 @@ describe("over the wire against the mock bridge", () => {
     // Its answer comes once the bridge answered; which brightness it draws races the bridge's own event for the first PUT, so only that it is the view.
     let r = await first;
     expect(r.view).toBeDefined();
+    // Sent once the light's gap after the first answer is over.
+    await host.advance(LIGHT_GAP_MS - 1);
+    expect(mock.puts.length).toBe(n);
+    await host.advance(1);
     await host.until(() => mock.puts.length === n + 1, 1000, "the coalesced PUT");
     expect(lastPut().body).toMatchObject({ dimming: { brightness: 70 } });
-    await Bun.sleep(150);
-    r = await pick("level:5");
+    r = await putting(() => pick("level:5"));
     expect(lastPut().body).toMatchObject({ dimming: { brightness: 50 } });
-    await Bun.sleep(150);
-    r = await pick("level:0");
+    r = await putting(() => pick("level:0"));
     expect(lastPut().body).toEqual({ on: { on: false }, dynamics: { duration: 400 } });
     expect(JSON.stringify(r.view!.tree)).toContain('"text":"Off"');
-    await Bun.sleep(150);
     const mirek = mock.find("light-2")!.color_temperature.mirek as number;
-    r = await pick("ct+");
+    r = await putting(() => pick("ct+"));
     expect(lastPut().body).toEqual({ on: { on: true }, color_temperature: { mirek: mirek - 20 }, dynamics: { duration: 400 } });
-    await Bun.sleep(150);
-    await pick("ct--");
+    await putting(() => pick("ct--"));
     expect(lastPut().body.color_temperature).toEqual({ mirek: mirek + 60 });
     // A preset.
     r = await pick("focus:next"); // colour: a white-ambiance bulb has no plane, the row is skipped in the tree but the focus still walks
     r = await pick("focus:next"); // presets
     expect(r.view!.actions[0]).toMatchObject({ id: "apply", title: "Apply Relax" });
     await pick("along:next");
-    await Bun.sleep(150);
-    r = await pick("apply");
+    r = await putting(() => pick("apply"));
     expect(lastPut().body).toEqual({ on: { on: true }, dimming: { brightness: 100 }, color_temperature: { mirek: 346 }, dynamics: { duration: 400 } });
     // Transition cycles; the next PUT carries it.
     r = await pick("duration");
     expect(JSON.stringify(r.view!.tree)).toContain('"text":"1 s"');
-    await Bun.sleep(150);
-    await pick("apply");
+    await putting(() => pick("apply"));
     expect(lastPut().body.dynamics).toEqual({ duration: 1000 });
     r = await pick("duration");
     r = await pick("duration");
     expect(JSON.stringify(r.view!.tree)).toContain('"text":"instant"');
-    await Bun.sleep(150);
-    await pick("apply");
+    await putting(() => pick("apply"));
     expect(lastPut().body.dynamics).toBeUndefined();
     expect(await pick("copy")).toMatchObject({ copy: expect.stringMatching(/^#/) });
     expect(await pick("scenes")).toEqual({ push: { extension: E, palette: "scenes", args: { scenes: "room:living-room" } } });
@@ -478,33 +490,28 @@ describe("over the wire against the mock bridge", () => {
     expect(JSON.stringify(v.tree)).toContain('"key":"plane"');
     const pick = (action: string) => host.pick(E, "light", "light:sofa-lamp", action);
     await pick("focus:next");
-    let r = await pick("hue+");
+    let r = await putting(() => pick("hue+"));
     const put = lastPut();
     expect(put.type).toBe("light");
     const xy = (put.body as { color: { xy: { x: number; y: number } } }).color.xy;
     expect(inGamut(xy, GAMUTS.C)).toBe(true);
     expect(JSON.stringify(r.view!.tree)).toContain('"key":"plane"');
-    await Bun.sleep(150);
-    await pick("sat--");
+    await putting(() => pick("sat--"));
     expect((lastPut().body as any).color.xy.y).not.toBe(xy.y);
     // Scope: the room's grouped light takes the next change.
     r = await pick("scope");
     expect(JSON.stringify(r.view!.tree)).toContain("room · Living room");
-    await Bun.sleep(150);
-    await pick("level:3");
-    await untilPut((p) => p.id === "gl-living" && (p.body as any).dimming?.brightness === 30, "the room's PUT");
+    await putting(() => pick("level:3"), GROUP_GAP_MS);
     expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-living", body: { on: { on: true }, dimming: { brightness: 30 }, dynamics: { duration: 400 } } });
     await pick("scope");
     // Effects: the row lists what the light supports, none first; apply sends the effect.
     await pick("focus:next"); await pick("focus:next"); await pick("focus:next");
     r = await pick("along:next");
     expect(r.view!.actions[0]).toMatchObject({ id: "apply", title: "Set the effect" });
-    await Bun.sleep(1100);
-    await pick("apply");
+    await putting(() => pick("apply"));
     expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: true }, effects: { effect: "candle" } } });
-    await Bun.sleep(150);
     await pick("along:prev");
-    await pick("apply");
+    await putting(() => pick("apply"));
     expect(lastPut().body).toEqual({ effects: { effect: "no_effect" } });
     expect(await pick("identify")).toMatchObject({ view: expect.anything() });
     expect(await pick("room")).toEqual({ push: { extension: E, palette: "light", args: { room: "room:living-room" } } });
@@ -515,8 +522,7 @@ describe("over the wire against the mock bridge", () => {
     expect(v.title).toBe("Bedroom");
     expect(JSON.stringify(v.tree)).toContain('"key":"scene:bedroom/nightlight"');
     const pick = (action: string) => host.pick(E, "light", "room:bedroom", action);
-    await pick("level:8");
-    await untilPut((p) => p.id === "gl-bedroom" && (p.body as any).dimming?.brightness === 80, "the room's PUT");
+    await putting(() => pick("level:8"), GROUP_GAP_MS);
     expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-bedroom", body: { on: { on: true }, dimming: { brightness: 80 }, dynamics: { duration: 400 } } });
     await pick("focus:next"); await pick("focus:next");
     const r = await pick("focus:next");
@@ -529,17 +535,16 @@ describe("over the wire against the mock bridge", () => {
     const before = mock.calls.length;
     mock.change("light-6", { on: { on: false } });
     mock.change("motion-1", { motion: { motion: false, motion_report: { changed: "2026-09-16T20:30:00Z", motion: false } } });
-    await Bun.sleep(300);
+    const pushes = host.updates(E, "home").length;
+    await host.until(async () => (await list("sensors")).find((i) => i.id === "sensor:hallway-sensor-motion")!.subtitle === "clear", 2000, "the events in the model");
     const lights = await list("lights");
     expect(lights.find((i) => i.id === "light:hall-spot")!.accessories).toEqual([{ tag: "off", color: "grey" }]);
-    const sensors = await list("sensors");
-    expect(sensors.find((i) => i.id === "sensor:hallway-sensor-motion")!.subtitle).toBe("clear");
     const v = await view("light", { light: "light:hall-spot" });
     expect(JSON.stringify(v.tree)).toContain('"text":"Off"');
     expect(getsSince(before)).toEqual([]);
-    // A bar push followed the change.
+    // A bar push follows the change, at most one every 300 ms (index.ts scheduleBar).
+    await advanceUntil(300, () => host.updates(E, "home").length > pushes, "the bar push");
     const pushed = host.updates(E, "home");
-    expect(pushed.length).toBeGreaterThan(0);
     const on = mock.resources.filter((r) => r.type === "light" && (r as any).on.on).length;
     expect(pushed[pushed.length - 1].title).toBe(`${on} on`);
   });
@@ -555,7 +560,8 @@ describe("over the wire against the mock bridge", () => {
     host.viewHidden(E, { palette: "light" }, "light:hall-spot");
     const n = host.viewUpdates(E, { palette: "light" }).length;
     mock.change("light-6", { on: { on: false } });
-    await Bun.sleep(300);
+    // The event is in the model (a push would have gone out with it).
+    await host.until(async () => ((await list("lights")).find((i) => i.id === "light:hall-spot")!.accessories![0] as { tag?: string }).tag === "off", 2000, "the event in the model");
     expect(host.viewUpdates(E, { palette: "light" }).length).toBe(n);
     expect(getsSince(before)).toEqual([]);
   });
@@ -605,12 +611,11 @@ describe("over the wire against the mock bridge", () => {
     expect(view.actions.find((a) => a.id === "all_off")).toMatchObject({ shortcut: ["x", "cmd+shift+o"], style: "destructive" });
     // A tap on a room's tile: one PUT on its grouped light, the tree answered with the cursor on it.
     const ctx = { reason: "open" as const, compact: true as const };
-    let r = await host.barAction(E, "home", "toggle:room:hallway", ctx);
+    let r = await putting(() => host.barAction(E, "home", "toggle:room:hallway", ctx), GROUP_GAP_MS);
     expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-hall", body: { on: { on: !hallOn }, dynamics: { duration: 400 } } });
     expect(JSON.stringify(r.view!.tree)).toContain(`"type":"switch","key":"sw","on":${!hallOn},"action":"toggle:room:hallway"`);
     expect(r.view!.actions[0].title).toBe("Open Hallway");
     // The arrows walk the grid two a row; Enter opens the room: its lights inline with a slider each, the keys on the first light.
-    await Bun.sleep(1100);
     r = await host.barAction(E, "home", "move:down", ctx);
     expect(r.view!.actions[0].title).toBe("Open Evening");
     r = await host.barAction(E, "home", "move:left", ctx);
@@ -622,15 +627,14 @@ describe("over the wire against the mock bridge", () => {
     expect(tree).toContain('"key":"light-sofa-lamp"');
     expect(r.view!.actions[0]).toMatchObject({ id: "enter", title: expect.stringMatching(/^Turn (on|off) Ceiling$/), shortcut: ["enter", "space"] });
     // The right arrow brightens the focused light by five; a tap on a slider sets the level the fraction says; Enter toggles it.
-    r = await host.barAction(E, "home", "bri+", ctx);
+    r = await putting(() => host.barAction(E, "home", "bri+", ctx));
     expect(lastPut()).toEqual({ type: "light", id: "light-2", body: { on: { on: true }, dimming: { brightness: expect.any(Number) }, dynamics: { duration: 400 } } });
-    r = await host.barAction(E, "home", "level:light:sofa-lamp", { ...ctx, values: { value: "0.500" } });
+    r = await putting(() => host.barAction(E, "home", "level:light:sofa-lamp", { ...ctx, values: { value: "0.500" } }));
     expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: true }, dimming: { brightness: 50 }, dynamics: { duration: 400 } } });
     expect(JSON.stringify(r.view!.tree)).toContain('"key":"level","value":0.5');
     expect(r.view!.actions[0].title).toBe("Turn off Sofa lamp");
-    // Past the light's gap, so the toggle is its own PUT rather than folded into the one in flight.
-    await Bun.sleep(250);
-    r = await host.barAction(E, "home", "enter", ctx);
+    // Past the light's gap (putting), so the toggle is its own PUT rather than folded into the one in flight.
+    r = await putting(() => host.barAction(E, "home", "enter", ctx));
     expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: false }, dynamics: { duration: 400 } } });
     expect(JSON.stringify(r.view!.tree)).toContain('"type":"switch","key":"on","on":false,"action":"toggle:light:sofa-lamp"');
     // Backspace closes the room; a scene digit plays it.
@@ -640,41 +644,36 @@ describe("over the wire against the mock bridge", () => {
     expect(lastPut()).toMatchObject({ type: "scene", body: { recall: { action: "active" } } });
     expect(r.view).toBeTruthy();
     // All off sends to every lit room; the strip follows.
-    await Bun.sleep(1100);
     const n = mock.puts.length;
-    r = await host.barAction(E, "home", "all_off", ctx);
+    r = await putting(() => host.barAction(E, "home", "all_off", ctx), GROUP_GAP_MS);
     expect(r.view!.actions[0].title).toBe("Open Living room");
     const offs = mock.puts.slice(n);
     expect(offs.every((p) => (p.body as any).on?.on === false)).toBe(true);
     expect(offs.map((p) => p.id).sort()).toEqual(expect.arrayContaining(["gl-living"]));
     expect(JSON.stringify(r.view!.tree)).toContain('"value":"All lights off"');
-    await Bun.sleep(1200);
-    expect((await host.render(E, "home")).title).toBeUndefined();
+    // The bridge's events for the scene played above land too; once they did the item says nothing is on.
+    await host.until(async () => (await host.render(E, "home")).title === undefined, 2000, "the item with nothing on");
     // Everything on brings every room back; Open in pal pushes the rooms palette.
-    r = await host.barAction(E, "home", "all_on", ctx);
+    r = await putting(() => host.barAction(E, "home", "all_on", ctx), GROUP_GAP_MS);
     expect(mock.puts.slice(-1)[0].body).toMatchObject({ on: { on: true } });
-    await Bun.sleep(1200);
-    expect((await host.render(E, "home")).title).toMatch(/^\d+ on$/);
+    await host.until(async () => /^\d+ on$/.test((await host.render(E, "home")).title ?? ""), 2000, "the item with lights on");
     expect(await host.barAction(E, "home", "open", ctx)).toEqual({ push: { extension: E, palette: "rooms" } });
     // Off again, so the links test finds the living room off.
-    await host.barAction(E, "home", "all_off", ctx);
-    await Bun.sleep(1200);
+    await putting(() => host.barAction(E, "home", "all_off", ctx), GROUP_GAP_MS);
+    await host.until(async () => (await host.render(E, "home")).title === undefined, 2000, "the item with nothing on");
     // The item's settings pick the main room and the scenes the popover offers.
     const again = (await host.render(E, "home", { reason: "settings", settings: { main_room: "Bedroom", scenes: ["Relax", "scene:bedroom/bright"] } })).menu as { view: View };
     expect(again.view.actions.filter((a) => a.id.startsWith("scene:")).map((a) => a.title)).toEqual(["Play Bright", "Play Relax"]);
-  }, 15000);
+  });
 
   test("links: toggle a room by name, play a scene, everything off; unknown names throw", async () => {
-    const n = mock.puts.length;
-    expect(await host.request<Effect>("link", { extension: E, route: "toggle", params: { room: "living room" } })).toEqual({ hud: "Living room: on" });
-    await untilPut((p) => p.id === "gl-living" && (p.body as any).on?.on === true && mock.puts.indexOf(p) >= n, "the link's PUT");
+    expect(await putting(() => host.request<Effect>("link", { extension: E, route: "toggle", params: { room: "living room" } }), GROUP_GAP_MS)).toEqual({ hud: "Living room: on" });
     expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-living", body: { on: { on: true }, dynamics: { duration: 400 } } });
-    expect(await host.request<Effect>("link", { extension: E, route: "toggle", params: { room: "hallway", on: false } })).toEqual({ hud: "Hallway: off" });
+    expect(await putting(() => host.request<Effect>("link", { extension: E, route: "toggle", params: { room: "hallway", on: false } }), GROUP_GAP_MS)).toEqual({ hud: "Hallway: off" });
     expect(await host.request<Effect>("link", { extension: E, route: "scene", params: { name: "relax", room: "living-room" } })).toEqual({ hud: "Relax in Living room" });
     expect(lastPut()).toEqual({ type: "scene", id: "scene-relax", body: { recall: { action: "active", duration: 400 } } });
     expect(await host.request<Effect>("link", { extension: E, route: "scene", params: { name: "Savanna sunset", dynamic: true } })).toEqual({ hud: "Savanna sunset in Living room" });
     expect(lastPut().body).toEqual({ recall: { action: "dynamic_palette", duration: 400 } });
-    await Bun.sleep(1100);
     expect(await host.request<Effect>("link", { extension: E, route: "off", params: {} })).toEqual({ hud: "All lights off" });
     await expect(host.request<Effect>("link", { extension: E, route: "toggle", params: { room: "attic" } })).rejects.toThrow(/no room "attic"/);
     await expect(host.request<Effect>("link", { extension: E, route: "scene", params: { name: "disco" } })).rejects.toThrow(/no scene "disco"/);
@@ -707,14 +706,14 @@ describe("a bridge from the settings, and one that rejects the key", () => {
       expect(JSON.stringify(setup.tree)).toContain("from the settings");
       // A wrong key.
       h.changeSettings(E, { settings: { bridge: good.ip, application_key: "nope", insecure: true, timeout: 2 } });
-      await Bun.sleep(300);
+      await h.until(async () => (await h.list(E, "rooms"))[0].id === "hint:error", 2000, "the hint row");
       const hint = await h.list(E, "rooms");
       expect(hint[0]).toMatchObject({ id: "hint:error", name: "The bridge rejected the application key", actions: [] });
       expect(hint[0].subtitle).toContain("Set up Hue");
       expect(await h.render(E, "home")).toMatchObject({ stale: true });
       // The certificate: with the check on, a self-signed bridge that was never pinned is refused, and the row says so.
       h.changeSettings(E, { settings: { bridge: good.ip, application_key: SAMPLE_KEY, insecure: false, timeout: 2 } });
-      await Bun.sleep(300);
+      await h.until(async () => (await h.list(E, "rooms"))[0].name.includes("certificate"), 2000, "the certificate row");
       const refused = await h.list(E, "rooms");
       expect(refused[0].name).toContain("certificate");
       expect(refused[0].subtitle).toContain("insecure = true");
