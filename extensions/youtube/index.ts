@@ -37,7 +37,7 @@ const CHANNEL: Action = { id: "channel", title: "Open the channel", shortcut: "c
 const REMOVE: Action = { id: "remove", title: "Remove from Watch Later", shortcut: "cmd+d", style: "destructive", multi: true };
 const CLEAR: Action = { id: "clear", title: "Clear Watch Later", style: "destructive", confirm: "Forget every saved video?" };
 
-const DEBOUNCE_MS = 400;
+export const DEBOUNCE_MS = 400;
 const CACHE_MAX = 100;
 const LATER_MAX = 200;
 const EXT = "youtube";

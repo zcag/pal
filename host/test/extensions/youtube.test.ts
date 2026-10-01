@@ -11,7 +11,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { age, count, duration, isoSeconds, parseApiChannels, parseApiVideos, parseInvChannels, parseInvVideos } from "../../../extensions/youtube/api.ts";
-import { matches, playerArgv } from "../../../extensions/youtube/index.ts";
+import { DEBOUNCE_MS, matches, playerArgv } from "../../../extensions/youtube/index.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
 import { Host, stored, writeTool, logLines, bundledIcon } from "../harness.ts";
 import { CHANNELS, startMock, VIDEOS } from "./youtube-mock.ts";
@@ -68,7 +68,10 @@ afterAll(() => {
   delete process.env.PAL_YOUTUBE_API; delete process.env.PAL_YOUTUBE_PATH;
 });
 
-const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("youtube", "search", q, ctx);
+/** A typed search waits out the debounce on the host's clock: the listing with it advanced past. */
+const debounced = async <T>(p: Promise<T>) => { await host.advance(DEBOUNCE_MS); return p; };
+const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => debounced(host.list("youtube", "search", q, ctx));
+const channels = (q: string) => debounced(host.list("youtube", "channels", q));
 const pick = (id: string, action?: string) => host.pick("youtube", "search", id, action);
 const names = (items: Item[]) => items.map((i) => i.name);
 const lofi = VIDEOS[1], jazz = VIDEOS[3], chill = VIDEOS[2], piano = VIDEOS[5];
@@ -111,7 +114,11 @@ describe("youtube", () => {
 
   test("typing is debounced: a listing overtaken by a newer one answers Searching… and sends nothing", async () => {
     const n = requests.length;
-    const [a, b] = await Promise.all([list("coff"), Bun.sleep(40).then(() => list("coffee"))]);
+    const [pa, pb] = [host.list("youtube", "search", "coff"), host.list("youtube", "search", "coffee")];
+    await host.advance(DEBOUNCE_MS - 1);
+    expect(requests.length).toBe(n);
+    await host.advance(1);
+    const [a, b] = await Promise.all([pa, pb]);
     expect(a).toEqual([expect.objectContaining({ id: "hint:wait", name: "Searching…", subtitle: "coff", actions: [] })]);
     expect(names(b)).toEqual([jazz.title, piano.title, VIDEOS[6].title]);
     expect(requests.slice(n).map((r) => r.params.q).filter(Boolean)).toEqual(["coffee"]);
@@ -156,10 +163,10 @@ describe("youtube", () => {
   });
 
   test("channels: hints while empty (the subscriptions note), a search by name with the avatar and subscribers, Enter pushes the channel's videos, cmd+enter opens it", async () => {
-    let rows = await host.list("youtube", "channels", "");
+    let rows = await channels("");
     expect(rows.map((r) => r.id)).toEqual(["hint:type", "hint:oauth"]);
     expect(rows[1].subtitle).toContain("OAuth");
-    rows = await host.list("youtube", "channels", "lofi");
+    rows = await channels("lofi");
     expect(requests.at(-1)).toMatchObject({ path: "/search", params: { type: "channel", q: "lofi" } });
     expect(rows).toEqual([expect.objectContaining({ id: CHANNELS[0].id, name: "Lofi Girl", subtitle: "Connecting people through music.", icon: { image: expect.stringContaining("=s88") }, url: `https://www.youtube.com/channel/${CHANNELS[0].id}` })]);
     expect(await host.pick("youtube", "channels", CHANNELS[0].id, "open")).toEqual({ open: `https://www.youtube.com/channel/${CHANNELS[0].id}` });
@@ -200,7 +207,7 @@ describe("youtube", () => {
     host.changeSettings("youtube", { settings: {} });
     expect((await list("lofi"))[0]).toMatchObject({ id: "hint:setup", name: expect.stringContaining("Invidious instance") });
     expect(await list("yt: lofi", { inline: true })).toEqual([]);
-    expect((await host.list("youtube", "channels", "x"))[0].id).toBe("hint:setup");
+    expect((await channels("x"))[0].id).toBe("hint:setup");
   });
 
   test("Invidious: search, trending, channel search and a channel's videos through /api/v1; an instance whose API is off, or that answers a captcha page, says so", async () => {
@@ -212,7 +219,7 @@ describe("youtube", () => {
     items = await list("");
     expect(requests.at(-1)).toMatchObject({ path: "/api/v1/trending" });
     expect(items[0].name).toBe(VIDEOS[6].title);
-    const ch = await host.list("youtube", "channels", "chillhop");
+    const ch = await channels("chillhop");
     expect(ch[0]).toMatchObject({ name: "Chillhop Music", subtitle: "5.2M subscribers · Chill beats, jazz-hop and lofi, every day.", icon: { image: expect.stringMatching(/^https:\/\/yt3\.ggpht\.com\/.*=s76/) } });
     const vids = await list("", { args: { channel: CHANNELS[1].id, title: "Chillhop Music" } });
     expect(requests.at(-1)!.path).toBe(`/api/v1/channels/${CHANNELS[1].id}/videos`);
