@@ -171,12 +171,16 @@ describe("instances", () => {
     await Promise.all([home, again]);
     // The worker's event loop is now blocked for good.
     const hung = host.pick("counter@home", "counter", "hang", undefined, undefined).catch((e) => e);
-    await Bun.sleep(100);
+    // Nothing to see while the worker spins: a moment for the pick to reach it.
+    await Bun.sleep(50);
     expect((await host.list("counter", "counter"))[0].name).toBe("1");
     instances = { counter: [{ key: "counter", title: "Personal" }] };
-    const gone = host.next("extension/removed", (p) => p.extension === "counter@home", 5000);
-    const back = host.next("extension/loaded", (p) => p.extension === "counter", 5000);
+    const gone = host.next("extension/removed", (p) => p.extension === "counter@home");
+    const back = host.next("extension/loaded", (p) => p.extension === "counter");
     host.notify("instances/changed", { extension: "counter" });
+    // Its dispose never runs: it is terminated once the stop's grace (instances.ts STOP_GRACE_MS, 1 s) is out.
+    await host.untilStderr("stopping counter@home");
+    await host.advance(1000);
     await gone;
     const e = await hung;
     expect(e).toBeInstanceOf(HostError);

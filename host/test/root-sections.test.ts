@@ -8,6 +8,9 @@ import { checkPalettes, inlineMatches, paletteMeta } from "../../sdk/src/manifes
 import type { Palette } from "../../sdk/src/protocol.ts";
 import { Host, Root, manifest } from "./harness.ts";
 
+/** How long the root waits for a section's palette (host.ts ROOT_TIMEOUT_MS). */
+const ROOT_TIMEOUT_MS = 1500;
+
 const rows = () => [{ id: "a", name: "A" }];
 const pick = () => {};
 const input: Palette = { title: "Input", input: true, list: rows, pick };
@@ -58,7 +61,6 @@ describe("the host's root sections", () => {
   let host: Host;
   let root: Root;
   beforeAll(async () => {
-    process.env.PAL_ROOT_TIMEOUT_MS = "300";
     root = new Root({
       nums: {
         "pal.json": manifest("nums", { palettes: { nums: { kind: "input", match: "^\\d" }, slow: { kind: "input" } } }),
@@ -72,7 +74,7 @@ export default { palettes: {
   },
   slow: {
     title: "Slow", input: true, inline: true, match: /./,
-    list: () => new Promise((r) => setTimeout(() => r([{ id: "late", name: "late" }]), 2000)),
+    list: () => new Promise((r) => setTimeout(() => r([{ id: "late", name: "late" }]), 2000)), // on the host's clock
     pick: () => {},
     suggest: () => { throw new Error("boom"); },
     fallback: async (q) => [{ id: "f:" + q, name: "fallback for " + q }],
@@ -83,7 +85,7 @@ export default { palettes: {
     });
     host = await Host.start({ roots: [root.dir] });
   });
-  afterAll(() => { host.kill(); root.rm(); delete process.env.PAL_ROOT_TIMEOUT_MS; });
+  afterAll(() => { host.kill(); root.rm(); });
 
   test("metas say who takes part", () => {
     const metas = host.loaded().find((l) => l.extension === "nums")!.palettes;
@@ -93,11 +95,20 @@ export default { palettes: {
   });
 
   test("inline: the palettes whose match accepts the query list it with ctx.inline, five rows at most; a late one is left out", async () => {
-    const r = await host.request<{ extension: string; palette: string; items: { id: string; name: string }[] }[]>("inline", { query: "42" });
+    // The slow palette matches too: the answer waits for it until the root timeout, then goes without it.
+    const asked = host.request<{ extension: string; palette: string; items: { id: string; name: string }[] }[]>("inline", { query: "42" });
+    let answered = false;
+    asked.then(() => { answered = true; });
+    await host.advance(ROOT_TIMEOUT_MS - 1);
+    expect(answered).toBe(false);
+    await host.advance(1);
+    const r = await asked;
     expect(r.map((s) => `${s.extension}/${s.palette}`)).toEqual(["nums/nums"]);
     expect(r[0].items[0]).toEqual({ id: "n", name: "number 42 inline" });
     expect(r[0].items.length).toBe(5);
-    expect(await host.request<unknown[]>("inline", { query: "abc" })).toEqual([]);
+    const abc = host.request<unknown[]>("inline", { query: "abc" });
+    await host.advance(ROOT_TIMEOUT_MS);
+    expect(await abc).toEqual([]);
     expect(await host.request<unknown[]>("inline", { query: "" })).toEqual([]);
     expect(host.stderr).toContain("inline nums/slow failed");
   });

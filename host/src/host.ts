@@ -40,10 +40,10 @@ import { forget as forgetViews, viewMethods } from "./views.ts";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
 if (ROOTS.length === 0) ROOTS.push(resolve(import.meta.dir, "../../extensions"));
 setRoots(ROOTS);
-/** An import that never settles (a top-level await on something that never comes) must not hold `host/ready` back. Env for the tests. */
-const LOAD_TIMEOUT_MS = Number(process.env.PAL_LOAD_TIMEOUT_MS) || 10_000;
-/** A root section's palette (inline, fallback, suggest) slower than this is left out of that answer: the root paints without it. Env for the tests. */
-const ROOT_TIMEOUT_MS = Number(process.env.PAL_ROOT_TIMEOUT_MS) || 1500;
+/** An import that never settles (a top-level await on something that never comes) must not hold `host/ready` back. */
+const LOAD_TIMEOUT_MS = 10_000;
+/** A root section's palette (inline, fallback, suggest) slower than this is left out of that answer: the root paints without it. */
+const ROOT_TIMEOUT_MS = 1500;
 /** What a worker's answer to a sections request gets on top of `ROOT_TIMEOUT_MS`, which its palettes are held to inside: only a dead worker runs it out. */
 const WORKER_SLACK_MS = 250;
 
@@ -362,6 +362,7 @@ async function startInstance(inst: Instance, f: Found, manifest: Manifest, alone
 /** Stops every worker of `name` (but the `keep` keys, which a reload is about to restart anyway and stops itself); each stopped one is `extension/removed`. */
 async function stopInstances(name: string, keep: string[] = []) {
   for (const w of instancesOf(name)) {
+    log(`stopping ${w.key}`);
     await w.stop();
     workers.delete(w.key);
     errors.delete(w.key);
@@ -657,10 +658,11 @@ const methods: Record<string, (params: any) => unknown> = {
     return reloaded(name);
   },
   // The tests' clock (clock.ts): this thread's and every worker's moves `ms` forward; answered once every timer due on the way ran.
+  // A worker stopped on the way (a hung one, terminated when its grace runs out) has no clock left to move.
   "clock/advance": async (p) => {
     const ms = Number(p?.ms);
     if (!(ms >= 0)) throw new Error("clock/advance: ms");
-    await Promise.all([advance(ms), ...[...workers.values()].map((w) => w.advance(ms))]);
+    await Promise.all([advance(ms), ...[...workers.values()].map((w) => w.advance(ms).catch(() => {}))]);
     return true;
   },
 };

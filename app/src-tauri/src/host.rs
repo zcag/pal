@@ -33,7 +33,7 @@ const RESTART_DELAY: Duration = Duration::from_millis(500);
 /// fills its pipe.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// A `reload` waits for the load itself: the host gives an extension's
-/// import 10 s (`PAL_LOAD_TIMEOUT_MS`), then its instances start.
+/// import 10 s (`LOAD_TIMEOUT_MS`), then its instances start.
 const RELOAD_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long `stop` waits for the host to exit on EOF before quitting
 /// anyway: an extension's own shutdown (a file flush) gets this long.

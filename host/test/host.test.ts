@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { PROTOCOL, PROTOCOL_MIN, type BarItem, type BarMeta } from "../../sdk/src/protocol.ts";
-import { API, HOST, Host, Root, manifest, simpleExt } from "./harness.ts";
+import { API, HOST, Host, Root, manifest, simpleExt, type Options } from "./harness.ts";
 
 describe("loading", () => {
   let root: Root;
@@ -518,11 +518,18 @@ describe("watching", () => {
   });
 
   test("an import that never settles is reported as extension/error and does not hold host/ready back", async () => {
-    const root = new Root({ hang: { "index.ts": "await new Promise(() => {});\nexport default { palettes: {} };" }, ok: { "index.ts": simpleExt("ok") } });
-    process.env.PAL_LOAD_TIMEOUT_MS = "500";
-    const host = await Host.start({ roots: [root.dir] }).finally(() => delete process.env.PAL_LOAD_TIMEOUT_MS);
+    const root = new Root({ hang: { "index.ts": 'console.error("hang: importing");\nawait new Promise(() => {});\nexport default { palettes: {} };' }, ok: { "index.ts": simpleExt("ok") } });
+    // Not Host.start: it waits for the host/ready this test is about, which comes only once the clock reaches the import's timeout.
+    const host = new (Host as unknown as new (o: Options) => Host)({ roots: [root.dir] });
+    const ready = host.next("host/ready");
+    // The import has begun, so its timeout (host.ts LOAD_TIMEOUT_MS) is running.
+    await host.untilStderr("hang: importing");
+    await host.advance(9_999);
+    expect(host.failed()).toEqual([]);
+    await host.advance(1);
+    await ready;
     expect(await host.list("ok", "ok")).toHaveLength(1);
-    expect(host.failed().find((f) => f.extension === "hang")?.message).toBe("import of hang did not answer within 0.5 s");
+    expect(host.failed().find((f) => f.extension === "hang")?.message).toBe("import of hang did not answer within 10 s");
     host.kill();
     root.rm();
   });
