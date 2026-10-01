@@ -122,6 +122,8 @@ describe("requires", () => {
       const needy = host.next("extension/loaded", (p) => p.extension === "needy");
       root.write("base", "pal.json", manifest("base"));
       root.write("base", "index.ts", simpleExt("base"));
+      // As the core installs: the directory, then `reload` (the watcher's own path is the reload tests').
+      await host.request("reload", { extension: "base" });
       expect(((await needy).params as any).warnings).toEqual([]);
       expect(await host.list("needy", "needy")).toHaveLength(1);
       const off = host.next("extension/error", (p) => p.extension === "needy");
@@ -133,12 +135,13 @@ describe("requires", () => {
       await on;
       const gone = host.next("extension/error", (p) => p.extension === "needy");
       rmSync(join(root.dir, "base"), { recursive: true });
+      await host.request("reload", { extension: "base" });
       expect(((await gone).params as any).message).toBe("needs base, which is not installed");
     } finally {
       host.kill();
       root.rm();
     }
-  }, 15_000); // FSEvents: up to seconds under load (a99c0e87); the test ends at the event
+  });
 
   test("a bad requires or suggests is a warning; two that require each other both load", async () => {
     const root = new Root({
