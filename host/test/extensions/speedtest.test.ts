@@ -187,11 +187,14 @@ describe("speedtest", () => {
     expect(argvLog().at(-1)).toBe("--format=jsonl --progress=yes --accept-license --accept-gdpr --server-id 1234");
     shown();
     await nextTree((t) => t.includes("[uploading]"));
-    const v = viewOf(await pick("start"));
-    const stopped = texts(v.tree).includes("[failed]") ? v : await nextTree((t) => t.includes("[failed]"));
-    expect(texts(stopped.tree).at(-1)).toBe("Failed: stopped · Enter runs again");
-    expect(stopped.actions[0].title).toBe("Run again");
-    await Bun.sleep(200);
+    // The tool's exit pushes the failed view (it may beat the pick's answer); a history write would follow it.
+    const updates = () => host.viewUpdates("speedtest", { palette: "speedtest" });
+    const from = updates().length;
+    await pick("start");
+    let stopped: View | undefined;
+    await host.until(() => !!(stopped = updates().slice(from).map((u) => u.spec as View).find((s) => texts(s.tree).includes("[failed]"))), 3000, "the failed view");
+    expect(texts(stopped!.tree).at(-1)).toBe("Failed: stopped · Enter runs again");
+    expect(stopped!.actions[0].title).toBe("Run again");
     expect((await host.list("speedtest", "history")).length).toBe(before);
     hidden();
     host.changeSettings("speedtest", { settings: { keep: 5 } });
