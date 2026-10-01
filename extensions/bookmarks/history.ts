@@ -18,8 +18,8 @@ type Settings = { browsers: string[] };
 
 /** Rows per profile, and after the merge. */
 export const LIMIT = 50;
-/** A copied database is used for this long before the source's mtime is looked at again (`PAL_BOOKMARKS_COPY_MS` in the tests). */
-const COPY_MIN_MS = Number(process.env.PAL_BOOKMARKS_COPY_MS ?? 30_000);
+/** A copied database is used for this long before the source's mtime is looked at again. */
+export const COPY_MIN_MS = 30_000;
 /** Chrome's clock starts at 1601-01-01 and counts microseconds. */
 const CHROME_EPOCH_MS = 11_644_473_600_000;
 

@@ -9,7 +9,7 @@ import { Database } from "bun:sqlite";
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromeTime, firefoxTime, like, merge, visits } from "../../../extensions/bookmarks/history.ts";
+import { chromeTime, COPY_MIN_MS, firefoxTime, like, merge, visits } from "../../../extensions/bookmarks/history.ts";
 import { chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks } from "../../../extensions/bookmarks/sources.ts";
 import { Host } from "../harness.ts";
 
@@ -376,10 +376,9 @@ describe("history", () => {
     db.close();
     // Within the 30 s window the copy stands.
     expect((await history("fresh")).map((i) => i.id)).toEqual([]);
-    // Past it (a host with no minimum) the moved mtime brings a fresh copy.
-    process.env.PAL_BOOKMARKS_COPY_MS = "0";
-    const fresh = await Host.bundled({ settings: { bookmarks: { settings: { file } } } });
-    try { expect((await fresh.list("bookmarks", "history", "fresh")).map((i) => i.id)).toEqual(["https://fresh.example/"]); } finally { fresh.kill(); delete process.env.PAL_BOOKMARKS_COPY_MS; }
+    // Past it the moved mtime brings a fresh copy.
+    await host.advance(COPY_MIN_MS);
+    expect((await history("fresh")).map((i) => i.id)).toEqual(["https://fresh.example/"]);
   });
 });
 
