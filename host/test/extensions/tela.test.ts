@@ -22,7 +22,14 @@ beforeAll(async () => {
 });
 afterAll(() => { host.kill(); server.stop(true); });
 
-const list = (palette: string, query?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("tela", palette, query, ctx);
+/** extensions/tela/index.ts SEARCH_WAIT_MS: a search waits it out on the host's clock. */
+const SEARCH_WAIT_MS = 250;
+/** A listing; a search's with the wait advanced past. */
+const list = async (palette: string, query?: string, ctx?: Parameters<Host["list"]>[3]) => {
+  const r = host.list("tela", palette, query, ctx);
+  if (palette === "search") await host.advance(SEARCH_WAIT_MS);
+  return r;
+};
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("tela", palette, id, action, ctx);
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
 const texts = (n: ViewNode): string[] => (n.type === "text" ? [n.value] : n.type === "stack" ? n.children.flatMap(texts) : n.type === "badge" ? [`[${n.text}]`] : n.type === "tile" ? [`(${n.text})`] : []);
@@ -170,13 +177,17 @@ describe("tela", () => {
       const before = calls("GET", "/api/search").length;
       const word = "spawns";
       const asks: Promise<{ id: string }[]>[] = [];
+      const ask = (q: string) => host.list("tela", "search", q);
       for (let i = 2; i <= word.length; i++) {
-        asks.push(list("search", word.slice(0, i)));
-        if (i < word.length) await Bun.sleep(60);
+        asks.push(ask(word.slice(0, i)));
+        if (i < word.length) await host.advance(60);
       }
       // The panel lists again on an index event: the same query, mid-wait.
-      await Bun.sleep(100);
-      asks.push(list("search", word));
+      await host.advance(100);
+      asks.push(ask(word));
+      await host.advance(SEARCH_WAIT_MS - 100 - 1);
+      expect(calls("GET", "/api/search").length).toBe(before);
+      await host.advance(1);
       const replies = await Promise.all(asks);
       for (const r of replies) expect(ids(r)).toEqual(["page:11"]);
       expect(calls("GET", "/api/search").slice(before).map((c) => c.path)).toEqual(["/api/search?q=spawns"]);
@@ -200,11 +211,9 @@ describe("tela", () => {
       const items = await list("research", "how does indexing work");
       expect(items[0]).toMatchObject({ id: "ask:how does indexing work", name: "Ask: how does indexing work", icon: "\u{f06e9}" });
       host.changeSettings("tela", { settings: { ...SETTINGS, research: false } });
-      await Bun.sleep(50);
       expect(ids(await list("research", "x"))).toEqual(["hint:research-off"]);
       expect(await pick("research", "hint:research-off")).toEqual({ open: "pal://settings/extensions" });
       host.changeSettings("tela", { settings: SETTINGS });
-      await Bun.sleep(50);
     });
 
     test("asking: one MCP session (initialize, initialized, tools/call), the view with the flags, the sources numbered with the cursor on the first, its excerpt rendered under them; the question remembered", async () => {
@@ -402,7 +411,6 @@ describe("tela", () => {
   describe("what goes wrong", () => {
     test("no token: one hint naming where a token comes from, Enter opens tela's API Keys; the bar item is hidden", async () => {
       host.changeSettings("tela", { settings: { ...SETTINGS, token: "" } });
-      await Bun.sleep(50);
       const items = await list("pages");
       expect(items).toHaveLength(1);
       expect(items[0]).toMatchObject({ id: "hint:token", name: "Sign in to tela", icon: "\u{f030b}" });
@@ -415,13 +423,11 @@ describe("tela", () => {
 
     test("no address: the hint says which setting", async () => {
       host.changeSettings("tela", { settings: { ...SETTINGS, base_url: "" } });
-      await Bun.sleep(50);
       expect((await list("spaces"))[0]).toMatchObject({ id: "hint:url", name: "Set the tela address" });
     });
 
     test("an expired token: tela's 401 becomes a hint naming the renewal, on every palette, and no stale rows", async () => {
       host.changeSettings("tela", { settings: { ...SETTINGS, token: "expired-token" } });
-      await Bun.sleep(50);
       for (const p of ["pages", "spaces", "comments", "decks"]) {
         const items = await list(p);
         expect(items.map((i) => i.id)).toEqual(["hint:token"]);
@@ -434,7 +440,6 @@ describe("tela", () => {
 
     test("an instance that does not answer: the hint names the retry key", async () => {
       host.changeSettings("tela", { settings: SETTINGS });
-      await Bun.sleep(50);
       state.down = true;
       const items = await list("spaces", undefined, { refresh: true });
       expect(items[0]).toMatchObject({ id: "hint:error", name: "tela did not answer" });
