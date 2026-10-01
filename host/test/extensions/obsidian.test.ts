@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { paneMarkdown } from "../../../extensions/obsidian/index.ts";
 import { dailyConfig, excluded, fileName, fillTemplate, firstVault, formatDate, frontMatter, isoWeek, parseNote, resolve, tags, wikilink, wikilinks, type Note } from "../../../extensions/obsidian/notes.ts";
-import { parseRg, rgArgv } from "../../../extensions/obsidian/vault.ts";
+import { MAX_AGE_MS, parseRg, rgArgv, WATCH_SETTLE_MS } from "../../../extensions/obsidian/vault.ts";
 import type { Item } from "../../../sdk/src/index.ts";
 import { Host, stored, writeTool, bundledIcon } from "../harness.ts";
 
@@ -175,15 +175,20 @@ afterAll(async () => {
 
 const list = (palette: string, query = "", ctx?: Parameters<Host["list"]>[3]) => host.list("obsidian", palette, query, ctx);
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("obsidian", palette, id, action, ctx);
-/** Polls a listing until `pred` holds on it. */
-async function untilListed(palette: string, pred: (rows: Item[]) => boolean, what: string, timeout = 4000): Promise<Item[]> {
-  const t0 = Date.now();
-  for (;;) {
-    const rows = await list(palette);
-    if (pred(rows)) return rows;
-    if (Date.now() - t0 > timeout) throw new Error(`${what} not met within ${timeout} ms`);
-    await Bun.sleep(100);
-  }
+/**
+ * Lists until `pred` holds on the rows, moving the clock past the watcher's settle each round (the event itself is real and lands
+ * when it does). The rounds stay under the index's age cap, so it is the watcher, not `MAX_AGE_MS`, that refreshed it.
+ */
+async function untilListed(palette: string, pred: (rows: Item[]) => boolean, what: string): Promise<Item[]> {
+  let rows: Item[] = [], moved = 0;
+  await host.until(async () => {
+    rows = await list(palette);
+    if (pred(rows)) return true;
+    if ((moved += WATCH_SETTLE_MS) >= MAX_AGE_MS) throw new Error(`${what}: not before the age cap`);
+    await host.advance(WATCH_SETTLE_MS);
+    return false;
+  }, 4000, what);
+  return rows;
 }
 
 describe("the extension", () => {

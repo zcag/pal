@@ -27,7 +27,7 @@ export type Index = {
 /** A rebuild older than this happens on the next listing even without a watcher event (a watcher that silently died). */
 export const MAX_AGE_MS = 30_000;
 /** Watcher events closer than this are one invalidation. */
-const WATCH_SETTLE_MS = 200;
+export const WATCH_SETTLE_MS = 200;
 /** The scan stops here and answers what it has. */
 export const SEARCH_BUDGET_MS = 1000;
 /** Matching lines kept per note. */
