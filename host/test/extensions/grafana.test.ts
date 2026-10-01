@@ -545,10 +545,20 @@ describe("what goes wrong", () => {
     host.changeSettings(E, { settings: { ...SETTINGS, url: "http://127.0.0.1:1" } });
     expect(await list("grafana")).toMatchObject([{ name: "Could not reach http://127.0.0.1:1", subtitle: expect.stringContaining("Check the URL") }]);
     host.changeSettings(E, { settings: { ...SETTINGS, timeout: 1 } });
-    state.delayMs = 1500;
-    expect(await list("alerts")).toMatchObject([{ name: `${BASE} did not answer within 1 s`, subtitle: expect.stringContaining("Raise the timeout") }]);
-    state.delayMs = 0;
-  }, 15_000);
+    // A host that never answers: nothing at 999 ms, the timeout's row at 1 s.
+    let release!: () => void;
+    state.hold = new Promise((r) => (release = r));
+    const n = seen.length;
+    let answered = false;
+    const slow = list("alerts").finally(() => (answered = true));
+    await host.until(() => seen.length > n, 3000, "the request out");
+    await host.advance(999);
+    expect(answered).toBe(false);
+    await host.advance(1);
+    expect(await slow).toMatchObject([{ name: `${BASE} did not answer within 1 s`, subtitle: expect.stringContaining("Raise the timeout") }]);
+    release();
+    state.hold = undefined;
+  });
 
   test("a redirecting host is followed once with the token kept, and the log says which URL to set", async () => {
     const redirecting = Bun.serve({ port: 0, fetch(req) { const u = new URL(req.url); return new Response(null, { status: 301, headers: { location: `${BASE}${u.pathname}${u.search}` } }); } });

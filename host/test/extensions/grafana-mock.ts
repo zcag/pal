@@ -59,13 +59,13 @@ export const state = {
   silences: [] as Silence[],
   /** The renderer plugin is installed. */
   renderer: false,
-  /** Every request waits this long first. */
-  delayMs: 0,
+  /** Every request waits on this first: a slow host the test releases. */
+  hold: undefined as Promise<void> | undefined,
   nextSilence: 1,
 };
 export const seen: { method: string; path: string; body?: unknown }[] = [];
 export const calls = (method: string, path: string) => seen.filter((r) => r.method === method && r.path === path);
-export const reset = () => { seen.length = 0; state.starred.clear(); state.silences.length = 0; state.renderer = false; state.delayMs = 0; state.nextSilence = 1; };
+export const reset = () => { seen.length = 0; state.starred.clear(); state.silences.length = 0; state.renderer = false; state.hold = undefined; state.nextSilence = 1; };
 
 const labelsKey = (l: Record<string, string>) => Object.entries(l).filter(([k]) => !k.startsWith("__")).sort().map(([k, v]) => `${k}=${v}`).join(",");
 /** Which silences cover an instance: every matcher equal on its labels (plus the rule uid label the AM adds). */
@@ -100,7 +100,7 @@ export const server = Bun.serve({
     const auth = req.headers.get("authorization");
     const body = req.method === "POST" ? await req.json().catch(() => undefined) : undefined;
     seen.push({ method: req.method, path: u.pathname + (u.search || ""), body });
-    if (state.delayMs) await Bun.sleep(state.delayMs);
+    if (state.hold) await state.hold;
     if (auth !== `Bearer ${TOKEN}` && auth !== `Bearer ${VIEWER}`) return Response.json({ message: "Invalid API key" }, { status: 401 });
     const viewer = auth === `Bearer ${VIEWER}`;
     const p = u.pathname;
