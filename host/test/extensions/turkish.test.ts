@@ -7,6 +7,7 @@
 // without a text.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { asciify, changed, CONVERSIONS, convert, deasciify, lower, title, upper } from "../../../extensions/turkish/turkish.ts";
+import { TEXT_AT_HAND_TTL_MS } from "../../../sdk/src/api.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Effect } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
@@ -116,7 +117,7 @@ describe("turkish", () => {
     expect(rows[0].detail!.metadata).toContainEqual({ label: "Source", value: "The selection in the app in front" });
     expect(await pick("deasciify")).toEqual({ paste: { text: "çok sıcak" } });
     selectionText = null;
-    await Bun.sleep(2100);
+    await host.advance(TEXT_AT_HAND_TTL_MS);
     rows = await list("");
     expect(rows[0].name).toBe("hello world");
     expect(rows[0].subtitle).toContain("from the clipboard");
@@ -134,7 +135,7 @@ describe("turkish", () => {
     expect(await link("upper", { text: "istanbul" })).toEqual({ copy: "İSTANBUL", hud: "UPPERCASE, copied" });
     expect(await link("lower", { text: "ISTANBUL" })).toEqual({ copy: "ıstanbul", hud: "lowercase, copied" });
     expect(await link("title", { text: "istanbul'da" })).toEqual({ copy: "İstanbul'da", hud: "Title Case, copied" });
-    await Bun.sleep(2100);
+    await host.advance(TEXT_AT_HAND_TTL_MS);
     selectionText = "acik kapi";
     expect(await link("deasciify")).toEqual({ paste: { text: "açık kapı" } });
     expect(await link("deasciify", { paste: false })).toEqual({ copy: "açık kapı", hud: "Deasciified, copied" });
