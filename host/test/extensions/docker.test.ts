@@ -108,12 +108,15 @@ describe("docker", () => {
   });
 
   test("a command still running after 8 s answers with a toast saying so, and goes on", async () => {
-    const t0 = Date.now();
-    const r = await host.request<Record<string, unknown>>("pick", { extension: "docker", palette: "docker", id: "dd44ee55ff66", action: "stop" }, 9500);
-    expect(r).toEqual({ keep: true, toast: { title: "stop dd44ee55ff66 not done yet", message: "Still running after 8 s; it goes on in the background" } });
-    expect(Date.now() - t0).toBeGreaterThanOrEqual(7900);
-    expect(Date.now() - t0).toBeLessThan(9500);
-  }, 12_000);
+    let done = false;
+    const r = host.request<Record<string, unknown>>("pick", { extension: "docker", palette: "docker", id: "dd44ee55ff66", action: "stop" }).finally(() => { done = true; });
+    // The stand-in logs its call once spawned, and the extension's 8 s wait (WAIT_MS, extensions/docker/index.ts) is set by then.
+    await host.until(() => called().includes("stop dd44ee55ff66"));
+    await host.advance(7999);
+    expect(done).toBe(false);
+    await host.advance(1);
+    expect(await r).toEqual({ keep: true, toast: { title: "stop dd44ee55ff66 not done yet", message: "Still running after 8 s; it goes on in the background" } });
+  });
 
   test("logs: a show level with the last 200 lines fenced, stderr included; the bar's count instead when it is one", async () => {
     const r = await pick("b5d74103f8fe", "logs");
