@@ -40,8 +40,8 @@ const HINT_ICON = { locked: "\u{f08ee}", none: "\u{f164d}" };
 const BAR_GLYPH = "\u{f084}";
 /** How long a code stays on the strip after it arrived. */
 const BAR_WINDOW_MS = 60_000;
-/** The popover's tick while it shows; env for the tests. */
-const TICK_MS = Number(process.env.PAL_OTP_TICK_MS) || 1000;
+/** The popover's tick while it shows. */
+const TICK_MS = 1000;
 const EXTENSION = "otp";
 const ITEM = "latest-code";
 /** Rows read per listing at most; the time window bounds it first. */

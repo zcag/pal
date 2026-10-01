@@ -74,8 +74,7 @@ beforeAll(async () => {
     INSERT INTO ZABCDEMAILADDRESS VALUES (1, 2, 'info@shop.example');
   `);
   a.close();
-  process.env.PAL_OTP_TICK_MS = "100";
-  host = await Host.bundled({ settings: { otp: { settings: { db, contacts, senders: ["spamco"], hours: 48 } } } }).finally(() => delete process.env.PAL_OTP_TICK_MS);
+  host = await Host.bundled({ settings: { otp: { settings: { db, contacts, senders: ["spamco"], hours: 48 } } } });
 });
 /** The popover's tree of an item, checked as the host does. */
 const viewOf = (item: { menu?: unknown }): View => checkView((item.menu as { view: View }).view);
@@ -212,18 +211,24 @@ describe.skipIf(!MAC)("otp bar: latest-code", () => {
     try {
       await host.render("otp", "latest-code", { reason: "every" });
       host.viewShown("otp", { bar: "latest-code" }, "latest", true);
-      const u = await host.nextViewUpdate("otp", { bar: "latest-code" });
+      const updates = () => host.viewUpdates("otp", { bar: "latest-code" });
+      const n = updates().length;
+      // The extension's TICK_MS (1 s): nothing before it, one push at it, one more a second later.
+      await host.advance(999);
+      await Bun.sleep(30);
+      expect(updates().length).toBe(n);
+      await host.advance(1);
+      await host.until(() => updates().length === n + 1);
+      const u = updates()[n];
       expect(u).toMatchObject({ extension: "otp", bar: "latest-code", spec: { id: "latest", keys: "actions" } });
-      expect(texts(u.spec as View)[3]).toMatch(/^(29|30)s$/);
-      await Bun.sleep(1100);
-      const all = host.viewUpdates("otp", { bar: "latest-code" });
-      expect(all.length).toBeGreaterThan(5);
-      expect(texts(all[all.length - 1].spec as View)[3]).toMatch(/^(28|29)s$/);
+      expect(texts(u.spec as View)[3]).toMatch(/^(28|29)s$/);
+      await host.advance(1000);
+      await host.until(() => updates().length === n + 2);
+      expect(texts(updates()[n + 1].spec as View)[3]).toMatch(/^(27|28)s$/);
       host.viewHidden("otp", { bar: "latest-code" }, "latest", true);
-      await Bun.sleep(150);
-      const n = host.viewUpdates("otp", { bar: "latest-code" }).length;
-      await Bun.sleep(300);
-      expect(host.viewUpdates("otp", { bar: "latest-code" }).length).toBe(n);
+      await host.advance(3000);
+      await Bun.sleep(30);
+      expect(updates().length).toBe(n + 2);
     } finally { remove(53); }
   });
 
