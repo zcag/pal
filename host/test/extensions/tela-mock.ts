@@ -123,6 +123,8 @@ const json = (data: unknown, status = 200, headers: Record<string, string> = {})
 const sse = (msg: unknown, headers: Record<string, string> = {}) => new Response(`event: message\ndata: ${JSON.stringify(msg)}\n\n`, { headers: { "content-type": "text/event-stream", ...headers } });
 
 export const server = Bun.serve({
+  // A quiet event stream outlives Bun's 10 s idle close (the hue mock lost its stream to it on a slow runner).
+  idleTimeout: 0,
   port: 0,
   async fetch(req) {
     const url = new URL(req.url);

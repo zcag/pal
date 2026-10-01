@@ -50,7 +50,9 @@ export class MockBridge {
     this.bridgeId = o.bridgeId ?? SAMPLE_BRIDGE_ID;
     this.name = o.name ?? "Hue Bridge";
     this.tls = o.tls === false ? undefined : o.tls ?? selfSigned(this.bridgeId);
-    this.server = Bun.serve({ port: 0, hostname: "127.0.0.1", ...(this.tls && { tls: this.tls }), fetch: (req) => this.handle(req) });
+    // idleTimeout 0: Bun closes a connection quiet for 10 s, and the event stream is quiet between changes (a slow runner reached it, and
+    // the extension's reconnect waits on the fake clock).
+    this.server = Bun.serve({ port: 0, hostname: "127.0.0.1", idleTimeout: 0, ...(this.tls && { tls: this.tls }), fetch: (req) => this.handle(req) });
   }
 
   get port(): number { return this.server.port!; }
