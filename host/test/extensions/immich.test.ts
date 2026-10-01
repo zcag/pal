@@ -109,13 +109,16 @@ afterAll(() => {
   delete process.env.PAL_IMMICH_CACHE; delete process.env.PAL_NOW; delete process.env.PAL_COPY_IMAGE;
 });
 
-const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("immich", "immich", q, ctx);
+/** extensions/immich/index.ts DEBOUNCE_MS: a typed search waits it out on the host's clock. */
+const DEBOUNCE_MS = 300;
+const debounced = async <T>(p: Promise<T>) => { await host.advance(DEBOUNCE_MS); return p; };
+/** A listing with the debounce advanced past. */
+const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => debounced(host.list("immich", "immich", q, ctx));
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("immich", "immich", id, action, ctx);
 const names = (items: Item[]) => items.map((i) => i.name);
 const dataUrl = (i: Item) => (i.icon as { image?: string })?.image ?? "";
 /** The last search request (the thumbnail fetches follow a listing). */
 const last = () => requests.filter((r) => !r.path.includes("/thumbnail")).at(-1)!;
-const settle = (ms = 50) => Bun.sleep(ms);
 
 describe("immich", () => {
   test("meta: an input grid on the Immich logo tile with the pane open, five filters and a fallback row; albums and people lazy lists with a ttl; memories live; three links; no warnings", () => {
@@ -154,14 +157,14 @@ describe("immich", () => {
   });
 
   test("streamed: the search's tiles show before their thumbnails, a cached one with its picture and the rest with the glyph, the same tiles in the same order; all cached, no early rows", async () => {
-    const { items, partials } = await host.listStream("immich", "immich", "receipt scan");
+    const { items, partials } = await debounced(host.listStream("immich", "immich", "receipt scan"));
     expect(partials).toHaveLength(1);
     expect(partials[0].map((i) => i.id)).toEqual(items.map((i) => i.id));
     expect(partials[0].map((i) => i.name)).toEqual(names(items));
     expect(dataUrl(partials[0][0])).toBe(dataUrl(items[0]));
     expect(partials[0].some((i) => typeof i.icon === "string")).toBe(true);
     expect(items.every((i) => dataUrl(i).startsWith("data:"))).toBe(true);
-    expect((await host.listStream("immich", "immich", "receipt scan")).partials).toEqual([]);
+    expect((await debounced(host.listStream("immich", "immich", "receipt scan"))).partials).toEqual([]);
   });
 
   test("More pages on: the next page is appended, no More once the library is out; cmd+r starts over", async () => {
@@ -185,7 +188,11 @@ describe("immich", () => {
     expect(await list("zebra")).toEqual([expect.objectContaining({ id: "hint:none", name: "Nothing looks like “zebra”", subtitle: "Immich", actions: [] })]);
     expect(await list("IMG_9999.jpg")).toEqual([expect.objectContaining({ name: "No file named like “IMG_9999.jpg”" })]);
     const n = requests.length;
-    const [a, b] = await Promise.all([list("do"), Bun.sleep(40).then(() => list("dog"))]);
+    const [pa, pb] = [host.list("immich", "immich", "do"), host.list("immich", "immich", "dog")];
+    await host.advance(DEBOUNCE_MS - 1);
+    expect(requests.length).toBe(n);
+    await host.advance(1);
+    const [a, b] = await Promise.all([pa, pb]);
     expect(a).toEqual([expect.objectContaining({ id: "hint:wait", name: "Searching…", subtitle: "do", actions: [] })]);
     expect(names(b)).toEqual(["22 Sep 2021", "Serdivan · 3 Jun 2022", "▶ 3 Jun 2022"]);
     expect(requests.slice(n).map((r) => r.body?.query)).toEqual(["dog"]);
@@ -267,10 +274,8 @@ describe("immich", () => {
     items = await list("");
     expect(items[0].actions!.some((a) => a.id === "fav")).toBe(true);
     host.changeSettings("immich", { settings: { url: base, api_key: "readonly", web_url: "https://photos.example.com", download_to: downloads } });
-    await settle();
     expect(await pick(receipt.id, "fav")).toEqual({ keep: true, toast: { title: "Could not fav", message: "The key lacks the `asset.update` permission: make one with it under Account Settings › API Keys", style: "failure" } });
     host.changeSettings("immich", { settings: { url: base, api_key: "good", web_url: "https://photos.example.com", download_to: downloads } });
-    await settle();
   });
 
   test("Add to album pushes the albums picker with the ids: your own albums with Add here, New album… first; Add here puts them in (the ones already there counted); the new album form creates one holding them", async () => {
@@ -321,14 +326,12 @@ describe("immich", () => {
     expect(last()).toMatchObject({ path: "/search/smart", body: { query: "sunset", albumIds: ["a1"] } });
     expect(await list("zebra", { args: e.push!.args })).toEqual([expect.objectContaining({ name: "Nothing looks like “zebra”", subtitle: "Trip to Bolu" })]);
     host.changeSettings("immich", { settings: { url: base, api_key: "admin", web_url: "https://photos.example.com", download_to: downloads } });
-    await settle();
     rows = await host.list("immich", "albums", "", { refresh: true });
     expect(rows[0]).toMatchObject({ id: "library", name: "Immich library", subtitle: "60,123 photos · 2,345 videos · 1.12 TB" });
     expect(await host.pick("immich", "albums", "library")).toEqual({ open: "https://photos.example.com/photos" });
     // The admin key reads `/users/me`, so the picker lists only the albums it owns.
     expect(names(await host.list("immich", "albums", "", { args: { add: [uuid(1)] } }))).not.toContain("Family");
     host.changeSettings("immich", { settings: { url: base, api_key: "good", web_url: "https://photos.example.com", download_to: downloads } });
-    await settle();
   });
 
   test("People: the named ones, favourites first with a tag and their face, a row for the faces without a name; Enter pushes the person's grid", async () => {
@@ -363,7 +366,6 @@ describe("immich", () => {
     expect(requests.slice(n).filter((r) => r.path.startsWith("/search"))).toEqual([]);
     process.env.PAL_NOW = "2026-03-01T10:00:00";
     host.changeSettings("immich", { settings: { url: base, api_key: "good", web_url: "https://photos.example.com", download_to: downloads } });
-    await settle();
   });
 
   test("links: search pushes the grid with the query (the filter as a word); album and person find by name or id, or say what is missing", async () => {
@@ -383,25 +385,20 @@ describe("immich", () => {
 
   test("without a url or a key every palette is one row that opens Settings on the missing field; a refused key and an unreachable server name the fix", async () => {
     host.changeSettings("immich", { settings: { url: "", api_key: "", web_url: "", download_to: downloads } });
-    await settle();
     for (const p of ["immich", "albums", "people", "memories"]) {
       const rows = await host.list("immich", p);
       expect(rows).toEqual([expect.objectContaining({ id: "setup", name: "Set url and api_key under Settings › Extensions › Immich", actions: [{ id: "settings", title: "Open Settings" }] })]);
       expect(await host.pick("immich", p, "setup")).toEqual({ open: "pal://settings/extensions?anchor=extensions:immich:url" });
     }
     host.changeSettings("immich", { settings: { url: base, api_key: "", web_url: "", download_to: downloads } });
-    await settle();
     expect(await pick("setup")).toEqual({ open: "pal://settings/extensions?anchor=extensions:immich:api_key" });
     await expect(host.request("link", { extension: "immich", route: "search", params: { q: "x" } })).rejects.toThrow("set url and api_key");
     host.changeSettings("immich", { settings: { url: base, api_key: "bad", web_url: "", download_to: downloads } });
-    await settle();
     expect(await list("")).toEqual([expect.objectContaining({ id: "hint:failed", name: "Immich refused the key: check API key under Settings › Extensions › Immich", actions: [] })]);
     expect((await host.list("immich", "albums"))[0].name).toContain("refused the key");
     host.changeSettings("immich", { settings: { url: "http://127.0.0.1:9", api_key: "good", web_url: "", download_to: downloads } });
-    await settle();
     expect((await list("", { refresh: true }))[0].name).toBe("Immich did not answer at http://127.0.0.1:9: check URL and the network");
     host.changeSettings("immich", { settings: { url: base, api_key: "good", web_url: "https://photos.example.com", download_to: downloads } });
-    await settle();
     expect((await list("")).length).toBe(25);
   });
 });
