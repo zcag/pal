@@ -153,6 +153,7 @@ const lookOf = (i: number) => (isBlock(p, i) ? "#" : `${st.fill[i] || "."}${st.m
 function paintLetter(i: number, anim: string) {
   const o = overs[i], m = st.mark[i];
   o.querySelector("span")!.textContent = st.fill[i];
+  o.style.setProperty("--n", String(Math.max(1, st.fill[i].length)));
   o.classList.toggle("wrong", !!(m & WRONG) && !!st.fill[i]);
   o.classList.toggle("rev", !!(m & REVEALED));
   o.classList.toggle("right", !!(m & RIGHT));
@@ -167,7 +168,7 @@ function draw(prev?: Play, anim: "type" | "reveal" | "check" | "" = "") {
     if (look === looks[i]) continue;
     const was = looks[i];
     looks[i] = look;
-    const wasLetter = was[0] && was[0] !== "." ? was[0] : "";
+    const wasLetter = was && was[0] !== "." ? was.slice(0, -1) : "";
     const a = !prev ? "" : anim === "reveal" && st.mark[i] & REVEALED ? "flip" : anim === "check" && st.mark[i] & WRONG ? "slash" : st.fill[i] && st.fill[i] !== wasLetter ? "pop" : "";
     paintLetter(i, a);
   }

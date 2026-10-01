@@ -104,6 +104,8 @@ The NYT's keys:
   answer in blue with a corner mark. ⌥⌫ clears the word, ⌘⌥⌫ the grid
   (locked squares stay). The `autocheck` setting slashes a wrong letter as
   it lands.
+- A rebus square (several letters in one, like OCT) takes its first
+  letter, as the NYT app does, and then shows the whole answer.
 - ⌘P pauses: the grid is covered and the clues blurred. `?` shows every
   key; ⌘K lists the rest (start over, autocheck, the puzzle on
   crosshare.org).

@@ -188,6 +188,25 @@ describe("check, reveal, clear, the finish", () => {
   });
 });
 
+describe("a rebus square", () => {
+  // OCT in one square, as Crosshare's "Ty's Daily 274" has it (OCTOPI, OCTAGON):
+  //  OCT A      1 across OCTA, 3 ET; 1 down OCTE, 2 AT
+  //  E   T
+  const r = gridOf(fromIpuz({ dimensions: { width: 2, height: 2 }, solution: [["oct", "A"], ["E", "T"]], clues: { Across: [[1, "Eight-armed, briefly"], [3, "Alien"]], Down: [[1, "Eight"], [2, "Where"]] } }, "r"));
+  test("its first letter is right, and the square shows the whole answer", () => {
+    const st = [..."oaet"].reduce((x, ch) => type(r, x, ch), newPlay(r));
+    expect(st.fill).toEqual(["OCT", "A", "E", "T"]);
+    expect(status(r, st)).toBe("solved");
+    expect(check(r, type(r, newPlay(r), "x"), "puzzle").mark[0] & WRONG).toBeTruthy();
+  });
+  test("saved as its first letter, read back whole", () => {
+    const st = reveal(r, newPlay(r), "puzzle");
+    const saved = encode(st, r.p);
+    expect(saved.fill).toBe("OAET");
+    expect(decode(JSON.parse(JSON.stringify(saved)), r).fill).toEqual(["OCT", "A", "E", "T"]);
+  });
+});
+
 describe("ipuz", () => {
   test("Crosshare's file: the grid, the clues, the credit; its own line stripped from the note", () => {
     const p = fromIpuz(TALL, "tall");

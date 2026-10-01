@@ -135,8 +135,9 @@ body.top.nolists #board { justify-self: center; margin-right: 0; }
   font: 500 max(8.5px, calc(var(--c) * 0.235)) / 1 var(--pal-font-ui, system-ui, sans-serif); font-style: normal;
   color: var(--num); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
 }
+/* A rebus square (OCT) shrinks its letters to fit: --n is how many. */
 .o span {
-  font: 500 calc(var(--c) * var(--ls, 0.6)) / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--ink);
+  font: 500 calc(var(--c) * min(var(--ls, 0.6), 0.85 / var(--n, 1))) / 1 var(--pal-font-ui, system-ui, sans-serif); color: var(--ink);
   translate: 0 calc(var(--c) * var(--lo, 0.075));
 }
 body:not(.solved) .o.at span { color: #16140C; }

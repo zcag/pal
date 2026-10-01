@@ -30,7 +30,7 @@ export type Puzzle = {
   date?: string;
   w: number;
   h: number;
-  /** The answer per cell, row-major, upper case; "" is a block. */
+  /** The answer per cell, row-major, upper case; "" is a block, several letters a rebus square. */
   solution: string[];
   clues: { across: Record<number, string>; down: Record<number, string> };
   circles?: number[];
@@ -146,7 +146,9 @@ const FOLD: Record<string, string> = { Ç: "C", Ğ: "G", İ: "I", Ö: "O", Ş: "
 /** A letter as a Turkish puzzle compares it, its diacritics folded. */
 export const fold = (s: string) => s.replace(/[ÇĞİÖŞÜ]/g, (c) => FOLD[c]);
 /** Is `letter` the answer `answer`: equal, or on a Turkish puzzle equal once folded. */
-export const same = (p: Puzzle, letter: string, answer: string) => letter === answer || (p.lang === "tr" && !!letter && fold(letter) === fold(answer));
+/** A rebus square (several letters in one, OCT) takes its first letter, as the NYT app does. */
+export const same = (p: Puzzle, letter: string, answer: string) =>
+  letter === answer || (answer.length > 1 && letter === answer[0]) || (p.lang === "tr" && !!letter && fold(letter) === fold(answer));
 export const isRight = (g: Grid, st: Play, i: number) => same(g.p, st.fill[i], g.p.solution[i]);
 export const isSolved = (g: Grid, st: Play) => g.p.solution.every((s, i) => !s || same(g.p, st.fill[i], s));
 /** A key as the letter it types: upper case, the Turkish way on a Turkish puzzle. */
@@ -324,7 +326,8 @@ export const clockText = (ms: number) => {
 
 // ---- saving -------------------------------------------------------------------
 // A solve is stored compactly: the letters as one string ("." an empty
-// square, "#" a block), the marks as digits, the cursor and the rest as is.
+// square, "#" a block; a rebus square its first letter), the marks as digits,
+// the cursor and the rest as is.
 
 export type Saved = { fill: string; mark: string; at: number; dir: "a" | "d"; ms: number; helped?: boolean; checked?: boolean; done?: { ms: number; at: number } };
 
@@ -347,7 +350,7 @@ export function decode(s: unknown, g: Grid): Play {
   const v = s as Partial<Saved> | null;
   const n = g.p.w * g.p.h;
   if (!v || typeof v.fill !== "string" || v.fill.length !== n) return fresh;
-  const fill = [...v.fill].map((ch, i) => (isBlock(g.p, i) || ch === "." || ch === "#" ? "" : ch));
+  const fill = [...v.fill].map((ch, i) => (isBlock(g.p, i) || ch === "." || ch === "#" ? "" : g.p.solution[i].length > 1 && same(g.p, ch, g.p.solution[i]) ? g.p.solution[i] : ch));
   const mark = typeof v.mark === "string" && v.mark.length === n ? [...v.mark].map((d) => Number(d) & 7) : fresh.mark;
   const at = Number.isInteger(v.at) && v.at! >= 0 && v.at! < n && !isBlock(g.p, v.at!) ? v.at! : fresh.at;
   const st: Play = { ...fresh, fill, mark, dir: v.dir === "d" ? "down" : "across", ms: Math.max(0, Number(v.ms) || 0), helped: !!v.helped, checked: !!v.checked, ...(v.done && { done: v.done }) };
