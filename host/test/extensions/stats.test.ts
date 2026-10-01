@@ -11,6 +11,7 @@ import { parsePs } from "../../../sdk/src/procs.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { counted, cpuDelta, DISK, diskLevel, History, levelOf, macMemory, parseDf, parseIpAddr, parseMacMount, parseMeminfo, parseNetstat, parseProcMounts, parseProcNetDev, parsePsi, parseVmStat, rates, shownIface, volumes, type Sample, type Volume } from "../../../extensions/stats/sample.ts";
 import { colorOf, gb, ink, INNER_W, load, memorySegments, pct, rate, rateShort, renderCpu, renderDisk, renderLoad, renderMemory, renderNetwork, sparkGlyphs, sparkline, uptimeText } from "../../../extensions/stats/view.ts";
+import { FIRST_GAP_MS } from "../../../extensions/stats/index.ts";
 import { Host, marksOf } from "../harness.ts";
 
 const VM_STAT = `Mach Virtual Memory Statistics: (page size of 16384 bytes)
@@ -377,7 +378,16 @@ describe("stats popovers", () => {
 });
 
 let host: Host;
-beforeAll(async () => { host = await Host.bundled(); });
+beforeAll(async () => {
+  host = await Host.bundled();
+  // The first render takes two readings FIRST_GAP_MS apart; the gap starts once the first reading (real tools) is in, so the clock is
+  // moved on until the answer comes (a sample ahead of it is the extension's from then on).
+  const first = host.render("stats", "cpu");
+  let done = false;
+  first.finally(() => { done = true; }).catch(() => {});
+  while (!done) { await host.advance(FIRST_GAP_MS); await Bun.sleep(10); }
+  await first;
+});
 afterAll(() => host.kill());
 
 describe("stats in the host", () => {
@@ -486,10 +496,18 @@ describe("stats in the host", () => {
   });
 
   test("the loop pushes every item on its interval", async () => {
+    // A render after the change answers once the worker has it, the loop restarted on the new interval.
     host.changeSettings("stats", { settings: { interval: 1 } });
-    const item = await host.nextUpdate("stats", "load", () => true, 4000);
-    expect(item).toMatchObject({ icon: "\u{f04c5}", states: { load1: expect.any(Number) } });
-    await host.nextUpdate("stats", "network", () => true, 4000);
+    await host.render("stats", "load");
+    const before = host.updates("stats", "load").length;
+    await host.advance(999);
+    const item = host.nextUpdate("stats", "load");
+    const network = host.nextUpdate("stats", "network");
+    await host.advance(1);
+    expect(await item).toMatchObject({ icon: "\u{f04c5}", states: { load1: expect.any(Number) } });
+    await network;
+    // One tick, the one at 1 s: none landed at 999 ms.
+    expect(host.updates("stats", "load")).toHaveLength(before + 1);
     host.changeSettings("stats", { settings: {} });
   });
 });

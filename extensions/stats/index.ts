@@ -24,7 +24,7 @@ const GLYPH = { cpu: "\u{f061a}", memory: "\u{f035b}", disk: "\u{f02ca}", networ
 const ACTIVITY_MONITOR = "/System/Applications/Utilities/Activity Monitor.app";
 const MIN_INTERVAL = 1;
 /** The first render needs two readings: this far apart, so the CPU share it answers is real. */
-const FIRST_GAP_MS = 500;
+export const FIRST_GAP_MS = 500;
 /** Beyond this many cores the `bars` label is a wall; the rest is in the popover. */
 const BARS_MAX = 32;
 const WIFI_EVERY_MS = 30_000;
