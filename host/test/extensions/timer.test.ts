@@ -1,7 +1,9 @@
 // timer against a temp state directory (the KV files the owner's CLI
 // writes) and a fake `timer` on a path setting that records what it was
 // asked and edits the files the way the real one would. The bar item's
-// pushes (fs.watch and the 1 Hz tick) are real, so this test takes seconds.
+// pushes come from fs.watch and the 1 Hz tick, which runs on the host's
+// fake clock: the test advances it (`advance`) and keeps its own `now` on
+// the same time.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -26,12 +28,15 @@ case "$1" in
   add) echo "$3 +5m" ;;
   done) rm -f "$TIMER_DIR"/*.done ;;
   nope) echo "timer: bad duration 'nope' (try 25m, 90s, 1h30m, 2:30)" >&2; exit 1 ;;
-  *) id=$(printf '%s' "\${2:-$1}" | tr ' ' '-'); printf 'id=%s\\nname=%s\\ntotal=1500\\ndeadline=%s\\nleft=1500\\nstate=running\\nring=0\\nquiet=0\\nauto=0\\npid=0\\nfired=0\\n' "$id" "\${2:-$1}" $(( $(date +%s) + 1500 )) > "$TIMER_DIR/$id.state"; echo "$id started" ;;
+  *) id=$(printf '%s' "\${2:-$1}" | tr ' ' '-'); printf 'id=%s\\nname=%s\\ntotal=1500\\ndeadline=%s\\nleft=1500\\nstate=running\\nring=0\\nquiet=0\\nauto=0\\npid=0\\nfired=0\\n' "$id" "\${2:-$1}" $(( $(date +%s) + $(cat ${JSON.stringify(join(base, "ahead"))}) + 1500 )) > "$TIMER_DIR/$id.state"; echo "$id started" ;;
 esac
 `);
 
 
-const now = () => Math.floor(Date.now() / 1000);
+/** How far the host's clock was moved: its `Date` is real time plus this, and so is the test's `now`. */
+let ahead = 0;
+const advance = (ms: number) => { ahead += ms; writeFileSync(join(base, "ahead"), String(Math.floor(ahead / 1000))); return host.advance(ms); };
+const now = () => Math.floor((Date.now() + ahead) / 1000);
 type Spec = { state: "running" | "paused" | "done"; total?: number; deadline?: number; left?: number; fired?: number; auto?: boolean; name?: string };
 /** A state file as bash `printf %q` writes it. */
 const put = (id: string, s: Spec) => writeFileSync(join(dir, `${id}.state`), [
@@ -40,9 +45,21 @@ const put = (id: string, s: Spec) => writeFileSync(join(dir, `${id}.state`), [
 ].join("\n"));
 const clear = () => { for (const f of ["tea", "eggs", "rice", "pizza", "stale", "old", "over"]) if (existsSync(join(dir, `${f}.state`))) unlinkSync(join(dir, `${f}.state`)); };
 const asked = () => logLines(log);
+/** Lets a push already started (a directory read, then the update) land before a "nothing more" check. */
+const settle = () => Bun.sleep(50);
+/** Waits out the watcher: one write can reach fs.watch twice, the second event (and its push) up to ~90 ms after the first. */
+const quiet = async () => {
+  let n = -1, since = Date.now();
+  await host.until(() => {
+    const m = host.updates("timer", "timer").length;
+    if (m !== n) { n = m; since = Date.now(); }
+    return Date.now() - since >= 150;
+  });
+};
 
 let host: Host;
 beforeAll(async () => {
+  writeFileSync(join(base, "ahead"), "0");
   host = await Host.bundled({ settings: { timer: { settings: { command: cli, dir } } } });
 });
 afterAll(() => { host.kill(); rmSync(base, { recursive: true, force: true }); });
@@ -106,24 +123,27 @@ describe("timer", () => {
   test("pushes: a change in the directory is pushed; the 1 Hz tick runs while a timer runs and stops once none does", async () => {
     expect(await render()).toMatchObject({ hidden: true, empty: { icon: "\u{f0954}" } });
     put("tea", { state: "running", deadline: now() + 300 });
-    // The tick moves the countdown on, a second at a time or two when a tick lands late; never an exact title: written at the end of a
-    // second the first push already reads 4:59, and a tick that slips past a boundary skips one (waiting on 4:59 then 4:58 failed both ways).
+    // Each advance of a second is one tick and one push, a second less; two when real time crosses a second boundary meanwhile.
     const secs = (i: BarItem) => { const [m, s] = i.title!.split(":").map(Number); return m * 60 + s; };
+    const tick = async () => { const u = host.nextUpdate("timer", "timer"); await advance(1000); return u; };
     try {
       const first = await host.nextUpdate("timer", "timer", (i) => !i.hidden);
       expect(["5:00", "4:59"]).toContain(first.title!);
-      const second = await host.nextUpdate("timer", "timer", (i) => secs(i) < secs(first), 2500);
-      expect(secs(first) - secs(second)).toBeLessThanOrEqual(2);
+      await quiet();
+      const second = await tick();
+      expect(secs(first) - secs(second)).toBeOneOf([1, 2]);
       expect(second.progress).toBeCloseTo((1500 - secs(second)) / 1500, 3);
-      const third = await host.nextUpdate("timer", "timer", (i) => secs(i) < secs(second), 2500);
-      expect(secs(second) - secs(third)).toBeLessThanOrEqual(2);
+      const third = await tick();
+      expect(secs(second) - secs(third)).toBeOneOf([1, 2]);
     } finally {
       // Left behind, a running timer keeps the tick pushing into the tests after this one.
       if (existsSync(join(dir, "tea.state"))) unlinkSync(join(dir, "tea.state"));
     }
     await host.nextUpdate("timer", "timer", (i) => i.hidden === true);
+    await quiet();
     const n = host.updates("timer", "timer").length;
-    await Bun.sleep(1500);
+    await advance(5000);
+    await settle();
     expect(host.updates("timer", "timer")).toHaveLength(n);
   });
 
@@ -295,22 +315,34 @@ describe("timer", () => {
   });
 
   test("the popover live: shown with only a paused timer the tick still pushes (the item, tree included) every second, and stops once it is hidden", async () => {
+    const written = host.nextUpdate("timer", "timer", (i) => i.tooltip === "eggs, paused");
     put("eggs", { state: "paused", left: 30 });
-    await render();
-    await Bun.sleep(1500);
+    await written;
+    await quiet();
+    // Paused with the popover down: no tick.
     const before = host.updates("timer", "timer").length;
+    await advance(3000);
+    await settle();
+    expect(host.updates("timer", "timer")).toHaveLength(before);
+    const shown = host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view);
     host.viewShown("timer", { bar: "timer" }, "timer", true);
-    await host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view, 2500);
-    await host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view, 2500);
-    expect(host.updates("timer", "timer").length).toBeGreaterThan(before + 1);
+    await shown;
+    for (const _ of [1, 2]) {
+      const u = host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view);
+      await advance(1000);
+      await u;
+    }
+    expect(host.updates("timer", "timer").length).toBeGreaterThan(before + 2);
     host.viewHidden("timer", { bar: "timer" }, "timer", true);
-    // A tick in flight at the hide may still land; after that, nothing.
-    await Bun.sleep(2000);
+    // A tick on the way as the hide lands may still push; after that, nothing.
+    await advance(1000);
+    await settle();
     const n = host.updates("timer", "timer").length;
-    await Bun.sleep(2000);
+    await advance(5000);
+    await settle();
     expect(host.updates("timer", "timer")).toHaveLength(n);
     clear();
-  }, 12000);
+  });
 
   test("a stopped timer is a toast when the CLI refuses", async () => {
     expect(await pick("gone", "nope")).toMatchObject({ keep: true, toast: { title: "Could not nope the timer", style: "failure" } });
@@ -464,12 +496,14 @@ describe("timer: reading the state files", () => {
   });
 
   test("the reap rules: a running timer well past its deadline is gone, one just past it has landed, a landed one past the badge ttl is gone; a name with spaces reads back", async () => {
+    // Read here, on the test's own (real) clock.
+    const wall = () => Math.floor(Date.now() / 1000);
     const d = mkdtempSync(join(tmpdir(), "pal-timer-read-"));
     const write = (id: string, lines: string[]) => writeFileSync(join(d, `${id}.state`), lines.join("\n") + "\n");
-    write("stale", ["id=stale", "name=stale", "total=60", `deadline=${now() - 120}`, "left=60", "state=running", "auto=0", "fired=0"]);
-    write("over", ["id=over", "name=over", "total=60", `deadline=${now() - 5}`, "left=60", "state=running", "auto=0", "fired=0"]);
-    write("old", ["id=old", "name=old", "total=60", "deadline=0", "left=0", "state=done", "auto=0", `fired=${now() - 400}`]);
-    write("tea", ["id=tea", "name=make\\ the\\ tea", "total=600", `deadline=${now() + 100}`, "left=600", "state=running", "auto=0", "fired=0"]);
+    write("stale", ["id=stale", "name=stale", "total=60", `deadline=${wall() - 120}`, "left=60", "state=running", "auto=0", "fired=0"]);
+    write("over", ["id=over", "name=over", "total=60", `deadline=${wall() - 5}`, "left=60", "state=running", "auto=0", "fired=0"]);
+    write("old", ["id=old", "name=old", "total=60", "deadline=0", "left=0", "state=done", "auto=0", `fired=${wall() - 400}`]);
+    write("tea", ["id=tea", "name=make\\ the\\ tea", "total=600", `deadline=${wall() + 100}`, "left=600", "state=running", "auto=0", "fired=0"]);
     write("junk", ["nothing=here"]);
     writeFileSync(join(d, "README"), "not a timer");
     const ts = await readTimers(d);
