@@ -66,6 +66,8 @@ export function parsePack(file: string, text: string): Pack {
 }
 
 const EXT = new Set([".json", ".tsv", ".csv", ".txt", ".apkg"]);
+/** How long a read of the packs folder stands (index.ts `packs`): the root's suggestion asks on every show. */
+export const FOLDER_TTL_MS = 5000;
 
 /** Every pack file in `dir`, parsed; a file that fails to parse is reported, not fatal. An Anki deck's sounds go under `media`. */
 export async function readFolder(dir: string, media = join(dir, ".media")): Promise<{ packs: Pack[]; errors: string[] }> {

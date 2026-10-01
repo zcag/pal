@@ -9,7 +9,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { answers, check, diff } from "../../../extensions/flashcards/answer.ts";
-import { parsePack, parseTable, readFolder, type Pack } from "../../../extensions/flashcards/packs.ts";
+import { FOLDER_TTL_MS, parsePack, parseTable, readFolder, type Pack } from "../../../extensions/flashcards/packs.ts";
 import { roles } from "../../../extensions/flashcards/apkg.ts";
 import { encode } from "../../../extensions/flashcards/pb.ts";
 import { Database } from "bun:sqlite";
@@ -290,7 +290,6 @@ describe("the extension", () => {
   beforeAll(async () => {
     dir = mkdtempSync(join(tmpdir(), "pal-flashcards-"));
     process.env.PAL_FLASHCARDS_DIR = dir;
-    process.env.PAL_FLASHCARDS_FOLDER_TTL_MS = "1";
     anki = fakeAnkiWeb(apkg(dir, "served", true));
     process.env.PAL_ANKIWEB_URL = anki.url.origin;
     host = await Host.bundled({ settings: { flashcards: { settings: { new_per_day: 2, goal: 3, speak: "off" } } } });
@@ -298,7 +297,6 @@ describe("the extension", () => {
   afterAll(async () => {
     await host.close();
     if (prev === undefined) delete process.env.PAL_FLASHCARDS_DIR; else process.env.PAL_FLASHCARDS_DIR = prev;
-    delete process.env.PAL_FLASHCARDS_FOLDER_TTL_MS;
     delete process.env.PAL_ANKIWEB_URL;
     anki.stop(true);
     rmSync(dir, { recursive: true, force: true });
@@ -436,6 +434,7 @@ describe("the extension", () => {
 
   test("the packs list: what is practised first, with progress; a pack file that does not parse is a hint", async () => {
     writeFileSync(join(dir, "packs", "broken.json"), "{ nope");
+    await host.advance(FOLDER_TTL_MS + 1); // the folder read stands this long (packs.ts)
     const rows = await host.list("flashcards", "flashcard-packs");
     const words = rows.find((r) => r.id === "spanish-words")!;
     expect(words).toMatchObject({ section: "Practising", subtitle: "0 mastered · 5 learning · 5996 new" });

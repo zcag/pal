@@ -22,7 +22,7 @@ import { join } from "node:path";
 import { effects, hint, now as clock, settings, view, type Action, type Ctx, type Effect, type Extension, type Item as Row, type View, type ViewPalette } from "@zcag/pal";
 import { roles } from "./apkg.ts";
 import * as ankiweb from "./ankiweb.ts";
-import { parsePack, readFolder, type Pack } from "./packs.ts";
+import { FOLDER_TTL_MS, parsePack, readFolder, type Pack } from "./packs.ts";
 import { DAY, LEECH, answer as schedule, dayStart, items, kindOf, mastered, previews, progress, queue, stats, weak, type Mem, type Item, type Settings } from "./srs.ts";
 import { dataDir, load, packsDir, save, type Data } from "./store.ts";
 
@@ -45,7 +45,6 @@ let bundled: Pack[] | null = null;
 let folderErrors: string[] = [];
 /** The packs folder, read at most every few seconds: the root's suggestion asks on every show. */
 let folder: { at: number; packs: Pack[] } | null = null;
-const FOLDER_TTL_MS = Number(process.env.PAL_FLASHCARDS_FOLDER_TTL_MS) || 5000;
 
 /** Every pack: the bundled ones, then the packs folder's (a file named like a bundled pack replaces it). */
 export async function packs(): Promise<Pack[]> {
