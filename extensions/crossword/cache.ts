@@ -7,7 +7,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { dataDir } from "./store.ts";
 
-const FETCH_MS = Number(process.env.PAL_CROSSWORD_FETCH_MS) || 12_000;
+const FETCH_MS = 12_000;
 
 /** A page or a file; `site` names the source in the error ("HaberTürk answered 503"). A 404 is "not found". */
 export async function get(url: string, site: string, init: RequestInit = {}): Promise<string> {
