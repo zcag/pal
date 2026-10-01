@@ -58,6 +58,11 @@ describe("google.ts", () => {
 // ---- the stand-in services ----------------------------------------------------------------
 
 const seen: string[] = [];
+/** The `slow` query's answer waits on this; the test releases it. */
+let releaseSlow!: () => void;
+const slowHeld = new Promise<void>((r) => (releaseSlow = r));
+/** A suggestion's pane and a typed query's results wait this long (PREVIEW_MS, RESULTS_MS in extensions/google/index.ts; the screenshot fixture shortens them with PAL_GOOGLE_PREVIEW_MS / _RESULTS_MS). */
+const PREVIEW_MS = 250, RESULTS_MS = 350;
 const iso = (s: string) => new Uint8Array([...s].map((c) => ({ ç: 0xe7, ı: 0xfd, ğ: 0xf0, ş: 0xfe })[c] ?? c.charCodeAt(0)));
 const server = Bun.serve({
   port: 0,
@@ -67,7 +72,7 @@ const server = Bun.serve({
     seen.push(`${u.pathname} ${q}`);
     switch (u.pathname) {
       case "/www.google.com/complete/search":
-        if (q === "slow") { await Bun.sleep(3000); return new Response(WIZ); }
+        if (q === "slow") { await slowHeld; return new Response(WIZ); }
         if (q.startsWith("çay")) return new Response("<html>changed</html>");
         return new Response(q === "nothing" ? `)]}'\n[[],{}]` : WIZ.replaceAll("tarkan", q));
       case "/suggestqueries.google.com/complete/search":
@@ -94,11 +99,9 @@ let host: Host;
 beforeAll(async () => {
   writeTool(join(dir, "open"), `echo "$@" >> "${opened}"`);
   process.env.PAL_GOOGLE_BASE = `http://127.0.0.1:${server.port}`;
-  process.env.PAL_GOOGLE_PREVIEW_MS = "1";
-  process.env.PAL_GOOGLE_RESULTS_MS = "60";
   process.env.PAL_OPEN_URL = join(dir, "open");
   try { host = await Host.bundled({ settings: { google: { settings: BASE } } }); }
-  finally { for (const k of ["PAL_GOOGLE_BASE", "PAL_GOOGLE_PREVIEW_MS", "PAL_GOOGLE_RESULTS_MS", "PAL_OPEN_URL"]) delete process.env[k]; }
+  finally { for (const k of ["PAL_GOOGLE_BASE", "PAL_OPEN_URL"]) delete process.env[k]; }
 });
 afterAll(() => { host.kill(); server.stop(true); rmSync(dir, { recursive: true, force: true }); });
 
@@ -136,10 +139,11 @@ describe("google", () => {
   test("a newer keystroke cancels the older request, whose answer is the query alone", async () => {
     const t0 = performance.now();
     const slow = list("slow");
-    await Bun.sleep(50);
+    await host.until(() => seen.includes("/www.google.com/complete/search slow"), 3000, "the slow request out");
     const fast = await list("fast");
     expect(ids(fast)[0]).toBe("q:fast");
     expect(ids(await slow)).toEqual(["q:slow"]);
+    releaseSlow();
     expect(performance.now() - t0).toBeLessThan(2500);
   });
 
@@ -172,7 +176,9 @@ describe("google", () => {
     expect(rows[0].actions!.map((a) => a.id)).toContain("results");
     // A suggestion's pane previews its results; the query's own are in the list, so its pane keeps to its card (the stand-in names every query an entity).
     expect((await host.detail("google", "google", "q:2+2")).markdown).toContain("Tarkan is a singer.");
-    const d = await host.detail("google", "google", "s:2+2");
+    const pd = host.detail("google", "google", "s:2+2");
+    await host.advance(PREVIEW_MS);
+    const d = await pd;
     expect(d.markdown).toContain("### 4");
     expect(d.markdown).toContain("**[2+2 5](https://site5.com/5)**");
     expect(d.markdown).not.toContain("site6");
@@ -204,7 +210,9 @@ describe("google", () => {
     settle({ provider: "serpapi", serpapi_key: "good" });
     const serp = () => seen.filter((s) => s.startsWith("/serpapi"));
     const n = serp().length;
-    const r = await host.listStream("google", "google", "bun");
+    const pr = host.listStream("google", "google", "bun");
+    await host.advance(RESULTS_MS);
+    const r = await pr;
     const sugg = ["q:bun", "s:bun konseri", "s:bun & sezen"];
     expect(r.partials.map(ids)).toEqual([sugg]);
     expect(ids(r.items)).toEqual([...sugg, "a:bun", ...[1, 2, 3, 4, 5].map((i) => `r:https://site${i}.com/${i}`)]);
@@ -216,7 +224,9 @@ describe("google", () => {
     expect(ids(again.items)).toEqual(ids(r.items));
     expect(serp().length).toBe(n + 1);
     // A keystroke before the query rested: the earlier query is never searched.
-    const [a, b] = await Promise.all([host.listStream("google", "google", "bu1"), host.listStream("google", "google", "bu2")]);
+    const both = Promise.all([host.listStream("google", "google", "bu1"), host.listStream("google", "google", "bu2")]);
+    await host.advance(RESULTS_MS);
+    const [a, b] = await both;
     expect(ids(a.items)).not.toContain("a:bu1");
     expect(ids(b.items)).toContain("a:bu2");
     expect(serp().map((s) => s.split(" ")[1])).not.toContain("bu1");
@@ -228,7 +238,9 @@ describe("google", () => {
     expect(serp().length).toBe(n + 2);
     // A bad key: the suggestions stay, a row under them says so.
     settle({ provider: "serpapi", serpapi_key: "bad" });
-    expect((await host.listStream("google", "google", "node")).items.at(-1)).toMatchObject({ id: "hint:failed", section: "Results from SerpApi" });
+    const pn = host.listStream("google", "google", "node");
+    await host.advance(RESULTS_MS);
+    expect((await pn).items.at(-1)).toMatchObject({ id: "hint:failed", section: "Results from SerpApi" });
     settle({});
   });
 
