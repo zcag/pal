@@ -31,8 +31,8 @@ const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.
 const REASON: Record<string, string> = { review_requested: "Review requested", mention: "Mentioned", team_mention: "Mentioned", assign: "Assigned", author: "Your threads", comment: "Comments", subscribed: "Subscribed", state_change: "State changed", ci_activity: "CI", security_alert: "Security" };
 const REASON_ORDER = ["Review requested", "Mentioned", "Assigned", "Your threads", "Comments", "State changed", "CI", "Security", "Subscribed"];
 const CHECKOUT_MS = 60_000;
-// Tunable so the tests do not wait out the real debounce.
-const SEARCH_WAIT_MS = Number(process.env.PAL_GITHUB_SEARCH_WAIT_MS ?? 300);
+/** A search waits this long after the last keystroke, so typing straight through searches once. */
+const SEARCH_WAIT_MS = 300;
 const CREATE = "create", SUMMARY = "summary";
 
 // ---- rows the palettes share ------------------------------------------------
@@ -1006,6 +1006,8 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   const c = searchCache.get(key);
   if (c && Date.now() - c.at < TTL * 1000) return c.rows;
   const seq = ++searchSeq;
+  // The beat a newer keystroke can supersede this one in, counted from the keystroke (the cached lists below are read meanwhile).
+  const beat = Bun.sleep(SEARCH_WAIT_MS);
   const mine = kind === "all" || kind === "issues" ? await cachedMine() : [];
   // A result that is one of your cached PRs or issues shows that copy: a search's own has no checks, review or conflicts to tag.
   const known = new Map(mine.map((x) => [x.id, x]));
@@ -1028,8 +1030,8 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
   let drawn = 0;
   const partial = (rows: Item[]) => { if (seq === searchSeq && rows.length > drawn) { drawn = rows.length; ctx?.partial?.(rows); } };
   partial(toRows({ issues: [], repos: [], users: [], scoped: false }));
-  // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
-  await Bun.sleep(SEARCH_WAIT_MS);
+  // A newer keystroke supersedes this one: wait the beat out, and answer the last rows if one came.
+  await beat;
   if (seq !== searchSeq) return lastSearch;
   const rows = toRows(await search(q, kind, (r) => partial(toRows(r))));
   const out = rows.length ? rows : [hint("empty", "No results", `Nothing on GitHub matches "${q}"`)];

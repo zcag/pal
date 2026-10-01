@@ -87,6 +87,10 @@ const seen: Seen[] = [];
 const NOTIF_ETAG = 'W/"notif-1"', REPOS_ETAG = 'W/"repos-1"';
 const json = (data: unknown, init: ResponseInit = {}) => Response.json(data, { ...init, headers: { "x-ratelimit-remaining": "4999", "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + 3600), ...(init.headers as Record<string, string>) } });
 
+/** The search level waits this long after a keystroke before it asks (SEARCH_WAIT_MS, extensions/github/index.ts). */
+const SEARCH_WAIT_MS = 300;
+let releaseThing!: () => void;
+const thingHeld = new Promise<void>((r) => (releaseThing = r));
 const server = Bun.serve({
   port: 0,
   async fetch(req) {
@@ -123,8 +127,8 @@ const server = Bun.serve({
             repos_rest: [{ __typename: "Repository", nameWithOwner: "oven-sh/bun", name: "bun", owner: { login: "oven-sh" }, url: "https://github.com/oven-sh/bun", description: "Fast", primaryLanguage: { name: "Zig" }, stargazerCount: 80000, forkCount: 2000, issues: { totalCount: 4000 }, isPrivate: false, isFork: false, isArchived: false, defaultBranchRef: { name: "main" }, pushedAt: "2026-09-15T00:00:00Z", sshUrl: "git@github.com:oven-sh/bun.git" }],
             users: [{ __typename: "User", login: "jarred", name: "Jarred", url: "https://github.com/jarred", avatarUrl: "https://avatars.githubusercontent.com/jarred", bio: "Makes bun" }],
           };
-          // "thing" holds the everywhere tier back, so what comes before it streams first.
-          if (/thing/.test(q) && key === "issues_rest") await Bun.sleep(200);
+          // "thing" holds the everywhere tier back until the test lets it go, so what comes before it streams first.
+          if (/thing/.test(q) && key === "issues_rest") await thingHeld;
           return json({ data: { found: { nodes: /nothing|directry/.test(q) ? [] : answers[key] ?? [] } } });
         }
         default: return json({ errors: [{ message: `unknown operation ${body.operationName}` }] });
@@ -178,14 +182,19 @@ beforeAll(async () => {
   process.env.PAL_GITHUB_API = `http://127.0.0.1:${server.port}`;
   process.env.PAL_GITHUB_TOKEN = "test-token";
   process.env.PATH = `${ghBin}:${PATH0}`;
-  process.env.PAL_GITHUB_SEARCH_WAIT_MS = "0";
   host = await Host.bundled({ settings: { github: { settings: { default_org: "acme", repos_root: dir, clone_protocol: "ssh", merged_days: 7 } } } });
 });
-afterAll(() => { host.kill(); server.stop(true); process.env.PATH = PATH0; delete process.env.PAL_GITHUB_SEARCH_WAIT_MS; rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); server.stop(true); process.env.PATH = PATH0; rmSync(dir, { recursive: true, force: true }); });
 
 /** The ids the mute-and-ignore store holds (`ignoreStore("hidden")`). */
 const hiddenIds = () => Object.keys((stored.get("github\0hidden") ?? {}) as Record<string, unknown>);
-const list = (palette: string, filter?: string, query?: string, refresh?: boolean) => host.list("github", palette, query, filter || refresh ? { ...(filter && { filter }), ...(refresh && { refresh }) } : undefined);
+const listNow = (palette: string, filter?: string, query?: string, refresh?: boolean) => host.list("github", palette, query, filter || refresh ? { ...(filter && { filter }), ...(refresh && { refresh }) } : undefined);
+/** A listing; the search level's waits out its keystroke debounce first. */
+const list = async (palette: string, filter?: string, query?: string, refresh?: boolean) => {
+  const r = listNow(palette, filter, query, refresh);
+  if (palette === "search") await host.advance(SEARCH_WAIT_MS);
+  return r;
+};
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("github", palette, id, action, ctx);
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
 const tags = (i: any) => (i.accessories as any[]).filter((a) => "tag" in a).map((a) => a.tag);
@@ -540,7 +549,11 @@ describe("github", () => {
     });
 
     test("streams: your own loose matches at once, then each tier as the ones above it are in, never reordered", async () => {
-      const { items, partials } = await host.listStream("github", "search", "thing");
+      const stream = host.listStream("github", "search", "thing");
+      await host.advance(SEARCH_WAIT_MS);
+      await host.until(() => host.coreCalls.some((c) => c.method === "list.partial" && (c.params as any).items.length === 5), 3000, "the tiers above Everywhere streamed");
+      releaseThing();
+      const { items, partials } = await stream;
       expect(items.map((i) => [i.id, i.section])).toEqual([
         ["zcag/pal#72", "Involved"], ["acme/api#9", "Involved"], ["acme/api#8", "Your organisations"],
         ["acme/parser", "Repositories"], ["oven-sh/bun", "Repositories"], ["far/away#7", "Everywhere"], ["@jarred", "Users"],
