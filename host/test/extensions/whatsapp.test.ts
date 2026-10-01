@@ -147,7 +147,19 @@ describe("whatsapp", () => {
   let mock: WhatsAppMock;
   let host: Host;
   const settings = (extra: Record<string, unknown> = {}) => ({ base_url: mock.url, api_key: KEY, open: "web", ...extra });
-  const list = (palette: string, q = "", ctx?: Parameters<Host["list"]>[3]) => host.list(X, palette, q, ctx);
+  /** Search waits this long after a keystroke before it asks (SEARCH_WAIT_MS, extensions/whatsapp/index.ts). */
+  const SEARCH_WAIT_MS = 300;
+  /** A listing; search's waits out its keystroke debounce first. */
+  const list = async (palette: string, q = "", ctx?: Parameters<Host["list"]>[3]) => {
+    const r = host.list(X, palette, q, ctx);
+    if (palette === "search") await host.advance(SEARCH_WAIT_MS);
+    return r;
+  };
+  const searchStream = async (q: string) => {
+    const r = host.listStream(X, "search", q);
+    await host.advance(SEARCH_WAIT_MS);
+    return r;
+  };
   const ctx = { reason: "open" as const, compact: true as const };
 
   beforeAll(async () => {
@@ -360,7 +372,7 @@ describe("whatsapp", () => {
     ];
     try {
       const from = host.coreCalls.length;
-      const pending = host.listStream(X, "search", "quokka");
+      const pending = searchStream("quokka");
       await host.until(() => host.coreCalls.slice(from).some((c) => c.method === "list.partial"), 3000, "a partial");
       open();
       const r = await pending;
@@ -368,7 +380,7 @@ describe("whatsapp", () => {
       expect(r.items.map((i) => [i.name, i.subtitle])).toEqual([["quokka photos", "Mara Lind"], ["a quokka at the ferry", "someone"], ["quokka plush restocked", "Acme Support"]]);
       expect(r.partials[0][0]).toEqual(r.items[0]);
       // Every chat named: nothing early.
-      expect((await host.listStream(X, "search", "parser")).partials).toEqual([]);
+      expect((await searchStream("parser")).partials).toEqual([]);
     } finally { open(); mock.contactGate = undefined; mock.searchOnly = []; }
   });
 
@@ -507,7 +519,8 @@ describe("whatsapp", () => {
       const n = mock.seen.length;
       expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:limit" }]);
       expect(mock.seen.length).toBe(n);
-      await Bun.sleep(1100);
+      // The mock's Retry-After: 1.
+      await host.advance(1000);
       expect((await list("chats", "", { refresh: true }))[0]).toMatchObject({ id: MARA });
     } finally { mock.limited = false; }
   });
