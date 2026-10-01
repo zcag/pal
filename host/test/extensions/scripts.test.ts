@@ -3,7 +3,7 @@
 // commands (commands.ts) from a scratch folder through the `commands`
 // setting: the header parser, the rows, every mode, the form, the watcher.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse, scan, seconds, tags } from "../../../extensions/scripts/commands.ts";
@@ -255,7 +255,7 @@ cmd("ports.sh", `# @pal.title Listening ports\n# @pal.mode list\n# @pal.icon amb
 cmd("lines.sh", `# @pal.title Plain lines\n# @pal.mode list`, `if [ -n "$PAL_PICK" ]; then echo "picked $PAL_PICK"; exit 0; fi\necho "plain line"; echo "another"`);
 cmd("uptime.sh", `# @pal.title Uptime\n# @pal.mode inline\n# @pal.refresh 1h`, `echo "up $RANDOM"; echo "ignored"`);
 cmd("ray.sh", `# @raycast.schemaVersion 1\n# @raycast.title Say hi\n# @raycast.mode compact\n# @raycast.packageName Raycast\n# @raycast.icon 👋\n# @raycast.argument1 { "type": "text", "placeholder": "Name" }\n# @raycast.needsConfirmation false\n# @raycast.currentDirectoryPath /`, `echo "hi $1 from $(pwd)"`);
-cmd("quiet.sh", `# @pal.title Quiet one\n# @pal.mode silent\n# @pal.confirm yes`, `exit 0`);
+cmd("quiet.sh", `# @pal.title Quiet one\n# @pal.mode silent\n# @pal.confirm yes`, `: > "${join(dir, "quiet.ran")}"`);
 cmd("broken.sh", `# @pal.title Broken\n# @pal.mode hud`, `echo "boom" >&2; exit 3`);
 cmd("show.sh", `# @raycast.title Whole output\n# @raycast.mode fullOutput`, `printf 'line 1\\nline 2\\n'`);
 cmd("notexec.sh", `# @pal.title Not executable`, `echo no`, false);
@@ -336,10 +336,13 @@ describe("script commands: the palette", () => {
     await cmds();
     expect(await pickThenEffect(() => cpick("ray.sh", "run", { values: { argument1: "Ada" } }))).toEqual({ reply: { hide: true }, effect: { hud: "Say hi: hi Ada from /" } });
     expect(await pickThenEffect(() => cpick("broken.sh"))).toEqual({ reply: { hide: true }, effect: { hud: "Broken: boom" } });
-    const before = host.coreCalls.filter((c) => c.method === "effects.run").length;
+    const runs = () => host.coreCalls.filter((c) => c.method === "effects.run");
+    const before = runs().length;
     expect(await cpick("quiet.sh")).toEqual({ hide: true });
-    await Bun.sleep(300);
-    expect(host.coreCalls.filter((c) => c.method === "effects.run")).toHaveLength(before);
+    await host.until(() => existsSync(join(dir, "quiet.ran")), 3000, "quiet.sh ran");
+    // A HUD it had would be out before the one of a script picked after it ends: one effect, that one.
+    expect(await pickThenEffect(() => cpick("broken.sh"))).toEqual({ reply: { hide: true }, effect: { hud: "Broken: boom" } });
+    expect(runs()).toHaveLength(before + 1);
   });
 
   test("arguments: the bar's values run the script with them in order ($1, $2); a pick without them is the same fields as a form; a missing required one is refused", async () => {
