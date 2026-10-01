@@ -137,7 +137,19 @@ describe("gmail", () => {
   });
   afterAll(() => { host.kill(); mock.stop(); rmSync(dir, { recursive: true, force: true }); });
 
-  const list = (ext: string, palette: string, q = "", ctx?: Parameters<Host["list"]>[3]) => host.list(ext, palette, q, ctx);
+  /** Search waits this long after a keystroke before it asks (SEARCH_WAIT_MS, extensions/gmail/index.ts). */
+  const SEARCH_WAIT_MS = 300;
+  /** A listing; search's waits out its keystroke debounce first. */
+  const list = async (ext: string, palette: string, q = "", ctx?: Parameters<Host["list"]>[3]) => {
+    const r = host.list(ext, palette, q, ctx);
+    if (palette === "search") await host.advance(SEARCH_WAIT_MS);
+    return r;
+  };
+  const searchStream = async (q: string) => {
+    const r = host.listStream(P, "search", q);
+    await host.advance(SEARCH_WAIT_MS);
+    return r;
+  };
   const modifies = () => mock.calls("/users/me/messages/batchModify").map((c) => c.body);
 
   test("meta: multi, the account settings instance-scoped, the titles with the instance, the badge, lazy and the kinds", () => {
@@ -318,16 +330,16 @@ describe("gmail", () => {
     // Before the plain search test, so nothing has probed or fetched the sent message yet.
     mock.known.add("someone@gmail.com");
     try {
-      const r = await host.listStream(P, "search", "in:sent");
+      const r = await searchStream("in:sent");
       expect(r.partials).toHaveLength(1);
       expect(r.partials[0].map((i) => [i.id, i.name, i.section])).toEqual(r.items.map((i) => [i.id, i.name, i.section]));
       expect(r.partials[0][0].icon).toEqual(initialIcon("someone@gmail.com", "someone@gmail.com"));
       expect(r.items[0].icon).toEqual({ image: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+\/[0-9a-f]{32}\?s=64&d=404$/) });
     } finally { mock.known.delete("someone@gmail.com"); }
     // The inbox fetched these already: the first partial is the whole answer, avatars and all.
-    const cached = await host.listStream(P, "search", "from:acme");
+    const cached = await searchStream("from:acme");
     expect(cached.partials[0]).toEqual(cached.items);
-    expect((await host.listStream(P, "search", "zzzz")).partials).toEqual([]);
+    expect((await searchStream("zzzz")).partials).toEqual([]);
   });
 
   test("search: a short query is the hint, Gmail's syntax goes through, hits sectioned by label, nothing found", async () => {
@@ -499,14 +511,12 @@ describe("gmail", () => {
 
   test("send turned off on the personal instance hides every write at once", async () => {
     host.changeSettings(P, { settings: { token_command: join(dir, "tok-personal.sh"), send: false, signature: "Cagdas" } });
-    await Bun.sleep(50);
     const rows = await list(P, "inbox", "", { refresh: true });
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "ignore", "unread", "unignore"]);
     expect(await list(P, "compose")).toEqual([]);
     expect(await list(P, "drafts")).toEqual([]);
     expect(await host.pick(P, "inbox", "m1", "archive")).toMatchObject({ toast: { title: "Archive is off" } });
     host.changeSettings(P, { settings: { token_command: join(dir, "tok-personal.sh"), send: true, signature: "Cagdas", labels: ["Receipts"] } });
-    await Bun.sleep(50);
   });
 
   test("a 401 mints the token again, once", async () => {
@@ -534,7 +544,8 @@ describe("gmail", () => {
       expect(mock.seen.length).toBe(n);
       expect(await host.render(P, "unread", { reason: "cli" }).catch((e) => e.message)).toMatch(/rate limit reached/);
     } finally { mock.limited = false; }
-    await Bun.sleep(1100);
+    // The mock's Retry-After: 1.
+    await host.advance(1000);
     expect((await list(P, "inbox", "", { refresh: true })).map((r) => r.id)).toContain("m1");
   });
 
