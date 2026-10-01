@@ -14,6 +14,8 @@
 // fixed instants around Wed 16 Sep 2026 10:30 UTC and every `over`, `now`,
 // `in 42 min`, tomorrow and horizon reads the same at any hour of any day.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
 import { barName, barWhen, callsNow, callWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, service, shortSpan, span, state, upcomingItem, type ItemSettings } from "../../../extensions/calendar/today.ts";
@@ -56,10 +58,14 @@ const events: CalendarEvent[] = [
   ev("later", "Offsite", addDays(now, 10) + 9 * H, addDays(now, 12) + 17 * H),
 ];
 
+// Every other bundled extension is turned off: the root's suggest asks them all, and Sessions alone spent 0.8 s reading this machine's real sessions.
+const EXTENSIONS = join(import.meta.dir, "../../../extensions");
+const others = readdirSync(EXTENSIONS).filter((n) => n !== E && existsSync(join(EXTENSIONS, n, "pal.json")));
 let status = "granted";
 const calls: { method: string; params: any }[] = [];
 let host: Host;
 const core = (list: CalendarEvent[] = events) => ({
+  "store.disabled": () => others,
   "calendar.permission": () => status,
   "calendar.request": () => { calls.push({ method: "request", params: null }); return status; },
   "calendar.open_settings": () => { calls.push({ method: "open_settings", params: null }); return null; },
@@ -476,12 +482,10 @@ describe("calendar extension", () => {
 
   test("hide_declined off lists the declined event with a tag", async () => {
     host.changeSettings(E, { settings: { days: 14, hide_declined: false } });
-    await Bun.sleep(50);
     const items = await list();
     const declined = items.find((i) => i.id === rid(events[3]))!;
     expect(declined).toMatchObject({ name: "Sales sync", accessories: [{ tag: "declined", color: "red" }, { text: "2 people" }] });
     host.changeSettings(E, { settings: { days: 14 } });
-    await Bun.sleep(50);
   });
 
   test("picks: join, copy link, copy details, open, delete with the occurrence", async () => {
@@ -800,24 +804,26 @@ describe("today palette and the upcoming bar item", () => {
     expect(JSON.stringify(again.view.tree)).not.toContain("Concert");
   });
 
-  test("the open popover is redrawn from the cache on a tick while it shows (30 s, 50 ms here), no fetch; nothing once it hid", async () => {
-    process.env.PAL_CALENDAR_POPOVER_TICK_MS = "50";
+  test("the open popover is redrawn from the cache on a tick while it shows (30 s), no fetch; nothing once it hid", async () => {
     const h2 = await Host.bundled({ core: core() });
     try {
       await h2.render(E, "upcoming", { reason: "open", compact: true });
       const before = calls.filter((c) => c.method === "events").length;
+      const pushes = () => h2.viewUpdates(E, { bar: "upcoming" });
       h2.viewShown(E, { bar: "upcoming" }, "upcoming", true);
-      const u = await h2.nextViewUpdate(E, { bar: "upcoming" });
-      expect(u).toMatchObject({ extension: E, bar: "upcoming", spec: { id: "upcoming", keys: "actions" } });
-      expect(JSON.stringify(u.spec)).toContain("Standup");
-      await h2.nextViewUpdate(E, { bar: "upcoming" });
+      await h2.advance(29_999);
+      expect(pushes()).toHaveLength(0);
+      await h2.advance(1);
+      await h2.until(() => pushes().length === 1, 3000, "the first tick's push");
+      expect(pushes()[0]).toMatchObject({ extension: E, bar: "upcoming", spec: { id: "upcoming", keys: "actions" } });
+      expect(JSON.stringify(pushes()[0].spec)).toContain("Standup");
+      await h2.advance(30_000);
+      await h2.until(() => pushes().length === 2, 3000, "the second tick's push");
       h2.viewHidden(E, { bar: "upcoming" }, "upcoming", true);
-      await Bun.sleep(60);
-      const n = h2.viewUpdates(E, { bar: "upcoming" }).length;
-      await Bun.sleep(150);
-      expect(h2.viewUpdates(E, { bar: "upcoming" }).length).toBe(n);
+      await h2.advance(60_000);
+      expect(pushes()).toHaveLength(2);
       expect(calls.filter((c) => c.method === "events").length).toBe(before);
-    } finally { h2.kill(); delete process.env.PAL_CALENDAR_POPOVER_TICK_MS; }
+    } finally { h2.kill(); }
   });
 
   test("the bar item: a failing source keeps the last events as stale, and is hidden with nothing cached", async () => {
@@ -843,7 +849,6 @@ describe("today palette and the upcoming bar item", () => {
     status = "not_determined";
     try { expect(await host.render(E, "upcoming", { reason: "load" })).toMatchObject({ hidden: true }); } finally { status = "granted"; }
     host.changeSettings(E, { settings: { days: 14, hide_declined: false } });
-    await Bun.sleep(50);
     try {
       // With the running call gone from the fixture the next one is Dentist, 42 minutes out. The phase boundaries are the item's settings, through the render's ctx.
       const item = (settings: Partial<ItemSettings>) => ({ reason: "load", settings }) as const;
@@ -867,7 +872,6 @@ describe("today palette and the upcoming bar item", () => {
       try { expect(await h7.render(E, "upcoming", { reason: "load" })).toMatchObject({ hidden: true, states: { phase: "none" } }); } finally { h7.kill(); }
     } finally {
       host.changeSettings(E, { settings: { days: 14 } });
-      await Bun.sleep(50);
     }
-  }, 20_000); // four hosts in a row: past bun's 5 s on marko
+  });
 });

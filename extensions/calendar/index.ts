@@ -508,8 +508,8 @@ async function openUpcoming(_ctx: BarCtx): Promise<Effect> {
 /** The popover's keys' state, kept across trees while it shows; `google` follows the source. */
 let pop: PopoverState = freshPopover(active() === "google");
 let tick: ReturnType<typeof setInterval> | undefined;
-/** How often the open popover is redrawn from the cache: the `in N min` texts move by the minute, so half of one keeps them honest (the tests shorten it). */
-const POPOVER_TICK_MS = Number(process.env.PAL_CALENDAR_POPOVER_TICK_MS) || 30_000;
+/** How often the open popover is redrawn from the cache: the `in N min` texts move by the minute, so half of one keeps them honest. */
+const POPOVER_TICK_MS = 30_000;
 
 /** The popover's tree from the cache, no fetch: what the tick and every key answer with. */
 function popoverView(now = clock()): ReturnType<typeof popover> | undefined {
