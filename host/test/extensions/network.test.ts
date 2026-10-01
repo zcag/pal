@@ -258,9 +258,15 @@ describe("network status: what the strip says about the network", () => {
     dirs.push(bin);
     return withPath(bin, "darwin", {}, { public_ip_url: "", ...settings }, { "wifi.status": () => ({ interface: "en0", powered: true, current: { ssid: opts.ssid ?? "Cafe Wifi", signal: opts.signal === undefined ? 72 : opts.signal, channel: "44", security: opts.security ?? "WPA2 Personal", ip: "192.168.1.131" } }) });
   };
-  const bar = async (settings: Record<string, unknown>, opts?: Parameters<typeof boot>[1]) => {
-    const host = await boot(settings, opts);
-    try { return await host.render("network", "status"); } finally { host.kill(); }
+  /** One host per set of fake tools, kept for the file: a bar with other settings is a settings change on it, not a host start. */
+  const hosts = new Map<string, Promise<Host>>();
+  afterAll(async () => { for (const h of hosts.values()) (await h).kill(); });
+  const bar = async (settings: Record<string, unknown>, opts: Parameters<typeof boot>[1] = {}) => {
+    const k = JSON.stringify(opts);
+    if (!hosts.has(k)) hosts.set(k, boot({}, opts));
+    const host = await hosts.get(k)!;
+    host.changeSettings("network", { settings: { public_ip_url: "", ...settings } });
+    return host.render("network", "status");
   };
 
   test("the signal picks the glyph, and the tooltip carries the number", async () => {

@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { PROTOCOL, PROTOCOL_MIN, type BarItem, type BarMeta } from "../../sdk/src/protocol.ts";
-import { API, HOST, Host, Root, manifest, simpleExt, type Options } from "./harness.ts";
+import { API, HOST, Host, Root, manifest, simpleExt } from "./harness.ts";
 
 describe("loading", () => {
   let root: Root;
@@ -479,7 +479,7 @@ describe("watching", () => {
     expect(await host.list("fresh", "fresh")).toEqual([{ id: "b", name: "B" }]);
     host.kill();
     parent.rm();
-  });
+  }, 15_000); // FSEvents: up to seconds under load; the test ends at the event
 
   test("a root deleted whole lets its extensions go", async () => {
     const parent = new Root();
@@ -520,7 +520,7 @@ describe("watching", () => {
   test("an import that never settles is reported as extension/error and does not hold host/ready back", async () => {
     const root = new Root({ hang: { "index.ts": 'console.error("hang: importing");\nawait new Promise(() => {});\nexport default { palettes: {} };' }, ok: { "index.ts": simpleExt("ok") } });
     // Not Host.start: it waits for the host/ready this test is about, which comes only once the clock reaches the import's timeout.
-    const host = new (Host as unknown as new (o: Options) => Host)({ roots: [root.dir] });
+    const host = Host.spawn({ roots: [root.dir] });
     const ready = host.next("host/ready");
     // The import has begun, so its timeout (host.ts LOAD_TIMEOUT_MS) is running.
     await host.untilStderr("hang: importing");

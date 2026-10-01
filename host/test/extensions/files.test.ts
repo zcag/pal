@@ -165,7 +165,7 @@ beforeAll(async () => {
   process.env.PAL_FILES_BACKEND = "find";
   process.env.PAL_FILES_CONTENT = "grep";
   process.env.PAL_RECENT_XBEL = xbel;
-  host = await Host.bundled({
+  host = await Host.bundled({ only: ["files"],
     settings: { files: { settings: { folders: [dir] } } },
     core: {
       "apps.for_file": (p: { path: string }) => (p.path.endsWith(".png") ? [] : APPS),

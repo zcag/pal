@@ -41,7 +41,7 @@ writeTool(CLI, `#!/bin/sh
 echo "$*" >> ${JSON.stringify(LOG)}
 t=""
 while [ $# -gt 0 ]; do case "$1" in -t) t="$2"; shift ;; esac; shift; done
-if [ -n "$t" ]; then sleep "$t"; else while :; do sleep 1; done; fi
+if [ -n "$t" ]; then sleep "$t"; else while :; do sleep 1; done; fi # never waited for: killed by SIGTERM
 `);
 
 const asked = () => logLines(LOG);
@@ -75,7 +75,7 @@ beforeAll(async () => {
   writeTool(ql, `#!/bin/sh\nprintf "%s\\n" "$@" >> "${qlLog}"\n`);
   process.env.PAL_FILES_QUICKLOOK = ql;
   process.env.PAL_AWAKE_TOOL = CLI;
-  host = await Host.bundled({ core: {
+  host = await Host.bundled({ only: ["system"], core: {
     "system.commands": () => COMMANDS,
     "system.run": (p) => { if (p.id === "sleep") throw new Error("pmset: not permitted"); ran.push(p.id); return null; },
     "selection.files": () => finder,
@@ -113,7 +113,7 @@ describe("system", () => {
 
   test("an unreadable Trash is a row without a count", async () => {
     process.env.PAL_TRASH_DIR = join(trash, "nope");
-    const h = await Host.bundled({ core: { "system.commands": () => COMMANDS, "selection.files": () => [], "states.get": () => null } });
+    const h = await Host.bundled({ only: ["system"], core: { "system.commands": () => COMMANDS, "selection.files": () => [], "states.get": () => null } });
     expect((await h.list("system", "system")).find((i) => i.id === "empty-trash")!.accessories).toEqual([]);
     h.kill();
     process.env.PAL_TRASH_DIR = trash;
@@ -282,23 +282,12 @@ describe("keep awake: the row, the bar item and the link", () => {
   let h: Host;
   const pids: number[] = [];
   beforeAll(async () => {
-    h = await Host.bundled({ core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
+    h = await Host.bundled({ only: ["system"], core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
   });
   afterAll(() => { h.kill(); for (const pid of pids) { try { process.kill(pid, "SIGTERM"); } catch { /* gone */ } } });
   const list = () => h.list("system", "system");
-  /**
-   * A start waits SETTLE_MS on the host's clock to see the tool did not die at once; that wait begins after real work (the record
-   * read, the spawn), so the clock is moved on in its steps until the answer is in. Would belong in harness.ts.
-   */
-  const through = async <T>(p: Promise<T>, host = h): Promise<T> => {
-    let done = false;
-    p.finally(() => { done = true; }).catch(() => {});
-    while (!done) { await advance(SETTLE_MS, host); await Bun.sleep(10); }
-    return p;
-  };
-  /** How far h's clock was moved: a fresh host is brought to the same time before it reads h's record. */
-  let ahead = 0;
-  const advance = (ms: number, host = h) => { if (host === h) ahead += ms; return host.advance(ms); };
+  /** A start waits SETTLE_MS on the host's clock to see the tool did not die at once; that wait begins after real work (the record read, the spawn). */
+  const through = <T>(p: Promise<T>, host = h) => host.through(p, SETTLE_MS);
   const pick = (action?: string, values?: Record<string, string | boolean>) => through(h.pick("system", "system", "keep-awake", action, values && { values }));
   const barAction = (...a: Parameters<Host["barAction"]>) => through(h.barAction(...a));
   const awakeRow = async () => (await list()).find((i) => i.id === "keep-awake")!;
@@ -438,7 +427,7 @@ describe("keep awake: the row, the bar item and the link", () => {
     const huds = () => h.coreCalls.filter((c) => c.method === "effects.run").map((c) => (c.params as any).effect.hud);
     const from = huds().length;
     // The countdown's tick at the deadline finds the run over (past its end, the process is stale and killed), whatever the stand-in's own sleep.
-    await advance(1000);
+    await h.advance(1000);
     await h.until(() => !alive(pid), 2000, "the run's process gone");
     await h.until(() => huds().length > from, 3000, "the HUD");
     expect(huds().at(-1)).toBe("Keep awake ended, sleep allowed");
@@ -449,14 +438,14 @@ describe("keep awake: the row, the bar item and the link", () => {
 
   test("a record from a previous run whose process is gone (or is something else now) is dropped on load, silently", async () => {
     stored.set("system\0awake", { pid: 999_999, started: NOW, until: null, display: true });
-    let h2 = await Host.bundled({ core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
+    let h2 = await Host.bundled({ only: ["system"], core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
     expect(await h2.render("system", "awake")).toMatchObject({ hidden: true, states: { awake: false } });
     expect(stored.get("system\0awake")).toBeUndefined();
     expect(h2.coreCalls.some((c) => c.method === "effects.run")).toBe(false);
     h2.kill();
     // The pid is alive but it is this test's bun, not caffeinate.
     stored.set("system\0awake", { pid: process.pid, started: NOW, until: NOW + 3_600_000, display: true });
-    h2 = await Host.bundled({ core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
+    h2 = await Host.bundled({ only: ["system"], core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
     expect((await awakeRowOf(h2)).name).toBe("Keep Awake");
     expect(stored.get("system\0awake")).toBeUndefined();
     h2.kill();
@@ -466,8 +455,8 @@ describe("keep awake: the row, the bar item and the link", () => {
     expect(await pick("awake", { for: "30m" })).toEqual({ hud: "Awake for 30 min" });
     const a = record()!;
     pids.push(a.pid);
-    const h2 = await Host.bundled({ core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
-    await h2.advance(ahead);
+    const h2 = await Host.bundled({ only: ["system"], core: { "system.commands": () => WITH_AWAKE, "selection.files": () => [], "states.get": () => null } });
+    await h2.advance(h.advanced);
     expect(await h2.render("system", "awake")).toMatchObject({ title: expect.stringMatching(/^(30m|29m)$/), states: { awake: true, awake_until: a.until } });
     expect(await through(h2.pick("system", "system", "keep-awake"), h2)).toEqual({ hud: "Sleep allowed" });
     await h.until(() => !alive(a.pid), 2000, "the tool gone");

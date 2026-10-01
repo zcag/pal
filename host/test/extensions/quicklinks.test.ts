@@ -98,7 +98,7 @@ beforeAll(async () => {
   process.env.PAL_BROWSERS = "Safari,Firefox";
   process.env.PAL_OPEN_URL = join(dir, "open");
   try {
-    host = await Host.bundled({
+    host = await Host.bundled({ only: ["quicklinks", "browser-tabs"],
       settings: { quicklinks: { settings: { import: importFile } }, "browser-tabs": { settings: { port: browser.port, apps: [], firefox: false } } },
       core: { "selection.text": () => selected },
     });

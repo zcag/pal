@@ -366,7 +366,7 @@ let host: Host;
 let sampled: { r: number; g: number; b: number; hex: string } | null = { r: 255, g: 136, b: 0, hex: "#ff8800" };
 const ran: unknown[] = [];
 beforeAll(async () => {
-  host = await Host.bundled({ core: { "color.sample": () => sampled, "effects.run": ({ effect }: { effect: unknown }) => { ran.push(effect); return null; } } });
+  host = await Host.bundled({ only: ["colors"], core: { "color.sample": () => sampled, "effects.run": ({ effect }: { effect: unknown }) => { ran.push(effect); return null; } } });
 });
 afterAll(() => host.kill());
 
@@ -527,7 +527,7 @@ describe("colors over the wire", () => {
   });
 
   test("settings: uppercase hex, alpha dropped, a shorter history and fewer sets reach every palette", async () => {
-    const h = await Host.bundled({ settings: { colors: { settings: { format: "hsl", uppercase: true, alpha: "drop", sets: ["nord", "solarized"], history_size: 2 } } }, core: { "color.sample": () => null, "effects.run": () => null } });
+    const h = await Host.bundled({ only: ["colors"], settings: { colors: { settings: { format: "hsl", uppercase: true, alpha: "drop", sets: ["nord", "solarized"], history_size: 2 } } }, core: { "color.sample": () => null, "effects.run": () => null } });
     stored.delete("colors\0recent");
     try {
       await h.pick("colors", "picker", "picker", "type:#");

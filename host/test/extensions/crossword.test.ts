@@ -269,7 +269,7 @@ describe("the extension", () => {
       puzzles: { tall: TALL, dump: DUMP, cart: CART, old: ipuz("Late Summer", "Pat Quill", ["CART", "AREA", "REAL", "TALE"], {}, {}), fresh: { ...CART, title: "Fresh" } },
     });
     Object.assign(process.env, { PAL_NOW: "2026-09-25T10:00:00Z", PAL_CROSSWORD_DIR: dir, PAL_CROSSWORD_URL: site.url });
-    host = await Host.bundled({ core: { "effects.run": (p: { effect: { open?: string } }) => { if (p.effect.open) opened.push(p.effect.open); return null; } } });
+    host = await Host.bundled({ only: ["crossword"], core: { "effects.run": (p: { effect: { open?: string } }) => { if (p.effect.open) opened.push(p.effect.open); return null; } } });
   });
   afterAll(async () => {
     await host?.close();
@@ -404,7 +404,7 @@ describe("the extension", () => {
     data.progress.tall = { ...data.progress.tall, fill: `#TA${".".repeat(21)}#`, done: undefined, touched: 1 };
     await Bun.write(join(dir, "progress.json"), JSON.stringify(data));
     await host.close();
-    host = await Host.bundled();
+    host = await Host.bundled({ only: ["crossword"] });
     const rows = await suggestions();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: "today", name: "Today's mini crossword" });

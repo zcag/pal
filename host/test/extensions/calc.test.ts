@@ -19,7 +19,7 @@ beforeAll(async () => {
   process.env.PAL_NOW = "2026-09-16T10:30:00";
   process.env.PAL_CALC_OFFLINE = "1";
   seed("2026-09-15", Date.now());
-  host = await Host.bundled({ settings: { calc: { settings: BASE } } });
+  host = await Host.bundled({ only: ["calc"], settings: { calc: { settings: BASE } } });
 });
 afterAll(() => {
   host.kill();
@@ -449,7 +449,7 @@ describe("rates fetch", () => {
 
   test("no cache: a fetching row first, the result once the rates are in, the set stored with its date", async () => {
     stored.delete("calc\0rates");
-    const h = await Host.bundled({ settings: { calc: { settings: { home_currency: "TRY" } } } });
+    const h = await Host.bundled({ only: ["calc"], settings: { calc: { settings: { home_currency: "TRY" } } } });
     try {
       const rows = await h.list("calc", "calc", "12 usd to try");
       expect(rows).toEqual([{ id: "rates", name: "Fetching exchange rates…", subtitle: "12 USD to TRY", icon: "\u{f01fc}", actions: [] }]);
@@ -465,7 +465,7 @@ describe("rates fetch", () => {
   test("a day-old cache answers at once, dated, while a refresh runs", async () => {
     hits = 0;
     seed("2026-09-14", Date.now() - 2 * 24 * 3600e3);
-    const h = await Host.bundled({ settings: { calc: { settings: { home_currency: "TRY" } } } });
+    const h = await Host.bundled({ only: ["calc"], settings: { calc: { settings: { home_currency: "TRY" } } } });
     try {
       const rows = await h.list("calc", "calc", "12 usd to try");
       expect(rows[0].name).toBe("583.68 TRY");

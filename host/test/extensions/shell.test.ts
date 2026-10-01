@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CAP, commandsOf, duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv } from "../../../extensions/shell/run.ts";
 import { tile } from "../../../sdk/src/icon.ts";
-import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
+import type { Item, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { Host, stored, writeTool, logLines } from "../harness.ts";
 
@@ -80,7 +80,7 @@ const opened = () => logLines(openLog);
 // Two commands that outlast the pick: each drops a `.up` file once running (in the working directory), so the test moves the clock
 // only after the extension started its waits. LATE ends when the test makes `late.go`; KILLED only by the timeout.
 const LATE = "touch late.up; until [ -e late.go ]; do sleep 0.01; done; echo late";
-const KILLED = "echo partial; touch killed.up; sleep 10; echo never";
+const KILLED = "echo partial; touch killed.up; sleep 10; echo never"; // never waited for: the timeout kills it
 const up = (name: string) => host.until(() => existsSync(join(dir, `${name}.up`)), 3000, `${name} running`);
 
 /** The extension's settings here: a 2 s timeout, under the pick grace (a test that outlasts the grace raises it). */
@@ -225,7 +225,9 @@ describe("shell", () => {
   });
 
   test("history: every command with its exit code (killed for a timeout), the duration and folder, newest first and once; Enter runs it again as a view; remove and clear; a query filters", async () => {
-    const rows = await host.list("shell", "history", "");
+    // The run before this one (Run in terminal's `git status`) writes its entry once it ends, which can land after its pick answered.
+    let rows: Item[] = [];
+    await host.until(async () => (rows = await host.list("shell", "history", ""))[0]?.name === "git status", 3000, "git status in the history");
     expect(rows.at(-1)).toMatchObject({ id: "clear", name: "Clear history" });
     const entries = rows.slice(0, -1);
     expect(entries.map((r) => r.name).slice(0, 4)).toEqual(["git status", `echo x >> ${join(dir, "stamp")}; wc -l < ${join(dir, "stamp")}`, KILLED, LATE]);

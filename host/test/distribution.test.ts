@@ -138,7 +138,7 @@ describe("requires", () => {
       host.kill();
       root.rm();
     }
-  });
+  }, 15_000); // FSEvents: up to seconds under load (a99c0e87); the test ends at the event
 
   test("a bad requires or suggests is a warning; two that require each other both load", async () => {
     const root = new Root({

@@ -5,7 +5,7 @@
 // answer from a file the tests rewrite and logging its argv.
 // `PAL_TERMINAL_LOG` catches the terminal Resume opens; `PAL_PROC` is the
 // /proc the Linux cwd lookup reads, mirroring the lsof answer. The `blocked?`
-// test waits the real two seconds the idle check takes on a first sight.
+// test moves the clock past the two seconds the idle check takes on a first sight.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -35,9 +35,9 @@ const canned = (name: string, text: string) => {
     for (const [, pid, cwd] of text.matchAll(/^p(\d+)\nfcwd\nn(.*)$/gm)) { mkdirSync(join(proc, pid), { recursive: true }); symlinkSync(cwd, join(proc, pid, "cwd")); }
   }
 };
-// `@T@` in a cputime is the host's clock (the wall clock plus how far the test moved it, `out/ahead`): a process whose cpu seconds grow
-// with it is never idle.
-stub("ps", `sed "s/@T@/$(( $(date +%s) + $(cat ${JSON.stringify(join(out, "ahead"))}) ))/" ${JSON.stringify(join(out, "ps.out"))} 2>/dev/null`);
+// `@T@` in a cputime is the host's clock (the wall clock plus how far the test moved it, `$PAL_TEST_AHEAD_FILE`): a process whose cpu
+// seconds grow with it is never idle.
+stub("ps", `sed "s/@T@/$(( $(date +%s) + $(cat "$PAL_TEST_AHEAD_FILE") ))/" ${JSON.stringify(join(out, "ps.out"))} 2>/dev/null`);
 stub("lsof", `cat ${JSON.stringify(join(out, "lsof.out"))} 2>/dev/null`);
 stub("tmux", `case "$1" in list-panes) cat ${JSON.stringify(join(out, "tmux-panes.out"))} 2>/dev/null ;; list-clients) cat ${JSON.stringify(join(out, "tmux-clients.out"))} 2>/dev/null ;; esac`);
 // kitty answers on the socket of the kitty process whose pid is 500 (`listen_on unix:/tmp/mykitty` in the conf below, the pid appended); any other socket is refused.
@@ -53,26 +53,14 @@ stub("code", "");
 const asked = () => logLines(log);
 const since = (n: number) => asked().slice(n);
 
-// The host's clock: the wall clock plus how far the test moved it. The idle check's wait (IDLE_OVER_MS) begins after real work (the
-// files read, ps), so a request that may scan is answered by moving the clock on in steps until the answer is in (`through`; would
-// belong in harness.ts). A file written later is stamped on the host's time (`hostNow`).
-let ahead = 0;
-writeFileSync(join(out, "ahead"), "0");
-const advance = (ms: number) => { ahead += ms; writeFileSync(join(out, "ahead"), String(Math.floor(ahead / 1000))); return host.advance(ms); };
-const hostNow = () => Date.now() + ahead;
-const through = async <T>(p: Promise<T>, step = IDLE_OVER_MS / 4): Promise<T> => {
-  let done = false;
-  p.finally(() => { done = true; }).catch(() => {});
-  for (;;) {
-    for (let i = 0; i < 3 && !done; i++) await Bun.sleep(10);
-    if (done) return p;
-    await advance(step);
-  }
-};
+// The idle check's wait (IDLE_OVER_MS) begins after real work (the files read, ps), so a request that may scan is answered by moving the
+// clock on in steps until the answer is in (`host.through`). A file written later is stamped on the host's time (`host.now()`).
+const through = <T>(p: Promise<T>, step = IDLE_OVER_MS) => host.through(p, step);
+let host: Host;
 
 // The files: three directories, one session each to begin with, timestamps relative to the host's clock.
 const T = Date.now();
-const s = (n: number) => T + ahead - n * 1000;
+const s = (n: number) => T + (host?.advanced ?? 0) - n * 1000;
 const CWD = { pal: "/Users/me/proj/pal", api: "/Users/me/proj/api", notes: "/Users/me/notes", old: "/Users/me/proj/old" };
 const slug = (cwd: string) => cwd.replace(/[/.]/g, "-");
 const ID = { claude: "11111111-aaaa-4bbb-8ccc-000000000001", blocked: "22222222-aaaa-4bbb-8ccc-000000000002", done: "33333333-aaaa-4bbb-8ccc-000000000003", old: "44444444-aaaa-4bbb-8ccc-000000000004", codex: "01a0c042-8f4c-7511-9165-95ea099725a5", copilot: "81147628-5d64-4c65-993e-cbc814d1ce8d" };
@@ -161,7 +149,6 @@ const procs = (blockedTime = "0:05.00") => [
 const lsof = "p35164\nfcwd\nn/Users/me/proj/pal\np41000\nfcwd\nn/Users/me/proj/api\np75762\nfcwd\nn/Users/me/proj/api\np29645\nfcwd\nn/Users/me/notes\n";
 
 const PATH0 = process.env.PATH!, HOME0 = process.env.HOME!, KITTY0 = process.env.KITTY_LISTEN_ON;
-let host: Host;
 beforeAll(async () => {
   put(claudeFile(ID.claude, CWD.pal), working, s(5));
   put(claudeFile(ID.blocked, CWD.api), blocked, s(60));
@@ -343,7 +330,7 @@ describe("sessions: the palette", () => {
     let items = await list();
     expect(tag(items.find((i) => i.id === key("claude", ID.blocked))!)).toBe("working");
     canned("ps", procs("0:09.00"));
-    await advance(2100);
+    await host.advance(2100);
     items = await list();
     expect(tag(items.find((i) => i.id === key("claude", ID.blocked))!)).toBe("waiting on you?");
   });
@@ -535,7 +522,7 @@ describe("sessions: the palette", () => {
     // An answer after the notification: the file is watched by then.
     await detail(k);
     const pushed = host.nextViewUpdate("sessions", { palette: "sessions" }, (x) => x.id === k);
-    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.toolResult(ID.blocked, CWD.api, hostNow(), "tu-9") + "\n" + claude.text(ID.blocked, CWD.api, hostNow(), "Pushed.", "end_turn") + "\n", { flag: "a" });
+    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.toolResult(ID.blocked, CWD.api, host.now(), "tu-9") + "\n" + claude.text(ID.blocked, CWD.api, host.now(), "Pushed.", "end_turn") + "\n", { flag: "a" });
     const u = await through(pushed, STREAM_DEBOUNCE_MS);
     const tree = (u.spec as View).tree;
     expect(texts({ tree, actions: [] })).toContain("Pushed.");
@@ -543,10 +530,10 @@ describe("sessions: the palette", () => {
     host.viewHidden("sessions", { palette: "sessions" }, k);
     await detail(k);
     const before = host.viewUpdates("sessions", { palette: "sessions" }).length;
-    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.user(ID.blocked, CWD.api, hostNow(), "thanks") + "\n", { flag: "a" });
+    writeFileSync(claudeFile(ID.blocked, CWD.api), claude.user(ID.blocked, CWD.api, host.now(), "thanks") + "\n", { flag: "a" });
     // Time for a watch event to land (were the file still watched), then past the debounce: nothing.
     await Bun.sleep(50);
-    await advance(STREAM_DEBOUNCE_MS);
+    await host.advance(STREAM_DEBOUNCE_MS);
     await Bun.sleep(20);
     expect(host.viewUpdates("sessions", { palette: "sessions" })).toHaveLength(before);
     // The list reads the new state: the turn ended, then a prompt: working. Then the file is put back as it was for the tests after this one.
@@ -750,7 +737,7 @@ describe("sessions: the bar", () => {
   test("a write under a watched directory asks the bar for a render, debounced by WATCH_DEBOUNCE_MS", async () => {
     const n = host.coreCalls.filter((c) => c.method === "bar.refresh").length;
     const refreshed = host.until(() => host.coreCalls.filter((c) => c.method === "bar.refresh").length > n, 2000, "bar.refresh");
-    writeFileSync(claudeFile(ID.claude, CWD.pal), claude.user(ID.claude, CWD.pal, hostNow(), "and the README") + "\n", { flag: "a" });
+    writeFileSync(claudeFile(ID.claude, CWD.pal), claude.user(ID.claude, CWD.pal, host.now(), "and the README") + "\n", { flag: "a" });
     await through(refreshed, WATCH_DEBOUNCE_MS);
     expect(host.coreCalls.filter((c) => c.method === "bar.refresh").at(-1)!.params).toEqual({ extension: "sessions", id: "sessions" });
     // The appended line was folded, not the whole file again: the prompt moved on.

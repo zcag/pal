@@ -36,7 +36,7 @@ const api = Bun.serve({
     const p = url.pathname;
     if (p === "/v1/me") return json({ id: "zcag", display_name: "Cagdas", product: "premium" });
     // The position stands still (the tests know where the lines are) unless a test lets the clock run (`advanceFrom`), on the host's clock (`now`).
-    if (p === "/v1/me/player" && req.method === "GET") return state.player ? json({ ...state.player, progress_ms: state.player.progress_ms + (state.advanceFrom && state.player.is_playing ? now() - state.advanceFrom : 0) }) : new Response(null, { status: 204 });
+    if (p === "/v1/me/player" && req.method === "GET") return state.player ? json({ ...state.player, progress_ms: state.player.progress_ms + (state.advanceFrom && state.player.is_playing ? host.now() - state.advanceFrom : 0) }) : new Response(null, { status: 204 });
     if (p === "/v1/me/player" && req.method === "PUT") { const d = DEVICES.find((x) => x.id === rec.body?.device_ids?.[0]); if (state.player && d) state.player = { ...state.player, device: d }; return new Response(null, { status: 204 }); }
     if (p === "/v1/me/player/devices") return json({ devices: DEVICES });
     if (p === "/v1/me/player/queue" && req.method === "GET") return json({ currently_playing: state.player?.item ?? null, queue: state.queue });
@@ -152,19 +152,12 @@ let host: Host;
 
 // ---- the clock --------------------------------------------------------------------
 
-/** How far the current host's clock was moved: the player mock reads `now` so its position runs on the extension's clock. */
-let advanced = 0;
-const now = () => Date.now() + advanced;
-const advance = async (ms: number) => { advanced += ms; await host.advance(ms); };
 /** The extension's constants (extensions/spotify/index.ts, auth.ts) the tests move the clock past. */
 const SEARCH_WAIT_MS = 300, SKIP_SETTLE_MS = 350, HOLD_MS = 1200, TICK_MS = 1000, SYNC_MS = 5000, TICK_WINDOW_MS = 5 * 60_000, LINGER_MS = 250;
 /** `p`'s answer waits on a timer the extension arms after real I/O (a skip's `next` calls, then the settle): once `armed` holds, the clock moves `ms` at a time until `p` answers. */
 async function settle<T>(p: Promise<T>, ms: number, armed: () => boolean): Promise<T> {
-  let done = false;
-  p.then(() => (done = true), () => (done = true));
   await host.until(armed);
-  for (let i = 0; !done && i < 10; i++) { await advance(ms); await host.until(() => done, 50).catch(() => {}); }
-  return p;
+  return host.through(p, ms);
 }
 /** Nothing may arrive: the real I/O a fired timer would start gets this long to show. */
 const quiet = () => Bun.sleep(30);
@@ -172,7 +165,7 @@ const quiet = () => Bun.sleep(30);
 async function popoverTicks(ms: number) {
   for (let left = ms; left > 0; left -= 9 * TICK_MS) {
     const step = Math.min(left, 9 * TICK_MS), n = host.updates("spotify", "playing").length;
-    await advance(step);
+    await host.advance(step);
     await host.until(() => host.updates("spotify", "playing").length === n + step / TICK_MS);
   }
 }
@@ -184,7 +177,7 @@ beforeAll(async () => {
   process.env.PAL_SPOTIFY_API = apiBase();
   process.env.PAL_SPOTIFY_ACCOUNTS = `http://127.0.0.1:${accounts.port}`;
   process.env.PAL_LRCLIB = `http://127.0.0.1:${lrclib.port}`;
-  host = await Host.bundled({
+  host = await Host.bundled({ only: ["spotify"],
     settings: { spotify: { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, pinned: ["Focus", "spotify:playlist:p2", "No Such List"] } } },
     core: { "effects.run": (p: unknown) => { effects.push(p); return null; }, "bar.refresh": (p: any) => { refreshes.push(p.id); return null; } },
   });
@@ -220,7 +213,7 @@ describe("spotify", () => {
     test("signed out: every listing is one Sign in row, the view says so, the bar item is hidden, and no request reaches the API", async () => {
       seen.length = 0;
       const searching = list("search", "radiohead");
-      await advance(SEARCH_WAIT_MS);
+      await host.advance(SEARCH_WAIT_MS);
       const [row] = await searching;
       expect(row).toMatchObject({ id: "hint:signin", name: "Sign in to Spotify", actions: [{ id: "signin", title: "Sign in to Spotify" }] });
       expect((await list("playlists"))[0].id).toBe("hint:signin");
@@ -256,7 +249,7 @@ describe("spotify", () => {
       expect(exchange.body).toMatchObject({ grant_type: "authorization_code", code: "the-code", redirect_uri: `http://127.0.0.1:${REDIRECT_PORT}/callback`, client_id: "client-abc" });
       expect(exchange.body.client_secret).toBeUndefined();
       // The listener lingers for the reply to leave, then finishes the sign-in.
-      await advance(LINGER_MS);
+      await host.advance(LINGER_MS);
       await host.until(() => effects.length > 0 && refreshes.includes("playing"), 3000, "hud and bar refresh");
       expect(effects[0]).toEqual({ effect: { hud: "Signed in to Spotify" } });
       expect(stored.get("spotify\0auth")).toMatchObject({ access: "access-1", refresh: "refresh-1" });
@@ -296,8 +289,7 @@ describe("spotify, signed in", () => {
   let h: Host;
   beforeAll(async () => {
     host.kill();
-    advanced = 0;
-    h = host = await Host.bundled({
+    h = host = await Host.bundled({ only: ["spotify"],
       settings: { spotify: { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, pinned: ["Focus", "spotify:playlist:p2", "No Such List"] } } },
       core: { "effects.run": (p: unknown) => { effects.push(p); return null; }, "bar.refresh": (p: any) => { refreshes.push(p.id); return null; } },
     });
@@ -309,7 +301,7 @@ describe("spotify, signed in", () => {
   describe("search", () => {
     test("sections in order with cover art icons, a null playlist skipped, the like state fetched once, the actions per kind; the rows show before the like state, the same rows in the same order", async () => {
       const streaming = host.listStream("spotify", "search", "radiohead");
-      await advance(SEARCH_WAIT_MS);
+      await host.advance(SEARCH_WAIT_MS);
       const { items, partials } = await streaming;
       expect(partials).toHaveLength(1);
       expect(ids(partials[0])).toEqual(ids(items));
@@ -338,7 +330,7 @@ describe("spotify, signed in", () => {
       expect(calls("GET", "/v1/search")).toHaveLength(1);
       expect(calls("GET", "/v1/me/tracks/contains")).toHaveLength(1);
       const nothing = list("search", "nothing");
-      await advance(SEARCH_WAIT_MS);
+      await host.advance(SEARCH_WAIT_MS);
       expect((await nothing)[0]).toMatchObject({ id: "hint:empty", name: "No results" });
       expect((await list("search", "r"))[0].id).toBe("hint:search");
     });
@@ -574,7 +566,7 @@ describe("spotify, signed in", () => {
     test("no lyrics: the search fallback picks the closest duration with words, an unknown track is No lyrics with the lrclib action; nothing playing and no device are one line each", async () => {
       state.player = { ...state.player, item: NUDE, progress_ms: 10_000 };
       // Past the optimistic hold of the last key (HOLD_MS), so the reads below are the API's.
-      await advance(HOLD_MS);
+      await host.advance(HOLD_MS);
       const v = await pick("now-playing", "now", "retry");
       const col = find(v.view!.tree, (n: any) => n.key === "lyrics-plain");
       expect(col).toBeTruthy();
@@ -646,14 +638,14 @@ describe("spotify, signed in", () => {
 
     test("the strip owns a timestamped lyric ticker while closed, and a media render resynchronises its next boundary", async () => {
       state.player = { ...state.player, is_playing: true, progress_ms: 68_500 };
-      state.advanceFrom = now();
+      state.advanceFrom = host.now();
       const before = h.updates("spotify", "playing").length;
       expect((await h.render("spotify", "playing", { reason: "media" as never })).title).toBe("The bottom of the sea");
       // "Your eyes" is at 1:09.72, 1.22 s on (the ticker adds 20 ms); the margin is the real time the read and the render took.
-      await advance(1100);
+      await host.advance(1100);
       await quiet();
       expect(h.updates("spotify", "playing").length).toBe(before);
-      await advance(200);
+      await host.advance(200);
       await h.until(() => h.updates("spotify", "playing").length === before + 1);
       expect(h.updates("spotify", "playing")[before].title).toBe("Your eyes");
 
@@ -664,7 +656,7 @@ describe("spotify, signed in", () => {
       expect((await h.render("spotify", "playing", { reason: "media" as never })).title).toBe("Your eyes");
       // "They turn me" at 1:16.14: 0.64 s on.
       const turn = h.nextUpdate("spotify", "playing", (i) => i.title === "They turn me");
-      await advance(700);
+      await host.advance(700);
       await turn;
 
       state.player = { ...state.player, progress_ms: 70_000 };
@@ -672,19 +664,19 @@ describe("spotify, signed in", () => {
     });
 
     test("the popover: bar/shown starts a 1 Hz push of the view with the position moving, an action answers keep and the state follows at once, and the pushes stop after the window", async () => {
-      state.advanceFrom = now();
+      state.advanceFrom = host.now();
       const n0 = h.updates("spotify", "playing").length;
       h.barShown("spotify", "playing");
       // The 1 Hz tick: nothing before the first second, then a push each second with the position moved on.
-      await advance(TICK_MS - 1);
+      await host.advance(TICK_MS - 1);
       await quiet();
       expect(h.updates("spotify", "playing").length).toBe(n0);
-      await advance(1);
+      await host.advance(1);
       await h.until(() => h.updates("spotify", "playing").length === n0 + 1);
       const first = h.updates("spotify", "playing")[n0];
       expect(first.hidden).toBeUndefined();
       const pos = (i: any) => find((i.menu as { view: any }).view.tree, (n: any) => n.type === "progress").value as number;
-      await advance(TICK_MS);
+      await host.advance(TICK_MS);
       await h.until(() => h.updates("spotify", "playing").length === n0 + 2);
       const second = h.updates("spotify", "playing")[n0 + 1];
       expect(pos(second) - pos(first)).toBeGreaterThan(0.5 / 318);
@@ -698,67 +690,67 @@ describe("spotify, signed in", () => {
       expect(await h.barAction("spotify", "playing", "copy")).toEqual({ copy: "Your eyes" });
       // The next tick is inside the hold (HOLD_MS): it pushes the paused item and ends the feed.
       const n1 = h.updates("spotify", "playing").length;
-      await advance(TICK_MS);
+      await host.advance(TICK_MS);
       await h.until(() => h.updates("spotify", "playing").length === n1 + 1);
       expect(h.updates("spotify", "playing")[n1].states).toEqual({ playing: false, loaded: true });
       // The paused read is kept for SYNC_MS; past it, the API says playing again and an action renews the window, which ticks to its end; then the interval stops and the item asks for a render instead.
       // Past the last lyric line, so the strip's own lyric ticker (which outlives the window) pushes nothing in the counts below.
       state.player = { ...state.player, progress_ms: 100_000 };
-      await advance(SYNC_MS);
+      await host.advance(SYNC_MS);
       expect(await h.barAction("spotify", "playing", "queue")).toEqual({ push: { extension: "spotify", palette: "queue" } });
       const refreshed = refreshes.length;
       await popoverTicks(TICK_WINDOW_MS - TICK_MS);
       await quiet();
       expect(refreshes.length).toBe(refreshed);
       expect(h.updates("spotify", "playing").at(-1)!.states).toEqual({ playing: true, loaded: true });
-      await advance(2 * TICK_MS);
+      await host.advance(2 * TICK_MS);
       await h.until(() => refreshes.length === refreshed + 1);
       expect(refreshes.at(-1)).toBe("playing");
       await quiet();
       const n = h.updates("spotify", "playing").length;
-      await advance(5 * TICK_MS);
+      await host.advance(5 * TICK_MS);
       await quiet();
       expect(h.updates("spotify", "playing").length).toBe(n);
     });
 
     test("the panel's lyrics view: view/shown starts a 1 Hz view.update of the wide tree while the position moves, a paused song pushes nothing new, view/hidden stops it; the item's own popover level ends the window", async () => {
-      state.advanceFrom = now();
+      state.advanceFrom = host.now();
       const views = () => h.viewUpdates("spotify", { palette: "now-playing" });
       const v0 = views().length;
       h.viewShown("spotify", { palette: "now-playing" }, "now");
       const pos = (u: any) => find(u.spec.tree, (n: any) => n.type === "progress").value as number;
-      await advance(TICK_MS);
+      await host.advance(TICK_MS);
       await h.until(() => views().length === v0 + 1);
       const first = views()[v0];
       expect(first).toMatchObject({ extension: "spotify", palette: "now-playing", spec: { id: "now", title: "Weird Fishes/ Arpeggi · Radiohead", keys: "actions" } });
       expect(find(first.spec.tree, (n: any) => n.type === "image")).toMatchObject({ width: 208, height: 208 });
-      await advance(TICK_MS);
+      await host.advance(TICK_MS);
       await h.until(() => views().length === v0 + 2);
       expect(pos(views()[v0 + 1]) - pos(first)).toBeGreaterThan(0.5 / 318);
       // Paused, the clock stands still: once a read (SYNC_MS) sees the pause, the tree is the one already pushed, so nothing goes.
       state.advanceFrom = undefined;
       state.player = { ...state.player, is_playing: false };
       const paused = h.nextViewUpdate("spotify", { palette: "now-playing" }, (u) => !!find(u.spec.tree, (n: any) => n.type === "badge" && n.text === "paused"));
-      await advance(SYNC_MS);
+      await host.advance(SYNC_MS);
       await paused;
       await quiet();
       const n = views().length;
-      await advance(3 * TICK_MS);
+      await host.advance(3 * TICK_MS);
       await quiet();
       expect(views().length).toBe(n);
       state.player = { ...state.player, is_playing: true };
       h.viewHidden("spotify", { palette: "now-playing" }, "now");
-      await advance(3 * TICK_MS);
+      await host.advance(3 * TICK_MS);
       await quiet();
       expect(views().length).toBe(n);
       // The popover's own level: shown feeds it, hidden ends the window before TICK_WINDOW_MS.
       const before = h.updates("spotify", "playing").length;
       h.viewShown("spotify", { bar: "playing" }, "now", true);
-      await advance(TICK_MS);
+      await host.advance(TICK_MS);
       await h.until(() => h.updates("spotify", "playing").length === before + 1);
       expect(h.updates("spotify", "playing")[before].hidden).toBeUndefined();
       h.viewHidden("spotify", { bar: "playing" }, "now", true);
-      await advance(3 * TICK_MS);
+      await host.advance(3 * TICK_MS);
       await quiet();
       expect(h.updates("spotify", "playing").length).toBe(before + 1);
     });

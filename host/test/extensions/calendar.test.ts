@@ -14,8 +14,6 @@
 // fixed instants around Wed 16 Sep 2026 10:30 UTC and every `over`, `now`,
 // `in 42 min`, tomorrow and horizon reads the same at any hour of any day.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
 import { barName, barWhen, callsNow, callWhen, eligible, escalation, nextEvent, nextWords, onDay, phaseOf, service, shortSpan, span, state, upcomingItem, type ItemSettings } from "../../../extensions/calendar/today.ts";
@@ -58,14 +56,10 @@ const events: CalendarEvent[] = [
   ev("later", "Offsite", addDays(now, 10) + 9 * H, addDays(now, 12) + 17 * H),
 ];
 
-// Every other bundled extension is turned off: the root's suggest asks them all, and Sessions alone spent 0.8 s reading this machine's real sessions.
-const EXTENSIONS = join(import.meta.dir, "../../../extensions");
-const others = readdirSync(EXTENSIONS).filter((n) => n !== E && existsSync(join(EXTENSIONS, n, "pal.json")));
 let status = "granted";
 const calls: { method: string; params: any }[] = [];
 let host: Host;
 const core = (list: CalendarEvent[] = events) => ({
-  "store.disabled": () => others,
   "calendar.permission": () => status,
   "calendar.request": () => { calls.push({ method: "request", params: null }); return status; },
   "calendar.open_settings": () => { calls.push({ method: "open_settings", params: null }); return null; },
@@ -75,7 +69,8 @@ const core = (list: CalendarEvent[] = events) => ({
   "calendar.delete": (p: any) => { calls.push({ method: "delete", params: p }); return null; },
   "calendar.open": (p: any) => { calls.push({ method: "open", params: p }); return null; },
 });
-beforeAll(async () => { host = await Host.bundled({ core: core(), settings: { [E]: { settings: { days: 14 } } } }); });
+// Every host loads calendar alone (`only`): the root's suggest asks every extension loaded, and Sessions alone spent 0.8 s reading this machine's real sessions.
+beforeAll(async () => { host = await Host.bundled({ only: [E], core: core(), settings: { [E]: { settings: { days: 14 } } } }); });
 afterAll(() => { host.kill(); delete process.env.PAL_NOW; });
 
 const list = (ctx?: Parameters<Host["list"]>[3]) => host.list(E, P, "", ctx);
@@ -513,7 +508,7 @@ describe("calendar extension", () => {
 
   test("a row id the listing does not have is fetched again; a gone one is a toast", async () => {
     await list();
-    const h2 = await Host.bundled({ core: core() });
+    const h2 = await Host.bundled({ only: [E], core: core() });
     try {
       expect(await h2.pick(E, P, rid(events[0]), "copy_link")).toEqual({ copy: ZOOM });
       expect(await h2.pick(E, P, "ghost@123", "copy_link")).toMatchObject({ keep: true, toast: { title: "Event not found", style: "failure" } });
@@ -524,7 +519,7 @@ describe("calendar extension", () => {
     const items = await list({ filter: "cal-home" });
     expect(last().params.calendars).toEqual(["cal-home"]);
     expect(items.map((i) => i.name)).toEqual(["Dentist", "Concert", "New event"]);
-    const h2 = await Host.bundled({ core: core(), settings: { [E]: { settings: { calendars: ["work", "Holidays", "nope"] } } } });
+    const h2 = await Host.bundled({ only: [E], core: core(), settings: { [E]: { settings: { calendars: ["work", "Holidays", "nope"] } } } });
     try {
       const rows = await h2.list(E, P);
       expect(last().params).toMatchObject({ calendars: ["cal-work", "cal-hol"], to: addDays(now, 7) });
@@ -633,7 +628,7 @@ describe("calendar extension", () => {
   });
 
   test("a core refusal on the listing is one hint row plus New event", async () => {
-    const h2 = await Host.bundled({ core: { ...core(), "calendar.events": () => { throw new Error("calendar access denied: Privacy & Security > Calendars"); } } });
+    const h2 = await Host.bundled({ only: [E], core: { ...core(), "calendar.events": () => { throw new Error("calendar access denied: Privacy & Security > Calendars"); } } });
     try {
       const rows = await h2.list(E, P);
       expect(rows.map((r) => r.id)).toEqual(["hint:calendar", "new"]);
@@ -684,7 +679,7 @@ describe("today palette and the upcoming bar item", () => {
 
   test("the day done: Nothing else today names the next event's day, tomorrow's rows follow; a clear day says so", async () => {
     const done = [events[1], ev("gone", "Morning sync", today + 9 * H, today + 9 * H + 30 * MIN), events[4], events[5]];
-    const h2 = await Host.bundled({ core: core(done) });
+    const h2 = await Host.bundled({ only: [E], core: core(done) });
     try {
       const rows = await h2.list(E, T);
       expect(rows.map((i) => [i.id, i.section])).toEqual([[rid(events[1]), "Today"], [rid(done[1]), "Today"], ["nothing", "Today"], [rid(events[4]), "Tomorrow"]]);
@@ -695,7 +690,7 @@ describe("today palette and the upcoming bar item", () => {
       expect(await h2.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
       expect(await h2.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true, states: { phase: "none", minutes: null, call: false } });
     } finally { h2.kill(); }
-    const h3 = await Host.bundled({ core: core([events[5]]) });
+    const h3 = await Host.bundled({ only: [E], core: core([events[5]]) });
     try {
       const rows = await h3.list(E, T);
       expect(rows).toHaveLength(1);
@@ -734,7 +729,7 @@ describe("today palette and the upcoming bar item", () => {
     const soon = ev("soon", "Standup", now + 3 * MIN, now + 18 * MIN, { conference_url: ZOOM });
     const begun = ev("begun", "Design review", now - 4 * MIN, now + 56 * MIN, { conference_url: MEET, calendar: cals[1] });
     const calls2 = [soon, begun, ev("later", "Retro", now + 20 * MIN, now + H, { conference_url: ZOOM }), ev("plain", "Dentist", now + MIN, now + H), ev("no", "Sales sync", now + 2 * MIN, now + H, { conference_url: ZOOM, my_status: "declined" })];
-    const h2 = await Host.bundled({ core: core(calls2) });
+    const h2 = await Host.bundled({ only: [E], core: core(calls2) });
     try {
       const rows = await suggested(h2);
       expect(rows.map((r) => r.id)).toEqual([rid(begun), rid(soon)]);
@@ -753,8 +748,8 @@ describe("today palette and the upcoming bar item", () => {
   });
 
   test("a direct bar click joins the next call, or opens Calendar when it has none", async () => {
-    const withCall = await Host.bundled({ core: core([events[0]]) });
-    const withoutCall = await Host.bundled({ core: core([events[2]]) });
+    const withCall = await Host.bundled({ only: [E], core: core([events[0]]) });
+    const withoutCall = await Host.bundled({ only: [E], core: core([events[2]]) });
     try {
       await withCall.render(E, "upcoming", { reason: "load" });
       expect(await withCall.barOpen(E, "upcoming")).toEqual({ open: ZOOM, hud: "Standup, 10:20 – 10:50" });
@@ -805,7 +800,7 @@ describe("today palette and the upcoming bar item", () => {
   });
 
   test("the open popover is redrawn from the cache on a tick while it shows (30 s), no fetch; nothing once it hid", async () => {
-    const h2 = await Host.bundled({ core: core() });
+    const h2 = await Host.bundled({ only: [E], core: core() });
     try {
       await h2.render(E, "upcoming", { reason: "open", compact: true });
       const before = calls.filter((c) => c.method === "events").length;
@@ -829,7 +824,7 @@ describe("today palette and the upcoming bar item", () => {
   test("the bar item: a failing source keeps the last events as stale, and is hidden with nothing cached", async () => {
     let fail = false;
     const table = core();
-    const h2 = await Host.bundled({ core: { ...table, "calendar.events": (p: any) => { if (fail) throw new Error("archer is away"); return table["calendar.events"](p); } } });
+    const h2 = await Host.bundled({ only: [E], core: { ...table, "calendar.events": (p: any) => { if (fail) throw new Error("archer is away"); return table["calendar.events"](p); } } });
     try {
       expect(await h2.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Standup", segments: [{ text: "20m left" }, { text: "in 42m" }] });
       fail = true;
@@ -838,7 +833,7 @@ describe("today palette and the upcoming bar item", () => {
       expect(rows[0]).toMatchObject({ id: "hint:calendar", name: "Showing the last events read", subtitle: "archer is away", section: "Today" });
       expect(rows[1].name).toBe("Earlier today");
     } finally { h2.kill(); }
-    const h3 = await Host.bundled({ core: { ...table, "calendar.events": () => { throw new Error("archer is away"); } } });
+    const h3 = await Host.bundled({ only: [E], core: { ...table, "calendar.events": () => { throw new Error("archer is away"); } } });
     try {
       await expect(h3.render(E, "upcoming", { reason: "load" })).rejects.toThrow("archer is away");
       expect((await h3.list(E, T)).map((r) => r.id)).toEqual(["hint:calendar"]);
@@ -852,7 +847,7 @@ describe("today palette and the upcoming bar item", () => {
     try {
       // With the running call gone from the fixture the next one is Dentist, 42 minutes out. The phase boundaries are the item's settings, through the render's ctx.
       const item = (settings: Partial<ItemSettings>) => ({ reason: "load", settings }) as const;
-      const h2 = await Host.bundled({ core: core(events.slice(1)) });
+      const h2 = await Host.bundled({ only: [E], core: core(events.slice(1)) });
       try {
         expect(await h2.render(E, "upcoming", item({ warn_minutes: 60, urgent_minutes: 45 }))).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "critical", minutes: 42 } });
         // The boundaries are inclusive: 42 minutes out is amber under warn 42 / urgent 41, red under urgent 42.
@@ -860,15 +855,15 @@ describe("today palette and the upcoming bar item", () => {
         expect(await h2.render(E, "upcoming", item({ warn_minutes: 60, urgent_minutes: 42 }))).toMatchObject({ states: { phase: "critical" } });
       } finally { h2.kill(); }
       // The horizon is the extension's.
-      const h3 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { horizon_hours: 1 } } } });
+      const h3 = await Host.bundled({ only: [E], core: core(events.slice(1)), settings: { [E]: { settings: { horizon_hours: 1 } } } });
       try {
         expect(await h3.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist", segments: [{ id: "when", text: "in 42m" }], states: { phase: "near" } });
         expect((await h3.render(E, "upcoming", { reason: "load" }) as BarItem).badge).toBeUndefined();
       } finally { h3.kill(); }
       // The horizon is inclusive too: the Concert tomorrow at 19:00 is 32 h 30 min out.
-      const h6 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32.5 } } } });
+      const h6 = await Host.bundled({ only: [E], core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32.5 } } } });
       try { expect(await h6.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Concert", segments: [{ id: "when", text: "in 32h 30m" }], states: { phase: "far" } }); } finally { h6.kill(); }
-      const h7 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32 } } } });
+      const h7 = await Host.bundled({ only: [E], core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32 } } } });
       try { expect(await h7.render(E, "upcoming", { reason: "load" })).toMatchObject({ hidden: true, states: { phase: "none" } }); } finally { h7.kill(); }
     } finally {
       host.changeSettings(E, { settings: { days: 14 } });

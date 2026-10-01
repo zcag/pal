@@ -96,7 +96,7 @@ beforeAll(async () => {
   for (const t of ["grim", "slurp", "wl-copy"]) { writeTool(join(bin, t), "#!/bin/sh\nexit 0\n"); }
   PATH0 = process.env.PATH;
   process.env.PATH = `${bin}:${process.env.PATH}`;
-  host = await Host.bundled({
+  host = await Host.bundled({ only: ["screenshots"],
     settings: { screenshots: { settings: { folder } } },
     core: {
       "effects.run": (p: { effect: { hud?: string } }) => { if (p.effect.hud) huds.push(p.effect.hud); return null; },

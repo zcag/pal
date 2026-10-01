@@ -100,7 +100,7 @@ beforeAll(async () => {
   writeTool(join(dir, "open"), `echo "$@" >> "${opened}"`);
   process.env.PAL_GOOGLE_BASE = `http://127.0.0.1:${server.port}`;
   process.env.PAL_OPEN_URL = join(dir, "open");
-  try { host = await Host.bundled({ settings: { google: { settings: BASE } } }); }
+  try { host = await Host.bundled({ only: ["google"], settings: { google: { settings: BASE } } }); }
   finally { for (const k of ["PAL_GOOGLE_BASE", "PAL_OPEN_URL"]) delete process.env[k]; }
 });
 afterAll(() => { host.kill(); server.stop(true); rmSync(dir, { recursive: true, force: true }); });

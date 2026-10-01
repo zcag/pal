@@ -69,7 +69,7 @@ afterAll(() => {
 });
 
 /** A typed search waits out the debounce on the host's clock: the listing with it advanced past. */
-const debounced = async <T>(p: Promise<T>) => { await host.advance(DEBOUNCE_MS); return p; };
+const debounced = <T>(p: Promise<T>) => host.after(p, DEBOUNCE_MS);
 const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => debounced(host.list("youtube", "search", q, ctx));
 const channels = (q: string) => debounced(host.list("youtube", "channels", q));
 const pick = (id: string, action?: string) => host.pick("youtube", "search", id, action);

@@ -253,24 +253,13 @@ describe("over the wire against the mock bridge", () => {
   const lastPut = () => mock.puts[mock.puts.length - 1];
   /** Waits for a PUT satisfying `pred` (one the extension sent after an advance: real I/O). */
   const untilPut = async (pred: (p: MockBridge["puts"][number]) => boolean, what = "a PUT") => { await host.until(() => mock.puts.some(pred), 2500, what); };
-  /**
-   * Moves the clock `ms` at a time until `pred` holds. The timer it waits on
-   * may be set only once a reply came back (a PUT's gap after a queued send,
-   * the next press-link attempt), which can land after an advance: another
-   * round fires it then.
-   */
-  const advanceUntil = async (ms: number, pred: () => boolean, what: string) => {
-    for (let i = 0; i < 10; i++) {
-      await host.advance(ms);
-      if (await host.until(pred, 300, what).then(() => true, () => false)) return;
-    }
-    throw new Error(`${what}: not after ten advances of ${ms} ms`);
-  };
   /** A pick that PUTs, then the clock past the resource's gap until `count` more PUTs went out: at once, or after the gap when one was in flight. The gap it leaves is passed too, so the next pick sends at once. */
   const putting = async <T>(pick: () => Promise<T>, gap = LIGHT_GAP_MS, count = 1): Promise<T> => {
     const n = mock.puts.length;
     const r = await pick();
-    await advanceUntil(gap, () => mock.puts.length >= n + count, "the PUT");
+    const sent = () => mock.puts.length >= n + count;
+    await host.advance(gap);
+    await host.until(sent, 300, "the PUT").catch(() => host.advanceUntil(gap, sent, "the PUT"));
     return r;
   };
   const getsSince = (n: number) => mock.calls.slice(n).filter((c) => c.method === "GET" && c.path.startsWith("/clip/v2/resource"));
@@ -307,12 +296,12 @@ describe("over the wire against the mock bridge", () => {
     expect(JSON.stringify(pressing.view!.tree)).toContain("Press the round button");
     // One attempt at once, the next a second later (index.ts startPairing's 1 s between attempts).
     await host.until(() => mock.pairAttempts >= 1, 4000, "the first press-link attempt");
-    await advanceUntil(1000, () => mock.pairAttempts >= 2, "two press-link attempts");
+    await host.advanceUntil(1000, () => mock.pairAttempts >= 2, "two press-link attempts");
     expect(stored.get(`${E}\0bridges`)).toBeUndefined();
     expect(host.written.get(E)).toBeUndefined();
     // The button.
     mock.press();
-    await advanceUntil(1000, () => mock.pairAttempts >= 3, "the attempt after the press");
+    await host.advanceUntil(1000, () => mock.pairAttempts >= 3, "the attempt after the press");
     await host.until(() => Array.isArray(stored.get(`${E}\0bridges`)), 4000, "the record stored");
     // The address and the key went to the settings through `settings.set` (a separate call after the record: wait for it on a slow runner): the key to the keychain, the file gets the reference.
     await host.until(() => host.written.get(E) !== undefined, 4000, "the settings written");
@@ -543,7 +532,7 @@ describe("over the wire against the mock bridge", () => {
     expect(JSON.stringify(v.tree)).toContain('"text":"Off"');
     expect(getsSince(before)).toEqual([]);
     // A bar push follows the change, at most one every 300 ms (index.ts scheduleBar).
-    await advanceUntil(300, () => host.updates(E, "home").length > pushes, "the bar push");
+    await host.advanceUntil(300, () => host.updates(E, "home").length > pushes, "the bar push");
     const pushed = host.updates(E, "home");
     const on = mock.resources.filter((r) => r.type === "light" && (r as any).on.on).length;
     expect(pushed[pushed.length - 1].title).toBe(`${on} on`);

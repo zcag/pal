@@ -151,7 +151,7 @@ describe("the rows palette over the host", () => {
     mkdirSync(join(dir, "Desktop"));
     writeFileSync(join(dir, "note.txt"), "hello\n");
     // No title fetch: the tests stay off the network.
-    host = await Host.bundled({ core: { "clipboard.current": () => current, "ocr.available": () => false }, settings: { clipboard: { palettes: { rows: { fetch_titles: false } } } } });
+    host = await Host.bundled({ only: ["clipboard"], core: { "clipboard.current": () => current, "ocr.available": () => false }, settings: { clipboard: { palettes: { rows: { fetch_titles: false } } } } });
   });
   afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
   const suggest = () => host.request<{ extension: string; palette: string; items: Item[] }[]>("suggest").then((r) => r.find((s) => s.extension === "clipboard")?.items ?? []);

@@ -140,11 +140,11 @@ describe("the views", () => {
 
 // ---- over the wire ------------------------------------------------------------------
 
-/** The fake tools: `dpi` reads its state from a file and logs its argv, `curl` answers a code per host from a table and sleeps per host, `sudo -n` answers what a file says. */
+/** The fake tools: `dpi` reads its state from a file and logs its argv, `curl` answers a code per host from a table (a host timed over 1 s waits for the gate file, so the rows arrive one by one), `sudo -n` answers what a file says. */
 const dir = mkdtempSync(join(tmpdir(), "pal-dpi-"));
 const bin = join(dir, "bin");
 mkdirSync(bin);
-const STATE = join(dir, "state"), LOG = join(dir, "log"), CODES = join(dir, "codes"), SUDO = join(dir, "sudo-ok");
+const STATE = join(dir, "state"), LOG = join(dir, "log"), CODES = join(dir, "codes"), SUDO = join(dir, "sudo-ok"), GATE = join(dir, "gate");
 const asked = () => logLines(LOG);
 /** The switches the fake dpi ran: its log without the status reads and the curls. */
 const cmds = () => asked().filter((l) => !/^status$|--max-time/.test(l));
@@ -174,11 +174,11 @@ case "$1" in
   on) echo on > ${JSON.stringify(STATE)}; [ "$os" = macos ] && echo "dpi on  (Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9)" || echo "dpi on  (zapret dnscrypt-proxy up, resolver -> 127.0.0.1)" ;;
   off) echo off > ${JSON.stringify(STATE)}; echo "dpi off (Wi-Fi restored)" ;;
   toggle) if [ "$state" = off ]; then exec "$0" on; else exec "$0" off; fi ;;
-  build) sleep 0.2; echo "built /Users/x/proj/byedpi/ciadpi" ;;
+  build) echo "built /Users/x/proj/byedpi/ciadpi" ;;
   *) echo "usage: dpi {on|off|status|toggle|test [url...]|build}" >&2; exit 1 ;;
 esac
 `);
-// The fake curl: the url is the last argument; `codes` maps a host to `code delay`. The fakes reach /bin themselves: the host runs with a PATH of the fake bin and bun's alone.
+// The fake curl: the url is the last argument; `codes` maps a host to `code tenths` (the time it reports); one over a second answers once the gate file is there. The fakes reach /bin themselves: the host runs with a PATH of the fake bin and bun's alone.
 writeTool(join(bin, "curl"), `#!/bin/sh
 PATH=/usr/bin:/bin:$PATH
 for u; do :; done
@@ -186,11 +186,12 @@ echo "$*" >> ${JSON.stringify(LOG)}
 host=$(printf '%s' "$u" | sed -E -e 's|https?://||' -e 's|/.*||' -e 's|^www\\.||')
 line=$(grep "^$host " ${JSON.stringify(CODES)} | head -1)
 code=\${line#* }; delay=\${code#* }; code=\${code%% *}
-[ -n "$delay" ] && [ "$delay" != "$code" ] && sleep "$delay"
+[ -n "$delay" ] && [ "$delay" != "$code" ] && [ "$delay" -gt 1 ] && until [ -e ${JSON.stringify(GATE)} ]; do sleep 0.01; done
 printf '%s 0.%s' "\${code:-000}" "\${delay:-1}"
 `);
 writeTool(join(bin, "sudo"), `#!/bin/sh\n[ -f ${JSON.stringify(SUDO)} ]\n`);
 writeFileSync(CODES, "discord.com 200 1\nroblox.com 000 3\nenpara.com 200 1\nexample.com 200 2\n");
+writeFileSync(GATE, "");
 setState("off");
 
 const URLS = ["https://discord.com/ = blocked", "https://www.roblox.com/ = blocked", "https://www.enpara.com/ = control", "https://example.com/ = control"];
@@ -202,7 +203,7 @@ async function startHost(os: "macos" | "linux") {
   process.env.PAL_DPI_FAKE_OS = os;
   process.env.PAL_DPI_CURL = join(bin, "curl");
   process.env.PAL_DPI_LOG = DPI_LOG;
-  try { return await Host.bundled({ settings: { dpi: { settings: { test_urls: URLS } } } }); }
+  try { return await Host.bundled({ only: ["dpi"], settings: { dpi: { settings: { test_urls: URLS } } } }); }
   finally { process.env.PATH = saved; delete process.env.PAL_DPI_OS; delete process.env.PAL_DPI_FAKE_OS; delete process.env.PAL_DPI_CURL; delete process.env.PAL_DPI_LOG; }
 }
 
@@ -294,12 +295,14 @@ describe("over the wire, macOS", () => {
 
   test("the test level: opened, it runs; the rows arrive one by one; the cursor, Enter, `c`, cmd+c; direct while the proxy is down", async () => {
     writeFileSync(CODES, "discord.com 200 1\nroblox.com 000 3\nenpara.com 503 1\nexample.com 200 2\n");
+    rmSync(GATE, { force: true });
     const v = await host.request<View>("view", { extension: "dpi", palette: "test" });
     expect(v.title).toBe("Testing the bypass…");
     expect(badges(v)).toEqual(["Testing 4 urls, 0 in…", "blocked", "…", "blocked", "…", "control", "…", "control", "…"]);
     host.viewShown("dpi", { palette: "test" }, "test");
     const first = await host.nextViewUpdate("dpi", { palette: "test" }, (u) => badges(u.spec as View).includes("200"), 4000);
     expect(badges(first.spec as View)).toContain("…");
+    writeFileSync(GATE, "");
     const done = await host.nextViewUpdate("dpi", { palette: "test" }, (u) => (u.spec as View).title !== "Testing the bypass…", 8000);
     // A 503 answered: the wire is fine, the site is not (the badge is amber, the summary counts it fine).
     expect((done.spec as View).title).toBe("1 of 2 blocked reach (roblox.com blocked), 2 controls fine");

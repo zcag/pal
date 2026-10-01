@@ -42,7 +42,7 @@ const coreFor = (asked: () => void) => ({
   "media.artwork": (p: { id: string }) => { asked(); const a = artworks[p.id]; if (!a) throw new Error(`no artwork ${p.id}`); return a; },
 });
 beforeAll(async () => {
-  host = await Host.bundled({ core: coreFor(() => artworkAsked++) });
+  host = await Host.bundled({ only: ["media"], core: coreFor(() => artworkAsked++) });
 });
 /** The popover's tree of an item, checked as the host does. */
 const viewOf = (item: { menu?: unknown }): View => checkView((item.menu as { view: View }).view);
@@ -290,7 +290,7 @@ describe("media", () => {
     let polled: Host;
     let asked = 0;
     beforeAll(async () => {
-      polled = await Host.bundled({ core: { ...coreFor(() => {}), "media.now_playing": () => { asked++; return np; } } });
+      polled = await Host.bundled({ only: ["media"], core: { ...coreFor(() => {}), "media.now_playing": () => { asked++; return np; } } });
     });
     afterAll(() => polled.kill());
 

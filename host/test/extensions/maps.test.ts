@@ -89,7 +89,7 @@ afterAll(() => { host.kill(); places.stop(true); delete process.env.PAL_MAPS_PLA
 const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("maps", "maps", q, ctx);
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("maps", "maps", id, action, ctx);
 /** A listing that asks Google waits out the debounce on the host's clock first. */
-const debounced = async <T>(p: Promise<T>) => { await host.advance(DEBOUNCE_MS); return p; };
+const debounced = <T>(p: Promise<T>) => host.after(p, DEBOUNCE_MS);
 const ids = (items: Item[]) => items.map((i) => i.id);
 
 describe("maps", () => {

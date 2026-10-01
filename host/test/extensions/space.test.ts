@@ -422,13 +422,17 @@ writeTool(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`
 
 let host: Host;
 const oldPath = process.env.PATH;
+const oldHome = process.env.HOME;
 beforeAll(async () => {
   process.env.PATH = `${bin}:${oldPath}`;
   process.env.PAL_SPACE_TRASH = join(bin, "trash");
+  // A HOME of its own: the cleanup palette measures the caches under it, and this Mac's real ones take their own time.
+  process.env.HOME = join(dir, "home");
+  mkdirSync(process.env.HOME, { recursive: true });
   stored.clear();
   host = await Host.bundled({ settings: { space: { settings: { largest: 5 } } } });
 });
-afterAll(() => { host.kill(); process.env.PATH = oldPath; delete process.env.PAL_SPACE_TRASH; rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); process.env.PATH = oldPath; process.env.HOME = oldHome; delete process.env.PAL_SPACE_TRASH; rmSync(dir, { recursive: true, force: true }); });
 
 const viewOf = (e: { view?: View }) => checkView(e.view);
 const mapView = (ctx: Record<string, unknown> = {}) => host.request<View>("view", { extension: "space", palette: "map", args: { root }, ...ctx }).then(checkView);

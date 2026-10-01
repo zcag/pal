@@ -101,7 +101,7 @@ beforeAll(async () => {
   process.env.PATH = `${bin}:${oldPath}`;
   process.env.PAL_DOWNLOADS_TRASH = join(bin, "trash");
   process.env.PAL_DOWNLOADS_CACHE = cache;
-  host = await Host.bundled({ settings: { downloads: { settings: { folder, browser_folders: false } } } });
+  host = await Host.bundled({ only: ["downloads"], settings: { downloads: { settings: { folder, browser_folders: false } } } });
 });
 afterAll(() => { host.kill(); process.env.PATH = oldPath; delete process.env.PAL_DOWNLOADS_TRASH; delete process.env.PAL_DOWNLOADS_CACHE; rmSync(root, { recursive: true, force: true }); });
 

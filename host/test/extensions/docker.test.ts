@@ -34,7 +34,7 @@ case "$1 $2" in
   "logs --tail") printf 'line one\\nline two\\n'; echo 'warn: on stderr' >&2 ;;
   "compose -f") echo "compose $*" ;;
   "stop aa11bb22cc33") echo "no such container" >&2; exit 1 ;;
-  "stop dd44ee55ff66") sleep 12 ;;
+  "stop dd44ee55ff66") sleep 12 ;; # never waited for: the 8 s answer comes first
   "run -d") echo "0123456789abcdef" ;;
   *) echo "$2" ;;
 esac

@@ -23,6 +23,8 @@ beforeAll(async () => {
   delete process.env.PAL_ODAK_URL;
   delete process.env.PAL_ODAK_KEY;
   host = await Host.bundled({
+    // odak alone: the root's suggest otherwise waits on every bundled extension's (sessions, downloads).
+    only: ["odak"],
     settings: { odak: { settings: SETTINGS } },
     core: {
       "selection.text": () => os.selection,

@@ -111,7 +111,7 @@ afterAll(() => {
 
 /** extensions/immich/index.ts DEBOUNCE_MS: a typed search waits it out on the host's clock. */
 const DEBOUNCE_MS = 300;
-const debounced = async <T>(p: Promise<T>) => { await host.advance(DEBOUNCE_MS); return p; };
+const debounced = <T>(p: Promise<T>) => host.after(p, DEBOUNCE_MS);
 /** A listing with the debounce advanced past. */
 const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => debounced(host.list("immich", "immich", q, ctx));
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("immich", "immich", id, action, ctx);

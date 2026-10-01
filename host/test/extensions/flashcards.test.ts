@@ -292,7 +292,7 @@ describe("the extension", () => {
     process.env.PAL_FLASHCARDS_DIR = dir;
     anki = fakeAnkiWeb(apkg(dir, "served", true));
     process.env.PAL_ANKIWEB_URL = anki.url.origin;
-    host = await Host.bundled({ settings: { flashcards: { settings: { new_per_day: 2, goal: 3, speak: "off" } } } });
+    host = await Host.bundled({ only: ["flashcards"], settings: { flashcards: { settings: { new_per_day: 2, goal: 3, speak: "off" } } } });
   });
   afterAll(async () => {
     await host.close();

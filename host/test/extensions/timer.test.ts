@@ -2,8 +2,8 @@
 // writes) and a fake `timer` on a path setting that records what it was
 // asked and edits the files the way the real one would. The bar item's
 // pushes come from fs.watch and the 1 Hz tick, which runs on the host's
-// fake clock: the test advances it (`advance`) and keeps its own `now` on
-// the same time.
+// fake clock: the test advances it (`host.advance`) and keeps its own `now`
+// on the same time (`host.now()`).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,15 +28,13 @@ case "$1" in
   add) echo "$3 +5m" ;;
   done) rm -f "$TIMER_DIR"/*.done ;;
   nope) echo "timer: bad duration 'nope' (try 25m, 90s, 1h30m, 2:30)" >&2; exit 1 ;;
-  *) id=$(printf '%s' "\${2:-$1}" | tr ' ' '-'); printf 'id=%s\\nname=%s\\ntotal=1500\\ndeadline=%s\\nleft=1500\\nstate=running\\nring=0\\nquiet=0\\nauto=0\\npid=0\\nfired=0\\n' "$id" "\${2:-$1}" $(( $(date +%s) + $(cat ${JSON.stringify(join(base, "ahead"))}) + 1500 )) > "$TIMER_DIR/$id.state"; echo "$id started" ;;
+  *) id=$(printf '%s' "\${2:-$1}" | tr ' ' '-'); printf 'id=%s\\nname=%s\\ntotal=1500\\ndeadline=%s\\nleft=1500\\nstate=running\\nring=0\\nquiet=0\\nauto=0\\npid=0\\nfired=0\\n' "$id" "\${2:-$1}" $(( $(date +%s) + $(cat "$PAL_TEST_AHEAD_FILE") + 1500 )) > "$TIMER_DIR/$id.state"; echo "$id started" ;;
 esac
 `);
 
 
-/** How far the host's clock was moved: its `Date` is real time plus this, and so is the test's `now`. */
-let ahead = 0;
-const advance = (ms: number) => { ahead += ms; writeFileSync(join(base, "ahead"), String(Math.floor(ahead / 1000))); return host.advance(ms); };
-const now = () => Math.floor((Date.now() + ahead) / 1000);
+/** The host's clock in seconds, what the state files hold. */
+const now = () => Math.floor(host.now() / 1000);
 type Spec = { state: "running" | "paused" | "done"; total?: number; deadline?: number; left?: number; fired?: number; auto?: boolean; name?: string };
 /** A state file as bash `printf %q` writes it. */
 const put = (id: string, s: Spec) => writeFileSync(join(dir, `${id}.state`), [
@@ -59,7 +57,6 @@ const quiet = async () => {
 
 let host: Host;
 beforeAll(async () => {
-  writeFileSync(join(base, "ahead"), "0");
   host = await Host.bundled({ settings: { timer: { settings: { command: cli, dir } } } });
 });
 afterAll(() => { host.kill(); rmSync(base, { recursive: true, force: true }); });
@@ -125,7 +122,7 @@ describe("timer", () => {
     put("tea", { state: "running", deadline: now() + 300 });
     // Each advance of a second is one tick and one push, a second less; two when real time crosses a second boundary meanwhile.
     const secs = (i: BarItem) => { const [m, s] = i.title!.split(":").map(Number); return m * 60 + s; };
-    const tick = async () => { const u = host.nextUpdate("timer", "timer"); await advance(1000); return u; };
+    const tick = async () => { const u = host.nextUpdate("timer", "timer"); await host.advance(1000); return u; };
     try {
       const first = await host.nextUpdate("timer", "timer", (i) => !i.hidden);
       expect(["5:00", "4:59"]).toContain(first.title!);
@@ -142,7 +139,7 @@ describe("timer", () => {
     await host.nextUpdate("timer", "timer", (i) => i.hidden === true);
     await quiet();
     const n = host.updates("timer", "timer").length;
-    await advance(5000);
+    await host.advance(5000);
     await settle();
     expect(host.updates("timer", "timer")).toHaveLength(n);
   });
@@ -321,7 +318,7 @@ describe("timer", () => {
     await quiet();
     // Paused with the popover down: no tick.
     const before = host.updates("timer", "timer").length;
-    await advance(3000);
+    await host.advance(3000);
     await settle();
     expect(host.updates("timer", "timer")).toHaveLength(before);
     const shown = host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view);
@@ -329,16 +326,16 @@ describe("timer", () => {
     await shown;
     for (const _ of [1, 2]) {
       const u = host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view);
-      await advance(1000);
+      await host.advance(1000);
       await u;
     }
     expect(host.updates("timer", "timer").length).toBeGreaterThan(before + 2);
     host.viewHidden("timer", { bar: "timer" }, "timer", true);
     // A tick on the way as the hide lands may still push; after that, nothing.
-    await advance(1000);
+    await host.advance(1000);
     await settle();
     const n = host.updates("timer", "timer").length;
-    await advance(5000);
+    await host.advance(5000);
     await settle();
     expect(host.updates("timer", "timer")).toHaveLength(n);
     clear();
