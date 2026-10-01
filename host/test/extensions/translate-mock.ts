@@ -3,8 +3,7 @@
 // replies are what the real endpoint answered on 2026-09-17 for the same
 // texts (trimmed to the fields read), so the parser is exercised on the
 // true shape; anything else gets a `[tl] text` stand-in. `refuse` gets
-// Google's "Sorry..." page, `slow` waits 400 ms, and DeepL answers only
-// the key `good:fx`.
+// Google's "Sorry..." page, and DeepL answers only the key `good:fx`.
 
 export const HELLO_TR = { sentences: [{ trans: "Selam Dünya", orig: "hello world", backend: 10 }], src: "en", alternative_translations: [{ src_phrase: "hello world", alternative: [{ word_postproc: "Selam Dünya" }, { word_postproc: "merhaba dünya" }], srcunicodeoffsets: [{ begin: 0, end: 11 }] }], confidence: 0.76348495, spell: {}, ld_result: { srclangs: ["en"], srclangs_confidences: [0.76348495], extended_srclangs: ["en"] } };
 export const MERHABA_EN = { sentences: [{ trans: "hello world. ", orig: "merhaba dünya. ", backend: 10 }, { trans: "How are you?", orig: "Nasılsın?", backend: 10 }], src: "tr", alternative_translations: [{ src_phrase: "merhaba dünya.", alternative: [{ word_postproc: "hello world." }, { word_postproc: "hi world." }] }, { src_phrase: "Nasılsın?", alternative: [{ word_postproc: "How are you?" }, { word_postproc: "how are you" }] }], confidence: 1, ld_result: { srclangs: ["tr"], srclangs_confidences: [1] } };
@@ -26,7 +25,6 @@ export function startMock() {
         const q = form.get("q") ?? "", sl = url.searchParams.get("sl") ?? "", tl = url.searchParams.get("tl") ?? "";
         requests.push({ path: url.pathname, q, sl, tl });
         if (q === "refuse") return new Response(SORRY, { headers: { "content-type": "text/html" } });
-        if (q === "slow") await Bun.sleep(400);
         const reply = q === "hello world" && tl === "tr" ? HELLO_TR : q === "hello world" && tl === "en" ? HELLO_EN : q === "merhaba dünya. Nasılsın?" && tl === "en" ? MERHABA_EN : q === "hello" && tl === "ja" ? HELLO_JA
           : { sentences: [{ trans: `[${tl}] ${q}`, orig: q }], src: sl === "auto" ? (/[çğıöşü]/i.test(q) ? "tr" : "en") : sl, alternative_translations: [], confidence: 0.9 };
         return Response.json(reply);

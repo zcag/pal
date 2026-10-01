@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { googleAlternatives, parseGoogle, parseVoices, voiceFor } from "../../../extensions/translate/backends.ts";
 import { deeplSource, deeplTarget, fromDeepl, langOf, matches, nameOf, otherEnd, parse, systemLanguage } from "../../../extensions/translate/lang.ts";
+import { TEXT_AT_HAND_TTL_MS } from "../../../sdk/src/api.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
 import { Host, stored, writeTool } from "../harness.ts";
@@ -137,7 +138,13 @@ afterAll(() => {
   delete process.env.PAL_TRANSLATE_GOOGLE; delete process.env.PAL_TRANSLATE_DEEPL; delete process.env.PAL_TRANSLATE_SAY;
 });
 
-const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("translate", "translate", q, ctx);
+/** The palette waits this long after the last key before it translates (DEBOUNCE_MS, extensions/translate/index.ts); the inline ask does not. */
+const DEBOUNCE_MS = 350;
+const list = async (q?: string, ctx?: Parameters<Host["list"]>[3]) => {
+  const r = host.list("translate", "translate", q, ctx);
+  if (!ctx?.inline) await host.advance(DEBOUNCE_MS);
+  return r;
+};
 const pick = (id: string, action?: string) => host.pick("translate", "translate", id, action);
 const ids = (items: Item[]) => items.map((i) => i.id);
 
@@ -192,7 +199,9 @@ describe("translate", () => {
 
   test("typing is debounced: a listing overtaken by a newer one answers a Translating… row and sends nothing; the same text again is served from the cache", async () => {
     requests.length = 0;
-    const [a, b] = await Promise.all([list("hello wor"), Bun.sleep(50).then(() => list("hello world"))]);
+    const pa = host.list("translate", "translate", "hello wor"), pb = host.list("translate", "translate", "hello world");
+    await host.advance(DEBOUNCE_MS);
+    const [a, b] = await Promise.all([pa, pb]);
     expect(a).toEqual([expect.objectContaining({ id: "hint:wait", name: "Translating…", subtitle: "hello wor", actions: [] })]);
     expect(b[0].name).toBe("Selam Dünya");
     expect(requests.map((r) => r.q)).toEqual([]);
@@ -204,11 +213,11 @@ describe("translate", () => {
     selectionText = "merhaba dünya. Nasılsın?";
     let items = await list("");
     expect(items[0]).toMatchObject({ name: "hello world. How are you?", subtitle: "Turkish → English · Google Translate · from the selection" });
-    await Bun.sleep(2100);
+    await host.advance(TEXT_AT_HAND_TTL_MS);
     selectionText = null;
     items = await list("");
     expect(items[0]).toMatchObject({ name: "Selam Dünya", subtitle: "English → Turkish · Google Translate · from the clipboard" });
-    await Bun.sleep(2100);
+    await host.advance(TEXT_AT_HAND_TTL_MS);
     items = await list(">ja");
     expect(items[0].name).toBe("[ja] hello world");
   });
