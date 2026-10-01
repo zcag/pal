@@ -170,7 +170,19 @@ beforeAll(async () => {
 });
 afterAll(() => { host.kill(); server.stop(true); avatars.stop(true); process.env.PATH = PATH0; delete process.env.PAL_SLACK_API; delete process.env.PAL_SLACK_APP_DIR; rmSync(dir, { recursive: true, force: true }); });
 
-const list = (palette: string, query?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("slack", palette, query, ctx);
+/** The search palette waits this long after a keystroke before it asks (SEARCH_WAIT_MS, extensions/slack/index.ts). */
+const SEARCH_WAIT_MS = 300;
+/** A listing; the search palette's waits out its keystroke debounce first. */
+const list = async (palette: string, query?: string, ctx?: Parameters<Host["list"]>[3]) => {
+  const r = host.list("slack", palette, query, ctx);
+  if (palette === "search") await host.advance(SEARCH_WAIT_MS);
+  return r;
+};
+const listStream = async (query: string) => {
+  const r = host.listStream("slack", "search", query);
+  await host.advance(SEARCH_WAIT_MS);
+  return r;
+};
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("slack", palette, id, action, ctx);
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
 
@@ -342,14 +354,12 @@ describe("slack", () => {
 
     test("presence off: no users.getPresence at all and no dot; back on, the lookup resumes", async () => {
       host.changeSettings("slack", { settings: { ...BASE, presence: false } });
-      await Bun.sleep(50);
       const n = calls("users.getPresence").length;
       const items = await list("unreads", undefined, { refresh: true });
       expect(items.map(dot)).toEqual([undefined, undefined, undefined, undefined]);
       await host.render("slack", "unreads", { reason: "cli" });
       expect(calls("users.getPresence")).toHaveLength(n);
       host.changeSettings("slack", { settings: BASE });
-      await Bun.sleep(50);
       expect(dot((await list("unreads", undefined, { refresh: true }))[2])).toEqual({ tag: "●", color: "green" });
       expect(calls("users.getPresence").length).toBeGreaterThan(n);
       counts = QUIET;
@@ -538,7 +548,8 @@ describe("slack", () => {
       await expect(host.render("slack", "unreads", { reason: "cli" })).rejects.toBeInstanceOf(HostError);
       expect((await list("status"))[0].id).toBe("hint:limit");
       expect(seen.length).toBe(n);
-      await Bun.sleep(1100);
+      // The mock's Retry-After: 1.
+      await host.advance(1000);
       expect((await list("unreads", undefined, { refresh: true }))[0].id).not.toBe("hint:limit");
     });
 
@@ -554,13 +565,11 @@ describe("slack", () => {
 
     test("a workspace setting that matches no signed-in one: a hint row saying so, Enter opens the settings; the bar item is hidden", async () => {
       host.changeSettings("slack", { settings: { ...BASE, workspace: "nowhere" } });
-      await Bun.sleep(50);
       const items = await list("unreads");
       expect(items[0]).toMatchObject({ id: "hint:auth", name: "Slack is not signed in", subtitle: expect.stringContaining("nowhere") });
       expect(await pick("unreads", "hint:auth")).toEqual({ open: "pal://settings/extensions" });
       expect(await host.render("slack", "unreads", { reason: "cli" })).toEqual({ hidden: true, refresh: 120, states: { attention: null, dm: null, channels: null } });
       host.changeSettings("slack", { settings: BASE });
-      await Bun.sleep(50);
     });
   });
 
@@ -615,7 +624,7 @@ describe("slack", () => {
       let open!: () => void;
       lateGate = new Promise((r) => (open = r));
       const from = host.coreCalls.length;
-      const pending = host.listStream("slack", "search", "late hits");
+      const pending = listStream("late hits");
       await host.until(() => host.coreCalls.slice(from).some((c) => c.method === "list.partial"), 3000, "a partial");
       open();
       const r = await pending;
@@ -623,7 +632,7 @@ describe("slack", () => {
       expect(r.items.map((i) => i.name)).toEqual(["the parser @cagdas asked about", "from someone the list lacks", "dm text"]);
       expect(r.partials[0][0]).toEqual(r.items[0]);
       // The directory answers a search whole: nothing early.
-      expect((await host.listStream("slack", "search", "from:@mara parser")).partials).toEqual([]);
+      expect((await listStream("from:@mara parser")).partials).toEqual([]);
     });
   });
 
@@ -696,7 +705,6 @@ describe("slack", () => {
   describe("token mode", () => {
     test("a user token is a bearer, auth.test names the workspace, client.counts is never asked: unreads come from conversations.info (DMs and unread channels, no mentions or threads)", async () => {
       host.changeSettings("slack", { settings: { ...BASE, auth: "token", token: "xoxp-test" } });
-      await Bun.sleep(50);
       const n = calls("client.counts").length;
       const items = await list("unreads", undefined, { refresh: true });
       expect(calls("auth.test").at(-1)!.auth).toBe("token");
@@ -709,10 +717,8 @@ describe("slack", () => {
 
     test("no token set is a hint naming the setting", async () => {
       host.changeSettings("slack", { settings: { ...BASE, auth: "token", token: "" } });
-      await Bun.sleep(50);
       expect((await list("unreads", undefined, { refresh: true }))[0]).toMatchObject({ id: "hint:auth", name: "Slack token is not set" });
       host.changeSettings("slack", { settings: BASE });
-      await Bun.sleep(50);
     });
   });
 });
