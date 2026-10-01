@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.2 · 2026-10-01
+
+- **Night Parade picks up where you left it**: close pal mid-night and the night is waiting, paused, when you come back.
+- **Night Parade, easier to win by getting stronger**: as Midnight and the Hour of the Ox begin, choose one of three blessings for the rest of the night (more damage, more projectiles, more area, faster cooldowns, armor, healing or speed). Every night now pays a bonus for how long you lasted, the bosses you beat and the dawn, and the results screen and the title tell you when the shrine has something you can afford.
+- **Night Parade, fairer and easier to read**: the burrowing mole shows as a mound of earth moving toward you and gives you time to step away; arrows at the screen's edge point to chests, the golden tanuki and processions off screen; S while paused opens the game's settings; Settings › Night Parade has a volume slider.
+- **Fixed: an extension could fail to load** after switching from a copy installed from source to the store's.
+
 ## 0.10.1 · 2026-09-30
 
 - **Fixed: Check for Updates could take minutes** while the extensions that update by themselves were installed, and each of them was installed twice. The check now answers as soon as it has looked, says which extensions are updating, and they go in behind it, once.
