@@ -42,7 +42,7 @@ describe("backends", () => {
 
 // ---- the palette over the wire ------------------------------------------------------
 
-const { server, requests, slow, base, titles } = startMock();
+const { server, requests, hold, base, titles } = startMock();
 const dir = mkdtempSync(join(tmpdir(), "pal-gifs-"));
 const cache = join(dir, "cache"), downloads = join(dir, "Downloads");
 /** The mock titles its GIFs in Title Case (plus a trailing "GIF", which the parser drops). */
@@ -62,7 +62,14 @@ afterAll(() => {
   delete process.env.PAL_GIFS_GIPHY; delete process.env.PAL_GIFS_CACHE;
 });
 
-const list = (q?: string) => host.list("gifs", "gifs", q);
+/** extensions/gifs/index.ts DEBOUNCE_MS: a typed search waits it out on the host's clock. */
+const DEBOUNCE_MS = 300;
+/** A listing; a typed one with the debounce advanced past. */
+const list = async (q?: string) => {
+  const r = host.list("gifs", "gifs", q);
+  if (q?.trim()) await host.advance(DEBOUNCE_MS);
+  return r;
+};
 const pick = (id: string, action?: string) => host.pick("gifs", "gifs", id, action);
 const names = (items: Item[]) => items.map((i) => i.name);
 const dataUrl = (i: Item) => (i.icon as { image?: string })?.image ?? "";
@@ -77,16 +84,21 @@ describe("gifs", () => {
   });
 
   test("streamed: the tiles show with the glyph as soon as the search answers, again once the top two rows have their previews, then whole; the same tiles in the same order; all cached, no early rows", async () => {
-    slow.from = 12;
+    // The media from the third row on is held until both early partials are out.
+    const open = hold(12);
     try {
-      const { items, partials } = await host.listStream("gifs", "gifs", "");
+      const from = host.coreCalls.length;
+      const streamed = host.listStream("gifs", "gifs", "");
+      await host.until(() => host.coreCalls.slice(from).filter((c) => c.method === "list.partial").length === 2);
+      open();
+      const { items, partials } = await streamed;
       expect(partials).toHaveLength(2);
       for (const p of partials) expect(p.map((i) => i.id)).toEqual(items.map((i) => i.id));
       expect(partials[0].every((i) => i.icon === "\u{f0d78}")).toBe(true);
       expect(partials[1].slice(0, 12).every((i) => dataUrl(i).startsWith("data:"))).toBe(true);
       expect(partials[1].slice(12).some((i) => typeof i.icon === "string")).toBe(true);
       expect(items.every((i) => dataUrl(i).startsWith("data:"))).toBe(true);
-    } finally { slow.from = Infinity; }
+    } finally { open(); }
     expect((await host.listStream("gifs", "gifs", "")).partials).toEqual([]);
   });
 
@@ -118,7 +130,11 @@ describe("gifs", () => {
 
   test("typing is debounced: a listing overtaken by a newer one answers Searching… and sends nothing", async () => {
     const n = requests.length;
-    const [a, b] = await Promise.all([list("thu"), Bun.sleep(40).then(() => list("thumbs"))]);
+    const [pa, pb] = [host.list("gifs", "gifs", "thu"), host.list("gifs", "gifs", "thumbs")];
+    await host.advance(DEBOUNCE_MS - 1);
+    expect(requests.length).toBe(n);
+    await host.advance(1);
+    const [a, b] = await Promise.all([pa, pb]);
     expect(a).toEqual([expect.objectContaining({ id: "hint:wait", name: "Searching…", subtitle: "thu", actions: [] })]);
     expect(names(b)).toEqual(["Thumbs Up"]);
     expect(requests.slice(n).map((r) => r.q)).toEqual(["thumbs"]);

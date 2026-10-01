@@ -3,8 +3,9 @@
 // documented ones, trimmed to the fields read, with the media urls
 // pointing back at the mock, which serves a generated picture for each
 // (`png.ts`). The key `good` is accepted; anything else is Giphy's 401.
-// `requests` records every call; `slow.from` holds back the media from that
-// GIF on (by `slow.ms`), so a test sees the first previews land before the rest.
+// `requests` records every call; `hold(from)` holds back the media from that
+// GIF on until the function it returns runs, so a test sees the first
+// previews land before the rest.
 import { picture } from "../png.ts";
 
 export type Seen = { path: string; q?: string; key?: string; filter?: string };
@@ -13,7 +14,13 @@ const TITLES = ["happy dance", "cat typing", "thumbs up", "mind blown", "facepal
 
 export function startMock() {
   const requests: Seen[] = [];
-  const slow = { from: Infinity, ms: 150 };
+  let held: { from: number; gate: Promise<void> } | undefined;
+  /** Holds the media from GIF `from` on until the returned function runs. */
+  const hold = (from: number) => {
+    let open!: () => void;
+    held = { from, gate: new Promise((r) => { open = r; }) };
+    return () => { held = undefined; open(); };
+  };
   const server = Bun.serve({
     port: 0,
     async fetch(req): Promise<Response> {
@@ -23,7 +30,7 @@ export function startMock() {
         const [, , n, kind] = url.pathname.replace(/\.gif$/, "").split("/");
         // The full gif is the preview's picture at twice the size, so a download is told from a preview by its bytes.
         const big = kind === "original";
-        if (Number(n) >= slow.from) await Bun.sleep(slow.ms);
+        if (held && Number(n) >= held.from) await held.gate;
         return new Response(picture(Number(n), big ? 192 : 96, big ? 144 : 72), { headers: { "content-type": "image/gif" } });
       }
       const q = url.searchParams.get("q") ?? undefined;
@@ -42,5 +49,5 @@ export function startMock() {
       return new Response("no", { status: 404 });
     },
   });
-  return { server, requests, slow, base: `http://127.0.0.1:${server.port}`, titles: TITLES };
+  return { server, requests, hold, base: `http://127.0.0.1:${server.port}`, titles: TITLES };
 }
