@@ -94,7 +94,9 @@ describe("the views", () => {
   test("the popover: the card with the facts, Enter turns off while on, `r` only while partial; the missing tool is one line", () => {
     const v = renderPopover({ status: on, mac: true });
     expect(() => checkView(v, "dpi")).not.toThrow();
-    expect(v.title).toBe("Bypass on");
+    // The state is the card's headline; the level's title does not repeat it.
+    expect(v.title).toBe("Status");
+    expect(flat(v.tree).find((n: ViewNode) => n.type === "text" && n.key === "title")).toMatchObject({ value: "Bypass on", style: "headline" });
     expect(v.actions[0]).toEqual({ id: "toggle", title: "Turn off bypass" });
     expect(v.actions.map((a) => a.shortcut)).toEqual([undefined, "t", "r", "c", "l", "o"]);
     expect(texts(v)).toEqual(expect.arrayContaining(["Bypass on", "Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9", "up (pid 4242, :1080)", "127.0.0.1:1080"]));
@@ -123,7 +125,7 @@ describe("the views", () => {
     expect(flat(pop.tree).some((n) => n.selected)).toBe(false);
   });
   test("the bar item: the shield by state, the facts as states, the empty shape; nothing without a status", () => {
-    expect(barItem({ status: on })).toMatchObject({ icon: "\u{f0565}", tooltip: "Bypass on: Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9", states: { on: true, state: "on", service: "Wi-Fi" }, empty: { icon: "\u{f0499}" } });
+    expect(barItem({ status: on })).toMatchObject({ icon: "\u{f0565}", tooltip: "Bypass on\nWi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9", states: { on: true, state: "on", service: "Wi-Fi" }, empty: { icon: "\u{f0499}" } });
     expect(barItem({ status: half })).toMatchObject({ icon: "\u{f0780}", states: { on: true, state: "partial" } });
     expect(barItem({ status: half })).not.toHaveProperty("color");
     expect(barItem({ status: parseStatus(MAC_OFF, "macos") })).toMatchObject({ icon: "\u{f0499}", states: { on: false, state: "off" } });
@@ -228,7 +230,7 @@ describe("over the wire, macOS", () => {
     expect(r.map((x) => x.id)).toEqual(["toggle", "status", "test", "log", "build", "copy"]);
     expect(byId(r, "toggle")).toMatchObject({ name: "Turn on bypass", subtitle: "Wi-Fi as before, byedpi down", icon: "\u{f0499}", accessories: [] });
     expect(byId(r, "toggle").actions!.map((a) => a.id)).toEqual(["on", "test", "copy"]);
-    expect(byId(r, "status")).toMatchObject({ name: "Status: off", detail: { metadata: [{ label: "State", tags: [{ text: "off", color: "grey" }] }, { label: "Proxy", value: "down" }, { label: "Service", value: "Wi-Fi" }, { label: "DNS", value: "not set (the ISP's)" }, { label: "SOCKS", value: "off" }] } });
+    expect(byId(r, "status")).toMatchObject({ name: "Status: off", detail: { caption: "dpi status", title: "Bypass off", chips: [{ text: "off", color: "grey" }], metadata: [{ label: "Proxy", value: "down" }, { label: "Service", value: "Wi-Fi" }, { label: "DNS", value: "not set (the ISP's)" }, { label: "SOCKS", value: "off" }] } });
     expect(byId(r, "test").subtitle).toBe("curl discord.com, roblox.com (blocked) and 2 controls, direct");
     expect(byId(r, "log")).toMatchObject({ subtitle: expect.stringMatching(/^No log yet/), actions: [] });
     expect(await host.pick("dpi", "dpi", "log")).toMatchObject({ toast: { title: "No log yet" } });
@@ -237,7 +239,7 @@ describe("over the wire, macOS", () => {
     expect(await host.pick("dpi", "dpi", "log")).toEqual({ open: DPI_LOG });
     expect(byId(r, "build").actions![0]).toMatchObject({ confirm: "Build byedpi from source now?" });
     expect(await now()).toEqual([]);
-    expect(await host.render("dpi", "bypass")).toMatchObject({ icon: "\u{f0499}", states: { on: false, state: "off", service: "Wi-Fi" }, empty: { icon: "\u{f0499}", tooltip: "Bypass off: Wi-Fi as before, byedpi down" } });
+    expect(await host.render("dpi", "bypass")).toMatchObject({ icon: "\u{f0499}", states: { on: false, state: "off", service: "Wi-Fi" }, empty: { icon: "\u{f0499}", tooltip: "Bypass off\nWi-Fi as before, byedpi down" } });
   }, 20_000);
 
   test("Enter on Turn on runs `dpi on`: the HUD is the script's line, the bar is pushed, the rows flip, the Now section offers Turn off", async () => {
@@ -356,14 +358,14 @@ describe("over the wire, Linux", () => {
   test("no log or build rows; a closed sudo window is a toast and nothing runs; open, the switch goes through", async () => {
     const r = await host.list("dpi", "dpi");
     expect(r.map((x) => x.id)).toEqual(["toggle", "status", "test", "copy"]);
-    expect(byIdOf(r, "status").detail!.metadata!.map((m) => m.label)).toEqual(["State", "zapret", "dnscrypt-proxy", "DNS probe"]);
+    expect(byIdOf(r, "status").detail!.metadata!.map((m) => m.label)).toEqual(["zapret", "dnscrypt-proxy", "DNS probe"]);
     const before = asked().length;
     expect(await host.pick("dpi", "dpi", "toggle", "on")).toEqual({ keep: true, toast: { title: "Open a sudo window first: run `sudo -v` in a terminal, then try again", style: "failure" } });
     expect(asked().length).toBe(before);
     await expect(host.request("link", { extension: "dpi", route: "toggle", params: {} })).rejects.toThrow("Open a sudo window first");
     writeFileSync(SUDO, "");
     expect(await host.pick("dpi", "dpi", "toggle", "on")).toEqual({ hud: "dpi on (zapret dnscrypt-proxy up, resolver -> 127.0.0.1)" });
-    expect(await host.render("dpi", "bypass")).toMatchObject({ icon: "\u{f0565}", tooltip: "Bypass on: zapret + dnscrypt-proxy up, resolver -> 127.0.0.1", states: { state: "on", service: "zapret + dnscrypt-proxy" } });
+    expect(await host.render("dpi", "bypass")).toMatchObject({ icon: "\u{f0565}", tooltip: "Bypass on\nzapret + dnscrypt-proxy up, resolver -> 127.0.0.1", states: { state: "on", service: "zapret + dnscrypt-proxy" } });
     expect(renderPopover({ status: parseStatus(LINUX_ON, "linux"), mac: false }).actions.map((a) => a.id)).not.toContain("log");
   }, 20_000);
 });

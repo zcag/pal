@@ -29,7 +29,7 @@ function card(st: Status): ViewNode {
   return column([
     row([
       shield(st.state, "lg", "glyph"),
-      column([text(STATE_WORD[st.state], { style: "title", key: "title", width: CARD_W - GLYPH_W - 8 }), text(statusLine(st), { style: "muted", size: "xs", key: `sub-${st.state}`, width: CARD_W - GLYPH_W - 8, transition: { enter: "fade", exit: "none" } })], { key: "titles", gap: 0, grow: true }),
+      column([text(STATE_WORD[st.state], { style: "headline", key: "title", width: CARD_W - GLYPH_W - 8 }), text(statusLine(st), { style: "muted", size: "xs", key: `sub-${st.state}`, width: CARD_W - GLYPH_W - 8, transition: { enter: "fade", exit: "none" } })], { key: "titles", gap: 0, grow: true }),
     ], { key: "head", gap: 2, align: "center" }),
     column(facts, { key: "facts", gap: 0 }),
   ], { key: "card", surface: "elevated", radius: true, padding: 3, gap: 2 });
@@ -91,7 +91,8 @@ export function renderPopover(st: PopoverState): View {
   else kids.push(row([shield("none", "sm", "g"), text(st.error ?? "dpi is not installed", { style: "muted", key: "none", width: INNER_W - GLYPH_W - 8 })], { key: "off", gap: 1, align: "center", minHeight: 24 }));
   if (st.test) kids.push(column([header(st.test, "th"), ...st.test.results.map((r, i) => resultRow(r, i, { compact: true }))], { key: "test", gap: 0 }));
   kids.push(popoverHints(st));
-  const title = st.status ? STATE_WORD[st.status.state] : "DPI Bypass";
+  // The state is the card's headline, so the level's title does not say it again.
+  const title = st.status ? "Status" : "DPI Bypass";
   return { tree: column(kids, { key: "popover", padding: 3, gap: 2 }), actions: popoverActions(st), title, id: "bypass", keys: "actions" };
 }
 

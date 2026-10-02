@@ -137,7 +137,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane: the notes as markdown, when, the call, the organizer, the attendees with their replies"
+        "caption": "The detail pane: when and the calendar over the title, your reply, the notes, then the call, the organizer and the attendees with their replies"
       },
       {
         "file": "3-new.png",
@@ -169,7 +169,7 @@
           326,
           64,
           840,
-          782
+          798
         ]
       },
       {
@@ -180,7 +180,7 @@
           252,
           64,
           840,
-          782
+          798
         ]
       },
       {
@@ -191,7 +191,7 @@
           358,
           64,
           840,
-          858
+          878
         ]
       },
       {

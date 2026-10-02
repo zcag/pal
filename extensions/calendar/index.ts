@@ -21,7 +21,7 @@
 // joins or opens; while it shows, a 30 s tick redraws it from the cache
 // so `in 12 min` keeps counting. Every read of the time
 // is the SDK's `now` (`PAL_NOW` pins it for the tests).
-import { calendar, errorMessage, failed, hint, now as clock, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { calendar, errorMessage, failed, hint, now as clock, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata, type TagColor } from "@zcag/pal";
 import { parseQuick, type Quick } from "./quick.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, log, permission, type Loaded, type Settings } from "./source.ts";
@@ -47,7 +47,7 @@ const BAR_AGE = 5 * 60_000;
 const table = new Map<string, CalendarEvent>();
 
 const rowId = (e: CalendarEvent) => `${e.id}@${e.start}`;
-const STATUS_COLOR: Record<string, string> = { accepted: "green", declined: "red", tentative: "amber", pending: "grey", unknown: "grey" };
+const STATUS_COLOR: Record<string, TagColor> = { accepted: "green", declined: "red", tentative: "amber", pending: "grey", unknown: "grey" };
 /** The rows are Google's (one source at a time): an event opens in the browser and cannot be deleted from here (the token may be read-only). */
 const isGoogle = () => active() === "google";
 
@@ -449,18 +449,17 @@ async function detail(id: string): Promise<Detail | void> {
   let e: CalendarEvent | undefined;
   try { e = await find(id); } catch { return; }
   if (!e) return;
-  const metadata: Metadata[] = [
-    { label: "When", value: e.all_day ? `${dayNameYear(e.start)} (${timeRange(e).toLowerCase()})` : `${dayNameYear(e.start)}, ${timeRange(e)} (${duration(e)})` },
-    { label: "Calendar", tags: [{ text: e.calendar.source ? `${e.calendar.title} (${e.calendar.source})` : e.calendar.title }] },
-  ];
+  // The header says when, which calendar, the title, the reply and whether it repeats; the table what is left.
+  const when = e.all_day ? `${dayNameYear(e.start)} (${timeRange(e).toLowerCase()})` : `${dayNameYear(e.start)}, ${timeRange(e)} (${duration(e)})`;
+  const cal = e.calendar.source ? `${e.calendar.title} (${e.calendar.source})` : e.calendar.title;
+  const metadata: Metadata[] = [];
   if (e.location) metadata.push({ label: "Location", value: e.location });
   if (e.conference_url) metadata.push({ label: "Call", link: { text: e.conference_url.replace(/^https?:\/\//, "").slice(0, 60), href: e.conference_url } });
   else if (e.url) metadata.push({ label: "Link", link: { text: /google\.com\/calendar/.test(e.url) ? "Open in Google Calendar" : e.url.replace(/^https?:\/\//, "").slice(0, 60), href: e.url } });
   if (e.organizer) metadata.push({ label: "Organizer", value: e.organizer });
   if (e.attendees.length) metadata.push({ label: `Attendees (${e.attendees.length})`, tags: e.attendees.slice(0, 12).map((a) => ({ text: a.me ? `${a.name} (you)` : a.name, color: STATUS_COLOR[a.status] })) });
-  if (e.my_status) metadata.push({ label: "Your reply", tags: [{ text: e.my_status, color: STATUS_COLOR[e.my_status] }] });
-  if (e.recurring) metadata.push({ label: "Repeats", value: "yes" });
-  return { markdown: e.notes ? e.notes : `# ${e.title || "(no title)"}`, metadata };
+  const chips = [...(e.my_status ? [{ text: e.my_status, color: STATUS_COLOR[e.my_status] }] : []), ...(e.recurring ? [{ text: "repeats", color: "grey" as const }] : [])];
+  return { caption: `${when} · ${cal}`, title: e.title || "(no title)", chips, ...(e.notes && { markdown: e.notes }), metadata };
 }
 
 // ---- the bar item ------------------------------------------------------------------

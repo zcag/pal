@@ -4,8 +4,12 @@
 // the table.
 import { argsForm, failed, hint, now as clock, parseDuration, state, toast, type Accessory, type Action, type Arg, type BarItem, type Effect, type Extension, type Item, type StateEntry, type StateValue } from "@zcag/pal";
 
-const GLYPH = "\u{f04f9}"; // 󰓹 nf-md-variable
+const GLYPH = "\u{f04f9}"; // 󰓹 nf-md-tag, the extension's and the bar item's
 const PLUS = "\u{f0415}";
+/** A row's glyph says which layer answers: held by hand, its expression, an extension, built in, the default; a failed expression is red. */
+const LAYER = { manual: "\u{f0e47}", expr: "\u{f0871}", published: "\u{f0431}", builtin: "\u{f0493}", default: "\u{f0ae7}", error: "\u{f0028}" }; // md-hand_back_right, function_variant, puzzle, cog, variable, alert_circle
+const layerIcon = (e: StateEntry): Item["icon"] =>
+  e.error ? { glyph: LAYER.error, color: "red" } : e.source === "manual" ? { glyph: LAYER.manual, color: "amber" } : e.builtin ? LAYER.builtin : typeof e.source === "object" ? LAYER.published : e.source === "expr" ? LAYER.expr : LAYER.default;
 const NEW = "new";
 
 const NEW_ARGS: Arg[] = [
@@ -42,7 +46,8 @@ const valueTag = (v: StateValue): Accessory => v === null ? { tag: "unknown", co
 function row(e: StateEntry, now: number): Item {
   const manual = e.source === "manual";
   const subtitle = e.error ? `Error: ${e.error}` : e.description ?? (e.expr ? `= ${e.expr}` : e.builtin ? "Built-in" : manual ? "Set by hand" : `Published by ${sourceText(e)}`);
-  const accessories: Accessory[] = [valueTag(e.value), { tag: manual ? (e.until ? `held · ${left(e.until - now)}` : "held") : sourceText(e), color: manual ? "amber" : e.error ? "red" : "muted" }];
+  // The value, and the hold with its time left; the glyph says the other layers, the line under the name who publishes.
+  const accessories: Accessory[] = [valueTag(e.value), ...(manual ? [{ tag: e.until ? `held · ${left(e.until - now)}` : "held", color: "amber" }] : [])];
   const boolean = typeof e.value === "boolean" || e.value === null;
   // Every action but the typed value also takes marked states (`multi`); Set true/false sets them all to what the addressed row would become.
   const actions: Action[] = e.builtin
@@ -57,7 +62,7 @@ function row(e: StateEntry, now: number): Item {
         { id: "copy", title: "Copy name", multi: true },
         ...(e.declared ? [{ id: "undeclare", title: "Remove from config", shortcut: "cmd+backspace", style: "destructive" as const, multi: true as const, confirm: "Remove its [states] entry from the config file?" }] : []),
       ];
-  return { id: e.name, name: e.name, subtitle, icon: GLYPH, keywords: ["state", e.name, sourceText(e)], accessories, args: SET_ARGS, actions };
+  return { id: e.name, name: e.name, subtitle, icon: layerIcon(e), keywords: ["state", e.name, sourceText(e)], accessories, args: SET_ARGS, actions };
 }
 
 const newRow: Item = { id: NEW, name: "New state", subtitle: "Declare one in the config: a name, an expression, a default", icon: PLUS, keywords: ["state", "new", "declare", "variable"], args: NEW_ARGS, actions: [{ id: "declare", title: "Declare", args: true }] };
@@ -135,7 +140,7 @@ export default {
     states: {
       title: "States",
       live: true,
-      placeholder: "Find a state, or type a value and press Enter on one",
+      placeholder: "Find a state",
       filters: [{ id: "all", title: "All" }, { id: "held", title: "Held by hand" }, { id: "mine", title: "Mine" }, { id: "ext", title: "From extensions" }, { id: "builtin", title: "Built-in" }],
       list,
       pick,

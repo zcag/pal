@@ -6,7 +6,7 @@
 import { dirname, join } from "node:path";
 import { home, now, settings, state, text, toast, truncate, view as liveView, type BarItem, type Ctx, type Effect, type Extension, type View } from "@zcag/pal";
 import { points, snapshot, tailSamples, usage, type Snapshot, type Usage } from "./data.ts";
-import { focusedName, glyphOf, HISTORY_S, LOW, renderDash, renderPopover, rowCount, TABS, type Dash, type Tab } from "./view.ts";
+import { focusedName, glyphOf, HISTORY_S, LOW, renderDash, renderPopover, rowCount, sentence, TABS, type Dash, type Tab } from "./view.ts";
 
 export { parsePmset, parseUpower } from "./data.ts";
 
@@ -55,7 +55,6 @@ async function windowOf(tab: Exclude<Tab, "now">): Promise<Usage[] | "missing"> 
 
 // ---- the strip ---------------------------------------------------------------
 
-const stateLabel = (s: Snapshot) => (s.status === "charging" ? "Charging" : s.status === "discharging" ? "Discharging" : s.status === "charged" ? "Charged" : "Not charging");
 /** Waste interrupts whatever the level is; a bare draw only counts on battery. */
 const loud = (s: Snapshot) => !!s.alerts.length || (s.source === "Battery Power" && (s.watts ?? 0) >= LOUD_WATTS);
 /** When a rule fired it named the culprit; otherwise only a dominant background process is worth the width. */
@@ -96,7 +95,8 @@ async function barItem(): Promise<BarItem> {
   start();
   const s = await read().catch(() => undefined);
   if (!s) return { hidden: true, states: { level: null, charging: null, draw: null, alert: null } };
-  const tooltip = [s.source, stateLabel(s), s.remaining, s.watts !== undefined && s.source === "Battery Power" ? `${s.watts.toFixed(1)} W draw` : undefined, s.alerts[0]?.message].filter(Boolean).join(" · ");
+  // The first line stands alone (a glance card shows it under the title): what it is doing and for how long; the alert on its own line.
+  const tooltip = [sentence(s), s.alerts[0]?.message].filter(Boolean).join("\n");
   const menu = { view: await popover(s) };
   const alert = s.alerts.some((a) => a.level === "crit") ? "crit" : s.alerts.length ? "warn" : null;
   return { icon: glyphOf(s), title: title(s), tooltip, click: "open", menu, empty: { icon: glyphOf(s), title: title(s), tooltip, menu }, states: { level: s.percent, charging: s.source !== "Battery Power", draw: s.source === "Battery Power" ? (s.watts ?? 0) : 0, alert } };

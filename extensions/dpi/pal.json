@@ -106,7 +106,7 @@
           452,
           64,
           840,
-          590
+          618
         ]
       },
       {
@@ -128,7 +128,7 @@
           452,
           64,
           840,
-          590
+          618
         ]
       },
       {
@@ -276,7 +276,7 @@
             "hidden": true,
             "empty": {
               "icon": "󰒙",
-              "tooltip": "Bypass off: Wi-Fi as before, byedpi down"
+              "tooltip": "Bypass off\nWi-Fi as before, byedpi down"
             }
           }
         },
@@ -284,7 +284,7 @@
           "title": "On, over Wi-Fi",
           "item": {
             "icon": "󰕥",
-            "tooltip": "Bypass on: Wi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9"
+            "tooltip": "Bypass on\nWi-Fi -> socks5://127.0.0.1:1080, dns 1.1.1.1 9.9.9.9"
           }
         },
         "partial": {
@@ -292,14 +292,14 @@
           "item": {
             "icon": "󰞀",
             "color": "amber",
-            "tooltip": "Bypass partly on: Proxy up (pid 4242), but SOCKS off and DNS not overridden"
+            "tooltip": "Bypass partly on\nProxy up (pid 4242), but SOCKS off and DNS not overridden"
           }
         },
         "linux": {
           "title": "On, Linux",
           "item": {
             "icon": "󰕥",
-            "tooltip": "Bypass on: zapret + dnscrypt-proxy up, resolver -> 127.0.0.1"
+            "tooltip": "Bypass on\nzapret + dnscrypt-proxy up, resolver -> 127.0.0.1"
           }
         }
       },

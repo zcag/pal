@@ -71,7 +71,7 @@
       },
       {
         "file": "3-volumes.png",
-        "caption": "Every volume with its free space and share; Enter copies the mount point, cmd+r reveals it"
+        "caption": "Every volume by name with its free space; the detail says free, used and in all large. Enter copies the mount point, cmd+r reveals it"
       },
       {
         "file": "4-process.png",

@@ -60,9 +60,10 @@ describe("over the wire", () => {
     const r = await rows();
     expect(r[0].id).toBe("new");
     expect(r.map((x) => x.id)).toEqual(["new", "hour", "working", "deep", "sessions/working"]);
-    expect(byId(r, "working").accessories).toEqual([{ tag: "false", color: "muted" }, { tag: "expr", color: "muted" }]);
+    // The value alone beside an expression's row; its glyph says the layer.
+    expect(byId(r, "working")).toMatchObject({ accessories: [{ tag: "false", color: "muted" }], icon: "\u{f0871}" });
     expect(byId(r, "working").subtitle).toBe("On the clock");
-    expect(byId(r, "hour").accessories).toEqual([{ tag: "10", color: "blue" }, { tag: "built-in", color: "muted" }]);
+    expect(byId(r, "hour")).toMatchObject({ accessories: [{ tag: "10", color: "blue" }], icon: "\u{f0493}" });
     expect(byId(r, "hour").actions?.map((a) => a.id)).toEqual(["copy"]); // a built-in is only copied
     expect(byId(r, "sessions/working").subtitle).toBe("Published by sessions");
     expect(byId(r, "deep").actions?.map((a) => a.id)).toEqual(["toggle", "set", "hold-1h", "hold-3h", "hold-tomorrow", "copy", "undeclare"]);

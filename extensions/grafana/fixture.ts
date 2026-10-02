@@ -164,7 +164,7 @@ try {
     effects: { "grafana/svc-overview:range": range },
     shots: {
       "1-dashboards": { palette: "grafana", keys: ["cmd+i", "wait:500"], caption: "Every dashboard, starred first, its folder and tags on the right; the pane draws its first panels from their own queries" },
-      "2-alerts": { palette: "alerts", keys: ["cmd+i", "wait:500"], caption: "What is firing and pending, by rule, with the summary and since when; the pane has the labels and the dashboard" },
+      "2-alerts": { palette: "alerts", keys: ["cmd+i", "wait:500"], caption: "What is firing and pending, by rule, with its severity and age; the pane leads with the rule, its state, value and how long, then the labels and the dashboard" },
       "3-silence": { palette: "alerts", keys: ["wait:400", "cmd+k", "wait:300"], caption: "Silence an instance for an hour, four or a day from the list, or jump to its dashboard" },
       "4-query": { palette: "query", keys: ["type:node_load1", "wait:600"], caption: "A PromQL prompt: one row per series with its value; Enter copies it, ⌘O opens Explore" },
       "5-range": { palette: "grafana", keys: ["wait:400", "cmd+enter", "wait:400", "cmd+a", "type:now-24h", "wait:200"], caption: "⌘Enter asks for the range to open a dashboard over, and whether in kiosk mode for a wall" },
@@ -180,7 +180,7 @@ try {
     shots: {
       "menubar": { target: "menubar", caption: "On the menu bar: the glyph red while something fires, then how many fire and how many are pending; hidden while all is quiet" },
       "menubar-pending": { target: "menubar", state: "pending", caption: "Only pending: the count in amber, before an alert's wait is up" },
-      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: firing then pending, each with its summary and age; s silences, o opens the dashboard" },
+      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the count leads, then firing and pending, each with its summary and age; s silences, o opens the dashboard" },
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the glyph and the two counts" },
     },
   }, hosts);

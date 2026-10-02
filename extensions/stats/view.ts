@@ -64,7 +64,7 @@ const spark = (series: SparkSeries[], st: Base, o: { max?: number; floor?: numbe
 // ---- pieces ----------------------------------------------------------------
 
 const head = (key: string, big: string, label: string, badge: ViewNode, sub?: string): ViewNode[] => [
-  row([text(big, { key: "big", style: "title", size: "xl" }), text(label, { key: "label", style: "body", weight: "semibold" }), { type: "spacer" }, badge], { key: `${key}-head`, gap: 2 }),
+  row([text(big, { key: "big", style: "headline" }), text(label, { key: "label", style: "body", weight: "semibold" }), { type: "spacer" }, badge], { key: `${key}-head`, gap: 2, align: "center" }),
   ...(sub ? [text(sub, { key: `${key}-sub`, style: "muted", size: "sm" })] : []),
 ];
 const section = (key: string, title: string, extra?: ViewNode): ViewNode => row([text(title, { size: "xs", weight: "semibold", color: "muted" }), ...(extra ? [{ type: "spacer" as const }, extra] : [])], { key: `h-${key}`, gap: 1, minHeight: 20 });
@@ -227,8 +227,8 @@ export function renderNetwork(st: NetworkPopover): View {
     actions: [{ id: "addresses", title: "All addresses", shortcut: "enter" }, { id: "copy", title: "Copy address", shortcut: ["c", "cmd+c"], multi: true }, ...paletteActions, ...moveActions(ifaces.map((i) => i.name), "interface")],
     tree: column([
       row([
-        column([text(rate(st.down), { key: "down", style: "title", size: "lg", color: "blue" }), text("down", { style: "muted", size: "xs" })], { key: "d", gap: 0 }),
-        column([text(rate(st.up), { key: "up", style: "title", size: "lg", color: "violet" }), text("up", { style: "muted", size: "xs" })], { key: "u", gap: 0 }),
+        column([text(rate(st.down), { key: "down", style: "headline", color: "blue" }), text("down", { style: "muted", size: "xs" })], { key: "d", gap: 0 }),
+        column([text(rate(st.up), { key: "up", style: "headline", color: "violet" }), text("up", { style: "muted", size: "xs" })], { key: "u", gap: 0 }),
         { type: "spacer" },
         { type: "badge", key: "level", text: st.down + st.up >= 10 * 1024 ** 2 ? "busy" : st.down + st.up >= 1024 ? "active" : "quiet", color: st.down + st.up >= 10 * 1024 ** 2 ? "blue" : "grey" },
       ], { key: "net-head", gap: 4 }),

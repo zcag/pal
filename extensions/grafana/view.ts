@@ -1,5 +1,6 @@
 // The alerts bar popover as a render tree (`View` in `@zcag/pal`), pure:
-// index.ts fetches, this draws the state the tests pass in. Firing then
+// index.ts fetches, this draws the state the tests pass in. The count
+// leads as the headline (`2 firing`, the rest under it), then firing and
 // pending, each instance a row with a colour rail (red, amber, grey once
 // silenced), the rule's name, the summary under it, the severity and the
 // age; a cursor (`selected`) the arrows move and a click sets; rows the
@@ -88,14 +89,20 @@ export function actions(st: BarState): Action[] {
 export function render(st: BarState): View {
   const focus = Math.min(Math.max(0, st.focus), Math.max(0, st.rows.length - 1));
   const firing = st.rows.filter((a) => a.state === "firing"), pending = st.rows.filter((a) => a.state === "pending");
+  const silenced = st.rows.filter((a) => a.silencedBy.length).length;
+  const loud = firing.length - silenced;
+  const parts = [loud > 0 && `${loud} firing`, pending.length && `${pending.length} pending`, silenced && `${silenced} silenced`].filter((x): x is string => !!x);
   const kids: ViewNode[] = [];
   if (!st.rows.length) kids.push(empty());
+  // The count is the answer: the first of them large, in the colour of what pages, the rest on a line under it.
+  else kids.push(column([
+    text(parts[0], { key: "count", style: "headline", color: loud > 0 ? "red" : pending.length ? "amber" : "muted" }),
+    ...(parts.length > 1 ? [text(parts.slice(1).join(" · "), { key: "rest", style: "muted", size: "sm" })] : []),
+  ], { key: "head", gap: 0, padding: 1 }));
   let i = 0;
   if (firing.length) kids.push(header("firing", "Firing", firing.length, "red"), ...firing.map((a) => alertRow(a, i++ === focus, st)));
   if (pending.length) kids.push(header("pending", "Pending", pending.length, "amber"), ...pending.map((a) => alertRow(a, i++ === focus, st)));
   kids.push({ type: "divider", key: "rule" }, hints(st.rows[focus]));
-  const silenced = st.rows.filter((a) => a.silencedBy.length).length;
-  const parts = [firing.length - silenced > 0 && `${firing.length - silenced} firing`, pending.length && `${pending.length} pending`, silenced && `${silenced} silenced`].filter(Boolean);
-  const title = `${parts.length ? parts.join(", ") : "Grafana alerts"}${st.account ? ` (${st.account})` : ""}`;
+  const title = `Grafana alerts${st.account ? ` (${st.account})` : ""}`;
   return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: actions({ ...st, focus }), title, id: "alerts", keys: "actions" };
 }

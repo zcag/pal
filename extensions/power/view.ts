@@ -34,7 +34,8 @@ export type Pop = { snap: Snapshot; hour: Point[]; today?: Usage[]; theme?: Them
 export const LOW = 20, CRITICAL = 10;
 export const HISTORY_S = 6 * 3600;
 const SLOTS = 72; // 5 min each over six hours
-const NOW_ROWS = 5, NOW_ROWS_COMPACT = 4, USAGE_ROWS = 7, USAGE_ROWS_COMPACT = 5;
+// Four processes under the split bar and the alert fit the panel with the Kept awake line under them.
+const NOW_ROWS = 4, NOW_ROWS_COMPACT = 4, USAGE_ROWS = 7, USAGE_ROWS_COMPACT = 5;
 const LEFT_W = 272, CARD_PAD = 12, CHART_H = 96;
 const G = { bolt: "\u{f140b}", battery: "\u{f0079}", alert: "\u{f0026}", lock: "\u{f033e}", dot: "\u{f111}", chip: "\u{f061a}", screen: "\u{f0379}", plug: "\u{f06a5}", awake: "\u{f0f36}" };
 const RAMP: [number, string][] = [[90, "\u{f0079}"], [70, "\u{f0081}"], [50, "\u{f007f}"], [30, "\u{f007d}"], [20, "\u{f007b}"], [0, "\u{f007a}"]];
@@ -136,15 +137,15 @@ function chart(points: Point[], o: { span: number; slots: number; width: number;
 const heading = (key: string, title: string, extra?: ViewNode): ViewNode => row([text(title, { size: "xs", weight: "semibold", color: "muted" }), ...(extra ? [{ type: "spacer" as const }, extra] : [])], { key: `h-${key}`, gap: 1, minHeight: 18 });
 const tint = (color: TagColor, theme: Theme, alpha: string) => `${ink(color, theme)}${alpha}` as `#${string}`;
 
-function head(s: Snapshot, big: "xl" | "lg" = "xl"): ViewNode[] {
+/** The level leads as the headline, the glyph beside it; `badge` adds where the power comes from (the popover says that in its title instead). */
+function head(s: Snapshot, badge = true): ViewNode[] {
   const c = levelColor(s);
   return [
     row([
       text(glyphOf(s), { key: "glyph", style: "glyph", size: "lg", color: c }),
-      text(`${s.percent}%`, { key: "percent", style: "number", size: big, weight: "semibold" }),
-      { type: "spacer" },
-      { type: "badge", key: "state", text: stateWord(s), color: onBattery(s) ? (c === "green" ? "grey" : c) : "green" },
-    ], { key: "head", gap: 2 }),
+      text(`${s.percent}%`, { key: "percent", style: "headline" }),
+      ...(badge ? [{ type: "spacer" } as const, { type: "badge", key: "state", text: stateWord(s), color: onBattery(s) ? (c === "green" ? "grey" : c) : "green" } as const] : []),
+    ], { key: "head", gap: 2, align: "center" }),
     { type: "progress", key: "level", value: s.percent / 100, color: c },
     text(sentence(s), { key: "sentence", style: "body", size: "sm" }),
   ];
@@ -325,7 +326,7 @@ export function renderDash(d: Dash): View {
     healthTiles(s, LEFT_W - 2 * CARD_PAD),
   ], { key: "left", width: LEFT_W, padding: 3, gap: 2, surface: "elevated", radius: true });
   const tree = d.compact
-    ? column([...head(s, "lg"), right], { key: "dash", padding: 3, gap: 2 })
+    ? column([...head(s), right], { key: "dash", padding: 3, gap: 2 })
     : row([left, right], { key: "dash", padding: 3, gap: 4, align: "stretch" });
   return { title: `Battery ${s.percent}% · ${tabTitle(d.tab)}`, id: "dash", keys: "actions", actions: dashActions(d), tree };
 }
@@ -348,14 +349,14 @@ export function renderPopover(p: Pop): View {
     text(x.watts !== undefined ? watts(x.watts) : `${Math.round(x.share)}%`, { style: "number", size: "xs", width: 44, align: "end" }),
   ], { key: `pp-${x.name}`, gap: 2, minHeight: 22, transition: { enter: "fade", exit: "fade" } });
   return {
-    title: "Battery",
+    title: stateWord(s).replace(/^./, (c) => c.toUpperCase()),
     id: "power",
     keys: "actions",
     actions: [{ id: "palette", title: "Open Battery & Power", shortcut: "enter" }, { id: "settings", title: "Open Battery settings", shortcut: "s" }],
     tree: column([
-      ...head(s),
-      ...(s.watched && p.hour.some((x) => !x.ext && x.w > 0) ? chart(p.hour, { span: 3600, slots: 60, width: POP_W, height: 36, theme: p.theme, now, color: levelColor(s) === "green" ? "blue" : levelColor(s), key: "hour" }) : []),
+      ...head(s, false),
       ...alertCards(s, p.theme),
+      ...(s.watched && p.hour.some((x) => !x.ext && x.w > 0) ? chart(p.hour, { span: 3600, slots: 60, width: POP_W, height: 36, theme: p.theme, now, color: levelColor(s) === "green" ? "blue" : levelColor(s), key: "hour" }) : []),
       ...(top.length ? [heading("procs", "Using power now"), ...top.map(procLine)] : []),
       ...(today && today.total >= 0.05 ? [text(`Today: ${wh(today.total)} on battery${heaviest ? ` · most by ${truncate(nameOf(heaviest.name), 22)} (${wh(heaviest.wh)})` : ""}`, { key: "today", style: "muted", size: "xs" })] : []),
       ...(!s.watched ? [text("Install the power watcher to see the draw and what uses it.", { key: "unwatched", style: "muted", size: "xs" })] : []),

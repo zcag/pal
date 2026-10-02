@@ -52,13 +52,13 @@
       },
       {
         "file": "bar-popover.png",
-        "caption": "A click opens the popover: the low batteries first, then the rest of the connected ones, Enter disconnects, c copies the address",
+        "caption": "A click opens the popover: the lowest battery leads, large, then the other low ones and the rest; Enter disconnects, c copies the address",
         "kind": "bar",
         "box": [
           414,
           64,
           840,
-          834
+          882
         ]
       },
       {
@@ -131,7 +131,7 @@
         }
       ],
       "title": "Bluetooth Battery",
-      "description": "Visible only when a connected device with a reported battery reaches the low alert level. Click opens Bluetooth Settings; the popover shows the low devices first, then the other connected battery readings and connected devices with no reading.",
+      "description": "Visible only when a connected device with a reported battery reaches the low alert level. Click opens Bluetooth Settings; the popover leads with the lowest battery, large, then the other low devices, the other connected battery readings and connected devices with no reading.",
       "refresh": {
         "every": 60,
         "on": [
@@ -145,7 +145,7 @@
             "icon": "󰂃",
             "title": "AirPods Pro 24%",
             "color": "amber",
-            "tooltip": "Bluetooth battery · AirPods Pro 24% (L 28% · R 24% · Case 62%)"
+            "tooltip": "AirPods Pro 24% (L 28% · R 24% · Case 62%)"
           }
         },
         "critical": {
@@ -154,7 +154,7 @@
             "icon": "󰂃",
             "title": "2 low",
             "color": "red",
-            "tooltip": "Bluetooth battery · Corne 8% · AirPods Pro 14%"
+            "tooltip": "Corne 8% · AirPods Pro 14%"
           }
         },
         "connected": {
@@ -162,7 +162,7 @@
           "item": {
             "icon": "󰂱",
             "color": "muted",
-            "tooltip": "Bluetooth · AirPods Pro 84% · Corne 91%"
+            "tooltip": "AirPods Pro 84% · Corne 91%"
           }
         },
         "clear": {

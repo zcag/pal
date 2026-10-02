@@ -81,7 +81,7 @@ try {
     effects: { "schedule/new": form },
     shots: {
       "1-schedule": { palette: "schedule", keys: [], caption: "What is left of today and the days after, the next event tagged with how soon, calls tagged Join" },
-      "2-detail": { palette: "schedule", keys: ["cmd+i", "wait:400"], caption: "The detail pane: the notes as markdown, when, the call, the organizer, the attendees with their replies" },
+      "2-detail": { palette: "schedule", keys: ["cmd+i", "wait:400"], caption: "The detail pane: when and the calendar over the title, your reply, the notes, then the call, the organizer and the attendees with their replies" },
       "3-new": { palette: "schedule", keys: ["type:new event", "enter", "wait:300"], caption: "New event: a title, a day in words, the times from the next quarter hour, the calendar" },
       "4-today": { palette: "today", keys: [], caption: "Today: the whole day in order, what is over greyed, the rest with how long until it starts" },
       "5-quick": { palette: "quick", keys: [`type:${QUICK}`, "wait:300"], caption: "Quick Add: a line typed, the event read back with its day, time, place and calendar before Enter adds it" },

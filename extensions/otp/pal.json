@@ -151,7 +151,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane: the whole message, the code, the sender with its number, when it was received"
+        "caption": "The detail pane: the code large, who sent it with the number and when, the whole message"
       },
       {
         "file": "3-actions.png",
@@ -170,7 +170,7 @@
           400,
           64,
           840,
-          716
+          720
         ]
       },
       {
@@ -181,7 +181,7 @@
           400,
           64,
           840,
-          716
+          720
         ]
       },
       {

@@ -213,7 +213,8 @@ export function barItem(s: Snap, test?: Run): BarItem {
   const states = { on: st ? st.state !== "off" : null, state: st?.state ?? null, service };
   if (!st) return { hidden: true, states };
   const menu = { view: renderPopover(popState(s, test)) };
-  const tooltip = `${STATE_WORD[st.state]}: ${summary(st)}`;
+  // The state alone on the first line: the item is a glyph, so a glance card says that line large.
+  const tooltip = `${STATE_WORD[st.state]}\n${summary(st)}`;
   return { icon: GLYPH[st.state], tooltip, menu, empty: { icon: GLYPH.off, tooltip, menu }, states };
 }
 
@@ -243,10 +244,11 @@ async function popoverAction(action: string): Promise<Effect> {
 const shieldIcon = (state: State) => (state === "off" ? GLYPH.off : { glyph: GLYPH[state], color: STATE_COLOR[state] === "green" ? "green" as const : "amber" as const });
 const stateTag = (st: Status) => (st.state === "off" ? [] : [{ tag: st.state === "on" ? "on" : "partial", color: STATE_COLOR[st.state] }]);
 
-/** The status as the detail pane shows it: the state on top, the facts as lines, the reason when partial. */
+/** The status as the detail pane shows it: the state as the header, the reason (or where the traffic goes), the facts as lines. */
 function detailOf(st: Status): Detail {
-  const md = [`**${STATE_WORD[st.state]}**`, st.reason ? st.reason : summary(st), "", "```", st.raw, "```"].join("\n");
-  return { markdown: md, metadata: [{ label: "State", tags: [{ text: st.state, color: STATE_COLOR[st.state] }] }, ...factLines(st).map(([label, value]) => ({ label, value }))] };
+  // The tool's own printout says what the facts below say: Copy the status has it.
+  const md = st.reason ?? summary(st);
+  return { caption: "dpi status", title: STATE_WORD[st.state], chips: [{ text: st.state === "partial" ? "partly on" : st.state, color: STATE_COLOR[st.state] }], markdown: md, metadata: factLines(st).map(([label, value]) => ({ label, value })) };
 }
 
 /** Turn on / Turn off, the row the palette leads with and the root's Now section shows while on. */

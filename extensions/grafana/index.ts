@@ -277,14 +277,13 @@ async function pane(uid: string): Promise<Detail | void> {
   const panels = flatPanels(db.panels);
   const kinds = new Map<string, number>();
   for (const p of panels) kinds.set(p.type, (kinds.get(p.type) ?? 0) + 1);
+  // The header says where it lives, its name and its tags; the table the rest.
   const metadata: Metadata[] = [
-    { label: "Folder", value: dj.meta.folderTitle || "General" },
-    ...(db.tags?.length ? [{ label: "Tags", tags: db.tags.map((t) => ({ text: t })) }] : []),
     { label: "Time range", value: `${db.time?.from ?? "now-6h"} to ${db.time?.to ?? "now"}${db.refresh ? `, refreshed every ${db.refresh}` : ""}` },
     { label: "Panels", value: panels.length ? `${panels.length}: ${[...kinds].sort(([, a], [, b]) => b - a).map(([k, v]) => `${v} ${k}`).join(", ")}` : "none" },
     { label: "UID", value: db.uid, link: { text: "Open in Grafana", href: dashboardUrl(c.url, { uid: db.uid, url: dj.meta.url }) } },
   ];
-  const detail: Detail = { ...(md.length && { markdown: md.join("\n\n") }), metadata };
+  const detail: Detail = { caption: dj.meta.folderTitle || "General", title: db.title, chips: (db.tags ?? []).map((t) => ({ text: t })), ...(md.length && { markdown: md.join("\n\n") }), metadata };
   paneCache.set(uid, { at: now(), detail });
   return detail;
 }
@@ -322,8 +321,9 @@ function alertActions(a: AlertInstance): Action[] {
 }
 
 function alertRow(a: AlertInstance): Item {
-  const accessories: Accessory[] = [{ tag: a.state, color: stateColor(a) }];
-  if (a.severity) accessories.push({ text: a.severity });
+  // The glyph says firing, pending or silenced; the severity and the silence are tags, the age last.
+  const accessories: Accessory[] = [];
+  if (a.severity) accessories.push({ tag: a.severity, color: SEVERITY[a.severity] ?? "grey" });
   if (a.silencedBy.length) accessories.push({ tag: "silenced" });
   if (a.since) accessories.push({ date: a.since });
   return {
@@ -463,14 +463,19 @@ async function pickAlert(id: string, action: string | undefined, ctx?: Ctx): Pro
 function alertDetail(a: AlertInstance, c: Client): Detail {
   const md = [a.summary && `**${mdEscape(a.summary)}**`, a.description && mdEscape(a.description)].filter(Boolean).join("\n\n");
   const labels = Object.entries(ownLabels(a.labels)).map(([k, v]) => ({ text: `${k}=${v}` }));
+  // The header: the folder, the rule, its state, severity and silence; the value and how long large. The table keeps the rest.
   return {
+    caption: a.folder || "General",
+    title: a.rule,
+    chips: [{ text: a.state, color: stateColor(a) }, ...(a.severity ? [{ text: a.severity, color: SEVERITY[a.severity] ?? "grey" }] : []), ...(a.silencedBy.length ? [{ text: "silenced", color: "grey" as const }] : [])],
+    stats: [
+      ...(a.value ? [{ value: Number.isFinite(Number(a.value)) ? fmt(Number(a.value)) : truncate(a.value, 16), label: "value" }] : []),
+      ...(a.since ? [{ value: ago(a.since, { short: true }), label: a.state === "firing" ? "firing" : "pending", color: stateColor(a) }] : []),
+    ],
     ...(md && { markdown: md }),
     metadata: [
-      { label: "Rule", value: a.rule, link: { text: "Open in Grafana", href: ruleUrl(c.url, a.ruleUid) } },
-      { label: "State", tags: [{ text: a.state, color: stateColor(a) }, ...(a.severity ? [{ text: a.severity, color: SEVERITY[a.severity] ?? "grey" }] : [])] },
+      { label: "Rule", link: { text: "Open in Grafana", href: ruleUrl(c.url, a.ruleUid) } },
       ...(a.since ? [{ label: "Since", value: `${when(a.since)} (${ago(a.since)})` }] : []),
-      { label: "Folder", value: a.folder || "General" },
-      ...(a.value ? [{ label: "Value", value: Number.isFinite(Number(a.value)) ? fmt(Number(a.value)) : a.value }] : []),
       ...(a.health ? [{ label: "Health", value: truncate(a.health, 200) }] : []),
       ...(labels.length ? [{ label: "Labels", tags: labels }] : []),
       ...(a.silencedBy.length ? [{ label: "Silenced", value: a.silencedBy.length === 1 ? "by one silence" : `by ${a.silencedBy.length} silences`, link: { text: "Open", href: silenceUrl(c.url, a.silencedBy[0]) } }] : []),

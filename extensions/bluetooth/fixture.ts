@@ -44,7 +44,7 @@ try {
     shots: {
       "menubar": { target: "menubar", caption: "On the menu bar only while a device runs low: the count, red once one is at 20% or under" },
       "menubar-one": { target: "menubar", state: "one", caption: "One device low: its name and level, amber until it reaches 20%" },
-      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the low batteries first, then the rest of the connected ones, Enter disconnects, c copies the address" },
+      "popover": { target: "menubar", popover: true, caption: "A click opens the popover: the lowest battery leads, large, then the other low ones and the rest; Enter disconnects, c copies the address" },
       "sketchybar": { target: "sketchybar", caption: "On sketchybar: the battery alert and the low count on red" },
     },
   });

@@ -7,7 +7,7 @@
 // `stats/memory_pressure`, `stats/disk_free`, `stats/net_down`, ...) and
 // the manifest's rules hide it while quiet and colour it past the
 // thresholds; the popovers are `view.ts`, the sources `sample.ts`.
-import { bar, hint, now, settings, state, toast, truncate, view as liveView, when, wifi, type BarCtx, type BarItem, type Effect, type Extension, type Item, type LinkParams, type Metadata, type Proc, type View } from "@zcag/pal";
+import { bar, hint, now, settings, state, toast, truncate, view as liveView, when, wifi, type BarCtx, type BarItem, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata, type Proc, type View } from "@zcag/pal";
 import { CPU, diskLevel, History, levelOf, LOAD, MEMORY, Sampler, shownIface, type IfaceRate, type Memory, type Sample, type Volume } from "./sample.ts";
 import { colorOf, gb, INNER_W, load as loadText, MAC, memorySegments, pct, rate, rateShort, renderCpu, renderDisk, renderLoad, renderMemory, renderNetwork, sparkGlyphs, sparkline, topByCpu, topByMemory, uptimeText, type Iface, type SparkSeries, type Theme } from "./view.ts";
 
@@ -278,7 +278,7 @@ async function onAction(id: ItemId, action: string, ctx?: BarCtx): Promise<Effec
 
 const SECTION = { cpu: "Processor", memory: "Memory", disk: "Disks", network: "Network", busiest: "Busiest processes", largest: "Largest processes", system: "System" };
 /** What the last listing put behind each row: what Enter copies and the detail pane. */
-const known = new Map<string, { value: string; detail: { markdown?: string; metadata: Metadata[] } }>();
+const known = new Map<string, { value: string; detail: Detail }>();
 /** The detail pane of a row the last listing built. */
 export const detailOf = (id: string) => known.get(id)?.detail;
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((p): p is [string, string] => !!p[1]).map(([label, value]) => ({ label, value }));
@@ -289,7 +289,7 @@ const COPY = { id: "copy", title: "Copy", multi: true as const };
 const MONITOR = MAC ? { id: "monitor", title: "Open Activity Monitor", shortcut: "cmd+o" } : { id: "processes", title: "Open Processes", shortcut: "cmd+o" };
 const POPOVER = { id: "popover", title: "Open bar popover", shortcut: "cmd+p" };
 
-function row(id: string, name: string, subtitle: string, icon: Item["icon"], section: string, value: string, detail: { markdown?: string; metadata: Metadata[] }, extra: Partial<Item> = {}): Item {
+function row(id: string, name: string, subtitle: string, icon: Item["icon"], section: string, value: string, detail: Detail, extra: Partial<Item> = {}): Item {
   known.set(id, { value, detail });
   return { id, name, subtitle, icon, section, actions: [COPY, MONITOR, POPOVER], ...extra };
 }
@@ -324,16 +324,23 @@ export function rows(s: Sample, only?: string, c = live()): Item[] {
   for (const v of vols) {
     const level = diskLevel(v);
     const share = v.total ? (v.used / v.total) * 100 : 0;
-    out.push(row(`disk:${v.mount}`, `${gb(v.free)} free`, [v.name, `${gb(v.used)} of ${gb(v.total)} used`, v.readOnly ? "read-only" : undefined].filter(Boolean).join(" · "), GLYPH.disk, SECTION.disk, v.mount, {
-      metadata: meta([["Volume", v.name], ["Mount", v.mount], ["Device", v.device], ["File system", v.fs], ["Used", `${gb(v.used)} (${pct(share)})`], ["Free", gb(v.free)], ["Total", gb(v.total)]]),
-    }, { keywords: ["disk", "volume", "storage", "free", v.name], accessories: [...(level ? [{ tag: level === "crit" ? "nearly full" : "filling up", color: colorOf(level) }] : []), { text: pct(share) }], actions: [COPY, { id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "cmd+r", multi: true }, POPOVER] }));
+    // The row is the volume (three rows of "… GB free" said nothing beside a detail pane), its free space beside it.
+    const tag = level ? [{ text: level === "crit" ? "nearly full" : "filling up", color: colorOf(level) }] : [];
+    out.push(row(`disk:${v.mount}`, v.name, [`${gb(v.used)} of ${gb(v.total)} used`, v.readOnly ? "read-only" : undefined].filter(Boolean).join(" · "), GLYPH.disk, SECTION.disk, v.mount, {
+      caption: v.mount, title: v.name,
+      chips: [...tag, ...(v.readOnly ? [{ text: "read-only", color: "grey" as const }] : [])],
+      stats: [{ value: gb(v.free), label: "free", ...(level && { color: colorOf(level) }) }, { value: pct(share), label: "used" }, { value: gb(v.total), label: "in all" }],
+      metadata: meta([["Device", v.device], ["File system", v.fs]]),
+    }, { keywords: ["disk", "volume", "storage", "free", v.name], accessories: [...tag.map((t) => ({ tag: t.text, color: t.color })), { text: `${gb(v.free)} free` }], actions: [COPY, { id: "reveal", title: MAC ? "Reveal in Finder" : "Open in file manager", shortcut: "cmd+r", multi: true }, POPOVER] }));
   }
   if (!vols.length) out.push(hint("disk:none", "No volumes read", "df answered nothing", { section: SECTION.disk, icon: GLYPH.disk }));
   const list = ifaces(s, c);
   for (const i of list) {
-    out.push(row(`if:${i.name}`, `↓ ${rate(i.down)} ↑ ${rate(i.up)}`, [i.name, i.kind, i.ssid, i.addr].filter(Boolean).join(" · "), GLYPH.network, SECTION.network, i.addr ?? `${i.name}`, {
-      metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid], ["IPv4", i.addr], ["Down", rate(i.down)], ["Up", rate(i.up)], ["Received", gb(i.rx)], ["Sent", gb(i.tx)]]),
-    }, { keywords: ["network", "interface", "throughput", i.name, ...(i.ssid ? [i.ssid] : [])], actions: [{ id: "copy", title: "Copy address", multi: true }, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
+    out.push(row(`if:${i.name}`, [i.name, i.kind].filter(Boolean).join(" · "), [i.ssid, i.addr].filter(Boolean).join(" · "), GLYPH.network, SECTION.network, i.addr ?? `${i.name}`, {
+      caption: [i.kind, i.ssid].filter(Boolean).join(" · ") || undefined, title: i.name,
+      stats: [{ value: rate(i.down), label: "down" }, { value: rate(i.up), label: "up" }],
+      metadata: meta([["IPv4", i.addr], ["Received", gb(i.rx)], ["Sent", gb(i.tx)]]),
+    }, { keywords: ["network", "interface", "throughput", i.name, ...(i.ssid ? [i.ssid] : [])], accessories: [{ text: `↓ ${rate(i.down)} ↑ ${rate(i.up)}` }], actions: [{ id: "copy", title: "Copy address", multi: true }, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
   }
   out.push(row("net", `↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, "All physical links", GLYPH.network, SECTION.network, `↓ ${rate(s.net.down)} ↑ ${rate(s.net.up)}`, {
     markdown: sparkMd([{ values: history.get("down"), color: "blue" }, { values: history.get("up"), color: "violet" }], { floor: 1024, theme }),
@@ -341,7 +348,9 @@ export function rows(s: Sample, only?: string, c = live()): Item[] {
   }, { keywords: ["network", "throughput", "bandwidth", "download", "upload"], actions: [COPY, { id: "addresses", title: "All addresses", shortcut: "cmd+a" }, POPOVER] }));
   const procs = s.procs ?? [];
   const procRow = (p: Proc, section: string, n: number): Item => row(`proc:${p.pid}:${section === SECTION.busiest ? "cpu" : "mem"}`, p.name, `${p.cpu.toFixed(1)}% cpu · ${gb(p.rss * 1024)} · pid ${p.pid}`, MAC && p.comm.includes(".app/Contents/MacOS/") ? { app: p.comm.slice(0, p.comm.indexOf(".app/") + 4) } : GLYPH.process, section, String(p.pid), {
-    metadata: meta([["Command", p.comm], ["PID", String(p.pid)], ["CPU", `${p.cpu.toFixed(1)}%`], ["Memory", gb(p.rss * 1024)]]),
+    caption: p.comm, title: p.name,
+    stats: [{ value: `${p.cpu.toFixed(1)}%`, label: "cpu", ...(p.cpu >= 50 ? { color: "red" as const } : p.cpu >= 10 ? { color: "amber" as const } : {}) }, { value: gb(p.rss * 1024), label: "memory" }],
+    metadata: meta([["PID", String(p.pid)]]),
   }, { keywords: [String(p.pid), "process"], accessories: [{ text: `#${n + 1}` }], actions: [{ id: "copy", title: "Copy PID", multi: true }, { id: "kill", title: "Kill", shortcut: "cmd+backspace", style: "destructive", multi: true, confirm: "Send SIGTERM? A process may lose what it has not saved." }, MONITOR, POPOVER] });
   topByCpu(procs).forEach((p, n) => out.push(procRow(p, SECTION.busiest, n)));
   topByMemory(procs).forEach((p, n) => out.push(procRow(p, SECTION.largest, n)));

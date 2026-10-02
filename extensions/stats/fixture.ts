@@ -92,7 +92,7 @@ writeFixture("stats", {
   shots: {
     "1-list": { palette: "stats", keys: [], caption: "One row per fact, the value as the name: a build running, the CPU amber, its last three minutes in the detail pane" },
     "2-memory": { palette: "stats", keys: ["down*2"], caption: "Memory as Activity Monitor counts it: app, wired, compressed and cached, the pressure and the swap" },
-    "3-volumes": { palette: "stats", keys: ["down*4"], caption: "Every volume with its free space and share; Enter copies the mount point, cmd+r reveals it" },
+    "3-volumes": { palette: "stats", keys: ["down*4"], caption: "Every volume by name with its free space; the detail says free, used and in all large. Enter copies the mount point, cmd+r reveals it" },
     "4-process": { palette: "stats", keys: ["down*10", "wait:300", "cmd+k"], caption: "The busiest and the largest processes: copy the pid, open Activity Monitor, or kill one after a question" },
   },
 });

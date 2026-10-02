@@ -30,7 +30,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Every state with its value and which layer answers: its expression, set by hand with the time left, a publisher, built-in"
+        "caption": "Every state with its value; the glyph says which layer answers (its expression, held by hand with the time left, an extension, built in)"
       },
       {
         "file": "2-held.png",

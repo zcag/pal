@@ -64,14 +64,14 @@ async function batteryBar(ctx: BarCtx): Promise<BarItem> {
     const lowest = batteries(devices).map((d) => d.battery!).reduce<number | null>((m, b) => (m === null || b < m ? b : m), null);
     const states = { low: low.length, lowest, connected: connected.length };
     const menu = { view: renderBattery(barState(devices, threshold)) };
-    const quiet = { icon: xdg(connected.length ? "bluetooth-connected" : "bluetooth")!, tooltip: connected.length ? `Bluetooth · ${connected.map((d) => `${d.name}${d.battery === null ? "" : ` ${d.battery}%`}`).join(" · ")}` : "No connected devices", menu };
+    const quiet = { icon: xdg(connected.length ? "bluetooth-connected" : "bluetooth")!, tooltip: connected.length ? `${connected.map((d) => `${d.name}${d.battery === null ? "" : ` ${d.battery}%`}`).join(" · ")}` : "No connected devices", menu };
     if (!low.length) return { ...quiet, click: "open", empty: quiet, states };
     const first = low[0];
     const detail = low.map((d) => `${d.name} ${d.battery}%${d.battery_detail ? ` (${d.battery_detail})` : ""}`).join(" · ");
     return {
       icon: BATTERY,
       title: low.length === 1 ? truncate(`${first.name} ${first.battery}%`, 64) : `${low.length} low`,
-      tooltip: `Bluetooth battery · ${detail}`,
+      tooltip: detail,
       click: "open",
       menu,
       empty: quiet,

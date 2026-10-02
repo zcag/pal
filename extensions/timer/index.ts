@@ -42,6 +42,8 @@ const EXTENSION = "timer", ITEM = "timer", PALETTE = "timers";
 const GLYPH = "\u{f0954}";
 const PLUS = "\u{f0415}";
 const WARN = "\u{f0026}";
+/** A row's glyph says its state: nf-md-clock running, nf-md-pause paused, nf-md-bell_ring landed. */
+const STATE_GLYPH: Record<State, string> = { running: GLYPH, paused: "\u{f03e4}", done: "\u{f009e}" };
 /** The CLI's default `TIMER_DONE_TTL`: how long a landed timer's badge lingers. */
 const DONE_TTL = 300;
 const NEW = "new";
@@ -369,7 +371,8 @@ async function renderBar(): Promise<BarItem> {
 
 // ---- the palette ------------------------------------------------------------------
 
-const STATE: Record<State, { tag: string; color: string }> = { running: { tag: "running", color: "blue" }, paused: { tag: "paused", color: "amber" }, done: { tag: "done", color: "red" } };
+/** The tag a row wears off the clock: a running timer says its time left and needs none. */
+const STATE: Record<Exclude<State, "running">, { tag: string; color: string }> = { paused: { tag: "paused", color: "amber" }, done: { tag: "done", color: "red" } };
 
 /** The pomodoro session's own actions, on its timer's row: the next phase now, or the whole session off. */
 const POMODORO_ACTIONS: Action[] = [{ id: "skip", title: "Skip to the next phase", shortcut: "cmd+s" }, { id: "stop-pomodoro", title: "Stop pomodoro", shortcut: "cmd+shift+d", style: "destructive" }];
@@ -395,12 +398,12 @@ function row(t: Timer): Item {
   const left = secsLeft(t);
   const when = t.state === "done" ? `Landed ${fmt(now() - t.fired)} ago` : t.state === "paused" ? `Paused at ${fmt(left)}` : `${fmt(left)} left, done at ${clock(t.deadline * 1000)}`;
   const p = session?.timerId === t.id ? session : undefined;
-  const subtitle = p ? `${describe(p)} · ${when}` : when;
+  // A pomodoro's name says the round and its tag the phase, so its line is the time alone, as every other timer's.
   // Pause, Resume and Stop work on marked timers too; a running or paused row carries the other of the pair at the end, so a mix of them offers both. Dismiss clears every landed timer at once already.
   const first: Action = t.state === "done" ? { id: "done", title: "Dismiss" } : t.state === "paused" ? RESUME : PAUSE;
   const other: Action[] = t.state === "done" ? [] : [t.state === "paused" ? PAUSE : RESUME];
   const actions: Action[] = [first, { id: "add", title: "Add minutes", shortcut: "cmd++", args: true }, ...(p ? POMODORO_ACTIONS : []), { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive", multi: true }, ...other];
-  return { id: t.id, name: t.name, subtitle, icon: p ? TOMATO : GLYPH, keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), { tag: STATE[t.state].tag, color: STATE[t.state].color }], args: ADD_ARGS, actions };
+  return { id: t.id, name: t.name, subtitle: when, icon: p ? TOMATO : STATE_GLYPH[t.state], keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), ...(t.state === "running" ? [] : [STATE[t.state]])], args: ADD_ARGS, actions };
 }
 
 /** The New row's arguments, typed in the bar: the duration, a name, and whether the phone rings (a select, since the bar has no checkbox). */

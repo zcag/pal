@@ -470,7 +470,9 @@ describe("stats in the host", () => {
     expect(rows[0]).toMatchObject({ name: expect.stringMatching(/^\d+%$/), section: "Processor", subtitle: expect.stringContaining("CPU · "), actions: [{ id: "copy" }, { id: expect.stringMatching(/monitor|processes/) }, { id: "popover" }] });
     expect(rows.find((r) => r.id === "memory")).toMatchObject({ section: "Memory", name: expect.stringMatching(/GB used · \d+%$/) });
     const disk = rows.find((r) => r.id.startsWith("disk:"))!;
-    expect(disk).toMatchObject({ section: "Disks", name: expect.stringMatching(/free$/), actions: [{ id: "copy" }, { id: "reveal", shortcut: "cmd+r" }, { id: "popover" }] });
+    // A volume's row is the volume, its free space beside it; its detail a header with the numbers large.
+    expect(disk).toMatchObject({ section: "Disks", accessories: expect.arrayContaining([{ text: expect.stringMatching(/free$/) }]), actions: [{ id: "copy" }, { id: "reveal", shortcut: "cmd+r" }, { id: "popover" }] });
+    expect(await host.detail("stats", "stats", disk.id)).toMatchObject({ caption: disk.id.slice(5), title: disk.name, stats: [{ label: "free" }, { label: "used" }, { label: "in all" }] });
     expect(await host.pick("stats", "stats", disk.id)).toEqual({ copy: disk.id.slice(5) });
     expect(await host.pick("stats", "stats", "cpu")).toEqual({ copy: rows[0].name });
     // Marked rows: the values one per line.

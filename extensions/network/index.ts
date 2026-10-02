@@ -207,8 +207,16 @@ function row(id: string, value: string, subtitle: string, section: string, keywo
   return { id, name: value, subtitle, icon, keywords, section, actions: ACTIONS };
 }
 
+/** An interface as a header: where it lives (`en0 · Wi-Fi`), the network it is on, whether it is up and how it is secured, the signal large; the addresses under it. */
 const ifaceDetail = (i: Iface): Detail => ({
-  metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" : undefined)], ["Security", i.security], ["Signal", i.signal === undefined ? undefined : `${i.signal}%`], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
+  caption: [i.name, i.kind].filter(Boolean).join(" · "),
+  title: i.ssid ?? i.kind ?? i.name,
+  chips: [
+    ...(i.up === undefined ? [] : [{ text: i.up ? "active" : "inactive", color: i.up ? "green" as const : "grey" as const }]),
+    ...(i.security ? [{ text: isOpen(i) ? "open network" : i.security, color: isOpen(i) ? "amber" as const : "grey" as const }] : []),
+  ],
+  stats: i.signal === undefined ? [] : [{ value: `${i.signal}%`, label: "signal" }],
+  metadata: meta([["SSID", !i.ssid && i.ssidHidden ? "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" : undefined], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac]]),
 });
 
 function rows(s: Snapshot, withPublic: boolean): Item[] {
@@ -353,7 +361,7 @@ async function statusBar(): Promise<BarItem> {
     if (kind === "hide") return { hidden: true };
     const face = (p: NetworkPopover, item: Omit<BarItem, "menu" | "click">): BarItem =>
       ({ ...item, click: "open", menu: { view: renderNetworkPopover({ ...p, interface: i && [i.name, i.kind].filter(Boolean).join(" · "), gateway: s.gateway?.ip, dns: s.dns }) } });
-    if (!s.gateway) return face({ name: "Offline", kind: "offline" }, { ...strip(BAR_GLYPH.off, "Offline"), color: "red", tooltip: "No default route" });
+    if (!s.gateway) return face({ name: "Offline", kind: "offline" }, { ...strip(BAR_GLYPH.off, "Offline"), color: "red", tooltip: "No route to the internet" });
     if (!i) return face({ name: "Connected" }, { ...strip(GLYPH.wired, "Connected"), tooltip: `Gateway ${s.gateway.ip}` });
     // The label stands in for the SSID, and on a cable for the kind, since a gateway-keyed line reaches both.
     const name = label ?? (i.kind === "Wi-Fi" ? i.ssid ?? "Wi-Fi" : i.kind ?? i.name);
@@ -362,9 +370,10 @@ async function statusBar(): Promise<BarItem> {
     // A network's own glyph replaces the one that said hotspot or open, so that
     // moves into the tooltip (wired needs no word: the name is the kind there).
     const said = own && badge === "hotspot" ? "hotspot" : own && badge === "public" ? "open network" : undefined;
-    // The name goes in whether or not it was relabelled: with Icon only the
-    // tooltip is the one place left that can say which network this is.
-    const tooltip = [i.name, name, address, said, signalText(i), `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · ");
+    // The name leads whether or not it was relabelled: with Icon only the
+    // tooltip is the one place left that can say which network this is, and a
+    // glance card reads its first line on its own. The interface comes last.
+    const tooltip = [name, address, said, signalText(i), `Gateway ${s.gateway.ip}`, i.name].filter(Boolean).join(" · ");
     return face({ name, kind: badge, address, signal: i.signal, security: i.security }, { ...strip(own ?? glyph(i, kind), name), tooltip });
   } catch { return { hidden: true }; }
 }
