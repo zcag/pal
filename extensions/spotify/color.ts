@@ -3,10 +3,9 @@
 // decoded by jpeg-js, the same bytes the view shows) is binned by hue into 24 buckets,
 // weighted by saturation and by not being too dark or too light, and the
 // fullest bucket's mean is the colour. Greys win only when nothing has
-// colour. The view paints with it through a `gradient` node (a hex, alpha
-// allowed) and maps it to the nearest of the eight tag colours for what
-// only takes those (the progress bar, badges), so the tint follows the
-// theme where the tokens do.
+// colour. The view maps it to the nearest of the eight tag colours for
+// what only takes those (the progress bar), so the tint follows the theme
+// where the tokens do.
 import { decode } from "jpeg-js";
 import type { TagColor } from "@zcag/pal";
 
@@ -80,5 +79,3 @@ export function tintOf(jpeg: Uint8Array | ArrayBuffer): Tint | undefined {
 
 export const tintFrom = (c: RGB): Tint => ({ hex: toHex(c), tag: nearestTag(c), chroma: hsv(c).s });
 
-/** `#rrggbb` with an alpha byte, for the gradient stops. */
-export const withAlpha = (hex: string, alpha: number): `#${string}` => `#${hex.slice(1, 7)}${hex2(alpha * 255)}`;
