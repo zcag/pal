@@ -1759,8 +1759,9 @@ secure note, card and bank account, identity, SSH key, API credential,
 server and database, and so on), the primary website's host on the right,
 favourites first with a `favorite` tag, then by title. The item's website
 hosts, username, category, vault and tags are keywords, so `github.com`
-finds the login. The detail pane lists vault, category, username, the
-website as a link, tags and the update time. No secret is ever in a row,
+finds the login. The detail pane leads with the vault over the title, the
+category, favorite and tags as chips, then the username, the website as a
+link and the update time. No secret is ever in a row,
 the index or a log: a pick runs `op item get` for that one field and puts
 the value on the clipboard.
 

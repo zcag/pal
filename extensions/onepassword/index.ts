@@ -101,13 +101,14 @@ function item(i: OpItem): Item {
     icon: CATEGORY_ICON[i.category] ?? ICON,
     keywords: [...new Set([...hosts, i.additional_information ?? "", category(i.category), i.vault.name, ...(i.tags ?? [])].filter(Boolean))],
     accessories,
+    // The vault over the title, the category, favorite and tags as chips; never a secret.
     detail: {
+      caption: i.vault.name,
+      title: i.title,
+      chips: [{ text: category(i.category) }, ...(i.favorite ? [{ text: "favorite", color: "amber" as const }] : []), ...(i.tags ?? []).map((t) => ({ text: t, color: "blue" as const }))],
       metadata: [
-        { label: "Vault", value: i.vault.name },
-        { label: "Category", value: category(i.category) },
         ...(i.additional_information ? [{ label: "Username", value: i.additional_information }] : []),
         ...(primary ? [{ label: "Website", link: { text: primary.href, href: primary.href } }] : []),
-        ...(i.tags?.length ? [{ label: "Tags", tags: i.tags.map((t) => ({ text: t })) }] : []),
         ...(i.updated_at ? [{ label: "Updated", value: when(i.updated_at) }] : []),
       ],
     },

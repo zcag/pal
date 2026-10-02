@@ -70,7 +70,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane (cmd+I): vault, category, username, website, tags and when it was last updated"
+        "caption": "The detail pane (cmd+I): the vault over the title, its category and tags, the username, website and when it changed"
       },
       {
         "file": "3-actions.png",

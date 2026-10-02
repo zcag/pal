@@ -18,7 +18,7 @@ One palette, **1Password** (`items`).
 | subtitle | the vault, then the username (`Personal · alex@example.com`) |
 | accessories | `favorite` (amber) for a favourite, then the primary website's host |
 | keywords | the website hosts, the username, the category, the vault and the tags, so `github.com` finds the login |
-| detail pane | vault, category, username, the website as a link, tags and the update time (`cmd+i`) |
+| detail pane | the vault over the title, the category, favorite and tags as chips, then the username, the website as a link and the update time (`cmd+i`) |
 
 Favourites come first with their tag, then the rest by title. With
 `vaults` set, the palette has a filter per vault (All vaults first) and

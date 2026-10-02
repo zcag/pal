@@ -85,7 +85,8 @@ describe("onepassword", () => {
       accessories: [{ tag: "favorite", color: "amber" }, { text: "github.com" }],
       actions: [{ id: "password", title: "Copy password" }, { id: "username", title: "Copy username", shortcut: "cmd+u" }, { id: "otp", title: "Copy one-time code", shortcut: "cmd+t" }, { id: "open", title: "Open in 1Password", shortcut: "cmd+o" }],
     });
-    expect(rows[0].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Vault", value: "Personal" }, { label: "Website", link: { text: "https://github.com/login", href: "https://github.com/login" } }, { label: "Tags", tags: [{ text: "dev" }] }]));
+    expect(rows[0].detail).toMatchObject({ caption: "Personal", title: "GitHub", chips: [{ text: "login" }, { text: "favorite", color: "amber" }, { text: "dev", color: "blue" }] });
+    expect(rows[0].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Username", value: "zcag" }, { label: "Website", link: { text: "https://github.com/login", href: "https://github.com/login" } }]));
     expect(rows[2]).toMatchObject({ name: "Visa", subtitle: "Work · 1234", icon: "\u{f019b}", accessories: [] });
     expect(rows[3]).toMatchObject({ name: "Wifi", subtitle: "Work", icon: "\u{f039e}" });
     // Never a secret in a row.
