@@ -760,7 +760,7 @@ are filled without asking (the SDK's placeholders, [Snippets](#snippets-snippets
 below has the grammar; each value percent-encoded), so
 `https://translate.google.com/?text={selection}` opens in one Enter. The
 row shows the placeholder as a tag, the browser it opens with when one
-is named, and the url as its subtitle; the icon is the site's favicon.
+is named, and the url (without `https://`) as its subtitle; the icon is the site's favicon.
 
 The root row **Create Quicklink** opens a form (name, url, keywords, and
 **Open with**: the default browser or one of the browsers installed:

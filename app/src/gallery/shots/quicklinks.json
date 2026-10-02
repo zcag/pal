@@ -47,7 +47,7 @@
         {
           "id": "l1",
           "name": "GitHub search",
-          "subtitle": "https://github.com/search?q={query}",
+          "subtitle": "github.com/search?q={query}",
           "url": "https://github.com/search?q={query}",
           "keywords": [
             "gh",
@@ -59,12 +59,16 @@
             }
           ],
           "detail": {
-            "markdown": "# GitHub search\n\n```\nhttps://github.com/search?q={query}\n```",
-            "metadata": [
+            "caption": "Your quicklinks",
+            "title": "GitHub search",
+            "chips": [
               {
-                "label": "Asks for",
-                "value": "query"
-              },
+                "text": "asks for query",
+                "color": "blue"
+              }
+            ],
+            "markdown": "```\nhttps://github.com/search?q={query}\n```",
+            "metadata": [
               {
                 "label": "Keywords",
                 "tags": [
@@ -75,10 +79,6 @@
                     "text": "code"
                   }
                 ]
-              },
-              {
-                "label": "Source",
-                "value": "Your quicklinks"
               }
             ]
           },
@@ -109,7 +109,7 @@
         {
           "id": "l2",
           "name": "Wikipedia",
-          "subtitle": "https://en.wikipedia.org/wiki/{query}",
+          "subtitle": "en.wikipedia.org/wiki/{query}",
           "url": "https://en.wikipedia.org/wiki/{query}",
           "keywords": [
             "wiki"
@@ -120,12 +120,16 @@
             }
           ],
           "detail": {
-            "markdown": "# Wikipedia\n\n```\nhttps://en.wikipedia.org/wiki/{query}\n```",
-            "metadata": [
+            "caption": "Your quicklinks",
+            "title": "Wikipedia",
+            "chips": [
               {
-                "label": "Asks for",
-                "value": "query"
-              },
+                "text": "asks for query",
+                "color": "blue"
+              }
+            ],
+            "markdown": "```\nhttps://en.wikipedia.org/wiki/{query}\n```",
+            "metadata": [
               {
                 "label": "Keywords",
                 "tags": [
@@ -133,10 +137,6 @@
                     "text": "wiki"
                   }
                 ]
-              },
-              {
-                "label": "Source",
-                "value": "Your quicklinks"
               }
             ]
           },
@@ -167,14 +167,21 @@
         {
           "id": "l3",
           "name": "Home Assistant",
-          "subtitle": "http://homeassistant.local:8123",
+          "subtitle": "homeassistant.local:8123",
           "url": "http://homeassistant.local:8123",
           "keywords": [
             "ha",
             "home"
           ],
           "detail": {
-            "markdown": "# Home Assistant\n\n```\nhttp://homeassistant.local:8123\n```",
+            "caption": "Your quicklinks",
+            "title": "Home Assistant",
+            "chips": [
+              {
+                "text": "opens in Safari"
+              }
+            ],
+            "markdown": "```\nhttp://homeassistant.local:8123\n```",
             "metadata": [
               {
                 "label": "Keywords",
@@ -186,14 +193,6 @@
                     "text": "home"
                   }
                 ]
-              },
-              {
-                "label": "Opens with",
-                "value": "Safari"
-              },
-              {
-                "label": "Source",
-                "value": "Your quicklinks"
               }
             ]
           },
@@ -229,7 +228,7 @@
         {
           "id": "l4",
           "name": "npm package",
-          "subtitle": "https://www.npmjs.com/package/{argument name=\"Package\"}",
+          "subtitle": "npmjs.com/package/{argument name=\"Package\"}",
           "url": "https://www.npmjs.com/package/{argument name=\"Package\"}",
           "accessories": [
             {
@@ -237,17 +236,15 @@
             }
           ],
           "detail": {
-            "markdown": "# npm package\n\n```\nhttps://www.npmjs.com/package/{argument name=\"Package\"}\n```",
-            "metadata": [
+            "caption": "Your quicklinks",
+            "title": "npm package",
+            "chips": [
               {
-                "label": "Asks for",
-                "value": "Package"
-              },
-              {
-                "label": "Source",
-                "value": "Your quicklinks"
+                "text": "asks for Package",
+                "color": "blue"
               }
-            ]
+            ],
+            "markdown": "```\nhttps://www.npmjs.com/package/{argument name=\"Package\"}\n```"
           },
           "actions": [
             {
@@ -276,13 +273,15 @@
         {
           "id": "l5",
           "name": "Router",
-          "subtitle": "http://192.168.1.1",
+          "subtitle": "192.168.1.1",
           "url": "http://192.168.1.1",
           "keywords": [
             "gateway"
           ],
           "detail": {
-            "markdown": "# Router\n\n```\nhttp://192.168.1.1\n```",
+            "caption": "Your quicklinks",
+            "title": "Router",
+            "markdown": "```\nhttp://192.168.1.1\n```",
             "metadata": [
               {
                 "label": "Keywords",
@@ -291,10 +290,6 @@
                     "text": "gateway"
                   }
                 ]
-              },
-              {
-                "label": "Source",
-                "value": "Your quicklinks"
               }
             ]
           },
@@ -325,7 +320,7 @@
         {
           "id": "l6",
           "name": "MDN",
-          "subtitle": "https://developer.mozilla.org/en-US/search?q={query}",
+          "subtitle": "developer.mozilla.org/en-US/search?q={query}",
           "url": "https://developer.mozilla.org/en-US/search?q={query}",
           "keywords": [
             "docs",
@@ -337,12 +332,16 @@
             }
           ],
           "detail": {
-            "markdown": "# MDN\n\n```\nhttps://developer.mozilla.org/en-US/search?q={query}\n```",
-            "metadata": [
+            "caption": "Your quicklinks",
+            "title": "MDN",
+            "chips": [
               {
-                "label": "Asks for",
-                "value": "query"
-              },
+                "text": "asks for query",
+                "color": "blue"
+              }
+            ],
+            "markdown": "```\nhttps://developer.mozilla.org/en-US/search?q={query}\n```",
+            "metadata": [
               {
                 "label": "Keywords",
                 "tags": [
@@ -353,10 +352,6 @@
                     "text": "web"
                   }
                 ]
-              },
-              {
-                "label": "Source",
-                "value": "Your quicklinks"
               }
             ]
           },
@@ -422,7 +417,7 @@
           {
             "id": "library:0",
             "name": "Google",
-            "subtitle": "https://www.google.com/search?q={query}",
+            "subtitle": "google.com/search?q={query}",
             "url": "https://www.google.com/search?q={query}",
             "keywords": [
               "g",
@@ -448,7 +443,7 @@
           {
             "id": "library:1",
             "name": "DuckDuckGo",
-            "subtitle": "https://duckduckgo.com/?q={query}",
+            "subtitle": "duckduckgo.com/?q={query}",
             "url": "https://duckduckgo.com/?q={query}",
             "keywords": [
               "ddg",
@@ -474,7 +469,7 @@
           {
             "id": "library:2",
             "name": "Bing",
-            "subtitle": "https://www.bing.com/search?q={query}",
+            "subtitle": "bing.com/search?q={query}",
             "url": "https://www.bing.com/search?q={query}",
             "keywords": [
               "search",
@@ -499,7 +494,7 @@
           {
             "id": "library:3",
             "name": "Wikipedia",
-            "subtitle": "https://en.wikipedia.org/w/index.php?search={query}",
+            "subtitle": "en.wikipedia.org/w/index.php?search={query}",
             "url": "https://en.wikipedia.org/w/index.php?search={query}",
             "keywords": [
               "wiki",
@@ -524,7 +519,7 @@
           {
             "id": "library:4",
             "name": "YouTube",
-            "subtitle": "https://www.youtube.com/results?search_query={query}",
+            "subtitle": "youtube.com/results?search_query={query}",
             "url": "https://www.youtube.com/results?search_query={query}",
             "keywords": [
               "yt",
@@ -549,7 +544,7 @@
           {
             "id": "library:5",
             "name": "GitHub",
-            "subtitle": "https://github.com/search?q={query}",
+            "subtitle": "github.com/search?q={query}",
             "url": "https://github.com/search?q={query}",
             "keywords": [
               "gh",
@@ -581,7 +576,7 @@
           {
             "id": "library:6",
             "name": "GitHub code",
-            "subtitle": "https://github.com/search?type=code&q={query}",
+            "subtitle": "github.com/search?type=code&q={query}",
             "url": "https://github.com/search?type=code&q={query}",
             "keywords": [
               "gh",
@@ -607,7 +602,7 @@
           {
             "id": "library:7",
             "name": "npm",
-            "subtitle": "https://www.npmjs.com/search?q={query}",
+            "subtitle": "npmjs.com/search?q={query}",
             "url": "https://www.npmjs.com/search?q={query}",
             "keywords": [
               "node",
@@ -633,7 +628,7 @@
           {
             "id": "library:8",
             "name": "crates.io",
-            "subtitle": "https://crates.io/search?q={query}",
+            "subtitle": "crates.io/search?q={query}",
             "url": "https://crates.io/search?q={query}",
             "keywords": [
               "rust",
@@ -659,7 +654,7 @@
           {
             "id": "library:9",
             "name": "PyPI",
-            "subtitle": "https://pypi.org/search/?q={query}",
+            "subtitle": "pypi.org/search/?q={query}",
             "url": "https://pypi.org/search/?q={query}",
             "keywords": [
               "python",
@@ -685,7 +680,7 @@
           {
             "id": "library:10",
             "name": "MDN",
-            "subtitle": "https://developer.mozilla.org/en-US/search?q={query}",
+            "subtitle": "developer.mozilla.org/en-US/search?q={query}",
             "url": "https://developer.mozilla.org/en-US/search?q={query}",
             "keywords": [
               "web",
@@ -719,7 +714,7 @@
           {
             "id": "library:11",
             "name": "Stack Overflow",
-            "subtitle": "https://stackoverflow.com/search?q={query}",
+            "subtitle": "stackoverflow.com/search?q={query}",
             "url": "https://stackoverflow.com/search?q={query}",
             "keywords": [
               "so",
@@ -745,7 +740,7 @@
           {
             "id": "library:12",
             "name": "Amazon",
-            "subtitle": "https://www.amazon.com/s?k={query}",
+            "subtitle": "amazon.com/s?k={query}",
             "url": "https://www.amazon.com/s?k={query}",
             "keywords": [
               "shop",
@@ -770,7 +765,7 @@
           {
             "id": "library:13",
             "name": "Google Maps",
-            "subtitle": "https://www.google.com/maps/search/{query}",
+            "subtitle": "google.com/maps/search/{query}",
             "url": "https://www.google.com/maps/search/{query}",
             "keywords": [
               "map",
@@ -796,7 +791,7 @@
           {
             "id": "library:14",
             "name": "Google Translate",
-            "subtitle": "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
+            "subtitle": "translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
             "url": "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
             "keywords": [
               "translate",
@@ -821,7 +816,7 @@
           {
             "id": "library:15",
             "name": "X",
-            "subtitle": "https://x.com/search?q={query}",
+            "subtitle": "x.com/search?q={query}",
             "url": "https://x.com/search?q={query}",
             "keywords": [
               "twitter",
@@ -847,7 +842,7 @@
           {
             "id": "library:16",
             "name": "Reddit",
-            "subtitle": "https://www.reddit.com/search/?q={query}",
+            "subtitle": "reddit.com/search/?q={query}",
             "url": "https://www.reddit.com/search/?q={query}",
             "keywords": [
               "subreddit",
@@ -872,7 +867,7 @@
           {
             "id": "library:17",
             "name": "Hacker News",
-            "subtitle": "https://hn.algolia.com/?q={query}",
+            "subtitle": "hn.algolia.com/?q={query}",
             "url": "https://hn.algolia.com/?q={query}",
             "keywords": [
               "hn",
@@ -898,7 +893,7 @@
           {
             "id": "library:18",
             "name": "IMDb",
-            "subtitle": "https://www.imdb.com/find/?q={query}",
+            "subtitle": "imdb.com/find/?q={query}",
             "url": "https://www.imdb.com/find/?q={query}",
             "keywords": [
               "movie",
@@ -925,7 +920,7 @@
           {
             "id": "library:19",
             "name": "Spotify",
-            "subtitle": "https://open.spotify.com/search/{query}",
+            "subtitle": "open.spotify.com/search/{query}",
             "url": "https://open.spotify.com/search/{query}",
             "keywords": [
               "music",
@@ -952,7 +947,7 @@
           {
             "id": "library:20",
             "name": "Unsplash",
-            "subtitle": "https://unsplash.com/s/photos/{query}",
+            "subtitle": "unsplash.com/s/photos/{query}",
             "url": "https://unsplash.com/s/photos/{query}",
             "keywords": [
               "photo",
@@ -978,7 +973,7 @@
           {
             "id": "library:21",
             "name": "Can I use",
-            "subtitle": "https://caniuse.com/?search={query}",
+            "subtitle": "caniuse.com/?search={query}",
             "url": "https://caniuse.com/?search={query}",
             "keywords": [
               "browser",
@@ -1005,7 +1000,7 @@
           {
             "id": "library:22",
             "name": "Rust docs",
-            "subtitle": "https://docs.rs/releases/search?query={query}",
+            "subtitle": "docs.rs/releases/search?query={query}",
             "url": "https://docs.rs/releases/search?query={query}",
             "keywords": [
               "rust",
@@ -1032,7 +1027,7 @@
           {
             "id": "library:23",
             "name": "Homebrew",
-            "subtitle": "https://formulae.brew.sh/formula/{query}",
+            "subtitle": "formulae.brew.sh/formula/{query}",
             "url": "https://formulae.brew.sh/formula/{query}",
             "keywords": [
               "brew",
@@ -1059,7 +1054,7 @@
           {
             "id": "library:24",
             "name": "Apple Developer",
-            "subtitle": "https://developer.apple.com/search/?q={query}",
+            "subtitle": "developer.apple.com/search/?q={query}",
             "url": "https://developer.apple.com/search/?q={query}",
             "keywords": [
               "apple",

@@ -14,7 +14,7 @@ url are filled without asking (the text selected in the app in front, the
 newest copy, or the paths selected in Finder; the SDK's placeholders,
 `{date}` and the rest included, each percent-encoded), so
 `https://translate.google.com/?text={selection}` opens in one Enter. The row shows the placeholder as a tag, the browser
-it opens with when one is named, and the url as its subtitle; the icon is
+it opens with when one is named, and the url (without `https://`) as its subtitle; the icon is
 the site's favicon; keywords are extra words the search matches.
 
 The palette is indexed, so a quicklink's name and keywords find it from
@@ -29,8 +29,9 @@ the root, and the rows after the list are its tools:
 
 A url the opener could not take (no scheme, not a path) is refused with
 the message under the field; a path that cannot be read or written, the
-same. The detail pane (`cmd+i`) shows the url in a code block, what the
-link asks for, its keywords and where it came from.
+same. The detail pane (`cmd+i`) leads with where the link is kept over
+its name, what it asks for and the browser it opens in as chips, then the
+url in a code block and its keywords.
 
 ## Keyboard
 
