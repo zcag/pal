@@ -178,6 +178,11 @@ pub struct General {
     /// type, the cursor row and where the keys sit. Empty, or a name
     /// pal does not know, is pal's own. A theme file applies over it.
     pub design: String,
+    /// The glance strip: bar items (`extension/id` keys, at most four) whose
+    /// current state shows as cards over the empty root, in this order, in a
+    /// design that draws it (Ink). Settings > General picks them. An item
+    /// hidden right now (nothing playing) has no card.
+    pub glance: Vec<String>,
     /// Compact mode: the panel 560 px wide with 32 px rows, no detail
     /// pane, and the footer folded into the search row (the primary
     /// action's hint on its right). `cmd+shift+m` in the panel flips it
@@ -296,6 +301,7 @@ impl Default for General {
             theme: Theme::System,
             theme_file: String::new(),
             design: String::new(),
+            glance: ["calendar/upcoming", "spotify/playing", "gmail/unread", "weather/weather"].map(String::from).to_vec(),
             compact: false,
             launch_at_login: false,
             menu_bar_icon: true,

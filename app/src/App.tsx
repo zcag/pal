@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { Launcher, pickLevel, type LauncherHandle, type PanelMode, type PickRow } from "./Launcher";
+import { Launcher, pickLevel, type LauncherHandle, type LauncherProps, type PanelMode, type PickRow } from "./Launcher";
 import { installMissing, missingInfo, opened } from "./store";
 import { iconOf } from "./items";
 import { mark, surface, useCore, usePrefs, useLiveViews } from "./core";
@@ -14,6 +14,9 @@ import type { Item } from "./ui/types";
 const hide = () => invoke("hide");
 /** The window to a design's fitted panel height (compact.rs `panel_fit`), or the full height back (`null`). */
 const panelFit = (height: number | null) => { invoke("panel_fit", { height }).catch(() => {}); };
+/** A glance card's open: the panel steps aside and the bar item is clicked (glance.rs). */
+const glanceOpen = (key: string) => { invoke("glance_open", { key }).catch(() => {}); };
+type Glance = NonNullable<LauncherProps["glance"]>;
 
 /** A confirm card the core asks for (`pal://confirm`, deeplink.rs); `null` drops the one up. */
 type Ask = { title: string; message?: string; ok: string; cancel: string; token: number };
@@ -22,6 +25,15 @@ export default function App() {
   const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick, refresh } = useCore(hide);
   const prefs = usePrefs();
   const launcher = useRef<LauncherHandle>(null);
+  // The glance strip's cards (glance.rs): read on every show and every few seconds, the bar items' last renders, so the strip says what the bar says.
+  const [glance, setGlance] = useState<Glance>([]);
+  useEffect(() => {
+    const read = () => { invoke<Glance>("glance_items").then(setGlance).catch(() => {}); };
+    read();
+    const t = setInterval(read, 10_000);
+    window.addEventListener(SHOWN_EVENT, read);
+    return () => { clearInterval(t); window.removeEventListener(SHOWN_EVENT, read); };
+  }, []);
 
 
   // A trigger (`pal://trigger`: a copy recorded, the network back) lists the palette showing again when it asks for that one under `on` (a view's are re-asked in the Launcher).
@@ -116,7 +128,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} glance={glance} onGlance={glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

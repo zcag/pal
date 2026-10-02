@@ -12,6 +12,7 @@ import {
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, Icon as IconSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
+import { GlanceStrip, type GlanceCard } from "./ui/Glance";
 import { ASK_ID, ATTENTION, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toAction, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
 import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
@@ -310,6 +311,10 @@ export type LauncherProps = {
   onPanelMode?: (palette?: string, mode?: PanelMode) => Promise<PanelMode>;
   /** A design's fitted panel (Panel `onFit`): the window takes the height (`panel_fit`); absent, the panel sizes itself (the gallery). */
   onPanelFit?: (height: number | null) => void;
+  /** The glance strip's cards (`glance_items`): the chosen bar items as they are now, drawn over the empty root where the design shows the strip. */
+  glance?: { key: string; label: string; title?: string; count?: number; tooltip?: string; icon?: unknown; urgent?: boolean }[];
+  /** A glance card's click or ⌥1–⌥4: the item's own click (`glance_open`). */
+  onGlance?: (key: string) => void;
   /** Sidebar mode: every row wears its number without cmd held, and cmd+N runs row N instead of moving the cursor to it (the number is the pick). */
   ordinals?: boolean;
   mark?: (name: string, t: number) => void;
@@ -1362,10 +1367,13 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   };
   const levelIcon = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? iconFor(view.palette) : view.kind === "show" ? iconFor(view.palette) : isMenu ? iconFor(view.key) : undefined;
   // A palette whose own icon carries no colour (Spotify's search is a plain magnifier) takes its extension's (`SourceInfo.place`, the manifest tile's).
+  /** An extension's colour for a place or a glance card: its manifest tile's (`SourceInfo.place`), none when it is near-black. */
+  const placeForExtension = (ext: string) => { const bg = sources.find((x) => x.extension === ext && x.place)?.place; return bg && !inkish(bg) ? (bg.startsWith("#") ? bg : `var(--pal-brand-${bg})`) : undefined; };
   const placeKey = view.kind === "palette" || view.kind === "view" || view.kind === "form" || view.kind === "show" ? view.palette : isMenu ? view.key : undefined;
   const levelExt = placeKey && (barOf(placeKey)?.extension ?? placeKey.split("/")[0]);
-  const placeBg = levelExt ? sources.find((x) => x.extension === levelExt && x.place)?.place : undefined;
-  const extensionPlace = placeBg && !inkish(placeBg) ? (placeBg.startsWith("#") ? placeBg : `var(--pal-brand-${placeBg})`) : undefined;
+  const extensionPlace = levelExt ? placeForExtension(levelExt) : undefined;
+  // The glance strip over the empty root: each card in its extension's colour (an instance's key, `gmail@work/unread`, is its extension's).
+  const glanceCards: GlanceCard[] = view.kind === "root" && !query.trim() && !compact ? (props.glance ?? []).map((g) => ({ ...g, icon: g.icon ? iconOf(g.icon, g.label) : undefined, place: placeForExtension(g.key.split("/")[0]) })) : [];
   const isMissing = view.kind === "missing";
   const card = view.kind === "missing" ? missingCard(view) : undefined;
   const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : view.kind === "missing" ? { title: view.info?.title ?? view.extension, icon: view.info?.icon } : undefined;
@@ -1383,6 +1391,21 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const primaryHint = isShow ? { title: listed[0]?.title ?? "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || isMissing || current) && primaryAction ? { title: primaryAction.title } : undefined;
   const onPrimary = () => (isShow ? (listed[0] ? run(listed[0]) : pop()) : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : isMissing ? primaryAction && run(primaryAction) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
   const rowHints = compact ? undefined : <Hints primary={primaryHint} actions={listed.length > 0} onPrimary={onPrimary} onActions={() => setActionsOpen(true)} />;
+  const glanceStrip = glanceCards.length && props.onGlance ? <GlanceStrip cards={glanceCards} onOpen={props.onGlance} /> : null;
+  // ⌥1–⌥4 open the strip's cards (the key code: ⌥1 types "¡"); only over the empty root, so a typed ⌥ character is never taken.
+  const glanceKeys = useRef<{ cards: GlanceCard[]; open?: (key: string) => void }>({ cards: [] });
+  glanceKeys.current = { cards: glanceCards, open: props.onGlance };
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      const m = e.altKey && !e.metaKey && !e.ctrlKey ? /^Digit([1-4])$/.exec(e.code) : null;
+      const c = m && glanceKeys.current.cards[+m[1] - 1];
+      if (!c || !glanceKeys.current.open) return;
+      e.preventDefault(); e.stopPropagation();
+      glanceKeys.current.open(c.key);
+    };
+    window.addEventListener("keydown", down, true);
+    return () => window.removeEventListener("keydown", down, true);
+  }, []);
   const body = card
     ? <Empty icon={(view.kind === "missing" && view.info?.icon) || { kind: "glyph", value: "\u{f03d7}" }} title={card.title} hint={card.hint} note={card.note} action={primaryAction && <button type="button" className="pal-button" data-primary onClick={() => run(primaryAction)}>{primaryAction.title}</button>} />
     : view.kind === "show"
@@ -1433,6 +1456,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         </>
       }
     >
+      {glanceStrip}
       {body}
     </Panel>
   );

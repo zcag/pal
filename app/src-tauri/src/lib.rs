@@ -16,6 +16,7 @@ mod clipboard;
 mod color;
 mod commands;
 mod compact;
+mod glance;
 mod compat;
 mod confirm;
 mod crash;
@@ -394,6 +395,8 @@ pub fn run() {
             dialog::dialog_detect,
             compact::panel_mode,
             compact::panel_fit,
+            glance::glance_items,
+            glance::glance_open,
             large::large_hide,
             large::large_show,
             keycast::keycast_state,

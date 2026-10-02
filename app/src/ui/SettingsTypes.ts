@@ -164,6 +164,8 @@ export type GeneralConfig = {
   theme: "system" | "light" | "dark";
   /** `general.design`: a built-in design's id (designs/index.ts), empty for pal's own. */
   design: string;
+  /** `general.glance`: the bar items (keys) whose state shows as cards over the empty root, in order; absent where the page does not offer it. */
+  glance?: string[];
   launchAtLogin: boolean;
   /** The menu bar (macOS) / tray (Linux) icon; the app has no Dock icon. */
   menuBarIcon: boolean;

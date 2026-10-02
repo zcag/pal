@@ -20,6 +20,8 @@ export type SettingsGeneralProps = {
   onOpenOverview?: () => void;
   /** The theme file picker (`general.theme_file`), shown when given: `useThemeFile()` in Settings.tsx, a fixture in the gallery. */
   themeFile?: ThemeFileProps;
+  /** The bar items the glance strip can show (`general.glance`), by key with "Extension › Item" titles; the row is left out without them. */
+  glanceItems?: { key: string; title: string }[];
   /** Opens a URL in the browser (the usage row's "What is sent"). */
   onOpenLink?: (url: string) => void;
   /** The Shortcuts page, where the hotkey and the switcher chord went: the pointer at the top of this one. */
@@ -68,6 +70,7 @@ const text = {
   shortcuts: { anchor: "general:shortcuts", hint: "Every global key, on its own page", label: "Keyboard shortcuts", description: "The hotkey that shows pal, the window switcher chord, and every palette, row and bar item shortcut are on the Shortcuts page, with what each collides with.", keywords: "hotkey shortcut keys switcher chord" },
   permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security. pal asks for one the first time something needs it, with a card saying what for; nothing is asked at launch.", keywords: "permissions grant privacy ask" },
   theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
+  glance: { anchor: "general:glance", hint: "Appearance", label: "Glance strip", description: "Up to four bar items shown as cards over the empty root, in the order you pick them; ⌥1–⌥4 or a click opens one as its click on the bar does. Shown where the design draws it (Ink).", keywords: "glance home strip cards bar calendar playing unread weather" },
   design: { anchor: "general:design", hint: "Appearance", label: "Design", description: "How pal is drawn beyond its colours: the type, the selected row, where the keys sit. Every window follows it; a theme file still recolours it.", keywords: "look style ink skin font" },
   themeFile: { anchor: "general:theme-file", hint: "Appearance", label: "Theme file", description: "Colours, radii and fonts from a TOML file, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.", keywords: "tokens accent" },
   position: { anchor: "general:position", hint: "Appearance", label: "Window position", description: "On the screen with the pointer.", keywords: "top centre center last" },
@@ -92,7 +95,7 @@ export const generalIndex: SettingsIndexEntry[] = [
 ];
 
 /** pal's own settings: how it looks, how it starts, what the OS lets it do, and the file behind all of it; the keys are the Shortcuts page's. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, permissions, onRequestPermission, onOpenOverview, themeFile, onOpenShortcuts, onOpenLink }: SettingsGeneralProps) {
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, permissions, onRequestPermission, onOpenOverview, themeFile, glanceItems, onOpenShortcuts, onOpenLink }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -135,6 +138,21 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         <SettingsRow anchor={text.design.anchor} label={text.design.label} description={designOf(value.design).description} htmlFor="pal-general-design">
           <SettingsSelect id="pal-general-design" value={value.design} options={DESIGNS.map((d) => ({ id: d.id, title: d.title }))} onChange={(v) => set("design", v)} />
         </SettingsRow>
+        {glanceItems && value.glance && (
+          <SettingsRow anchor={text.glance.anchor} label={text.glance.label} description={text.glance.description} layout="stack">
+            <span className="pal-glance-pick" role="group" aria-label="Glance strip items">
+              {glanceItems.map((b) => {
+                const at = value.glance!.indexOf(b.key);
+                const full = at < 0 && value.glance!.length >= 4;
+                return (
+                  <button key={b.key} type="button" className="pal-glance-pick__item" aria-pressed={at >= 0} disabled={full} onClick={() => set("glance", at >= 0 ? value.glance!.filter((k) => k !== b.key) : [...value.glance!, b.key])}>
+                    {at >= 0 && <span className="pal-glance-pick__n">{at + 1}</span>}{b.title}
+                  </button>
+                );
+              })}
+            </span>
+          </SettingsRow>
+        )}
         {themeFile && <SettingsThemeFile {...themeFile} />}
         <SettingsRow anchor={text.position.anchor} label={text.position.label} description={text.position.description} htmlFor="pal-general-position">
           <SettingsSelect id="pal-general-position" value={value.position} options={positions} onChange={(v) => set("position", v as GeneralConfig["position"])} />

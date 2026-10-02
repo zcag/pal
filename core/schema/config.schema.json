@@ -783,6 +783,19 @@
           "description": "Show the fallback rows under the hits as well, not only when nothing\nmatched.",
           "type": "boolean"
         },
+        "glance": {
+          "default": [
+            "calendar/upcoming",
+            "spotify/playing",
+            "gmail/unread",
+            "weather/weather"
+          ],
+          "description": "The glance strip: bar items (`extension/id` keys, at most four) whose\ncurrent state shows as cards over the empty root, in this order, in a\ndesign that draws it (Ink). Settings > General picks them. An item\nhidden right now (nothing playing) has no card.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "hotkey": {
           "$ref": "#/$defs/Hotkeys",
           "default": "ctrl+space",
@@ -1241,6 +1254,12 @@
           "files"
         ],
         "fallbacks_always": false,
+        "glance": [
+          "calendar/upcoming",
+          "spotify/playing",
+          "gmail/unread",
+          "weather/weather"
+        ],
         "hotkey": "ctrl+space",
         "launch_at_login": false,
         "menu_bar_icon": true,

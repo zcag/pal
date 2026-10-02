@@ -71,7 +71,7 @@ function useFit(panel: React.RefObject<HTMLDivElement | null>, fits: boolean, on
     const ro = new ResizeObserver(measure);
     const watch = () => {
       ro.disconnect();
-      for (const n of [el.querySelector(".pal-panel__search"), el.querySelector(".pal-panel__footer"), main.querySelector(".pal-list__inner"), main.querySelector(".pal-empty")]) if (n) ro.observe(n);
+      for (const n of [el.querySelector(".pal-panel__search"), el.querySelector(".pal-panel__footer"), main.querySelector(".pal-list__inner"), main.querySelector(".pal-empty"), main.querySelector(".pal-glance")]) if (n) ro.observe(n);
     };
     watch();
     measure();
@@ -84,10 +84,10 @@ function useFit(panel: React.RefObject<HTMLDivElement | null>, fits: boolean, on
   }, [panel, fits, onFit]);
 }
 
-/** The height the level's content asks for: a list's rows (its inner box is the virtualiser's total), an empty state's own lines with its padding. */
+/** The height the level's content asks for: a list's rows (its inner box is the virtualiser's total) with whatever sits beside it in the body (the glance strip), an empty state's own lines with its padding. */
 function natural(main: HTMLElement): number | undefined {
   const inner = main.querySelector<HTMLElement>(".pal-list__inner");
-  if (inner) return inner.offsetHeight;
+  if (inner) return [...main.children].reduce((h, k) => (k.contains(inner) ? h : h + (k as HTMLElement).offsetHeight), inner.offsetHeight);
   const empty = main.querySelector<HTMLElement>(".pal-empty");
   if (!empty || !empty.firstElementChild) return undefined;
   const kids = [...empty.children] as HTMLElement[];

@@ -62,6 +62,7 @@
   --pal-backdrop: none;
   --pal-panel-fit: on;
   --pal-acc-max: 2;
+  --pal-glance: grid;
   /* A place (inside a palette) glows in its extension's colour: the header, the cursor, the crumb and the caret. */
   --pal-place-wash: 20%;
   --pal-place-reach: 240px;
