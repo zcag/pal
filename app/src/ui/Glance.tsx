@@ -6,10 +6,10 @@ import type { Icon as IconSpec } from "./types";
 /** One card of the glance strip (`glance.rs` `Card`), with its extension's colour and icon resolved by the Launcher. */
 export type GlanceCard = { key: string; label: string; title?: string; count?: number; tooltip?: string; urgent?: boolean; place?: string; icon?: IconSpec };
 
-/** What a card says large: the item's title, else its count, else its tooltip's first line; and the line under it. */
+/** What a card says large: the item's count when it has one (a title beside a badge is often only a label, an account's name), else its title, else its tooltip's first line; and the line under it. */
 export function glanceText(c: Pick<GlanceCard, "title" | "count" | "tooltip">): { value: string; sub?: string } {
   const tip = c.tooltip?.split("\n")[0]?.trim() || undefined;
-  const value = c.title || (c.count !== undefined ? String(c.count) : tip) || "";
+  const value = (c.count !== undefined ? String(c.count) : c.title || tip) || "";
   return { value, sub: tip && tip !== value ? tip : undefined };
 }
 

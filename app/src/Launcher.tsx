@@ -1012,7 +1012,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (submit && !e.form && top.kind === "form") pop();
     if (e.toast) setToast({ style: e.toast.style ?? "success", title: e.toast.title, message: e.toast.message });
     if (e.push) enter(sourceKey(e.push), e.push.args, e.push.query, e.push.title, e.push.placeholder);
-    if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title, palette: item.palette, ...(e.show.actions?.length && { from: item, ctx: c, actions: e.show.actions.map(toAction) }) });
+    if (e.show) push({ kind: "show", detail: { caption: e.show.caption, title: e.show.title, chips: e.show.chips, stats: e.show.stats, markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title, palette: item.palette, ...(e.show.actions?.length && { from: item, ctx: c, actions: e.show.actions.map(toAction) }) });
     if (e.view) {
       // The next tree of the view it came from, if that is still the level on top; else a fresh level.
       if (top.kind === "view" && top.palette === item.palette) nav.replace({ ...top, spec: e.view });
