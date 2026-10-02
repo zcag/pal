@@ -8,6 +8,8 @@
 :root {
   --c: 24px;
   --bv: 2px;
+  /* The panel's display type (Ink's headline face; pal's own UI face otherwise): the end of a game leads in it. */
+  --display: var(--pal-font-hero, var(--pal-font-query, var(--pal-font-ui, system-ui, sans-serif)));
   --ms-closed: #C9CCD6;
   --ms-closed-hover: #D6D9E2;
   --ms-hi: #FBFBFD;
@@ -69,7 +71,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--pal-bg-sunken); border-radius: var(--pal-radius-control, 6px);
 }
 #levels button {
-  border: 0; background: none; padding: 3px 8px; border-radius: 4px;
+  border: 0; background: none; padding: 3px 8px; border-radius: calc(var(--pal-radius-control, 6px) - 2px);
   color: var(--pal-fg-muted); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500);
   transition: background var(--pal-dur-fast, 80ms), color var(--pal-dur-fast, 80ms);
 }
@@ -179,7 +181,8 @@ body.noclock #time { visibility: hidden; }
   background: var(--pal-bg-elevated); color: var(--pal-fg); border-radius: var(--pal-radius-popover, 12px);
   box-shadow: var(--pal-shadow-popover); padding: 12px 16px; text-align: center; white-space: nowrap;
 }
-#toast { pointer-events: none; opacity: 0; font-size: var(--pal-text-lg, 15px); font-weight: var(--pal-weight-semibold, 600); }
+#toast { pointer-events: none; opacity: 0; font-family: var(--display); font-size: var(--pal-text-xl, 18px); font-weight: var(--pal-weight-hero, var(--pal-weight-semibold, 600)); letter-spacing: var(--pal-tracking-query, normal); }
+#toast small { font-family: var(--pal-font-ui, system-ui, sans-serif); letter-spacing: normal; }
 #toast.show { animation: toast 2600ms var(--pal-ease, ease-out) forwards; }
 #toast small { display: block; margin-top: 2px; font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500); color: var(--pal-success); }
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.9); } 12%, 80% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-50%, -60%); } }
