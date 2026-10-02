@@ -148,6 +148,13 @@
 .pal-row[data-active] .pal-icon, .pal-action[data-active] .pal-icon { color: var(--pal-cursor-fg, var(--pal-fg)); }
 .pal-row[data-active] .pal-row__sub, .pal-row[data-active] .pal-acc { color: var(--pal-cursor-fg-muted, var(--pal-fg-muted)); }
 .pal-row[data-active] .pal-row__ordinal { color: var(--pal-cursor-fg-muted, var(--pal-fg-faint)); }
+/* The answer (`Item.hero`): a headline row, the name in the display type over its subtitle, the accessories and keys beside both. */
+.pal-row[data-hero] { height: var(--pal-hero-h); display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-rows: auto auto; align-content: center; column-gap: var(--pal-row-gap); row-gap: 2px; }
+.pal-row[data-hero] > .pal-icon { grid-row: 1 / 3; }
+.pal-row[data-hero] .pal-row__title { grid-column: 2; max-width: none; font-family: var(--pal-font-hero, var(--pal-font-query, inherit)); font-size: var(--pal-text-hero); font-weight: var(--pal-weight-hero, var(--pal-weight-semibold)); letter-spacing: var(--pal-tracking-query, normal); line-height: 1.15; }
+.pal-row[data-hero] .pal-row__sub { grid-column: 2; grid-row: 2; }
+.pal-row[data-hero] .pal-row__accs { grid-column: 3; grid-row: 1 / 3; }
+.pal-row[data-hero] .pal-row__hints { grid-column: 4; grid-row: 1 / 3; }
 /* A long title leaves the subtitle a third of the row; alone it may take it all. */
 .pal-row__title { flex: 0 1 auto; max-width: 65%; overflow: hidden; text-overflow: ellipsis; min-width: 0; font-weight: var(--pal-weight-title, inherit); letter-spacing: var(--pal-tracking-title, normal); }
 .pal-row__title[data-solo] { max-width: none; }

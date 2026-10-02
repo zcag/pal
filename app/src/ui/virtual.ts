@@ -59,19 +59,25 @@ export function flatten<T extends { section?: string }>(items: T[], per = 1) {
   return { rows, rowOf };
 }
 
-export type Metrics = { row: number; header: number; pad: number; gap: number; inset: number; tile: number };
+export type Metrics = { row: number; hero: number; header: number; pad: number; gap: number; inset: number; tile: number };
 
 const px = (el: Element, name: string, fallback: number) =>
   parseFloat(getComputedStyle(el).getPropertyValue(name)) || fallback;
 
-const defaultMetrics: Metrics = { row: 40, header: 28, pad: 8, gap: 8, inset: 8, tile: 56 };
+const defaultMetrics: Metrics = { row: 40, hero: 64, header: 28, pad: 8, gap: 8, inset: 8, tile: 56 };
 
 /** Row sizes from the tokens, read off the scroller so the virtualiser and the CSS agree. */
 export function useMetrics(scroller: RefObject<HTMLElement | null>): Metrics {
   const [m, setM] = useState<Metrics>(defaultMetrics);
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (el) setM({ row: px(el, "--pal-row-h", 40), header: px(el, "--pal-section-h", 28), pad: px(el, "--pal-space-2", 8), gap: px(el, "--pal-grid-gap", 8), inset: px(el, "--pal-list-inset", 8), tile: px(el, "--pal-grid-tile", 56) });
+    if (!el) return;
+    const measure = () => setM({ row: px(el, "--pal-row-h", 40), hero: px(el, "--pal-hero-h", 64), header: px(el, "--pal-section-h", 28), pad: px(el, "--pal-space-2", 8), gap: px(el, "--pal-grid-gap", 8), inset: px(el, "--pal-list-inset", 8), tile: px(el, "--pal-grid-tile", 56) });
+    measure();
+    // A design or density flipped under a mounted list (`data-design`, `data-density` on <html>) changes the geometry: measure again.
+    const mo = new MutationObserver(measure);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-design", "data-density"] });
+    return () => mo.disconnect();
   }, [scroller]);
   return m;
 }

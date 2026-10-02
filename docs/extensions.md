@@ -524,7 +524,11 @@ is left to the load-time check.
   ⌘Enter; an empty list is an inert hint row), `complete` (Tab puts that
   text in the search box and the level lists again: a suggestion
   completed into the query, at the root too; it wins over the level's
-  own Tab). Any other key rides
+  own Tab), `hero` (`true` on the one row that is the answer to what was
+  typed: a sum, the weather now, a translation; the list draws it as a
+  headline, taller, its name in the design's display type over its
+  subtitle; put it first. An app that predates it draws a plain row, so
+  it needs no newer pal). Any other key rides
   through untouched (a `section` for the empty root, whatever the
   extension wants to keep on the row) and `pick` does not get it back.
   An accessory is right-aligned on the row: `{ text }`, `{ tag, color? }`

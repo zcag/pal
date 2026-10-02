@@ -121,7 +121,7 @@ export function Row({ item, active, match, id, style, onHover, onClick, ordinal,
   // The keys on the row (a design's `--pal-row-hints`) take width like the ordinal does: either starts the fit over.
   const hidden = useFitAccessories(item, showOrdinal || withHints, row, title);
   return (
-    <div ref={row} id={id} role="option" aria-selected={!!active} aria-checked={marked || undefined} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-marked={marked || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
+    <div ref={row} id={id} role="option" aria-selected={!!active} aria-checked={marked || undefined} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-marked={marked || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} data-hero={item.hero || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
       <Icon icon={item.icon} />
       <span ref={title} className="pal-row__title" data-solo={item.subtitle ? undefined : ""}><Highlight text={item.name} positions={match?.name} /></span>
       {item.subtitle && <span className="pal-row__sub"><Highlight text={item.subtitle} positions={match?.subtitle} /></span>}

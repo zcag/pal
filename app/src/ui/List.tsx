@@ -61,7 +61,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
     getScrollElement: () => scroller.current,
     getItemKey,
     observeElementRect: observeRect,
-    estimateSize: (i) => (rows[i].kind === "header" ? metrics.header : metrics.row),
+    estimateSize: (i) => { const r = rows[i]; return r.kind === "header" ? metrics.header : r.items[0].hero ? metrics.hero : metrics.row; },
     overscan: 10,
     paddingStart: metrics.pad,
     paddingEnd: metrics.pad,
@@ -83,6 +83,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
   }, [cursor, rows, rowOf, virt, hovered, id]);
 
   // The cursor's box, for a design that draws one highlight gliding between rows (`--pal-cursor-glide`, ui.css); hidden otherwise.
+  const items = virt.getVirtualItems(); // first: it brings `measurementsCache` up to date for this render's sizes
   const at = rowOf[cursor];
   const glide = at !== undefined ? virt.measurementsCache[at] : undefined;
 
@@ -90,7 +91,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
     <div ref={scroller} className="pal-list" role="listbox" id={id} aria-label={label} aria-activedescendant={hits.length ? domId(id, cursor) : undefined}>
       <div className="pal-list__inner" style={{ height: virt.getTotalSize() }}>
         {glide && <div className="pal-list__cursor" aria-hidden style={{ transform: `translateY(${glide.start}px)`, height: glide.size }} />}
-        {virt.getVirtualItems().map((v) => {
+        {items.map((v) => {
           const row = rows[v.index];
           const style = { transform: `translateY(${v.start}px)` };
           if (row.kind === "header") {

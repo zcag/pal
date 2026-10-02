@@ -120,6 +120,13 @@ export type Item = {
   /** Tab puts this text in the search box (a suggestion completed into the query, which then lists again); without it Tab does what the level says (a filter, a mark). */
   complete?: string;
   /**
+   * This row is the answer to what was typed (a sum, the weather now, a
+   * translation): the list draws it as a headline, taller, the name in the
+   * display type and the subtitle under it. One per palette, first in it.
+   * An app that predates it draws a plain row, so nothing depends on it.
+   */
+  hero?: boolean;
+  /**
    * Anything else rides along untouched (the core keeps unknown keys, the
    * UI ignores them). For a field of your own, a future version of the
    * shape cannot collide with; `pick` does not get it back.

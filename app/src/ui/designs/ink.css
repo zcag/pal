@@ -24,6 +24,9 @@
   --pal-text-lg: 16px;
   --pal-text-xl: 20px;
   --pal-text-query: 30px;
+  --pal-text-hero: 28px;
+  --pal-weight-hero: 700;
+  --pal-hero-h: 72px;
   --pal-weight-query: 700;
   --pal-weight-placeholder: 500;
   --pal-text-placeholder: 20px;
@@ -96,6 +99,8 @@
   --pal-search-h: 48px;
   --pal-text-query: 20px;
   --pal-text-placeholder: 16px;
+  --pal-text-hero: 20px;
+  --pal-hero-h: 52px;
   --pal-row-h: 32px;
   --pal-list-inset: 6px;
   --pal-row-px: 8px;

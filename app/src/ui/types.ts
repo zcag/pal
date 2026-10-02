@@ -84,6 +84,8 @@ export type Item = {
   args?: Arg[];
   /** Tab puts this in the search box (`Item.complete` in the SDK: a suggestion completed into the query). */
   complete?: string;
+  /** The answer to the query, drawn as a headline row (`Item.hero` in the SDK). */
+  hero?: boolean;
   /** Drawn greyed; a pick on it does nothing (a menu row). */
   disabled?: boolean;
   /** Drawn muted but live: the "N more in ..." row after a capped section at the root. */

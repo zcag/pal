@@ -16,3 +16,12 @@ describe("a row's typed arguments", () => {
     expect(acted.actions?.map((a) => a.args)).toEqual([true, undefined]);
   });
 });
+
+describe("an answer row", () => {
+  it("keeps `hero` through the panel's item, and only when it is true (the list draws it as a headline row)", () => {
+    const hit: WireHit = { source: { extension: "calc", palette: "calc" }, id: "result", score: 0, name_positions: [], item: { id: "result", name: "583.67 TRY", hero: true } };
+    expect(toItem(hit, { title: "Calculator" }).hero).toBe(true);
+    expect(toItem({ ...hit, item: { id: "x", name: "x", hero: "yes" } }, { title: "Calculator" }).hero).toBeUndefined();
+    expect(toItem({ ...hit, item: { id: "x", name: "x" } }, { title: "Calculator" }).hero).toBeUndefined();
+  });
+});

@@ -7,7 +7,9 @@
  * (`general.theme_file`) still applies over a design.
  *
  * Hooks: `--pal-text-query`, `--pal-font-query`, `--pal-weight-query`, `--pal-tracking-query`,
- * `--pal-weight-placeholder`, `--pal-text-placeholder` (the search field's text); `--pal-weight-title`, `--pal-tracking-title`
+ * `--pal-weight-placeholder`, `--pal-text-placeholder` (the search field's text);
+ * `--pal-font-hero`, `--pal-weight-hero` (the answer's value, `Item.hero`; its
+ * size and row height are tokens.css's `--pal-text-hero`, `--pal-hero-h`); `--pal-weight-title`, `--pal-tracking-title`
  * (row titles); `--pal-cursor`, `--pal-cursor-fg`, `--pal-cursor-fg-muted`,
  * `--pal-cursor-shadow`, `--pal-cursor-kbd`, `--pal-cursor-kbd-line` (the
  * keyboard cursor: a list row, a grid tile, an action); `--pal-cursor-glide`
