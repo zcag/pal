@@ -2159,3 +2159,35 @@ rows, every row spoke at the same weight, nothing moved with intent.
   / `-reach` for the header glow, `-cursor`, `-crumb`, `-accent`); Ink: 20%
   over 240 px, the cursor 16%, the crumb and caret in full. The colour is
   set inline on the panel, so `var(--pal-brand-*)` resolves per scheme there.
+
+### Designs, round three (2026-10-02)
+
+From a page of before/after mockups Cagdas took six of eight ideas (not soft
+icon tiles) and asked to see Frappé on more screens.
+
+- **Motion is native**: the blur and shadow are the window's, so a CSS
+  fade would leave them. A show fades in over 140 ms dropping 6 pt into
+  place, a hide fades out over 100 ms (AppKit's animator on the window);
+  visibility is a flag, since the alpha passes every value mid-fade.
+- **The fitted panel sizes the window** (`panel_fit`): a page-only height
+  left the window's blur showing below it. Top edge fixed, AppKit animates.
+- **Empty and loading**: a palette query that finds nothing shows the
+  root's fallback rows under "Nothing in X matches"; a listing on its way
+  draws three faint rows.
+- **Actions as a sheet** (Ink): hooks for its position and columns; the
+  fitted panel takes its full height while ⌘K is up.
+- **Headlines in views** (`text` style `headline`): the calendar popover
+  leads with the next event.
+- **Detail header** (`Detail.caption/title/chips/stats`), protocol 3: an
+  extension that moves facts out of the metadata relies on an app that
+  draws the header, so builds from here are offered only to such an app.
+  GitHub's pull request pane is the first.
+- **Glance strip** (`general.glance`, Settings > General): bar items' last
+  renders as cards over the empty root (glance.rs), the extension's title
+  and colour on each; ⌥1–⌥4 or a click is the item's bar click (the panel
+  steps aside, the popover opens under the bar). Up at the top of the root
+  already recalls history, so the strip has its own keys.
+- **Places stay neutral for a near-black brand** (ink, GitHub): its glow
+  and crumb vanished on dark.
+- **Frappé**, a design built on Ink (`base`): `data-design="ink frappe"`,
+  Ink's rules match a word, Frappé's file re-sets colours only.
