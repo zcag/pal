@@ -30,6 +30,37 @@
               "color": "green"
             }
           ],
+          "section": "Current",
+          "detail": {
+            "caption": "Current · en0",
+            "title": "Homenet",
+            "chips": [
+              {
+                "text": "connected",
+                "color": "green"
+              },
+              {
+                "text": "WPA3 Personal",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "92%",
+                "label": "signal"
+              },
+              {
+                "value": "44",
+                "label": "channel"
+              }
+            ],
+            "metadata": [
+              {
+                "label": "IP address",
+                "value": "192.168.1.42"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "copy_ip",
@@ -48,8 +79,7 @@
               "style": "destructive",
               "confirm": "Forget Homenet? Its password goes with it."
             }
-          ],
-          "section": "Current"
+          ]
         },
         {
           "id": "known:Office 5G",
@@ -70,6 +100,32 @@
               "color": "blue"
             }
           ],
+          "section": "Known",
+          "detail": {
+            "caption": "Saved",
+            "title": "Office 5G",
+            "chips": [
+              {
+                "text": "in range",
+                "color": "blue"
+              },
+              {
+                "text": "WPA2 Enterprise",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "61%",
+                "label": "signal"
+              },
+              {
+                "value": "36",
+                "label": "channel"
+              }
+            ],
+            "metadata": []
+          },
           "actions": [
             {
               "id": "join",
@@ -92,8 +148,7 @@
               "style": "destructive",
               "confirm": "Forget Office 5G? Its password goes with it."
             }
-          ],
-          "section": "Known"
+          ]
         },
         {
           "id": "known:Corner Cafe",
@@ -145,6 +200,28 @@
               "text": "▂▄ 48%"
             }
           ],
+          "section": "Available",
+          "detail": {
+            "caption": "In range",
+            "title": "Neighbour_2G",
+            "chips": [
+              {
+                "text": "WPA2 Personal",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "48%",
+                "label": "signal"
+              },
+              {
+                "value": "6",
+                "label": "channel"
+              }
+            ],
+            "metadata": []
+          },
           "actions": [
             {
               "id": "join",
@@ -155,8 +232,7 @@
               "title": "Copy name",
               "shortcut": "cmd+c"
             }
-          ],
-          "section": "Available"
+          ]
         },
         {
           "id": "net:Flat 3B",
@@ -172,6 +248,28 @@
               "text": "▂▄ 35%"
             }
           ],
+          "section": "Available",
+          "detail": {
+            "caption": "In range",
+            "title": "Flat 3B",
+            "chips": [
+              {
+                "text": "WPA2 Personal",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "35%",
+                "label": "signal"
+              },
+              {
+                "value": "11",
+                "label": "channel"
+              }
+            ],
+            "metadata": []
+          },
           "actions": [
             {
               "id": "join",
@@ -182,8 +280,7 @@
               "title": "Copy name",
               "shortcut": "cmd+c"
             }
-          ],
-          "section": "Available"
+          ]
         },
         {
           "id": "net:Guest",
@@ -199,6 +296,28 @@
               "text": "▂▄ 27%"
             }
           ],
+          "section": "Available",
+          "detail": {
+            "caption": "In range",
+            "title": "Guest",
+            "chips": [
+              {
+                "text": "Open",
+                "color": "amber"
+              }
+            ],
+            "stats": [
+              {
+                "value": "27%",
+                "label": "signal"
+              },
+              {
+                "value": "1",
+                "label": "channel"
+              }
+            ],
+            "metadata": []
+          },
           "actions": [
             {
               "id": "join",
@@ -209,8 +328,7 @@
               "title": "Copy name",
               "shortcut": "cmd+c"
             }
-          ],
-          "section": "Available"
+          ]
         },
         {
           "id": "scan",
@@ -302,6 +420,15 @@
         "ctrl+x"
       ],
       "caption": "Forget asks first, since the saved password goes with it"
+    },
+    "5-detail": {
+      "palette": "wifi",
+      "keys": [
+        "wait:300",
+        "cmd+i",
+        "wait:400"
+      ],
+      "caption": "The current network's detail (cmd+I): connected and its security as chips, signal and channel large, then its address"
     }
   }
 }

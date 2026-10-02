@@ -59,6 +59,8 @@ describe("wifi", () => {
     expect(bySection("Current")).toEqual(["current:eldiven"]);
     expect(items[0]).toMatchObject({ name: "eldiven", subtitle: "192.168.1.131 · channel 44 · WPA2", accessories: [{ text: "▂▄▆█ 92%" }, { tag: "connected", color: "green" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["copy_ip", "password", "forget"]);
+    // The detail is the network as a page: connected and its security as chips, signal and channel large, its address under them.
+    expect(items[0].detail).toMatchObject({ title: "eldiven", caption: expect.stringMatching(/^Current · /), chips: [{ text: "connected", color: "green" }, { text: "WPA2", color: "grey" }], stats: [{ value: "92%", label: "signal" }, { value: "44", label: "channel" }], metadata: [{ label: "IP address", value: "192.168.1.131" }] });
     expect(bySection("Known")).toEqual(["known:marvin", "known:Cafe Wifi"]);
     const marvin = items.find((i) => i.id === "known:marvin")!;
     expect(marvin).toMatchObject({ subtitle: "WPA2 · channel 6", accessories: [{ text: "▂▄▆ 60%" }, { tag: "in range", color: "blue" }] });
@@ -66,7 +68,7 @@ describe("wifi", () => {
     expect(marvin.actions![3]).toMatchObject({ style: "destructive", confirm: "Forget, and delete the saved password too?", multi: true });
     expect(items.find((i) => i.id === "known:Cafe Wifi")).toMatchObject({ subtitle: "Saved", accessories: [] });
     expect(bySection("Available")).toEqual(["net:Open Cafe", "net:Neighbour", "scan"]);
-    expect(items.find((i) => i.id === "net:Open Cafe")).toMatchObject({ subtitle: "Open · channel 1", accessories: [{ text: "▂▄▆ 55%" }] });
+    expect(items.find((i) => i.id === "net:Open Cafe")).toMatchObject({ subtitle: "Open · channel 1", accessories: [{ text: "▂▄▆ 55%" }], detail: { caption: "In range", chips: [{ text: "Open", color: "amber" }] } });
     // Only a secured network that is not saved takes a password in the bar: an open one has none, a known one has it saved.
     expect(items.find((i) => i.id === "net:Neighbour")!.args).toEqual([{ id: "password", placeholder: "Password", kind: "password" }]);
     expect(items.find((i) => i.id === "net:Open Cafe")!.args).toBeUndefined();
