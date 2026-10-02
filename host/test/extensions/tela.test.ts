@@ -106,11 +106,13 @@ describe("tela", () => {
       const d = await host.detail("tela", "pages", "page:10");
       expect(d.markdown).not.toContain("summary:");
       expect(d.markdown).toContain("> **Note: Why persist**");
-      expect(d.metadata!.map((m) => m.label)).toEqual(["Space", "Updated", "Created", "Words", "Summary"]);
+      // The header: the space (and the pages over it), the title, the length; the metadata what it does not say.
+      expect(d).toMatchObject({ caption: expect.stringMatching(/^Engineering/), title: "Indexing", stats: [{ label: "words" }] });
+      expect(d.metadata!.map((m) => m.label)).toEqual(["Space", "Updated", "Created", "Summary"]);
       expect(d.metadata![0].link).toEqual({ text: "Engineering", href: `${BASE}/spaces/2` });
       const deck = await host.detail("tela", "pages", "page:12", { args: { space: 2 } });
       expect(deck.markdown!.startsWith(`![first slide](${BASE}/api/deck/d/abc/cover.png)`)).toBe(true);
-      expect(deck.metadata!.find((m) => m.label === "Kind")).toEqual({ label: "Kind", tags: [{ text: "deck", color: "violet" }] });
+      expect(deck.chips).toEqual([{ text: "deck", color: "violet" }]);
     });
 
     test("actions: open remembers the page and opens its slugged url, copy, outline shows the headings, backlinks pushes with the page, read is a view", async () => {
@@ -299,9 +301,11 @@ describe("tela", () => {
     test("every space with its page count from one listing, the default and public tagged; Enter pushes the pages, cmd+n the form with the space", async () => {
       const items = await list("spaces");
       expect(ids(items)).toEqual(["space:1", "space:2", "space:3"]);
-      expect(items[1]).toMatchObject({ name: "Engineering", subtitle: "How the systems are built and run", icon: "\u{f0341}", accessories: [{ tag: "default", color: "blue" }, { text: "4 pages" }, { text: "6 members" }, { date: "2026-09-16T09:00:00Z" }] });
-      expect(items[2]).toMatchObject({ icon: tinted("\u{f01e7}", "teal"), accessories: [{ tag: "public", color: "teal" }, { text: "1 page" }, { text: "2 members" }, { date: "2026-09-10T09:00:00Z" }] });
-      expect(items[0]).toMatchObject({ subtitle: "Your personal space", accessories: [{ tag: "personal", color: "grey" }, { text: "2 pages" }, { date: "2026-09-15T08:00:00Z" }] });
+      expect(items[1]).toMatchObject({ name: "Engineering", subtitle: "How the systems are built and run", icon: "\u{f0341}", accessories: [{ tag: "default", color: "blue" }, { tag: "4 pages", color: "grey" }, { date: "2026-09-16T09:00:00Z" }] });
+      // The icon says public; the pane's header the members.
+      expect(items[2]).toMatchObject({ icon: tinted("\u{f01e7}", "teal"), accessories: [{ tag: "1 page", color: "grey" }, { date: "2026-09-10T09:00:00Z" }] });
+      expect(items[2].detail).toMatchObject({ title: items[2].name, chips: [{ text: "public", color: "teal" }], stats: [{ value: "1", label: "page" }, { value: "2", label: "members" }] });
+      expect(items[0]).toMatchObject({ subtitle: "Your personal space", accessories: [{ tag: "2 pages", color: "grey" }, { date: "2026-09-15T08:00:00Z" }] });
       expect(await pick("spaces", "space:2")).toEqual({ push: { extension: "tela", palette: "pages", args: { space: 2 } } });
       expect(await pick("spaces", "space:2", "open")).toEqual({ open: `${BASE}/spaces/2` });
       expect(((await pick("spaces", "space:3", "new")).form as Form).fields[1]).toMatchObject({ default: "3" });

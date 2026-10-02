@@ -114,11 +114,8 @@ async function pageDetail(id: number): Promise<Detail> {
   const ref = await refOf(id);
   const meta: Metadata[] = [
     { label: "Space", link: { text: ref.space_name ?? String(p.space_id), href: spaceUrl(p.space_id) } },
-    ...(ref.breadcrumb?.length ? [{ label: "Under", value: ref.breadcrumb.join(" › ") }] : []),
-    ...(p.props?.deck === true ? [{ label: "Kind", tags: [{ text: "deck", color: "violet" }] }] : p.props?.sheet === true ? [{ label: "Kind", tags: [{ text: "sheet", color: "teal" }] }] : []),
     { label: "Updated", value: ago(iso(p.updated_at) ?? p.updated_at) },
     { label: "Created", value: dayNameYear(iso(p.created_at) ?? p.created_at) },
-    { label: "Words", value: String(p.body.split(/\s+/).filter(Boolean).length) },
     ...(typeof p.props?.summary === "string" ? [{ label: "Summary", value: truncate(p.props.summary, 300) }] : []),
   ];
   let markdown = paneMarkdown(p.body) || "_Nothing on this page yet._";
@@ -126,7 +123,16 @@ async function pageDetail(id: number): Promise<Detail> {
     const cover = await deckCover(id);
     if (cover) markdown = `![first slide](${cover})\n\n${markdown}`;
   }
-  return { markdown, metadata: meta };
+  const words = p.body.split(/\s+/).filter(Boolean).length;
+  // The header: where it lives (the space and the pages over it), the title, a deck or a sheet as a chip, the length.
+  return {
+    caption: [ref.space_name ?? String(p.space_id), ...(ref.breadcrumb ?? [])].join(" › "),
+    title: p.title,
+    ...(p.props?.deck === true ? { chips: [{ text: "deck", color: "violet" as const }] } : p.props?.sheet === true ? { chips: [{ text: "sheet", color: "teal" as const }] } : {}),
+    stats: [{ value: String(words), label: words === 1 ? "word" : "words" }],
+    markdown,
+    metadata: meta,
+  };
 }
 
 const outlineDetail = (p: Page): Detail => {
@@ -403,15 +409,20 @@ async function spaceRowsAll(refresh: boolean): Promise<Item[]> {
       subtitle: s.description || (s.is_personal ? "Your personal space" : s.visibility === "public" ? "Published, readable without a login" : "Members only"),
       icon: s.visibility === "public" ? tinted(ICON.earth, "teal") : ICON.lock,
       keywords: [s.slug, s.visibility, ...(s.is_personal ? ["personal"] : [])],
+      // Two at most: the default space's tag, the page count (a tag, so it outlasts the time), the time; the icon says public or members only.
       accessories: [
         ...(s.id === def ? [{ tag: "default", color: "blue" }] : []),
-        ...(s.visibility === "public" ? [{ tag: "public", color: "teal" }] : []),
-        ...(s.is_personal ? [{ tag: "personal", color: "grey" }] : []),
-        { text: `${n} page${n === 1 ? "" : "s"}` },
-        ...(s.member_count && s.member_count > 1 ? [{ text: `${s.member_count} members` }] : []),
+        { tag: `${n} page${n === 1 ? "" : "s"}`, color: "grey" },
         ...dateOf(s.updated_at),
       ],
-      detail: { markdown: `# ${s.name}\n\n${s.description || "_No description._"}`, metadata: [{ label: "Slug", value: s.slug }, { label: "Visibility", value: s.visibility }, { label: "Pages", value: String(n) }, ...(s.member_count ? [{ label: "Members", value: String(s.member_count) }] : [])] },
+      detail: {
+        caption: s.is_personal ? "Your personal space" : "Space",
+        title: s.name,
+        chips: [s.visibility === "public" ? { text: "public", color: "teal" } : { text: "members only", color: "grey" }, ...(s.id === def ? [{ text: "default", color: "blue" as const }] : [])],
+        stats: [{ value: String(n), label: n === 1 ? "page" : "pages" }, ...(s.member_count ? [{ value: String(s.member_count), label: s.member_count === 1 ? "member" : "members" }] : [])],
+        markdown: s.description || "_No description._",
+        metadata: [{ label: "Slug", value: s.slug }],
+      },
       actions: SPACE_ACTIONS,
     };
   });
