@@ -24,7 +24,7 @@ describe("designs", () => {
   for (const d of DESIGNS.filter((d) => !d.bare)) {
     it(`${d.id}: the dark blocks set every colour the light one does, the same in both`, () => {
       const text = css(d.id);
-      const light = block(text, `[data-design~="${d.id}"],\n[data-design~="${d.id}"] [data-theme="light"]`);
+      const light = block(text, `[data-design~="${d.id}"],\n[data-design~="${d.id}"][data-theme="light"],\n[data-design~="${d.id}"] [data-theme="light"]`);
       const media = block(text, `  [data-design~="${d.id}"]:not([data-theme="light"])`);
       const pinned = block(text, `[data-design~="${d.id}"][data-theme="dark"],\n[data-design~="${d.id}"] [data-theme="dark"]`);
       const colours = [...light].filter(([, v]) => colourish(v)).map(([k]) => k);

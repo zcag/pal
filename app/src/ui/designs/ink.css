@@ -59,7 +59,6 @@
   --pal-row-hints: flex;
   --pal-footer-at-row: none;
   --pal-footer-at-row-h: 0px;
-  --pal-backdrop: none;
   --pal-panel-fit: on;
   --pal-acc-max: 2;
   --pal-glance: grid;
@@ -78,9 +77,11 @@
 }
 
 [data-design~="ink"],
+[data-design~="ink"][data-theme="light"],
 [data-design~="ink"] [data-theme="light"] {
   --pal-bg: #FFFFFF;
   --pal-bg-glass: #FFFFFF;
+  --pal-backdrop: none;
   --pal-bg-elevated: #FFFFFF;
   --pal-bg-sunken: #F2F2F0;
   --pal-fg: #141418;
@@ -144,6 +145,7 @@
     /* dark */
     --pal-bg: #1B1B20;
     --pal-bg-glass: #1B1B20;
+    --pal-backdrop: none;
     --pal-bg-elevated: #24242A;
     --pal-bg-sunken: #141418;
     --pal-fg: #F3F3F1;
@@ -174,6 +176,7 @@
 [data-design~="ink"] [data-theme="dark"] {
   --pal-bg: #1B1B20;
   --pal-bg-glass: #1B1B20;
+  --pal-backdrop: none;
   --pal-bg-elevated: #24242A;
   --pal-bg-sunken: #141418;
   --pal-fg: #F3F3F1;
