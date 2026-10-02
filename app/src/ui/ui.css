@@ -333,7 +333,7 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 /* Action panel */
 .pal-scrim { position: absolute; inset: var(--pal-search-h) 0 0; background: var(--pal-scrim); animation: pal-fade var(--pal-dur-base) var(--pal-ease); }
 .pal-panel[data-footer] .pal-scrim { bottom: var(--pal-footer-room); }
-/* A design can make it a sheet across the panel (`--pal-actions-left`, `--pal-actions-w: auto`, `--pal-actions-cols` for columns). */
+/* A design can make it a sheet across the panel (`--pal-actions-left`, `--pal-actions-w: auto`, `--pal-actions-cols`: how many columns the sections flow into, each section whole). */
 .pal-actions {
   position: absolute;
   left: var(--pal-actions-left, auto);
@@ -350,8 +350,11 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
   transform-origin: 100% 100%;
   animation: pal-pop var(--pal-dur-base) var(--pal-ease);
 }
-.pal-actions__list { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pal-space-2); display: grid; grid-template-columns: var(--pal-actions-cols, minmax(0, 1fr)); column-gap: var(--pal-space-2); align-content: start; }
-.pal-actions__list > :is(.pal-actions__title, .pal-actions__section, .pal-actions__none) { grid-column: 1 / -1; }
+.pal-actions__list { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pal-space-2); }
+/* The sections flow down one column, then the next (Up/Down follow that order, Left/Right cross); the list around them scrolls. */
+.pal-actions__cols { columns: var(--pal-actions-cols, 1); column-gap: var(--pal-space-3); }
+.pal-actions__group { break-inside: avoid; }
+.pal-actions__group + .pal-actions__group { padding-top: var(--pal-space-1); }
 .pal-actions__title { padding: var(--pal-space-1) var(--pal-space-2) var(--pal-space-2); color: var(--pal-fg-muted); font-size: var(--pal-text-xs); font-weight: var(--pal-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pal-actions__section { padding-left: var(--pal-space-2); }
 .pal-action {
