@@ -33,7 +33,7 @@ model, copyright and artist).
 | keys | action | writes |
 | --- | --- | --- |
 | `enter` | Compress | `name-compressed.ext`, lossy at `quality`; a file no encoder can shrink writes nothing and says so |
-| `cmd+enter` | Optimise for web | `name-web.ext` (or `.webp` / `.avif` per `web_format`): the long side capped at `web_max`, encoded at `quality`, metadata stripped; a view with the before and after of every image, the saving as a tag, a bar, and the total at the foot; the view follows a long batch as it lands |
+| `cmd+enter` | Optimise for web | `name-web.ext` (or `.webp` / `.avif` per `web_format`): the long side capped at `web_max`, encoded at `quality`, metadata stripped; a view with the before and after of every image, the saving as a tag, a bar, and the total saved as its headline; the view follows a long batch as it lands |
 | `cmd+l` | Compress losslessly | `name-compressed.ext`, the pixels untouched |
 | `cmd+t` | Compress with TinyPNG | `name-compressed.ext` through the API (with a key) |
 | `cmd+shift+r` | Resize… | a level: half, quarter, double, fit in 2000 or 1000, widths, a height; or type `800`, `x600`, `800x600` (fit inside), `50%`, `2x`. `name@0.5x.ext`, `name-800w.ext`, `name-800x600.ext`; `@2x` strips an existing `@Nx` from the stem, half of an `@2x` stem is the bare name |
