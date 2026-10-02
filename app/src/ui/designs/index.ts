@@ -20,7 +20,9 @@
  * (the back button); `--pal-row-hints` (`flex` draws the footer's keys on
  * the cursor row) with `--pal-footer-at-row` (`none` drops the footer then)
  * and `--pal-footer-at-row-h` (the room the overlays keep for it then);
- * `--pal-panel-fit` (`on`: a list level takes only the height its rows need).
+ * `--pal-panel-fit` (`on`: a list level takes only the height its rows need);
+ * `--pal-acc-max` (the most accessories a row shows, the rest dropped in
+ * Row's `accessoryDropOrder`).
  */
 import "./ink.css";
 

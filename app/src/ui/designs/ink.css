@@ -60,6 +60,7 @@
   --pal-footer-at-row-h: 0px;
   --pal-backdrop: none;
   --pal-panel-fit: on;
+  --pal-acc-max: 2;
   --pal-cursor-glide: block;
   --pal-cursor-row: transparent;
   --pal-cursor-row-shadow: none;

@@ -114,6 +114,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
               ordinal={ordinals || cmdHeld ? i + 1 : undefined}
               marked={marked?.(row.items[0])}
               hints={i === cursor ? hints : undefined}
+              maxAccessories={metrics.accMax}
               onHover={hover(i)}
               onClick={clickRow(i, { onPick, onToggle, onRange })}
             />

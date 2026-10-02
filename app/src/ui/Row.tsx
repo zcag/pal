@@ -71,13 +71,15 @@ const TITLE_MIN = 96, TITLE_SHARE = 0.4;
  * accessory (in `accessoryDropOrder`) goes until the title is at least
  * `min(its text, TITLE_MIN | TITLE_SHARE of the row)`. Each step is a layout
  * effect, so nothing paints mid-way. A resize, a new item or the ordinal
- * appearing starts over from the full set.
+ * appearing starts over from the full set, less what `max` (a design's
+ * `--pal-acc-max`) drops up front, in the same order.
  */
-function useFitAccessories(item: Item, ordinal: boolean, row: RefObject<HTMLElement | null>, title: RefObject<HTMLElement | null>) {
+function useFitAccessories(item: Item, ordinal: boolean, row: RefObject<HTMLElement | null>, title: RefObject<HTMLElement | null>, max = Infinity) {
   const order = useMemo(() => accessoryDropOrder(item.accessories), [item.accessories]);
+  const over = Math.min(order.length, Math.max(0, (item.accessories?.length ?? 0) - max));
   const [width, setWidth] = useState(0);
   const [fit, setFit] = useState({ item, width, ordinal, dropped: 0 });
-  const dropped = fit.item === item && fit.width === width && fit.ordinal === ordinal ? fit.dropped : 0;
+  const dropped = Math.max(over, fit.item === item && fit.width === width && fit.ordinal === ordinal ? fit.dropped : 0);
   useLayoutEffect(() => {
     const el = row.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -108,18 +110,20 @@ export type RowProps = {
   marked?: boolean;
   /** The footer's keys, drawn on the cursor row when a design shows them there (`--pal-row-hints`); hidden by default. */
   hints?: ReactNode;
+  /** The most accessories the row shows (a design's `--pal-acc-max`, List's metrics); the rest go in `accessoryDropOrder`. */
+  maxAccessories?: number;
 };
 
 /** The check a marked row or tile ends in (md-check_circle in the bundled Nerd Font). */
 export const CHECK = "\u{f05e0}";
 
-export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked, hints }: RowProps) {
+export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked, hints, maxAccessories }: RowProps) {
   const row = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLSpanElement>(null);
   const showOrdinal = ordinal !== undefined && ordinal <= 9;
   const withHints = !!(active && hints);
   // The keys on the row (a design's `--pal-row-hints`) take width like the ordinal does: either starts the fit over.
-  const hidden = useFitAccessories(item, showOrdinal || withHints, row, title);
+  const hidden = useFitAccessories(item, showOrdinal || withHints, row, title, maxAccessories);
   return (
     <div ref={row} id={id} role="option" aria-selected={!!active} aria-checked={marked || undefined} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-marked={marked || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} data-hero={item.hero || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
       <Icon icon={item.icon} />
