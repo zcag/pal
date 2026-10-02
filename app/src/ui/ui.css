@@ -103,13 +103,17 @@
 }
 .pal-search__filter .pal-search__chevron { position: absolute; right: var(--pal-space-2); pointer-events: none; }
 /* Loading: the level waiting on a listing, or a popover showing its item's last render while the fresh one is asked for (BarPage `refreshing`). */
+/* Quiet: a hairline, half strength, a slow sweep. A design can move it to the panel's top edge (`--pal-loading-top: 0`, `--pal-loading-bottom: auto`), clear of what sits under the search row. */
 .pal-search[data-loading]::after, .pal-bar-page[data-refreshing] .pal-search::after {
   content: "";
   position: absolute;
-  left: 0; right: 0; bottom: -1px;
-  height: 2px;
+  left: 0; right: 0;
+  top: var(--pal-loading-top, auto);
+  bottom: var(--pal-loading-bottom, -1px);
+  height: 1px;
   background: linear-gradient(90deg, transparent, var(--pal-accent), transparent);
-  animation: pal-sweep 1.1s var(--pal-ease) infinite;
+  opacity: 0.55;
+  animation: pal-sweep 1.6s var(--pal-ease) infinite;
 }
 @keyframes pal-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 

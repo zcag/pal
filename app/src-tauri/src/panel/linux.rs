@@ -48,8 +48,8 @@ pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result
     w.set_size(size)
 }
 
-/// A window to its frame (`popover::set_height`): no animation here.
-pub fn glide(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
+/// A window to its frame (`popover::set_frame`).
+pub fn set_frame(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
     let _ = w.set_size(tauri::LogicalSize::new(width, height));
     let _ = w.set_position(tauri::LogicalPosition::new(x, y));
 }
@@ -229,6 +229,13 @@ pub fn bar_show(app: &AppHandle, label: &'static str, engaged: bool) {
         let _ = webview.set_focus();
     }
 }
+
+/// No veil here: shown at once (`bar_reveal` has nothing to do).
+pub fn bar_show_veiled(app: &AppHandle, label: &'static str, engaged: bool) {
+    bar_show(app, label, engaged);
+}
+
+pub fn bar_reveal(_app: &AppHandle, _label: &'static str) {}
 
 pub fn bar_hide(app: &AppHandle, label: &'static str) {
     if let Some(w) = app.get_webview_window(label) {

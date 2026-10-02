@@ -55,6 +55,10 @@ function levelOf(p: BarShow): Level {
  */
 /** The most the loading line runs for a render on open that never comes back. */
 const REFRESH_WAIT = 8000;
+/** The level's body as text: what tells the new item's content from the last one's. */
+const bodyText = (el: HTMLElement) => el.querySelector(".pal-panel__main")?.textContent ?? "";
+/** What a level has drawn once its content is in (rows, tiles, a view, an empty state, a detail, a form): a fresh item is reported ready then. */
+const DRAWN = ".pal-row, .pal-tile, .pal-view__node, .pal-empty, .pal-detail, .pal-form-level";
 
 export default function BarPage() {
   const core = useCore(hide);
@@ -62,6 +66,26 @@ export default function BarPage() {
   const [show, setShow] = useState<BarShow | null>(null);
   const showing = useRef<BarShow | null>(null);
   const page = useRef<HTMLDivElement>(null);
+  /**
+   * A fresh item opens veiled (popover.rs `show`): once its level, committed
+   * after the show, has drawn something and the window has taken its height,
+   * `bar_ready` fades it in. The key of the item still to report, if any.
+   */
+  const unreported = useRef<string | null>(null);
+  const before = useRef<{ text: string; same: boolean }>({ text: "", same: false });
+  /** The item the page last drew, across hides: reopening it shows the same content, ready at once. */
+  const lastShown = useRef<string | null>(null);
+  const lastKey = useRef<string | null>(null);
+  const remeasure = useRef<() => void>(() => {});
+  useEffect(() => {
+    // Hidden, then the same item again, is a fresh show too (the core veils it).
+    if (!show) { lastKey.current = null; return; }
+    if (show.key === lastKey.current) return;
+    lastKey.current = show.key;
+    unreported.current = show.key;
+    // Already drawn by now (a level whose content was at hand): no mutation would come to report it.
+    remeasure.current();
+  }, [show]);
   // An item that renders on open shows its last render first (`refreshing`): the loading line runs until the fresh one lands, or for at most REFRESH_WAIT if it never does.
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
@@ -81,6 +105,9 @@ export default function BarPage() {
       // One line in the log per show: which item, peek or engaged, and whether its level is replaced in place (a lost show is otherwise invisible in a release build).
       mark(`bar show ${p.key} ${p.engaged ? "engaged" : "peek"}${showing.current?.key === p.key ? " again" : ""}`, 0);
       const inPlace = showing.current?.key === p.key && menuKind(showing.current.menu) === menuKind(p.menu) && !!showing.current.effect === !!p.effect;
+      // What is on screen as the switch starts: the new item is reported drawn once its body says something else (`measure`).
+      if (showing.current?.key !== p.key && page.current) before.current = { text: bodyText(page.current), same: lastShown.current === p.key };
+      lastShown.current = p.key;
       showing.current = p;
       setShow(p);
       launcher.current?.start(levelOf(p), inPlace);
@@ -100,9 +127,19 @@ export default function BarPage() {
       raf = 0;
       // The chrome as drawn: the sidebar hides its field while peeking and has no footer, so the popover's fixed sum would leave a gap.
       const chrome = sidebar ? (el.querySelector<HTMLElement>(".pal-panel__search")?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>(".pal-footer")?.offsetHeight ?? 0) : POPOVER_CHROME;
-      invoke("bar_size", { height: popoverHeight(el, chrome, MAX_HEIGHT) });
+      const height = popoverHeight(el, chrome, MAX_HEIGHT);
+      const sized = invoke("bar_size", { height });
+      // A fresh item drawn: once the webview has the new height laid out (a frame or two after the window took it) and two more frames have painted it (WebKit's layer lags the window's size by one), the popover is told to show.
+      // The new item's content, not the last one's still on screen: the body says something else now (or it is the same item again).
+      if (unreported.current && el.querySelector(DRAWN) && (before.current.same || bodyText(el) !== before.current.text)) {
+        unreported.current = null;
+        let frames = 0;
+        const settle = () => (Math.abs(window.innerHeight - height) <= 1 || ++frames > 12 ? requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => invoke("bar_ready").catch(() => {})))) : requestAnimationFrame(settle));
+        sized.finally(() => requestAnimationFrame(settle));
+      }
     };
     const mo = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(measure); });
+    remeasure.current = () => { if (!raf) raf = requestAnimationFrame(measure); };
     mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     measure();
     return () => { mo.disconnect(); cancelAnimationFrame(raf); };

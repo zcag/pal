@@ -395,6 +395,7 @@ pub fn run() {
             dialog::dialog_detect,
             compact::panel_mode,
             compact::panel_fit,
+            bar::popover::bar_ready,
             glance::glance_items,
             glance::glance_open,
             large::large_hide,

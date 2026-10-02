@@ -926,7 +926,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (level.kind === "palette" && byKey.get(level.palette)?.view === "view") level = { kind: "view", palette: level.palette, args: level.args };
     // In place, a view level of the same palette keeps the tree it has (the item rendered again must not blank it while a fresh tree is asked for).
     if (inPlace) return nav.patch((v, depth) => (depth !== 1 ? v : level.kind === "view" && v.kind === "view" && v.palette === level.palette ? { ...level, spec: level.spec ?? v.spec } : level));
-    nav.restart(level); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setReportSeq((n) => n + 1); input.current?.focus();
+    // A new level starts with no rows: the previous one's would show under its header until the new search answers.
+    nav.restart(level); setFound([]); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setReportSeq((n) => n + 1); input.current?.focus();
   }, [nav.restart, nav.patch, cur.reset, byKey]);
   /** Whether a push names this level, by its identity as `open` reports it: a source's palette, else a bar item's key; a palette and a bar item of one name never cross. */
   const names = useCallback((v: Level, u: ViewUpdate): v is Extract<Level, { kind: "view" }> & { spec: ViewSpec } => {

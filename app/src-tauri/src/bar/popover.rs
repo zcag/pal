@@ -45,13 +45,17 @@ use std::time::Duration;
 
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use super::{drawn, entry, split_key, Rect};
 use crate::{events, lock, panel, settings};
 
 pub const WINDOW: &str = "bar";
 pub const WIDTH: f64 = 420.0;
+/// Bumped by each veiled show (`show`); a fallback reveal fires only if no later show came.
+static REVEAL_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// The most a fresh item stays veiled when the page never says it is drawn.
+const REVEAL_MAX: Duration = Duration::from_millis(400);
 pub const MAX_HEIGHT: f64 = 480.0;
 /// Between the anchor's bottom edge and the popover.
 pub const GAP: f64 = 8.0;
@@ -461,15 +465,27 @@ fn show(app: &AppHandle, key: &str, engaged: bool, effect: Option<Value>) {
     crate::views::set_visible(app, WINDOW, true, first);
     events::emit_to(app, WINDOW, events::BAR, p);
     let handle = app.clone();
+    // A fresh item shows veiled until the page has drawn it at its size (`bar_ready`), so the last item's content, an empty frame or rows squeezed into the old size never show; at most `REVEAL_MAX` later it shows anyway.
+    let veil = first.then(|| REVEAL_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1);
     let _ = app.run_on_main_thread(move || {
         place_window(&handle);
-        panel::bar_show(&handle, WINDOW, engaged);
+        if veil.is_some() { panel::bar_show_veiled(&handle, WINDOW, engaged) } else { panel::bar_show(&handle, WINDOW, engaged) }
         if engaged {
             keys::stop(WINDOW);
         } else {
             keys::start(WINDOW, |app| feed(app, Input::Key), &handle);
         }
     });
+    if let Some(gen) = veil {
+        let handle = app.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(REVEAL_MAX).await;
+            if REVEAL_GEN.load(std::sync::atomic::Ordering::SeqCst) == gen {
+                eprintln!("bar\tpopover\treveal\tthe page did not report in {} ms", REVEAL_MAX.as_millis());
+                panel::bar_reveal(&handle, WINDOW);
+            }
+        });
+    }
     eprintln!("bar\tpopover\t{}\t{key}", if engaged { "engaged" } else { "peek" });
     if first {
         super::shown(app, key);
@@ -549,27 +565,18 @@ pub(crate) fn displays(app: &AppHandle) -> (Vec<Display>, usize) {
 
 /// Size and place the window for what is showing (main thread).
 fn place_window(app: &AppHandle) {
-    place_window_animated(app, false);
-}
-
-fn place_window_animated(app: &AppHandle, animate: bool) {
     let st = app.state::<Popover>();
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let anchor = lock(&st.showing).as_ref().and_then(|s| s.anchor);
     let h = lock(&st.height).clamp(80.0, MAX_HEIGHT);
     let (ds, under) = displays(app);
     let (x, y) = place(anchor, (WIDTH, h), &ds, under);
-    if animate {
-        panel::glide(&w, (x, y, WIDTH, h));
-    } else {
-        set_frame(&w, (x, y, WIDTH, h));
-    }
+    set_frame(&w, (x, y, WIDTH, h));
 }
 
-/// Size and position a popover-kind window (main thread).
-pub(crate) fn set_frame(w: &tauri::WebviewWindow, (x, y, width, h): (f64, f64, f64, f64)) {
-    let _ = w.set_size(LogicalSize::new(width, h));
-    let _ = w.set_position(LogicalPosition::new(x, y));
+/// Size and position a popover-kind window in one change (main thread).
+pub(crate) fn set_frame(w: &tauri::WebviewWindow, frame: (f64, f64, f64, f64)) {
+    panel::set_frame(w, frame);
 }
 
 // ---- what the targets, the CLI and the page feed ---------------------------
@@ -692,9 +699,8 @@ pub fn on_item_gone(app: &AppHandle, key: &str) {
 pub fn set_height(app: &AppHandle, height: f64) {
     *lock(&app.state::<Popover>().height) = height.clamp(80.0, MAX_HEIGHT);
     if is_visible(app) {
-        // Up already: the new height glides (a fresh render's longer list does not snap the window).
         let handle = app.clone();
-        let _ = app.run_on_main_thread(move || place_window_animated(&handle, true));
+        let _ = app.run_on_main_thread(move || place_window(&handle));
     }
 }
 
@@ -714,6 +720,15 @@ pub fn bar_hide(app: AppHandle, window: tauri::Window) {
         crate::sidebar::hide(&app);
     } else {
         hide(&app);
+    }
+}
+
+/// The page drew a fresh item at its size: the veiled popover fades in (`show`).
+#[tauri::command]
+pub fn bar_ready(app: AppHandle, window: tauri::Window) {
+    if !from_sidebar(&window) {
+        REVEAL_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst); // the fallback stands down
+        panel::bar_reveal(&app, WINDOW);
     }
 }
 

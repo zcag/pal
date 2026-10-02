@@ -22,6 +22,7 @@
  * and `--pal-footer-at-row-h` (the room the overlays keep for it then);
  * `--pal-panel-fit` (`on`: a list level takes only the height its rows need);
  * `--pal-glance` (`grid`: the glance strip over the empty root, `general.glance`);
+ * `--pal-loading-top`, `--pal-loading-bottom` (where the loading line runs);
  * `--pal-acc-max` (the most accessories a row shows, the rest dropped in
  * Row's `accessoryDropOrder`); `--pal-place-wash`, `--pal-place-reach`,
  * `--pal-place-cursor`, `--pal-place-crumb`, `--pal-place-accent` (how much a

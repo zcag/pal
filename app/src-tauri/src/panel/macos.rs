@@ -88,10 +88,11 @@ pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result
 }
 
 /// A window to `x, y, width, height` (logical, top-left origin, as tauri
-/// places it), animated by AppKit: a popover whose content grew or shrank
-/// glides to its new frame instead of snapping (size and position at once).
-/// Main thread.
-pub fn glide(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
+/// places it) in one AppKit frame change: size and position together, so a
+/// popover never shows a frame at its new size in its old place. Not
+/// animated: during an animated resize the page stays pinned to the
+/// window's bottom edge, so its content slid as the popover grew. Main thread.
+pub fn set_frame(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
     use objc2_app_kit::{NSScreen, NSWindow};
     use objc2_foundation::{MainThreadMarker, NSPoint, NSRect, NSSize};
     let (Ok(ptr), Some(mtm)) = (w.ns_window(), MainThreadMarker::new()) else { return };
@@ -99,7 +100,7 @@ pub fn glide(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
     // AppKit's origin is the primary screen's bottom-left.
     let hinge = NSScreen::screens(mtm).iter().next().map_or(0.0, |s| s.frame().size.height);
     let to = NSRect::new(NSPoint::new(x, hinge - y - height), NSSize::new(width, height));
-    ns.setFrame_display_animate(to, true, true);
+    ns.setFrame_display(to, true);
 }
 
 /// The panel to `size` (points) with its top edge where it is, animated by
@@ -775,6 +776,42 @@ mod bar {
         });
     }
 
+    /// Show `label` as `show` does but veiled: ordered front (and key when
+    /// `engaged`) at an alpha no eye sees, for a page that is about to draw
+    /// another item; `reveal` fades it in once the page says it is drawn at
+    /// its size (`popover::bar_ready`). Not zero, so the window counts as up
+    /// for `hide`.
+    pub fn show_veiled(app: &AppHandle, label: &'static str, engaged: bool) {
+        show(app, label, engaged);
+        super::on_main(app, move |app| {
+            if let Ok(p) = app.get_webview_panel(label) {
+                p.set_alpha_value(VEIL);
+            }
+        });
+    }
+
+    /// The alpha of a veiled window: up, but not seen.
+    const VEIL: f64 = 0.001;
+
+    /// A veiled window fades in (AppKit's animator, so its blur and shadow too); a no-op for one already shown.
+    pub fn reveal(app: &AppHandle, label: &'static str) {
+        super::on_main(app, move |app| {
+            let Ok(p) = app.get_webview_panel(label) else { return };
+            let p = p.as_panel();
+            if p.alphaValue() > VEIL * 2.0 {
+                return;
+            }
+            unsafe {
+                let _: () = msg_send![objc2::class!(NSAnimationContext), beginGrouping];
+                let ctx: *mut AnyObject = msg_send![objc2::class!(NSAnimationContext), currentContext];
+                let _: () = msg_send![ctx, setDuration: 0.09f64];
+                let anim: *mut AnyObject = msg_send![p, animator];
+                let _: () = msg_send![anim, setAlphaValue: 1.0f64];
+                let _: () = msg_send![objc2::class!(NSAnimationContext), endGrouping];
+            }
+        });
+    }
+
     pub fn hide(app: &AppHandle, label: &'static str) {
         super::on_main(app, move |app| {
             let Ok(p) = app.get_webview_panel(label) else { return };
@@ -790,7 +827,7 @@ mod bar {
     }
 }
 
-pub use bar::{hide as bar_hide, install as bar_install, show as bar_show};
+pub use bar::{hide as bar_hide, install as bar_install, reveal as bar_reveal, show as bar_show, show_veiled as bar_show_veiled};
 
 /// A click into a peeking popover or sidebar must be the click, not the
 /// one that only makes the window key: AppKit asks the view under the
