@@ -248,7 +248,8 @@ describe("github", () => {
       const [a, draft, review, merged] = items;
       expect(a).toMatchObject({ name: "Directory readiness", subtitle: "acme/widgets #71", url: "https://github.com/acme/widgets/pull/71", icon: tinted("\uf407", "green") });
       expect(a.keywords).toEqual(expect.arrayContaining(["widgets", "acme/widgets", "#71", "zcag", "feat-71"]));
-      expect(tags(a)).toEqual(["checks ✓", "review", "conflicts"]);
+      // The pressing tags first: a row shows two at most.
+      expect(tags(a)).toEqual(["conflicts", "checks ✓", "review"]);
       expect(a.accessories!.at(-1)).toEqual({ date: "2026-09-15T10:00:00Z" });
       expect(draft.icon).toEqual(tinted("\uf4dd", "slate"));
       expect(tags(draft)).toEqual(["draft"]);
@@ -351,7 +352,10 @@ describe("github", () => {
       expect(items.slice(1).map((i) => i.section)).toEqual(["Assigned", "Mentioned", "Created"]);
       const crash = items[1];
       expect(crash).toMatchObject({ name: "Crash on start", subtitle: "acme/widgets #5", icon: tinted("\uf41b", "green") });
-      expect(crash.accessories).toEqual([{ tag: "bug", color: "grey" }, { tag: "p1", color: "grey" }, { text: "3 comments" }, { date: "2026-09-14T10:00:00Z" }]);
+      // Two at most: the first label (closed when it is), the date; the pane's header says the rest.
+      expect(crash.accessories).toEqual([{ tag: "bug", color: "grey" }, { date: "2026-09-14T10:00:00Z" }]);
+      expect(crash.detail).toMatchObject({ caption: "acme/widgets · #5", title: "Crash on start", chips: [{ text: "open", color: "green" }, { text: "bug", color: "grey" }, { text: "p1", color: "grey" }, { text: "x", color: "grey" }], stats: [{ value: "3", label: "comments" }] });
+      expect(crash.detail!.metadata!.map((m) => m.label)).not.toContain("State");
       expect(crash.keywords).toEqual(expect.arrayContaining(["widgets", "#5", "alice", "bug"]));
       expect(crash.actions!.map((a) => a.id)).toEqual(["open", "copy", "ref", "mute", "ignore", "close", "unmute"]);
       expect(crash.actions![5]).toMatchObject({ style: "destructive", confirm: "Close on GitHub?", multi: true });
@@ -478,10 +482,11 @@ describe("github", () => {
     test("unread only, a summary row with the count first, then sections by reason in a fixed order; subject urls resolved", async () => {
       const items = await list("notifications");
       expect(ids(items)).toEqual(["summary", "thread:1002", "thread:1003", "thread:1001"]);
-      expect(items[0]).toMatchObject({ name: "3 unread notifications", accessories: [{ tag: "3", color: "blue" }] });
+      expect(items[0]).toMatchObject({ name: "3 unread notifications" });
+      expect(items[0].accessories).toBeUndefined();
       expect(items[0].actions!.map((a) => a.id)).toEqual(["open", "read-all"]);
       expect(items.slice(1).map((i) => i.section)).toEqual(["Review requested", "Mentioned", "Subscribed"]);
-      expect(items[1]).toMatchObject({ name: "Fix the parser", subtitle: "acme/api", url: "https://github.com/acme/api/pull/9", accessories: [{ tag: "PR", color: "grey" }, { date: "2026-09-15T09:00:00Z" }] });
+      expect(items[1]).toMatchObject({ name: "Fix the parser", subtitle: "acme/api", url: "https://github.com/acme/api/pull/9", accessories: [{ date: "2026-09-15T09:00:00Z" }] });
       expect(items[2].url).toBe("https://github.com/acme/widgets/issues/5");
       expect(items[3].url).toBe("https://github.com/acme/api/releases");
       expect(items[1].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "read-all"]);
@@ -667,7 +672,9 @@ describe("github", () => {
       // Space: the issue behind the thread read in full, under what the inbox says of it.
       const pv = await host.barAction("github", "notifications", "preview", ctx) as { show: { title: string; markdown: string; metadata: { label: string }[]; actions: { id: string }[] } };
       expect(pv.show.actions.map((a) => a.id)).toEqual(["open", "read", "copy"]);
-      expect(pv.show.metadata.map((m) => m.label)).toContain("Reason");
+      // The header the issue's own pane has, why it is in the inbox as the first chip; the metadata only what the header does not say.
+      expect(pv.show).toMatchObject({ caption: "acme/widgets · #5", chips: [{ text: "mentioned", color: "red" }], stats: [{ label: expect.stringMatching(/^comments?$/) }] });
+      expect(pv.show.metadata.map((m) => m.label)).toEqual(["Repository", "Updated"]);
       expect(pv.show.markdown).not.toMatch(/^(# |_)/);
       // Enter on the focused thread (1003): marked read on the way to the browser.
       expect(await host.barAction("github", "notifications", "open", ctx)).toEqual({ open: "https://github.com/acme/widgets/issues/5" });
