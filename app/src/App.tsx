@@ -21,6 +21,13 @@ export default function App() {
   const prefs = usePrefs();
   const launcher = useRef<LauncherHandle>(null);
 
+  // A design that fits the panel to its rows (`--pal-panel-fit`) leaves the window's lower part bare; the window still takes the click there, so it hides, as a click beside the panel does.
+  useEffect(() => {
+    const down = (e: MouseEvent) => { if (e.target instanceof Element && !e.target.closest(".pal-panel, .pal-confirm, .pal-toast")) hide(); };
+    document.addEventListener("mousedown", down);
+    return () => document.removeEventListener("mousedown", down);
+  }, []);
+
   // A trigger (`pal://trigger`: a copy recorded, the network back) lists the palette showing again when it asks for that one under `on` (a view's are re-asked in the Launcher).
   useEffect(() => {
     const un = listen<{ name: string }>("pal://trigger", (e) => { const s = showing.current; if (s && s.view !== "view" && s.on?.includes(e.payload.name)) bump(); });

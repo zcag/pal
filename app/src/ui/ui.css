@@ -17,6 +17,8 @@
   font-weight: var(--pal-weight-regular);
   line-height: var(--pal-leading-ui);
 }
+/* A design with `--pal-panel-fit: on` sizes the panel to its rows (Panel.tsx `useFit`): the height glides. */
+.pal-panel[data-fit] { transition: height var(--pal-dur-slow) var(--pal-ease); }
 .pal-panel__search { position: relative; flex: none; border-bottom: 1px solid var(--pal-search-line, var(--pal-line)); }
 .pal-panel__body { flex: 1; display: flex; min-height: 0; }
 /* Detail pane open / close: the list narrows over --pal-dur-slow (brief: a layout change wants continuity); the pane fades in over the same time. */
@@ -55,7 +57,7 @@
   caret-color: var(--pal-caret, var(--pal-accent));
   outline: none;
 }
-.pal-search__input::placeholder { color: var(--pal-fg-faint); font-weight: var(--pal-weight-placeholder, inherit); }
+.pal-search__input::placeholder { color: var(--pal-fg-faint); font-size: var(--pal-text-placeholder, inherit); font-weight: var(--pal-weight-placeholder, inherit); letter-spacing: normal; }
 /* Compact mode: the primary hint and the marked count on the search row's right, drawn as the footer draws them, a size down. */
 .pal-search__hint { flex: none; height: var(--pal-control-h); margin-right: calc(var(--pal-space-2) * -1); font-size: var(--pal-text-xs); }
 .pal-search__count { flex: none; font-size: var(--pal-text-xs); }
@@ -133,7 +135,9 @@
   cursor: default;
 }
 /* The keyboard cursor (a list row, a grid tile, an action): the selection tint, unless a design (designs/*.css) gives it its own fill, inks and shadow. */
-.pal-row[data-active] { background: var(--pal-cursor, var(--pal-selection)); color: var(--pal-cursor-fg, currentColor); box-shadow: var(--pal-cursor-shadow, none); }
+.pal-row[data-active] { background: var(--pal-cursor-row, var(--pal-cursor, var(--pal-selection))); color: var(--pal-cursor-fg, currentColor); box-shadow: var(--pal-cursor-row-shadow, var(--pal-cursor-shadow, none)); }
+/* A design with `--pal-cursor-glide: block` draws the cursor's fill once, under the rows, and moves it (List.tsx); it sets `--pal-cursor-row: transparent` and `--pal-cursor-row-shadow: none` so the row itself paints none. */
+.pal-list__cursor { position: absolute; top: 0; left: var(--pal-list-inset); width: calc(100% - var(--pal-list-inset) * 2); display: var(--pal-cursor-glide, none); border-radius: var(--pal-radius-row); background: var(--pal-cursor, var(--pal-selection)); box-shadow: var(--pal-cursor-shadow, none); transition: transform var(--pal-dur-base) var(--pal-ease), height var(--pal-dur-base) var(--pal-ease); pointer-events: none; }
 /* A marked row (multi-select) is tinted in the accent and ends in a check; under the cursor the tint deepens. */
 .pal-row[data-marked] { background: var(--pal-accent-soft); }
 .pal-row[data-marked][data-active] { box-shadow: inset 0 0 0 1px var(--pal-accent); }
