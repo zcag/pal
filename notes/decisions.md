@@ -2152,3 +2152,10 @@ rows, every row spoke at the same weight, nothing moved with intent.
   front in `accessoryDropOrder`, the order the narrow-row fit already used.
 - List metrics now re-measure when `data-design` / `data-density` flip on a
   mounted list (it measured once per mount, stale after a flip).
+- **Places** (Cagdas picked "glow" of whisper / glow / field, 2026-10-02):
+  inside a palette the panel carries `--pal-place`, its extension's tile
+  colour (a brand token or the product's `#rrggbb`), none at the root. A
+  design tints by it with strengths that default to 0% (`--pal-place-wash`
+  / `-reach` for the header glow, `-cursor`, `-crumb`, `-accent`); Ink: 20%
+  over 240 px, the cursor 16%, the crumb and caret in full. The colour is
+  set inline on the panel, so `var(--pal-brand-*)` resolves per scheme there.

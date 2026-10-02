@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { Presence } from "./presence";
 
 export type PanelProps = {
@@ -12,15 +12,17 @@ export type PanelProps = {
   fits?: boolean;
   /** The window takes the fitted height instead of the page (the app: `panel_fit`, so the native blur and shadow follow); `null` asks for the full height back. Without it (the gallery) the panel sizes itself inside its frame. */
   onFit?: (height: number | null) => void;
+  /** The level's colour (its extension's tile: a brand token or a `#rrggbb`), as `--pal-place` on the panel for a design that tints a place by it (ui.css `--pal-place-*`); none at the root. */
+  place?: string;
   children: ReactNode;
 };
 
 /** The frame: search row, body (with optional side pane), footer, overlays. `data-footer` lets the scrim stop above the footer. The side pane stays through its exit (fades as the list widens). */
-export function Panel({ search, footer, aside, overlay, fits, onFit, children }: PanelProps) {
+export function Panel({ search, footer, aside, overlay, fits, onFit, place, children }: PanelProps) {
   const panel = useRef<HTMLDivElement>(null);
   useFit(panel, !!fits && !aside, onFit);
   return (
-    <div ref={panel} className="pal-panel" data-footer={footer ? "" : undefined}>
+    <div ref={panel} className="pal-panel" data-footer={footer ? "" : undefined} data-place={place ? "" : undefined} style={place ? ({ "--pal-place": place } as CSSProperties) : undefined}>
       <div className="pal-panel__search">{search}</div>
       <div className="pal-panel__body" data-split={aside ? "" : undefined}>
         <div className="pal-panel__main">{children}</div>

@@ -1,7 +1,8 @@
 /*
  * Ink (`general.design = "ink"`): type-led and monochrome. The query is a
  * display headline (a placeholder stays quiet: smaller, lighter), the cursor
- * row is a soft lit row carrying the keys (an inverted block glared) (so the footer steps aside while a row is under the cursor),
+ * row is a soft lit row carrying the keys (an inverted block glared);
+ * inside a palette the panel glows in its extension's colour (so the footer steps aside while a row is under the cursor),
  * a match is underlined, and colour lives only in the icon tiles, the tags
  * and the states (success, destructive).
  *
@@ -61,6 +62,12 @@
   --pal-backdrop: none;
   --pal-panel-fit: on;
   --pal-acc-max: 2;
+  /* A place (inside a palette) glows in its extension's colour: the header, the cursor, the crumb and the caret. */
+  --pal-place-wash: 20%;
+  --pal-place-reach: 240px;
+  --pal-place-cursor: 16%;
+  --pal-place-crumb: 100%;
+  --pal-place-accent: 100%;
   --pal-cursor-glide: block;
   --pal-cursor-row: transparent;
   --pal-cursor-row-shadow: none;
