@@ -44,12 +44,13 @@ several.
 
 ## The detail pane
 
-`cmd+i` on a row: the description, what it does (the listing's
-features, when its index has them), the palettes, the screenshots from
-the listing, and what it installs first; the metadata lists the author, where
-it comes from, its status, its build (short hash and date), whether it
-updates by itself, category, platforms, the `pal install` line and, for
-pal's registry, a link to the page.
+`cmd+i` on a row: where it comes from and its category over its title,
+how it stands as a chip (the row's tag); then the description, what it
+does (the listing's features, when its index has them), the palettes, the
+screenshots from the listing, and what it installs first; the metadata
+lists the author, its status, its build (short hash and date), whether it
+updates by itself, platforms, the `pal install` line and, for pal's
+registry, a link to the page.
 
 ## Registries
 

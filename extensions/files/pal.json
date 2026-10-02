@@ -101,7 +101,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane on a text file: path, size, modified, kind, and its first lines"
+        "caption": "The detail pane on a text file: its folder, name and kind, the size, its first lines"
       },
       {
         "file": "3-open-with.png",

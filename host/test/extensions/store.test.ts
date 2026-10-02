@@ -77,18 +77,17 @@ describe("the pure parts", () => {
   });
   test("the detail carries the listing and the facts", () => {
     const d = detail(of("timer"));
-    expect(d.markdown).toContain("# Timer");
+    expect(d).toMatchObject({ caption: "The pal registry · Productivity", title: "Timer", chips: [{ text: "update", color: "amber" }] });
     expect(d.markdown).toContain("## Palettes");
     expect(d.markdown).toContain("![Running timers](https://pal.cagdas.io/extensions/timer/screenshots/1-list.png)");
     expect(d.markdown).toContain("](https://pal.cagdas.io/extensions/timer/screenshots/2-bar.png)");
     expect(d.metadata).toContainEqual({ label: "Status", value: "Update ready: 7272727 (2026-09-15)" });
     expect(d.metadata).toContainEqual({ label: "Build", value: "7171717 (2026-08-29)" });
     expect(d.metadata).toContainEqual({ label: "Updates", value: "Wait for you" });
-    expect(d.metadata).toContainEqual({ label: "From", value: "The pal registry" });
     expect(d.metadata!.at(-1)).toEqual({ label: "Page", link: { text: "pal.cagdas.io", href: "https://pal.cagdas.io/extensions/timer" } });
     expect(detail(of("gmail")).markdown).toContain("Installing it installs browser-tabs first.");
     expect(detail(of("dpi")).metadata).toContainEqual({ label: "Status", value: "Not for this platform" });
-    expect(detail(of("calc")).metadata).toContainEqual({ label: "From", value: "Comes with pal" });
+    expect(detail(of("calc")).caption).toMatch(/^Comes with pal/);
     expect(detail(of("todo")).metadata).toContainEqual({ label: "Status", value: "Its next build needs a newer pal" });
     // What it does: the listing's features when the index has them (an older one has none).
     expect(d.markdown).not.toContain("## What it does");
@@ -175,7 +174,7 @@ describe("store", () => {
   });
   test("the detail pane", async () => {
     const d = await host.detail("store", "store", "pal/timer");
-    expect(d.markdown).toContain("# Timer");
+    expect(d).toMatchObject({ caption: "The pal registry · Productivity", title: "Timer", chips: [{ text: "update", color: "amber" }] });
     expect(d.metadata).toContainEqual({ label: "Updates", value: "Wait for you" });
   });
   test("picks: install, update and remove wait for the core and say how it went; the list stays and relists", async () => {

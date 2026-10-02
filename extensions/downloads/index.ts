@@ -168,17 +168,19 @@ const PARTIAL_ACTIONS: Action[] = [REVEAL, COPY_PATH];
 
 const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle);
 
+/** What a file is, in a word: its extension for a plain file ("PDF"), else its kind ("Image"). */
+const label = (k: Kind, name: string) => (k === "file" ? extname(name).slice(1).toUpperCase() || "File" : k[0].toUpperCase() + k.slice(1));
+
+/** A download's row: the name, the folder only when several are listed (the kind is the icon and the name's extension already), its size and age. */
 async function item(e: Entry, several: boolean, thumb: boolean, section?: Section): Promise<Item> {
   const icon = (thumb && (await thumbnail(e))) || (MAC && e.name.endsWith(".app") ? { app: e.path } : GLYPH[e.kind]);
-  const where = several ? ` · ${tilde(e.folder)}` : "";
-  const label = (k: Kind, name: string) => (k === "file" ? extname(name).slice(1).toUpperCase() || "File" : k[0].toUpperCase() + k.slice(1));
+  const where = several ? { subtitle: tilde(e.folder) } : {};
   if (e.partial) {
     const done = finalName(e.name) || e.name;
-    return { id: e.path, name: done, subtitle: `${label(kindOf(done, false), done)}${where}`, icon: DOWNLOAD, keywords: [e.name], section: "Downloading", accessories: [{ tag: "downloading", color: "blue" }, { text: await progress(e) }], actions: PARTIAL_ACTIONS };
+    return { id: e.path, name: done, ...where, icon: DOWNLOAD, keywords: [e.name], section: "Downloading", accessories: [{ tag: "downloading", color: "blue" }, { text: await progress(e) }], actions: PARTIAL_ACTIONS };
   }
-  const kind = label(e.kind, e.name);
   return {
-    id: e.path, name: e.name, subtitle: `${kind}${where}`, icon: typeof icon === "string" && icon.startsWith("data:") ? { image: icon } : icon, keywords: [e.name],
+    id: e.path, name: e.name, ...where, icon: typeof icon === "string" && icon.startsWith("data:") ? { image: icon } : icon, keywords: [e.name],
     section: section ?? sectionOf(e.mtime),
     accessories: [...(e.dir ? [] : [{ text: bytes(e.size) }]), { date: e.mtime }],
     args: RENAME_ARGS,
@@ -223,17 +225,20 @@ async function whereFrom(path: string): Promise<string[]> {
   return [...text.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]).filter((u) => /^https?:/.test(u));
 }
 
+/** The folder over the name, the kind (and still downloading) as chips, the size large; then where it came from and when. */
 async function detail(path: string): Promise<Detail> {
+  const name = basename(path);
+  const partial = inProgress(name);
+  const shown = partial ? finalName(name) || name : name;
+  const head = { caption: tilde(dirname(path)), title: shown };
   const st = await stat(path).catch(() => undefined);
-  if (!st) return { markdown: "This file is gone.", metadata: [{ label: "Path", value: tilde(path) }] };
+  if (!st) return { ...head, chips: [{ text: "gone", color: "red" }], markdown: "This file is gone." };
   const from = await whereFrom(path);
-  const k = kindOf(basename(path), st.isDirectory());
   return {
+    ...head,
+    chips: [{ text: label(kindOf(shown, st.isDirectory() && !partial), shown) }, ...(partial ? [{ text: "downloading", color: "blue" as const }] : [])],
+    stats: st.isDirectory() && !partial ? [] : [{ value: bytes(st.size), label: partial ? "so far" : "size" }],
     metadata: [
-      { label: "Name", value: basename(path) },
-      { label: "Folder", value: tilde(dirname(path)) },
-      ...(st.isDirectory() ? [] : [{ label: "Size", value: bytes(st.size) }]),
-      { label: "Kind", value: k === "file" ? extname(path).slice(1).toUpperCase() || "File" : k[0].toUpperCase() + k.slice(1) },
       { label: "Modified", value: when(st.mtimeMs) },
       ...(from.length ? [{ label: "From", link: { text: from[0].replace(/^https?:\/\//, "").slice(0, 80), href: from[0] } }] : []),
       ...(from.length > 1 ? [{ label: "Page", link: { text: from[1].replace(/^https?:\/\//, "").slice(0, 80), href: from[1] } }] : []),

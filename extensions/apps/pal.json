@@ -31,7 +31,7 @@
       "Running apps are tagged, with Quit (`cmd+q`) and Hide (`cmd+h`)",
       "System Settings panes as rows on macOS, found by words like `dark mode` or `dns`",
       "On Linux, an app's own actions (`New Private Window`) as secondary actions",
-      "`cmd+i` shows the path, bundle id and version"
+      "`cmd+i` shows where it lives, its version, bundle id and processes"
     ],
     "permissions": [
       "automation"
@@ -43,7 +43,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "The applications, their source as the subtitle, the running ones tagged"
+        "caption": "The applications by name, the running ones tagged"
       },
       {
         "file": "2-search.png",
@@ -56,6 +56,10 @@
       {
         "file": "4-panes.png",
         "caption": "The System Settings panes are rows too, found by what they hold: network finds Network and Wi-Fi"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "An app's details (cmd+i): its folder, running and its version, the bundle id and processes"
       }
     ],
     "actions": [

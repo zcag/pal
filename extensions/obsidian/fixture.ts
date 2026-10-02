@@ -85,7 +85,7 @@ try {
     },
     shots: {
       "1-notes": { palette: "notes", keys: ["down*11", "wait:300"], caption: "Notes: every note by title, sectioned by folder, tags and the change date on the row" },
-      "2-detail": { palette: "notes", keys: ["type:theater", "wait:300", "down*2", "cmd+i", "wait:500"], caption: "The pane: the note rendered, callout and table included, its tags, links and backlinks below" },
+      "2-detail": { palette: "notes", keys: ["type:theater", "wait:300", "down*2", "cmd+i", "wait:500"], caption: "The pane: the vault and folder over the title, its tags, words, backlinks and links, then the note rendered, callout and table included" },
       "3-search": { palette: "search", keys: ["type:caddy", "wait:500", "cmd+i", "wait:400"], caption: "Search Notes: the matching line on each row, the matches bold in the pane" },
       "4-daily": { palette: "daily", keys: ["down", "wait:300"], caption: "Daily Notes: today, yesterday, this week, Append to today, New note" },
       "5-append": { palette: "daily", keys: ["down*4", "enter", "wait:500"], caption: "Append to today: one line, the clipboard already in it, lands at the end of today's note" },

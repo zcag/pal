@@ -35,11 +35,11 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Snippets by name, the keyword as a tag, the first line as the subtitle; dynamic ones fill placeholders when pasted"
+        "caption": "Snippets by name, the keyword as a tag, the first line as the subtitle; dynamic ones (braces) fill placeholders when pasted"
       },
       {
         "file": "2-detail.png",
-        "caption": "cmd+i shows the whole text in the detail pane, with its keyword and length"
+        "caption": "cmd+i shows the whole text under its name, the keyword and dynamic as chips"
       },
       {
         "file": "3-actions.png",

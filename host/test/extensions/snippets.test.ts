@@ -127,13 +127,17 @@ describe("snippets", () => {
     expect(items[4]).toMatchObject({ name: "Export Snippets", actions: [{ id: "export", title: "Export…" }] });
     expect(items[0]).toMatchObject({ name: "Create Snippet", actions: [{ id: "create", title: "Create snippet" }], icon: "\u{f0415}" });
     expect(items[1]).toMatchObject({ name: "Signature", subtitle: "Best,", keywords: ["sig"], accessories: [{ tag: "sig" }] });
-    expect(items[1].detail!.markdown).toContain("Best,\nCagdas");
+    expect(items[1].detail).toEqual({ title: "Signature", chips: [{ text: "keyword sig" }], markdown: "````\nBest,\nCagdas\n````" });
+    expect(items[1].icon).toBe("\u{f0190}");
     expect(items[1].actions!.map((a) => a.id)).toEqual(["paste", "copy", "edit", "delete"]);
     // Copy and Delete also take marked snippets; the question reads for one or several.
     expect(items[1].actions![3]).toMatchObject({ style: "destructive", multi: true, confirm: "Delete? This cannot be undone." });
     expect(items[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "delete"]);
     expect(items[2].keywords).toBeUndefined();
     expect(items[2].accessories).toEqual([{ text: "dynamic" }]);
+    // A snippet with placeholders wears braces, and its detail says dynamic.
+    expect(items[2].icon).toBe("\u{f0169}");
+    expect(items[2].detail!.chips).toEqual([{ text: "dynamic", color: "violet" }]);
   });
 
   test("Enter pastes the text, cmd+c copies it; placeholders filled from the clock and the newest clipboard text", async () => {

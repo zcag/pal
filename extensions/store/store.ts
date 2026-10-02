@@ -4,7 +4,7 @@
 // and rendered as rows and details. Nothing is compared here: an update is
 // what the core says is one. Pure; the state and the clock come in as
 // arguments.
-import type { Accessory, Action, AvailableExtension, Detail, Item, Metadata, StoreBuildInfo, StoreRegistry, StoreState, StoreStatus, TileIcon } from "@zcag/pal";
+import type { Accessory, Action, AvailableExtension, Detail, Item, Metadata, StoreBuildInfo, StoreRegistry, StoreState, StoreStatus, TagColor, TileIcon } from "@zcag/pal";
 
 /** Where Settings keeps the registries (the Registries section of Settings › Extensions). */
 export const REGISTRIES_LINK = "pal://settings/extensions?anchor=extensions:registries";
@@ -109,7 +109,7 @@ export function actionsFor(s: Standing): Action[] {
 }
 
 /** The tag that says how it stands: an update, a problem, installed, or why it cannot be. */
-function standingTag(s: Standing): Accessory | undefined {
+function standingTag(s: Standing): { tag: string; color: TagColor } | { text: string } | undefined {
   const st = s.status;
   if (s.busy) return { tag: "working…", color: "blue" };
   if (targetOf(st)) return { tag: st?.state === "yanked" ? "pulled: update" : "update", color: "amber" };
@@ -165,10 +165,11 @@ export function statusText(s: StoreStatus | undefined): string | undefined {
 
 const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 
-/** The detail pane: the description, the palettes, the screenshots; the facts as metadata. */
+/** The detail pane: where it comes from over its title, how it stands as a chip; the description, the palettes, the screenshots; the rest of the facts as metadata. */
 export function detail(s: Standing): Detail {
   const l = s.a.listing;
-  const parts: string[] = [`# ${l.title || s.a.name}`, "", l.description || l.tagline];
+  const tag = standingTag(s);
+  const parts: string[] = [l.description || l.tagline];
   const features = featuresOf(s.a);
   if (features.length) parts.push("", "## What it does", "", ...features.map((f) => `- ${f.replace(/\n/g, " ")}`));
   if (l.palettes.length) parts.push("", "## Palettes", "", ...l.palettes.map((p) => `- ${p.title}`));
@@ -179,16 +180,20 @@ export function detail(s: Standing): Detail {
   const build = s.status?.installed ?? s.a.build;
   const metadata: Metadata[] = [
     ...(l.author ? [{ label: "Author", value: l.author }] : []),
-    { label: "From", value: s.a.bundled ? "Comes with pal" : s.ours ? "The pal registry" : `The ${s.a.registry} registry` },
     { label: "Status", value: s.a.installed ? st ?? "Installed" : s.a.installable ? "Not installed" : cap(s.a.blocked ?? "Not available here") },
     ...(build ? [{ label: s.a.installed ? "Build" : "Latest build", value: buildLine(build) }] : []),
     ...(s.status && s.status.origin !== "local" && s.status.state !== "source" ? [{ label: "Updates", value: s.status.auto_update ? "Automatic" : "Wait for you" }] : []),
-    ...(l.category ? [{ label: "Category", value: categoryTitle(l.category) }] : []),
     ...(l.platforms?.length ? [{ label: "Platforms", value: l.platforms.join(", ") }] : []),
     { label: "Install", value: `pal install ${s.a.name}` },
     ...(s.ours ? [{ label: "Page", link: { text: "pal.cagdas.io", href: pageOf(s) } }] : []),
   ];
-  return { markdown: parts.join("\n"), metadata };
+  return {
+    caption: [s.a.bundled ? "Comes with pal" : s.ours ? "The pal registry" : `The ${s.a.registry} registry`, ...(l.category ? [categoryTitle(l.category)] : [])].join(" · "),
+    title: l.title || s.a.name,
+    ...(tag && { chips: ["tag" in tag ? { text: tag.tag, color: tag.color } : { text: tag.text }] }),
+    markdown: parts.join("\n"),
+    metadata,
+  };
 }
 
 export const pageOf = (s: Standing) => `${SITE}/${s.a.name}`;

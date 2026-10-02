@@ -65,7 +65,7 @@ describe("clipboard", () => {
     expect(text.subtitle).toBeUndefined();
     expect(text.section).toBeUndefined();
     // A named entry (fixture 2, "Deploy notes") is titled by its name; the text stays in the subtitle.
-    expect(multi).toMatchObject({ name: "Deploy notes", subtitle: "3 lines · line one line two line three", section: "Pinned", accessories: [{ text: "kitty" }, { date: 1758000001000 }, { tag: "pinned", color: "amber" }] });
+    expect(multi).toMatchObject({ name: "Deploy notes", subtitle: "3 lines · line one line two line three", section: "Pinned", accessories: [{ text: "kitty" }, { date: 1758000001000 }] });
     expect(image).toMatchObject({ name: "Image 640 x 480", icon: { image: "icon://localhost/clip?id=3&size=48" }, accessories: [{ text: "12 KB" }, { date: 1758000002000 }] });
     expect(image.subtitle).toBeUndefined();
     expect(files).toMatchObject({ name: "a.txt, b.txt", subtitle: "2 files", icon: "\u{f1032}", accessories: [{ text: "Finder" }, { date: 1758000003000 }] });
@@ -88,19 +88,17 @@ describe("clipboard", () => {
     expect((await list("", "all")).map((i) => i.id)).toEqual(["1", "2", "3", "4", "5", "6"]);
   });
 
-  test("detail: fenced text, the image, the file list, and metadata", async () => {
-    const [text, , image, files] = await list();
-    expect(text.detail!.markdown).toBe("````\nhello world\n````");
-    expect(text.detail!.metadata).toEqual([
-      { label: "Kind", value: "text" }, { label: "Size", value: "11 B · 11 chars" }, { label: "Source", value: "Chrome" },
-      { label: "Copied", value: expect.stringMatching(/2025/) }, // local time in the host; bun test itself runs in UTC
-    ]);
-    expect(image.detail!.markdown).toBe("![](icon://localhost/clip?id=3&size=0)");
-    expect(image.detail!.metadata).toContainEqual({ label: "Size", value: "12 KB · 640 x 480 px" });
-    expect(files.detail!.markdown).toBe("- `/Users/x/a.txt`\n- `/Users/x/b.txt`");
-    const pinned = (await list())[1].detail!.metadata!;
-    expect(pinned[0]).toEqual({ label: "Name", value: "Deploy notes" });
-    expect(pinned.at(-1)).toEqual({ label: "Pinned", tags: [{ text: "pinned", color: "amber" }] });
+  test("detail: a header (the source app, the name, the kind and pinned as chips, the numbers), then the fenced text, the image or the file list", async () => {
+    const [text, pinned, image, files, url] = await list();
+    // An unnamed text has no title: its body says it.
+    expect(text.detail).toEqual({
+      caption: "Copied from Chrome", chips: [{ text: "text" }], stats: [{ value: "11", label: "characters" }], markdown: "````\nhello world\n````",
+      metadata: [{ label: "Copied", value: expect.stringMatching(/2025/) }], // local time in the host; bun test itself runs in UTC
+    });
+    expect(pinned.detail).toMatchObject({ title: "Deploy notes", chips: [{ text: "text" }, { text: "pinned", color: "amber" }], stats: [{ label: "characters" }, { value: "3", label: "lines" }] });
+    expect(image.detail).toMatchObject({ caption: "Copied", title: "Image 640 x 480", chips: [{ text: "image" }], stats: [{ value: "640 × 480", label: "pixels" }, { value: "12 KB", label: "size" }], markdown: "![](icon://localhost/clip?id=3&size=0)" });
+    expect(files.detail).toMatchObject({ title: "a.txt, b.txt", stats: [{ value: "2", label: "files" }], markdown: "- `/Users/x/a.txt`\n- `/Users/x/b.txt`" });
+    expect(url.detail!.chips).toEqual([{ text: "link" }]);
   });
 
   test("actions: paste first by default, plain-text paste on text, open on a link, the file copy on an image, pin/unpin by state (the other at the end), destructive ones confirm", async () => {

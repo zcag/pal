@@ -109,7 +109,7 @@
       },
       {
         "file": "3-detail.png",
-        "caption": "The detail pane: the picture itself over its name, folder, size, pixels and when it was taken"
+        "caption": "The detail pane: its folder and name, the pixels and size, the picture itself and when it was taken"
       }
     ],
     "actions": [

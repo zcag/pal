@@ -138,23 +138,22 @@ async function suggest(): Promise<Item[]> {
   return [{ ...r, name: `Screenshot taken ${ago(e.mtime)}`, subtitle: `${e.name} · ${r.subtitle}`, section: undefined, actions: e.kind === "image" ? [OPEN, COPY_IMAGE, COPY_MARKDOWN, COPY_PATH, COPY_TEXT, REVEAL] : VIDEO_ACTIONS }];
 }
 
+/** The folder over the name, a recording said as a chip, the pixels and size large, the picture, when it was taken. */
 async function detail(path: string): Promise<Detail> {
   // A capture row or a hint has no file behind it: nothing to show, the UI's generic pane stands.
   if (!path.startsWith("/") && !path.startsWith("~")) return {};
+  const head = { caption: tilde(dirname(path)), title: basename(path) };
   const st = await stat(path).catch(() => undefined);
-  if (!st) return { markdown: "This file is gone.", metadata: [{ label: "Path", value: tilde(path) }] };
+  if (!st) return { ...head, chips: [{ text: "gone", color: "red" }], markdown: "This file is gone." };
   const kind = kindOf(basename(path));
-  const head = kind === "image" ? await Bun.file(path).slice(0, 24).bytes().catch(() => undefined) : undefined;
-  const dims = head && pngSize(head);
+  const png = kind === "image" ? await Bun.file(path).slice(0, 24).bytes().catch(() => undefined) : undefined;
+  const dims = png && pngSize(png);
   return {
+    ...head,
+    ...(kind === "video" && { chips: [{ text: "recording" }] }),
+    stats: [...(dims ? [{ value: `${dims.width} × ${dims.height}`, label: "pixels" }] : []), { value: bytes(st.size), label: "size" }],
     markdown: kind === "image" ? `![${basename(path)}](${thumbnailUrl(path, 0)})` : undefined,
-    metadata: [
-      { label: "Name", value: basename(path) },
-      { label: "Folder", value: tilde(dirname(path)) },
-      { label: "Size", value: bytes(st.size) },
-      ...(dims ? [{ label: "Pixels", value: `${dims.width} × ${dims.height}` }] : []),
-      { label: "Taken", value: when(st.mtimeMs) },
-    ],
+    metadata: [{ label: "Taken", value: when(st.mtimeMs) }],
   };
 }
 

@@ -12,6 +12,7 @@
 // browser as the section; Enter opens it in the browser it came from.
 import { errorMessage, failed, settings, type Action, type Ctx, type Effect, type Item } from "@zcag/pal";
 import { BROWSERS, chromiumProfiles, copied, firefoxProfiles, openIn } from "./browsers.ts";
+import { bareUrl } from "./sources.ts";
 
 /** `[extensions.bookmarks]`, the key this palette reads. */
 type Settings = { browsers: string[] };
@@ -96,7 +97,7 @@ function row(v: Visit & { section: string; app: string }): Item {
   return {
     id: v.url,
     name: v.title,
-    subtitle: v.url,
+    subtitle: bareUrl(v.url),
     url: v.url,
     accessories: [{ date: v.at }],
     section: v.section,

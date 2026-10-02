@@ -30,7 +30,8 @@ const ICON = {
 const RECENT = 20;
 const PANE_CHARS = 8000;
 const PREFILL_MAX = 20_000;
-const TAGS_ON_ROW = 3;
+/** Tags a row shows beside its date: one, so the date stays (a row has room for two accessories). */
+const TAGS_ON_ROW = 1;
 const CREATE_CONFIRM = "Create today's note from the template?";
 
 // ---- the vault and its settings --------------------------------------------------------
@@ -138,7 +139,8 @@ function noteRow(n: Note, actions: Action[], extra: Partial<Item> = {}): Item {
     icon: ICON.note,
     keywords: [...(n.name !== n.title ? [n.name] : []), ...n.aliases, ...n.tags.map((t) => `#${t}`), ...(n.folder ? [n.folder] : [])],
     section: n.folder || "Vault",
-    accessories: [...n.tags.slice(0, TAGS_ON_ROW).map((t) => ({ tag: t })), { date: Math.round(n.mtime) }],
+    // A tag that only repeats the folder (the section) is skipped.
+    accessories: [...n.tags.filter((t) => t !== n.folder).slice(0, TAGS_ON_ROW).map((t) => ({ tag: t })), { date: Math.round(n.mtime) }],
     args: LINE_ARGS,
     actions,
     ...extra,
@@ -233,9 +235,9 @@ function openInEditor(i: Index, paths: string | string[]): Effect {
 
 const open = (i: Index, path: string, how?: "obsidian" | "editor"): Effect => ((how ?? conf().open_with) === "editor" ? openInEditor(i, path) : openInObsidian(i, path));
 
-/** Obsidian's own syntax made plain for the pane's renderer: front matter off, `> [!TYPE]` a bold lead, `[[links]]` as links into Obsidian, `#tags` kept. */
-export function paneMarkdown(text: string, vault: string, notes: Note[]): string {
-  let b = unescapePipes(frontMatter(text).body)
+/** Obsidian's own syntax made plain for the pane's renderer: front matter off, a leading `# title` off when it is the header's `title`, `> [!TYPE]` a bold lead, `[[links]]` as links into Obsidian, `#tags` kept. */
+export function paneMarkdown(text: string, vault: string, notes: Note[], title?: string): string {
+  let b = unescapePipes(dropHeading(frontMatter(text).body, title))
     .replace(/^>[ \t]*\[!(\w+)\][+-]?[ \t]*(.*)$/gm, (_, t: string, rest: string) => `> **${t[0].toUpperCase() + t.slice(1).toLowerCase()}${rest ? `: ${rest}` : ""}**`)
     .replace(/!?\[\[([^\]|#]*)(#[^\]|]*)?(?:\|([^\]]*))?\]\]/g, (_, t: string, h: string | undefined, label?: string) => {
       const n = resolve(t, notes);
@@ -246,20 +248,35 @@ export function paneMarkdown(text: string, vault: string, notes: Note[]): string
   return b.trim() || "_Nothing in this note yet._";
 }
 
+/** The body without its first line when that is `# title`: the header says it already. */
+const dropHeading = (body: string, title?: string) => {
+  if (!title) return body;
+  const m = body.match(/^\s*#[ \t]+(.+?)[ \t]*(?:\n|$)/);
+  return m && m[1] === title ? body.slice(m[0].length) : body;
+};
+
 async function noteDetail(i: Index, n: Note): Promise<Detail> {
   const text = await noteText(i.root, n.path);
   const back = (i.backlinks.get(n.path) ?? []).map((p) => i.byPath.get(p)?.title ?? p);
   const links = n.links.map((l) => ({ text: l, color: resolve(l, i.notes) ? undefined : "grey" }));
   const meta: Metadata[] = [
-    { label: "Path", value: n.path },
     { label: "Modified", value: formatDate("YYYY-MM-DD HH:mm", new Date(n.mtime)) },
-    { label: "Words", value: String(n.words) },
-    ...(n.tags.length ? [{ label: "Tags", tags: n.tags.map((t) => ({ text: t })) }] : []),
     ...(n.aliases.length ? [{ label: "Aliases", value: n.aliases.join(", ") }] : []),
-    ...(links.length ? [{ label: "Links", tags: links.slice(0, 8) }] : []),
-    { label: "Backlinks", value: back.length ? `${back.length}: ${cut(back.join(", "), 120)}` : "none" },
+    ...(links.length ? [{ label: "Links to", tags: links.slice(0, 8) }] : []),
+    ...(back.length ? [{ label: "Linked from", value: cut(back.join(", "), 120) }] : []),
   ];
-  return { markdown: paneMarkdown(text, i.name, i.notes), metadata: meta };
+  return { ...noteHead(i, n), markdown: paneMarkdown(text, i.name, i.notes, n.title), metadata: meta };
+}
+
+/** A note's header: where it lives over its title, its tags as chips, its words and links as numbers. */
+function noteHead(i: Index, n: Note): Pick<Detail, "caption" | "title" | "chips" | "stats"> {
+  const back = (i.backlinks.get(n.path) ?? []).length;
+  return {
+    caption: [i.name, ...(n.folder ? n.folder.split("/") : [])].join(" / "),
+    title: n.title,
+    ...(n.tags.length && { chips: n.tags.map((t) => ({ text: `#${t}` })) }),
+    stats: [{ value: n.words.toLocaleString("en-US"), label: n.words === 1 ? "word" : "words" }, { value: String(back), label: back === 1 ? "backlink" : "backlinks" }, { value: String(n.links.length), label: n.links.length === 1 ? "link" : "links" }],
+  };
 }
 
 /** The note drawn as a view: the title, where it lives, then the body through the markdown renderer. */
@@ -271,7 +288,7 @@ async function noteView(i: Index, n: Note): Promise<View> {
     id: nid(n.path),
     title: cut(n.title, 60),
     tree: { type: "stack", gap: 3, padding: 4, children: [
-      { type: "stack", gap: 0, children: [{ type: "text", value: n.title, style: "title", size: "xl" }, { type: "text", value: line, style: "muted", size: "xs" }] },
+      { type: "stack", gap: 0, children: [{ type: "text", value: n.title, style: "headline" }, { type: "text", value: line, style: "muted", size: "xs" }] },
       { type: "divider" },
       body.tree,
     ] },
@@ -421,7 +438,7 @@ async function searchRows(query = ""): Promise<Item[]> {
     return noteRow(n, actions, {
       subtitle: first ? cut(first, 120) : n.description,
       accessories: [{ text: `${h.lines.length} line${h.lines.length === 1 ? "" : "s"}` }, { date: Math.round(n.mtime) }],
-      detail: { markdown: lines.map((l) => `${l.n}: ${mark(l.text, q)}`).join("  \n") || "_No matching line._", metadata: [{ label: "Path", value: n.path }] },
+      detail: { ...noteHead(i, n), markdown: lines.map((l) => `${l.n}: ${mark(l.text, q)}`).join("  \n") || "_No matching line._" },
     });
   });
 }
@@ -550,7 +567,7 @@ export default {
   palettes: {
     notes: {
       title: "Notes",
-      placeholder: "A note by title, alias, tag or folder",
+      placeholder: "Title, tag or folder",
       list: (_q, ctx) => guard(() => noteRows(ctx)),
       pick: pickAny,
       detail: noteDetailOf,

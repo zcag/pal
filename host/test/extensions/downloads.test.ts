@@ -131,11 +131,10 @@ describe("downloads", () => {
       ["Clear older than 30 days", "Folder"], ["Open Downloads", "Folder"],
     ]);
     const r = byName(items, "report.pdf");
-    expect(r).toMatchObject({ id: report, subtitle: "Document", keywords: ["report.pdf"], accessories: [{ text: "2.0 KB" }, { date: expect.any(Number) }] });
+    expect(r).toMatchObject({ id: report, keywords: ["report.pdf"], accessories: [{ text: "2.0 KB" }, { date: expect.any(Number) }] });
     expect(r.actions).toBeUndefined();
-    expect(byName(items, "ancient.dmg").subtitle).toBe("Disk");
-    expect(byName(items, "notes.txt").subtitle).toBe("Document");
-    expect(byName(items, "big.iso").subtitle).toBe("Disk");
+    // One folder: no subtitle (the kind is the icon and the name's extension).
+    expect(items.filter((i) => i.section !== "Folder").every((i) => i.subtitle === undefined)).toBe(true);
     expect(items.every((i) => i.icon)).toBe(true);
     expect(items.at(-2)).toMatchObject({ id: "clear-old", subtitle: "2 items, 12 KB, to the Trash" });
     expect(items.at(-2)!.actions![0]).toMatchObject({ confirm: "Move 2 items older than 30 days to the Trash?", style: "destructive" });
@@ -145,7 +144,7 @@ describe("downloads", () => {
   test("a download in progress: the name without the suffix, a blue tag, the size, then the rate once it has grown between two listings; Safari's bundle reads its percentage; reveal and copy path only", async () => {
     let items = await list();
     const chrome = byName(items, "big.iso");
-    expect(chrome).toMatchObject({ id: partial, subtitle: "Disk", accessories: [{ tag: "downloading", color: "blue" }, { text: "1000 B" }] });
+    expect(chrome).toMatchObject({ id: partial, accessories: [{ tag: "downloading", color: "blue" }, { text: "1000 B" }] });
     expect(chrome.actions!.map((a) => a.id)).toEqual(["reveal", "copy-path"]);
     expect(byName(items, "Movie.mp4").accessories![1]).toEqual({ text: "25% · 2.9 MB of 11.4 MB" });
     writeFileSync(partial, Buffer.alloc(501_000, 120));
@@ -222,12 +221,13 @@ describe("downloads", () => {
     expect(items.map((i) => i.id)).toEqual([partial, safari, "open-folder"]);
   });
 
-  test("detail: name, folder, size, kind, modified (and on macOS the source url from Spotlight when there is one)", async () => {
+  test("detail: the folder over the name, the kind as a chip, the size large, modified (and on macOS the source url from Spotlight when there is one)", async () => {
     const fresh = file("fresh.csv", 300, 1000);
     const d = await host.detail("downloads", "downloads", fresh);
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Name", "Folder", "Size", "Kind", "Modified"]);
-    expect(d.metadata![2].value).toBe("300 B");
-    expect(d.metadata![3].value).toBe("Document");
+    expect(d).toMatchObject({ caption: folder.replace(process.env.HOME!, "~"), title: "fresh.csv", chips: [{ text: "Document" }], stats: [{ value: "300 B", label: "size" }] });
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Modified"]);
+    const coming = await host.detail("downloads", "downloads", partial);
+    expect(coming).toMatchObject({ title: "big.iso", chips: [{ text: "Disk" }, { text: "downloading", color: "blue" }], stats: [{ label: "so far" }] });
     expect((await host.detail("downloads", "downloads", join(folder, "gone"))).markdown).toBe("This file is gone.");
   });
 

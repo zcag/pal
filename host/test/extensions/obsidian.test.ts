@@ -128,6 +128,9 @@ describe("search backend helpers", () => {
     expect(paneMarkdown("---\ntags: [x]\n---\n> [!WARNING] Careful\n> body\n\n[[ken|the reader]] and [[ken#Top]] and [[nowhere]]\n", "vault", notes))
       .toBe("> **Warning: Careful**\n> body\n\n[the reader](obsidian://open?vault=vault&file=a%2Fken) and [ken#Top](obsidian://open?vault=vault&file=a%2Fken) and nowhere (not a note yet)");
     expect(paneMarkdown("---\na: b\n---\n", "v", [])).toBe("_Nothing in this note yet._");
+    // The heading the header already says is dropped; another one stays.
+    expect(paneMarkdown("# theater\n\nA box.\n", "v", [], "theater")).toBe("A box.");
+    expect(paneMarkdown("# Other\n\nA box.\n", "v", [], "theater")).toBe("# Other\n\nA box.");
     expect(paneMarkdown("| a |\n|---|\n| [[ken\\|the reader]] |\n", "vault", notes)).toBe("| a |\n|---|\n| [the reader](obsidian://open?vault=vault&file=a%2Fken) |");
   });
 });
@@ -216,13 +219,14 @@ describe("the extension", () => {
     expect(notes.map((r) => r.id)).toEqual(["note:_index.md", "note:_log.md", `note:daily/${iso(threeDaysAgo)}.md`, `note:daily/${iso(yesterday)}.md`, "note:infra/theater.md", "note:personal/projects/ken.md", "note:personal/projects/tan.md"]);
     const theater = notes.find((r) => r.id === "note:infra/theater.md")!;
     expect(theater).toMatchObject({ name: "theater", section: "infra", subtitle: "The media box under the TV", icon: "\u{f11d7}", keywords: ["the box", "#infra", "#homelab", "infra"] });
-    expect(theater.accessories).toEqual([{ tag: "infra" }, { tag: "homelab" }, { date: expect.any(Number) }]);
+    // One tag beside the date, and not the one that repeats the folder (the section).
+    expect(theater.accessories).toEqual([{ tag: "homelab" }, { date: expect.any(Number) }]);
     expect(theater.actions!.map((a) => a.id)).toEqual(NOTE_ACTIONS);
     expect(theater.actions![1].shortcut).toBe("cmd+enter");
     const index = notes.find((r) => r.id === "note:_index.md")!;
     expect(index).toMatchObject({ name: "Wiki Index", section: "Vault", subtitle: "The pointer layer." });
     const ken = notes.find((r) => r.id === "note:personal/projects/ken.md")!;
-    expect(ken.accessories!.slice(0, 2)).toEqual([{ tag: "project" }, { tag: "reading/rss" }]);
+    expect(ken.accessories).toEqual([{ tag: "project" }, { date: expect.any(Number) }]);
     for (const r of rows) expect(r.icon).toBeDefined();
   });
 
@@ -271,20 +275,21 @@ describe("the extension", () => {
     host.changeSettings("obsidian", { settings: SETTINGS });
   });
 
-  test("the pane: the note as markdown (callout a bold lead, the table kept, wikilinks into Obsidian), tags, links with the unresolved one grey, the backlinks count", async () => {
+  test("the pane: a header (vault and folder over the title, the tags as chips, words, backlinks and links large), the note as markdown (callout a bold lead, the table kept, wikilinks into Obsidian), links with the unresolved one grey, who links to it", async () => {
     const d = await host.detail("obsidian", "notes", "note:infra/theater.md");
     expect(d.markdown).toContain("> **Note**\n> Caddy fronts everything on it.");
     expect(d.markdown).toContain("| service | port |");
     expect(d.markdown).toContain(`[the reader](obsidian://open?vault=${encodeURIComponent(vault.split("/").pop()!)}&file=personal%2Fprojects%2Fken)`);
     expect(d.markdown).toContain("nowhere (not a note yet)");
     expect(d.markdown).not.toContain("description:");
+    expect(d).toMatchObject({ caption: `${vault.split("/").pop()} / infra`, title: "theater", chips: [{ text: "#infra" }, { text: "#homelab" }] });
+    expect(d.stats!.map((s) => s.label)).toEqual(["words", "backlinks", "links"]);
+    expect(d.stats![1].value).toBe("2");
     const meta = Object.fromEntries(d.metadata!.map((m) => [m.label, m]));
-    expect(meta.Path.value).toBe("infra/theater.md");
     expect(meta.Modified.value).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d$/);
-    expect(meta.Tags.tags).toEqual([{ text: "infra" }, { text: "homelab" }]);
     expect(meta.Aliases.value).toBe("the box");
-    expect(meta.Links.tags).toEqual([{ text: "ken" }, { text: "nowhere", color: "grey" }]);
-    expect(meta.Backlinks.value).toBe("2: Wiki Index, ken");
+    expect(meta["Links to"].tags).toEqual([{ text: "ken" }, { text: "nowhere", color: "grey" }]);
+    expect(meta["Linked from"].value).toBe("Wiki Index, ken");
     expect(await host.detail("obsidian", "notes", "cmd:new")).toEqual({});
   });
 

@@ -36,10 +36,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 1"
+              "text": "Google Chrome · window 1"
             }
           ],
           "actions": [
@@ -82,10 +79,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 1"
+              "text": "Google Chrome · window 1"
             },
             {
               "tag": "muted"
@@ -131,10 +125,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 1"
+              "text": "Google Chrome · window 1"
             },
             {
               "tag": "playing",
@@ -181,10 +172,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 1"
+              "text": "Google Chrome · window 1"
             }
           ],
           "actions": [
@@ -229,10 +217,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 2"
+              "text": "Google Chrome · window 2"
             }
           ],
           "actions": [
@@ -275,10 +260,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 2"
+              "text": "Google Chrome · window 2"
             }
           ],
           "actions": [
@@ -321,10 +303,7 @@
           ],
           "accessories": [
             {
-              "text": "Google Chrome"
-            },
-            {
-              "text": "window 2"
+              "text": "Google Chrome · window 2"
             },
             {
               "tag": "playing",
@@ -616,10 +595,7 @@
             ],
             "accessories": [
               {
-                "text": "Google Chrome"
-              },
-              {
-                "text": "window 1"
+                "text": "Google Chrome · window 1"
               }
             ],
             "actions": [
@@ -662,10 +638,7 @@
             ],
             "accessories": [
               {
-                "text": "Google Chrome"
-              },
-              {
-                "text": "window 1"
+                "text": "Google Chrome · window 1"
               },
               {
                 "tag": "muted"
@@ -711,10 +684,7 @@
             ],
             "accessories": [
               {
-                "text": "Google Chrome"
-              },
-              {
-                "text": "window 1"
+                "text": "Google Chrome · window 1"
               },
               {
                 "tag": "playing",
@@ -761,10 +731,7 @@
             ],
             "accessories": [
               {
-                "text": "Google Chrome"
-              },
-              {
-                "text": "window 1"
+                "text": "Google Chrome · window 1"
               }
             ],
             "actions": [
@@ -945,6 +912,27 @@
             "url": "https://addons.mozilla.org"
           }
         ]
+      },
+      "details": {
+        "cdp:Lo-fi beats to focus to": {
+          "caption": "Google Chrome · window 1",
+          "title": "Lo-fi beats to focus to",
+          "chips": [
+            {
+              "text": "playing",
+              "color": "green"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Address",
+              "link": {
+                "text": "www.youtube.com/watch?v=lofi",
+                "href": "https://www.youtube.com/watch?v=lofi"
+              }
+            }
+          ]
+        }
       }
     }
   },
@@ -954,7 +942,7 @@
       "keys": [
         "down*2"
       ],
-      "caption": "The tabs of two browsers in their own order, the host as the subtitle, playing and muted tagged"
+      "caption": "The tabs of two browsers in their own order, the host as the subtitle, where each is and playing or muted on the right"
     },
     "2-audible": {
       "palette": "tabs",
@@ -978,6 +966,14 @@
         "type:compose"
       ],
       "caption": "Live: tab titles are root results, so part of one typed at the root finds the tab"
+    },
+    "5-detail": {
+      "palette": "tabs",
+      "keys": [
+        "down*2",
+        "cmd+i"
+      ],
+      "caption": "A tab's details (cmd+i): its browser and window, playing, the address"
     }
   }
 }

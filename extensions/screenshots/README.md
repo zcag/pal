@@ -45,8 +45,8 @@ recording.
 | `cmd+d` | Move to Trash, after a confirm |
 | `tab`, `x` | Mark rows: Open, Reveal, Copy image, Copy path, Copy as markdown image, Copy text (their texts a blank line apart) and Move to Trash run over all of them |
 
-The detail pane (`cmd+i`) shows the picture itself over its name,
-folder, size, pixels and the time it was taken.
+The detail pane (`cmd+i`) leads with the folder over the name and the
+pixels and size large, then the picture itself and the time it was taken.
 
 The root's Now section (the empty panel) offers a screenshot taken in
 the last two minutes as `Screenshot taken 40 s ago`: Enter opens it,

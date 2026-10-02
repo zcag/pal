@@ -120,6 +120,9 @@ const byName = async (name: string) => {
   return links.find((l) => l.name.toLowerCase() === n) ?? links.find((l) => l.keywords?.some((k) => k.toLowerCase() === n));
 };
 
+/** A url as a row says it: no `https://`, no `www.` (the favicon and the tag say the rest). */
+const bare = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "");
+
 /** A `{query}` link's typed arguments: one per placeholder name, typed in the search bar on Enter; every one is needed for the url to mean anything. */
 const argsOf = (l: Link): Arg[] => placeholders(l.url).map((name) => ({ id: name, placeholder: name === "query" ? "Query" : name, required: true }));
 
@@ -129,18 +132,17 @@ function row(l: Link): Item {
   return {
     id: l.id,
     name: l.name,
-    subtitle: l.url,
+    subtitle: bare(l.url),
     url: l.url,
     keywords: l.keywords,
     accessories: l.app || args.length ? [...(l.app ? [{ text: l.app }] : []), ...args.map((a) => ({ tag: `{${a.id}}` }))] : undefined,
+    // A document: where it is kept over its name, what it asks for and opens with as chips, the url, the words that find it.
     detail: {
-      markdown: `# ${l.name}\n\n\`\`\`\n${l.url}\n\`\`\``,
-      metadata: [
-        ...(args.length ? [{ label: "Asks for", value: args.map((a) => a.id).join(", ") }] : []),
-        ...(l.keywords?.length ? [{ label: "Keywords", tags: l.keywords.map((text) => ({ text })) }] : []),
-        ...(l.app ? [{ label: "Opens with", value: l.app }] : []),
-        { label: "Source", value: readOnly ? "Import file" : "Your quicklinks" },
-      ],
+      caption: readOnly ? "From the import file" : "Your quicklinks",
+      title: l.name,
+      ...((args.length || l.app) && { chips: [...args.map((a) => ({ text: `asks for ${a.id}`, color: "blue" as const })), ...(l.app ? [{ text: `opens in ${l.app}` }] : [])] }),
+      markdown: `\`\`\`\n${l.url}\n\`\`\``,
+      ...(l.keywords?.length && { metadata: [{ label: "Keywords", tags: l.keywords.map((text) => ({ text })) }] }),
     },
     ...(args.length && { args }),
     actions: readOnly ? [OPEN, COPY] : [OPEN, COPY, EDIT, DELETE],
@@ -234,7 +236,7 @@ async function libraryRows(): Promise<Item[]> {
   return LIBRARY.map((e, i) => ({
     id: libraryId(i),
     name: e.name,
-    subtitle: e.url,
+    subtitle: bare(e.url),
     url: e.url,
     keywords: e.keywords,
     accessories: have.has(e.url) ? [{ tag: "added", color: "green" }] : undefined,
@@ -301,7 +303,7 @@ export default {
           const q = (query ?? "").trim();
           if (!URL_RE.test(q)) return [];
           const url = asUrl(q);
-          return [{ id: OPEN_ID + url, name: `Open ${url.replace(/^https?:\/\//, "")}`, subtitle: url, url, actions: [OPEN, COPY] }];
+          return [{ id: OPEN_ID + url, name: `Open ${url.replace(/^https?:\/\//, "")}`, url, actions: [OPEN, COPY] }];
         }
         // The drill-in for a placeholder link (a stored one, or a library entry searched without adding): one row, the url filled with what is typed.
         const args = ctx?.args as { link?: string; library?: string } | undefined;

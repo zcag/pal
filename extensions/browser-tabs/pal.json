@@ -71,7 +71,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "The tabs of two browsers in their own order, the host as the subtitle, playing and muted tagged"
+        "caption": "The tabs of two browsers in their own order, the host as the subtitle, where each is and playing or muted on the right"
       },
       {
         "file": "2-audible.png",
@@ -84,6 +84,10 @@
       {
         "file": "4-root.png",
         "caption": "Live: tab titles are root results, so part of one typed at the root finds the tab"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "A tab's details (cmd+i): its browser and window, playing, the address"
       }
     ],
     "actions": [

@@ -113,7 +113,7 @@ describe("quicklinks at the root", () => {
   test("a typed web address lists one inline Open row (favicon from the url), picked by its id; a word does not match", async () => {
     const inline = (q: string) => host.request<{ extension: string; items: Item[] }[]>("inline", { query: q }).then((r) => r.find((s) => s.extension === "quicklinks")?.items);
     const rows = await inline("docs.rs/serde");
-    expect(rows).toEqual([{ id: "open:https://docs.rs/serde", name: "Open docs.rs/serde", subtitle: "https://docs.rs/serde", url: "https://docs.rs/serde", actions: [{ id: "open", title: "Open", multi: true }, { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true }] }]);
+    expect(rows).toEqual([{ id: "open:https://docs.rs/serde", name: "Open docs.rs/serde", url: "https://docs.rs/serde", actions: [{ id: "open", title: "Open", multi: true }, { id: "copy", title: "Copy URL", shortcut: "cmd+c", multi: true }] }]);
     expect((await inline("https://x.io/a?b"))![0].id).toBe("open:https://x.io/a?b");
     expect(await inline("github")).toBeUndefined();
     expect(await pick("open:https://docs.rs/serde")).toEqual({ open: "https://docs.rs/serde" });
@@ -137,18 +137,19 @@ describe("quicklinks", () => {
     expect(items[0]).toMatchObject({ name: "Create Quicklink", icon: "\u{f0c94}", actions: [{ id: "create", title: "Create quicklink" }] });
     expect(items[1]).toMatchObject({ name: "Browse Library", icon: "\u{f0ba9}", actions: [{ id: "library", title: "Browse library" }] });
     for (const i of items) expect(i.icon || i.url).toBeTruthy();
-    expect(items[2]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }], args: [{ id: "query", placeholder: "Query", required: true }] });
+    expect(items[2]).toMatchObject({ name: "GitHub search", subtitle: "github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }], args: [{ id: "query", placeholder: "Query", required: true }] });
     expect(items[3].args).toBeUndefined();
     expect(items[2].icon).toBeUndefined();
     expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy", "edit", "delete"]);
     expect(items[2].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete from your quicklinks?", multi: true });
     // Over marked rows: open each, copy a url a line, delete them all; editing stays one link's.
     expect(items[2].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "copy", "delete"]);
+    expect(items[2].detail).toMatchObject({ caption: "Your quicklinks", title: "GitHub search", chips: [{ text: "asks for query", color: "blue" }], metadata: [{ label: "Keywords", tags: [{ text: "gh" }] }] });
     expect(items[2].detail!.markdown).toContain("https://github.com/search?q={query}");
     expect(items[3].accessories).toBeUndefined();
-    // The app it opens with is an accessory and a metadata line; `{selection}` is no tag (nothing is asked for).
+    // The app it opens with is an accessory and a chip; `{selection}` is no tag (nothing is asked for).
     expect(items[4].accessories).toEqual([{ text: "Firefox" }]);
-    expect(items[4].detail!.metadata).toContainEqual({ label: "Opens with", value: "Firefox" });
+    expect(items[4].detail!.chips).toEqual([{ text: "opens in Firefox" }]);
     expect(items[5]).toMatchObject({ name: "Grafana", url: "http://grafana.lan", keywords: ["graphs"] });
     expect(items[5].actions!.map((a) => a.id)).toEqual(["open", "copy"]);
     expect(items[6].name).toBe("http://bare");

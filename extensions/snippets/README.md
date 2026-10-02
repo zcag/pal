@@ -4,8 +4,8 @@ Short texts by name and keyword, kept in the extension's storage and
 edited in the panel. Enter pastes the text into the app that was in front,
 `cmd+c` copies it instead. The keyword is a row keyword, so typing `sig`
 finds the signature; it shows as a tag, the first line of the text is the
-subtitle, and the whole text is in the detail pane (`cmd+i`) with its
-keyword and length.
+subtitle, and the whole text is in the detail pane (`cmd+i`) under its
+name, the keyword and `dynamic` as chips.
 
 Placeholders in the text are filled in when it is pasted or copied:
 
@@ -30,7 +30,8 @@ applied first (`{date offset=+1d}`, `{date offset=-2w}`, `{time
 offset=+3h}`, `{datetime offset=-90m format=HH:mm}`).
 
 Anything else in braces is left as it is, so a snippet of code keeps its
-braces. A snippet with placeholders carries a `dynamic` accessory. The
+braces. A snippet with placeholders carries a `dynamic` accessory and a
+braces icon. The
 grammar is the SDK's (`expand` in `@zcag/pal`), shared with quicklinks
 (`{selection}` in a url) and obsidian (an appended line).
 

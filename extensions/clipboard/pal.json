@@ -63,7 +63,7 @@
       },
       {
         "file": "2-image.png",
-        "caption": "An image entry: its size and dimensions on the row, the picture in the pane"
+        "caption": "An image entry: the picture in the pane, under its pixels and size"
       },
       {
         "file": "3-colors.png",

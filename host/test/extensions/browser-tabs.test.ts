@@ -157,12 +157,14 @@ describe("browser-tabs", () => {
     const [yt, gh, st, radio] = items;
     expect(yt).toMatchObject({ name: "YouTube", subtitle: "www.youtube.com", url: "https://www.youtube.com/watch?v=1", keywords: ["https://www.youtube.com/watch?v=1", "www.youtube.com", "Google Chrome"] });
     expect(yt.icon).toBeUndefined();
-    expect(yt.accessories).toEqual([{ text: "Google Chrome" }, { text: "window 1" }, { tag: "playing", color: "green" }]);
-    expect(gh.accessories).toEqual([{ text: "Google Chrome" }, { text: "window 1" }]);
-    expect(st).toMatchObject({ name: "Settings", subtitle: "chrome://settings/", accessories: [{ text: "Google Chrome" }, { text: "window 2" }] });
+    expect(yt.accessories).toEqual([{ text: "Google Chrome · window 1" }, { tag: "playing", color: "green" }]);
+    expect(gh.accessories).toEqual([{ text: "Google Chrome · window 1" }]);
+    expect(st).toMatchObject({ name: "Settings", subtitle: "chrome://settings/", accessories: [{ text: "Google Chrome · window 2" }] });
     expect(st.url).toBeUndefined();
     expect(st.icon).toBeDefined();
-    expect(radio.accessories).toEqual([{ text: "Google Chrome" }, { text: "window 1" }, { tag: "muted" }]);
+    expect(radio.accessories).toEqual([{ text: "Google Chrome · window 1" }, { tag: "muted" }]);
+    // The details: the browser and window over the title, sound as a chip, the address.
+    expect(await host.detail("browser-tabs", "tabs", yt.id)).toEqual({ caption: "Google Chrome · window 1", title: yt.name, chips: [{ text: "playing", color: "green" }], metadata: [{ label: "Address", link: { text: yt.url!.replace(/^https?:\/\//, ""), href: yt.url! } }] });
     expect(yt.actions!.map((a) => a.id)).toEqual(["focus", "copy-url", "mute", "copy-markdown", "close", "unmute"]);
     expect(yt.actions![2].title).toBe("Mute");
     expect(radio.actions![2].title).toBe("Unmute");
@@ -175,7 +177,7 @@ describe("browser-tabs", () => {
   test("Firefox tabs from the session file after the others: the selected entry of each tab, only its window can be focused", async () => {
     const items = (await list()).filter((i) => i.id.startsWith("ff:"));
     expect(ids(items)).toEqual(["ff:1:1", "ff:1:2", "ff:2:1"]);
-    expect(items[0]).toMatchObject({ name: "MDN", subtitle: "developer.mozilla.org", url: "https://developer.mozilla.org/", accessories: [{ text: "Firefox" }, { text: "window 1" }] });
+    expect(items[0]).toMatchObject({ name: "MDN", subtitle: "developer.mozilla.org", url: "https://developer.mozilla.org/", accessories: [{ text: "Firefox · window 1" }] });
     expect(items[1]).toMatchObject({ name: "New", url: "https://new.example/" });
     expect(items[2]).toMatchObject({ name: "about:blank", subtitle: "about:blank" });
     expect(items[0].actions!.map((a) => a.title)).toEqual(["Focus window", "Copy URL", "Copy as markdown link"]);
@@ -257,8 +259,8 @@ describe.skipIf(!MAC)("browser-tabs over AppleScript", () => {
     writeFileSync(osaLog, "");
     const items = (await list()).filter((i) => i.id.startsWith("as:"));
     expect(ids(items)).toEqual(["as:Safari:1:1", "as:Safari:1:2", "as:Safari:2:1"]);
-    expect(items[0]).toMatchObject({ name: "Apple", subtitle: "www.apple.com", accessories: [{ text: "Safari" }, { text: "window 1" }] });
-    expect(items[2]).toMatchObject({ name: "example.org/page", accessories: [{ text: "Safari" }, { text: "window 2" }] });
+    expect(items[0]).toMatchObject({ name: "Apple", subtitle: "www.apple.com", accessories: [{ text: "Safari · window 1" }] });
+    expect(items[2]).toMatchObject({ name: "example.org/page", accessories: [{ text: "Safari · window 2" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["focus", "copy-url", "copy-markdown", "close"]);
     expect(osa()).toEqual(["list Safari"]);
   });

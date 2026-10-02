@@ -96,7 +96,7 @@ describe.skipIf(!mac)("apps", () => {
     expect(chrome.id).toBe("/Applications/Google Chrome.app");
     expect(chrome.icon).toEqual({ app: "/Applications/Google Chrome.app" });
     expect(chrome.keywords).toEqual(["com.google.Chrome", "Chrome"]); // the bundle id, then CFBundleName
-    expect(chrome.subtitle).toBe("Applications");
+    expect(chrome.subtitle).toBeUndefined(); // the usual roots say nothing: it would be the same on every row
     if (!chrome.accessories) expect(chrome.actions).toBeUndefined();
     for (const i of items) expect(existsSync((i.icon as { app: string }).app), i.name).toBe(true);
     expect(items.map((i) => i.name)).toEqual([...items.map((i) => i.name)].sort((a, b) => a.localeCompare(b)));
@@ -154,12 +154,16 @@ describe.skipIf(!mac)("apps", () => {
     expect(await host.pick("apps", "apps", kb, "copy-url", { ids: [kb, tp] })).toEqual({ copy: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension\nx-apple.systempreferences:com.apple.Trackpad-Settings.extension" });
   });
 
-  test("detail: the path, bundle id and version of an app; a pane's url", async () => {
+  test("detail: the folder over the name, the version as a chip, the bundle id; a pane's url", async () => {
     const d = await host.detail("apps", "apps", "/Applications/Google Chrome.app");
-    expect(d.markdown).toBe("# Google Chrome");
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Path", "Bundle id", "Version", "Running"]);
-    expect(d.metadata![1].value).toBe("com.google.Chrome");
+    expect(d).toMatchObject({ caption: "/Applications", title: "Google Chrome" });
+    expect(d.chips!.some((c) => c.text.startsWith("version "))).toBe(true);
+    expect(d.metadata![0]).toEqual({ label: "Bundle id", value: "com.google.Chrome" });
+    const fake = await host.detail("apps", "apps", fakeApp);
+    expect(fake.chips![0]).toEqual({ text: "running", color: "green" });
+    expect(fake.metadata!.map((m) => m.label)).toEqual(["Bundle id", "Process"]);
     const pane = await host.detail("apps", "apps", "pane:com.apple.Keyboard-Settings.extension");
+    expect(pane).toMatchObject({ caption: "System Settings", title: "Keyboard" });
     expect(pane.metadata![0]).toEqual({ label: "Opens", value: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension" });
   });
 

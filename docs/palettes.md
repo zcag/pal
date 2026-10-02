@@ -185,8 +185,10 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 Installed applications with their own icons.
 
 - **macOS**: `.app` bundles in `/Applications`, `/System/Applications` and
-  `~/Applications`, one level deep so the Utilities folders come along. The
-  row's subtitle is where it came from (Applications, macOS, User). The
+  `~/Applications`, one level deep so the Utilities folders come along. A
+  row from `~/Applications` or an extra folder has the folder as its
+  subtitle; the two usual roots say nothing. The details (`⌘I`) lead with
+  the folder over the name, running and the version as chips. The
   bundle id is a keyword, so `com.apple.` or `anthropic` finds the app.
   Enter opens the bundle path with the system opener.
 - **Linux**: `.desktop` entries from every XDG data dir (`~/.local/share`,
@@ -284,7 +286,7 @@ insurance = false
 ## Bookmarks (`bookmarks`, `bookmarks-history`)
 
 Hand-picked links from a JSON file: a JSON array of objects with `name` and
-`url`, plus optional `subtitle` (the url when absent), `icon` (a glyph,
+`url`, plus optional `subtitle` (the address when absent), `icon` (a glyph,
 emoji or hex colour; a row with a url and no icon gets the site's favicon)
 and `keywords` (a list of strings); the previous pal's bookmarks file
 reads as is.
@@ -512,10 +514,12 @@ Settings, `[extensions.calc]`:
 What you copied, searchable, with images. Text, images and file lists are
 recorded by a watcher that runs while pal runs; the search is SQLite
 full-text search over the text, ordered pinned first, then newest. The
-palette opens with the detail pane showing: the full text (fenced), the
-image, or the file list, with kind, size, source app and time as metadata.
-A row that is a single url gets the site's favicon; the source app and the
-time are accessories, and a pinned entry carries a `pinned` tag. An entry
+palette opens with the detail pane showing: the source app over the
+entry's name, the kind and pinned as chips, its numbers large (characters
+and lines, pixels and size, a file count), then the full text (fenced), the
+image or the file list, and when it was copied. A row that is a single url
+gets the site's favicon; the source app and the time are accessories, and
+a pinned entry sits under Pinned. An entry
 you have named (`⌘⇧R`) is titled by its name from then on, with the text's
 preview as its subtitle, and a search finds it by the name as well as by
 the text (the name is matched as a substring, the text by prefix words).
@@ -580,7 +584,7 @@ clipboard, `0` (the default) the newest ([Links](links.md#extension-routes)).
   (`⌘⇧C`) on an image (the PNG the core keeps, as a file), **Delete all
   unpinned** (asks first; every unpinned entry deleted one by one, since
   the core's only bulk operation is Clear).
-- The detail pane's metadata leads with the entry's name when it has one.
+- The detail pane's header carries the entry's name when it has one.
   Names live in the history database next to the entry (`name` column,
   added on the first open of an older database), so they survive a
   restart and go with the entry when it is deleted.
@@ -756,7 +760,7 @@ are filled without asking (the SDK's placeholders, [Snippets](#snippets-snippets
 below has the grammar; each value percent-encoded), so
 `https://translate.google.com/?text={selection}` opens in one Enter. The
 row shows the placeholder as a tag, the browser it opens with when one
-is named, and the url as its subtitle; the icon is the site's favicon.
+is named, and the url (without `https://`) as its subtitle; the icon is the site's favicon.
 
 The root row **Create Quicklink** opens a form (name, url, keywords, and
 **Open with**: the default browser or one of the browsers installed:
@@ -993,11 +997,12 @@ join below them as each batch of snippets comes in.
 `content_search = false` keeps the second section off; the prefix still
 works.
 
-The detail pane (lazy, asked when the cursor rests on a row) shows the
-path, size, modified time and kind, then on macOS what Spotlight knows of
-the file (one `mdls` call, only when the pane asks): an image's pixel
-size and its Finder tags (the names; the colour index is dropped). On
-Linux a PNG's size comes off its header. For a text file under 64 KB the
+The detail pane (lazy, asked when the cursor rests on a row) leads with
+the folder over the name, the kind and Finder's tags as chips, and the
+size and an image's pixels large, then when it changed. The tags and
+pixels are what Spotlight knows of the file on macOS (one `mdls` call,
+only when the pane asks; the colour index is dropped). On Linux a PNG's
+size comes off its header. For a text file under 64 KB the
 first 40 lines follow in a code block. No image preview: the app's
 `icon://` scheme serves app icons, favicons and clipboard images only.
 
@@ -1549,12 +1554,12 @@ typed, the rest follows as **Featured** (three worth meeting first that
 are not installed: Spotify, GitHub, Solitaire, Calendar, Translate, Disk
 Space, Hue, Typing, in that order) and then a section per category, by
 title (the section names the category, so the row does not). A search or a filter is one list, the extensions whose
-title the words start first. The detail pane (`⌘I`) shows the
-description, what it does (the listing's features), the palettes and the
-listing's screenshots, with the author, where it comes from, its status,
-its build (short hash and date), whether it updates by itself, category,
-platforms, the `pal install` line and, for pal's registry, a link to the
-page.
+title the words start first. The detail pane (`⌘I`) leads with where it
+comes from and its category over the title, how it stands as a chip, then
+the description, what it does (the listing's features), the palettes and
+the listing's screenshots, with the author, its status, its build (short
+hash and date), whether it updates by itself, platforms, the `pal
+install` line and, for pal's registry, a link to the page.
 
 | standing | `Enter` | `⌘Enter` | `⌘C` | `⌃X` |
 | --- | --- | --- | --- | --- |
@@ -1754,8 +1759,9 @@ secure note, card and bank account, identity, SSH key, API credential,
 server and database, and so on), the primary website's host on the right,
 favourites first with a `favorite` tag, then by title. The item's website
 hosts, username, category, vault and tags are keywords, so `github.com`
-finds the login. The detail pane lists vault, category, username, the
-website as a link, tags and the update time. No secret is ever in a row,
+finds the login. The detail pane leads with the vault over the title, the
+category, favorite and tags as chips, then the username, the website as a
+link and the update time. No secret is ever in a row,
 the index or a log: a pick runs `op item get` for that one field and puts
 the value on the clipboard.
 
@@ -1818,10 +1824,12 @@ results. Three sources are merged:
 The row is the tab's title (the url without its scheme when there is
 none), the host is the subtitle, the favicon comes from the url; a tab
 without a web url (`chrome://settings`) gets the browser's icon. On the
-right: the browser's name when more than one is listed, `window N` when
-the browser has more than one window, and `playing` (green) or `muted`
-for a tab the protocol could ask. The url, the host and the browser's
-name are keywords.
+right: where it is in one run (the browser's name when more than one is
+listed, `window N` when the browser has more than one window), and
+`playing` (green) or `muted` for a tab the protocol could ask. The url,
+the host and the browser's name are keywords. The details (`⌘I`) lead
+with the browser and window over the title, sound as a chip, then the
+address.
 
 The filter dropdown scopes the list:
 
@@ -4152,8 +4160,8 @@ note (`obsidian://open`); the notes are read as files.
 **Notes.** Every `.md` in the vault (dot folders and the `exclude` globs
 out) as a row: the title (front matter `title`, else the first `#`
 heading, else the file name), the description (front matter, else the
-first body line) as the subtitle, the folder as the section, up to three
-tags and the change date on the right; the file name, the aliases, the
+first body line) as the subtitle, the folder as the section, a tag (not
+the folder's) and the change date on the right; the file name, the aliases, the
 tags and the folder are keywords. Four commands lead: Today's note
 (`⌘Enter` appends to it), New note, Search notes (`⌘Enter` opens
 Obsidian's search), Random note. On a note: Open in Obsidian and Open in
@@ -4162,9 +4170,11 @@ editor (`Enter` and `⌘Enter`, swapped by the `open_with` setting; the
 (`⌘C`: `[[name]]`, `[[folder/name]]` when the name is shared), Read in
 pal (`⌘⇧R`: the note as a view through tela's markdown renderer, with
 callouts, tables, tasks, code), Backlinks (`⌘B`), Outgoing links (`⌘L`),
-Copy path (`⌘⇧C`). The pane (`⌘I`) is the note as markdown (front matter
-off, callouts a bold lead, wikilinks as links into Obsidian) over its
-path, modified time, words, tags, aliases, links and backlinks. The index
+Copy path (`⌘⇧C`). The pane (`⌘I`) leads with the vault and folder over
+the title, the tags as chips and the words, backlinks and links large,
+then the note as markdown (front matter off, callouts a bold lead,
+wikilinks as links into Obsidian) over its modified time, aliases, links
+and the notes linking to it. The index
 is per file by mtime and size; a watcher on the vault marks it stale, the
 next listing rebuilds it.
 
@@ -4454,15 +4464,16 @@ again on every show. A file still coming in (`.crdownload`, `.part`,
 have, a blue tag, its size and, once it has grown between two listings,
 the rate (Safari's `.download` bundle gives its percentage and total from
 its plist); the rest sit under Today, Yesterday, This week and Older by
-modification day with the size and the age on the right and the kind as
-the subtitle. An image or a PDF wears a 64 px thumbnail (`sips` on macOS,
+modification day with the size and the age on the right (the kind is the
+icon). An image or a PDF wears a 64 px thumbnail (`sips` on macOS,
 ImageMagick on Linux, made once into the cache directory, the newest 24
 per listing); other rows a kind glyph. With `browser_folders` the
 browsers' own download folders (Chrome-family `Preferences`, Firefox
 `prefs.js`) are listed too when they differ from `folder`. The last rows
 clear what is older than `clear_days` (the count and size in the row, a
-confirm card) and open the folder. The detail pane adds the url and the
-page the file came from (Spotlight's `kMDItemWhereFroms`). The root's
+confirm card) and open the folder. The detail pane leads with the folder
+over the name, the kind and the size, and adds the url and the page the
+file came from (Spotlight's `kMDItemWhereFroms`). The root's
 Now section shows the newest download of the last ten minutes
 (`suggest`).
 
@@ -4793,8 +4804,9 @@ is silent unless `sound` is on.
 | `tab`, `x`, `shift+↓`, `cmd+click` | Mark rows |
 
 Open, Reveal, Copy image, Copy path and the trash take marked rows
-(`multi`). The detail pane (`⌘I`) shows the picture itself over its
-name, folder, size, pixels and the time it was taken. The root's Now
+(`multi`). The detail pane (`⌘I`) leads with the folder over the name
+and the pixels and size large, then the picture itself and the time it
+was taken. The root's Now
 section offers a screenshot taken in the last two minutes as
 `Screenshot taken 40 s ago` with Open, Copy image and the markdown tag.
 For the tests, `PAL_SCREENCAPTURE_BIN` names a stand-in capture tool and

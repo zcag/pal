@@ -953,23 +953,24 @@
       },
       "details": {
         "/Users/ada/proj/widgets/README.md": {
+          "caption": "~/proj/widgets",
+          "title": "README.md",
+          "chips": [
+            {
+              "text": "document"
+            }
+          ],
+          "stats": [
+            {
+              "value": "4.7 KB",
+              "label": "size"
+            }
+          ],
           "markdown": "````md\n# widgets\n\nA small library of UI widgets.\n\n## Install\n\n    bun add @acme/widgets\n\n````",
           "metadata": [
             {
-              "label": "Path",
-              "value": "~/proj/widgets/README.md"
-            },
-            {
-              "label": "Size",
-              "value": "4.7 KB"
-            },
-            {
               "label": "Modified",
               "value": "9/16/2026, 12:34:00 PM"
-            },
-            {
-              "label": "Kind",
-              "value": "document"
             }
           ]
         }
@@ -1702,7 +1703,6 @@
           {
             "id": "/Users/ada/proj/dotfiles",
             "name": "dotfiles",
-            "subtitle": "~/proj",
             "icon": "󰉖",
             "accessories": [
               {
@@ -1760,7 +1760,6 @@
           {
             "id": "/Users/ada/proj/pal",
             "name": "pal",
-            "subtitle": "~/proj",
             "icon": "󰉖",
             "accessories": [
               {
@@ -1818,7 +1817,6 @@
           {
             "id": "/Users/ada/proj/widgets",
             "name": "widgets",
-            "subtitle": "~/proj",
             "icon": "󰉖",
             "accessories": [
               {
@@ -1876,7 +1874,6 @@
           {
             "id": "/Users/ada/proj/README.md",
             "name": "README.md",
-            "subtitle": "~/proj",
             "icon": "󰧮",
             "accessories": [
               {
@@ -1932,7 +1929,6 @@
           {
             "id": "/Users/ada/proj/notes.md",
             "name": "notes.md",
-            "subtitle": "~/proj",
             "icon": "󰧮",
             "accessories": [
               {
@@ -1988,7 +1984,6 @@
           {
             "id": "/Users/ada/proj/screen.png",
             "name": "screen.png",
-            "subtitle": "~/proj",
             "icon": "󰥶",
             "accessories": [
               {
@@ -2044,7 +2039,6 @@
           {
             "id": "/Users/ada/proj/setup.sh",
             "name": "setup.sh",
-            "subtitle": "~/proj",
             "icon": "󱀫",
             "accessories": [
               {
@@ -2100,7 +2094,6 @@
           {
             "id": "/Users/ada/proj/widgets-0.3.tgz",
             "name": "widgets-0.3.tgz",
-            "subtitle": "~/proj",
             "icon": "󰿺",
             "accessories": [
               {
@@ -2157,23 +2150,24 @@
       },
       "details": {
         "/Users/ada/proj/notes.md": {
+          "caption": "~/proj",
+          "title": "notes.md",
+          "chips": [
+            {
+              "text": "document"
+            }
+          ],
+          "stats": [
+            {
+              "value": "6.2 KB",
+              "label": "size"
+            }
+          ],
           "markdown": "````md\n# notes\n\n- ship the browse level\n- screenshots for the store\n````",
           "metadata": [
             {
-              "label": "Path",
-              "value": "~/proj/notes.md"
-            },
-            {
-              "label": "Size",
-              "value": "6.2 KB"
-            },
-            {
               "label": "Modified",
               "value": "9/16/2026, 2:00:00 PM"
-            },
-            {
-              "label": "Kind",
-              "value": "document"
             }
           ]
         }
@@ -2245,7 +2239,7 @@
         "wait:200",
         "cmd+i"
       ],
-      "caption": "The detail pane on a text file: path, size, modified, kind, and its first lines"
+      "caption": "The detail pane on a text file: its folder, name and kind, the size, its first lines"
     },
     "3-open-with": {
       "palette": "files",

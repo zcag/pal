@@ -6,7 +6,7 @@
 // on Linux a .desktop file's own actions ("New Private Window") are the
 // row's secondary actions.
 import { readdir } from "node:fs/promises";
-import { exec, failed, home, run, settings, terminal, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { exec, failed, home, run, settings, terminal, tilde, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { execArgv, parseDesktop, splitList, type DesktopAction } from "./desktop.ts";
 
 /** `[extensions.apps]`, defaults in pal.json. */
@@ -20,10 +20,11 @@ const OSASCRIPT_MS = 3000;
 
 // ---- macOS ---------------------------------------------------------------
 
-const MAC_ROOTS: [string, string][] = [
-  ["/Applications", "Applications"],
-  ["/System/Applications", "macOS"],
-  [`${HOME}/Applications`, "User"],
+/** The roots and their rows' subtitle: none for the two every Mac has (it would say the same on every row), the folder for the rest. */
+const MAC_ROOTS: [string, string | undefined][] = [
+  ["/Applications", undefined],
+  ["/System/Applications", undefined],
+  [`${HOME}/Applications`, "~/Applications"],
 ];
 
 // Every app action works on marked rows too (`multi`): launch, quit, hide or reveal several, copy their paths or ids one per line.
@@ -77,7 +78,7 @@ async function scanMac(extra: string[]): Promise<Item[]> {
   const items: Item[] = [];
   const running = await runningPids();
   macApps.clear();
-  for (const [root, source] of [...MAC_ROOTS, ...extra.map((f): [string, string] => [f, f])]) {
+  for (const [root, source] of [...MAC_ROOTS, ...extra.map((f): [string, string] => [f, tilde(f)])]) {
     for (const path of await bundles(root)) {
       const name = path.slice(path.lastIndexOf("/") + 1, -4);
       if (seen.has(name.toLowerCase())) continue; // the first root wins a name (Set.add answers the set, so the old `!seen.add` never skipped)
@@ -90,7 +91,7 @@ async function scanMac(extra: string[]): Promise<Item[]> {
       items.push({
         id: path,
         name,
-        subtitle: source,
+        ...(source && { subtitle: source }),
         icon: { app: path },
         keywords,
         ...(isRunning && { accessories: [{ tag: "running", color: "green" }] }),
@@ -211,23 +212,27 @@ async function pickMac(id: string, action?: string, ctx?: Ctx) {
   }
 }
 
-/** The detail pane: the path, bundle id and version of an app (read from its plist on request), or a pane's url. */
+/** The detail pane: the app's folder over its name, running and its version as chips, the bundle id and processes under it; a pane says where it opens. */
 async function detailMac(id: string): Promise<Detail> {
   if (id.startsWith(PANE)) {
     const paneId = id.slice(PANE.length);
     const pane = PANES.find(([p]) => p === paneId);
-    return { markdown: `# ${pane?.[1] ?? paneId}\n\nA System Settings pane`, metadata: [{ label: "Opens", value: paneUrl(paneId) }, ...(pane ? [{ label: "Keywords", tags: pane[2].map((text) => ({ text })) }] : [])] };
+    return { caption: "System Settings", title: pane?.[1] ?? paneId, metadata: [{ label: "Opens", value: paneUrl(paneId) }, ...(pane ? [{ label: "Found by", tags: pane[2].map((text) => ({ text })) }] : [])] };
   }
   if (!macApps.has(id)) await apps();
   const app = macApps.get(id);
   const plist = await Bun.file(`${id}/Contents/Info.plist`).text().catch(() => "");
   const version = plistKey(plist, "CFBundleShortVersionString") ?? plistKey(plist, "CFBundleVersion");
   const pids = (await runningPids()).get(id) ?? [];
-  const metadata: Metadata[] = [{ label: "Path", value: id }];
+  const metadata: Metadata[] = [];
   if (app?.bundleId) metadata.push({ label: "Bundle id", value: app.bundleId });
-  if (version) metadata.push({ label: "Version", value: version });
-  metadata.push(pids.length ? { label: "Running", tags: [{ text: pids.length === 1 ? `pid ${pids[0]}` : `${pids.length} processes`, color: "green" }] } : { label: "Running", value: "No" });
-  return { markdown: `# ${app?.name ?? id.slice(id.lastIndexOf("/") + 1, -4)}`, metadata };
+  if (pids.length) metadata.push({ label: pids.length === 1 ? "Process" : "Processes", value: pids.join(", ") });
+  return {
+    caption: tilde(id.slice(0, id.lastIndexOf("/"))),
+    title: app?.name ?? id.slice(id.lastIndexOf("/") + 1, -4),
+    chips: [...(pids.length ? [{ text: "running", color: "green" as const }] : []), ...(version ? [{ text: `version ${version}` }] : [])],
+    metadata,
+  };
 }
 
 // ---- Linux ---------------------------------------------------------------
@@ -256,7 +261,7 @@ async function installed(prog?: string): Promise<boolean> {
   return !!Bun.which(prog);
 }
 
-type Entry = { file: string; id: string; exec: string[]; terminal: boolean; actions: DesktopAction[] };
+type Entry = { file: string; id: string; name: string; exec: string[]; terminal: boolean; actions: DesktopAction[] };
 const entries = new Map<string, Entry>();
 const ACTION = "action:";
 
@@ -276,7 +281,7 @@ async function scanLinux(extra: string[]): Promise<Item[]> {
       if (e.NoDisplay === "true" || e.Hidden === "true" || !shownHere(e) || !(await installed(e.TryExec))) continue;
       const exec = execArgv(e.Exec);
       if (!exec.length) continue;
-      entries.set(file, { file, id, exec, terminal: e.Terminal === "true", actions });
+      entries.set(file, { file, id, name: e.Name, exec, terminal: e.Terminal === "true", actions });
       const bin = exec[0].slice(exec[0].lastIndexOf("/") + 1);
       const keywords = [...new Set([e.GenericName, ...splitList(e.Keywords), bin, id.slice(0, -8)].filter((k): k is string => !!k))];
       items.push({
@@ -318,17 +323,16 @@ function launchLinux(file: string, action?: string) {
   spawnDetached(e.exec);
 }
 
-/** The detail pane: the desktop file, its command and its own actions. */
+/** The detail pane: the desktop file's folder over the app's name, what it runs and its own actions. */
 async function detailLinux(id: string): Promise<Detail> {
   if (!entries.has(id)) await apps();
   const e = entries.get(id);
-  const metadata: Metadata[] = [{ label: "File", value: id }];
+  const metadata: Metadata[] = [];
   if (e) {
     metadata.push({ label: "Runs", value: e.exec.join(" ") });
-    if (e.terminal) metadata.push({ label: "Terminal", value: "Yes" });
     if (e.actions.length) metadata.push({ label: "Actions", tags: e.actions.map((a) => ({ text: a.name })) });
   }
-  return { markdown: `# ${e?.id.slice(0, -8) ?? id}`, metadata };
+  return { caption: tilde(id.slice(0, id.lastIndexOf("/"))), title: e?.name ?? id.slice(id.lastIndexOf("/") + 1, -8), ...(e?.terminal && { chips: [{ text: "in a terminal" }] }), metadata };
 }
 
 async function pickLinux(id: string, action?: string, ctx?: Ctx) {

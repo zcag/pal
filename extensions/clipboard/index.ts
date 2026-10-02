@@ -11,7 +11,7 @@
 // could be and is the root's Clipboard section.
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { appName, argsForm, bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type Arg, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { appName, argsForm, bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type Arg, type ClipboardEntry, type Ctx, type Detail, type DetailStat, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
 import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
 
@@ -84,21 +84,30 @@ const fence = (s: string) => "````\n" + s.replace(/````/g, "```​`") + "\n````"
 /** A wide swatch of a copied colour, as the Colors palette draws one. */
 const swatch = (hex: string) => `![](data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" rx="8" fill="${hex}"/></svg>`)})`;
 
-function detail(e: ClipboardEntry, color?: string): Detail {
+/** What the entry is, in a word: a link and a colour are text this side recognises. */
+const kindWord = (e: ClipboardEntry, url?: string, color?: string) => (url ? "link" : color ? "color" : e.kind);
+
+/** The numbers that matter for the kind: a text's characters and lines, an image's pixels and bytes, how many files. */
+function stats(e: ClipboardEntry): DetailStat[] {
+  if (e.kind === "image") return [{ value: `${e.width ?? "?"} × ${e.height ?? "?"}`, label: "pixels" }, { value: bytes(e.bytes), label: "size" }];
+  if (e.kind === "files") return [{ value: String(e.files!.length), label: e.files!.length === 1 ? "file" : "files" }];
+  const lines = e.text!.split("\n").length;
+  return [{ value: e.text!.length.toLocaleString("en-US"), label: e.text!.length === 1 ? "character" : "characters" }, ...(lines > 1 ? [{ value: String(lines), label: "lines" }] : [])];
+}
+
+/** A document: the app it came from over its name (an unnamed text's body says it), the kind and pinned as chips, its numbers, then the body and when it was copied. */
+function detail(e: ClipboardEntry, url?: string, color?: string): Detail {
   const body =
     e.kind === "image" ? `![](${clipboard.imageUrl(e.id, 0)})`
     : e.kind === "files" ? e.files!.map((f) => `- \`${f}\``).join("\n")
     : (color ? swatch(color) + "\n\n" : "") + fence(e.text!.length > DETAIL_MAX ? e.text!.slice(0, DETAIL_MAX) + "\n… (truncated)" : e.text!);
   return {
+    caption: e.source_app ? `Copied from ${appName(e.source_app)}` : "Copied",
+    ...((e.name || e.kind !== "text") && { title: title(e) }),
+    chips: [{ text: kindWord(e, url, color) }, ...(e.pinned ? [{ text: "pinned", color: "amber" as const }] : [])],
+    stats: stats(e),
     markdown: body,
-    metadata: [
-      ...(e.name ? [{ label: "Name", value: e.name }] : []),
-      { label: "Kind", value: e.kind },
-      { label: "Size", value: e.kind === "image" ? `${bytes(e.bytes)} · ${e.width} x ${e.height} px` : e.kind === "text" ? `${bytes(e.bytes)} · ${e.text!.length} chars` : bytes(e.bytes) },
-      ...(e.source_app ? [{ label: "Source", value: appName(e.source_app) }] : []),
-      { label: "Copied", value: when(e.at) },
-      ...(e.pinned ? [{ label: "Pinned", tags: [{ text: "pinned", color: "amber" }] }] : []),
-    ],
+    metadata: [{ label: "Copied", value: when(e.at) }],
   };
 }
 
@@ -140,14 +149,13 @@ function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
     subtitle: subtitle(e),
     icon: e.kind === "image" ? { image: clipboard.imageUrl(e.id, THUMB) } : url ? undefined : color ?? KIND_ICON[e.kind],
     url,
+    // Two at most: where it came from (an image without a source: its size) and when; a pinned one says so by its section.
     accessories: [
-      ...(e.source_app ? [{ text: appName(e.source_app) }] : []),
-      ...(e.kind === "image" ? [{ text: bytes(e.bytes) }] : []),
+      ...(e.source_app ? [{ text: appName(e.source_app) }] : e.kind === "image" ? [{ text: bytes(e.bytes) }] : []),
       { date: e.at },
-      ...(e.pinned ? [{ tag: "pinned", color: "amber" }] : []),
     ],
     ...(e.pinned && { section: "Pinned" }),
-    detail: detail(e, color),
+    detail: detail(e, url, color),
     args: nameArgs(e),
     actions: actions(e, primary, url),
   };

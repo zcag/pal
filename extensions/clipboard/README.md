@@ -6,13 +6,15 @@ full-text search over the text, on every keystroke inside the palette
 (an input palette, so the entries are never at the root). Pinned entries
 sit in a **Pinned** section at the top, the rest follow newest first.
 
-The palette opens with the detail pane showing: the full text (fenced),
-the image, or the file list, with kind, size, source app and time as
-metadata. A row that is a single url gets the site's favicon and an Open
-link action; a row that is one colour (`#hex`, `rgb()`) has the colour
-itself as its icon. The source app and the time are accessories, an image
-row shows its size next to its dimensions, and a pinned entry carries a
-`pinned` tag. An entry you have named (`cmd+shift+r`) is titled by its
+The palette opens with the detail pane showing: the app it was copied
+from over its name, the kind (text, link, color, image, files) and pinned
+as chips, its numbers large (a text's characters and lines, an image's
+pixels and size, how many files), then the full text (fenced), the image
+or the file list, and when it was copied. A row that is a single url gets
+the site's favicon and an Open link action; a row that is one colour
+(`#hex`, `rgb()`) has the colour itself as its icon. The source app (an
+image without one: its size) and the time are accessories; a pinned entry
+sits under Pinned. An entry you have named (`cmd+shift+r`) is titled by its
 name from then on, with the text's preview as the subtitle, and a search
 finds it by the name as well as by the text.
 

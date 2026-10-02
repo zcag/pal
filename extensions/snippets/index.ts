@@ -8,8 +8,9 @@
 import { clipboard, core, errorMessage, home, now, selection, toast, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
-/** Material Design glyphs in the bundled Nerd Font: scissors for a snippet, plus, import, export for the command rows. */
+/** Material Design glyphs in the bundled Nerd Font: scissors for a snippet, braces for one with placeholders, plus, import, export for the command rows. */
 const ICON = "\u{f0190}";
+const ICON_DYNAMIC = "\u{f0169}";
 const ICON_CREATE = "\u{f0415}";
 const ICON_IMPORT = "\u{f02fa}";
 const ICON_EXPORT = "\u{f0207}";
@@ -34,20 +35,20 @@ const snippetText = async (name: string) => { const n = name.trim().toLowerCase(
 /** The placeholders' sources: the clipboard, the app in front's selected text for `{selection}` (the clipboard when nothing is selected), the Finder selection for `{files}`, the other snippets. */
 const SOURCES = { clipboard: clipboardText, selection: selection.text, files: selection.files, now: () => new Date(now()), snippet: snippetText };
 
+/** A snippet's row: its keyword as a tag, one with placeholders marked dynamic (and its icon braces); the detail is the name over the text. */
 function row(s: Snippet): Item {
+  const dynamic = hasPlaceholders(s.text);
   return {
     id: s.id,
     name: s.name,
     subtitle: preview(s.text),
-    icon: ICON,
+    icon: dynamic ? ICON_DYNAMIC : ICON,
     keywords: s.keyword ? [s.keyword] : undefined,
-    accessories: [...(s.keyword ? [{ tag: s.keyword }] : []), ...(hasPlaceholders(s.text) ? [{ text: "dynamic" }] : [])],
+    accessories: [...(s.keyword ? [{ tag: s.keyword }] : []), ...(dynamic ? [{ text: "dynamic" }] : [])],
     detail: {
-      markdown: `# ${s.name}\n\n\`\`\`\n${s.text}\n\`\`\``,
-      metadata: [
-        ...(s.keyword ? [{ label: "Keyword", value: s.keyword }] : []),
-        { label: "Length", value: `${s.text.length} characters` },
-      ],
+      title: s.name,
+      ...((s.keyword || dynamic) && { chips: [...(s.keyword ? [{ text: `keyword ${s.keyword}` }] : []), ...(dynamic ? [{ text: "dynamic", color: "violet" as const }] : [])] }),
+      markdown: "````\n" + s.text.replace(/````/g, "```\u200b`") + "\n````",
     },
     actions: [PASTE, COPY, EDIT, DELETE],
   };

@@ -7,7 +7,7 @@ browser or the file shows at once. A url two sources have is listed once,
 the first wins: the file's rows come first, then each browser in the
 `browsers` setting's order.
 
-The file's rows show `subtitle` (the url when absent), an `icon` (a glyph,
+The file's rows show `subtitle` (the address when absent), an `icon` (a glyph,
 emoji or hex colour; a row with a url and no icon gets the site's favicon)
 and match their `keywords`. Browser rows sit in a section per browser and
 profile (`Chrome`, `Chrome (Work)`, `Safari`, `Firefox`), carry the folder

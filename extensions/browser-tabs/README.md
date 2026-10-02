@@ -8,10 +8,11 @@ in its browser and raises the window.
 The row is the tab's title (the url without its scheme when there is
 none), the host is the subtitle, the favicon comes from the url; a tab
 without a web url (`chrome://settings`) gets the browser's icon. On the
-right: the browser's name when more than one is listed, `window N` when
-the browser has more than one window, and `playing` (green) or `muted` for
-a tab the DevTools protocol could ask. The url, the host and the browser's
-name are keywords.
+right: where it is in one run (the browser's name when more than one is
+listed, `window N` when the browser has more than one window), and
+`playing` (green) or `muted` for a tab the DevTools protocol could ask.
+The url, the host and the browser's name are keywords. `cmd+i` shows the
+browser and window over the title, sound as a chip, and the address.
 
 ## Sources
 
