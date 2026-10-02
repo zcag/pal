@@ -304,7 +304,8 @@ async function browseRows(folder: string, query: string, s: Settings, by: Sort =
   const up = upRow(folder, GLYPH.folder);
   return [
     ...(isRoot(folder) ? [] : [{ ...up, actions: [...(up.actions ?? []), hidden] }]),
-    ...shown.map((e) => entryRow(e, undefined, undefined, true, [hidden])),
+    // The crumb is the folder: a subtitle would say it again on every row.
+    ...shown.map((e) => { const { subtitle: _, ...row } = entryRow(e, undefined, undefined, true, [hidden]); return row; }),
     ...(found.length > BROWSE_CAP ? [moreRow(found.length - BROWSE_CAP, GLYPH.folder)] : []),
   ];
 }
@@ -458,46 +459,36 @@ const appRow = (a: App): Item => ({
 const fence = (s: string, lang: string) => "````" + lang + "\n" + s.replace(/````/g, "```​`") + "\n````";
 
 /** What Spotlight knows of the file on macOS: an image's pixel size and Finder's tags, one `mdls` call; `PAL_FILES_MDLS` names a stand-in (the tests). Linux: a PNG's size off its header. */
-async function spotlightMeta(p: string, k: Kind): Promise<Metadata[]> {
+async function spotlightMeta(p: string, k: Kind): Promise<{ width?: number; height?: number; tags: string[] }> {
   const mdls = process.env.PAL_FILES_MDLS || (MAC ? "mdls" : undefined);
   if (mdls) {
     const proc = Bun.spawn([mdls, "-name", "kMDItemPixelWidth", "-name", "kMDItemPixelHeight", "-name", "kMDItemUserTags", "-raw", p], { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
     const timer = setTimeout(() => proc.kill(), CONTENT_MS);
     const text = await new Response(proc.stdout).text().catch(() => "");
     clearTimeout(timer);
-    const { width, height, tags } = parseMdls(text);
-    return [
-      ...(width && height ? [{ label: "Dimensions", value: `${width} x ${height} px` }] : []),
-      ...(tags.length ? [{ label: "Tags", tags: tags.map((text) => ({ text })) }] : []),
-    ];
+    return parseMdls(text);
   }
-  if (k !== "image") return [];
+  if (k !== "image") return { tags: [] };
   const head = await readFile(p).then((b) => b.subarray(0, 32)).catch(() => undefined);
-  const dims = head && pngSize(head);
-  return dims ? [{ label: "Dimensions", value: `${dims.width} x ${dims.height} px` }] : [];
+  return { ...(head && pngSize(head)), tags: [] };
 }
 
 /**
- * Path, size, modified, kind, then an image's dimensions and Finder's
- * tags where Spotlight has them; a text file's first lines under it. No
- * image preview: `icon://` serves app icons, favicons and clipboard images
- * only (app/src-tauri/src/icon.rs), not arbitrary files.
+ * A header (the folder over the name, the kind and Finder's tags as chips,
+ * the size and an image's pixels large), a text file's first lines, and
+ * when it changed. No image preview: `icon://` serves app icons, favicons
+ * and clipboard images only (app/src-tauri/src/icon.rs), not arbitrary files.
  */
 async function detail(p: string): Promise<Detail> {
   // The `..` row describes the folder it leads to; the cap's hint row has nothing to say.
   if (p.startsWith(UP)) return detail(p.slice(UP.length));
   if (p.startsWith("hint:")) return {};
   const st = await stat(p).catch(() => undefined);
-  if (!st) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: tilde(p) }] };
+  if (!st) return { caption: tilde(dirname(p)), title: basename(p), chips: [{ text: "gone", color: "red" }], markdown: "This file no longer exists." };
   const dir = st.isDirectory();
   const k = kind(p, dir);
-  const metadata: Metadata[] = [
-    { label: "Path", value: tilde(p) },
-    ...(dir ? [] : [{ label: "Size", value: bytes(st.size) }]),
-    { label: "Modified", value: when(st.mtimeMs) },
-    { label: "Kind", value: k === "file" ? (extname(p).slice(1) || "file") : k },
-    ...(dir ? [] : await spotlightMeta(p, k)),
-  ];
+  const meta = dir ? { tags: [] } : await spotlightMeta(p, k);
+  const metadata: Metadata[] = [{ label: "Modified", value: when(st.mtimeMs) }];
   let markdown: string | undefined;
   if (!dir && st.size <= TEXT_MAX && k !== "image" && k !== "archive") {
     const buf = await readFile(p).catch(() => undefined);
@@ -506,7 +497,14 @@ async function detail(p: string): Promise<Detail> {
       markdown = fence(lines.slice(0, TEXT_LINES).join("\n") + (lines.length > TEXT_LINES ? "\n…" : ""), extname(p).slice(1).replace(/[^a-z0-9]/gi, ""));
     }
   }
-  return { markdown, metadata };
+  return {
+    caption: tilde(dirname(p)),
+    title: basename(p) || p,
+    chips: [{ text: k === "file" ? (extname(p).slice(1) || "file") : k }, ...meta.tags.map((text) => ({ text, color: "blue" as const }))],
+    stats: dir ? [] : [{ value: bytes(st.size), label: "size" }, ...(meta.width && meta.height ? [{ value: `${meta.width} × ${meta.height}`, label: "pixels" }] : [])],
+    markdown,
+    metadata,
+  };
 }
 
 // ---- actions -------------------------------------------------------------
@@ -578,7 +576,7 @@ const openWithPick = async (file: string, id: string, ctx?: Ctx) => {
   return { hide: true as const };
 };
 
-const openWithDetail = (file: string, id: string): Detail => ({ metadata: [{ label: "Application", value: tilde(id) }, { label: "Opens", value: tilde(file) }] });
+const openWithDetail = (file: string, id: string): Detail => ({ caption: tilde(dirname(id)), title: basename(id).replace(/\.app$/, ""), metadata: [{ label: "Opens", value: tilde(file) }] });
 
 const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle, { icon: ICON });
 
@@ -702,7 +700,7 @@ export default {
         if (file) return openWithDetail(file, id);
         if (id !== ALL) return detail(id);
         const es = await selectedEntries();
-        return { metadata: [{ label: "Items", value: String(es.length) }, { label: "Size", value: totalSize(es) }, ...es.slice(0, 20).map((e) => ({ label: e.dir ? "Folder" : "File", value: tilde(e.path) }))] };
+        return { caption: "Selected in Finder", title: `${es.length} ${es.length === 1 ? "item" : "items"}`, stats: [{ value: totalSize(es), label: "size" }], metadata: es.slice(0, 20).map((e) => ({ label: e.dir ? "Folder" : "File", value: tilde(e.path) })) };
       },
     },
     recent: {

@@ -995,11 +995,12 @@ join below them as each batch of snippets comes in.
 `content_search = false` keeps the second section off; the prefix still
 works.
 
-The detail pane (lazy, asked when the cursor rests on a row) shows the
-path, size, modified time and kind, then on macOS what Spotlight knows of
-the file (one `mdls` call, only when the pane asks): an image's pixel
-size and its Finder tags (the names; the colour index is dropped). On
-Linux a PNG's size comes off its header. For a text file under 64 KB the
+The detail pane (lazy, asked when the cursor rests on a row) leads with
+the folder over the name, the kind and Finder's tags as chips, and the
+size and an image's pixels large, then when it changed. The tags and
+pixels are what Spotlight knows of the file on macOS (one `mdls` call,
+only when the pane asks; the colour index is dropped). On Linux a PNG's
+size comes off its header. For a text file under 64 KB the
 first 40 lines follow in a code block. No image preview: the app's
 `icon://` scheme serves app icons, favicons and clipboard images only.
 

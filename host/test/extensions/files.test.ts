@@ -231,7 +231,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(await host.pick("files", "recent", p, "copy")).toEqual({ copy: p });
     expect(await host.pick("files", "recent", p, "open-with")).toEqual({ push: { extension: "files", palette: "recent", args: { open_with: p }, title: `Open ${basename(p)} with`, placeholder: "Search apps" } });
     expect((await host.list("files", "recent", "", { args: { open_with: p } })).map((r) => r.name)).toEqual(APPS.map((a) => a.name));
-    expect((await host.detail("files", "recent", p)).metadata!.map((m) => m.label)).toEqual(["Path", "Size", "Modified", "Kind"]);
+    expect(await host.detail("files", "recent", p)).toMatchObject({ caption: dir, title: "Report-Beta.md", metadata: [{ label: "Modified" }] });
   });
 
   test("with no recent files the empty query lists inert hints naming the backend and the folders; find warns it is slow", async () => {
@@ -294,19 +294,19 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(await list("*")).toEqual([]);
   });
 
-  test("detail: path, size, modified, kind, and a text file's first lines; nothing inline for an image", async () => {
+  test("detail: the folder over the name, the kind as a chip, the size large, a text file's first lines, when it changed; nothing inline for an image", async () => {
     const d = await host.detail("files", "files", join(dir, "report-alpha.txt"));
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Path", "Size", "Modified", "Kind"]);
-    expect(d.metadata![3].value).toBe("document");
+    expect(d).toMatchObject({ caption: dir, title: "report-alpha.txt", chips: [{ text: "document" }] });
+    expect(d.stats!.map((x) => x.label)).toEqual(["size"]);
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Modified"]);
     expect(d.markdown).toBe("````txt\nline one\nline two\nline three\n\n````");
     const img = await host.detail("files", "files", join(dir, "photo.png"));
     expect(img.markdown).toBeUndefined();
-    expect(img.metadata![3].value).toBe("image");
-    // What mdls knows (the stand-in): the pixel size and Finder's tags, their colour index dropped; nothing for the text file.
-    expect(img.metadata!.slice(4)).toEqual([{ label: "Dimensions", value: "640 x 480 px" }, { label: "Tags", tags: [{ text: "Red" }, { text: "Work" }] }]);
-    expect(d.metadata!.length).toBe(4);
+    // What mdls knows (the stand-in): the pixel size and Finder's tags (as chips), their colour index dropped; nothing for the text file.
+    expect(img.chips).toEqual([{ text: "image" }, { text: "Red", color: "blue" }, { text: "Work", color: "blue" }]);
+    expect(img.stats![1]).toEqual({ value: "640 × 480", label: "pixels" });
     const folder = await host.detail("files", "files", join(dir, "reports"));
-    expect(folder.metadata!.map((m) => m.label)).toEqual(["Path", "Modified", "Kind"]);
+    expect(folder).toMatchObject({ title: "reports", chips: [{ text: "folder" }], stats: [] });
   });
 
   test("contents: a ' query lists files whose text has the words, the matching line as the subtitle, in the In files section", async () => {
@@ -482,7 +482,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect((await host.list("files", "files", "apple", ctx)).map((r) => r.name)).toEqual(["TextEdit"]);
     expect(await host.list("files", "files", "zzz", ctx)).toEqual([]);
     const d = await host.detail("files", "files", "/Applications/kitty.app", ctx);
-    expect(d.metadata).toEqual([{ label: "Application", value: "/Applications/kitty.app" }, { label: "Opens", value: p }]);
+    expect(d).toEqual({ caption: "/Applications", title: "kitty", metadata: [{ label: "Opens", value: p }] });
   });
 
   test("open with level: nothing registered is one inert hint", async () => {
@@ -543,7 +543,7 @@ describe.skipIf(!HAS_FIND)("the Finder selection", () => {
     expect(now.map((r) => r.id)).toEqual([a]);
     expect(now[0].section).toBe("Selected in Finder");
     expect(await host.pick("files", "selection", a, "copy")).toEqual({ copy: a });
-    expect((await host.detail("files", "selection", a)).metadata![0]).toEqual({ label: "Path", value: a });
+    expect(await host.detail("files", "selection", a)).toMatchObject({ caption: dir, title: "report-alpha.txt" });
   });
 
   test.skipIf(!MAC)("several: an N items row leads (names, total size, the multi actions over every item), the files follow with thumbnails for pictures, a selected dot file included; the query filters the files", async () => {
@@ -561,7 +561,9 @@ describe.skipIf(!HAS_FIND)("the Finder selection", () => {
     // The all row's actions run on the whole selection, whatever was marked.
     expect(await host.pick("files", "selection", "selection:all", "copy")).toEqual({ copy: finder.join("\n") });
     expect(await host.pick("files", "selection", "selection:all", "copy-file")).toEqual({ copy_files: finder });
-    expect((await host.detail("files", "selection", "selection:all")).metadata!.slice(0, 3)).toEqual([{ label: "Items", value: "4" }, { label: "Size", value: "42 B" }, { label: "File", value: a }]);
+    const all = await host.detail("files", "selection", "selection:all");
+    expect(all).toMatchObject({ title: "4 items", stats: [{ value: "42 B", label: "size" }] });
+    expect(all.metadata![0]).toEqual({ label: "File", value: a });
   });
 
   test.skipIf(!MAC)("at the root: the N items row leads with Show in Finder Selection (a push of the palette), then at most four files under Selected in Finder", async () => {
@@ -603,7 +605,7 @@ describe.skipIf(!HAS_FIND)("browsing folders", () => {
     expect(rows.slice(1).map((r) => r.name)).toEqual(["Library", "node_modules", "reports", "gamma-notes.txt", "notes.md", "photo.png", "report-alpha.txt", "Report-Beta.md", "scan.pdf"]);
     const folder = rows.find((r) => r.name === "reports")!;
     expect(folder.actions!.map((a) => a.id)).toEqual([...FOLDER_ACTIONS, "toggle-hidden"]);
-    expect(folder.subtitle).toBe(dir);
+    expect(folder.subtitle).toBeUndefined(); // the crumb says the folder
     expect(rows.find((r) => r.name === "notes.md")!.actions!.map((a) => a.id)).toEqual([...FILE_ACTIONS, "toggle-hidden"]);
     // A picture draws its own thumbnail through the app's icon scheme.
     expect(rows.find((r) => r.name === "photo.png")!.icon).toEqual({ image: `icon://localhost/file?path=${encodeURIComponent(join(dir, "photo.png"))}&size=24` });
@@ -639,7 +641,7 @@ describe.skipIf(!HAS_FIND)("browsing folders", () => {
     expect(await pick(join(dir, "reports"), "browse")).toEqual({ push: { extension: "files", palette: "browse", args: { browse: join(dir, "reports") }, title: join(dir, "reports") } });
     // Files keep their actions; the .. row's detail is the folder it leads to.
     expect(await host.pick("files", "browse", join(dir, "notes.md"), "copy", { args: { browse: dir } })).toEqual({ copy: join(dir, "notes.md") });
-    expect((await host.detail("files", "browse", `up:${dir}`, { args: { browse: join(dir, "reports") } })).metadata![0]).toEqual({ label: "Path", value: dir });
+    expect(await host.detail("files", "browse", `up:${dir}`, { args: { browse: join(dir, "reports") } })).toMatchObject({ caption: dirname(dir), title: basename(dir) });
   });
 
   test("cmd+. flips show_hidden through settings.set and lists again; the toggle's title follows", async () => {

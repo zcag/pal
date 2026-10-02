@@ -85,7 +85,7 @@ the answer (Spotlight, locate).
 | `cmd+alt+c` | Copy to…: the same form, a copy under the same name (a folder whole) |
 | `cmd+shift+z` | Compress: a zip next to the file named after it (`-2` when taken); with rows marked, one zip of them all named after the first (`ditto -c -k --sequesterRsrc --keepParent` on macOS, `zip -r` on Linux) |
 | `cmd+d` | Move to Trash: asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
-| `cmd+i` | The detail pane: path, size, modified time and kind, then on macOS what Spotlight knows (`mdls`): an image's pixel size and Finder's tags; for a text file under 64 KB the first 40 lines in a code block |
+| `cmd+i` | The detail pane: the folder over the name, the kind and Finder's tags as chips, the size and an image's pixels large (Spotlight's `mdls` on macOS), when it changed; for a text file under 64 KB the first 40 lines in a code block |
 
 Open with… lists Launch Services' apps on macOS (`NSWorkspace`, every
 role); on Linux the file's MIME type is looked up in the `mimeapps.list`
