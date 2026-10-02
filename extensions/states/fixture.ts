@@ -44,7 +44,7 @@ try {
     palettes: { states: palette },
     effects: { "states/new": { form } },
     shots: {
-      "1-list": { palette: "states", keys: [], caption: "Every state with its value and which layer answers: its expression, set by hand with the time left, a publisher, built-in" },
+      "1-list": { palette: "states", keys: [], caption: "Every state with its value; the glyph says which layer answers (its expression, held by hand with the time left, an extension, built in)" },
       "2-held": { palette: "states", keys: ["tab"], caption: "Tab steps through the filters: held by hand, yours, what extensions publish, the built-ins" },
       "3-actions": { palette: "states", keys: ["down*2", "cmd+k"], caption: "Set a state for an hour, three, until tomorrow or a value typed, reset it, or remove it from the config" },
       "4-new": { palette: "states", keys: ["enter", "type:meeting", "tab", "type:hour >= 15 and hour < 16"], caption: "New state writes [states.<name>] to the config: a name, an expression over the others, a default" },
