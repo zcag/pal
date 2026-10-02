@@ -92,11 +92,17 @@ function sideRow(sign: "−" | "+", s: Side, key: string): ViewNode {
   );
 }
 
+/** What leads the view: how much changed, in words (`5 lines added, 4 removed`, `No differences`). */
+export function headline(r: Result): string {
+  if (r.identical) return "No differences";
+  const lines = (n: number) => `${n} ${n === 1 ? "line" : "lines"}`;
+  return r.added && r.removed ? `${lines(r.added)} added, ${r.removed} removed` : r.added ? `${lines(r.added)} added` : `${lines(r.removed)} removed`;
+}
+
 function header(s: State, r: Result): ViewNode {
-  const badge = (t: string, color: "green" | "red" | "amber" | "grey"): ViewNode => ({ type: "badge", text: t, color });
-  const badges: ViewNode[] = r.identical ? [badge("no differences", "green")] : [...(r.added ? [badge(`+${r.added}`, "green")] : []), ...(r.removed ? [badge(`−${r.removed}`, "red")] : []), ...(r.wsOnly ? [badge("whitespace only", "amber")] : [])];
-  if (s.ws) badges.push(badge("whitespace ignored", "grey"));
-  return column([row([sideRow("−", s.left, "left"), { type: "spacer" }, ...badges], { key: "l", gap: 1 }), sideRow("+", s.right, "right")], { key: "head", gap: 1 });
+  const badge = (t: string, color: "amber" | "grey"): ViewNode => ({ type: "badge", text: t, color });
+  const badges: ViewNode[] = [...(r.wsOnly ? [badge("whitespace only", "amber")] : []), ...(s.ws ? [badge("whitespace ignored", "grey")] : [])];
+  return column([text(headline(r), { style: "headline" }), row([sideRow("−", s.left, "left"), { type: "spacer" }, ...badges], { key: "l", gap: 1 }), sideRow("+", s.right, "right")], { key: "head", gap: 1 });
 }
 
 function hints(s: State, folds: number): ViewNode {

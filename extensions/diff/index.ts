@@ -264,7 +264,8 @@ async function pickRows(query: string, ctx?: Ctx): Promise<Item[]> {
     return {
       id: String(e.id),
       name: entryTitle(e),
-      subtitle: `${n} ${n === 1 ? "line" : "lines"} · ${truncate(oneLine(e.text!), 80)}`,
+      // The text's start only when a name stands in the title (an unnamed entry's title is already its first line).
+      subtitle: `${n} ${n === 1 ? "line" : "lines"}${e.name ? ` · ${truncate(oneLine(e.text!), 80)}` : ""}`,
       icon: GLYPH.text,
       accessories: [...(e.source_app ? [{ text: appName(e.source_app) }] : []), { date: e.at }],
       actions: left ? [{ id: "right", title: `Diff ${entryTitle(left)} with this` }] : [PICK_LEFT, PICK_BOTH],

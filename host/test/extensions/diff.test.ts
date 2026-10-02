@@ -107,11 +107,11 @@ describe("diff.ts", () => {
 });
 
 describe("view.ts", () => {
-  test("render: a tree the host accepts, the header with both sides and the badges, the keycap line, the changed lines on tinted blocks with signs and numbers", () => {
+  test("render: a tree the host accepts, the headline saying how much changed, the header with both sides, the keycap line, the changed lines on tinted blocks with signs and numbers", () => {
     const v = checkView(render(state()));
     expect(v).toMatchObject({ id: "diff:1", title: "Diff · +5 −4", keys: "actions" });
     const t = texts(v.tree);
-    expect(t.slice(0, 8)).toEqual(["−", "before", "28 lines · copied 3 min ago from Chrome", "[+5]", "[−4]", "+", "after", "29 lines · copied just now from kitty"]);
+    expect(t.slice(0, 7)).toEqual(["5 lines added, 4 removed", "−", "before", "28 lines · copied 3 min ago from Chrome", "+", "after", "29 lines · copied just now from kitty"]);
     expect(t).toContain("<s>");
     expect(t).toContain("side by side");
     expect(t).toContain("VS Code");
@@ -149,10 +149,10 @@ describe("view.ts", () => {
     expect(texts(side.tree)).toContain("one more");
   });
 
-  test("identical texts: the green badge and the line; the empty view: the reason and the source keys, Enter is the newest copies", () => {
+  test("identical texts: the headline and the line; the empty view: the reason and the source keys, Enter is the newest copies", () => {
     const same = checkView(render(state({ left: { text: "x\ny", label: "a" }, right: { text: "x\ny", label: "b" } })));
     expect(same.title).toBe("Diff · no differences");
-    expect(texts(same.tree)).toContain("[no differences]");
+    expect(texts(same.tree)[0]).toBe("No differences");
     expect(texts(same.tree).at(-1)).toBe("The two texts are the same");
     expect(same.actions.some((a) => a.id === "expand")).toBe(false);
     const e = checkView(renderEmpty({ id: "diff:2", title: "Diff", reason: "Nothing copied yet" }));
@@ -227,22 +227,22 @@ describe("diff over the wire", () => {
     const v = await view();
     expect(v.id).toMatch(/^diff:\d+$/);
     const t = texts(v.tree);
-    expect(t.slice(0, 3)).toEqual(["−", "Deploy notes", "3 lines · copied 2 w ago from kitty"]);
-    expect(t.slice(5, 8)).toEqual(["+", "“hello world”", "1 line · copied 2 w ago from Chrome"]);
+    expect(t.slice(0, 4)).toEqual(["1 line added, 3 removed", "−", "Deploy notes", "3 lines · copied 2 w ago from kitty"]);
+    expect(t.slice(4, 7)).toEqual(["+", "“hello world”", "1 line · copied 2 w ago from Chrome"]);
     expect(v.title).toBe("Diff · +1 −3");
   });
 
   test("the keys: side by side, whitespace, swap and the folds answer new trees of the same level; the copies answer the texts and the unified diff", async () => {
     const opened = viewOf(await link("text", { left: A, right: B, left_label: "v1", right_label: "v2" }).then((e) => host.request<View>("view", { extension: "diff", palette: "diff", args: (e.push as { args: unknown }).args })).then((v) => ({ view: v })));
     const id = opened.id!;
-    expect(texts(opened.tree).slice(0, 2)).toEqual(["−", "v1"]);
+    expect(texts(opened.tree).slice(1, 3)).toEqual(["−", "v1"]);
     expect(viewOf(await pick(id, "side")).actions.find((a) => a.id === "side")!.title).toBe("Unified");
     expect(viewOf(await pick(id, "side")).actions.find((a) => a.id === "side")!.title).toBe("Side by side");
     expect(viewOf(await pick(id, "ws")).title).toBe("Diff · +3 −2");
     expect(viewOf(await pick(id, "ws")).title).toBe("Diff · +5 −4");
     const swapped = viewOf(await pick(id, "swap"));
     expect(swapped.title).toBe("Diff · +4 −5");
-    expect(texts(swapped.tree).slice(0, 2)).toEqual(["−", "v2"]);
+    expect(texts(swapped.tree).slice(1, 3)).toEqual(["−", "v2"]);
     viewOf(await pick(id, "swap"));
     // The fold cursor: tab lands on the first fold, space opens it, a click's action opens one by index, a expands all.
     const cursor = viewOf(await pick(id, "next"));
@@ -259,7 +259,7 @@ describe("diff over the wire", () => {
   test("the sources from the view: n is the newest copies again in place, e the clipboard against the selection (the empty view when nothing is selected), h pushes the pick palette, f the files form", async () => {
     const v = await view();
     const id = v.id!;
-    expect(texts(viewOf(await pick(id, "newest")).tree)[1]).toBe("Deploy notes");
+    expect(texts(viewOf(await pick(id, "newest")).tree)[2]).toBe("Deploy notes");
     selectionText = null;
     const empty = viewOf(await pick(id, "selection"));
     expect(empty.id).toBe(id);
@@ -268,8 +268,8 @@ describe("diff over the wire", () => {
     selectionText = "hello there";
     const sel = viewOf(await pick(id, "selection"));
     const t = texts(sel.tree);
-    expect(t.slice(0, 3)).toEqual(["−", "Newest copy: “hello world”", "1 line · copied 2 w ago from Chrome"]);
-    expect(t.slice(5, 8)).toEqual(["+", "Selection", "1 line · in kitty"]);
+    expect(t.slice(1, 4)).toEqual(["−", "Newest copy: “hello world”", "1 line · copied 2 w ago from Chrome"]);
+    expect(t.slice(4, 7)).toEqual(["+", "Selection", "1 line · in kitty"]);
     expect(sel.title).toBe("Diff · +1 −1");
     expect(await pick(id, "history")).toEqual({ push: { extension: "diff", palette: "pick" } });
     const form = (await pick(id, "files")).form!;
@@ -290,7 +290,7 @@ describe("diff over the wire", () => {
     e = await pick(id, "files-submit", { values: { left: before, right: after } });
     expect(e.push).toEqual({ extension: "diff", palette: "diff", args: { left: { kind: "file", path: before }, right: { kind: "file", path: after } }, title: "before.txt → after.txt" });
     const v = await view(e.push!.args);
-    expect(texts(v.tree).slice(0, 3)).toEqual(["−", "before.txt", `28 lines · ${dir}`]);
+    expect(texts(v.tree).slice(1, 4)).toEqual(["−", "before.txt", `28 lines · ${dir}`]);
     expect(v.title).toBe("Diff · +5 −4");
   });
 
@@ -328,7 +328,7 @@ describe("diff over the wire", () => {
   test("the pick palette: the text entries with a hint on top; Enter on one pushes the palette again with it on the left, then Enter on another opens the diff; two marked go straight there, three are refused", async () => {
     const rows = await host.list("diff", "pick", "");
     expect(rows.map((r) => r.id)).toEqual(["hint:how", "1", "2", "5"]);
-    expect(rows[1]).toMatchObject({ name: "“hello world”", subtitle: "1 line · hello world" });
+    expect(rows[1]).toMatchObject({ name: "“hello world”", subtitle: "1 line" });
     expect(rows[1].actions!.map((a) => a.id)).toEqual(["left", "both"]);
     expect(await host.list("diff", "pick", "zzz")).toMatchObject([{ id: "hint:empty", name: "No text entry matches" }]);
     expect(await host.pick("diff", "pick", "2", "left")).toEqual({ push: { extension: "diff", palette: "pick", args: { left: 2 }, title: "Diff Deploy notes with…" } });

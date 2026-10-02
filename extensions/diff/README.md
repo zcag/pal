@@ -8,12 +8,12 @@ history, two files.
 
 ## The view
 
-A header names both sides (`−` the left, `+` the right) with what they
-are and when they were copied ("Deploy notes · 3 lines · copied 2 min
-ago from kitty"), and the counts as badges: `+12` green, `−4` red,
-`whitespace only` amber when every change is whitespace, `no
-differences` when there are none. Under it a keycap line with the keys
-in use, then the lines on a sunken surface:
+It leads with how much changed, in words ("12 lines added, 4 removed",
+"No differences"). Under it both sides (`−` the left, `+` the right) with
+what they are and when they were copied ("Deploy notes · 3 lines · copied
+2 min ago from kitty"), a `whitespace only` badge when every change is
+whitespace, a keycap line with the keys in use, then the lines on a
+sunken surface:
 
 - **Unified** (the default): both line numbers in the gutter, the sign,
   the text in monospace. Removed lines sit on a red tint, added ones on
