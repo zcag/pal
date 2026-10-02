@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.11.0 · 2026-10-03
+
+- **A new look, Ink**: type-led and calm. What you type is the headline, the selected row carries its own keys, the panel is only as tall as its results and fades in as it opens. Inside an extension the panel glows in its colour. The previous look stays as Classic, and Frappé is Ink in Catppuccin colours: Settings › General › Design.
+- **Answers first**: a sum, a conversion, the weather now, a translation or a generated password is the large first row, the rest under it.
+- **Every popover leads with what matters**: the next meeting with its Join, the track playing, the time left on a timer, the battery, the temperature, the unread count, the alerts firing.
+- **Details read like a page**: a pull request, a mail, an event, a container or a file opens with its name, its state and its numbers up top, then the rest.
+- **At a glance**: on the empty panel, cards show your next meeting, what is playing, unread mail and the weather; ⌥1–⌥4 opens one. Pick them under Settings › General › Glance strip.
+- **⌘K is a sheet** across the panel, in two columns; the arrows move across them.
+- **Nothing found? Try these**: a search inside an extension that finds nothing offers to search the web, your files or ask instead. Lists on their way show their rows' outline instead of a blank.
+- **Every extension went through**: shorter, plainer words, rows that say one thing, the right icon on each row, fresh store pictures.
+- **Fixed: popovers jumped** when opened or switched, showing the last item's contents or an empty frame first; they now appear once their content is ready, and show a loading line while it refreshes.
+- **Fixed: the loading bar never stopped** for some setups (a 1Password list waiting for its first visit).
+
 ## 0.10.2 · 2026-10-01
 
 - **Night Parade picks up where you left it**: close pal mid-night and the night is waiting, paused, when you come back.
