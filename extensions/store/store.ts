@@ -109,7 +109,7 @@ export function actionsFor(s: Standing): Action[] {
 }
 
 /** The tag that says how it stands: an update, a problem, installed, or why it cannot be. */
-function standingTag(s: Standing): Accessory | undefined {
+function standingTag(s: Standing): { tag: string; color: TagColor } | { text: string } | undefined {
   const st = s.status;
   if (s.busy) return { tag: "working…", color: "blue" };
   if (targetOf(st)) return { tag: st?.state === "yanked" ? "pulled: update" : "update", color: "amber" };
@@ -190,7 +190,7 @@ export function detail(s: Standing): Detail {
   return {
     caption: [s.a.bundled ? "Comes with pal" : s.ours ? "The pal registry" : `The ${s.a.registry} registry`, ...(l.category ? [categoryTitle(l.category)] : [])].join(" · "),
     title: l.title || s.a.name,
-    ...(tag && { chips: ["tag" in tag ? { text: tag.tag, ...(tag.color && { color: tag.color as TagColor }) } : { text: tag.text }] }),
+    ...(tag && { chips: ["tag" in tag ? { text: tag.tag, color: tag.color } : { text: tag.text }] }),
     markdown: parts.join("\n"),
     metadata,
   };
