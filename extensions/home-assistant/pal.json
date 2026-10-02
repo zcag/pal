@@ -116,6 +116,10 @@
       {
         "file": "4-service.png",
         "caption": "A service as a form: the target entity, then the fields Home Assistant describes for it, called with Enter"
+      },
+      {
+        "file": "5-entity.png",
+        "caption": "An entity in the detail pane (cmd+I): where it lives, its state as a chip, the reading and the target large, then its attributes"
       }
     ],
     "actions": [

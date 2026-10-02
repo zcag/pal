@@ -83,27 +83,39 @@
               "date": "2026-09-16T11:20:00.000Z"
             }
           ],
+          "args": [
+            {
+              "id": "brightness",
+              "placeholder": "Brightness %",
+              "kind": "number"
+            }
+          ],
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "brightness",
-              "title": "Brightness",
-              "shortcut": "cmd+b"
+              "title": "Set brightness",
+              "shortcut": "cmd+b",
+              "args": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -114,6 +126,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -141,16 +154,19 @@
             {
               "id": "unlock",
               "title": "Unlock",
-              "confirm": "Unlock Front Door?"
+              "multi": true,
+              "confirm": "Unlock it?"
             },
             {
               "id": "lock",
               "title": "Lock",
-              "confirm": "Lock Front Door?"
+              "multi": true,
+              "confirm": "Lock it?"
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -161,6 +177,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -184,27 +201,39 @@
               "date": "2026-09-16T02:32:00.000Z"
             }
           ],
+          "args": [
+            {
+              "id": "brightness",
+              "placeholder": "Brightness %",
+              "kind": "number"
+            }
+          ],
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "brightness",
-              "title": "Brightness",
-              "shortcut": "cmd+b"
+              "title": "Set brightness",
+              "shortcut": "cmd+b",
+              "args": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -215,6 +244,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -238,27 +268,39 @@
               "date": "2026-09-15T21:32:00.000Z"
             }
           ],
+          "args": [
+            {
+              "id": "brightness",
+              "placeholder": "Brightness %",
+              "kind": "number"
+            }
+          ],
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "brightness",
-              "title": "Brightness",
-              "shortcut": "cmd+b"
+              "title": "Set brightness",
+              "shortcut": "cmd+b",
+              "args": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -269,6 +311,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -295,27 +338,39 @@
               "date": "2026-09-16T09:32:00.000Z"
             }
           ],
+          "args": [
+            {
+              "id": "brightness",
+              "placeholder": "Brightness %",
+              "kind": "number"
+            }
+          ],
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "brightness",
-              "title": "Brightness",
-              "shortcut": "cmd+b"
+              "title": "Set brightness",
+              "shortcut": "cmd+b",
+              "args": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -326,6 +381,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -352,19 +408,23 @@
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -375,6 +435,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -400,19 +461,23 @@
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -423,6 +488,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -446,6 +512,38 @@
               "date": "2026-09-16T08:32:00.000Z"
             }
           ],
+          "args": [
+            {
+              "id": "temperature",
+              "placeholder": "Temperature 7..30 °C",
+              "required": true,
+              "default": "21"
+            },
+            {
+              "id": "hvac_mode",
+              "placeholder": "Mode",
+              "kind": "select",
+              "options": [
+                {
+                  "id": "off",
+                  "title": "Off"
+                },
+                {
+                  "id": "heat",
+                  "title": "Heat"
+                },
+                {
+                  "id": "cool",
+                  "title": "Cool"
+                },
+                {
+                  "id": "heat_cool",
+                  "title": "Heat Cool"
+                }
+              ],
+              "default": "heat"
+            }
+          ],
           "actions": [
             {
               "id": "temperature",
@@ -453,15 +551,18 @@
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -472,6 +573,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -495,31 +597,44 @@
               "date": "2026-09-16T11:07:00.000Z"
             }
           ],
+          "args": [
+            {
+              "id": "volume",
+              "placeholder": "Volume %",
+              "kind": "number"
+            }
+          ],
           "actions": [
             {
               "id": "play_pause",
-              "title": "Pause"
+              "title": "Pause",
+              "multi": true
             },
             {
               "id": "next",
-              "title": "Next track"
+              "title": "Next track",
+              "multi": true
             },
             {
               "id": "previous",
-              "title": "Previous track"
+              "title": "Previous track",
+              "multi": true
             },
             {
               "id": "volume",
-              "title": "Volume",
-              "shortcut": "cmd+u"
+              "title": "Set volume",
+              "shortcut": "cmd+u",
+              "args": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -530,6 +645,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -556,19 +672,23 @@
           "actions": [
             {
               "id": "open",
-              "title": "Open"
+              "title": "Open",
+              "multi": true
             },
             {
               "id": "close",
-              "title": "Close"
+              "title": "Close",
+              "multi": true
             },
             {
               "id": "stop",
-              "title": "Stop"
+              "title": "Stop",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -579,6 +699,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -605,19 +726,23 @@
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -628,6 +753,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -653,11 +779,13 @@
           "actions": [
             {
               "id": "activate",
-              "title": "Activate"
+              "title": "Activate",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -668,6 +796,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -693,11 +822,13 @@
           "actions": [
             {
               "id": "activate",
-              "title": "Activate"
+              "title": "Activate",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -708,6 +839,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -733,11 +865,13 @@
           "actions": [
             {
               "id": "run",
-              "title": "Run"
+              "title": "Run",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -748,6 +882,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -773,15 +908,18 @@
           "actions": [
             {
               "id": "trigger",
-              "title": "Trigger"
+              "title": "Trigger",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Enable"
+              "title": "Enable",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -792,6 +930,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -817,15 +956,18 @@
           "actions": [
             {
               "id": "trigger",
-              "title": "Trigger"
+              "title": "Trigger",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Disable"
+              "title": "Disable",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -836,6 +978,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -861,11 +1004,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -876,6 +1021,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -900,11 +1046,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -915,6 +1063,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -940,11 +1089,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -955,6 +1106,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -981,11 +1133,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -996,6 +1150,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -1022,11 +1177,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -1037,6 +1194,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -1062,11 +1220,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -1077,6 +1237,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -1102,11 +1263,13 @@
           "actions": [
             {
               "id": "copy_value",
-              "title": "Copy value"
+              "title": "Copy value",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -1117,6 +1280,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -1142,19 +1306,23 @@
           "actions": [
             {
               "id": "toggle",
-              "title": "Toggle"
+              "title": "Toggle",
+              "multi": true
             },
             {
               "id": "on",
-              "title": "Turn on"
+              "title": "Turn on",
+              "multi": true
             },
             {
               "id": "off",
-              "title": "Turn off"
+              "title": "Turn off",
+              "multi": true
             },
             {
               "id": "copy_id",
               "title": "Copy entity id",
+              "multi": true,
               "shortcut": "cmd+c"
             },
             {
@@ -1165,6 +1333,7 @@
             {
               "id": "open_ha",
               "title": "Open in Home Assistant",
+              "multi": true,
               "shortcut": "cmd+o"
             }
           ]
@@ -1172,22 +1341,28 @@
       ],
       "details": {
         "light.kitchen": {
+          "caption": "Light · Kitchen",
+          "title": "Kitchen Light",
+          "chips": [
+            {
+              "text": "on",
+              "color": "green"
+            }
+          ],
+          "stats": [
+            {
+              "value": "75%",
+              "label": "brightness"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "light.kitchen"
             },
             {
-              "label": "State",
-              "value": "on"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 4:25:09 PM"
-            },
-            {
-              "label": "Brightness",
-              "value": "191"
+              "value": "Wed 16 Sep 14:20"
             },
             {
               "label": "Rgb Color",
@@ -1196,70 +1371,91 @@
           ]
         },
         "lock.front_door": {
+          "caption": "Lock · Entrance",
+          "title": "Front Door",
+          "chips": [
+            {
+              "text": "locked",
+              "color": "green"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "lock.front_door"
             },
             {
-              "label": "State",
-              "value": "locked"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 3:27:09 PM"
+              "value": "Wed 16 Sep 13:22"
             }
           ]
         },
         "light.bedroom": {
+          "caption": "Light · Bedroom",
+          "title": "Bedroom Light",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "light.bedroom"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 7:37:09 AM"
+              "value": "Wed 16 Sep 05:32"
             }
           ]
         },
         "light.hallway": {
+          "caption": "Light · Hallway",
+          "title": "Hallway",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "light.hallway"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 2:37:09 AM"
+              "value": "Wed 16 Sep 00:32"
             }
           ]
         },
         "light.living_room": {
+          "caption": "Light · Living Room",
+          "title": "Living Room Lamp",
+          "chips": [
+            {
+              "text": "on",
+              "color": "green"
+            }
+          ],
+          "stats": [
+            {
+              "value": "25%",
+              "label": "brightness"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "light.living_room"
             },
             {
-              "label": "State",
-              "value": "on"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 2:37:09 PM"
-            },
-            {
-              "label": "Brightness",
-              "value": "64"
+              "value": "Wed 16 Sep 12:32"
             },
             {
               "label": "Rgb Color",
@@ -1268,58 +1464,74 @@
           ]
         },
         "switch.coffee_maker": {
+          "caption": "Switch · Kitchen",
+          "title": "Coffee Maker",
+          "chips": [
+            {
+              "text": "on",
+              "color": "green"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "switch.coffee_maker"
             },
             {
-              "label": "State",
-              "value": "on"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 3:57:09 PM"
+              "value": "Wed 16 Sep 13:52"
             }
           ]
         },
         "switch.desk_plug": {
+          "caption": "Switch",
+          "title": "Desk Plug",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "switch.desk_plug"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/15/2026, 2:37:09 PM"
+              "value": "Tue 15 Sep 12:32"
             }
           ]
         },
         "climate.living_room": {
+          "caption": "Climate · Living Room",
+          "title": "Living Room Thermostat",
+          "chips": [
+            {
+              "text": "heat",
+              "color": "green"
+            }
+          ],
+          "stats": [
+            {
+              "value": "20.5 °C",
+              "label": "now"
+            },
+            {
+              "value": "21 °C",
+              "label": "target"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "climate.living_room"
             },
             {
-              "label": "State",
-              "value": "heat"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 1:37:09 PM"
-            },
-            {
-              "label": "Temperature",
-              "value": "21"
-            },
-            {
-              "label": "Current Temperature",
-              "value": "20.5"
+              "value": "Wed 16 Sep 11:32"
             },
             {
               "label": "Hvac Modes",
@@ -1340,22 +1552,28 @@
           ]
         },
         "media_player.living_room_tv": {
+          "caption": "Media Player · Living Room",
+          "title": "Living Room TV",
+          "chips": [
+            {
+              "text": "playing",
+              "color": "green"
+            }
+          ],
+          "stats": [
+            {
+              "value": "35%",
+              "label": "volume"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "media_player.living_room_tv"
             },
             {
-              "label": "State",
-              "value": "playing"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 4:12:09 PM"
-            },
-            {
-              "label": "Volume Level",
-              "value": "0.35"
+              "value": "Wed 16 Sep 14:07"
             },
             {
               "label": "Media Title",
@@ -1364,98 +1582,128 @@
           ]
         },
         "cover.garage_door": {
+          "caption": "Cover · Garage",
+          "title": "Garage Door",
+          "chips": [
+            {
+              "text": "closed",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "cover.garage_door"
             },
             {
-              "label": "State",
-              "value": "closed"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 11:37:09 AM"
+              "value": "Wed 16 Sep 09:32"
             }
           ]
         },
         "fan.bedroom": {
+          "caption": "Fan · Bedroom",
+          "title": "Bedroom Fan",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "fan.bedroom"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/15/2026, 10:37:09 AM"
+              "value": "Tue 15 Sep 08:32"
             }
           ]
         },
         "scene.good_morning": {
+          "caption": "Scene",
+          "title": "Good Morning",
+          "chips": [
+            {
+              "text": "unknown",
+              "color": "red"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "scene.good_morning"
             },
             {
-              "label": "State",
-              "value": "unknown"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 10:37:09 AM"
+              "value": "Wed 16 Sep 08:32"
             }
           ]
         },
         "scene.movie_night": {
+          "caption": "Scene",
+          "title": "Movie Night",
+          "chips": [
+            {
+              "text": "unknown",
+              "color": "red"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "scene.movie_night"
             },
             {
-              "label": "State",
-              "value": "unknown"
-            },
-            {
               "label": "Changed",
-              "value": "9/14/2026, 4:37:09 PM"
+              "value": "Mon 14 Sep 14:32"
             }
           ]
         },
         "script.leaving_home": {
+          "caption": "Script",
+          "title": "Leaving Home",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "script.leaving_home"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 9:37:09 AM"
+              "value": "Wed 16 Sep 07:32"
             }
           ]
         },
         "automation.morning_blinds": {
+          "caption": "Automation",
+          "title": "Morning Blinds",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "automation.morning_blinds"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/11/2026, 4:37:09 PM"
+              "value": "Fri 11 Sep 14:32"
             },
             {
               "label": "Id",
@@ -1464,18 +1712,23 @@
           ]
         },
         "automation.sunset_lights": {
+          "caption": "Automation",
+          "title": "Sunset Lights",
+          "chips": [
+            {
+              "text": "on",
+              "color": "green"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "automation.sunset_lights"
             },
             {
-              "label": "State",
-              "value": "on"
-            },
-            {
               "label": "Changed",
-              "value": "9/13/2026, 4:37:09 PM"
+              "value": "Sun 13 Sep 14:32"
             },
             {
               "label": "Id",
@@ -1488,86 +1741,86 @@
           ]
         },
         "sensor.living_room_temperature": {
+          "caption": "Sensor · Living Room",
+          "title": "Living Room Temperature",
+          "chips": [],
+          "stats": [
+            {
+              "value": "21.4 °C",
+              "label": "temperature"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "sensor.living_room_temperature"
             },
             {
-              "label": "State",
-              "value": "21.4 °C"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 4:34:09 PM"
-            },
-            {
-              "label": "Unit Of Measurement",
-              "value": "°C"
-            },
-            {
-              "label": "Device Class",
-              "value": "temperature"
+              "value": "Wed 16 Sep 14:29"
             }
           ]
         },
         "sensor.outdoor_humidity": {
+          "caption": "Sensor",
+          "title": "Outdoor Humidity",
+          "chips": [],
+          "stats": [
+            {
+              "value": "63 %",
+              "label": "humidity"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "sensor.outdoor_humidity"
             },
             {
-              "label": "State",
-              "value": "63 %"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 4:29:09 PM"
-            },
-            {
-              "label": "Unit Of Measurement",
-              "value": "%"
-            },
-            {
-              "label": "Device Class",
-              "value": "humidity"
+              "value": "Wed 16 Sep 14:24"
             }
           ]
         },
         "sensor.power_now": {
+          "caption": "Sensor · Kitchen",
+          "title": "Power Now",
+          "chips": [],
+          "stats": [
+            {
+              "value": "412 W",
+              "label": "state"
+            }
+          ],
           "metadata": [
             {
               "label": "Entity",
               "value": "sensor.power_now"
             },
             {
-              "label": "State",
-              "value": "412 W"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 4:36:09 PM"
-            },
-            {
-              "label": "Unit Of Measurement",
-              "value": "W"
+              "value": "Wed 16 Sep 14:31"
             }
           ]
         },
         "binary_sensor.front_door": {
+          "caption": "Binary Sensor · Entrance",
+          "title": "Front Door Contact",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "binary_sensor.front_door"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 3:27:09 PM"
+              "value": "Wed 16 Sep 13:22"
             },
             {
               "label": "Device Class",
@@ -1576,18 +1829,23 @@
           ]
         },
         "binary_sensor.motion_hall": {
+          "caption": "Binary Sensor · Hallway",
+          "title": "Hall Motion",
+          "chips": [
+            {
+              "text": "on",
+              "color": "green"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "binary_sensor.motion_hall"
             },
             {
-              "label": "State",
-              "value": "on"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 4:35:09 PM"
+              "value": "Wed 16 Sep 14:30"
             },
             {
               "label": "Device Class",
@@ -1596,50 +1854,65 @@
           ]
         },
         "person.alex": {
+          "caption": "Person",
+          "title": "Alex",
+          "chips": [
+            {
+              "text": "home",
+              "color": "green"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "person.alex"
             },
             {
-              "label": "State",
-              "value": "home"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 12:37:09 PM"
+              "value": "Wed 16 Sep 10:32"
             }
           ]
         },
         "person.sam": {
+          "caption": "Person",
+          "title": "Sam",
+          "chips": [
+            {
+              "text": "not home",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "person.sam"
             },
             {
-              "label": "State",
-              "value": "not_home"
-            },
-            {
               "label": "Changed",
-              "value": "9/16/2026, 3:07:09 PM"
+              "value": "Wed 16 Sep 13:02"
             }
           ]
         },
         "input_boolean.guest_mode": {
+          "caption": "Input Boolean",
+          "title": "Guest Mode",
+          "chips": [
+            {
+              "text": "off",
+              "color": "grey"
+            }
+          ],
+          "stats": [],
           "metadata": [
             {
               "label": "Entity",
               "value": "input_boolean.guest_mode"
             },
             {
-              "label": "State",
-              "value": "off"
-            },
-            {
               "label": "Changed",
-              "value": "9/8/2026, 8:37:09 AM"
+              "value": "Tue 8 Sep 06:32"
             }
           ]
         }
@@ -1668,27 +1941,39 @@
                 "date": "2026-09-16T11:20:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -1699,6 +1984,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -1722,27 +2008,39 @@
                 "date": "2026-09-16T02:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -1753,6 +2051,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -1776,27 +2075,39 @@
                 "date": "2026-09-15T21:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -1807,6 +2118,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -1833,27 +2145,39 @@
                 "date": "2026-09-16T09:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -1864,6 +2188,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -1892,27 +2217,39 @@
                 "date": "2026-09-16T11:20:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -1923,6 +2260,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -1950,16 +2288,19 @@
               {
                 "id": "unlock",
                 "title": "Unlock",
-                "confirm": "Unlock Front Door?"
+                "multi": true,
+                "confirm": "Unlock it?"
               },
               {
                 "id": "lock",
                 "title": "Lock",
-                "confirm": "Lock Front Door?"
+                "multi": true,
+                "confirm": "Lock it?"
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -1970,6 +2311,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -1993,27 +2335,39 @@
                 "date": "2026-09-16T02:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2024,6 +2378,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2047,27 +2402,39 @@
                 "date": "2026-09-15T21:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2078,6 +2445,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2104,27 +2472,39 @@
                 "date": "2026-09-16T09:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2135,6 +2515,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2161,19 +2542,23 @@
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2184,6 +2569,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2209,19 +2595,23 @@
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2232,6 +2622,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2255,6 +2646,38 @@
                 "date": "2026-09-16T08:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "temperature",
+                "placeholder": "Temperature 7..30 °C",
+                "required": true,
+                "default": "21"
+              },
+              {
+                "id": "hvac_mode",
+                "placeholder": "Mode",
+                "kind": "select",
+                "options": [
+                  {
+                    "id": "off",
+                    "title": "Off"
+                  },
+                  {
+                    "id": "heat",
+                    "title": "Heat"
+                  },
+                  {
+                    "id": "cool",
+                    "title": "Cool"
+                  },
+                  {
+                    "id": "heat_cool",
+                    "title": "Heat Cool"
+                  }
+                ],
+                "default": "heat"
+              }
+            ],
             "actions": [
               {
                 "id": "temperature",
@@ -2262,15 +2685,18 @@
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2281,6 +2707,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2304,31 +2731,44 @@
                 "date": "2026-09-16T11:07:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "volume",
+                "placeholder": "Volume %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "play_pause",
-                "title": "Pause"
+                "title": "Pause",
+                "multi": true
               },
               {
                 "id": "next",
-                "title": "Next track"
+                "title": "Next track",
+                "multi": true
               },
               {
                 "id": "previous",
-                "title": "Previous track"
+                "title": "Previous track",
+                "multi": true
               },
               {
                 "id": "volume",
-                "title": "Volume",
-                "shortcut": "cmd+u"
+                "title": "Set volume",
+                "shortcut": "cmd+u",
+                "args": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2339,6 +2779,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2365,19 +2806,23 @@
             "actions": [
               {
                 "id": "open",
-                "title": "Open"
+                "title": "Open",
+                "multi": true
               },
               {
                 "id": "close",
-                "title": "Close"
+                "title": "Close",
+                "multi": true
               },
               {
                 "id": "stop",
-                "title": "Stop"
+                "title": "Stop",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2388,6 +2833,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2414,19 +2860,23 @@
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2437,6 +2887,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2462,11 +2913,13 @@
             "actions": [
               {
                 "id": "activate",
-                "title": "Activate"
+                "title": "Activate",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2477,6 +2930,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2502,11 +2956,13 @@
             "actions": [
               {
                 "id": "activate",
-                "title": "Activate"
+                "title": "Activate",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2517,6 +2973,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2542,11 +2999,13 @@
             "actions": [
               {
                 "id": "run",
-                "title": "Run"
+                "title": "Run",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2557,6 +3016,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2582,15 +3042,18 @@
             "actions": [
               {
                 "id": "trigger",
-                "title": "Trigger"
+                "title": "Trigger",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Enable"
+                "title": "Enable",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2601,6 +3064,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2626,15 +3090,18 @@
             "actions": [
               {
                 "id": "trigger",
-                "title": "Trigger"
+                "title": "Trigger",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Disable"
+                "title": "Disable",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2645,6 +3112,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2670,11 +3138,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2685,6 +3155,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2709,11 +3180,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2724,6 +3197,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2749,11 +3223,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2764,6 +3240,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2790,11 +3267,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2805,6 +3284,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2831,11 +3311,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2846,6 +3328,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2871,11 +3354,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2886,6 +3371,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2911,11 +3397,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2926,6 +3414,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -2951,19 +3440,23 @@
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -2974,6 +3467,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -3264,27 +3758,39 @@
                 "date": "2026-09-16T09:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "brightness",
+                "placeholder": "Brightness %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "toggle",
-                "title": "Toggle"
+                "title": "Toggle",
+                "multi": true
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "brightness",
-                "title": "Brightness",
-                "shortcut": "cmd+b"
+                "title": "Set brightness",
+                "shortcut": "cmd+b",
+                "args": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -3295,6 +3801,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -3320,11 +3827,13 @@
             "actions": [
               {
                 "id": "copy_value",
-                "title": "Copy value"
+                "title": "Copy value",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -3335,6 +3844,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -3358,6 +3868,38 @@
                 "date": "2026-09-16T08:32:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "temperature",
+                "placeholder": "Temperature 7..30 °C",
+                "required": true,
+                "default": "21"
+              },
+              {
+                "id": "hvac_mode",
+                "placeholder": "Mode",
+                "kind": "select",
+                "options": [
+                  {
+                    "id": "off",
+                    "title": "Off"
+                  },
+                  {
+                    "id": "heat",
+                    "title": "Heat"
+                  },
+                  {
+                    "id": "cool",
+                    "title": "Cool"
+                  },
+                  {
+                    "id": "heat_cool",
+                    "title": "Heat Cool"
+                  }
+                ],
+                "default": "heat"
+              }
+            ],
             "actions": [
               {
                 "id": "temperature",
@@ -3365,15 +3907,18 @@
               },
               {
                 "id": "on",
-                "title": "Turn on"
+                "title": "Turn on",
+                "multi": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -3384,6 +3929,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -3407,31 +3953,44 @@
                 "date": "2026-09-16T11:07:00.000Z"
               }
             ],
+            "args": [
+              {
+                "id": "volume",
+                "placeholder": "Volume %",
+                "kind": "number"
+              }
+            ],
             "actions": [
               {
                 "id": "play_pause",
-                "title": "Pause"
+                "title": "Pause",
+                "multi": true
               },
               {
                 "id": "next",
-                "title": "Next track"
+                "title": "Next track",
+                "multi": true
               },
               {
                 "id": "previous",
-                "title": "Previous track"
+                "title": "Previous track",
+                "multi": true
               },
               {
                 "id": "volume",
-                "title": "Volume",
-                "shortcut": "cmd+u"
+                "title": "Set volume",
+                "shortcut": "cmd+u",
+                "args": true
               },
               {
                 "id": "off",
-                "title": "Turn off"
+                "title": "Turn off",
+                "multi": true
               },
               {
                 "id": "copy_id",
                 "title": "Copy entity id",
+                "multi": true,
                 "shortcut": "cmd+c"
               },
               {
@@ -3442,6 +4001,7 @@
               {
                 "id": "open_ha",
                 "title": "Open in Home Assistant",
+                "multi": true,
                 "shortcut": "cmd+o"
               }
             ]
@@ -4038,6 +4598,16 @@
         "enter"
       ],
       "caption": "A service as a form: the target entity, then the fields Home Assistant describes for it, called with Enter"
+    },
+    "5-entity": {
+      "palette": "entities",
+      "keys": [
+        "wait:1500",
+        "down*7",
+        "cmd+i",
+        "wait:600"
+      ],
+      "caption": "An entity in the detail pane (cmd+I): where it lives, its state as a chip, the reading and the target large, then its attributes"
     }
   }
 }

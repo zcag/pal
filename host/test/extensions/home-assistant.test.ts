@@ -282,10 +282,11 @@ describe("entities", () => {
     expect((bad.form as Form).errors).toEqual({ temperature: "Not a number" });
     expect((bad.form as Form).fields.map((f) => f.id)).toEqual(["temperature", "hvac_mode"]);
   });
-  test("detail is lazy: the entity, its state and its attributes as metadata", async () => {
+  test("detail is lazy: the domain and area over the name, the state as a chip, the brightness as a stat, then the entity and its attributes", async () => {
     const d = await host.detail(E, "entities", "light.kitchen");
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Entity", "State", "Changed", "Brightness", "Rgb Color"]);
-    expect(d.metadata![1].value).toBe("on");
+    expect(d).toMatchObject({ title: "Kitchen", chips: [{ text: "on", color: "green" }], stats: [{ value: "50%", label: "brightness" }] });
+    expect(d.caption).toBe("Light · Kitchen");
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Entity", "Changed", "Rgb Color"]);
     expect(await host.detail(E, "entities", "brightness", { args: { attributes: "light.kitchen" } })).toEqual({});
   });
 });

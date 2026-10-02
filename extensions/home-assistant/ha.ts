@@ -3,7 +3,7 @@
 // state into a row: domain glyph, state tone, accessories, the per-domain
 // actions, and a service's field descriptions into a form. No pal imports,
 // so the tests can drive these without a host.
-import { errorMessage, tinted, type Accessory, type Action, type Arg, type FormField, type Icon, type Item, type TagColor } from "@zcag/pal";
+import { errorMessage, tinted, when, type Accessory, type Action, type Arg, type Detail, type DetailStat, type FormField, type Icon, type Item, type TagColor } from "@zcag/pal";
 
 /** `[extensions.home-assistant]`, defaults in pal.json. */
 export type Settings = { url: string; token: string; domains: string[]; favorites: string[]; timeout: number };
@@ -195,6 +195,43 @@ export const LEVEL_ARGS: Record<string, Arg[]> = {
   light: [{ id: "brightness", placeholder: "Brightness %", kind: "number" }],
   media_player: [{ id: "volume", placeholder: "Volume %", kind: "number" }],
 };
+
+/** A number attribute, or nothing. */
+const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+
+/**
+ * An entity's detail: its domain and area over its name, a known state as
+ * a chip, the numbers that matter large (a sensor's value, a light's
+ * brightness, a thermostat's reading and target, a player's volume), then
+ * the entity id, when it changed and the attributes the stats do not say.
+ */
+export function entityDetail(s: State, area?: string): Detail {
+  const d = domainOf(s.entity_id), a = s.attributes;
+  const tone = TONE[s.state];
+  const unit = typeof a.temperature_unit === "string" ? ` ${a.temperature_unit}` : "°";
+  const stats: DetailStat[] = [];
+  /** The attributes a stat already says, left out of the table. */
+  const said = new Set(["friendly_name"]);
+  const stat = (value: string, label: string, ...keys: string[]) => { stats.push({ value, label }); keys.forEach((k) => said.add(k)); };
+  if (!tone) stat(stateText(s).slice(0, 24), typeof a.device_class === "string" ? a.device_class.replace(/_/g, " ") : "state", "unit_of_measurement", "device_class");
+  const bri = num(a.brightness), now = num(a.current_temperature), target = num(a.temperature), vol = num(a.volume_level);
+  if (d === "light" && s.state === "on" && bri !== undefined) stat(`${Math.round(bri / 2.55)}%`, "brightness", "brightness");
+  if (d === "climate" && now !== undefined) stat(`${now}${unit}`, "now", "current_temperature");
+  if (d === "climate" && target !== undefined) stat(`${target}${unit}`, "target", "temperature");
+  if (d === "media_player" && vol !== undefined) stat(`${Math.round(vol * 100)}%`, "volume", "volume_level");
+  const shown = Object.entries(a).filter(([k]) => !said.has(k)).slice(0, 12);
+  return {
+    caption: area ? `${titleCase(d)} · ${area}` : titleCase(d),
+    title: name(s),
+    chips: tone ? [{ text: s.state.replace(/_/g, " "), color: tone }] : [],
+    stats,
+    metadata: [
+      { label: "Entity", value: s.entity_id },
+      { label: "Changed", value: when(s.last_changed) },
+      ...shown.map(([k, v]) => ({ label: titleCase(k), value: asText(v).slice(0, 80) })),
+    ],
+  };
+}
 
 export function row(s: State, area?: string): Item {
   const d = domainOf(s.entity_id);
