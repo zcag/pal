@@ -95,13 +95,12 @@ describe("unicode", () => {
     expect((await list()).slice(0, 2).map((i) => i.id)).toEqual(["2192", "1F5B1"]);
   });
 
-  test("detail: the glyph as an image, block, code point, entities, UTF-8 bytes, LaTeX, aliases", async () => {
+  test("detail: block and code point on top, the name, the glyph as an image, entities, UTF-8 bytes, LaTeX, aliases", async () => {
     const d = await host.detail("unicode", "unicode", "2192");
-    expect(d.markdown).toMatch(/^!\[rightwards arrow\]\(data:image\/svg\+xml,[^)]+\)\n\n\*\*rightwards arrow\*\*$/);
+    expect([d.caption, d.title]).toEqual(["Arrows · U+2192", "rightwards arrow"]);
+    expect(d.markdown).toMatch(/^!\[rightwards arrow\]\(data:image\/svg\+xml,[^)]+\)$/);
     expect(decodeURIComponent(d.markdown!.split("(")[1].split(")")[0].slice("data:image/svg+xml,".length))).toContain(">→</text>");
     expect(d.metadata).toEqual([
-      { label: "Block", value: "Arrows" },
-      { label: "Code point", value: "U+2192" },
       { label: "HTML", value: "&rarr; &#x2192;" },
       { label: "UTF-8", value: "E2 86 92" },
       { label: "LaTeX", value: "\\rightarrow" },
