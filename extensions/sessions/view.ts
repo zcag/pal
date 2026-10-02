@@ -79,12 +79,13 @@ function header(state: State, n: number): ViewNode {
   return row([text(STATE[state].title, { size: "xs", weight: "semibold", color: "muted" }), { type: "badge", key: "n", text: String(n), color: STATE[state].color }], { key: `h-${state}`, gap: 1, minHeight: 22 });
 }
 
-function sessionRow(s: Session, focused: boolean, st: PopoverState): ViewNode {
+/** A row; the first (`lead`: the one waiting on you, else your turn) leads the popover, its title in the headline's face a size down, wrapping. */
+function sessionRow(s: Session, focused: boolean, st: PopoverState, lead = false): ViewNode {
   const sub = [folder(s.cwd), s.branch, s.pane ? `tmux ${s.pane}` : undefined].filter(Boolean).join(" · ");
   return row(
     [
       text(AGENT_GLYPH[s.agent], { style: "glyph", size: "md", color: AGENT_COLOR[s.agent], width: GLYPH_W, align: "center" }),
-      column([text(s.title, { size: "md", weight: focused ? "semibold" : "medium", width: TITLE_W }), text(sub, { size: "xs", color: "muted", width: TITLE_W })], { key: "t", gap: 0, grow: true }),
+      column([text(s.title, lead ? { style: "headline", size: "xl", minWidth: 0 } : { size: "md", weight: focused ? "semibold" : "medium", width: TITLE_W }), text(sub, { size: "xs", color: "muted", width: TITLE_W })], { key: "t", gap: lead ? 1 : 0, grow: true }),
       { type: "badge", key: "state", text: tagOf(s), color: STATE[s.state].color },
       text(ago(s.stateAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
@@ -147,7 +148,7 @@ export function render(st: PopoverState): View {
     let state: State | undefined;
     for (const s of rows) {
       if (s.state !== state) { state = s.state; kids.push(header(state, st.sessions.filter((x) => x.state === state).length)); }
-      kids.push(sessionRow(s, s.key === cur?.key, st));
+      kids.push(sessionRow(s, s.key === cur?.key, st, s === rows[0]));
     }
   }
   kids.push({ type: "divider", key: "rule" }, hints(cur));
