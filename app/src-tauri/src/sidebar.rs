@@ -278,7 +278,7 @@ fn show(app: &AppHandle, engaged: bool) {
         crate::store::new_show(WINDOW);
         crate::store::opened(app, WINDOW, key);
     }
-    let payload = Payload::Show { key: KEY.into(), title, engaged, urgent: false, tooltip: None, menu: json!({ "palette": source.palette, "extension": source.extension }), item: json!({}), effect: None, sidebar: true };
+    let payload = Payload::Show { key: KEY.into(), title, engaged, urgent: false, tooltip: None, menu: json!({ "palette": source.palette, "extension": source.extension }), item: json!({}), effect: None, sidebar: true, refreshing: false };
     events::emit_to(app, WINDOW, events::BAR, payload);
     // Placed now at the last height (the page's first `bar_size` re-places
     // and shows it, `reveal`); shown again while up, at once.

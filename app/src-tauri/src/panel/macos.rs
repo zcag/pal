@@ -87,6 +87,21 @@ pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result
     w.set_size(size)
 }
 
+/// A window to `x, y, width, height` (logical, top-left origin, as tauri
+/// places it), animated by AppKit: a popover whose content grew or shrank
+/// glides to its new frame instead of snapping (size and position at once).
+/// Main thread.
+pub fn glide(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
+    use objc2_app_kit::{NSScreen, NSWindow};
+    use objc2_foundation::{MainThreadMarker, NSPoint, NSRect, NSSize};
+    let (Ok(ptr), Some(mtm)) = (w.ns_window(), MainThreadMarker::new()) else { return };
+    let ns = unsafe { &*(ptr as *const NSWindow) };
+    // AppKit's origin is the primary screen's bottom-left.
+    let hinge = NSScreen::screens(mtm).iter().next().map_or(0.0, |s| s.frame().size.height);
+    let to = NSRect::new(NSPoint::new(x, hinge - y - height), NSSize::new(width, height));
+    ns.setFrame_display_animate(to, true, true);
+}
+
 /// The panel to `size` (points) with its top edge where it is, animated by
 /// AppKit, so the vibrancy and the shadow (the window's, not the page's)
 /// glide with a design's fitted panel (`compact::panel_fit`). Main thread.

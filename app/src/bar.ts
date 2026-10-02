@@ -19,7 +19,7 @@ export type BarItemWire = { hidden?: boolean; icon?: unknown; title?: string; ba
 
 /** `pal://bar`: the item to show on one level, a peek made key, or the popover going. The sidebar's window gets the same shape with `sidebar: true` and its palette as the menu (sidebar.rs). */
 export type BarPayload =
-  | { key: string; title: string; engaged: boolean; urgent: boolean; tooltip?: string; menu: BarMenu | null; item: BarItemWire; effect?: Effect; sidebar?: boolean }
+  | { key: string; title: string; engaged: boolean; urgent: boolean; tooltip?: string; menu: BarMenu | null; item: BarItemWire; effect?: Effect; sidebar?: boolean; /** A fresh render is on its way: this is the item's last one (popover.rs). */ refreshing?: boolean }
   | { engage: true }
   | { hide: true };
 

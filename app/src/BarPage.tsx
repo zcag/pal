@@ -53,12 +53,23 @@ function levelOf(p: BarShow): Level {
  * engages it (`bar_engage`), and the same commands reach sidebar.rs by
  * the window's label.
  */
+/** The most the loading line runs for a render on open that never comes back. */
+const REFRESH_WAIT = 8000;
+
 export default function BarPage() {
   const core = useCore(hide);
   const launcher = useRef<LauncherHandle>(null);
   const [show, setShow] = useState<BarShow | null>(null);
   const showing = useRef<BarShow | null>(null);
   const page = useRef<HTMLDivElement>(null);
+  // An item that renders on open shows its last render first (`refreshing`): the loading line runs until the fresh one lands, or for at most REFRESH_WAIT if it never does.
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    setRefreshing(!!show?.refreshing);
+    if (!show?.refreshing) return;
+    const t = setTimeout(() => setRefreshing(false), REFRESH_WAIT);
+    return () => clearTimeout(t);
+  }, [show]);
 
   useEffect(() => {
     // Named to this window: a listener on the default target (`Any`) hears every window's, and the sidebar's show would start a level in the popover too (core.ts does the same for `pal://view`).
@@ -122,7 +133,7 @@ export default function BarPage() {
   }, [core.refresh]);
 
   return (
-    <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} data-peek={sidebar && show && !show.engaged ? "" : undefined} title={show?.tooltip} onMouseDownCapture={engage}>
+    <div ref={page} className="pal-bar-page" data-refreshing={refreshing || undefined} data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} data-peek={sidebar && show && !show.engaged ? "" : undefined} title={show?.tooltip} onMouseDownCapture={engage}>
       <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} surface={surface} ordinals={sidebar} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
     </div>
   );

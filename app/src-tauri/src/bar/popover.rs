@@ -333,6 +333,11 @@ pub(crate) enum Payload {
         effect: Option<Value>,
         #[serde(skip_serializing_if = "std::ops::Not::not")]
         sidebar: bool,
+        /// A fresh render is on its way (the item renders on `show` and this
+        /// is its last one): the page says it is loading until the item's
+        /// next payload replaces this one (`on_item_changed`).
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
+        refreshing: bool,
     },
     Engage {
         engage: bool,
@@ -419,7 +424,7 @@ fn title_of(app: &AppHandle, key: &str) -> String {
     super::labelled(Some(&title), e.and_then(|e| e.instance).as_deref()).unwrap_or(title)
 }
 
-fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>) -> Option<Payload> {
+fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>, refreshing: bool) -> Option<Payload> {
     entry(app, key)?;
     let item = drawn(app, key).unwrap_or_default();
     Some(Payload::Show {
@@ -432,6 +437,7 @@ fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>) ->
         item: serde_json::to_value(&item).unwrap_or(Value::Null),
         effect: effect.cloned(),
         sidebar: false,
+        refreshing,
     })
 }
 
@@ -441,7 +447,10 @@ fn show(app: &AppHandle, key: &str, engaged: bool, effect: Option<Value>) {
     }
     let st = app.state::<Popover>();
     let anchor = lock(&st.anchors).get(key).map(|(r, _)| *r);
-    let Some(p) = payload(app, key, engaged, effect.as_ref()) else { return };
+    // A fresh item that renders on `show` (`super::shown` below asks for it): its last render shows now, marked as on its way.
+    let fresh = lock(&st.showing).as_ref().is_none_or(|s| s.key != key);
+    let refreshing = fresh && entry(app, key).is_some_and(|e| e.manifest.wants("show") && !e.fixture && !e.native);
+    let Some(p) = payload(app, key, engaged, effect.as_ref(), refreshing) else { return };
     let first = {
         let mut s = lock(&st.showing);
         let first = s.as_ref().is_none_or(|s| s.key != key);
@@ -540,13 +549,21 @@ pub(crate) fn displays(app: &AppHandle) -> (Vec<Display>, usize) {
 
 /// Size and place the window for what is showing (main thread).
 fn place_window(app: &AppHandle) {
+    place_window_animated(app, false);
+}
+
+fn place_window_animated(app: &AppHandle, animate: bool) {
     let st = app.state::<Popover>();
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let anchor = lock(&st.showing).as_ref().and_then(|s| s.anchor);
     let h = lock(&st.height).clamp(80.0, MAX_HEIGHT);
     let (ds, under) = displays(app);
     let (x, y) = place(anchor, (WIDTH, h), &ds, under);
-    set_frame(&w, (x, y, WIDTH, h));
+    if animate {
+        panel::glide(&w, (x, y, WIDTH, h));
+    } else {
+        set_frame(&w, (x, y, WIDTH, h));
+    }
 }
 
 /// Size and position a popover-kind window (main thread).
@@ -662,7 +679,7 @@ pub fn is_visible(app: &AppHandle) -> bool {
 pub fn on_item_changed(app: &AppHandle, key: &str) {
     let showing = lock(&app.state::<Popover>().showing).clone();
     let Some(s) = showing.filter(|s| s.key == key) else { return };
-    if let Some(p) = payload(app, key, s.engaged, s.effect.as_ref()) {
+    if let Some(p) = payload(app, key, s.engaged, s.effect.as_ref(), false) {
         events::emit_to(app, WINDOW, events::BAR, p);
     }
 }
@@ -675,8 +692,9 @@ pub fn on_item_gone(app: &AppHandle, key: &str) {
 pub fn set_height(app: &AppHandle, height: f64) {
     *lock(&app.state::<Popover>().height) = height.clamp(80.0, MAX_HEIGHT);
     if is_visible(app) {
+        // Up already: the new height glides (a fresh render's longer list does not snap the window).
         let handle = app.clone();
-        let _ = app.run_on_main_thread(move || place_window(&handle));
+        let _ = app.run_on_main_thread(move || place_window_animated(&handle, true));
     }
 }
 

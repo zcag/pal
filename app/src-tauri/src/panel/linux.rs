@@ -48,6 +48,12 @@ pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result
     w.set_size(size)
 }
 
+/// A window to its frame (`popover::set_height`): no animation here.
+pub fn glide(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64)) {
+    let _ = w.set_size(tauri::LogicalSize::new(width, height));
+    let _ = w.set_position(tauri::LogicalPosition::new(x, y));
+}
+
 /// The panel to `size` with its top-left where it is (`compact::panel_fit`): no animation here.
 pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
     if let Err(e) = resize(w, size) {

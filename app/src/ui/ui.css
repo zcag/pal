@@ -25,7 +25,7 @@
 .pal-panel[data-place] .pal-list__cursor { background: color-mix(in oklab, var(--pal-place) var(--pal-place-cursor, 0%), var(--pal-cursor, var(--pal-selection))); }
 .pal-panel[data-place] .pal-search__back { color: color-mix(in oklab, var(--pal-place) var(--pal-place-crumb, 0%), var(--pal-fg-muted)); }
 .pal-panel[data-place] .pal-search__input { caret-color: color-mix(in oklab, var(--pal-place) var(--pal-place-accent, 0%), var(--pal-caret, var(--pal-accent))); }
-.pal-panel[data-place] .pal-search[data-loading]::after { background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--pal-place) var(--pal-place-accent, 0%), var(--pal-accent)), transparent); }
+.pal-panel[data-place] .pal-search[data-loading]::after, .pal-bar-page[data-refreshing] .pal-panel[data-place] .pal-search::after { background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--pal-place) var(--pal-place-accent, 0%), var(--pal-accent)), transparent); }
 .pal-panel__search { position: relative; flex: none; border-bottom: 1px solid var(--pal-search-line, var(--pal-line)); }
 .pal-panel__body { flex: 1; display: flex; min-height: 0; }
 /* Detail pane open / close: the list narrows over --pal-dur-slow (brief: a layout change wants continuity); the pane fades in over the same time. */
@@ -102,7 +102,8 @@
   outline: none;
 }
 .pal-search__filter .pal-search__chevron { position: absolute; right: var(--pal-space-2); pointer-events: none; }
-.pal-search[data-loading]::after {
+/* Loading: the level waiting on a listing, or a popover showing its item's last render while the fresh one is asked for (BarPage `refreshing`). */
+.pal-search[data-loading]::after, .pal-bar-page[data-refreshing] .pal-search::after {
   content: "";
   position: absolute;
   left: 0; right: 0; bottom: -1px;
