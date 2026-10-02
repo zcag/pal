@@ -271,10 +271,13 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
         // titles the host sends already carry the instance's.
         "extension/loaded" => {
             let ext = params["extension"].as_str().unwrap_or_default().to_string();
-            let metas = match serde_json::from_value::<Vec<PaletteMeta>>(params["palettes"].clone()) {
+            let mut metas = match serde_json::from_value::<Vec<PaletteMeta>>(params["palettes"].clone()) {
                 Ok(m) => m,
                 Err(e) => return eprintln!("index\t{ext}\tbad palettes\t{e}"),
             };
+            // The extension's colour on every palette, whatever icon each wears (Spotify's search is a plain magnifier): what a design tints the panel by inside it.
+            let place = params["manifest"]["icon"]["tile"]["bg"].as_str().map(str::to_string);
+            metas.iter_mut().for_each(|m| m.place = place.clone());
             let name = params["name"].as_str().unwrap_or(pal_core::config::instance::name_of(&ext));
             let title = params["manifest"]["title"].as_str().unwrap_or(name).to_string();
             settings::register(app, &ext, params, true, false);

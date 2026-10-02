@@ -1348,6 +1348,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     return s?.icon ? iconOf(s.icon, s.title) : undefined;
   };
   const levelIcon = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? iconFor(view.palette) : view.kind === "show" ? iconFor(view.palette) : isMenu ? iconFor(view.key) : undefined;
+  // A palette whose own icon carries no colour (Spotify's search is a plain magnifier) takes its extension's (`SourceInfo.place`, the manifest tile's).
+  const placeKey = view.kind === "palette" || view.kind === "view" || view.kind === "form" || view.kind === "show" ? view.palette : isMenu ? view.key : undefined;
+  const levelExt = placeKey && (barOf(placeKey)?.extension ?? placeKey.split("/")[0]);
+  const placeBg = levelExt ? sources.find((x) => x.extension === levelExt && x.place)?.place : undefined;
+  const extensionPlace = placeBg ? (placeBg.startsWith("#") ? placeBg : `var(--pal-brand-${placeBg})`) : undefined;
   const isMissing = view.kind === "missing";
   const card = view.kind === "missing" ? missingCard(view) : undefined;
   const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : view.kind === "missing" ? { title: view.info?.title ?? view.extension, icon: view.info?.icon } : undefined;
@@ -1389,7 +1394,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     <Panel
       fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing}
       onFit={onPanelFit}
-      place={placeOf(levelIcon)}
+      place={extensionPlace ?? placeOf(levelIcon)}
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
       aside={!compact && showDetail && !isShow && !isView && !isForm && !isMissing && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :
@@ -1417,8 +1422,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   );
 });
 
-/** A level's colour for `--pal-place` (Panel `place`): its icon's tile, a brand token or the product's own `#rrggbb`; none for any other icon. */
+/** A level's colour for `--pal-place` (Panel `place`): its icon's tile (a brand token or the product's own `#rrggbb`) or a glyph's brand tint; none for any other icon. */
 function placeOf(icon: IconSpec | undefined): string | undefined {
+  if (icon?.kind === "glyph" && icon.tint) return `var(--pal-brand-${icon.tint})`;
   if (icon?.kind !== "tile") return undefined;
   return icon.bg.startsWith("#") ? icon.bg : `var(--pal-brand-${icon.bg})`;
 }

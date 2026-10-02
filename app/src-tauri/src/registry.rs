@@ -127,6 +127,9 @@ pub struct PaletteMeta {
     /// Tab (and a bare `x` with nothing typed) marks rows in it (`Palette.multi`); opaque here, the UI's.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub multi: bool,
+    /// The extension's colour, its manifest tile's `bg` (a brand name or `#rrggbb`), set from the manifest on `extension/loaded` (index.rs); the UI tints a design by it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub place: Option<String>,
     /// When the first listing of a run runs: at process start (`No`), at
     /// the first panel show (`Show`: a network palette), or the first time
     /// the user is inside the palette (`Visit`: a listing that prompts,

@@ -40,6 +40,8 @@ export type SourceInfo = Source & {
   input: boolean;
   /** The palette's icon as the code gave it: a string, `{ tile }`, `{ glyph, color }` (`iconOf`). */
   icon?: unknown;
+  /** The extension's colour (the core's `PaletteMeta.place`, from its manifest tile): a brand name or `#rrggbb`. */
+  place?: string;
   /** `view`: opened as a view level (the palette answers `view(ctx)`), never listed. */
   view?: "list" | "grid" | "view";
   columns?: number;
