@@ -56,8 +56,8 @@ describe("calc", () => {
     expect((await host.request<unknown[]>("inline", { query: "1password" })).find((s: any) => s.extension === "calc")).toBeUndefined();
   });
 
-  test("2+2: the result as the title, the expression as subtitle, four actions", async () => {
-    expect(await calc("2+2")).toEqual([{ id: "result", name: "4", subtitle: "2+2", icon: "\u{f01fc}", actions: ACTIONS }]);
+  test("2+2: the result as the title (the answer, hero), the expression as subtitle, four actions", async () => {
+    expect(await calc("2+2")).toEqual([{ id: "result", name: "4", subtitle: "2+2", icon: "\u{f01fc}", hero: true, actions: ACTIONS }]);
   });
 
   test("an empty query lists three inert hints; whitespace counts as empty", async () => {
@@ -104,7 +104,7 @@ describe("numbers", () => {
 
   test("bases: literals in, `to hex` out, a second row with the other bases", async () => {
     expect(await calc("0xff")).toEqual([
-      { id: "result", name: "255", subtitle: "0xff", icon: "\u{f01fc}", actions: ACTIONS },
+      { id: "result", name: "255", subtitle: "0xff", icon: "\u{f01fc}", hero: true, actions: ACTIONS },
       { id: "base", name: "0b11111111", subtitle: "binary", icon: "\u{f01fc}", accessories: [{ text: "0o377" }], actions: ACTIONS },
     ]);
     expect(await first("0b1010")).toBe("10");
@@ -146,7 +146,7 @@ describe("numbers", () => {
 
 describe("units", () => {
   test("the common phrasings, rounded to 6 significant digits, the unit as accessory", async () => {
-    expect(await calc("5 km to miles")).toEqual([{ id: "result", name: "3.10686 miles", subtitle: "5 km to miles", icon: "\u{f01fc}", accessories: [{ text: "miles" }], actions: ACTIONS }]);
+    expect(await calc("5 km to miles")).toEqual([{ id: "result", name: "3.10686 miles", subtitle: "5 km to miles", icon: "\u{f01fc}", hero: true, accessories: [{ text: "miles" }], actions: ACTIONS }]);
     expect(await first("72 f to c")).toBe("22.2222 °C");
     expect(await first("72f to c")).toBe("22.2222 °C");
     expect(await first("212 °F to °C")).toBe("100 °C");
@@ -274,7 +274,7 @@ describe("dates and time (PAL_NOW: Wednesday 2026-09-16 10:30 in Europe/Istanbul
     expect(await first("weeks until 25 dec")).toBe("14.3 weeks");
     expect(await first("months since 2025-06-15")).toBe("15 months");
     expect(await first("days until friday")).toBe("2 days");
-    expect(await calc("2026-01-01 - 2025-06-15")).toEqual([{ id: "result", name: "200 days", subtitle: "Sunday, June 15, 2025 → Thursday, January 1, 2026", icon: "\u{f01fc}", accessories: [{ text: "28 weeks 4 days" }, { text: "6 months 17 days" }], actions: ACTIONS }]);
+    expect(await calc("2026-01-01 - 2025-06-15")).toEqual([{ id: "result", name: "200 days", subtitle: "Sunday, June 15, 2025 → Thursday, January 1, 2026", icon: "\u{f01fc}", hero: true, accessories: [{ text: "28 weeks 4 days" }, { text: "6 months 17 days" }], actions: ACTIONS }]);
     expect(await first("2025-06-15 to 2026-01-01")).toBe("200 days");
     expect(await first("weeks between 2025-06-15 and 2026-01-01")).toBe("28.6 weeks");
     expect(await first("between 1 mar and 14 oct")).toBe("227 days");
