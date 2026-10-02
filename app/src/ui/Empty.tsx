@@ -14,3 +14,12 @@ export function Empty({ icon, title, hint, note, action }: { icon?: IconSpec; ti
     </div>
   );
 }
+
+/** A listing on its way (Launcher, a palette's first rows): three rows' shape, faint and breathing, where the rows will land. */
+export function Skeleton() {
+  return (
+    <div className="pal-skeleton" role="status" aria-label="Loading">
+      {[38, 46, 31].map((w, i) => <div key={i} className="pal-skeleton__row"><i /><i style={{ width: `${w}%` }} /><i style={{ width: `${18 + i * 4}%` }} /></div>)}
+    </div>
+  );
+}

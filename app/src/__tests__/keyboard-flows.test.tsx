@@ -273,3 +273,19 @@ describe("the HUD and a toast never take the keyboard", () => {
     expect(renderToStaticMarkup(<Toast toast={{ title: "Failed", style: "failure" }} />)).toContain('role="alert"');
   });
 });
+
+describe("a palette's query that finds nothing", () => {
+  it("offers the root's fallback rows for it, under a header that says so; Enter runs one", async () => {
+    const fallback = async (q: string): Promise<Hit[]> => [{ item: item("pal/fallback", "web", `Search the web for “${q}”`, { actions: [{ id: "open", title: "Search" }] }) }];
+    await mount({ fallback });
+    await act(async () => { launcher.current!.open("apps/apps"); });
+    await flush();
+    await type("zzqxv");
+    await act(() => new Promise((r) => setTimeout(r, 400)));
+    await flush();
+    expect(el.querySelector(".pal-section")?.textContent).toContain("Nothing in Applications matches “zzqxv”");
+    expect(activeName()).toBe("Search the web for “zzqxv”");
+    await key("Enter"); await flush();
+    expect(picks.at(-1)?.id).toBe("web");
+  });
+});

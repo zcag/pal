@@ -6,7 +6,7 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Confirm, Detail, Empty, Footer, Form, Hints, Grid, List, Panel, Presence, Search, SurfaceContext, Toast, View,
+  ActionPanel, Confirm, Detail, Empty, Skeleton, Footer, Form, Hints, Grid, List, Panel, Presence, Search, SurfaceContext, Toast, View,
   followCursor, groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
   hasSurface, anchorOf, idsOf, isMarked, markRange, markable, multiActions, pickIds, prune, step, toggle, viewCursor, viewMarks, type Selection, type SurfaceHandle, type SurfaceHost,
 } from "./ui";
@@ -526,6 +526,14 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     }, ROOT_DEBOUNCE);
     return () => { live = false; clearTimeout(t); };
   }, [query, view.kind, version]);
+  // Inside a listing palette, a query that finds nothing: the root's fallback rows for it (search the web, the files, ask), shown in place of the bare empty state. Asked as the root's are, once the typing settles; an input palette answers its own empty query.
+  useEffect(() => {
+    if (view.kind !== "palette" || scope?.input || !query.trim() || !props.fallback) return;
+    let live = true;
+    const key = query;
+    const t = setTimeout(() => { props.fallback!(key).then((fallback) => { if (live) setExtra({ key, inline: [], fallback, late: [] }); }, () => {}); }, ROOT_DEBOUNCE);
+    return () => { live = false; clearTimeout(t); };
+  }, [query, view.kind, scope?.input]);
   // The empty root's suggestions: on every show and after every pick (`suggestSeq`: a Hide, a timer paused, a colour copied change them) and when the query empties. Not on every index event: those come with every listing while the panel sits hidden, and each ask runs every suggesting palette.
   useEffect(() => {
     if (view.kind !== "root" || query || (!props.suggest && !props.dialog)) return;
@@ -620,12 +628,17 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // At the root, palettes are the sections; inside one, the palette's own sections are, except under the switcher's hold (a flat list in the index's order, no headers, so row 2 is the previous window).
   const hits = useMemo(() => {
     if (view.kind === "menu") return groupBySection(menuHits);
+    if (view.kind === "palette" && !found.length && !scope?.input && extra.key === query && query.trim() && extra.fallback.length) {
+      // Nothing in the palette: the fallback rows, under a header that says so.
+      const section = `Nothing in ${scope?.title ?? "here"} matches “${query.trim()}”. Try`;
+      return extra.fallback.map((h) => ({ ...h, item: { ...h.item, section, group: undefined } }));
+    }
     if (view.kind !== "root") return hold ? found.map((h) => (h.item.section ? { ...h, item: { ...h.item, section: undefined } } : h)) : groupBySection(found);
     const fresh = extra.key === query && !!query.trim();
     const dialogTo = dialogUp ? sources.find((s) => s.dialog) : undefined;
     const now = query ? [] : [...(dialogUp && dialogTo ? [dialogHit(dialogUp, dialogTo)] : []), ...suggested];
     return groupBySection(rootHits(query.trim(), found, fresh ? extra.inline : [], fresh ? withLate(extra.fallback, extra.late) : [], now, prefs.fallbacksAlways, titleOf));
-  }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold]);
+  }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold, scope]);
 
   const cur = useCursor(hits.length);
   // Under a hold the cursor is Cmd+Tab's: row 2 (plus the presses the
@@ -1379,6 +1392,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     : form
     // The title is the search row's (as for a view), so the form draws none of its own.
     ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>
+    : !hits.length && loading && !query
+      // A listing on its way: the rows' shape, faint, so nothing jumps when they land.
+      ? <Skeleton />
     : !hits.length
       ? <Empty
           icon={{ kind: "glyph", value: "⌕" }}

@@ -21,7 +21,7 @@ export { ActionPanel, actionShortcut } from "./ActionPanel";
 export { Footer, Hints } from "./Footer";
 export { Form, useSubmitKey } from "./Form";
 export { Confirm } from "./Confirm";
-export { Empty } from "./Empty";
+export { Empty, Skeleton } from "./Empty";
 export { Toast, type ToastSpec } from "./Toast";
 export { Hud } from "./Hud";
 export { Presence } from "./presence";

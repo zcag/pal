@@ -491,6 +491,13 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 /* Empty */
 .pal-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--pal-space-2); padding: var(--pal-space-6); text-align: center; }
 .pal-empty__title { font-size: var(--pal-text-lg); color: var(--pal-fg-muted); }
+/* A listing on its way (Skeleton): rows' shape at the list's own geometry, breathing as the detail's skeleton does. */
+.pal-skeleton { padding: var(--pal-space-2) var(--pal-list-inset); }
+.pal-skeleton__row { display: flex; align-items: center; gap: var(--pal-row-gap); height: var(--pal-row-h); padding: 0 var(--pal-row-px); }
+.pal-skeleton__row i { display: block; height: 0.8em; border-radius: var(--pal-radius-control); background: var(--pal-fg-faint); opacity: 0.22; animation: pal-breathe 1.4s var(--pal-ease) infinite alternate; }
+.pal-skeleton__row i:first-child { width: var(--pal-icon-box); height: var(--pal-icon-box); border-radius: var(--pal-radius-icon); }
+.pal-skeleton__row:nth-child(2) i { animation-delay: 0.15s; }
+.pal-skeleton__row:nth-child(3) i { animation-delay: 0.3s; }
 .pal-empty__hint { color: var(--pal-fg-faint); font-size: var(--pal-text-sm); }
 .pal-empty__action { margin-top: var(--pal-space-2); }
 .pal-empty__note {margin-top: var(--pal-space-2); max-width: 44ch; line-height: var(--pal-leading-prose); }
