@@ -65,7 +65,7 @@
   outline: none;
 }
 /* The root's magnifier (Search.tsx): centred in the rows' icon column, the query keeping the titles' edge. */
-.pal-search__mark { position: absolute; top: calc((var(--pal-search-h) - 16px) / 2); left: calc(var(--pal-list-inset) + var(--pal-row-px) + (var(--pal-icon-box) - 16px) / 2); width: 16px; height: 16px; fill: none; stroke: var(--pal-fg-faint); stroke-width: 1.6; stroke-linecap: round; pointer-events: none; }
+.pal-search__mark { --mark: max(16px, calc(var(--pal-text-query, var(--pal-text-xl)) * 0.7)); position: absolute; top: calc(var(--pal-search-h) / 2 + var(--pal-mark-dy, 0px) - var(--mark) / 2); left: calc(var(--pal-list-inset) + var(--pal-row-px) + (var(--pal-icon-box) - var(--mark)) / 2); width: var(--mark); height: var(--mark); fill: none; stroke: var(--pal-fg-muted); stroke-width: 1.6; stroke-linecap: round; pointer-events: none; }
 .pal-search__input::placeholder { color: var(--pal-fg-faint); font-size: var(--pal-text-placeholder, inherit); font-weight: var(--pal-weight-placeholder, inherit); letter-spacing: normal; }
 /* Compact mode: the primary hint and the marked count on the search row's right, drawn as the footer draws them, a size down. */
 .pal-search__hint { flex: none; height: var(--pal-control-h); margin-right: calc(var(--pal-space-2) * -1); font-size: var(--pal-text-xs); }

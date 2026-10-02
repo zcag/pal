@@ -1,4 +1,4 @@
-import type { ChangeEvent, CSSProperties, KeyboardEvent, RefObject } from "react";
+import { useLayoutEffect, useRef, type ChangeEvent, type CSSProperties, type KeyboardEvent, type RefObject } from "react";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { keepFocus } from "./keys";
@@ -48,7 +48,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
     <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
       {/* With no crumb (the root), the icon column over the rows holds a magnifier: the query still starts where the row titles do. */}
       {!back && !title && (
-        <svg className="pal-search__mark" viewBox="0 0 16 16" aria-hidden><circle cx="7" cy="7" r="4.6" /><path d="M10.4 10.4 14 14" /></svg>
+        <SearchMark input={inputRef} />
       )}
       {back && (back.onBack ? (
         <button type="button" className="pal-search__back" onClick={back.onBack} onMouseDown={keepFocus} aria-label={`Back from ${back.title}`} tabIndex={-1}>
@@ -115,4 +115,35 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
       )}
     </div>
   );
+}
+
+/**
+ * The root's magnifier: 0.7 of the query's font size (CSS), centred on the
+ * middle of the query's lowercase letters rather than on the row, so it sits
+ * with what is typed like one more letter. That middle is the baseline less
+ * half the x-height, both from the query font's own metrics (a canvas
+ * measure), read again when the fonts or the design change.
+ */
+function SearchMark({ input }: { input?: RefObject<HTMLInputElement | null> }) {
+  const mark = useRef<SVGSVGElement>(null);
+  useLayoutEffect(() => {
+    const place = () => {
+      const m = mark.current, el = input?.current;
+      if (!m || !el) return;
+      const cs = getComputedStyle(el);
+      const c = document.createElement("canvas").getContext("2d");
+      if (!c) return;
+      c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const t = c.measureText("x");
+      // The text box is centred in the input: its baseline sits half the ascent-descent difference below the middle.
+      const below = (t.fontBoundingBoxAscent - t.fontBoundingBoxDescent) / 2 - t.actualBoundingBoxAscent / 2;
+      m.style.setProperty("--pal-mark-dy", `${below}px`);
+    };
+    place();
+    document.fonts?.ready.then(place);
+    const mo = new MutationObserver(place);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-design", "data-density"] });
+    return () => mo.disconnect();
+  }, [input]);
+  return <svg ref={mark} className="pal-search__mark" viewBox="0 0 16 16" aria-hidden><circle cx="7" cy="7" r="4.6" /><path d="M10.4 10.4 14 14" /></svg>;
 }
