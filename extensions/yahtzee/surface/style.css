@@ -19,6 +19,10 @@
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --accent: var(--pal-accent, #4f46d6);
   --green: var(--pal-tag-green, #1b6b40);
+  /* The panel's display type (Ink's headline face; pal's own UI face otherwise): the scores and the banner lead in it. */
+  --display: var(--pal-font-hero, var(--pal-font-query, var(--pal-font-ui, system-ui, sans-serif)));
+  --display-weight: var(--pal-weight-hero, 800);
+  --display-track: var(--pal-tracking-query, -0.02em);
   color-scheme: light;
 }
 :root[data-theme="dark"] {
@@ -34,7 +38,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 body {
   background: var(--pal-bg, #f4f4f6);
   color: var(--pal-fg, #1a1a1f);
-  font: 13px/1.25 var(--pal-font-ui, system-ui, sans-serif);
+  font: var(--pal-text-md, 13px)/1.25 var(--pal-font-ui, system-ui, sans-serif);
   user-select: none;
   -webkit-user-select: none;
   display: flex;
@@ -57,7 +61,7 @@ body.over #result { opacity: 1; transform: none; pointer-events: auto; }
   display: flex;
   gap: var(--gap);
   padding: 8px calc(var(--gap) - 2px) 20px;
-  border-radius: 16px;
+  border-radius: calc(var(--pal-radius-tile, 10px) + 6px);
   background: var(--pal-bg-sunken, #eaeaee);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -167,7 +171,7 @@ body.typing .die.cur::after { opacity: 0.8; }
   box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 60%, #000), 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
   transition: transform 100ms, filter 120ms, background 200ms, box-shadow 200ms, color 200ms;
 }
-#roll .word { font-size: 17px; font-weight: 750; letter-spacing: 0.01em; }
+#roll .word { font-family: var(--display); font-size: 18px; font-weight: var(--display-weight); letter-spacing: var(--display-track); }
 #roll .left { display: flex; gap: 5px; }
 #roll .left i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.95; transition: opacity 200ms, transform 200ms; }
 #roll .left i.used { opacity: 0.28; transform: scale(0.8); }
@@ -183,14 +187,14 @@ body.typing #roll .cap { opacity: 1; }
   filter: none;
   transform: none;
 }
-#roll:disabled .word { font-size: 13px; font-weight: 600; }
+#roll:disabled .word { font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: normal; }
 #roll.nudge { animation: nudge 360ms ease-in-out; }
 @keyframes nudge { 20% { transform: translateX(-4px); } 50% { transform: translateX(3px); } 80% { transform: translateX(-2px); } }
 
 /* Game over: the score, the record, New game. */
 #result .final { display: flex; flex-direction: column; align-items: flex-start; }
 #result .final .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pal-fg-muted); }
-#final { font-size: 46px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; }
+#final { font-family: var(--display); font-size: 46px; line-height: 1; font-weight: var(--display-weight); letter-spacing: -0.03em; }
 #result .facts { display: flex; flex-direction: column; gap: 6px; color: var(--pal-fg-muted); font-size: 12.5px; }
 #newbest {
   align-self: flex-start;
@@ -215,9 +219,10 @@ body.newbest #newbest { display: inline-block; }
   border-radius: 999px;
   background: rgba(20, 18, 30, 0.82);
   color: #fff;
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 0.03em;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -241,7 +246,7 @@ body.newbest #newbest { display: inline-block; }
   grid-template-rows: auto repeat(7, minmax(0, 1fr));
   min-height: 0;
   padding: 2px 6px 4px;
-  border-radius: 12px;
+  border-radius: var(--pal-radius-popover, 12px);
   background: var(--pal-bg-elevated, #fff);
   box-shadow: 0 0 0 1px var(--pal-line, rgba(0, 0, 0, 0.08)), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
@@ -264,7 +269,7 @@ body.newbest #newbest { display: inline-block; }
   gap: 8px;
   min-height: 0;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: var(--pal-radius-row, 7px);
   cursor: default;
 }
 .cat + .cat::before { content: ""; position: absolute; left: 8px; right: 8px; top: 0; border-top: 1px solid var(--pal-line, rgba(0, 0, 0, 0.08)); }
@@ -336,7 +341,7 @@ body.over .cat.used.zero .val { color: var(--pal-fg-faint); font-weight: 500; }
 body.over #record { display: none; }
 .total { display: inline-flex; align-items: baseline; gap: 6px; }
 .total .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pal-fg-muted); }
-#total { font-size: 18px; font-weight: 800; min-width: 2ch; text-align: right; }
+#total { font-family: var(--display); font-size: var(--pal-text-xl, 18px); font-weight: var(--display-weight); letter-spacing: var(--display-track); min-width: 2ch; text-align: right; }
 #delta { font-size: 12px; font-weight: 700; color: var(--accent); min-width: 3ch; }
 
 /* ---- keys, buttons, the confirm ---- */
