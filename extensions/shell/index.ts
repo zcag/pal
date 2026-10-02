@@ -14,7 +14,7 @@
 // terminal, cmd+r runs it again, cmd+c copies the command. Every run
 // lands in the history palette (storage, the last hundred) with its exit
 // code; `$ ls` at the root lists the Run row inline.
-import { failed, hint, home, oneLine, settings, storage, tilde, toast, truncate, view as viewApi, type Action, type Ctx, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
+import { failed, hint, home, oneLine, settings, storage, tilde, tinted, toast, truncate, view as viewApi, type Action, type Ctx, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
 import { duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv, type Run } from "./run.ts";
 
 /** `[extensions.shell]`, defaults in pal.json. */
@@ -137,7 +137,8 @@ function runRow(cmd: string, s: Settings): Item {
   const ask = s.confirm && looksDestructive(cmd);
   const runAction: Action = ask ? { ...RUN, confirm: `Run “${short(cmd, 60)}”? It looks like it removes, overwrites or escalates.`, style: "destructive" } : RUN;
   return {
-    id: `run:${cmd}`, name: `Run: ${cmd}`, subtitle: `${shellArgv(s.shell).join(" ")} in ${tilde(cwdOf(s))}, ${s.timeout || 10} s at most${ask ? " · asks first" : ""}`, icon: GLYPH.run, keywords: [cmd],
+    id: `run:${cmd}`, name: `Run: ${cmd}`, subtitle: `in ${tilde(cwdOf(s))}`, icon: GLYPH.run, keywords: [cmd],
+    ...(ask && { accessories: [{ tag: "asks first", color: "amber" as const }] }),
     actions: [runAction, TERMINAL, COPY_CMD],
   };
 }
@@ -198,8 +199,9 @@ async function historyRows(query = ""): Promise<Item[]> {
   const list = await history();
   const q = query.trim().toLowerCase();
   const rows = list.filter((e) => !q || e.cmd.toLowerCase().includes(q)).map((e): Item => ({
-    id: historyId(e), name: e.cmd, subtitle: `${duration(e.ms)} in ${tilde(e.cwd ?? cwdOf(S()))}`, icon: GLYPH.run, keywords: [e.cmd],
-    accessories: [e.timedOut ? { tag: "killed", color: "red" } : { tag: `exit ${e.code ?? "?"}`, color: e.code === 0 ? "green" : "red" }, { date: e.at }],
+    // The icon says how it went (green or red); a tag only for a failure, with its code.
+    id: historyId(e), name: e.cmd, subtitle: `${duration(e.ms)} in ${tilde(e.cwd ?? cwdOf(S()))}`, icon: tinted(GLYPH.run, e.code === 0 && !e.timedOut ? "green" : "red"), keywords: [e.cmd],
+    accessories: [...(e.timedOut ? [{ tag: "killed", color: "red" as const }] : e.code === 0 ? [] : [{ tag: `exit ${e.code ?? "?"}`, color: "red" as const }]), { date: e.at }],
     actions: [
       S().confirm && looksDestructive(e.cmd) ? { ...RUN, title: "Run again", confirm: `Run “${short(e.cmd, 60)}” again? It looks like it removes, overwrites or escalates.`, style: "destructive" } : { ...RUN, title: "Run again" },
       // Marked history rows copy as one command per line (a script's worth); running several is left to one at a time, since the view shows one run.

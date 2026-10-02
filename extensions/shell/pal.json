@@ -99,7 +99,7 @@
       },
       {
         "file": "5-history.png",
-        "caption": "Shell History: past commands with their exit codes, Enter runs one again"
+        "caption": "Shell History: past commands, green or red by how they ended, a failure with its exit code; Enter runs one again"
       }
     ],
     "actions": [
