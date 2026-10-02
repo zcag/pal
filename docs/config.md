@@ -85,6 +85,7 @@ writes those two header lines and nothing else into the config directory.
 | `hotkey` | string, or list of strings | `"ctrl+space"` | Global hotkey that shows pal, or several that all do: `hotkey = ["cmd+space", "ctrl+space"]`. Every entry registers; one another app or Spotlight holds is reported on its own row in Settings and costs the others nothing. Empty (`""` or `[]`) turns it off, for a compositor keybind that runs `pal toggle` instead. Settings writes back whichever spelling the file has, and turns a string into a list only when Add another gives it a second entry (up to three there; the file may hold more). The menu bar hint and the Welcome tips show the first. |
 | `theme` | `system`, `light`, `dark` | `"system"` | Follow the OS, or force one. Applied live to the panel and the Settings window. |
 | `theme_file` | string | `""` | A theme file overriding pal's colours, radii and fonts ([Theme file](#theme-file)): a name, looked up as `<config dir>/themes/<name>.toml` (`"catppuccin-frappe"`), or a path (`"~/dotfiles/pal-theme.toml"`). Its `[light]` and `[dark]` sections apply to whichever scheme `theme` (or the OS) picks; the file is watched and a save applies live. Settings > General > Theme file picks one from the folder. Empty is pal's own look. |
+| `design` | string | `""` | One of pal's built-in designs: how every window is drawn beyond its colours (the type, the selected row, where the keys sit). `""` is pal's own; `"ink"` is type-led and monochrome, the query set as a headline and the selected row carrying its keys. An unknown name is pal's own. Settings > General > Design picks one; a [theme file](#theme-file) still recolours it. |
 | `compact` | bool | `false` | Compact mode: the panel 560 px wide with 32 px rows, no detail pane (`⌘I` previews the row as a level instead), and the footer folded into the search row (the primary action's hint on its right; `⌘K` still lists everything). `⌘⇧M` in the panel flips it and writes it here, so it is remembered per profile. The gallery shows both. |
 | `position` | `top`, `centre`, `last` | `"top"` | Where the panel appears on the screen with the pointer. `top`: a fifth of the way down, where Spotlight and Raycast sit. `centre`: centred. `last`: wherever it was last shown. On Wayland the compositor places the window and this key does nothing (see [Getting started](getting-started.md)). |
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, a `pal.service` user unit (or, without systemd, an XDG autostart entry) on Linux. The same agent relaunches pal after a crash, on or off; see [Crash relaunch](#crash-relaunch). |
@@ -145,6 +146,8 @@ bg = "#eff1f5"
 accent = "#ca9ee6"
 bg = "#303446"
 ```
+
+A theme file applies over the [design](#general) (`general.design`): its colours win, the design's type and layout stay.
 
 The section applied is the scheme in force: `theme = "dark"` pins dark,
 `"system"` follows the OS and swaps the section when the OS flips. Every

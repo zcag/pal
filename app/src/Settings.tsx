@@ -18,6 +18,7 @@ import {
   useThemeFile,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
+import { designOf } from "./ui/designs";
 import { screenshotUrl } from "./ui/icons";
 import { iconOf } from "./items";
 import { ok, store, useStore, type Status, type StoreState } from "./store";
@@ -33,7 +34,7 @@ type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: numb
 type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string; settings?: Record<string, unknown> };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
-  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean; usage?: boolean };
+  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; design?: string; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean; usage?: boolean };
   /** `[store]` (docs/config.md): the installed and turned-off lists, auto-update, the registries. */
   store?: { auto_update?: boolean; installed?: string[]; disabled?: string[] };
   palettes: Record<string, RawPalette>;
@@ -467,13 +468,14 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined,
+  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, design: designOf(config.general.design).id, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined,
     // The file's value, else the store's view of it (the core's default is on for all three).
     checkUpdates: config.general.check_updates !== false, autoUpdate: config.store?.auto_update ?? storeState.auto_update, usage: config.general.usage ?? storeState.usage };
   const onGeneral = (next: GeneralConfig) => {
     // `general.hotkey` keeps the spelling the file has (a string stays a string) until a second entry needs the list.
     if (next.hotkeys.join("\n") !== general.hotkeys.join("\n")) write(["general", "hotkey"], Array.isArray(config.general.hotkey) || next.hotkeys.length > 1 ? next.hotkeys : (next.hotkeys[0] ?? ""));
     if (next.theme !== general.theme) write(["general", "theme"], next.theme);
+    if (next.design !== general.design) write(["general", "design"], next.design || undefined);
     if (next.launchAtLogin !== general.launchAtLogin) write(["general", "launch_at_login"], next.launchAtLogin);
     if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);
     if (next.position !== general.position) write(["general", "position"], next.position);

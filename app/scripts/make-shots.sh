@@ -5,10 +5,14 @@
 #   2. a private Vite server for the gallery (no hot reload, a free port);
 #   3. shots.mjs: every shot both themes, the list in pal.json, the stamp;
 #   4. a contact sheet per extension under $TMPDIR/pal-shots/, to look at.
+# DESIGN=<id> renders every shot in that built-in design (general.design) into
+# $TMPDIR/pal-shots-<id>/ instead, with its sheets there: nothing in the repo
+# changes, the store's pictures stay pal's own design.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$root"
 exts=${EXT:-}
+design=${DESIGN:-}
 if [ -z "$exts" ]; then
   exts=$(ls app/src/gallery/shots/*.json | xargs -n1 basename | sed 's/\.json$//; s/^bar-//' | sort -u | while read -r e; do [ -d "extensions/$e" ] && echo "$e"; done | tr '\n' ' ')
 fi
@@ -41,16 +45,20 @@ port=$(node -e 'const s = require("net").createServer().listen(0, () => { consol
 vite=$!
 for _ in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
 export SHOTS_URL="http://127.0.0.1:$port"
+if [ -n "$design" ]; then
+  export SHOTS_DESIGN="$design" SHOTS_OUT="${TMPDIR:-/tmp}/pal-shots-$design"
+  mkdir -p "$SHOTS_OUT"
+fi
 # shellcheck disable=SC2086
 node app/scripts/shots.mjs $exts
 
-sheets="${TMPDIR:-/tmp}/pal-shots"
+sheets="${TMPDIR:-/tmp}/pal-shots${design:+-$design}"
 mkdir -p "$sheets"
 if command -v montage >/dev/null; then
   for e in $exts; do
-    d="extensions/$e/screenshots"
-    ls "$d"/*.png >/dev/null 2>&1 || continue
-    montage "$d"/*.png -tile 4x -geometry 480x+6+6 -background "#8a8a8a" "$sheets/$e.png" 2>/dev/null || true
+    if [ -n "$design" ]; then set -- "$sheets/$e"-*.png; else set -- "extensions/$e/screenshots"/*.png; fi
+    [ -e "$1" ] || continue
+    montage "$@" -tile 4x -geometry 480x+6+6 -background "#8a8a8a" "$sheets/$e.png" 2>/dev/null || true
   done
   echo "contact sheets: $sheets/<extension>.png (look at every one)"
 fi

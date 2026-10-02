@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Row } from "./Row";
 import { isMac, useCmdHeld } from "./keys";
@@ -24,6 +24,8 @@ export type ListProps = {
   onRange?: (index: number) => void;
   /** Every row wears its number (1 to 9) whether or not cmd is held: the sidebar, where cmd+N is the pick. */
   ordinals?: boolean;
+  /** The footer's keys for the cursor row (Row `hints`): shown there only when a design says so. */
+  hints?: ReactNode;
   label?: string;
 };
 
@@ -45,7 +47,7 @@ export const clickRow = (i: number, on: { onPick?: (i: number) => void; onToggle
  * scroll with the rows, as in Raycast: a sticky one would sit over the
  * cursor row whenever the cursor is the first in its section.
  */
-export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, ordinals, label }, ref) {
+export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, ordinals, hints, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item)), [hits]);
@@ -105,6 +107,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
               style={style}
               ordinal={ordinals || cmdHeld ? i + 1 : undefined}
               marked={marked?.(row.items[0])}
+              hints={i === cursor ? hints : undefined}
               onHover={hover(i)}
               onClick={clickRow(i, { onPick, onToggle, onRange })}
             />

@@ -97,7 +97,9 @@ app:
 	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
 
 # The store screenshots, both themes (docs/design/screenshots.md): `make shots`
-# for every extension, `make shots EXT="privacy timer"` for some.
+# for every extension, `make shots EXT="privacy timer"` for some;
+# `DESIGN=ink` renders them in a built-in design into $TMPDIR/pal-shots-ink/
+# to look at, the store's pictures untouched.
 .PHONY: shots
 shots:
-	EXT="$(EXT)" app/scripts/make-shots.sh
+	EXT="$(EXT)" DESIGN="$(DESIGN)" app/scripts/make-shots.sh

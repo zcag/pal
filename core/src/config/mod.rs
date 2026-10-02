@@ -173,6 +173,11 @@ pub struct General {
     /// Light and dark sections apply to the scheme `theme` (or the OS)
     /// picks; the file is watched and applies live. Empty is pal's own.
     pub theme_file: String,
+    /// One of pal's built-in designs (`app/src/ui/designs/`): how the panel,
+    /// the popovers and Settings are drawn beyond colour, such as the
+    /// type, the cursor row and where the keys sit. Empty, or a name
+    /// pal does not know, is pal's own. A theme file applies over it.
+    pub design: String,
     /// Compact mode: the panel 560 px wide with 32 px rows, no detail
     /// pane, and the footer folded into the search row (the primary
     /// action's hint on its right). `cmd+shift+m` in the panel flips it
@@ -290,6 +295,7 @@ impl Default for General {
             hotkey: Hotkeys::default(),
             theme: Theme::System,
             theme_file: String::new(),
+            design: String::new(),
             compact: false,
             launch_at_login: false,
             menu_bar_icon: true,

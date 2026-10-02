@@ -51,3 +51,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+BricolageGrotesque-latin.woff2, BricolageGrotesque-latin-ext.woff2
+HankenGrotesk-latin.woff2, HankenGrotesk-latin-ext.woff2
+------------------------------------------------------------------
+
+The Ink design's type (app/src/ui/designs/ink.css): the variable fonts as
+Google Fonts serves them (Bricolage Grotesque v9, opsz 12-96 and wght
+200-800; Hanken Grotesk v12, wght 100-900), the latin and latin-ext
+subsets, unmodified. Fetched only while the Ink design is on.
+
+Bricolage Grotesque: Copyright 2022 The Bricolage Grotesque Project
+Authors (https://github.com/ateliertriay/bricolage).
+Hanken Grotesk: Copyright 2021 The Hanken Grotesk Project Authors
+(https://github.com/marcologous/hanken-grotesk).
+
+Both are licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org/open-font-license-official-text/

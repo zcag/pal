@@ -131,7 +131,7 @@ function MenubarImage({ d, item, textPx }: { d: MenubarDescribed; item: BarStrip
 export function MenubarItem({ item, look = defaultLook, dark, anchor }: { item: BarStripItem; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void }) {
   const d = describeMenubar(item, look, dark);
   const image = d.icon === "glyph" || d.icon === "run" || d.icon === "image" || d.image_text !== null;
-  const style: CSSProperties = { opacity: d.opacity < 100 ? d.opacity / 100 : undefined, fontFamily: look.font === "mono" && d.image_text !== null ? "var(--pal-font-mono, ui-monospace, monospace)" : undefined };
+  const style: CSSProperties = { opacity: d.opacity < 100 ? d.opacity / 100 : undefined, fontFamily: look.font === "mono" && d.image_text !== null ? "var(--pal-font-mono)" : undefined };
   if (look.width > 0 && d.image_text) { style.width = look.width; style.overflow = "hidden"; }
   return (
     <span ref={anchor} className="g-mb__item g-mb__pal" title={item.tooltip} style={style}>

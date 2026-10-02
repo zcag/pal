@@ -107,6 +107,14 @@ the fixtures' moment and zone), quantises the PNGs to 256 colours with
 `screenshots/.shots.json` with the fixtures' hash. Then look at every
 picture: `make shots` prints a contact sheet per extension.
 
+    make shots DESIGN=ink       # every shot in a built-in design, to judge it
+
+`DESIGN` (a `general.design` id, `app/src/ui/designs/`) renders the same set
+in that design into `$TMPDIR/pal-shots-<id>/`, contact sheets beside them;
+the store's pictures, `pal.json` and the stamp stay as they are, since the
+store shows pal's own design. `shots.mjs` takes it as `SHOTS_DESIGN`, only
+with `SHOTS_OUT`.
+
 ## Gates (`host/test/screenshots.test.ts`, in `make test`)
 
 - every bundled extension with a palette has panel shots, every one with a

@@ -6,7 +6,7 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, SurfaceContext, Toast, View,
+  ActionPanel, Confirm, Detail, Empty, Footer, Form, Hints, Grid, List, Panel, Presence, Search, SurfaceContext, Toast, View,
   followCursor, groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
   hasSurface, anchorOf, idsOf, isMarked, markRange, markable, multiActions, pickIds, prune, step, toggle, viewCursor, viewMarks, type Selection, type SurfaceHandle, type SurfaceHost,
 } from "./ui";
@@ -1359,6 +1359,10 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const noMulti = () => setToast({ style: "failure", title: "Nothing here works on several rows", message: "Clear the selection (Escape) to pick one" });
   /** A single-row action's key with rows marked. */
   const oneRow = (a: Action) => setToast({ style: "failure", title: `${a.title} works on one row`, message: "Clear the selection (Escape) first" });
+  /** The footer's primary hint and Enter handler, one place: the footer draws it, the search row's right side in compact mode, or the cursor row where a design puts the keys. */
+  const primaryHint = isShow ? { title: listed[0]?.title ?? "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || isMissing || current) && primaryAction ? { title: primaryAction.title } : undefined;
+  const onPrimary = () => (isShow ? (listed[0] ? run(listed[0]) : pop()) : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : isMissing ? primaryAction && run(primaryAction) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
+  const rowHints = compact ? undefined : <Hints primary={primaryHint} actions={listed.length > 0} onPrimary={onPrimary} onActions={() => setActionsOpen(true)} />;
   const body = card
     ? <Empty icon={(view.kind === "missing" && view.info?.icon) || { kind: "glyph", value: "\u{f03d7}" }} title={card.title} hint={card.hint} note={card.note} action={primaryAction && <button type="button" className="pal-button" data-primary onClick={() => run(primaryAction)}>{primaryAction.title}</button>} />
     : view.kind === "show"
@@ -1377,11 +1381,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         />
       : isGrid
         ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} columns={columns} ordinals={ordinals} />
-        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} />;
+        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} hints={rowHints} />;
 
-  /** The footer's primary hint and Enter handler, one place: the footer draws it, or the search row's right side in compact mode. */
-  const primaryHint = isShow ? { title: listed[0]?.title ?? "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || isMissing || current) && primaryAction ? { title: primaryAction.title } : undefined;
-  const onPrimary = () => (isShow ? (listed[0] ? run(listed[0]) : pop()) : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : isMissing ? primaryAction && run(primaryAction) : sel ? (runnable[0] ? run(runnable[0]) : noMulti()) : current && listed[0] && run(listed[0]));
   return (
     <Panel
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}

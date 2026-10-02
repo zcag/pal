@@ -10,11 +10,13 @@
  * tokens.css) and swaps them when the scheme flips: `data-theme`, or the
  * OS's own switch while `system` is set. `general.compact` lands on
  * `data-density` the same way (`pal://config`, `settings_general` at
- * load), which tokens.css reads for the compact geometry.
+ * load), which tokens.css reads for the compact geometry, and
+ * `general.design` on `data-design`, which the design's CSS (ui/designs/) reads.
  */
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { designOf } from "./ui/designs";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -40,6 +42,14 @@ export function applyDensity(compact: boolean | undefined) {
   const el = document.documentElement;
   if (compact) el.dataset.density = "compact";
   else delete el.dataset.density;
+}
+
+/** `general.design` onto <html data-design>: a built-in design's id, or the attribute gone for pal's own (empty or unknown). */
+export function applyDesign(design: string | undefined) {
+  const el = document.documentElement;
+  const id = designOf(design).id;
+  if (id) el.dataset.design = id;
+  else delete el.dataset.design;
 }
 
 /** The scheme the tokens are drawn for right now: the pin, else the OS. */
@@ -71,14 +81,14 @@ export function applyThemeFile(t: ThemeFile | null, el: HTMLElement = document.d
   }
 }
 
-type ConfigEvent = { config?: { general?: { theme?: Theme; compact?: boolean } } };
+type ConfigEvent = { config?: { general?: { theme?: Theme; compact?: boolean; design?: string } } };
 
 /** Applies the theme now and keeps it applied; returns the stop function. */
 export function followTheme(): () => void {
   invoke<Theme>("settings_theme").then(applyTheme).catch(() => {});
-  invoke<{ compact?: boolean }>("settings_general").then((g) => applyDensity(g?.compact)).catch(() => {});
+  invoke<{ compact?: boolean; design?: string }>("settings_general").then((g) => { applyDensity(g?.compact); applyDesign(g?.design); }).catch(() => {});
   invoke<ThemeFile>("theme_current").then(applyThemeFile).catch(() => {});
-  const un = listen<ConfigEvent>("pal://config", (e) => { applyTheme(e.payload.config?.general?.theme); applyDensity(e.payload.config?.general?.compact); });
+  const un = listen<ConfigEvent>("pal://config", (e) => { applyTheme(e.payload.config?.general?.theme); applyDensity(e.payload.config?.general?.compact); applyDesign(e.payload.config?.general?.design); });
   const unTheme = listen<ThemeFile>("pal://theme", (e) => applyThemeFile(e.payload));
   // While `system` is set the OS's flip changes which section applies.
   const mq = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null;

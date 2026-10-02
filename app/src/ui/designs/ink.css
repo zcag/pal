@@ -1,0 +1,162 @@
+/*
+ * Ink (`general.design = "ink"`): type-led and monochrome. The query is a
+ * display headline, the cursor row carries the keys (an inverted block on
+ * light; a soft lit row on dark, where a white block glared) (so the footer steps aside while a row is under the cursor),
+ * a match is underlined, and colour lives only in the icon tiles, the tags
+ * and the states (success, destructive).
+ *
+ * A design is tokens and nothing else: tokens.css's, plus the hooks ui.css
+ * reads with a fallback to pal's own (designs/index.ts lists them). The
+ * selectors follow tokens.css: the shared values on [data-design]; the
+ * colours per scheme, under the OS's or a pin, on the design's element and
+ * on any pinned subtree inside it (a bar preview in Settings, a gallery
+ * shot), since tokens.css re-declares pal's own colours there. Every colour
+ * the light block sets, the dark blocks set too (a test checks), or the
+ * light one would leak into dark.
+ */
+
+[data-design="ink"] {
+  --pal-font-ui: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --pal-font-query: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --pal-text-xs: 11.5px;
+  --pal-text-sm: 12.5px;
+  --pal-text-md: 14px;
+  --pal-text-lg: 16px;
+  --pal-text-xl: 20px;
+  --pal-text-query: 30px;
+  --pal-weight-query: 700;
+  --pal-weight-placeholder: 500;
+  --pal-tracking-query: -0.03em;
+  --pal-weight-title: 600;
+  --pal-tracking-title: -0.005em;
+
+  --pal-search-h: 68px;
+  --pal-row-h: 40px;
+  --pal-list-inset: 10px;
+  --pal-row-px: 12px;
+  --pal-text-x: 58px;
+  --pal-footer-h: 38px;
+
+  --pal-radius-panel: 18px;
+  --pal-radius-popover: 16px;
+  --pal-radius-hud: 14px;
+  --pal-radius-tile: 12px;
+  --pal-radius-row: 11px;
+  --pal-radius-icon: 7px;
+  --pal-radius-control: 8px;
+  --pal-radius-tag: 6px;
+  --pal-radius-kbd: 5px;
+
+  --pal-search-line: transparent;
+  --pal-crumb-bg: transparent;
+  --pal-match: transparent;
+  --pal-match-decoration: underline 2px;
+  --pal-row-hints: flex;
+  --pal-footer-at-row: none;
+  --pal-footer-at-row-h: 0px;
+  --pal-backdrop: none;
+}
+
+[data-design="ink"],
+[data-design="ink"] [data-theme="light"] {
+  --pal-bg: #FFFFFF;
+  --pal-bg-glass: #FFFFFF;
+  --pal-bg-elevated: #FFFFFF;
+  --pal-bg-sunken: #F2F2F0;
+  --pal-fg: #141418;
+  --pal-fg-muted: #55565F;
+  --pal-fg-faint: #74757F;
+  --pal-line: #EAEAEC;
+  --pal-line-strong: #D6D6DA;
+  --pal-selection: rgba(20, 20, 24, 0.05);
+  --pal-scrim: rgba(255, 255, 255, 0.6);
+  --pal-accent: #141418;
+  --pal-accent-fg: #FFFFFF;
+  --pal-accent-soft: rgba(20, 20, 24, 0.08);
+  --pal-cursor: #141418;
+  --pal-cursor-fg: #FFFFFF;
+  --pal-cursor-fg-muted: #A9AAB3;
+  --pal-cursor-kbd: rgba(255, 255, 255, 0.14);
+  --pal-cursor-kbd-line: transparent;
+  --pal-ring: 0 0 0 1.5px #141418, 0 0 0 4px rgba(20, 20, 24, 0.08);
+  --pal-shadow-panel: 0 0 0 1px rgba(20, 20, 24, 0.08), 0 30px 60px -24px rgba(20, 20, 40, 0.35);
+  --pal-shadow-popover: 0 0 0 1px rgba(20, 20, 24, 0.08), 0 16px 40px -16px rgba(20, 20, 40, 0.3);
+  --pal-shadow-hud: 0 0 0 1px rgba(20, 20, 24, 0.08), 0 12px 32px -12px rgba(20, 20, 40, 0.3);
+}
+
+/* Compact keeps its geometry over the design's (tokens.css's compact block would otherwise lose to the one above). */
+[data-design="ink"][data-density="compact"],
+[data-design="ink"] [data-density="compact"] {
+  --pal-search-h: 48px;
+  --pal-text-query: 20px;
+  --pal-row-h: 32px;
+  --pal-list-inset: 6px;
+  --pal-row-px: 8px;
+  --pal-text-x: 44px;
+  --pal-footer-h: 0px;
+}
+
+/* A bar popover is a 420-wide window: its header row a size down from the panel's headline (the sidebar keeps its own, smaller). */
+[data-design="ink"] .pal-bar-page:not([data-sidebar]) {
+  --pal-search-h: 52px;
+  --pal-text-query: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-design="ink"]:not([data-theme="light"]) {
+    /* dark */
+    --pal-bg: #1B1B20;
+    --pal-bg-glass: #1B1B20;
+    --pal-bg-elevated: #24242A;
+    --pal-bg-sunken: #141418;
+    --pal-fg: #F3F3F1;
+    --pal-fg-muted: #A3A4AD;
+    --pal-fg-faint: #84858F;
+    --pal-line: #2A2A30;
+    --pal-line-strong: #3A3A42;
+    --pal-selection: rgba(255, 255, 255, 0.06);
+    --pal-scrim: rgba(27, 27, 32, 0.6);
+    --pal-accent: #F3F3F1;
+    --pal-accent-fg: #141418;
+    --pal-accent-soft: rgba(243, 243, 241, 0.12);
+    --pal-cursor: rgba(255, 255, 255, 0.1);
+    --pal-cursor-fg: #FFFFFF;
+    --pal-cursor-fg-muted: #B8B9C2;
+    --pal-cursor-kbd: rgba(255, 255, 255, 0.1);
+    --pal-cursor-kbd-line: transparent;
+    --pal-cursor-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    --pal-ring: 0 0 0 1.5px #F3F3F1, 0 0 0 4px rgba(243, 243, 241, 0.12);
+    --pal-shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 30px 60px -24px rgba(0, 0, 0, 0.8);
+    --pal-shadow-popover: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+    --pal-shadow-hud: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+    /* dark-end */
+  }
+}
+
+[data-design="ink"][data-theme="dark"],
+[data-design="ink"] [data-theme="dark"] {
+  --pal-bg: #1B1B20;
+  --pal-bg-glass: #1B1B20;
+  --pal-bg-elevated: #24242A;
+  --pal-bg-sunken: #141418;
+  --pal-fg: #F3F3F1;
+  --pal-fg-muted: #A3A4AD;
+  --pal-fg-faint: #84858F;
+  --pal-line: #2A2A30;
+  --pal-line-strong: #3A3A42;
+  --pal-selection: rgba(255, 255, 255, 0.06);
+  --pal-scrim: rgba(27, 27, 32, 0.6);
+  --pal-accent: #F3F3F1;
+  --pal-accent-fg: #141418;
+  --pal-accent-soft: rgba(243, 243, 241, 0.12);
+  --pal-cursor: rgba(255, 255, 255, 0.1);
+  --pal-cursor-fg: #FFFFFF;
+  --pal-cursor-fg-muted: #B8B9C2;
+  --pal-cursor-kbd: rgba(255, 255, 255, 0.1);
+  --pal-cursor-kbd-line: transparent;
+  --pal-cursor-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  --pal-ring: 0 0 0 1.5px #F3F3F1, 0 0 0 4px rgba(243, 243, 241, 0.12);
+  --pal-shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 30px 60px -24px rgba(0, 0, 0, 0.8);
+  --pal-shadow-popover: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+  --pal-shadow-hud: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+}

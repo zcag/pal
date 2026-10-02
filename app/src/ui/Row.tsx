@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent, type Ref, type RefObject } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent, type ReactNode, type Ref, type RefObject } from "react";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { graphemes, relativeDate, useNow } from "./format";
@@ -106,16 +106,20 @@ export type RowProps = {
   ordinal?: number;
   /** One of the marked rows (`selection.ts`): tinted, with a check at the end. */
   marked?: boolean;
+  /** The footer's keys, drawn on the cursor row when a design shows them there (`--pal-row-hints`); hidden by default. */
+  hints?: ReactNode;
 };
 
 /** The check a marked row or tile ends in (md-check_circle in the bundled Nerd Font). */
 export const CHECK = "\u{f05e0}";
 
-export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked }: RowProps) {
+export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked, hints }: RowProps) {
   const row = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLSpanElement>(null);
   const showOrdinal = ordinal !== undefined && ordinal <= 9;
-  const hidden = useFitAccessories(item, showOrdinal, row, title);
+  const withHints = !!(active && hints);
+  // The keys on the row (a design's `--pal-row-hints`) take width like the ordinal does: either starts the fit over.
+  const hidden = useFitAccessories(item, showOrdinal || withHints, row, title);
   return (
     <div ref={row} id={id} role="option" aria-selected={!!active} aria-checked={marked || undefined} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-marked={marked || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
       <Icon icon={item.icon} />
@@ -126,6 +130,7 @@ export function Row({ item, active, match, id, style, onHover, onClick, ordinal,
         {showOrdinal && <kbd className="pal-row__ordinal" aria-hidden>{ordinal}</kbd>}
         {marked && <span className="pal-row__check" aria-hidden>{CHECK}</span>}
       </span>
+      {withHints && <span className="pal-row__hints" onMouseDown={keepFocus}>{hints}</span>}
     </div>
   );
 }

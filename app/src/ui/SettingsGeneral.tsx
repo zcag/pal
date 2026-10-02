@@ -4,6 +4,7 @@ import { SettingsGroup, SettingsRow, SettingsSegment, SettingsSelect, SettingsSw
 import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { permissionRows, type ConfigFileInfo, type GeneralConfig, type PermissionId, type PermissionsStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
+import { DESIGNS, designOf } from "./designs";
 
 export type SettingsGeneralProps = {
   value: GeneralConfig;
@@ -67,6 +68,7 @@ const text = {
   shortcuts: { anchor: "general:shortcuts", hint: "Every global key, on its own page", label: "Keyboard shortcuts", description: "The hotkey that shows pal, the window switcher chord, and every palette, row and bar item shortcut are on the Shortcuts page, with what each collides with.", keywords: "hotkey shortcut keys switcher chord" },
   permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security. pal asks for one the first time something needs it, with a card saying what for; nothing is asked at launch.", keywords: "permissions grant privacy ask" },
   theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
+  design: { anchor: "general:design", hint: "Appearance", label: "Design", description: "How pal is drawn beyond its colours: the type, the selected row, where the keys sit. Every window follows it; a theme file still recolours it.", keywords: "look style ink skin font" },
   themeFile: { anchor: "general:theme-file", hint: "Appearance", label: "Theme file", description: "Colours, radii and fonts from a TOML file, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.", keywords: "tokens accent" },
   position: { anchor: "general:position", hint: "Appearance", label: "Window position", description: "On the screen with the pointer.", keywords: "top centre center last" },
   backspace: { anchor: "general:backspace", hint: "Keyboard", label: "Backspace goes back", description: "With nothing typed, Backspace leaves the palette or level you are in, as cmd+backspace does; a row that uses Backspace itself (a folder's Go up) comes first.", keywords: "backspace back pop level keyboard escape" },
@@ -129,6 +131,9 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
       <SettingsGroup title="Appearance">
         <SettingsRow anchor={text.theme.anchor} label={text.theme.label} description={text.theme.description}>
           <SettingsSegment value={value.theme} options={themes} onChange={(v) => set("theme", v as GeneralConfig["theme"])} label="Theme" />
+        </SettingsRow>
+        <SettingsRow anchor={text.design.anchor} label={text.design.label} description={designOf(value.design).description} htmlFor="pal-general-design">
+          <SettingsSelect id="pal-general-design" value={value.design} options={DESIGNS.map((d) => ({ id: d.id, title: d.title }))} onChange={(v) => set("design", v)} />
         </SettingsRow>
         {themeFile && <SettingsThemeFile {...themeFile} />}
         <SettingsRow anchor={text.position.anchor} label={text.position.label} description={text.position.description} htmlFor="pal-general-position">

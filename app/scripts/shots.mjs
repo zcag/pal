@@ -14,6 +14,7 @@
 //   SHOTS_URL=http://127.0.0.1:1430                  # the gallery (`npx vite --port 1430` in app/)
 //   SHOTS_OUT=dir                                     # the landing page's renders: <dir>/<extension>-<file>-<theme>.png, nothing else touched
 //   SHOTS_RAW=1                                       # keep true colour (no 256-colour quantising)
+//   SHOTS_DESIGN=ink                                  # in a built-in design (general.design); only with SHOTS_OUT, the store keeps pal's own
 //
 // A panel shot is { palette?, keys?, caption, raw?, settle? }: `palette`
 // opens that palette first; `keys` are pressed in order ("type:<text>",
@@ -33,6 +34,9 @@ import { FIXTURES as fixtures, NOW, ROOT as root, TZ, barFixtureOf, fixtureHash,
 const here = dirname(fileURLToPath(import.meta.url));
 const base = process.env.SHOTS_URL ?? "http://127.0.0.1:1430";
 const outDir = process.env.SHOTS_OUT;
+const design = process.env.SHOTS_DESIGN ?? "";
+if (design && !outDir) { console.error("SHOTS_DESIGN renders a design for looking at: set SHOTS_OUT too (the store's pictures are pal's own design)"); process.exit(2); }
+const designQ = design ? `&design=${encodeURIComponent(design)}` : "";
 const THEMES = ["light", "dark"];
 const read = (f) => JSON.parse(readFileSync(f, "utf8"));
 
@@ -123,7 +127,7 @@ const barUrl = (key, shot, theme) => {
   const q = new URLSearchParams({ bar: key, target: shot.target, theme });
   if (shot.state) q.set("state", shot.state);
   if (shot.popover) q.set("popover", "1");
-  return `${base}/?gallery&${q}`;
+  return `${base}/?gallery&${q}${designQ}`;
 };
 
 for (const name of names) {
@@ -138,7 +142,7 @@ for (const name of names) {
   for (const [file, shot] of Object.entries(panel?.shots ?? {})) {
     for (const theme of THEMES) {
       const png = outDir ? `${name}-${file}-${theme}.png` : `${file}${theme === "dark" ? "-dark" : ""}.png`;
-      const url = `${base}/?gallery&shot=${name}${shot.palette ? `&palette=${encodeURIComponent(shot.palette)}` : ""}${theme === "dark" ? "&theme=dark" : ""}`;
+      const url = `${base}/?gallery&shot=${name}${shot.palette ? `&palette=${encodeURIComponent(shot.palette)}` : ""}${theme === "dark" ? "&theme=dark" : ""}${designQ}`;
       try {
         await shoot({ url, viewport: { width: 960, height: 600 }, scale: 1.5, theme, keys: shot.keys, settle: shot.settle, path: join(out, png), raw: shot.raw });
         made.add(png);

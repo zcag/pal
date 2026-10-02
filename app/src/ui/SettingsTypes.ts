@@ -162,6 +162,8 @@ export type GeneralConfig = {
   /** `general.hotkey` as a list, whichever spelling the file has: one entry per root hotkey, none when off. */
   hotkeys: string[];
   theme: "system" | "light" | "dark";
+  /** `general.design`: a built-in design's id (designs/index.ts), empty for pal's own. */
+  design: string;
   launchAtLogin: boolean;
   /** The menu bar (macOS) / tray (Linux) icon; the app has no Dock icon. */
   menuBarIcon: boolean;

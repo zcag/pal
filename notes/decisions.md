@@ -2077,3 +2077,47 @@ with reconcile, no host restart on install, rollback, a slim bundled core with
 a two-release migration, uninstalled extensions in root search and Games,
 anonymous usage counts behind a Settings switch. UI first: the TOML mirrors
 what the UI does, for backup and versioning. pal is public, pal-site private.
+
+## Designs: one place for how pal looks (2026-10-02)
+
+Cagdas asked for a much stronger look and for every look to be easy to
+maintain and switch between ("themes, internal for now"). Mockups of six
+directions (plain panel, glass, numbered gutter, tinted, color field,
+floating pieces) ended on **Ink**: type-led, monochrome, the query as a
+headline, the cursor row carrying its keys (inverted on light; on dark a
+soft lit row, after the white block proved too glaring).
+
+- **A design is tokens only.** `general.design` puts `data-design="<id>"` on
+  <html> (theme.ts); `app/src/ui/designs/<id>.css` re-sets tokens.css's
+  values under it. Anything tokens.css could not say became a **hook**: an
+  optional token ui.css reads as `var(--pal-hook, <pal's own>)`, unset by
+  default, so pal's own design is untouched by construction
+  (`designs/index.ts` lists them: query type, title weight, the cursor's
+  fill and inks, the match's decoration, the dividers, the crumb, and
+  `--pal-row-hints` / `--pal-footer-at-row` for the keys on the row).
+- **Hooks fall back at the use site, not in tokens.css**: a token defined
+  as `var(--pal-fg)` on :root is computed there and inherited frozen, so a
+  pinned subtree (`[data-theme="dark"]`, a bar preview, a gallery shot)
+  would keep :root's scheme. Same reason a design's colour blocks also match
+  pinned descendants (`[data-design] [data-theme="dark"]`): tokens.css
+  re-declares pal's colours on them.
+- **Structure that is not a value** (the keys on the cursor row) is
+  rendered always and shown by a hook: Row draws the footer's `Hints` when
+  active, `display: var(--pal-row-hints, none)`; the footer steps aside by
+  `:has()` while a row is under the cursor, none is marked and no detail
+  pane narrows the list, and `--pal-footer-room` tells the scrim, actions
+  and toasts the room it left.
+- **Named `design`, not `look`**: `look` is already a bar item's appearance
+  in config (`[bar.*] look`). Not a theme file key: the theme file stays
+  the user's colours, radii and fonts and applies over a design.
+- **Fonts bundled per design** (Bricolage Grotesque, Hanken Grotesk, OFL,
+  latin + latin-ext), fetched only when a design's text is on screen.
+  Game surfaces get every computed token, but not the @font-face, so a
+  design's UI font falls back to the system's there.
+- **Judging one**: `make shots DESIGN=ink` renders every store shot in it
+  into `$TMPDIR/pal-shots-ink/`; the store keeps pal's own design.
+- Paid down on the way: 1,815 `var(--pal-x, fallback)` copies of tokens.css
+  values removed from app CSS (every window loads tokens.css through
+  `ui/index.ts`); six references to tokens that never existed
+  (`--pal-border`, `--pal-warning`, `--pal-font`, ...) now name real ones,
+  which also fixes white dividers on the light Settings Shortcuts page.

@@ -1,5 +1,7 @@
 import "./fonts.css";
 import "./tokens.css";
+// After tokens.css: a design overrides its values (designs/index.ts).
+import "./designs";
 import "./ui.css";
 import "./icons.css";
 
@@ -16,7 +18,7 @@ export { Detail } from "./Detail";
 export { View, hasSurface } from "./View";
 export { SurfaceContext, type SurfaceHandle, type SurfaceHost } from "./Surface";
 export { ActionPanel, actionShortcut } from "./ActionPanel";
-export { Footer } from "./Footer";
+export { Footer, Hints } from "./Footer";
 export { Form, useSubmitKey } from "./Form";
 export { Confirm } from "./Confirm";
 export { Empty } from "./Empty";
@@ -55,3 +57,4 @@ export type {
 } from "./SettingsTypes";
 export { resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, SIDEBAR_WINDOWS } from "./SettingsTypes";
 export { badgedIcon, instanceBadge, instanceTint, instancesOf, ownBrand, resolveInstance, slugSuffix, suffixProblem, suffixTitle, validSuffix, type InstanceInfo, type RawInstance, type SettingsInstance } from "./SettingsTypes";
+export { DESIGNS, designOf, type Design } from "./designs";
