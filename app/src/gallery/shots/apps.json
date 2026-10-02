@@ -12,7 +12,6 @@
         {
           "id": "/System/Applications/Utilities/Activity Monitor.app",
           "name": "Activity Monitor",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Utilities/Activity Monitor.app"
           },
@@ -55,7 +54,6 @@
         {
           "id": "/System/Applications/Calendar.app",
           "name": "Calendar",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Calendar.app"
           },
@@ -98,7 +96,6 @@
         {
           "id": "/Applications/Google Chrome.app",
           "name": "Google Chrome",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Google Chrome.app"
           },
@@ -147,7 +144,6 @@
         {
           "id": "/System/Library/CoreServices/Finder.app",
           "name": "Finder",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Library/CoreServices/Finder.app"
           },
@@ -195,7 +191,6 @@
         {
           "id": "/Applications/kitty.app",
           "name": "kitty",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/kitty.app"
           },
@@ -243,7 +238,6 @@
         {
           "id": "/System/Applications/Mail.app",
           "name": "Mail",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Mail.app"
           },
@@ -286,7 +280,6 @@
         {
           "id": "/System/Applications/Messages.app",
           "name": "Messages",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Messages.app"
           },
@@ -329,7 +322,6 @@
         {
           "id": "/System/Applications/Music.app",
           "name": "Music",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Music.app"
           },
@@ -372,7 +364,6 @@
         {
           "id": "/System/Applications/Notes.app",
           "name": "Notes",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Notes.app"
           },
@@ -420,7 +411,6 @@
         {
           "id": "/Applications/Obsidian.app",
           "name": "Obsidian",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Obsidian.app"
           },
@@ -463,7 +453,6 @@
         {
           "id": "/System/Applications/Preview.app",
           "name": "Preview",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Preview.app"
           },
@@ -506,7 +495,6 @@
         {
           "id": "/Applications/Safari.app",
           "name": "Safari",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Safari.app"
           },
@@ -554,7 +542,6 @@
         {
           "id": "/Applications/Slack.app",
           "name": "Slack",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Slack.app"
           },
@@ -602,7 +589,6 @@
         {
           "id": "/Applications/Spotify.app",
           "name": "Spotify",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Spotify.app"
           },
@@ -645,7 +631,6 @@
         {
           "id": "/System/Applications/System Settings.app",
           "name": "System Settings",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/System Settings.app"
           },
@@ -688,7 +673,6 @@
         {
           "id": "/System/Applications/Utilities/Terminal.app",
           "name": "Terminal",
-          "subtitle": "macOS",
           "icon": {
             "app": "/System/Applications/Utilities/Terminal.app"
           },
@@ -731,7 +715,6 @@
         {
           "id": "/Applications/Visual Studio Code.app",
           "name": "Visual Studio Code",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Visual Studio Code.app"
           },
@@ -780,7 +763,6 @@
         {
           "id": "/Applications/Zed.app",
           "name": "Zed",
-          "subtitle": "Applications",
           "icon": {
             "app": "/Applications/Zed.app"
           },
@@ -1065,7 +1047,32 @@
             }
           ]
         }
-      ]
+      ],
+      "details": {
+        "/Applications/Google Chrome.app": {
+          "caption": "/Applications",
+          "title": "Google Chrome",
+          "chips": [
+            {
+              "text": "running",
+              "color": "green"
+            },
+            {
+              "text": "version 141.0.7390.55"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Bundle id",
+              "value": "com.google.Chrome"
+            },
+            {
+              "label": "Processes",
+              "value": "812, 845, 846, 903"
+            }
+          ]
+        }
+      }
     }
   },
   "shots": {
@@ -1074,7 +1081,7 @@
       "keys": [
         "down*2"
       ],
-      "caption": "The applications, their source as the subtitle, the running ones tagged"
+      "caption": "The applications by name, the running ones tagged"
     },
     "2-search": {
       "keys": [
@@ -1096,6 +1103,14 @@
         "type:network"
       ],
       "caption": "The System Settings panes are rows too, found by what they hold: network finds Network and Wi-Fi"
+    },
+    "5-detail": {
+      "palette": "apps",
+      "keys": [
+        "down*2",
+        "cmd+i"
+      ],
+      "caption": "An app's details (cmd+i): its folder, running and its version, the bundle id and processes"
     }
   }
 }

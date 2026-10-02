@@ -1,8 +1,8 @@
 # Applications
 
 Installed applications with their own icons, one indexed palette. The row
-is the app's name, its source the subtitle (Applications, macOS, User, or
-the extra folder it came from), and Enter launches it. The bundle id and
+is the app's name (with the folder as its subtitle only when it is not
+/Applications or /System/Applications), and Enter launches it. The bundle id and
 the display name are keywords, so `com.apple.` or `anthropic` finds the
 app and `Chrome` finds Google Chrome. Rows are sorted by name; the palette
 is indexed, so every app is a root result and `⌘R` rescans.
@@ -50,7 +50,7 @@ rather than launching it.
 | `cmd+c` | Copy path (a pane: Copy URL) |
 | `cmd+shift+c` | Copy bundle id |
 | `cmd+r` | Rescan the application folders |
-| `cmd+i` | Details: the path, bundle id, version and whether it runs (on Linux the desktop file, its command and its actions) |
+| `cmd+i` | Details: the folder over the name, running and the version as chips, the bundle id and processes (on Linux the desktop file's folder, its command and its actions) |
 
 On Linux the actions are Open, the entry's own desktop actions, and Copy
 path.

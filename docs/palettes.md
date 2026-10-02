@@ -185,8 +185,10 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 Installed applications with their own icons.
 
 - **macOS**: `.app` bundles in `/Applications`, `/System/Applications` and
-  `~/Applications`, one level deep so the Utilities folders come along. The
-  row's subtitle is where it came from (Applications, macOS, User). The
+  `~/Applications`, one level deep so the Utilities folders come along. A
+  row from `~/Applications` or an extra folder has the folder as its
+  subtitle; the two usual roots say nothing. The details (`⌘I`) lead with
+  the folder over the name, running and the version as chips. The
   bundle id is a keyword, so `com.apple.` or `anthropic` finds the app.
   Enter opens the bundle path with the system opener.
 - **Linux**: `.desktop` entries from every XDG data dir (`~/.local/share`,
