@@ -187,6 +187,8 @@
    Accessories never shrink or wrap; the ones that would squeeze the title under a readable width are dropped by Row (accessoryDropOrder). */
 .pal-panel__body[data-split] .pal-row__sub { display: none; }
 .pal-panel__body[data-split] .pal-row__title { max-width: none; }
+/* Beside a detail pane the answer keeps the row: its accessories go (the pane says them). */
+.pal-panel__body[data-split] .pal-row[data-hero] .pal-row__accs { display: none; }
 /* Accessories, tags and metadata values carry the numbers that stack across rows (dates, sizes, codes): tabular figures so they line up in the system font. */
 .pal-row__accs { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: var(--pal-row-gap); font-variant-numeric: tabular-nums; }
 .pal-acc { color: var(--pal-fg-muted); font-size: var(--pal-text-sm); font-variant-numeric: tabular-nums; }

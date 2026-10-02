@@ -1474,5 +1474,8 @@ function placeOf(icon: IconSpec | undefined): string | undefined {
 function inkish(bg: string): boolean {
   if (bg === "ink") return true;
   const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(bg);
-  return !!m && 0.2126 * parseInt(m[1], 16) + 0.7152 * parseInt(m[2], 16) + 0.0722 * parseInt(m[3], 16) < 60;
+  if (!m) return false;
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16));
+  // Dark and grey: a saturated colour (YouTube's red, a deep blue) is dark by luminance but glows well.
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 60 && Math.max(r, g, b) - Math.min(r, g, b) < 40;
 }
