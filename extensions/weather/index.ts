@@ -4,6 +4,9 @@
 import { errorMessage, hint, settings, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 import { fmt, fold, label, placeLabel, render as renderPopover, type Current, type Place, type Reading } from "./view.ts";
 
+/** Each reading under the answer its own mark (md thermometer, water percent, weather windy), not the condition's again. */
+const ROW_GLYPH: Record<string, string> = { feels: "\u{f050f}", humidity: "\u{f058e}", wind: "\u{f059d}" };
+
 /** `[extensions.weather]`, defaults in pal.json. */
 type Settings = { location: string };
 const GEOCODE = () => process.env.PAL_WEATHER_GEOCODE ?? "https://geocoding-api.open-meteo.com/v1/search";
@@ -82,7 +85,7 @@ async function bar(): Promise<BarItem> {
   catch (e) { const message = errorMessage(e); return { icon: "󰖪", title: "Weather", color: "red", stale: true, tooltip: message }; }
 }
 async function rows(): Promise<Item[]> {
-  try { const r = await read(); if (!r) return [hint("setup", "Choose a location", "Set a city or postal code under Settings › Extensions › Weather.", { icon: "󰖙" })]; const [condition, glyph] = label(r); return [{ id: "current", name: `${fmt(r.current.temperature_2m)}${r.unit}`, subtitle: `${condition} · ${placeLabel(r.place)}`, icon: glyph, hero: true, actions: [{ id: "map", title: "Open map" }] }, ...[["feels", "Feels like", r.current.apparent_temperature === undefined ? undefined : `${fmt(r.current.apparent_temperature)}${r.unit}`], ["humidity", "Humidity", r.current.relative_humidity_2m === undefined ? undefined : `${fmt(r.current.relative_humidity_2m)}%`], ["wind", "Wind", r.current.wind_speed_10m === undefined ? undefined : `${fmt(r.current.wind_speed_10m)} ${r.windUnit}`]].filter((x): x is [string, string, string] => !!x[2]).map(([id, name, value]) => ({ id, name: value, subtitle: name, icon: glyph, actions: [] }))]; } catch (e) { return [hint("error", "Weather unavailable", errorMessage(e), { icon: "󰖪" })]; }
+  try { const r = await read(); if (!r) return [hint("setup", "Choose a location", "Set a city or postal code under Settings › Extensions › Weather.", { icon: "󰖙" })]; const [condition, glyph] = label(r); return [{ id: "current", name: `${fmt(r.current.temperature_2m)}${r.unit}`, subtitle: `${condition} · ${placeLabel(r.place)}`, icon: glyph, hero: true, actions: [{ id: "map", title: "Open map" }] }, ...[["feels", "Feels like", r.current.apparent_temperature === undefined ? undefined : `${fmt(r.current.apparent_temperature)}${r.unit}`], ["humidity", "Humidity", r.current.relative_humidity_2m === undefined ? undefined : `${fmt(r.current.relative_humidity_2m)}%`], ["wind", "Wind", r.current.wind_speed_10m === undefined ? undefined : `${fmt(r.current.wind_speed_10m)} ${r.windUnit}`]].filter((x): x is [string, string, string] => !!x[2]).map(([id, name, value]) => ({ id, name: value, subtitle: name, icon: ROW_GLYPH[id] ?? glyph, actions: [] }))]; } catch (e) { return [hint("error", "Weather unavailable", errorMessage(e), { icon: "󰖪" })]; }
 }
 async function openMap(): Promise<Effect | void> { const r = await read(); if (r) return { open: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.place.latitude},${r.place.longitude}`)}` }; }
 async function refreshPopover(): Promise<Effect> {

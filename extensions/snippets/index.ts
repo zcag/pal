@@ -60,7 +60,7 @@ const form = (s?: Snippet, errors?: Record<string, string>, text?: string): Form
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "Filled in when pasted: {clipboard}, {selection} (the text selected in the app in front), {files} (the paths selected in Finder, one per line, or sep=\", \"), {date}, {time}, {datetime} (with format=DD.MM.YYYY and offset=+1d), {uuid}, {snippet name=sig}. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "Filled in when pasted: {clipboard}, {selection}, {files}, {date}, {time}, {datetime}, {uuid}, {snippet name=…}; {cursor} places the caret." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,
