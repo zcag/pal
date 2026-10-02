@@ -29,9 +29,6 @@ css = f""":root, .t-light {{
 }}
 :root[data-theme="dark"] {{
 {dark}
-}}
-@media (prefers-reduced-motion: reduce) {{
-  :root {{ --pal-dur-fast: 0ms; --pal-dur-base: 0ms; --pal-dur-slow: 0ms; }}
 }}"""
 
 META = json.loads((S / 'tokens.meta.json').read_text())
