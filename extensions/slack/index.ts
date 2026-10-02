@@ -167,14 +167,14 @@ async function unreadRows(ctx?: Ctx): Promise<Item[]> {
 
 /** The unread run as the pane: one paragraph per message, oldest first; a thread names the count; a row whose run was not fetched fetches it now. */
 async function unreadPane(u: Unread): Promise<Detail> {
-  const metadata = [
-    { label: "Conversation", value: u.where },
-    { label: "Kind", value: u.kind === "dm" ? "Direct message" : u.kind === "mention" ? "Mention" : u.kind === "thread" ? "Thread" : "Channel" },
-    ...(u.kind !== "channel" ? [{ label: "Unread", value: String(u.n) + (u.more ? " or more" : "") }] : []),
-    ...(u.teamName ? [{ label: "Workspace", value: u.teamName }] : []),
-    ...(u.latest ? [{ label: "Latest", value: at(u.latest) }] : []),
-  ];
-  if (u.kind === "thread") return { markdown: `_${plural(u.n, "new reply", "new replies")} in threads you follow in ${u.where}; open Slack to read them._`, metadata };
+  // The header: what kind and where (the workspace) over the conversation, the unread count as a chip; the metadata only when the newest came.
+  const head: Detail = {
+    caption: [u.kind === "dm" ? "Direct message" : u.kind === "mention" ? "Mention" : u.kind === "thread" ? "Thread replies" : "Channel", u.teamName].filter(Boolean).join(" · "),
+    title: u.where,
+    ...(u.kind !== "channel" && { chips: [{ text: `${u.n}${u.more ? "+" : ""} unread`, color: u.kind === "thread" ? "blue" as const : "red" as const }] }),
+    metadata: u.latest ? [{ label: "Latest", value: at(u.latest) }] : [],
+  };
+  if (u.kind === "thread") return { ...head, markdown: `_${plural(u.n, "new reply", "new replies")} in threads you follow in ${u.where}; open Slack to read them._` };
   let msgs: Msg[] = u.msgs;
   if (!msgs.length && u.lastRead) {
     const s = await sessionOf(u.team);
@@ -182,10 +182,10 @@ async function unreadPane(u: Unread): Promise<Detail> {
     msgs = await Promise.all(r.msgs.slice(0, MAX_MSGS).reverse().map((m) => toMsg(s, m)));
     u.msgs = msgs;
   }
-  if (!msgs.length) return { markdown: "_Nothing unread here any more._", metadata };
+  if (!msgs.length) return { ...head, markdown: "_Nothing unread here any more._" };
   const parts = msgs.map((m) => `**${m.who || "app"}** · ${at(m.ts)}\n\n${m.text || "_(no text)_"}`);
   if (u.more) parts.push("_…and more before these._");
-  return { markdown: parts.join("\n\n---\n\n"), metadata };
+  return { ...head, markdown: parts.join("\n\n---\n\n") };
 }
 
 const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await unreadPane(await findUnread(id)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };

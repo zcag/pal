@@ -359,20 +359,16 @@
       ],
       "details": {
         "dm:T1/D_MARA": {
+          "caption": "Direct message",
+          "title": "Mara",
+          "chips": [
+            {
+              "text": "2 unread",
+              "color": "red"
+            }
+          ],
           "markdown": "**Mara** · 14:18\n\nhey @alex, can you look at the parser before the release call?\n\n---\n\n**Mara** · 14:21\n\nthe tests are green now, only the fixture for the empty run is missing",
           "metadata": [
-            {
-              "label": "Conversation",
-              "value": "Mara"
-            },
-            {
-              "label": "Kind",
-              "value": "Direct message"
-            },
-            {
-              "label": "Unread",
-              "value": "2"
-            },
             {
               "label": "Latest",
               "value": "14:21"
@@ -380,20 +376,16 @@
           ]
         },
         "dm:T1/D_TOMAS": {
+          "caption": "Direct message",
+          "title": "Tomas",
+          "chips": [
+            {
+              "text": "1 unread",
+              "color": "red"
+            }
+          ],
           "markdown": "**Tomas** · 13:52\n\n📎 release-notes-0.4.md",
           "metadata": [
-            {
-              "label": "Conversation",
-              "value": "Tomas"
-            },
-            {
-              "label": "Kind",
-              "value": "Direct message"
-            },
-            {
-              "label": "Unread",
-              "value": "1"
-            },
             {
               "label": "Latest",
               "value": "13:52"
@@ -401,20 +393,16 @@
           ]
         },
         "mention:T1/C_ENG": {
+          "caption": "Mention",
+          "title": "#eng",
+          "chips": [
+            {
+              "text": "1+ unread",
+              "color": "red"
+            }
+          ],
           "markdown": "**Tomas** · 13:31\n\nbumped the runner image to 24.04\n\n---\n\n**Lina** · 13:40\n\n@alex the build on #ops is red since the runner image bump\n\n---\n\n**Tomas** · 13:44\n\nlooking\n\n---\n\n_…and more before these._",
           "metadata": [
-            {
-              "label": "Conversation",
-              "value": "#eng"
-            },
-            {
-              "label": "Kind",
-              "value": "Mention"
-            },
-            {
-              "label": "Unread",
-              "value": "1 or more"
-            },
             {
               "label": "Latest",
               "value": "13:44"
@@ -422,21 +410,16 @@
           ]
         },
         "thread:T1/C_PRODUCT": {
-          "markdown": "_4 new replies in threads you follow in #product; open Slack to read them._",
-          "metadata": [
+          "caption": "Thread replies",
+          "title": "#product",
+          "chips": [
             {
-              "label": "Conversation",
-              "value": "#product"
-            },
-            {
-              "label": "Kind",
-              "value": "Thread"
-            },
-            {
-              "label": "Unread",
-              "value": "4"
+              "text": "4 unread",
+              "color": "blue"
             }
-          ]
+          ],
+          "markdown": "_4 new replies in threads you follow in #product; open Slack to read them._",
+          "metadata": []
         }
       }
     },

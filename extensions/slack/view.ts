@@ -68,14 +68,18 @@ function avatar(r: BarRow): ViewNode {
   return { type: "tile", key: "av", width: AVATAR, height: AVATAR, text: r.kind === "thread" ? "#" : initial(name), color: avatarColor(name), fill: "solid" };
 }
 
-function rowNode(r: BarRow, focused: boolean, replying: boolean): ViewNode {
+/** A row; the first (`lead`: the most direct thing waiting on you) leads the popover, its name in the headline's face a size down and its line at row size. */
+function rowNode(r: BarRow, focused: boolean, replying: boolean, lead = false): ViewNode {
   const line = r.kind === "thread" ? `${r.n} new ${r.n === 1 ? "reply" : "replies"} in threads you follow` : r.who && r.who !== r.where ? `${r.who}: ${r.text}` : r.text;
   const count = r.kind === "thread" ? String(r.n) : r.n > 1 ? `${r.n}${r.more ? "+" : ""}` : undefined;
   const name = r.teamName ? `${r.where} · ${r.teamName}` : r.where;
   return row(
     [
       avatar(r),
-      column([text(name, { size: "md", weight: "semibold", width: TEXT_W }), text(line || "(no text)", { size: "sm", color: replying ? "accent" : "muted", width: TEXT_W })], { key: "t", gap: 0 }),
+      column([
+        text(name, lead ? { style: "headline", size: "xl", width: TEXT_W } : { size: "md", weight: "semibold", width: TEXT_W }),
+        text(line || "(no text)", { size: lead ? "md" : "sm", color: replying ? "accent" : lead ? undefined : "muted", width: TEXT_W }),
+      ], { key: "t", gap: lead ? 1 : 0 }),
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
       count ? { type: "badge", key: "n", text: count, color: r.kind === "thread" ? "blue" : "red" } : { type: "spacer", key: "n", size: BADGE_W },
     ],
@@ -86,7 +90,7 @@ function rowNode(r: BarRow, focused: boolean, replying: boolean): ViewNode {
 function section(kind: Kind, rows: BarRow[], st: BarState, offset: number): ViewNode[] {
   if (!rows.length) return [];
   const label = row([text(SECTION[kind], { size: "xs", weight: "semibold", color: "muted" }), { type: "badge", text: String(rows.length), color: "grey" }], { key: `h-${kind}`, gap: 1, minHeight: 24 });
-  return [column([label, ...rows.map((r, i) => rowNode(r, offset + i === st.focus, st.replying === r.id))], { key: `s-${kind}`, gap: 0 })];
+  return [column([label, ...rows.map((r, i) => rowNode(r, offset + i === st.focus, st.replying === r.id, offset + i === 0))], { key: `s-${kind}`, gap: 0 })];
 }
 
 function quietRow(st: BarState): ViewNode[] {

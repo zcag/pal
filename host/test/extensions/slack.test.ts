@@ -258,8 +258,9 @@ describe("slack", () => {
     test("the pane: the unread run oldest first with who and when; a thread's pane names the count", async () => {
       const d = await host.detail("slack", "unreads", "dm:T1/D_MARA");
       expect(d.markdown).toMatch(/^\*\*mara\*\* · .+\n\nhey @cagdas, can you look at the parser & the tests\?\n\n---\n\n\*\*mara\*\* · .+\n\nand the doc is up$/);
-      expect(d.metadata!.map((m) => m.label)).toEqual(["Conversation", "Kind", "Unread", "Latest"]);
-      expect(d.metadata![1]).toEqual({ label: "Kind", value: "Direct message" });
+      // The header says what and where and how many; the metadata only the latest.
+      expect(d).toMatchObject({ caption: expect.stringMatching(/^Direct message/), title: expect.any(String), chips: [{ text: expect.stringMatching(/unread$/), color: "red" }] });
+      expect(d.metadata!.map((m) => m.label)).toEqual(["Latest"]);
       const t = await host.detail("slack", "unreads", "thread:T1/C_ENG");
       expect(t.markdown).toContain("3 new replies in threads you follow in #eng");
       const m = await host.detail("slack", "unreads", "mention:T1/C_ENG");
