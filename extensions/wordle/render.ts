@@ -88,7 +88,7 @@ export function render(st: State, s: Settings, today = dayOf()): View {
   const nextWord = nextIsDaily(st, s, today) ? "today's puzzle" : "practice";
   const board = column(
     Array.from({ length: ROWS }, (_, r) => row(Array.from({ length: COLS }, (_, c) => tile(st, r, c)), { key: `row${r}`, gap: 1, minHeight: TILE })),
-    { key: "board", gap: 1, padding: 2, surface: "sunken", radius: true },
+    { key: "board", gap: 1, padding: 2, surface: "sunken", radius: true, justify: "center" },
   );
 
   const marks = keyMarks(g);
@@ -113,10 +113,10 @@ export function render(st: State, s: Settings, today = dayOf()): View {
   let title: string, line: ViewNode[];
   if (g.status === "won") {
     title = `${PRAISE[g.guesses.length - 1]}! ${g.guesses.length}/${ROWS}`;
-    line = [text(title, { key: "won", style: "title", color: "success", transition: { enter: "slide-up" } })];
+    line = [text(title, { key: "won", style: "headline", color: "success", transition: { enter: "slide-up" } })];
   } else if (g.status === "lost") {
     title = `The word was ${g.answer.toUpperCase()}`;
-    line = [text(title, { key: "lost", style: "title", color: "destructive", transition: { enter: "slide-up" } })];
+    line = [text(title, { key: "lost", style: "headline", color: "destructive", transition: { enter: "slide-up" } })];
   } else {
     title = nameOf(st);
     line = st.notice ? [{ type: "badge", key: `notice-${st.notice.n}`, text: st.notice.text, color: "red", transition: { enter: "fade" } }] : [];
