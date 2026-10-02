@@ -60,6 +60,26 @@
             }
           ],
           "detail": {
+            "caption": "acme/widgets · #142 · mara/batch-index → main",
+            "title": "Batch the index writes on startup",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              }
+            ],
+            "stats": [
+              {
+                "value": "+184",
+                "label": "added",
+                "color": "success"
+              },
+              {
+                "value": "−61",
+                "label": "removed",
+                "color": "destructive"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -71,23 +91,6 @@
               {
                 "label": "Author",
                 "value": "mara"
-              },
-              {
-                "label": "Branch",
-                "value": "mara/batch-index → main"
-              },
-              {
-                "label": "Size",
-                "value": "+184 −61"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
               },
               {
                 "label": "Review requested",
@@ -191,6 +194,26 @@
             }
           ],
           "detail": {
+            "caption": "acme/widgets · #139 · mara/settings-names → main",
+            "title": "Rename the settings pages",
+            "chips": [
+              {
+                "text": "draft",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "+42",
+                "label": "added",
+                "color": "success"
+              },
+              {
+                "value": "−40",
+                "label": "removed",
+                "color": "destructive"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -202,23 +225,6 @@
               {
                 "label": "Author",
                 "value": "mara"
-              },
-              {
-                "label": "Branch",
-                "value": "mara/settings-names → main"
-              },
-              {
-                "label": "Size",
-                "value": "+42 −40"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "draft",
-                    "color": "grey"
-                  }
-                ]
               },
               {
                 "label": "Opened",
@@ -303,6 +309,26 @@
             }
           ],
           "detail": {
+            "caption": "acme/api · #517 · tomas/webhook-retry → main",
+            "title": "Retry the webhook delivery with backoff",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              }
+            ],
+            "stats": [
+              {
+                "value": "+96",
+                "label": "added",
+                "color": "success"
+              },
+              {
+                "value": "−12",
+                "label": "removed",
+                "color": "destructive"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -314,23 +340,6 @@
               {
                 "label": "Author",
                 "value": "tomas"
-              },
-              {
-                "label": "Branch",
-                "value": "tomas/webhook-retry → main"
-              },
-              {
-                "label": "Size",
-                "value": "+96 −12"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
               },
               {
                 "label": "Review requested",
@@ -428,6 +437,26 @@
             }
           ],
           "detail": {
+            "caption": "acme/docs · #88 · lina/export-docs → main",
+            "title": "Document the export format",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              }
+            ],
+            "stats": [
+              {
+                "value": "+310",
+                "label": "added",
+                "color": "success"
+              },
+              {
+                "value": "−4",
+                "label": "removed",
+                "color": "destructive"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -439,23 +468,6 @@
               {
                 "label": "Author",
                 "value": "lina"
-              },
-              {
-                "label": "Branch",
-                "value": "lina/export-docs → main"
-              },
-              {
-                "label": "Size",
-                "value": "+310 −4"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
               },
               {
                 "label": "Review requested",
@@ -540,6 +552,26 @@
             }
           ],
           "detail": {
+            "caption": "acme/widgets · #131 · mara/drop-importer → main",
+            "title": "Drop the legacy importer",
+            "chips": [
+              {
+                "text": "merged",
+                "color": "violet"
+              }
+            ],
+            "stats": [
+              {
+                "value": "+8",
+                "label": "added",
+                "color": "success"
+              },
+              {
+                "value": "−1",
+                "label": "removed",
+                "color": "destructive"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -551,23 +583,6 @@
               {
                 "label": "Author",
                 "value": "mara"
-              },
-              {
-                "label": "Branch",
-                "value": "mara/drop-importer → main"
-              },
-              {
-                "label": "Size",
-                "value": "+8 −1,204"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "merged",
-                    "color": "violet"
-                  }
-                ]
               },
               {
                 "label": "Opened",
@@ -638,6 +653,26 @@
             }
           ],
           "detail": {
+            "caption": "acme/widgets · #127 · mara/pin-bun → main",
+            "title": "Pin bun to 1.4",
+            "chips": [
+              {
+                "text": "merged",
+                "color": "violet"
+              }
+            ],
+            "stats": [
+              {
+                "value": "+2",
+                "label": "added",
+                "color": "success"
+              },
+              {
+                "value": "−2",
+                "label": "removed",
+                "color": "destructive"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -649,23 +684,6 @@
               {
                 "label": "Author",
                 "value": "mara"
-              },
-              {
-                "label": "Branch",
-                "value": "mara/pin-bun → main"
-              },
-              {
-                "label": "Size",
-                "value": "+2 −2"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "merged",
-                    "color": "violet"
-                  }
-                ]
               },
               {
                 "label": "Opened",
@@ -743,6 +761,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #142 · mara/batch-index → main",
+              "title": "Batch the index writes on startup",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+184",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−61",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -754,23 +792,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/batch-index → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+184 −61"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
                 },
                 {
                   "label": "Review requested",
@@ -874,6 +895,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #139 · mara/settings-names → main",
+              "title": "Rename the settings pages",
+              "chips": [
+                {
+                  "text": "draft",
+                  "color": "grey"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+42",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−40",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -885,23 +926,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/settings-names → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+42 −40"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "draft",
-                      "color": "grey"
-                    }
-                  ]
                 },
                 {
                   "label": "Opened",
@@ -988,6 +1012,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/api · #517 · tomas/webhook-retry → main",
+              "title": "Retry the webhook delivery with backoff",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+96",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−12",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -999,23 +1043,6 @@
                 {
                   "label": "Author",
                   "value": "tomas"
-                },
-                {
-                  "label": "Branch",
-                  "value": "tomas/webhook-retry → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+96 −12"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
                 },
                 {
                   "label": "Review requested",
@@ -1113,6 +1140,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/docs · #88 · lina/export-docs → main",
+              "title": "Document the export format",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+310",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−4",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -1124,23 +1171,6 @@
                 {
                   "label": "Author",
                   "value": "lina"
-                },
-                {
-                  "label": "Branch",
-                  "value": "lina/export-docs → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+310 −4"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
                 },
                 {
                   "label": "Review requested",
@@ -1227,6 +1257,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #131 · mara/drop-importer → main",
+              "title": "Drop the legacy importer",
+              "chips": [
+                {
+                  "text": "merged",
+                  "color": "violet"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+8",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−1",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -1238,23 +1288,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/drop-importer → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+8 −1,204"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "merged",
-                      "color": "violet"
-                    }
-                  ]
                 },
                 {
                   "label": "Opened",
@@ -1325,6 +1358,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #127 · mara/pin-bun → main",
+              "title": "Pin bun to 1.4",
+              "chips": [
+                {
+                  "text": "merged",
+                  "color": "violet"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+2",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−2",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -1336,23 +1389,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/pin-bun → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+2 −2"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "merged",
-                      "color": "violet"
-                    }
-                  ]
                 },
                 {
                   "label": "Opened",
@@ -1399,6 +1435,38 @@
       },
       "details": {
         "acme/widgets#142": {
+          "caption": "acme/widgets · #142 · mara/batch-index → main",
+          "title": "Batch the index writes on startup",
+          "chips": [
+            {
+              "text": "open",
+              "color": "green"
+            },
+            {
+              "text": "checks ✓",
+              "color": "green"
+            },
+            {
+              "text": "approved by tomas",
+              "color": "blue"
+            }
+          ],
+          "stats": [
+            {
+              "value": "+184",
+              "label": "added",
+              "color": "success"
+            },
+            {
+              "value": "−61",
+              "label": "removed",
+              "color": "destructive"
+            },
+            {
+              "value": "2",
+              "label": "comments"
+            }
+          ],
           "markdown": "The index was written once per row on startup, so a cold start with ten thousand rows took 1.8 s on the test box. This batches the writes per palette and defers the fsync to the end.\n\n---\n\n**tomas** commented · 9/16/2026\n\nCould this go behind a flag for the first release?\n\n---\n\n**tomas** approved · 9/16/2026\n\nMeasured 0.3 s here. Ship it.",
           "metadata": [
             {
@@ -1413,23 +1481,6 @@
               "value": "mara"
             },
             {
-              "label": "Branch",
-              "value": "mara/batch-index → main"
-            },
-            {
-              "label": "Size",
-              "value": "+184 −61"
-            },
-            {
-              "label": "State",
-              "tags": [
-                {
-                  "text": "open",
-                  "color": "green"
-                }
-              ]
-            },
-            {
               "label": "Checks",
               "tags": [
                 {
@@ -1442,15 +1493,6 @@
                 },
                 {
                   "text": "build",
-                  "color": "green"
-                }
-              ]
-            },
-            {
-              "label": "Approved by",
-              "tags": [
-                {
-                  "text": "tomas",
                   "color": "green"
                 }
               ]
@@ -1472,10 +1514,6 @@
                   "color": "grey"
                 }
               ]
-            },
-            {
-              "label": "Comments",
-              "value": "2"
             },
             {
               "label": "Opened",
@@ -1923,6 +1961,20 @@
       ],
       "details": {
         "acme/widgets#201": {
+          "caption": "acme/widgets · #201",
+          "title": "Search loses the cursor when rows stream in",
+          "chips": [
+            {
+              "text": "open",
+              "color": "green"
+            }
+          ],
+          "stats": [
+            {
+              "value": "4",
+              "label": "comments"
+            }
+          ],
           "markdown": "With the panel open while a live palette lists again, the cursor jumps back to the first row. Repro: open Windows, wait for the second listing.\n\n---\n\n**mara** commented · 9/16/2026\n\nReproduced with the streaming list in the gallery. Looking at useCursor.",
           "metadata": [
             {
@@ -1937,15 +1989,6 @@
               "value": "lina"
             },
             {
-              "label": "State",
-              "tags": [
-                {
-                  "text": "open",
-                  "color": "green"
-                }
-              ]
-            },
-            {
               "label": "Labels",
               "tags": [
                 {
@@ -1957,10 +2000,6 @@
                   "color": "grey"
                 }
               ]
-            },
-            {
-              "label": "Comments",
-              "value": "4"
             },
             {
               "label": "Updated",
@@ -3710,6 +3749,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #142 · mara/batch-index → main",
+              "title": "Batch the index writes on startup",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+184",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−61",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -3721,23 +3780,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/batch-index → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+184 −61"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
                 },
                 {
                   "label": "Review requested",
@@ -3841,6 +3883,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #139 · mara/settings-names → main",
+              "title": "Rename the settings pages",
+              "chips": [
+                {
+                  "text": "draft",
+                  "color": "grey"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+42",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−40",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -3852,23 +3914,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/settings-names → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+42 −40"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "draft",
-                      "color": "grey"
-                    }
-                  ]
                 },
                 {
                   "label": "Opened",
@@ -3955,6 +4000,26 @@
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #142 · mara/batch-index → main",
+              "title": "Batch the index writes on startup",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "+184",
+                  "label": "added",
+                  "color": "success"
+                },
+                {
+                  "value": "−61",
+                  "label": "removed",
+                  "color": "destructive"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -3966,23 +4031,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "Branch",
-                  "value": "mara/batch-index → main"
-                },
-                {
-                  "label": "Size",
-                  "value": "+184 −61"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
                 },
                 {
                   "label": "Review requested",

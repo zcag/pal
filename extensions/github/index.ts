@@ -195,24 +195,34 @@ function prActions(pr: PR): Action[] {
   ];
 }
 
-const prState = (pr: PR) => (pr.state === "merged" ? { text: "merged", color: "violet" } : pr.state === "closed" ? { text: "closed", color: "red" } : pr.draft ? { text: "draft", color: "grey" } : { text: "open", color: "green" });
+const prState = (pr: PR) => (pr.state === "merged" ? { text: "merged", color: "violet" as const } : pr.state === "closed" ? { text: "closed", color: "red" as const } : pr.draft ? { text: "draft", color: "grey" as const } : { text: "open", color: "green" as const });
 
-/** The pane's metadata: what the row knows, and after the lazy detail (`more`) the checks by name, the reviews and the comment count. */
+const reviewers = (more: PRDetail | undefined, state: string) => [...new Set(more?.reviews.filter((r) => r.state === state).map((r) => r.author) ?? [])];
+/** The checks as one chip: failing wins, then running, then all passed. */
+const checksChip = (checks: PRDetail["checks"]) => (checks.some((c) => c.state === "bad") ? { text: "checks ✗", color: "red" as const } : checks.some((c) => c.state === "run") ? { text: "checks …", color: "amber" as const } : { text: "checks ✓", color: "green" as const });
+
+/** The pane's header: where it lives, the title, its state and verdicts as chips, the size and the conversation as numbers (after the lazy detail, `more`, the checks, reviews and comments). */
+function prHead(pr: PR, more?: PRDetail): Pick<Detail, "caption" | "title" | "chips" | "stats"> {
+  const approvers = reviewers(more, "APPROVED"), changers = reviewers(more, "CHANGES_REQUESTED");
+  return {
+    caption: `${pr.repo} · #${pr.number} · ${pr.head} → ${pr.base}`,
+    title: pr.title,
+    chips: [prState(pr), ...(more?.checks.length ? [checksChip(more.checks)] : []), ...(approvers.length ? [{ text: `approved by ${approvers.join(", ")}`, color: "blue" as const }] : []), ...(changers.length ? [{ text: `changes requested by ${changers.join(", ")}`, color: "red" as const }] : [])],
+    stats: [
+      ...(pr.additions !== undefined ? [{ value: `+${pr.additions}`, label: "added", color: "success" as const }, { value: `−${pr.deletions}`, label: "removed", color: "destructive" as const }] : []),
+      ...(more ? [{ value: String(more.comments), label: more.comments === 1 ? "comment" : "comments" }] : []),
+    ],
+  };
+}
+
+/** The pane's metadata: what the header (`prHead`) does not say: the checks by name, who is asked, the labels, the dates. */
 function prMetadata(pr: PR, more?: PRDetail): Metadata[] {
-  const approvers = [...new Set(more?.reviews.filter((r) => r.state === "APPROVED").map((r) => r.author) ?? [])];
-  const changers = [...new Set(more?.reviews.filter((r) => r.state === "CHANGES_REQUESTED").map((r) => r.author) ?? [])];
   return [
     repoLink(pr.repo),
     { label: "Author", value: pr.author },
-    { label: "Branch", value: `${pr.head} → ${pr.base}` },
-    ...(pr.additions !== undefined ? [{ label: "Size", value: `+${pr.additions} −${pr.deletions}` }] : []),
-    { label: "State", tags: [prState(pr)] },
     ...(more ? [more.checks.length ? { label: "Checks", tags: more.checks.map((c) => ({ text: c.name, color: CHECK_COLOR[c.state] })) } : { label: "Checks", value: "none" }] : []),
-    ...(approvers.length ? [{ label: "Approved by", tags: approvers.map((text) => ({ text, color: "green" })) }] : []),
-    ...(changers.length ? [{ label: "Changes requested by", tags: changers.map((text) => ({ text, color: "red" })) }] : []),
     ...(pr.reviewers.length ? [{ label: "Review requested", tags: pr.reviewers.map((text) => ({ text, color: "grey" })) }] : []),
     ...(pr.labels.length ? [{ label: "Labels", tags: labelTags(pr.labels) }] : []),
-    ...(more ? [{ label: "Comments", value: String(more.comments) }] : []),
     { label: "Opened", value: when(pr.createdAt) },
     { label: "Updated", value: when(pr.updatedAt) },
   ];
@@ -230,7 +240,7 @@ function prRow(pr: PR, section?: string): Item {
     url: pr.url,
     section,
     accessories: prAccessories(pr),
-    detail: { metadata: prMetadata(pr) },
+    detail: { ...prHead(pr), metadata: prMetadata(pr) },
     actions: prActions(pr),
   };
 }
@@ -240,7 +250,7 @@ const REVIEW_WORD: Record<string, string> = { APPROVED: "approved", CHANGES_REQU
 async function prPane(pr: PR): Promise<Detail> {
   const s = splitId(pr.id)!;
   const d = await prDetail(s.owner, s.name, s.number);
-  return { markdown: prThread(d), metadata: prMetadata(pr, d) };
+  return { ...prHead(pr, d), markdown: prThread(d), metadata: prMetadata(pr, d) };
 }
 
 /** A pull request's text: its body, then the latest comments and the reviews that say something. */

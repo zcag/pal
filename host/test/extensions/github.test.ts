@@ -255,9 +255,10 @@ describe("github", () => {
       expect(tags(review)).toEqual(["checks ✗", "changes requested"]);
       expect(merged.icon).toEqual(tinted("\uf419", "violet"));
       expect(tags(merged)).toEqual(["merged"]);
-      // Inline metadata for the pane before the lazy detail lands.
-      expect(a.detail!.metadata!.map((m) => m.label)).toEqual(["Repository", "Author", "Branch", "Size", "State", "Review requested", "Labels", "Opened", "Updated"]);
-      expect(a.detail!.metadata![2].value).toBe("feat-71 → main");
+      // The pane before the lazy detail lands: the header (where, the title, the state, the size) and the metadata it does not say.
+      expect(a.detail).toMatchObject({ caption: "acme/widgets · #71 · feat-71 → main", title: a.name, chips: [{ text: "open", color: "green" }] });
+      expect(a.detail!.stats!.map((x) => x.label)).toEqual(["added", "removed"]);
+      expect(a.detail!.metadata!.map((m) => m.label)).toEqual(["Repository", "Author", "Review requested", "Labels", "Opened", "Updated"]);
     });
 
     test("actions: open, copy, branch, checks, files, ref; merge only when mergeable, ready only on a draft, checkout only for an open PR with a clone", async () => {
@@ -308,7 +309,7 @@ describe("github", () => {
       expect(await pick("prs", "acme/api#9", "checkout")).toMatchObject({ keep: true, toast: { title: "No local clone", style: "failure" } });
     });
 
-    test("lazy detail: the body and the thread as markdown, checks by name, approvers and changers, comment count", async () => {
+    test("lazy detail: the body and the thread as markdown, the checks, approvers and changers as chips (by name in the metadata), the comment count as a stat", async () => {
       const d = await host.detail("github", "prs", "acme/widgets#71");
       expect(d.markdown).toContain("Adds the **handshake**.");
       expect(d.markdown).toContain("**bob** commented");
@@ -316,10 +317,10 @@ describe("github", () => {
       expect(d.markdown).toContain("Rename it");
       const m = Object.fromEntries(d.metadata!.map((x) => [x.label, x]));
       expect(m.Checks.tags).toEqual([{ text: "pytest", color: "green" }, { text: "lint", color: "red" }, { text: "ci/legacy", color: "amber" }]);
-      expect(m["Approved by"].tags).toEqual([{ text: "bob", color: "green" }]);
-      expect(m["Changes requested by"].tags).toEqual([{ text: "carol", color: "red" }]);
-      expect(m.Comments.value).toBe("2");
-      expect(m.Branch.value).toBe("feat-71 → main");
+      // A failing check makes the checks chip red; the verdicts name who gave them.
+      expect(d.chips).toEqual([{ text: "open", color: "green" }, { text: "checks ✗", color: "red" }, { text: "approved by bob", color: "blue" }, { text: "changes requested by carol", color: "red" }]);
+      expect(d.stats!.find((x) => x.label === "comments")).toEqual({ value: "2", label: "comments" });
+      expect(d.caption).toBe("acme/widgets · #71 · feat-71 → main");
       expect(ops("PRDetail")).toHaveLength(1);
       expect(ops("PRDetail")[0].body.variables).toEqual({ owner: "acme", name: "widgets", number: 71 });
     });
