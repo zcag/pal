@@ -605,6 +605,8 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 .pal-view__text[data-align="center"] { text-align: center; }
 .pal-view__text[data-align="end"] { text-align: end; }
 .pal-view__text[data-style="title"] { font-size: var(--pal-text-lg); font-weight: var(--pal-weight-semibold); }
+/* The view's answer (a popover's next meeting, the track playing): the answer row's type (`Item.hero`), the design's display face. */
+.pal-view__text[data-style="headline"] { font-family: var(--pal-font-hero, var(--pal-font-query, inherit)); font-size: var(--pal-text-hero); font-weight: var(--pal-weight-hero, var(--pal-weight-semibold)); letter-spacing: var(--pal-tracking-query, normal); line-height: 1.15; }
 .pal-view__text[data-style="muted"] { color: var(--pal-fg-muted); }
 .pal-view__text[data-style="mono"] { font-family: var(--pal-font-mono); font-size: var(--pal-text-sm); }
 .pal-view__text[data-style="number"] { font-weight: var(--pal-weight-semibold); font-variant-numeric: tabular-nums; }

@@ -300,7 +300,7 @@ export type ViewNode =
    * `width` fixes the run's width in px (a column of labels that line up),
    * `minWidth` only its least; `align` places the text inside that width.
    */
-  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number" | "glyph"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
+  | (NodeBase & { type: "text"; value: string; style?: "title" | "headline" | "body" | "muted" | "mono" | "number" | "glyph"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
   /** An `icon://` url or a `data:image/...` the extension produced (an SVG it drew); anything else is not shown. Sized in px. `dot` is a small filled circle on the bottom-right corner in that colour, ringed by the panel: an avatar's presence (green active, grey away, red do not disturb). */
   | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: "circle" | "rounded"; alt?: string; dot?: TagColor })
   /**
