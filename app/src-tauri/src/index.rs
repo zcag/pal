@@ -407,9 +407,14 @@ async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title:
             Load::AfterShow => {
                 // The cached rows (if any) stay at the root; `on_shown` lists it. The
                 // bucket keeps `live` so a restored live palette relists on later shows.
+                // One waiting for a visit has nothing pending until then (`on_visit`
+                // flags it), so it does not hold the root's loading bar all run.
                 with_index(&app, |ix| {
                     if ix.source(&source).is_some() {
                         ix.set_live(source.clone(), m.live);
+                        if m.lazy == Lazy::Visit {
+                            ix.set_stale(source.clone(), false);
+                        }
                     }
                 });
                 set_awaits_show(&app, &source, true);
@@ -589,6 +594,13 @@ pub fn on_visit(app: &AppHandle, source: &Source) {
     });
     if let Some(m) = found {
         eprintln!("index\tfirst visit\tlisting {}/{}", source.extension, source.palette);
+        // Its cached rows are pending now: the palette's loading bar until the listing lands.
+        with_index(app, |ix| {
+            if ix.source(source).is_some() {
+                ix.set_stale(source.clone(), true);
+            }
+        });
+        events::emit(app, events::INDEX, ());
         let (app, source) = (app.clone(), source.clone());
         tauri::async_runtime::spawn(async move {
             let host = app.state::<Arc<Host>>().inner().clone();
