@@ -438,6 +438,12 @@ describe("the extension", () => {
     const rows = await host.list("flashcards", "flashcard-packs");
     const words = rows.find((r) => r.id === "spanish-words")!;
     expect(words).toMatchObject({ section: "Practising", subtitle: "0 mastered · 5 learning · 5996 new" });
+    // The pane leads with the pack: its name, whether it is practised, the counts as stats; the metadata keeps only what the header does not say.
+    expect(words.detail).toMatchObject({ title: words.name });
+    expect(words.detail!.chips![0]).toEqual({ text: "Practising", color: "violet" });
+    expect(words.detail!.stats!.slice(0, 3)).toMatchObject([{ value: "0", label: "mastered" }, { value: "5", label: "learning" }, { value: "5996", label: "not seen yet" }]);
+    expect(words.detail!.metadata!.map((m) => m.label)).toEqual(["Directions"]);
+    expect(words.accessories!.length).toBeLessThanOrEqual(2);
     expect(rows.find((r) => r.id === "spanish-phrases")).toMatchObject({ section: "More packs" });
     expect(rows.find((r) => r.id === "my-cards")).toMatchObject({ section: "Practising", name: "my-cards" });
     expect(rows.some((r) => r.name === "A pack file could not be read")).toBe(true);
@@ -471,6 +477,8 @@ describe("the extension", () => {
     const d = await host.detail("flashcards", "flashcard-anki", "42");
     expect(d.markdown).toContain("| el gato | the cat |");
     expect(d.metadata).toContainEqual({ label: "Audio", value: "1 recordings, played on Tab" });
+    expect(d).toMatchObject({ title: "Spanish Animals", chips: [{ text: "Audio" }] });
+    expect(d.stats!.slice(0, 2)).toEqual([{ value: "2", label: "cards" }, { value: "90%", label: "of 100 liked" }]);
     expect(await host.pick("flashcards", "flashcard-anki", "42", "open")).toEqual({ open: "https://ankiweb.net/shared/info/42" });
     expect(await host.pick("flashcards", "flashcard-anki", "42", "open", { ids: ["42", "43"] })).toEqual({ open: ["https://ankiweb.net/shared/info/42", "https://ankiweb.net/shared/info/43"] });
     expect(await host.pick("flashcards", "flashcard-anki", "42", "add")).toMatchObject({ toast: { title: "Downloading Spanish Animals" }, keep: true });

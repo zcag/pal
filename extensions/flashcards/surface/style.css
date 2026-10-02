@@ -20,6 +20,10 @@
   --fem: var(--pal-tag-pink, #c2378a);
   --both: var(--pal-tag-violet, #7c3aed);
   --serif: "New York", ui-serif, "Iowan Old Style", Georgia, "Noto Serif", serif;
+  /* The panel's display type (Ink's headline face; pal's own UI face otherwise): a session's end, the welcome and the stats lead in it; the words on the cards stay in the serif. */
+  --display: var(--pal-font-hero, var(--pal-font-query, var(--pal-font-ui, system-ui, sans-serif)));
+  --display-weight: var(--pal-weight-hero, 700);
+  --display-track: var(--pal-tracking-query, -0.02em);
   --line: var(--pal-line, rgba(0, 0, 0, 0.08));
   --fg: var(--pal-fg, #1b1b1f);
   --muted: var(--pal-fg-muted, #6b6b76);
@@ -39,7 +43,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 body {
   background: var(--pal-bg, #f5f5f7);
   color: var(--fg);
-  font: 13px/1.3 var(--pal-font-ui, system-ui, sans-serif);
+  font: var(--pal-text-md, 13px)/1.3 var(--pal-font-ui, system-ui, sans-serif);
   display: flex;
   flex-direction: column;
   user-select: none;
@@ -233,7 +237,7 @@ body.typing #typed:not(:empty) { display: block; }
 .burst[data-kind="rest"] { background: var(--pal-accent-soft, rgba(91, 91, 214, 0.14)); color: var(--accent); }
 .burst[data-kind="empty"] { background: var(--sunken); color: var(--faint); }
 @keyframes pop { from { transform: scale(0.3); opacity: 0; } }
-#done h1 { margin: 2px 0 0; font: 600 23px/1.2 var(--serif); }
+#done h1 { margin: 2px 0 0; font: var(--display-weight) var(--pal-text-hero, 22px)/1.15 var(--display); letter-spacing: var(--display-track); }
 #facts { color: var(--muted); font-size: 13px; }
 #chips { display: flex; flex-direction: column; gap: 6px; align-items: center; margin-top: 4px; max-width: 94%; }
 .group { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: center; }
@@ -255,7 +259,7 @@ body.typing #typed:not(:empty) { display: block; }
 #stats { gap: 14px; }
 .figures { display: flex; gap: 22px; justify-content: center; }
 .fig { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-.fig b { font: 600 22px/1.1 var(--serif); }
+.fig b { font: var(--display-weight) 22px/1.1 var(--display); letter-spacing: var(--display-track); }
 .fig span { font-size: 11px; color: var(--muted); }
 #stats .two { display: flex; gap: 28px; align-items: flex-start; }
 .cap { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; text-align: left; }
@@ -284,13 +288,13 @@ body.typing #typed:not(:empty) { display: block; }
 
 /* ---- welcome ----------------------------------------------------------------------- */
 #welcome { gap: 12px; }
-#welcome h1 { margin: 0; font: 600 22px/1.2 var(--serif); }
+#welcome h1 { margin: 0; font: var(--display-weight) 24px/1.15 var(--display); letter-spacing: var(--display-track); }
 .how { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: min(560px, 94%); counter-reset: step; }
 .how li { counter-increment: step; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); text-align: left; padding-left: 26px; position: relative; }
 .how li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--pal-accent-soft, rgba(91, 91, 214, 0.16)); color: var(--accent); font-weight: 700; font-size: 11px; }
 .how b { color: var(--fg); font-weight: 600; }
 #packs { display: flex; flex-direction: column; gap: 6px; width: min(520px, 92%); }
-.pack { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); text-align: left; cursor: pointer; transition: border-color 120ms, box-shadow 120ms; }
+.pack { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--pal-radius-tile, 12px); border: 1px solid var(--line); background: var(--paper); text-align: left; cursor: pointer; transition: border-color 120ms, box-shadow 120ms; }
 .pack.at { border-color: var(--accent); box-shadow: 0 0 0 3px var(--pal-accent-soft, rgba(91, 91, 214, 0.16)); }
 .pack .box { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--faint); color: #fff; font-size: 12px; transition: background 120ms, border-color 120ms; }
 .pack.on .box { background: var(--accent); border-color: var(--accent); }

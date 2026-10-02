@@ -505,22 +505,29 @@ async function packRows(): Promise<Row[]> {
       section: inRot ? "Practising" : "More packs",
       icon: inRot ? { glyph: "󰘸", color: "violet" } : { glyph: "󰘸", color: "slate" },
       keywords: [p.id, ...(p.description ? [p.description] : [])],
+      // Two at most: what is due (a state, as a tag) and how far along; the coverage is in the pane.
       accessories: [
         ...(pr.due ? [{ tag: `${pr.due} due`, color: "blue" }] : []),
-        ...(pr.coverage !== undefined && pr.seen ? [{ text: `covers ${pct(pr.coverage)}` }] : []),
         { text: `${pct(pr.mastered / Math.max(1, pr.total))} mastered` },
       ],
       detail: {
-        markdown: [`## ${p.title}`, p.description ?? "", pr.coverage !== undefined ? `The words you know cover **${pct(pr.coverage)}** of everyday spoken language, counting each by how often it is heard.` : "", p.source ? `<sub>${p.source}</sub>` : ""].filter(Boolean).join("\n\n"),
+        caption: `${p.bundled ? "Bundled pack" : "Your pack"} · ${pr.total} cards`,
+        title: p.title,
+        chips: [
+          inRot ? { text: "Practising", color: "violet" } : { text: "Not practised", color: "grey" },
+          ...(pr.due ? [{ text: `${pr.due} due today`, color: "blue" as const }] : []),
+          ...(w ? [{ text: `${w} weak`, color: "amber" as const }] : []),
+        ],
+        stats: [
+          { value: String(pr.mastered), label: "mastered", color: "success" },
+          { value: String(pr.seen - pr.mastered), label: "learning" },
+          { value: String(pr.total - pr.seen), label: "not seen yet" },
+          ...(pr.coverage !== undefined && pr.seen ? [{ value: pct(pr.coverage), label: "of speech covered" }] : []),
+        ],
+        markdown: [p.description ?? "", pr.coverage !== undefined ? `The words you know cover **${pct(pr.coverage)}** of everyday spoken language, counting each by how often it is heard. A card counts as mastered once it is not due for three weeks or more.` : "A card counts as mastered once it is not due for three weeks or more.", p.source ? `<sub>${p.source}</sub>` : ""].filter(Boolean).join("\n\n"),
         metadata: [
-          { label: "Cards", value: String(pr.total) },
-          { label: "Mastered", value: `${pr.mastered} (not due for 3 weeks or more)` },
-          { label: "Learning", value: String(pr.seen - pr.mastered) },
-          { label: "Not seen yet", value: String(pr.total - pr.seen) },
-          { label: "Due today", value: String(pr.due) },
-          ...(w ? [{ label: "Weak", value: `${w} for the refresher` }] : []),
           { label: "Directions", value: p.reverse ? "Both: recognise it, then type it" : "One way" },
-          { label: "Source", value: p.bundled ? "Bundled" : p.path ?? "" },
+          ...(p.path ? [{ label: "File", value: p.path }] : []),
         ],
       },
       actions: [
@@ -603,15 +610,21 @@ async function ankiDetail(id: string) {
     return `| ${plain(n[r.front!]?.value ?? "")} | ${plain(n[r.back!]?.value ?? "")} |`;
   });
   const pct = rating(d.up, d.down);
+  const have = await readdir(packsDir()).catch(() => [] as string[]);
+  const added = downloading.has(d.id) ? { text: "Downloading…", color: "blue" as const } : have.includes(`anki-${d.id}.apkg`) ? { text: "Added", color: "green" as const } : undefined;
   return {
-    markdown: [`## ${d.title}`, clip(plain(d.description.replace(/\n/g, " <br> ")), 700), rows.length ? `**Sample cards**\n\n| Front | Back |\n| --- | --- |\n${rows.join("\n")}` : ""].filter(Boolean).join("\n\n"),
+    caption: `AnkiWeb shared deck${d.updated ? ` · updated ${year(d.updated)}` : ""}`,
+    title: d.title,
+    chips: [...(added ? [added] : []), ...(d.audio ? [{ text: "Audio" }] : []), ...(d.images ? [{ text: "Pictures" }] : [])],
+    stats: [
+      { value: d.notes.toLocaleString("en"), label: "cards" },
+      ...(pct !== null ? [{ value: `${pct}%`, label: `of ${d.up + d.down} liked` }] : []),
+      { value: `${Math.max(1, Math.round(d.size / 1e6))} MB`, label: "download" },
+    ],
+    markdown: [clip(plain(d.description.replace(/\n/g, " <br> ")), 700), rows.length ? `**Sample cards**\n\n| Front | Back |\n| --- | --- |\n${rows.join("\n")}` : ""].filter(Boolean).join("\n\n"),
     metadata: [
-      { label: "Cards", value: d.notes.toLocaleString("en") },
       ...(d.audio ? [{ label: "Audio", value: `${d.audio.toLocaleString("en")} recordings, played on Tab` }] : []),
       ...(d.images ? [{ label: "Pictures", value: d.images.toLocaleString("en") }] : []),
-      { label: "Download", value: `${Math.max(1, Math.round(d.size / 1e6))} MB` },
-      ...(pct !== null ? [{ label: "Liked", value: `${pct}% of ${d.up + d.down}` }] : []),
-      ...(d.updated ? [{ label: "Updated", value: String(year(d.updated)) }] : []),
       ...(d.tags ? [{ label: "Tags", tags: d.tags.split(/\s+/).slice(0, 6).map((t) => ({ text: t })) }] : []),
     ],
   };
@@ -672,7 +685,7 @@ export function splitCard(q: string): { front: string; back: string } | null {
 async function addRows(q = ""): Promise<Row[]> {
   const c = splitCard(q);
   if (!c) return [hint("how", q.trim() ? "Type the back after an =" : "Type front = back", `gato = cat · goes into “My cards”, practised with the rest`)];
-  return [{ id: `add:${c.front}\t${c.back}`, name: `${c.front}  →  ${c.back}`, subtitle: "Add to My cards", icon: { glyph: "󰐕", color: "violet" }, actions: [{ id: "add", title: "Add the card" }] }];
+  return [{ id: `add:${c.front}\t${c.back}`, name: `${c.front}  →  ${c.back}`, hero: true, subtitle: "Add to My cards", icon: { glyph: "󰐕", color: "violet" }, actions: [{ id: "add", title: "Add the card" }] }];
 }
 
 async function addPick(id: string): Promise<Effect | void> {
