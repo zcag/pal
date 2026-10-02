@@ -1,4 +1,4 @@
-// The bar popover as a pure `View`: current conditions at the top,
+// The bar popover as a pure `View`: the temperature now as the headline,
 // then the forecast Open-Meteo returns in the same request. The hourly
 // strip starts at `current.time` by matching it against `hourly.time`,
 // not by assuming midnight plus the user's local hour. Forecast fields
@@ -156,12 +156,12 @@ export function render(r: Reading): View {
     keys: "actions",
     actions: actions(),
     tree: column([
-      row([text(glyph, { key: "glyph", style: "glyph", size: "xl" }), column([text(`${fmt(r.current.temperature_2m)}${r.unit}`, { key: "temp", style: "number", size: "xl" }), text(condition, { key: "condition", style: "muted", size: "sm" })], { key: "reading", gap: 0, grow: true })], { key: "now", gap: 3 }),
+      row([text(glyph, { key: "glyph", style: "glyph", size: "xl" }), column([text(`${fmt(r.current.temperature_2m)}${r.unit}`, { key: "temp", style: "headline" }), text(condition, { key: "condition", style: "muted", size: "sm" })], { key: "reading", gap: 0, grow: true })], { key: "now", gap: 3, align: "center" }),
       ...stats(r),
       ...hourly(r),
       ...daily(r),
       ...sun(r),
       hints(),
-    ], { key: "weather", padding: 3, gap: 3 }),
+    ], { key: "weather", padding: 3, gap: 2 }),
   };
 }
