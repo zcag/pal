@@ -1,8 +1,9 @@
 // The bar popover as a tree (`View` in `@zcag/pal`), pure: index.ts builds
 // the state from the CLI's files and the popover's own cursor, the fixture
-// renders made-up states through the same function. One card per timer
-// (most urgent first, as the CLI ranks them): the name and when it lands
-// on the left, the time left large on the right, a thin bar under them in
+// renders made-up states through the same function. The most urgent timer
+// (as the CLI ranks them) leads: its name and when it lands on a small
+// line, the time left as the headline. Every other one is a card: the name
+// and when it lands on the left, the time left on the right. A thin bar under each in
 // the strip's colour (blue, amber past two thirds, red past 90 %, grey
 // while paused, red and full once landed). The card the keys act on wears
 // the accent ring; a click on a card moves the ring there. A row of key
@@ -50,29 +51,41 @@ const clock = (epoch: number) => hhmm(epoch * 1000);
 /** The card the keys act on: the cursor's timer when it is still there, else the first. */
 export const current = (st: PopoverState): Timer | undefined => st.timers.find((t) => t.id === st.cursor) ?? st.timers[0];
 
-function card(t: Timer, st: PopoverState): ViewNode {
-  const left = secsLeft(t, st.now);
-  const color = colorOf(t, st.now);
-  const selected = current(st)?.id === t.id;
-  // Under the name: when it lands, how long ago it did (with a red tag), or a paused tag alone; the pomodoro's card leads with its phase.
+/** Under a timer's name (or after it, `lead`, on the headline card): when it lands, how long ago it did (with a red tag), or a paused tag; the pomodoro's timer leads with its phase. */
+function subline(t: Timer, st: PopoverState, lead?: string): ViewNode[] {
   const p = st.pomodoro?.timerId === t.id ? st.pomodoro : undefined;
+  const say = (s: string) => (lead ? `${lead} · ${s}` : s);
   const sub: ViewNode[] = t.state === "done"
-    ? [text(`landed ${fmt(st.now - t.fired)} ago`, { style: "muted", size: "xs", key: "sub-done", transition: { enter: "fade", exit: "none" } }), { type: "badge", key: "done", text: "done", color: "red" }]
-    : t.state === "paused" ? [{ type: "badge", key: "paused", text: "paused", color: "amber" }]
-    : [text(`until ${clock(t.deadline)}`, { style: "muted", size: "xs", key: "sub-running", transition: { enter: "fade", exit: "none" } })];
-  if (p) sub.unshift({ type: "badge", key: "phase", text: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" });
-  const big = t.state === "done" ? "0:00" : fmt(left);
-  const kids: ViewNode[] = [
+    ? [text(say(`landed ${fmt(st.now - t.fired)} ago`), { style: "muted", size: "xs", key: "sub-done", transition: { enter: "fade", exit: "none" } }), { type: "badge", key: "done", text: "done", color: "red" }]
+    : t.state === "paused" ? [...(lead ? [text(lead, { style: "muted", size: "xs", key: "sub-paused" })] : []), { type: "badge", key: "paused", text: "paused", color: "amber" }]
+    : [text(say(`until ${clock(t.deadline)}`), { style: "muted", size: "xs", key: "sub-running", transition: { enter: "fade", exit: "none" } })];
+  if (p) sub[lead ? "push" : "unshift"]({ type: "badge", key: "phase", text: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" });
+  return sub;
+}
+
+const big = (t: Timer, now: number) => (t.state === "done" ? "0:00" : fmt(secsLeft(t, now)));
+const bigColor = (t: Timer) => (t.state === "done" ? "destructive" as const : t.state === "paused" ? "muted" as const : undefined);
+/** What makes a timer's block a card: its key, the mark, a click moves the ring there. */
+const cardOpts = (t: Timer, st: PopoverState) => ({ key: `t-${t.id}`, mark: t.id, radius: true as const, action: `focus:${t.id}`, selected: current(st)?.id === t.id ? (true as const) : undefined, transition: { enter: "fade" as const, exit: "fade" as const } });
+
+/** The most urgent timer leads: its name and when it lands on a small line, the time left as the popover's headline, the bar under it. */
+function heroCard(t: Timer, st: PopoverState): ViewNode {
+  return column([
+    row(subline(t, st, t.name), { key: "subrow", gap: 1, minHeight: 18 }),
+    text(big(t, st.now), { style: "headline", color: bigColor(t), key: "left" }),
+    { type: "progress", key: "bar", value: progressOf(t, st.now), color: colorOf(t, st.now) },
+  ], { ...cardOpts(t, st), padding: 3, gap: 1 });
+}
+
+/** Every other timer: the name and when it lands on the left, the time left on the right, the bar under them. */
+function card(t: Timer, st: PopoverState): ViewNode {
+  return column([
     row([
-      column([
-        text(t.name, { style: "title", width: NAME_W, key: "name" }),
-        row(sub, { key: "subrow", gap: 1, minHeight: 18 }),
-      ], { key: "titles", gap: 0, grow: true }),
-      text(big, { style: "number", size: "xl", width: TIME_W, align: "end", color: t.state === "done" ? "destructive" : t.state === "paused" ? "muted" : undefined, key: "left" }),
+      column([text(t.name, { style: "title", width: NAME_W, key: "name" }), row(subline(t, st), { key: "subrow", gap: 1, minHeight: 18 })], { key: "titles", gap: 0, grow: true }),
+      text(big(t, st.now), { style: "number", size: "lg", width: TIME_W, align: "end", color: bigColor(t), key: "left" }),
     ], { key: "head", gap: 2, align: "center" }),
-    { type: "progress", key: "bar", value: progressOf(t, st.now), color },
-  ];
-  return column(kids, { key: `t-${t.id}`, mark: t.id, surface: "elevated", radius: true, padding: 3, gap: 2, action: `focus:${t.id}`, ...(selected && { selected: true }), transition: { enter: "fade", exit: "fade" } });
+    { type: "progress", key: "bar", value: progressOf(t, st.now), color: colorOf(t, st.now) },
+  ], { ...cardOpts(t, st), surface: "elevated", padding: 3, gap: 1 });
 }
 
 /** The durations on the tiles: the last used first, the defaults filling up behind them. */
@@ -130,7 +143,7 @@ export function actions(st: PopoverState): Action[] {
 }
 
 export function render(st: PopoverState): View {
-  const kids: ViewNode[] = st.timers.map((t) => card(t, st));
+  const kids: ViewNode[] = st.timers.map((t, i) => (i ? card(t, st) : heroCard(t, st)));
   if (!st.timers.length && !st.field) kids.push(text("No timers", { style: "muted", key: "none" }));
   if (st.field) kids.push(fieldHelp(st));
   kids.push(...hints(st));

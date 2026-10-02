@@ -150,12 +150,12 @@ describe("timer", () => {
     put("pizza", { state: "done", fired: now() - 10 });
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["pizza", "tea", "eggs", "new", "pomodoro"]);
-    expect(items[0]).toMatchObject({ name: "pizza", subtitle: expect.stringMatching(/^Landed 0:1[0-2] ago$/), accessories: [{ tag: "done", color: "red" }] });
+    expect(items[0]).toMatchObject({ name: "pizza", subtitle: expect.stringMatching(/^Landed 0:1[0-2] ago$/), icon: "\u{f009e}", accessories: [{ tag: "done", color: "red" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["done", "add", "stop"]);
-    expect(items[1]).toMatchObject({ name: "tea", subtitle: expect.stringMatching(/^(10:00|9:59) left, done at /), accessories: [{ tag: "running", color: "blue" }] });
+    expect(items[1]).toMatchObject({ name: "tea", subtitle: expect.stringMatching(/^(10:00|9:59) left, done at /), icon: "\u{f0954}", accessories: [] });
     // The other of the pair rides at the end, so a running and a paused timer marked together offer both.
     expect(items[1].actions!.map((a) => a.id)).toEqual(["pause", "add", "stop", "resume"]);
-    expect(items[2]).toMatchObject({ name: "eggs", subtitle: "Paused at 0:30", accessories: [{ tag: "paused", color: "amber" }] });
+    expect(items[2]).toMatchObject({ name: "eggs", subtitle: "Paused at 0:30", icon: "\u{f03e4}", accessories: [{ tag: "paused", color: "amber" }] });
     expect(items[2].actions!.map((a) => a.id)).toEqual(["resume", "add", "stop", "pause"]);
     expect(items[1].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["pause", "stop", "resume"]);
     // The bar's field on a timer row: minutes for Add only; five when blank or absent (a hotkey).
@@ -248,7 +248,9 @@ describe("timer", () => {
     expect(bars[0].value).toBe(1);
     const big = all.filter((n) => n.type === "text" && n.key === "left") as Extract<ViewNode, { type: "text" }>[];
     expect(big.map((t) => t.value)).toEqual(["0:00", expect.stringMatching(/^(10:00|9:59)$/), "0:30"]);
-    expect(big[0]).toMatchObject({ style: "number", size: "xl", color: "destructive" });
+    // The most urgent leads as the headline; the rest are cards with the time at the right.
+    expect(big[0]).toMatchObject({ style: "headline", color: "destructive" });
+    expect(big[1]).toMatchObject({ style: "number", size: "lg" });
     expect(all.some((n) => n.type === "badge" && n.text === "done")).toBe(true);
     expect(all.some((n) => n.type === "badge" && n.text === "paused")).toBe(true);
     // The first card is the landed one: Enter dismisses; the keys of the hints row are the actions.
@@ -359,7 +361,7 @@ describe("timer", () => {
     expect(asked().at(-1)).toBe("25m Pomodoro 1 of 2");
     expect(await ids()).toEqual(["Pomodoro-1-of-2", "new"]);
     const r = (await list())[0];
-    expect(r).toMatchObject({ name: "Pomodoro 1 of 2", subtitle: expect.stringMatching(/^Round 1 of 2, work · (25:00|24:59) left/), icon: "\u{f025b}", keywords: ["timer", "running", "pomodoro", "work"], accessories: [{ tag: "work", color: "violet" }, { tag: "running", color: "blue" }] });
+    expect(r).toMatchObject({ name: "Pomodoro 1 of 2", subtitle: expect.stringMatching(/^(25:00|24:59) left/), icon: "\u{f025b}", keywords: ["timer", "running", "pomodoro", "work"], accessories: [{ tag: "work", color: "violet" }] });
     expect(r.actions!.map((a) => a.id)).toEqual(["pause", "add", "skip", "stop-pomodoro", "stop", "resume"]);
     expect(sessionStored().at(-1)).toMatchObject({ round: 1, of: 2, phase: "work", timerId: "Pomodoro-1-of-2", timerName: "Pomodoro 1 of 2" });
     expect(await pick("pomodoro")).toMatchObject({ keep: true, toast: { title: "A pomodoro is running", message: "Round 1 of 2, work" } });
@@ -372,7 +374,7 @@ describe("timer", () => {
     expect(await ids()).toEqual(["Break-1-of-2", "new", "pomodoro:today"]);
     expect(asked().slice(-2)).toEqual(["stop Pomodoro-1-of-2", "5m Break 1 of 2"]);
     expect(huds().at(-1)).toBe("Pomodoro. Break: 5 min");
-    expect((await list())[0]).toMatchObject({ subtitle: expect.stringMatching(/^Round 1 of 2, break · /), accessories: [{ tag: "break", color: "green" }, { tag: "running", color: "blue" }] });
+    expect((await list())[0]).toMatchObject({ name: "Break 1 of 2", accessories: [{ tag: "break", color: "green" }] });
     expect((await list())[2]).toMatchObject({ id: "pomodoro:today", name: "Pomodoros today: 1", subtitle: "One work round finished", actions: [] });
     expect(await render()).toMatchObject({ title: expect.stringMatching(/ · break$/) });
     land("Break-1-of-2", "Break 1 of 2");
@@ -382,7 +384,7 @@ describe("timer", () => {
     expect(await ids()).toEqual(["Long-break", "new", "pomodoro:today"]);
     expect(asked().at(-1)).toBe("15m Long break");
     expect(huds().at(-1)).toBe("Pomodoro. Long break: 15 min");
-    expect((await list())[0]).toMatchObject({ subtitle: expect.stringMatching(/^Long break · /), accessories: [{ tag: "long break", color: "green" }, { tag: "running", color: "blue" }] });
+    expect((await list())[0]).toMatchObject({ name: "Long break", accessories: [{ tag: "long break", color: "green" }] });
     expect((await list())[2].name).toBe("Pomodoros today: 2");
     land("Long-break", "Long break");
     expect(await ids()).toEqual(["Pomodoro-1-of-2", "new", "pomodoro:today"]);
@@ -425,7 +427,7 @@ describe("timer", () => {
     const h = await Host.bundled({ settings: { timer: { settings: { command: cli, dir } } } });
     try {
       const items = await h.list("timer", "timers");
-      expect(items[0]).toMatchObject({ id: "Pomodoro-1-of-4", subtitle: expect.stringMatching(/^Round 1 of 4, work · /) });
+      expect(items[0]).toMatchObject({ id: "Pomodoro-1-of-4", icon: "\u{f025b}", accessories: [{ tag: "work", color: "violet" }] });
       expect(items.map((i) => i.id)).toEqual(["Pomodoro-1-of-4", "new", "pomodoro:today"]);
       expect(await h.pick("timer", "timers", "Pomodoro-1-of-4", "stop-pomodoro")).toEqual({ keep: true, hud: "Pomodoro stopped" });
     } finally { h.kill(); }

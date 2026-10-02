@@ -119,7 +119,7 @@
   "bar": {
     "timer": {
       "title": "Timer",
-      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: a card per timer with the time left and a bar, pause, add five minutes, stop, a field to start one, a pomodoro's phase and round on its card.",
+      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: the soonest timer's time left as its headline, a card with a bar for each other one, pause, add five minutes, stop, a field to start one, a pomodoro's phase and round on its card.",
       "mocks": {
         "plain": {
           "title": "A timer running",
@@ -282,7 +282,7 @@
           420,
           64,
           840,
-          844
+          860
         ]
       },
       {
@@ -304,7 +304,7 @@
           420,
           64,
           840,
-          754
+          778
         ]
       },
       {
@@ -315,7 +315,7 @@
           382,
           64,
           840,
-          684
+          704
         ]
       },
       {
