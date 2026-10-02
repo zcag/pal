@@ -78,7 +78,7 @@ artist taking the closest duration within 3 s, once per track per run.
 Unsynced lyrics scroll in proportion to the position; a track lrclib
 does not have shows "No lyrics on lrclib" and `f` opens lrclib's search
 for it. The cover's dominant colour (a small sampler over the 300 px
-JPEG, decoded with jpeg-js) paints a band under the art and picks the
+JPEG, decoded with jpeg-js) picks the
 progress bar's colour from the tag palette, so the tint follows the
 theme.
 

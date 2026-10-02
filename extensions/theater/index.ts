@@ -66,7 +66,13 @@ function serviceRow(s: Service, h: Health | { error: string }): Item {
     keywords: [...s.keywords, s.id],
     section: "Services",
     accessories: [down ? { tag: "down", color: "red" } : h.warn ? { tag: "attention", color: "amber" } : { tag: "up", color: "green" }],
-    detail: { metadata: [{ label: "URL", link: { text: conf(s.id).url.replace(/^https?:\/\//, ""), href: conf(s.id).url } }, ...(!down && h.version ? [{ label: "Version", value: h.version }] : []), { label: "Status", value: down ? h.error : h.note || "up" }, ...(drill.length ? [{ label: "In pal", value: drill.map((d) => d.title).join(", ") }] : [])] },
+    detail: {
+      caption: conf(s.id).url.replace(/^https?:\/\//, ""),
+      title: s.title,
+      chips: [down ? { text: "down", color: "red" } : h.warn ? { text: "attention", color: "amber" } : { text: "up", color: "green" }],
+      markdown: down ? h.error : h.note,
+      metadata: [{ label: "URL", link: { text: conf(s.id).url.replace(/^https?:\/\//, ""), href: conf(s.id).url } }, ...(!down && h.version ? [{ label: "Version", value: h.version }] : []), ...(drill.length ? [{ label: "In pal", value: drill.map((d) => d.title).join(", ") }] : [])],
+    },
     // Open and Copy also take marked services (`multi`): each web UI opened, the URLs one per line; a palette is one level.
     actions: [
       { id: "open", title: `Open ${s.title}`, multi: true },
@@ -105,7 +111,7 @@ const move = (kind: string, rows: PopRow[], delta: number) => { if (rows.length)
 
 async function downloadsPop(st: downloads.DownloadsState): Promise<PopState> {
   const rows: PopRow[] = st.items.map((d) => ({ id: `${d.client}:${d.id}`, title: d.name, subtitle: [d.client === "sab" ? "SABnzbd" : "qBittorrent", d.category, d.left ? `${Math.round(d.left / 60)} min left` : ""].filter(Boolean).join(" · "), glyph: d.client === "sab" ? GLYPH.sab : GLYPH.qbit, glyphColor: d.active ? "accent" : "faint", tag: d.state, right: d.active && d.speed ? fmtSpeed(d.speed) : pct(d.progress), progress: d.progress, progressColor: d.paused ? "grey" : "blue", paused: d.paused }));
-  return { kind: "downloads", title: st.items.length ? `${st.items.length} download${st.items.length === 1 ? "" : "s"}` : "Downloads", summary: st.items.length ? `${st.paused ? "Paused" : fmtSpeed(st.speed)} · ${st.items.filter((d) => d.active).length} active${st.limits.length ? ` · limit ${st.limits.join(", ")}` : ""}` : undefined, rows, focus: cursorOf("downloads", rows), allPaused: st.paused, empty: { title: "Nothing downloading", sub: "SABnzbd and qBittorrent are idle" } };
+  return { kind: "downloads", title: st.items.length ? `${st.items.length} download${st.items.length === 1 ? "" : "s"}` : "Downloads", headline: st.items.length ? (st.paused ? "Paused" : fmtSpeed(st.speed)) : undefined, summary: st.items.length ? `${st.items.filter((d) => d.active).length} active${st.limits.length ? ` · limit ${st.limits.join(", ")}` : ""}` : undefined, rows, focus: cursorOf("downloads", rows), allPaused: st.paused, empty: { title: "Nothing downloading", sub: "SABnzbd and qBittorrent are idle" } };
 }
 
 async function renderDownloads(ctx: BarCtx): Promise<BarItem> {
@@ -148,7 +154,7 @@ async function playingPop(list: jellyfin.JfSession[]): Promise<PopState> {
     const img = jellyfin.poster(it, 48);
     return { id: s.Id, title: jellyfin.nameOf(it), subtitle: [s.UserName, s.DeviceName].filter(Boolean).join(" on "), glyph: GLYPH.play, glyphColor: "accent", image: img ? await imageData(img) : undefined, tag: s.PlayState?.IsPaused ? { text: "paused", color: "amber" as const } : { text: "playing", color: "green" as const }, right: pct(pos), progress: pos, progressColor: s.PlayState?.IsPaused ? "grey" as const : "green" as const, paused: !!s.PlayState?.IsPaused };
   }));
-  return { kind: "playing", title: rows.length ? `${rows.length} watching` : "Now Playing", rows, focus: cursorOf("playing", rows), empty: { title: "Nothing playing", sub: "No Jellyfin session is playing anything" } };
+  return { kind: "playing", title: rows.length ? `${rows.length} watching` : "Now Playing", lead: true, rows, focus: cursorOf("playing", rows), empty: { title: "Nothing playing", sub: "No Jellyfin session is playing anything" } };
 }
 
 async function renderPlaying(ctx: BarCtx): Promise<BarItem> {

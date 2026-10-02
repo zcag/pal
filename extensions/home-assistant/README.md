@@ -19,8 +19,11 @@ domain's glyph; a light that is on is a dot in its colour (`rgb_color`,
 else warm white). The filter dropdown scopes it: All entities (the
 `domains` setting), Every domain, then Lights, Switches, Sensors, Binary
 sensors, Climate, Media players, People, Scripts, Automations, Scenes.
-The detail pane (lazy, asked when the cursor rests) shows the entity,
-its state, when it changed and its first attributes.
+The detail pane (lazy, asked when the cursor rests) leads with the
+domain and area, the name and a known state as a chip, and the numbers
+that matter large (a sensor's value, a light's brightness, a
+thermostat's reading and target, a player's volume); the entity id,
+when it changed and the other attributes follow.
 
 **Home Assistant Services** (`services`) is every service from
 `/api/services`, by domain then name, the id (`light.turn_on`) as an

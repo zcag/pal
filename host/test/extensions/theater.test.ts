@@ -128,14 +128,15 @@ describe("theater", () => {
       expect(calls("GET", "/jellyfin/UserItems/Resume")[0]!.path).toContain(`userId=${JF_USER}`);
     });
 
-    test("search: sectioned by type, a played movie tagged; the pane has the overview, runtime, rating, genres and watched state", async () => {
+    test("search: sectioned by type, a played movie tagged; the pane leads with what it is, played as a chip, the rating and runtime as stats, then the overview, genres and when it was watched", async () => {
       const rows = await list("jellyfin-search", "totoro");
       expect(rows).toHaveLength(1);
       expect(rows[0]).toMatchObject({ id: "item:ddd4", section: "Movies", accessories: [{ tag: "played", color: "green" }, { text: "★ 8.1" }] });
       const d = await host.detail("theater", "jellyfin-search", "item:ddd4");
       expect(d.markdown).toContain("![poster](");
       expect(d.markdown).toContain("Two sisters");
-      expect(d.metadata!.map((m) => [m.label, m.value])).toEqual([["Type", "Movie"], ["Year", "1988"], ["Runtime", "1 h 26 min"], ["Rating", "★ 8.1"], ["Genres", "Animation"], ["Watched", "Yes, 15 h ago"], ["Added", "4 mo ago"], ["Jellyfin", undefined]]);
+      expect(d).toMatchObject({ caption: "Movie · 1988", chips: [{ text: "played", color: "green" }], stats: [{ value: "★ 8.1", label: "rating" }, { value: "1 h 26 min", label: "runtime" }] });
+      expect(d.metadata!.map((m) => [m.label, m.value])).toEqual([["Genres", "Animation"], ["Last watched", "15 h ago"], ["Added", "4 mo ago"], ["Jellyfin", undefined]]);
       expect(ids(await list("jellyfin-search", "zzz"))).toEqual(["hint:none"]);
       expect(await pick("jellyfin-search", "hint:none", "request")).toEqual({ push: { extension: "theater", palette: "seerr-request" } });
       expect(ids(await list("jellyfin-search", "t"))).toEqual(["hint:search"]);
@@ -200,7 +201,7 @@ describe("theater", () => {
       expect(ids(rows)).toEqual(["req:11", "req:12"]);
       expect(rows[0]).toMatchObject({ name: "Dune (2021)", subtitle: "Movie requested by guest", section: "Pending", icon: { image: "https://image.tmdb.org/t/p/w92/dune.jpg" }, accessories: [{ tag: "pending", color: "amber" }, { date: "2026-09-15T09:00:00Z" }] });
       expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "approve", "decline", "copy"]);
-      expect(rows[1]).toMatchObject({ name: "Dune: Prophecy (2024)", subtitle: "Series requested by cagdas · 1 season", section: "Earlier", accessories: [{ tag: "4K", color: "violet" }, { tag: "approved", color: "blue" }, { tag: "processing", color: "blue" }, { date: "2026-09-10T09:00:00Z" }] });
+      expect(rows[1]).toMatchObject({ name: "Dune: Prophecy (2024)", subtitle: "Series requested by cagdas · 1 season", section: "Earlier", accessories: [{ tag: "approved", color: "blue" }, { tag: "processing", color: "blue" }, { tag: "4K", color: "violet" }, { date: "2026-09-10T09:00:00Z" }] });
       expect(rows[1].actions!.map((a) => a.id)).toEqual(["open", "copy"]);
       expect(ids(await list("seerr-requests", undefined, { filter: "approved" }))).toEqual(["req:12"]);
       expect(await pick("seerr-requests", "req:11")).toEqual({ open: `${BASE}/seerr/movie/438631` });
@@ -238,10 +239,10 @@ describe("theater", () => {
       const rows = await list("sonarr");
       expect(ids(rows)).toEqual(["cmd:sonarr:add", "cmd:sonarr:wanted", "cmd:sonarr:history", "cmd:sonarr:sync", "cmd:sonarr:open", "health:sonarr:UpdateCheck", "queue:sonarr:902", "cal:sonarr:1469"]);
       expect(rows[5]).toMatchObject({ name: "New update is available", section: "Health", accessories: [{ tag: "warning", color: "amber" }], url: "https://wiki/update" });
-      expect(rows[6]).toMatchObject({ name: "Ted Lasso S4E1 · Home", subtitle: "Ted.Lasso.S04E01.PROPER.1080p.WEB.h264-ETHEL · Episode file already imported at a higher quality", section: "Queue", accessories: [{ tag: "needs a hand", color: "amber" }, { text: "usenet" }, { text: "2.98 GB" }], icon: { image: "https://img/lasso.jpg" } });
+      expect(rows[6]).toMatchObject({ name: "Ted Lasso S4E1 · Home", subtitle: "Ted.Lasso.S04E01.PROPER.1080p.WEB.h264-ETHEL · Episode file already imported at a higher quality", section: "Queue", accessories: [{ tag: "needs a hand", color: "amber" }, { text: "2.98 GB" }, { text: "usenet" }], icon: { image: "https://img/lasso.jpg" } });
       expect(rows[7]).toMatchObject({ name: "Ted Lasso S4E8 · Follow the Anger", subtitle: "Airs Wed 23 Sep on Apple TV", section: "Next 7 days" });
       const radarr = await list("radarr");
-      expect(radarr.find((r) => r.id === "queue:radarr:901")).toMatchObject({ name: "Oppenheimer (2023)", accessories: [{ tag: "downloading", color: "blue" }, { text: "usenet" }, { text: "75%" }, { text: "13 min" }] });
+      expect(radarr.find((r) => r.id === "queue:radarr:901")).toMatchObject({ name: "Oppenheimer (2023)", accessories: [{ tag: "downloading", color: "blue" }, { text: "75%" }, { text: "13 min" }, { text: "usenet" }] });
       expect(ids(await list("lidarr"))).toEqual(["cmd:lidarr:add", "cmd:lidarr:wanted", "cmd:lidarr:history", "cmd:lidarr:open", "hint:idle:lidarr"]);
     });
 
@@ -364,9 +365,9 @@ describe("theater", () => {
       expect(calls("POST", "/prowlarr/api/v1/indexer/3/test")).toHaveLength(1);
     });
 
-    test("search: releases with size, age, indexer tag and seeders or grabs; Enter grabs through Prowlarr, cmd+c copies the magnet or link", async () => {
+    test("search: releases under their indexer with size, age and seeders or grabs; Enter grabs through Prowlarr, cmd+c copies the magnet or link", async () => {
       const rows = await list("prowlarr-search", "ubuntu");
-      expect(rows.map((r) => [r.name, r.section, r.accessories])).toEqual([["ubuntu-24.04-desktop-amd64", "NZBgeek", [{ tag: "NZBgeek", color: "amber" }, { text: "93 grabs" }]], ["Ubuntu 22.04 LTS", "EZTV", [{ tag: "EZTV", color: "blue" }, { text: "37 seeds" }]]]);
+      expect(rows.map((r) => [r.name, r.section, r.accessories])).toEqual([["ubuntu-24.04-desktop-amd64", "NZBgeek", [{ text: "93 grabs" }]], ["Ubuntu 22.04 LTS", "EZTV", [{ text: "37 seeds" }]]]);
       expect(rows[0].subtitle).toBe("5.40 GB · 7 mo · PC");
       expect(await pick("prowlarr-search", rows[0].id, "grab")).toEqual({ hud: "Grabbed ubuntu-24.04-desktop-amd64" });
       expect(calls("POST", "/prowlarr/api/v1/search").at(-1)!.body).toEqual({ guid: "https://nzbgeek.info/geekseek.php?guid=1", indexerId: 1 });
@@ -380,7 +381,7 @@ describe("theater", () => {
 
     test("NZBHydra2: the newznab items; Enter sends the NZB to SABnzbd", async () => {
       const rows = await list("hydra-search", "ubuntu");
-      expect(rows[0]).toMatchObject({ id: "nzb:-1572", name: "ubuntu-20.04.3-desktop-amd64", subtitle: "2.29 GB · 4 y ago · PC", section: "NZBGeek", accessories: [{ tag: "NZBGeek", color: "amber" }, { text: "206 grabs" }] });
+      expect(rows[0]).toMatchObject({ id: "nzb:-1572", name: "ubuntu-20.04.3-desktop-amd64", subtitle: "2.29 GB · 4 y ago · PC", section: "NZBGeek", accessories: [{ text: "206 grabs" }] });
       expect(rows[0].actions!.map((a) => a.id)).toEqual(["send", "page", "copy"]);
       expect(await pick("hydra-search", "nzb:-1572", "send")).toEqual({ hud: "Sent ubuntu-20.04.3-desktop-amd64 to SABnzbd" });
       expect(calls("GET", "/sab/api").at(-1)!.path).toContain("mode=addurl");
@@ -463,7 +464,8 @@ describe("theater", () => {
       const v = viewOf(item);
       expect(checkView(v, "test")).toBe(v);
       expect(v.title).toBe("4 downloads");
-      expect(texts(v.tree)[0]).toBe("5.6 MB/s · 2 active");
+      expect(texts(v.tree).slice(0, 2)).toEqual(["5.6 MB/s", "2 active"]);
+      expect(nodes(v.tree, "text").find((n: any) => n.key === "headline")).toMatchObject({ style: "headline", value: "5.6 MB/s" });
       expect(nodes(v.tree, "progress")).toHaveLength(4);
       expect(v.actions.map((a) => a.id).slice(0, 5)).toEqual(["open", "toggle-all", "toggle", "delete", "open-pal"]);
       expect(nodes(v.tree, "stack").find((n) => n.selected)?.key).toBe("sab:SABnzbd_nzo_1");
@@ -486,7 +488,8 @@ describe("theater", () => {
       expect(item).toMatchObject({ title: "cagdas", tooltip: "cagdas · Chapter Four: Commit ... to YOU on Living room TV", states: { watching: 1 } });
       const v = viewOf(item);
       expect(checkView(v, "test")).toBe(v);
-      expect(texts(v.tree)).toContain("Barry S1E4 · Chapter Four: Commit ... to YOU");
+      // What plays leads: the first session's title is the headline.
+      expect(nodes(v.tree, "text").find((n: any) => n.value === "Barry S1E4 · Chapter Four: Commit ... to YOU")).toMatchObject({ style: "headline" });
       expect(nodes(v.tree, "image")).toHaveLength(1);
       // Pausing is one device at a time: no marks here.
       expect(marksOf(v.tree)).toEqual([]);

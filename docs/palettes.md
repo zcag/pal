@@ -4086,14 +4086,13 @@ remove a queued track, so Enter skips to the row (one Next per row).
 The **Spotify** rows are root results (`pause`, `next`, `like`, `Play
 Focus`); the playing track is also a Now row at the empty root.
 
-**The lyrics view** (`spotify-now-playing`): the cover, the track, a
+**The lyrics view** (`spotify-now-playing`): the cover, the track as the headline, a
 ticking progress bar, badges (paused, shuffle, repeat, liked, the device
 and its volume) and lrclib.net's synced lyrics around the line playing,
 the line bright at the largest size, the three before muted, the three
 after faint, sliding up as the song goes; unsynced lyrics scroll with
 the position; "No lyrics on lrclib" with `f` to search there. The
-cover's dominant colour is a band under the art and the progress bar's
-colour. Keys: `space` play or pause, `left`/`right` seek 10 s,
+cover's dominant colour is the progress bar's colour. Keys: `space` play or pause, `left`/`right` seek 10 s,
 `up`/`down` volume, `l` like, `s` shuffle, `r` repeat, `q` queue, `d`
 devices, `⌘→`/`⌘←` skip, `⌘C` copy the line, `⌘O`
 open in Spotify. Every key answers with the next tree at once from a

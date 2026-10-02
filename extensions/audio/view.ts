@@ -27,7 +27,7 @@ const GLYPH = { output: "\u{f04c3}", headphones: "\u{f02cb}", hdmi: "\u{f04c3}",
 const PAD = 8, GLYPH_W = 22, LEVEL_W = 38, SWITCH_W = 34, SLIDER_W = 120;
 const ROW_W = POPOVER_W - 2 * PAD;
 const NAME_W = ROW_W - GLYPH_W - LEVEL_W - SWITCH_W - 3 * PAD;
-const LEAD_NAME_W = ROW_W - GLYPH_W - 2 * PAD;
+const LEAD_NAME_W = ROW_W - GLYPH_W - 6 - 2 * PAD;
 /** Volume presets on the digits, the same five the palette offers. */
 export const PRESETS = [0, 25, 50, 75, 100];
 
@@ -37,14 +37,11 @@ export const deviceGlyph = (d: AudioDevice): string => {
   return d.transport === "bluetooth" ? GLYPH.headphones : GLYPH.output;
 };
 
-/** "Bluetooth · muted · 40%": what the device is, over its name. Only the parts it can answer. */
-const subtitle = (d: AudioDevice): string => {
-  const parts = [d.transport, d.muted === true ? "muted" : undefined, d.volume === null ? undefined : `${d.volume}%`];
-  return parts.filter((x): x is string => !!x).join(" · ") || (d.kind === "output" ? "Output" : "Input");
-};
+/** What the device is, under its name: its transport ("bluetooth"); the level and the mute are the card's next line. */
+const subtitle = (d: AudioDevice): string => d.transport || (d.kind === "output" ? "Output" : "Input");
 
 /**
- * The device in use, as a card: the glyph and the name, then the level on
+ * The device in use, as a card: the glyph and the name (the headline), then the level on
  * its own line — a slider a click sets anywhere along it, the number, and
  * the mute switch. A device the backend gives no level for (an HDMI sink,
  * some USB interfaces) gets no slider rather than a dead one at zero.
@@ -54,9 +51,9 @@ function lead(d: AudioDevice): ViewNode {
   const muted = d.muted === true;
   const kids: ViewNode[] = [
     row([
-      text(deviceGlyph(d), { key: "g", style: "glyph", size: "lg", width: GLYPH_W }),
+      text(deviceGlyph(d), { key: "g", style: "glyph", size: "xl", width: GLYPH_W + 6 }),
       column([
-        text(d.name, { key: "n", style: "title", size: "sm", width: LEAD_NAME_W }),
+        text(d.name, { key: "n", style: "headline", width: LEAD_NAME_W }),
         text(subtitle(d), { key: "s", style: "muted", size: "xs", width: LEAD_NAME_W }),
       ], { key: "name", gap: 0 }),
     ], { key: "who", gap: 1, align: "center", minHeight: 30 }),

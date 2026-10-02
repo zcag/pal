@@ -7,7 +7,7 @@ import { encode } from "../../../extensions/spotify/node_modules/jpeg-js/index.j
 import { checkView } from "../../../sdk/src/view.ts";
 import { authorizeUrl, challenge, redirectUri, verifier } from "../../../extensions/spotify/auth.ts";
 import { positionOf, toPlayer, toTrack } from "../../../extensions/spotify/api.ts";
-import { dominant, nearestTag, tintOf, withAlpha } from "../../../extensions/spotify/color.ts";
+import { dominant, nearestTag, tintOf } from "../../../extensions/spotify/color.ts";
 import { currentLine, lineAt, parseLrc } from "../../../extensions/spotify/lyrics.ts";
 import { actions, clock, render, window as lyricWindow, type NowState } from "../../../extensions/spotify/view.ts";
 
@@ -88,7 +88,6 @@ describe("colour", () => {
     const grey = new Uint8Array(16 * 4).fill(128);
     expect(nearestTag(dominant(grey, 4)!)).toBe("grey");
     expect(dominant(new Uint8Array(0), 4)).toBeUndefined();
-    expect(withAlpha("#e67814", 0.5)).toBe("#e6781480");
   });
   test("a JPEG is decoded and sampled; bytes that are no JPEG give nothing", () => {
     const w = 16, h = 16, data = new Uint8Array(w * h * 4);
@@ -120,12 +119,13 @@ describe("view", () => {
     expect(clock(3725)).toBe("1:02:05");
   });
 
-  test("wide: the cover, the glow in the tint, the title column, the progress in the tag colour, the badges, seven lyric lines with the current one xl and keyed with move", () => {
+  test("wide: the cover, the title column led by the headline, the progress in the tag colour, the badges, seven lyric lines with the current one xl and keyed with move", () => {
     const v = checkView(render(base));
     expect(v.title).toBe("Weird Fishes · Radiohead");
     expect(v.keys).toBe("actions");
-    expect(find(v.tree, (n) => n.type === "image")).toMatchObject({ src: "data:image/jpeg;base64,AAAA", width: 208, height: 208, mask: "rounded" });
-    expect(find(v.tree, (n) => n.type === "gradient")).toMatchObject({ layers: [{ stops: ["#e678145c", "#e6781400"], direction: "down" }] });
+    expect(find(v.tree, (n) => n.type === "image")).toMatchObject({ src: "data:image/jpeg;base64,AAAA", width: 200, height: 200, mask: "rounded" });
+    expect(find(v.tree, (n) => n.key === "t-t1")).toMatchObject({ style: "headline", value: "Weird Fishes" });
+    expect(find(v.tree, (n) => n.type === "gradient")).toBeUndefined();
     expect(find(v.tree, (n) => n.type === "progress")).toMatchObject({ value: 70 / 318, color: "amber" });
     const badges = find(v.tree, (n) => n.key === "badges").children.map((b: any) => b.text);
     expect(badges).toEqual(["shuffle", "repeat", "liked", "hornet 40%"]);
@@ -149,7 +149,7 @@ describe("view", () => {
     expect(after).toEqual(["l0", "l1", "l2", "l3", "l4", "l5", "post6"]);
   });
 
-  test("compact: the cover in the header row with the titles cut to the width, no glow band, four lines (one before, two after) with the current one taller, the transport and the state rows with their keycaps; no lyrics is a line and the lrclib action; unsynced lyrics scroll with the position; an intro shows the note", () => {
+  test("compact: the cover in the header row with the titles cut to the width, the name as the headline, four lines (one before, two after) with the current one taller, the transport and the state rows with their keycaps; no lyrics is a line and the lrclib action; unsynced lyrics scroll with the position; an intro shows the note", () => {
     const c = checkView(render({ ...base, layout: "compact" }));
     expect(find(c.tree, (n) => n.type === "image")).toMatchObject({ width: 64, height: 64 });
     expect(find(c.tree, (n) => n.type === "gradient")).toBeUndefined();

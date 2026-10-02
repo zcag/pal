@@ -20,7 +20,7 @@ import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, mirekOf, toHex, xyToHs } from "./c
 import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Light, type Room, type Scene } from "./model.ts";
 import { freshPopover, gridRooms, moveCursor, renderPopover, type PopoverData, type PopoverState } from "./popover.ts";
 import { DURATIONS, EFFECTS, FOCUS, PRESETS, fresh, render, renderSetup, shown, type SetupState, type Target, type ViewState } from "./render.ts";
-import { BRIGHTNESS_ARG, G, KELVIN_ARG, NAME, SET, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
+import { BRIGHTNESS_ARG, G, KELVIN_ARG, NAME, SET, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomDetail, roomRow, sceneRow, sensorRows } from "./rows.ts";
 
 /** `[extensions.hue]`, defaults in pal.json. */
 type Settings = { bridge: string; application_key: string; insecure: boolean; timeout: number; transition: number };
@@ -770,7 +770,7 @@ export default {
       placeholder: "Search rooms and zones",
       list: (_q, ctx) => rows(() => roomsOf(home).map((r) => roomRow(r, several(), bridgeName(r.bridge))), ctx),
       pick: (id, action, ctx) => pickRoom(id, action, ctx),
-      detail: (id) => { const r = findRoom(id); if (!r) return; const a = aggregate(r); return { metadata: [{ label: r.kind === "zone" ? "Zone" : "Room", value: r.name }, { label: "Lights", value: r.lights.map((l) => `${l.name}${l.on ? " (on)" : ""}`).join(", ") || "None" }, { label: "State", value: a.on ? `${a.on} of ${a.total} on${a.brightness !== undefined ? `, ${Math.round(a.brightness)}%` : ""}` : "Off" }, { label: "Id", value: r.id }] }; },
+      detail: (id) => { const r = findRoom(id); return r ? roomDetail(r) : undefined; },
     },
     lights: {
       title: "Hue Lights",

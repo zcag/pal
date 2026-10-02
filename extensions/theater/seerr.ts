@@ -56,13 +56,20 @@ export async function requestRow(r: SeerrRequest, section?: string): Promise<Ite
     icon: t.posterPath ? { image: POSTER(t.posterPath) } : GLYPH.seerr,
     keywords: [r.requestedBy.displayName, r.type, st?.text ?? ""].filter(Boolean),
     ...(section && { section }),
+    // The request's state and, once approved, the media's lead; 4K and the date come after, for a design that shows more.
     accessories: [
-      ...(r.is4k ? [{ tag: "4K", color: "violet" }] : []),
       ...(st ? [{ tag: st.text, color: st.color }] : []),
       ...(ms && r.status === 2 ? [{ tag: ms.text, color: ms.color }] : []),
+      ...(r.is4k ? [{ tag: "4K", color: "violet" }] : []),
       { date: r.createdAt },
     ],
-    detail: { markdown: [t.posterPath ? `![poster](${POSTER(t.posterPath, 342)})` : "", t.overview ?? ""].filter(Boolean).join("\n\n"), metadata: [{ label: "Requested by", value: r.requestedBy.displayName }, { label: "When", value: ago(r.createdAt) }, { label: "Status", tags: [...(st ? [{ text: st.text, color: st.color }] : []), ...(ms ? [{ text: ms.text, color: ms.color }] : [])] }, { label: "Jellyseerr", link: { text: "Open", href: mediaUrl(r.type, r.media.tmdbId) } }] },
+    detail: {
+      caption: `${r.type === "tv" ? "Series" : "Movie"} requested by ${r.requestedBy.displayName}, ${ago(r.createdAt)}`,
+      title: t.year ? `${t.title} (${t.year})` : t.title,
+      chips: [...(r.is4k ? [{ text: "4K", color: "violet" as const }] : []), ...(st ? [{ text: st.text, color: st.color }] : []), ...(ms ? [{ text: ms.text, color: ms.color }] : [])],
+      markdown: [t.posterPath ? `![poster](${POSTER(t.posterPath, 342)})` : "", t.overview ?? ""].filter(Boolean).join("\n\n"),
+      metadata: [...(r.seasons?.length ? [{ label: "Seasons", value: String(r.seasons.length) }] : []), { label: "Jellyseerr", link: { text: "Open", href: mediaUrl(r.type, r.media.tmdbId) } }],
+    },
     actions: REQ_ACTIONS(r),
   };
 }
@@ -95,7 +102,14 @@ export function resultRow(r: SeerrResult, fourK: boolean): Item {
     keywords: [r.mediaType === "tv" ? "series" : "movie"],
     section: r.mediaType === "tv" ? "Series" : "Movies",
     accessories: [...(ms ? [{ tag: ms.text, color: ms.color }] : []), ...(r.voteAverage ? [{ text: `★ ${r.voteAverage.toFixed(1)}` }] : [])],
-    detail: { markdown: [r.posterPath ? `![poster](${POSTER(r.posterPath, 342)})` : "", r.overview ?? "_No overview._"].filter(Boolean).join("\n\n"), metadata: [{ label: "Type", value: r.mediaType === "tv" ? "Series" : "Movie" }, ...(year ? [{ label: "Year", value: year }] : []), ...(ms ? [{ label: "Status", tags: [{ text: ms.text, color: ms.color }] }] : []), { label: "TMDB", link: { text: String(r.id), href: `https://www.themoviedb.org/${r.mediaType}/${r.id}` } }] },
+    detail: {
+      caption: [r.mediaType === "tv" ? "Series" : "Movie", year].filter(Boolean).join(" · "),
+      title,
+      chips: ms ? [{ text: ms.text, color: ms.color }] : [],
+      stats: r.voteAverage ? [{ value: `★ ${r.voteAverage.toFixed(1)}`, label: "rating" }] : [],
+      markdown: [r.posterPath ? `![poster](${POSTER(r.posterPath, 342)})` : "", r.overview ?? "_No overview._"].filter(Boolean).join("\n\n"),
+      metadata: [{ label: "TMDB", link: { text: String(r.id), href: `https://www.themoviedb.org/${r.mediaType}/${r.id}` } }],
+    },
     // Every action also takes marked results (`multi`): each requested (the questions name none), each opened, the links one per line.
     actions: [
       ...(already ? [{ id: "open", title: "Open in Jellyseerr", multi: true } as Action, { id: "request", title: "Request again", multi: true, confirm: "Request again on Jellyseerr?" } as Action] : [{ id: "request", title: "Request", multi: true, confirm: "Request on Jellyseerr?" } as Action]),

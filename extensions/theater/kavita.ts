@@ -33,7 +33,14 @@ export async function seriesRow(s: Series, section: string): Promise<Item> {
     keywords: [s.libraryName ?? "", FORMAT[s.format ?? 2] ?? ""].filter(Boolean),
     section,
     accessories: [...(p > 0 && p < 1 ? [{ text: `${Math.round(p * 100)}%` }] : p >= 1 ? [{ tag: "read", color: "green" }] : []), ...(s.latestReadDate && !s.latestReadDate.startsWith("0001") ? [{ date: s.latestReadDate }] : s.created ? [{ date: s.created }] : [])],
-    detail: { markdown: img ? `![cover](${img})` : undefined, metadata: [...(s.libraryName ? [{ label: "Library", value: s.libraryName }] : []), { label: "Format", value: FORMAT[s.format ?? 2] ?? "" }, { label: "Pages", value: read ? `${read} of ${s.pages} read` : String(s.pages) }, ...(s.wordCount ? [{ label: "Words", value: s.wordCount.toLocaleString("en") }] : []), ...(s.created ? [{ label: "Added", value: ago(s.created) }] : [])] },
+    detail: {
+      caption: [s.libraryName, FORMAT[s.format ?? 2]].filter(Boolean).join(" · "),
+      title: s.name,
+      chips: p >= 1 ? [{ text: "read", color: "green" as const }] : [],
+      stats: [{ value: read && p < 1 ? `${read}/${s.pages}` : String(s.pages), label: read && p < 1 ? "pages read" : "pages" }, ...(s.avgHoursToRead ? [{ value: `~${Math.round(s.avgHoursToRead)} h`, label: "to read" }] : [])],
+      markdown: img ? `![cover](${img})` : undefined,
+      metadata: [...(s.wordCount ? [{ label: "Words", value: s.wordCount.toLocaleString("en") }] : []), ...(s.created ? [{ label: "Added", value: ago(s.created) }] : [])],
+    },
     // Both also take marked series (`multi`): each opened, the links one per line.
     actions: [{ id: "open", title: "Open in Kavita", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }],
   };

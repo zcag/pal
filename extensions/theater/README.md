@@ -112,7 +112,9 @@ a refused key.
 - **The bar popovers are one render** (`view.ts`): rows with a glyph or
   a poster, a tag, a figure and a progress bar, a cursor the arrows move,
   the keys per item (space, a, d, backspace, p). Every destructive key
-  asks first.
+  asks first. What matters most leads as the headline: the total speed
+  over the downloads, the first session's title (its poster larger) over
+  what plays.
 - **Nothing is hardcoded**: no host, key or password in the code;
   `http://marko:8096` and the like appear only as placeholders in the
   settings.

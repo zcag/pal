@@ -37,8 +37,15 @@ export async function itemRow(it: LibraryItem, section: string, progress?: Progr
     icon: img ? { image: img } : GLYPH.abs,
     keywords: [m.authorName ?? "", m.narratorName ?? "", m.seriesName ?? "", it.mediaType].filter(Boolean),
     section,
-    accessories: [...(it.mediaType === "podcast" ? [{ tag: "podcast", color: "teal" }] : []), ...(p ? [{ text: `${Math.round(p * 100)}%` }] : []), ...(progress?.isFinished ? [{ tag: "finished", color: "green" }] : []), { date: progress?.lastUpdate ?? it.addedAt }],
-    detail: { markdown: [img ? `![cover](${await cover(it.id, 300)})` : "", m.description ?? ""].filter(Boolean).join("\n\n"), metadata: [...(m.authorName ? [{ label: "Author", value: m.authorName }] : []), ...(m.narratorName ? [{ label: "Narrator", value: m.narratorName }] : []), ...(m.publishedYear ? [{ label: "Year", value: m.publishedYear }] : []), ...(it.media.duration ? [{ label: "Length", value: hours(it.media.duration) }] : []), ...(progress ? [{ label: "Progress", value: progress.isFinished ? "Finished" : `${Math.round(progress.progress * 100)}%, ${ago(progress.lastUpdate)}` }] : []), { label: "Added", value: ago(it.addedAt) }] },
+    accessories: [...(p ? [{ text: `${Math.round(p * 100)}%` }] : []), ...(progress?.isFinished ? [{ tag: "finished", color: "green" }] : []), { date: progress?.lastUpdate ?? it.addedAt }],
+    detail: {
+      caption: [m.authorName ?? m.author, m.seriesName].filter(Boolean).join(" · ") || (it.mediaType === "podcast" ? "Podcast" : "Book"),
+      title: m.title ?? "Untitled",
+      chips: [...(it.mediaType === "podcast" ? [{ text: "podcast", color: "teal" as const }] : []), ...(progress?.isFinished ? [{ text: "finished", color: "green" as const }] : [])],
+      stats: [...(p ? [{ value: `${Math.round(p * 100)}%`, label: "listened" }] : []), ...(it.media.duration ? [{ value: hours(it.media.duration), label: "length" }] : [])],
+      markdown: [img ? `![cover](${await cover(it.id, 300)})` : "", m.description ?? ""].filter(Boolean).join("\n\n"),
+      metadata: [...(m.narratorName ? [{ label: "Narrator", value: m.narratorName }] : []), ...(m.publishedYear ? [{ label: "Year", value: m.publishedYear }] : []), ...(progress && !progress.isFinished ? [{ label: "Last listened", value: ago(progress.lastUpdate) }] : []), { label: "Added", value: ago(it.addedAt) }],
+    },
     // Every action also takes marked items (`multi`): each opened or marked finished (the question names none), the links one per line.
     actions: [{ id: "open", title: "Open in Audiobookshelf", multi: true }, ...(progress && !progress.isFinished ? [{ id: "finish", title: "Mark finished", shortcut: "cmd+shift+p", multi: true as const, confirm: "Mark finished?" }] : []), { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }],
   };

@@ -4,8 +4,8 @@
 // as forms, areas as drill-ins. Everything is the REST
 // API in ha.ts with the settings' URL, token and timeout; a request that
 // fails is one hint row with the fix, never an error.
-import { argsForm, errorMessage, hint, settings, toast, when, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
-import { actions, asText, attributeRows, Client, climateArgs, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, LEVEL_ARGS, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
+import { argsForm, errorMessage, hint, settings, toast, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { actions, asText, attributeRows, Client, climateArgs, coerce, domainOf, entityDetail, flatFields, HaError, HOUSE, haUrl, LEVEL_ARGS, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
 
 const EXTENSION = "home-assistant";
 /** `ctx.args` of the entities palette's drill-ins. */
@@ -193,17 +193,9 @@ export default {
       },
       detail: async (id, ctx): Promise<Detail | void> => {
         if ((ctx?.args as Args | undefined)?.attributes || id === "hint:setup") return;
-        let s: State;
-        try { s = await client().state(id); } catch { return; }
-        const shown = Object.entries(s.attributes).filter(([k]) => k !== "friendly_name").slice(0, 12);
-        return {
-          metadata: [
-            { label: "Entity", value: s.entity_id },
-            { label: "State", value: stateText(s) },
-            { label: "Changed", value: when(s.last_changed) },
-            ...shown.map(([k, v]) => ({ label: titleCase(k), value: asText(v).slice(0, 80) })),
-          ],
-        };
+        let c: Client, s: State;
+        try { c = client(); s = await c.state(id); } catch { return; }
+        return entityDetail(s, (await areas(c))[id]);
       },
     },
     services: {

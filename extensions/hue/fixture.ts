@@ -10,7 +10,7 @@ import { Home, lightsOf, roomsOf, scenesOf, sensorsOf } from "./model.ts";
 import { freshPopover, renderPopover, type PopoverData } from "./popover.ts";
 import { fresh, render, renderSetup } from "./render.ts";
 import manifest from "./pal.json" with { type: "json" };
-import { G, automationRow, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
+import { G, automationRow, lightRow, roomDetail, roomRow, sceneRow, sensorRows } from "./rows.ts";
 
 /** The extension's own tile, the logo its manifest carries. */
 const ICON = manifest.icon;
@@ -42,7 +42,7 @@ const setupView = renderSetup({ phase: "press", ip: "192.168.1.25", name: "Hue B
 
 const fixture = {
   palettes: {
-    rooms: { title: "Hue Rooms", icon: ICON, live: true, placeholder: "Search rooms and zones", items: roomItems, details: { "room:living-room": { metadata: [{ label: "Room", value: "Living room" }, { label: "Lights", value: "Ceiling (on), Sofa lamp (on), TV strip (on)" }, { label: "State", value: "3 of 3 on, 72%" }, { label: "Id", value: "room:living-room" }] } } },
+    rooms: { title: "Hue Rooms", icon: ICON, live: true, placeholder: "Search rooms and zones", items: roomItems, details: { "room:living-room": roomDetail(living) } },
     lights: { title: "Hue Lights", icon: ICON, live: true, placeholder: "Search lights", items: lightItems },
     scenes: { title: "Hue Scenes", icon: ICON, live: true, placeholder: "Search scenes", items: sceneItems },
     sensors: { title: "Hue Sensors", icon: ICON, live: true, placeholder: "Search sensors and switches", items: sensorItems },

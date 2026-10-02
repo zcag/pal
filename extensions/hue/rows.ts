@@ -3,7 +3,7 @@
 // five-swatch strip), sensors, automations, entertainment areas, and the
 // hint rows for a home with nothing paired or a bridge away. Pure: the
 // fixture renders the same rows.
-import { errorMessage, hint as hintRow, tinted, type Accessory, type Action, type Arg, type Item } from "@zcag/pal";
+import { errorMessage, hint as hintRow, tinted, type Accessory, type Action, type Arg, type Detail, type Item } from "@zcag/pal";
 import { toHex, dim, lux as _lux } from "./color.ts";
 import { HueError } from "./api.ts";
 import { aggregate, lightColor, lightHex, pct, type Automation, type Entertainment, type Light, type Room, type Scene, type Sensor } from "./model.ts";
@@ -92,7 +92,7 @@ export function roomRow(r: Room, several: boolean, bridgeName: string): Item {
   const state = a.on === 0 ? "all off" : a.on === a.total ? (a.total === 1 ? "on" : `all ${a.total} on`) : `${a.on} of ${a.total} on`;
   return {
     id: r.id, name: r.name,
-    subtitle: withBridge(`${r.kind === "zone" ? "Zone" : "Room"} · ${state}${a.on && bri !== undefined ? ` · ${bri}%` : ""}`, bridgeName, several),
+    subtitle: withBridge(`${r.kind === "zone" ? "Zone" : "Room"} · ${state}`, bridgeName, several),
     icon: { image: roomTile(a.anyOn ? a.colors : [], (bri ?? 100) / 100) },
     keywords: [r.kind, r.id.slice(r.id.indexOf(":") + 1), ...r.lights.map((l) => l.name)],
     accessories: [...(a.anyOn && bri !== undefined ? [{ text: `${bri}%` }] : []), onTag(a.anyOn)],
@@ -190,20 +190,48 @@ export const hint = (e: unknown): Item[] => [hintRow("error", e instanceof HueEr
 /** The row a home with no bridge lists: Enter opens the setup. */
 export const SETUP_ROW: Item = { id: "setup", name: "Set up Hue", subtitle: "Find the bridge, press its button, done", icon: G.router, keywords: ["pair", "bridge"], actions: [{ id: "setup", title: "Set up Hue", shortcut: "enter" }] };
 
-/** The detail pane of a light. */
-export function lightDetail(l: Light) {
+/** The detail pane of a light: its room over its name, on or off (and unreachable, an effect) as chips, the brightness and the temperature large; the colour, the effects it has, its type and id under them. */
+export function lightDetail(l: Light): Detail {
   const c = lightColor(l);
+  const bri = pct(l.brightness);
   return {
+    caption: l.room?.name ?? "No room",
+    title: l.name,
+    chips: [
+      l.on ? { text: "on", color: "green" } : { text: "off", color: "grey" },
+      ...(l.reach === "disconnected" || l.reach === "connectivity_issue" ? [{ text: "unreachable", color: "red" as const }] : []),
+      ...(l.effect ? [{ text: l.effect, color: "violet" as const }] : []),
+    ],
+    stats: [
+      ...(l.on && bri !== undefined ? [{ value: `${bri}%`, label: "brightness" }] : []),
+      ...(l.mirek ? [{ value: `${Math.round(1_000_000 / l.mirek)} K`, label: "temperature" }] : []),
+    ],
     metadata: [
-      { label: "Light", value: l.name },
-      { label: "Room", value: l.room?.name ?? "None" },
-      { label: "State", value: l.on ? `On${l.brightness !== undefined ? `, ${pct(l.brightness)}%` : ""}` : "Off" },
       ...(l.mirek ? [{ label: "Temperature", value: `${Math.round(1_000_000 / l.mirek)} K (${l.mirek} mirek)` }] : []),
       ...(l.xy ? [{ label: "Colour", value: `${toHex(c)} (xy ${l.xy.x.toFixed(4)}, ${l.xy.y.toFixed(4)}${l.gamutType ? `, gamut ${l.gamutType}` : ""})` }] : []),
       ...(l.effects.length ? [{ label: "Effects", value: l.effects.join(", ") }] : []),
-      { label: "Reachable", value: l.reach === "unknown" ? "Unknown" : l.reach.replace(/_/g, " ") },
+      ...(l.reach === "unknown" ? [{ label: "Reachable", value: "Unknown" }] : []),
       { label: "Type", value: archetypeName(l.archetype) },
       { label: "Id", value: l.id },
+    ],
+  };
+}
+
+/** The detail pane of a room or zone: what it is over its name, how many are on as a chip, the brightness and the lit count large; its lights and id under them. */
+export function roomDetail(r: Room): Detail {
+  const a = aggregate(r);
+  const bri = pct(a.brightness);
+  return {
+    caption: r.kind === "zone" ? "Zone" : "Room",
+    title: r.name,
+    chips: [a.anyOn ? { text: a.on === a.total ? "all on" : "on", color: "green" } : { text: "off", color: "grey" }],
+    stats: [
+      { value: `${a.on}/${a.total}`, label: "lights on" },
+      ...(a.anyOn && bri !== undefined ? [{ value: `${bri}%`, label: "brightness" }] : []),
+    ],
+    metadata: [
+      { label: "Lights", value: r.lights.map((l) => `${l.name}${l.on ? " (on)" : ""}`).join(", ") || "None" },
+      { label: "Id", value: r.id },
     ],
   };
 }

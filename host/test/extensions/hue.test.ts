@@ -160,7 +160,7 @@ describe("the model over the sample home", () => {
   test("rows: the room's tile, the light's swatch and section, the scene's strip; every action listed has a title", () => {
     const rooms = roomsOf(home), lights = lightsOf(home), scenes = scenesOf(home);
     const living = roomRow(rooms.find((r) => r.id === "room:living-room")!, false, "Hue");
-    expect(living).toMatchObject({ name: "Living room", subtitle: "Room · all 3 on · 72%", accessories: [{ text: "72%" }, { tag: "on", color: "green" }] });
+    expect(living).toMatchObject({ name: "Living room", subtitle: "Room · all 3 on", accessories: [{ text: "72%" }, { tag: "on", color: "green" }] });
     expect((living.icon as { image: string }).image).toMatch(/^data:image\/svg\+xml/);
     const two = roomRow(rooms.find((r) => r.id === "room:living-room")!, true, "Upstairs");
     expect(two.subtitle).toContain("· Upstairs");
@@ -331,7 +331,7 @@ describe("over the wire against the mock bridge", () => {
     const items = await list("rooms");
     expect(items.map((i) => i.id)).toEqual(["room:bedroom", "room:hallway", "room:living-room", "zone:evening"]);
     const living = items.find((i) => i.id === "room:living-room")!;
-    expect(living).toMatchObject({ name: "Living room", subtitle: "Room · all 3 on · 72%", accessories: [{ text: "72%" }, { tag: "on", color: "green" }] });
+    expect(living).toMatchObject({ name: "Living room", subtitle: "Room · all 3 on", accessories: [{ text: "72%" }, { tag: "on", color: "green" }] });
     expect(living.actions!.map((a) => a.shortcut)).toContain("cmd+enter");
     const r = await host.pick(E, "rooms", "room:living-room", "toggle");
     expect(r).toMatchObject({ keep: true, hud: "Living room: off" });
@@ -352,7 +352,8 @@ describe("over the wire against the mock bridge", () => {
     expect(await host.pick(E, "rooms", "room:living-room", "scenes")).toEqual({ push: { extension: E, palette: "scenes", args: { scenes: "room:living-room" } } });
     expect(await host.pick(E, "rooms", "room:living-room", "copy_id")).toEqual({ copy: "room:living-room" });
     const d = await host.detail(E, "rooms", "room:living-room");
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Room", "Lights", "State", "Id"]);
+    expect(d).toMatchObject({ caption: "Room", title: "Living room", chips: [{ text: "all on", color: "green" }], stats: [{ value: "3/3", label: "lights on" }, { value: "72%", label: "brightness" }] });
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Lights", "Id"]);
     // Set takes the bar's brightness (and a temperature when a light in the room tunes white): one PUT on the grouped light; the primary Toggle runs bare.
     expect(living.args!.map((a) => a.id)).toEqual(["brightness", "kelvin"]);
     expect(living.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["set"]);
@@ -390,6 +391,7 @@ describe("over the wire against the mock bridge", () => {
     // Back to the sample's state (72 %, 2732 K) for the detail below.
     expect(await putting(() => host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "72", kelvin: "2732" } }))).toEqual({ keep: true, hud: "Sofa lamp: 72%, 2732 K" });
     const d = await host.detail(E, "lights", "light:sofa-lamp");
+    expect(d).toMatchObject({ caption: "Living room", title: "Sofa lamp", chips: [{ text: "on", color: "green" }], stats: [{ value: "72%", label: "brightness" }, { value: "2732 K", label: "temperature" }] });
     expect(d.metadata!.find((m) => m.label === "Temperature")!.value).toBe("2732 K (366 mirek)");
     expect(d.metadata!.find((m) => m.label === "Effects")!.value).toBe("candle, fire, sparkle");    // Marked lights: every switch, blink and copy goes over them all; opening and a typed level stay one light's.
     expect(items.find((i) => i.id === "light:sofa-lamp")!.actions!.filter((a) => !a.multi).map((a) => a.id)).toEqual(["open", "set"]);

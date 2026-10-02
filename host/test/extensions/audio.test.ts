@@ -87,7 +87,7 @@ describe("audio", () => {
     const t = texts(v);
     // The card: the device in use, what it is, its level.
     expect(t).toContain("MacBook Pro Speakers");
-    expect(t).toContain("builtin · 56%");
+    expect(t).toContain("builtin");
     expect(t).toContain("56%");
     // The rows: the outputs you could switch to, not the one you are on.
     expect(t).toContain("HK Aura Studio 4");
@@ -122,7 +122,8 @@ describe("audio", () => {
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
     const v = viewOf(await host.render("audio", "microphone"));
     expect(v).toMatchObject({ id: "microphone", title: "Input: MacBook Pro Microphone" });
-    expect(texts(v)).toContain("builtin · muted · 57%");
+    expect(texts(v)).toContain("builtin");
+    expect(texts(v)).toContain("muted");
     // Muted: the slider reads empty and the switch is off, whatever the level underneath.
     expect(walk(v.tree).find((n) => n.type === "slider")).toMatchObject({ value: 0, color: "grey" });
     expect(walk(v.tree).find((n) => n.type === "switch")).toMatchObject({ on: false });

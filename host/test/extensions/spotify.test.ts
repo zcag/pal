@@ -517,13 +517,12 @@ describe("spotify, signed in", () => {
   });
 
   describe("the lyrics view", () => {
-    test("opens on the track with its cover as a data url, the tint from the art, the synced lyrics from lrclib around the line at the position, the like state", async () => {
+    test("opens on the track with its cover as a data url, the tint from the art (the progress bar), the synced lyrics from lrclib around the line at the position, the like state", async () => {
       const v = await host.request<any>("view", { extension: "spotify", palette: "now-playing" });
       expect(v.title).toBe("Weird Fishes/ Arpeggi · Radiohead");
       const image = find(v.tree, (n: any) => n.type === "image");
       expect(image.src).toMatch(/^data:image\/jpeg;base64,/);
       expect(find(v.tree, (n: any) => n.type === "progress").color).toBe("amber");
-      expect(find(v.tree, (n: any) => n.type === "gradient").layers[0].stops[0]).toMatch(/^#[0-9a-f]{6}5c$/);
       // 70 s in: "Your eyes" (1:09.72) is the line, the two before muted, the two after faint.
       const lines = lyricLines(v.tree);
       expect(lines).toEqual(["♪", "In the deepest ocean", "The bottom of the sea", "Your eyes", "They turn me", "Why should I stay here?", ""]);
@@ -723,7 +722,7 @@ describe("spotify, signed in", () => {
       await h.until(() => views().length === v0 + 1);
       const first = views()[v0];
       expect(first).toMatchObject({ extension: "spotify", palette: "now-playing", spec: { id: "now", title: "Weird Fishes/ Arpeggi · Radiohead", keys: "actions" } });
-      expect(find(first.spec.tree, (n: any) => n.type === "image")).toMatchObject({ width: 208, height: 208 });
+      expect(find(first.spec.tree, (n: any) => n.type === "image")).toMatchObject({ width: 200, height: 200 });
       await host.advance(TICK_MS);
       await h.until(() => views().length === v0 + 2);
       expect(pos(views()[v0 + 1]) - pos(first)).toBeGreaterThan(0.5 / 318);
