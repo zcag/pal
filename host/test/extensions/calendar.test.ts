@@ -361,7 +361,7 @@ describe("today helpers", () => {
   const nodes = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(nodes) : [])];
   const texts = (v: View) => nodes(v.tree).filter((n) => n.type === "text").map((n) => (n as { value: string }).value);
 
-  test("the popover: today's rows still to come with the running one on a card and Join, all-day as badges, tomorrow folded then open, the ring on the cursor, the key hints", () => {
+  test("the popover: the next (here running) event leads as a headline block with Join, the other rows still to come under it, all-day as badges, tomorrow folded then open, the ring on the cursor, the key hints", () => {
     const running = ev("run", "Standup", t0 - 10 * MIN, t0 + 20 * MIN, { conference_url: ZOOM, attendees: [{ name: "Terry", status: "accepted", me: false }, { name: "Cagdas", status: "accepted", me: true }] });
     const gone = ev("gone", "Earlier", t0 - 3 * H, t0 - 2 * H);
     const next = ev("next", "Dentist", t0 + 42 * MIN, t0 + 72 * MIN, { calendar: cals[1], location: "Room 4" });
@@ -380,7 +380,9 @@ describe("today helpers", () => {
     expect(v).toMatchObject({ id: "upcoming", keys: "actions", title: `Today · ${dayName(t0)}` });
     const ns = nodes(v.tree);
     const card = ns.find((n) => n.key === `run@${running.start}`)!;
-    expect(card).toMatchObject({ type: "stack", surface: "elevated", selected: true, action: `focus:run@${running.start}` });
+    expect(card).toMatchObject({ type: "stack", selected: true, action: `focus:run@${running.start}` });
+    // It leads: the title in the headline style, its time and company on the small line over it.
+    expect(ns.find((n) => n.type === "text" && n.style === "headline")).toMatchObject({ value: "Standup" });
     const dentist = ns.find((n) => n.key === `next@${next.start}`)!;
     expect(dentist.type === "stack" && dentist.surface).toBeUndefined();
     expect((dentist as { selected?: true }).selected).toBeUndefined();
@@ -388,7 +390,7 @@ describe("today helpers", () => {
     expect(t).toContain("ends in 20 min");
     expect(t).toContain("in 42 min");
     expect(t).toContain("Room 4 · Home");
-    expect(t).toContain("2 people · Work");
+    expect(t.some((x) => x.startsWith("Now · ") && x.endsWith("2 people · Work"))).toBe(true);
     expect(t).not.toContain("Earlier");
     expect(t).not.toContain("Sales");
     expect(ns.find((n) => n.type === "badge" && n.text === "Republic Day")).toBeTruthy();

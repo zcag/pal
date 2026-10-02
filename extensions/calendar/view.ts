@@ -1,6 +1,8 @@
 // The `upcoming` bar item's popover as a render tree (`View` in
 // `@zcag/pal`), pure: the gallery renders a fixture day with this same
-// function. Today's events still to come as rows (the time column, the
+// function. The next event (or the one running) leads as a headline block:
+// its time and company on a small line, the title in the headline style,
+// how soon, and a Join. Today's other events still to come as rows (the time column, the
 // calendar's colour as a thin bar, the title over the place and the head
 // count, the state at the right: `in 12 min`, `ends in 24 min` on the one
 // running, which sits on an elevated card), all-day events as a badge
@@ -20,6 +22,8 @@ export const freshPopover = (google = false, mac = process.platform === "darwin"
 /** The row's parts: the time column, the colour bar, the state column at the right, the gaps between (2 steps each) and the row's own padding. */
 const TIME_W = 40, BAR_W = 3, STATE_W = 82, GAP = 8, ROW_PAD = 8;
 const TITLE_W = POPOVER_W - 2 * ROW_PAD - TIME_W - BAR_W - STATE_W - 3 * GAP;
+/** The headline block's text column: the popover less its padding, the colour bar, the Join button and the gaps. */
+const JOIN_W = 64, HERO_W = POPOVER_W - 2 * ROW_PAD - BAR_W - JOIN_W - 2 * GAP;
 /** The all-day line is one row of badges, so it cannot wrap: cap the titles and the count, and say how many are left over. */
 const ALLDAY_LABEL_W = 48, ALLDAY_MAX = 3, ALLDAY_CHARS = 18;
 /** What is left of the stale line once the "showing the last events read" badge has its share. */
@@ -79,6 +83,29 @@ function eventRow(e: CalendarEvent, now: number, focused: boolean, tomorrow: boo
   );
 }
 
+/** The next event (or the one running) as the popover's headline: a small line with its time and company, the title in the headline style, how soon, a Join; the ring's first stop, as its row was. */
+function heroBlock(e: CalendarEvent, now: number, focused: boolean): ViewNode {
+  const id = rowId(e);
+  const running = e.start <= now;
+  const st = stateText(e, now);
+  const join: ViewNode[] = e.conference_url ? [{ type: "tile", key: "join", width: JOIN_W, height: 30, text: "Join", color: "green", fill: "solid", action: `join:${id}` }] : [];
+  return row(
+    [
+      { type: "tile", key: "bar", width: BAR_W, height: 56, color: calColor(e), fill: "solid" },
+      column(
+        [
+          text([running ? "Now" : "Next", timeRange(e), people(e.attendees.length), e.calendar.title].filter(Boolean).join(" · "), { size: "xs", color: "muted", width: HERO_W }),
+          text(e.title || "(no title)", { style: "headline", width: HERO_W }),
+          text(st.text, { size: "sm", weight: "semibold", color: st.color, width: HERO_W }),
+        ],
+        { key: "main", gap: 0, grow: true },
+      ),
+      column(join, { key: "right", align: "end" }),
+    ],
+    { key: id, gap: 2, padding: 2, radius: true, action: `focus:${id}`, selected: focused || undefined, minHeight: 64, transition: { enter: "fade" } },
+  );
+}
+
 /** Every action the popover answers to; the first listed is Enter. The per-row ones are hidden and reached by a click. */
 export function actions(l: ReturnType<typeof listed>, st: PopoverState): Action[] {
   const rows = focusable(l, st);
@@ -116,7 +143,10 @@ export function popover(events: CalendarEvent[], now: number, hideDeclined: bool
     if (over > 0) badges.push({ type: "badge", key: "all-day-more", text: `+${over}`, color: "grey" });
     kids.push(row([text("All day", { size: "xs", weight: "semibold", color: "muted", width: ALLDAY_LABEL_W }), ...badges], { key: "all-day", gap: 1, minHeight: 22 }));
   }
-  if (l.today.length) kids.push(column(l.today.map((e, i) => eventRow(e, now, i === cursor, false)), { key: "today", gap: 0 }));
+  if (l.today.length) {
+    kids.push(heroBlock(l.today[0], now, cursor === 0));
+    if (l.today.length > 1) kids.push(column(l.today.slice(1).map((e, i) => eventRow(e, now, i + 1 === cursor, false)), { key: "today", gap: 0 }));
+  }
   else {
     const n = l.next;
     const when = n ? (startOfDay(n.start) === addDays(now, 1) ? `tomorrow ${clock(n.start)}` : `${dayName(n.start)} ${clock(n.start)}`) : undefined;
