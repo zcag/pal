@@ -2,8 +2,8 @@
 // index.ts builds the state from the run's record and the popover's own
 // switches, the tests render made-up states through the same function.
 // While a run is on: a card with what it is ("Awake until 14:30", "until
-// turned off", "while Xcode runs"), the time left large on the right (or
-// ∞), a bar for how far along it is. Under it the presets as tiles a
+// turned off", "while Xcode runs") on a small line, the time left (or ∞)
+// as the popover's headline, a bar for how far along it is. Under it the presets as tiles a
 // click or a digit starts (a new end from now, on or off), the display
 // switch (`d`: the run's, restarted with the other flag; the next run's
 // while off), and the key hints. `u` opens the search row as a field for
@@ -22,9 +22,8 @@ export const DISPLAY_GLYPH = "\u{f0379}";
 const OUTER_PAD = 12, CARD_PAD = 12;
 const INNER_W = POPOVER_W - 2 * OUTER_PAD;
 const CARD_W = INNER_W - 2 * CARD_PAD;
-/** The card's row: the glyph, the titles (what is left of the width), the time-left column (`12:40:12` in xl tabular figures fits), two gaps of 8 px. */
-const GLYPH_W = 24, TIME_W = 104;
-const TITLE_W = CARD_W - GLYPH_W - TIME_W - 2 * 8;
+/** The card's top line: the glyph, then what the run is. */
+const GLYPH_W = 24;
 /** Five tiles of 56 beside a 64 px label with 4 px gaps is 364, inside the 372 the popover has. */
 const TILE_W = 56, TILE_H = 28;
 /** How many presets get a tile and a digit. */
@@ -41,20 +40,19 @@ const defaultLabel = (s: PopoverState): string => (presetLabel(s.defaultFor) ===
 function card(a: Awake, st: PopoverState): ViewNode {
   const left = a.until === null ? null : a.until - st.now;
   const title = a.app ? `Awake while ${a.app} runs` : a.until === null ? "Awake until turned off" : `Awake until ${clock(a.until)}`;
-  const sub: ViewNode[] = [text(`since ${clock(a.started)}`, { style: "muted", size: "xs", key: "since" })];
-  if (a.display) sub.push({ type: "badge", key: "display", text: "display too", color: "blue" });
+  // What the run is on a small line, the time left (or ∞) under it as the popover's headline.
+  const line: ViewNode[] = [
+    text(GLYPH, { style: "glyph", size: "sm", key: "glyph", width: GLYPH_W }),
+    text(title, { size: "sm", weight: "semibold", key: "title" }),
+    text(`since ${clock(a.started)}`, { style: "muted", size: "xs", key: "since" }),
+  ];
+  if (a.display) line.push({ type: "spacer" }, { type: "badge", key: "display", text: "display too", color: "blue" });
   const kids: ViewNode[] = [
-    row([
-      text(GLYPH, { style: "glyph", size: "lg", key: "glyph", width: GLYPH_W }),
-      column([
-        text(title, { style: "title", width: TITLE_W, key: "title" }),
-        row(sub, { key: "subrow", gap: 1, minHeight: 18 }),
-      ], { key: "titles", gap: 0, grow: true }),
-      text(left === null ? "∞" : fmtClock(left), { style: "number", size: "xl", width: TIME_W, align: "end", key: "left", ...(left !== null && left <= 60_000 && { color: "amber" as const }) }),
-    ], { key: "head", gap: 2, align: "center" }),
+    row(line, { key: "head", gap: 1, align: "center", minHeight: 22, width: CARD_W }),
+    text(left === null ? "∞" : fmtClock(left), { style: "headline", key: "left", ...(left !== null && left <= 60_000 && { color: "amber" as const }) }),
   ];
   if (left !== null) kids.push({ type: "progress", key: "bar", value: Math.min(1, Math.max(0, (st.now - a.started) / Math.max(1, a.until! - a.started))), color: left <= 60_000 ? "amber" : "blue" });
-  return column(kids, { key: "card", surface: "elevated", radius: true, padding: 3, gap: 2, transition: { enter: "fade", exit: "fade" } });
+  return column(kids, { key: "card", surface: "elevated", radius: true, padding: 3, gap: 1, transition: { enter: "fade", exit: "fade" } });
 }
 
 /** The presets as tiles: a click starts one (a new end from now, on or off), the digits do the same. */
