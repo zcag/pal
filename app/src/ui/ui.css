@@ -542,10 +542,11 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 .pal-empty__note {margin-top: var(--pal-space-2); max-width: 44ch; line-height: var(--pal-leading-prose); }
 
 /* Confirm */
+/* Centred in the body, under the search row (the query stays readable: a design draws it large). */
 .pal-confirm {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(var(--pal-search-h) + (100% - var(--pal-search-h)) / 2);
   transform: translate(-50%, -50%);
   width: min(360px, calc(100% - var(--pal-space-6) * 2));
   display: flex;
