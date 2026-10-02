@@ -68,7 +68,7 @@
     "category": "developer",
     "features": [
       "Every host in `~/.ssh/config` and its included files, one section per file",
-      "The address, user and port on each row, with a tag for hosts behind a jump host",
+      "Each row says user@address, with the port and the jump host as tags; its detail (`cmd+i`) the same as a page",
       "`enter` opens a terminal running ssh, or runs a command you typed in the bar",
       "`cmd+shift+c` copies the ssh command, `cmd+shift+j` the jump-host form for a machine without your config",
       "`cmd+p` pings the host and shows the round trip",
@@ -84,7 +84,7 @@
     "screenshots": [
       {
         "file": "1-hosts.png",
-        "caption": "Hosts sectioned by the file they came from, user and port on the right, a jump host tagged"
+        "caption": "Hosts sectioned by the file they came from, user@host under each name, the port and a jump host as tags"
       },
       {
         "file": "2-search.png",
@@ -97,6 +97,10 @@
       {
         "file": "4-ping.png",
         "caption": "Ping sends one echo and shows the round trip as a toast"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "A host's detail (cmd+I): its name and file on top, the jump host as a chip, the ssh command, then HostName, User and Port"
       }
     ],
     "actions": [

@@ -20,8 +20,9 @@ what `list-units --all` has loaded, then the unit files it has not (a
 disabled service that never ran), inactive and without a description;
 templates, masked and alias files are skipped. An instance
 (`app-foo@autostart.service`) shows its template's enabled state. The
-detail pane lists the unit, its scope, the load and active states and the
-unit file's state.
+detail pane leads with the scope and unit file, the name, the active state
+and the unit file's state as chips, then the description; a load state
+other than `loaded` is listed under it.
 
 A system unit's Stop, Restart and Disable ask first (a user unit's too
 with `confirm_user`). A system verb runs as `systemctl --no-ask-password

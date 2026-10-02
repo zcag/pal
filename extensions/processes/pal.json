@@ -30,7 +30,7 @@
       "Filters for your own processes, the top CPU users and the top memory users",
       "Kill or force kill (`cmd+shift+k`) after a confirm, and the list stays open",
       "App icons for processes that belong to an app; `cmd+o` finds the process in Activity Monitor",
-      "`cmd+i` shows the full command, parent, user, CPU and memory"
+      "`cmd+i` shows the process as a page: where it runs from, its CPU, memory and pid large, then parent and user"
     ],
     "permissions": [
       "automation",
@@ -43,7 +43,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Processes by CPU, then memory: a busy one wears its share as a tag, with its pid and memory beside it"
+        "caption": "Processes by CPU, then memory: a busy one wears its share as a tag, its pid under the name and its memory on the right"
       },
       {
         "file": "2-port.png",
@@ -56,6 +56,10 @@
       {
         "file": "4-actions.png",
         "caption": "Kill, Force kill, Copy PID or open the process in Activity Monitor"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "A process's detail (cmd+I): where it runs from, then its CPU, memory and pid large"
       }
     ],
     "actions": [

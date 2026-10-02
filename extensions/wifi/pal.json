@@ -16,7 +16,7 @@
     "tagline": "Join, forget or inspect Wi-Fi networks; switch the radio",
     "category": "system",
     "features": [
-      "Current, Known and Available sections, with signal, channel, security and IP for the network you are on",
+      "Current, Known and Available sections, with signal, channel, security and IP for the network you are on; `cmd+i` shows a network as a page",
       "`enter` joins a network, asking for the password in the search bar when it needs one",
       "`cmd+shift+c` copies a saved network's password (macOS asks for your keychain)",
       "`ctrl+x` forgets a network after a confirm; `cmd+c` copies the name or IP",
@@ -47,6 +47,10 @@
       {
         "file": "4-forget.png",
         "caption": "Forget asks first, since the saved password goes with it"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "The current network's detail (cmd+I): connected and its security as chips, signal and channel large, then its address"
       }
     ],
     "actions": [

@@ -65,7 +65,7 @@ describe("windows", () => {
     expect(items[1]).toMatchObject({ icon: "\u{f05af}", section: "Google Chrome", accessories: [{ tag: "minimized" }, { text: "Display 2" }] });
     // A minimised window has no Minimize; an app with one window has no per-app actions.
     expect(items[1].actions!.map((a) => a.id)).toEqual(["focus", "close", ...(MAC ? ["hide-app"] : [])]);
-    expect(items[2].accessories).toEqual([{ text: "ws 3" }]);
+    expect(items[2].accessories).toEqual([{ text: "space 3" }]);
     expect(items[3].actions!.map((a) => a.id)).toEqual(["focus", "close", ...perApp]);
     // A hidden app's window is `hidden`, not `other space`; Show app replaces Hide app on it.
     expect(items[4].accessories).toEqual([{ tag: "hidden" }]);
@@ -132,7 +132,7 @@ describe("windows", () => {
       expect(rows.map((r) => [r.id, r.name])).toEqual([["web", "web"], ["term", "term"], ["3", "Desktop 3"], ["last", "Previous space"]]);
       expect(rows[3].subtitle).toBe("web");
       host.changeSettings("windows", { settings: { spaces: ["web", "term", "misc"] } });
-      expect((await list())[2].accessories).toEqual([{ text: "ws misc" }]);
+      expect((await list())[2].accessories).toEqual([{ text: "space misc" }]);
       host.changeSettings("windows", {});
     });
 

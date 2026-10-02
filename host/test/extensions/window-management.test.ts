@@ -41,7 +41,7 @@ describe("window-management", () => {
     expect(l.manifest.settings?.map((s) => [s.id, s.default])).toEqual([["gap", 0], ["almost_maximize_percent", 90], ["reasonable_size_percent", 60], ["step", 32], ["cycle", false]]);
   });
 
-  test("one static row per layout, in the core's order, a diagram icon, Focused window subtitle, Apply and Apply to", async () => {
+  test("one static row per layout, in the core's order, a diagram icon, no subtitle for the focused window, Apply and Apply to", async () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(LAYOUTS.map((l) => l.id));
     expect(items.map((i) => i.id)).toEqual([
@@ -52,7 +52,7 @@ describe("window-management", () => {
       "larger", "smaller", "resize", "move_left", "move_right", "move_up", "move_down",
       "next_display", "previous_display", "fullscreen", "minimize", "unminimize", "restore",
     ]);
-    expect(items[0]).toEqual({ id: "left_half", name: "Left Half", subtitle: "Focused window", icon: { image: expect.stringMatching(/^data:image\/svg\+xml/) }, keywords: ["half", "left", "split"], actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
+    expect(items[0]).toEqual({ id: "left_half", name: "Left Half", icon: { image: expect.stringMatching(/^data:image\/svg\+xml/) }, keywords: ["half", "left", "split"], actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
     expect(host.coreCalls.filter((c) => c.method.startsWith("windows."))).toEqual([]);
     // Every layout draws its own diagram, no two alike, never the initial fallback.
     const urls = items.map((i) => (i.icon as { image: string }).image);
@@ -60,7 +60,7 @@ describe("window-management", () => {
     expect(new Set(urls).size).toBe(urls.length);
     // Unminimize picks its own window (the last one minimised), so it has no target to choose.
     expect(items.find((i) => i.id === "unminimize")).toMatchObject({ subtitle: "Last minimized window", actions: [{ id: "apply", title: "Apply" }] });
-    expect(items.find((i) => i.id === "fullscreen")).toMatchObject({ name: "Toggle Fullscreen", subtitle: "Focused window", actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
+    expect(items.find((i) => i.id === "fullscreen")).toMatchObject({ name: "Toggle Fullscreen", actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
   });
 
   test("Apply is a layout effect carrying the settings' knobs, the focused window implied", async () => {
@@ -125,7 +125,7 @@ describe("window-management", () => {
 
   test("Resize to… takes the size and place in the bar; the values write the frame of the focused window, hide and say the size; a pick without them is the same fields as a form", async () => {
     const row = (await list()).find((i) => i.id === "resize")!;
-    expect(row).toMatchObject({ name: "Resize to…", subtitle: "Focused window", actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
+    expect(row).toMatchObject({ name: "Resize to…", actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
     expect(row.args).toEqual([{ id: "size", placeholder: "1280x720", required: true }, { id: "x", placeholder: "X (blank: centred)" }, { id: "y", placeholder: "Y (blank: centred)" }]);
     expect((await list()).filter((i) => i.args).map((i) => i.id)).toEqual(["resize"]);
     const form = (await pick("resize")) as { form: { id: string; title: string; fields: { id: string }[]; submit: { id: string } } };

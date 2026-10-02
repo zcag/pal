@@ -41,35 +41,43 @@ const PORTS_MS = 3000;
 /** ps reports rss in KiB. */
 const human = (kb: number) => (kb >= 1024 * 1024 ? `${(kb / 1024 / 1024).toFixed(1)} GB` : `${Math.round(kb / 1024)} MB`);
 
-/** The `.app` bundle a macOS executable lives in, for its icon; a glyph otherwise. */
+/** The `.app` bundle a macOS executable lives in, if any. */
+const bundleOf = (p: Proc) => { const i = MAC ? p.comm.indexOf(".app/Contents/MacOS/") : -1; return i > 0 ? p.comm.slice(0, i + 4) : undefined; };
+
+/** The bundle's icon for an app's process, a glyph otherwise. */
 function icon(p: Proc): Item["icon"] {
-  if (LINUX) return ICON;
-  const i = p.comm.indexOf(".app/Contents/MacOS/");
-  return i > 0 ? { app: p.comm.slice(0, i + 4) } : ICON;
+  const app = bundleOf(p);
+  return app ? { app } : ICON;
 }
 
 /** The last listing's processes by pid, what `detail` reads (`pick` needs only the pid). */
 const seen = new Map<number, Proc>();
 
+const busy = (p: Proc) => p.cpu > 10;
+const cpuTag = (p: Proc) => ({ tag: `${p.cpu.toFixed(0)}% cpu`, color: p.cpu >= 50 ? "red" as const : "amber" as const });
+
+/** A process as a page: where it runs from, its name, then its numbers large. */
 function detail(id: string): Detail | undefined {
   const p = seen.get(Number(id.split(":")[0]));
   if (!p) return;
-  return { metadata: [
-    { label: "Command", value: p.comm },
-    { label: "PID", value: String(p.pid) },
-    { label: "Parent", value: String(p.ppid) },
-    { label: "User", value: p.uid === UID ? "you" : String(p.uid) },
-    { label: "CPU", value: `${p.cpu.toFixed(1)}%` },
-    { label: "Memory", value: human(p.rss) },
-  ] };
+  return {
+    caption: p.comm,
+    title: p.name,
+    // A busy one's CPU in its tag's colour.
+    stats: [{ value: `${p.cpu.toFixed(1)}%`, label: "CPU", ...(busy(p) && { color: cpuTag(p).color }) }, { value: human(p.rss), label: "memory" }, { value: String(p.pid), label: "pid" }],
+    metadata: [
+      { label: "Parent", value: String(p.ppid) },
+      { label: "User", value: p.uid === UID ? "you" : String(p.uid) },
+    ],
+  };
 }
 
+/** The name, then its pid and (outside an app, whose icon says which) the command; a busy one's CPU as a tag, its memory. */
 function item(p: Proc): Item {
   seen.set(p.pid, p);
-  const accessories: Accessory[] = [];
-  if (p.cpu > 10) accessories.push({ tag: `${p.cpu.toFixed(0)}% cpu`, color: p.cpu >= 50 ? "red" : "amber" });
-  accessories.push({ text: String(p.pid) }, { text: human(p.rss) });
-  return { id: String(p.pid), name: p.name, subtitle: p.comm !== p.name ? p.comm : undefined, icon: icon(p), keywords: [String(p.pid)], accessories, actions: ACTIONS, pid: p.pid, cpu: p.cpu, rss: p.rss };
+  const accessories: Accessory[] = [...(busy(p) ? [cpuTag(p)] : []), { text: human(p.rss) }];
+  const where = !bundleOf(p) && p.comm !== p.name ? ` · ${p.comm}` : "";
+  return { id: String(p.pid), name: p.name, subtitle: `pid ${p.pid}${where}`, icon: icon(p), keywords: [String(p.pid)], accessories, actions: ACTIONS, pid: p.pid, cpu: p.cpu, rss: p.rss };
 }
 
 // Kernel threads are children of kthreadd (pid 2); `ps -o comm` shows them without the brackets `args` would.
@@ -85,8 +93,8 @@ async function listeners(prefix: string): Promise<Item[]> {
   const procs = new Map((await ps()).map((p) => [p.pid, p]));
   return found.map((l): Item => {
     const p = procs.get(l.pid);
-    const base = p ? item(p) : { id: String(l.pid), name: l.command, icon: ICON, keywords: [String(l.pid)], accessories: [{ text: String(l.pid) }], actions: ACTIONS, pid: l.pid };
-    return { ...base, id: `${l.pid}:${l.port}`, subtitle: `${l.address}:${l.port}`, keywords: [...(base.keywords ?? []), `:${l.port}`, String(l.port)], accessories: [{ tag: `:${l.port}`, color: "blue" }, ...(base.accessories ?? [])] };
+    const base = p ? item(p) : { id: String(l.pid), name: l.command, icon: ICON, keywords: [String(l.pid)], accessories: [], actions: ACTIONS, pid: l.pid };
+    return { ...base, id: `${l.pid}:${l.port}`, subtitle: `${l.address}:${l.port} · pid ${l.pid}`, keywords: [...(base.keywords ?? []), `:${l.port}`, String(l.port)], accessories: [{ tag: `:${l.port}`, color: "blue" }, ...(base.accessories ?? [])] };
   });
 }
 

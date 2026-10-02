@@ -91,17 +91,18 @@ const suggestions = [
 const fixture = {
   palettes: {
     map: { title: "Disk Map", icon: manifest.icon, view: "view", tree: map },
-    largest: { title: "Largest Files", icon: manifest.icon, live: true, filters: [{ id: "all", title: "All kinds" }, { id: "video", title: "Videos" }, { id: "disk", title: "Disk images" }], items: largestFiles(home, 40).map((n) => fileRow(n, root, "allocated", true)) },
-    folders: { title: "Largest Folders", icon: manifest.icon, live: true, items: largestDirs(home, 40).map((n) => folderRow(n, home, "allocated", true)) },
+    largest: { title: "Largest Files", icon: manifest.icon, live: true, placeholder: "Search files", filters: [{ id: "all", title: "All kinds" }, { id: "video", title: "Videos" }, { id: "disk", title: "Disk images" }], items: largestFiles(home, 40).map((n) => fileRow(n, root, "allocated", true)) },
+    folders: { title: "Largest Folders", icon: manifest.icon, live: true, placeholder: "Search folders", items: largestDirs(home, 40).map((n) => folderRow(n, home, "allocated", true)) },
     // The zoomed shot opens on its own tree (atlas, two boxes marked) rather than keys through effects: a view pick in the gallery lost to a reload now and then.
     zoomed: { title: "Disk Map", icon: manifest.icon, view: "view", tree: render(state(atlas, { marked, focus: 2 })) },
-    cleanup: { title: "Cleanup Suggestions", icon: manifest.icon, live: true, items: suggestions.map((g) => suggestionRow(g, 30, true)) },
+    cleanup: { title: "Cleanup Suggestions", icon: manifest.icon, live: true, placeholder: "Search suggestions", items: suggestions.map((g) => suggestionRow(g, 30, true)) },
   },
   shots: {
     "1-map": { palette: "map", keys: ["wait:500"], caption: "A home folder as a map: every folder a box sized by what it holds and coloured by kind, the list of the biggest beside it" },
     "2-zoomed": { palette: "zoomed", keys: ["wait:600"], caption: "Zoomed into a project, its build output and node_modules marked: one keystroke sends both to the Trash" },
     "3-largest": { palette: "largest", keys: ["wait:300", "down*2"], caption: "The largest files anywhere under the root, each with its folder, kind and size; filter to videos or disk images" },
     "4-cleanup": { palette: "cleanup", keys: ["wait:300", "down*4"], caption: "Cleanup suggestions: caches, package stores, the Trash, old downloads and stale build folders, each with what it frees and what to know" },
+    "5-detail": { palette: "largest", keys: ["wait:300", "cmd+i", "wait:400"], caption: "A file's detail (cmd+I): its folder and kind, the size on disk and the apparent size large, when it changed" },
   },
 };
 writeFixture("space", fixture);

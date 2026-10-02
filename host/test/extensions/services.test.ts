@@ -106,6 +106,8 @@ describe("services (systemd)", () => {
     expect(items[3].subtitle).toBeUndefined();
     expect(items[0]).toMatchObject({ name: "agent-chrome", subtitle: "Agent-controlled Chromium", keywords: ["agent-chrome.service", "user"], accessories: [{ text: "enabled" }, { tag: "running", color: "green" }] });
     expect(items[1].accessories).toEqual([{ text: "disabled" }, { tag: "inactive/dead", color: "grey" }]);
+    // The detail is the unit as a page: its manager and file, the name, its state and boot setting as chips, the description.
+    expect(items[0].detail).toEqual({ caption: "User · agent-chrome.service", title: "agent-chrome", chips: [{ text: "running", color: "green" }, { text: "enabled", color: "blue" }], markdown: "Agent-controlled Chromium", metadata: [] });
     expect(items[2].subtitle).toBeUndefined();
     expect(items[2].accessories).toEqual([{ tag: "failed", color: "red" }]);
     expect(items[0].actions!.map((a) => [a.id, a.confirm ?? null])).toEqual([["stop", null], ["logs", null], ["restart", null], ["disable", null], ["copy", null], ["start", null], ["enable", null]]);
@@ -224,7 +226,9 @@ describe("services (launchd)", () => {
     expect(cdp.actions![0].confirm).toBeTruthy();
     expect(follow.accessories).toEqual([{ tag: "not loaded", color: "grey" }]);
     expect(follow.actions!.map((a) => a.id)).toEqual(["load", "show", "open", "copy", "unload"]);
-    expect(keystone.detail!.metadata).toEqual([{ label: "Label", value: "com.google.keystone.agent" }, { label: "Plist", value: join(sysAgents, "com.google.keystone.agent.plist") }, { label: "Program", value: "/Library/Google/ksagent" }, { label: "State", value: "not loaded" }]);
+    // The detail is the job as a page: the plist on top, the label, the state as a chip, the pid while it runs, the program under them.
+    expect(keystone.detail).toEqual({ caption: join(sysAgents, "com.google.keystone.agent.plist"), title: "com.google.keystone.agent", chips: [{ text: "not loaded", color: "grey" }], metadata: [{ label: "Program", value: "/Library/Google/ksagent" }] });
+    expect(cdp.detail).toMatchObject({ title: "io.cagdas.chrome-cdp", chips: [{ text: "running", color: "green" }], stats: [{ value: "412", label: "pid" }] });
   });
 
   test("loaded and running: launchctl list's jobs, sorted, application.* launch jobs skipped, a non-zero last exit tagged red", async () => {

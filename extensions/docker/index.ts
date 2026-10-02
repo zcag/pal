@@ -134,21 +134,27 @@ function container(r: PsRow): Item {
   running.set(r.ID, up);
   const p = ports(r.Ports ?? "");
   const proj = project(r.Labels);
+  const state = { text: r.State, color: STATE_COLOR[r.State] ?? "grey" };
+  // Two things on the right: the published ports (a stopped one's status says when it stopped instead), and the state.
   const accessories: Accessory[] = [];
-  if (p) accessories.push({ text: p });
-  if (r.Status) accessories.push({ text: r.Status });
-  accessories.push({ tag: r.State, color: STATE_COLOR[r.State] ?? "grey" });
+  const aside = p || (!up ? r.Status : "");
+  if (aside) accessories.push({ text: aside });
+  accessories.push({ tag: state.text, color: state.color });
   const metadata: Metadata[] = [
     { label: "Id", value: r.ID },
-    { label: "Image", value: r.Image },
     ...(r.Command ? [{ label: "Command", value: r.Command.replace(/^"|"$/g, "") }] : []),
-    { label: "Status", value: r.Status },
     ...(r.CreatedAt ? [{ label: "Created", value: r.CreatedAt }] : []),
     ...(typeof r.Ports === "string" && r.Ports ? [{ label: "Ports", value: r.Ports }] : []),
     ...(r.Mounts ? [{ label: "Mounts", value: r.Mounts }] : []),
     ...(r.Networks ? [{ label: "Networks", value: r.Networks }] : []),
-    ...(proj ? [{ label: "Compose project", value: proj }] : []),
   ];
+  // The container as a page: its Compose project and image on top, the name, its state and docker's status line as chips.
+  const detail: Detail = {
+    caption: proj ? `${proj} · ${r.Image}` : r.Image,
+    title: name,
+    chips: [state, ...(r.Status ? [{ text: r.Status, color: "grey" as const }] : [])],
+    metadata,
+  };
   return {
     id: r.ID,
     name,
@@ -156,7 +162,7 @@ function container(r: PsRow): Item {
     icon: ICON,
     keywords: [r.ID, r.Image, ...(proj ? [proj] : [])],
     accessories,
-    detail: { metadata },
+    detail,
     section: up ? "Running" : "Stopped",
     args: up ? [LINES_ARG, COMMAND_ARG] : [LINES_ARG],
     actions: up ? RUNNING : STOPPED,
@@ -234,7 +240,7 @@ function image(r: ImageRow): Item {
     icon: ICON,
     keywords: [r.ID, r.Repository],
     accessories: [{ text: r.Size }, ...(r.CreatedSince ? [{ text: r.CreatedSince }] : [])],
-    detail: { metadata: [{ label: "Id", value: r.ID }, { label: "Repository", value: r.Repository }, { label: "Tag", value: r.Tag }, { label: "Size", value: r.Size }, ...(r.CreatedAt ? [{ label: "Created", value: r.CreatedAt }] : [])] },
+    detail: { caption: r.ID, title: name, stats: [{ value: r.Size, label: "size" }], metadata: r.CreatedAt ? [{ label: "Created", value: r.CreatedAt }] : [] },
     args: RUN_ARGS,
     actions: IMAGE_ACTIONS,
   };
@@ -286,6 +292,8 @@ const COMPOSE_ACTIONS: Action[] = [
 
 /** `running(35)`, `exited(2)`, `running(1), exited(1)`: the leading word decides the tag. */
 const composeColor = (status: string): TagColor => (/^running/.test(status) ? (status.includes("exited") ? "amber" : "green") : /^(paused|restarting)/.test(status) ? "amber" : "grey");
+/** `running(3), exited(1)` as words: `3 running, 1 exited`. */
+const composeWords = (status: string) => status.replace(/(\w+)\((\d+)\)/g, "$2 $1");
 
 const composeFiles = new Map<string, string[]>();
 
@@ -299,8 +307,8 @@ function composeProject(r: ComposeRow): Item {
     subtitle: dir ? tilde(dir) : undefined,
     icon: ICON,
     keywords: [basename(dir)],
-    accessories: [{ text: r.Status }, { tag: r.Status.split("(")[0], color: composeColor(r.Status) }],
-    detail: { metadata: [{ label: "Status", value: r.Status }, ...files.map((f) => ({ label: "Config", value: tilde(f) }))] },
+    accessories: [{ tag: composeWords(r.Status), color: composeColor(r.Status) }],
+    detail: { ...(dir && { caption: tilde(dir) }), title: r.Name, chips: [{ text: composeWords(r.Status), color: composeColor(r.Status) }], metadata: files.map((f) => ({ label: "Config", value: tilde(f) })) },
     actions: COMPOSE_ACTIONS,
   };
 }

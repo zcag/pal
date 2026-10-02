@@ -321,7 +321,7 @@ describe("script commands: the palette", () => {
     expect(by["deploy.sh"].args).toEqual([{ id: "target", placeholder: "Environment (staging or prod)", required: true }, { id: "note", placeholder: "Release note (optional)", required: false }]);
     expect(by["ray.sh"].args).toEqual([{ id: "argument1", placeholder: "Name", required: true }]);
     expect(by["quiet.sh"].args).toBeUndefined();
-    expect(by["deploy.sh"].detail!.metadata).toEqual([{ label: "File", value: join(cmdDir, "deploy.sh") }, { label: "Mode", value: "hud" }, { label: "Arguments", value: "target, note" }, { label: "Confirm", value: "yes" }, { label: "Runs in", value: cmdDir }]);
+    expect(by["deploy.sh"].detail).toEqual({ caption: join(cmdDir, "deploy.sh"), title: "Deploy site", chips: [{ text: "hud", color: "grey" }, { text: "asks first", color: "amber" }], metadata: [{ label: "Arguments", value: "target, note" }, { label: "Runs in", value: cmdDir }] });
     expect(by["ports.sh"]).toMatchObject({ name: "Listening ports", accessories: [{ text: "list" }], actions: [{ id: "run", title: "Open" }, expect.anything(), expect.anything(), expect.anything()] });
     expect(by["ports.sh"].icon).toEqual({ tile: { glyph: "\u{f0bc3}", bg: "amber" } });
     expect(by["ray.sh"]).toMatchObject({ name: "Say hi", section: "Raycast", icon: "👋" });

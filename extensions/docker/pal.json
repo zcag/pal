@@ -70,7 +70,7 @@
     "tagline": "Start, stop, log and shell into containers from the panel",
     "category": "developer",
     "features": [
-      "Every container, running ones first, with its image, ports and status",
+      "Every container, running ones first, with its image, ports and state; `cmd+i` shows it as a page",
       "`enter` starts or stops a container (stopping asks first)",
       "`cmd+l` shows its recent logs in the panel; `cmd+t` opens a shell in a terminal",
       "Run an image with an optional name and ports",
@@ -88,7 +88,7 @@
     "screenshots": [
       {
         "file": "1-containers.png",
-        "caption": "Containers, running first, with ports, status and a state tag"
+        "caption": "Containers, running first, with their ports (a stopped one's status) and a state tag"
       },
       {
         "file": "2-actions.png",
@@ -101,6 +101,10 @@
       {
         "file": "4-run.png",
         "caption": "Running an image: the name and the ports, then docker run -d"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "A container's detail (cmd+I): its Compose project and image, the name, its state and status, then id, command, ports, mounts and networks"
       }
     ],
     "actions": [

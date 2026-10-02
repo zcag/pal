@@ -7,7 +7,7 @@ titles are root results. Rows are grouped by app, a section per app in
 the order the most recent window of each gives; the app name is the
 subtitle and a keyword, the bundle id or window class a keyword too. A
 hidden app's window carries a `hidden` tag, a minimised one `minimized`,
-one on another workspace or space `ws 3` or `other space`, and the
+one on another workspace or space `space 3` or `other space`, and the
 monitor when known.
 
 Enter focuses: the panel hides, then the window comes up, restored if it

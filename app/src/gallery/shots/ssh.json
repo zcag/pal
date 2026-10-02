@@ -13,18 +13,29 @@
         {
           "id": "web-1",
           "name": "web-1",
-          "subtitle": "web-1.example.com",
+          "subtitle": "deploy@web-1.example.com",
           "keywords": [
             "web-1.example.com",
             "deploy"
           ],
           "icon": "󰒋",
-          "accessories": [
-            {
-              "text": "deploy"
-            }
-          ],
+          "accessories": [],
           "section": ".ssh/config",
+          "detail": {
+            "caption": ".ssh/config",
+            "title": "web-1",
+            "markdown": "```\nssh web-1\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "web-1.example.com"
+              },
+              {
+                "label": "User",
+                "value": "deploy"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -50,18 +61,29 @@
         {
           "id": "web-2",
           "name": "web-2",
-          "subtitle": "web-2.example.com",
+          "subtitle": "deploy@web-2.example.com",
           "keywords": [
             "web-2.example.com",
             "deploy"
           ],
           "icon": "󰒋",
-          "accessories": [
-            {
-              "text": "deploy"
-            }
-          ],
+          "accessories": [],
           "section": ".ssh/config",
+          "detail": {
+            "caption": ".ssh/config",
+            "title": "web-2",
+            "markdown": "```\nssh web-2\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "web-2.example.com"
+              },
+              {
+                "label": "User",
+                "value": "deploy"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -87,7 +109,7 @@
         {
           "id": "db",
           "name": "db",
-          "subtitle": "db.internal.example.com",
+          "subtitle": "postgres@db.internal.example.com",
           "keywords": [
             "db.internal.example.com",
             "postgres",
@@ -95,9 +117,6 @@
           ],
           "icon": "󰒋",
           "accessories": [
-            {
-              "text": "postgres"
-            },
             {
               "tag": ":2222"
             },
@@ -107,6 +126,31 @@
             }
           ],
           "section": ".ssh/config",
+          "detail": {
+            "caption": ".ssh/config",
+            "title": "db",
+            "chips": [
+              {
+                "text": "via bastion",
+                "color": "blue"
+              }
+            ],
+            "markdown": "```\nssh -J bastion db\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "db.internal.example.com"
+              },
+              {
+                "label": "User",
+                "value": "postgres"
+              },
+              {
+                "label": "Port",
+                "value": "2222"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -137,18 +181,29 @@
         {
           "id": "bastion",
           "name": "bastion",
-          "subtitle": "bastion.example.com",
+          "subtitle": "ops@bastion.example.com",
           "keywords": [
             "bastion.example.com",
             "ops"
           ],
           "icon": "󰒋",
-          "accessories": [
-            {
-              "text": "ops"
-            }
-          ],
+          "accessories": [],
           "section": ".ssh/config",
+          "detail": {
+            "caption": ".ssh/config",
+            "title": "bastion",
+            "markdown": "```\nssh bastion\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "bastion.example.com"
+              },
+              {
+                "label": "User",
+                "value": "ops"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -174,17 +229,28 @@
         {
           "id": "pi",
           "name": "pi",
-          "subtitle": "192.168.1.40",
+          "subtitle": "pi@192.168.1.40",
           "keywords": [
             "192.168.1.40"
           ],
           "icon": "󰒋",
-          "accessories": [
-            {
-              "text": "pi"
-            }
-          ],
+          "accessories": [],
           "section": ".ssh/config",
+          "detail": {
+            "caption": ".ssh/config",
+            "title": "pi",
+            "markdown": "```\nssh pi\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "192.168.1.40"
+              },
+              {
+                "label": "User",
+                "value": "pi"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -210,18 +276,29 @@
         {
           "id": "ci",
           "name": "ci",
-          "subtitle": "ci.acme.dev",
+          "subtitle": "runner@ci.acme.dev",
           "keywords": [
             "ci.acme.dev",
             "runner"
           ],
           "icon": "󰒋",
-          "accessories": [
-            {
-              "text": "runner"
-            }
-          ],
+          "accessories": [],
           "section": ".ssh/conf.d/work.conf",
+          "detail": {
+            "caption": ".ssh/conf.d/work.conf",
+            "title": "ci",
+            "markdown": "```\nssh ci\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "ci.acme.dev"
+              },
+              {
+                "label": "User",
+                "value": "runner"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -247,7 +324,7 @@
         {
           "id": "staging",
           "name": "staging",
-          "subtitle": "staging.acme.dev",
+          "subtitle": "deploy@staging.acme.dev",
           "keywords": [
             "staging.acme.dev",
             "deploy",
@@ -256,14 +333,32 @@
           "icon": "󰒋",
           "accessories": [
             {
-              "text": "deploy"
-            },
-            {
               "tag": "via bastion",
               "color": "blue"
             }
           ],
           "section": ".ssh/conf.d/work.conf",
+          "detail": {
+            "caption": ".ssh/conf.d/work.conf",
+            "title": "staging",
+            "chips": [
+              {
+                "text": "via bastion",
+                "color": "blue"
+              }
+            ],
+            "markdown": "```\nssh -J bastion staging\n```",
+            "metadata": [
+              {
+                "label": "HostName",
+                "value": "staging.acme.dev"
+              },
+              {
+                "label": "User",
+                "value": "deploy"
+              }
+            ]
+          },
           "actions": [
             {
               "id": "connect",
@@ -309,7 +404,7 @@
       "keys": [
         "down*2"
       ],
-      "caption": "Hosts sectioned by the file they came from, user and port on the right, a jump host tagged"
+      "caption": "Hosts sectioned by the file they came from, user@host under each name, the port and a jump host as tags"
     },
     "2-search": {
       "keys": [
@@ -332,6 +427,15 @@
         "wait:300"
       ],
       "caption": "Ping sends one echo and shows the round trip as a toast"
+    },
+    "5-detail": {
+      "palette": "ssh",
+      "keys": [
+        "down*2",
+        "cmd+i",
+        "wait:400"
+      ],
+      "caption": "A host's detail (cmd+I): its name and file on top, the jump host as a chip, the ssh command, then HostName, User and Port"
     }
   }
 }

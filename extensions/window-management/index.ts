@@ -166,7 +166,8 @@ function row(l: (typeof LAYOUTS)[number], target?: Args): Item {
   return {
     id: l.id,
     name: l.title,
-    subtitle: target?.title ?? (noTarget(l.id) ? "Last minimized window" : "Focused window"),
+    // The focused window goes without saying; a picked window and Unminimize's last minimized one do not.
+    subtitle: target?.title ?? (noTarget(l.id) ? "Last minimized window" : undefined),
     icon: layoutIcon(l.id),
     keywords: l.keywords,
     // The size in the bar gates Apply; Apply to… picks the window first and the size comes in that level.

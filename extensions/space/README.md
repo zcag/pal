@@ -16,7 +16,7 @@ downloads, the Trash) with their sizes.
 | Disk Space (`space`) | Where to look: Home, every mounted volume with its free space, the folders scanned before with their age and size, `Scan a folder…` with the path typed in the bar, and Cleanup suggestions. Enter opens the map (scanning first when there is no scan); `cmd+enter` the largest files, `cmd+shift+l` the largest folders, `cmd+shift+r` scans again, `cmd+shift+d` forgets a saved scan |
 | Disk Map (`space-map`) | The treemap (below) |
 | Largest Files (`space-largest`) | The biggest files under the last scanned root (or the one a link or a row names), the kind as a tag, a filter by kind; open, reveal, Quick Look, show in the map, copy path, info, and a multi-select trash |
-| Largest Folders (`space-folders`) | The biggest folders under the root with their file counts and share; Enter shows one in the map |
+| Largest Folders (`space-folders`) | The biggest folders under the root with their share and size (the file count in the detail pane); Enter shows one in the map |
 | Cleanup Suggestions (`space-cleanup`) | User caches (`~/Library/Caches`, `~/.cache`), Xcode's DerivedData and simulator caches, the package caches (npm, Bun, Cargo, Gradle, pip), `node_modules` and cargo `target` folders untouched for `stale_days`, downloads older than that, the Trash; each with its size and one destructive action that asks first |
 
 ## The map
@@ -62,7 +62,7 @@ node_modules · 1.20 GB (15%) · 1 file · modified 1 mo ago · Folder
 | `cmd+d` | Move to Trash: the focused box, or every marked one together (the DaisyDisk collector), after a confirm naming the count and size |
 | `space` | Quick Look (macOS) |
 | `cmd+o`, `cmd+c` | Open, Copy path |
-| `i` | Info as a detail level: kind, path, both sizes, count, share, modified, owner |
+| `i` | Info as a detail level: the folder and name on top, the kind as a chip, both sizes and the count large, then share, modified, owner |
 | `cmd+l` | Largest files under this folder |
 | `c`, `a` | Colour by kind or depth; sizes on disk or apparent (both write the setting) |
 | `cmd+r` | Rescan this folder (the root: everything); while a scan runs, stop it |

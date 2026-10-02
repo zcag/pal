@@ -10,7 +10,7 @@
 // one machine, against fake binaries on PATH).
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { hint as hintRow, home, settings, toast, xdg, type Accessory, type Action, type Ctx, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
+import { hint as hintRow, home, settings, tilde, toast, xdg, type Accessory, type Action, type Ctx, type Detail, type Extension, type Item, type TagColor } from "@zcag/pal";
 
 /** `[extensions.services]`, defaults in pal.json. */
 type Settings = { ttl: number; confirm_user: boolean; agent_dirs: string[] };
@@ -111,16 +111,20 @@ function unitItem(scope: Scope, r: UnitRow, enabled: string | undefined, section
   const active = r.active === "active" || r.active === "activating" || r.active === "reloading";
   units.set(id, { scope, unit: r.unit, active, enabled });
   const accessories: Accessory[] = [];
-  if (enabled && enabled !== "static" && enabled !== "generated" && enabled !== "transient") accessories.push({ text: enabled });
+  const installable = enabled && enabled !== "static" && enabled !== "generated" && enabled !== "transient";
+  if (installable) accessories.push({ text: enabled });
   // `running` for an active unit, `failed` rather than `failed/failed`, else both states.
-  accessories.push({ tag: r.active === "active" || r.active === r.sub ? r.sub : `${r.active}/${r.sub}`, color: ACTIVE_COLOR[r.active] ?? "grey" });
-  const metadata: Metadata[] = [
-    { label: "Unit", value: r.unit },
-    { label: "Scope", value: scope },
-    { label: "Load", value: r.load },
-    { label: "Active", value: `${r.active} (${r.sub})` },
-    ...(enabled ? [{ label: "Unit file", value: enabled }] : []),
-  ];
+  const state = { text: r.active === "active" || r.active === r.sub ? r.sub : `${r.active}/${r.sub}`, color: ACTIVE_COLOR[r.active] ?? "grey" };
+  accessories.push({ tag: state.text, color: state.color });
+  // The unit as a page: its manager and file name, the name, its state and whether it starts at boot as chips, the description under them.
+  const detail: Detail = {
+    caption: `${scope === "user" ? "User" : "System"} · ${r.unit}`,
+    title: r.unit.replace(/\.service$/, ""),
+    chips: [state, ...(installable ? [{ text: enabled!, color: (enabled === "enabled" ? "blue" : "grey") as TagColor }] : [])],
+    ...(r.description !== r.unit && { markdown: r.description }),
+    // Only what is out of the ordinary: a load state other than loaded, a unit file that cannot be enabled.
+    metadata: [...(r.load !== "loaded" ? [{ label: "Load", value: r.load }] : []), ...(enabled && !installable ? [{ label: "Unit file", value: enabled }] : [])],
+  };
   return {
     id,
     name: r.unit.replace(/\.service$/, ""),
@@ -128,7 +132,7 @@ function unitItem(scope: Scope, r: UnitRow, enabled: string | undefined, section
     icon: ICON,
     keywords: [r.unit, scope],
     accessories,
-    detail: { metadata },
+    detail,
     ...(section ? { section: scope === "user" ? "User" : "System" } : {}),
     actions: unitActions(scope, active, enabled),
   };
@@ -279,8 +283,6 @@ async function agents(dirs: string[]): Promise<Agent[]> {
   return out;
 }
 
-const shortPath = (p: string) => (p.startsWith(home("~") + "/") ? "~" + p.slice(home("~").length) : p);
-
 /**
  * A job's actions. All but Show plist also run over marked jobs (`multi`),
  * one `launchctl` each. Load rides on a loaded job too (at the end) and
@@ -307,20 +309,22 @@ function jobItem(label: string, job: Job | undefined, agent: Agent | undefined, 
   if (job?.pid) accessories.push({ text: `pid ${job.pid}` });
   const tag = job?.pid ? { tag: "running", color: "green" as TagColor } : loaded ? (job?.status ? { tag: `exit ${job.status}`, color: "red" as TagColor } : { tag: "loaded", color: "blue" as TagColor }) : { tag: "not loaded", color: "grey" as TagColor };
   accessories.push(tag);
-  const metadata: Metadata[] = [
-    { label: "Label", value: label },
-    ...(agent ? [{ label: "Plist", value: shortPath(agent.plist) }] : []),
-    ...(agent?.program ? [{ label: "Program", value: agent.program }] : []),
-    { label: "State", value: job?.pid ? `running, pid ${job.pid}` : loaded ? `loaded, last exit ${job?.status ?? 0}` : "not loaded" },
-  ];
+  // The job as a page: its plist, the label, its state as a chip, the pid while it runs, then what it runs.
+  const detail: Detail = {
+    ...(agent && { caption: tilde(agent.plist) }),
+    title: label,
+    chips: [{ text: tag.tag, color: tag.color }],
+    ...(job?.pid && { stats: [{ value: String(job.pid), label: "pid" }] }),
+    metadata: agent?.program ? [{ label: "Program", value: agent.program }] : [],
+  };
   return {
     id: label,
     name: label,
-    subtitle: agent?.program ?? (agent ? shortPath(agent.plist) : undefined),
+    subtitle: agent?.program ?? (agent ? tilde(agent.plist) : undefined),
     icon: ICON,
     keywords: agent ? [basename(agent.plist)] : [],
     accessories,
-    detail: { metadata },
+    detail,
     ...(section ? { section } : {}),
     actions: jobActions(loaded, agent?.plist),
   };
@@ -333,7 +337,7 @@ async function listLaunchd(filter = "agents"): Promise<Item[]> {
   if (filter === "agents") {
     const found = await agents(S().agent_dirs);
     if (!found.length) return [hint("No agent plists", S().agent_dirs.join(", "))];
-    return found.map((a) => jobItem(a.label, listed.get(a.label), a, shortPath(a.dir)));
+    return found.map((a) => jobItem(a.label, listed.get(a.label), a, tilde(a.dir)));
   }
   const byLabel = new Map((await agents(S().agent_dirs)).map((a) => [a.label, a]));
   // `application.<bundle>.<pid>...` are the per-launch jobs of running apps, not services.

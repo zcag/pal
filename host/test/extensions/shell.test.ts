@@ -117,7 +117,7 @@ describe("shell", () => {
     expect(hints.every((h) => h.actions!.length === 0 && h.icon)).toBe(true);
     const marker = join(dir, "ran");
     const rows = await list(`touch ${marker}`);
-    expect(rows).toEqual([expect.objectContaining({ id: `run:touch ${marker}`, name: `Run: touch ${marker}`, keywords: [`touch ${marker}`] })]);
+    expect(rows).toEqual([expect.objectContaining({ id: `run:touch ${marker}`, name: `Run: touch ${marker}`, subtitle: `in ${dir}`, keywords: [`touch ${marker}`] })]);
     expect(rows[0].actions).toEqual([{ id: "run", title: "Run" }, { id: "terminal", title: "Run in terminal" }, { id: "copy_cmd", title: "Copy command", shortcut: "cmd+c" }]);
     await Bun.sleep(50);
     expect(existsSync(marker)).toBe(false);
@@ -198,7 +198,7 @@ describe("shell", () => {
 
   test("a destructive-looking command asks first while `confirm` is on: the Run action carries the question and the destructive style; off, it is a plain Run", async () => {
     let [row] = await list("rm -rf build");
-    expect(row.subtitle).toContain("asks first");
+    expect(row.accessories).toEqual([{ tag: "asks first", color: "amber" }]);
     expect(row.actions![0]).toEqual({ id: "run", title: "Run", confirm: "Run “rm -rf build”? It looks like it removes, overwrites or escalates.", style: "destructive" });
     host.changeSettings("shell", { settings: { shell: "/bin/sh -c", cwd: dir, timeout: 2, confirm: false } });
     [row] = await list("rm -rf build");
@@ -231,7 +231,10 @@ describe("shell", () => {
     expect(rows.at(-1)).toMatchObject({ id: "clear", name: "Clear history" });
     const entries = rows.slice(0, -1);
     expect(entries.map((r) => r.name).slice(0, 4)).toEqual(["git status", `echo x >> ${join(dir, "stamp")}; wc -l < ${join(dir, "stamp")}`, KILLED, LATE]);
-    expect(entries[1].accessories).toEqual([{ tag: "exit 0", color: "green" }, { date: expect.any(Number) }]);
+    // A success says so with its green icon and only its date; a failure carries its code as a red tag.
+    expect(entries[1].accessories).toEqual([{ date: expect.any(Number) }]);
+    expect(entries[1].icon).toEqual({ glyph: "\u{f07b7}", color: "green" });
+    expect(entries[2].icon).toEqual({ glyph: "\u{f07b7}", color: "red" });
     expect(entries[2].accessories![0]).toEqual({ tag: "killed", color: "red" });
     expect(entries.find((r) => r.name.startsWith("echo \"$PAL_GREETING\""))!.accessories![0]).toEqual({ tag: "exit 2", color: "red" });
     expect(entries[0].subtitle).toMatch(new RegExp(`^\\d+ ms in ${dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));

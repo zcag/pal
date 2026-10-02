@@ -48,14 +48,16 @@ describe("processes", () => {
     });
   });
 
-  test("rows with pids, sorted by cpu then memory, pid and memory accessories, three actions", async () => {
+  test("rows with pids, sorted by cpu then memory, the pid in the subtitle, memory on the right, three actions", async () => {
     const items = await list();
     expect(items.length).toBeGreaterThan(5);
     for (const i of items) {
       expect(i.id).toMatch(/^\d+$/);
       expect(i.pid).toBe(Number(i.id));
       expect(i.name).toBeTruthy();
-      expect(i.accessories!.slice(-2)).toEqual([{ text: i.id }, { text: expect.stringMatching(/^\d+(\.\d)? [MG]B$/) }]);
+      expect(i.subtitle).toStartWith(`pid ${i.id}`);
+      expect(i.accessories!.at(-1)).toEqual({ text: expect.stringMatching(/^\d+(\.\d)? [MG]B$/) });
+      expect(i.accessories!.length).toBeLessThanOrEqual(2);
       expect(i.actions!.map((a) => a.id)).toEqual(ACTIONS);
     }
     expect(items[0].actions![0]).toMatchObject({ style: "destructive", confirm: expect.any(String) });
@@ -63,11 +65,13 @@ describe("processes", () => {
     for (const i of items) expect(i.icon).toBeTruthy();
   });
 
-  test("detail: the full command and the numbers of the row, from the last listing", async () => {
+  test("detail: the command as the caption, the name as the title, CPU, memory and pid as stats, from the last listing", async () => {
     const items = await list();
     const d = await host.detail("processes", "processes", items[0].id);
-    expect(d!.metadata!.map((m) => m.label)).toEqual(["Command", "PID", "Parent", "User", "CPU", "Memory"]);
-    expect(d!.metadata![1].value).toBe(items[0].id);
+    expect(d).toMatchObject({ title: items[0].name, caption: expect.any(String) });
+    expect(d!.stats!.map((s) => s.label)).toEqual(["CPU", "memory", "pid"]);
+    expect(d!.stats![2].value).toBe(items[0].id);
+    expect(d!.metadata!.map((m) => m.label)).toEqual(["Parent", "User"]);
     expect(await host.detail("processes", "processes", "999999999")).toEqual({});
     // Never lists the host itself, and never a system pid by default.
     expect(items.map((i) => i.id)).not.toContain(String(host.pid));
@@ -115,7 +119,7 @@ describe("processes", () => {
       const port = server.port!;
       const rows = await list(`:${port}`);
       expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ id: `${process.pid}:${port}`, name: expect.stringMatching(/bun/i), subtitle: `127.0.0.1:${port}`, pid: process.pid });
+      expect(rows[0]).toMatchObject({ id: `${process.pid}:${port}`, name: expect.stringMatching(/bun/i), subtitle: `127.0.0.1:${port} · pid ${process.pid}`, pid: process.pid });
       expect(rows[0].accessories![0]).toEqual({ tag: `:${port}`, color: "blue" });
       expect(rows[0].keywords).toEqual(expect.arrayContaining([String(process.pid), `:${port}`, String(port)]));
       expect(rows[0].actions!.map((a) => a.id)).toEqual(ACTIONS);

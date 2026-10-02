@@ -26,30 +26,31 @@
               "text": "80, 443"
             },
             {
-              "text": "Up 27 hours"
-            },
-            {
               "tag": "running",
               "color": "green"
             }
           ],
           "detail": {
+            "caption": "shop · nginx:1.27-alpine",
+            "title": "web",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              },
+              {
+                "text": "Up 27 hours",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "3f9c2a1b7e40"
               },
               {
-                "label": "Image",
-                "value": "nginx:1.27-alpine"
-              },
-              {
                 "label": "Command",
                 "value": "nginx -g 'daemon off;'"
-              },
-              {
-                "label": "Status",
-                "value": "Up 27 hours"
               },
               {
                 "label": "Created",
@@ -66,10 +67,6 @@
               {
                 "label": "Networks",
                 "value": "bridge"
-              },
-              {
-                "label": "Compose project",
-                "value": "shop"
               }
             ]
           },
@@ -125,30 +122,31 @@
               "text": "8080:3000"
             },
             {
-              "text": "Up 27 hours"
-            },
-            {
               "tag": "running",
               "color": "green"
             }
           ],
           "detail": {
+            "caption": "shop · ghcr.io/acme/api:2.4.1",
+            "title": "api",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              },
+              {
+                "text": "Up 27 hours",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "a81d0f6c2e91"
               },
               {
-                "label": "Image",
-                "value": "ghcr.io/acme/api:2.4.1"
-              },
-              {
                 "label": "Command",
                 "value": "node server.js"
-              },
-              {
-                "label": "Status",
-                "value": "Up 27 hours"
               },
               {
                 "label": "Created",
@@ -161,10 +159,6 @@
               {
                 "label": "Networks",
                 "value": "bridge"
-              },
-              {
-                "label": "Compose project",
-                "value": "shop"
               }
             ]
           },
@@ -220,30 +214,31 @@
               "text": "5432"
             },
             {
-              "text": "Up 27 hours (healthy)"
-            },
-            {
               "tag": "running",
               "color": "green"
             }
           ],
           "detail": {
+            "caption": "shop · postgres:16",
+            "title": "db",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              },
+              {
+                "text": "Up 27 hours (healthy)",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "c02e7b9d4a55"
               },
               {
-                "label": "Image",
-                "value": "postgres:16"
-              },
-              {
                 "label": "Command",
                 "value": "postgres"
-              },
-              {
-                "label": "Status",
-                "value": "Up 27 hours (healthy)"
               },
               {
                 "label": "Created",
@@ -260,10 +255,6 @@
               {
                 "label": "Networks",
                 "value": "bridge"
-              },
-              {
-                "label": "Compose project",
-                "value": "shop"
               }
             ]
           },
@@ -316,30 +307,31 @@
           ],
           "accessories": [
             {
-              "text": "Up 27 hours"
-            },
-            {
               "tag": "running",
               "color": "green"
             }
           ],
           "detail": {
+            "caption": "shop · redis:7-alpine",
+            "title": "cache",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              },
+              {
+                "text": "Up 27 hours",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "e4b6d1a8f302"
               },
               {
-                "label": "Image",
-                "value": "redis:7-alpine"
-              },
-              {
                 "label": "Command",
                 "value": "redis-server"
-              },
-              {
-                "label": "Status",
-                "value": "Up 27 hours"
               },
               {
                 "label": "Created",
@@ -348,10 +340,6 @@
               {
                 "label": "Networks",
                 "value": "bridge"
-              },
-              {
-                "label": "Compose project",
-                "value": "shop"
               }
             ]
           },
@@ -406,30 +394,31 @@
               "text": "3000"
             },
             {
-              "text": "Up 3 days"
-            },
-            {
               "tag": "running",
               "color": "green"
             }
           ],
           "detail": {
+            "caption": "grafana/grafana:11.2.0",
+            "title": "grafana",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              },
+              {
+                "text": "Up 3 days",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "7d5a3e0c9b14"
               },
               {
-                "label": "Image",
-                "value": "grafana/grafana:11.2.0"
-              },
-              {
                 "label": "Command",
                 "value": "/run.sh"
-              },
-              {
-                "label": "Status",
-                "value": "Up 3 days"
               },
               {
                 "label": "Created",
@@ -506,22 +495,26 @@
             }
           ],
           "detail": {
+            "caption": "shop · ghcr.io/acme/api:2.4.1",
+            "title": "migrate",
+            "chips": [
+              {
+                "text": "exited",
+                "color": "grey"
+              },
+              {
+                "text": "Exited (0) 27 hours ago",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "9b1f4c7e2d68"
               },
               {
-                "label": "Image",
-                "value": "ghcr.io/acme/api:2.4.1"
-              },
-              {
                 "label": "Command",
                 "value": "node migrate.js"
-              },
-              {
-                "label": "Status",
-                "value": "Exited (0) 27 hours ago"
               },
               {
                 "label": "Created",
@@ -530,10 +523,6 @@
               {
                 "label": "Networks",
                 "value": "bridge"
-              },
-              {
-                "label": "Compose project",
-                "value": "shop"
               }
             ]
           },
@@ -577,30 +566,31 @@
               "text": "5050:80"
             },
             {
-              "text": "Exited (137) 3 days ago"
-            },
-            {
               "tag": "exited",
               "color": "grey"
             }
           ],
           "detail": {
+            "caption": "dpage/pgadmin4:8",
+            "title": "pgadmin",
+            "chips": [
+              {
+                "text": "exited",
+                "color": "grey"
+              },
+              {
+                "text": "Exited (137) 3 days ago",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "5e8a2d9f1c73"
               },
               {
-                "label": "Image",
-                "value": "dpage/pgadmin4:8"
-              },
-              {
                 "label": "Command",
                 "value": "/entrypoint.sh"
-              },
-              {
-                "label": "Status",
-                "value": "Exited (137) 3 days ago"
               },
               {
                 "label": "Created",
@@ -661,22 +651,26 @@
             }
           ],
           "detail": {
+            "caption": "ubuntu:24.04",
+            "title": "playground",
+            "chips": [
+              {
+                "text": "exited",
+                "color": "grey"
+              },
+              {
+                "text": "Exited (0) 2 weeks ago",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Id",
                 "value": "0c4d7f2a6e19"
               },
               {
-                "label": "Image",
-                "value": "ubuntu:24.04"
-              },
-              {
                 "label": "Command",
                 "value": "bash"
-              },
-              {
-                "label": "Status",
-                "value": "Exited (0) 2 weeks ago"
               },
               {
                 "label": "Created",
@@ -745,24 +739,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "91c3f6e2a7b4",
+            "title": "nginx:1.27-alpine",
+            "stats": [
               {
-                "label": "Id",
-                "value": "91c3f6e2a7b4"
-              },
-              {
-                "label": "Repository",
-                "value": "nginx"
-              },
-              {
-                "label": "Tag",
-                "value": "1.27-alpine"
-              },
-              {
-                "label": "Size",
-                "value": "43.2MB"
+                "value": "43.2MB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -801,24 +786,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "4e7a1b9c0d23",
+            "title": "ghcr.io/acme/api:2.4.1",
+            "stats": [
               {
-                "label": "Id",
-                "value": "4e7a1b9c0d23"
-              },
-              {
-                "label": "Repository",
-                "value": "ghcr.io/acme/api"
-              },
-              {
-                "label": "Tag",
-                "value": "2.4.1"
-              },
-              {
-                "label": "Size",
-                "value": "312MB"
+                "value": "312MB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -857,24 +833,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "b7d2e9f4c1a8",
+            "title": "postgres:16",
+            "stats": [
               {
-                "label": "Id",
-                "value": "b7d2e9f4c1a8"
-              },
-              {
-                "label": "Repository",
-                "value": "postgres"
-              },
-              {
-                "label": "Tag",
-                "value": "16"
-              },
-              {
-                "label": "Size",
-                "value": "438MB"
+                "value": "438MB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -913,24 +880,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "d1f8a3c6e2b9",
+            "title": "redis:7-alpine",
+            "stats": [
               {
-                "label": "Id",
-                "value": "d1f8a3c6e2b9"
-              },
-              {
-                "label": "Repository",
-                "value": "redis"
-              },
-              {
-                "label": "Tag",
-                "value": "7-alpine"
-              },
-              {
-                "label": "Size",
-                "value": "41.4MB"
+                "value": "41.4MB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -969,24 +927,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "2a9c4e7f1b36",
+            "title": "grafana/grafana:11.2.0",
+            "stats": [
               {
-                "label": "Id",
-                "value": "2a9c4e7f1b36"
-              },
-              {
-                "label": "Repository",
-                "value": "grafana/grafana"
-              },
-              {
-                "label": "Tag",
-                "value": "11.2.0"
-              },
-              {
-                "label": "Size",
-                "value": "489MB"
+                "value": "489MB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -1025,24 +974,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "f6c1e8d3a9b2",
+            "title": "ubuntu:24.04",
+            "stats": [
               {
-                "label": "Id",
-                "value": "f6c1e8d3a9b2"
-              },
-              {
-                "label": "Repository",
-                "value": "ubuntu"
-              },
-              {
-                "label": "Tag",
-                "value": "24.04"
-              },
-              {
-                "label": "Size",
-                "value": "78.1MB"
+                "value": "78.1MB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -1081,24 +1021,15 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "8e3b5a1d7c94",
+            "title": "8e3b5a1d7c94",
+            "stats": [
               {
-                "label": "Id",
-                "value": "8e3b5a1d7c94"
-              },
-              {
-                "label": "Repository",
-                "value": "<none>"
-              },
-              {
-                "label": "Tag",
-                "value": "<none>"
-              },
-              {
-                "label": "Size",
-                "value": "1.02GB"
+                "value": "1.02GB",
+                "label": "size"
               }
-            ]
+            ],
+            "metadata": []
           },
           "actions": [
             {
@@ -1142,19 +1073,20 @@
           ],
           "accessories": [
             {
-              "text": "running(4), exited(1)"
-            },
-            {
-              "tag": "running",
+              "tag": "4 running, 1 exited",
               "color": "amber"
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "~/proj/shop",
+            "title": "shop",
+            "chips": [
               {
-                "label": "Status",
-                "value": "running(4), exited(1)"
-              },
+                "text": "4 running, 1 exited",
+                "color": "amber"
+              }
+            ],
+            "metadata": [
               {
                 "label": "Config",
                 "value": "~/proj/shop/compose.yaml"
@@ -1200,19 +1132,20 @@
           ],
           "accessories": [
             {
-              "text": "running(3)"
-            },
-            {
-              "tag": "running",
+              "tag": "3 running",
               "color": "green"
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "~/proj/monitoring",
+            "title": "monitoring",
+            "chips": [
               {
-                "label": "Status",
-                "value": "running(3)"
-              },
+                "text": "3 running",
+                "color": "green"
+              }
+            ],
+            "metadata": [
               {
                 "label": "Config",
                 "value": "~/proj/monitoring/compose.yaml"
@@ -1258,19 +1191,20 @@
           ],
           "accessories": [
             {
-              "text": "exited(2)"
-            },
-            {
-              "tag": "exited",
+              "tag": "2 exited",
               "color": "grey"
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "~/proj/blog",
+            "title": "blog",
+            "chips": [
               {
-                "label": "Status",
-                "value": "exited(2)"
-              },
+                "text": "2 exited",
+                "color": "grey"
+              }
+            ],
+            "metadata": [
               {
                 "label": "Config",
                 "value": "~/proj/blog/compose.yaml"
@@ -1349,7 +1283,7 @@
         "wait:1500",
         "down"
       ],
-      "caption": "Containers, running first, with ports, status and a state tag"
+      "caption": "Containers, running first, with their ports (a stopped one's status) and a state tag"
     },
     "2-actions": {
       "palette": "docker",
@@ -1376,6 +1310,16 @@
         "type:web"
       ],
       "caption": "Running an image: the name and the ports, then docker run -d"
+    },
+    "5-detail": {
+      "palette": "docker",
+      "keys": [
+        "wait:1500",
+        "down",
+        "cmd+i",
+        "wait:400"
+      ],
+      "caption": "A container's detail (cmd+I): its Compose project and image, the name, its state and status, then id, command, ports, mounts and networks"
     }
   }
 }

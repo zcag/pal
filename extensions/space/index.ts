@@ -180,20 +180,18 @@ async function owner(path: string): Promise<string | undefined> {
   return r?.code === 0 ? r.out.trim() : String(st.uid);
 }
 
+/** A file or folder as a page: where it is, its name and kind, its sizes (and a folder's file count) large, then the rest. */
 const infoOf = async (n: Node): Promise<Effect> => {
   const path = pathOf(n);
   const metadata: Metadata[] = [
-    { label: "Kind", value: KIND_LABEL[kindOf(n)] },
-    { label: "Path", value: tilde(path) },
-    { label: "On disk", value: bytes(n.alloc) },
-    { label: "Apparent", value: bytes(n.size) },
-    ...(n.dir ? [{ label: "Files", value: n.files.toLocaleString("en-US") }, { label: "Items", value: `${(n.kids?.length ?? 0).toLocaleString("en-US")}${n.omitted ? ` shown of more (rescan for all)` : ""}` }] : []),
+    ...(n.dir ? [{ label: "Items", value: `${(n.kids?.length ?? 0).toLocaleString("en-US")}${n.omitted ? ` shown of more (rescan for all)` : ""}` }] : []),
     ...(n.up ? [{ label: "Share of parent", value: pct(n.alloc, n.up.alloc) }] : []),
     ...(n.mtime ? [{ label: "Modified", value: `${new Date(n.mtime).toISOString().slice(0, 16).replace("T", " ")} (${ago(n.mtime)})` }] : []),
   ];
   const who = await owner(path);
   if (who) metadata.push({ label: "Owner", value: who });
-  return { show: { title: n.name, metadata } };
+  const stats = [{ value: bytes(n.alloc), label: "on disk" }, { value: bytes(n.size), label: "apparent" }, ...(n.dir ? [{ value: n.files.toLocaleString("en-US"), label: n.files === 1 ? "file" : "files" }] : [])];
+  return { show: { caption: tilde(dirname(path)), title: n.name, chips: [{ text: KIND_LABEL[kindOf(n)] }], stats, metadata } };
 };
 
 /** A pick on a path row shared by the lists; `ids` are every marked row of a multi pick. */
@@ -261,14 +259,16 @@ async function rootRows(): Promise<Item[]> {
     const at = sc?.finished ?? st?.at, alloc = sc?.tree.alloc ?? st?.alloc, files = sc?.tree.files ?? st?.files;
     if (sc?.progress) return { subtitle: `Scanning… ${count(sc.progress.files)}, ${bytes(sc.progress.alloc)}`, accessories: [{ tag: "scanning", color: "blue" }] };
     if (at === undefined) return { accessories: [{ tag: "not scanned", color: "grey" }] };
-    return { subtitle: `${bytes(alloc ?? 0)} in ${count(files ?? 0)}, scanned ${ago(at)}`, accessories: [{ text: bytes(alloc ?? 0) }, { date: at }] };
+    // The size and when on the right; the subtitle only what they do not say.
+    return { subtitle: count(files ?? 0), accessories: [{ text: bytes(alloc ?? 0) }, { date: at }] };
   };
   const rows: Item[] = [];
   const homeInfo = scanned(HOME);
   rows.push({ id: `root:${HOME}`, name: "Home", subtitle: homeInfo.subtitle ?? tilde(HOME), icon: "\u{f02dc}", keywords: ["~", "home"], accessories: homeInfo.accessories, actions: [...ROOT_ACTIONS, ...(saved[HOME] ? [FORGET] : [])] });
   for (const v of vols) {
     const info = scanned(v.path);
-    rows.push({ id: `root:${v.path}`, name: v.name, subtitle: info.subtitle ?? `${bytes(v.free)} free of ${bytes(v.total)}`, icon: ICON, keywords: ["volume", "disk"], accessories: [{ text: `${bytes(v.free)} free` }, ...(info.accessories ?? [])], actions: [...ROOT_ACTIONS, ...(saved[v.path] ? [FORGET] : [])] });
+    // A volume's free space is its subtitle (a scan's progress while one runs); the right side is the scan's, as on Home.
+    rows.push({ id: `root:${v.path}`, name: v.name, subtitle: scans.get(v.path)?.progress ? info.subtitle : `${bytes(v.free)} free of ${bytes(v.total)}`, icon: ICON, keywords: ["volume", "disk"], accessories: info.accessories, actions: [...ROOT_ACTIONS, ...(saved[v.path] ? [FORGET] : [])] });
   }
   const others = [...new Set([...Object.keys(saved), ...scans.keys()])].filter((p) => p !== HOME && !vols.some((v) => v.path === p)).sort((a, b) => (saved[b]?.at ?? 0) - (saved[a]?.at ?? 0));
   for (const p of others) rows.push({ id: `root:${p}`, name: tilde(p), subtitle: scanned(p).subtitle, icon: GLYPH.folder, keywords: [basename(p)], accessories: scanned(p).accessories, actions: [...ROOT_ACTIONS, FORGET], section: "Scanned before" });
@@ -539,6 +539,7 @@ export default {
     space: {
       title: "Disk Space",
       live: true,
+      placeholder: "Where to look",
       list: rootRows,
       pick: rootPick,
     },
@@ -551,6 +552,7 @@ export default {
     largest: {
       title: "Largest Files",
       live: true,
+      placeholder: "Search files",
       multi: true,
       filters: KIND_FILTERS,
       list: (_q, ctx) => largestRows(ctx),
@@ -559,12 +561,14 @@ export default {
     folders: {
       title: "Largest Folders",
       live: true,
+      placeholder: "Search folders",
       list: (_q, ctx) => folderRows(ctx),
       pick: listPick,
     },
     cleanup: {
       title: "Cleanup Suggestions",
       live: true,
+      placeholder: "Search suggestions",
       list: cleanupRows,
       pick: cleanupPick,
     },

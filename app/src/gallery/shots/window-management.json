@@ -15,7 +15,6 @@
         {
           "id": "left_half",
           "name": "Left Half",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -38,7 +37,6 @@
         {
           "id": "right_half",
           "name": "Right Half",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2212.00%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -61,7 +59,6 @@
         {
           "id": "top_half",
           "name": "Top Half",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%2217.50%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -84,7 +81,6 @@
         {
           "id": "bottom_half",
           "name": "Bottom Half",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%2212.00%22%20width%3D%2217.50%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -107,7 +103,6 @@
         {
           "id": "left_third",
           "name": "Left Third",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%225.83%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -130,7 +125,6 @@
         {
           "id": "center_third",
           "name": "Center Third",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%229.08%22%20y%3D%225.25%22%20width%3D%225.83%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -153,7 +147,6 @@
         {
           "id": "right_third",
           "name": "Right Third",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2214.92%22%20y%3D%225.25%22%20width%3D%225.83%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -176,7 +169,6 @@
         {
           "id": "left_two_thirds",
           "name": "Left Two Thirds",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%2211.67%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -199,7 +191,6 @@
         {
           "id": "right_two_thirds",
           "name": "Right Two Thirds",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%229.08%22%20y%3D%225.25%22%20width%3D%2211.67%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -222,7 +213,6 @@
         {
           "id": "top_left_quarter",
           "name": "Top Left Quarter",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -246,7 +236,6 @@
         {
           "id": "top_right_quarter",
           "name": "Top Right Quarter",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2212.00%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -270,7 +259,6 @@
         {
           "id": "bottom_left_quarter",
           "name": "Bottom Left Quarter",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%2212.00%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -294,7 +282,6 @@
         {
           "id": "bottom_right_quarter",
           "name": "Bottom Right Quarter",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2212.00%22%20y%3D%2212.00%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -318,7 +305,6 @@
         {
           "id": "maximize",
           "name": "Maximize",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%2217.50%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -342,7 +328,6 @@
         {
           "id": "almost_maximize",
           "name": "Almost Maximize",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%224.30%22%20y%3D%226.20%22%20width%3D%2215.40%22%20height%3D%2211.61%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -366,7 +351,6 @@
         {
           "id": "maximize_height",
           "name": "Maximize Height",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%228.50%22%20y%3D%225.25%22%20width%3D%227.00%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -389,7 +373,6 @@
         {
           "id": "maximize_width",
           "name": "Maximize Width",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%229.30%22%20width%3D%2217.50%22%20height%3D%225.40%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -412,7 +395,6 @@
         {
           "id": "center",
           "name": "Center",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%227.63%22%20y%3D%228.63%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -434,7 +416,6 @@
         {
           "id": "reasonable_size",
           "name": "Reasonable Size",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%226.22%22%20y%3D%227.54%22%20width%3D%2211.55%22%20height%3D%228.91%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -457,7 +438,6 @@
         {
           "id": "larger",
           "name": "Larger",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%229.38%22%20y%3D%229.97%22%20width%3D%225.25%22%20height%3D%224.05%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M14%2010.5L19.5%206M16.71%206.24L19.5%206L18.71%208.69%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M10%2013.5L4.5%2018M7.29%2017.76L4.5%2018L5.29%2015.31%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -481,7 +461,6 @@
         {
           "id": "smaller",
           "name": "Smaller",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%229.38%22%20y%3D%229.97%22%20width%3D%225.25%22%20height%3D%224.05%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M19.5%206L14.5%2010M17.29%209.79L14.5%2010L15.32%207.32%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M4.5%2018L9.5%2014M6.71%2014.21L9.5%2014L8.68%2016.68%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -504,7 +483,6 @@
         {
           "id": "resize",
           "name": "Resize to…",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M12.5%2012.5L19%2017.5M18.13%2014.84L19%2017.5L16.20%2017.34%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -531,7 +509,6 @@
         {
           "id": "move_left",
           "name": "Move Left",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2210.60%22%20y%3D%228.63%22%20width%3D%227.35%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M8.5%2012L4.5%2012M6.81%2013.58L4.5%2012L6.81%2010.42%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -554,7 +531,6 @@
         {
           "id": "move_right",
           "name": "Move Right",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%226.05%22%20y%3D%228.63%22%20width%3D%227.35%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M15.5%2012L19.5%2012M17.19%2010.42L19.5%2012L17.19%2013.58%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -577,7 +553,6 @@
         {
           "id": "move_up",
           "name": "Move Up",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%228.32%22%20y%3D%2210.92%22%20width%3D%227.35%22%20height%3D%226.08%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M12%2010L12%206.5M10.42%208.81L12%206.5L13.58%208.81%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -601,7 +576,6 @@
         {
           "id": "move_down",
           "name": "Move Down",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%228.32%22%20y%3D%227.00%22%20width%3D%227.35%22%20height%3D%226.08%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M12%2014L12%2017.5M13.58%2015.19L12%2017.5L10.42%2015.19%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -625,7 +599,6 @@
         {
           "id": "next_display",
           "name": "Next Display",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%221.5%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2213%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2214.25%22%20y%3D%227.25%22%20width%3D%227%22%20height%3D%229.5%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -649,7 +622,6 @@
         {
           "id": "previous_display",
           "name": "Previous Display",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%221.5%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2213%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%222.75%22%20y%3D%227.25%22%20width%3D%227%22%20height%3D%229.5%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -673,7 +645,6 @@
         {
           "id": "fullscreen",
           "name": "Toggle Fullscreen",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22%236662E0%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%229%22%20width%3D%228%22%20height%3D%226%22%20rx%3D%221%22%20fill%3D%22%23fff%22%20fill-opacity%3D%220.9%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -696,7 +667,6 @@
         {
           "id": "minimize",
           "name": "Minimize",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%225.88%22%20y%3D%2216.32%22%20width%3D%2212.25%22%20height%3D%222.43%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M12%207L12%2013.5M13.58%2011.19L12%2013.5L10.42%2011.19%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
           },
@@ -739,7 +709,6 @@
         {
           "id": "restore",
           "name": "Restore",
-          "subtitle": "Focused window",
           "icon": {
             "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%226.5%22%20y%3D%227.5%22%20width%3D%2211%22%20height%3D%229%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-dasharray%3D%222%201.5%22%2F%3E%3C%2Fsvg%3E"
           },

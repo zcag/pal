@@ -57,9 +57,9 @@ try {
     const e = extra.find(([, cmd]) => r.id === `h:${cmd}`);
     // The stand-ins for `true` share one history row (the history is by command); one row per name instead.
     const named = e ? extra.filter(([, cmd]) => cmd === e[1]).map(([name]) => ({ ...r, id: `h:${name}`, name, keywords: [name] })) : [r];
-    return named.map((n) => (TIMES[n.name] ? { ...n, subtitle: n.subtitle!.replace(/^.*? in /, `${duration(TIMES[n.name][0])} in `), accessories: [n.accessories![0], { date: NOW - TIMES[n.name][1] }] } : n));
+    return named.map((n) => (TIMES[n.name] ? { ...n, subtitle: n.subtitle!.replace(/^.*? in /, `${duration(TIMES[n.name][0])} in `), accessories: [...n.accessories!.slice(0, -1), { date: NOW - TIMES[n.name][1] }] } : n));
   });
-  const dateOf = (r: { accessories?: unknown[] }) => Number((r.accessories?.[1] as { date?: number } | undefined)?.date ?? 0);
+  const dateOf = (r: { accessories?: unknown[] }) => Number((r.accessories?.at(-1) as { date?: number } | undefined)?.date ?? 0);
   // Clear history counts the rows as the history would hold them, one per name.
   const clear = rows.find((r) => r.id === "clear");
   if (clear) clear.subtitle = `${rows.length - 1} commands`;
@@ -75,7 +75,7 @@ try {
       "2-output": { palette: "shell", keys: [`type:${OUTPUT}`, "enter", "wait:400"], caption: "The output view: exit 0 and the duration as badges, stdout in mono on the sunken surface" },
       "3-stderr": { palette: "shell", keys: [`type:${STDERR}`, "enter", "wait:400"], caption: "A failing command: stderr in red, exit 1" },
       "4-confirm": { palette: "shell", keys: [`type:${CONFIRM}`, "enter", "wait:300"], caption: "rm -rf on the way: the confirm card before anything runs" },
-      "5-history": { palette: "history", keys: ["down"], caption: "Shell History: past commands with their exit codes, Enter runs one again" },
+      "5-history": { palette: "history", keys: ["down"], caption: "Shell History: past commands, green or red by how they ended, a failure with its exit code; Enter runs one again" },
     },
   };
   writeFixture("shell", fixture);

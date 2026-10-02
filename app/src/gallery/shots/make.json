@@ -13,7 +13,7 @@
         {
           "id": "build@~/code/api",
           "name": "build",
-          "subtitle": "~/code/api: Compile the server into bin/api",
+          "subtitle": "Compile the server into bin/api",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -45,7 +45,7 @@
         {
           "id": "test@~/code/api",
           "name": "test",
-          "subtitle": "~/code/api: Run every test with the race detector",
+          "subtitle": "Run every test with the race detector",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -77,7 +77,7 @@
         {
           "id": "lint@~/code/api",
           "name": "lint",
-          "subtitle": "~/code/api: Vet and staticcheck",
+          "subtitle": "Vet and staticcheck",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -109,7 +109,7 @@
         {
           "id": "run@~/code/api",
           "name": "run",
-          "subtitle": "~/code/api: Start the server on :8080 with the dev config",
+          "subtitle": "Start the server on :8080 with the dev config",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -141,7 +141,7 @@
         {
           "id": "migrate@~/code/api",
           "name": "migrate",
-          "subtitle": "~/code/api: Apply pending database migrations",
+          "subtitle": "Apply pending database migrations",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -173,7 +173,7 @@
         {
           "id": "docker@~/code/api",
           "name": "docker",
-          "subtitle": "~/code/api: Build the image tagged with the git sha",
+          "subtitle": "Build the image tagged with the git sha",
           "icon": "󰣪",
           "keywords": [
             "api",
@@ -237,7 +237,7 @@
         {
           "id": "plan@~/code/infra",
           "name": "plan",
-          "subtitle": "~/code/infra: terraform plan for the production workspace",
+          "subtitle": "terraform plan for the production workspace",
           "icon": "󰣪",
           "keywords": [
             "infra",
@@ -269,7 +269,7 @@
         {
           "id": "apply@~/code/infra",
           "name": "apply",
-          "subtitle": "~/code/infra: terraform apply, after a plan",
+          "subtitle": "terraform apply, after a plan",
           "icon": "󰣪",
           "keywords": [
             "infra",
@@ -333,7 +333,7 @@
         {
           "id": "dev@~/code/site",
           "name": "dev",
-          "subtitle": "~/code/site: Vite dev server with hot reload",
+          "subtitle": "Vite dev server with hot reload",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -365,7 +365,7 @@
         {
           "id": "build@~/code/site",
           "name": "build",
-          "subtitle": "~/code/site: Production build into dist/",
+          "subtitle": "Production build into dist/",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -397,7 +397,7 @@
         {
           "id": "deploy@~/code/site",
           "name": "deploy",
-          "subtitle": "~/code/site: Sync dist/ to the web host",
+          "subtitle": "Sync dist/ to the web host",
           "icon": "󰣪",
           "keywords": [
             "site",
@@ -461,286 +461,158 @@
       ],
       "details": {
         "build@~/code/api": {
-          "markdown": "````make\ngo build -o bin/api ./cmd/api\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "build",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Compile the server into bin/api"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Compile the server into bin/api\n\n````make\ngo build -o bin/api ./cmd/api\n````"
         },
         "test@~/code/api": {
-          "markdown": "````make\ngo test -race ./...\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "test",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Run every test with the race detector"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Run every test with the race detector\n\n````make\ngo test -race ./...\n````"
         },
         "lint@~/code/api": {
-          "markdown": "````make\ngo vet ./...\nstaticcheck ./...\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "lint",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Vet and staticcheck"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Vet and staticcheck\n\n````make\ngo vet ./...\nstaticcheck ./...\n````"
         },
         "run@~/code/api": {
-          "markdown": "````make\n./bin/api --config config/dev.toml\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "run",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Start the server on :8080 with the dev config"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Start the server on :8080 with the dev config\n\n````make\n./bin/api --config config/dev.toml\n````"
         },
         "migrate@~/code/api": {
-          "markdown": "````make\nmigrate -path db/migrations -database \"$$DATABASE_URL\" up\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "migrate",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Apply pending database migrations"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Apply pending database migrations\n\n````make\nmigrate -path db/migrations -database \"$$DATABASE_URL\" up\n````"
         },
         "docker@~/code/api": {
-          "markdown": "````make\ndocker build -t ghcr.io/acme/api:$$(git rev-parse --short HEAD) .\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "docker",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Build the image tagged with the git sha"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Build the image tagged with the git sha\n\n````make\ndocker build -t ghcr.io/acme/api:$$(git rev-parse --short HEAD) .\n````"
         },
         "clean@~/code/api": {
-          "markdown": "````make\nrm -rf bin/\n````",
-          "metadata": [
+          "caption": "~/code/api/Makefile",
+          "title": "clean",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/api"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "````make\nrm -rf bin/\n````"
         },
         "plan@~/code/infra": {
-          "markdown": "````make\nterraform plan -var-file=prod.tfvars\n````",
-          "metadata": [
+          "caption": "~/code/infra/Makefile",
+          "title": "plan",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/infra"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "terraform plan for the production workspace"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "terraform plan for the production workspace\n\n````make\nterraform plan -var-file=prod.tfvars\n````"
         },
         "apply@~/code/infra": {
-          "markdown": "````make\nterraform apply -var-file=prod.tfvars\n````",
-          "metadata": [
+          "caption": "~/code/infra/Makefile",
+          "title": "apply",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/infra"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "terraform apply, after a plan"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "terraform apply, after a plan\n\n````make\nterraform apply -var-file=prod.tfvars\n````"
         },
         "fmt@~/code/infra": {
-          "markdown": "````make\nterraform fmt -recursive\n````",
-          "metadata": [
+          "caption": "~/code/infra/Makefile",
+          "title": "fmt",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/infra"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "````make\nterraform fmt -recursive\n````"
         },
         "dev@~/code/site": {
-          "markdown": "````make\nnpm run dev\n````",
-          "metadata": [
+          "caption": "~/code/site/Makefile",
+          "title": "dev",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/site"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Vite dev server with hot reload"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Vite dev server with hot reload\n\n````make\nnpm run dev\n````"
         },
         "build@~/code/site": {
-          "markdown": "````make\nnpm run build\n````",
-          "metadata": [
+          "caption": "~/code/site/Makefile",
+          "title": "build",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/site"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Production build into dist/"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Production build into dist/\n\n````make\nnpm run build\n````"
         },
         "deploy@~/code/site": {
-          "markdown": "````make\nrsync -az --delete dist/ web-1:/srv/site/\n````",
-          "metadata": [
+          "caption": "~/code/site/Makefile",
+          "title": "deploy",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/site"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Description",
-              "value": "Sync dist/ to the web host"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "Sync dist/ to the web host\n\n````make\nrsync -az --delete dist/ web-1:/srv/site/\n````"
         },
         "preview@~/code/site": {
-          "markdown": "````make\nnpm run preview\n````",
-          "metadata": [
+          "caption": "~/code/site/Makefile",
+          "title": "preview",
+          "chips": [
             {
-              "label": "Project",
-              "value": "~/code/site"
-            },
-            {
-              "label": "Makefile",
-              "value": "Makefile"
-            },
-            {
-              "label": "Phony",
-              "value": "yes"
+              "text": "phony",
+              "color": "grey"
             }
-          ]
+          ],
+          "markdown": "````make\nnpm run preview\n````"
         }
       }
     }
@@ -760,7 +632,7 @@
         "wait:1500",
         "down"
       ],
-      "caption": "Every target of the Makefiles under the configured folders, a section per project, its ## description after the folder"
+      "caption": "Every target of the Makefiles under the configured folders, a section per project, its ## description under the name"
     },
     "2-recipe": {
       "palette": "make",
@@ -770,7 +642,7 @@
         "cmd+i",
         "wait:400"
       ],
-      "caption": "The detail pane (cmd+I): the target's recipe, then its project, its Makefile and its description"
+      "caption": "The detail pane (cmd+I): the Makefile and the target on top, its description, then its recipe"
     },
     "3-makefile": {
       "palette": "make",

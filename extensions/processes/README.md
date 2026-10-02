@@ -3,18 +3,19 @@
 What is running, from `ps`, listed again on every keystroke because the
 set changes constantly (an input palette; the root only has its own row).
 The query matches the name or a pid prefix. The row is the executable's
-name, its full path the subtitle on macOS (Linux `ps` gives only the
-name); the pid and the resident memory sit on the right, and a process
-above 10% CPU carries a `NN% cpu` tag (amber, red from 50%). Rows are
-sorted by CPU, then memory. On macOS a process that lives in a `.app`
-bundle gets that app's icon, any other a chip glyph. The detail pane
-(`cmd+i`) shows the full command, the pid, the parent pid, the user, the
-CPU share and the memory of the row.
+name, its pid the subtitle with the full path after it on macOS (Linux
+`ps` gives only the name; an app's process shows its icon instead); the
+resident memory sits on the right, and a process above 10% CPU carries a
+`NN% cpu` tag (amber, red from 50%). Rows are sorted by CPU, then memory.
+On macOS a process that lives in a `.app` bundle gets that app's icon, any
+other a chip glyph. The detail pane (`cmd+i`) leads with the full command
+and the name, the CPU share, the memory and the pid large, then the parent
+pid and the user.
 
 A query of `:` and digits lists what listens on TCP ports instead of
 processes: `:3000` that port, `:30` every port starting with 30, `:`
 alone every listener. One row per process and port with the port as a
-blue tag and the address as subtitle; a process `ps` knows gets its usual
+blue tag and the address and pid as subtitle; a process `ps` knows gets its usual
 numbers and icon. `ss -ltnp` on Linux, else `lsof -iTCP -sTCP:LISTEN`
 (macOS ships it). A row's id is `pid:port`, and it has the same actions.
 
@@ -66,5 +67,5 @@ Settings, `[extensions.processes]`:
 
 ## Platforms
 
-macOS and Linux. The full path as subtitle, app icons and Open in
+macOS and Linux. The full path in the subtitle, app icons and Open in
 Activity Monitor are macOS; kernel threads and `ss` are Linux.

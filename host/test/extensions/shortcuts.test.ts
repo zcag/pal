@@ -72,7 +72,7 @@ describe("shortcuts", () => {
       ["Lights on", "Home"], ["Open App (11111111-2222-3333-4444-555555555555)", "Home"],
       ["Standup notes", "Work"],
     ]);
-    expect(items[2]).toMatchObject({ name: "Lights on", icon: "\u{f040b}", keywords: ["Home"], detail: { metadata: [{ label: "Name", value: "Lights on" }, { label: "Folder", value: "Home" }, { label: "Identifier", value: "A60321F9-5380-4AC8-BFF0-D736CE80DD10" }] } });
+    expect(items[2]).toMatchObject({ name: "Lights on", icon: "\u{f040b}", keywords: ["Home"], detail: { caption: "Shortcuts · Home", title: "Lights on", metadata: [{ label: "Identifier", value: "A60321F9-5380-4AC8-BFF0-D736CE80DD10" }] } });
     expect(items[0].keywords).toBeUndefined();
     expect(items[0].actions!.map((a) => [a.id, a.shortcut])).toEqual([["run", undefined], ["clipboard", undefined], ["text", "cmd+t"], ["open", "cmd+o"], ["copy", "cmd+c"]]);
     // Marked shortcuts run (bare or with the clipboard) and copy; the input and Open are one shortcut's.
@@ -106,7 +106,7 @@ describe("shortcuts", () => {
     expect(runs().pop()).toBe(`749DC7C9-9153-4FA6-8B1A-DE5755EB40D4\t${fixtures.clipboard[0].text}`);
     const h = await Host.bundled({ core: { "clipboard.list": () => [] } });
     await h.list("shortcuts", "shortcuts");
-    expect(await h.pick("shortcuts", "shortcuts", "Adjust Clipboard", "clipboard")).toEqual({ keep: true, toast: { title: "Nothing on the clipboard", message: "Copy some text first, or use Run with text", style: "failure" } });
+    expect(await h.pick("shortcuts", "shortcuts", "Adjust Clipboard", "clipboard")).toEqual({ keep: true, toast: { title: "Nothing on the clipboard", message: "Copy some text first, or use Run with input", style: "failure" } });
     h.kill();
   });
 

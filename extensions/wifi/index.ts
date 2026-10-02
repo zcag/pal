@@ -11,7 +11,7 @@
 // (the system prompt, once per install; the app skips the ask for the
 // startup load), and a refusal is a hint row that opens the pane. Live:
 // listed again on every show.
-import { errorMessage, failed, hint, permissions, toast, wifi, xdg, type Accessory, type Action, type Ctx, type Extension, type Form, type Item, type PermissionStatus, type WifiNetwork } from "@zcag/pal";
+import { errorMessage, failed, hint, permissions, toast, wifi, xdg, type Accessory, type Action, type Ctx, type Detail, type Extension, type Form, type Item, type PermissionStatus, type WifiNetwork } from "@zcag/pal";
 
 const MAC = process.platform === "darwin";
 const WIFI = xdg("network-wireless")!;
@@ -37,6 +37,17 @@ export const bars = (signal: number): string => "▂▄▆█".slice(0, Math.max
 
 const signalAccessory = (signal: number | null): Accessory[] => (signal === null ? [] : [{ text: `${bars(signal)} ${signal}%` }]);
 
+/** A network as a page: where it stands (Current, Saved, In range), its name, its security and state as chips, signal and channel large, the address under them. */
+function networkDetail(caption: string, name: string, n: { signal: number | null; channel: string | null; security: string | null }, chips: Detail["chips"] = [], ip?: string | null): Detail {
+  return {
+    caption,
+    title: name,
+    chips: [...chips, { text: n.security ?? "Open", color: n.security ? "grey" : "amber" }],
+    stats: [...(n.signal !== null ? [{ value: `${n.signal}%`, label: "signal" }] : []), ...(n.channel ? [{ value: n.channel, label: "channel" }] : [])],
+    metadata: ip ? [{ label: "IP address", value: ip }] : [],
+  };
+}
+
 const joinAction: Action = { id: "join", title: "Join" };
 const copyPassword: Action = { id: "password", title: "Copy password", shortcut: "cmd+shift+c" };
 const copyName: Action = { id: "copy", title: "Copy name", shortcut: "cmd+c" };
@@ -51,6 +62,7 @@ function available(n: WifiNetwork): Item {
     icon: n.security ? LOCK : WIFI,
     keywords: ["wifi", "network"],
     accessories: signalAccessory(n.signal),
+    detail: networkDetail("In range", n.ssid, n),
     actions: [joinAction, copyName],
     args: n.security ? [{ id: "password", placeholder: "Password", kind: "password" }] : undefined,
     section: "Available",
@@ -99,6 +111,7 @@ export default {
             icon: WIFI,
             keywords: ["wifi", "network", "current"],
             accessories: [...signalAccessory(cur.signal), { tag: "connected", color: "green" }],
+            detail: networkDetail(`Current · ${status.interface}`, cur.ssid ?? "Connected network", cur, [{ text: "connected", color: "green" }], cur.ip),
             actions,
             section: "Current",
           });
@@ -116,6 +129,7 @@ export default {
             icon: WIFI,
             keywords: ["wifi", "network", "saved"],
             accessories: n ? [...signalAccessory(n.signal), { tag: "in range", color: "blue" }] : [],
+            ...(n && { detail: networkDetail("Saved", k.ssid, n, [{ text: "in range", color: "blue" }]) }),
             actions: [joinAction, copyName, copyPassword, forget],
             section: "Known",
           });

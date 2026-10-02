@@ -102,7 +102,7 @@ function item(w: Window, siblings: number): Item {
   // Hidden is its own state: a hidden app's windows are off screen too, but they are not on another space.
   if (w.hidden) accessories.push({ tag: "hidden" });
   else if (w.minimized) accessories.push({ tag: "minimized" });
-  else if (!w.on_screen) accessories.push({ text: w.workspace ? `ws ${workspaceLabel(w.workspace)}` : "other space" });
+  else if (!w.on_screen) accessories.push({ text: w.workspace ? `space ${workspaceLabel(w.workspace)}` : "other space" });
   if (w.monitor) accessories.push({ text: w.monitor });
   return {
     id: w.id,

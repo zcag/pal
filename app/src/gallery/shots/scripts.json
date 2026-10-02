@@ -252,22 +252,22 @@
             "ship"
           ],
           "detail": {
+            "caption": "~/.config/pal/commands/deploy-site.sh",
+            "title": "Deploy site",
+            "chips": [
+              {
+                "text": "hud",
+                "color": "grey"
+              },
+              {
+                "text": "asks first",
+                "color": "amber"
+              }
+            ],
             "metadata": [
-              {
-                "label": "File",
-                "value": "~/.config/pal/commands/deploy-site.sh"
-              },
-              {
-                "label": "Mode",
-                "value": "hud"
-              },
               {
                 "label": "Arguments",
                 "value": "target, note"
-              },
-              {
-                "label": "Confirm",
-                "value": "yes"
               },
               {
                 "label": "Runs in",
@@ -317,15 +317,15 @@
             }
           ],
           "detail": {
+            "caption": "~/.config/pal/commands/listening-ports.sh",
+            "title": "Listening ports",
+            "chips": [
+              {
+                "text": "list",
+                "color": "grey"
+              }
+            ],
             "metadata": [
-              {
-                "label": "File",
-                "value": "~/.config/pal/commands/listening-ports.sh"
-              },
-              {
-                "label": "Mode",
-                "value": "list"
-              },
               {
                 "label": "Runs in",
                 "value": "~/.config/pal/commands"
@@ -370,15 +370,15 @@
             }
           ],
           "detail": {
+            "caption": "~/.config/pal/commands/battery.sh",
+            "title": "Battery",
+            "chips": [
+              {
+                "text": "inline",
+                "color": "grey"
+              }
+            ],
             "metadata": [
-              {
-                "label": "File",
-                "value": "~/.config/pal/commands/battery.sh"
-              },
-              {
-                "label": "Mode",
-                "value": "inline"
-              },
               {
                 "label": "Runs in",
                 "value": "~/.config/pal/commands"
@@ -422,19 +422,19 @@
             }
           ],
           "detail": {
+            "caption": "~/.config/pal/commands/toggle-vpn.sh",
+            "title": "Toggle VPN",
+            "chips": [
+              {
+                "text": "silent",
+                "color": "grey"
+              },
+              {
+                "text": "asks first",
+                "color": "amber"
+              }
+            ],
             "metadata": [
-              {
-                "label": "File",
-                "value": "~/.config/pal/commands/toggle-vpn.sh"
-              },
-              {
-                "label": "Mode",
-                "value": "silent"
-              },
-              {
-                "label": "Confirm",
-                "value": "yes"
-              },
               {
                 "label": "Runs in",
                 "value": "~/.config/pal/commands"
@@ -470,15 +470,15 @@
           "icon": "👋",
           "section": "Utilities",
           "detail": {
+            "caption": "~/.config/pal/commands/say-hi.sh",
+            "title": "Say hi",
+            "chips": [
+              {
+                "text": "hud",
+                "color": "grey"
+              }
+            ],
             "metadata": [
-              {
-                "label": "File",
-                "value": "~/.config/pal/commands/say-hi.sh"
-              },
-              {
-                "label": "Mode",
-                "value": "hud"
-              },
               {
                 "label": "Arguments",
                 "value": "argument1"
@@ -523,15 +523,15 @@
             }
           ],
           "detail": {
+            "caption": "~/.config/pal/commands/weather.sh",
+            "title": "Weather",
+            "chips": [
+              {
+                "text": "show",
+                "color": "grey"
+              }
+            ],
             "metadata": [
-              {
-                "label": "File",
-                "value": "~/.config/pal/commands/weather.sh"
-              },
-              {
-                "label": "Mode",
-                "value": "show"
-              },
               {
                 "label": "Runs in",
                 "value": "~/.config/pal/commands"

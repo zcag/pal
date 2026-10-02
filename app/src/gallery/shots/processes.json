@@ -33,7 +33,7 @@
         {
           "id": "4821",
           "name": "Google Chrome Helper (Renderer)",
-          "subtitle": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/Current/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)",
+          "subtitle": "pid 4821",
           "icon": {
             "app": "/Applications/Google Chrome.app"
           },
@@ -44,9 +44,6 @@
             {
               "tag": "64% cpu",
               "color": "red"
-            },
-            {
-              "text": "4821"
             },
             {
               "text": "912 MB"
@@ -81,7 +78,7 @@
         {
           "id": "1207",
           "name": "node",
-          "subtitle": "/opt/homebrew/bin/node",
+          "subtitle": "pid 1207 · /opt/homebrew/bin/node",
           "icon": "󰍛",
           "keywords": [
             "1207"
@@ -90,9 +87,6 @@
             {
               "tag": "24% cpu",
               "color": "amber"
-            },
-            {
-              "text": "1207"
             },
             {
               "text": "486 MB"
@@ -127,7 +121,7 @@
         {
           "id": "3310",
           "name": "kitty",
-          "subtitle": "/Applications/kitty.app/Contents/MacOS/kitty",
+          "subtitle": "pid 3310",
           "icon": {
             "app": "/Applications/kitty.app"
           },
@@ -138,9 +132,6 @@
             {
               "tag": "12% cpu",
               "color": "amber"
-            },
-            {
-              "text": "3310"
             },
             {
               "text": "210 MB"
@@ -175,15 +166,12 @@
         {
           "id": "612",
           "name": "WindowServer",
-          "subtitle": "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
+          "subtitle": "pid 612 · /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
           "icon": "󰍛",
           "keywords": [
             "612"
           ],
           "accessories": [
-            {
-              "text": "612"
-            },
             {
               "text": "1.3 GB"
             }
@@ -217,7 +205,7 @@
         {
           "id": "2077",
           "name": "Code Helper (Plugin)",
-          "subtitle": "/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)",
+          "subtitle": "pid 2077",
           "icon": {
             "app": "/Applications/Visual Studio Code.app"
           },
@@ -225,9 +213,6 @@
             "2077"
           ],
           "accessories": [
-            {
-              "text": "2077"
-            },
             {
               "text": "740 MB"
             }
@@ -261,7 +246,7 @@
         {
           "id": "890",
           "name": "Spotify",
-          "subtitle": "/Applications/Spotify.app/Contents/MacOS/Spotify",
+          "subtitle": "pid 890",
           "icon": {
             "app": "/Applications/Spotify.app"
           },
@@ -269,9 +254,6 @@
             "890"
           ],
           "accessories": [
-            {
-              "text": "890"
-            },
             {
               "text": "388 MB"
             }
@@ -305,7 +287,7 @@
         {
           "id": "455",
           "name": "Finder",
-          "subtitle": "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+          "subtitle": "pid 455",
           "icon": {
             "app": "/System/Library/CoreServices/Finder.app"
           },
@@ -313,9 +295,6 @@
             "455"
           ],
           "accessories": [
-            {
-              "text": "455"
-            },
             {
               "text": "142 MB"
             }
@@ -349,15 +328,12 @@
         {
           "id": "5124",
           "name": "postgres",
-          "subtitle": "/opt/homebrew/opt/postgresql@16/bin/postgres",
+          "subtitle": "pid 5124 · /opt/homebrew/opt/postgresql@16/bin/postgres",
           "icon": "󰍛",
           "keywords": [
             "5124"
           ],
           "accessories": [
-            {
-              "text": "5124"
-            },
             {
               "text": "96 MB"
             }
@@ -391,15 +367,12 @@
         {
           "id": "233",
           "name": "mds_stores",
-          "subtitle": "/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
+          "subtitle": "pid 233 · /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
           "icon": "󰍛",
           "keywords": [
             "233"
           ],
           "accessories": [
-            {
-              "text": "233"
-            },
             {
               "text": "58 MB"
             }
@@ -433,15 +406,12 @@
         {
           "id": "310",
           "name": "cfprefsd",
-          "subtitle": "/usr/sbin/cfprefsd",
+          "subtitle": "pid 310 · /usr/sbin/cfprefsd",
           "icon": "󰍛",
           "keywords": [
             "310"
           ],
           "accessories": [
-            {
-              "text": "310"
-            },
             {
               "text": "12 MB"
             }
@@ -478,7 +448,7 @@
           {
             "id": "4821",
             "name": "Google Chrome Helper (Renderer)",
-            "subtitle": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/Current/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)",
+            "subtitle": "pid 4821",
             "icon": {
               "app": "/Applications/Google Chrome.app"
             },
@@ -489,9 +459,6 @@
               {
                 "tag": "64% cpu",
                 "color": "red"
-              },
-              {
-                "text": "4821"
               },
               {
                 "text": "912 MB"
@@ -526,7 +493,7 @@
           {
             "id": "1207",
             "name": "node",
-            "subtitle": "/opt/homebrew/bin/node",
+            "subtitle": "pid 1207 · /opt/homebrew/bin/node",
             "icon": "󰍛",
             "keywords": [
               "1207"
@@ -535,9 +502,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -572,7 +536,7 @@
           {
             "id": "3310",
             "name": "kitty",
-            "subtitle": "/Applications/kitty.app/Contents/MacOS/kitty",
+            "subtitle": "pid 3310",
             "icon": {
               "app": "/Applications/kitty.app"
             },
@@ -583,9 +547,6 @@
               {
                 "tag": "12% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "3310"
               },
               {
                 "text": "210 MB"
@@ -620,15 +581,12 @@
           {
             "id": "612",
             "name": "WindowServer",
-            "subtitle": "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
+            "subtitle": "pid 612 · /System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
             "icon": "󰍛",
             "keywords": [
               "612"
             ],
             "accessories": [
-              {
-                "text": "612"
-              },
               {
                 "text": "1.3 GB"
               }
@@ -662,7 +620,7 @@
           {
             "id": "2077",
             "name": "Code Helper (Plugin)",
-            "subtitle": "/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)",
+            "subtitle": "pid 2077",
             "icon": {
               "app": "/Applications/Visual Studio Code.app"
             },
@@ -670,9 +628,6 @@
               "2077"
             ],
             "accessories": [
-              {
-                "text": "2077"
-              },
               {
                 "text": "740 MB"
               }
@@ -706,7 +661,7 @@
           {
             "id": "890",
             "name": "Spotify",
-            "subtitle": "/Applications/Spotify.app/Contents/MacOS/Spotify",
+            "subtitle": "pid 890",
             "icon": {
               "app": "/Applications/Spotify.app"
             },
@@ -714,9 +669,6 @@
               "890"
             ],
             "accessories": [
-              {
-                "text": "890"
-              },
               {
                 "text": "388 MB"
               }
@@ -750,7 +702,7 @@
           {
             "id": "455",
             "name": "Finder",
-            "subtitle": "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+            "subtitle": "pid 455",
             "icon": {
               "app": "/System/Library/CoreServices/Finder.app"
             },
@@ -758,9 +710,6 @@
               "455"
             ],
             "accessories": [
-              {
-                "text": "455"
-              },
               {
                 "text": "142 MB"
               }
@@ -794,15 +743,12 @@
           {
             "id": "5124",
             "name": "postgres",
-            "subtitle": "/opt/homebrew/opt/postgresql@16/bin/postgres",
+            "subtitle": "pid 5124 · /opt/homebrew/opt/postgresql@16/bin/postgres",
             "icon": "󰍛",
             "keywords": [
               "5124"
             ],
             "accessories": [
-              {
-                "text": "5124"
-              },
               {
                 "text": "96 MB"
               }
@@ -836,15 +782,12 @@
           {
             "id": "233",
             "name": "mds_stores",
-            "subtitle": "/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
+            "subtitle": "pid 233 · /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
             "icon": "󰍛",
             "keywords": [
               "233"
             ],
             "accessories": [
-              {
-                "text": "233"
-              },
               {
                 "text": "58 MB"
               }
@@ -878,15 +821,12 @@
           {
             "id": "310",
             "name": "cfprefsd",
-            "subtitle": "/usr/sbin/cfprefsd",
+            "subtitle": "pid 310 · /usr/sbin/cfprefsd",
             "icon": "󰍛",
             "keywords": [
               "310"
             ],
             "accessories": [
-              {
-                "text": "310"
-              },
               {
                 "text": "12 MB"
               }
@@ -922,7 +862,7 @@
           {
             "id": "7781:80",
             "name": "caddy",
-            "subtitle": "*:80",
+            "subtitle": "*:80 · pid 7781",
             "icon": "󰍛",
             "keywords": [
               "7781",
@@ -933,9 +873,6 @@
               {
                 "tag": ":80",
                 "color": "blue"
-              },
-              {
-                "text": "7781"
               },
               {
                 "text": "34 MB"
@@ -970,7 +907,7 @@
           {
             "id": "7781:443",
             "name": "caddy",
-            "subtitle": "*:443",
+            "subtitle": "*:443 · pid 7781",
             "icon": "󰍛",
             "keywords": [
               "7781",
@@ -981,9 +918,6 @@
               {
                 "tag": ":443",
                 "color": "blue"
-              },
-              {
-                "text": "7781"
               },
               {
                 "text": "34 MB"
@@ -1018,7 +952,7 @@
           {
             "id": "5124:5432",
             "name": "postgres",
-            "subtitle": "127.0.0.1:5432",
+            "subtitle": "127.0.0.1:5432 · pid 5124",
             "icon": "󰍛",
             "keywords": [
               "5124",
@@ -1029,9 +963,6 @@
               {
                 "tag": ":5432",
                 "color": "blue"
-              },
-              {
-                "text": "5124"
               },
               {
                 "text": "96 MB"
@@ -1066,7 +997,7 @@
           {
             "id": "1440:6379",
             "name": "redis-server",
-            "subtitle": "127.0.0.1:6379",
+            "subtitle": "127.0.0.1:6379 · pid 1440",
             "icon": "󰍛",
             "keywords": [
               "1440",
@@ -1077,9 +1008,6 @@
               {
                 "tag": ":6379",
                 "color": "blue"
-              },
-              {
-                "text": "1440"
               },
               {
                 "text": "18 MB"
@@ -1114,7 +1042,7 @@
           {
             "id": "1207:8080",
             "name": "node",
-            "subtitle": "*:8080",
+            "subtitle": "*:8080 · pid 1207",
             "icon": "󰍛",
             "keywords": [
               "1207",
@@ -1129,9 +1057,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -1168,7 +1093,7 @@
           {
             "id": "1207:8080",
             "name": "node",
-            "subtitle": "*:8080",
+            "subtitle": "*:8080 · pid 1207",
             "icon": "󰍛",
             "keywords": [
               "1207",
@@ -1183,9 +1108,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -1220,7 +1142,7 @@
           {
             "id": "7781:80",
             "name": "caddy",
-            "subtitle": "*:80",
+            "subtitle": "*:80 · pid 7781",
             "icon": "󰍛",
             "keywords": [
               "7781",
@@ -1231,9 +1153,6 @@
               {
                 "tag": ":80",
                 "color": "blue"
-              },
-              {
-                "text": "7781"
               },
               {
                 "text": "34 MB"
@@ -1268,7 +1187,7 @@
           {
             "id": "7781:443",
             "name": "caddy",
-            "subtitle": "*:443",
+            "subtitle": "*:443 · pid 7781",
             "icon": "󰍛",
             "keywords": [
               "7781",
@@ -1279,9 +1198,6 @@
               {
                 "tag": ":443",
                 "color": "blue"
-              },
-              {
-                "text": "7781"
               },
               {
                 "text": "34 MB"
@@ -1318,7 +1234,7 @@
           {
             "id": "7781:80",
             "name": "caddy",
-            "subtitle": "*:80",
+            "subtitle": "*:80 · pid 7781",
             "icon": "󰍛",
             "keywords": [
               "7781",
@@ -1329,9 +1245,6 @@
               {
                 "tag": ":80",
                 "color": "blue"
-              },
-              {
-                "text": "7781"
               },
               {
                 "text": "34 MB"
@@ -1366,7 +1279,7 @@
           {
             "id": "1207:8080",
             "name": "node",
-            "subtitle": "*:8080",
+            "subtitle": "*:8080 · pid 1207",
             "icon": "󰍛",
             "keywords": [
               "1207",
@@ -1381,9 +1294,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -1420,7 +1330,7 @@
           {
             "id": "1207",
             "name": "node",
-            "subtitle": "/opt/homebrew/bin/node",
+            "subtitle": "pid 1207 · /opt/homebrew/bin/node",
             "icon": "󰍛",
             "keywords": [
               "1207"
@@ -1429,9 +1339,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -1468,7 +1375,7 @@
           {
             "id": "1207",
             "name": "node",
-            "subtitle": "/opt/homebrew/bin/node",
+            "subtitle": "pid 1207 · /opt/homebrew/bin/node",
             "icon": "󰍛",
             "keywords": [
               "1207"
@@ -1477,9 +1384,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -1516,7 +1420,7 @@
           {
             "id": "1207",
             "name": "node",
-            "subtitle": "/opt/homebrew/bin/node",
+            "subtitle": "pid 1207 · /opt/homebrew/bin/node",
             "icon": "󰍛",
             "keywords": [
               "1207"
@@ -1525,9 +1429,6 @@
               {
                 "tag": "24% cpu",
                 "color": "amber"
-              },
-              {
-                "text": "1207"
               },
               {
                 "text": "486 MB"
@@ -1560,6 +1461,291 @@
             ]
           }
         ]
+      },
+      "details": {
+        "4821": {
+          "caption": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/Current/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)",
+          "title": "Google Chrome Helper (Renderer)",
+          "stats": [
+            {
+              "value": "64.0%",
+              "label": "CPU",
+              "color": "red"
+            },
+            {
+              "value": "912 MB",
+              "label": "memory"
+            },
+            {
+              "value": "4821",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "1207": {
+          "caption": "/opt/homebrew/bin/node",
+          "title": "node",
+          "stats": [
+            {
+              "value": "24.0%",
+              "label": "CPU",
+              "color": "amber"
+            },
+            {
+              "value": "486 MB",
+              "label": "memory"
+            },
+            {
+              "value": "1207",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "3310": {
+          "caption": "/Applications/kitty.app/Contents/MacOS/kitty",
+          "title": "kitty",
+          "stats": [
+            {
+              "value": "12.0%",
+              "label": "CPU",
+              "color": "amber"
+            },
+            {
+              "value": "210 MB",
+              "label": "memory"
+            },
+            {
+              "value": "3310",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "612": {
+          "caption": "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
+          "title": "WindowServer",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "1.3 GB",
+              "label": "memory"
+            },
+            {
+              "value": "612",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "2077": {
+          "caption": "/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)",
+          "title": "Code Helper (Plugin)",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "740 MB",
+              "label": "memory"
+            },
+            {
+              "value": "2077",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "890": {
+          "caption": "/Applications/Spotify.app/Contents/MacOS/Spotify",
+          "title": "Spotify",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "388 MB",
+              "label": "memory"
+            },
+            {
+              "value": "890",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "455": {
+          "caption": "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+          "title": "Finder",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "142 MB",
+              "label": "memory"
+            },
+            {
+              "value": "455",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "5124": {
+          "caption": "/opt/homebrew/opt/postgresql@16/bin/postgres",
+          "title": "postgres",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "96 MB",
+              "label": "memory"
+            },
+            {
+              "value": "5124",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "you"
+            }
+          ]
+        },
+        "233": {
+          "caption": "/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
+          "title": "mds_stores",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "58 MB",
+              "label": "memory"
+            },
+            {
+              "value": "233",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "0"
+            }
+          ]
+        },
+        "310": {
+          "caption": "/usr/sbin/cfprefsd",
+          "title": "cfprefsd",
+          "stats": [
+            {
+              "value": "0.4%",
+              "label": "CPU"
+            },
+            {
+              "value": "12 MB",
+              "label": "memory"
+            },
+            {
+              "value": "310",
+              "label": "pid"
+            }
+          ],
+          "metadata": [
+            {
+              "label": "Parent",
+              "value": "1"
+            },
+            {
+              "label": "User",
+              "value": "0"
+            }
+          ]
+        }
       }
     }
   },
@@ -1569,7 +1755,7 @@
       "keys": [
         "wait:1500"
       ],
-      "caption": "Processes by CPU, then memory: a busy one wears its share as a tag, with its pid and memory beside it",
+      "caption": "Processes by CPU, then memory: a busy one wears its share as a tag, its pid under the name and its memory on the right",
       "settle": 900
     },
     "2-port": {
@@ -1599,6 +1785,17 @@
         "cmd+k"
       ],
       "caption": "Kill, Force kill, Copy PID or open the process in Activity Monitor",
+      "settle": 900
+    },
+    "5-detail": {
+      "palette": "processes",
+      "keys": [
+        "wait:1500",
+        "down",
+        "cmd+i",
+        "wait:400"
+      ],
+      "caption": "A process's detail (cmd+I): where it runs from, then its CPU, memory and pid large",
       "settle": 900
     }
   }

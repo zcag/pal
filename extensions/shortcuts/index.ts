@@ -78,7 +78,7 @@ function row(s: Shortcut): Item {
     icon: ICON,
     section: s.folder || "No folder",
     keywords: s.folder ? [s.folder] : undefined,
-    detail: { metadata: [{ label: "Name", value: s.name }, ...(s.folder ? [{ label: "Folder", value: s.folder }] : []), { label: "Identifier", value: s.identifier }] },
+    detail: { caption: s.folder ? `Shortcuts · ${s.folder}` : "Shortcuts", title: s.name, metadata: [{ label: "Identifier", value: s.identifier }] },
     args: INPUT_ARGS,
     actions: [RUN, RUN_CLIPBOARD, RUN_TEXT, OPEN, COPY_NAME],
   };
@@ -142,7 +142,7 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | vo
     }
     case "clipboard": {
       const text = (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text;
-      if (!text) return toast("Nothing on the clipboard", "Copy some text first, or use Run with text", "failure");
+      if (!text) return toast("Nothing on the clipboard", "Copy some text first, or use Run with input", "failure");
       for (const x of all) void run(x, text);
       return { hide: true };
     }

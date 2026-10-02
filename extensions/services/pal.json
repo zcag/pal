@@ -73,6 +73,10 @@
       {
         "file": "4-agents.png",
         "caption": "On macOS, launchd agents by folder, with their pid and state"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "A unit's detail (cmd+I): its manager and file, the name, failed and enabled as chips, what it is for"
       }
     ],
     "actions": [

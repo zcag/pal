@@ -25,7 +25,7 @@ export const rowActions = (dir: boolean, mac: boolean): Action[] => [
   { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?", multi: true },
 ];
 
-/** A file under `root`: its folder as the subtitle, the kind as a tag, the size; the pane has both sizes. */
+/** A file under `root`: its folder as the subtitle, the kind as a tag, the size; the pane is the file as a page, both sizes large. */
 export function fileRow(n: Node, root: string, sizes: Sizes, mac: boolean): Item {
   const k = kindOf(n);
   const path = pathOf(n);
@@ -33,14 +33,22 @@ export function fileRow(n: Node, root: string, sizes: Sizes, mac: boolean): Item
     id: path, name: n.name, subtitle: tilde(dirname(path)), icon: GLYPH[k], keywords: [n.name],
     accessories: [{ tag: KIND_LABEL[k], color: TAG[k] }, { text: bytes(sizeOf(n, sizes)) }],
     actions: rowActions(false, mac),
-    detail: { metadata: [{ label: "Path", value: tilde(path) }, { label: "On disk", value: bytes(n.alloc) }, { label: "Apparent", value: bytes(n.size) }, ...(n.mtime ? [{ label: "Modified", value: ago(n.mtime) }] : []), { label: "Root", value: rootLabel(root) }] },
+    detail: {
+      caption: tilde(dirname(path)), title: n.name, chips: [{ text: KIND_LABEL[k], color: TAG[k] }],
+      stats: [{ value: bytes(n.alloc), label: "on disk" }, { value: bytes(n.size), label: "apparent" }],
+      metadata: [...(n.mtime ? [{ label: "Modified", value: ago(n.mtime) }] : []), { label: "Root", value: rootLabel(root) }],
+    },
   };
 }
 
-/** A folder under `under`: its count, its share of `under`, its size. */
+/** A folder under `under`: its share of `under` and its size on the row; the pane adds how many files it holds. */
 export function folderRow(d: Node, under: Node, sizes: Sizes, mac: boolean): Item {
   const path = pathOf(d);
-  return { id: path, name: d.name, subtitle: tilde(dirname(path)), icon: GLYPH[kindOf(d)], keywords: [d.name], accessories: [{ text: count(d.files) }, { text: pct(sizeOf(d, sizes), sizeOf(under, sizes)) }, { text: bytes(sizeOf(d, sizes)) }], actions: rowActions(true, mac) };
+  const share = pct(sizeOf(d, sizes), sizeOf(under, sizes)), size = bytes(sizeOf(d, sizes));
+  return {
+    id: path, name: d.name, subtitle: tilde(dirname(path)), icon: GLYPH[kindOf(d)], keywords: [d.name], accessories: [{ text: share }, { text: size }], actions: rowActions(true, mac),
+    detail: { caption: tilde(dirname(path)), title: d.name, stats: [{ value: size, label: "size" }, { value: d.files.toLocaleString("en-US"), label: d.files === 1 ? "file" : "files" }, { value: share, label: "share" }] },
+  };
 }
 
 export type Suggestion = {

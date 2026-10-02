@@ -699,8 +699,8 @@ Settings, `[extensions.emoji]`:
 What is running, from `ps`, listed again on every keystroke because the
 set changes constantly (an input palette; the root only has its own row).
 The query matches the name or a pid prefix. The row is the executable's
-name, its full path the subtitle on macOS (Linux `ps` gives only the
-name); the pid and the resident memory sit on the right, and a process
+name, its pid the subtitle with the full path after it on macOS (outside
+an app); the resident memory sits on the right, and a process
 above 10% CPU carries a `NN% cpu` tag (orange, red from 50%). Rows are
 sorted by CPU, then memory. On macOS a process that lives in a `.app`
 bundle gets that app's icon.
@@ -893,9 +893,8 @@ Every `Host` in `~/.ssh/config` that is a name rather than a pattern
 (`*`, `?` and `!` entries are skipped, a `Host a b` line gives two rows),
 in file order. `Include` lines are followed one level: `~`, absolute and
 globbed operands work, a relative one is under `~/.ssh`. A `Match` block
-ends the current host. `HostName` is the subtitle (and a keyword, so the
-real name finds the alias), `User` an accessory and a keyword, `Port` a
-tag.
+ends the current host. `user@HostName` is the subtitle (both keywords, so
+the real name finds the alias), `Port` a tag.
 
 With `include_known_hosts` on, the names in `~/.ssh/known_hosts` (next to
 the config) come after, in a second section: `[host]:port` unwrapped,
@@ -1273,7 +1272,7 @@ one app shows up on the next activation. A live palette: the list runs on
 every show, so window titles are root results. The app name is the
 subtitle; the bundle id or window class is a keyword; a hidden app's
 window carries a `hidden` tag, a minimised one `minimized`, one on another
-workspace or space `ws <n>` or `other space`, and the monitor when known.
+workspace or space `space <n>` or `other space`, and the monitor when known.
 
 Actions:
 
@@ -1339,7 +1338,7 @@ compositor (`hyprctl dispatch workspace`, `swaymsg workspace`,
 
 Names: `spaces = ["web", "term", "misc"]` names the desktops by number
 (the first entry is Desktop 1). A named space's row is titled by it, the
-Windows rows say `ws term` instead of `ws 2`, and its row id is the name,
+Windows rows say `space term` instead of `space 2`, and its row id is the name,
 which is what a global hotkey keys on:
 
 ```toml
@@ -2032,11 +2031,12 @@ inert hint row that says which.
 **Docker Containers** (`docker`): every container, the running ones first
 in a Running section, the rest under Stopped. The row is the container's
 name, its image the subtitle; on the right the published ports, compact
-(`80, 443`; `8080:80` when host and container differ), docker's status
-(`Up 27 hours`, `Exited (0) 3 days ago`) and a state tag (running green,
+(`80, 443`; `8080:80` when host and container differ; a stopped one's
+status, `Exited (0) 3 days ago`, instead) and a state tag (running green,
 exited grey, paused and restarting amber, created blue, dead red). The id,
-the image and the Compose project are keywords; the detail pane lists id,
-image, command, status, created, ports, mounts, networks and project.
+the image and the Compose project are keywords; the detail pane leads
+with the project and image, the name, the state and status as chips, then
+lists id, command, created, ports, mounts and networks.
 
 | action | shortcut | what |
 | --- | --- | --- |
@@ -2055,8 +2055,8 @@ comma separated; a malformed one is refused under the field) and runs
 `docker rmi`, after a confirm).
 
 **Compose Projects** (`docker-compose`): every project docker knows of,
-its folder as subtitle, the status text and a tag (running green, a mix
-amber, exited grey). Up (`Enter`, `compose up -d`), Logs (`⌘L`, `compose
+its folder as subtitle, its containers' states as one tag (`4 running,
+1 exited`; running green, a mix amber, exited grey). Up (`Enter`, `compose up -d`), Logs (`⌘L`, `compose
 logs --tail 200`), Restart (`⌘⇧R`), Down (`⌘D`, after a confirm), Open
 project folder (`⌘O`). Every config file of the project is passed with
 `-f`.
@@ -2159,11 +2159,11 @@ targets), `.PHONY` names included even when their rule is not literal,
 in file order. A description is the `## text` on the rule's line, else
 the comment line right above it (a `.PHONY:` line in between is skipped).
 
-The row is the target, the project folder the subtitle (with the
-description after a colon), the project's name a keyword (so `pal test`
-finds it from the root); a phony target has `phony` as one too. The
-detail pane shows the recipe and, in its metadata, the project, the
-Makefile's name, the description and whether it is phony.
+The row is the target, its description the subtitle (the project folder
+without one), the project's name a keyword (so `pal test` finds it from
+the root); a phony target has `phony` as one too. The detail pane leads
+with the Makefile's path, the target and a `phony` chip, then the
+description and the recipe.
 
 | action | shortcut | what |
 | --- | --- | --- |
@@ -3823,7 +3823,7 @@ Shortcuts app, `⌘C` copies its name. The listing is kept five minutes
 | --- | --- |
 | `enter` | Run the shortcut |
 | `cmd+enter` | Run it with the clipboard's text as input |
-| `cmd+t` | Run with text: a form for the input |
+| `cmd+t` | Run with input: the input typed in the bar (a form for a pick without it) |
 | `cmd+o` | Open it in Shortcuts |
 | `cmd+c` | Copy its name |
 
