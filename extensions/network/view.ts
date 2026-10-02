@@ -49,7 +49,7 @@ export function renderNetworkPopover(s: NetworkPopover): View {
     keys: "actions",
     actions,
     tree: column([
-      row([text(s.name, { key: "name", style: "body", size: "lg", weight: "semibold" }), { type: "spacer" }, { type: "badge", key: "kind", text: badge[0], color: badge[1] }], { key: "head", gap: 2 }),
+      row([text(s.name, { key: "name", style: "headline" }), { type: "spacer" }, { type: "badge", key: "kind", text: badge[0], color: badge[1] }], { key: "head", gap: 2, align: "center" }),
       ...(rows.length ? rows : [text("Nothing is connected", { key: "empty", style: "muted", size: "sm" })]),
       row([...keyHint("enter", "Network Settings", { action: "settings" }), ...keyHint("cmd+a", "All addresses", { action: "addresses" })], { key: "footer", gap: 1, minHeight: 20 }),
     ], { key: "network", padding: 3, gap: 2 }),

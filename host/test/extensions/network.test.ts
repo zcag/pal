@@ -141,7 +141,7 @@ describe("network on macOS tools", () => {
   });
 
   test("bar: uses a friendly SSID label and opens Network Settings directly", async () => {
-    expect(await host.render("network", "status")).toMatchObject({ icon: "\u{f05a9}", title: "Cafe", tooltip: "en0 · Cafe · 192.168.1.131 · Gateway 192.168.1.1", click: "open", menu: { view: { title: "Connection", id: "network" } } });
+    expect(await host.render("network", "status")).toMatchObject({ icon: "\u{f05a9}", title: "Cafe", tooltip: "Cafe · 192.168.1.131 · Gateway 192.168.1.1 · en0", click: "open", menu: { view: { title: "Connection", id: "network" } } });
     expect(await host.request<any>("bar/open", { extension: "network", id: "status" })).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
   });
 
@@ -183,7 +183,9 @@ describe("network on macOS tools", () => {
 
   test("detail: every field of the interface, the public lookup, the gateway, a DNS server", async () => {
     expect(await host.detail("network", "network", "if:en0:192.168.1.131")).toEqual({
-      metadata: [{ label: "Interface", value: "en0" }, { label: "Kind", value: "Wi-Fi" }, { label: "SSID", value: "Cafe Wifi" }, { label: "Security", value: "WPA2_PSK" }, { label: "IPv4", value: "192.168.1.131" }, { label: "IPv6", value: "fde8:77b8:c7e1:7e6e:1c19:75aa:36d5:d86e" }, { label: "MAC", value: "26:9c:73:77:72:39" }, { label: "Status", value: "active" }],
+      // The header says where it lives, the network, whether it is up and how it is secured; the table only the addresses.
+      caption: "en0 · Wi-Fi", title: "Cafe Wifi", chips: [{ text: "active", color: "green" }, { text: "WPA2_PSK", color: "grey" }], stats: [],
+      metadata: [{ label: "IPv4", value: "192.168.1.131" }, { label: "IPv6", value: "fde8:77b8:c7e1:7e6e:1c19:75aa:36d5:d86e" }, { label: "MAC", value: "26:9c:73:77:72:39" }],
     });
     const pub = await host.detail("network", "network", "public");
     expect(pub.metadata!.slice(0, 5)).toEqual([{ label: "Public IP", value: "203.0.113.9" }, { label: "City", value: "Istanbul" }, { label: "Region", value: "Istanbul" }, { label: "Country", value: "TR" }, { label: "Organisation", value: "AS1 Example ISP" }]);
@@ -273,7 +275,7 @@ describe("network status: what the strip says about the network", () => {
   };
 
   test("the signal picks the glyph, and the tooltip carries the number", async () => {
-    expect(await bar({})).toMatchObject({ icon: "\u{f0925}", title: "Cafe Wifi", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" });
+    expect(await bar({})).toMatchObject({ icon: "\u{f0925}", title: "Cafe Wifi", tooltip: "Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1 · en0" });
     expect(await bar({}, { signal: 94 })).toMatchObject({ icon: "\u{f0928}" });
     expect(await bar({}, { signal: 55 })).toMatchObject({ icon: "\u{f0922}" });
     expect(await bar({}, { signal: 20 })).toMatchObject({ icon: "\u{f091f}" });
@@ -299,7 +301,7 @@ describe("network status: what the strip says about the network", () => {
   }, 20000);
 
   test("a network's own glyph replaces the signal one, by its name or by its gateway; an emoji works; no entry leaves the default", async () => {
-    expect(await bar({ networks: ["Cafe Wifi = icon:\u{f02dc}"] })).toMatchObject({ icon: "\u{f02dc}", title: "Cafe Wifi", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" });
+    expect(await bar({ networks: ["Cafe Wifi = icon:\u{f02dc}"] })).toMatchObject({ icon: "\u{f02dc}", title: "Cafe Wifi", tooltip: "Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1 · en0" });
     // The gateway key: the half that works with the name redacted, and for a cable into the same router.
     expect(await bar({ networks: ["192.168.1.1 = icon:🏠"] }, { ssid: "<redacted>" })).toMatchObject({ icon: "🏠" });
     expect(await bar({ networks: ["elsewhere = icon:🏠", "10.9.9.9 = icon:🏠"] })).toMatchObject({ icon: "\u{f0925}" });
@@ -307,15 +309,15 @@ describe("network status: what the strip says about the network", () => {
     expect(await bar({ networks: ["Cafe Wifi = icon:"] })).toMatchObject({ icon: "\u{f0925}" });
     // It wins over the hotspot and open marks too; what those said moves into the tooltip, the popover badge keeps it.
     const hotspot = await bar({ networks: ["Cafe Wifi = hotspot icon:📱"] }) as any;
-    expect(hotspot).toMatchObject({ icon: "📱", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1" });
+    expect(hotspot).toMatchObject({ icon: "📱", tooltip: "Cafe Wifi · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1 · en0" });
     expect(hotspot.menu.view.tree.children[0].children[2]).toMatchObject({ text: "hotspot" });
-    expect(await bar({ networks: ["Cafe Wifi = icon:☕"] }, { security: "NONE" })).toMatchObject({ icon: "☕", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · open network · Signal 72% · Gateway 192.168.1.1" });
+    expect(await bar({ networks: ["Cafe Wifi = icon:☕"] }, { security: "NONE" })).toMatchObject({ icon: "☕", tooltip: "Cafe Wifi · 192.168.1.131 · open network · Signal 72% · Gateway 192.168.1.1 · en0" });
     // Hide wins over everything.
     expect(await bar({ networks: ["Cafe Wifi = hide icon:🏠"] })).toEqual({ hidden: true });
   }, 30000);
 
   test("the networks line: kind, label:, icon: in any order and any subset, a quoted label with a space, unknown words and fields skipped", async () => {
-    expect(await bar({ networks: ["Cafe Wifi = hotspot label:Cafe icon:☕"] })).toMatchObject({ icon: "☕", title: "Cafe", tooltip: "en0 · Cafe · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1" });
+    expect(await bar({ networks: ["Cafe Wifi = hotspot label:Cafe icon:☕"] })).toMatchObject({ icon: "☕", title: "Cafe", tooltip: "Cafe · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1 · en0" });
     expect(await bar({ networks: ["Cafe Wifi = icon:☕ label:Cafe hotspot"] })).toMatchObject({ icon: "☕", title: "Cafe" });
     expect(await bar({ networks: ['Cafe Wifi = label:"Cafe Corner"'] })).toMatchObject({ icon: "\u{f0925}", title: "Cafe Corner" });
     expect(await bar({ networks: ["Cafe Wifi = public"] })).toMatchObject({ icon: "\u{f0176}", title: "Cafe Wifi" });
@@ -323,9 +325,9 @@ describe("network status: what the strip says about the network", () => {
     expect(await bar({ networks: ["Cafe Wifi = nonsense colour:red label:Cafe"] })).toMatchObject({ icon: "\u{f0925}", title: "Cafe" });
     expect(await bar({ networks: ["Cafe Wifi", 42, "= label:Cafe"] })).toMatchObject({ title: "Cafe Wifi" });
     // Each field from the first line that sets it: the SSID line's label, the gateway line's icon, the first kind.
-    expect(await bar({ networks: ["Cafe Wifi = label:Cafe", "192.168.1.1 = hotspot icon:🏠", "Cafe Wifi = public label:Other icon:📱"] })).toMatchObject({ icon: "🏠", title: "Cafe", tooltip: "en0 · Cafe · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1" });
+    expect(await bar({ networks: ["Cafe Wifi = label:Cafe", "192.168.1.1 = hotspot icon:🏠", "Cafe Wifi = public label:Other icon:📱"] })).toMatchObject({ icon: "🏠", title: "Cafe", tooltip: "Cafe · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1 · en0" });
     // A gateway-keyed line reaches the cable into the same router: its label and icon stand in for the kind and the wired glyph.
-    expect(await bar({ networks: ["192.168.1.1 = label:Home icon:🏠"] }, { dev: "en5" })).toMatchObject({ icon: "🏠", title: "Home", tooltip: "en5 · Home · 10.0.0.7 · Gateway 192.168.1.1" });
+    expect(await bar({ networks: ["192.168.1.1 = label:Home icon:🏠"] }, { dev: "en5" })).toMatchObject({ icon: "🏠", title: "Home", tooltip: "Home · 10.0.0.7 · Gateway 192.168.1.1 · en5" });
     expect(await bar({}, { dev: "en5" })).toMatchObject({ icon: "\u{f0200}", title: "Ethernet Adapter (en5)" });
   }, 40000);
 
@@ -338,7 +340,7 @@ describe("network status: what the strip says about the network", () => {
       expect(host.stderr).toContain("(2 old entries still read)");
       // A networks line wins over the old lists for the field it sets; the old ones fill what it leaves.
       host.changeSettings("network", { settings: { public_ip_url: "", ssid_labels: ["Cafe Wifi = Cafe"], network_icons: ["192.168.1.1 = 🏠"], networks: ["Cafe Wifi = hotspot label:Corner"] } });
-      expect(await host.render("network", "status")).toMatchObject({ icon: "🏠", title: "Corner", tooltip: "en0 · Corner · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1" });
+      expect(await host.render("network", "status")).toMatchObject({ icon: "🏠", title: "Corner", tooltip: "Corner · 192.168.1.131 · hotspot · Signal 72% · Gateway 192.168.1.1 · en0" });
       const items = await host.list("network", "network");
       expect(items[0].icon).toBe("🏠");
     } finally { host.kill(); }
@@ -409,7 +411,8 @@ describe("network on Linux tools", () => {
       ["dns:9.9.9.9", "9.9.9.9", "DNS 2", "Network"],
     ]);
     expect(await host.detail("network", "network", "if:wlan0:192.168.0.42")).toEqual({
-      metadata: [{ label: "Interface", value: "wlan0" }, { label: "Kind", value: "Wi-Fi" }, { label: "SSID", value: "Home Net" }, { label: "IPv4", value: "192.168.0.42" }, { label: "IPv6", value: "2001:db8::42" }, { label: "MAC", value: "aa:bb:cc:dd:ee:01" }, { label: "Status", value: "active" }],
+      caption: "wlan0 · Wi-Fi", title: "Home Net", chips: [{ text: "active", color: "green" }], stats: [],
+      metadata: [{ label: "IPv4", value: "192.168.0.42" }, { label: "IPv6", value: "2001:db8::42" }, { label: "MAC", value: "aa:bb:cc:dd:ee:01" }],
     });
     expect(await host.detail("network", "network", "hostname")).toEqual({ metadata: [{ label: "Hostname", value: hostname() }] });
   });

@@ -83,7 +83,7 @@
           410,
           64,
           840,
-          580
+          612
         ]
       },
       {
@@ -94,7 +94,7 @@
           378,
           64,
           840,
-          580
+          612
         ]
       },
       {
@@ -151,7 +151,7 @@
           "item": {
             "icon": "󰤥",
             "title": "Cafe",
-            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1"
+            "tooltip": "Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1 · en0"
           }
         },
         "weak": {
@@ -159,7 +159,7 @@
           "item": {
             "icon": "󰤟",
             "title": "Cafe",
-            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 38% · Gateway 192.168.1.1"
+            "tooltip": "Cafe Wifi · 192.168.1.131 · Signal 38% · Gateway 192.168.1.1 · en0"
           }
         },
         "hotspot": {
@@ -167,7 +167,7 @@
           "item": {
             "icon": "󰄜",
             "title": "iPhone",
-            "tooltip": "en0 · iPhone · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1"
+            "tooltip": "iPhone · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1 · en0"
           }
         },
         "open": {
@@ -175,7 +175,7 @@
           "item": {
             "icon": "󰅶",
             "title": "Cafe Guest",
-            "tooltip": "en0 · Cafe Guest · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1"
+            "tooltip": "Cafe Guest · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1 · en0"
           }
         },
         "wired": {
@@ -183,7 +183,7 @@
           "item": {
             "icon": "󰈀",
             "title": "Ethernet",
-            "tooltip": "en5 · 10.0.0.7 · Gateway 10.0.0.1"
+            "tooltip": "Ethernet · 10.0.0.7 · Gateway 10.0.0.1 · en5"
           }
         },
         "offline": {
@@ -192,14 +192,14 @@
             "icon": "󰤭",
             "title": "Offline",
             "color": "red",
-            "tooltip": "No default route"
+            "tooltip": "No route to the internet"
           }
         },
         "glyph": {
           "title": "Glyph only (show_title off on the item)",
           "item": {
             "icon": "󰤨",
-            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1"
+            "tooltip": "Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1 · en0"
           }
         }
       },
