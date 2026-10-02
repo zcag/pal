@@ -81,14 +81,16 @@ describe("ssh", () => {
     expect(items.map((i) => i.section)).toEqual([`${dirName}/conf.d/work.conf`, `${dirName}/extra`, ...Array(6).fill(`${dirName}/config`)]);
   });
 
-  test("HostName is the subtitle and a keyword; User and Port are accessories; key=value works", async () => {
+  test("user@HostName is the subtitle, HostName a keyword; Port and the jump host are tags; the detail's header says the name and the file; key=value works", async () => {
     const by = Object.fromEntries((await list()).map((i) => [i.id, i]));
-    expect(by.marko).toMatchObject({ name: "marko", subtitle: "marko.lan", keywords: ["marko.lan", "cagdas"], accessories: [{ text: "cagdas" }, { tag: ":2222" }] });
-    expect(by.marko.detail!.metadata!.map((m) => [m.label, m.value])).toEqual([["Host", "marko"], ["HostName", "marko.lan"], ["User", "cagdas"], ["Port", "2222"], ["File", `${dir.slice(dir.lastIndexOf("/") + 1)}/config`]]);
+    expect(by.marko).toMatchObject({ name: "marko", subtitle: "cagdas@marko.lan", keywords: ["marko.lan", "cagdas"], accessories: [{ tag: ":2222" }] });
+    expect(by.marko.detail).toMatchObject({ caption: `${dir.slice(dir.lastIndexOf("/") + 1)}/config`, title: "marko" });
+    expect(by.marko.detail!.metadata!.map((m) => [m.label, m.value])).toEqual([["HostName", "marko.lan"], ["User", "cagdas"], ["Port", "2222"]]);
+    expect(by.inner.detail!.chips).toEqual([{ text: "via marko", color: "blue" }]);
     expect(by.inner.detail!.markdown).toContain("ssh -J marko inner");
-    expect(by.deck).toMatchObject({ subtitle: "192.168.1.9", accessories: [{ text: "deck" }] });
-    expect(by.steamdeck.subtitle).toBe("192.168.1.9");
-    expect(by.work).toMatchObject({ subtitle: "work.example.com", accessories: [{ text: "me" }] });
+    expect(by.deck).toMatchObject({ subtitle: "deck@192.168.1.9", accessories: [] });
+    expect(by.steamdeck.subtitle).toBe("deck@192.168.1.9");
+    expect(by.work).toMatchObject({ subtitle: "me@work.example.com", accessories: [] });
     expect(by.extra.subtitle).toBe("extra.example.com");
     expect(by.bare.subtitle).toBeUndefined();
     expect(by.bare.accessories).toEqual([]);

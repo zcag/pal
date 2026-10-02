@@ -106,27 +106,32 @@ function sectionOf(file: string, configDir: string): string {
 const hosts = new Map<string, HostEntry>();
 
 function item(h: HostEntry, section: string): Item {
+  // The target as ssh writes it (`user@host`) under the name; the port and the jump host as tags.
+  const target = h.hostname && h.hostname !== h.name ? h.hostname : undefined;
   const accessories: Accessory[] = [];
-  if (h.user) accessories.push({ text: h.user });
   if (h.port) accessories.push({ tag: `:${h.port}` });
   if (h.jump) accessories.push({ tag: `via ${h.jump}`, color: "blue" });
+  // The header says the name, the file and the jump host; the table the rest.
   const metadata: Metadata[] = [
-    { label: "Host", value: h.name },
     ...(h.hostname ? [{ label: "HostName", value: h.hostname }] : []),
     ...(h.user ? [{ label: "User", value: h.user }] : []),
     ...(h.port ? [{ label: "Port", value: h.port }] : []),
-    ...(h.jump ? [{ label: "ProxyJump", value: h.jump }] : []),
-    { label: "File", value: section },
   ];
   return {
     id: h.name,
     name: h.name,
-    subtitle: h.hostname && h.hostname !== h.name ? h.hostname : undefined,
+    subtitle: h.user ? `${h.user}@${target ?? h.name}` : target,
     keywords: [h.hostname, h.user, h.jump].filter((k): k is string => !!k && k !== h.name),
     icon: ICON,
     accessories,
     section,
-    detail: { markdown: `# ${h.name}\n\n\`\`\`\nssh ${h.jump ? `-J ${h.jump} ` : ""}${h.name}\n\`\`\``, metadata },
+    detail: {
+      caption: section,
+      title: h.name,
+      ...(h.jump && { chips: [{ text: `via ${h.jump}`, color: "blue" as const }] }),
+      markdown: `\`\`\`\nssh ${h.jump ? `-J ${h.jump} ` : ""}${h.name}\n\`\`\``,
+      metadata,
+    },
     args: ARGS,
     actions: [CONNECT, COPY_HOST, COPY_COMMAND, ...(h.jump ? [COPY_JUMP] : []), PING],
   };
@@ -147,7 +152,7 @@ function list(): Item[] {
   // Nothing configured: one inert row that says where hosts come from.
   if (!items.length && !include_known_hosts) return [hint("empty", "No hosts in your ssh config", `Add a Host block to ${config}, or point Config file in Settings at another file`, { icon: ICON })];
   if (!include_known_hosts) return items;
-  const configured = new Set([...seen, ...items.map((i) => i.subtitle).filter(Boolean)]);
+  const configured = new Set([...seen, ...[...hosts.values()].map((h) => h.hostname).filter(Boolean)]);
   for (const name of knownHosts(resolve(dirname(file), "known_hosts"))) if (!configured.has(name)) items.push(item({ name, file }, KNOWN));
   return items;
 }

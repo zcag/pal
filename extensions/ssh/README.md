@@ -9,11 +9,11 @@ config's directory (`.ssh/config`, `.ssh/conf.d/work.conf`).
 
 ## The palette
 
-The row is the host's name; `HostName` is the subtitle and a keyword, so
-the real name finds the alias from the root; `User` is an accessory and a
-keyword, `Port` a `:22`-style tag. A host with `ProxyJump` carries a `via
-<jump>` tag and the jump as a keyword. The detail pane (`cmd+i`) has the
-command and every field of the block. The palette is indexed: listed
+The row is the host's name; `user@HostName` is the subtitle, and both are
+keywords, so the real name finds the alias from the root; `Port` is a
+`:22`-style tag. A host with `ProxyJump` carries a `via <jump>` tag and
+the jump as a keyword. The detail pane (`cmd+i`) leads with the name, its
+file and the jump host, then the command and the block's fields. The palette is indexed: listed
 once, searched from the root, refreshed with `cmd+r` after the config
 changes. A config with no named host lists one row saying so.
 

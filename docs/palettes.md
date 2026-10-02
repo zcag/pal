@@ -889,9 +889,8 @@ Every `Host` in `~/.ssh/config` that is a name rather than a pattern
 (`*`, `?` and `!` entries are skipped, a `Host a b` line gives two rows),
 in file order. `Include` lines are followed one level: `~`, absolute and
 globbed operands work, a relative one is under `~/.ssh`. A `Match` block
-ends the current host. `HostName` is the subtitle (and a keyword, so the
-real name finds the alias), `User` an accessory and a keyword, `Port` a
-tag.
+ends the current host. `user@HostName` is the subtitle (both keywords, so
+the real name finds the alias), `Port` a tag.
 
 With `include_known_hosts` on, the names in `~/.ssh/known_hosts` (next to
 the config) come after, in a second section: `[host]:port` unwrapped,
