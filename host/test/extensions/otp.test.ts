@@ -113,7 +113,7 @@ describe.skipIf(!MAC)("otp", () => {
     expect(by["1"]).toMatchObject({ name: "AKBANK", subtitle: "Akbank Internet Sifreniz: 483920. Kimseyle paylasmayin. Bakiye 1.250,00 TL, 16.09.2026 19:13", keywords: ["483920", "AKBANK"] });
     expect(by["2"]).toMatchObject({ name: "22000", subtitle: "G-712345 is your Google verification code." });
     expect(by["4"]).toMatchObject({ name: "Ayşe Yılmaz", keywords: ["1234", "+905551112233", "Ayşe Yılmaz"] });
-    expect(by["4"].detail).toMatchObject({ metadata: expect.arrayContaining([{ label: "From", value: "Ayşe Yılmaz (+905551112233)" }]) });
+    expect(by["4"].detail).toMatchObject({ caption: expect.stringMatching(/^Ayşe Yılmaz \(\+905551112233\) · /), title: (by["4"].accessories![0] as { tag: string }).tag });
     expect(by["8"].name).toBe("Shop");
     expect(by["7"].name).toBe("*Enpara");
   });

@@ -31,7 +31,7 @@ writeFixture("otp", {
   palettes: { otp: { title: "Verification Codes", icon: { tile: { glyph: "\u{f0369}", bg: "green" } }, live: true, placeholder: "Search codes and senders", items: codes.map((c) => item(c, today)) } },
   shots: {
     "1-codes": { palette: "otp", keys: [], caption: "Today's codes and yesterday's: the sender, the message, the code as a green tag, how long ago it came" },
-    "2-detail": { palette: "otp", keys: ["down", "cmd+i"], caption: "The detail pane: the whole message, the code, the sender with its number, when it was received" },
+    "2-detail": { palette: "otp", keys: ["down", "cmd+i"], caption: "The detail pane: the code large, who sent it with the number and when, the whole message" },
     "3-actions": { palette: "otp", keys: ["cmd+k"], caption: "Paste the code into the app in front, copy it (concealed, gone in 30 s), or copy the sender" },
   },
 });

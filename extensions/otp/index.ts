@@ -216,13 +216,11 @@ export function item(c: Code, today: Date): Item {
     keywords: [c.code, c.sender, c.name].filter((k, i, a) => a.indexOf(k) === i),
     accessories: [{ tag: c.code, color: "green" }, { date: c.at }],
     section: sameDay(when, today) ? "Today" : "Earlier",
+    // The code is the answer: the header's title, under who sent it and when; the message under that.
     detail: {
+      caption: [c.name === c.sender ? c.sender : `${c.name} (${c.sender})`, whenAt(when)].join(" · "),
+      title: c.code,
       markdown: c.text,
-      metadata: [
-        { label: "Code", tags: [{ text: c.code, color: "green" }] },
-        { label: "From", value: c.name === c.sender ? c.sender : `${c.name} (${c.sender})` },
-        { label: "Received", value: whenAt(when) },
-      ],
     },
     actions: ACTIONS,
   };
