@@ -345,9 +345,12 @@ describe("rows", () => {
       ["darkorange", "nearest CSS name, #ff8c00"], ["2.52:1 on white", "contrast ratio"], ["8.34:1 on black", "contrast ratio"],
     ]);
     expect(rowsOf[0].actions!.map((a) => a.id)).toEqual(["open", "copy"]);
+    expect(rowsOf.map((r) => r.hero)).toEqual([true, ...Array(rowsOf.length - 1).fill(undefined)]); // the hex is the answer
     const d = detailOf(parse("#64748b")!, "slate 500", DEFAULTS, rows.find((r) => r.id === "tw/slate-500"));
+    expect([d.caption, d.title]).toEqual(["Tailwind · slate-500", "slate 500"]);
+    expect(d.stats!.map((x) => [x.value, x.label, x.color])).toEqual([["4.76:1", "on white, AA", "green"], ["4.41:1", "on black, AA large", "amber"]]);
     expect(d.markdown).toContain("`bg-slate-500`");
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Hex", "RGB", "HSL", "HWB", "OKLCH", "OKLab", "Lab", "P3", "Nearest name", "On white", "On black"]);
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Hex", "RGB", "HSL", "HWB", "OKLCH", "OKLab", "Lab", "P3", "Nearest name"]);
   });
 
   test("the history rows: the screen pick first, then each colour with where from and when, the CSS name as the accessory (the notation when it is not hex)", () => {
