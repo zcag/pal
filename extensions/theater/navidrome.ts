@@ -42,7 +42,14 @@ export async function albumRow(a: Album, section = "Albums"): Promise<Item> {
   return {
     id: `album:${a.id}`, name: a.name, subtitle: [a.artist, a.year, a.genre, a.songCount ? `${a.songCount} tracks` : ""].filter(Boolean).join(" · "), icon: img ? { image: img } : GLYPH.album, keywords: [a.artist ?? "", a.genre ?? ""].filter(Boolean), section,
     accessories: [...(a.starred ? [{ tag: "starred", color: "amber" }] : []), ...(a.created ? [{ date: a.created }] : [])],
-    detail: { markdown: img ? `![cover](${await cover(a.coverArt, 300)})` : undefined, metadata: [{ label: "Artist", value: a.artist ?? "" }, ...(a.year ? [{ label: "Year", value: String(a.year) }] : []), ...(a.genre ? [{ label: "Genre", value: a.genre }] : []), ...(a.songCount ? [{ label: "Tracks", value: `${a.songCount}${a.duration ? ` · ${Math.round(a.duration / 60)} min` : ""}` }] : []), ...(a.created ? [{ label: "Added", value: ago(a.created) }] : [])] },
+    detail: {
+      caption: [a.artist, a.year].filter(Boolean).join(" · ") || "Album",
+      title: a.name,
+      chips: a.starred ? [{ text: "starred", color: "amber" as const }] : [],
+      stats: [...(a.songCount ? [{ value: String(a.songCount), label: a.songCount === 1 ? "track" : "tracks" }] : []), ...(a.duration ? [{ value: `${Math.round(a.duration / 60)} min`, label: "length" }] : [])],
+      markdown: img ? `![cover](${await cover(a.coverArt, 300)})` : undefined,
+      metadata: [...(a.genre ? [{ label: "Genre", value: a.genre }] : []), ...(a.created ? [{ label: "Added", value: ago(a.created) }] : [])],
+    },
     actions: [{ id: "open", title: "Open in Navidrome", multi: true }, STAR(!!a.starred), COPY],
   };
 }

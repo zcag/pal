@@ -49,7 +49,7 @@ export function bookRow(b: Book): Item {
     icon: b.preview ? { image: b.preview } : GLYPH.kavita,
     keywords: [b.author ?? "", "book", "ebook"].filter(Boolean),
     section: "Books",
-    detail: { markdown: [b.preview ? `![cover](${b.preview})` : "", `**${b.title}**${b.subtitle ? `\n\n${b.subtitle}` : ""}`].filter(Boolean).join("\n\n"), metadata: [...(b.author ? [{ label: "Author", value: b.author }] : []), ...(b.year ? [{ label: "Year", value: String(b.year) }] : []), ...(b.series_name ? [{ label: "Series", value: `${b.series_name}${b.series_position ? ` #${b.series_position}` : ""}` }] : []), ...(b.provider ? [{ label: "Provider", value: b.provider }] : []), ...(b.source_url ? [{ label: "Page", link: { text: "Open", href: b.source_url } }] : [])] },
+    detail: { caption: [b.author, b.year].filter(Boolean).join(" · ") || "Book", title: b.title, markdown: [b.preview ? `![cover](${b.preview})` : "", b.subtitle ?? ""].filter(Boolean).join("\n\n"), metadata: [...(b.series_name ? [{ label: "Series", value: `${b.series_name}${b.series_position ? ` #${b.series_position}` : ""}` }] : []), ...(b.provider ? [{ label: "Provider", value: b.provider }] : []), ...(b.source_url ? [{ label: "Page", link: { text: "Open", href: b.source_url } }] : [])] },
     // The pages of marked books open together (`multi`); the releases are one book's level.
     actions: [{ id: "releases", title: "Find releases" }, { id: "open", title: "Open Shelfmark", shortcut: "cmd+enter" }, ...(b.source_url ? [{ id: "page", title: "Open the book's page", shortcut: "cmd+o", multi: true as const }] : [])],
   };

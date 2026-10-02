@@ -127,13 +127,21 @@ export function queueRow(id: ArrId, r: QueueRecord, section = "Queue"): Item {
     icon: image ? { image } : GLYPH[id],
     keywords: [r.protocol ?? "", r.downloadClient ?? "", st.text],
     section,
+    // The state, then how far (or the size), the time left and the protocol: a design that keeps two drops from the end.
     accessories: [
       { tag: st.text, color: st.color },
-      ...(r.protocol ? [{ text: r.protocol }] : []),
       { text: p > 0 && p < 1 ? pct(p) : bytes(r.size) },
       ...(left && p < 1 ? [{ text: eta(left) }] : []),
+      ...(r.protocol ? [{ text: r.protocol }] : []),
     ],
-    detail: { markdown: [image ? `![poster](${image})` : "", `**${subjectOf(r)}**`, r.title, ...(st.message ? [`> ${st.message}`] : []), ...(r.statusMessages?.flatMap((m) => (m.messages ?? []).map((x) => `- ${x}`)) ?? [])].filter(Boolean).join("\n\n"), metadata: [{ label: "State", tags: [{ text: st.text, color: st.color }] }, { label: "Progress", value: `${pct(p)} of ${bytes(r.size)}` }, ...(left ? [{ label: "Time left", value: eta(left) }] : []), ...(r.downloadClient ? [{ label: "Client", value: `${r.downloadClient}${r.protocol ? ` (${r.protocol})` : ""}` }] : []), ...(r.indexer ? [{ label: "Indexer", value: r.indexer }] : [])] },
+    detail: {
+      caption: `${A(id).title} queue${r.downloadClient ? ` · ${r.downloadClient}` : ""}`,
+      title: subjectOf(r),
+      chips: [{ text: st.text, color: st.color }],
+      stats: [{ value: pct(p), label: "done" }, { value: bytes(r.size), label: "size" }, ...(left && p < 1 ? [{ value: eta(left), label: "left" }] : [])],
+      markdown: [image ? `![poster](${image})` : "", ...(st.message ? [`> ${st.message}`] : []), ...(r.statusMessages?.flatMap((m) => (m.messages ?? []).map((x) => `- ${x}`)) ?? [])].filter(Boolean).join("\n\n"),
+      metadata: [{ label: "Release", value: r.title }, ...(r.protocol ? [{ label: "Protocol", value: r.protocol }] : []), ...(r.indexer ? [{ label: "Indexer", value: r.indexer }] : [])],
+    },
     // All three also take marked queue rows (`multi`); the question names none, so it reads for one or several.
     actions: [
       { id: "open", title: `Open in ${A(id).title}`, multi: true },
@@ -186,7 +194,7 @@ const historyRow = (id: ArrId, h: HistoryRecord): Item => {
     icon: GLYPH.history,
     keywords: [ev.text],
     accessories: [{ tag: ev.text, color: ev.color }, { date: h.date }],
-    detail: { metadata: [{ label: "Event", tags: [{ text: ev.text, color: ev.color }] }, { label: "Release", value: h.sourceTitle }, ...(h.quality?.quality?.name ? [{ label: "Quality", value: h.quality.quality.name }] : []), { label: "When", value: ago(h.date) }, ...Object.entries(h.data ?? {}).filter(([k, v]) => v && ["indexer", "downloadClient", "message", "reason", "importedPath", "droppedPath"].includes(k)).map(([k, v]) => ({ label: k, value: truncate(v, 200) }))] },
+    detail: { caption: `${A(id).title} · ${ago(h.date)}`, title: subject || h.sourceTitle, chips: [{ text: ev.text, color: ev.color }, ...(h.quality?.quality?.name ? [{ text: h.quality.quality.name, color: "grey" as const }] : [])], metadata: [{ label: "Release", value: h.sourceTitle }, ...Object.entries(h.data ?? {}).filter(([k, v]) => v && ["indexer", "downloadClient", "message", "reason", "importedPath", "droppedPath"].includes(k)).map(([k, v]) => ({ label: k, value: truncate(v, 200) }))] },
     actions: [{ id: "open", title: `Open in ${A(id).title}` }],
     url: webOf(id, h),
   };

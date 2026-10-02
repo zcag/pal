@@ -110,19 +110,25 @@ export function itemRow(it: JfItem, section?: string): Item {
   };
 }
 
+/** An item's pane: what it is (an episode's series and code) over its name, played and favourite as chips, the rating, the runtime and how far in large; the poster and the overview, then what the header does not say. */
 export function itemDetail(it: JfItem): Detail {
   const p = progress(it), ud = it.UserData;
   const image = poster(it, 240);
   const md = [image ? `![poster](${image})` : "", it.Overview ?? "_No overview._"].filter(Boolean).join("\n\n");
   return {
+    caption: it.Type === "Episode" ? [it.SeriesName, epCode(it)].filter(Boolean).join(" ") || "Episode" : [it.Type, it.ProductionYear].filter(Boolean).join(" · "),
+    title: it.Name,
+    chips: [...(ud?.Played ? [{ text: "played", color: "green" as const }] : []), ...(ud?.IsFavorite ? [{ text: "favourite", color: "pink" as const }] : [])],
+    stats: [
+      ...(it.CommunityRating ? [{ value: `★ ${it.CommunityRating.toFixed(1)}`, label: "rating" }] : []),
+      ...(it.RunTimeTicks && it.Type !== "Series" ? [{ value: runtime(it.RunTimeTicks), label: "runtime" }] : []),
+      ...(p > 0.01 && !ud?.Played ? [{ value: pct(p), label: "watched" }] : []),
+    ],
     markdown: md,
     metadata: [
-      { label: "Type", value: it.Type === "Episode" ? `Episode · ${[it.SeriesName, epCode(it)].filter(Boolean).join(" ")}` : it.Type },
-      ...(it.ProductionYear ? [{ label: "Year", value: String(it.ProductionYear) }] : []),
-      ...(it.RunTimeTicks && it.Type !== "Series" ? [{ label: "Runtime", value: runtime(it.RunTimeTicks) }] : []),
-      ...(it.CommunityRating ? [{ label: "Rating", value: `★ ${it.CommunityRating.toFixed(1)}${it.OfficialRating ? ` · ${it.OfficialRating}` : ""}` }] : it.OfficialRating ? [{ label: "Rated", value: it.OfficialRating }] : []),
+      ...(it.OfficialRating ? [{ label: "Rated", value: it.OfficialRating }] : []),
       ...(it.Genres?.length ? [{ label: "Genres", value: it.Genres.join(", ") }] : []),
-      { label: "Watched", value: ud?.Played ? `Yes${ud.LastPlayedDate ? `, ${ago(ud.LastPlayedDate)}` : ""}` : p > 0.01 ? `${pct(p)} in` : "No", ...(ud?.IsFavorite && { tags: [{ text: "favourite", color: "pink" }] }) },
+      ...(ud?.Played && ud.LastPlayedDate ? [{ label: "Last watched", value: ago(ud.LastPlayedDate) }] : []),
       ...(it.DateCreated ? [{ label: "Added", value: ago(it.DateCreated) }] : []),
       { label: "Jellyfin", link: { text: "Open", href: webUrl(it.Id) } },
     ],

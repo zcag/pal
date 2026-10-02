@@ -5,7 +5,9 @@
 // and a click sets; the keys as keycap hints. Which keys exist depends
 // on the item (`kind`): downloads pause everything on space, requests
 // approve on `a` and decline on `d`, sessions pause on space, queue
-// items leave on backspace.
+// items leave on backspace. What matters most leads as the headline: the
+// total speed over the downloads, the first session's title over what
+// plays (that row drawn as the lead, its poster larger).
 import { POPOVER_W, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 
 export type PopKind = "downloads" | "playing" | "requests" | "queue";
@@ -28,8 +30,12 @@ export type PopRow = {
 export type PopState = {
   kind: PopKind;
   title: string;
-  /** One line above the rows: the total speed, who is watching, the counts. */
+  /** The popover's answer, above everything in the display type: the total speed. */
+  headline?: string;
+  /** One line above the rows (under the headline): the counts, the limits. */
   summary?: string;
+  /** The first row is the lead: its title is the headline, its picture larger (what plays). */
+  lead?: boolean;
   rows: PopRow[];
   focus: number;
   /** Downloads: every client is paused, so space resumes. */
@@ -45,19 +51,21 @@ const GLYPH_W = 28, RIGHT_W = 64, GAP = 8;
 const TEXT_W = ROW_W - GLYPH_W - RIGHT_W - 2 * GAP;
 
 /** A row; `markable` where the popover has actions that run over several (`mark`: downloads, requests, the queue; not what plays, paused one device at a time). */
-function rowNode(r: PopRow, focused: boolean, markable: boolean): ViewNode {
+function rowNode(r: PopRow, focused: boolean, markable: boolean, isLead = false): ViewNode {
+  const side = isLead ? 40 : 24;
   const lead: ViewNode = r.image
-    ? { type: "image", key: "g", src: r.image, width: 24, height: 24, mask: "rounded" }
-    : text(r.glyph ?? "\u{f0997}", { key: "g", style: "glyph", size: "md", color: r.glyphColor ?? "muted", width: GLYPH_W });
-  const body: ViewNode[] = [text(r.title, { key: "t", size: "md", weight: "semibold", width: TEXT_W })];
-  if (r.subtitle) body.push(text(r.subtitle, { key: "s", size: "xs", color: "muted", width: TEXT_W }));
-  if (r.progress !== undefined) body.push({ type: "progress", key: "p", value: Math.max(0, Math.min(1, r.progress)), width: TEXT_W, color: r.progressColor });
+    ? { type: "image", key: "g", src: r.image, width: side, height: side, mask: "rounded" }
+    : text(r.glyph ?? "\u{f0997}", { key: "g", style: "glyph", size: isLead ? "xl" : "md", color: r.glyphColor ?? "muted", width: GLYPH_W + (isLead ? 16 : 0) });
+  const w = TEXT_W - (isLead ? 16 : 0);
+  const body: ViewNode[] = [isLead ? text(r.title, { key: "t", style: "headline", width: w }) : text(r.title, { key: "t", size: "md", weight: "semibold", width: w })];
+  if (r.subtitle) body.push(text(r.subtitle, { key: "s", size: "xs", color: "muted", width: w }));
+  if (r.progress !== undefined) body.push({ type: "progress", key: "p", value: Math.max(0, Math.min(1, r.progress)), width: w, color: r.progressColor });
   const right: ViewNode[] = [];
   if (r.tag) right.push({ type: "badge", key: "b", text: r.tag.text, color: r.tag.color });
   if (r.right) right.push(text(r.right, { key: "r", style: "number", size: "xs", color: "muted" }));
   return row(
     [{ type: "stack", key: "lead", direction: "column", align: "center", children: [lead] }, column(body, { key: "body", gap: 1 }), column(right, { key: "right", gap: 1, align: "end" })],
-    { key: r.id, ...(markable && { mark: r.id }), padding: ROW_PAD, gap: 2, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
+    { key: r.id, ...(markable && { mark: r.id }), padding: ROW_PAD, gap: 2, minHeight: isLead ? 56 : 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
   );
 }
 
@@ -111,8 +119,9 @@ export function render(st: PopState): View {
     );
   } else {
     const kids: ViewNode[] = [];
+    if (st.headline) kids.push(text(st.headline, { key: "headline", style: "headline" }));
     if (st.summary) kids.push(text(st.summary, { key: "summary", size: "xs", color: "muted" }));
-    kids.push(column(st.rows.map((r, i) => rowNode(r, i === st.focus, st.kind !== "playing")), { key: "rows", gap: 0 }), hints(st));
+    kids.push(column(st.rows.map((r, i) => rowNode(r, i === st.focus, st.kind !== "playing", !!st.lead && i === 0)), { key: "rows", gap: 0 }), hints(st));
     tree = column(kids, { key: "compact", padding: OUTER, gap: 2 });
   }
   return { tree, actions: actions(st), title: st.title, id: st.kind, keys: "actions" };

@@ -41,11 +41,15 @@ export function releaseRow(r: Release): Item {
     icon: tinted(torrent ? GLYPH.qbit : GLYPH.sab, torrent ? "blue" : "amber"),
     keywords: [r.indexer, r.protocol, ...(r.categories?.map((c) => c.name) ?? [])],
     section: r.indexer,
-    accessories: [
-      { tag: r.indexer, color: torrent ? "blue" : "amber" },
-      ...(torrent ? [{ text: `${r.seeders ?? 0} seeds` }] : [{ text: `${r.grabs ?? 0} grabs` }]),
-    ],
-    detail: { metadata: [{ label: "Indexer", value: `${r.indexer} (${r.protocol})` }, { label: "Size", value: bytes(r.size) }, { label: "Age", value: r.publishDate ? ago(r.publishDate) : ageText(r.age) }, ...(torrent ? [{ label: "Peers", value: `${r.seeders ?? 0} seeders, ${r.leechers ?? 0} leechers` }] : [{ label: "Grabs", value: String(r.grabs ?? 0) }]), ...(r.categories?.length ? [{ label: "Categories", value: r.categories.map((c) => c.name).join(", ") }] : []), ...(r.infoUrl ? [{ label: "Page", link: { text: "Open", href: r.infoUrl } }] : [])] },
+    // The indexer is the section and the glyph's colour the protocol, so the row keeps the seeds or grabs alone.
+    accessories: torrent ? [{ text: `${r.seeders ?? 0} seeds` }] : [{ text: `${r.grabs ?? 0} grabs` }],
+    detail: {
+      caption: `${r.indexer} · ${r.protocol}`,
+      title: r.title,
+      chips: (r.indexerFlags ?? []).map((f) => ({ text: f, color: "grey" as const })),
+      stats: [{ value: bytes(r.size), label: "size" }, ...(torrent ? [{ value: String(r.seeders ?? 0), label: "seeders" }, { value: String(r.leechers ?? 0), label: "leechers" }] : [{ value: String(r.grabs ?? 0), label: "grabs" }])],
+      metadata: [{ label: "Age", value: r.publishDate ? ago(r.publishDate) : ageText(r.age) }, ...(r.categories?.length ? [{ label: "Categories", value: r.categories.map((c) => c.name).join(", ") }] : []), ...(r.infoUrl ? [{ label: "Page", link: { text: "Open", href: r.infoUrl } }] : [])],
+    },
     // Every action also takes marked releases (`multi`): each grabbed (the question names none), each page opened, the links one per line.
     actions: [
       { id: "grab", title: "Grab through Prowlarr", multi: true, confirm: "Send to the download client through Prowlarr?" },
@@ -77,7 +81,7 @@ export function hydraRow(it: HydraItem): Item {
     icon: tinted(GLYPH.sab, "amber"),
     keywords: [indexer, it.category ?? ""],
     section: indexer,
-    accessories: [{ tag: indexer, color: "amber" }, ...(grabs ? [{ text: `${grabs} grabs` }] : [])],
+    accessories: grabs ? [{ text: `${grabs} grabs` }] : [],
     // Send, the page and Copy also take marked results (`multi`); Open is Hydra's one page.
     actions: [
       configured("sab") ? { id: "send", title: "Send to SABnzbd", multi: true, confirm: "Send to SABnzbd?" } : { id: "open", title: "Open in NZBHydra2" },
