@@ -42,8 +42,12 @@ describe("power: the strip", () => {
   test("the watcher's warning names the culprit; a click opens the palette, hover the popover", async () => {
     const item = await host.render("power", "battery") as any;
     expect(item).toMatchObject({ icon: "\u{f007d}", title: "31% · 12.4W · background-burn", states: { level: 31, charging: false, draw: 12.4, alert: "warn" }, click: "open" });
-    expect(item.tooltip).toBe("Battery Power · Discharging · 1:48 remaining · 12.4 W draw · Google Chrome Helper (Renderer) is using power in the background");
-    expect(texts(item.menu.view)).toEqual(expect.arrayContaining(["31%", "on battery", "Drawing 12 W · 1 h 48 min left", "Using power now", "Google Chrome Helper (Renderer) is using power in the background", "2.1 W"]));
+    // The tooltip's first line stands alone on a glance card; the alert on the next.
+    expect(item.tooltip).toBe("Drawing 12 W · 1 h 48 min left\nGoogle Chrome Helper (Renderer) is using power in the background");
+    // The level leads as the headline; where the power comes from is the popover's title.
+    expect(item.menu.view.title).toBe("On battery");
+    expect(texts(item.menu.view)).not.toContain("on battery");
+    expect(texts(item.menu.view)).toEqual(expect.arrayContaining(["31%", "Drawing 12 W · 1 h 48 min left", "Using power now", "Google Chrome Helper (Renderer) is using power in the background", "2.1 W"]));
     expect(await host.request<any>("bar/open", { extension: "power", id: "battery" })).toEqual({ push: { extension: "power", palette: "power" } });
   });
 
