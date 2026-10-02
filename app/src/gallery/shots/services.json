@@ -48,28 +48,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · pipewire.service",
+            "title": "pipewire",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "pipewire.service"
+                "text": "running",
+                "color": "green"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "active (running)"
-              },
-              {
-                "label": "Unit file",
-                "value": "enabled"
+                "text": "enabled",
+                "color": "blue"
               }
-            ]
+            ],
+            "markdown": "PipeWire Multimedia Service",
+            "metadata": []
           },
           "actions": [
             {
@@ -117,28 +109,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · wireplumber.service",
+            "title": "wireplumber",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "wireplumber.service"
+                "text": "running",
+                "color": "green"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "active (running)"
-              },
-              {
-                "label": "Unit file",
-                "value": "enabled"
+                "text": "enabled",
+                "color": "blue"
               }
-            ]
+            ],
+            "markdown": "Multimedia Service Session Manager",
+            "metadata": []
           },
           "actions": [
             {
@@ -186,28 +170,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · syncthing.service",
+            "title": "syncthing",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "syncthing.service"
+                "text": "running",
+                "color": "green"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "active (running)"
-              },
-              {
-                "label": "Unit file",
-                "value": "enabled"
+                "text": "enabled",
+                "color": "blue"
               }
-            ]
+            ],
+            "markdown": "Syncthing - Open Source Continuous File Synchronization",
+            "metadata": []
           },
           "actions": [
             {
@@ -252,23 +228,16 @@
             }
           ],
           "detail": {
+            "caption": "User · gpg-agent.service",
+            "title": "gpg-agent",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              }
+            ],
+            "markdown": "GnuPG cryptographic agent and passphrase cache",
             "metadata": [
-              {
-                "label": "Unit",
-                "value": "gpg-agent.service"
-              },
-              {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "active (running)"
-              },
               {
                 "label": "Unit file",
                 "value": "static"
@@ -316,28 +285,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · ssh-agent.service",
+            "title": "ssh-agent",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "ssh-agent.service"
+                "text": "running",
+                "color": "green"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "active (running)"
-              },
-              {
-                "label": "Unit file",
-                "value": "enabled"
+                "text": "enabled",
+                "color": "blue"
               }
-            ]
+            ],
+            "markdown": "SSH key agent",
+            "metadata": []
           },
           "actions": [
             {
@@ -385,28 +346,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · report.service",
+            "title": "report",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "report.service"
+                "text": "inactive/dead",
+                "color": "grey"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "inactive (dead)"
-              },
-              {
-                "label": "Unit file",
-                "value": "disabled"
+                "text": "disabled",
+                "color": "grey"
               }
-            ]
+            ],
+            "markdown": "Weekly usage report",
+            "metadata": []
           },
           "actions": [
             {
@@ -454,28 +407,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · backup.service",
+            "title": "backup",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "backup.service"
+                "text": "failed",
+                "color": "red"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "failed (failed)"
-              },
-              {
-                "label": "Unit file",
-                "value": "enabled"
+                "text": "enabled",
+                "color": "blue"
               }
-            ]
+            ],
+            "markdown": "Nightly restic backup",
+            "metadata": []
           },
           "actions": [
             {
@@ -520,23 +465,16 @@
             }
           ],
           "detail": {
+            "caption": "User · xdg-desktop-portal.service",
+            "title": "xdg-desktop-portal",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              }
+            ],
+            "markdown": "Portal service",
             "metadata": [
-              {
-                "label": "Unit",
-                "value": "xdg-desktop-portal.service"
-              },
-              {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "active (running)"
-              },
               {
                 "label": "Unit file",
                 "value": "static"
@@ -584,28 +522,20 @@
             }
           ],
           "detail": {
-            "metadata": [
+            "caption": "User · podman.service",
+            "title": "podman",
+            "chips": [
               {
-                "label": "Unit",
-                "value": "podman.service"
+                "text": "inactive/dead",
+                "color": "grey"
               },
               {
-                "label": "Scope",
-                "value": "user"
-              },
-              {
-                "label": "Load",
-                "value": "loaded"
-              },
-              {
-                "label": "Active",
-                "value": "inactive (dead)"
-              },
-              {
-                "label": "Unit file",
-                "value": "disabled"
+                "text": "disabled",
+                "color": "grey"
               }
-            ]
+            ],
+            "markdown": "Podman API Service",
+            "metadata": []
           },
           "actions": [
             {
@@ -656,28 +586,20 @@
               }
             ],
             "detail": {
-              "metadata": [
+              "caption": "User · backup.service",
+              "title": "backup",
+              "chips": [
                 {
-                  "label": "Unit",
-                  "value": "backup.service"
+                  "text": "failed",
+                  "color": "red"
                 },
                 {
-                  "label": "Scope",
-                  "value": "user"
-                },
-                {
-                  "label": "Load",
-                  "value": "loaded"
-                },
-                {
-                  "label": "Active",
-                  "value": "failed (failed)"
-                },
-                {
-                  "label": "Unit file",
-                  "value": "enabled"
+                  "text": "enabled",
+                  "color": "blue"
                 }
-              ]
+              ],
+              "markdown": "Nightly restic backup",
+              "metadata": []
             },
             "actions": [
               {
@@ -726,28 +648,20 @@
               }
             ],
             "detail": {
-              "metadata": [
+              "caption": "System · nginx.service",
+              "title": "nginx",
+              "chips": [
                 {
-                  "label": "Unit",
-                  "value": "nginx.service"
+                  "text": "failed",
+                  "color": "red"
                 },
                 {
-                  "label": "Scope",
-                  "value": "system"
-                },
-                {
-                  "label": "Load",
-                  "value": "loaded"
-                },
-                {
-                  "label": "Active",
-                  "value": "failed (failed)"
-                },
-                {
-                  "label": "Unit file",
-                  "value": "enabled"
+                  "text": "enabled",
+                  "color": "blue"
                 }
-              ]
+              ],
+              "markdown": "A high performance web server and a reverse proxy server",
+              "metadata": []
             },
             "actions": [
               {
@@ -795,23 +709,16 @@
               }
             ],
             "detail": {
+              "caption": "System · fstrim.service",
+              "title": "fstrim",
+              "chips": [
+                {
+                  "text": "failed",
+                  "color": "red"
+                }
+              ],
+              "markdown": "Discard unused blocks on filesystems from /etc/fstab",
               "metadata": [
-                {
-                  "label": "Unit",
-                  "value": "fstrim.service"
-                },
-                {
-                  "label": "Scope",
-                  "value": "system"
-                },
-                {
-                  "label": "Load",
-                  "value": "loaded"
-                },
-                {
-                  "label": "Active",
-                  "value": "failed (failed)"
-                },
                 {
                   "label": "Unit file",
                   "value": "static"
@@ -888,22 +795,24 @@
             }
           ],
           "detail": {
+            "caption": "~/Library/LaunchAgents/homebrew.mxcl.postgresql@16.plist",
+            "title": "homebrew.mxcl.postgresql@16",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              }
+            ],
+            "stats": [
+              {
+                "value": "812",
+                "label": "pid"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "homebrew.mxcl.postgresql@16"
-              },
-              {
-                "label": "Plist",
-                "value": "~/Library/LaunchAgents/homebrew.mxcl.postgresql@16.plist"
-              },
               {
                 "label": "Program",
                 "value": "/opt/homebrew/opt/postgresql@16/bin/postgres"
-              },
-              {
-                "label": "State",
-                "value": "running, pid 812"
               }
             ]
           },
@@ -954,22 +863,24 @@
             }
           ],
           "detail": {
+            "caption": "~/Library/LaunchAgents/com.example.notes-sync.plist",
+            "title": "com.example.notes-sync",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              }
+            ],
+            "stats": [
+              {
+                "value": "830",
+                "label": "pid"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "com.example.notes-sync"
-              },
-              {
-                "label": "Plist",
-                "value": "~/Library/LaunchAgents/com.example.notes-sync.plist"
-              },
               {
                 "label": "Program",
                 "value": "~/Applications/Notes Sync.app/Contents/MacOS/notes-sync"
-              },
-              {
-                "label": "State",
-                "value": "running, pid 830"
               }
             ]
           },
@@ -1017,22 +928,18 @@
             }
           ],
           "detail": {
+            "caption": "~/Library/LaunchAgents/com.example.backup.plist",
+            "title": "com.example.backup",
+            "chips": [
+              {
+                "text": "exit 1",
+                "color": "red"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "com.example.backup"
-              },
-              {
-                "label": "Plist",
-                "value": "~/Library/LaunchAgents/com.example.backup.plist"
-              },
               {
                 "label": "Program",
                 "value": "~/bin/backup.sh"
-              },
-              {
-                "label": "State",
-                "value": "loaded, last exit 1"
               }
             ]
           },
@@ -1080,22 +987,18 @@
             }
           ],
           "detail": {
+            "caption": "~/Library/LaunchAgents/homebrew.mxcl.redis.plist",
+            "title": "homebrew.mxcl.redis",
+            "chips": [
+              {
+                "text": "loaded",
+                "color": "blue"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "homebrew.mxcl.redis"
-              },
-              {
-                "label": "Plist",
-                "value": "~/Library/LaunchAgents/homebrew.mxcl.redis.plist"
-              },
               {
                 "label": "Program",
                 "value": "/opt/homebrew/opt/redis/bin/redis-server"
-              },
-              {
-                "label": "State",
-                "value": "loaded, last exit 0"
               }
             ]
           },
@@ -1143,22 +1046,18 @@
             }
           ],
           "detail": {
+            "caption": "~/Library/LaunchAgents/com.example.wallpaper.plist",
+            "title": "com.example.wallpaper",
+            "chips": [
+              {
+                "text": "not loaded",
+                "color": "grey"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "com.example.wallpaper"
-              },
-              {
-                "label": "Plist",
-                "value": "~/Library/LaunchAgents/com.example.wallpaper.plist"
-              },
               {
                 "label": "Program",
                 "value": "~/bin/wallpaper.sh"
-              },
-              {
-                "label": "State",
-                "value": "not loaded"
               }
             ]
           },
@@ -1203,22 +1102,24 @@
             }
           ],
           "detail": {
+            "caption": "/Library/LaunchAgents/com.example.updater.plist",
+            "title": "com.example.updater",
+            "chips": [
+              {
+                "text": "running",
+                "color": "green"
+              }
+            ],
+            "stats": [
+              {
+                "value": "455",
+                "label": "pid"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "com.example.updater"
-              },
-              {
-                "label": "Plist",
-                "value": "/Library/LaunchAgents/com.example.updater.plist"
-              },
               {
                 "label": "Program",
                 "value": "/Library/Application Support/Example/updater"
-              },
-              {
-                "label": "State",
-                "value": "running, pid 455"
               }
             ]
           },
@@ -1266,22 +1167,18 @@
             }
           ],
           "detail": {
+            "caption": "/Library/LaunchAgents/com.docker.socket.plist",
+            "title": "com.docker.socket",
+            "chips": [
+              {
+                "text": "loaded",
+                "color": "blue"
+              }
+            ],
             "metadata": [
-              {
-                "label": "Label",
-                "value": "com.docker.socket"
-              },
-              {
-                "label": "Plist",
-                "value": "/Library/LaunchAgents/com.docker.socket.plist"
-              },
               {
                 "label": "Program",
                 "value": "/Applications/Docker.app/Contents/MacOS/com.docker.socket"
-              },
-              {
-                "label": "State",
-                "value": "loaded, last exit 0"
               }
             ]
           },
@@ -1363,6 +1260,17 @@
         "down*2"
       ],
       "caption": "On macOS, launchd agents by folder, with their pid and state",
+      "settle": 900
+    },
+    "5-detail": {
+      "palette": "services",
+      "keys": [
+        "wait:1500",
+        "down*6",
+        "cmd+i",
+        "wait:400"
+      ],
+      "caption": "A unit's detail (cmd+I): its manager and file, the name, failed and enabled as chips, what it is for",
       "settle": 900
     }
   }
