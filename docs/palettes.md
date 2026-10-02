@@ -4661,7 +4661,8 @@ in that order for `auto`; `speedtest` on PATH is told apart by its
 `--version`, since sivel's package installs an alias of that name), or
 the three install lines when none is; **nothing runs until Enter**.
 Enter spawns the tool in its own process group and the view follows its
-stream through `view.update`: a bar per direction with the live figure
+stream through `view.update`: a headline with the figures so far (else
+what it is doing, or what to do), a bar per direction with the live figure
 in Mbps (Ookla's own fraction fills it; the other two get an estimate
 from the elapsed time that stops short of full), the ping tiles (latency,
 jitter, loss when reported), the server and the ISP in the head, the
@@ -4970,7 +4971,7 @@ segments, the text, time, EXIF and ICC chunks). The empty listing names
 up to three encoders worth installing. Optimise for web (`cmd+enter`) caps
 the long side at `web_max`, encodes at `quality` (as `web_format`), strips,
 and opens a view with a row per image (thumbnail, before → after, the
-saving as a tag, a bar) and the total at the foot, following a long batch
+saving as a tag, a bar) under the total saved as its headline, following a long batch
 as it lands. Make an icon set writes `name-icons/` with the `.iconset`,
 the `.icns` (iconutil), `favicon.ico` and the touch and Android sizes.
 TinyPNG (`tinypng_api_key`) adds `cmd+t` for PNG, JPEG, WebP and AVIF.
@@ -5292,9 +5293,10 @@ Settings, `[extensions.grafana]`:
 Diff what you copied, from `extensions/diff/`. A view palette: opened
 bare it compares the two newest text entries of the clipboard history,
 the older on the left, so the diff reads as what changed on the way to
-the newer copy. The header names both sides with when and where they
-were copied and carries the counts as badges (`+12` green, `−4` red,
-`whitespace only` amber, `no differences`); under it the lines on a
+the newer copy. It leads with how much changed as a headline ("12 lines
+added, 4 removed", "No differences"); the header under it names both
+sides with when and where they were copied (`whitespace only` amber when
+that is all that changed); under it the lines on a
 sunken surface, unified by default: both line numbers, the sign, the
 text in monospace, removed lines on a red tint and added ones on a
 green one (consecutive lines of one kind share the block), the words
