@@ -1408,7 +1408,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   return (
     <Panel
-      fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing}
+      fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing && !actionsOpen}
       onFit={onPanelFit}
       place={extensionPlace ?? placeOf(levelIcon)}
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}

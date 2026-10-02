@@ -116,6 +116,17 @@
   --pal-footer-h: 0px;
 }
 
+/* ⌘K as a sheet across the panel's bottom: two columns, the item it acts on as its heading, the keys as plain text. */
+[data-design="ink"] {
+  --pal-actions-left: var(--pal-space-2);
+  --pal-actions-w: auto;
+  --pal-actions-cols: repeat(2, minmax(0, 1fr));
+}
+[data-design="ink"] .pal-actions { border-radius: 16px; }
+[data-design="ink"] .pal-actions__title { font-family: var(--pal-font-query); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--pal-fg); padding: var(--pal-space-1) var(--pal-space-2) var(--pal-space-2); }
+[data-design="ink"] .pal-actions .pal-kbd kbd { background: transparent; box-shadow: none; min-width: 0; padding: 0 1px; color: var(--pal-fg-faint); }
+[data-design="ink"] .pal-actions__search { border-top: 0; }
+
 /* A bar popover is a 420-wide window: its header row a size down from the panel's headline (the sidebar keeps its own, smaller). */
 [data-design="ink"] .pal-bar-page:not([data-sidebar]) {
   --pal-search-h: 52px;
