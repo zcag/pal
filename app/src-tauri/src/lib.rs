@@ -17,6 +17,7 @@ mod color;
 mod commands;
 mod compact;
 mod glance;
+mod watchdog;
 mod compat;
 mod confirm;
 mod crash;
@@ -478,6 +479,7 @@ pub fn run() {
             index::restore_cache(app.handle());
             views::install(app.handle());
             states::install(app.handle());
+            watchdog::install(app.handle());
             bar::install(app.handle());
             features::install(app.handle());
             sidebar::install(app.handle());

@@ -84,13 +84,15 @@ ext-release:
 # pal-dev.env); with neither, nothing is built: an ad-hoc pal would drop
 # every grant. Quits the running instance, swaps the bundle, relaunches
 # through LaunchServices.
+# Keeps its symbols (releases strip them): a hang's sample (watchdog.rs) then
+# names pal's own frames.
 PAL_DEV_P12 ?= $(HOME)/Sync/.secrets/pal/pal-dev.p12
 .PHONY: app
 app:
 	@security find-identity -p codesigning 2>/dev/null | grep -q '"pal-dev"' || { \
 		[ -f "$(PAL_DEV_P12)" ] || { echo "no pal-dev signing identity and no $(PAL_DEV_P12) to import it from (docs/releasing.md)"; exit 1; }; \
 		. "$(dir $(PAL_DEV_P12))pal-dev.env" && app/scripts/signing-key.sh "$(PAL_DEV_P12)" "$$PAL_DEV_P12_PASSWORD"; }
-	cd app && npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"pal-dev"}}}'
+	cd app && CARGO_PROFILE_RELEASE_STRIP=false npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"pal-dev"}}}'
 	-pal quit 2>/dev/null; sleep 1
 	rm -rf /Applications/pal.app && cp -R target/release/bundle/macos/pal.app /Applications/pal.app
 	open -a /Applications/pal.app
