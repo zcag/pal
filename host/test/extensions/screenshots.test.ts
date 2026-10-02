@@ -8,7 +8,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, HIDE_SETTLE_MS, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
@@ -177,11 +177,11 @@ describe("screenshots", () => {
     expect(await pick(one, "open", { ids: [one, two] })).toEqual({ open: [one, two] });
   });
 
-  test("detail: the picture itself over its facts", async () => {
+  test("detail: the folder over the name, the pixels and size large, the picture itself, when it was taken", async () => {
     const d = await host.detail("screenshots", "screenshots", one);
     expect(d.markdown).toBe(`![Screenshot 2026-09-17 at 14.03.22.png](icon://localhost/file?path=${encodeURIComponent(one)}&size=0)`);
-    expect(d.metadata!.map((m) => m.label)).toEqual(["Name", "Folder", "Size", "Pixels", "Taken"]);
-    expect(d.metadata![3].value).toBe("1440 × 900");
+    expect(d).toMatchObject({ caption: folder.replace(process.env.HOME!, "~"), title: basename(one), stats: [{ value: "1440 × 900", label: "pixels" }, { label: "size" }] });
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Taken"]);
     expect((await host.detail("screenshots", "screenshots", join(folder, "gone.png"))).markdown).toBe("This file is gone.");
     expect(await host.detail("screenshots", "screenshots", "capture:area")).toEqual({});
   });

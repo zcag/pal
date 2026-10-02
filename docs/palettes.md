@@ -4797,8 +4797,9 @@ is silent unless `sound` is on.
 | `tab`, `x`, `shift+↓`, `cmd+click` | Mark rows |
 
 Open, Reveal, Copy image, Copy path and the trash take marked rows
-(`multi`). The detail pane (`⌘I`) shows the picture itself over its
-name, folder, size, pixels and the time it was taken. The root's Now
+(`multi`). The detail pane (`⌘I`) leads with the folder over the name
+and the pixels and size large, then the picture itself and the time it
+was taken. The root's Now
 section offers a screenshot taken in the last two minutes as
 `Screenshot taken 40 s ago` with Open, Copy image and the markdown tag.
 For the tests, `PAL_SCREENCAPTURE_BIN` names a stand-in capture tool and
