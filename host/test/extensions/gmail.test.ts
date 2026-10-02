@@ -197,7 +197,8 @@ describe("gmail", () => {
     // No Gravatar for GitHub: the initial on a tile. The chips are the user labels, the star and the paperclip.
     expect(rows[1].icon).toEqual(initialIcon("GitHub", "notifications@github.com"));
     expect(tags(rows[1])).toEqual(["GitHub"]);
-    expect(tags(rows[3])).toEqual(["Family/Trips", "★"]);
+    // The star first, then one label: a row shows two accessories at most.
+    expect(tags(rows[3])).toEqual(["★", "Family/Trips"]);
     expect(rows[3].accessories).toContainEqual({ text: "📎" });
     expect(rows[3].actions!.find((a) => a.id === "unstar")).toEqual({ id: "unstar", title: "Unstar", shortcut: "cmd+s", multi: true });
     expect(rows[4].actions![1]).toEqual({ id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true });
@@ -232,19 +233,20 @@ describe("gmail", () => {
   test("the pane: the text with the quote folded, the HTML converted, the headers, the attachments, the link; the full message fetched once", async () => {
     const d1 = await host.detail(P, "inbox", "m1");
     expect(d1.markdown).toBe("Can you look at the parser before standup? The tests are green now & the diff is small.\n\n_quoted text folded_");
+    // The header: who and when, the subject, the state as chips; the metadata what it does not say.
+    expect(d1).toMatchObject({ caption: expect.stringMatching(/^Mara Lind · .*2026/), title: expect.any(String), chips: [{ text: "unread", color: "blue" }] });
     expect(d1.metadata).toEqual([
       { label: "From", value: "Mara Lind <mara@example.com>" },
       { label: "To", value: "someone@gmail.com" },
-      { label: "Date", value: expect.stringMatching(/2026/) },
       { label: "Thread", link: { text: "Open in Gmail", href: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1" } },
     ]);
     const d2 = await host.detail(P, "inbox", "m2");
     expect(d2.markdown).toBe("tomas-r requested your review on \\#81 (https://github.com/zcag/pal/pull/81).\n\\- Settings page\n\\- Bar rows\n\n_quoted text folded_\n\n© GitHub");
-    expect(d2.metadata!.find((m) => m.label === "Labels")).toEqual({ label: "Labels", tags: [{ text: "GitHub" }] });
+    expect(d2.chips).toContainEqual({ text: "GitHub", color: "grey" });
     const d4 = await host.detail(P, "inbox", "m4");
+    expect(d4.chips!.slice(-2)).toEqual([{ text: "starred", color: "amber" }, { text: "Family/Trips", color: "grey" }]);
     expect(d4.metadata!.filter((m) => /Cc|Attachments|Labels/.test(m.label))).toEqual([
       { label: "Cc", value: "Tomas Ruiz <tomas@example.com>" },
-      { label: "Labels", tags: [{ text: "Family/Trips" }, { text: "starred", color: "amber" }] },
       { label: "2 Attachments", value: "booking.pdf (118 KB), map.png (86 KB)" },
     ]);
     const fulls = mock.calls("/users/me/messages/m1").filter((c) => c.query.format?.[0] === "full");

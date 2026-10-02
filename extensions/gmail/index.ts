@@ -20,8 +20,6 @@ const SYSTEM_GLYPH: Record<string, string> = { INBOX: ICON.inbox, STARRED: ICON.
 /** How long an inbox is shared between the bar and the palette before either fetches again. */
 const INBOX_FRESH_MS = 30_000;
 const SEARCH_WAIT_MS = 300;
-/** Rows in the bar's popover. */
-const MAX_CHIPS = 2;
 
 // ---- the inbox, shared ------------------------------------------------------------
 
@@ -108,10 +106,11 @@ function userLabels(m: Mail): string[] {
   return m.labelIds.filter((id) => !/^[A-Z_]+$/.test(id)).map((id) => names.get(id)).filter((n): n is string => !!n);
 }
 
+/** A row shows two accessories at most (Ink drops the paperclip, then the time, then the later tags): the star first, then a label, so a starred mail keeps saying so. */
 function mailAccessories(m: Mail): Accessory[] {
   const a: Accessory[] = [];
-  for (const l of userLabels(m).slice(0, MAX_CHIPS)) a.push({ tag: l, color: "grey" });
   if (m.starred) a.push({ tag: "★", color: "amber" });
+  for (const l of userLabels(m).slice(0, 1)) a.push({ tag: l, color: "grey" });
   if (m.attached) a.push({ text: "📎" });
   if (m.date) a.push({ date: m.date });
   return a;
@@ -160,7 +159,7 @@ function mailRow(m: Mail, section?: string): Item {
   };
 }
 
-/** The pane: the message as text (quotes folded), then who, when, the labels, the attachments, the link. */
+/** The pane, a document: who wrote it and when over the subject, its state and labels as chips; the message as text (quotes folded); then the addresses, the attachments and the link the header does not say. */
 async function mailPane(id: string): Promise<Detail> {
   const o = await open(id);
   const m = o.mail;
@@ -168,13 +167,17 @@ async function mailPane(id: string): Promise<Detail> {
     { label: "From", value: addrLine(m.from) },
     ...(m.to.length ? [{ label: "To", value: m.to.map(addrLine).join(", ") }] : []),
     ...(m.cc.length ? [{ label: "Cc", value: m.cc.map(addrLine).join(", ") }] : []),
-    { label: "Date", value: m.date ? `${dayNameYear(m.date)} ${clock(m.date)}` : m.dateHeader },
-    ...(userLabels(m).length || m.starred ? [{ label: "Labels", tags: [...userLabels(m).map((l) => ({ text: l })), ...(m.starred ? [{ text: "starred", color: "amber" }] : [])] }] : []),
     ...(o.attachments.length ? [{ label: plural(o.attachments.length, "Attachment"), value: o.attachments.map((a) => `${a.filename} (${bytes(a.size)})`).join(", ") }] : []),
     { label: "Thread", link: { text: "Open in Gmail", href: threadUrl(await address(), m.threadId, m.inInbox) } },
   ];
   const text = messageText(o.text, o.html, m.snippet);
-  return { markdown: text ? mdEscape(text) : "_(no text)_", metadata };
+  return {
+    caption: [who(m), m.date ? `${dayNameYear(m.date)} ${clock(m.date)}` : m.dateHeader].filter(Boolean).join(" · "),
+    title: m.subject || "(no subject)",
+    chips: [...(m.unread ? [{ text: "unread", color: "blue" as const }] : []), ...(m.starred ? [{ text: "starred", color: "amber" as const }] : []), ...userLabels(m).map((l) => ({ text: l, color: "grey" as const }))],
+    markdown: text ? mdEscape(text) : "_(no text)_",
+    metadata,
+  };
 }
 
 const replyForm = (m: Mail, errors?: Record<string, string>, values: Partial<Record<"to" | "cc" | "subject" | "body", string>> = {}): Form => ({
