@@ -60,7 +60,12 @@ export type Metadata = {
   link?: { text: string; href: string };
 };
 
+/** The detail pane (`Detail` in the SDK): an optional header (caption, title, chips, stats) over the markdown and the metadata. */
 export type Detail = {
+  caption?: string;
+  title?: string;
+  chips?: { text: string; color?: string }[];
+  stats?: { value: string; label: string; color?: string }[];
   markdown?: string;
   metadata?: Metadata[];
 };

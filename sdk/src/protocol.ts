@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. */
-export const PROTOCOL: number = 2;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). */
+export const PROTOCOL: number = 3;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -53,7 +53,19 @@ export type Metadata = {
 };
 
 /** Side pane: markdown (no raw HTML; `icon://` images work) over a metadata list. */
-export type Detail = { markdown?: string; metadata?: Metadata[] };
+/**
+ * The detail pane. `markdown` over `metadata` (label/value lines); a
+ * thing with a name and a state (a pull request, an event, a file) can
+ * lead with a header instead of saying it all in the table: `caption`
+ * (a small line on top: where it lives), `title` (the thing, in the
+ * design's display type), `chips` (its state, as tags) and `stats` (the
+ * few numbers that matter, large: `+184` added). Protocol 3: a build that
+ * uses them is offered only to an app that draws them, so what the header
+ * says need not be repeated in the metadata.
+ */
+export type Detail = { caption?: string; title?: string; chips?: { text: string; color?: TagColor | `#${string}` }[]; stats?: DetailStat[]; markdown?: string; metadata?: Metadata[] };
+/** One of a detail's large numbers: the `value` as shown (`+184`, `6`), its `label` under it, `color` for a sign (`success`, `destructive`) or a tag colour. */
+export type DetailStat = { value: string; label: string; color?: TagColor | "success" | "destructive" };
 
 /**
  * A glyph/emoji/hex string, `{ app }` for an application's own artwork (the

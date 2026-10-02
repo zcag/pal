@@ -283,7 +283,7 @@ export function toItem(hit: WireHit, palette: PaletteInfo): Item {
 /** A `detail(id)` reply over the item's inline detail: what the reply has wins, the rest stays. */
 export const mergeDetail = (inline: Detail | undefined, reply: unknown): Detail => {
   const r = reply && typeof reply === "object" ? (reply as Detail) : {};
-  return { markdown: r.markdown ?? inline?.markdown, metadata: r.metadata ?? inline?.metadata };
+  return { caption: r.caption ?? inline?.caption, title: r.title ?? inline?.title, chips: r.chips ?? inline?.chips, stats: r.stats ?? inline?.stats, markdown: r.markdown ?? inline?.markdown, metadata: r.metadata ?? inline?.metadata };
 };
 
 /** A host `list` reply as hits: unranked rows, in the order given, no match positions. */

@@ -269,6 +269,20 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 /* Detail pane */
 .pal-detail { display: flex; flex-direction: column; min-height: 100%; }
 .pal-detail__md { flex: 1; padding: var(--pal-space-4) var(--pal-space-5); line-height: var(--pal-leading-prose); overflow-wrap: anywhere; }
+/* The detail's header (Detail `caption`, `title`, `chips`, `stats`): the thing, its state and its numbers before the prose. */
+.pal-detail__head { flex: none; display: flex; flex-direction: column; gap: var(--pal-space-2); padding: var(--pal-space-4) var(--pal-space-5) 0; }
+.pal-detail__caption { color: var(--pal-fg-faint); font-size: var(--pal-text-sm); }
+.pal-detail__title { margin: 0; font-family: var(--pal-font-hero, var(--pal-font-query, inherit)); font-size: var(--pal-text-hero); font-weight: var(--pal-weight-hero, var(--pal-weight-semibold)); letter-spacing: var(--pal-tracking-query, normal); line-height: 1.2; }
+.pal-detail__chips { display: flex; flex-wrap: wrap; gap: var(--pal-space-1); }
+.pal-detail__stats { display: flex; flex-wrap: wrap; gap: var(--pal-space-5); margin: var(--pal-space-1) 0 0; }
+.pal-detail__stat { display: flex; flex-direction: column; }
+.pal-detail__stat dd { margin: 0; font-family: var(--pal-font-hero, var(--pal-font-query, inherit)); font-size: var(--pal-text-lg); font-weight: var(--pal-weight-hero, var(--pal-weight-semibold)); font-variant-numeric: tabular-nums; }
+.pal-detail__stat dt { color: var(--pal-fg-faint); font-size: var(--pal-text-xs); }
+.pal-detail__stat[data-color="success"] dd { color: var(--pal-success); }
+.pal-detail__stat[data-color="destructive"] dd { color: var(--pal-destructive); }
+.pal-detail__stat:is([data-color="grey"], [data-color="blue"], [data-color="green"], [data-color="amber"], [data-color="red"], [data-color="violet"], [data-color="pink"], [data-color="teal"]) dd { color: var(--tag); }
+.pal-detail__stat[data-color="grey"] { --tag: var(--pal-tag-grey); } .pal-detail__stat[data-color="blue"] { --tag: var(--pal-tag-blue); } .pal-detail__stat[data-color="green"] { --tag: var(--pal-tag-green); } .pal-detail__stat[data-color="amber"] { --tag: var(--pal-tag-amber); }
+.pal-detail__stat[data-color="red"] { --tag: var(--pal-tag-red); } .pal-detail__stat[data-color="violet"] { --tag: var(--pal-tag-violet); } .pal-detail__stat[data-color="pink"] { --tag: var(--pal-tag-pink); } .pal-detail__stat[data-color="teal"] { --tag: var(--pal-tag-teal); }
 .pal-detail__meta { flex: none; margin: 0; padding: var(--pal-space-2) var(--pal-space-5); border-top: 1px solid var(--pal-line); }
 /* Lazy detail on its way: text-shaped bars where the markdown will be, breathing so a slow one reads as alive, not stuck. */
 .pal-detail__skeleton { display: flex; flex-direction: column; gap: var(--pal-space-2); padding-top: calc(var(--pal-space-4) + 2px); }

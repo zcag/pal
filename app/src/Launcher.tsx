@@ -1365,7 +1365,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const placeKey = view.kind === "palette" || view.kind === "view" || view.kind === "form" || view.kind === "show" ? view.palette : isMenu ? view.key : undefined;
   const levelExt = placeKey && (barOf(placeKey)?.extension ?? placeKey.split("/")[0]);
   const placeBg = levelExt ? sources.find((x) => x.extension === levelExt && x.place)?.place : undefined;
-  const extensionPlace = placeBg ? (placeBg.startsWith("#") ? placeBg : `var(--pal-brand-${placeBg})`) : undefined;
+  const extensionPlace = placeBg && !inkish(placeBg) ? (placeBg.startsWith("#") ? placeBg : `var(--pal-brand-${placeBg})`) : undefined;
   const isMissing = view.kind === "missing";
   const card = view.kind === "missing" ? missingCard(view) : undefined;
   const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : view.kind === "missing" ? { title: view.info?.title ?? view.extension, icon: view.info?.icon } : undefined;
@@ -1440,7 +1440,14 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
 /** A level's colour for `--pal-place` (Panel `place`): its icon's tile (a brand token or the product's own `#rrggbb`) or a glyph's brand tint; none for any other icon. */
 function placeOf(icon: IconSpec | undefined): string | undefined {
-  if (icon?.kind === "glyph" && icon.tint) return `var(--pal-brand-${icon.tint})`;
-  if (icon?.kind !== "tile") return undefined;
+  if (icon?.kind === "glyph" && icon.tint && !inkish(icon.tint)) return `var(--pal-brand-${icon.tint})`;
+  if (icon?.kind !== "tile" || inkish(icon.bg)) return undefined;
   return icon.bg.startsWith("#") ? icon.bg : `var(--pal-brand-${icon.bg})`;
+}
+
+/** A colour too dark to tint by (the `ink` brand, GitHub's; a near-black product colour): its glow and crumb would vanish on the dark panel, so the place stays neutral. */
+function inkish(bg: string): boolean {
+  if (bg === "ink") return true;
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(bg);
+  return !!m && 0.2126 * parseInt(m[1], 16) + 0.7152 * parseInt(m[2], 16) + 0.0722 * parseInt(m[3], 16) < 60;
 }
