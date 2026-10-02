@@ -14,7 +14,7 @@ import { CHARSET_TITLES, loremParagraphs, nanoid, passphrase, password, randomBa
 import manifest from "./pal.json";
 
 const JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
-const QUERIES = ["", "hash pal", "qr https://pal.cagdas.io", `jwt ${JWT}`];
+const QUERIES = ["", "hash pal", "qr https://pal.cagdas.io", `jwt ${JWT}`, "password 24"];
 
 // gen.ts draws from `crypto.getRandomValues` and `crypto.randomUUID`: seed both, in this process only.
 const rand = seeded(7);
@@ -62,6 +62,7 @@ try {
   const byQuery: Record<string, Item[]> = {};
   for (const q of QUERIES) byQuery[q] = (await host.list("generate", "generate", q)) as Item[];
   byQuery[""] = byQuery[""].map(reroll);
+  byQuery["password 24"] = byQuery["password 24"].map(reroll);
   writeFixture("generate", {
     palettes: { generate: { title: meta.title, icon: meta.icon, input: true, placeholder: meta.placeholder, byQuery } },
     shots: {
@@ -69,6 +70,7 @@ try {
       "2-hash": { palette: "generate", keys: ["type:hash pal", "cmd+k"], caption: "hash of typed text: all four digests, and Copy all on cmd+shift+c" },
       "3-qr": { palette: "generate", keys: ["type:qr https://pal.cagdas.io", "cmd+i"], caption: "qr of a link: the code on the row and large in the detail pane" },
       "4-jwt": { palette: "generate", keys: [`type:jwt ${JWT}`, "down"], caption: "jwt: the header, the payload with its expiry, the times, and a reminder that nothing is verified" },
+      "5-password": { palette: "generate", keys: ["type:password 24", "cmd+i"], caption: "password 24: the password as the answer; the pane has its strength, length and entropy" },
     },
   });
   console.log("wrote app/src/gallery/shots/generate.json");

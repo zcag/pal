@@ -7,7 +7,7 @@
 // copies on Enter and pastes on cmd+Enter; the shell's Refresh (cmd+r)
 // lists again, which is how a value is regenerated. The values are made in
 // `gen.ts`, the QR code in `qr.ts`; this file is the rows.
-import { ago, clipboard, errorMessage, hint, now, settings, toast, truncate, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { ago, clipboard, errorMessage, hint, now, settings, toast, truncate, type Accessory, type Action, type Ctx, type Detail, type DetailStat, type Effect, type Extension, type Item } from "@zcag/pal";
 import { base64, base64Decode, base64url, CHARSET_TITLES, CHARSETS, entropy, hash, HASHES, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randomBase64, randomColor, randomHex, randomNumber, rgbOf, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid4, uuid7, WORDS, type Charset, type HashAlgo } from "./gen.ts";
 import { encode as encodeQr, toDataUrl, toSvg } from "./qr.ts";
 
@@ -61,8 +61,9 @@ function row(id: string, value: string, o: RowOpts): Item {
   const name = short(o.name ?? value.split("\n")[0], 80);
   const kind = o.kind ?? o.subtitle ?? id;
   const detail: Detail = o.detail ?? {
+    caption: kind,
     markdown: `\`\`\`\n${value}\n\`\`\``,
-    metadata: [{ label: "Kind", value: kind }, { label: "Length", value: `${value.length} characters` }],
+    metadata: [{ label: "Length", value: `${value.length} characters` }],
   };
   return { id, name, subtitle: o.subtitle, icon: o.icon ?? GLYPH.id, keywords: o.keywords, accessories: o.accessories, detail, actions: o.actions ?? (o.all ? [COPY, PASTE, COPY_ALL] : [COPY, PASTE]) };
 }
@@ -88,25 +89,25 @@ function uuidRows(): Item[] {
 const ulidRow = () => row("ulid", ulid(now()), { subtitle: "ULID, time-ordered", keywords: ["ulid", "id"], kind: "ULID" });
 const nanoidRow = () => row("nanoid", nanoid(), { subtitle: "Nano ID, 21 characters", keywords: ["nanoid", "id"], kind: "Nano ID" });
 
+/** A secret's pane: what it is on top, its strength as a chip, its size and entropy large, the value. */
+const secretDetail = (caption: string, value: string, bits: number, size: DetailStat[]): Detail => {
+  const st = strength(bits);
+  return { caption, chips: [{ text: st.label, color: st.color }], stats: [...size, { value: String(bits), label: "bits of entropy" }], markdown: `\`\`\`\n${value}\n\`\`\`` };
+};
+
 function passwordRow(length = S().password_length, charset: Charset = S().password_charset): Item {
   const n = Math.min(Math.max(1, Math.floor(length)), MAX_PASSWORD);
   const value = password(n, charset);
   const bits = entropy(n, CHARSETS[charset].length);
   const subtitle = `Password, ${n} characters, ${CHARSET_TITLES[charset]}`;
-  return row("password", value, { subtitle, icon: GLYPH.password, keywords: ["password", "secret"], accessories: strengthOf(bits), kind: "Password", detail: {
-    markdown: `\`\`\`\n${value}\n\`\`\``,
-    metadata: [{ label: "Length", value: `${n} characters` }, { label: "Characters", value: CHARSET_TITLES[charset] }, { label: "Entropy", value: `${bits} bits, ${strength(bits).label}` }],
-  } });
+  return row("password", value, { subtitle, icon: GLYPH.password, keywords: ["password", "secret"], accessories: strengthOf(bits), kind: "Password", detail: secretDetail(`Password · ${CHARSET_TITLES[charset]}`, value, bits, [{ value: String(n), label: "characters" }]) });
 }
 
 function passphraseRow(words = S().passphrase_words, separator = S().passphrase_separator): Item {
   const n = Math.min(Math.max(1, Math.floor(words)), MAX_WORDS);
   const value = passphrase(n, separator);
   const bits = entropy(n, WORDS.length);
-  return row("passphrase", value, { subtitle: `Passphrase, ${n} words`, icon: GLYPH.passphrase, keywords: ["passphrase", "diceware", "words"], accessories: strengthOf(bits), kind: "Passphrase", detail: {
-    markdown: `\`\`\`\n${value}\n\`\`\``,
-    metadata: [{ label: "Words", value: `${n} of ${WORDS.length}` }, { label: "Entropy", value: `${bits} bits, ${strength(bits).label}` }],
-  } });
+  return row("passphrase", value, { subtitle: `Passphrase, ${n} words`, icon: GLYPH.passphrase, keywords: ["passphrase", "diceware", "words"], accessories: strengthOf(bits), kind: "Passphrase", detail: secretDetail(`Passphrase · words from a list of ${WORDS.length}`, value, bits, [{ value: String(n), label: "words" }]) });
 }
 
 const numberRow = (lo: number, hi: number) => row("number", String(randomNumber(lo, hi)), { subtitle: `Random number, ${lo} to ${hi}`, icon: GLYPH.number, keywords: ["number", "random", "dice", "integer"], kind: "Random number" });
@@ -196,8 +197,10 @@ function qrRows(src: Source): Item[] {
   const svg = toSvg(qr);
   const url = toDataUrl(svg);
   const item = row("qr", short(src.text, 80), { subtitle: `QR code of ${of(src)}: version ${qr.version}, ${qr.size} × ${qr.size} modules, level ${qr.ecl}`, icon: { image: url }, actions: [SHOW_QR, COPY_SVG, COPY_TEXT], detail: {
+    caption: `QR code · version ${qr.version}, ${qr.size} × ${qr.size} · level ${qr.ecl}`,
+    title: short(src.text, 120),
     markdown: `![QR code](${url})`,
-    metadata: [{ label: "Text", value: short(src.text, 120) }, { label: "Version", value: `${qr.version} (${qr.size} × ${qr.size})` }, { label: "Error correction", value: qr.ecl }, { label: "Bytes", value: String(new TextEncoder().encode(src.text).length) }],
+    metadata: [{ label: "Bytes", value: String(new TextEncoder().encode(src.text).length) }],
   } });
   held.set("qr", { value: src.text, svg, qrText: src.text });
   return [item];
@@ -248,7 +251,17 @@ const MODE_WORDS = "sha256 · md5 · base64 · url · hex · qr · jwt · encode
 // The subtitle and keywords, not the name: a generator's name is its random value, and "uu" inside a base64 string is noise.
 const haystack = (i: Item) => `${i.subtitle ?? ""} ${(i.keywords ?? []).join(" ")}`.toLowerCase();
 
+/** Modes whose first row is the answer (`password 32`, `sha256 hello`, `base64 aGk=`): drawn as a headline. Not where the rows are equals (colours, every hash, every encoding, a JWT's parts) or the value is a picture or prose (QR, lorem). */
+const HERO_MODES = new Set<Mode>(["uuid", "ulid", "nanoid", "password", "passphrase", "number", "hex", "bytes", "md5", "sha1", "sha256", "sha512", "base64", "base64url", "url"]);
+
 async function list(query = ""): Promise<Item[]> {
+  const rows = await listRows(query);
+  const mode = MODES[query.trim().split(/\s+/)[0].toLowerCase()];
+  const [first, ...rest] = rows;
+  return first && mode && HERO_MODES.has(mode) && !first.id.startsWith("hint:") ? [{ ...first, hero: true }, ...rest] : rows;
+}
+
+async function listRows(query: string): Promise<Item[]> {
   held.clear();
   const q = query.trim();
   if (!q) return everything();

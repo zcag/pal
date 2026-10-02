@@ -207,7 +207,9 @@ describe("generate", () => {
   test("mode words: password with a length and a charset, passphrase with a count, number with a range, dice, hex and bytes with a size, lorem in words or paragraphs, five colours", async () => {
     const pw = (await list("password 12 alnum"))[0];
     expect(pw.name).toMatch(/^[A-Za-z0-9]{12}$/);
-    expect(pw).toMatchObject({ subtitle: "Password, 12 characters, letters and digits", accessories: [{ tag: "good", color: "blue" }, { text: "71 bits" }] });
+    expect(pw).toMatchObject({ subtitle: "Password, 12 characters, letters and digits", accessories: [{ tag: "good", color: "blue" }, { text: "71 bits" }], hero: true });
+    // A secret's pane: what it is, its strength as a chip, its size and entropy large.
+    expect(pw.detail).toMatchObject({ caption: "Password · letters and digits", chips: [{ text: "good", color: "blue" }], stats: [{ value: "12", label: "characters" }, { value: "71", label: "bits of entropy" }] });
     await list("pw 300");
     expect(((await pick("password")).copy as string)).toHaveLength(256);
     expect((await list("passphrase 3"))[0].name.split("-")).toHaveLength(3);
@@ -223,6 +225,11 @@ describe("generate", () => {
     expect((await list("lorem 2p"))[0].subtitle).toMatch(/2 paragraphs/);
     expect(ids(await list("colour"))).toEqual(["colour-0", "colour-1", "colour-2", "colour-3", "colour-4"]);
     expect(ids(await list("uuid"))).toEqual(["uuid4", "uuid7"]);
+    // A mode with one answer draws it as a headline; equals (five colours, lorem's three) and the empty query do not.
+    expect((await list("uuid")).map((i) => i.hero)).toEqual([true, undefined]);
+    expect((await list("colour")).some((i) => i.hero)).toBe(false);
+    expect((await list("lorem")).some((i) => i.hero)).toBe(false);
+    expect((await list("")).some((i) => i.hero)).toBe(false);
   });
 
   test("no mode: the generators whose name or keyword has the words; nothing matching says how to pick a mode", async () => {
@@ -240,8 +247,11 @@ describe("generate", () => {
     expect(one).toHaveLength(1);
     expect(one[0]).toMatchObject({ id: "sha256", name: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", subtitle: "SHA256 of “hello”" });
     expect(one[0].actions!.map((a) => a.id)).toEqual(["copy", "paste"]);
+    expect(one[0].hero).toBe(true);
+    expect(one[0].detail).toMatchObject({ caption: "SHA256", metadata: [{ label: "Length", value: "64 characters" }] });
     const all = await list("hash hi");
     expect(ids(all)).toEqual(["md5", "sha1", "sha256", "sha512"]);
+    expect(all.some((i) => i.hero)).toBe(false);
     expect(all[0].actions!.map((a) => a.id)).toEqual(["copy", "paste", "copy_all"]);
     expect(await pick("md5")).toEqual({ copy: "49f68a5c8493ec2c0bf489821c21fc3b" });
     expect((await pick("sha1", "copy_all")).copy).toBe(`md5  49f68a5c8493ec2c0bf489821c21fc3b\nsha1  c22b5f9178342609428d6f51b2c5af4c0bde6a42\nsha256  ${hash("sha256", "hi")}\nsha512  ${hash("sha512", "hi")}`);
@@ -282,7 +292,7 @@ describe("generate", () => {
     expect((qr.icon as { image: string }).image).toMatch(/^data:image\/svg\+xml;base64,/);
     expect(qr.actions).toEqual([{ id: "show", title: "Show QR code" }, { id: "copy_svg", title: "Copy SVG", shortcut: "cmd+c" }, { id: "copy", title: "Copy text" }]);
     expect(qr.detail!.markdown).toMatch(/^!\[QR code\]\(data:image\/svg\+xml;base64,/);
-    expect(qr.detail!.metadata).toEqual([{ label: "Text", value: "https://pal.cagdas.io" }, { label: "Version", value: "2 (25 × 25)" }, { label: "Error correction", value: "M" }, { label: "Bytes", value: "21" }]);
+    expect(qr.detail).toMatchObject({ caption: "QR code · version 2, 25 × 25 · level M", title: "https://pal.cagdas.io", metadata: [{ label: "Bytes", value: "21" }] });
     const shown = await pick("qr", "show");
     expect(shown.show).toMatchObject({ title: "QR code" });
     expect((shown.show as { markdown: string }).markdown).toContain("`https://pal.cagdas.io`");

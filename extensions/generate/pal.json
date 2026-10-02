@@ -101,6 +101,10 @@
       {
         "file": "4-jwt.png",
         "caption": "jwt: the header, the payload with its expiry, the times, and a reminder that nothing is verified"
+      },
+      {
+        "file": "5-password.png",
+        "caption": "password 24: the password as the answer; the pane has its strength, length and entropy"
       }
     ],
     "actions": [
