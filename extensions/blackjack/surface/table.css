@@ -14,6 +14,10 @@
   --win: #8ff0b0;
   --lose: #ff9a90;
   --rail-h: 50px;
+  /* The panel's display type (Ink's headline face; pal's own UI face otherwise): the result and the bankroll lead in it. */
+  --display: var(--pal-font-hero, var(--pal-font-query, var(--pal-font-ui, system-ui, sans-serif)));
+  --display-weight: var(--pal-weight-hero, 700);
+  --display-track: var(--pal-tracking-query, normal);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --fly: 460ms;
   color-scheme: light;
@@ -31,7 +35,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 body {
   background: var(--pal-bg, #f4f4f6);
   color: var(--pal-fg, #1a1a1f);
-  font: 13px/1.3 var(--pal-font-ui, system-ui, sans-serif);
+  font: var(--pal-text-md, 13px)/1.3 var(--pal-font-ui, system-ui, sans-serif);
   user-select: none;
   -webkit-user-select: none;
   display: flex;
@@ -224,12 +228,14 @@ body {
   position: absolute;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 5px 14px;
+  padding: 6px 16px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.42);
   color: #fff;
-  font-size: 14px;
-  font-weight: 700;
+  font-family: var(--display);
+  font-size: var(--pal-text-xl, 18px);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   white-space: nowrap;
   backdrop-filter: blur(4px);
   animation: rise 360ms var(--ease) var(--after, 0ms) both;
@@ -238,11 +244,11 @@ body {
 .banner .net { margin-left: 8px; font-variant-numeric: tabular-nums; }
 .banner.win .net { color: var(--win); }
 .banner.lose .net { color: var(--lose); }
-.banner.quiet { background: rgba(0, 0, 0, 0.25); font-weight: 600; font-size: 13px; }
+.banner.quiet { background: rgba(0, 0, 0, 0.25); font-family: var(--pal-font-ui, system-ui, sans-serif); font-weight: 600; font-size: var(--pal-text-md, 13px); letter-spacing: normal; }
 .banner.bj {
   padding: 4px 18px;
-  font-size: 20px;
-  font-weight: 900;
+  font-size: calc(var(--pal-text-xl, 18px) + 6px);
+  font-weight: 800;
   letter-spacing: 0.04em;
   background: rgba(0, 0, 0, 0.5);
   animation: flourish 800ms var(--ease) var(--after, 0ms) both;
@@ -329,10 +335,10 @@ body {
   border-top: 1px solid var(--pal-line-strong, rgba(0, 0, 0, 0.16));
 }
 #bank { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
-#bank .money { font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; transition: color 600ms; }
+#bank .money { font-family: var(--display); font-size: var(--pal-text-xl, 18px); font-weight: var(--display-weight); letter-spacing: var(--display-track); line-height: 1.15; font-variant-numeric: tabular-nums; transition: color 600ms; }
 #bank .money.up { color: var(--pal-tag-green, #1b6b40); transition: none; }
 #bank .money.down { color: var(--pal-tag-red, #b02925); transition: none; }
-#bank .record { color: var(--pal-fg-muted, #5c5d66); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#bank .record { color: var(--pal-fg-muted, #5c5d66); font-size: var(--pal-text-xs, 11px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #moves { display: flex; gap: 6px; flex: none; }
 .btn {
   display: inline-flex;
