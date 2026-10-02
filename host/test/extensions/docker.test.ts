@@ -66,17 +66,18 @@ describe("docker", () => {
     expect(metas.map((m) => [m.name, m.title, m.live, m.ttl])).toEqual([["docker", "Docker Containers", true, 7], ["images", "Docker Images", true, 7], ["compose", "Compose Projects", true, 7]]);
   });
 
-  test("containers: running first in two sections; image subtitle, ports, status and state tag; actions by state", async () => {
+  test("containers: running first in two sections; image subtitle, ports (a stopped one's status) and the state tag; the detail a page; actions by state", async () => {
     const items = await list();
     expect(items.map((i) => [i.id, i.section])).toEqual([["b5d74103f8fe", "Running"], ["dd44ee55ff66", "Running"], ["aa11bb22cc33", "Stopped"]]);
     const [proxy, api, old] = items;
-    expect(proxy).toMatchObject({ name: "theater-proxy", subtitle: "caddy:2-alpine", keywords: ["b5d74103f8fe", "caddy:2-alpine", "theater"], accessories: [{ text: "80, 443" }, { text: "Up 27 hours" }, { tag: "running", color: "green" }] });
-    expect(api.accessories).toEqual([{ text: "8080:80" }, { text: "Up 2 minutes" }, { tag: "running", color: "green" }]);
+    expect(proxy).toMatchObject({ name: "theater-proxy", subtitle: "caddy:2-alpine", keywords: ["b5d74103f8fe", "caddy:2-alpine", "theater"], accessories: [{ text: "80, 443" }, { tag: "running", color: "green" }] });
+    expect(api.accessories).toEqual([{ text: "8080:80" }, { tag: "running", color: "green" }]);
     expect(old.accessories).toEqual([{ text: "Exited (0) 3 days ago" }, { tag: "exited", color: "grey" }]);
     expect(proxy.actions!.map((a) => a.id)).toEqual(["stop", "logs", "shell", "restart", "remove", "copy-id", "start"]);
     expect(proxy.actions![0].confirm).toBeTruthy();
     expect(old.actions!.map((a) => a.id)).toEqual(["start", "logs", "remove", "copy-id", "stop"]);
-    expect(proxy.detail!.metadata!.map((m) => m.label)).toEqual(["Id", "Image", "Command", "Status", "Created", "Ports", "Mounts", "Networks", "Compose project"]);
+    expect(proxy.detail).toMatchObject({ caption: "theater · caddy:2-alpine", title: "theater-proxy", chips: [{ text: "running", color: "green" }, { text: "Up 27 hours", color: "grey" }] });
+    expect(proxy.detail!.metadata!.map((m) => m.label)).toEqual(["Id", "Command", "Created", "Ports", "Mounts", "Networks"]);
     expect(called().at(-1)).toBe("ps -a --format {{json .}}");
   });
 
@@ -174,8 +175,8 @@ describe("docker", () => {
   test("compose: projects with their folder, status text and tag; up, down, logs and restart pass every config file", async () => {
     const items = await list("compose");
     expect(items.map((i) => i.id)).toEqual(["theater", "lab"]);
-    expect(items[0]).toMatchObject({ subtitle: "/home/someone/srv/theater", keywords: ["theater"], accessories: [{ text: "running(35)" }, { tag: "running", color: "green" }] });
-    expect(items[1].accessories).toEqual([{ text: "exited(2)" }, { tag: "exited", color: "grey" }]);
+    expect(items[0]).toMatchObject({ subtitle: "/home/someone/srv/theater", keywords: ["theater"], accessories: [{ tag: "35 running", color: "green" }] });
+    expect(items[1].accessories).toEqual([{ tag: "2 exited", color: "grey" }]);
     expect(items[0].actions!.map((a) => a.id)).toEqual(["up", "logs", "restart", "down", "open"]);
     expect(await pick("lab", "up", "compose")).toEqual({ keep: true, toast: { title: "Up: lab" } });
     expect(called().at(-1)).toBe("compose -f /home/someone/proj/lab/compose.yml -f /home/someone/proj/lab/compose.override.yml up -d");

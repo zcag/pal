@@ -2023,11 +2023,12 @@ inert hint row that says which.
 **Docker Containers** (`docker`): every container, the running ones first
 in a Running section, the rest under Stopped. The row is the container's
 name, its image the subtitle; on the right the published ports, compact
-(`80, 443`; `8080:80` when host and container differ), docker's status
-(`Up 27 hours`, `Exited (0) 3 days ago`) and a state tag (running green,
+(`80, 443`; `8080:80` when host and container differ; a stopped one's
+status, `Exited (0) 3 days ago`, instead) and a state tag (running green,
 exited grey, paused and restarting amber, created blue, dead red). The id,
-the image and the Compose project are keywords; the detail pane lists id,
-image, command, status, created, ports, mounts, networks and project.
+the image and the Compose project are keywords; the detail pane leads
+with the project and image, the name, the state and status as chips, then
+lists id, command, created, ports, mounts and networks.
 
 | action | shortcut | what |
 | --- | --- | --- |
@@ -2046,8 +2047,8 @@ comma separated; a malformed one is refused under the field) and runs
 `docker rmi`, after a confirm).
 
 **Compose Projects** (`docker-compose`): every project docker knows of,
-its folder as subtitle, the status text and a tag (running green, a mix
-amber, exited grey). Up (`Enter`, `compose up -d`), Logs (`⌘L`, `compose
+its folder as subtitle, its containers' states as one tag (`4 running,
+1 exited`; running green, a mix amber, exited grey). Up (`Enter`, `compose up -d`), Logs (`⌘L`, `compose
 logs --tail 200`), Restart (`⌘⇧R`), Down (`⌘D`, after a confirm), Open
 project folder (`⌘O`). Every config file of the project is passed with
 `-f`.

@@ -12,12 +12,13 @@ palette is one inert hint row that says which.
 **Docker Containers** (`docker`): every container, the running ones first
 in a Running section, the rest under Stopped. The row is the container's
 name, its image the subtitle; on the right the published ports, compact
-(`80, 443`; `8080:80` when host and container differ), docker's status
-(`Up 27 hours`, `Exited (0) 3 days ago`) and a state tag (running green,
+(`80, 443`; `8080:80` when host and container differ; a stopped one's
+status, `Exited (0) 3 days ago`, instead) and a state tag (running green,
 exited grey, paused and restarting amber, created blue, dead red). The id,
 the image and the Compose project are keywords, so `nginx` or the project
-name finds the container from the root. The detail pane lists id, image,
-command, status, created, ports, mounts, networks and project.
+name finds the container from the root. The detail pane leads with the
+Compose project and image, the name, the state and docker's status as
+chips, then lists id, command, created, ports, mounts and networks.
 
 **Docker Images** (`images`): `repository:tag` (the id for an untagged
 image), the id as subtitle, size and age on the right. While the cursor
@@ -28,8 +29,8 @@ malformed port is refused under the field. A pick that arrives without
 the fields (a hotkey, a bare `pal run`) asks for them in a form instead.
 
 **Compose Projects** (`compose`): every project docker knows of, its
-folder as subtitle, the status text and a tag (running green, a mix amber,
-exited grey). Every config file of the project is passed with `-f`.
+folder as subtitle, its containers' states as one tag (`4 running, 1
+exited`; running green, a mix amber, exited grey). Every config file of the project is passed with `-f`.
 
 A command keeps the panel open and lists again, with a toast naming what
 happened. A command still running after 8 s (a `stop` whose process
