@@ -45,11 +45,11 @@ function head(p: MediaPlayer, st: MediaState): ViewNode {
   const tw = POPOVER_W - COVER - 12;
   const titles: ViewNode[] = p.title
     ? [
-        text(p.title, { style: "title", key: `t-${p.id}-${p.title}`, width: tw, transition: { enter: "fade" } }),
+        text(p.title, { style: "headline", key: `t-${p.id}-${p.title}`, width: tw, transition: { enter: "fade" } }),
         ...(p.artist ? [text(p.artist, { style: "muted", size: "sm", width: tw })] : []),
         ...(p.album ? [text(p.album, { size: "xs", color: "faint", width: tw })] : []),
       ]
-    : [text(p.name, { style: "title", key: `t-${p.id}`, width: tw }), text(p.state === "playing" ? "Playing, no track named" : "Paused", { style: "muted", size: "sm", width: tw })];
+    : [text(p.name, { style: "headline", key: `t-${p.id}`, width: tw }), text(p.state === "playing" ? "Playing, no track named" : "Paused", { style: "muted", size: "sm", width: tw })];
   // The player as a badge, unless it already stands as the title (a player that names no track).
   const badges: ViewNode[] = p.title ? [{ type: "badge", key: "app", text: p.name, color: "grey" }] : [];
   if (p.state === "paused") badges.push({ type: "badge", key: "paused", text: "paused", color: "amber" });

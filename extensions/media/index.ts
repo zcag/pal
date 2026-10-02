@@ -1,7 +1,7 @@
 // Now Playing over the core's media capability: one row per running
 // player with the track as the title, artist and album as the subtitle,
 // the cover (the stream's, else the player's artwork url, else the app's
-// icon), the position as `12:34 / 1:06:03` and a state tag. A player that
+// icon), the player, the position as `12:34 / 1:06:03` and a state tag. A player that
 // reports no track (Chrome with YouTube on macOS gives the position and
 // nothing else) is its app's name with the position as the subtitle. Enter
 // plays or pauses, ⌘→ / ⌘← skip, ⌘C copies "artist - title", ⌘O opens
@@ -115,10 +115,10 @@ export async function item(p: Player): Promise<Item> {
   // A row with a state but no track: the app is the title, the position the subtitle.
   const untitledActive = idle && p.state !== "stopped";
   const accessories: Accessory[] = [{ tag: STATE[p.state].tag, color: STATE[p.state].color }];
-  if (!idle) accessories.unshift({ text: p.name });
-  // The position leads, on a row with a track (the untitled row has it as the subtitle).
+  // On a row with a track: the player, then the position (the untitled row has it as the subtitle). A design that keeps two accessories drops the position first, so which player it is stays.
   const at = progress(p);
   if (!idle && at) accessories.unshift({ text: at });
+  if (!idle) accessories.unshift({ text: p.name });
   const actions: Action[] = [
     { id: "play_pause", title: p.state === "playing" ? "Pause" : "Play" },
     { id: "next", title: "Next track", shortcut: "cmd+right" },

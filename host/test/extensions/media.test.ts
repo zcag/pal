@@ -87,10 +87,10 @@ describe("media", () => {
     expect(items.map((i) => i.id)).toEqual(["spotify", "music", "firefox.instance1"]);
     expect(items[0]).toMatchObject({
       name: "Blue Monday", subtitle: "New Order · Power, Corruption & Lies", icon: { image: "http://127.0.0.1:1/image/ab67" },
-      accessories: [{ text: "0:12 / 7:28" }, { text: "Spotify" }, { tag: "playing", color: "green" }],
+      accessories: [{ text: "Spotify" }, { text: "0:12 / 7:28" }, { tag: "playing", color: "green" }],
     });
     expect(items[0].actions!.map((a) => [a.id, a.title])).toEqual([["play_pause", "Pause"], ["next", "Next track"], ["previous", "Previous track"], ["copy", "Copy track"], ["open", "Open in Spotify"]]);
-    expect(items[1]).toMatchObject({ name: "Song 2", subtitle: "Blur", icon: { app: "/System/Applications/Music.app" }, accessories: [{ text: "0:00 / 2:00" }, { text: "Music" }, { tag: "paused", color: "amber" }] });
+    expect(items[1]).toMatchObject({ name: "Song 2", subtitle: "Blur", icon: { app: "/System/Applications/Music.app" }, accessories: [{ text: "Music" }, { text: "0:00 / 2:00" }, { tag: "paused", color: "amber" }] });
     expect(items[1].actions![0].title).toBe("Play");
     // No url: Open goes to the app on macOS only (a .desktop path is not something the opener launches).
     expect(items[1].actions!.some((a) => a.id === "open")).toBe(MAC);
@@ -116,7 +116,7 @@ describe("media", () => {
     np = { players: [chromeTitled], system_wide: true, stream: true };
     artworkAsked = 0;
     const [row] = await list();
-    expect(row).toMatchObject({ name: "Taylor Tomlinson (Full Episode)", subtitle: "Team Coco", icon: { image: PNG }, accessories: [{ text: "48:11 / 1:06:03" }, { text: "Google Chrome" }, { tag: "playing", color: "green" }] });
+    expect(row).toMatchObject({ name: "Taylor Tomlinson (Full Episode)", subtitle: "Team Coco", icon: { image: PNG }, accessories: [{ text: "Google Chrome" }, { text: "48:11 / 1:06:03" }, { tag: "playing", color: "green" }] });
     expect(artworkAsked).toBe(1);
     await list();
     expect(artworkAsked).toBe(1);
