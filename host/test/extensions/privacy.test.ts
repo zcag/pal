@@ -49,10 +49,12 @@ describe("privacy", () => {
   test("bar: a glyph per sensor on amber; the popover is one row per app with what it holds and how long", async () => {
     uses = [camera(), zoom(), ffmpeg()];
     const item = checkBarItem(await host.render("privacy", "in-use"));
-    expect(item).toMatchObject({ icon: "\u{f05a0} \u{f036c}", background: "amber", tooltip: "Camera: zoom.us · Microphone: zoom.us, kitty", states: { camera: true, microphone: true, screen: false } });
+    expect(item).toMatchObject({ icon: "\u{f05a0} \u{f036c}", background: "amber", tooltip: "Camera and mic in use\nCamera: zoom.us · Microphone: zoom.us, kitty", states: { camera: true, microphone: true, screen: false } });
     const v = viewOf(item);
-    expect(v.title).toBe("Camera and mic in use");
-    expect(texts(v).slice(0, 11)).toEqual(["zoom.us", "\u{f05a0}", "Camera", "\u{f036c}", "Microphone", "23 min", "kitty", "ffmpeg", "\u{f036c}", "Microphone", "just now"]);
+    // What is on leads as the headline; the title counts the apps.
+    expect(v.title).toBe("2 apps");
+    expect(nodes(v.tree).find((n) => n.type === "text" && n.key === "headline")).toMatchObject({ value: "Camera and mic in use", style: "headline" });
+    expect(texts(v).slice(0, 12)).toEqual(["Camera and mic in use", "zoom.us", "\u{f05a0}", "Camera", "\u{f036c}", "Microphone", "23 min", "kitty", "ffmpeg", "\u{f036c}", "Microphone", "just now"]);
     const rows = nodes(v.tree).filter((n): n is Extract<ViewNode, { type: "stack" }> => n.type === "stack" && !!n.action?.startsWith("focus:"));
     expect(rows.map((r) => [r.action, !!r.selected])).toEqual([["focus:zoom.us", true], ["focus:kitty", false]]);
     expect(v.actions!.filter((a) => !a.hidden).map((a) => [a.id, a.title])).toEqual([["show", "Show zoom.us"], ["settings", "Open Privacy & Security settings"]]);
@@ -64,15 +66,15 @@ describe("privacy", () => {
   test("bar: a camera no app has claimed is its own row that opens the settings", async () => {
     uses = [bare()];
     const v = viewOf(await host.render("privacy", "in-use"));
-    expect(texts(v).slice(0, 2)).toEqual(["\u{f05a0}", "Studio Display Camera"]);
+    expect(texts(v).slice(0, 3)).toEqual(["Camera in use", "\u{f05a0}", "Studio Display Camera"]);
     expect(v.actions!.find((a) => a.id === "show")).toMatchObject({ title: "Open privacy settings" });
   });
 
   test("bar: a screen share adds its glyph and names its app", async () => {
     uses = [zoom(), { sensor: "screen", app: "Google Chrome", process: null, pid: 900, path: "/Applications/Google Chrome.app", device: null, since: now() - 3600 }];
     const item = await host.render("privacy", "in-use");
-    expect(item).toMatchObject({ icon: "\u{f036c} \u{f0e51}", tooltip: "Microphone: zoom.us · Screen: Google Chrome", states: { camera: false, microphone: true, screen: true } });
-    expect(viewOf(item).title).toBe("Mic and screen in use");
+    expect(item).toMatchObject({ icon: "\u{f036c} \u{f0e51}", tooltip: "Mic and screen in use\nMicrophone: zoom.us · Screen: Google Chrome", states: { camera: false, microphone: true, screen: true } });
+    expect(texts(viewOf(item))[0]).toBe("Mic and screen in use");
   });
 
   test("palette: one row per app with its duration; Enter brings it forward; gone since is a no-op", async () => {

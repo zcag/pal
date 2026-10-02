@@ -6,7 +6,7 @@
 // second or two), not on a poll of its own. The palette lists the same
 // rows, so `camera` at the root says who has it.
 import { errorMessage, hint, privacy, toast, view as liveView, type BarCtx, type BarItem, type Effect, type Extension, type Item, type PrivacyUse } from "@zcag/pal";
-import { GLYPH, ORDER, SENSOR, SETTINGS, groups, paletteItem, render, type BarState, type Group } from "./view.ts";
+import { GLYPH, ORDER, SENSOR, SETTINGS, groups, headline, paletteItem, render, type BarState, type Group } from "./view.ts";
 
 const EXTENSION = "privacy";
 const ITEM = "in-use";
@@ -47,7 +47,8 @@ async function renderBar(): Promise<BarItem> {
   const menu = { view: render(barState(uses)) };
   const clear = { icon: GLYPH.camera, tooltip: "Nothing is using the camera, the microphone or the screen", menu };
   if (!on.length) return { ...clear, empty: clear, states };
-  const tooltip = on.map((s) => `${SENSOR[s]}: ${groups(uses).filter((g) => g.sensors.includes(s)).map((g) => g.name).join(", ")}`).join(" · ");
+  // What is on first, on its own line (the item is glyphs alone, so a glance card says that line), then who holds each.
+  const tooltip = `${headline(uses)}\n${on.map((s) => `${SENSOR[s]}: ${groups(uses).filter((g) => g.sensors.includes(s)).map((g) => g.name).join(", ")}`).join(" · ")}`;
   return { icon: on.map((s) => GLYPH[s]).join(" "), tooltip, background: "amber", menu, empty: clear, states };
 }
 

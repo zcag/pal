@@ -43,7 +43,7 @@ export function duration(since: number | null, now: number): string {
   return `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`;
 }
 
-/** The title line: which sensors are on, in words. */
+/** What is on, in words: the popover's headline and the tooltip's first line. */
 export function headline(uses: PrivacyUse[]): string {
   const on = ORDER.filter((s) => uses.some((u) => u.sensor === s)).map((s) => SHORT[s]);
   if (!on.length) return "All clear";
@@ -115,9 +115,10 @@ export function render(st: BarState): View {
   const cur = all[focus];
   const hints = row([...(cur ? keyHint("enter", cur.path ? "show app" : "settings") : []), ...keyHint("s", "privacy settings")], { key: "hints", gap: 1, minHeight: 22 });
   return {
-    tree: column([...(all.length ? [column(all.map((g, i) => groupRow(g, i === focus, st.now)), { key: "rows", gap: 0 })] : [empty()]), { type: "divider", key: "rule" }, hints], { key: "compact", padding: 3, gap: 2 }),
+    // What is on leads, as the headline; the level's title counts the apps under it.
+    tree: column([...(all.length ? [text(headline(st.uses), { key: "headline", style: "headline" }), column(all.map((g, i) => groupRow(g, i === focus, st.now)), { key: "rows", gap: 0 })] : [empty()]), { type: "divider", key: "rule" }, hints], { key: "compact", padding: 3, gap: 2 }),
     actions: actions(cur, all),
-    title: headline(st.uses),
+    title: all.length ? `${all.length} ${all.length === 1 ? "app" : "apps"}` : "All clear",
     id: "in-use",
     keys: "actions",
   };
