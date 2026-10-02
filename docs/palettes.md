@@ -514,10 +514,12 @@ Settings, `[extensions.calc]`:
 What you copied, searchable, with images. Text, images and file lists are
 recorded by a watcher that runs while pal runs; the search is SQLite
 full-text search over the text, ordered pinned first, then newest. The
-palette opens with the detail pane showing: the full text (fenced), the
-image, or the file list, with kind, size, source app and time as metadata.
-A row that is a single url gets the site's favicon; the source app and the
-time are accessories, and a pinned entry carries a `pinned` tag. An entry
+palette opens with the detail pane showing: the source app over the
+entry's name, the kind and pinned as chips, its numbers large (characters
+and lines, pixels and size, a file count), then the full text (fenced), the
+image or the file list, and when it was copied. A row that is a single url
+gets the site's favicon; the source app and the time are accessories, and
+a pinned entry sits under Pinned. An entry
 you have named (`⌘⇧R`) is titled by its name from then on, with the text's
 preview as its subtitle, and a search finds it by the name as well as by
 the text (the name is matched as a substring, the text by prefix words).
@@ -582,7 +584,7 @@ clipboard, `0` (the default) the newest ([Links](links.md#extension-routes)).
   (`⌘⇧C`) on an image (the PNG the core keeps, as a file), **Delete all
   unpinned** (asks first; every unpinned entry deleted one by one, since
   the core's only bulk operation is Clear).
-- The detail pane's metadata leads with the entry's name when it has one.
+- The detail pane's header carries the entry's name when it has one.
   Names live in the history database next to the entry (`name` column,
   added on the first open of an older database), so they survive a
   restart and go with the entry when it is deleted.

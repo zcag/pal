@@ -49,39 +49,30 @@
             },
             {
               "date": 1789299240000
-            },
-            {
-              "tag": "pinned",
-              "color": "amber"
             }
           ],
           "detail": {
+            "caption": "Copied from kitty",
+            "chips": [
+              {
+                "text": "text"
+              },
+              {
+                "text": "pinned",
+                "color": "amber"
+              }
+            ],
+            "stats": [
+              {
+                "value": "39",
+                "label": "characters"
+              }
+            ],
             "markdown": "````\nssh -J bastion.example.com deploy@web-1\n````",
             "metadata": [
               {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "39 B · 39 chars"
-              },
-              {
-                "label": "Source",
-                "value": "kitty"
-              },
-              {
                 "label": "Copied",
                 "value": "9/13/2026, 2:34:00 PM"
-              },
-              {
-                "label": "Pinned",
-                "tags": [
-                  {
-                    "text": "pinned",
-                    "color": "amber"
-                  }
-                ]
               }
             ]
           },
@@ -164,43 +155,35 @@
             },
             {
               "date": 1788521640000
-            },
-            {
-              "tag": "pinned",
-              "color": "amber"
             }
           ],
           "detail": {
+            "caption": "Copied from Mail",
+            "title": "Signature",
+            "chips": [
+              {
+                "text": "text"
+              },
+              {
+                "text": "pinned",
+                "color": "amber"
+              }
+            ],
+            "stats": [
+              {
+                "value": "17",
+                "label": "characters"
+              },
+              {
+                "value": "2",
+                "label": "lines"
+              }
+            ],
             "markdown": "````\nBest regards,\nAda\n````",
             "metadata": [
               {
-                "label": "Name",
-                "value": "Signature"
-              },
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "17 B · 17 chars"
-              },
-              {
-                "label": "Source",
-                "value": "Mail"
-              },
-              {
                 "label": "Copied",
                 "value": "9/4/2026, 2:34:00 PM"
-              },
-              {
-                "label": "Pinned",
-                "tags": [
-                  {
-                    "text": "pinned",
-                    "color": "amber"
-                  }
-                ]
               }
             ]
           },
@@ -286,20 +269,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from Chrome",
+            "chips": [
+              {
+                "text": "link"
+              }
+            ],
+            "stats": [
+              {
+                "value": "40",
+                "label": "characters"
+              }
+            ],
             "markdown": "````\nhttps://github.com/acme/widgets/pull/412\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "40 B · 40 chars"
-              },
-              {
-                "label": "Source",
-                "value": "Chrome"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 2:30:00 PM"
@@ -393,20 +376,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from VS Code",
+            "chips": [
+              {
+                "text": "color"
+              }
+            ],
+            "stats": [
+              {
+                "value": "7",
+                "label": "characters"
+              }
+            ],
             "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%235b8def%22%2F%3E%3C%2Fsvg%3E)\n\n````\n#5b8def\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "7 B · 7 chars"
-              },
-              {
-                "label": "Source",
-                "value": "VS Code"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 2:16:00 PM"
@@ -492,27 +475,29 @@
               "text": "Preview"
             },
             {
-              "text": "318.4 KB"
-            },
-            {
               "date": 1789556040000
             }
           ],
           "detail": {
+            "caption": "Copied from Preview",
+            "title": "Image 1600 x 800",
+            "chips": [
+              {
+                "text": "image"
+              }
+            ],
+            "stats": [
+              {
+                "value": "1600 × 800",
+                "label": "pixels"
+              },
+              {
+                "value": "318.4 KB",
+                "label": "size"
+              }
+            ],
             "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20800%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22s%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233b4b8f%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23e08a6c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6c98b%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22w%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23e9a27c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2334406f%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22800%22%20fill%3D%22url(%23s)%22%2F%3E%3Ccircle%20cx%3D%221080%22%20cy%3D%22420%22%20r%3D%2270%22%20fill%3D%22%23fde2b0%22%2F%3E%3Cpath%20d%3D%22M0%20470%20L180%20340%20L330%20420%20L520%20260%20L720%20440%20L900%20330%20L1100%20450%20L1300%20300%20L1600%20460%20L1600%20520%20L0%20520Z%22%20fill%3D%22%235a4a78%22%2F%3E%3Cpath%20d%3D%22M0%20500%20L240%20400%20L460%20480%20L700%20380%20L960%20500%20L1220%20410%20L1600%20510%20L1600%20540%20L0%20540Z%22%20fill%3D%22%233d3560%22%2F%3E%3Crect%20y%3D%22530%22%20width%3D%221600%22%20height%3D%22270%22%20fill%3D%22url(%23w)%22%2F%3E%3Crect%20x%3D%221020%22%20y%3D%22560%22%20width%3D%22120%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.7%22%2F%3E%3Crect%20x%3D%221045%22%20y%3D%22590%22%20width%3D%2270%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.5%22%2F%3E%3Crect%20x%3D%221060%22%20y%3D%22615%22%20width%3D%2240%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.35%22%2F%3E%3C%2Fsvg%3E)",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "image"
-              },
-              {
-                "label": "Size",
-                "value": "318.4 KB · 1600 x 800 px"
-              },
-              {
-                "label": "Source",
-                "value": "Preview"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 1:54:00 PM"
@@ -590,20 +575,24 @@
             }
           ],
           "detail": {
+            "caption": "Copied from kitty",
+            "chips": [
+              {
+                "text": "text"
+              }
+            ],
+            "stats": [
+              {
+                "value": "97",
+                "label": "characters"
+              },
+              {
+                "value": "3",
+                "label": "lines"
+              }
+            ],
             "markdown": "````\nSELECT id, name FROM users\nWHERE created_at > now() - interval '7 days'\nORDER BY created_at DESC;\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "97 B · 97 chars"
-              },
-              {
-                "label": "Source",
-                "value": "kitty"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 12:34:00 PM"
@@ -693,20 +682,21 @@
             }
           ],
           "detail": {
+            "caption": "Copied from Finder",
+            "title": "invoice-2026-09.pdf, receipt.pdf",
+            "chips": [
+              {
+                "text": "files"
+              }
+            ],
+            "stats": [
+              {
+                "value": "2",
+                "label": "files"
+              }
+            ],
             "markdown": "- `/Users/ada/Downloads/invoice-2026-09.pdf`\n- `/Users/ada/Downloads/receipt.pdf`",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "files"
-              },
-              {
-                "label": "Size",
-                "value": "72 B"
-              },
-              {
-                "label": "Source",
-                "value": "Finder"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 11:34:00 AM"
@@ -774,20 +764,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from Chrome",
+            "chips": [
+              {
+                "text": "color"
+              }
+            ],
+            "stats": [
+              {
+                "value": "16",
+                "label": "characters"
+              }
+            ],
             "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%2322c55e%22%2F%3E%3C%2Fsvg%3E)\n\n````\nrgb(34, 197, 94)\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "16 B · 16 chars"
-              },
-              {
-                "label": "Source",
-                "value": "Chrome"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 9:34:00 AM"
@@ -875,20 +865,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from kitty",
+            "chips": [
+              {
+                "text": "text"
+              }
+            ],
+            "stats": [
+              {
+                "value": "28",
+                "label": "characters"
+              }
+            ],
             "markdown": "````\ndocker compose up -d --build\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "28 B · 28 chars"
-              },
-              {
-                "label": "Source",
-                "value": "kitty"
-              },
               {
                 "label": "Copied",
                 "value": "9/16/2026, 7:34:00 AM"
@@ -976,20 +966,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from Mail",
+            "chips": [
+              {
+                "text": "text"
+              }
+            ],
+            "stats": [
+              {
+                "value": "30",
+                "label": "characters"
+              }
+            ],
             "markdown": "````\nAda Lovelace <ada@example.org>\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "30 B · 30 chars"
-              },
-              {
-                "label": "Source",
-                "value": "Mail"
-              },
               {
                 "label": "Copied",
                 "value": "9/15/2026, 1:04:00 PM"
@@ -1076,20 +1066,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from Safari",
+            "chips": [
+              {
+                "text": "link"
+              }
+            ],
+            "stats": [
+              {
+                "value": "58",
+                "label": "characters"
+              }
+            ],
             "markdown": "````\nhttps://developer.mozilla.org/en-US/docs/Web/API/Clipboard\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "58 B · 58 chars"
-              },
-              {
-                "label": "Source",
-                "value": "Safari"
-              },
               {
                 "label": "Copied",
                 "value": "9/15/2026, 12:34:00 PM"
@@ -1183,20 +1173,20 @@
             }
           ],
           "detail": {
+            "caption": "Copied from Slack",
+            "chips": [
+              {
+                "text": "text"
+              }
+            ],
+            "stats": [
+              {
+                "value": "43",
+                "label": "characters"
+              }
+            ],
             "markdown": "````\nMeeting moved to Thursday 15:00, same room.\n````",
             "metadata": [
-              {
-                "label": "Kind",
-                "value": "text"
-              },
-              {
-                "label": "Size",
-                "value": "43 B · 43 chars"
-              },
-              {
-                "label": "Source",
-                "value": "Slack"
-              },
               {
                 "label": "Copied",
                 "value": "9/14/2026, 2:34:00 PM"
@@ -1287,20 +1277,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from VS Code",
+              "chips": [
+                {
+                  "text": "color"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "7",
+                  "label": "characters"
+                }
+              ],
               "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%235b8def%22%2F%3E%3C%2Fsvg%3E)\n\n````\n#5b8def\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "7 B · 7 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "VS Code"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 2:16:00 PM"
@@ -1361,20 +1351,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Chrome",
+              "chips": [
+                {
+                  "text": "color"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "16",
+                  "label": "characters"
+                }
+              ],
               "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%2322c55e%22%2F%3E%3C%2Fsvg%3E)\n\n````\nrgb(34, 197, 94)\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "16 B · 16 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Chrome"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 9:34:00 AM"
@@ -1435,27 +1425,29 @@
                 "text": "Preview"
               },
               {
-                "text": "318.4 KB"
-              },
-              {
                 "date": 1789556040000
               }
             ],
             "detail": {
+              "caption": "Copied from Preview",
+              "title": "Image 1600 x 800",
+              "chips": [
+                {
+                  "text": "image"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "1600 × 800",
+                  "label": "pixels"
+                },
+                {
+                  "value": "318.4 KB",
+                  "label": "size"
+                }
+              ],
               "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20800%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22s%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233b4b8f%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23e08a6c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6c98b%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22w%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23e9a27c%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2334406f%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%221600%22%20height%3D%22800%22%20fill%3D%22url(%23s)%22%2F%3E%3Ccircle%20cx%3D%221080%22%20cy%3D%22420%22%20r%3D%2270%22%20fill%3D%22%23fde2b0%22%2F%3E%3Cpath%20d%3D%22M0%20470%20L180%20340%20L330%20420%20L520%20260%20L720%20440%20L900%20330%20L1100%20450%20L1300%20300%20L1600%20460%20L1600%20520%20L0%20520Z%22%20fill%3D%22%235a4a78%22%2F%3E%3Cpath%20d%3D%22M0%20500%20L240%20400%20L460%20480%20L700%20380%20L960%20500%20L1220%20410%20L1600%20510%20L1600%20540%20L0%20540Z%22%20fill%3D%22%233d3560%22%2F%3E%3Crect%20y%3D%22530%22%20width%3D%221600%22%20height%3D%22270%22%20fill%3D%22url(%23w)%22%2F%3E%3Crect%20x%3D%221020%22%20y%3D%22560%22%20width%3D%22120%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.7%22%2F%3E%3Crect%20x%3D%221045%22%20y%3D%22590%22%20width%3D%2270%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.5%22%2F%3E%3Crect%20x%3D%221060%22%20y%3D%22615%22%20width%3D%2240%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23fde2b0%22%20opacity%3D%22.35%22%2F%3E%3C%2Fsvg%3E)",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "image"
-                },
-                {
-                  "label": "Size",
-                  "value": "318.4 KB · 1600 x 800 px"
-                },
-                {
-                  "label": "Source",
-                  "value": "Preview"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 1:54:00 PM"
@@ -1517,20 +1509,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Chrome",
+              "chips": [
+                {
+                  "text": "link"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "40",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nhttps://github.com/acme/widgets/pull/412\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "40 B · 40 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Chrome"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 2:30:00 PM"
@@ -1596,20 +1588,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Safari",
+              "chips": [
+                {
+                  "text": "link"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "58",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nhttps://developer.mozilla.org/en-US/docs/Web/API/Clipboard\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "58 B · 58 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Safari"
-                },
                 {
                   "label": "Copied",
                   "value": "9/15/2026, 12:34:00 PM"
@@ -1675,39 +1667,30 @@
               },
               {
                 "date": 1789299240000
-              },
-              {
-                "tag": "pinned",
-                "color": "amber"
               }
             ],
             "detail": {
+              "caption": "Copied from kitty",
+              "chips": [
+                {
+                  "text": "text"
+                },
+                {
+                  "text": "pinned",
+                  "color": "amber"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "39",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nssh -J bastion.example.com deploy@web-1\n````",
               "metadata": [
                 {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "39 B · 39 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "kitty"
-                },
-                {
                   "label": "Copied",
                   "value": "9/13/2026, 2:34:00 PM"
-                },
-                {
-                  "label": "Pinned",
-                  "tags": [
-                    {
-                      "text": "pinned",
-                      "color": "amber"
-                    }
-                  ]
                 }
               ]
             },
@@ -1763,39 +1746,34 @@
               },
               {
                 "date": 1788521640000
-              },
-              {
-                "tag": "pinned",
-                "color": "amber"
               }
             ],
             "detail": {
+              "caption": "Copied from Mail",
+              "chips": [
+                {
+                  "text": "text"
+                },
+                {
+                  "text": "pinned",
+                  "color": "amber"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "17",
+                  "label": "characters"
+                },
+                {
+                  "value": "2",
+                  "label": "lines"
+                }
+              ],
               "markdown": "````\nBest regards,\nAda\n````",
               "metadata": [
                 {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "17 B · 17 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Mail"
-                },
-                {
                   "label": "Copied",
                   "value": "9/4/2026, 2:34:00 PM"
-                },
-                {
-                  "label": "Pinned",
-                  "tags": [
-                    {
-                      "text": "pinned",
-                      "color": "amber"
-                    }
-                  ]
                 }
               ]
             },
@@ -1854,20 +1832,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Chrome",
+              "chips": [
+                {
+                  "text": "link"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "40",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nhttps://github.com/acme/widgets/pull/412\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "40 B · 40 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Chrome"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 2:30:00 PM"
@@ -1934,20 +1912,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from VS Code",
+              "chips": [
+                {
+                  "text": "color"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "7",
+                  "label": "characters"
+                }
+              ],
               "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%235b8def%22%2F%3E%3C%2Fsvg%3E)\n\n````\n#5b8def\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "7 B · 7 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "VS Code"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 2:16:00 PM"
@@ -2008,20 +1986,24 @@
               }
             ],
             "detail": {
+              "caption": "Copied from kitty",
+              "chips": [
+                {
+                  "text": "text"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "97",
+                  "label": "characters"
+                },
+                {
+                  "value": "3",
+                  "label": "lines"
+                }
+              ],
               "markdown": "````\nSELECT id, name FROM users\nWHERE created_at > now() - interval '7 days'\nORDER BY created_at DESC;\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "97 B · 97 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "kitty"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 12:34:00 PM"
@@ -2083,20 +2065,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Chrome",
+              "chips": [
+                {
+                  "text": "color"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "16",
+                  "label": "characters"
+                }
+              ],
               "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%2322c55e%22%2F%3E%3C%2Fsvg%3E)\n\n````\nrgb(34, 197, 94)\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "16 B · 16 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Chrome"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 9:34:00 AM"
@@ -2157,20 +2139,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from kitty",
+              "chips": [
+                {
+                  "text": "text"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "28",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\ndocker compose up -d --build\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "28 B · 28 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "kitty"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 7:34:00 AM"
@@ -2231,20 +2213,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Mail",
+              "chips": [
+                {
+                  "text": "text"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "30",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nAda Lovelace <ada@example.org>\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "30 B · 30 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Mail"
-                },
                 {
                   "label": "Copied",
                   "value": "9/15/2026, 1:04:00 PM"
@@ -2304,20 +2286,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Safari",
+              "chips": [
+                {
+                  "text": "link"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "58",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nhttps://developer.mozilla.org/en-US/docs/Web/API/Clipboard\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "58 B · 58 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Safari"
-                },
                 {
                   "label": "Copied",
                   "value": "9/15/2026, 12:34:00 PM"
@@ -2384,20 +2366,20 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Slack",
+              "chips": [
+                {
+                  "text": "text"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "43",
+                  "label": "characters"
+                }
+              ],
               "markdown": "````\nMeeting moved to Thursday 15:00, same room.\n````",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "text"
-                },
-                {
-                  "label": "Size",
-                  "value": "43 B · 43 chars"
-                },
-                {
-                  "label": "Source",
-                  "value": "Slack"
-                },
                 {
                   "label": "Copied",
                   "value": "9/14/2026, 2:34:00 PM"
@@ -2461,20 +2443,21 @@
               }
             ],
             "detail": {
+              "caption": "Copied from Finder",
+              "title": "invoice-2026-09.pdf, receipt.pdf",
+              "chips": [
+                {
+                  "text": "files"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "2",
+                  "label": "files"
+                }
+              ],
               "markdown": "- `/Users/ada/Downloads/invoice-2026-09.pdf`\n- `/Users/ada/Downloads/receipt.pdf`",
               "metadata": [
-                {
-                  "label": "Kind",
-                  "value": "files"
-                },
-                {
-                  "label": "Size",
-                  "value": "72 B"
-                },
-                {
-                  "label": "Source",
-                  "value": "Finder"
-                },
                 {
                   "label": "Copied",
                   "value": "9/16/2026, 11:34:00 AM"
@@ -2534,7 +2517,7 @@
       "keys": [
         "down*4"
       ],
-      "caption": "An image entry: its size and dimensions on the row, the picture in the pane"
+      "caption": "An image entry: the picture in the pane, under its pixels and size"
     },
     "3-colors": {
       "palette": "history",
