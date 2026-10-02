@@ -35,14 +35,13 @@ async function source(typed: string): Promise<{ text: string; where: "typed" | "
   return (await textAtHand()) ?? undefined;
 }
 
-const detail = (kind: Conversion, out: string, src: string, where: string, n: number): Detail => ({
-  markdown: `${out}\n\n---\n\n${src}`,
-  metadata: [
-    { label: "Conversion", value: `${TITLES[kind]}: ${ABOUT[kind]}` },
-    { label: "Changed", value: n ? `${n} ${n === 1 ? "character" : "characters"}` : "nothing" },
-    { label: "Length", value: `${src.length} characters` },
-    { label: "Source", value: where === "typed" ? "Typed" : where === "selection" ? "The selection in the app in front" : "The clipboard" },
-  ],
+const WHERE = { typed: "Typed", selection: "The selection in the app in front", clipboard: "The clipboard" } as const;
+/** The result as a document: the conversion and where the text came from on top, the result as the title when it is a line (else first in the text), how many letters changed large, the source under it. */
+const detail = (kind: Conversion, out: string, src: string, where: keyof typeof WHERE, n: number): Detail => ({
+  caption: `${TITLES[kind]} · ${WHERE[where]}`,
+  ...(out.length <= 100 && !out.includes("\n") ? { title: out, markdown: src } : { markdown: `${out}\n\n---\n\n${src}` }),
+  stats: [{ value: String(n), label: n === 1 ? "character changed" : "characters changed" }, { value: String(src.length), label: "characters" }],
+  metadata: [{ label: "What it does", value: ABOUT[kind] }],
 });
 
 async function list(query = ""): Promise<Item[]> {
@@ -64,8 +63,11 @@ async function list(query = ""): Promise<Item[]> {
     held.set(kind, { text: out, source: src.text });
     rows.push({
       id: kind,
+      // The answer leads: Turkish letters restored, when that changed anything.
+      ...(kind === "deasciify" && n ? { hero: true } : {}),
       name: truncate(oneLine(out), 120) || " ",
-      subtitle: `${TITLES[kind]} · ${ABOUT[kind]}${whence}`,
+      // Where the text came from once, on the first row.
+      subtitle: `${TITLES[kind]}${rows.length ? "" : whence}`,
       icon: GLYPH[kind],
       keywords: [kind, TITLES[kind]],
       accessories: n ? [{ text: `${n} changed` }] : [{ tag: "unchanged", color: "grey" }],
