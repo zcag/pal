@@ -760,10 +760,15 @@ mod bar {
     /// or a peek, ordered front without key so the app in front keeps
     /// typing.
     pub fn show(app: &AppHandle, label: &'static str, engaged: bool) {
+        show_at(app, label, engaged, 1.0);
+    }
+
+    /// `show` at `alpha`, set before the window is ordered front, in the same main-thread turn: a veiled show never draws a frame at full alpha first.
+    fn show_at(app: &AppHandle, label: &'static str, engaged: bool, alpha: f64) {
         super::on_main(app, move |app| {
             let Ok(p) = app.get_webview_panel(label) else { return };
             p.set_ignores_mouse_events(false);
-            p.set_alpha_value(1.0);
+            p.set_alpha_value(alpha);
             if engaged {
                 p.show_and_make_key();
                 if let Some(w) = app.get_webview_window(label) {
@@ -782,12 +787,7 @@ mod bar {
     /// its size (`popover::bar_ready`). Not zero, so the window counts as up
     /// for `hide`.
     pub fn show_veiled(app: &AppHandle, label: &'static str, engaged: bool) {
-        show(app, label, engaged);
-        super::on_main(app, move |app| {
-            if let Ok(p) = app.get_webview_panel(label) {
-                p.set_alpha_value(VEIL);
-            }
-        });
+        show_at(app, label, engaged, VEIL);
     }
 
     /// The alpha of a veiled window: up, but not seen.
