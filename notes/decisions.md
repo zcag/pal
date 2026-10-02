@@ -2121,3 +2121,34 @@ soft lit row, after the white block proved too glaring).
   `ui/index.ts`); six references to tokens that never existed
   (`--pal-border`, `--pal-warning`, `--pal-font`, ...) now name real ones,
   which also fixes white dividers on the light Settings Shortcuts page.
+
+### Designs, round two: Ink gets better than tokens (2026-10-02)
+
+Asked to make the design "50x better", the gaps were in how pal shows
+things, not in its colours: the answer was a small row under a big query,
+placeholders took the headline size, the panel stayed 440 tall for three
+rows, every row spoke at the same weight, nothing moved with intent.
+
+- **Answers first: `Item.hero`.** The one row that answers the query (a
+  sum, the weather now, a translation) is drawn as a headline row in every
+  design: `--pal-hero-h` tall, its name at `--pal-text-hero` in the
+  display type, the subtitle under it. No `PROTOCOL` bump: an older app
+  ignores the key (the core carries unknown item keys) and draws a plain
+  row, so no extension depends on a newer pal for it. Calculator, Weather
+  and Translate set it.
+- **The panel fits its rows** (`--pal-panel-fit: on`, Ink): Panel sets an
+  explicit height from its chrome plus the list's content (the
+  virtualiser's total) or the empty state's, capped at the frame, with a
+  height transition. The window keeps its size; the bare part below takes
+  the click and hides pal (App.tsx), as a click beside it does. Views,
+  forms, grids, the detail split and popovers keep the frame.
+- **One gliding highlight** (`--pal-cursor-glide`): List draws the cursor's
+  fill once under the rows and moves it; the active row paints none.
+- **Soft cursor in both schemes**: the inverted block glared on dark and
+  was then dropped on light too, for one Ink.
+- **Quiet placeholders** (`--pal-text-placeholder`, `--pal-weight-
+  placeholder`): the headline size is for what was typed.
+- **An accessory budget** (`--pal-acc-max`, Ink 2): Row drops the rest up
+  front in `accessoryDropOrder`, the order the narrow-row fit already used.
+- List metrics now re-measure when `data-design` / `data-density` flip on a
+  mounted list (it measured once per mount, stale after a flip).
