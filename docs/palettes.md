@@ -695,8 +695,8 @@ Settings, `[extensions.emoji]`:
 What is running, from `ps`, listed again on every keystroke because the
 set changes constantly (an input palette; the root only has its own row).
 The query matches the name or a pid prefix. The row is the executable's
-name, its full path the subtitle on macOS (Linux `ps` gives only the
-name); the pid and the resident memory sit on the right, and a process
+name, its pid the subtitle with the full path after it on macOS (outside
+an app); the resident memory sits on the right, and a process
 above 10% CPU carries a `NN% cpu` tag (orange, red from 50%). Rows are
 sorted by CPU, then memory. On macOS a process that lives in a `.app`
 bundle gets that app's icon.
