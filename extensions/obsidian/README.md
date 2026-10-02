@@ -73,8 +73,8 @@ in pal's storage for Backlinks and Outgoing links.
 ## What each palette does
 
 **Notes** lists every note, sectioned by folder (`Vault` for the top
-level), the description as the subtitle, up to three tags and the change
-date on the right; the name, the aliases, the tags and the folder are
+level), the description as the subtitle, a tag (not the one the folder
+already says) and the change date on the right; the name, the aliases, the tags and the folder are
 keywords, so `#infra` or `the box` finds a note too. Four commands lead:
 Today's note (`⌘Enter` appends instead), New note (title and folder typed
 in the bar), Search notes (`⌘Enter` opens Obsidian's own search) and
@@ -98,11 +98,12 @@ wikilink and Copy path put one a line; Open in Obsidian stays one note's,
 since its URI shows one note in the pane. Append a line (`⌘⇧A`) takes
 the line as the row's typed argument (Tab into the field in the bar;
 `{clipboard}`, `{selection}`, `{date}`, `{time}` filled in) and lands it
-at the end of the note; a pick without it asks in a form. The pane (`⌘I`) is the note
-as markdown with the front matter off, callouts as a bold lead, wikilinks
-as links into Obsidian (a link to nothing yet says so), then the path,
-the modified time, the words, the tags, the aliases, the links (an
-unresolved one grey) and the backlinks with their titles.
+at the end of the note; a pick without it asks in a form. The pane (`⌘I`)
+leads with the vault and folder over the title, the tags as chips and the
+words, backlinks and links large; then the note as markdown with the front
+matter off, callouts as a bold lead, wikilinks as links into Obsidian (a
+link to nothing yet says so), then the modified time, the aliases, the
+links (an unresolved one grey) and the titles of the notes that link to it.
 
 **Search Notes** searches the text of every note as you type, case-
 insensitive, the words as typed: ripgrep when installed, a scan

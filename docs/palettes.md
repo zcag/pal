@@ -4160,8 +4160,8 @@ note (`obsidian://open`); the notes are read as files.
 **Notes.** Every `.md` in the vault (dot folders and the `exclude` globs
 out) as a row: the title (front matter `title`, else the first `#`
 heading, else the file name), the description (front matter, else the
-first body line) as the subtitle, the folder as the section, up to three
-tags and the change date on the right; the file name, the aliases, the
+first body line) as the subtitle, the folder as the section, a tag (not
+the folder's) and the change date on the right; the file name, the aliases, the
 tags and the folder are keywords. Four commands lead: Today's note
 (`⌘Enter` appends to it), New note, Search notes (`⌘Enter` opens
 Obsidian's search), Random note. On a note: Open in Obsidian and Open in
@@ -4170,9 +4170,11 @@ editor (`Enter` and `⌘Enter`, swapped by the `open_with` setting; the
 (`⌘C`: `[[name]]`, `[[folder/name]]` when the name is shared), Read in
 pal (`⌘⇧R`: the note as a view through tela's markdown renderer, with
 callouts, tables, tasks, code), Backlinks (`⌘B`), Outgoing links (`⌘L`),
-Copy path (`⌘⇧C`). The pane (`⌘I`) is the note as markdown (front matter
-off, callouts a bold lead, wikilinks as links into Obsidian) over its
-path, modified time, words, tags, aliases, links and backlinks. The index
+Copy path (`⌘⇧C`). The pane (`⌘I`) leads with the vault and folder over
+the title, the tags as chips and the words, backlinks and links large,
+then the note as markdown (front matter off, callouts a bold lead,
+wikilinks as links into Obsidian) over its modified time, aliases, links
+and the notes linking to it. The index
 is per file by mtime and size; a watcher on the vault marks it stale, the
 next listing rebuilds it.
 

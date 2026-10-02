@@ -116,7 +116,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The pane: the note rendered, callout and table included, its tags, links and backlinks below"
+        "caption": "The pane: the vault and folder over the title, its tags, words, backlinks and links, then the note rendered, callout and table included"
       },
       {
         "file": "3-search.png",
