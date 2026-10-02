@@ -94,8 +94,8 @@ describe("youtube", () => {
     expect(items[1]).toMatchObject({ id: lofi.id, subtitle: "Lofi Girl · 8:00:28 · 6.8M views · 11 months ago", icon: { image: `https://i.ytimg.com/vi/${lofi.id}/default.jpg` }, url: `https://www.youtube.com/watch?v=${lofi.id}`, keywords: ["Lofi Girl"] });
     expect(items[0].subtitle).toBe("Lofi Girl · live now");
     expect(items[1].actions!.map((a) => a.id)).toEqual(["open", "play", "copy_url", "later", "channel"]);
-    expect(items[1].detail!.markdown).toBe(`![](https://i.ytimg.com/vi/${lofi.id}/mqdefault.jpg)\n\n**${lofi.title}**`);
-    expect(items[1].detail!.metadata!.slice(0, 3)).toEqual([{ label: "Channel", link: { text: "Lofi Girl", href: `https://www.youtube.com/channel/${lofi.channelId}` } }, { label: "Length", value: "8:00:28" }, { label: "Views", value: (6800000).toLocaleString() }]);
+    expect(items[1].detail).toMatchObject({ caption: "Lofi Girl", title: lofi.title, stats: [{ value: "8:00:28", label: "long" }, { value: "6.8M", label: "views" }], markdown: `![](https://i.ytimg.com/vi/${lofi.id}/mqdefault.jpg)` });
+    expect(items[1].detail!.metadata![0]).toEqual({ label: "Channel", link: { text: "Lofi Girl", href: `https://www.youtube.com/channel/${lofi.channelId}` } });
     // Cached: the same query again asks nothing.
     const n = requests.length;
     await list("lofi");
@@ -201,11 +201,14 @@ describe("youtube", () => {
 
   test("a refused key and a used-up quota each name the fix; no key and no instance is the setup hint", async () => {
     host.changeSettings("youtube", { settings: { api_key: "bad" } });
-    expect((await list("lofi"))[0]).toMatchObject({ id: "hint:failed", name: expect.stringContaining("refused the key"), actions: [] });
+    expect((await list("lofi"))[0]).toMatchObject({ id: "hint:failed", name: "YouTube refused the key", subtitle: expect.stringContaining("YouTube Data API v3 is enabled"), actions: [{ id: "settings", title: "Open Settings" }] });
+    expect(await host.pick("youtube", "search", "hint:failed", "settings")).toEqual({ open: "pal://settings/extensions?anchor=extensions:youtube:api_key" });
     host.changeSettings("youtube", { settings: { api_key: "quota" } });
     expect((await list("lofi again"))[0].name).toContain("daily quota");
+    expect(await host.pick("youtube", "search", "hint:failed", "settings")).toEqual({ open: "pal://settings/extensions?anchor=extensions:youtube:invidious_url" });
     host.changeSettings("youtube", { settings: {} });
-    expect((await list("lofi"))[0]).toMatchObject({ id: "hint:setup", name: expect.stringContaining("Invidious instance") });
+    expect((await list("lofi"))[0]).toMatchObject({ id: "hint:setup", name: expect.stringContaining("Invidious instance"), actions: [{ id: "settings", title: "Open Settings" }] });
+    expect(await host.pick("youtube", "channels", "hint:setup", "settings")).toEqual({ open: "pal://settings/extensions?anchor=extensions:youtube:api_key" });
     expect(await list("yt: lofi", { inline: true })).toEqual([]);
     expect((await channels("x"))[0].id).toBe("hint:setup");
   });

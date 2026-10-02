@@ -98,12 +98,14 @@ const held = new Map<string, Video>();
 const VIDEO_ACTIONS = [OPEN, PLAY, COPY_URL, LATER, CHANNEL];
 const LATER_ACTIONS = [OPEN, PLAY, COPY_URL, CHANNEL, REMOVE];
 
+/** The video as a document: the channel on top, the title, live as a chip, its length and views large, the bigger thumbnail, then the links and the day. */
 const detailOf = (v: Video): Detail => ({
-  markdown: `![](${thumbUrl(v.id, "mqdefault")})\n\n**${v.title}**`,
+  caption: v.channel,
+  title: v.title,
+  ...(v.live ? { chips: [{ text: "live now", color: "red" as const }] } : { stats: [{ value: duration(v.seconds), label: "long" }, ...(v.views !== undefined ? [{ value: count(v.views, "views").replace(/ views$/, ""), label: "views" }] : [])] }),
+  markdown: `![](${thumbUrl(v.id, "mqdefault")})`,
   metadata: [
     { label: "Channel", link: { text: v.channel, href: channelUrl(v.channelId) } },
-    { label: "Length", value: v.live ? "live now" : duration(v.seconds) },
-    ...(v.views !== undefined ? [{ label: "Views", value: v.views.toLocaleString() }] : []),
     ...(v.published ? [{ label: "Published", value: `${dayNameYear(v.published)} (${age(v.published)})` }] : []),
     { label: "URL", link: { text: `youtube.com/watch?v=${v.id}`, href: watchUrl(v.id) } },
   ],
@@ -116,14 +118,24 @@ function item(v: Video, actions: Action[], section?: string): Item {
   return { id: v.id, name: v.title, subtitle: bits.join(" · "), icon: { image: thumbUrl(v.id) }, url: watchUrl(v.id), keywords: [v.channel], ...(section && { section }), detail: detailOf(v), actions };
 }
 
+const SETTINGS: Action = { id: "settings", title: "Open Settings" };
+/** `pick`'s answer to the Open Settings of a setup or failure row. */
+const openSetting = (id: "api_key" | "invidious_url"): Effect => ({ open: `pal://settings/extensions?anchor=extensions:${EXT}:${id}` });
 const setupHints = (): Item[] => [
-  hint("setup", "Set a Data API key or an Invidious instance under Settings › Extensions › YouTube", "A Data API v3 key (free, 100 searches a day) or an Invidious instance that serves its API"),
+  hint("setup", "Add a Data API key or an Invidious instance", "Settings › Extensions › YouTube: a Data API v3 key is free (100 searches a day)", { actions: [SETTINGS] }),
   hint("root", "At the root, yt: before the query", "yt: lofi hip hop"),
 ];
 
 let seq = 0;
 const cache = new Map<string, Video[]>();
-const failedRow = (e: unknown, q: string): Item => { const ye = e instanceof YouTubeError ? e : undefined; console.error(`[youtube] ${ye?.message ?? e}`); return hint("failed", ye ? ye.hint : `Could not search: ${errorMessage(e)}`, q, { icon: GLYPH.alert }); };
+/** The setting a failure row's Open Settings opens, from the last failure. */
+let failedSetting: "api_key" | "invidious_url" = "api_key";
+const failedRow = (e: unknown, q: string): Item => {
+  const ye = e instanceof YouTubeError ? e : undefined;
+  console.error(`[youtube] ${ye?.message ?? e}`);
+  if (ye?.setting) failedSetting = ye.setting;
+  return hint("failed", ye ? ye.hint : `Could not search: ${errorMessage(e)}`, ye?.fix ?? q, { icon: GLYPH.alert, ...(ye?.setting && { actions: [SETTINGS] }) });
+};
 
 async function cached(key: string, fetcher: () => Promise<Video[]>): Promise<Video[]> {
   const hit = cache.get(key);
@@ -183,6 +195,7 @@ async function act(vs: Video[], action: string | undefined): Promise<Effect> {
 }
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+  if (action === "settings") return openSetting(id === "hint:failed" ? failedSetting : "api_key");
   const saved = await later();
   const vs = (ctx?.ids ?? [id]).map((i) => held.get(i) ?? saved.find((x) => x.id === i)).filter((x): x is Video => !!x);
   if (!vs.length || vs[0]!.id !== id) return toast("Video is gone", "The listing changed; pick again", "failure");
@@ -219,6 +232,7 @@ async function channelRows(query = ""): Promise<Item[]> {
 }
 
 async function channelPick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+  if (action === "settings") return pick(id, action, ctx);
   const c = heldChannels.get(id);
   if (!c) return toast("Channel is gone", undefined, "failure");
   // The marked channels (`ctx.ids`), else the one.
