@@ -71,7 +71,7 @@ try {
       "1-idle": { palette: "speedtest", caption: "Opened: the tool found; nothing runs until Enter" },
       "2-running": { palette: "speedtest", keys: ["enter", "wait:600"], caption: "Downloading: the bar fills with Ookla's progress, the figure moves with it" },
       "3-done": { palette: "done", caption: "Done: both figures, ping and jitter, the server and the ISP" },
-      "4-history": { palette: "history", keys: ["down"], caption: "History: the runs, newest first" },
+      "4-history": { palette: "history", keys: ["down", "cmd+i"], caption: "History: the runs, newest first; the pane has a run's figures large, its ISP and its result page" },
       "5-trend": { palette: "history", keys: ["enter", "wait:600"], caption: "The trend: the last runs as bars, download in blue and upload in green" },
       "6-no-tool": { palette: "notool", caption: "Nothing installed: the three ways to get a tool" },
     },
