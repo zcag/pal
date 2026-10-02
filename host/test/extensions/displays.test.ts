@@ -240,6 +240,8 @@ describe("displays: macOS with every tool", () => {
     expect(await host.pick("displays", "displays", "display:2", "copy-id", { ids: ["display:2", "display:1"] })).toEqual({ copy: "2\n1", hud: "Copied 2 display ids" });
     expect(rows[2]).toMatchObject({ name: "Night Shift", accessories: [{ tag: "on", color: "amber" }] });
     expect(rows.find((r) => r.section === "Setup")).toBeUndefined();
+    // The header says what the display is and its numbers; the table keeps the ids and the rest.
+    expect(rows[1].detail).toMatchObject({ caption: "Built-in", title: "Built-in Liquid Retina XDR Display", chips: [{ text: "HiDPI", color: "grey" }], stats: [{ value: "50%", label: "brightness" }, { value: "1800×1169", label: "resolution" }, { value: "120 Hz", label: "refresh" }] });
     expect(rows[1].detail).toMatchObject({ metadata: expect.arrayContaining([{ label: "Persistent id", value: BUILTIN }, { label: "Origin", value: "(-1800, 271)" }, { label: "Modes", value: "8 listed" }]) });
   });
 
@@ -248,7 +250,7 @@ describe("displays: macOS with every tool", () => {
     expect(rows.map((r) => r.id)).toEqual(["brightness", "contrast", "volume", "input", "modes", "mirror", "rotation", "sleep"]);
     expect(rows[0]).toMatchObject({ accessories: [{ text: "70%" }], args: [{ id: "level" }] });
     expect(rows[2]).toMatchObject({ name: "Volume", accessories: [{ text: "30%" }] });
-    expect(rows[3].subtitle).toContain("m1ddc cannot read which is active");
+    expect(rows[3].subtitle).toContain("which one is on cannot be read");
     expect(rows[4].subtitle).toBe("4 modes; now 2560×1440 @ 60 Hz · HiDPI");
     const built = await host.list("displays", "displays", "", panel);
     expect(built.map((r) => r.id)).toEqual(["brightness", "modes", "mirror", "rotation", "main", "sleep"]);

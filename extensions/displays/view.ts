@@ -41,12 +41,19 @@ export function modeLine(s: Screen): string {
   const parts: string[] = [];
   if (s.w && s.h) parts.push(modeText(s));
   if (s.rotation) parts.push(`rotated ${s.rotation}°`);
-  if (s.connection && s.connection !== "internal") parts.push(s.connection.toUpperCase().replace("DISPLAYPORT", "DisplayPort").replace("THUNDERBOLT", "Thunderbolt"));
+  const conn = connectionName(s);
+  if (conn) parts.push(conn);
   return parts.join(" · ") || (s.builtin ? "Built-in" : "External");
 }
 
+/** How an external screen is plugged in, as people write it (`DisplayPort`, `HDMI`); nothing for the built-in one. */
+export const connectionName = (s: Pick<Screen, "connection">): string | undefined =>
+  s.connection && s.connection !== "internal" ? s.connection.toUpperCase().replace("DISPLAYPORT", "DisplayPort").replace("THUNDERBOLT", "Thunderbolt") : undefined;
+
 /** The popover's card width inside the outer padding, and what the name has left beside the glyph and the tags. */
-const PAD = 8, GLYPH_W = 24, LEVEL_W = 40, SLIDER_W = 150;
+const PAD = 8, GLYPH_W = 24, SLIDER_W = 150;
+/** The level's column on a popover card: wide enough for `100%` in the headline type, which the card the keys are on wears. */
+const HEAD_LEVEL_W = 84;
 const CARD_W = POPOVER_W - 2 * PAD;
 /** Room for two badges (`main`, `mirror`) after the name. */
 const NAME_W = CARD_W - GLYPH_W - 116;
@@ -89,7 +96,7 @@ export function sliderView(st: SliderState): View {
     : row([
         text(st.control === "brightness" ? brightnessGlyph(v) : CONTROL_GLYPH[st.control], { key: "cg", style: "glyph", size: "md", width: GLYPH_W }),
         { type: "slider", key: "slider", value: v / 100, ...(st.compact && { width: SLIDER_W + 120 }), color: st.control === "brightness" ? "amber" : st.control === "volume" ? "green" : "violet", action: "set", label: `${s.name} ${CONTROL_TITLE[st.control].toLowerCase()}` },
-        text(`${v}%`, { key: `v-${v}`, style: "number", size: "md", width: LEVEL_W + 8, align: "end", transition: { enter: "fade", exit: "none" } }),
+        text(`${v}%`, { key: `v-${v}`, style: "headline", width: HEAD_LEVEL_W, align: "end", transition: { enter: "fade", exit: "none" } }),
       ], { key: "level", gap: 2, align: "center", minHeight: 30 });
   const hints = v === undefined
     ? row([...keyHint("r", "read again"), { type: "spacer" }, ...keyHint("esc", "back")], { key: "hints", gap: 1, minHeight: 22 })
@@ -119,9 +126,10 @@ function screenCard(p: PopoverScreen, selected: boolean, i: number): ViewNode {
   if (p.settable && p.level !== undefined) {
     kids.push(row([
       text(brightnessGlyph(p.level), { key: "bg", style: "glyph", size: "sm", color: "muted", width: GLYPH_W }),
-      { type: "slider", key: "level", value: p.level / 100, width: CARD_W - GLYPH_W - LEVEL_W - 2 * PAD - 8, color: "amber", action: `set:${s.id}`, label: `${s.name} brightness` },
-      text(`${p.level}%`, { key: `v-${p.level}`, style: "mono", size: "xs", color: "muted", width: LEVEL_W, align: "end", transition: { enter: "fade", exit: "none" } }),
-    ], { key: "level", gap: 1, align: "center", minHeight: 24 }));
+      { type: "slider", key: "level", value: p.level / 100, width: CARD_W - GLYPH_W - HEAD_LEVEL_W - 2 * PAD - 8, color: "amber", action: `set:${s.id}`, label: `${s.name} brightness` },
+      // The card the keys are on says its level as the popover's headline; the others in small figures, in the same column so no slider moves.
+      text(`${p.level}%`, { key: `v-${p.level}`, ...(selected ? { style: "headline" as const } : { style: "number" as const, size: "sm" as const, color: "muted" as const }), width: HEAD_LEVEL_W, align: "end", transition: { enter: "fade", exit: "none" } }),
+    ], { key: "level", gap: 1, align: "center", minHeight: selected ? 40 : 24 }));
   } else {
     kids.push(row([text(p.settable ? "Brightness could not be read" : s.builtin ? "Set with the keyboard's keys" : "No tool can set its brightness", { key: "na", style: "muted", size: "xs" })], { key: "level", gap: 1, minHeight: 18 }));
   }

@@ -5,10 +5,10 @@
 // from displayplacer's own reproduce line, and a bar item with a slider
 // per screen. tools.ts runs the tools, model.ts parses them, view.ts
 // draws; this file is the palette, the bar item and the routes.
-import { ago, argsForm, bar, errorMessage, failed, hint, now, settings, storage, system, toast, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+import { ago, argsForm, bar, errorMessage, failed, hint, now, settings, storage, system, toast, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { INPUTS, findMode, formatArgv, formatPlacements, levelFrom, modeText, parseInput, withMain, withMirror, withMode, withRotation, withoutMirror, type InputId, type Mode, type Screen } from "./model.ts";
 import { BUILTIN_FLOOR, CONTROLS, MAC, apply, canArrange, changed as linuxChange, invalidate, nightShift, read, readInput, reproduce, setInput, setNightShift, settable, snapshot, write, type Control, type Snapshot, type Tools } from "./tools.ts";
-import { CONTROL_TITLE, GLYPH, brightnessGlyph, modeLine, popover, screenGlyph, sliderView, type PopoverState, type SliderState } from "./view.ts";
+import { CONTROL_TITLE, GLYPH, brightnessGlyph, connectionName, modeLine, popover, screenGlyph, sliderView, type PopoverState, type SliderState } from "./view.ts";
 
 type Settings = { step: number; input_alt: boolean };
 /** The brightness item's settings, `[bar.items."displays/brightness".settings]`, defaults in pal.json. */
@@ -102,14 +102,33 @@ function screenRow(s: Screen, snap: Snapshot, level: number | undefined): Item {
     ...(can && { args: BRIGHTNESS_ARGS }),
     actions,
     section: "Displays",
-    detail: { metadata: meta([
-      ["Display", s.name], ["Id", s.id], ["Persistent id", s.uuid], ["Connection", s.connection],
-      ["Mode", s.w && s.h ? modeText(s) : undefined], ["Pixels", s.pixels ? `${s.pixels.w}×${s.pixels.h}` : undefined],
-      ["Rotation", s.rotation === undefined ? undefined : `${s.rotation}°`], ["Origin", s.origin ? `(${s.origin.x}, ${s.origin.y})` : undefined],
-      ["Main", s.main ? "yes" : "no"], ["Mirroring", s.mirrorOf ? snap.screens.find((x) => x.id === s.mirrorOf)?.name : s.mirrors.length ? `mirrored by ${s.mirrors.map((m) => snap.screens.find((x) => x.id === m)?.name ?? m).join(", ")}` : undefined],
-      ["Brightness", level === undefined ? (can ? "unread" : "not settable from here") : `${level}%`],
+    detail: screenDetail(s, snap, level, can),
+  };
+}
+
+/** A display as a header: built-in or how it is plugged in, its name, main, mirroring, HiDPI and rotation as chips, the brightness, resolution and refresh large; the ids and the rest under it. */
+function screenDetail(s: Screen, snap: Snapshot, level: number | undefined, can: boolean): Detail {
+  const t = snap.tools;
+  const name = (id: string) => snap.screens.find((x) => x.id === id)?.name ?? id;
+  return {
+    caption: [s.builtin ? "Built-in" : "External", connectionName(s)].filter(Boolean).join(" · "),
+    title: s.name,
+    chips: [
+      ...(s.main ? [{ text: "main", color: "blue" as const }] : []),
+      ...(s.mirrorOf ? [{ text: `mirrors ${name(s.mirrorOf)}`, color: "violet" as const }] : s.mirrors.length ? [{ text: `mirrored by ${s.mirrors.map(name).join(", ")}`, color: "violet" as const }] : []),
+      ...(s.hidpi ? [{ text: "HiDPI", color: "grey" as const }] : []),
+      ...(s.rotation ? [{ text: `rotated ${s.rotation}°`, color: "grey" as const }] : []),
+    ],
+    stats: [
+      ...(level !== undefined ? [{ value: `${level}%`, label: "brightness" }] : []),
+      ...(s.w && s.h ? [{ value: `${s.w}×${s.h}`, label: "resolution" }] : []),
+      ...(s.hz ? [{ value: `${s.hz} Hz`, label: "refresh" }] : []),
+    ],
+    metadata: meta([
+      ["Id", s.id], ["Persistent id", s.uuid], ["Pixels", s.pixels ? `${s.pixels.w}×${s.pixels.h}` : undefined], ["Origin", s.origin ? `(${s.origin.x}, ${s.origin.y})` : undefined],
+      ["Brightness", level === undefined ? (can ? "unread" : "not settable from here") : undefined],
       ["DDC", s.ddc ? (t.m1ddc ? "m1ddc" : t.ddcctl ? "ddcctl" : "ddcutil") : undefined], ["Modes", s.modes.length ? `${s.modes.length} listed` : undefined],
-    ]) },
+    ]),
   };
 }
 
@@ -130,7 +149,7 @@ async function rootRows(snap: Snapshot): Promise<Item[]> {
     actions: [{ id: "apply", title: "Apply", ...(!canArrange(t) && { confirm: `Nothing installed can apply an arrangement (${MAC ? "displayplacer" : "a compositor tool"} is missing). Try anyway?` }) }, { id: "rename", title: "Rename", shortcut: "cmd+r" }, { id: "update", title: "Overwrite with the current arrangement", shortcut: "cmd+s", confirm: `Replace “${p.name}” with the arrangement as it is now?` }, { id: "delete", title: "Delete", shortcut: "cmd+backspace", style: "destructive", confirm: `Delete the preset “${p.name}”?` }],
     detail: { markdown: `\`\`\`\n${p.argv.map(formatArgv).join("\n")}\n\`\`\``, metadata: meta([["Displays", p.displays.join(", ")], ["Saved", ago(p.saved)]]) },
   });
-  if (canArrange(t)) rows.push({ id: "save", name: "Save current arrangement as…", subtitle: MAC ? "displayplacer's line for the arrangement as it is now, under a name" : `One ${t.compositor} command per output, under a name`, icon: GLYPH.save, keywords: ["preset", "save", "arrangement"], section: "Presets", args: NAME_ARGS, actions: [{ id: "save", title: "Save", args: true }] });
+  if (canArrange(t)) rows.push({ id: "save", name: "Save current arrangement as…", subtitle: MAC ? "Keep the arrangement as it is now, under a name" : `One ${t.compositor} command per output, under a name`, icon: GLYPH.save, keywords: ["preset", "save", "arrangement"], section: "Presets", args: NAME_ARGS, actions: [{ id: "save", title: "Save", args: true }] });
   rows.push(...setupRows(snap));
   return rows;
 }
@@ -145,7 +164,7 @@ async function screenRows(s: Screen, snap: Snapshot): Promise<Item[]> {
     const level = await read(s, c, t);
     if (level === undefined && c !== "brightness") continue; // a monitor without speakers answers nothing for volume: no row rather than a dead one
     rows.push({
-      id: c, name: CONTROL_TITLE[c], subtitle: level === undefined ? "Could not be read; Enter tries again" : c === "brightness" && s.builtin ? `Never below ${BUILTIN_FLOOR}% from here, so the screen stays readable` : "A slider with keys; ⌘= and ⌘- from this row",
+      id: c, name: CONTROL_TITLE[c], subtitle: level === undefined ? "Could not be read; Enter tries again" : c === "brightness" && s.builtin ? `Never below ${BUILTIN_FLOOR}% from here, so the screen stays readable` : undefined,
       icon: c === "brightness" ? brightnessGlyph(level) : glyph[c], keywords: [c, "level"], section: "Controls",
       accessories: level === undefined ? [{ tag: "unread", color: "grey" }] : [{ text: `${level}%` }],
       ...(level !== undefined && { args: [{ id: "level", placeholder: `${CONTROL_TITLE[c]} % or +10`, kind: "text" }] as Arg[] }),
@@ -155,7 +174,7 @@ async function screenRows(s: Screen, snap: Snapshot): Promise<Item[]> {
   if (!s.builtin && s.ddc && (t.m1ddc || t.ddcctl || t.ddcutil)) {
     const cur = await readInput(s, t);
     const name = cur === undefined ? undefined : INPUTS.find((i) => i.code === cur || i.alt === cur)?.title ?? `code ${cur}`;
-    rows.push({ id: "input", name: "Input source", subtitle: name ? `Now ${name}` : t.m1ddc ? "HDMI, DisplayPort, USB-C; m1ddc cannot read which is active" : "HDMI, DisplayPort, USB-C", icon: GLYPH.input, keywords: ["hdmi", "displayport", "usb-c", "source"], section: "Controls", ...(name && { accessories: [{ text: name }] }), actions: [{ id: "open", title: "Choose an input" }] });
+    rows.push({ id: "input", name: "Input source", subtitle: name ? `Now ${name}` : t.m1ddc ? "HDMI, DisplayPort, USB-C; which one is on cannot be read" : "HDMI, DisplayPort, USB-C", icon: GLYPH.input, keywords: ["hdmi", "displayport", "usb-c", "source"], section: "Controls", ...(name && { accessories: [{ text: name }] }), actions: [{ id: "open", title: "Choose an input" }] });
   }
   if (canArrange(t) && s.modes.length) {
     const cur = s.modes.find((m) => m.current);
