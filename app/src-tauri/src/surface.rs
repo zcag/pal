@@ -37,6 +37,13 @@ const WINDOWS_HOST: &str = "ext.localhost";
 const CSP: &str = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 /// The design tokens, one source for the panel and the pages.
 const TOKENS: &str = include_str!("../../src/ui/tokens.css");
+/// The design faces a page's `--pal-font-*` tokens name (surface-kit/fonts.css), the app's own copies.
+const FONTS: [(&str, &[u8]); 4] = [
+    ("BricolageGrotesque-latin.woff2", include_bytes!("../../src/assets/fonts/BricolageGrotesque-latin.woff2")),
+    ("BricolageGrotesque-latin-ext.woff2", include_bytes!("../../src/assets/fonts/BricolageGrotesque-latin-ext.woff2")),
+    ("HankenGrotesk-latin.woff2", include_bytes!("../../src/assets/fonts/HankenGrotesk-latin.woff2")),
+    ("HankenGrotesk-latin-ext.woff2", include_bytes!("../../src/assets/fonts/HankenGrotesk-latin-ext.woff2")),
+];
 
 pub fn register(b: Builder<Wry>) -> Builder<Wry> {
     b.register_asynchronous_uri_scheme_protocol(SCHEME, |ctx, req, responder: UriSchemeResponder| {
@@ -82,6 +89,10 @@ async fn serve(app: &AppHandle, uri: &str) -> Served {
     let mime = mime(&rel).ok_or_else(missing)?;
     let file = match ext {
         None if rel == Path::new("tokens.css") => return Ok((mime, TOKENS.as_bytes().to_vec())),
+        None if rel.starts_with("fonts") => {
+            let name = rel.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+            return FONTS.iter().find(|(n, _)| *n == name).map(|(_, b)| (mime, b.to_vec())).ok_or_else(missing);
+        }
         None => inside(&kit_dir(app), &rel),
         Some(name) => crate::settings::extensions(app).into_iter().find(|e| e.name == name).and_then(|e| inside(&Path::new(&e.root).join(&name), &rel)),
     }

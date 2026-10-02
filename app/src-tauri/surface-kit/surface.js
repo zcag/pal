@@ -40,6 +40,12 @@
     on: on("message"), onAction: on("action"), onSettings: on("settings"), onTheme: on("theme"), onShown: on("shown"), onHidden: on("hidden"),
   };
 
+  // The design faces the `--pal-font-*` tokens name (fonts.css, the kit's route); a face loads only once text in it shows.
+  const faces = document.createElement("link");
+  faces.rel = "stylesheet";
+  faces.href = "/__pal/fonts.css";
+  document.head.prepend(faces);
+
   if (!inPal) {
     // ---- the browser stub ------------------------------------------------
     const link = document.createElement("link");

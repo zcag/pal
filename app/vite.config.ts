@@ -26,8 +26,10 @@ function surfaces(): Plugin {
         const ext = /^\/__ext\/([\w-]+)\/(.+)$/.exec(url);
         const kit = /^\/__pal\/(.+)$/.exec(url);
         if (!ext && !kit) return next();
-        const base = ext ? join(REPO, "extensions", ext[1]) : join(REPO, "app/src-tauri/surface-kit");
-        const file = normalize(join(base, ext ? ext[2] : kit![1]));
+        // The design faces are the app's own copies (surface.rs serves the same files).
+        const fonts = kit && kit[1].startsWith("fonts/");
+        const base = ext ? join(REPO, "extensions", ext[1]) : fonts ? join(REPO, "app/src/assets/fonts") : join(REPO, "app/src-tauri/surface-kit");
+        const file = normalize(join(base, ext ? ext[2] : fonts ? kit![1].slice(6) : kit![1]));
         if (!file.startsWith(base)) { res.statusCode = 403; return res.end(); }
         try {
           let body: Buffer | string = await readFile(file);

@@ -42,7 +42,7 @@ if (import.meta.main) {
     port: Number(process.argv[3] ?? 0),
     async fetch(req) {
       const path = normalize(decodeURIComponent(new URL(req.url).pathname));
-      const file = path === "/__pal/tokens.css" ? join(repo, "app/src/ui/tokens.css") : path.startsWith("/__pal/") ? join(kit, path.slice(7)) : join(dir, path);
+      const file = path === "/__pal/tokens.css" ? join(repo, "app/src/ui/tokens.css") : path.startsWith("/__pal/fonts/") ? join(repo, "app/src/assets/fonts", path.slice(13)) : path.startsWith("/__pal/") ? join(kit, path.slice(7)) : join(dir, path);
       if (path.split("/").some((s) => s.startsWith(".")) || !(await Bun.file(file).exists())) return new Response("not found", { status: 404 });
       const headers = { "Content-Security-Policy": CSP, "Cache-Control": "no-cache" };
       if (extname(file) === ".ts") return new Response(await transpile(file), { headers: { ...headers, "Content-Type": "text/javascript; charset=utf-8" } });
