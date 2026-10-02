@@ -1554,12 +1554,12 @@ typed, the rest follows as **Featured** (three worth meeting first that
 are not installed: Spotify, GitHub, Solitaire, Calendar, Translate, Disk
 Space, Hue, Typing, in that order) and then a section per category, by
 title (the section names the category, so the row does not). A search or a filter is one list, the extensions whose
-title the words start first. The detail pane (`⌘I`) shows the
-description, what it does (the listing's features), the palettes and the
-listing's screenshots, with the author, where it comes from, its status,
-its build (short hash and date), whether it updates by itself, category,
-platforms, the `pal install` line and, for pal's registry, a link to the
-page.
+title the words start first. The detail pane (`⌘I`) leads with where it
+comes from and its category over the title, how it stands as a chip, then
+the description, what it does (the listing's features), the palettes and
+the listing's screenshots, with the author, its status, its build (short
+hash and date), whether it updates by itself, platforms, the `pal
+install` line and, for pal's registry, a link to the page.
 
 | standing | `Enter` | `⌘Enter` | `⌘C` | `⌃X` |
 | --- | --- | --- | --- | --- |
