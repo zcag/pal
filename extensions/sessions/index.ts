@@ -411,7 +411,8 @@ function item(s: Session): Item {
   const v = versionOf(s);
   if (v) accessories.push({ text: truncate(v, 24) });
   if (s.agents) accessories.push({ text: `${s.agents} agent${s.agents === 1 ? "" : "s"} running` });
-  accessories.push({ text: ago(s.stateAt, { short: true }) });
+  // A date, not text: Ink keeps two accessories, dropping text first, so the state and how long it has held stay.
+  accessories.push({ date: s.stateAt });
   if (s.pane) accessories.push({ text: `tmux ${s.pane}` }); else if (s.tty) accessories.push({ text: basename(s.tty) });
   return {
     id: s.key, name: s.title,
@@ -441,21 +442,18 @@ async function detail(id: string): Promise<Detail | undefined> {
   if (!last) await scan();
   const s = by(id);
   if (!s) return;
-  const parts = [`## ${mdEscape(s.title)}`];
+  const parts: string[] = [];
   if (s.prompt) parts.push(`**You** · ${when(s.promptAt)}`, ...truncate(s.prompt.trim(), CUT_PROMPT).split("\n").map((l) => `> ${mdEscape(l)}`));
   if (s.reply) parts.push(`**${AGENT_TITLE[s.agent]}**`, truncate(s.reply.trim(), CUT_REPLY));
   if (s.pending && s.state !== "waiting" && s.state !== "ended") parts.push(`**${s.state === "blocked" ? (s.exact ? "Waiting on you" : "Waiting on you?") : "Running"}** \`${s.pending.name}\` since ${clock(s.pending.at)}`, "```\n" + s.pending.summary + "\n```");
   const t = s.tokens;
   const tokens = [t.context !== undefined && `${fmtTokens(t.context)} context`, t.output !== undefined && `${fmtTokens(t.output)} out`, t.total !== undefined && `${fmtTokens(t.total)} total`].filter(Boolean).join(", ");
   const metadata: Metadata[] = [
-    { label: "Agent", value: `${AGENT_TITLE[s.agent]}${s.version ? ` ${s.version}` : ""}` },
     ...(s.model ? [{ label: "Model", value: s.model }] : []),
-    { label: "State", tags: [{ text: tagOf(s), color: STATE[s.state].color }, ...(s.exact ? [{ text: "from a hook", color: "grey" }] : [])] },
     { label: "Folder", value: tilde(s.cwd) },
-    ...(s.branch ? [{ label: "Branch", value: s.branch }] : []),
     { label: "Started", value: when(s.started) },
     { label: "Last activity", value: `${when(s.last)} (${ago(s.last)})` },
-    { label: "Turns", value: `${s.turns}${s.turnMs ? `, the last took ${Math.round(s.turnMs / 1000)} s` : ""}` },
+    ...(s.turnMs ? [{ label: "Last turn", value: `${Math.round(s.turnMs / 1000)} s` }] : []),
     ...(s.agents ? [{ label: "Subagents", value: `${s.agents} running (the transcripts under ${tilde(s.file.replace(/\.jsonl$/, ""))})` }] : []),
     ...(tokens ? [{ label: "Tokens", value: tokens }] : []),
     ...(s.permission ? [{ label: "Permissions", value: s.permission }] : []),
@@ -464,7 +462,15 @@ async function detail(id: string): Promise<Detail | undefined> {
     { label: "Transcript", value: tilde(s.file) },
   ];
   parts.push("_cmd+t opens the transcript here_");
-  return { markdown: parts.join("\n\n"), metadata };
+  // The header: the agent and where it runs, the session's title, its state as chips, the turns and the context large.
+  return {
+    caption: [`${AGENT_TITLE[s.agent]}${s.version ? ` ${s.version}` : ""}`, basename(s.cwd) || s.cwd, s.branch].filter(Boolean).join(" · "),
+    title: s.title,
+    chips: [{ text: tagOf(s), color: STATE[s.state].color }, ...(s.exact ? [{ text: "from a hook", color: "grey" as const }] : [])],
+    stats: [{ value: String(s.turns), label: s.turns === 1 ? "turn" : "turns" }, ...(t.context !== undefined ? [{ value: fmtTokens(t.context), label: "context" }] : [])],
+    markdown: parts.join("\n\n"),
+    metadata,
+  };
 }
 
 const spawn = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();

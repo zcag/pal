@@ -1595,17 +1595,32 @@
               "color": "grey"
             },
             {
-              "tag": "ui",
-              "color": "grey"
-            },
-            {
-              "text": "4 comments"
-            },
-            {
               "date": "2026-09-16T09:32:00Z"
             }
           ],
           "detail": {
+            "caption": "acme/widgets · #201",
+            "title": "Search loses the cursor when rows stream in",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              },
+              {
+                "text": "bug",
+                "color": "grey"
+              },
+              {
+                "text": "ui",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "4",
+                "label": "comments"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -1617,32 +1632,6 @@
               {
                 "label": "Author",
                 "value": "lina"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
-              },
-              {
-                "label": "Labels",
-                "tags": [
-                  {
-                    "text": "bug",
-                    "color": "grey"
-                  },
-                  {
-                    "text": "ui",
-                    "color": "grey"
-                  }
-                ]
-              },
-              {
-                "label": "Comments",
-                "value": "4"
               },
               {
                 "label": "Updated",
@@ -1696,13 +1685,28 @@
               "color": "grey"
             },
             {
-              "text": "1 comment"
-            },
-            {
               "date": "2026-09-15T05:32:00Z"
             }
           ],
           "detail": {
+            "caption": "acme/api · #530",
+            "title": "Rate limit headers are not surfaced",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              },
+              {
+                "text": "enhancement",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "1",
+                "label": "comment"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -1714,28 +1718,6 @@
               {
                 "label": "Author",
                 "value": "tomas"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
-              },
-              {
-                "label": "Labels",
-                "tags": [
-                  {
-                    "text": "enhancement",
-                    "color": "grey"
-                  }
-                ]
-              },
-              {
-                "label": "Comments",
-                "value": "1"
               },
               {
                 "label": "Updated",
@@ -1793,6 +1775,24 @@
             }
           ],
           "detail": {
+            "caption": "acme/docs · #91",
+            "title": "Getting started skips the Linux install",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              },
+              {
+                "text": "docs",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "0",
+                "label": "comments"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -1804,28 +1804,6 @@
               {
                 "label": "Author",
                 "value": "sam"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
-              },
-              {
-                "label": "Labels",
-                "tags": [
-                  {
-                    "text": "docs",
-                    "color": "grey"
-                  }
-                ]
-              },
-              {
-                "label": "Comments",
-                "value": "0"
               },
               {
                 "label": "Updated",
@@ -1880,17 +1858,32 @@
               "color": "grey"
             },
             {
-              "tag": "good first issue",
-              "color": "grey"
-            },
-            {
-              "text": "7 comments"
-            },
-            {
               "date": "2026-09-10T11:32:00Z"
             }
           ],
           "detail": {
+            "caption": "acme/widgets · #188",
+            "title": "Add a dark icon set",
+            "chips": [
+              {
+                "text": "open",
+                "color": "green"
+              },
+              {
+                "text": "design",
+                "color": "grey"
+              },
+              {
+                "text": "good first issue",
+                "color": "grey"
+              }
+            ],
+            "stats": [
+              {
+                "value": "7",
+                "label": "comments"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -1902,32 +1895,6 @@
               {
                 "label": "Author",
                 "value": "mara"
-              },
-              {
-                "label": "State",
-                "tags": [
-                  {
-                    "text": "open",
-                    "color": "green"
-                  }
-                ]
-              },
-              {
-                "label": "Labels",
-                "tags": [
-                  {
-                    "text": "design",
-                    "color": "grey"
-                  },
-                  {
-                    "text": "good first issue",
-                    "color": "grey"
-                  }
-                ]
-              },
-              {
-                "label": "Comments",
-                "value": "7"
               },
               {
                 "label": "Updated",
@@ -1967,6 +1934,14 @@
             {
               "text": "open",
               "color": "green"
+            },
+            {
+              "text": "bug",
+              "color": "grey"
+            },
+            {
+              "text": "ui",
+              "color": "grey"
             }
           ],
           "stats": [
@@ -1987,19 +1962,6 @@
             {
               "label": "Author",
               "value": "lina"
-            },
-            {
-              "label": "Labels",
-              "tags": [
-                {
-                  "text": "bug",
-                  "color": "grey"
-                },
-                {
-                  "text": "ui",
-                  "color": "grey"
-                }
-              ]
             },
             {
               "label": "Updated",
@@ -2081,7 +2043,33 @@
             }
           ],
           "detail": {
-            "markdown": "# mara/dotfiles\n\nShell, editor and terminal config",
+            "caption": "mara",
+            "title": "dotfiles",
+            "chips": [
+              {
+                "text": "public",
+                "color": "grey"
+              },
+              {
+                "text": "Shell",
+                "color": "blue"
+              }
+            ],
+            "stats": [
+              {
+                "value": "12",
+                "label": "stars"
+              },
+              {
+                "value": "1",
+                "label": "fork"
+              },
+              {
+                "value": "0",
+                "label": "open issues"
+              }
+            ],
+            "markdown": "Shell, editor and terminal config",
             "metadata": [
               {
                 "label": "Owner",
@@ -2089,22 +2077,6 @@
                   "text": "mara",
                   "href": "https://github.com/mara"
                 }
-              },
-              {
-                "label": "Language",
-                "value": "Shell"
-              },
-              {
-                "label": "Stars",
-                "value": "12"
-              },
-              {
-                "label": "Forks",
-                "value": "1"
-              },
-              {
-                "label": "Open issues",
-                "value": "0"
               },
               {
                 "label": "Default branch",
@@ -2188,7 +2160,33 @@
             }
           ],
           "detail": {
-            "markdown": "# mara/notes-cli\n\nPlain-text notes with a search",
+            "caption": "mara",
+            "title": "notes-cli",
+            "chips": [
+              {
+                "text": "public",
+                "color": "grey"
+              },
+              {
+                "text": "Rust",
+                "color": "blue"
+              }
+            ],
+            "stats": [
+              {
+                "value": "240",
+                "label": "stars"
+              },
+              {
+                "value": "9",
+                "label": "forks"
+              },
+              {
+                "value": "3",
+                "label": "open issues"
+              }
+            ],
+            "markdown": "Plain-text notes with a search",
             "metadata": [
               {
                 "label": "Owner",
@@ -2196,22 +2194,6 @@
                   "text": "mara",
                   "href": "https://github.com/mara"
                 }
-              },
-              {
-                "label": "Language",
-                "value": "Rust"
-              },
-              {
-                "label": "Stars",
-                "value": "240"
-              },
-              {
-                "label": "Forks",
-                "value": "9"
-              },
-              {
-                "label": "Open issues",
-                "value": "3"
               },
               {
                 "label": "Default branch",
@@ -2299,7 +2281,33 @@
             }
           ],
           "detail": {
-            "markdown": "# acme/widgets\n\nThe widget service and its admin",
+            "caption": "acme",
+            "title": "widgets",
+            "chips": [
+              {
+                "text": "private",
+                "color": "amber"
+              },
+              {
+                "text": "TypeScript",
+                "color": "blue"
+              }
+            ],
+            "stats": [
+              {
+                "value": "3",
+                "label": "stars"
+              },
+              {
+                "value": "0",
+                "label": "forks"
+              },
+              {
+                "value": "14",
+                "label": "open issues"
+              }
+            ],
+            "markdown": "The widget service and its admin",
             "metadata": [
               {
                 "label": "Owner",
@@ -2307,22 +2315,6 @@
                   "text": "acme",
                   "href": "https://github.com/acme"
                 }
-              },
-              {
-                "label": "Language",
-                "value": "TypeScript"
-              },
-              {
-                "label": "Stars",
-                "value": "3"
-              },
-              {
-                "label": "Forks",
-                "value": "0"
-              },
-              {
-                "label": "Open issues",
-                "value": "14"
               },
               {
                 "label": "Default branch",
@@ -2410,7 +2402,33 @@
             }
           ],
           "detail": {
-            "markdown": "# acme/api\n\nPublic API and webhooks",
+            "caption": "acme",
+            "title": "api",
+            "chips": [
+              {
+                "text": "private",
+                "color": "amber"
+              },
+              {
+                "text": "Go",
+                "color": "blue"
+              }
+            ],
+            "stats": [
+              {
+                "value": "1",
+                "label": "star"
+              },
+              {
+                "value": "0",
+                "label": "forks"
+              },
+              {
+                "value": "6",
+                "label": "open issues"
+              }
+            ],
+            "markdown": "Public API and webhooks",
             "metadata": [
               {
                 "label": "Owner",
@@ -2418,22 +2436,6 @@
                   "text": "acme",
                   "href": "https://github.com/acme"
                 }
-              },
-              {
-                "label": "Language",
-                "value": "Go"
-              },
-              {
-                "label": "Stars",
-                "value": "1"
-              },
-              {
-                "label": "Forks",
-                "value": "0"
-              },
-              {
-                "label": "Open issues",
-                "value": "6"
               },
               {
                 "label": "Default branch",
@@ -2503,7 +2505,33 @@
             }
           ],
           "detail": {
-            "markdown": "# quill-rt/quill\n\nA fast JavaScript runtime and bundler",
+            "caption": "quill-rt",
+            "title": "quill",
+            "chips": [
+              {
+                "text": "public",
+                "color": "grey"
+              },
+              {
+                "text": "Zig",
+                "color": "blue"
+              }
+            ],
+            "stats": [
+              {
+                "value": "78400",
+                "label": "stars"
+              },
+              {
+                "value": "3100",
+                "label": "forks"
+              },
+              {
+                "value": "4200",
+                "label": "open issues"
+              }
+            ],
+            "markdown": "A fast JavaScript runtime and bundler",
             "metadata": [
               {
                 "label": "Owner",
@@ -2511,22 +2539,6 @@
                   "text": "quill-rt",
                   "href": "https://github.com/quill-rt"
                 }
-              },
-              {
-                "label": "Language",
-                "value": "Zig"
-              },
-              {
-                "label": "Stars",
-                "value": "78400"
-              },
-              {
-                "label": "Forks",
-                "value": "3100"
-              },
-              {
-                "label": "Open issues",
-                "value": "4200"
               },
               {
                 "label": "Default branch",
@@ -2596,7 +2608,33 @@
             }
           ],
           "detail": {
-            "markdown": "# panekit/pane\n\nSmall desktop apps with a web front end",
+            "caption": "panekit",
+            "title": "pane",
+            "chips": [
+              {
+                "text": "public",
+                "color": "grey"
+              },
+              {
+                "text": "Rust",
+                "color": "blue"
+              }
+            ],
+            "stats": [
+              {
+                "value": "92100",
+                "label": "stars"
+              },
+              {
+                "value": "2800",
+                "label": "forks"
+              },
+              {
+                "value": "900",
+                "label": "open issues"
+              }
+            ],
+            "markdown": "Small desktop apps with a web front end",
             "metadata": [
               {
                 "label": "Owner",
@@ -2604,22 +2642,6 @@
                   "text": "panekit",
                   "href": "https://github.com/panekit"
                 }
-              },
-              {
-                "label": "Language",
-                "value": "Rust"
-              },
-              {
-                "label": "Stars",
-                "value": "92100"
-              },
-              {
-                "label": "Forks",
-                "value": "2800"
-              },
-              {
-                "label": "Open issues",
-                "value": "900"
               },
               {
                 "label": "Default branch",
@@ -2708,7 +2730,33 @@
               }
             ],
             "detail": {
-              "markdown": "# mara/dotfiles\n\nShell, editor and terminal config",
+              "caption": "mara",
+              "title": "dotfiles",
+              "chips": [
+                {
+                  "text": "public",
+                  "color": "grey"
+                },
+                {
+                  "text": "Shell",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "12",
+                  "label": "stars"
+                },
+                {
+                  "value": "1",
+                  "label": "fork"
+                },
+                {
+                  "value": "0",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "Shell, editor and terminal config",
               "metadata": [
                 {
                   "label": "Owner",
@@ -2716,22 +2764,6 @@
                     "text": "mara",
                     "href": "https://github.com/mara"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "Shell"
-                },
-                {
-                  "label": "Stars",
-                  "value": "12"
-                },
-                {
-                  "label": "Forks",
-                  "value": "1"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "0"
                 },
                 {
                   "label": "Default branch",
@@ -2815,7 +2847,33 @@
               }
             ],
             "detail": {
-              "markdown": "# mara/notes-cli\n\nPlain-text notes with a search",
+              "caption": "mara",
+              "title": "notes-cli",
+              "chips": [
+                {
+                  "text": "public",
+                  "color": "grey"
+                },
+                {
+                  "text": "Rust",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "240",
+                  "label": "stars"
+                },
+                {
+                  "value": "9",
+                  "label": "forks"
+                },
+                {
+                  "value": "3",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "Plain-text notes with a search",
               "metadata": [
                 {
                   "label": "Owner",
@@ -2823,22 +2881,6 @@
                     "text": "mara",
                     "href": "https://github.com/mara"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "Rust"
-                },
-                {
-                  "label": "Stars",
-                  "value": "240"
-                },
-                {
-                  "label": "Forks",
-                  "value": "9"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "3"
                 },
                 {
                   "label": "Default branch",
@@ -2924,7 +2966,33 @@
               }
             ],
             "detail": {
-              "markdown": "# quill-rt/quill\n\nA fast JavaScript runtime and bundler",
+              "caption": "quill-rt",
+              "title": "quill",
+              "chips": [
+                {
+                  "text": "public",
+                  "color": "grey"
+                },
+                {
+                  "text": "Zig",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "78400",
+                  "label": "stars"
+                },
+                {
+                  "value": "3100",
+                  "label": "forks"
+                },
+                {
+                  "value": "4200",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "A fast JavaScript runtime and bundler",
               "metadata": [
                 {
                   "label": "Owner",
@@ -2932,22 +3000,6 @@
                     "text": "quill-rt",
                     "href": "https://github.com/quill-rt"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "Zig"
-                },
-                {
-                  "label": "Stars",
-                  "value": "78400"
-                },
-                {
-                  "label": "Forks",
-                  "value": "3100"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "4200"
                 },
                 {
                   "label": "Default branch",
@@ -3017,7 +3069,33 @@
               }
             ],
             "detail": {
-              "markdown": "# panekit/pane\n\nSmall desktop apps with a web front end",
+              "caption": "panekit",
+              "title": "pane",
+              "chips": [
+                {
+                  "text": "public",
+                  "color": "grey"
+                },
+                {
+                  "text": "Rust",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "92100",
+                  "label": "stars"
+                },
+                {
+                  "value": "2800",
+                  "label": "forks"
+                },
+                {
+                  "value": "900",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "Small desktop apps with a web front end",
               "metadata": [
                 {
                   "label": "Owner",
@@ -3025,22 +3103,6 @@
                     "text": "panekit",
                     "href": "https://github.com/panekit"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "Rust"
-                },
-                {
-                  "label": "Stars",
-                  "value": "92100"
-                },
-                {
-                  "label": "Forks",
-                  "value": "2800"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "900"
                 },
                 {
                   "label": "Default branch",
@@ -3116,7 +3178,33 @@
               }
             ],
             "detail": {
-              "markdown": "# acme/widgets\n\nThe widget service and its admin",
+              "caption": "acme",
+              "title": "widgets",
+              "chips": [
+                {
+                  "text": "private",
+                  "color": "amber"
+                },
+                {
+                  "text": "TypeScript",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "3",
+                  "label": "stars"
+                },
+                {
+                  "value": "0",
+                  "label": "forks"
+                },
+                {
+                  "value": "14",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "The widget service and its admin",
               "metadata": [
                 {
                   "label": "Owner",
@@ -3124,22 +3212,6 @@
                     "text": "acme",
                     "href": "https://github.com/acme"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "TypeScript"
-                },
-                {
-                  "label": "Stars",
-                  "value": "3"
-                },
-                {
-                  "label": "Forks",
-                  "value": "0"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "14"
                 },
                 {
                   "label": "Default branch",
@@ -3227,7 +3299,33 @@
               }
             ],
             "detail": {
-              "markdown": "# acme/api\n\nPublic API and webhooks",
+              "caption": "acme",
+              "title": "api",
+              "chips": [
+                {
+                  "text": "private",
+                  "color": "amber"
+                },
+                {
+                  "text": "Go",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "1",
+                  "label": "star"
+                },
+                {
+                  "value": "0",
+                  "label": "forks"
+                },
+                {
+                  "value": "6",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "Public API and webhooks",
               "metadata": [
                 {
                   "label": "Owner",
@@ -3235,22 +3333,6 @@
                     "text": "acme",
                     "href": "https://github.com/acme"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "Go"
-                },
-                {
-                  "label": "Stars",
-                  "value": "1"
-                },
-                {
-                  "label": "Forks",
-                  "value": "0"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "6"
                 },
                 {
                   "label": "Default branch",
@@ -3317,12 +3399,6 @@
             "unread",
             "inbox"
           ],
-          "accessories": [
-            {
-              "tag": "5",
-              "color": "blue"
-            }
-          ],
           "actions": [
             {
               "id": "open",
@@ -3349,15 +3425,18 @@
           "section": "Review requested",
           "accessories": [
             {
-              "tag": "PR",
-              "color": "grey"
-            },
-            {
               "date": "2026-09-16T06:32:00Z"
             }
           ],
           "detail": {
-            "markdown": "# Retry the webhook delivery with backoff",
+            "caption": "acme/api · pull request",
+            "title": "Retry the webhook delivery with backoff",
+            "chips": [
+              {
+                "text": "review requested",
+                "color": "violet"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -3365,14 +3444,6 @@
                   "text": "acme/api",
                   "href": "https://github.com/acme/api"
                 }
-              },
-              {
-                "label": "Reason",
-                "value": "Review requested"
-              },
-              {
-                "label": "Type",
-                "value": "PullRequest"
               },
               {
                 "label": "Updated",
@@ -3417,15 +3488,18 @@
           "section": "Mentioned",
           "accessories": [
             {
-              "tag": "issue",
-              "color": "grey"
-            },
-            {
               "date": "2026-09-16T09:32:00Z"
             }
           ],
           "detail": {
-            "markdown": "# Search loses the cursor when rows stream in",
+            "caption": "acme/widgets · issue",
+            "title": "Search loses the cursor when rows stream in",
+            "chips": [
+              {
+                "text": "mentioned",
+                "color": "red"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -3433,14 +3507,6 @@
                   "text": "acme/widgets",
                   "href": "https://github.com/acme/widgets"
                 }
-              },
-              {
-                "label": "Reason",
-                "value": "Mentioned"
-              },
-              {
-                "label": "Type",
-                "value": "Issue"
               },
               {
                 "label": "Updated",
@@ -3485,15 +3551,18 @@
           "section": "Your threads",
           "accessories": [
             {
-              "tag": "PR",
-              "color": "grey"
-            },
-            {
               "date": "2026-09-16T08:32:00Z"
             }
           ],
           "detail": {
-            "markdown": "# Batch the index writes on startup",
+            "caption": "acme/widgets · pull request",
+            "title": "Batch the index writes on startup",
+            "chips": [
+              {
+                "text": "your threads",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -3501,14 +3570,6 @@
                   "text": "acme/widgets",
                   "href": "https://github.com/acme/widgets"
                 }
-              },
-              {
-                "label": "Reason",
-                "value": "Your threads"
-              },
-              {
-                "label": "Type",
-                "value": "PullRequest"
               },
               {
                 "label": "Updated",
@@ -3553,15 +3614,18 @@
           "section": "Subscribed",
           "accessories": [
             {
-              "tag": "release",
-              "color": "grey"
-            },
-            {
               "date": "2026-09-16T10:52:00Z"
             }
           ],
           "detail": {
-            "markdown": "# v1.4.2",
+            "caption": "quill-rt/quill · release",
+            "title": "v1.4.2",
+            "chips": [
+              {
+                "text": "subscribed",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -3569,14 +3633,6 @@
                   "text": "quill-rt/quill",
                   "href": "https://github.com/quill-rt/quill"
                 }
-              },
-              {
-                "label": "Reason",
-                "value": "Subscribed"
-              },
-              {
-                "label": "Type",
-                "value": "Release"
               },
               {
                 "label": "Updated",
@@ -3621,15 +3677,18 @@
           "section": "Subscribed",
           "accessories": [
             {
-              "tag": "discussion",
-              "color": "grey"
-            },
-            {
               "date": "2026-09-16T02:32:00Z"
             }
           ],
           "detail": {
-            "markdown": "# Plugin API proposal",
+            "caption": "panekit/pane · discussion",
+            "title": "Plugin API proposal",
+            "chips": [
+              {
+                "text": "subscribed",
+                "color": "grey"
+              }
+            ],
             "metadata": [
               {
                 "label": "Repository",
@@ -3637,14 +3696,6 @@
                   "text": "panekit/pane",
                   "href": "https://github.com/panekit/pane"
                 }
-              },
-              {
-                "label": "Reason",
-                "value": "Subscribed"
-              },
-              {
-                "label": "Type",
-                "value": "Discussion"
               },
               {
                 "label": "Updated",
@@ -4126,17 +4177,32 @@
                 "color": "grey"
               },
               {
-                "tag": "ui",
-                "color": "grey"
-              },
-              {
-                "text": "4 comments"
-              },
-              {
                 "date": "2026-09-16T09:32:00Z"
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #201",
+              "title": "Search loses the cursor when rows stream in",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                },
+                {
+                  "text": "bug",
+                  "color": "grey"
+                },
+                {
+                  "text": "ui",
+                  "color": "grey"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "4",
+                  "label": "comments"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -4148,32 +4214,6 @@
                 {
                   "label": "Author",
                   "value": "lina"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
-                },
-                {
-                  "label": "Labels",
-                  "tags": [
-                    {
-                      "text": "bug",
-                      "color": "grey"
-                    },
-                    {
-                      "text": "ui",
-                      "color": "grey"
-                    }
-                  ]
-                },
-                {
-                  "label": "Comments",
-                  "value": "4"
                 },
                 {
                   "label": "Updated",
@@ -4228,17 +4268,32 @@
                 "color": "grey"
               },
               {
-                "tag": "good first issue",
-                "color": "grey"
-              },
-              {
-                "text": "7 comments"
-              },
-              {
                 "date": "2026-09-10T11:32:00Z"
               }
             ],
             "detail": {
+              "caption": "acme/widgets · #188",
+              "title": "Add a dark icon set",
+              "chips": [
+                {
+                  "text": "open",
+                  "color": "green"
+                },
+                {
+                  "text": "design",
+                  "color": "grey"
+                },
+                {
+                  "text": "good first issue",
+                  "color": "grey"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "7",
+                  "label": "comments"
+                }
+              ],
               "metadata": [
                 {
                   "label": "Repository",
@@ -4250,32 +4305,6 @@
                 {
                   "label": "Author",
                   "value": "mara"
-                },
-                {
-                  "label": "State",
-                  "tags": [
-                    {
-                      "text": "open",
-                      "color": "green"
-                    }
-                  ]
-                },
-                {
-                  "label": "Labels",
-                  "tags": [
-                    {
-                      "text": "design",
-                      "color": "grey"
-                    },
-                    {
-                      "text": "good first issue",
-                      "color": "grey"
-                    }
-                  ]
-                },
-                {
-                  "label": "Comments",
-                  "value": "7"
                 },
                 {
                   "label": "Updated",
@@ -4335,7 +4364,33 @@
               }
             ],
             "detail": {
-              "markdown": "# acme/widgets\n\nThe widget service and its admin",
+              "caption": "acme",
+              "title": "widgets",
+              "chips": [
+                {
+                  "text": "private",
+                  "color": "amber"
+                },
+                {
+                  "text": "TypeScript",
+                  "color": "blue"
+                }
+              ],
+              "stats": [
+                {
+                  "value": "3",
+                  "label": "stars"
+                },
+                {
+                  "value": "0",
+                  "label": "forks"
+                },
+                {
+                  "value": "14",
+                  "label": "open issues"
+                }
+              ],
+              "markdown": "The widget service and its admin",
               "metadata": [
                 {
                   "label": "Owner",
@@ -4343,22 +4398,6 @@
                     "text": "acme",
                     "href": "https://github.com/acme"
                   }
-                },
-                {
-                  "label": "Language",
-                  "value": "TypeScript"
-                },
-                {
-                  "label": "Stars",
-                  "value": "3"
-                },
-                {
-                  "label": "Forks",
-                  "value": "0"
-                },
-                {
-                  "label": "Open issues",
-                  "value": "14"
                 },
                 {
                   "label": "Default branch",

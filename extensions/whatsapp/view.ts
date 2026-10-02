@@ -63,12 +63,16 @@ function avatar(r: BarRow): ViewNode {
   return { type: "tile", key: "av", width: AVATAR, height: AVATAR, text: initial(r.name), color: avatarColor(r.name), fill: "solid" };
 }
 
-function rowNode(r: BarRow, focused: boolean, replying: boolean): ViewNode {
+/** A row; the first (`lead`: the direct message waiting longest at the top, else the newest chat) leads the popover, its name in the headline's face a size down and its message at row size. */
+function rowNode(r: BarRow, focused: boolean, replying: boolean, lead = false): ViewNode {
   const count = r.n > 0 ? String(r.n) : undefined;
   return row(
     [
       avatar(r),
-      column([text(r.name, { size: "md", weight: "semibold", width: TEXT_W }), text(r.text || "(no text)", { size: "sm", color: replying ? "accent" : "muted", width: TEXT_W })], { key: "t", gap: 0 }),
+      column([
+        text(r.name, lead ? { style: "headline", size: "xl", width: TEXT_W } : { size: "md", weight: "semibold", width: TEXT_W }),
+        text(r.text || "(no text)", { size: lead ? "md" : "sm", color: replying ? "accent" : lead ? undefined : "muted", width: TEXT_W }),
+      ], { key: "t", gap: lead ? 1 : 0 }),
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
       count ? { type: "badge", key: "n", text: count, color: "green" } : { type: "spacer", key: "n", size: BADGE_W },
     ],
@@ -79,7 +83,7 @@ function rowNode(r: BarRow, focused: boolean, replying: boolean): ViewNode {
 function section(title: string, key: string, rows: BarRow[], st: BarState, offset: number): ViewNode[] {
   if (!rows.length) return [];
   const label = row([text(title, { size: "xs", weight: "semibold", color: "muted" }), { type: "badge", text: String(rows.length), color: "grey" }], { key: `h-${key}`, gap: 1, minHeight: 24 });
-  return [column([label, ...rows.map((r, i) => rowNode(r, offset + i === st.focus, st.replying === r.id))], { key: `s-${key}`, gap: 0 })];
+  return [column([label, ...rows.map((r, i) => rowNode(r, offset + i === st.focus, st.replying === r.id, offset + i === 0))], { key: `s-${key}`, gap: 0 })];
 }
 
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {

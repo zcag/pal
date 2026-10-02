@@ -110,20 +110,28 @@ function detailOf(t: Todo, all: Todo[], t0: number): Detail {
   const parent = t.parent_id ? all.find((x) => x.id === t.parent_id) : undefined;
   const d = due(t.deadline, t0), w = waits(t.trigger, t0), link = linkIn(t.text);
   const meta: Metadata[] = [
-    { label: "Section", value: t.section },
     ...(t.tags?.length ? [{ label: "Tags", tags: tagsOf(t).map((x) => ({ text: x.tag, color: x.color })) }] : []),
-    ...(t.urgent ? [{ label: "Urgent", tags: [{ text: "urgent", color: "red" }] }] : []),
-    ...(d ? [{ label: "Due", value: Number.isFinite(d.days) ? `${dayNameYear(dayOf(t.deadline)!)} (${d.text})` : d.text }] : []),
+    ...(d && Number.isFinite(d.days) ? [{ label: "Due", value: dayNameYear(dayOf(t.deadline)!) }] : []),
     ...(t.trigger ? [{ label: "Waits until", value: w ? dayNameYear(dayOf(t.trigger)!) : `${t.trigger} (come)` }] : []),
-    ...(parent ? [{ label: "Under", value: truncate(parent.text, 80) }] : []),
-    ...(kids.length ? [{ label: "Subtasks", value: `${kids.filter((k) => !k.done).length} open of ${kids.length}` }] : []),
     ...(link ? [{ label: "Link", link: { text: truncate(link.replace(/^https?:\/\//, ""), 60), href: link } }] : []),
     ...(t.file_ref ? [{ label: "File", value: t.file_ref }] : []),
     { label: "Id", value: t.id },
   ];
-  const lines = [t.done ? `~~${mdEscape(t.text)}~~` : `**${mdEscape(t.text)}**`];
-  if (kids.length) lines.push("", ...kids.map((k) => `- [${k.done ? "x" : " "}] ${mdEscape(k.text)}`));
-  return { markdown: lines.join("\n"), metadata: meta };
+  const open = kids.filter((k) => !k.done).length;
+  // The header: the section (and the todo it sits under), the text, its state as chips, the subtasks left; the subtasks as a checklist under it.
+  return {
+    caption: [t.section, ...(parent ? [`under ${truncate(oneLine(parent.text), 60)}`] : [])].join(" · "),
+    title: oneLine(t.text),
+    chips: [
+      ...(t.done ? [{ text: "done", color: "green" as const }] : []),
+      ...(t.urgent && !t.done ? [{ text: "urgent", color: "red" as const }] : []),
+      ...(d && !t.done ? [{ text: d.text, color: d.color }] : []),
+      ...(w && !t.done ? [{ text: w, color: "grey" as const }] : []),
+    ],
+    ...(kids.length && { stats: [{ value: `${open}/${kids.length}`, label: "subtasks open" }] }),
+    ...(kids.length && { markdown: kids.map((k) => `- [${k.done ? "x" : " "}] ${mdEscape(k.text)}`).join("\n") }),
+    metadata: meta,
+  };
 }
 
 /** One todo as a row: the text, the parent under it for a subtask, the tags and the day on the right, the flag as a red mark. */
@@ -138,10 +146,11 @@ function todoRow(t: Todo, all: Todo[], t0: number, section?: string, extra: Part
     icon: t.done ? tinted(ICON.done, "green") : t.urgent ? tinted(ICON.urgent, "red") : ICON.open,
     keywords: [t.section, ...(t.tags ?? []), ...(t.urgent ? ["urgent"] : []), ...(d ? [d.text.split(" ")[0]] : []), ...(t.done ? ["done", "completed"] : [])],
     ...(section !== undefined && { section }),
+    // The day first: a row shows two accessories at most, and when it is due matters more than a tag.
     accessories: [
-      ...tagsOf(t),
       ...(d && !t.done ? [{ tag: d.text, color: d.color }] : []),
       ...(w && !t.done ? [{ tag: w, color: "grey" }] : []),
+      ...tagsOf(t),
       ...(kids.length ? [{ text: `${kids.length} subtask${kids.length === 1 ? "" : "s"}` }] : []),
     ],
     detail: detailOf(t, all, t0),
@@ -399,7 +408,9 @@ function previewRow(line: string, names: string[], parent: Todo | undefined, t0:
     name: p.text,
     subtitle: where,
     icon: p.urgent ? tinted(ICON.urgent, "red") : ICON.plus,
-    accessories: [...p.tags.map((x) => ({ tag: x, color: tagColor(x) })), ...(d ? [{ tag: d.text, color: d.color }] : [])],
+    // The line read back is the answer to what was typed: it leads as the headline row.
+    hero: true,
+    accessories: [...(d ? [{ tag: d.text, color: d.color }] : []), ...p.tags.map((x) => ({ tag: x, color: tagColor(x) }))],
     actions: [{ id: "add", title: "Add" }, { id: "another", title: "Add and keep the line", shortcut: "cmd+enter" }, { id: "copy-line", title: "Copy the line", shortcut: "cmd+shift+c" }],
   };
 }

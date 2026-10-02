@@ -16,7 +16,7 @@ import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type SearchResult, type Tier, type User,
 } from "./data.ts";
-import { render as renderNotifs, renderIssues, renderPrs, shown as shownNotifs, shownIssues, shownPrs, type IssueState, type NotifState, type PrBucketed, type PrState } from "./view.ts";
+import { REASONS, TYPES, render as renderNotifs, renderIssues, renderPrs, shown as shownNotifs, shownIssues, shownPrs, type IssueState, type NotifState, type PrBucketed, type PrState } from "./view.ts";
 
 /** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, plus, inbox, check; the eye is nf-cod-eye, the octicon one is a size up from the digits next to it. */
 const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e", eye: "\uea70" } as const;
@@ -158,19 +158,20 @@ const each = (ids: string[], one: (id: string) => Promise<Effect | void> | Effec
 
 const prTable = new Map<string, PR>();
 
+/** A row shows two accessories at most (Ink drops the later tags), so the tags come most pressing first: conflicts, failing checks and changes requested before the rest; the date shows while one tag leaves room. */
 function prAccessories(pr: PR): Accessory[] {
   const a: Accessory[] = [];
   if (pr.state === "merged") a.push({ tag: "merged", color: "violet" });
   else if (pr.state === "closed") a.push({ tag: "closed", color: "red" });
   else {
+    if (pr.mergeable === "CONFLICTING") a.push({ tag: "conflicts", color: "red" });
+    if (pr.checks === "FAILURE" || pr.checks === "ERROR") a.push({ tag: "checks ✗", color: "red" });
+    if (pr.review === "CHANGES_REQUESTED") a.push({ tag: "changes requested", color: "red" });
     if (pr.draft) a.push({ tag: "draft", color: "grey" });
     if (pr.checks === "SUCCESS") a.push({ tag: "checks ✓", color: "green" });
-    else if (pr.checks === "FAILURE" || pr.checks === "ERROR") a.push({ tag: "checks ✗", color: "red" });
     else if (pr.checks === "PENDING" || pr.checks === "EXPECTED") a.push({ tag: "checks …", color: "amber" });
     if (pr.review === "APPROVED") a.push({ tag: "approved", color: "green" });
-    else if (pr.review === "CHANGES_REQUESTED") a.push({ tag: "changes requested", color: "red" });
     else if (pr.review === "REVIEW_REQUIRED" && !pr.draft) a.push({ tag: "review", color: "amber" });
-    if (pr.mergeable === "CONFLICTING") a.push({ tag: "conflicts", color: "red" });
   }
   a.push({ date: pr.updatedAt });
   return a;
@@ -439,14 +440,23 @@ function issueActions(i: Issue): Action[] {
   ];
 }
 
+/** The pane's header, as a pull request's (`prHead`): where it lives, the title, its state and labels as chips, the conversation as a number. */
+function issueHead(i: Issue, more?: IssueDetail): Pick<Detail, "caption" | "title" | "chips" | "stats"> {
+  const comments = more?.comments ?? i.comments;
+  return {
+    caption: `${i.repo} · #${i.number}`,
+    title: i.title,
+    chips: [i.state === "open" ? { text: "open", color: "green" as const } : { text: "closed", color: "violet" as const }, ...i.labels.map((l) => ({ text: l.name, color: "grey" as const }))],
+    stats: [{ value: String(comments), label: comments === 1 ? "comment" : "comments" }],
+  };
+}
+
+/** What the header (`issueHead`) does not say: who opened it and who has it, the milestone, the dates. */
 const issueMetadata = (i: Issue, more?: IssueDetail): Metadata[] => [
   repoLink(i.repo),
   { label: "Author", value: i.author },
-  { label: "State", tags: [i.state === "open" ? { text: "open", color: "green" } : { text: "closed", color: "violet" }] },
   ...(i.assignees.length ? [{ label: "Assignees", tags: i.assignees.map((text) => ({ text, color: "grey" })) }] : []),
-  ...(i.labels.length ? [{ label: "Labels", tags: labelTags(i.labels) }] : []),
   ...(more?.milestone ? [{ label: "Milestone", value: more.milestone }] : []),
-  { label: "Comments", value: String(more?.comments ?? i.comments) },
   { label: "Opened", value: when(i.createdAt) },
   { label: "Updated", value: when(i.updatedAt) },
 ];
@@ -461,13 +471,12 @@ function issueRow(i: Issue, section?: string): Item {
     keywords: [i.repo.split("/")[1], i.repo, `#${i.number}`, String(i.number), i.author, ...i.labels.map((l) => l.name)],
     url: i.url,
     section,
+    // Two at most: closed when it is (the icon says open), else the first label; then the date.
     accessories: [
-      ...(i.state === "closed" ? [{ tag: "closed", color: "violet" }] : []),
-      ...i.labels.slice(0, 2).map((l) => ({ tag: l.name, color: "grey" })),
-      ...(i.comments ? [{ text: `${i.comments} comment${i.comments === 1 ? "" : "s"}` }] : []),
+      ...(i.state === "closed" ? [{ tag: "closed", color: "violet" }] : i.labels.slice(0, 1).map((l) => ({ tag: l.name, color: "grey" }))),
       { date: i.updatedAt },
     ],
-    detail: { metadata: issueMetadata(i) },
+    detail: { ...issueHead(i), metadata: issueMetadata(i) },
     actions: issueActions(i),
   };
 }
@@ -475,7 +484,7 @@ function issueRow(i: Issue, section?: string): Item {
 async function issuePane(i: Issue): Promise<Detail> {
   const s = splitId(i.id)!;
   const d = await issueDetail(s.owner, s.name, s.number);
-  return { markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata: issueMetadata(i, d) };
+  return { ...issueHead(i, d), markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata: issueMetadata(i, d) };
 }
 
 async function findIss(id: string): Promise<Issue> {
@@ -678,13 +687,13 @@ function repoRow(r: Repo, section?: string): Item {
       ...(r.pushedAt ? [{ date: r.pushedAt }] : []),
     ],
     detail: {
-      markdown: `# ${r.id}\n\n${r.description || "_No description._"}`,
+      caption: r.owner,
+      title: r.name,
+      chips: [r.private ? { text: "private", color: "amber" } : { text: "public", color: "grey" }, ...(r.archived ? [{ text: "archived", color: "grey" as const }] : []), ...(r.language ? [{ text: r.language, color: "blue" as const }] : [])],
+      stats: [{ value: String(r.stars), label: r.stars === 1 ? "star" : "stars" }, { value: String(r.forks), label: r.forks === 1 ? "fork" : "forks" }, { value: String(r.issues), label: r.issues === 1 ? "open issue" : "open issues" }],
+      markdown: r.description || "_No description._",
       metadata: [
         { label: "Owner", link: { text: r.owner, href: `https://github.com/${r.owner}` } },
-        ...(r.language ? [{ label: "Language", value: r.language }] : []),
-        { label: "Stars", value: String(r.stars) },
-        { label: "Forks", value: String(r.forks) },
-        { label: "Open issues", value: String(r.issues) },
         { label: "Default branch", value: r.defaultBranch },
         { label: "Clone", value: cloneUrl(r) },
         ...(local ? [{ label: "Local clone", value: local }] : []),
@@ -799,7 +808,7 @@ function userRow(u: User, section?: string): Item {
     url: u.url,
     section,
     accessories: [{ tag: u.org ? "org" : "user", color: "grey" }],
-    detail: { markdown: `# ${u.login}\n\n${u.bio || ""}`, metadata: [{ label: "Profile", link: { text: u.url, href: u.url } }] },
+    detail: { caption: u.org ? "Organisation" : "User", title: u.name ? `${u.login} (${u.name})` : u.login, ...(u.bio && { markdown: u.bio }), metadata: [{ label: "Profile", link: { text: u.url, href: u.url } }] },
     actions: [{ id: "open", title: "Open profile", multi: true }, { id: "copy", title: "Copy login", shortcut: "cmd+c", multi: true }, { id: "repos", title: "Open repositories", multi: true }],
   };
 }
@@ -817,21 +826,26 @@ const NOTIF_ACTIONS: Action[] = [
   { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
 ];
 
-/** A thread's pane: the pull request's or issue's text and latest comments when it is one, under what the inbox says of it. */
+/** Why a thread is in the inbox, as the pane's first chip: the reason's word in the popover's colour for it. */
+const reasonChip = (n: Notification) => ({ text: (REASON[n.reason] ?? n.reason.replace(/_/g, " ")).toLowerCase(), color: REASONS[n.reason]?.color ?? ("grey" as const) });
+const commentStat = (c: number) => [{ value: String(c), label: c === 1 ? "comment" : "comments" }];
+
+/** A thread's pane, led by the header its pull request's or issue's own pane has (where, the title, why it is here and its verdicts as chips, the comments), then its text and latest comments when it is one. */
 async function notifPane(n: Notification): Promise<Detail> {
-  const metadata: Metadata[] = [repoLink(n.repo), { label: "Reason", value: REASON[n.reason] ?? n.reason }, { label: "Type", value: n.type }, { label: "Updated", value: when(n.updatedAt) }];
+  const metadata: Metadata[] = [repoLink(n.repo), { label: "Updated", value: when(n.updatedAt) }];
   const m = n.url.match(/github\.com\/([^/]+)\/([^/]+)\/(pull|issues)\/(\d+)/);
-  if (!m) return { markdown: `# ${n.title}`, metadata };
+  if (!m) return { caption: `${n.repo} · ${(TYPES[n.type]?.tag || n.type).toLowerCase()}`, title: n.title, chips: [reasonChip(n)], metadata };
   const [, owner, name, kind, num] = m as unknown as [string, string, string, string, string];
+  const caption = `${owner}/${name} · #${num}`;
   if (kind === "pull") {
-    // The pull request's header as its own pane has it (the notification knows the title, not the state or the size).
+    // The notification knows the title, not the state or the size; the checks and the verdicts come with the detail.
     const d = await prDetail(owner, name, +num);
     const approvers = reviewers(d, "APPROVED"), changers = reviewers(d, "CHANGES_REQUESTED");
-    const chips = [...(d.checks.length ? [checksChip(d.checks)] : []), ...(approvers.length ? [{ text: `approved by ${approvers.join(", ")}`, color: "blue" as const }] : []), ...(changers.length ? [{ text: `changes requested by ${changers.join(", ")}`, color: "red" as const }] : [])];
-    return { caption: `${owner}/${name} · #${num}`, title: n.title, chips, stats: [{ value: String(d.comments), label: d.comments === 1 ? "comment" : "comments" }], markdown: prThread(d), metadata };
+    const chips = [reasonChip(n), ...(d.checks.length ? [checksChip(d.checks)] : []), ...(approvers.length ? [{ text: `approved by ${approvers.join(", ")}`, color: "blue" as const }] : []), ...(changers.length ? [{ text: `changes requested by ${changers.join(", ")}`, color: "red" as const }] : [])];
+    return { caption, title: n.title, chips, stats: commentStat(d.comments), markdown: prThread(d), metadata };
   }
   const d = await issueDetail(owner, name, +num);
-  return { markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata };
+  return { caption, title: n.title, chips: [reasonChip(n)], stats: commentStat(d.comments), markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata };
 }
 
 function notifRow(n: Notification): Item {
@@ -845,7 +859,8 @@ function notifRow(n: Notification): Item {
     keywords: [n.repo, n.repo.split("/")[1], n.reason, n.type.toLowerCase()],
     url: n.url,
     section: reason,
-    accessories: [{ tag: n.type === "PullRequest" ? "PR" : n.type.toLowerCase(), color: "grey" }, { date: n.updatedAt }],
+    // The icon says the kind and the section the reason: the age is what is left to say.
+    accessories: [{ date: n.updatedAt }],
     actions: NOTIF_ACTIONS,
   };
 }
@@ -860,7 +875,6 @@ async function notifRows(ctx?: Ctx): Promise<Item[]> {
     subtitle: "GitHub inbox",
     icon: ICON.notifications,
     keywords: ["unread", "inbox"],
-    accessories: list.length ? [{ tag: String(list.length), color: "blue" }] : undefined,
     actions: list.length
       ? [{ id: "open", title: "Open notifications" }, { id: "read-all", title: "Mark all as read", style: "destructive", confirm: "Mark every notification as read?" }]
       : [{ id: "open", title: "Open notifications" }],

@@ -29,7 +29,7 @@ export type NotifState = {
 };
 
 /** A row's inside: the outer column's `padding: 3` (12px a side), a row's own `padding: 1`, the type rail, the age column and the gaps between them. */
-const OUTER_PAD = 12, RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
+const OUTER_PAD = 12, RAIL_W = 4, RAIL_H = 30, LEAD_RAIL_H = 48, AGE_W = 36, ROW_PAD = 8, GAP = 8;
 const INNER_W = POPOVER_W - 2 * OUTER_PAD - ROW_PAD;
 const TITLE_W = INNER_W - RAIL_W - GAP - AGE_W - GAP;
 
@@ -58,14 +58,23 @@ function sectionHeader(key: string, title: string, n: number, color: TagColor = 
   return row([text(title, { size: "xs", weight: "semibold", color: "muted" }), { type: "badge", key: "n", text: String(n), color }], { key: `h-${key}`, gap: 1, minHeight: 22 });
 }
 
-function prNode(pr: PR, focused: boolean, st: PrState): ViewNode {
+/**
+ * A row's title. The popover's first row is what matters most (the most
+ * pressing of your pull requests, the newest thread), so it leads in the
+ * headline's face a size down (a title is a sentence, not a calendar
+ * event's two words), wrapping rather than clipped; the rest read at row size.
+ */
+const titleText = (value: string, focused: boolean, lead: boolean, width?: number): ViewNode =>
+  lead ? text(value, { style: "headline", size: "xl", minWidth: 0 }) : text(value, { size: "md", weight: focused ? "semibold" : "medium", ...(width ? { width } : { minWidth: 0 }) });
+
+function prNode(pr: PR, focused: boolean, st: PrState, lead = false): ViewNode {
   const s = status(pr);
   return row(
     [
       // Grows to whatever the badge (its width varies with the state text) and the age
       // column leave, so the two trailing bits always sit flush at the right edge
       // instead of trailing right after a badge of a different width each row.
-      column([text(pr.title, { size: "md", weight: focused ? "semibold" : "medium", minWidth: 0 }), text(`${pr.repo}#${pr.number}`, { size: "xs", color: "muted", minWidth: 0, style: "mono" })], { key: "t", gap: 0, grow: true }),
+      column([titleText(pr.title, focused, lead), text(`${pr.repo}#${pr.number}`, { size: "xs", color: "muted", minWidth: 0, style: "mono" })], { key: "t", gap: lead ? 1 : 0, grow: true }),
       { type: "badge", key: "state", text: s.text, color: s.color },
       text(ago(pr.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
@@ -73,14 +82,14 @@ function prNode(pr: PR, focused: boolean, st: PrState): ViewNode {
   );
 }
 
-function issueNode(x: IssueBucketed, focused: boolean, st: IssueState): ViewNode {
+function issueNode(x: IssueBucketed, focused: boolean, st: IssueState, lead = false): ViewNode {
   const i = x.issue;
   const meta: ViewNode[] = [text(`${i.repo}#${i.number}`, { size: "xs", color: "muted", style: "mono" })];
   for (const l of i.labels.slice(0, 2)) meta.push({ type: "badge", key: `l-${l.name}`, text: l.name, color: "grey" });
   if (i.comments) meta.push(text(`${i.comments} ${i.comments === 1 ? "comment" : "comments"}`, { size: "xs", color: "faint" }));
   return row(
     [
-      column([text(i.title, { size: "md", weight: focused ? "semibold" : "medium", minWidth: 0 }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "t", gap: 0, grow: true }),
+      column([titleText(i.title, focused, lead), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "t", gap: lead ? 1 : 0, grow: true }),
       text(ago(i.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
     { key: i.id, mark: i.id, padding: 1, minHeight: 42, radius: true, action: `focus:${i.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
@@ -126,7 +135,7 @@ export function renderPrs(st: PrState): View {
   let seen = 0;
   for (const b of st.buckets) {
     if (!b.rows.length) continue;
-    kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...b.rows.map((pr) => prNode(pr, seen++ === focus, st)));
+    kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...b.rows.map((pr) => { const i = seen++; return prNode(pr, i === focus, st, i === 0); }));
   }
   if (!rows.length) kids.push(empty("No open pull requests", "None of yours, and no review asked of you"));
   kids.push({ type: "divider", key: "rule" }, barHints(rows.length > 0));
@@ -144,7 +153,7 @@ export function renderIssues(st: IssueState): View {
   for (const kind of ["assigned", "mentioned", "created"] as const) {
     const bucket = st.rows.filter((x) => x.kind === kind);
     if (!bucket.length) continue;
-    kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...bucket.map((x) => issueNode(x, seen++ === focus, st)));
+    kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...bucket.map((x) => { const i = seen++; return issueNode(x, i === focus, st, i === 0); }));
   }
   if (!rows.length) kids.push(empty("No open issues", "None assigned to you, mentioning you or opened by you"));
   kids.push({ type: "divider", key: "rule" }, barHints(rows.length > 0));
@@ -153,7 +162,7 @@ export function renderIssues(st: IssueState): View {
 }
 
 /** The subject's type as a colour rail at the row's edge (GitHub's colours for the open state, since the inbox does not say the state) and a word in the meta row. */
-const TYPES: Record<string, { color: TagColor; tag: string }> = {
+export const TYPES: Record<string, { color: TagColor; tag: string }> = {
   PullRequest: { color: "green", tag: "pull request" },
   Issue: { color: "green", tag: "issue" },
   Release: { color: "blue", tag: "release" },
@@ -196,7 +205,7 @@ export function shown(list: Notification[]): Notification[] {
   return repos.flatMap((r) => newest.filter((x) => x.repo === r));
 }
 
-function threadRow(n: Notification, focused: boolean, st: NotifState): ViewNode {
+function threadRow(n: Notification, focused: boolean, st: NotifState, lead = false): ViewNode {
   const t = TYPES[n.type] ?? TYPE_DEFAULT;
   const reason = REASONS[n.reason];
   const meta: ViewNode[] = [];
@@ -204,8 +213,8 @@ function threadRow(n: Notification, focused: boolean, st: NotifState): ViewNode 
   if (t.tag) meta.push(text(t.tag, { size: "xs", color: "faint" }));
   return row(
     [
-      { type: "tile", key: "rail", width: RAIL_W, height: RAIL_H, color: t.color, fill: "solid" },
-      column([text(n.title, { size: "md", weight: focused ? "semibold" : "medium", width: TITLE_W }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "body", gap: 0, grow: true }),
+      { type: "tile", key: "rail", width: RAIL_W, height: lead ? LEAD_RAIL_H : RAIL_H, color: t.color, fill: "solid" },
+      column([titleText(n.title, focused, lead, TITLE_W), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "body", gap: lead ? 1 : 0, grow: true }),
       text(ago(n.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
     { key: n.id, mark: n.id, padding: 1, radius: true, action: `focus:${n.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
@@ -260,7 +269,7 @@ export function render(st: NotifState): View {
     let repo = "";
     rows.forEach((n, i) => {
       if (n.repo !== repo) { repo = n.repo; kids.push(repoHeader(repo, st.list.filter((x) => x.repo === repo).length)); }
-      kids.push(threadRow(n, i === cursor, st));
+      kids.push(threadRow(n, i === cursor, st, i === 0));
     });
   }
   kids.push({ type: "divider", key: "rule" }, hints(rows.length > 0));

@@ -200,7 +200,9 @@ describe("whatsapp", () => {
     expect(rows[0].accessories).toContainEqual({ date: m(2) * 1000 });
     // A group's newest message names its sender (from the archive's row) and a media message its kind; the sender is a keyword.
     expect(rows[1]).toMatchObject({ name: "Weekend hike", subtitle: "Ola Berg: [location]", keywords: ["group", "Ola Berg"] });
-    expect(tags(rows[1])).toEqual(["group", "5"]);
+    // The count outranks the group tag (two accessories at most); a read group keeps the tag.
+    expect(tags(rows[1])).toEqual(["5"]);
+    expect(tags(rows[3])).toEqual(["group"]);
     // A chat with a text lastMessage and one unread: the run agrees; no picture is the initial on a tile; a group without one the group glyph.
     expect(rows[2]).toMatchObject({ subtitle: "the cabin is booked, sending the map", icon: initialIcon("Tomas Ruiz") });
     expect(rows[3]).toMatchObject({ name: "Family", subtitle: "Dinner at eight on Sunday?", icon: "\u{f0849}" });
@@ -233,11 +235,9 @@ describe("whatsapp", () => {
     expect(md).toContain("\n\n_[photo]_\n\n");
     expect(md).toContain("\n> on it, give me ten\n\nthe tests are green now, the diff is small");
     expect(md.endsWith("standup in 20?")).toBe(true);
+    // The header: the kind and number over the name, the unread count as a chip; the metadata what it does not say.
+    expect(d).toMatchObject({ caption: "Direct message · +90 555 123 45 67", title: "Mara Lind", chips: [{ text: "3 messages unread", color: "green" }] });
     expect(d.metadata).toEqual([
-      { label: "Chat", value: "Mara Lind" },
-      { label: "Kind", value: "Direct message" },
-      { label: "Unread", value: "3 messages" },
-      { label: "Phone", value: "+90 555 123 45 67" },
       { label: "Newest", value: expect.any(String) },
       { label: "Open", link: { text: "In the web client", href: "https://web.whatsapp.com/send?phone=905551234567" } },
     ]);
@@ -246,8 +246,7 @@ describe("whatsapp", () => {
     const g = await host.detail(X, "chats", HIKE);
     expect(g.markdown!.split("\n\n").filter((p) => p.startsWith("**")).map((p) => p.split(" · ")[0])).toEqual(["**Ola Berg**", "**You**", "**Tomas Ruiz**", "**Lina Kova**", "**Ola Berg**"]);
     expect(g.markdown).toContain("_[voice message]_");
-    expect(g.metadata).toContainEqual({ label: "Kind", value: "Group" });
-    expect(g.metadata!.find((m) => m.label === "Phone")).toBeUndefined();
+    expect(g.caption).toBe("Group");
   });
 
   test("unread: the three, direct messages then groups; nothing unread is one hint", async () => {
@@ -353,7 +352,7 @@ describe("whatsapp", () => {
     expect(hike[0]).toMatchObject({ subtitle: "Lina Kova in Weekend hike", icon: "\u{f0849}" });
     expect(await host.pick(X, "search", rows[0].id)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });
     expect(await host.pick(X, "search", rows[0].id, "copy")).toEqual({ copy: "can you look at the parser before standup?" });
-    expect((await host.detail(X, "search", rows[0].id)).metadata).toContainEqual({ label: "Chat", value: "Mara Lind" });
+    expect((await host.detail(X, "search", rows[0].id)).title).toBe("Mara Lind");
     expect((await list("search", "zzzz")).map((r) => r.name)).toEqual(["No messages found"]);
     mock.searchDown = true;
     try {

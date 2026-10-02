@@ -104,15 +104,16 @@ function chatArgs(c: Chat): Arg[] | undefined {
   ];
 }
 
+/** Two at most: the unread count (else the group tag, which an unread group's count outranks), then the time. */
 function chatAccessories(c: Chat): Accessory[] {
   const a: Accessory[] = [];
-  if (c.group) a.push({ tag: "group", color: "grey" });
   if (c.unread > 0) a.push({ tag: String(c.unread), color: "green" });
+  else if (c.group) a.push({ tag: "group", color: "grey" });
   if (c.at) a.push({ date: c.at });
   return a;
 }
 
-/** A chat as a row: the picture, the name, the newest message with its sender, the group tag, the unread count, the time. */
+/** A chat as a row: the picture, the name, the newest message with its sender, the unread count or the group tag, the time. */
 function chatRow(c: Chat, section?: string): Item {
   return {
     id: c.id,
@@ -127,19 +128,21 @@ function chatRow(c: Chat, section?: string): Item {
   };
 }
 
-/** The pane: the last twenty messages as a conversation (the sender in bold, "You" for yours, the time, a quoted reply as a blockquote, media as a bracketed label), then the chat's facts. */
+/** The pane, a document: the kind and number over the chat's name, its unread count as a chip; the last twenty messages as a conversation (the sender in bold, "You" for yours, the time, a quoted reply as a blockquote, media as a bracketed label); then the time of the newest and the link. */
 async function chatPane(c: Chat): Promise<Detail> {
   const msgs = await conversation(c, PANE_MSGS);
   const phone = c.group ? undefined : await phoneOf(c.id).catch(() => undefined);
   const metadata: Metadata[] = [
-    { label: "Chat", value: c.name },
-    { label: "Kind", value: c.group ? "Group" : "Direct message" },
-    ...(c.unread > 0 ? [{ label: "Unread", value: plural(c.unread, "message") }] : []),
-    ...(phone ? [{ label: "Phone", value: prettyPhone(phone) }] : []),
     ...(c.at ? [{ label: "Newest", value: clock(c.at) }] : []),
     { label: "Open", link: { text: "In the web client", href: chatLink(phone, "web") } },
   ];
-  return { markdown: msgs.length ? conversationMarkdown(msgs) : "_No messages the gateway can see; the conversation is on the phone._", metadata };
+  return {
+    caption: [c.group ? "Group" : "Direct message", phone && prettyPhone(phone)].filter(Boolean).join(" · "),
+    title: c.name,
+    ...(c.unread > 0 && { chips: [{ text: `${plural(c.unread, "message")} unread`, color: "green" as const }] }),
+    markdown: msgs.length ? conversationMarkdown(msgs) : "_No messages the gateway can see; the conversation is on the phone._",
+    metadata,
+  };
 }
 
 /** Every chat the pick is for: the marked rows, else the one. */

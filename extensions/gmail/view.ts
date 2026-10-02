@@ -41,7 +41,8 @@ const AVATAR = 28;
 const ROW_W = POPOVER_W - 8, TIME_W = 52, MARK_W = 16, TEXT_W = ROW_W - AVATAR - TIME_W - MARK_W - 3 * 8;
 const STAR = "\u{f04ce}", CLIP = "\u{f03e2}"; // md-star, md-paperclip
 
-function rowNode(r: BarRow, focused: boolean): ViewNode {
+/** A row; the newest (`lead`, the first) leads the popover: its subject in the headline's face a size down, wrapping, under who wrote it. */
+function rowNode(r: BarRow, focused: boolean, lead = false): ViewNode {
   const marks: ViewNode[] = [];
   if (r.starred) marks.push(text(STAR, { key: "st", style: "glyph", size: "sm", color: "amber" }));
   else if (r.attached) marks.push(text(CLIP, { key: "at", style: "glyph", size: "sm", color: "faint" }));
@@ -50,11 +51,11 @@ function rowNode(r: BarRow, focused: boolean): ViewNode {
       r.avatar ? { type: "image", key: "av", src: r.avatar.image, width: AVATAR, height: AVATAR, mask: "circle", alt: r.who } : { type: "spacer", key: "av", size: AVATAR },
       column(
         [
-          row([text(r.who, { size: "md", weight: "semibold", width: TEXT_W - 0 })], { key: "w", gap: 1 }),
-          text(r.subject || "(no subject)", { size: "sm", width: TEXT_W }),
+          row([text(r.who, { size: lead ? "sm" : "md", weight: "semibold", width: TEXT_W - 0, ...(lead && { color: "muted" as const }) })], { key: "w", gap: 1 }),
+          lead ? text(r.subject || "(no subject)", { style: "headline", size: "xl", minWidth: 0 }) : text(r.subject || "(no subject)", { size: "sm", width: TEXT_W }),
           text(r.snippet, { size: "xs", color: "muted", width: TEXT_W }),
         ],
-        { key: "t", gap: 0 },
+        { key: "t", gap: lead ? 1 : 0, grow: true },
       ),
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
       marks.length ? marks[0]! : { type: "spacer", key: "mk", size: MARK_W },
@@ -106,7 +107,7 @@ export function render(st: BarState): View {
     );
   } else {
     const rest = st.total - st.rows.length;
-    const kids: ViewNode[] = st.rows.map((r, i) => rowNode(r, i === st.focus));
+    const kids: ViewNode[] = st.rows.map((r, i) => rowNode(r, i === st.focus, i === 0));
     // Every unread the item fetched is a row (the popover scrolls); the count only earns a line past a full page, when the mailbox holds more than that.
     if (rest > 0) kids.push(text(`and ${rest} more unread`, { key: "more", size: "xs", color: "faint" }));
     tree = column([column(kids, { key: "rows", gap: 0 }), hints(st, st.rows[st.focus])], { key: "compact", padding: 3, gap: 2 });

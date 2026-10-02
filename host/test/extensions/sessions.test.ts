@@ -305,7 +305,8 @@ describe("sessions: the palette", () => {
     const by = Object.fromEntries(items.map((i) => [i.id, i]));
     expect(by[key("claude", ID.claude)]).toMatchObject({ name: "Sessions extension", subtitle: "Claude Code · pal · main", icon: { glyph: "", color: "orange" }, keywords: ["claude", "pal", "main", "11111111"] });
     expect(tag(by[key("claude", ID.claude)])).toBe("working");
-    expect(by[key("claude", ID.claude)].accessories).toEqual([{ tag: "working", color: "blue" }, { text: "claude-opus-5" }, { text: "now" }, { text: "ttys007" }]);
+    // How long the state has held is a date, so it outlasts the text when a row keeps two accessories.
+    expect(by[key("claude", ID.claude)].accessories).toEqual([{ tag: "working", color: "blue" }, { text: "claude-opus-5" }, { date: expect.any(Number) }, { text: "ttys007" }]);
     expect(by[key("claude", ID.blocked)]).toMatchObject({ name: "deploy it", subtitle: "Claude Code · api · main" });
     expect(tag(by[key("claude", ID.blocked)])).toBe("waiting on you?");
     expect(by[key("claude", ID.blocked)].accessories).toContainEqual({ text: "tmux work:0.1" });
@@ -437,20 +438,24 @@ describe("sessions: the palette", () => {
 
   test("the pane: the last exchange, the pending call with its command, the metadata", async () => {
     const d = await detail(key("claude", ID.blocked));
-    expect(d.markdown).toContain("## deploy it");
+    // The header: the agent and where, the title, the state as chips, the turns large; the metadata what it does not say.
+    expect(d).toMatchObject({ caption: "Claude Code 2.1.278 · api · main", title: "deploy it", chips: [{ text: "waiting on you?", color: "red" }] });
+    expect(d.stats![0]).toEqual({ value: "0", label: "turns" });
     expect(d.markdown).toContain("> deploy it");
     expect(d.markdown).toContain("**Waiting on you?** `Bash` since");
     expect(d.markdown).toContain("git push origin main");
     const meta = Object.fromEntries(d.metadata!.map((m) => [m.label, m.value ?? m.tags]));
-    expect(meta).toMatchObject({ Agent: "Claude Code 2.1.278", Model: "claude-opus-5", Folder: CWD.api, Branch: "main", Turns: "0", Session: ID.blocked, Transcript: `~/.claude/projects/${slug(CWD.api)}/${ID.blocked}.jsonl`, Process: "pid 41000 on ttys011, tmux work:0.1" });
-    expect(meta.State).toEqual([{ text: "waiting on you?", color: "red" }]);
+    expect(meta).toMatchObject({ Model: "claude-opus-5", Folder: CWD.api, Session: ID.blocked, Transcript: `~/.claude/projects/${slug(CWD.api)}/${ID.blocked}.jsonl`, Process: "pid 41000 on ttys011, tmux work:0.1" });
+    expect(meta.State).toBeUndefined();
     const c = await detail(key("codex", ID.codex));
     expect(c.markdown).toContain("**Codex**\n\nRefine rewrote the draft");
     expect(c.markdown).toContain("**Running** `shell` since");
-    expect(Object.fromEntries(c.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Agent: "Codex 0.153.4", Tokens: "38k context, 42k total", Turns: "1, the last took 17 s" });
+    expect(c).toMatchObject({ caption: expect.stringMatching(/^Codex 0\.153\.4 · /), stats: [{ value: "1", label: "turn" }, { value: "38k", label: "context" }] });
+    expect(Object.fromEntries(c.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Tokens: "38k context, 42k total", "Last turn": "17 s" });
     const p = await detail(key("copilot", ID.copilot));
     expect(p.markdown).not.toContain("since");
-    expect(Object.fromEntries(p.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Agent: "Copilot CLI 1.0.30", Permissions: "allowAll", Process: "pid 29645 on ttys000" });
+    expect(p.caption).toMatch(/^Copilot CLI 1\.0\.30/);
+    expect(Object.fromEntries(p.metadata!.map((m) => [m.label, m.value]))).toMatchObject({ Permissions: "allowAll", Process: "pid 29645 on ttys000" });
   });
 
   test("the transcript view: the header, the entries in order as a chat (prompt blocks, replies, tool rows with their dots, the thinking line), the pending call lit when blocked; [ widens, c copies the reply, s sends over tmux or refuses", async () => {
@@ -668,7 +673,7 @@ describe("sessions: the palette", () => {
     expect(item.section).toBe("Waiting on you?");
     expect(tag(item)).toBe("waiting on you");
     const d = await detail(key("claude", ID.claude));
-    expect(d.metadata!.find((m) => m.label === "State")!.tags).toEqual([{ text: "waiting on you", color: "red" }, { text: "from a hook", color: "grey" }]);
+    expect(d.chips).toEqual([{ text: "waiting on you", color: "red" }, { text: "from a hook", color: "grey" }]);
     expect(host.coreCalls.some((c) => c.method === "storage.set" && (c.params as { key: string }).key === `exact:claude:${ID.claude}`)).toBe(true);
     await host.request("link", { extension: "sessions", route: "state", params: { agent: "claude", session: ID.claude, state: "working" } });
     expect((await list()).find((i) => i.id === key("claude", ID.claude))!.section).toBe("Working");

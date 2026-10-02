@@ -41,12 +41,13 @@ const OPEN = "\u{f0130}", URGENT = "\u{f0028}";
 
 const dueColor = (d: Due): "destructive" | "amber" | "blue" | "faint" => (d.color === "red" ? "destructive" : d.color === "grey" ? "faint" : d.color);
 
-function rowNode(r: BarRow, focused: boolean): ViewNode {
+/** A row; the first (`lead`: the most pressing, overdue before today) leads the popover in the headline's face a size down, wrapping. */
+function rowNode(r: BarRow, focused: boolean, lead = false): ViewNode {
   const sub = [r.section, ...r.tags.map((t) => `#${t}`)].join(" · ");
   return row(
     [
       text(r.urgent ? URGENT : OPEN, { key: "f", style: "glyph", size: "sm", color: r.urgent ? "destructive" : "faint", width: FLAG_W }),
-      column([text(r.text, { size: "md", weight: "semibold", width: TEXT_W }), text(sub, { size: "xs", color: "muted", width: TEXT_W })], { key: "t", gap: 0 }),
+      column([text(r.text, lead ? { style: "headline", size: "xl", minWidth: 0 } : { size: "md", weight: "semibold", width: TEXT_W }), text(sub, { size: "xs", color: "muted", width: TEXT_W })], { key: "t", gap: lead ? 1 : 0, grow: true }),
       text(r.due?.text ?? "", { size: "xs", color: r.due ? dueColor(r.due) : "faint", width: DUE_W, align: "end" }),
     ],
     { key: r.id, mark: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
@@ -82,7 +83,7 @@ export function actions(st: BarState): Action[] {
 
 export function render(st: BarState): View {
   const kids: ViewNode[] = [];
-  if (st.rows.length) kids.push(column(st.rows.map((r, i) => rowNode(r, i === st.focus)), { key: "rows", gap: 0 }));
+  if (st.rows.length) kids.push(column(st.rows.map((r, i) => rowNode(r, i === st.focus, i === 0)), { key: "rows", gap: 0 }));
   else kids.push(column([
     { type: "tile", key: "zero", width: 48, height: 48, text: "✓", color: "green", fill: "soft" },
     text("Nothing due today", { style: "title", key: "zero-t" }),

@@ -86,7 +86,7 @@ describe("odak", () => {
     test("a row: the tags and the day as tags in their colours, the flag as a red mark, the subtask count, the parent under a subtask, the waiting day; the keywords carry the section, the tags and the day", async () => {
       const items = await list("odak");
       const bank = items.find((i) => i.name.startsWith("Call the bank"))!;
-      expect(bank.accessories).toEqual([{ tag: "personal", color: "violet" }, { tag: "overdue 3 d", color: "red" }]);
+      expect(bank.accessories).toEqual([{ tag: "overdue 3 d", color: "red" }, { tag: "personal", color: "violet" }]);
       expect(bank.icon).toBe("\u{f0130}");
       expect(bank.keywords).toEqual(["Today", "personal", "overdue"]);
       const ship = items.find((i) => i.name === "Ship the release notes")!;
@@ -95,8 +95,8 @@ describe("odak", () => {
       expect(ship.keywords).toContain("urgent");
       const child = items.find((i) => i.name === "Write the changelog entry")!;
       expect(child.subtitle).toBe("↳ Ship the release notes");
-      expect(items.find((i) => i.name === "Book the dentist")!.accessories).toEqual([{ tag: "personal", color: "violet" }, { tag: "Sat", color: "grey" }]);
-      expect(items.find((i) => i.name.startsWith("Visa"))!.accessories).toEqual([{ tag: "personal", color: "violet" }, { tag: "from Sat 3 Oct", color: "grey" }]);
+      expect(items.find((i) => i.name === "Book the dentist")!.accessories).toEqual([{ tag: "Sat", color: "grey" }, { tag: "personal", color: "violet" }]);
+      expect(items.find((i) => i.name.startsWith("Visa"))!.accessories).toEqual([{ tag: "from Sat 3 Oct", color: "grey" }, { tag: "personal", color: "violet" }]);
     });
 
     test("the actions: Complete first, the rest on their keys, Open link only on a row with a link, Delete asks", async () => {
@@ -113,16 +113,18 @@ describe("odak", () => {
       expect(ship.actions!.at(-1)!.id).toBe("urgent");
     });
 
-    test("the pane: the text bold with the subtasks as a task list; section, tags, urgent, due with the day, under, subtasks, link, id", async () => {
+    test("the pane: a header (the section, the text, urgent and the day as chips, the subtasks left), the subtasks as a task list; tags, due with the day, link, id", async () => {
       const items = await list("odak");
       const ship = items.find((i) => i.name === "Ship the release notes")!;
-      expect(ship.detail!.markdown).toBe("**Ship the release notes**\n\n- [ ] Write the changelog entry");
-      expect(ship.detail!.metadata!.map((m) => m.label)).toEqual(["Section", "Tags", "Urgent", "Subtasks", "Id"]);
+      expect(ship.detail).toMatchObject({ title: "Ship the release notes", chips: expect.arrayContaining([{ text: "urgent", color: "red" }]), stats: [{ value: "1/1", label: "subtasks open" }] });
+      expect(ship.detail!.markdown).toBe("- [ ] Write the changelog entry");
+      expect(ship.detail!.metadata!.map((m) => m.label)).toEqual(["Tags", "Id"]);
       const pr = items.find((i) => i.name.startsWith("Review the parser"))!;
-      expect(pr.detail!.metadata!.find((m) => m.label === "Due")).toEqual({ label: "Due", value: "Tue 22 Sep 2026 (today)" });
+      expect(pr.detail!.chips).toContainEqual({ text: "today", color: expect.any(String) });
+      expect(pr.detail!.metadata!.find((m) => m.label === "Due")).toEqual({ label: "Due", value: "Tue 22 Sep 2026" });
       expect(pr.detail!.metadata!.find((m) => m.label === "Link")).toEqual({ label: "Link", link: { text: "github.com/example/pal/pull/42", href: "https://github.com/example/pal/pull/42" } });
       const child = items.find((i) => i.name === "Write the changelog entry")!;
-      expect(child.detail!.metadata!.find((m) => m.label === "Under")).toEqual({ label: "Under", value: "Ship the release notes" });
+      expect(child.detail!.caption).toMatch(/ · under Ship the release notes$/);
     });
 
     test("the commands: New todo takes the text in the bar (a form without it; the todo with it, through the add grammar), cmd+enter opens Add Todo; Open odak opens the server", async () => {
@@ -134,7 +136,7 @@ describe("odak", () => {
       expect(await pick("odak", "cmd:add", "palette")).toEqual({ push: { extension: "odak", palette: "add" } });
       expect(await pick("odak", "cmd:add", "add", { values: { text: "water the garden #home tomorrow" } })).toEqual({ hud: "Added to Inbox: water the garden" });
       expect(calls("POST", "/todos").at(-1)!.body).toEqual({ text: "water the garden", section: "Inbox", tags: ["home"], deadline: "2026-09-23" });
-      expect((await list("odak")).find((i) => i.name === "water the garden")).toMatchObject({ section: "Inbox", accessories: [{ tag: "home", color: expect.any(String) }, { tag: "tomorrow", color: "blue" }] });
+      expect((await list("odak")).find((i) => i.name === "water the garden")).toMatchObject({ section: "Inbox", accessories: [{ tag: "tomorrow", color: "blue" }, { tag: "home", color: expect.any(String) }] });
       expect(await pick("odak", "cmd:open")).toEqual({ open: BASE });
     });
 
@@ -222,7 +224,7 @@ describe("odak", () => {
       // The move goes to the id the edit gave the line, computed here as odak does.
       expect(calls("POST", `/todos/${id("Check the alt text idea in parsing")}/move`)[0].body).toEqual({ section: "Next" });
       const row = (await list("odak")).find((i) => i.name === "Check the alt text idea in parsing")!;
-      expect(row).toMatchObject({ section: "Next", icon: { glyph: "\u{f0028}", color: "red" }, accessories: [{ tag: "work", color: "pink" }, { tag: "idea", color: "green" }, { tag: "parsing", color: expect.any(String) }, { tag: "Fri", color: "grey" }] });
+      expect(row).toMatchObject({ section: "Next", icon: { glyph: "\u{f0028}", color: "red" }, accessories: [{ tag: "Fri", color: "grey" }, { tag: "work", color: "pink" }, { tag: "idea", color: "green" }, { tag: "parsing", color: expect.any(String) }] });
       const renamed = id("Check the alt text idea in parsing");
       expect(renamed).not.toBe(idea);
       expect(row.id).toBe(renamed);
@@ -264,7 +266,7 @@ describe("odak", () => {
   describe("Add Todo", () => {
     test("the line read back as you type: the text, the section, the day, the flag and the tags; a line of only tokens is a hint", async () => {
       const [row] = await list("add", "call mum #personal ! next mon 9am /ne");
-      expect(row).toMatchObject({ id: "new:call mum #personal ! next mon 9am /ne", name: "call mum 9am", subtitle: "Next · due Mon 28 Sep · urgent", icon: { glyph: "\u{f0028}", color: "red" }, accessories: [{ tag: "personal", color: "violet" }, { tag: "Mon", color: "grey" }] });
+      expect(row).toMatchObject({ id: "new:call mum #personal ! next mon 9am /ne", name: "call mum 9am", subtitle: "Next · due Mon 28 Sep · urgent", icon: { glyph: "\u{f0028}", color: "red" }, accessories: [{ tag: "Mon", color: "grey" }, { tag: "personal", color: "violet" }] });
       expect(row.actions!.map((a) => a.id)).toEqual(["add", "another", "copy-line"]);
       expect((await list("add", "buy milk"))[0].subtitle).toBe("Inbox");
       expect((await list("add", "#work !"))[0]).toMatchObject({ id: "hint:empty", name: "Nothing to add yet" });

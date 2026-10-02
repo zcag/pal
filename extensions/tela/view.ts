@@ -33,13 +33,14 @@ export type BarState = {
 const ROW_W = POPOVER_W - 8, GLYPH_W = 20, TIME_W = 52, TEXT_W = ROW_W - GLYPH_W - TIME_W - 2 * 8;
 const MENTION = "\u{f0016}", REPLY = "\u{f0179}";
 
-function rowNode(r: BarRow, focused: boolean): ViewNode {
-  const kids: ViewNode[] = [text(r.title, { size: "md", weight: "semibold", width: TEXT_W })];
-  if (r.snippet) kids.push(text(r.snippet, { size: "sm", color: "muted", width: TEXT_W }));
+/** A row; the newest (`lead`, the first) leads the popover: its line in the headline's face a size down, wrapping, the snippet at row size. */
+function rowNode(r: BarRow, focused: boolean, lead = false): ViewNode {
+  const kids: ViewNode[] = [lead ? text(r.title, { style: "headline", size: "xl", minWidth: 0 }) : text(r.title, { size: "md", weight: "semibold", width: TEXT_W })];
+  if (r.snippet) kids.push(text(r.snippet, { size: lead ? "md" : "sm", color: lead ? undefined : "muted", width: TEXT_W }));
   return row(
     [
       text(r.mention ? MENTION : REPLY, { key: "g", size: "sm", color: r.mention ? "accent" : "faint", width: GLYPH_W }),
-      column(kids, { key: "t", gap: 0 }),
+      column(kids, { key: "t", gap: lead ? 1 : 0, grow: true }),
       text(r.time ?? "", { size: "xs", color: "faint", width: TIME_W, align: "end" }),
     ],
     { key: r.id, mark: r.id, padding: 1, minHeight: 44, radius: true, surface: focused ? "elevated" : undefined, selected: focused || undefined, action: `focus:${r.id}`, transition: { enter: "fade", exit: "fade" } },
@@ -82,7 +83,7 @@ export function render(st: BarState): View {
       { key: "compact", padding: 3, gap: 2, align: "center" },
     );
   } else {
-    const kids: ViewNode[] = st.rows.map((r, i) => rowNode(r, i === st.focus));
+    const kids: ViewNode[] = st.rows.map((r, i) => rowNode(r, i === st.focus, i === 0));
     tree = column([column(kids, { key: "rows", gap: 0 }), hints(st, st.rows[st.focus])], { key: "compact", padding: 3, gap: 2 });
   }
   return {
