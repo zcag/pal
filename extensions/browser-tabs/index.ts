@@ -4,7 +4,7 @@
 // browser, then the browser window comes up through the `focus` effect so
 // the panel hides first. Order is the browser's, never a ranking.
 import { existsSync } from "node:fs";
-import { failed, hint, home, settings, tabs, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
+import { failed, hint, home, settings, tabs, type Accessory, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
 
 const EXT = "browser-tabs";
 const MAC = process.platform === "darwin";
@@ -32,12 +32,18 @@ const hostOf = (url: string) => { try { const u = new URL(url); return u.protoco
 const isWeb = (url: string) => /^https?:\/\//.test(url);
 const appPath = (name: string) => [`/Applications/${name}.app`, home(`~/Applications/${name}.app`)].find((p) => existsSync(p));
 
+/** Where a tab is, in one run: the browser when several are listed, its window when that browser has several. */
+const whereOf = (t: tabs.Tab, browsers: number, windowsOf: number) => [browsers > 1 ? t.browser : "", windowsOf > 1 ? `window ${t.window}` : ""].filter(Boolean).join(" · ");
+/** Whether it makes sound, as a tag. */
+const soundOf = (t: tabs.Tab): { tag: string; color?: "green" } | undefined => (t.media?.audible ? { tag: "playing", color: "green" } : t.media?.muted ? { tag: "muted" } : undefined);
+
+/** A tab's row: where it is (one accessory) and whether it plays sound (a tag), never more than the two. */
 function item(t: tabs.Tab, browsers: number, windowsOf: number): Item {
   const accessories: Accessory[] = [];
-  if (browsers > 1) accessories.push({ text: t.browser });
-  if (windowsOf > 1) accessories.push({ text: `window ${t.window}` });
-  if (t.media?.audible) accessories.push({ tag: "playing", color: "green" });
-  else if (t.media?.muted) accessories.push({ tag: "muted" });
+  const where = whereOf(t, browsers, windowsOf);
+  if (where) accessories.push({ text: where });
+  const sound = soundOf(t);
+  if (sound) accessories.push(sound);
   // Close is destructive, so it sits last (the brief) and never on cmd+enter.
   const [flip, other] = mute(!!t.media?.muted);
   const actions = t.src === "cdp" ? [FOCUS, COPY, flip!, MARKDOWN, CLOSE, other!] : t.src === "as" ? [FOCUS, COPY, MARKDOWN, CLOSE] : [{ ...FOCUS, title: "Focus window" }, COPY, MARKDOWN];
@@ -55,6 +61,19 @@ function item(t: tabs.Tab, browsers: number, windowsOf: number): Item {
 }
 
 const row = (id: string, name: string, subtitle: string, actions: Action[] = []): Item => hint(id, name, subtitle, { icon: ICON, actions });
+
+/** A tab's details: the browser and window over its title, sound as a chip, the address. */
+function detail(id: string): Detail | undefined {
+  const t = tabs.known(id);
+  if (!t) return;
+  const sound = soundOf(t);
+  return {
+    caption: `${t.browser} · window ${t.window}`,
+    title: t.title || t.url.replace(/^https?:\/\//, ""),
+    ...(sound && { chips: [{ text: sound.tag, ...(sound.color && { color: sound.color }) }] }),
+    metadata: [isWeb(t.url) ? { label: "Address", link: { text: t.url.replace(/^https?:\/\//, ""), href: t.url } } : { label: "Address", value: t.url }],
+  };
+}
 
 async function list(filter = "all"): Promise<Item[]> {
   const s = settings.get<tabs.Settings>(EXT);
@@ -86,6 +105,7 @@ export default {
       placeholder: "Switch to a tab",
       filters: FILTERS,
       list: (_query, ctx) => list(ctx?.filter),
+      detail,
       pick: async (id, action, ctx) => {
         if (id === "hint:automation") return { open: AUTOMATION_URL };
         const t = tabs.known(id);
