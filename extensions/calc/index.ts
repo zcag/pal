@@ -226,6 +226,8 @@ const item = (r: Row): Item => ({
   name: r.name,
   subtitle: r.subtitle,
   icon: ICON,
+  // The answer leads (Item.hero): the result row as a headline, the query as understood under it.
+  ...(r.id === "result" && !r.inert ? { hero: true } : {}),
   ...(r.accessories?.length ? { accessories: r.accessories } : {}),
   ...(r.detail ? { detail: r.detail } : {}),
   actions: r.inert ? [] : ACTIONS,

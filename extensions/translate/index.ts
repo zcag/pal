@@ -102,7 +102,7 @@ const webUrl = (h: Held) => `https://translate.google.com/?sl=${encodeURICompone
 /** A row whose Enter copies `text`: the translation, an alternative, a romanisation, a dictionary word. */
 function textRow(id: string, text: string, lang: string, t: Translation, src: Source, o: { subtitle: string; icon?: string; detail?: Detail; accessories?: Item["accessories"]; keywords?: string[]; actions?: Action[] }): Item {
   held.set(id, { text, lang, source: src.text, from: t.from, to: t.to, backend: t.backend });
-  return { id, name: short(text), subtitle: o.subtitle, icon: o.icon ?? GLYPH.translate, keywords: o.keywords, accessories: o.accessories, detail: o.detail ?? { markdown: text }, actions: o.actions ?? [COPY, PASTE, SPEAK, COPY_SOURCE, OPEN_WEB] };
+  return { id, name: short(text), subtitle: o.subtitle, icon: o.icon ?? GLYPH.translate, ...(id === "translation" ? { hero: true } : {}), keywords: o.keywords, accessories: o.accessories, detail: o.detail ?? { markdown: text }, actions: o.actions ?? [COPY, PASTE, SPEAK, COPY_SOURCE, OPEN_WEB] };
 }
 
 /** Letters outside the Latin script: a romanisation row is worth showing for such a text, and an IPA pronunciation of a Latin one is not one. */
