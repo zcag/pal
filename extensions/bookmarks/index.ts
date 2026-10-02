@@ -120,7 +120,7 @@ async function list(): Promise<Item[]> {
     const name = titleOf(r.name, r.url);
     known.set(r.url, { name });
     // The file's rows take the palette's three actions (said once); a browser's rows below add "Open in <browser>" and so say their own. A nameless bookmark is named by its address and says nothing twice.
-    items.push({ id: r.url, name, subtitle: r.subtitle ?? (name === bareUrl(r.url) ? undefined : r.url), icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section });
+    items.push({ id: r.url, name, subtitle: r.subtitle ?? (name === bareUrl(r.url) ? undefined : bareUrl(r.url)), icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section });
   }
   const { sources, problems } = await browserSources(s.browsers);
   for (const src of sources) {
@@ -131,7 +131,7 @@ async function list(): Promise<Item[]> {
       items.push({
         id: f.url,
         name: f.name,
-        subtitle: f.name === bareUrl(f.url) ? undefined : f.url,
+        subtitle: f.name === bareUrl(f.url) ? undefined : bareUrl(f.url),
         keywords: [...new Set(f.folder.filter(Boolean))],
         url: f.url,
         accessories: f.folder.length ? [{ text: f.folder.join(" / ") }] : [],

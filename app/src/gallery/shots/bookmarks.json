@@ -13,7 +13,7 @@
         {
           "id": "http://homeassistant.local:8123",
           "name": "Home Assistant",
-          "subtitle": "http://homeassistant.local:8123",
+          "subtitle": "homeassistant.local:8123",
           "url": "http://homeassistant.local:8123",
           "actions": [
             {
@@ -68,7 +68,7 @@
         {
           "id": "https://github.com",
           "name": "GitHub",
-          "subtitle": "https://github.com",
+          "subtitle": "github.com",
           "url": "https://github.com",
           "actions": [
             {
@@ -92,7 +92,7 @@
         {
           "id": "https://developer.mozilla.org",
           "name": "MDN Web Docs",
-          "subtitle": "https://developer.mozilla.org",
+          "subtitle": "developer.mozilla.org",
           "url": "https://developer.mozilla.org",
           "actions": [
             {
@@ -128,7 +128,7 @@
         {
           "id": "https://react.dev/reference/react",
           "name": "React reference",
-          "subtitle": "https://react.dev/reference/react",
+          "subtitle": "react.dev/reference/react",
           "url": "https://react.dev/reference/react",
           "actions": [
             {
@@ -164,7 +164,7 @@
         {
           "id": "https://tailwindcss.com/docs",
           "name": "Tailwind CSS docs",
-          "subtitle": "https://tailwindcss.com/docs",
+          "subtitle": "tailwindcss.com/docs",
           "url": "https://tailwindcss.com/docs",
           "actions": [
             {
@@ -200,7 +200,7 @@
         {
           "id": "https://news.ycombinator.com",
           "name": "Hacker News",
-          "subtitle": "https://news.ycombinator.com",
+          "subtitle": "news.ycombinator.com",
           "url": "https://news.ycombinator.com",
           "actions": [
             {
@@ -235,7 +235,7 @@
         {
           "id": "https://www.recipetineats.com",
           "name": "RecipeTin Eats",
-          "subtitle": "https://www.recipetineats.com",
+          "subtitle": "recipetineats.com",
           "url": "https://www.recipetineats.com",
           "actions": [
             {
@@ -271,7 +271,7 @@
         {
           "id": "https://bun.sh/docs",
           "name": "Bun docs",
-          "subtitle": "https://bun.sh/docs",
+          "subtitle": "bun.sh/docs",
           "url": "https://bun.sh/docs",
           "actions": [
             {
@@ -307,7 +307,7 @@
         {
           "id": "https://linear.app",
           "name": "Linear",
-          "subtitle": "https://linear.app",
+          "subtitle": "linear.app",
           "url": "https://linear.app",
           "actions": [
             {
@@ -342,7 +342,7 @@
         {
           "id": "https://www.apple.com/macos",
           "name": "macOS",
-          "subtitle": "https://www.apple.com/macos",
+          "subtitle": "apple.com/macos",
           "url": "https://www.apple.com/macos",
           "actions": [
             {
@@ -377,7 +377,7 @@
         {
           "id": "https://developer.apple.com/documentation",
           "name": "Apple Developer Documentation",
-          "subtitle": "https://developer.apple.com/documentation",
+          "subtitle": "developer.apple.com/documentation",
           "url": "https://developer.apple.com/documentation",
           "actions": [
             {
@@ -413,7 +413,7 @@
         {
           "id": "https://www.wikipedia.org",
           "name": "Wikipedia",
-          "subtitle": "https://www.wikipedia.org",
+          "subtitle": "wikipedia.org",
           "url": "https://www.wikipedia.org",
           "actions": [
             {
@@ -448,7 +448,7 @@
         {
           "id": "https://addons.mozilla.org",
           "name": "Firefox Add-ons",
-          "subtitle": "https://addons.mozilla.org",
+          "subtitle": "addons.mozilla.org",
           "url": "https://addons.mozilla.org",
           "actions": [
             {
@@ -483,7 +483,7 @@
         {
           "id": "https://www.rust-lang.org/learn",
           "name": "Learn Rust",
-          "subtitle": "https://www.rust-lang.org/learn",
+          "subtitle": "rust-lang.org/learn",
           "url": "https://www.rust-lang.org/learn",
           "actions": [
             {
@@ -532,7 +532,7 @@
         {
           "id": "https://bun.sh/docs/api/sqlite",
           "name": "SQLite – Bun Docs",
-          "subtitle": "https://bun.sh/docs/api/sqlite",
+          "subtitle": "bun.sh/docs/api/sqlite",
           "url": "https://bun.sh/docs/api/sqlite",
           "accessories": [
             {
@@ -560,7 +560,7 @@
         {
           "id": "https://github.com/acme/widgets/pulls",
           "name": "Pull requests · acme/widgets",
-          "subtitle": "https://github.com/acme/widgets/pulls",
+          "subtitle": "github.com/acme/widgets/pulls",
           "url": "https://github.com/acme/widgets/pulls",
           "accessories": [
             {
@@ -588,7 +588,7 @@
         {
           "id": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
           "name": "KeyboardEvent: key property - Web APIs | MDN",
-          "subtitle": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
+          "subtitle": "developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
           "url": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
           "accessories": [
             {
@@ -616,7 +616,7 @@
         {
           "id": "https://news.ycombinator.com/",
           "name": "Hacker News",
-          "subtitle": "https://news.ycombinator.com/",
+          "subtitle": "news.ycombinator.com",
           "url": "https://news.ycombinator.com/",
           "accessories": [
             {
@@ -644,7 +644,7 @@
         {
           "id": "https://www.sqlite.org/lang_upsert.html",
           "name": "UPSERT",
-          "subtitle": "https://www.sqlite.org/lang_upsert.html",
+          "subtitle": "sqlite.org/lang_upsert.html",
           "url": "https://www.sqlite.org/lang_upsert.html",
           "accessories": [
             {
@@ -672,7 +672,7 @@
         {
           "id": "https://www.sqlite.org/lang_datefunc.html",
           "name": "Date And Time Functions",
-          "subtitle": "https://www.sqlite.org/lang_datefunc.html",
+          "subtitle": "sqlite.org/lang_datefunc.html",
           "url": "https://www.sqlite.org/lang_datefunc.html",
           "accessories": [
             {
@@ -700,7 +700,7 @@
         {
           "id": "https://www.sqlite.org/json1.html",
           "name": "JSON Functions And Operators",
-          "subtitle": "https://www.sqlite.org/json1.html",
+          "subtitle": "sqlite.org/json1.html",
           "url": "https://www.sqlite.org/json1.html",
           "accessories": [
             {
@@ -728,7 +728,7 @@
         {
           "id": "https://tauri.app/develop/",
           "name": "Develop | Tauri",
-          "subtitle": "https://tauri.app/develop/",
+          "subtitle": "tauri.app/develop",
           "url": "https://tauri.app/develop/",
           "accessories": [
             {
@@ -756,7 +756,7 @@
         {
           "id": "https://en.wikipedia.org/wiki/Epoch_(computing)",
           "name": "Epoch (computing) - Wikipedia",
-          "subtitle": "https://en.wikipedia.org/wiki/Epoch_(computing)",
+          "subtitle": "en.wikipedia.org/wiki/Epoch_(computing)",
           "url": "https://en.wikipedia.org/wiki/Epoch_(computing)",
           "accessories": [
             {
@@ -784,7 +784,7 @@
         {
           "id": "https://docs.rs/rusqlite/latest/rusqlite/",
           "name": "rusqlite - Rust",
-          "subtitle": "https://docs.rs/rusqlite/latest/rusqlite/",
+          "subtitle": "docs.rs/rusqlite/latest/rusqlite",
           "url": "https://docs.rs/rusqlite/latest/rusqlite/",
           "accessories": [
             {
@@ -815,7 +815,7 @@
           {
             "id": "https://bun.sh/docs/api/sqlite",
             "name": "SQLite – Bun Docs",
-            "subtitle": "https://bun.sh/docs/api/sqlite",
+            "subtitle": "bun.sh/docs/api/sqlite",
             "url": "https://bun.sh/docs/api/sqlite",
             "accessories": [
               {
@@ -843,7 +843,7 @@
           {
             "id": "https://www.sqlite.org/lang_upsert.html",
             "name": "UPSERT",
-            "subtitle": "https://www.sqlite.org/lang_upsert.html",
+            "subtitle": "sqlite.org/lang_upsert.html",
             "url": "https://www.sqlite.org/lang_upsert.html",
             "accessories": [
               {
@@ -871,7 +871,7 @@
           {
             "id": "https://www.sqlite.org/lang_datefunc.html",
             "name": "Date And Time Functions",
-            "subtitle": "https://www.sqlite.org/lang_datefunc.html",
+            "subtitle": "sqlite.org/lang_datefunc.html",
             "url": "https://www.sqlite.org/lang_datefunc.html",
             "accessories": [
               {
@@ -899,7 +899,7 @@
           {
             "id": "https://www.sqlite.org/json1.html",
             "name": "JSON Functions And Operators",
-            "subtitle": "https://www.sqlite.org/json1.html",
+            "subtitle": "sqlite.org/json1.html",
             "url": "https://www.sqlite.org/json1.html",
             "accessories": [
               {
@@ -927,7 +927,7 @@
           {
             "id": "https://docs.rs/rusqlite/latest/rusqlite/",
             "name": "rusqlite - Rust",
-            "subtitle": "https://docs.rs/rusqlite/latest/rusqlite/",
+            "subtitle": "docs.rs/rusqlite/latest/rusqlite",
             "url": "https://docs.rs/rusqlite/latest/rusqlite/",
             "accessories": [
               {

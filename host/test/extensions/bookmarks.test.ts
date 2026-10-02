@@ -222,7 +222,7 @@ describe("bookmarks", () => {
   test("the file's rows first: url as id, keywords, icon only when set, the palette's three actions (said once, not per row)", async () => {
     const items = await list();
     expect(items[0]).toEqual({
-      id: "http://ha.lan", name: "Home Assistant", subtitle: "http://ha.lan", icon: "🏠", keywords: ["ha", "home"], url: "http://ha.lan", section: "bookmarks.json",
+      id: "http://ha.lan", name: "Home Assistant", subtitle: "ha.lan", icon: "🏠", keywords: ["ha", "home"], url: "http://ha.lan", section: "bookmarks.json",
     });
     expect(host.loaded().find((l) => l.extension === "bookmarks")!.palettes[0].actions).toEqual([
       { id: "open", title: "Open in browser", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }, { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c", multi: true },
@@ -239,7 +239,7 @@ describe("bookmarks", () => {
     // Chrome's GitHub is the file's url: the file won; Safari's too.
     expect(ids.filter((i) => i === "https://github.com")).toHaveLength(1);
     const bun = items.find((i) => i.id === "https://bun.sh")!;
-    expect(bun).toMatchObject({ name: "Bun", subtitle: "https://bun.sh", url: "https://bun.sh", keywords: ["Bookmarks Bar", "Dev"], accessories: [{ text: "Bookmarks Bar / Dev" }], section: "Chrome (Default)" });
+    expect(bun).toMatchObject({ name: "Bun", subtitle: "bun.sh", url: "https://bun.sh", keywords: ["Bookmarks Bar", "Dev"], accessories: [{ text: "Bookmarks Bar / Dev" }], section: "Chrome (Default)" });
     expect(bun.icon).toBeUndefined();
     expect(bun.actions!.map((a) => [a.id, a.title, !!a.multi])).toEqual([["open", "Open in browser", true], ["copy", "Copy link", true], ["copy-markdown", "Copy as markdown", true], ["open-in:Google Chrome", "Open in Chrome", true]]);
     // A bookmark saved without a name is named by its bare address, and the address is not said again under it.
@@ -337,7 +337,7 @@ describe("history", () => {
       ["https://example.com/untitled", "Chrome (Default)"],
     ]);
     expect(items[0]).toEqual({
-      id: "https://bun.sh/docs", name: "Bun docs", subtitle: "https://bun.sh/docs", url: "https://bun.sh/docs", accessories: [{ date: T - 60_000 }], section: "Chrome (Default)",
+      id: "https://bun.sh/docs", name: "Bun docs", subtitle: "bun.sh/docs", url: "https://bun.sh/docs", accessories: [{ date: T - 60_000 }], section: "Chrome (Default)",
       actions: [{ id: "open-in:Google Chrome", title: "Open in Chrome", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c", multi: true }, { id: "open", title: "Open in default browser", shortcut: "cmd+o", multi: true }],
     });
     expect(items[1].actions![0].title).toBe("Open in Firefox");

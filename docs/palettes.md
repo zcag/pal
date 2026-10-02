@@ -286,7 +286,7 @@ insurance = false
 ## Bookmarks (`bookmarks`, `bookmarks-history`)
 
 Hand-picked links from a JSON file: a JSON array of objects with `name` and
-`url`, plus optional `subtitle` (the url when absent), `icon` (a glyph,
+`url`, plus optional `subtitle` (the address when absent), `icon` (a glyph,
 emoji or hex colour; a row with a url and no icon gets the site's favicon)
 and `keywords` (a list of strings); the previous pal's bookmarks file
 reads as is.
