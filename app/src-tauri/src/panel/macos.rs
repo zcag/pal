@@ -104,8 +104,45 @@ pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
     ns.setFrame_display_animate(to, true, true);
 }
 
-pub fn is_visible(app: &AppHandle) -> bool {
-    app.get_webview_panel(WINDOW).is_ok_and(|p| p.as_panel().alphaValue() > 0.0)
+/// Whether the panel is up: a flag, not the window's alpha, which passes
+/// through every value while a show or a hide fades (`appear`), so a hotkey
+/// in the middle of a fade-out reads "hidden" and shows it again.
+static SHOWN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn is_visible(_app: &AppHandle) -> bool {
+    SHOWN.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// How long a show fades in (with its drop) and a hide fades out, seconds.
+const FADE_IN: f64 = 0.14;
+const FADE_OUT: f64 = 0.1;
+/// How far a show drops into place, points.
+const DROP: f64 = 6.0;
+
+/// The panel fades (AppKit's animator on the window, so the native blur and
+/// shadow fade with the page): in from `DROP` points higher, or out where it
+/// is. A show during a fade-out takes over the same property, so the two
+/// never fight. Main thread.
+fn appear(p: &tauri_nspanel::objc2_app_kit::NSPanel, show: bool) {
+    use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send};
+    unsafe {
+        let to = p.frame();
+        if show && p.alphaValue() < 0.01 {
+            let mut from = to;
+            from.origin.y += DROP;
+            p.setFrame_display(from, false);
+        }
+        let _: () = msg_send![class!(NSAnimationContext), beginGrouping];
+        let ctx: *mut AnyObject = msg_send![class!(NSAnimationContext), currentContext];
+        let _: () = msg_send![ctx, setDuration: if show { FADE_IN } else { FADE_OUT }];
+        let anim: *mut AnyObject = msg_send![p, animator];
+        let _: () = msg_send![anim, setAlphaValue: if show { 1.0f64 } else { 0.0f64 }];
+        if show {
+            let _: () = msg_send![anim, setFrame: to, display: true];
+        }
+        let _: () = msg_send![class!(NSAnimationContext), endGrouping];
+    }
 }
 
 /// tauri-nspanel talks to AppKit on the calling thread, and AppKit aborts a
@@ -127,8 +164,9 @@ pub fn show(app: &AppHandle) {
 
 fn show_now(app: &AppHandle) {
     let Ok(p) = app.get_webview_panel(WINDOW) else { return };
+    SHOWN.store(true, std::sync::atomic::Ordering::SeqCst);
     p.set_ignores_mouse_events(false);
-    p.set_alpha_value(1.0);
+    appear(p.as_panel(), true);
     p.show_and_make_key();
     // The page never goes hidden, so its input keeps DOM focus and WebKit
     // does not claim first responder by itself: hand it the keyboard.
@@ -144,9 +182,9 @@ pub fn hide(app: &AppHandle) {
 
 fn hide_now(app: &AppHandle) {
     let Ok(p) = app.get_webview_panel(WINDOW) else { return };
-    if !is_visible(app) {
+    if !SHOWN.swap(false, std::sync::atomic::Ordering::SeqCst) {
         // Also cuts the re-entry: orderOut below fires window_did_resign_key,
-        // whose handler is this function, and alpha is already 0 by then.
+        // whose handler is this function, and the flag is already down by then.
         return;
     }
     crate::pop::note_hidden();
@@ -155,7 +193,7 @@ fn hide_now(app: &AppHandle) {
     crate::states::on_panel(app, false);
     crate::views::set_visible(app, WINDOW, false, false);
     p.set_ignores_mouse_events(true);
-    p.set_alpha_value(0.0);
+    appear(p.as_panel(), false);
     // orderOut is what gives key focus back to the app in front; order
     // straight back in so WebKit keeps the page alive.
     p.hide(); // orderOut:
