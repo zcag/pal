@@ -2150,11 +2150,11 @@ targets), `.PHONY` names included even when their rule is not literal,
 in file order. A description is the `## text` on the rule's line, else
 the comment line right above it (a `.PHONY:` line in between is skipped).
 
-The row is the target, the project folder the subtitle (with the
-description after a colon), the project's name a keyword (so `pal test`
-finds it from the root); a phony target has `phony` as one too. The
-detail pane shows the recipe and, in its metadata, the project, the
-Makefile's name, the description and whether it is phony.
+The row is the target, its description the subtitle (the project folder
+without one), the project's name a keyword (so `pal test` finds it from
+the root); a phony target has `phony` as one too. The detail pane leads
+with the Makefile's path, the target and a `phony` chip, then the
+description and the recipe.
 
 | action | shortcut | what |
 | --- | --- | --- |

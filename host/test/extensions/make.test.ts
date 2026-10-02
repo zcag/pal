@@ -75,25 +75,24 @@ describe("make", () => {
     ]);
   });
 
-  test("rows: project subtitle with the ## or above-the-rule description, project name and phony as keywords; the four actions on the palette", async () => {
+  test("rows: the ## or above-the-rule description as the subtitle (the folder without one), project name and phony as keywords; the four actions on the palette", async () => {
     const by = Object.fromEntries((await list()).map((i) => [i.id, i]));
-    expect(by[id("test", pal)]).toMatchObject({ subtitle: `${pal}: Rust, app and host`, keywords: ["pal", "phony"], section: "pal" });
-    expect(by[id("release", pal)]).toMatchObject({ subtitle: `${pal}: Build a release; VERSION=x.y.z`, keywords: ["pal", "phony"] });
+    expect(by[id("test", pal)]).toMatchObject({ subtitle: "Rust, app and host", keywords: ["pal", "phony"], section: "pal" });
+    expect(by[id("release", pal)]).toMatchObject({ subtitle: "Build a release; VERSION=x.y.z", keywords: ["pal", "phony"] });
     expect(by[id("lint", pal)]).toMatchObject({ subtitle: pal, keywords: ["pal", "phony"] });
-    expect(by[id("all", bare)].subtitle).toBe(`${bare}: Everything`);
+    expect(by[id("all", bare)].subtitle).toBe("Everything");
     expect(by[id("fail", bare)].subtitle).toBe(bare);
     expect(by[id("a", pal)].keywords).toEqual(["pal"]);
-    expect(by[id("up", deep)]).toMatchObject({ subtitle: `${deep}: Start the stack`, keywords: ["theater"] });
+    expect(by[id("up", deep)]).toMatchObject({ subtitle: "Start the stack", keywords: ["theater"] });
     expect(by[id("all", bare)].actions).toBeUndefined();
     expect(host.loaded().find((l) => l.extension === "make")!.palettes[0].actions!.map((a) => a.id)).toEqual(["run", "copy", "open", "makefile"]);
   });
 
-  test("detail: the recipe fenced, project and Makefile name, description, phony", async () => {
+  test("detail: the Makefile, the target and phony as the header, the description over the recipe fenced", async () => {
     await list();
     const d = await host.detail("make", "make", id("test", pal));
-    expect(d.markdown).toBe("````make\ncargo test\nbun test\n````");
-    expect(d.metadata).toEqual([{ label: "Project", value: pal }, { label: "Makefile", value: "Makefile" }, { label: "Description", value: "Rust, app and host" }, { label: "Phony", value: "yes" }]);
-    expect((await host.detail("make", "make", id("down", deep))).metadata).toEqual([{ label: "Project", value: deep }, { label: "Makefile", value: "GNUmakefile" }]);
+    expect(d).toEqual({ caption: join(pal, "Makefile"), title: "test", chips: [{ text: "phony", color: "grey" }], markdown: "Rust, app and host\n\n````make\ncargo test\nbun test\n````" });
+    expect(await host.detail("make", "make", id("down", deep))).toEqual({ caption: join(deep, "GNUmakefile"), title: "down", markdown: "````make\ndocker compose down\n````" });
   });
 
   test("run opens a terminal in the project folder running make <target>, kept open until Enter; the HUD names it", async () => {

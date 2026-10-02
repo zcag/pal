@@ -130,7 +130,8 @@ function list(): Item[] {
       items.push({
         id,
         name: target.name,
-        subtitle: target.description ? `${tilde(project.dir)}: ${target.description}` : tilde(project.dir),
+        // The section names the project; the subtitle says what the target does, or, without a description, where it runs.
+        subtitle: target.description ?? tilde(project.dir),
         icon: ICON,
         keywords: [name, ...(target.phony ? ["phony"] : [])],
         section: name,
@@ -147,14 +148,13 @@ const fence = (s: string, lang = "") => "````" + lang + "\n" + s.replace(/````/g
 function detail(id: string): Detail | undefined {
   const r = rows.get(id);
   if (!r) return;
+  // A header (the Makefile, the target, phony) over its description and recipe: nothing left for a table.
+  const recipe = r.target.recipe ? fence(r.target.recipe, "make") : "_No recipe of its own (dependencies only, or a pattern rule)._";
   return {
-    markdown: r.target.recipe ? fence(r.target.recipe, "make") : "_No recipe of its own (dependencies only, or a pattern rule)._",
-    metadata: [
-      { label: "Project", value: tilde(r.project.dir) },
-      { label: "Makefile", value: basename(r.project.file) },
-      ...(r.target.description ? [{ label: "Description", value: r.target.description }] : []),
-      ...(r.target.phony ? [{ label: "Phony", value: "yes" }] : []),
-    ],
+    caption: tilde(r.project.file),
+    title: r.target.name,
+    ...(r.target.phony && { chips: [{ text: "phony", color: "grey" as const }] }),
+    markdown: r.target.description ? `${r.target.description}\n\n${recipe}` : recipe,
   };
 }
 

@@ -82,11 +82,11 @@
     "screenshots": [
       {
         "file": "1-targets.png",
-        "caption": "Every target of the Makefiles under the configured folders, a section per project, its ## description after the folder"
+        "caption": "Every target of the Makefiles under the configured folders, a section per project, its ## description under the name"
       },
       {
         "file": "2-recipe.png",
-        "caption": "The detail pane (cmd+I): the target's recipe, then its project, its Makefile and its description"
+        "caption": "The detail pane (cmd+I): the Makefile and the target on top, its description, then its recipe"
       },
       {
         "file": "3-makefile.png",

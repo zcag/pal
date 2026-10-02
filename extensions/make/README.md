@@ -13,14 +13,14 @@ right above it (a `.PHONY:` line in between is skipped).
 
 ## The palette
 
-The row is the target, the project folder the subtitle (with the
-description after a colon), the project's name a keyword (so `pal test`
-finds it from the root); a phony target has `phony` as one too. The
-palette is indexed: listed once, searched from the index, refreshed with
-`cmd+r` after a Makefile changes. The detail pane (`cmd+i`, asked when the
-cursor rests on a row) shows the recipe as a code block and, in its
-metadata, the project, the Makefile's name, the description and whether it
-is phony.
+The row is the target, its description the subtitle (the project folder
+when it has none; the section names the project), the project's name a
+keyword (so `pal test` finds it from the root); a phony target has `phony`
+as one too. The palette is indexed: listed once, searched from the index,
+refreshed with `cmd+r` after a Makefile changes. The detail pane (`cmd+i`,
+asked when the cursor rests on a row) leads with the Makefile's path, the
+target and a `phony` chip, then the description and the recipe as a code
+block.
 
 While the cursor is on a target the search bar shows one field after the
 query, the words to put after the target (`VERBOSE=1`, `-j4`, split on
