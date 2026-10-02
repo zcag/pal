@@ -84,7 +84,8 @@ describe("icons", () => {
 
   test("detail: the set, the version, name, code point, class and escape", async () => {
     expect(await host.detail("icons", "icons", "nf-fa-github")).toEqual({
-      markdown: "**github**\n\nFont Awesome (fa), Nerd Fonts 3.5.1",
+      caption: "Font Awesome (fa) · Nerd Fonts 3.5.1",
+      title: "github",
       metadata: [{ label: "Name", value: "nf-fa-github" }, { label: "Code point", value: "U+F09B" }, { label: "CSS class", value: "nf nf-fa-github" }, { label: "Escape", value: "\\u{f09b}" }],
     });
   });

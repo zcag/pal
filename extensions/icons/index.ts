@@ -62,9 +62,10 @@ async function remember(id: string) {
   await storage.set(RECENT_KEY, [id, ...(await recent()).filter((x) => x !== id)].slice(0, RECENT_MAX));
 }
 
-/** No big glyph in the markdown: the pane's text is the UI font, and only the icon box uses the bundled symbols font. */
+/** The set and version on top, the name as the title, then the ways to write it. No big glyph: the pane's text is the UI font, and only the icon box uses the bundled symbols font. */
 const detail = (g: Glyph): Detail => ({
-  markdown: `**${g.name.replace(/_/g, " ")}**\n\n${label(g.set)} (${g.set}), Nerd Fonts ${version}`,
+  caption: `${label(g.set)} (${g.set}) · Nerd Fonts ${version}`,
+  title: g.name.replace(/_/g, " "),
   metadata: [
     { label: "Name", value: g.id },
     { label: "Code point", value: codePoint(g.code) },
