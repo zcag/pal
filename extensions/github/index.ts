@@ -823,7 +823,13 @@ async function notifPane(n: Notification): Promise<Detail> {
   const m = n.url.match(/github\.com\/([^/]+)\/([^/]+)\/(pull|issues)\/(\d+)/);
   if (!m) return { markdown: `# ${n.title}`, metadata };
   const [, owner, name, kind, num] = m as unknown as [string, string, string, string, string];
-  if (kind === "pull") return { markdown: prThread(await prDetail(owner, name, +num)), metadata };
+  if (kind === "pull") {
+    // The pull request's header as its own pane has it (the notification knows the title, not the state or the size).
+    const d = await prDetail(owner, name, +num);
+    const approvers = reviewers(d, "APPROVED"), changers = reviewers(d, "CHANGES_REQUESTED");
+    const chips = [...(d.checks.length ? [checksChip(d.checks)] : []), ...(approvers.length ? [{ text: `approved by ${approvers.join(", ")}`, color: "blue" as const }] : []), ...(changers.length ? [{ text: `changes requested by ${changers.join(", ")}`, color: "red" as const }] : [])];
+    return { caption: `${owner}/${name} · #${num}`, title: n.title, chips, stats: [{ value: String(d.comments), label: d.comments === 1 ? "comment" : "comments" }], markdown: prThread(d), metadata };
+  }
   const d = await issueDetail(owner, name, +num);
   return { markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata };
 }
