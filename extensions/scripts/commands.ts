@@ -9,7 +9,7 @@
 // so an `inline` command's first output line is current on every show.
 import { existsSync, readdirSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
-import { argsForm, effects, errorMessage, hint, home, tile, TILE_COLORS, toast, type Action, type Arg as BarArg, type Ctx, type Effect, type Item, type Palette, type TileColor } from "@zcag/pal";
+import { argsForm, effects, errorMessage, hint, home, tilde, tile, TILE_COLORS, toast, type Action, type Arg as BarArg, type Ctx, type Effect, type Item, type Palette, type TileColor } from "@zcag/pal";
 import { accessory, detail, glyph, log, parseLines, run, S, toActions, type Raw } from "./shared.ts";
 
 export type Mode = "silent" | "hud" | "show" | "list" | "inline";
@@ -198,7 +198,12 @@ function row(c: Command, subtitle: string | undefined): Item {
     keywords: c.keywords.length ? c.keywords : undefined,
     section: c.section,
     accessories: c.mode !== "hud" ? [{ text: c.mode }] : undefined,
-    detail: { metadata: [{ label: "File", value: c.path }, { label: "Mode", value: c.mode }, ...(c.args.length ? [{ label: "Arguments", value: c.args.map((a) => a.name).join(", ") }] : []), ...(c.confirm ? [{ label: "Confirm", value: "yes" }] : []), { label: "Runs in", value: c.cwd }] },
+    // A header (its file, its title, its mode and whether it asks first) over what the header does not say.
+    detail: {
+      caption: tilde(c.path), title: c.title,
+      chips: [{ text: c.mode, color: "grey" }, ...(c.confirm ? [{ text: "asks first", color: "amber" as const }] : [])],
+      metadata: [...(c.args.length ? [{ label: "Arguments", value: c.args.map((a) => a.name).join(", ") }] : []), { label: "Runs in", value: tilde(c.cwd) }],
+    },
     // Run and Copy output both run the script, so both take the values (marking one alone would leave the other bare).
     ...(c.args.length && { args: barArgs(c) }),
     actions: c.args.length ? [{ ...run, args: true }, OPEN, { ...COPY_OUTPUT, args: true }, COPY_PATH] : [run, OPEN, COPY_OUTPUT, COPY_PATH],
