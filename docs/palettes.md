@@ -3815,7 +3815,7 @@ Shortcuts app, `⌘C` copies its name. The listing is kept five minutes
 | --- | --- |
 | `enter` | Run the shortcut |
 | `cmd+enter` | Run it with the clipboard's text as input |
-| `cmd+t` | Run with text: a form for the input |
+| `cmd+t` | Run with input: the input typed in the bar (a form for a pick without it) |
 | `cmd+o` | Open it in Shortcuts |
 | `cmd+c` | Copy its name |
 
