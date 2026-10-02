@@ -72,8 +72,11 @@ describe("SettingsGeneral permissions", () => {
     expect(find("permissions grant")).toEqual(["Permissions"]);
     expect(find("comments")).toEqual(["Config file"]);
     expect(find("catppuccin")).toEqual(["Theme file"]);
-    const html = page({ permissions: { accessibility: true, input_monitoring: true }, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
+    expect(find("unread")).toEqual(["Glance strip"]);
+    const html = page({ value: { ...general, glance: ["gmail/unread"] }, glanceItems: [{ key: "gmail/unread", title: "Gmail › Unread" }, { key: "weather/weather", title: "Weather › Weather" }], permissions: { accessibility: true, input_monitoring: true }, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
+    // The glance strip's chosen item is pressed and numbered by its place in the strip.
+    expect(html).toMatch(/aria-pressed="true"><span class="pal-glance-pick__n">1<\/span>Gmail › Unread/);
   });
   it("has the update and usage switches, found by their words, the usage one with a link to what is sent", () => {
     const html = page({ value: { ...general, autoUpdate: false }, onOpenLink: noop });
