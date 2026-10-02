@@ -377,14 +377,16 @@ describe("render.ts", () => {
     expect(texts(scanning.tree)).toContain("Scanning…  12 files  ·  5.0 MB");
   });
 
-  test("rows.ts: a file row with its kind tag and folder, a folder row with its count and share, a suggestion row with its one confirmed action", () => {
+  test("rows.ts: a file row with its kind tag and folder, a folder row with its share and size (the count in its pane), a suggestion row with its one confirmed action", () => {
     const h = home();
     const f = fileRow(find(h, "/h/Movies/a.mov")!, "/h", "allocated", true);
     expect(f).toMatchObject({ id: "/h/Movies/a.mov", name: "a.mov", subtitle: "/h/Movies", accessories: [{ tag: "Video", color: "violet" }, { text: "900.0 MB" }] });
     expect(f.actions!.map((a) => a.id)).toEqual(["open", "reveal", "map", "look", "copy", "info", "trash"]);
     expect(fileRow(find(h, "/h/Movies/a.mov")!, "/h", "allocated", false).actions!.some((a) => a.id === "look")).toBe(false);
     const d = folderRow(find(h, "/h/proj")!, h, "allocated", true);
-    expect(d.accessories).toEqual([{ text: "4 files" }, { text: "37%" }, { text: "750.0 MB" }]);
+    expect(d.accessories).toEqual([{ text: "37%" }, { text: "750.0 MB" }]);
+    expect(d.detail).toEqual({ caption: "/h", title: "proj", stats: [{ value: "750.0 MB", label: "size" }, { value: "4", label: "files" }, { value: "37%", label: "share" }] });
+    expect(f.detail).toMatchObject({ caption: "/h/Movies", title: "a.mov", chips: [{ text: "Video", color: "violet" }], stats: [{ value: "900.0 MB", label: "on disk" }, { label: "apparent" }] });
     expect(d.actions!.map((a) => a.id)).toEqual(["map", "reveal", "largest", "copy", "info", "trash"]);
     const s = suggestionRow({ id: "trash", name: "Trash", path: "/h/.Trash", note: "Emptying it is final", size: 3 * MB, files: 2, action: "empty-trash", section: "Trash" }, 30, true);
     expect(s.actions![2]).toMatchObject({ id: "empty-trash", style: "destructive", confirm: "Empty the Trash (3.0 MB)? This cannot be undone." });
@@ -454,7 +456,7 @@ describe("space over the wire", () => {
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["map", "largest", "folders", "rescan"]);
     const vol = rows.find((r) => r.id === "root:/")!;
     expect(vol.name).toBe(MAC ? "Macintosh HD" : "Root");
-    expect(vol.accessories![0]).toMatchObject({ text: expect.stringMatching(/free$/) });
+    expect(vol.subtitle).toMatch(/free of /);
     const scan = rows.find((r) => r.id === "scan")!;
     expect(scan.args).toEqual([{ id: "path", placeholder: "Folder (~/proj)", required: true }]);
     expect(rows.at(-1)!.id).toBe("cleanup");
@@ -485,7 +487,8 @@ describe("space over the wire", () => {
     const rows = await host.list("space", "space");
     const row = rows.find((r) => r.id === `root:${root}`)!;
     expect(row.section).toBe("Scanned before");
-    expect(row.subtitle).toMatch(/^3\d\d KB in 5 files, scanned /);
+    expect(row.subtitle).toBe("5 files");
+    expect(row.accessories).toEqual([{ text: expect.stringMatching(/^3\d\d KB$/) }, { date: expect.any(Number) }]);
     expect(row.actions!.at(-1)!.id).toBe("forget");
   });
 
@@ -525,9 +528,11 @@ describe("space over the wire", () => {
     // (Asserted by hand: Bun's toMatchObject with an arrayContaining left the received array emptied on 1.4.2.)
     const md = info.show!.metadata!;
     expect(info.show!.title).toBe("proj");
-    expect(md.map((m) => m.label)).toEqual(["Kind", "Path", "On disk", "Apparent", "Files", "Items", "Share of parent", "Modified", "Owner"]);
-    expect(md[0]).toEqual({ label: "Kind", value: "Folder" });
-    expect(md[4]).toEqual({ label: "Files", value: "2" });
+    expect(info.show!.caption).toBe(root);
+    expect(info.show!.chips).toEqual([{ text: "Folder" }]);
+    expect(info.show!.stats!.map((s) => s.label)).toEqual(["on disk", "apparent", "files"]);
+    expect(info.show!.stats![2].value).toBe("2");
+    expect(md.map((m) => m.label)).toEqual(["Items", "Share of parent", "Modified", "Owner"]);
     await mapPick("colour");
     expect(host.written.get("space")).toMatchObject({ colour: "depth" });
     await mapPick("sizes");
@@ -561,7 +566,7 @@ describe("space over the wire", () => {
     expect(files[0].accessories).toEqual([{ tag: "Video", color: "violet" }, { text: "200 KB" }]);
     expect(await host.list("space", "largest", "", { args: { root }, filter: "image" })).toEqual([expect.objectContaining({ id: "hint:empty", name: "No files here" })]);
     const dirs = await host.list("space", "folders", "", { args: { root } });
-    expect(dirs.map((d) => [d.name, (d.accessories![0] as { text: string }).text])).toEqual([["Movies", "2 files"]]);
+    expect(dirs.map((d) => [d.name, d.detail!.stats![1].value])).toEqual([["Movies", "2"]]);
     expect(await host.pick("space", "folders", join(root, "Movies"), "map", { args: { root } })).toEqual({ push: { extension: "space", palette: "map", args: { root }, title: root } });
     const other = join(dir, "other");
     mkdirSync(other);

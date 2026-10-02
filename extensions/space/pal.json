@@ -117,6 +117,10 @@
       {
         "file": "4-cleanup.png",
         "caption": "Cleanup suggestions: caches, package stores, the Trash, old downloads and stale build folders, each with what it frees and what to know"
+      },
+      {
+        "file": "5-detail.png",
+        "caption": "A file's detail (cmd+I): its folder and kind, the size on disk and the apparent size large, when it changed"
       }
     ],
     "actions": [
