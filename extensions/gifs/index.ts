@@ -103,11 +103,12 @@ async function favour(gs: Gif[]): Promise<void> {
 const held = new Map<string, Gif>();
 const size = (n?: number) => (n === undefined ? undefined : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`);
 
-/** The pane shows the preview from its url (the webview loads http): the data url stays on the row alone, so the wire carries each preview once. */
+/** The source on top, the title, the preview from its url (the webview loads http: the data url stays on the row alone, so the wire carries each preview once), its size and page. */
 const detailOf = (g: Gif): Detail => ({
-  markdown: `![](${g.preview})\n\n**${g.title}**`,
+  caption: BACKEND_NAME[g.backend],
+  title: g.title,
+  markdown: `![](${g.preview})`,
   metadata: [
-    { label: "Source", value: BACKEND_NAME[g.backend] },
     ...(g.width ? [{ label: "Size", value: `${g.width} × ${g.height}${g.size ? ` · ${size(g.size)}` : ""}` }] : []),
     { label: "Page", link: { text: g.page.replace(/^https?:\/\//, ""), href: g.page } },
   ],
@@ -163,7 +164,9 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   } catch (e) {
     const ge = e instanceof GifError ? e : undefined;
     console.error(`[gifs] ${ge?.message ?? e}`);
-    return [hint("failed", ge ? ge.hint : `Could not search: ${errorMessage(e)}`, q || SOURCE, { icon: GLYPH.alert })];
+    const row = hint("failed", ge ? ge.hint : `Could not search: ${errorMessage(e)}`, ge?.fix ?? (q || SOURCE), { icon: GLYPH.alert, ...(ge?.key && { actions: [{ id: "settings", title: "Open Settings" }] }) });
+    // A grid tile shows no subtitle: the pane says the fix.
+    return [ge?.fix ? { ...row, detail: { title: ge.hint, markdown: ge.fix } } : row];
   }
 }
 
@@ -198,6 +201,7 @@ async function act(gs: Gif[], action: string | undefined): Promise<Effect> {
 }
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
+  if (id === "hint:failed") return { open: "pal://settings/extensions?anchor=extensions:gifs:giphy_api_key" };
   const gs = (ctx?.ids ?? [id]).map((i) => held.get(i));
   if (gs.some((g) => !g)) return toast("GIF is gone", "The listing changed; pick again", "failure");
   return act(gs as Gif[], action);
