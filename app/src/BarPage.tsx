@@ -7,7 +7,7 @@ import { menuKind, type BarPayload, type BarShow } from "./bar";
 import { mark, surface, useCore, useLiveViews } from "./core";
 import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
 import type { Item } from "./ui/types";
-import { POPOVER_CHROME, POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
+import { POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
 import { installMissing, missingInfo, opened } from "./store";
 
 const hide = () => invoke("bar_hide");
@@ -125,9 +125,8 @@ export default function BarPage() {
     let raf = 0;
     const measure = () => {
       raf = 0;
-      // The chrome as drawn: the sidebar hides its field while peeking and has no footer, so the popover's fixed sum would leave a gap.
-      const chrome = sidebar ? (el.querySelector<HTMLElement>(".pal-panel__search")?.offsetHeight ?? 0) + (el.querySelector<HTMLElement>(".pal-footer")?.offsetHeight ?? 0) : POPOVER_CHROME;
-      const height = popoverHeight(el, chrome, MAX_HEIGHT);
+      // The chrome as drawn (popover-size.ts `chromeOf`): the sidebar hides its field while peeking, a design sizes its rows and footer its own way.
+      const height = popoverHeight(el, undefined, MAX_HEIGHT);
       const sized = invoke("bar_size", { height });
       // A fresh item drawn: once the webview has the new height laid out (a frame or two after the window took it) and two more frames have painted it (WebKit's layer lags the window's size by one), the popover is told to show.
       // The new item's content, not the last one's still on screen: the body says something else now (or it is the same item again).
