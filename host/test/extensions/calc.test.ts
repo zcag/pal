@@ -146,7 +146,7 @@ describe("numbers", () => {
 
 describe("units", () => {
   test("the common phrasings, rounded to 6 significant digits, the unit as accessory", async () => {
-    expect(await calc("5 km to miles")).toEqual([{ id: "result", name: "3.10686 miles", subtitle: "5 km to miles", icon: "\u{f01fc}", hero: true, accessories: [{ text: "miles" }], actions: ACTIONS }]);
+    expect(await calc("5 km to miles")).toEqual([{ id: "result", name: "3.10686 miles", subtitle: "5 km to miles", icon: "\u{f01fc}", hero: true, actions: ACTIONS }]);
     expect(await first("72 f to c")).toBe("22.2222 °C");
     expect(await first("72f to c")).toBe("22.2222 °C");
     expect(await first("212 °F to °C")).toBe("100 °C");
@@ -168,16 +168,15 @@ describe("units", () => {
 });
 
 describe("currency", () => {
-  test("12 usd to try: the conversion, the rate and its date, the reverse row, a detail", async () => {
+  test("12 usd to try: the conversion, the rate and its date, the reverse row, a pane with the rate both ways", async () => {
     const rows = await calc("12 usd to try");
     expect(rows.map((r) => [r.id, r.name, r.subtitle])).toEqual([["result", "583.68 TRY", "12 USD to TRY"], ["reverse", "0.25 USD", "12 TRY to USD"]]);
     expect(texts(rows[0])).toEqual(["1 USD = 48.6403 TRY", "rates 2026-09-15"]);
     expect(rows[0].actions).toEqual(ACTIONS);
     const d = rows[0].detail!;
-    expect(d.markdown).toBe("**12.00 USD** = **583.68 TRY**");
-    expect(d.metadata!.map((m) => [m.label, m.value ?? m.link?.text])).toEqual([
-      ["Rate", "1 USD = 48.6403 TRY"], ["Inverse", "1 TRY = 0.0205591 USD"], ["From", "US Dollar (USD)"], ["To", "Turkish Lira (TRY)"], ["Rates", "2026-09-15"], ["Source", "European Central Bank via frankfurter.dev"],
-    ]);
+    expect([d.caption, d.title]).toEqual(["US Dollar to Turkish Lira", "12.00 USD = 583.68 TRY"]);
+    expect(d.stats).toEqual([{ value: "48.6403", label: "TRY per USD" }, { value: "0.0205591", label: "USD per TRY" }]);
+    expect(d.metadata!.map((m) => [m.label, m.value ?? m.link?.text])).toEqual([["Rates of", "2026-09-15"], ["Source", "European Central Bank via frankfurter.dev"]]);
   });
 
   test("symbols, names, codes in any case, `in`, shorthand amounts, an amount expression", async () => {
@@ -391,6 +390,7 @@ describe("variables", () => {
     expect(await rows("salary_month in rent")).toEqual([["10.84 rent", "9,360.00 USD / 42,000.00 TRY", ["1,084%"]]]);
     expect(await rows("5 km in lap")).toEqual([["100 pool", "5 km / 50 m", ["10,000%"]], ["12.5 track", "5 km / 400 m", ["1,250%"]]]);
     expect(await rows("5 kg in lap_pool")).toEqual([["0.1 kg/m per lap_pool", "5 kg / 50 m", []]]); // no cancel: the quotient, per the name
+    expect((await calc("1500 usd in salary")).map((r) => r.hero)).toEqual([true, undefined, undefined]); // the largest count is the answer
   });
 
   test("an `in` naming no variable or prefix is the conversion it was", async () => {
