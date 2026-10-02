@@ -752,8 +752,8 @@
           "description": "A `pal://` link that acts (`run`, `form`, `paste`, `open?url=`, an\nextension's route; a web page can emit one) shows a confirm card\nfirst. `true` asks; `false` runs it straight away, for scripts that\ndrive pal by link; a list of extension names asks for everything\nexcept links into those extensions (a name covers every instance of\nit, a key one instance). `install`, `update`, `remove` and\n`instance/*` always ask; the CLI never does (docs/design/links.md)."
         },
         "design": {
-          "default": "",
-          "description": "One of pal's built-in designs (`app/src/ui/designs/`): how the panel,\nthe popovers and Settings are drawn beyond colour, such as the\ntype, the cursor row and where the keys sit. Empty, or a name\npal does not know, is pal's own. A theme file applies over it.",
+          "default": "ink",
+          "description": "One of pal's built-in designs (`app/src/ui/designs/`): how the panel,\nthe popovers and Settings are drawn beyond colour, such as the\ntype, the cursor row and where the keys sit. `ink` (the default),\n`frappe`, or `classic` (pal's first look); a name pal does not\nknow is the default. A theme file applies over it.",
           "type": "string"
         },
         "extension_dirs": {
@@ -1244,7 +1244,7 @@
         "check_updates": true,
         "compact": false,
         "deeplink_confirm": true,
-        "design": "",
+        "design": "ink",
         "extension_dirs": [],
         "fallbacks": [
           "web",

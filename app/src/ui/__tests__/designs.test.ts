@@ -18,10 +18,10 @@ const colourish = (v: string) => /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i.test(v);
 describe("designs", () => {
   it("every CSS file is listed, and every listed design has one", () => {
     const ids = readdirSync(dir).filter((f) => f.endsWith(".css")).map((f) => f.slice(0, -".css".length)).sort();
-    expect(ids).toEqual(DESIGNS.filter((d) => d.id).map((d) => d.id).sort());
+    expect(ids).toEqual(DESIGNS.filter((d) => !d.bare).map((d) => d.id).sort());
   });
 
-  for (const d of DESIGNS.filter((d) => d.id)) {
+  for (const d of DESIGNS.filter((d) => !d.bare)) {
     it(`${d.id}: the dark blocks set every colour the light one does, the same in both`, () => {
       const text = css(d.id);
       const light = block(text, `[data-design~="${d.id}"],\n[data-design~="${d.id}"] [data-theme="light"]`);

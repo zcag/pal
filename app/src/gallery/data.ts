@@ -158,7 +158,7 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 import { lookDefaults, type BarConfig, type BarItem, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PermissionsStatus, type SettingSpec, type SettingsExtension } from "../ui/SettingsTypes";
 import type { Listing, StoreState } from "../store";
 
-export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", design: "", launchAtLogin: true, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
+export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", design: "ink", launchAtLogin: true, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
 /** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
 /** Every entry's fate as the gallery's General page fakes it: ⌘Space is Spotlight's, anything else registers. */
 export const settingsHotkeyStatus = (hotkeys: string[]): HotkeyStatus => {

@@ -18,7 +18,7 @@ import {
   useThemeFile,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
-import { designOf } from "./ui/designs";
+import { DESIGNS, designOf } from "./ui/designs";
 import { screenshotUrl } from "./ui/icons";
 import { iconOf } from "./items";
 import { ok, store, useStore, type Status, type StoreState } from "./store";
@@ -475,7 +475,8 @@ export default function Settings() {
     // `general.hotkey` keeps the spelling the file has (a string stays a string) until a second entry needs the list.
     if (next.hotkeys.join("\n") !== general.hotkeys.join("\n")) write(["general", "hotkey"], Array.isArray(config.general.hotkey) || next.hotkeys.length > 1 ? next.hotkeys : (next.hotkeys[0] ?? ""));
     if (next.theme !== general.theme) write(["general", "theme"], next.theme);
-    if (next.design !== general.design) write(["general", "design"], next.design || undefined);
+    // The default (Ink) is the key left out.
+    if (next.design !== general.design) write(["general", "design"], next.design === DESIGNS[0].id ? undefined : next.design);
     if ((next.glance ?? []).join("\n") !== (general.glance ?? []).join("\n")) write(["general", "glance"], next.glance);
     if (next.launchAtLogin !== general.launchAtLogin) write(["general", "launch_at_login"], next.launchAtLogin);
     if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);

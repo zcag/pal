@@ -175,8 +175,9 @@ pub struct General {
     pub theme_file: String,
     /// One of pal's built-in designs (`app/src/ui/designs/`): how the panel,
     /// the popovers and Settings are drawn beyond colour, such as the
-    /// type, the cursor row and where the keys sit. Empty, or a name
-    /// pal does not know, is pal's own. A theme file applies over it.
+    /// type, the cursor row and where the keys sit. `ink` (the default),
+    /// `frappe`, or `classic` (pal's first look); a name pal does not
+    /// know is the default. A theme file applies over it.
     pub design: String,
     /// The glance strip: bar items (`extension/id` keys, at most four) whose
     /// current state shows as cards over the empty root, in this order, in a
@@ -300,7 +301,7 @@ impl Default for General {
             hotkey: Hotkeys::default(),
             theme: Theme::System,
             theme_file: String::new(),
-            design: String::new(),
+            design: "ink".into(),
             glance: ["calendar/upcoming", "spotify/playing", "gmail/unread", "weather/weather"].map(String::from).to_vec(),
             compact: false,
             launch_at_login: false,

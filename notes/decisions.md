@@ -2191,3 +2191,11 @@ icon tiles) and asked to see Frappé on more screens.
   and crumb vanished on dark.
 - **Frappé**, a design built on Ink (`base`): `data-design="ink frappe"`,
   Ink's rules match a word, Frappé's file re-sets colours only.
+
+### Ink is the default design (2026-10-03)
+
+Cagdas chose Ink as what every install gets: `general.design` defaults to
+`ink`, an empty or unknown value means it, Settings writes the key only for
+another design. The first look is kept as `classic` (no CSS of its own:
+`bare`, no attribute). The gallery renders Ink unless a shot names another
+design, so the store's pictures, the landing and the docs show Ink.

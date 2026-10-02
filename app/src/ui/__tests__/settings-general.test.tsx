@@ -10,7 +10,7 @@ const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: 
 import { permissionRows, type GeneralConfig } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", design: "", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", design: "ink", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
 const noop = () => {};
 const page = (props: Partial<Parameters<typeof SettingsGeneral>[0]>) =>
   renderToStaticMarkup(<SettingsGeneral value={general} onChange={noop} file={{ path: "~/.config/pal/config.toml" }} {...props} />);
