@@ -10,8 +10,8 @@
 import { column, keyHint, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
 import { SIZE, TARGET, actions as legal, phase, type Action as Move, type Settings, type State } from "./game.ts";
 
-/** 64 px tiles with 8 px gaps in an 8 px well make a 296 px board: four rows plus a header fit the panel. */
-export const TILE = 64;
+/** 60 px tiles with 8 px gaps in an 8 px well make a 280 px board: four rows, the score's headline and the hint line fit the view body. */
+export const TILE = 60;
 
 type Tile = Extract<ViewNode, { type: "tile" }>;
 type Look = Pick<Tile, "color" | "fill">;
@@ -73,17 +73,21 @@ export function render(st: State, s: Settings): View {
     { key: "board", gap: 2, padding: 2, surface: "sunken", radius: true },
   );
 
+  // The score leads as the view's headline; the best and the move count sit beside it, quiet.
   const header = row(
     [
-      text("Score", { style: "muted", size: "xs" }),
-      text(num(st.score), { key: `score-${st.score}`, style: "number", size: "md", transition: { enter: "fade", exit: "none" } }),
-      { type: "divider" },
-      text("Best", { style: "muted", size: "xs" }),
-      text(num(st.best), { key: `best-${st.best}`, style: "number", size: "md", transition: { enter: "fade", exit: "none" } }),
-      { type: "divider" },
-      text(`${num(st.moves)} move${st.moves === 1 ? "" : "s"}`, { style: "muted", size: "xs" }),
+      text(num(st.score), { key: `score-${st.score}`, style: "headline", transition: { enter: "fade", exit: "none" } }),
+      row(
+        [
+          text("Best", { style: "muted", size: "xs" }),
+          text(num(st.best), { key: `best-${st.best}`, style: "number", size: "sm", transition: { enter: "fade", exit: "none" } }),
+          { type: "divider" },
+          text(`${num(st.moves)} move${st.moves === 1 ? "" : "s"}`, { style: "muted", size: "xs" }),
+        ],
+        { key: "side" },
+      ),
     ],
-    { key: "header", minHeight: 20 },
+    { key: "header", justify: "between" },
   );
 
   let title: string, line: ViewNode[];
@@ -96,7 +100,7 @@ export function render(st: State, s: Settings): View {
   } else if (ph === "over") {
     title = "Game over";
     line = [
-      text(`Game over at ${num(st.score)}`, { key: "over", style: "title", color: "destructive", transition: { enter: "slide-up" } }),
+      text("Game over", { key: "over", style: "title", color: "destructive", transition: { enter: "slide-up" } }),
       row([...hint(["enter"], "new game"), ...(st.prev && s.undo ? hint(["u"], "undo") : [])], { key: "over-keys", gap: 1, transition: { enter: "fade" } }),
     ];
   } else {
@@ -107,7 +111,7 @@ export function render(st: State, s: Settings): View {
   // The header and the hint line take the board's width: the inner column is as wide as the board, the outer centres it.
   const tree = column(
     [column([header, board, row(line, { key: "line", gap: 3, minHeight: 24, justify: "center" })], { key: "game", gap: 2 })],
-    { key: "table", padding: 4, grow: true, align: "center", justify: "center" },
+    { key: "table", grow: true, align: "center", justify: "center" },
   );
 
   const acts = legal(st, s).map((m) => (m === "new" && ph === "play" && st.moves ? { ...MOVES.new, confirm: "Start a new game? The board and the score are lost." } : MOVES[m]));

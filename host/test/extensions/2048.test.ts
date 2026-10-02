@@ -229,7 +229,8 @@ describe("render", () => {
     const o = checkView(render(over, DEFAULTS));
     expect(o.title).toBe("Game over");
     expect(o.actions[0]).toEqual({ id: "new", title: "New game", shortcut: "n" });
-    expect(find(o.tree, (n) => n.type === "text" && n.value === "Game over at 1,234")).toHaveLength(1);
+    expect(find(o.tree, (n) => n.type === "text" && n.value === "Game over")).toHaveLength(1);
+    expect(find(o.tree, (n) => n.type === "text" && n.style === "headline").map((n) => n.type === "text" && n.value)).toEqual(["1,234"]);
   });
   test("a fresh board is titled New game and its New game asks nothing", () => {
     const v = render(newGame(undefined, first), DEFAULTS);

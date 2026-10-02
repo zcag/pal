@@ -26,7 +26,7 @@
     "tagline": "2048 in the panel, keyboard only; the board persists",
     "category": "fun",
     "features": [
-      "Arrows or `hjkl` slide the tiles; the score sits in the title",
+      "Arrows or `hjkl` slide the tiles; the score leads above the board, the best and the move count beside it",
       "The classic rules: equal tiles merge once per move, a new 2 or 4 lands after every move",
       "Tiles slide, merge and pop in, coloured by value",
       "`U` takes a move back (a setting); `N` starts over, asking first mid-game",
@@ -41,7 +41,7 @@
     "screenshots": [
       {
         "file": "1-board.png",
-        "caption": "Mid-game: the score, the best and the move count above the board, the keys under it"
+        "caption": "Mid-game: the score leads, the best and the move count beside it, the keys under the board"
       },
       {
         "file": "2-won.png",

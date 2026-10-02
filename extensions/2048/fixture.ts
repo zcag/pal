@@ -57,7 +57,7 @@ const fixture = {
   },
   // True colour: on the dark wallpaper the 256-colour quantisation moves the tile colours (the icon came out salmon).
   shots: {
-    "1-board": { palette: "2048", keys: ["wait:400"], caption: "Mid-game: the score, the best and the move count above the board, the keys under it" },
+    "1-board": { palette: "2048", keys: ["wait:400"], caption: "Mid-game: the score leads, the best and the move count beside it, the keys under the board" },
     "2-won": { palette: "2048", keys: ["wait:300", "right", "wait:900"], caption: "The first 2048: keep going or start over" },
     "3-over": { palette: "2048-end", keys: ["wait:300", "up", "wait:900"], caption: "Game over: no move left, the score, Enter for a new game" },
   },
