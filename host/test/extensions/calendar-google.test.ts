@@ -153,16 +153,14 @@ describe("google source", () => {
     expect(rest.map((r) => [r.name, r.section, (r.accessories![0] as { tag: string }).tag])).toEqual([["Weekly sync", "Today", "in 12 min"], ["Design review: settings window", "Today", "in 1 h"], ["Dentist", "Today", "in 5 h 30 min"], ["1:1 with Mara", "Tomorrow", "in 24 h"]]);
     const d = await host.detail(E, "today", rid("personal:design", "2026-09-16T11:00:00Z"));
     expect(d.markdown).toBe("Walk through the six pages.\n- Overview first\n- One grouped table\nNotes: doc & agenda");
+    expect(d).toMatchObject({ caption: "Wed 16 Sep 2026, 11:00 – 12:00 (1 h) · Personal (personal)", chips: [{ text: "tentative", color: "amber" }] });
     expect(d.metadata).toEqual([
-      { label: "When", value: "Wed 16 Sep 2026, 11:00 – 12:00 (1 h)" },
-      { label: "Calendar", tags: [{ text: "Personal (personal)" }] },
       { label: "Location", value: "Room 4" },
       { label: "Call", link: { text: "meet.google.com/abc-defg-hij", href: "https://meet.google.com/abc-defg-hij" } },
       { label: "Attendees (4)", tags: [{ text: "Mara Lind", color: "green" }, { text: "someone@gmail.com (you)", color: "amber" }, { text: "Tomas Ruiz", color: "grey" }, { text: "Ada Chen", color: "red" }] },
-      { label: "Your reply", tags: [{ text: "tentative", color: "amber" }] },
     ]);
     const std = await host.detail(E, "today", rid("personal:standup_20260916T093000Z", "2026-09-16T09:30:00Z"));
-    expect(std.metadata).toContainEqual({ label: "Repeats", value: "yes" });
+    expect(std.chips).toContainEqual({ text: "repeats", color: "grey" });
     expect(std.metadata).toContainEqual({ label: "Organizer", value: "Mara Lind" });
   });
 

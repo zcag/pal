@@ -530,23 +530,20 @@ describe("calendar extension", () => {
     } finally { h2.kill(); }
   });
 
-  test("lazy detail: notes as markdown, when, calendar, call, organizer, attendees with their replies", async () => {
+  test("lazy detail: a header (when and the calendar, the title, the reply and repeats), notes as markdown, call, organizer, attendees with their replies", async () => {
     await list();
     const d = await host.detail(E, P, rid(events[0]));
+    expect(d).toMatchObject({ caption: "Wed 16 Sep 2026, 10:20 – 10:50 (30 min) · Work (Google)", title: events[0].title, chips: [{ text: "accepted", color: "green" }, { text: "repeats", color: "grey" }] });
     expect(d.markdown).toBe("Daily sync\n\n- items");
     expect(d.metadata).toEqual([
-      { label: "When", value: "Wed 16 Sep 2026, 10:20 – 10:50 (30 min)" },
-      { label: "Calendar", tags: [{ text: "Work (Google)" }] },
       { label: "Location", value: ZOOM },
       { label: "Call", link: { text: ZOOM.replace("https://", "").slice(0, 60), href: ZOOM } },
       { label: "Organizer", value: "terry@serpapi.com" },
       { label: "Attendees (2)", tags: [{ text: "Terry", color: "green" }, { text: "Cagdas (you)", color: "green" }] },
-      { label: "Your reply", tags: [{ text: "accepted", color: "green" }] },
-      { label: "Repeats", value: "yes" },
     ]);
     const plain = await host.detail(E, P, rid(events[6]));
-    expect(plain.markdown).toBe("# Republic Day");
-    expect(plain.metadata![0]).toEqual({ label: "When", value: "Mon 21 Sep 2026 (all day)" });
+    expect(plain).toMatchObject({ caption: expect.stringMatching(/^Mon 21 Sep 2026 \(all day\) · /), title: "Republic Day" });
+    expect(plain.markdown).toBeUndefined();
     expect(await host.detail(E, P, "new")).toEqual({});
   });
 
