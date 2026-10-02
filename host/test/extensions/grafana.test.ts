@@ -117,8 +117,9 @@ describe("api helpers", () => {
     ] }], [{ labels: { alertname: "A", host: "y", __alert_rule_uid__: "a" }, status: { state: "suppressed", silencedBy: ["s"] } }], "http://g");
     const v = renderBar({ rows, focus: 1, now: Date.parse("2026-09-22T00:00:00Z"), account: "Home" });
     expect(() => checkView(v, "test")).not.toThrow();
-    expect(v.title).toBe("1 firing, 1 pending, 1 silenced (Home)");
-    expect(texts(v.tree)).toEqual(["Firing", "[2]", "A", "x down", "[critical]", "1d", "A", "host=y", "[silenced]", "", "Pending", "[1]", "B", "", "", "rule", "dashboard", "unsilence", "copy", "pal", "move"]);
+    // The count leads as the headline, the rest under it; the title is the account's.
+    expect(v.title).toBe("Grafana alerts (Home)");
+    expect(texts(v.tree)).toEqual(["1 firing", "1 pending · 1 silenced", "Firing", "[2]", "A", "x down", "[critical]", "1d", "A", "host=y", "[silenced]", "", "Pending", "[1]", "B", "", "", "rule", "dashboard", "unsilence", "copy", "pal", "move"]);
     expect(v.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "dashboard", "unsilence", "copy", "pal", "refresh", "site"]);
     expect(renderBar({ rows, focus: 0, now: 0 }).actions.filter((a) => !a.hidden).map((a) => [a.id, a.shortcut]).slice(2, 5)).toEqual([["silence:1h", "s"], ["silence:4h", "f"], ["silence:1d", "d"]]);
     const empty = renderBar({ rows: [], focus: 0, now: 0 });
@@ -225,9 +226,8 @@ describe("dashboards", () => {
 
   test("the pane: the description, the facts, and the first three time series panels as sparklines from one query call (a templated panel skipped, a collapsed row's panel reached, the unit on the caption)", async () => {
     const d = await host.detail(E, "grafana", "battery");
+    expect(d).toMatchObject({ caption: "General", title: "Battery & Power", chips: [{ text: "cagdas" }, { text: "power" }, { text: "hornet" }] });
     expect(d.metadata).toEqual([
-      { label: "Folder", value: "General" },
-      { label: "Tags", tags: [{ text: "cagdas" }, { text: "power" }, { text: "hornet" }] },
       { label: "Time range", value: "now-12h to now, refreshed every 30s" },
       { label: "Panels", value: "6: 4 timeseries, 1 stat, 1 text" },
       { label: "UID", value: "battery", link: { text: "Open in Grafana", href: `${BASE}/d/battery/battery-and-power` } },
@@ -282,9 +282,9 @@ describe("alerts", () => {
   test("rows: firing first with the summary, a red or amber tag, the severity, the date; the folder and labels as keywords; the actions with the three silences", async () => {
     const rows = await list("alerts");
     expect(rows.map((r) => [r.id.split(":")[0], r.name, r.subtitle])).toEqual([["alert-battery-low", "HA battery low", "Front door at 8%"], ["alert-battery-low", "HA battery low", "Keypad at 12%"], ["alert-disk", "Disk > 87%", "marko / at 88%"]]);
-    expect(rows[0]).toMatchObject({ icon: { glyph: "\u{f0d59}", color: "red" }, accessories: [{ tag: "firing", color: "red" }, { text: "warning" }, { date: "2026-09-16T23:37:50Z" }] });
+    expect(rows[0]).toMatchObject({ icon: { glyph: "\u{f0d59}", color: "red" }, accessories: [{ tag: "warning", color: "amber" }, { date: "2026-09-16T23:37:50Z" }] });
     expect(rows[0].keywords).toEqual(["firing", "alerts", "sensor.front_door_battery", "Front door", "archer", "warning"]);
-    expect(rows[2]).toMatchObject({ icon: { glyph: "\u{f009a}", color: "amber" }, accessories: [{ tag: "pending", color: "amber" }, { text: "critical" }, { date: "2026-09-21T22:50:00Z" }] });
+    expect(rows[2]).toMatchObject({ icon: { glyph: "\u{f009a}", color: "amber" }, accessories: [{ tag: "critical", color: "red" }, { date: "2026-09-21T22:50:00Z" }] });
     expect(rows[0].actions!.map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["dashboard", "cmd+enter"], ["silence:1h", "cmd+s"], ["silence:4h", "cmd+shift+s"], ["silence:1d", "cmd+d"], ["copy", "cmd+c"], ["labels", "cmd+l"]]);
     // Worded for one alert or several (the shell adds how many); every action takes marked alerts.
     expect(rows[0].actions![2].confirm).toBe("Silence for 1 hour? Every instance matching the labels stays quiet until then.");
@@ -304,12 +304,10 @@ describe("alerts", () => {
     const rows = await list("alerts");
     const d = await host.detail(E, "alerts", rows[0].id);
     expect(d.markdown).toBe("**Front door at 8%**\n\nA device battery dropped below 20%.");
+    expect(d).toMatchObject({ caption: "alerts", title: "HA battery low", chips: [{ text: "firing", color: "red" }, { text: "warning", color: "amber" }], stats: [{ value: "8", label: "value" }, { label: "firing", color: "red" }] });
     expect(d.metadata).toEqual([
-      { label: "Rule", value: "HA battery low", link: { text: "Open in Grafana", href: `${BASE}/alerting/grafana/alert-battery-low/view` } },
-      { label: "State", tags: [{ text: "firing", color: "red" }, { text: "warning", color: "amber" }] },
+      { label: "Rule", link: { text: "Open in Grafana", href: `${BASE}/alerting/grafana/alert-battery-low/view` } },
       { label: "Since", value: expect.stringMatching(/^\w{3} 1[67] Sep/) },
-      { label: "Folder", value: "alerts" },
-      { label: "Value", value: "8" },
       { label: "Labels", tags: [{ text: "entity=sensor.front_door_battery" }, { text: "friendly_name=Front door" }, { text: "host=archer" }, { text: "severity=warning" }] },
       { label: "Dashboard", link: { text: "/d/ha", href: "https://grafana.example.com/d/ha" } },
     ]);
@@ -340,7 +338,7 @@ describe("alerts", () => {
     expect(b).toMatchObject({ createdBy: "pal", comment: "HA battery low: silenced from pal for 1 hour" });
     await host.until(() => host.coreCalls.filter((c) => c.method === "bar.refresh").length > before, 2000, "bar.refresh");
     const again = await list("alerts");
-    expect(again[0]).toMatchObject({ icon: { glyph: "\u{f009b}", color: "slate" }, accessories: [{ tag: "firing", color: "red" }, { text: "warning" }, { tag: "silenced" }, { date: "2026-09-16T23:37:50Z" }] });
+    expect(again[0]).toMatchObject({ icon: { glyph: "\u{f009b}", color: "slate" }, accessories: [{ tag: "warning", color: "amber" }, { tag: "silenced" }, { date: "2026-09-16T23:37:50Z" }] });
     expect(again[0].actions!.map((a) => a.id)).toEqual(["open", "dashboard", "unsilence", "copy", "labels"]);
     expect(again[1].actions!.map((a) => a.id)).toContain("silence:1h");
     // The next listing reads the Alertmanager, which now knows the silence too.
@@ -452,8 +450,8 @@ describe("bar", () => {
     expect(item.empty).toMatchObject({ icon: "", tooltip: "No alert is firing on Grafana" });
     const v = viewOf(item.menu);
     expect(() => checkView(v, "test")).not.toThrow();
-    expect(v).toMatchObject({ id: "alerts", keys: "actions", title: "2 firing, 1 pending" });
-    expect(texts(v.tree).slice(0, 5)).toEqual(["Firing", "[2]", "HA battery low", "Front door at 8%", "[warning]"]);
+    expect(v).toMatchObject({ id: "alerts", keys: "actions", title: "Grafana alerts" });
+    expect(texts(v.tree).slice(0, 7)).toEqual(["2 firing", "1 pending", "Firing", "[2]", "HA battery low", "Front door at 8%", "[warning]"]);
     expect(calls("GET", "/api/prometheus/grafana/api/v1/rules?state=firing&state=pending")).toHaveLength(1);
     // The timer's render within the cache window is no call.
     await host.render(E, "alerts", { reason: "every" });
@@ -463,7 +461,7 @@ describe("bar", () => {
     const after = await host.render(E, "alerts", { reason: "every" });
     expect(after.states).toEqual({ firing: 1, pending: 1 });
     expect(after.segments!.map((s) => s.text)).toEqual(["1", "1"]);
-    expect(viewOf(after.menu).title).toBe("1 firing, 1 pending, 1 silenced");
+    expect(texts(viewOf(after.menu).tree).slice(0, 2)).toEqual(["1 firing", "1 pending · 1 silenced"]);
   });
 
   test("the popover's keys: arrows and a click move the cursor, Enter opens the rule, o the dashboard, c copies, p pushes the palette, a the list, r refreshes; s silences from the bar and the tree follows", async () => {

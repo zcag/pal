@@ -418,7 +418,7 @@
       },
       {
         "file": "2-alerts.png",
-        "caption": "What is firing and pending, by rule, with the summary and since when; the pane has the labels and the dashboard"
+        "caption": "What is firing and pending, by rule, with its severity and age; the pane leads with the rule, its state, value and how long, then the labels and the dashboard"
       },
       {
         "file": "3-silence.png",
@@ -444,13 +444,13 @@
       },
       {
         "file": "bar-popover.png",
-        "caption": "A click opens the popover: firing then pending, each with its summary and age; s silences, o opens the dashboard",
+        "caption": "A click opens the popover: the count leads, then firing and pending, each with its summary and age; s silences, o opens the dashboard",
         "kind": "bar",
         "box": [
           428,
           64,
           840,
-          876
+          960
         ]
       },
       {
