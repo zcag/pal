@@ -1,0 +1,119 @@
+/*
+ * Frappé (`general.design = "frappe"`): Ink's layout in Catppuccin, Frappé
+ * on dark and Latte on light, so pal matches a Catppuccin desktop (kitty,
+ * the bar). Built on Ink (designs/index.ts `base`): the attribute is
+ * `data-design="ink frappe"`, Ink's rules match it as a word and this file,
+ * loaded after Ink's, re-sets the colours only.
+ */
+
+[data-design~="frappe"],
+[data-design~="frappe"] [data-theme="light"] {
+  --pal-bg: #EFF1F5;
+  --pal-bg-glass: #EFF1F5;
+  --pal-bg-elevated: #E6E9EF;
+  --pal-bg-sunken: #DCE0E8;
+  --pal-fg: #4C4F69;
+  --pal-fg-muted: #5C5F77;
+  --pal-fg-faint: #6C6F85;
+  --pal-line: #CCD0DA;
+  --pal-line-strong: #BCC0CC;
+  --pal-selection: rgba(76, 79, 105, 0.06);
+  --pal-scrim: rgba(239, 241, 245, 0.6);
+  --pal-accent: #8839EF;
+  --pal-accent-fg: #FFFFFF;
+  --pal-accent-soft: rgba(136, 57, 239, 0.1);
+  --pal-cursor: rgba(136, 57, 239, 0.08);
+  --pal-cursor-fg: #4C4F69;
+  --pal-cursor-fg-muted: #5C5F77;
+  --pal-cursor-kbd: rgba(136, 57, 239, 0.08);
+  --pal-cursor-shadow: inset 0 0 0 1px rgba(136, 57, 239, 0.22);
+  --pal-ring: 0 0 0 1.5px #8839EF, 0 0 0 4px rgba(136, 57, 239, 0.12);
+  --pal-success: #40A02B;
+  --pal-destructive: #D20F39;
+  --pal-tag-green: #2E7D1F;
+  --pal-tag-green-bg: #DCEBD6;
+  --pal-tag-blue: #1E66F5;
+  --pal-tag-blue-bg: #DCE5F8;
+  --pal-tag-amber: #8A5A00;
+  --pal-tag-amber-bg: #F3E6CC;
+  --pal-tag-red: #B00D30;
+  --pal-tag-red-bg: #F4D9DE;
+  --pal-tag-violet: #7027D0;
+  --pal-tag-violet-bg: #E8DCF8;
+  --pal-shadow-panel: 0 0 0 1px rgba(76, 79, 105, 0.1), 0 30px 60px -24px rgba(76, 79, 105, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-design~="frappe"]:not([data-theme="light"]) {
+    --pal-bg: #303446;
+    --pal-bg-glass: #303446;
+    --pal-bg-elevated: #414559;
+    --pal-bg-sunken: #292C3C;
+    --pal-fg: #C6D0F5;
+    --pal-fg-muted: #B5BFE2;
+    --pal-fg-faint: #949CBB;
+    --pal-line: #414559;
+    --pal-line-strong: #51576D;
+    --pal-selection: rgba(198, 208, 245, 0.06);
+    --pal-scrim: rgba(48, 52, 70, 0.6);
+    --pal-accent: #CA9EE6;
+    --pal-accent-fg: #232634;
+    --pal-accent-soft: rgba(202, 158, 230, 0.16);
+    --pal-cursor: rgba(202, 158, 230, 0.14);
+    --pal-cursor-fg: #C6D0F5;
+    --pal-cursor-fg-muted: #B5BFE2;
+    --pal-cursor-kbd: rgba(198, 208, 245, 0.08);
+    --pal-cursor-shadow: inset 0 0 0 1px rgba(202, 158, 230, 0.26);
+    --pal-ring: 0 0 0 1.5px #CA9EE6, 0 0 0 4px rgba(202, 158, 230, 0.16);
+    --pal-success: #A6D189;
+    --pal-destructive: #E78284;
+    --pal-tag-green: #A6D189;
+    --pal-tag-green-bg: #3B4A3F;
+    --pal-tag-blue: #8CAAEE;
+    --pal-tag-blue-bg: #394260;
+    --pal-tag-amber: #E5C890;
+    --pal-tag-amber-bg: #4A4537;
+    --pal-tag-red: #E78284;
+    --pal-tag-red-bg: #4B3A42;
+    --pal-tag-violet: #CA9EE6;
+    --pal-tag-violet-bg: #463F57;
+    --pal-shadow-panel: 0 0 0 1px rgba(198, 208, 245, 0.08), 0 30px 60px -24px rgba(0, 0, 0, 0.7);
+  }
+}
+
+[data-design~="frappe"][data-theme="dark"],
+[data-design~="frappe"] [data-theme="dark"] {
+  --pal-bg: #303446;
+  --pal-bg-glass: #303446;
+  --pal-bg-elevated: #414559;
+  --pal-bg-sunken: #292C3C;
+  --pal-fg: #C6D0F5;
+  --pal-fg-muted: #B5BFE2;
+  --pal-fg-faint: #949CBB;
+  --pal-line: #414559;
+  --pal-line-strong: #51576D;
+  --pal-selection: rgba(198, 208, 245, 0.06);
+  --pal-scrim: rgba(48, 52, 70, 0.6);
+  --pal-accent: #CA9EE6;
+  --pal-accent-fg: #232634;
+  --pal-accent-soft: rgba(202, 158, 230, 0.16);
+  --pal-cursor: rgba(202, 158, 230, 0.14);
+  --pal-cursor-fg: #C6D0F5;
+  --pal-cursor-fg-muted: #B5BFE2;
+  --pal-cursor-kbd: rgba(198, 208, 245, 0.08);
+  --pal-cursor-shadow: inset 0 0 0 1px rgba(202, 158, 230, 0.26);
+  --pal-ring: 0 0 0 1.5px #CA9EE6, 0 0 0 4px rgba(202, 158, 230, 0.16);
+  --pal-success: #A6D189;
+  --pal-destructive: #E78284;
+  --pal-tag-green: #A6D189;
+  --pal-tag-green-bg: #3B4A3F;
+  --pal-tag-blue: #8CAAEE;
+  --pal-tag-blue-bg: #394260;
+  --pal-tag-amber: #E5C890;
+  --pal-tag-amber-bg: #4A4537;
+  --pal-tag-red: #E78284;
+  --pal-tag-red-bg: #4B3A42;
+  --pal-tag-violet: #CA9EE6;
+  --pal-tag-violet-bg: #463F57;
+  --pal-shadow-panel: 0 0 0 1px rgba(198, 208, 245, 0.08), 0 30px 60px -24px rgba(0, 0, 0, 0.7);
+}

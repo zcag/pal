@@ -9,7 +9,7 @@ import {
 } from "../ui";
 import type { FormValues, Item, ViewNode } from "../ui/types";
 import { Launcher } from "../Launcher";
-import { designOf } from "../ui/designs";
+import { designAttr, designOf } from "../ui/designs";
 import { iconOf } from "../items";
 import { toItem, type Raw } from "../fixtures";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
@@ -274,7 +274,7 @@ function Solo({ what }: { what: string }) {
 export default function Gallery() {
   const params = new URLSearchParams(location.search);
   // `&design=<id>` on any gallery page: a built-in design on <html> (designs/index.ts), as `general.design` puts it in the app; the pinned subtrees follow it (designs/*.css).
-  const design = designOf(params.get("design") ?? undefined).id;
+  const design = designAttr(designOf(params.get("design") ?? undefined));
   if (design) document.documentElement.dataset.design = design;
   const solo = params.get("gallery");
   if (solo?.startsWith("settings")) return <Solo what={solo} />;

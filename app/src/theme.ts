@@ -16,7 +16,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { designOf } from "./ui/designs";
+import { designAttr, designOf } from "./ui/designs";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -47,7 +47,7 @@ export function applyDensity(compact: boolean | undefined) {
 /** `general.design` onto <html data-design>: a built-in design's id, or the attribute gone for pal's own (empty or unknown). */
 export function applyDesign(design: string | undefined) {
   const el = document.documentElement;
-  const id = designOf(design).id;
+  const id = designAttr(designOf(design));
   if (id) el.dataset.design = id;
   else delete el.dataset.design;
 }

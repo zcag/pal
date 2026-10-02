@@ -16,7 +16,7 @@
  * light one would leak into dark.
  */
 
-[data-design="ink"] {
+[data-design~="ink"] {
   --pal-font-ui: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --pal-font-query: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
   --pal-text-xs: 11.5px;
@@ -74,8 +74,8 @@
   --pal-cursor-row-shadow: none;
 }
 
-[data-design="ink"],
-[data-design="ink"] [data-theme="light"] {
+[data-design~="ink"],
+[data-design~="ink"] [data-theme="light"] {
   --pal-bg: #FFFFFF;
   --pal-bg-glass: #FFFFFF;
   --pal-bg-elevated: #FFFFFF;
@@ -103,8 +103,8 @@
 }
 
 /* Compact keeps its geometry over the design's (tokens.css's compact block would otherwise lose to the one above). */
-[data-design="ink"][data-density="compact"],
-[data-design="ink"] [data-density="compact"] {
+[data-design~="ink"][data-density="compact"],
+[data-design~="ink"] [data-density="compact"] {
   --pal-search-h: 48px;
   --pal-text-query: 20px;
   --pal-text-placeholder: 16px;
@@ -118,18 +118,18 @@
 }
 
 /* ⌘K as a sheet across the panel's bottom: two columns, the item it acts on as its heading, the keys as plain text. */
-[data-design="ink"] {
+[data-design~="ink"] {
   --pal-actions-left: var(--pal-space-2);
   --pal-actions-w: auto;
   --pal-actions-cols: repeat(2, minmax(0, 1fr));
 }
-[data-design="ink"] .pal-actions { border-radius: 16px; }
-[data-design="ink"] .pal-actions__title { font-family: var(--pal-font-query); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--pal-fg); padding: var(--pal-space-1) var(--pal-space-2) var(--pal-space-2); }
-[data-design="ink"] .pal-actions .pal-kbd kbd { background: transparent; box-shadow: none; min-width: 0; padding: 0 1px; color: var(--pal-fg-faint); }
-[data-design="ink"] .pal-actions__search { border-top: 0; }
+[data-design~="ink"] .pal-actions { border-radius: 16px; }
+[data-design~="ink"] .pal-actions__title { font-family: var(--pal-font-query); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--pal-fg); padding: var(--pal-space-1) var(--pal-space-2) var(--pal-space-2); }
+[data-design~="ink"] .pal-actions .pal-kbd kbd { background: transparent; box-shadow: none; min-width: 0; padding: 0 1px; color: var(--pal-fg-faint); }
+[data-design~="ink"] .pal-actions__search { border-top: 0; }
 
 /* A bar popover is a 420-wide window: its header row a size down from the panel's headline (the sidebar keeps its own, smaller). */
-[data-design="ink"] .pal-bar-page:not([data-sidebar]) {
+[data-design~="ink"] .pal-bar-page:not([data-sidebar]) {
   --pal-search-h: 52px;
   --pal-text-query: 20px;
   --pal-text-placeholder: 16px;
@@ -137,7 +137,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  [data-design="ink"]:not([data-theme="light"]) {
+  [data-design~="ink"]:not([data-theme="light"]) {
     /* dark */
     --pal-bg: #1B1B20;
     --pal-bg-glass: #1B1B20;
@@ -167,8 +167,8 @@
   }
 }
 
-[data-design="ink"][data-theme="dark"],
-[data-design="ink"] [data-theme="dark"] {
+[data-design~="ink"][data-theme="dark"],
+[data-design~="ink"] [data-theme="dark"] {
   --pal-bg: #1B1B20;
   --pal-bg-glass: #1B1B20;
   --pal-bg-elevated: #24242A;
