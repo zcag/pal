@@ -147,8 +147,10 @@ describe("immich", () => {
     // Every photo action takes marked tiles; the other favourite rides at the end without a key, so a mix goes either way.
     expect(items[0].actions!.every((a) => a.multi)).toBe(true);
     expect(items[0].actions!.at(-1)).toEqual({ id: "unfav", title: "Unfavourite", multi: true });
-    expect(items[0].detail!.metadata).toEqual([{ label: "Taken", value: "21 Sep 2026 18:18" }, { label: "Size", value: "946 × 2048 · 120 KB · JPEG" }, { label: "File", value: "IMG-20260921-WA0012.jpg" }]);
-    expect(items[4].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Place", link: { text: "Serdivan, Sakarya, Türkiye", href: "https://www.google.com/maps/search/?api=1&query=40.760042,30.364075" } }, { label: "Camera", value: "Apple iPhone 13 mini" }, { label: "Lens", value: "iPhone 13 mini back dual wide camera 5.1mm f/1.6" }, { label: "Exposure", value: "ƒ/1.6 · 1/100 s · ISO 100 · 5.1 mm" }, { label: "Size", value: "4032 × 3024 · 2.6 MB · HEIC" }]));
+    expect(items[0].detail).toMatchObject({ caption: "Photo", title: "21 Sep 2026 18:18", chips: [], stats: [] });
+    expect(items[0].detail!.metadata).toEqual([{ label: "Size", value: "946 × 2048 · 120 KB · JPEG" }, { label: "File", value: "IMG-20260921-WA0012.jpg" }]);
+    expect(items[4].detail!.caption).toBe("Serdivan, Sakarya, Türkiye");
+    expect(items[4].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Map", link: { text: "Serdivan, Sakarya, Türkiye", href: "https://www.google.com/maps/search/?api=1&query=40.760042,30.364075" } }, { label: "Camera", value: "Apple iPhone 13 mini" }, { label: "Lens", value: "iPhone 13 mini back dual wide camera 5.1mm f/1.6" }, { label: "Exposure", value: "ƒ/1.6 · 1/100 s · ISO 100 · 5.1 mm" }, { label: "Size", value: "4032 × 3024 · 2.6 MB · HEIC" }]));
     expect(items.at(-1)).toMatchObject({ name: "More…", subtitle: "24 shown", actions: [{ id: "more", title: "Load more" }] });
     expect(readdirSync(join(cache, "thumbs"))).toHaveLength(24);
     const n = requests.length;
@@ -211,7 +213,7 @@ describe("immich", () => {
     const archived = await list("receipt", { filter: "archived" });
     expect(last().body).toMatchObject({ visibility: "archive" });
     expect(names(archived)).toEqual(["2 Dec 2020"]);
-    expect(archived[0].detail!.metadata![0]).toEqual({ label: "Taken", value: "2 Dec 2020 11:23", tags: [{ text: "archived", color: "grey" }] });
+    expect(archived[0].detail).toMatchObject({ title: "2 Dec 2020 11:23", chips: [{ text: "archived", color: "grey" }] });
     expect(names(await list("", { filter: "photos" }))).not.toContain("▶ 0:07 · 21 Sep 2026");
   });
 
@@ -223,7 +225,8 @@ describe("immich", () => {
     expect(d.metadata).toEqual(expect.arrayContaining([{ label: "Albums", tags: [{ text: "Receipts", color: "violet" }] }, { label: "Tags", tags: [{ text: "takeout" }] }]));
     const [, cat] = await list("");
     const dc = (await host.detail("immich", "immich", cat.id))!;
-    expect(dc.metadata).toEqual(expect.arrayContaining([{ label: "Taken", value: "21 Sep 2026 10:34", tags: [{ text: "favourite", color: "amber" }, { text: "video", color: "blue" }] }, { label: "Length", value: "0:07" }, { label: "People", tags: [{ text: "Ayşe", color: "teal" }] }, { label: "Albums", tags: [{ text: "Family", color: "violet" }] }]));
+    expect(dc).toMatchObject({ title: "21 Sep 2026 10:34", chips: [{ text: "favourite", color: "amber" }, { text: "video", color: "blue" }], stats: [{ value: "0:07", label: "length" }] });
+    expect(dc.metadata).toEqual(expect.arrayContaining([{ label: "People", tags: [{ text: "Ayşe", color: "teal" }] }, { label: "Albums", tags: [{ text: "Family", color: "violet" }] }]));
     const [portrait] = await list("DSC00500.ARW");
     expect((await host.detail("immich", "immich", portrait.id))!.metadata).toEqual(expect.arrayContaining([{ label: "People", tags: [{ text: "Ayşe", color: "teal" }, { text: "Mehmet", color: "teal" }] }, { label: "Camera", value: "SONY ILCE-6700" }]));
     expect(await host.detail("immich", "immich", "nope")).toEqual({});

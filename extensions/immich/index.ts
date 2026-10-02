@@ -139,7 +139,7 @@ const titleOf = (a: Asset): string => (a.kind === "video" ? `▶ ${[a.duration !
 function tileOf(a: Asset, pic?: string, section?: string): Item {
   held.set(a.id, a);
   // Nothing of an input palette is indexed, so the tile carries no keywords; the subtitle names the file in the action panel.
-  return { id: a.id, name: titleOf(a), subtitle: a.file, icon: pic ? { image: pic } : a.kind === "video" ? GLYPH.video : GLYPH.photo, ...(section && { section }), detail: { metadata: metadataOf(a) }, actions: assetActions(a) };
+  return { id: a.id, name: titleOf(a), subtitle: a.file, icon: pic ? { image: pic } : a.kind === "video" ? GLYPH.video : GLYPH.photo, ...(section && { section }), detail: { ...headOf(a), metadata: metadataOf(a) }, actions: assetActions(a) };
 }
 
 /** The tiles with their thumbnails, then `tail`. When a thumbnail has to come from the server, the tiles show first with what is already here (the rest keep their glyph) while the fetches run. */
@@ -149,23 +149,30 @@ async function tiles(c: Client, assets: Asset[], section: string | undefined, ct
   return [...(await pool(assets, async (a) => tileOf(a, await thumb(c, "thumbs", a.id), section))), ...tail];
 }
 
-/** The pane's facts from what the listing knows; `detail(id)` adds the people, the albums and the picture. */
+/** The pane's header: where it was taken over when, favourite, archived and video as chips, a video's length large. */
+function headOf(a: Asset): Pick<Detail, "caption" | "title" | "chips" | "stats"> {
+  return {
+    caption: a.place ?? (a.kind === "video" ? "Video" : "Photo"),
+    title: `${takenDay(a.taken)} ${takenClock(a.taken)}`,
+    chips: [...(a.favorite ? [{ text: "favourite", color: "amber" as const }] : []), ...(a.archived ? [{ text: "archived", color: "grey" as const }] : []), ...(a.kind === "video" ? [{ text: "video", color: "blue" as const }] : [])],
+    stats: a.kind === "video" && a.duration !== undefined ? [{ value: clip(a.duration), label: "length" }] : [],
+  };
+}
+
+/** The pane's facts the header does not say, from what the listing knows; `detail(id)` adds the people, the albums and the picture. The place, said by the header, comes back last as the map's link. */
 function metadataOf(a: Asset, albums?: Album[]): Metadata[] {
   const m: Metadata[] = [];
-  const flags = [...(a.favorite ? [{ text: "favourite", color: "amber" }] : []), ...(a.archived ? [{ text: "archived", color: "grey" }] : []), ...(a.kind === "video" ? [{ text: "video", color: "blue" }] : [])];
-  m.push({ label: "Taken", value: `${takenDay(a.taken)} ${takenClock(a.taken)}`, ...(flags.length && { tags: flags }) });
-  if (a.place) m.push(mapUrl(a) ? { label: "Place", link: { text: a.place, href: mapUrl(a)! } } : { label: "Place", value: a.place });
   if (a.camera) m.push({ label: "Camera", value: a.camera });
   if (a.lens) m.push({ label: "Lens", value: a.lens });
   if (a.exposure) m.push({ label: "Exposure", value: a.exposure });
   const size = [a.width && a.height ? `${a.width} × ${a.height}` : "", a.bytes ? bytes(a.bytes) : "", a.mime.split("/")[1]?.toUpperCase() ?? ""].filter(Boolean).join(" · ");
   if (size) m.push({ label: "Size", value: size });
-  if (a.kind === "video" && a.duration !== undefined) m.push({ label: "Length", value: clip(a.duration) });
   m.push({ label: "File", value: a.file });
   if (a.people.length || a.faces) m.push({ label: "People", tags: [...a.people.map((p) => ({ text: p, color: "teal" })), ...(a.faces > a.people.length ? [{ text: `${a.faces - a.people.length} unnamed`, color: "grey" }] : [])] });
   if (albums?.length) m.push({ label: "Albums", tags: albums.map((x) => ({ text: x.name, color: "violet" })) });
   if (a.tags.length) m.push({ label: "Tags", tags: a.tags.map((t) => ({ text: t })) });
   if (a.description) m.push({ label: "Description", value: a.description });
+  if (a.place && mapUrl(a)) m.push({ label: "Map", link: { text: a.place, href: mapUrl(a)! } });
   return m;
 }
 
@@ -337,7 +344,7 @@ async function detail(id: string): Promise<Detail | void> {
   const [fresh, albums, pic] = await Promise.all([fetchAsset(c, id).catch(() => undefined), albumsOf(c, id).catch(() => [] as Album[]), previewFile(c, id).catch(() => undefined)]);
   // The listing's object is the one `pick` and a relist read: the fresh facts land on it rather than beside it.
   const a = Object.assign(held.get(id)!, fresh);
-  return { markdown: pic ? `![${a.file}](${thumbnailUrl(pic, 0)})` : undefined, metadata: metadataOf(a, albums) };
+  return { ...headOf(a), markdown: pic ? `![${a.file}](${thumbnailUrl(pic, 0)})` : undefined, metadata: metadataOf(a, albums) };
 }
 
 // ---- albums -------------------------------------------------------------------------------------
@@ -565,7 +572,7 @@ export default {
       // Palette meta is read once at load, so a change here shows after the extension reloads.
       columns: columns(),
       showDetail: true,
-      placeholder: "What is in the picture (a file name, since:2025, in:Istanbul)",
+      placeholder: "What is in the picture (in:Istanbul since:2025)",
       filters: FILTERS,
       fallback: "Search Immich for “{query}”",
       list,
