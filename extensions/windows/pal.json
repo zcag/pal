@@ -25,7 +25,7 @@
       "kind": "list",
       "id": "spaces",
       "label": "Space names",
-      "description": "Names for the desktops by number: the first entry names Desktop 1. A named space's row is titled by it, the windows rows say `ws <name>`, and its row id is the name, so `[palettes.windows-spaces.item_hotkeys]` reads `term = \"ctrl+alt+shift+a\"`.",
+      "description": "Names for the desktops by number: the first entry names Desktop 1. A named space's row is titled by it, the windows rows say `space <name>`, and its row id is the name, so `[palettes.windows-spaces.item_hotkeys]` reads `term = \"ctrl+alt+shift+a\"`.",
       "placeholder": "web",
       "default": []
     },

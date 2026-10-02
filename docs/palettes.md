@@ -1267,7 +1267,7 @@ one app shows up on the next activation. A live palette: the list runs on
 every show, so window titles are root results. The app name is the
 subtitle; the bundle id or window class is a keyword; a hidden app's
 window carries a `hidden` tag, a minimised one `minimized`, one on another
-workspace or space `ws <n>` or `other space`, and the monitor when known.
+workspace or space `space <n>` or `other space`, and the monitor when known.
 
 Actions:
 
@@ -1333,7 +1333,7 @@ compositor (`hyprctl dispatch workspace`, `swaymsg workspace`,
 
 Names: `spaces = ["web", "term", "misc"]` names the desktops by number
 (the first entry is Desktop 1). A named space's row is titled by it, the
-Windows rows say `ws term` instead of `ws 2`, and its row id is the name,
+Windows rows say `space term` instead of `space 2`, and its row id is the name,
 which is what a global hotkey keys on:
 
 ```toml
