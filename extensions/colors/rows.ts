@@ -17,7 +17,7 @@ const LEVEL_COLOR = { AAA: "green", AA: "green", "AA large": "amber", fail: "red
 const swatchWide = (hex: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 48"><rect width="400" height="48" rx="8" fill="${hex}"/></svg>`)}`;
 const NOTATIONS: [string, Format][] = [["Hex", "hex"], ["RGB", "rgb"], ["HSL", "hsl"], ["HWB", "hwb"], ["OKLCH", "oklch"], ["OKLab", "oklab"], ["Lab", "lab"], ["P3", "p3"]];
 
-/** A wide swatch over the notations, the name, contrast on white and black; for a set's row, where the token is used. */
+/** The colour as a document: for a set's row its set and token on top, the name, contrast on white and black large, a wide swatch (and where the token is used), then the notations and the CSS name. */
 export function detailOf(c: RGB, title: string, s: Settings, row?: Row): Detail {
   const exact = nameOf(c);
   const near = exact ? undefined : nearestName(c);
@@ -25,12 +25,16 @@ export function detailOf(c: RGB, title: string, s: Settings, row?: Row): Detail 
   const metadata: Metadata[] = [
     ...NOTATIONS.map(([label, f]) => ({ label, value: write(c, s, f) })),
     exact ? { label: "CSS name", value: exact } : { label: "Nearest name", value: near!.name, tags: [{ text: near!.distance < 0.02 ? "close" : near!.distance < 0.06 ? "near" : "far", color: "grey" as const }] },
-    { label: "On white", value: w.text, tags: [{ text: w.level, color: LEVEL_COLOR[w.level] }] },
-    { label: "On black", value: b.text, tags: [{ text: b.level, color: LEVEL_COLOR[b.level] }] },
   ];
   const hex = toHex(c);
   const used = row ? `\n\n${usage(row)}` : "";
-  return { markdown: `![${hex}](${swatchWide(hex)})\n\n**${title}**${used}`, metadata };
+  return {
+    ...(row ? { caption: [setInfo(row.s).title, row.v, token(row)].filter(Boolean).join(" · ") } : {}),
+    title,
+    stats: [{ value: w.text, label: `on white, ${w.level}`, color: LEVEL_COLOR[w.level] }, { value: b.text, label: `on black, ${b.level}`, color: LEVEL_COLOR[b.level] }],
+    markdown: `![${hex}](${swatchWide(hex)})${used}`,
+    metadata,
+  };
 }
 
 // ---- the converter -----------------------------------------------------------------------------
@@ -50,9 +54,12 @@ export function conversions(c: RGB, s: Settings): Item[] {
   const icon = { image: swatch(toHex(c)) };
   const actions: Action[] = [{ id: "open", title: "Open in Picker" }, { id: "copy", title: "Copy" }];
   const row = (id: string, name: string, subtitle: string, accessories?: Item["accessories"]): Item => ({ id, name, subtitle, icon, detail, accessories, actions });
+  // The answer leads (Item.hero): the colour as hex, the notations under it.
+  const [first, ...rest] = NOTATIONS.map(([label, f]) => { const v = write(c, s, f); return row(v, v, label.toLowerCase() === "p3" ? "display-p3" : label.toLowerCase()); });
   const [w, b] = [ratio(c, WHITE), ratio(c, BLACK)];
   return [
-    ...NOTATIONS.map(([label, f]) => { const v = write(c, s, f); return row(v, v, label.toLowerCase() === "p3" ? "display-p3" : label.toLowerCase()); }),
+    { ...first, hero: true },
+    ...rest,
     exact ? row(exact, exact, "CSS name") : row(near!.name, near!.name, `nearest CSS name, ${toHex(parse(near!.name)!)}`, [{ tag: near!.distance < 0.02 ? "close" : near!.distance < 0.06 ? "near" : "far", color: "grey" }]),
     row(w.text, `${w.text} on white`, "contrast ratio", [{ tag: w.level, color: LEVEL_COLOR[w.level] }]),
     row(b.text, `${b.text} on black`, "contrast ratio", [{ tag: b.level, color: LEVEL_COLOR[b.level] }]),

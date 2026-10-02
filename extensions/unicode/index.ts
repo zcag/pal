@@ -71,11 +71,12 @@ function glyphImage(r: Row): string {
 function detail(r: Row): Detail {
   const latex = r.k.find((k) => k.startsWith("\\"));
   const aliases = r.k.filter((k) => !k.startsWith("\\"));
+  // The block and code point on top, the name as the title, the glyph large under it, then the other ways to write it.
   return {
-    markdown: `![${r.n}](${glyphImage(r)})\n\n**${r.n}**`,
+    caption: `${r.s} · ${codePoint(r.cp)}`,
+    title: r.n,
+    markdown: `![${r.n}](${glyphImage(r)})`,
     metadata: [
-      { label: "Block", value: r.s },
-      { label: "Code point", value: codePoint(r.cp) },
       { label: "HTML", value: r.e ? `&${r.e}; ${numeric(r.cp)}` : numeric(r.cp) },
       { label: "UTF-8", value: utf8(r.cp) },
       ...(latex ? [{ label: "LaTeX", value: latex }] : []),

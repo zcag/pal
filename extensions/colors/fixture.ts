@@ -55,7 +55,7 @@ const fixture = {
     "3-typing": { palette: "picker-typing", keys: ["wait:600"], raw: true, caption: "Typing a notation: a digit or # opens the field in the search row, Enter applies it" },
     "4-sets": { palette: "colors", keys: ["wait:300", "tab*6", "wait:500"], caption: "The named sets as swatch grids, one section per set, a filter per set" },
     "5-history": { palette: "history", keys: ["wait:300", "down", "wait:300"], caption: "The history: every picked and copied colour with when and where from, and the screen pick at the top" },
-    "6-convert": { palette: "convert", keys: ["wait:200", "type:hsl(30 100% 50%)", "wait:400"], caption: "Convert Colour: hsl(30 100% 50%) as every notation, the nearest CSS name and the contrast ratios" },
+    "6-convert": { palette: "convert", keys: ["wait:200", "type:hsl(30 100% 50%)", "wait:400", "cmd+i"], caption: "Convert Colour: hsl(30 100% 50%) as hex first, then every notation and the nearest CSS name; the pane has the contrast on white and black" },
   },
 };
 writeFixture("colors", fixture);

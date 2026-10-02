@@ -41,7 +41,7 @@ try {
       "2-search": { palette: "gifs", keys: ["type:cat", "wait:400", "cmd+i"], caption: "Typing cat: the matches, and the detail pane with the preview, its size and its page" },
       "3-actions": { palette: "gifs", keys: ["type:cat", "wait:400", "cmd+k"], caption: "What a GIF can do: copy the file, copy the url, open, save, favourite" },
       "4-favourites": { palette: "favourites", keys: ["right"], caption: "Favourite GIFs: the ones cmd+f kept, and a tile to clear them" },
-      "5-no-key": { palette: "nokey", keys: [], caption: "Without a key: one row saying where to get one" },
+      "5-no-key": { palette: "nokey", keys: ["cmd+i"], caption: "Without a key: one tile saying so, the pane where to get one; Enter opens Settings" },
     },
   };
   writeFixture("gifs", await settle(fixture, { hosts: { [base]: "https://media.giphy.example" } }));

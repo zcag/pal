@@ -111,7 +111,8 @@ describe("gifs", () => {
     expect(Buffer.from(dataUrl(items[0]).slice("data:image/png;base64,".length), "base64").equals(picture(0, 96, 72))).toBe(true);
     expect(items[0].actions!.map((a) => a.id)).toEqual(["copy", "copy_url", "open", "save", "fav"]);
     expect(items[0].detail!.markdown).toContain(`![](${base}/media/0/fixed_height_small.gif)`);
-    expect(items[0].detail!.metadata).toEqual([{ label: "Source", value: "Giphy" }, { label: "Size", value: "480 × 360 · 1.1 MB" }, { label: "Page", link: { text: "giphy.com/gifs/happy-dance-g0abc", href: "https://giphy.com/gifs/happy-dance-g0abc" } }]);
+    expect(items[0].detail).toMatchObject({ caption: "Giphy", title: items[0].name });
+    expect(items[0].detail!.metadata).toEqual([{ label: "Size", value: "480 × 360 · 1.1 MB" }, { label: "Page", link: { text: "giphy.com/gifs/happy-dance-g0abc", href: "https://giphy.com/gifs/happy-dance-g0abc" } }]);
     expect(readdirSync(cache).filter((f) => f.endsWith("-preview.gif"))).toHaveLength(titles.length);
   });
 
@@ -191,9 +192,11 @@ describe("gifs", () => {
   test("no key is one row naming the setting and where a key comes from; a refused key names the fix; the content filter reaches the request as Giphy's rating", async () => {
     host.changeSettings("gifs", { settings: { giphy_api_key: "", content_filter: "high" } });
     let items = await list("");
-    expect(items).toEqual([expect.objectContaining({ id: "hint:failed", actions: [] })]);
-    expect(items[0].name).toContain("Giphy API key");
-    expect(items[0].name).toContain("developers.giphy.com › Create an App");
+    expect(items).toEqual([expect.objectContaining({ id: "hint:failed", actions: [{ id: "settings", title: "Open Settings" }] })]);
+    expect(items[0].name).toBe("No Giphy API key");
+    expect(items[0].subtitle).toContain("developers.giphy.com › Create an App");
+    expect(items[0].detail).toEqual({ title: "No Giphy API key", markdown: items[0].subtitle });
+    expect(await host.pick("gifs", "gifs", "hint:failed", "settings")).toEqual({ open: "pal://settings/extensions?anchor=extensions:gifs:giphy_api_key" });
     host.changeSettings("gifs", { settings: { giphy_api_key: "bad", content_filter: "high" } });
     items = await list("");
     expect(items[0].name).toContain("Giphy refused the key");

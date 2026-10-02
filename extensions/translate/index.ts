@@ -105,6 +105,13 @@ function textRow(id: string, text: string, lang: string, t: Translation, src: So
   return { id, name: short(text), subtitle: o.subtitle, icon: o.icon ?? GLYPH.translate, ...(id === "translation" ? { hero: true } : {}), keywords: o.keywords, accessories: o.accessories, detail: o.detail ?? { markdown: text }, actions: o.actions ?? [COPY, PASTE, SPEAK, COPY_SOURCE, OPEN_WEB] };
 }
 
+/** A translation's pane: the pair and backend on top, the translation as the title when it is short (else first in the text), the source under it. */
+function paired(result: string, source: string, from: string, to: string, backend: string): Detail {
+  const caption = `${pair(from, to)} · ${backend}`;
+  return result.length <= TITLE_MAX && !result.includes("\n") ? { caption, title: result, markdown: source } : { caption, markdown: `${result}\n\n---\n\n${source}` };
+}
+const TITLE_MAX = 100;
+
 /** Letters outside the Latin script: a romanisation row is worth showing for such a text, and an IPA pronunciation of a Latin one is not one. */
 const nonLatin = (text: string): boolean => /[\p{L}&&[^\p{Script=Latin}]]/v.test(text);
 
@@ -118,11 +125,8 @@ function rows(t: Translation, src: Source, cut: boolean, given: boolean): Item[]
     ];
   }
   const detail: Detail = {
-    markdown: `${t.text}\n\n---\n\n${src.text}`,
+    ...paired(t.text, src.text, t.from, t.to, BACKEND_NAME[t.backend]),
     metadata: [
-      { label: "From", value: `${nameOf(t.from)} (${t.from})` },
-      { label: "To", value: `${nameOf(t.to)} (${t.to})` },
-      { label: "Backend", value: BACKEND_NAME[t.backend] },
       ...(t.confidence !== undefined && !given ? [{ label: "Detection", value: `${Math.round(t.confidence * 100)}% sure` }] : []),
       { label: "Length", value: `${src.text.length} → ${t.text.length} characters${cut ? ` (cut at ${MAX_CHARS})` : ""}` },
     ],
@@ -205,7 +209,7 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
 
 // ---- history palette -----------------------------------------------------------------
 
-const historyDetail = (e: Entry): Detail => ({ markdown: `${e.result}\n\n---\n\n${e.text}`, metadata: [{ label: "From", value: nameOf(e.from) }, { label: "To", value: nameOf(e.to) }, { label: "Backend", value: BACKEND_NAME[e.backend] ?? e.backend }, { label: "When", value: when(e.at) }] });
+const historyDetail = (e: Entry): Detail => ({ ...paired(e.result, e.text, e.from, e.to, BACKEND_NAME[e.backend] ?? e.backend), metadata: [{ label: "When", value: when(e.at) }] });
 /** One row per (target, text, result), which is also what `remember` dedupes on; a hash, since the texts can be long. */
 const historyId = (e: Entry) => `h:${createHash("sha1").update(`${e.to}|${e.text}|${e.result}`).digest("hex").slice(0, 16)}`;
 

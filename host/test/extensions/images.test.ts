@@ -12,7 +12,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { ASPECTS, cropped, fmtOf, geomFormat, ICONSET, isImage, outputFor, outputFmt, parseExiftool, parseIdentify, parseResize, parseSips, percent, plan, resized, strip, stripJpeg, stripPng, suffixFor, TOOL_ORDER, type Avail, type Plan } from "../../../extensions/images/ops.ts";
 import type { Item, View, ViewNode } from "../../../sdk/src/index.ts";
 import { tile } from "../../../sdk/src/icon.ts";
@@ -396,10 +396,9 @@ describe("images: the palette (stand-in tools)", () => {
   test("the detail pane: the picture at 256 px over the info the stand-in sips answers", async () => {
     const d = await host.detail("images", "images", P("photo.jpg"));
     expect(d.markdown).toBe(`![](icon://localhost/file?path=${encodeURIComponent(P("photo.jpg"))}&size=256)`);
-    expect(d.metadata).toEqual([
-      { label: "Path", value: P("photo.jpg") }, { label: "Size", value: bytes(statSync(P("photo.jpg")).size) }, { label: "Dimensions", value: "1200 × 900 px" },
-      { label: "Format", value: "PNG, 8 bits, alpha" }, { label: "Colour", value: "RGB · sRGB IEC61966-2.1" }, { label: "Camera", value: "Canon EOS R5" },
-    ]);
+    // The header: the folder, the name, the size and the pixels; the rest of the info under the picture.
+    expect(d).toMatchObject({ caption: dirname(P("photo.jpg")), title: "photo.jpg", stats: [{ value: bytes(statSync(P("photo.jpg")).size), label: "size" }, { value: "1200 × 900", label: "pixels" }] });
+    expect(d.metadata).toEqual([{ label: "Format", value: "PNG, 8 bits, alpha" }, { label: "Colour", value: "RGB · sRGB IEC61966-2.1" }, { label: "Camera", value: "Canon EOS R5" }]);
   });
 
   test("compress writes -compressed next to the source, copies the path and says the tool and the sizes in the HUD; the row then sits under Results with the saving; the pane says what made it; a second time is -2", async () => {
@@ -413,11 +412,12 @@ describe("images: the palette (stand-in tools)", () => {
     const r = rows.find((x) => x.id === P("photo-compressed.png"))!;
     expect(r.section).toBe("Results");
     expect(r.subtitle).toBe(`Compressed with pngquant · ${bytes(before)} → ${bytes(after)}`);
-    expect(r.accessories).toEqual([{ tag: percent(before, after), color: "green" }, { text: bytes(after) }, { text: "1200×900" }]);
+    expect(r.accessories).toEqual([{ tag: percent(before, after), color: "green" }, { text: "1200×900" }]);
     expect(r.actions!.map((a) => a.id)).toContain("trash");
     expect(r.actions!.map((a) => a.id)).not.toContain("restore");
     const d = await host.detail("images", "images", P("photo-compressed.png"));
-    expect(d.metadata!.slice(0, 3)).toEqual([{ label: "Made by", value: "Compressed with pngquant" }, { label: "From", value: `${P("photo.png")}, ${bytes(before)}, 1200×900` }, { label: "Saving", tags: [{ text: percent(before, after), color: "green" }] }]);
+    expect(d).toMatchObject({ caption: `Compressed with pngquant · ${dirname(P("photo.png"))}`, title: "photo-compressed.png", chips: [{ text: `${percent(before, after)} smaller`, color: "green" }] });
+    expect(d.metadata![0]).toEqual({ label: "From", value: `${P("photo.png")}, ${bytes(before)}, 1200×900` });
     expect((await pick(P("photo.png"), "compress")).copy).toBe(P("photo-compressed-2.png"));
     // Lossless names the lossless tool; a JPEG goes through cjpeg (lossy) and jpegtran (lossless).
     expect((await pick(P("photo.png"), "lossless")).hud).toContain("(−40%), oxipng · path copied");
@@ -438,7 +438,7 @@ describe("images: the palette (stand-in tools)", () => {
     expect(s.hud).toContain(", pal · path copied");
     expect((await pick(P("photo.png"), "gray")).hud).toMatch(/^Converted to grayscale photo\.png: .*, sips · path copied$/);
     const push = await pick(P("photo.png"), "resize");
-    expect(push.push).toEqual({ extension: "images", palette: "images", args: { op: "resize", files: [P("photo.png")] }, title: "Resize photo.png" });
+    expect(push.push).toEqual({ extension: "images", palette: "images", args: { op: "resize", files: [P("photo.png")] }, title: "Resize photo.png", placeholder: "A size: 800, x600, 800x600, 50%, 2x" });
     const level = { args: push.push!.args };
     const presets = await list("", level);
     expect(presets[0]).toMatchObject({ id: 'resize:{"percent":50}', name: "Half size (@0.5x)", subtitle: "photo.png: 1200×900 → 600×450" });
@@ -533,7 +533,7 @@ describe("images: the palette (stand-in tools)", () => {
     expect(readdirSync(P("photo-icons/photo.iconset")).sort()).toEqual(ICONSET.map(([, n]) => n).sort());
   });
 
-  test("optimise for web: a view with a row per image (thumbnail, sizes, the saving, a bar; already small for one nothing shrinks), the total at the foot; its picks copy the paths or the first image", async () => {
+  test("optimise for web: a view with a row per image (thumbnail, sizes, the saving, a bar; already small for one nothing shrinks), the total as the headline; its picks copy the paths or the first image", async () => {
     const e = await pick(P("photo.png"), "web", { ids: [P("photo.png"), P("flat.png")] });
     const v = e.view as View;
     expect(v.id).toBe("web:1");
@@ -546,8 +546,9 @@ describe("images: the palette (stand-in tools)", () => {
     expect(JSON.stringify(rows[0])).toContain('"type":"image"');
     expect(JSON.stringify(rows[0])).toContain('{"type":"badge","text":"−40%","color":"green"}');
     expect(JSON.stringify(rows[1])).toContain("already small");
-    const foot = tree.children.at(-1) as ViewNode & { value: string };
-    expect(foot.value).toMatch(/^Saved [\d.]+ [KM]?B \(−40%\) across 1 image$/);
+    const total = (tree.children[0] as ViewNode & { children: (ViewNode & { value: string })[] }).children[0];
+    expect(total).toMatchObject({ key: "total", style: "headline" });
+    expect(total.value).toMatch(/^Saved [\d.]+ [KM]?B \(−40%\) across 1 image$/);
     expect(existsSync(P("photo-web.png"))).toBe(true);
     expect((await pick("web:1", "copy")).copy).toBe(P("photo-web.png"));
     expect(effectsRun).toEqual([]);
@@ -650,6 +651,6 @@ describe.skipIf(!MAGICK && !REAL_SIPS)("images: the real tools", () => {
     expect(e.copy).toBe(R("photo@0.5x.png"));
     expect(e.hud).toContain("1200×900 → 600×450");
     const rows = await real.list("images", "images", "", level);
-    expect(rows.at(-1)).toMatchObject({ id: R("photo@0.5x.png"), section: "Results", accessories: [expect.objectContaining({ color: "green" }), expect.anything(), { text: "600×450" }] });
+    expect(rows.at(-1)).toMatchObject({ id: R("photo@0.5x.png"), section: "Results", accessories: [expect.objectContaining({ color: "green" }), { text: "600×450" }] });
   });
 });

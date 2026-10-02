@@ -31,8 +31,9 @@ export const LIMIT = 24;
 export type Filter = "off" | "low" | "medium" | "high";
 export const GIPHY_RATING: Record<Filter, string> = { off: "r", low: "pg-13", medium: "pg", high: "g" };
 
+/** `hint` says what happened (the row's title), `fix` what to do about it (its subtitle and pane); `key` when the fix is the API key setting. */
 export class GifError extends Error {
-  constructor(message: string, readonly hint: string) { super(message); }
+  constructor(message: string, readonly hint: string, readonly fix?: string, readonly key?: true) { super(message); }
 }
 
 const str = (v: unknown, or = "") => (typeof v === "string" ? v : or);
@@ -59,11 +60,11 @@ export function parseGiphy(reply: unknown): Gif[] {
 }
 
 async function giphy(path: string, params: Record<string, string>, key: string, filter: Filter): Promise<Gif[]> {
-  if (!key) throw new GifError("no giphy key", "Set Giphy API key under Settings › Extensions › GIFs (a free key: developers.giphy.com › Create an App, API)");
+  if (!key) throw new GifError("no giphy key", "No Giphy API key", "Add one under Settings › Extensions › GIFs; a free key: developers.giphy.com › Create an App, API", true);
   const q = new URLSearchParams({ api_key: key, limit: String(LIMIT), rating: GIPHY_RATING[filter], ...params });
   const res = await fetch(`${GIPHY}/v1/gifs/${path}?${q}`, { signal: AbortSignal.timeout(FETCH_MS) });
-  if (res.status === 401 || res.status === 403) throw new GifError(`giphy ${res.status}`, "Giphy refused the key: check Giphy API key");
-  if (res.status === 429) throw new GifError("giphy 429", "Giphy's rate limit: try again in a moment");
+  if (res.status === 401 || res.status === 403) throw new GifError(`giphy ${res.status}`, "Giphy refused the key", "Check Giphy API key under Settings › Extensions › GIFs", true);
+  if (res.status === 429) throw new GifError("giphy 429", "Giphy's rate limit was hit", "Try again in a moment");
   if (!res.ok) throw new GifError(`giphy ${res.status}`, `Giphy answered ${res.status}`);
   return parseGiphy(await res.json());
 }

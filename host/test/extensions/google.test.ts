@@ -163,6 +163,7 @@ describe("google", () => {
   test("the pane: an entity's Wikipedia card (English when the language has no page); a tip on the query without a provider", async () => {
     await list("tarkan");
     const card = await host.detail("google", "google", "q:tarkan");
+    expect(card.title).toBe("Tarkan");
     expect(card.markdown).toContain("![](https://img/t.jpg)");
     expect(card.markdown).toContain("Tarkan is a singer.");
     expect(seen).toContain("/tr.wikipedia.org/api/rest_v1/page/summary/Tarkan ");
@@ -189,7 +190,10 @@ describe("google", () => {
     const level = await list("", { args: { results: "2+2" } });
     expect(seen.filter((s) => s.startsWith("/serpapi")).length).toBe(before); // the preview's answer, reused
     expect(ids(level)).toEqual(["a:2+2", ...[1, 2, 3, 4, 5, 6].map((i) => `r:https://site${i}.com/${i}`)]);
+    expect(level[0]).toMatchObject({ name: "4", hero: true });
     expect(level[1]).toMatchObject({ name: "2+2 1", subtitle: "About 2+2 1", url: "https://site1.com/1", accessories: [{ text: "site1.com" }] });
+    expect(level[1].hero).toBeUndefined();
+    expect(level[1].detail).toEqual({ caption: "site1.com", title: "2+2 1", markdown: "About 2+2 1", metadata: [{ label: "Link", link: { text: "https://site1.com/1", href: "https://site1.com/1" } }] });
     expect(ids(await list("5", { args: { results: "2+2" } }))).toEqual(["r:https://site5.com/5"]);
     expect(await pick("r:https://site1.com/1", "copy_md")).toEqual({ copy: "[2+2 1](https://site1.com/1)" });
     expect(await pick("a:2+2", "copy")).toEqual({ copy: "4" });

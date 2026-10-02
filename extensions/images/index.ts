@@ -146,7 +146,8 @@ async function fileRow(path: string, o: { section?: string; clip?: true; ocrable
     subtitle: r ? `${jobTitle(r.job)} with ${toolLabel(r.tool)}${r.lossless && r.job.kind === "compress" && !r.job.lossless ? " (lossless: no lossy encoder for it)" : ""} · ${size(r.before)} → ${size(r.after)}` : o.clip ? "From the clipboard" : tilde(dirname(path)),
     icon: thumb ? { image: thumb } : GLYPH.image,
     keywords: [extname(path).slice(1)],
-    accessories: [...(r ? [{ tag: r.gain ? percent(r.before, r.after) : "no gain", color: r.gain ? "green" : "grey" }] : []), { text: size(bytes) }, ...(d ? [{ text: dimsText(d) }] : [])],
+    // A result's size is in its subtitle (before → after): its saving and dimensions on the right instead.
+    accessories: [...(r ? [{ tag: r.gain ? percent(r.before, r.after) : "no gain", color: r.gain ? "green" : "grey" }] : [{ text: size(bytes) }]), ...(d ? [{ text: dimsText(d) }] : [])],
     ...(o.section && { section: o.section }),
     actions: actionsFor(path, o.ocrable),
   };
@@ -227,6 +228,8 @@ async function pathRows(q: string): Promise<Item[]> {
 type LevelArgs = { op: "resize" | "convert" | "rotate" | "crop"; files: string[] };
 /** The crumb of each level. */
 const LEVEL_TITLE: Record<LevelArgs["op"], string> = { resize: "Resize", convert: "Convert", rotate: "Rotate", crop: "Crop" };
+/** Each level's search box: what typing there does. */
+const LEVEL_PLACEHOLDER: Record<LevelArgs["op"], string> = { resize: "A size: 800, x600, 800x600, 50%, 2x", convert: "Search formats", rotate: "Search turns and flips", crop: "Search shapes" };
 const levelOf = (ctx?: Ctx): LevelArgs | undefined => (ctx?.args as LevelArgs | undefined)?.op ? (ctx!.args as LevelArgs) : undefined;
 
 /** `cwebp (brew install webp)`: the tool with the install line from `TOOL_HINT`. */
@@ -497,16 +500,15 @@ async function webView(id: string, files: string[], b: Batch): Promise<View> {
   }
   const before = ok.reduce((n, r) => n + r.before, 0), after = ok.reduce((n, r) => n + r.after, 0);
   const pending = files.length - b.done.length - b.failed.length;
-  const foot = pending ? `${b.done.length + b.failed.length} of ${files.length} done` : ok.length ? `Saved ${size(before - after)} (${percent(before, after)}) across ${ok.length} ${ok.length === 1 ? "image" : "images"}${b.failed.length ? `, ${b.failed.length} failed` : ""}` : b.failed.length ? "Nothing written" : "Nothing to save";
+  // The answer leads: the total saved (or how far it got) as the headline, the settings it ran with under it.
+  const total = pending ? `${b.done.length + b.failed.length} of ${files.length} done` : ok.length ? `Saved ${size(before - after)} (${percent(before, after)}) across ${ok.length} ${ok.length === 1 ? "image" : "images"}${b.failed.length ? `, ${b.failed.length} failed` : ""}` : b.failed.length ? "Nothing written" : "Nothing to save";
   return {
     id,
     title: "Optimised for web",
     tree: { type: "stack", padding: 4, gap: 3, children: [
-      { type: "stack", direction: "row", align: "center", gap: 2, children: [{ type: "text", value: "Optimised for web", style: "title" }, { type: "spacer" }, { type: "text", value: `cap ${S().web_max} px · quality ${S().quality}${S().web_format === "keep" ? "" : ` · ${FMT_TITLE[S().web_format as Fmt]}`}`, style: "muted", size: "xs" }] },
+      { type: "stack", gap: 1, children: [{ type: "text", key: "total", value: total, style: "headline" }, { type: "text", value: `Images capped at ${S().web_max} px, quality ${S().quality}${S().web_format === "keep" ? "" : `, as ${FMT_TITLE[S().web_format as Fmt]}`}`, style: "muted", size: "xs" }] },
       { type: "divider" },
       ...rows,
-      { type: "divider" },
-      { type: "text", key: "foot", value: foot, style: "muted" },
     ] },
     actions: [
       { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager" },
@@ -547,18 +549,28 @@ const infoLines = (i: Info, path: string, bytes: number): Metadata[] => {
   return m;
 };
 
-/** The pane: the picture at 256 px over the info; a result adds what made it and where the original is. */
+/** The header says these: the folder, the name, the size and the dimensions. */
+const IN_HEADER = new Set(["Path", "Size", "Dimensions"]);
+
+/** The pane: the folder (and for a result what made it) on top, the name, a result's saving as a chip, the size and pixels large, the picture at 256 px, then the rest of the info and where the original is. */
 async function detail(path: string): Promise<Detail> {
   const bytes = await sizeOf(path);
-  if (!bytes) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: tilde(path) }] };
+  if (!bytes) return { title: basename(path), markdown: "This file no longer exists.", metadata: [{ label: "Path", value: tilde(path) }] };
   const [info, thumb] = await Promise.all([infoOf(path), S().thumbnails ? thumbnail(path, THUMB_PANE) : undefined]);
   const r = resultOf(path);
-  const metadata = infoLines(info, path, bytes);
+  const metadata = infoLines(info, path, bytes).filter((m) => !IN_HEADER.has(m.label));
   if (r) {
-    metadata.unshift({ label: "Made by", value: `${jobTitle(r.job)} with ${toolLabel(r.tool)}` }, { label: "From", value: `${tilde(r.source)}, ${size(r.before)}${r.from ? `, ${dimsText(r.from)}` : ""}` }, { label: "Saving", tags: [{ text: r.gain ? percent(r.before, r.after) : "no gain", color: r.gain ? "green" : "grey" }] });
+    metadata.unshift({ label: "From", value: `${tilde(r.source)}, ${size(r.before)}${r.from ? `, ${dimsText(r.from)}` : ""}` });
     if (r.kept) metadata.push({ label: "Original kept", value: tilde(r.kept) });
   }
-  return { markdown: thumb ? `![](${thumb})` : undefined, metadata };
+  return {
+    caption: [r && `${jobTitle(r.job)} with ${toolLabel(r.tool)}`, tilde(dirname(path))].filter(Boolean).join(" · "),
+    title: basename(path),
+    ...(r && { chips: [{ text: r.gain ? `${percent(r.before, r.after)} smaller` : "no gain", color: r.gain ? ("green" as const) : ("grey" as const) }] }),
+    stats: [{ value: size(bytes), label: "size" }, ...(info.width && info.height ? [{ value: `${info.width} × ${info.height}`, label: info.dpi && info.dpi !== 72 ? `pixels, ${Math.round(info.dpi)} dpi` : "pixels" }] : [])],
+    markdown: thumb ? `![](${thumb})` : undefined,
+    metadata,
+  };
 }
 
 // ---- pick -------------------------------------------------------------------------------------------
@@ -596,7 +608,7 @@ async function pick(id: string, action: string | undefined, ctx?: Ctx): Promise<
     case "strip": return runJobs(files, { kind: "strip" });
     case "gray": return runJobs(files, { kind: "gray" });
     case "icons": return runJobs(files, { kind: "icons" });
-    case "resize": case "convert": case "rotate": case "crop": return { push: { extension: "images", palette: "images", args: { op: action, files } satisfies LevelArgs, title: `${LEVEL_TITLE[action]} ${files.length === 1 ? basename(one) : `${files.length} images`}` } };
+    case "resize": case "convert": case "rotate": case "crop": return { push: { extension: "images", palette: "images", args: { op: action, files } satisfies LevelArgs, title: `${LEVEL_TITLE[action]} ${files.length === 1 ? basename(one) : `${files.length} images`}`, placeholder: LEVEL_PLACEHOLDER[action] } };
     case "ocr": {
       let text: string;
       try { text = (await Promise.all(files.map((f) => ocr.image({ path: f })))).filter(Boolean).join("\n\n"); } catch (e) { return fail("Could not read the text", errorMessage(e)); }

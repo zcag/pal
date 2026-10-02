@@ -21,7 +21,7 @@
       "Search by name, code point (`2192`), HTML entity (`rarr`), LaTeX (`\\alpha`) or a plain word (`cmd`, `tick`, `eur`)",
       "`enter` copies the character, `cmd+enter` pastes it into the app in front",
       "Copy the code point (`U+2192`), the HTML entity (`&rarr;`) or the numeric reference instead",
-      "A detail pane with the character large, its block, UTF-8 bytes, LaTeX command and aliases",
+      "A detail pane with the name and the character large, its block, UTF-8 bytes, LaTeX command and aliases",
       "The last twelve copied lead in a Recent section"
     ],
     "permissions": [

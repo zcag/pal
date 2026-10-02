@@ -41,14 +41,22 @@ function gauge(label: string, value: number | undefined, fillValue: number, colo
   };
 }
 
-/** The whole view: the head (tool, server, ISP, status), the two gauges, the ping tiles, the foot line, with the actions the state allows. */
+/** What leads the view (a `headline`): the figures once there are some, else what is happening or what to do. */
+export function headline(r: Run | undefined, tool: Tool | undefined): string {
+  if (!r) return tool ? "Press Enter to start" : "No speed test tool installed";
+  if (r.phase === "failed") return "The test failed";
+  if (r.download === undefined) return r.phase === "ping" ? "Measuring ping…" : "Starting…";
+  return r.upload === undefined ? `↓ ${speed(r.download)} Mbps` : `↓ ${speed(r.download)}  ↑ ${speed(r.upload)} Mbps`;
+}
+
+/** The whole view: the headline, the head (tool, server, ISP, status), the two gauges, the ping tiles, the foot line, with the actions the state allows. */
 export function spec(l: Live | undefined, found: Tool[], now = clockNow()): View {
   const r = l?.run;
   const busy = !!r && running(r);
   const tool = found[0];
   const head: ViewNode[] = [
     { type: "badge", text: r ? TITLE[r.tool] : tool ? tool.title : "no tool", color: r || tool ? "grey" : "red" },
-    { type: "text", value: [r?.server, r?.isp].filter(Boolean).join(" · ") || (r ? "" : tool ? "Press Enter to start" : "Install one of the tools below"), style: "muted", size: "sm" },
+    { type: "text", value: [r?.server, r?.isp].filter(Boolean).join(" · "), style: "muted", size: "sm" },
     { type: "spacer" },
     ...(r ? [{ type: "badge", text: STATUS[r.phase].text, color: STATUS[r.phase].color } as ViewNode] : []),
   ];
@@ -62,7 +70,7 @@ export function spec(l: Live | undefined, found: Tool[], now = clockNow()): View
   };
   const foot: ViewNode[] = [];
   if (!r && !tool) {
-    foot.push({ type: "text", value: "No speed test tool is installed. One of:", style: "muted", size: "sm" });
+    foot.push({ type: "text", value: "Install one of these, then press Enter:", style: "muted", size: "sm" });
     for (const id of Object.keys(INSTALL) as ToolId[]) foot.push({ type: "text", value: `${TITLE[id]}:  ${INSTALL[id]}`, style: "mono", size: "sm" });
   } else if (busy) foot.push({ type: "text", value: `${elapsed(r!.startedAt, now)} · Enter stops`, style: "muted", size: "sm" });
   else if (r?.phase === "failed") foot.push({ type: "text", value: `Failed: ${r.error ?? "unknown"} · Enter runs again`, color: "destructive", size: "sm" });
@@ -82,6 +90,7 @@ export function spec(l: Live | undefined, found: Tool[], now = clockNow()): View
     actions,
     tree: {
       type: "stack", direction: "column", gap: 3, padding: 4, children: [
+        { type: "text", value: headline(r, tool), style: "headline", key: "headline" },
         { type: "stack", direction: "row", gap: 2, align: "center", key: "head", children: head },
         { type: "stack", direction: "column", gap: 3, padding: 4, surface: "elevated", radius: true, key: "gauges", children: [
           gauge("Download", r?.download, l ? fill(l, "download", now) : 0, "blue", "down"),

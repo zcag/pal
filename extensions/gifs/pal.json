@@ -94,7 +94,7 @@
       },
       {
         "file": "5-no-key.png",
-        "caption": "Without a key: one row saying where to get one"
+        "caption": "Without a key: one tile saying so, the pane where to get one; Enter opens Settings"
       }
     ],
     "actions": [

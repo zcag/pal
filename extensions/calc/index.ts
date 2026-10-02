@@ -6,7 +6,7 @@
 // another form when there is one (hex for an integer, a fraction, the
 // reverse conversion). Nothing is listed while the query does not parse,
 // so typing never shows an error.
-import { hint as hintRow, now, settings, type Action, type Extension, type Item } from "@zcag/pal";
+import { hint as hintRow, now, settings, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
 import { carry, code, ensureRates, hasCurrency, homeCurrency, isCurrency, money, NAMES, parse as parseCurrency, rate, SOURCE } from "./currency.ts";
 import { dates, isUnix } from "./dates.ts";
 import { normalizeNumbers, num, raw as rawNum } from "./format.ts";
@@ -86,14 +86,13 @@ async function currency(q: string, s: Settings, locale: string): Promise<Row[] |
   const p = Math.min(s.precision, 6);
   const value = amount.value * r;
   const dated = { text: `rates ${rates.date}` };
-  const detail = {
-    markdown: `**${money(amount.value, c.from, locale)}** = **${money(value, to, locale)}**`,
+  // The pane is the conversion: the two currencies on top, the sum as its title, the rate both ways large.
+  const detail: Detail = {
+    caption: `${NAMES[c.from] ?? c.from} to ${NAMES[to] ?? to}`,
+    title: `${money(amount.value, c.from, locale)} = ${money(value, to, locale)}`,
+    stats: [{ value: num(r, p, locale), label: `${to} per ${c.from}` }, { value: num(1 / r, p, locale), label: `${c.from} per ${to}` }],
     metadata: [
-      { label: "Rate", value: `1 ${c.from} = ${num(r, p, locale)} ${to}` },
-      { label: "Inverse", value: `1 ${to} = ${num(1 / r, p, locale)} ${c.from}` },
-      { label: "From", value: `${NAMES[c.from] ?? c.from} (${c.from})` },
-      { label: "To", value: `${NAMES[to] ?? to} (${to})` },
-      { label: "Rates", value: rates.date },
+      { label: "Rates of", value: rates.date },
       { label: "Source", link: { text: SOURCE.name, href: SOURCE.url } },
     ],
   };
@@ -115,7 +114,7 @@ async function arithmetic(q: string, s: Settings, locale: string): Promise<Row[]
   if (r.kind === "text") return [{ id: "result", name: r.text, subtitle: expr, raw: r.text }];
   if (r.kind === "unit") {
     const p = Math.min(s.precision, 6);
-    return [{ id: "result", name: `${num(r.value, p, locale)} ${r.unit}`, subtitle: expr, raw: `${rawNum(r.value, p)} ${r.unit}`, accessories: [{ text: r.unit }] }];
+    return [{ id: "result", name: `${num(r.value, p, locale)} ${r.unit}`, subtitle: expr, raw: `${rawNum(r.value, p)} ${r.unit}` }];
   }
   const rows: Row[] = [{ id: "result", name: num(r.value, s.precision, locale), subtitle: expr, raw: rawNum(r.value, s.precision) }];
   // Other bases for a number typed as one (`0xff`) or a bare integer (`255`); not for every integer result.
@@ -221,13 +220,13 @@ async function variables(q: string, s: Settings, locale: string): Promise<Row[] 
   return [{ id: "result", name: num(v.value, s.precision, locale), subtitle, raw: rawNum(v.value, s.precision), accessories: [pct] }];
 }
 
-const item = (r: Row): Item => ({
+const item = (r: Row, i: number): Item => ({
   id: r.id,
   name: r.name,
   subtitle: r.subtitle,
   icon: ICON,
-  // The answer leads (Item.hero): the result row as a headline, the query as understood under it.
-  ...(r.id === "result" && !r.inert ? { hero: true } : {}),
+  // The answer leads (Item.hero): the first row (the result, or the largest `X in <variable>` count) as a headline, the query as understood under it.
+  ...(i === 0 && !r.inert ? { hero: true } : {}),
   ...(r.accessories?.length ? { accessories: r.accessories } : {}),
   ...(r.detail ? { detail: r.detail } : {}),
   actions: r.inert ? [] : ACTIONS,

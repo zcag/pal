@@ -24,8 +24,9 @@ const DATA_API = process.env.PAL_YOUTUBE_API ?? "https://www.googleapis.com/yout
 const FETCH_MS = 6000;
 export const LIMIT = 25;
 
+/** `hint` says what happened (the row's title), `fix` what to do about it (its subtitle), `setting` the one to open for it. */
 export class YouTubeError extends Error {
-  constructor(message: string, readonly hint: string) { super(message); }
+  constructor(message: string, readonly hint: string, readonly fix?: string, readonly setting?: "api_key" | "invidious_url") { super(message); }
 }
 
 export const watchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
@@ -77,7 +78,9 @@ async function api<T>(path: string, params: Record<string, string>, key: string)
   const res = await fetch(`${DATA_API}/${path}?${new URLSearchParams({ ...params, key })}`, { signal: AbortSignal.timeout(FETCH_MS) });
   if (res.status === 400 || res.status === 403) {
     const reason = ((await res.json().catch(() => ({}))) as { error?: { errors?: { reason?: string }[] } })?.error?.errors?.[0]?.reason ?? "";
-    throw new YouTubeError(`api ${res.status} ${reason}`, reason === "quotaExceeded" ? "The Data API's daily quota is used up (10,000 units; a search is 100): tomorrow, or set Invidious instance" : "YouTube refused the key: check Data API key and that YouTube Data API v3 is enabled on its project");
+    throw reason === "quotaExceeded"
+      ? new YouTubeError(`api ${res.status} ${reason}`, "The Data API's daily quota is used up", "10,000 units a day, a search is 100: try tomorrow, or set an Invidious instance", "invidious_url")
+      : new YouTubeError(`api ${res.status} ${reason}`, "YouTube refused the key", "Check Data API key, and that YouTube Data API v3 is enabled on its project", "api_key");
   }
   if (!res.ok) throw new YouTubeError(`api ${res.status}`, `YouTube answered ${res.status}`);
   return (await res.json()) as T;
@@ -118,8 +121,8 @@ async function inv<T>(base: string, path: string, params: Record<string, string>
   const q = new URLSearchParams(params).toString();
   let res: Response;
   try { res = await fetch(`${base.replace(/\/+$/, "")}/api/v1/${path}${q ? `?${q}` : ""}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(FETCH_MS) }); }
-  catch (e) { throw new YouTubeError(`invidious ${errorMessage(e)}`, (e as Error)?.name === "TimeoutError" ? `${new URL(base).host} did not answer within ${FETCH_MS / 1000} s` : `Could not reach ${base}: ${errorMessage(e)}`); }
-  if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) throw new YouTubeError(`invidious ${res.status}`, `${new URL(base).host} does not serve the API (${res.status}${res.ok ? ", not JSON" : ""}): most public instances turned it off; run one, or set api_key`);
+  catch (e) { throw (e as Error)?.name === "TimeoutError" ? new YouTubeError(`invidious ${errorMessage(e)}`, `${new URL(base).host} did not answer within ${FETCH_MS / 1000} s`, "Try again, or set another Invidious instance", "invidious_url") : new YouTubeError(`invidious ${errorMessage(e)}`, `Could not reach ${new URL(base).host}`, errorMessage(e), "invidious_url"); }
+  if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) throw new YouTubeError(`invidious ${res.status}`, `${new URL(base).host} does not serve the API (${res.status}${res.ok ? ", not JSON" : ""})`, "Most public instances turned it off: run one, or set a Data API key", "invidious_url");
   return (await res.json()) as T;
 }
 

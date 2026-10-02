@@ -97,11 +97,12 @@ describe("turkish", () => {
       ["lower", "turkce yazilmis bir cumle"],
       ["title", "Turkce Yazilmis Bir Cumle"],
     ]);
-    expect(rows[0].subtitle).toBe("Deasciified · Turkish letters restored: Turkce → Türkçe");
+    expect(rows[0].subtitle).toBe("Deasciified");
     expect(rows[0].accessories).toEqual([{ text: "6 changed" }]);
     expect(rows[1].accessories).toEqual([{ tag: "unchanged", color: "grey" }]);
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["paste", "copy", "translate", "copy-source"]);
-    expect(rows[0].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Changed", value: "6 characters" }, { label: "Source", value: "Typed" }]));
+    expect(rows.map((r) => r.hero)).toEqual([true, undefined, undefined, undefined, undefined]);
+    expect(rows[0].detail).toMatchObject({ caption: "Deasciified · Typed", title: "Türkçe yazılmış bir cümle", markdown: "Turkce yazilmis bir cumle", stats: [{ value: "6", label: "characters changed" }, { value: "25", label: "characters" }], metadata: [{ label: "What it does", value: "Turkish letters restored: Turkce → Türkçe" }] });
     expect(await pick("deasciify")).toEqual({ paste: { text: "Türkçe yazılmış bir cümle" } });
     expect(await pick("deasciify", "copy")).toEqual({ copy: "Türkçe yazılmış bir cümle" });
     expect(await pick("upper", "copy-source")).toEqual({ copy: "Turkce yazilmis bir cumle" });
@@ -114,7 +115,7 @@ describe("turkish", () => {
     let rows = await list("");
     expect(rows[0].name).toBe("çok sıcak");
     expect(rows[0].subtitle).toContain("from the selection, Enter replaces it");
-    expect(rows[0].detail!.metadata).toContainEqual({ label: "Source", value: "The selection in the app in front" });
+    expect(rows[0].detail!.caption).toBe("Deasciified · The selection in the app in front");
     expect(await pick("deasciify")).toEqual({ paste: { text: "çok sıcak" } });
     selectionText = null;
     await host.advance(TEXT_AT_HAND_TTL_MS);

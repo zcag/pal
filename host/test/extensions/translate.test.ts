@@ -164,8 +164,9 @@ describe("translate", () => {
     expect(items[0]).toMatchObject({ name: "Selam Dünya", subtitle: "English → Turkish · Google Translate", keywords: ["hello world"] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["copy", "paste", "speak", "copy_source", "open"]);
     expect(items[0].actions![2].shortcut).toBe("cmd+shift+s");
-    expect(items[0].detail!.markdown).toBe("Selam Dünya\n\n---\n\nhello world");
-    expect(items[0].detail!.metadata).toEqual([{ label: "From", value: "English (en)" }, { label: "To", value: "Turkish (tr)" }, { label: "Backend", value: "Google Translate" }, { label: "Detection", value: "76% sure" }, { label: "Length", value: "11 → 11 characters" }]);
+    // The pane: the pair on top, the translation as its title, the source under it.
+    expect(items[0].detail).toMatchObject({ caption: "English → Turkish · Google Translate", title: "Selam Dünya", markdown: "hello world" });
+    expect(items[0].detail!.metadata).toEqual([{ label: "Detection", value: "76% sure" }, { label: "Length", value: "11 → 11 characters" }]);
     expect(items[1]).toMatchObject({ name: "English detected", subtitle: "76% sure · translated to Turkish", actions: [] });
     expect(items[2]).toMatchObject({ name: "merhaba dünya", subtitle: "Alternative" });
     expect(items[3]).toMatchObject({ name: "Swap: Turkish → English", actions: [{ id: "swap", title: "Swap and translate" }] });

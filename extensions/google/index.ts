@@ -154,7 +154,8 @@ function resultRow(r: Result): Item {
     subtitle: r.snippet,
     url: r.url,
     accessories: [{ text: domainOf(r.url) }],
-    detail: { markdown: `**${mdEscape(r.title)}**\n\n${mdEscape(r.snippet)}`, metadata: [{ label: "Site", value: domainOf(r.url) }, { label: "Link", link: { text: truncate(r.url, 60), href: r.url } }, ...(r.date ? [{ label: "Date", value: r.date }] : [])] },
+    // The site (and date) on top, the page's title, its snippet, the link.
+    detail: { caption: [domainOf(r.url), r.date].filter(Boolean).join(" · "), title: r.title, markdown: mdEscape(r.snippet), metadata: [{ label: "Link", link: { text: truncate(r.url, 60), href: r.url } }] },
     actions: [OPEN, OPEN_BG, COPY_LINK, COPY_MD],
   };
 }
@@ -176,7 +177,8 @@ async function resultRows(q: string, filter: string, s: Settings): Promise<Item[
   }
   const t = filter.trim().toLowerCase();
   const has = (...xs: (string | undefined)[]) => !t || xs.some((x) => x?.toLowerCase().includes(t));
-  const rows = [...(f.answer && has(f.answer.title, f.answer.text) ? [answerRow(q, f.answer)] : []), ...f.results.filter((r) => has(r.title, r.snippet, r.url)).map((r) => ({ ...resultRow(r), section: `Results from ${PROVIDER_NAME[s.provider]}` }))];
+  // The answer, first here, is drawn as the headline (Item.hero); as you type it stays below the suggestions, so it is a plain row there.
+  const rows = [...(f.answer && has(f.answer.title, f.answer.text) ? [{ ...answerRow(q, f.answer), hero: true }] : []), ...f.results.filter((r) => has(r.title, r.snippet, r.url)).map((r) => ({ ...resultRow(r), section: `Results from ${PROVIDER_NAME[s.provider]}` }))];
   return rows.length ? rows : [hint("none", t ? `Nothing matches “${filter.trim()}”` : `No results for “${q}”`, PROVIDER_NAME[s.provider])];
 }
 
@@ -223,11 +225,11 @@ function previewMd(q: string, f: Found, s: Settings): string {
   return parts.join("\n\n");
 }
 
-/** A person, place or thing: Wikipedia's card when it has the page, else what Google said. */
-async function entityMd(e: NonNullable<Suggestion["entity"]>, s: Settings): Promise<string> {
+/** A person, place or thing as a document: what it is on top, its name, then Wikipedia's card when it has the page, else what Google said. */
+async function entityDetail(e: NonNullable<Suggestion["entity"]>, s: Settings): Promise<Detail> {
   const c = await wikiCard(e.title, localeOf(s).hl).catch(() => undefined);
-  if (!c) return [e.image ? `![](${e.image})` : "", `**${mdEscape(e.title)}**`, e.about ? mdEscape(e.about) : ""].filter(Boolean).join("\n\n");
-  return [c.image ? `![](${c.image})` : "", `**${mdEscape(c.title)}**${c.about ? `\n${mdEscape(c.about)}` : ""}`, mdEscape(c.extract), `[Wikipedia](${c.url})`].filter(Boolean).join("\n\n");
+  if (!c) return { ...(e.about && { caption: e.about }), title: e.title, ...(e.image && { markdown: `![](${e.image})` }) };
+  return { ...(c.about && { caption: c.about }), title: c.title, markdown: [c.image ? `![](${c.image})` : "", mdEscape(c.extract), `[Wikipedia](${c.url})`].filter(Boolean).join("\n\n") };
 }
 
 let previewSeq = 0;
@@ -243,7 +245,7 @@ async function detail(id: string): Promise<Detail> {
     if (my !== previewSeq) return {};
     try { return { markdown: previewMd(text, await results(text, s), s) }; } catch (err) { return { markdown: `Could not search: ${mdEscape(errorMessage(err))}` }; }
   }
-  if (e) return { markdown: await entityMd(e, s) };
+  if (e) return entityDetail(e, s);
   return {
     markdown: kind === "q" && !ready(s)
       ? `Enter searches Google for **${mdEscape(text)}**.\n\nResults can show as you type: pick a provider under Settings, Extensions, Google Search (SerpApi for Google's own results, Brave Search, or your own SearXNG).`

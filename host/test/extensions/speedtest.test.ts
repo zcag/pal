@@ -138,24 +138,25 @@ describe("speedtest", () => {
     rmSync(log, { force: true });
     const v = checkView(await view());
     const t = texts(v.tree);
-    expect(t[0]).toBe("[no tool]");
+    expect(t.slice(0, 2)).toEqual(["No speed test tool installed", "[no tool]"]);
     expect(t.join("\n")).toContain("brew tap teamookla/speedtest && brew install speedtest");
     expect(t.join("\n")).toContain("npm install --global fast-cli");
     expect(v.actions.map((a) => a.title)).toEqual(["Look for a tool again", "Copy result", "History"]);
     expect(await pick("copy")).toMatchObject({ keep: true, toast: { title: "No result yet" } });
-    expect(texts(viewOf(await pick("start")).tree)[0]).toBe("[no tool]");
+    expect(texts(viewOf(await pick("start")).tree)[1]).toBe("[no tool]");
     expect(argvLog()).toEqual([]);
   });
 
   test("with Ookla's CLI: opening the view runs nothing; Enter spawns it, the running view is pushed as the stream comes in, the finished one has every figure; the run lands in the history", async () => {
     standIn("speedtest", ookla());
     let v = checkView(await view());
-    expect(texts(v.tree).slice(0, 2)).toEqual(["[Speedtest by Ookla]", "Press Enter to start"]);
+    expect(texts(v.tree).slice(0, 2)).toEqual(["Press Enter to start", "[Speedtest by Ookla]"]);
     expect(v.actions[0]).toEqual({ id: "start", title: "Start the test" });
     expect(argvLog()).toEqual(["--version"]);
     v = viewOf(await pick("start"));
     await spawned(host);
     expect(argvLog().at(-1)).toBe("--format=jsonl --progress=yes --accept-license --accept-gdpr");
+    expect(texts(v.tree).slice(0, 2)).toEqual(["Starting…", "[Speedtest by Ookla]"]);
     expect(texts(v.tree)).toContain("[starting]");
     expect(v.actions[0]).toEqual({ id: "stop", title: "Stop the test" });
     shown();
@@ -164,9 +165,11 @@ describe("speedtest", () => {
     expect(dt).toContain("Example Net, Istanbul · Turk Telekom");
     expect(dt).toContain("blue=0.18");
     expect(dt).toContain("93.5");
+    expect(dt[0]).toBe("↓ 93.5 Mbps"); // the headline: the figure so far
     expect(dt).toContain("12.4 ms|latency");
     const done = await nextTree((t) => t.includes("[done]"));
     const t = texts(done.tree);
+    expect(t[0]).toBe("↓ 93.2  ↑ 29.6 Mbps");
     expect(t).toEqual(expect.arrayContaining(["[Speedtest by Ookla]", "blue=1.00", "93.2", "green=1.00", "29.6", "12.4 ms|latency", "1.0 ms|jitter", "0%|loss"]));
     expect(t.at(-1)).toContain("Enter runs again, cmd+Enter copies, cmd+o opens the result");
     expect(done.actions.map((a) => a.id)).toEqual(["start", "copy", "open", "history"]);
@@ -194,6 +197,7 @@ describe("speedtest", () => {
     let stopped: View | undefined;
     await host.until(() => !!(stopped = updates().slice(from).map((u) => u.spec as View).find((s) => texts(s.tree).includes("[failed]"))), 3000, "the failed view");
     expect(texts(stopped!.tree).at(-1)).toBe("Failed: stopped · Enter runs again");
+    expect(texts(stopped!.tree)[0]).toBe("The test failed");
     expect(stopped!.actions[0].title).toBe("Run again");
     expect((await host.list("speedtest", "history")).length).toBe(before);
     hidden();
@@ -205,7 +209,7 @@ describe("speedtest", () => {
     standIn("speedtest-cli", emit(SIVEL_LINES, 0.05));
     host.changeSettings("speedtest", { settings: { keep: 5, tool: "speedtest-cli" } });
     let v = viewOf(await pick("start"));
-    expect(texts(v.tree)[0]).toBe("[speedtest-cli]");
+    expect(texts(v.tree)[1]).toBe("[speedtest-cli]");
     shown();
     let done = await nextTree((t) => t.includes("[done]"));
     expect(texts(done.tree)).toEqual(expect.arrayContaining(["93.1", "29.6", "12.4 ms|latency", "Example Net, Istanbul · Turk Telekom"]));
@@ -213,7 +217,7 @@ describe("speedtest", () => {
     standIn("fast", FAST_CHUNKS.map((c) => `sleep 0.05; printf '%s' '${c.replace(/\x1b/g, "\\033")}'`).join("\n"));
     host.changeSettings("speedtest", { settings: { keep: 5, tool: "fast" } });
     v = viewOf(await pick("start"));
-    expect(texts(v.tree)[0]).toBe("[fast (Netflix)]");
+    expect(texts(v.tree)[1]).toBe("[fast (Netflix)]");
     shown();
     const mid = await nextTree((t) => t.includes("[downloading]") && t.includes("12.0"));
     const est = texts(mid.tree).find((x) => x.startsWith("blue="))!;
@@ -232,6 +236,9 @@ describe("speedtest", () => {
     expect(rows[3]).toMatchObject({ subtitle: "Example Net, Istanbul · Turk Telekom · Speedtest by Ookla", accessories: [{ date: expect.any(Number) }] });
     expect(rows[3].actions!.map((a) => a.id)).toEqual(["copy", "open", "remove"]);
     expect(rows[1].actions!.map((a) => a.id)).toEqual(["copy", "remove"]);
+    // A run's pane: when and with what, the server as its title, the figures large, the ISP and the result page under it.
+    expect(rows[3].detail).toMatchObject({ caption: expect.stringContaining("Speedtest by Ookla"), title: "Example Net, Istanbul", stats: [{ value: "93.2", label: "Mbps down" }, { value: "29.6", label: "Mbps up" }, { value: "12.4 ms", label: "ping" }, { value: "1.0 ms", label: "jitter" }] });
+    expect(rows[3].detail!.metadata!.map((m) => m.label)).toEqual(["ISP", "IP", "Result"]);
     expect(rows.at(-1)).toMatchObject({ id: "clear", subtitle: "3 runs" });
     const trend = viewOf(await host.pick("speedtest", "history", "trend"));
     const t = texts(trend.tree);

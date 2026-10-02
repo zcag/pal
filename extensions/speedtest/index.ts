@@ -7,7 +7,7 @@
 // tool's output). Enter while it runs stops it. A finished run is one line
 // on the clipboard (cmd+Enter) and lands in the History palette (storage),
 // whose first row draws the last runs as bars.
-import { clock, hint, isoDay, now as clockNow, settings, storage, toast, view as viewApi, when, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { clock, hint, isoDay, now as clockNow, settings, storage, toast, view as viewApi, when, type Ctx, type Detail, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { argv, detect, feed, finish, ms, speed, start, summary, TITLE, type Run, type Tool, type ToolId, noteLine } from "./tools.ts";
 import { type Live, runId, running, spec, trend, VIEW_ID } from "./view.ts";
 
@@ -124,13 +124,26 @@ async function pick(_id: string, action?: string): Promise<Effect> {
 
 const runs = async (): Promise<Run[]> => ((await storage.get<Run[]>(RUNS)) ?? []).filter((x) => x && typeof x.startedAt === "number");
 
+/** A run's pane: when and with what on top, the server as its title, the four figures large, then where it ran from. */
+const runDetail = (r: Run): Detail => ({
+  caption: `${when(r.startedAt)} · ${TITLE[r.tool]}`,
+  title: r.server ?? "Speed test",
+  stats: [
+    { value: speed(r.download), label: "Mbps down" },
+    { value: speed(r.upload), label: "Mbps up" },
+    { value: ms(r.ping), label: "ping" },
+    ...(r.jitter !== undefined ? [{ value: ms(r.jitter), label: "jitter" }] : []),
+  ],
+  metadata: [...(r.isp ? [{ label: "ISP", value: r.isp }] : []), ...(r.ip ? [{ label: "IP", value: r.ip }] : []), ...(r.url ? [{ label: "Result", link: { text: r.url.replace(/^https?:\/\//, ""), href: r.url } }] : [])],
+});
+
 async function historyRows(): Promise<Item[]> {
   const list = await runs();
   if (!list.length) return [hint("empty", "No runs yet", "A finished test lands here", { icon: GLYPH.history })];
   const out: Item[] = [{ id: "trend", name: `Trend: the last ${Math.min(20, list.length)} runs`, subtitle: "Download and upload as bars", icon: GLYPH.chart, actions: [{ id: "trend", title: "Show the trend" }] }];
   for (const r of list) out.push({
     id: runId(r), name: `↓ ${speed(r.download)} Mbps  ↑ ${speed(r.upload)} Mbps  ·  ${ms(r.ping)}`, subtitle: [r.server, r.isp, TITLE[r.tool]].filter(Boolean).join(" · "), icon: GLYPH.gauge, accessories: [{ date: r.startedAt }],
-    detail: { markdown: `**${summary(r)}**`, metadata: [{ label: "When", value: when(r.startedAt) }, { label: "Tool", value: TITLE[r.tool] }, ...(r.ip ? [{ label: "IP", value: r.ip }] : []), ...(r.url ? [{ label: "Result", link: { text: r.url.replace(/^https?:\/\//, ""), href: r.url } }] : [])] },
+    detail: runDetail(r),
     // Every action also takes marked runs (`multi`): one dated line each, their pages, one write.
     actions: [{ id: "copy", title: "Copy result", multi: true }, ...(r.url ? [{ id: "open", title: "Open the result page", shortcut: "cmd+o", multi: true as const }] : []), { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", multi: true }],
   });

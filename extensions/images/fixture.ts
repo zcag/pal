@@ -63,18 +63,20 @@ try {
   await Bun.sleep(50);
   // The view as the batch leaves it: a slow machine answers before every image has landed ("2 of 3 done") and pushes the rest.
   const picked = await host.pick("images", "images", hero, "web", { ids: [hero, photo, join(dir, "logo.png")] });
-  const foot = (t: ViewNode) => JSON.stringify(t).match(/"key":"foot","value":"([^"]*)"/)?.[1] ?? "";
-  const done = (t: ViewNode) => !/ of \d+ done$/.test(foot(t));
+  const total = (t: ViewNode) => JSON.stringify(t).match(/"key":"total","value":"([^"]*)"/)?.[1] ?? "";
+  const done = (t: ViewNode) => !/ of \d+ done$/.test(total(t));
   let web = picked as { view: { tree: ViewNode } };
   if (!done(web.view.tree)) {
     await host.until(() => host.viewUpdates("images", { palette: "images" }).some((u) => done(u.spec.tree)), 20_000, "the web batch landed");
     web = { view: { ...web.view, tree: host.viewUpdates("images", { palette: "images" }).filter((u) => done(u.spec.tree)).at(-1)!.spec.tree } };
   }
+  // The levels' search boxes as the real pushes name them.
+  const placeholderOf = async (op: string) => ((await host.pick("images", "images", hero, op)) as { push: { placeholder: string } }).push.placeholder;
   const fixture = {
     palettes: { images: { title: meta.title, icon: meta.icon, input: true, showDetail: true, placeholder: meta.placeholder, byQuery: { "": rows }, levels: { resize, convert }, details } },
     effects: {
-      [`images/${hero}:resize`]: { push: { extension: "", palette: "images", args: "resize", title: "Resize hero.png" } },
-      [`images/${hero}:convert`]: { push: { extension: "", palette: "images", args: "convert", title: "Convert hero.png" } },
+      [`images/${hero}:resize`]: { push: { extension: "", palette: "images", args: "resize", title: "Resize hero.png", placeholder: await placeholderOf("resize") } },
+      [`images/${hero}:convert`]: { push: { extension: "", palette: "images", args: "convert", title: "Convert hero.png", placeholder: await placeholderOf("convert") } },
       [`images/${hero}:web`]: { view: web.view },
     },
     shots: {
@@ -83,7 +85,7 @@ try {
       "3-detail": { palette: "images", keys: ["down*3"], caption: "The detail pane: the picture, its size, dimensions, format, colour profile and camera" },
       "4-resize": { palette: "images", keys: ["down", "cmd+shift+r"], caption: "Resize: the presets and a typed size, each row saying the pixels it lands on" },
       "5-convert": { palette: "images", keys: ["down", "cmd+shift+v", "down"], caption: "Convert: the formats, each row naming the tool that writes it, a missing tool named" },
-      "6-web": { palette: "images", keys: ["down", "cmd+enter"], caption: "Optimise for web: the before and after of every image, the saving as a tag, the total at the bottom" },
+      "6-web": { palette: "images", keys: ["down", "cmd+enter"], caption: "Optimise for web: the before and after of every image, the saving as a tag, the total saved as the headline" },
     },
   };
   const text = JSON.stringify(fixture, null, 2).split(join(dir, "cache", "clipboard")).join("~/Library/Caches/pal/images/clipboard").split(dir).join("~/Desktop/site");
