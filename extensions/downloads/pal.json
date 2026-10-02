@@ -82,7 +82,7 @@
       },
       {
         "file": "2-detail.png",
-        "caption": "The detail pane: name, folder, size, kind, modified, and the page the file came from"
+        "caption": "The detail pane: the folder over the name, its kind and size, and the page the file came from"
       },
       {
         "file": "3-actions.png",

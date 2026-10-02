@@ -12,7 +12,7 @@ finished is there.
 | section | what |
 | --- | --- |
 | Downloading | a file still coming in, first: Chrome's `.crdownload`, Firefox's `.part`, Safari's `.download` bundle, curl's `.partial`; the name it will have, a blue `downloading` tag, its size and, once it has grown between two listings, the rate; Safari's bundle says its percentage and total from its own plist. Reveal and Copy path only |
-| Today, Yesterday, This week, Older | every other file by its modification day, newest first: the size and the age on the right, the kind (`Document`, `Image`, `Disk`, `App`, `Archive`, `Code`, `Video`, `Audio`, or the extension) as the subtitle |
+| Today, Yesterday, This week, Older | every other file by its modification day, newest first: the size and the age on the right, no subtitle (the kind is the icon and the name's extension) |
 | Folder | `Clear older than 30 days`: how many files and how much they weigh, moved to the Trash on Enter after a confirm card; `Open Downloads`: the folder in Finder |
 
 An image or a PDF wears a 64 px thumbnail instead of its kind glyph,
@@ -25,9 +25,11 @@ With `browser_folders` on, each browser's own download folder is listed
 too when it is not the main one: Chrome, Chrome Beta, Chromium, Brave,
 Edge, Vivaldi and Arc from their `Preferences` (`download.default_directory`),
 Firefox from `prefs.js` (`browser.download.dir` when it is in charge);
-the subtitle then carries the folder.
+the subtitle then says the folder.
 
-The detail pane (`cmd+i`): name, folder, size, kind, modified, and on
+The detail pane (`cmd+i`) leads with the folder over the name, the kind
+(`Document`, `Image`, `Disk`, `App`, `Archive`, `Code`, `Video`, `Audio`,
+or the extension) as a chip and the size large; then modified, and on
 macOS the url the file came from and the page it was on, as Spotlight
 recorded them (`kMDItemWhereFroms`, what the browser stamps on a
 download).

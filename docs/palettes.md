@@ -4457,15 +4457,16 @@ again on every show. A file still coming in (`.crdownload`, `.part`,
 have, a blue tag, its size and, once it has grown between two listings,
 the rate (Safari's `.download` bundle gives its percentage and total from
 its plist); the rest sit under Today, Yesterday, This week and Older by
-modification day with the size and the age on the right and the kind as
-the subtitle. An image or a PDF wears a 64 px thumbnail (`sips` on macOS,
+modification day with the size and the age on the right (the kind is the
+icon). An image or a PDF wears a 64 px thumbnail (`sips` on macOS,
 ImageMagick on Linux, made once into the cache directory, the newest 24
 per listing); other rows a kind glyph. With `browser_folders` the
 browsers' own download folders (Chrome-family `Preferences`, Firefox
 `prefs.js`) are listed too when they differ from `folder`. The last rows
 clear what is older than `clear_days` (the count and size in the row, a
-confirm card) and open the folder. The detail pane adds the url and the
-page the file came from (Spotlight's `kMDItemWhereFroms`). The root's
+confirm card) and open the folder. The detail pane leads with the folder
+over the name, the kind and the size, and adds the url and the page the
+file came from (Spotlight's `kMDItemWhereFroms`). The root's
 Now section shows the newest download of the last ten minutes
 (`suggest`).
 
