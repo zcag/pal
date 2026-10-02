@@ -71,6 +71,30 @@ pub fn panel_mode(app: AppHandle, palette: Option<String>, mode: Option<PanelMod
     mode
 }
 
+/// A design that fits the panel to its rows (`--pal-panel-fit`, Panel.tsx)
+/// asks for `height` (logical px, the page's own measure) and the window
+/// follows, top edge fixed, so the native vibrancy and shadow are the
+/// panel's size and nothing shows below it; `None` is the full height
+/// again (a view, a form, the design off). Capped at the mode's full
+/// height; a game's big or corner panel is left alone.
+#[tauri::command]
+pub fn panel_fit(app: AppHandle, height: Option<f64>) {
+    if MODE.lock().unwrap().0 != PanelMode::Normal {
+        return;
+    }
+    let (width, full) = size(settings::config(&app).general.compact, configured(&app));
+    let h = height.map_or(full, |h| h.clamp(MIN_FIT, full));
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if let Some(w) = handle.get_webview_window(WINDOW) {
+            panel::fit(&w, LogicalSize::new(width, h));
+        }
+    });
+}
+
+/// The least a fitted panel shrinks to: a search row and an empty line.
+const MIN_FIT: f64 = 96.0;
+
 /// A show from hidden: one that starts over is normal first, where `place`
 /// then puts it (lib.rs `show_with`).
 pub fn on_show(app: &AppHandle, keep: bool) {

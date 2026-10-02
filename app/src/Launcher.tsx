@@ -308,6 +308,8 @@ export type LauncherProps = {
   onCompact?: () => void;
   /** A game level's panel (compact.rs): `palette` alone is its remembered mode, with `mode` that mode (remembered); neither is normal. Resolves to the mode applied. Offered on a game's level only (cmd+shift+f big, cmd+shift+j corner). */
   onPanelMode?: (palette?: string, mode?: PanelMode) => Promise<PanelMode>;
+  /** A design's fitted panel (Panel `onFit`): the window takes the height (`panel_fit`); absent, the panel sizes itself (the gallery). */
+  onPanelFit?: (height: number | null) => void;
   /** Sidebar mode: every row wears its number without cmd held, and cmd+N runs row N instead of moving the cursor to it (the number is the pick). */
   ordinals?: boolean;
   mark?: (name: string, t: number) => void;
@@ -364,7 +366,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onPanelMode, ordinals = false, mark, onOpened } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onPanelMode, onPanelFit, ordinals = false, mark, onOpened } = props;
   const prefs = props.prefs ?? DEFAULT_PREFS;
   /** Compact: no detail pane (cmd+i is inert), the footer's primary hint sits in the search row instead. */
   const compact = prefs.compact;
@@ -1386,6 +1388,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   return (
     <Panel
       fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing}
+      onFit={onPanelFit}
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
       aside={!compact && showDetail && !isShow && !isView && !isForm && !isMissing && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :

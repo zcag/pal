@@ -48,6 +48,13 @@ pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result
     w.set_size(size)
 }
 
+/// The panel to `size` with its top-left where it is (`compact::panel_fit`): no animation here.
+pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
+    if let Err(e) = resize(w, size) {
+        eprintln!("panel\tfit failed\t{e}");
+    }
+}
+
 pub fn is_visible(app: &AppHandle) -> bool {
     app.get_webview_window(WINDOW).and_then(|w| w.is_visible().ok()).unwrap_or(false)
 }

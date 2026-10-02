@@ -12,6 +12,8 @@ import type { Effect } from "./items";
 import type { Item } from "./ui/types";
 
 const hide = () => invoke("hide");
+/** The window to a design's fitted panel height (compact.rs `panel_fit`), or the full height back (`null`). */
+const panelFit = (height: number | null) => { invoke("panel_fit", { height }).catch(() => {}); };
 
 /** A confirm card the core asks for (`pal://confirm`, deeplink.rs); `null` drops the one up. */
 type Ask = { title: string; message?: string; ok: string; cancel: string; token: number };
@@ -21,12 +23,6 @@ export default function App() {
   const prefs = usePrefs();
   const launcher = useRef<LauncherHandle>(null);
 
-  // A design that fits the panel to its rows (`--pal-panel-fit`) leaves the window's lower part bare; the window still takes the click there, so it hides, as a click beside the panel does.
-  useEffect(() => {
-    const down = (e: MouseEvent) => { if (e.target instanceof Element && !e.target.closest(".pal-panel, .pal-confirm, .pal-toast")) hide(); };
-    document.addEventListener("mousedown", down);
-    return () => document.removeEventListener("mousedown", down);
-  }, []);
 
   // A trigger (`pal://trigger`: a copy recorded, the network back) lists the palette showing again when it asks for that one under `on` (a view's are re-asked in the Launcher).
   useEffect(() => {
@@ -120,7 +116,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

@@ -87,6 +87,23 @@ pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result
     w.set_size(size)
 }
 
+/// The panel to `size` (points) with its top edge where it is, animated by
+/// AppKit, so the vibrancy and the shadow (the window's, not the page's)
+/// glide with a design's fitted panel (`compact::panel_fit`). Main thread.
+pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
+    use objc2_app_kit::NSWindow;
+    use objc2_foundation::{NSPoint, NSRect, NSSize};
+    let Ok(ptr) = w.ns_window() else { return };
+    let ns = unsafe { &*(ptr as *const NSWindow) };
+    let f = ns.frame();
+    if (f.size.height - size.height).abs() < 0.5 && (f.size.width - size.width).abs() < 0.5 {
+        return;
+    }
+    let top = f.origin.y + f.size.height;
+    let to = NSRect::new(NSPoint::new(f.origin.x, top - size.height), NSSize::new(size.width, size.height));
+    ns.setFrame_display_animate(to, true, true);
+}
+
 pub fn is_visible(app: &AppHandle) -> bool {
     app.get_webview_panel(WINDOW).is_ok_and(|p| p.as_panel().alphaValue() > 0.0)
 }

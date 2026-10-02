@@ -393,6 +393,7 @@ pub fn run() {
             pick::pick_reply,
             dialog::dialog_detect,
             compact::panel_mode,
+            compact::panel_fit,
             large::large_hide,
             large::large_show,
             keycast::keycast_state,
