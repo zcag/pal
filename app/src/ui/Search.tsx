@@ -1,4 +1,4 @@
-import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
+import type { ChangeEvent, CSSProperties, KeyboardEvent, RefObject } from "react";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { keepFocus } from "./keys";
@@ -46,6 +46,10 @@ export type SearchProps = {
 export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title, hint, onHint, count, args }: SearchProps) {
   return (
     <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
+      {/* With no crumb (the root), the icon column over the rows holds a magnifier: the query still starts where the row titles do. */}
+      {!back && !title && (
+        <svg className="pal-search__mark" viewBox="0 0 16 16" aria-hidden><circle cx="7" cy="7" r="4.6" /><path d="M10.4 10.4 14 14" /></svg>
+      )}
       {back && (back.onBack ? (
         <button type="button" className="pal-search__back" onClick={back.onBack} onMouseDown={keepFocus} aria-label={`Back from ${back.title}`} tabIndex={-1}>
           <span className="pal-search__chevron" aria-hidden>‹</span>
@@ -83,7 +87,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
       {args && (
         <div className="pal-args" role="group" aria-label="Arguments" onKeyDown={(e) => onArgKey(e, args.onEscape)}>
           {args.fields.map((f, i) => {
-            const common = { name: f.id, "aria-label": f.placeholder, "aria-invalid": args.invalid.has(f.id) || undefined, "aria-required": f.required || undefined, "data-invalid": args.invalid.has(f.id) ? "" : undefined, className: "pal-args__field" };
+            const common = { name: f.id, "aria-label": f.placeholder, "aria-invalid": args.invalid.has(f.id) || undefined, "aria-required": f.required || undefined, "data-invalid": args.invalid.has(f.id) ? "" : undefined, className: "pal-args__field", style: { "--min": `${Math.max(6, Math.min(16, f.placeholder.length + 3))}ch` } as CSSProperties };
             return f.kind === "select" ? (
               <select key={f.id} {...common} ref={i === 0 ? (args.firstRef as RefObject<HTMLSelectElement | null>) : undefined} value={args.values[f.id] ?? ""} onChange={(e) => args.onChange(f.id, e.target.value)}>
                 {(f.options ?? []).map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
@@ -94,7 +98,8 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
           })}
         </div>
       )}
-      {filter && (
+      {/* The row's fields take the filter's place while they show: the filter is the palette's, back when the cursor leaves the row. */}
+      {filter && !args && (
         <label className="pal-search__filter">
           <select value={filter.value} onChange={(e) => filter.onChange(e.target.value)} aria-label="Filter" tabIndex={-1}>
             {filter.options.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}

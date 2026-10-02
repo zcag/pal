@@ -64,6 +64,8 @@
   caret-color: var(--pal-caret, var(--pal-accent));
   outline: none;
 }
+/* The root's magnifier (Search.tsx): centred in the rows' icon column, the query keeping the titles' edge. */
+.pal-search__mark { position: absolute; top: calc((var(--pal-search-h) - 16px) / 2); left: calc(var(--pal-list-inset) + var(--pal-row-px) + (var(--pal-icon-box) - 16px) / 2); width: 16px; height: 16px; fill: none; stroke: var(--pal-fg-faint); stroke-width: 1.6; stroke-linecap: round; pointer-events: none; }
 .pal-search__input::placeholder { color: var(--pal-fg-faint); font-size: var(--pal-text-placeholder, inherit); font-weight: var(--pal-weight-placeholder, inherit); letter-spacing: normal; }
 /* Compact mode: the primary hint and the marked count on the search row's right, drawn as the footer draws them, a size down. */
 .pal-search__hint { flex: none; height: var(--pal-control-h); margin-right: calc(var(--pal-space-2) * -1); font-size: var(--pal-text-xs); }
@@ -250,7 +252,8 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
   background: var(--pal-bg-sunken);
 }
 /* The caption may run wider than the tile, to the cell's edge less a hair (the brief's 72 in 80). */
-.pal-tile__label { margin: 0 calc(var(--pal-space-1) - var(--pal-space-3)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: var(--pal-text-xs); color: var(--pal-fg-muted); }
+/* Two lines at most (a narrow grid beside a detail pane would cut a caption to a few letters); the grid rows measure themselves. */
+.pal-tile__label { margin: 0 calc(var(--pal-space-1) - var(--pal-space-3)); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; overflow-wrap: anywhere; text-align: center; font-size: var(--pal-text-xs); color: var(--pal-fg-muted); }
 .pal-tile[data-active] .pal-tile__label { color: var(--pal-cursor-fg, var(--pal-fg)); }
 .pal-tile__ordinal { position: absolute; top: var(--pal-space-1); right: var(--pal-space-1); }
 
@@ -482,9 +485,10 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 
 /* Typed arguments (`Item.args`) after the query, while the cursor rests on a row that has them: a boxed field per argument, a size under the query. A required field left empty on Enter is rung in the destructive colour until it is typed in. */
 .pal-args { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--pal-space-2); height: 100%; overflow-x: auto; scrollbar-width: none; }
+/* A field may shrink, never below its placeholder (`--min`, Search.tsx): the typed query gives way first, then the row scrolls. */
 .pal-args__field {
   flex: 0 1 auto;
-  min-width: 6ch;
+  min-width: var(--min, 6ch);
   height: var(--pal-control-h);
   padding: 0 var(--pal-space-3);
   border: 0;
