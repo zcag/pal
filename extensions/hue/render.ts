@@ -142,7 +142,7 @@ function header(s: Shown, t: Target): ViewNode {
   if (s.reach === "disconnected" || s.reach === "connectivity_issue") badges.push({ type: "badge", key: "reach", text: "unreachable", color: "red" });
   if (s.effect) badges.push({ type: "badge", key: `fx-${s.effect}`, text: s.effect, color: "violet" });
   return column([
-    row([text(s.name, { style: "title" }), ...badges], { key: "h1", gap: 1 }),
+    row([text(s.name, { style: "headline" }), ...badges], { key: "h1", gap: 1, align: "center" }),
     text(t.kind === "room" ? s.sub : s.sub, { style: "muted", size: "sm" }),
   ], { key: "header", gap: 0 });
 }
@@ -199,7 +199,7 @@ export function render(t: Target, st: ViewState, scenes: Scene[]): View {
   const right = column([header(s, t), presetsRow(st), scenesRow(scenes, st), effectsRow(s, st), optionsRow(t, st)], { key: "right", gap: 2, grow: true, align: "start" });
   const tree = column(
     [row([leftColumn(s, st), right], { key: "main", gap: 4, align: "start" }), { type: "spacer", key: "fill" }, hints(st, s)],
-    { key: "hue", padding: 4, gap: 2, grow: true },
+    { key: "hue", padding: 3, gap: 2, grow: true },
   );
   return { tree, actions: actions(t, st, s, scenes), title: s.name, id: t.kind === "light" ? t.light.id : t.room.id, keys: "actions" };
 }
@@ -221,7 +221,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
   if (st.phase === "press") {
     const left = Math.max(0, Math.ceil((st.deadline - now) / 1000));
     kids.push(
-      text("Press the round button on the bridge", { style: "title", size: "xl" }),
+      text("Press the round button on the bridge", { style: "headline" }),
       text(`${st.name} · ${st.ip}`, { style: "muted" }),
       row([{ type: "progress", key: "clock", value: left / 30, width: 320, color: left > 10 ? "blue" : "amber" }, text(`${left} s`, { key: `left-${left}`, style: "number", transition: { enter: "fade", exit: "none" } })], { key: "countdown", minHeight: 20 }),
       text(st.error ? st.error : "pal asks the bridge every second; the panel comes back on its own once the key is in.", { style: "muted", size: "sm", color: st.error ? "destructive" : "muted" }),
@@ -230,7 +230,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
     acts.push({ id: "check", title: "Check now", shortcut: "enter" }, { id: "cancel", title: "Stop pairing", shortcut: "x", style: "destructive" });
   } else if (st.phase === "paired") {
     kids.push(
-      text(`Paired with ${st.name}`, { style: "title", size: "xl", color: "success" }),
+      text(`Paired with ${st.name}`, { style: "headline", color: "success" }),
       text(`${st.ip} · bridge ${st.id}`, { style: "muted" }),
       text("The address and the key are in the settings (Settings › Extensions › Hue; the key in the keychain), the bridge's certificate is pinned.", { style: "body", size: "sm" }),
       row([...keyHint("enter", "open Rooms"), ...keyHint("c", "copy the key"), ...keyHint("b", "back to the bridges")], { key: "keys", gap: 1 }),
@@ -238,14 +238,14 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
     acts.push({ id: "rooms", title: "Open Rooms", shortcut: "enter" }, { id: "copy_key", title: "Copy the application key", shortcut: "c" }, { id: "back", title: "Back to the bridges", shortcut: "b" });
   } else if (st.phase === "failed") {
     kids.push(
-      text("Not paired", { style: "title", size: "xl", color: "destructive" }),
+      text("Not paired", { style: "headline", color: "destructive" }),
       text(`${st.name} · ${st.ip}`, { style: "muted" }),
       text(st.error, { style: "body", size: "sm" }),
       row([...keyHint("enter", "try again"), ...keyHint("b", "back")], { key: "keys", gap: 1 }),
     );
     acts.push({ id: `pair:${st.ip}`, title: "Try again", shortcut: "enter" }, { id: "back", title: "Back to the bridges", shortcut: "b" });
   } else {
-    kids.push(text("Set up Hue", { style: "title", size: "xl" }), text(found.length ? "Bridges on this network. Pick one, then press its button." : "No bridge found yet. Is it on and on this network? Type its address, or scan again.", { style: "muted" }));
+    kids.push(text("Set up Hue", { style: "headline" }), text(found.length ? "Bridges on this network. Pick one, then press its button." : "No bridge found yet. Is it on and on this network? Type its address, or scan again.", { style: "muted" }));
     if (st.error) kids.push(text(st.error, { style: "body", size: "sm", color: "destructive" }));
     const rows: ViewNode[] = found.slice(0, 9).map((f, i) => {
       const done = isPaired(f);

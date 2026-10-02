@@ -1,6 +1,6 @@
 // The bar item's popover as a tree (`View` in `@zcag/pal`, 420 wide,
 // `ctx.compact`): the home at a glance and in reach. A status row (how
-// many lights are on, the motion and temperature sensors as badges, the
+// many lights are on as the headline, the motion and temperature sensors as badges, the
 // bridge when it is away), the rooms as a grid of colour tiles (each in
 // its lit colour with its name, a switch, the count and a thin brightness
 // bar; an off room a plain card; a tap toggles it, the chevron opens it),
@@ -151,11 +151,12 @@ export function sensorBadges(sensors: Sensor[]): ViewNode[] {
   return out.slice(0, MAX_BADGES);
 }
 
-function statusRow(d: PopoverData): ViewNode {
-  const kids: ViewNode[] = [text(d.lightsOn ? `${d.lightsOn} of ${d.lightsTotal} lights on` : "All lights off", { key: `n-${d.lightsOn}`, style: "body", size: "sm", weight: "semibold", color: d.lightsOn ? undefined : "muted", transition: { enter: "fade", exit: "none" } })];
+/** How many lights are on, the popover's headline; a room opened inline takes the height, so the count steps down to a line. */
+function statusRow(d: PopoverData, opened: boolean): ViewNode {
+  const kids: ViewNode[] = [text(d.lightsOn ? `${d.lightsOn} of ${d.lightsTotal} lights on` : "All lights off", { key: `n-${d.lightsOn}-${opened}`, ...(opened ? { style: "body", size: "sm", weight: "semibold" } : { style: "headline" }), color: d.lightsOn ? undefined : "muted", transition: { enter: "fade", exit: "none" } })];
   kids.push(...sensorBadges(d.sensors));
   for (const name of d.away) kids.push({ type: "badge", key: `away-${name}`, text: `${name} away`, color: "red" });
-  return row(kids, { key: "status", gap: 1, minHeight: 18 });
+  return row(kids, { key: "status", gap: 1, minHeight: 18, align: "center" });
 }
 
 function hints(d: PopoverData, st: PopoverState, cur: Room | undefined): ViewNode {
@@ -214,7 +215,7 @@ export function renderPopover(d: PopoverData, st: PopoverState): View {
   }
   const cur = rooms[Math.min(st.cursor, Math.max(0, rooms.length - 1))];
   const open = st.open ? rooms.find((r) => r.id === st.open) : undefined;
-  const kids: ViewNode[] = [statusRow(d)];
+  const kids: ViewNode[] = [statusRow(d, !!open)];
   kids.push(rooms.length ? grid(rooms, st) : text("No rooms with lights on this bridge", { key: "none", style: "muted", size: "sm" }));
   if (open) kids.push(lightsSection(open, st));
   const scenes = scenesSection(d.scenes, d.scenesOf);
