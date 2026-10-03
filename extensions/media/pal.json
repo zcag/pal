@@ -173,6 +173,8 @@
     "features": [
       "One row per player with the track, artist, cover and progress",
       "Every player the system knows about on macOS (a browser, VLC), and MPRIS players on Linux",
+    "What your other extensions play comes first: a show on the Apple TV, Spotify on another device, Jellyfin; `enter` opens that extension's own view",
+    "The bar item leaves alone a playback another extension's own item already shows, so nothing is on the bar twice",
       "`enter` plays or pauses, `cmd+right` and `cmd+left` skip",
       "`cmd+c` copies `artist - title`, `cmd+o` opens the track or the app",
       "The playing track is found from the root by its title or artist",
@@ -188,11 +190,11 @@
     "screenshots": [
       {
         "file": "1-players.png",
-        "caption": "One row per player: Spotify playing with the position, Music paused, a browser with nothing loaded"
+        "caption": "One row per player: a show on the living-room TV from its own extension first, Spotify playing with the position, Music paused, a browser with nothing loaded"
       },
       {
         "file": "2-actions.png",
-        "caption": "The transport on a row: pause, next, previous, copy the track, open it in the player"
+        "caption": "The actions on a row: open the TV's own remote, pause, next, previous, copy the track"
       },
       {
         "file": "3-root.png",
@@ -233,8 +235,13 @@
     ],
     "actions": [
       {
+        "title": "Open",
+        "description": "On a player another extension publishes: that extension's own view (the Apple TV's remote, Spotify's lyrics).",
+        "keys": "enter"
+      },
+      {
         "title": "Play or pause",
-        "description": "Toggles; the row's tag follows.",
+        "description": "Toggles; the row's tag follows (`cmd+enter` on a published player).",
         "keys": "enter"
       },
       {

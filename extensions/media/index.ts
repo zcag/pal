@@ -9,7 +9,12 @@
 // again, so the tag follows. Live: listed again on every show, and the
 // position is the core's estimate at that moment (it ticks from the last
 // payload and the clock). With nothing running the one row says so, and on
-// Linux how to see players.
+// Linux how to see players. What other extensions publish as their
+// `player` control (docs/design/controls.md: the Apple TV, Spotify on any
+// device, Jellyfin) comes first, Enter opening that extension's own view,
+// the transport through `controls.runOn`; one that names a system row as
+// the same playback (`same`) drops it, and the bar leaves a player alone
+// while its extension's own item shows it (`item_shown`).
 //
 // The bar item `now-playing` is the playing track on the strip (hidden
 // while nothing plays) with the cover, the titles, a ticking progress
@@ -33,7 +38,7 @@
 // popover (`ARTWORK_MAX` bytes at most), since a view's image draws
 // `data:` and `icon://` only; the app's own icon stands in without one.
 import { readFile } from "node:fs/promises";
-import { bar, core, errorMessage, failed, hint, media, now, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
+import { bar, controls, core, errorMessage, failed, hint, media, now, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarCtx, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying, type Served } from "@zcag/pal";
 import { clock, render, type MediaState } from "./view.ts";
 
 const MAC = process.platform === "darwin";
@@ -50,8 +55,10 @@ const TICK_MS = 1000;
 const ARTWORK_MAX = 2 * 1024 * 1024;
 const ARTWORK_TIMEOUT_MS = 3000;
 
-/** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
-type Player = MediaPlayer & { artwork_id?: string | null };
+/** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up; `ext` on a player another extension publishes. */
+type Player = MediaPlayer & { artwork_id?: string | null; ext?: Published };
+/** What a published player (`controls.all("player")`) adds: its provider, its own Now Playing palette, whether its own bar item is on a strip, the system players it duplicates. */
+type Published = { key: string; palette?: string; shown: boolean; same: string[] };
 type Playing = NowPlaying & { stream?: boolean };
 type Settings = { exclude?: string[] };
 /** The `now-playing` item's own settings (`[bar.items."media/now-playing".settings]`). */
@@ -65,6 +72,41 @@ const STATE: Record<MediaPlayer["state"], { color: string; tag: string }> = {
   paused: { color: "amber", tag: "paused" },
   stopped: { color: "grey", tag: "stopped" },
 };
+
+// ---- players other extensions publish (docs/design/controls.md, "Now Playing") ----
+
+/** A published player's row id: its provider's key behind the prefix. */
+const PUBLISHED = "ctl:";
+/** The system's players a provider's `same` bundle id stands for: the app's own row (`id`), or the system-wide row naming its `.app`. */
+const BUNDLES: Record<string, { id: string; app: string }> = { "com.spotify.client": { id: "spotify", app: "spotify" }, "com.apple.Music": { id: "music", app: "music" } };
+
+/** One published player as a row's player: its app and device as the name, the position moved along from when it was read. */
+export function fromPublished(s: Served<"player">, at = now()): Player {
+  const p: Player = {
+    id: `${PUBLISHED}${s.provider.key}`, name: [s.app, s.device].filter(Boolean).join(" · ") || s.provider.key, state: s.state ?? "stopped",
+    title: s.title ?? null, artist: s.artist ?? null, album: s.album ?? null, artwork: s.artwork ?? null, url: null, app: null, position: s.position ?? null, duration: s.duration ?? null,
+    ext: { key: s.provider.key, palette: s.palette, shown: s.item_shown === true, same: s.same ?? [] },
+  };
+  return s.at !== undefined ? { ...p, position: positionAt(p, s.at, at) ?? null } : p;
+}
+
+/** Every published player that plays or pauses something; none on a host without controls. */
+async function published(): Promise<Player[]> {
+  try { return (await controls.all("player")).filter((s) => s.state === "playing" || s.state === "paused").map((s) => fromPublished(s)); } catch { return []; }
+}
+
+/** The published players first, then the system's, less the system rows a published one says it duplicates. */
+export function merged(np: Playing, pub: Player[]): Playing {
+  const same = pub.flatMap((p) => p.ext?.same ?? []).flatMap((b) => BUNDLES[b] ?? []);
+  const dup = (p: Player) => same.some((b) => p.id === b.id || (p.app !== null && p.app.toLowerCase().endsWith(`/${b.app}.app`)));
+  return { ...np, players: [...pub, ...np.players.filter((p) => !dup(p))] };
+}
+
+/** The players now: the system's and the published ones, merged. */
+async function nowPlaying(): Promise<Playing> {
+  const [np, pub] = await Promise.all([media.nowPlaying() as Promise<Playing>, published()]);
+  return merged(np, pub);
+}
 
 /** `artist - title`, or whichever there is. */
 export const trackText = (p: MediaPlayer): string => [p.artist, p.title].filter(Boolean).join(" - ");
@@ -98,11 +140,15 @@ const picture = (p: Player, c: Cover | undefined) => (c ? { image: c.image } : p
 /** What Open opens: the track's url, else the app on macOS (a `.desktop` path is not something the opener launches). */
 const openTarget = (p: MediaPlayer) => p.url ?? (MAC ? p.app : null);
 
-/** A transport command to `player`; the panel or popover stays up, a refusal is a toast. */
+/** A published player's own Now Playing, in its extension: what Open does for one. */
+const openPublished = (p: Player): Effect | undefined => (p.ext?.palette ? { push: { extension: p.ext.key, palette: p.ext.palette } } : undefined);
+
+/** A transport command to `player` (a published one's goes to its provider); the panel or popover stays up, a refusal is a toast. */
 async function control(player: string, action?: string): Promise<Effect> {
   const command = action === "next" || action === "previous" ? action : "play_pause";
   try {
-    await media.control(player, command);
+    if (player.startsWith(PUBLISHED)) await controls.runOn(player.slice(PUBLISHED.length), "player", command);
+    else await media.control(player, command);
   } catch (e) {
     return failed("control the player", e);
   }
@@ -126,7 +172,9 @@ export async function item(p: Player): Promise<Item> {
   ];
   if (!idle) actions.push({ id: "copy", title: "Copy track", shortcut: "cmd+c" });
   const target = openTarget(p);
-  if (target) actions.push({ id: "open", title: `Open in ${p.name}`, shortcut: "cmd+o" });
+  // A published player: Enter opens its extension's own Now Playing (the lyrics, the remote), the transport stays on the other actions.
+  if (openPublished(p)) actions.unshift({ id: "open", title: "Open" });
+  else if (target) actions.push({ id: "open", title: `Open in ${p.name}`, shortcut: "cmd+o" });
   return {
     id: p.id,
     name: p.title ?? (untitledActive ? p.name : "Nothing playing"),
@@ -154,10 +202,12 @@ const excluded = (p: Player) => {
   const list = (settings.get<Settings>(EXTENSION).exclude ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
   return list.includes(p.id.toLowerCase()) || list.includes(p.name.toLowerCase()) || (p.app !== null && list.some((x) => p.app!.toLowerCase().includes(`/${x}.app`)));
 };
-/** The playing player the bar and the Now row show: the first playing one that is not excluded. */
-const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !excluded(p));
-/** The player the strip follows: the playing one, else the first that is not excluded, paused or idle (the manifest's `paused` rule hides that one unless the user keeps it). */
-const playerForBar = (np: { players: Player[] }) => playingForBar(np) ?? np.players.find((p) => !excluded(p));
+/** A player the bar leaves alone: excluded, or published by an extension whose own bar item shows it now (Spotify's lyric line, the Apple TV's remote: never doubled, never replaced). */
+const skipped = (p: Player) => excluded(p) || p.ext?.shown === true;
+/** The playing player the bar and the Now row show: the first playing one that is not skipped. */
+const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !skipped(p));
+/** The player the strip follows: the playing one, else the first that is not skipped, paused or idle (the manifest's `paused` rule hides that one unless the user keeps it). */
+const playerForBar = (np: { players: Player[] }) => playingForBar(np) ?? np.players.find((p) => !skipped(p));
 
 /** The cover a player names by url, as a data url for the popover: fetched or read once per url, the last one kept. Nothing for a picture too large, unreachable or not an image. */
 let fetched: { url: string; data?: string } | undefined;
@@ -204,7 +254,7 @@ export const positionAt = (p: Player, at: number, now: number): number | undefin
   return p.duration != null && p.duration > 0 ? Math.min(p.duration, moved) : moved;
 };
 
-const stateOf = (p: Player, cover: string | undefined, at: number, moment = now()): MediaState => ({ player: p, cover, position: positionAt(p, at, moment), canOpen: !!openTarget(p) });
+const stateOf = (p: Player, cover: string | undefined, at: number, moment = now()): MediaState => ({ player: p, cover, position: positionAt(p, at, moment), canOpen: !!(openTarget(p) || openPublished(p)) });
 
 /**
  * What the strip shows for a playing player: the track (else the app) as
@@ -267,6 +317,8 @@ function listen() {
   listening = true;
   liveView.onShown((ev) => { if (ev.bar === ITEM) startTick(); }, EXTENSION);
   liveView.onHidden((ev) => { if (ev.bar === ITEM) stopTick(); }, EXTENSION);
+  // A published player moved (a track, a pause, its own item showing or not): the strip looks again.
+  try { controls.onChange((c) => { if (c.control === "player") bar.refresh(ITEM, EXTENSION).catch(() => {}); }, EXTENSION); } catch {}
 }
 
 /**
@@ -281,7 +333,7 @@ function follow(np: Playing | undefined) {
   if (!p || np?.stream) { clearInterval(poll); poll = undefined; return; }
   poll ??= setInterval(async () => {
     let now: Playing;
-    try { now = await media.nowPlaying(); } catch { return; }
+    try { now = await nowPlaying(); } catch { return; }
     if (signature(playerForBar(now)) === last) return;
     follow(now);
     playingItem(now).then((item) => bar.update(ITEM, item, EXTENSION)).catch(() => {});
@@ -292,17 +344,17 @@ async function renderBar(ctx?: BarCtx): Promise<BarItem> {
   if (ctx?.settings) itemSettings = ctx.settings as ItemSettings;
   listen();
   let np: Playing | undefined;
-  try { np = await media.nowPlaying(); } catch { np = undefined; }
+  try { np = await nowPlaying(); } catch { np = undefined; }
   follow(np);
   return np ? playingItem(np) : barItem(undefined, undefined, false);
 }
 
 async function barAction(action: string): Promise<Effect> {
-  const p = playerForBar(await media.nowPlaying());
+  const p = playerForBar(await nowPlaying());
   if (!p) return { keep: true, hud: "Nothing playing" };
   if (action === "refresh") return { keep: true };
   if (action === "copy") return p.title ? { copy: trackText(p) } : { keep: true, hud: "No track title" };
-  if (action === "open") { const target = openTarget(p); return target ? { open: target } : { keep: true }; }
+  if (action === "open") { const target = openTarget(p); return openPublished(p) ?? (target ? { open: target } : { keep: true }); }
   return control(p.id, action);
 }
 
@@ -314,11 +366,11 @@ export default {
       placeholder: "Play, pause, skip",
       // The empty root's Now section: the playing track, nothing while nothing plays.
       suggest: async () => {
-        try { const p = playingForBar(await media.nowPlaying()); return p ? [await item(p)] : []; } catch { return []; }
+        try { const p = playingForBar(await nowPlaying()); return p ? [await item(p)] : []; } catch { return []; }
       },
       list: async () => {
         try {
-          const np = await media.nowPlaying();
+          const np = await nowPlaying();
           // A running player macOS has not been asked about: its track is on the system-wide row; this row's pick lets macOS ask (never a listing: the first event is the consent alert).
           const unasked = (np.unasked ?? []).map((u) => hint(`ask:${u.id}`, `${u.name} is running; let pal control it directly`, "Enter lets macOS ask whether pal may automate it: its own row, with the track's link", { icon: { app: u.app }, actions: [{ id: "ask", title: "Allow pal to control it" }] }));
           return np.players.length || unasked.length ? [...(await Promise.all(np.players.map(item))), ...unasked] : [empty(np.system_wide)];
@@ -332,11 +384,11 @@ export default {
           try { return (await media.ask(id.slice("hint:ask:".length))) ? { keep: true } : toast("Not allowed", "Switch it on under System Settings > Privacy & Security > Automation", "failure"); } catch (e) { return failed("ask for Automation", e); }
         }
         if (action === "copy" || action === "open") {
-          const p = (await media.nowPlaying()).players.find((p) => p.id === id);
+          const p = (await nowPlaying()).players.find((p) => p.id === id);
           if (!p) return toast("That player is gone", undefined, "failure");
           if (action === "copy") return { copy: trackText(p) };
           const target = openTarget(p);
-          return target ? { open: target } : { keep: true };
+          return openPublished(p) ?? (target ? { open: target } : { keep: true });
         }
         return control(id, action);
       },

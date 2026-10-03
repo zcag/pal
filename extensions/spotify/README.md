@@ -139,6 +139,20 @@ on time without polling. The core also renders it every 30 s, on show,
 wake and network, and on its `media` trigger (macOS: the moment the
 track or the state changes, through the MediaRemote stream).
 
+## In Now Playing
+
+What plays is also published as the `player` control
+(`docs/design/controls.md`), so Now Playing (`media`) lists it on any
+device, first, with Enter opening the lyrics view here and its transport
+running through the same calls as the keys. While this item is on the
+strip, Now Playing's own bar item leaves this playback alone: nothing is
+on the bar twice and this item stays as it is. When this Mac is the
+device playing, Now Playing drops its own Spotify app row for this one.
+The state goes out whenever the track, play or pause, the device or the
+position (a jump of 2 s or more) changed; while a track is loaded and
+nothing else read the state for 30 s (the item turned off), one more read
+keeps it current.
+
 ## Setup
 
 1. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard):

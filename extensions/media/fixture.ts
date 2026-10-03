@@ -8,7 +8,7 @@ import type { MediaPlayer } from "@zcag/pal";
 import { NOW, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 
 pinClock();
-const { barItem, item } = await import("./index.ts");
+const { barItem, fromPublished, item } = await import("./index.ts");
 
 /** An abstract cover: a dark field with soft discs, as SVG. */
 function coverSvg(bg: string, discs: [string, number, number, number][]): string {
@@ -17,6 +17,7 @@ function coverSvg(bg: string, discs: [string, number, number, number][]): string
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 const NIGHT = coverSvg("#1d2a44", [["#e0b45a", 40, 24, 16], ["#7ab3e6", 20, 44, 14], ["#c85c8a", 50, 50, 8]]);
+const HARBOUR = coverSvg("#16302e", [["#5fc9b0", 22, 22, 15], ["#e8d36b", 44, 40, 16], ["#3a7bd5", 18, 50, 9]]);
 const TANGERINE = coverSvg("#3b2a2a", [["#f39a4a", 24, 26, 17], ["#f06a6a", 44, 42, 13], ["#ffd27a", 48, 16, 6]]);
 
 // Spotify two minutes into a seven-minute track, Music paused, Firefox open with nothing loaded.
@@ -26,12 +27,15 @@ const firefox: MediaPlayer = { id: "firefox.instance1", name: "Firefox", state: 
 // A browser tab playing a long video: the position and the app, no track.
 const chrome: MediaPlayer = { id: "system", name: "Google Chrome", state: "playing", title: null, artist: null, album: null, artwork: null, url: null, app: "/Applications/Google Chrome.app", position: 2532.9, duration: 3963.08 };
 
-const rows = await Promise.all([spotify, music, firefox].map(item));
+// A show on the living-room TV, published by a TV extension as its `player` (docs/design/controls.md): first, with its app and device; Enter opens that extension's own view.
+const tv = fromPublished({ provider: { key: "appletv" }, device: "Living room", app: "Harbour+", state: "playing", title: "The Lighthouse Keeper", artist: "Tidewater · S1 E3", artwork: HARBOUR, position: 1260, at: NOW, duration: 2940, palette: "now" }, NOW);
+
+const rows = await Promise.all([tv, spotify, music, firefox].map(item));
 writeFixture("media", {
   palettes: { media: { title: "Now Playing", icon: { tile: { glyph: "\u{f075a}", bg: "green" } }, live: true, placeholder: "Play, pause, skip", items: rows } },
   shots: {
-    "1-players": { palette: "media", keys: [], caption: "One row per player: Spotify playing with the position, Music paused, a browser with nothing loaded" },
-    "2-actions": { palette: "media", keys: ["cmd+k"], caption: "The transport on a row: pause, next, previous, copy the track, open it in the player" },
+    "1-players": { palette: "media", keys: [], caption: "One row per player: a show on the living-room TV from its own extension first, Spotify playing with the position, Music paused, a browser with nothing loaded" },
+    "2-actions": { palette: "media", keys: ["cmd+k"], caption: "The actions on a row: open the TV's own remote, pause, next, previous, copy the track" },
     "3-root": { keys: ["type:night ferry"], caption: "The playing track found from the root by its title" },
   },
 });

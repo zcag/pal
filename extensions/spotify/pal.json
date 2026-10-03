@@ -594,5 +594,8 @@
         "description": "Forgets the tokens."
       }
     ]
-  }
+  },
+  "controls": [
+    "player"
+  ]
 }

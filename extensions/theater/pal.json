@@ -1449,5 +1449,8 @@
         "kind": "bar"
       }
     ]
-  }
+  },
+  "controls": [
+    "player"
+  ]
 }

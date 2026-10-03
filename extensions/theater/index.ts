@@ -6,7 +6,7 @@
 // bazarr); http.ts is the one client; view.ts draws the four bar
 // popovers (downloads, playing, requests, queue), each hidden when it
 // has nothing to say.
-import { errorMessage, hint, imageData, tile, toast, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette } from "@zcag/pal";
+import { controls, errorMessage, hint, imageData, tile, toast, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette, type PlayerState } from "@zcag/pal";
 import { EXTENSION, GLYPH, HEALTH_MS, SERVICES, cached, conf, configured, forget, needsSetup, service, speed as fmtSpeed, pct, settingsLink, type Service, type ServiceId } from "./http.ts";
 import { SEARCH_WAIT_MS, debounced, guard, pickHint, setupRow } from "./rows.ts";
 import * as jellyfin from "./jellyfin.ts";
@@ -157,9 +157,40 @@ async function playingPop(list: jellyfin.JfSession[]): Promise<PopState> {
   return { kind: "playing", title: rows.length ? `${rows.length} watching` : "Now Playing", lead: true, rows, focus: cursorOf("playing", rows), empty: { title: "Nothing playing", sub: "No Jellyfin session is playing anything" } };
 }
 
+// ---- the player control (docs/design/controls.md): one session for media's Now Playing ----
+
+/** The session published: the first playing one, else the first paused one. */
+let session: string | undefined;
+let said: string | undefined;
+
+/** Publishes the session as the `player` control when it changed (the item, the state, the session; the position media moves along itself). */
+async function publishPlaying(list: jellyfin.JfSession[]) {
+  const s = list.find((x) => !x.PlayState?.IsPaused) ?? list[0], it = s?.NowPlayingItem;
+  const base: PlayerState | null = s && it ? {
+    device: s.DeviceName ?? s.Client, app: "Jellyfin", state: s.PlayState?.IsPaused ? "paused" : "playing", title: jellyfin.nameOf(it), artist: s.UserName,
+    ...(it.RunTimeTicks && { duration: it.RunTimeTicks / 1e7 }), palette: "jellyfin-playing", item: "playing",
+  } : null;
+  const sig = JSON.stringify([s?.Id, base]);
+  session = s?.Id;
+  if (sig === said) return;
+  said = sig;
+  const img = it && jellyfin.poster(it, 96);
+  const state = base && { ...base, position: (s!.PlayState?.PositionTicks ?? 0) / 1e7, at: Date.now(), ...(img && { artwork: await imageData(img) }) };
+  await controls.publish("player", state, EXTENSION).catch(() => {});
+}
+
+/** media's transport on the published session. */
+async function onSession(f: (id: string) => Promise<unknown>) {
+  if (!session) throw new Error("Nothing is playing on Jellyfin");
+  await f(session);
+  said = undefined;
+  await publishPlaying(await jellyfin.playing(true));
+}
+
 async function renderPlaying(ctx: BarCtx): Promise<BarItem> {
   if (!configured("jellyfin")) return { hidden: true };
   const list = await jellyfin.playing(ctx.reason !== "every");
+  await publishPlaying(list);
   const states = { watching: list.length };
   const menu = { view: renderPop(await playingPop(list)) };
   if (!list.length) return { hidden: true, states, empty: { icon: GLYPH.play, tooltip: "Nothing playing on Jellyfin", menu } };
@@ -319,6 +350,15 @@ export default {
     playing: { render: renderPlaying, onAction: playingAction },
     requests: { render: renderRequests, onAction: requestsAction },
     queue: { render: renderQueue, onAction: queueAction },
+  },
+  // The `player` control: media's Now Playing runs these on the published Jellyfin session.
+  controls: {
+    player: {
+      play_pause: () => onSession((id) => jellyfin.control(id, "PlayPause")),
+      next: () => onSession((id) => jellyfin.control(id, "NextTrack")),
+      previous: () => onSession((id) => jellyfin.control(id, "PreviousTrack")),
+      seek: (s: number) => onSession((id) => jellyfin.seekTo(id, s)),
+    },
   },
   link: async (route, params): Promise<Effect | void> => {
     const q = typeof params.q === "string" ? params.q : undefined;

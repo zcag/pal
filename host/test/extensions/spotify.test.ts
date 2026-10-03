@@ -12,6 +12,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { encode } from "../../../extensions/spotify/node_modules/jpeg-js/index.js";
 import { challenge } from "../../../extensions/spotify/auth.ts";
+import { hostname } from "node:os";
 import { Host, stored } from "../harness.ts";
 
 // ---- fixtures -----------------------------------------------------------------
@@ -752,6 +753,23 @@ describe("spotify, signed in", () => {
       await host.advance(3 * TICK_MS);
       await quiet();
       expect(h.updates("spotify", "playing").length).toBe(before + 1);
+    });
+  });
+
+  describe("the player control (docs/design/controls.md)", () => {
+    const pub = () => h.published.get("spotify\0player") as Record<string, unknown> | undefined;
+    test("a read publishes what plays with its palette and bar item, `same` only when this Mac is the device; media's play_pause pauses through the API and the paused state is published at once", async () => {
+      state.player = { ...state.player, is_playing: true };
+      await h.render("spotify", "playing", { reason: "show" });
+      await h.until(() => pub()?.state === "playing");
+      expect(pub()).toMatchObject({ app: "Spotify", state: "playing", title: "Weird Fishes/ Arpeggi", artist: "Radiohead", album: "In Rainbows", device: "hornet", duration: 318, palette: "now-playing", item: "playing" });
+      expect(pub()?.same).toEqual(hostname().replace(/\.local$/i, "").toLowerCase() === "hornet" ? ["com.spotify.client"] : undefined);
+      const paused = calls("PUT", "/v1/me/player/pause").length;
+      await h.request("controls/run", { extension: "spotify", control: "player", op: "play_pause", args: [] });
+      expect(calls("PUT", "/v1/me/player/pause").length).toBe(paused + 1);
+      expect(pub()?.state).toBe("paused");
+      await h.request("controls/run", { extension: "spotify", control: "player", op: "play_pause", args: [] });
+      expect(pub()?.state).toBe("playing");
     });
   });
 

@@ -29,7 +29,8 @@
 // too. Outside the popover's window the item asks to be rendered again at
 // the next lyric line (`refresh`), so the strip changes line on time
 // without a poll.
-import { argsForm, bar, errorMessage, failed, hint, toast, view as liveView, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { hostname } from "node:os";
+import { argsForm, bar, controls, errorMessage, failed, hint, toast, view as liveView, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type PlayerState, type View } from "@zcag/pal";
 import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, stopListener } from "./auth.ts";
 import { ApiError, Offline, RateLimited, addToPlaylist, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
@@ -127,13 +128,80 @@ async function readLive(maxAge = 0, fresh = false): Promise<Live> {
   reading ??= player()
     .then((p) => (live = { player: p, at: Date.now() }))
     .catch((e) => (live = { status: statusOf(e), at: Date.now() }))
-    .finally(() => { reading = undefined; });
+    .finally(() => { reading = undefined; if (live) publishPlayer(live); });
   return reading;
 }
 
 /** Patches the state now and holds it against the next read. */
 function patch(f: (p: Player) => Player) {
-  if (live?.player) { live = { player: f(live.player), at: Date.now() }; holdUntil = Date.now() + HOLD_MS; }
+  if (live?.player) { live = { player: f(live.player), at: Date.now() }; holdUntil = Date.now() + HOLD_MS; publishPlayer(live); }
+}
+
+// ---- the player control (docs/design/controls.md): what plays, for media's Now Playing ----
+
+/** This Mac as Spotify names it among the devices (the computer's name). */
+const THIS_MAC = hostname().replace(/\.local$/i, "").toLowerCase();
+
+/**
+ * What plays as the `player` control: nothing loaded is null. `item` is
+ * the bar item that shows it, so media's item stays off it while ours is
+ * up; `same` names the Spotify app only while this Mac is the device
+ * playing, so media drops the app's own row for this one.
+ */
+function playerState(l: Live): PlayerState | null {
+  const p = l.player, t = p?.track;
+  if (!p || !t) return null;
+  const mac = p.device?.type === "Computer" && p.device.name.toLowerCase() === THIS_MAC;
+  return {
+    device: p.device?.name, app: "Spotify", state: p.playing ? "playing" : "paused", title: t.name, artist: t.artist, album: t.album, artwork: t.cover,
+    position: p.progress / 1000, at: p.at, duration: t.duration / 1000, palette: "now-playing", item: ITEM, ...(mac && { same: ["com.spotify.client"] }),
+  };
+}
+
+/** The last published state, so a read that only moved the clock along says nothing: a new track, a pause, a device or a jump of 2 s does. */
+let said: { sig: string; pos: number; at: number; playing: boolean } | undefined;
+function publishPlayer(l: Live) {
+  // A failed read (offline, rate limited) keeps what was said; signed out withdraws it.
+  if (!l.player && l.status && l.status.kind !== "signed_out" && l.status.kind !== "client_id") return;
+  const s = playerState(l);
+  follow(!!s);
+  const sig = JSON.stringify(s && { ...s, position: undefined, at: undefined });
+  if (said?.sig === sig && (!s || Math.abs(said.pos + (said.playing ? (s.at! - said.at) / 1000 : 0) - s.position!) < 2)) return;
+  said = { sig, pos: s?.position ?? 0, at: s?.at ?? 0, playing: s?.state === "playing" };
+  controls.publish("player", s, EXTENSION).catch((e) => log(`player: ${errorMessage(e)}`));
+}
+
+/**
+ * While a track is loaded, a look every `FOLLOW_MS` keeps the published
+ * player current when nothing else reads (the item turned off, no view
+ * open); a read younger than that costs nothing, so with the item on the
+ * strip this adds no request.
+ */
+const FOLLOW_MS = 30_000;
+let following: ReturnType<typeof setTimeout> | undefined;
+function follow(loaded: boolean) {
+  if (!loaded) { clearTimeout(following); following = undefined; return; }
+  following ??= setTimeout(() => { following = undefined; readLive(FOLLOW_MS - 5000).catch(() => {}); }, FOLLOW_MS);
+}
+
+/** media's transport on our player: the same calls the view's keys make, the state patched or read again, the item drawn again. */
+async function transport(op: "toggle" | "next" | "previous" | "seek", seconds = 0): Promise<void> {
+  const p = (await readLive(SYNC_MS)).player;
+  if (!p?.track) throw new Error("Nothing is loaded in Spotify");
+  if (op === "toggle") {
+    await (p.playing ? pause() : play());
+    patch((x) => ({ ...x, playing: !p.playing, progress: positionOf(p), at: Date.now() }));
+  } else if (op === "seek") {
+    const to = Math.max(0, Math.min(p.track.duration, seconds * 1000));
+    await seek(to);
+    patch((x) => ({ ...x, progress: to, at: Date.now() }));
+  } else {
+    await (op === "next" ? next() : previous());
+    forgetQueue();
+    await Bun.sleep(SKIP_SETTLE_MS);
+    await readLive(0, true);
+  }
+  bar.refresh(ITEM, EXTENSION).catch(() => {});
 }
 
 // ---- covers, tints, likes ------------------------------------------------------
@@ -949,5 +1017,14 @@ export default {
       onShown: async (ctx) => { noteSettings(ctx); startPopover(); },
     },
   },
-  dispose: () => { stopTick(); stopLyricTick(); tickUntil = 0; viewOpen = false; stopListener(); },
+  // The `player` control (docs/design/controls.md): media's Now Playing runs these on our player.
+  controls: {
+    player: {
+      play_pause: () => transport("toggle"),
+      next: () => transport("next"),
+      previous: () => transport("previous"),
+      seek: (s: number) => transport("seek", s),
+    },
+  },
+  dispose: () => { stopTick(); stopLyricTick(); follow(false); tickUntil = 0; viewOpen = false; stopListener(); },
 } satisfies Extension;

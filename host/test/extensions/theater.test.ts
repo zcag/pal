@@ -497,6 +497,16 @@ describe("theater", () => {
       expect(calls("POST", "/jellyfin/Sessions/s1/Playing/PlayPause").length).toBeGreaterThanOrEqual(2);
     });
 
+    test("the player control: the playing session is published for media's Now Playing with its palette and bar item; its transport reaches that session", async () => {
+      await host.render("theater", "playing", { reason: "cli" });
+      expect(host.published.get("theater\0player")).toMatchObject({ app: "Jellyfin", device: "Living room TV", state: "playing", title: "Barry S1E4 · Chapter Four: Commit ... to YOU", artist: "cagdas", position: 889.5815, palette: "jellyfin-playing", item: "playing" });
+      const before = calls("POST", "/jellyfin/Sessions/s1/Playing/NextTrack").length;
+      await host.request("controls/run", { extension: "theater", control: "player", op: "next", args: [] });
+      expect(calls("POST", "/jellyfin/Sessions/s1/Playing/NextTrack")).toHaveLength(before + 1);
+      await host.request("controls/run", { extension: "theater", control: "player", op: "seek", args: [60] });
+      expect(calls("POST", "/jellyfin/Sessions/s1/Playing/Seek").at(-1)!.path).toContain("seekPositionTicks=600000000");
+    });
+
     test("requests: the pending count as the badge, a approves and d declines the focused one", async () => {
       const item = await host.render("theater", "requests", { reason: "cli" });
       expect(item).toMatchObject({ badge: 1, tooltip: "1 pending request", states: { pending: 1 } });

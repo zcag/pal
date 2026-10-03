@@ -14,6 +14,16 @@ or artist at the root), and the position is the core's estimate at that
 moment. With no player running the one row says so, and on Linux how to
 see players.
 
+What your other extensions play comes first: the Apple TV, Spotify on
+any device, a Jellyfin session (the `player` control,
+`docs/design/controls.md`), named by its app and device ("YouTube ·
+Living room"). Enter opens that extension's own view (the Apple TV's
+remote, Spotify's lyrics); `cmd+enter` plays or pauses it, `cmd+right`
+and `cmd+left` skip. One that shows the same playback as a system row
+(Spotify on this Mac) drops that row. The bar item leaves alone a
+playback whose extension's own item is on the strip, so nothing is on the
+bar twice and no extension's own item is replaced.
+
 Every control keeps the palette up and lists again, so the tag follows
 what you did; a player that refuses (Music not running, a player that
 has no next track) is a toast with its message.

@@ -2293,3 +2293,22 @@ while an Apple TV is paired: no extension can subscribe to the clipboard.
   Samsung TV extension. Not done at all: what a host restart leaves in
   the table for an extension that does not publish again on load (it is
   cleared on `extension/removed`, error and disable only).
+- **Now Playing (the media lane).** `media` lists `controls.all("player")`
+  first (`fromPublished`: the app and device as the name, the position
+  moved along from `at`), Enter pushes the provider's own `palette`, the
+  transport is `controls.runOn(key, …)`: a new SDK call past any group,
+  since `run` resolves for the caller and media serves no player itself.
+  `same` bundle ids drop the system's row (`BUNDLES`: the app row by id,
+  the system-wide row by its `.app`). **No bar item is replaced**
+  (Cagdas, 2026-10-04: Spotify's lyric line on the strip, its held mode,
+  the compact ticking popover with its keys, the Apple TV's remote
+  popover would not survive a hand-off): a player names its own `item`,
+  the core answers `item_shown` from its bar table (`draws` + not held +
+  last render not hidden), and media's item skips it. Spotify publishes
+  from its one live state (every read and patch, only when the track,
+  state, device or a 2 s jump changed) and follows a loaded track every
+  30 s so the state stays current with its item off (a read younger than
+  that costs nothing); `same` only while its active device is this Mac by
+  name. theater publishes the first playing Jellyfin session from its
+  `playing` render (so only while that item renders), with NextTrack,
+  PreviousTrack and Seek added to the session commands.

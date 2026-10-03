@@ -44,7 +44,9 @@ const item = async (id: string) => api<JfItem>("jellyfin", `/Items/${id}`, { que
 export const setPlayed = async (id: string, played: boolean) => { await api("jellyfin", `/UserPlayedItems/${id}`, { method: played ? "POST" : "DELETE", query: { userId: await userId() } }); };
 export const setFavorite = async (id: string, fav: boolean) => { await api("jellyfin", `/UserFavoriteItems/${id}`, { method: fav ? "POST" : "DELETE", query: { userId: await userId() } }); };
 export const playOn = (session: string, itemId: string) => api("jellyfin", `/Sessions/${session}/Playing`, { method: "POST", query: { playCommand: "PlayNow", itemIds: itemId }, text: true });
-export const control = (session: string, command: "PlayPause" | "Stop") => api("jellyfin", `/Sessions/${session}/Playing/${command}`, { method: "POST", text: true });
+export const control = (session: string, command: "PlayPause" | "Stop" | "NextTrack" | "PreviousTrack") => api("jellyfin", `/Sessions/${session}/Playing/${command}`, { method: "POST", text: true });
+/** Seeks a session to `seconds` (Jellyfin counts in 100 ns ticks). */
+export const seekTo = (session: string, seconds: number) => api("jellyfin", `/Sessions/${session}/Playing/Seek`, { method: "POST", query: { seekPositionTicks: String(Math.round(seconds * 1e7)) }, text: true });
 
 /** The poster: the item's own primary image, else its series' (an episode), else nothing. Jellyfin serves images without a key. */
 export function poster(it: JfItem, h = POSTER_H): string | undefined {

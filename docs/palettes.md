@@ -2376,6 +2376,17 @@ Linux without `playerctl` it says to install it.
   microseconds and never a process. Nothing to install.
 - **Linux**: `playerctl` over MPRIS, one row per player; the icon is the
   player's `.desktop` when one is named like it.
+- **Your other extensions' players** (the `player` control,
+  `docs/design/controls.md`): what the Apple TV, Spotify (its Web API, so
+  any device) and Jellyfin play comes first, named by its app and device
+  ("YouTube · Living room"), the position moved along from when it was
+  read. Enter opens that extension's own view (the Apple TV's remote,
+  Spotify's lyrics), `⌘Enter` plays or pauses, `⌘→`/`⌘←` skip, each on
+  that player. A player that says it shows the same playback as a system
+  row (Spotify on this Mac) drops that row. The bar item leaves alone a
+  player whose extension's own item is on the strip (Spotify's lyric line,
+  the Apple TV's remote), so one playback is never on the bar twice and no
+  bespoke item is replaced; the rest it follows as before.
 
 | action | shortcut | what |
 | --- | --- | --- |
