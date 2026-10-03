@@ -478,3 +478,15 @@ export const browseStore: StoreState = {
   pending: [], rolled_back: [], unlisted: [], leftovers: [], disabled: [],
   busy: ["spotify"],
 };
+
+/* Settings › Groups: three devices that provide controls, one group binding the TV's volume and inputs, one empty. */
+import type { GroupDevice, DeviceGroup } from "../ui/SettingsGroups";
+export const groupDevices: GroupDevice[] = [
+  { key: "appletv", title: "Apple TV", icon: { kind: "tile", bg: "ink", glyph: "\u{f0502}" }, controls: ["volume", "power", "player"], device: "Living Room" },
+  { key: "samsungtv", title: "Samsung TV", icon: { kind: "tile", bg: "#1428a0", glyph: "\u{f0502}" }, controls: ["volume", "power", "inputs", "player"], device: "75\" Neo QLED" },
+  { key: "spotify", title: "Spotify", icon: { kind: "tile", bg: "#1db954", glyph: "\u{f04c7}" }, controls: ["volume", "player"], device: "hornet" },
+];
+export const settingsGroups: DeviceGroup[] = [
+  { id: "living-room", title: "Living room", members: ["appletv", "samsungtv"], volume: "samsungtv", inputs: "samsungtv" },
+  { id: "bedroom", title: "Bedroom", members: [] },
+];

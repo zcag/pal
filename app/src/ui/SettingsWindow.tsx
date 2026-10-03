@@ -11,6 +11,7 @@ const icons: Record<SettingsPage, ReactNode> = {
   features: <svg viewBox="0 0 18 18"><path d="M10 2L4 10h4.5L8 16l6-8H9.5z" /></svg>,
   extensions: <svg viewBox="0 0 18 18"><path d="M9 2.2l5.9 3.4v6.8L9 15.8l-5.9-3.4V5.6z" /><path d="M9 9l5.9-3.4M9 9v6.8M9 9L3.1 5.6" /></svg>,
   bar: <svg viewBox="0 0 18 18"><rect x="2" y="3" width="14" height="4" rx="1.2" /><circle cx="12.5" cy="5" r="0.9" fill="currentColor" stroke="none" /><path d="M5 5h3" /><path d="M9 7v3.5M6.5 13.5h5" /><rect x="5" y="10.5" width="8" height="4.5" rx="1" /></svg>,
+  groups: <svg viewBox="0 0 18 18"><rect x="2" y="5" width="8.5" height="6" rx="1.2" /><path d="M4.5 13.5h3.5" /><rect x="12.5" y="3.5" width="3.5" height="10" rx="1.2" /><circle cx="14.25" cy="6" r="0.6" fill="currentColor" stroke="none" /></svg>,
   about: <svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" /><path d="M9 8v4.5" /><circle cx="9" cy="5.6" r="0.5" fill="currentColor" /></svg>,
 };
 
@@ -21,6 +22,7 @@ export const settingsPages: { id: SettingsPage; title: string }[] = [
   { id: "features", title: "Features" },
   { id: "extensions", title: "Extensions" },
   { id: "bar", title: "Bar" },
+  { id: "groups", title: "Groups" },
   { id: "about", title: "About" },
 ];
 

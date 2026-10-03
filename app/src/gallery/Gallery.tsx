@@ -14,10 +14,10 @@ import { iconOf } from "../items";
 import { toItem, type Raw } from "../fixtures";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
-  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsShortcuts, SettingsWindow, featuresIndex, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
+  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsGroups, SettingsShortcuts, SettingsWindow, featuresIndex, groupsIndex, type DeviceGroup, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
   aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, ownBrand, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
-import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, browseStore, storeExtensions, storeReferences, tileRows } from "./data";
+import { groupDevices, settingsGroups, settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, browseStore, storeExtensions, storeReferences, tileRows } from "./data";
 import type { StoreState } from "../store";
 import type { ExtensionsStore } from "../ui/SettingsStore";
 import Shots from "./shots";
@@ -591,6 +591,9 @@ function GalleryPage() {
         <State label="Bar, the timer selected: the Defaults card over the items list, the pane with the preview strips, the mono width look of its own over the menu bar defaults">
           <WidePair>{(t) => <SettingsDemo key={t} page="bar" />}</WidePair>
         </State>
+        <State label="Groups: the living room's Apple TV and Samsung TV, the TV serving the volume and the inputs, power on both; an empty bedroom; the field to start another">
+          <WidePair>{(t) => <SettingsDemo key={t} page="groups" />}</WidePair>
+        </State>
         <State label="About: the version, the update check, the links">
           <WidePair>{(t) => <SettingsDemo key={t} page="about" />}</WidePair>
         </State>
@@ -702,7 +705,10 @@ function SettingsDemo({ page: initial, diagnostics, open, browse }: { page: Sett
   const [barItems, setBarItems] = useState(settingsBarItems);
   const [barKey, setBarKey] = useState<string | undefined>("timer/timer");
   const patchBarItem = (key: string, config: BarItemConfig) => setBarItems((bs) => bs.map((b) => (b.key === key ? { ...b, config } : b)));
-  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts, store.available), ...barIndex(barItems), ...aboutIndex];
+  // Groups, in memory: the page's writes patch the list as the core's `groups_*` would.
+  const [groups, setGroups] = useState(settingsGroups);
+  const patchGroup = (id: string, f: (g: DeviceGroup) => DeviceGroup) => setGroups((gs) => gs.map((g) => (g.id === id ? f(g) : g)));
+  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts, store.available), ...barIndex(barItems), ...groupsIndex(groups), ...aboutIndex];
   const mac = /Mac/.test(navigator.platform);
   return (
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
@@ -711,6 +717,7 @@ function SettingsDemo({ page: initial, diagnostics, open, browse }: { page: Sett
       {page === "features" && <SettingsFeatures features={features.map((f) => (f.id === "sidebar" ? { ...f, on: !!sidebar.palette } : f))} onSetting={patchFeature} onHotkey={(id, cmd, combo) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, hotkeys: { ...f.hotkeys, [cmd]: combo ?? "" } } : f)))} onRun={(id) => setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, on: !f.on, note: f.on ? undefined : f.note } : f)))} onRequestPermission={noop} sidebar={{ value: sidebar, onChange: setSidebar, palettes: [{ id: "windows/windows", title: "Windows" }, { id: "apps/apps", title: "Applications" }], displays: ["Built-in Retina Display"] }} switcher={{ hold: "cmd+tab", suggested: "alt+tab", onHold: noop, appSwitcher: "alt+tab", onAppSwitcher: noop }} open={open} />}
       {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} store={galleryStore} browsing={browsing} onBrowse={setBrowsing} onOpenLink={noop} openPalette={palette} onOpenPalette={setPalette} onPalette={patchPalette} bar={barItems} onOpenBarItem={(key) => { setBarKey(key); setPage("bar"); }} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
+      {page === "groups" && <SettingsGroups groups={groups} devices={groupDevices} onCreate={(title) => setGroups((gs) => [...gs, { id: (title || "group").toLowerCase().replace(/[^a-z0-9]+/g, "-"), title: title || "Group", members: [] }])} onRename={(id, title) => patchGroup(id, (g) => ({ ...g, title }))} onDelete={(id) => setGroups((gs) => gs.filter((g) => g.id !== id))} onMembers={(id, members) => patchGroup(id, (g) => ({ ...g, members, volume: g.volume && members.includes(g.volume) ? g.volume : undefined, inputs: g.inputs && members.includes(g.inputs) ? g.inputs : undefined }))} onBind={(id, control, member) => patchGroup(id, (g) => ({ ...g, [control]: member }))} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal", store: "https://pal.cagdas.io/extensions", changelog: "https://pal.cagdas.io/changelog?from=0.1.0", issues: "https://github.com/zcag/pal/issues/new" }} extensionUpdates={[]} onUpdateExtensions={async () => {}} onResetFrecency={noop} onRestartHost={noop} onRefreshListings={noop} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>
   );

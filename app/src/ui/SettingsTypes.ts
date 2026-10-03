@@ -318,7 +318,7 @@ export type Diagnostic = {
   message: string;
 };
 
-export type SettingsPage = "overview" | "general" | "shortcuts" | "features" | "extensions" | "bar" | "about";
+export type SettingsPage = "overview" | "general" | "shortcuts" | "features" | "extensions" | "bar" | "groups" | "about";
 
 /**
  * One searchable entry: a page, the setting's label, where on the page it

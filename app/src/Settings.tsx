@@ -10,7 +10,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
-  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsShortcuts, SettingsWindow,
+  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsGroups, SettingsOverview, SettingsShortcuts, SettingsWindow, groupsIndex, type GroupControl, type GroupDevice, type DeviceGroup,
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, permissionUsers, storePermissions, type SettingsFeature,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
@@ -44,10 +44,12 @@ type RawConfig = {
   extensions: Record<string, Record<string, unknown>>;
   /** `[instances.<key>]` (core `Instance`): the configured copies of `multi` extensions, and the default's title once named. */
   instances?: Record<string, RawInstance>;
+  /** `[groups.<id>]` (pal_core::controls::Group): devices used together. */
+  groups?: Record<string, { title?: string; members?: string[]; volume?: string; inputs?: string }>;
 };
 type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; settings?: SettingSpec[] };
 type ManifestStore = { tagline?: string; permissions?: string[]; screenshots?: { file: string; caption?: string; kind?: string }[] };
-type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; multi?: boolean; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
+type Manifest = { name: string; title?: string; controls?: GroupControl[]; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; multi?: boolean; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
 /** `PaletteMeta` (registry.rs): what the code said about a palette, `tier` already the manifest's over the code's (host.ts). */
 type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier; hold?: string };
 type Record_ = { source: string; ref?: string; installed_at: number; commit_or_etag?: string };
@@ -400,6 +402,14 @@ export default function Settings() {
     return () => { u.then((f) => f()); };
   }, []);
   const installUpdate = useCallback(() => invoke<void>("update_install"), []);
+  // What each device published (controls.rs `controls_published`): Settings › Groups names a member by the device it drives; `pal://controls` says when it moved.
+  const [published, setPublished] = useState<Record<string, Record<string, { device?: string } | null>>>({});
+  useEffect(() => {
+    const read = () => invoke<typeof published>("controls_published").then(setPublished).catch(() => {});
+    read();
+    const u = listen("pal://controls", read);
+    return () => { u.then((f) => f()); };
+  }, []);
 
   // By title: the registry's order is the host's load order, which means nothing to the reader. One entry per instance key (a parked instance included); the Extensions page groups them by name.
   const extensions = useMemo(() => {
@@ -408,6 +418,13 @@ export default function Settings() {
     const enabled = (name: string) => all.filter((e) => e.name === name && view.config.instances?.[e.key]?.enabled !== false).length;
     return all.map((e) => toExtension(e, view.config, storeState, enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
   }, [view, storeState]);
+  const groups = useMemo<DeviceGroup[]>(() => Object.entries(view?.config.groups ?? {}).map(([id, g]) => ({ id, title: g.title, members: g.members ?? [], volume: g.volume, inputs: g.inputs })), [view]);
+  // Every instance whose manifest declares `controls` can be a member; the device it drives is whatever it published last.
+  const devices = useMemo<GroupDevice[]>(() => (view?.extensions ?? []).filter((e) => e.manifest.controls?.length).map((e) => {
+    const s = extensions.find((x) => x.key === e.key);
+    const device = Object.values(published[e.key] ?? {}).find((p) => p?.device)?.device;
+    return { key: e.key, title: s?.title ?? e.manifest.title ?? e.name, icon: s?.icon, controls: e.manifest.controls ?? [], device, stopped: !e.loaded || undefined };
+  }), [view, extensions, published]);
   const barItems = useMemo(() => (view?.bar ? view.bar.items.map((b) => toBarItem(b, view.config, extensions, view.features)) : []), [view, extensions]);
   // Every store operation goes through the core and resolves once the host loaded (or dropped) the extension; `pal://store` and `pal://host` bring the pages up to date.
   const onExtUpdate = async (names: string[]) => { for (const r of await store.update(names, "settings")) ok(r); };
@@ -415,6 +432,9 @@ export default function Settings() {
   const onInstanceAdd = async (name: string, suffix: string, title?: string, tint?: string) => { await invoke<string>("instances_add", { name, suffix, title: title || null, tint: tint || null }); refresh(); };
   const onInstanceRename = async (key: string, title: string) => { await invoke("instances_rename", { key, title }); refresh(); };
   const onInstanceRemove = async (key: string) => { await invoke("instances_remove", { key }); refresh(); };
+  // Groups (controls.rs `groups_*`): one file edit each, in order, so a move (out of one group, into another) never races itself.
+  const groupWrites = useRef<Promise<unknown>>(Promise.resolve());
+  const onGroup = (cmd: string, args: Record<string, unknown>) => { groupWrites.current = groupWrites.current.then(() => invoke(cmd, args)).then(refresh, (e) => setError(String(e))); };
   const onInstanceEnabled = (key: string, enabled: boolean) => write(["instances", key, "enabled"], enabled ? undefined : false);
   // A selection that names nothing (a removed extension no registry lists) goes back to the page's home; one only listed opens as its listing.
   useEffect(() => {
@@ -633,7 +653,7 @@ export default function Settings() {
   const openKeyboardShortcuts = () => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail);
 
   const barSupported = view.bar?.supported ?? isMac;
-  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions, storeState.available), ...barIndex(barItems, barSupported), ...aboutIndex];
+  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions, storeState.available), ...barIndex(barItems, barSupported), ...groupsIndex(groups), ...aboutIndex];
   /** A search hit selects what it names before the page lights its row. */
   const onJump = (entry: SettingsIndexEntry) => go(entry.page, entry.anchor);
   const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
@@ -721,6 +741,17 @@ export default function Settings() {
       )}
       {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} store={extStore} browsing={browsing} onBrowse={setBrowsing} onOpenLink={openLink} openPalette={palette} onOpenPalette={setPalette} onPalette={onPalette} paletteItems={paletteItems} bar={barSupported ? barItems : []} onOpenBarItem={(key) => go("bar", `bar:${key}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
       {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} onRule={onBarRule} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => (features.some((f) => f.id === key) ? go("features", `features:${key}`) : go("extensions", `extensions:${key}`))} onSetting={(key, id, value) => { const b = barItems.find((x) => x.key === key); writeDeclared(["bar", "items", key, "settings", id], b?.settings?.find((x) => x.spec.id === id)?.spec, value as SettingValue, b?.settings?.find((x) => x.spec.id === id)?.base); }} />}
+      {page === "groups" && (
+        <SettingsGroups
+          groups={groups}
+          devices={devices}
+          onCreate={(title) => onGroup("groups_create", { title, members: null })}
+          onRename={(id, title) => onGroup("groups_rename", { id, title })}
+          onDelete={(id) => onGroup("groups_delete", { id })}
+          onMembers={(id, members) => onGroup("groups_set_members", { id, members })}
+          onBind={(id, control, member) => onGroup("groups_bind", { id, control, member: member ?? null })}
+        />
+      )}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

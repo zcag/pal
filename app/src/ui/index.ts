@@ -42,6 +42,7 @@ export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileSta
 export { ExtensionPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";
 export { SettingsSidebar, sidebarIndex, sidebarSummary, SIDEBAR_HELP, type SettingsSidebarProps } from "./SettingsSidebar";
 export { SettingsFeatures, featuresIndex, type SettingsFeature, type SettingsFeaturesProps } from "./SettingsFeatures";
+export { SettingsGroups, groupsIndex, type GroupControl, type GroupDevice, type DeviceGroup, type SettingsGroupsProps } from "./SettingsGroups";
 export { SettingsExtensions, extensionsIndex, byName, forgetText } from "./SettingsExtensions";
 export { needsOf, browseRows, registryLine, refsLine, originLine, statusText, buildLine, toMs, type ExtensionsStore, type Need } from "./SettingsStore";
 export { SettingsBar, barIndex, BAR_DEFAULTS } from "./SettingsBar";
