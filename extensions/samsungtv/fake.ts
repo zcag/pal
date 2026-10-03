@@ -85,10 +85,9 @@ export function fakeDriver(dir: string): Driver {
           const tv = read(), a = tv.apps.find((x) => x.id === tv.front);
           return on() && a ? { id: a.id, name: a.name, running: true, visible: true } : undefined;
         },
-        async launch(id, meta) { need(); did("launch", { id, ...(meta !== undefined && { meta }) }); write((tv) => { tv.front = id; }); },
+        async launch(id) { need(); did("launch", { id }); write((tv) => { tv.front = id; }); },
         async quit(id) { did("quit", { id }); write((tv) => { if (tv.front === id) tv.front = undefined; }); },
         async icon(app) { const b = app.icon && read().icons?.[app.icon]; return b ? new Uint8Array(Buffer.from(b, "base64")) : null; },
-        async browse(url) { need(); did("browse", { url }); },
         media: () => (on() ? read().media : undefined),
         keyboard: () => read().keyboard,
         async type(text, done = false) { need(); did("type", { text, done }); write((tv) => { tv.keyboard = done ? { open: false } : { open: true, text: (tv.keyboard.text ?? "") + text }; }); },

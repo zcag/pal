@@ -50,7 +50,7 @@ export async function appState(address: string, id: string, timeoutMs = 2000, po
   } catch { return undefined; }
 }
 
-/** Launch (POST) or close (DELETE) an app over REST: the fallback when the websocket's `ed.apps.launch` is not there. */
+/** Launch (POST) or close (DELETE) an app over REST: how a current TV opens one (its websocket launch opened nothing on a 2024 model). */
 export async function appRequest(address: string, id: string, method: "POST" | "DELETE", timeoutMs = 3000, port = 8001): Promise<void> {
   const r = await fetch(`${base(address, port)}/applications/${encodeURIComponent(id)}`, { method, signal: AbortSignal.timeout(timeoutMs) });
   if (!r.ok) throw new Error(r.status === 404 ? `The TV has no app ${id}` : `The TV answered ${r.status} to ${method === "POST" ? "opening" : "closing"} ${id}`);

@@ -45,7 +45,7 @@ export type Key =
 /** `Click` a key, or hold it: `Press` then `Release` after `holdMs`. */
 export type Press = "tap" | "hold";
 
-/** An input the TV can be switched to. `sure`: known to switch on current TVs; the numbered HDMI keys are not on every model. */
+/** An input key (device.ts `INPUTS`). `sure`: seen working on a current TV; the numbered HDMI keys did nothing on a 2024 one. */
 export type Input = { id: "tv" | "hdmi" | "hdmi1" | "hdmi2" | "hdmi3" | "hdmi4" | "source"; name: string; sure: boolean };
 
 /** An installed app. `type` is the TV's `app_type` (2 web app, 4 native), which picks how it is launched. */
@@ -102,13 +102,11 @@ export interface Conn {
   apps(): Promise<App[]>;
   /** The app in front, when one is (REST `visible`), from the apps last listed. */
   foreground(): AppState | undefined;
-  /** `meta`: a deep link the app understands (a YouTube video id, a url for the browser). */
-  launch(id: string, meta?: string): Promise<void>;
+  /** Open an app (REST: the websocket's launch opened nothing on a 2024 TV, and no deep link did). */
+  launch(id: string): Promise<void>;
   quit(id: string): Promise<void>;
   /** An app's icon, PNG/JPEG bytes from the TV, or null. */
   icon(app: App): Promise<Uint8Array | null>;
-  /** Open a web page in the TV's browser. */
-  browse(url: string): Promise<void>;
 
   media(): Media | undefined;
 

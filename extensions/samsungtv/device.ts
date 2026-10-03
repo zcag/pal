@@ -1,13 +1,13 @@
 // The real driver: finds TVs (mDNS `_samsungmsf._tcp`, whose TXT `se`
 // names the REST base, plus SSDP for TVs that answer it), pairs (the
 // Allow prompt), and keeps one connection per TV. The connection is the
-// remote websocket while the screen is on (keys, text, apps, launches),
+// remote websocket while the screen is on (keys, text, the app list),
 // and a poll of REST and UPnP every `POLL_MS` for what the websocket does
 // not tell: power, volume and mute, the app in front, a DLNA sender's
 // media. A remote that drops while the TV is on is reopened with backoff;
 // one that drops because the TV went to standby is not.
 import * as rest from "./protocol/rest.ts";
-import { Remote, KEYS, appsMsg, parseApps, clickMsg, iconMsg, imeText, keyMsg, launchMsg, moveMsg, remoteUrl, textEndMsg, textMsg } from "./protocol/remote.ts";
+import { Remote, KEYS, appsMsg, parseApps, clickMsg, iconMsg, imeText, keyMsg, moveMsg, remoteUrl, textEndMsg, textMsg } from "./protocol/remote.ts";
 import { ssdp, wol } from "./protocol/net.ts";
 import * as upnp from "./protocol/upnp.ts";
 import type { App, AppState, ChangeEvent, Conn, Driver, Found, Input, Key, Keyboard, Media, Paired, Pairing, Power, Press } from "./types.ts";
@@ -25,12 +25,16 @@ const WAKE_MS = 20_000;
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * What the local api can switch, measured on a 2024 QE75QN85D: KEY_HDMI
+ * moves to the next HDMI input, KEY_SOURCE opens the TV's own input menu,
+ * KEY_TV goes to the tuner; the numbered KEY_HDMI1..4 do nothing there.
+ * The current input is not told, so none is marked.
+ */
 export const INPUTS: Input[] = [
-  { id: "source", name: "Sources", sure: true },
-  { id: "tv", name: "TV", sure: true },
-  { id: "hdmi", name: "HDMI", sure: true },
-  { id: "hdmi1", name: "HDMI 1", sure: false }, { id: "hdmi2", name: "HDMI 2", sure: false },
-  { id: "hdmi3", name: "HDMI 3", sure: false }, { id: "hdmi4", name: "HDMI 4", sure: false },
+  { id: "hdmi", name: "Next HDMI", sure: true },
+  { id: "source", name: "Input menu", sure: true },
+  { id: "tv", name: "TV", sure: false },
 ];
 
 /**
@@ -288,12 +292,12 @@ class RealConn implements Conn {
   }
   foreground() { return this.st.front; }
 
-  async launch(id: string, meta?: string) {
-    const r = this.r?.open ? this.r : await this.remote().catch(() => undefined);
-    if (r) return r.send(launchMsg(id, this.appList?.find((a) => a.id === id)?.type, meta));
-    if (meta !== undefined) throw new Error("The TV's remote is not connected, and only it opens a link in an app");
-    await rest.appRequest(this.device.address, id, "POST", 3000, this.w.restPort);
-  }
+  /**
+   * Over REST: on a 2024 QE75QN85D the websocket's `ed.apps.launch` (native
+   * or deep link) opened nothing, while `POST /api/v2/applications/<id>`
+   * brought the app up at once.
+   */
+  launch(id: string) { return rest.appRequest(this.device.address, id, "POST", 3000, this.w.restPort); }
   quit(id: string) { return rest.appRequest(this.device.address, id, "DELETE", 3000, this.w.restPort); }
   async icon(app: App): Promise<Uint8Array | null> {
     if (!app.icon) return null;
@@ -301,7 +305,6 @@ class RealConn implements Conn {
     const b64 = e?.data?.imageBase64;
     return typeof b64 === "string" && b64 ? new Uint8Array(Buffer.from(b64, "base64")) : null;
   }
-  browse(url: string) { return this.launch("org.tizen.browser", url); }
 
   media() { return this.st.media; }
   keyboard() { return this.st.keyboard; }

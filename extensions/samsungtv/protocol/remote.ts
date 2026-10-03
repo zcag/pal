@@ -6,7 +6,7 @@
 // `ms.channel.timeOut`. What travels: `ms.remote.control` (keys as
 // SendRemoteKey Click/Press/Release, text as SendInputString, the cursor
 // as ProcessMouseDevice) and `ms.channel.emit` to `host` (the installed
-// apps, launching one, an app's icon), whose answers come back as events
+// apps, an app's icon; an app is launched over REST, rest.ts), whose answers come back as events
 // of the same name; the keyboard opening and closing come as
 // `ms.remote.imeStart` / `imeUpdate` / `imeEnd`. The message shapes are
 // samsungtvws's (xchwarze/samsung-tv-ws-api), the reference both Home
@@ -43,8 +43,6 @@ export const moveMsg = (x: number, y: number, at = Date.now()) => ({ method: "ms
 export const clickMsg = () => ({ method: "ms.remote.control", params: { Cmd: "LeftClick", TypeOfRemote: "ProcessMouseDevice" } });
 const emit = (event: string, data?: Record<string, unknown>) => ({ method: "ms.channel.emit", params: { event, to: "host", ...(data && { data }) } });
 export const appsMsg = () => emit("ed.installedApp.get");
-/** `app_type` 2 (a web app) launches as DEEP_LINK, anything else NATIVE_LAUNCH; `meta` is the deep link. */
-export const launchMsg = (id: string, type?: number, meta?: string) => emit("ed.apps.launch", { action_type: type === 2 ? "DEEP_LINK" : "NATIVE_LAUNCH", appId: id, ...(meta !== undefined && { metaTag: meta }) });
 export const iconMsg = (path: string) => emit("ed.apps.icon", { iconPath: path });
 
 // ---- messages in -----------------------------------------------------------------------------------

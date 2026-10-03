@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import type { Server, ServerWebSocket } from "bun";
 import { makeDriver } from "../../../extensions/samsungtv/device.ts";
 import { isSamsung, magicPacket, msearch, parseResponse } from "../../../extensions/samsungtv/protocol/net.ts";
-import { appsMsg, imeText, keyMsg, launchMsg, parseApps, refusal, remoteUrl, textEndMsg, textMsg } from "../../../extensions/samsungtv/protocol/remote.ts";
+import { appsMsg, imeText, keyMsg, parseApps, refusal, remoteUrl, textEndMsg, textMsg } from "../../../extensions/samsungtv/protocol/remote.ts";
 import { decodeEntities, parseInfo } from "../../../extensions/samsungtv/protocol/rest.ts";
 import { envelope, fault, fields, hms, mediaOf, RC } from "../../../extensions/samsungtv/protocol/upnp.ts";
 import type { ChangeEvent, Conn, Paired } from "../../../extensions/samsungtv/types.ts";
@@ -78,14 +78,12 @@ describe("remote messages", () => {
     expect(remoteUrl("192.168.1.31")).toBe("wss://192.168.1.31:8002/api/v2/channels/samsung.remote.control?name=cGFs");
     expect(remoteUrl("h", "123", { port: 9, secure: false })).toBe("ws://h:9/api/v2/channels/samsung.remote.control?name=cGFs&token=123");
   });
-  test("keys, text, launches", () => {
+  test("keys and text", () => {
     expect(keyMsg("KEY_UP")).toEqual({ method: "ms.remote.control", params: { Cmd: "Click", DataOfCmd: "KEY_UP", Option: "false", TypeOfRemote: "SendRemoteKey" } });
     expect(keyMsg("KEY_POWER", "Press").params.Cmd).toBe("Press");
     expect(textMsg("şey 1")).toEqual({ method: "ms.remote.control", params: { Cmd: Buffer.from("şey 1").toString("base64"), DataOfCmd: "base64", TypeOfRemote: "SendInputString" } });
     expect(textEndMsg()).toEqual({ method: "ms.remote.control", params: { TypeOfRemote: "SendInputEnd" } });
     expect(appsMsg()).toEqual({ method: "ms.channel.emit", params: { event: "ed.installedApp.get", to: "host" } });
-    expect(launchMsg("111299001912", 2, "v=abc").params.data).toEqual({ action_type: "DEEP_LINK", appId: "111299001912", metaTag: "v=abc" });
-    expect(launchMsg("org.tizen.browser").params.data).toEqual({ action_type: "NATIVE_LAUNCH", appId: "org.tizen.browser" });
   });
   test("apps, keyboard text, refusals", () => {
     expect(parseApps({ data: [{ appId: "111299001912", app_type: 2, icon: "/opt/yt.png", name: "YouTube" }, { name: "no id" }] })).toEqual([{ id: "111299001912", name: "YouTube", type: 2, icon: "/opt/yt.png" }]);
@@ -228,7 +226,7 @@ describe("the driver against a stand-in TV", () => {
     await until(() => !c.keyboard().open);
   });
 
-  test("apps: the TV's list when it gives one, else the catalog over REST; launch and the icon", async () => {
+  test("apps: the TV's list when it gives one, else the catalog over REST; launch over REST, and the icon", async () => {
     const { tv, port } = standIn();
     const c = (conn = await makeDriver({ port, pollMs: 60_000 }).connect(paired()));
     await until(() => c.remoteUp);
@@ -238,11 +236,12 @@ describe("the driver against a stand-in TV", () => {
     const apps = await c.apps();
     expect(apps).toEqual([{ id: "3201606009684", name: "Spotify", type: 4, icon: "/i/sp.png" }]);
     expect(Buffer.from((await c.icon(apps[0]))!).toString()).toBe("PNG");
-    await c.launch("3201606009684");
     tv.apps["3201606009684"] = { name: "Spotify", visible: false };
+    await c.launch("3201606009684");
     await c.quit("3201606009684");
-    await until(() => tv.got.some((g) => g.params?.event === "ed.apps.launch") && tv.got.some((g) => g.rest === "DELETE"));
-    expect(tv.got.find((g) => g.params?.event === "ed.apps.launch").params.data).toEqual({ action_type: "NATIVE_LAUNCH", appId: "3201606009684" });
+    // Launched over REST, as the TV opens it; closed the same way.
+    await until(() => tv.got.some((g) => g.rest === "POST" && g.app === "3201606009684") && tv.got.some((g) => g.rest === "DELETE"));
+    expect(tv.got.some((g) => g.params?.event === "ed.apps.launch")).toBe(false);
   });
 
   test("standby: nothing read but power, no remote until asked; turning on presses Power on the socket", async () => {
