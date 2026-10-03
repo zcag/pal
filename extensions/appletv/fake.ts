@@ -6,7 +6,7 @@
 // Every command lands as one JSON line in `<dir>/log`, which is what the
 // tests read back. Pairing takes the PIN in `pin`; any other is refused
 // with the real driver's words.
-import { appendFileSync, readFileSync, watch, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, renameSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Account, App, ChangeEvent, Conn, Credentials, Driver, Found, Keyboard, Lyrics, MediaCommand, NowPlaying, Paired, Power, QueueItem } from "./types.ts";
 
@@ -34,8 +34,10 @@ const creds = (who: string): Credentials => ({ clientId: `client-${who}`, client
 
 export function fakeDriver(dir: string): Driver {
   const file = join(dir, "tv.json");
-  const read = (): FakeTv => JSON.parse(readFileSync(file, "utf8"));
-  const write = (f: (tv: FakeTv) => void) => { const tv = read(); f(tv); writeFileSync(file, JSON.stringify(tv)); };
+  // The last state read whole: a read that meets the file half-written (the test writing it) keeps that.
+  let last: FakeTv | undefined;
+  const read = (): FakeTv => { try { return (last = JSON.parse(readFileSync(file, "utf8"))); } catch (e) { if (last) return last; throw e; } };
+  const write = (f: (tv: FakeTv) => void) => { const tv = read(); f(tv); writeFileSync(`${file}.tmp`, JSON.stringify(tv)); renameSync(`${file}.tmp`, file); };
   const log = (entry: Record<string, unknown>) => appendFileSync(join(dir, "log"), `${JSON.stringify(entry)}\n`);
 
   return {
@@ -62,7 +64,8 @@ export function fakeDriver(dir: string): Driver {
       const listeners = new Set<(e: ChangeEvent) => void>();
       const emit = (e: ChangeEvent) => { for (const l of listeners) l(e); };
       // Each write of tv.json is the TV telling its state: now playing, power, volume and the keyboard all said.
-      const watcher = watch(file, () => { for (const kind of ["now_playing", "power", "volume", "keyboard"] as const) emit({ kind }); });
+      // The directory, not the file: a write renames a new file into place, and a watch on the old one would go quiet.
+      const watcher = watch(dir, (_ev, name) => { if (name === "tv.json") for (const kind of ["now_playing", "power", "volume", "keyboard"] as const) emit({ kind }); });
       const did = (op: string, extra: Record<string, unknown> = {}) => log({ op, ...extra });
       const conn: Conn = {
         device,

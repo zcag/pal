@@ -8,7 +8,7 @@
 // bar item playing, paused and asleep, the apps and the dock, the root
 // commands, and the links.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FakeTv } from "../../../extensions/appletv/fake.ts";
@@ -139,11 +139,16 @@ describe("over the host against the stand-in TV", () => {
   let host: Host;
   const dir = mkdtempSync(join(tmpdir(), "pal-appletv-"));
   const tvFile = join(dir, "tv.json");
-  const setTv = (f: (tv: FakeTv) => void) => { const tv = JSON.parse(readFileSync(tvFile, "utf8")) as FakeTv; f(tv); writeFileSync(tvFile, JSON.stringify(tv)); };
+  /** Change the TV: written whole and renamed into place, so the fake never reads half a file. */
+  const setTv = (f: (tv: FakeTv) => void) => { const tv = JSON.parse(readFileSync(tvFile, "utf8")) as FakeTv; f(tv); writeFileSync(`${tvFile}.tmp`, JSON.stringify(tv)); renameSync(`${tvFile}.tmp`, tvFile); };
   const log = () => logLines(join(dir, "log")).map((l) => JSON.parse(l) as Record<string, unknown>);
   const ops = (op: string) => log().filter((l) => l.op === op);
   const view = (palette: string, args?: unknown) => host.request<View>("view", { extension: E, palette, args });
   const text = (v: { tree: unknown }) => JSON.stringify(v.tree);
+  /** Move the clock and wait for what it set off: counting starts before the advance, so a push that lands during it is not missed. */
+  const afterAdvance = async (ms: number, seen: () => boolean, what: string) => { await host.advance(ms); await host.until(seen, 3000, what); };
+  const viewSince = (palette: string, pred: (u: string) => boolean) => { const from = host.viewUpdates(E, { palette }).length; return () => host.viewUpdates(E, { palette }).slice(from).some((u) => pred(JSON.stringify(u.spec))); };
+  const barSince = (pred: (i: BarItem) => boolean) => { const from = host.updates(E, "playing").length; return () => host.updates(E, "playing").slice(from).some(pred); };
   const pick = (palette: string, action: string, values?: Record<string, string>) => host.pick(E, palette, palette === "setup" ? "setup" : "remote", action, values ? { values } : undefined);
 
   /** The clipboard's newest entry as pal's history would answer it; a test puts a link there. */
@@ -231,8 +236,7 @@ describe("over the host against the stand-in TV", () => {
     await host.until(() => ops("key").length === n + 1, 2000, "the key");
     expect(ops("key").at(-1)).toEqual({ op: "key", key: "up", press: "tap" });
     // The light goes after 160 ms (a push without it).
-    await host.advance(200);
-    await host.nextViewUpdate(E, { palette: "remote" }, (u) => !JSON.stringify(u.spec).includes("#4F8AE866"));
+    await afterAdvance(200, viewSince("remote", (u) => !u.includes("#4F8AE866")), "the light gone");
     for (const [action, key, press] of [["select:hold", "select", "hold"], ["menu", "menu", "tap"], ["home:double", "home", "double"], ["control-center", "home", "hold"], ["play-pause", "play_pause", "tap"], ["volume-up", "volume_up", "tap"]] as const) {
       await pick("remote", action);
       await host.until(() => JSON.stringify(ops("key").at(-1)) === JSON.stringify({ op: "key", key, press }), 2000, `${action}`);
@@ -353,9 +357,9 @@ describe("over the host against the stand-in TV", () => {
     // The entry there at the first poll is old news: the next poll after it sees the link.
     await host.advance(2000);
     clip = { id: 2, kind: "text", text: "look https://youtu.be/abc123?t=95 nice", at: Date.now() };
-    await host.advance(2000);
-    const offered = await host.nextUpdate(E, "playing", (i) => !!i.title?.startsWith("Play on TV: Video abc123"));
-    expect(offered).toMatchObject({ color: "accent" });
+    const isOffer = (i: BarItem) => !!i.title?.startsWith("Play on TV: Video abc123");
+    await afterAdvance(2000, barSince(isOffer), "the offer on the bar");
+    expect(host.updates(E, "playing").filter(isOffer).at(-1)).toMatchObject({ color: "accent" });
     const remote = await view("remote");
     expect(text(remote)).toContain("Video abc123");
     expect(remote.actions.find((a) => a.id === "play-link")?.title).toBe("Play “Video abc123”");

@@ -249,19 +249,24 @@ export function push(): void {
   if (pushTimer) return;
   pushTimer = setTimeout(async () => {
     pushTimer = undefined;
-    for (const l of openLevels()) {
-      const f = renderers.get(l.bar ? `bar:${l.bar}` : l.palette!);
-      if (!f) continue;
-      const v = await f(l).catch(() => undefined);
-      if (v) void liveView.update(v, { ...(l.bar ? { bar: l.bar } : { palette: l.palette }), id: v.id, extension: NAME }).catch(() => {});
+    // Nothing a redraw meets (a TV that answered half, a renderer that threw) may escape: an unhandled rejection ends the worker.
+    try {
+      for (const l of openLevels()) {
+        const f = renderers.get(l.bar ? `bar:${l.bar}` : l.palette!);
+        if (!f) continue;
+        const v = await f(l).catch(() => undefined);
+        if (v) void liveView.update(v, { ...(l.bar ? { bar: l.bar } : { palette: l.palette }), id: v.id, extension: NAME }).catch(() => {});
+      }
+      if (devices?.length && barRender) {
+        // A key's flash redraws a view twice; the strip only when it changed.
+        const item = await barRender(), json = JSON.stringify(item);
+        if (json !== lastBar) { lastBar = json; void bar.update("playing", item, NAME).catch(() => {}); }
+      }
+      publish();
+      ticking();
+    } catch (e) {
+      console.error(`[appletv] redraw: ${plain(e)}`);
     }
-    if (devices?.length && barRender) {
-      // A key's flash redraws a view twice; the strip only when it changed.
-      const item = await barRender(), json = JSON.stringify(item);
-      if (json !== lastBar) { lastBar = json; void bar.update("playing", item, NAME).catch(() => {}); }
-    }
-    publish();
-    ticking();
   }, 30);
 }
 
