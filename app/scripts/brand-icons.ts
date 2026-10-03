@@ -33,6 +33,7 @@ const LOGOS: Record<string, Logo> = {
   immich: { slug: "immich" },
   obsidian: { slug: "obsidian" },
   onepassword: { slug: "1password" },
+  samsungtv: { slug: "samsung" },
   spotify: { slug: "spotify", fg: "#000000" },
   whatsapp: { slug: "whatsapp" },
   youtube: { slug: "youtube" },
