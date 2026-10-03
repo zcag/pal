@@ -1407,7 +1407,7 @@ is also a consumer (the usual case) behaves as it did alone.
 | `volume` | `level` 0..1 (absent: the device only steps), `muted` | `set(level)`, `step(1 \| -1)`, `mute(on)` |
 | `power` | `on`, `busy` (waking or going to sleep) | `set(on)` |
 | `inputs` | `list: { id, name, icon? }[]`, `current` | `set(id)` |
-| `player` | `state` (`playing`/`paused`/`stopped`), `title`, `artist`, `album`, `artwork` (a url or `data:`), `app`, `position` (s) with `at` (unix ms it was read), `duration`, `palette` (your own Now Playing palette), `same` (bundle ids of the system's players showing the same playback) | `play_pause`, `next`, `previous`, `seek(seconds)` |
+| `player` | `state` (`playing`/`paused`/`stopped`), `title`, `artist`, `album`, `artwork` (a url or `data:`), `app`, `position` (s) with `at` (unix ms it was read), `duration`, `palette` (your own Now Playing palette), `item` (your own bar item showing it), `same` (bundle ids of the system's players showing the same playback) | `play_pause`, `next`, `previous`, `seek(seconds)` |
 
 Every state also takes `device`, the name of the thing it controls
 ("75\" Neo QLED"): a part drawn for another device says whose it is.
@@ -1447,6 +1447,14 @@ asker's error. The host warns when the manifest and the code disagree
   your own `get` answer moved. Redraw on `mine`; Now Playing listens to
   every `player`.
 - `controls.all(control)`: every provider's state, grouped or not.
+  A `player` naming its own bar item (`item: "playing"`) is answered
+  with `item_shown`, whether that item is on a strip now (enabled, aimed
+  somewhere, not held off, its last render not hidden): `media`'s item
+  skips such a player, so a playback is never on the bar twice and a
+  bespoke item (Spotify's lyric line) is never replaced.
+- `controls.runOn(key, control, op, ...args)`: one op on the provider
+  `key` itself, past any group: a player `all` listed (`media`'s Now
+  Playing runs each row's own transport).
 - `controls.publish(control, state | null)`.
 
 **The parts a group can hand over** are pal's, so they look the same

@@ -473,9 +473,12 @@ export class Host {
     return b && g?.members?.includes(b) ? b : undefined;
   }
 
+  /** The bar items on a strip now, `<key>/<id>` (the core reads its bar table): a served player naming one of these as its `item` gets `item_shown`. */
+  readonly itemsShown = new Set<string>();
+
   private served(key: string, control: string) {
     const s = this.published.get(`${key}\0${control}`);
-    return s ? { ...s, provider: { key, device: s.device } } : null;
+    return s ? { ...s, provider: { key, device: s.device }, ...(typeof s.item === "string" && { item_shown: this.itemsShown.has(`${key}/${s.item}`) }) } : null;
   }
 
   private affected(key: string): string[] {
@@ -493,7 +496,7 @@ export class Host {
     if (keys.size) this.notify("controls/changed", { changes: (["volume", "power", "inputs"] as ControlName[]).map((control) => ({ control, provider: "", keys: [...keys].sort() })) });
   }
 
-  private async controlsCall(fn: string, p: { extension: string; control: string; state?: Record<string, unknown> | null; op?: string; args?: unknown[] }): Promise<unknown> {
+  private async controlsCall(fn: string, p: { extension: string; control: string; state?: Record<string, unknown> | null; op?: string; args?: unknown[]; provider?: string }): Promise<unknown> {
     const { extension: key, control } = p;
     if (!["volume", "power", "inputs", "player"].includes(control)) throw new Error(`no control ${control}`);
     const g = this.groupOf(key);
@@ -519,8 +522,9 @@ export class Host {
       case "all":
         return [...this.published.keys()].filter((k) => k.endsWith(`\0${control}`)).map((k) => this.served(k.split("\0")[0], control));
       case "run": {
+        if (p.provider !== undefined && !this.published.has(`${p.provider}\0${control}`)) throw new Error(`${p.provider} publishes no ${control}`);
         const powered = control === "power" && g ? (g.members ?? []).filter((m) => this.published.has(`${m}\0power`)) : [];
-        const targets = powered.length ? powered : [this.binding(g, control) ?? key];
+        const targets = p.provider !== undefined ? [p.provider] : powered.length ? powered : [this.binding(g, control) ?? key];
         const errors: string[] = [];
         await Promise.all(targets.map((t) => this.request("controls/run", { extension: t, control, op: p.op, args: p.args ?? [] }).catch((e) => { errors.push(e instanceof Error ? e.message : String(e)); })));
         if (errors.length) throw new Error(errors.join("; "));

@@ -170,6 +170,8 @@ export const controls = {
   all: <C extends ControlName>(control: C, extension?: string) => call<Served<C>[]>("controls.all", { extension: who(extension), control }),
   /** One op on whoever serves `control` for the caller (every member's power in a group); the provider's error rejects it. */
   run: <C extends ControlName, O extends ControlOp<C>>(control: C, op: O, ...args: ControlOps[C][O] & unknown[]) => call<null>("controls.run", { extension: who(), control, op, args }, { timeout: CONTROL_RUN_MS }),
+  /** One op on the provider `key` itself, past any group: what `controls.all` listed (media's Now Playing runs a player's own transport); the provider must have published `control`. */
+  runOn: <C extends ControlName, O extends ControlOp<C>>(key: string, control: C, op: O, ...args: ControlOps[C][O] & unknown[]) => call<null>("controls.run", { extension: who(), provider: key, control, op, args }, { timeout: CONTROL_RUN_MS }),
   /** `cb` on every published or regrouped control, `mine` when the caller's own answer moved. Returns the unsubscribe. */
   onChange: (cb: (change: ControlChange) => void, extension?: string): (() => void) => {
     const me = who(extension);

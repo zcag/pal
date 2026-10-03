@@ -92,12 +92,21 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
             fan_out(app, change.into_iter().collect());
             Ok(Value::Null)
         }
-        "get" => Ok(with(app, |t| t.get(&g, &ext, &control)).unwrap_or(Value::Null)),
-        "all" => Ok(Value::Array(with(app, |t| t.all(&control)))),
+        "get" => Ok(with(app, |t| t.get(&g, &ext, &control)).map(|v| shown(app, v)).unwrap_or(Value::Null)),
+        "all" => Ok(Value::Array(with(app, |t| t.all(&control)).into_iter().map(|v| shown(app, v)).collect())),
         "run" => {
             let op = params["op"].as_str().ok_or("controls.run: no op")?.to_string();
             let args = params.get("args").cloned().filter(Value::is_array).unwrap_or_else(|| json!([]));
-            let targets = with(app, |t| t.targets(&g, &ext, &control));
+            // `provider`: one listed by `all`, run past any group (`controls.runOn`).
+            let targets = match params["provider"].as_str() {
+                Some(key) => {
+                    if with(app, |t| t.all(&control)).iter().all(|v| v["provider"]["key"] != key) {
+                        return Err(format!("{key} publishes no {control}"));
+                    }
+                    vec![key.to_string()]
+                }
+                None => with(app, |t| t.targets(&g, &ext, &control)),
+            };
             let host = app.try_state::<Arc<Host>>().ok_or("controls.run: the host is not running")?.inner().clone();
             let runs = targets.iter().map(|key| {
                 let (host, params) = (host.clone(), json!({ "extension": key, "control": control, "op": op, "args": args }));
@@ -118,6 +127,23 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
         }
         _ => Err(format!("unknown controls.{func}")),
     }
+}
+
+/// A player naming its provider's own bar item (`item`) gets `item_shown`:
+/// whether that item is on a strip now (enabled, aimed somewhere, not held
+/// off by a state, its last render not hidden). `media`'s item skips such a
+/// player, so one playback is never on the bar twice and a bespoke item is
+/// never replaced.
+fn shown(app: &AppHandle, mut v: Value) -> Value {
+    let key = match (v["provider"]["key"].as_str(), v["item"].as_str()) {
+        (Some(k), Some(i)) => crate::bar::key_of(k, i),
+        _ => return v,
+    };
+    let on = settings::config(app).bar.draws(&key)
+        && crate::bar::entry(app, &key).is_some_and(|e| !e.held)
+        && crate::bar::drawn(app, &key).is_some_and(|i| !i.hidden);
+    v["item_shown"] = Value::Bool(on);
+    v
 }
 
 // ---- Settings › Groups ------------------------------------------------------

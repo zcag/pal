@@ -955,7 +955,7 @@ export type PowerState = ControlBase & { on?: boolean; busy?: boolean };
 export type ControlInput = { id: string; name: string; icon?: Icon };
 /** `inputs`: what the device switches between and which is on. */
 export type InputsState = ControlBase & { list?: ControlInput[]; current?: string };
-/** `player`: what plays. `position` is seconds as of `at` (unix ms); `palette` the provider's own Now Playing palette; `same` the bundle ids of the system's players that show the same playback (media drops those rows). */
+/** `player`: what plays. `position` is seconds as of `at` (unix ms); `palette` the provider's own Now Playing palette; `item` the provider's own bar item for this playback (media's item skips the player while that one is on a strip); `same` the bundle ids of the system's players that show the same playback (media drops those rows). */
 export type PlayerState = ControlBase & {
   state?: "playing" | "paused" | "stopped";
   title?: string;
@@ -978,7 +978,7 @@ export type ControlStates = { volume: VolumeState; power: PowerState; inputs: In
 /** Who serves a control for the caller: an instance key, and the device name it published. */
 export type ControlProvider = { key: string; device?: string };
 /** A control as `controls.get` answers it: the provider's state with who it is. `power` in a group answers every member's, `on` when any is. */
-export type Served<C extends ControlName = ControlName> = ControlStates[C] & { provider: ControlProvider } & (C extends "power" ? { members?: (PowerState & { key: string })[] } : unknown);
+export type Served<C extends ControlName = ControlName> = ControlStates[C] & { provider: ControlProvider } & (C extends "power" ? { members?: (PowerState & { key: string })[] } : unknown) & (C extends "player" ? { /** Whether the provider's `item` is on a strip now (the core's answer; absent without an `item`). */ item_shown?: boolean } : unknown);
 
 /** The ops each control takes, by name, with their arguments. */
 export type ControlOps = {
