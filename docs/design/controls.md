@@ -50,10 +50,12 @@ Apple TV view            pal (group "Living room")        Samsung extension
   (the volume row, the power button, the inputs row), so they look the
   same whoever serves them, and a slot nobody serves is not drawn.
 - **Players are not grouped.** Every published `player` reaches `media`,
-  whose Now Playing and one "playing" bar item list them all next to the
-  system's players; the popover of a provider's player is that
-  provider's own palette, so Spotify keeps its lyrics and the Apple TV
-  its clickpad.
+  whose Now Playing lists them all next to the system's players; picking
+  one opens the provider's own palette, so Spotify keeps its lyrics and
+  the Apple TV its clickpad. **No bar item is replaced**: the bespoke
+  ones (Spotify's lyric line and ticking popover, the Apple TV's remote
+  popover) stay on and stay theirs; `media`'s item only covers the
+  players that have no item of their own showing.
 
 The pattern pal already has: states (`design/states.md`) let an extension
 publish under its own name and the user compose; controls do the same
@@ -70,7 +72,7 @@ cannot be driven).
 | `volume` | `level` 0..1 or absent (only steps), `muted` | `set(level)`, `step(+1 \| -1)`, `mute(on)` |
 | `power` | `on` true/false, `busy` (waking) | `set(on)` |
 | `inputs` | `list: { id, name, icon? }[]`, `current` id | `set(id)` |
-| `player` | `state` (playing/paused/stopped), `title`, `artist`, `album`, `artwork` (url or `data:`), `app`, `position` + `at` (unix ms the position was read), `duration`, `palette` (the provider's own Now Playing palette), `same` (bundle ids it duplicates on the system's list) | `play_pause`, `next`, `previous`, `seek(seconds)` |
+| `player` | `state` (playing/paused/stopped), `title`, `artist`, `album`, `artwork` (url or `data:`), `app`, `position` + `at` (unix ms the position was read), `duration`, `palette` (the provider's own Now Playing palette), `item` (its own bar item for this playback, when it has one), `same` (bundle ids it duplicates on the system's list) | `play_pause`, `next`, `previous`, `seek(seconds)` |
 
 Every state also carries the provider's `title` (its device's name,
 "75\" Neo QLED") for the slot's tooltip and the group editor.
@@ -166,11 +168,18 @@ UI first: the page is the way to make a group; the file mirrors it.
   the system's players. A provider's `same` bundle ids drop the system's
   row for the same playback (Spotify through its Web API and the
   Spotify app on the Mac are one).
-- `media`'s bar item is the one "playing" item; its popover for a
-  provider's player is `menu: { palette: "<key>/<palette>" }`, the
-  provider's own view. The extensions' own "playing" items stay, off by
-  default (an item's `enabled: false` in the manifest; existing
-  configs keep what they have).
+- **Bar items stay as they are.** Spotify's item draws the lyric line
+  on the strip on each line's timestamp, keeps a paused track muted
+  ("held"), and its popover is the compact lyrics view with the queue's
+  next two and its own keys, ticking through `view/shown { bar }`; the
+  Apple TV's hides while the TV sleeps and its popover is the remote.
+  None of that survives a hand-off to another extension's item, so
+  nothing is turned off: `media`'s item skips a player whose provider's
+  own item is showing (the provider says which item in its `player`
+  state, `item: "playing"`, and the core knows whether it is enabled
+  and drawn), and shows the rest (a browser tab, Jellyfin without its
+  item) as today. Two items for one playback never happens; a bespoke
+  one is never lost.
 - Spotify, the Apple TV and theater (Jellyfin) publish `player`.
 
 ## The Samsung TV extension
