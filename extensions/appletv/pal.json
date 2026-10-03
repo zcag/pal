@@ -349,7 +349,7 @@
         "playing": {
           "title": "A film playing",
           "item": {
-            "icon": "󰄂",
+            "icon": "󰔂",
             "title": "The Long Quiet",
             "tooltip": "The Long Quiet · TV on Living Room"
           }
@@ -357,7 +357,7 @@
         "paused": {
           "title": "Paused",
           "item": {
-            "icon": "󰄂",
+            "icon": "󰔂",
             "title": "The Long Quiet",
             "color": "muted",
             "tooltip": "The Long Quiet · TV on Living Room, paused"
@@ -368,7 +368,7 @@
           "item": {
             "hidden": true,
             "empty": {
-              "icon": "󰄂",
+              "icon": "󰔂",
               "tooltip": "Living Room is asleep"
             }
           }
