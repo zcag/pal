@@ -393,6 +393,8 @@ describe("keep awake: the row, the bar item and the link", () => {
     expect(record()).toBeUndefined();
     // The item's own `presets` setting is what the digits pick from; left out, the declared ones again.
     expect(await barAction("system", "awake", "preset:0", { reason: "open", settings: { presets: ["10m"] } })).toEqual({ keep: true, hud: "Awake for 10 min" });
+    // Its ask is read here: on a slow runner it lands late, and an unread one is what the next lastAsk would find.
+    expect(await lastAsk()).toBe("-di -t 600");
     pids.push(record()!.pid);
     expect(await barAction("system", "awake", "sleep")).toEqual({ keep: true, hud: "Sleep allowed" });
     expect(h.manifests.get("system")!.bar!.awake!.settings!.map((s) => s.id)).toEqual(["presets"]);
