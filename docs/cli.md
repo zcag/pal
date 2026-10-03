@@ -19,7 +19,7 @@ pal toggle          show the panel if hidden, hide it if shown
 pal switch [WHAT]   the switcher: next (default) begins or steps, prev steps up, commit runs the row, cancel hides (see below)
 pal show            show the panel
 pal hide            hide the panel
-pal settings [page] open the settings window (overview, general, palettes, extensions, bar, about)
+pal settings [page] open the settings window (overview, general, shortcuts, features, extensions, bar, groups, about)
 pal reload          restart the extension host (reloads every extension from disk)
 pal quit            quit the running instance (flushes its state, stops the extension host)
 pal install NAME    install an extension from a registry (--registry R), or a source with --from (see below)

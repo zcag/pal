@@ -75,7 +75,7 @@ pub enum Cmd {
     Hide,
     /// Open the settings window, on a page when one is named.
     Settings {
-        /// `overview`, `general`, `palettes`, `extensions`, `bar` or `about`.
+        /// `overview`, `general`, `shortcuts`, `features`, `extensions`, `bar`, `groups` or `about`.
         page: Option<String>,
     },
     /// Restart the extension host, so it reloads every extension from disk.

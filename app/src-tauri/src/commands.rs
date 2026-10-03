@@ -58,6 +58,7 @@ pub fn changelog_url(version: &str) -> String {
 pub const SETTINGS: &str = "settings";
 pub const SETTINGS_EXTENSIONS: &str = "settings-extensions";
 pub const SETTINGS_FEATURES: &str = "settings-features";
+pub const SETTINGS_GROUPS: &str = "settings-groups";
 pub const SETTINGS_ABOUT: &str = "settings-about";
 pub const STORE_ROW: &str = "store";
 pub const INSTALL: &str = "install";
@@ -201,6 +202,7 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Faile
         row(SETTINGS, "Settings", "Hotkey, theme, palettes, extensions", &["preferences", "options", "config"], &icon),
         row(SETTINGS_EXTENSIONS, "Settings › Extensions", "Installed extensions and their palettes, updates, the store", &["settings", "preferences", "extensions", "palettes"], &icon),
         row(SETTINGS_FEATURES, "Settings › Features", "Clipboard history, text expansion, the switcher, mouse, keycast", &["settings", "preferences", "features"], &icon),
+        row(SETTINGS_GROUPS, "Settings › Groups", "Devices you use together: one remote for the TV's volume, inputs and power", &["settings", "preferences", "groups", "devices", "room", "tv"], &icon),
         row(SETTINGS_ABOUT, "Settings › About", "Version, links, the last crash", &["settings", "preferences", "about", "version"], &icon),
         row(STORE_ROW, "Extension Store", "Browse and install in the panel; the website is a level away", &["extensions", "store", "browse", "marketplace"], &icon),
         row(INSTALL, "Install Extension", "From GitHub, a URL or a local directory", &["extension", "add", "github"], &icon),
@@ -346,6 +348,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
         SETTINGS => Plan::Settings(None),
         SETTINGS_EXTENSIONS => Plan::Settings(Some("extensions")),
         SETTINGS_FEATURES => Plan::Settings(Some("features")),
+        SETTINGS_GROUPS => Plan::Settings(Some("groups")),
         SETTINGS_ABOUT => Plan::Settings(Some("about")),
         _ if id.starts_with(FAILED) => Plan::SettingsExtension(id[FAILED.len()..].to_string()),
         STORE_ROW => Plan::Store,
@@ -709,7 +712,7 @@ mod tests {
         assert_eq!(ids.len(), ids.iter().collect::<HashSet<_>>().len(), "no duplicate ids: {ids:?}");
         assert_eq!(ids[0], SETTINGS, "Settings leads");
         assert_eq!(ids[ids.len() - 1], VERSION, "the version row is last");
-        assert_eq!(ids.len(), 21);
+        assert_eq!(ids.len(), 22);
         for r in &rows {
             assert!(r.keywords.iter().any(|k| k == "pal"), "{}: `pal` is a keyword", r.id);
             assert!(r.subtitle.as_deref().is_some_and(|s| !s.is_empty()), "{}: a subtitle", r.id);
@@ -771,6 +774,7 @@ mod tests {
         assert_eq!(plan(SETTINGS, None, None), Plan::Settings(None));
         assert_eq!(plan(SETTINGS_EXTENSIONS, None, None), Plan::Settings(Some("extensions")));
         assert_eq!(plan(SETTINGS_FEATURES, None, None), Plan::Settings(Some("features")));
+        assert_eq!(plan(SETTINGS_GROUPS, None, None), Plan::Settings(Some("groups")));
         assert_eq!(plan(SETTINGS_ABOUT, None, None), Plan::Settings(Some("about")));
         assert_eq!(plan(STORE_ROW, None, None), Plan::Store);
         assert_eq!(plan(DOCS_ROW, None, None), Plan::Open(DOCS));

@@ -426,7 +426,7 @@ its link.
 
 pal's own housekeeping is in the root search too, as rows of a `pal`
 section, the way Raycast lists "Raycast Settings" or "Quit Raycast":
-Settings (and Settings › Features, › Extensions, › About), Extension Store,
+Settings (and Settings › Features, › Extensions, › Groups, › About), Extension Store,
 Install Extension (a form: `github:user/repo`, a GitHub URL or a local
 directory), Reload Extensions (restarts the extension host), Refresh Index,
 Check for Updates (and Install Update, listed only while a newer release is

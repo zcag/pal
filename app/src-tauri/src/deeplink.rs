@@ -136,7 +136,7 @@ impl Route {
     }
 }
 
-pub const PAGES: [&str; 8] = ["overview", "general", "shortcuts", "features", "palettes", "extensions", "bar", "about"];
+pub const PAGES: [&str; 9] = ["overview", "general", "shortcuts", "features", "palettes", "extensions", "bar", "groups", "about"];
 
 // ---- the table ---------------------------------------------------------------
 
