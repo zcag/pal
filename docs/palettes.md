@@ -31,6 +31,11 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | palette | id | kind, tier | what `Enter` does |
 | --- | --- | --- | --- |
 | [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
+| [Apple TV Remote](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-remote` | view, normal | Select (the clickpad's centre) |
+| [Apple TV Apps](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-apps` | indexed, normal | Open the app on the TV |
+| [Apple TV](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-commands` | indexed, primary | Run the command on the TV |
+| [Apple TV Users](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-users` | indexed, normal | Switch to the user |
+| [Set Up Apple TV](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-setup` | view, normal | Pair with the Apple TV |
 | [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
 | [Battery & Power](#battery--power-power) | `power` | view, normal | Find the process under the cursor in Processes |
@@ -3937,6 +3942,62 @@ Settings, `[extensions.tela]`:
 | `research` | boolean | `true` | Show Ask tela; needs an embedder on the instance. |
 
 For the tests, `PAL_TELA_URL` and `PAL_TELA_TOKEN` replace the two settings.
+
+## Apple TV (`appletv-remote`, `appletv-apps`, `appletv-commands`, `appletv-users`, `appletv-setup`, `appletv/playing`)
+
+An Apple TV on the same network, spoken to directly over the two protocols
+the iPhone's remote uses: Companion for the buttons, swipes, apps, users,
+sleep and wake, the volume and the text field, and MRP over AirPlay for what
+plays. No hub, no Home Assistant. One connection to the current Apple TV
+(the `device` setting) is opened on first use; everything the TV tells (a
+new item, a pause, sleep, a keyboard on screen) pushes into the open remote
+and the bar item, so nothing polls. The extension's README
+(`extensions/appletv/README.md`) has the protocols, the pairing and every
+key.
+
+**Set Up Apple TV** (`appletv-setup`, a view) walks Find, Remote, Now
+playing and Ready: the Apple TVs on the network with their model and tvOS
+version (a digit pairs one, `i` takes an address, `r` looks again), then the
+four-digit code the TV shows, typed in the search row's field (a wrong one
+brings a new code), then a second code for what plays (`s` skips it), then a
+check of what works read from the TV itself. Until one is paired the other
+palettes are a single "Set Up Apple TV" row, the remote is a welcome and the
+bar item is hidden.
+
+**Apple TV Remote** (`appletv-remote`, a view): the clickpad on the arrows
+(each part lights when its key is pressed, and clicks), Enter selects
+(`shift+enter` holds), Backspace goes back, `h` home, `tab` the app
+switcher, `c` Control Center, `space` play or pause, `,` and `.` skip by
+`skip` seconds, `cmd+left`/`cmd+right` previous and next, `-` and `=` the
+volume, `shift` and an arrow swipes, `p` sleep or wake, `s` the screen
+saver, `u` users, `d` the next paired Apple TV. The card shows what plays
+with its cover and a seek bar a click moves; the dock (`favorites`, else
+the apps opened most) puts apps on the digits; the volume is a slider when
+the TV set reports it over HDMI-CEC. When the TV shows a keyboard a banner
+says what for, and `t` types into it from the search row.
+
+**Apple TV Apps** (`appletv-apps`) lists every app with its App Store icon
+(Apple's own drawn from their marks); Enter opens it on the TV, `cmd+enter`
+opens it and shows the remote, `cmd+d` adds it to the dock or takes it out.
+**Apple TV** (`appletv-commands`, primary) has play or pause, wake, sleep,
+home, Control Center, the screen saver, skip, next, previous, the volume,
+Type on Apple TV (Tab, then the text), switch user, switch Apple TV and set
+up at the root; the empty root's Now section has what plays. **Apple TV
+Users** (`appletv-users`) switches the signed-in user.
+
+**The bar item** (`appletv/playing`): the app's icon and what plays, muted
+while paused, hidden while nothing plays or the TV sleeps (the `when`
+setting keeps it while the TV is awake); the popover is the remote. It
+publishes `appletv/power`, `appletv/playing`, `appletv/app` and
+`appletv/title`.
+
+| Setting | Default | |
+| --- | --- | --- |
+| `device` | `""` | The current Apple TV by name; empty: the one paired last |
+| `favorites` | `[]` | The dock's apps by name or bundle id |
+| `skip` | `10` | Seconds a skip moves |
+| `wake` | `true` | Wake the Apple TV when the remote opens |
+| `stay` | `true` | Keep the connection open in the background for the bar item |
 
 ## Hue (`hue-rooms`, `hue-lights`, `hue-scenes`, `hue-light`, `hue-setup`, `hue-sensors`, `hue-automations`, `hue-entertainment`, `hue/home`)
 

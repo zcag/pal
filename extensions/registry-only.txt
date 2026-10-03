@@ -5,6 +5,7 @@
 # Mac user expects it on day one (or a core feature relies on it), here
 # otherwise (docs/design/distribution.md, "What is bundled").
 2048
+appletv
 blackjack
 calendar
 crossword

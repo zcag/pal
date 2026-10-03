@@ -21,6 +21,7 @@ type Logo = { slug: string; fg?: `#${string}` };
 
 /** extension -> its Simple Icons slug; `fg` where the brand's own mark on its colour is dark. */
 const LOGOS: Record<string, Logo> = {
+  appletv: { slug: "appletv" },
   docker: { slug: "docker" },
   gifs: { slug: "giphy" },
   github: { slug: "github" },

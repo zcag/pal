@@ -2199,3 +2199,26 @@ Cagdas chose Ink as what every install gets: `general.design` defaults to
 another design. The first look is kept as `classic` (no CSS of its own:
 `bare`, no attribute). The gallery renders Ink unless a shot names another
 design, so the store's pictures, the landing and the docs show Ink.
+
+## Apple TV (2026-10-03)
+
+A remote without Home Assistant: the extension speaks the two protocols the
+iPhone's remote uses, straight to the box. Companion carries the buttons,
+touch, apps, users, power, volume and the text field; MRP over AirPlay
+carries what plays. Companion is ours (`extensions/appletv/protocol/`, a
+port of pyatv): node-appletv-remote 0.3.2, the one maintained pure-JS
+library, pairs fine, but its Companion session drops every request after
+pairing (the frame length leaves out the 16-byte tag, the nonce counter
+sits at byte 4 instead of 0), its OPACK has no back-references (`_systemInfo`
+fails on tag 0xb8), and it sends requests without the `_t`/`_c` envelope.
+Its AirPlay connection and pair-setup are kept, with our own MRP setup and
+decoding on top (it reads `.proto` files at run time, which a bundle cannot).
+Measured against an Apple TV 4K on tvOS 26.6: connect 230-280 ms with both
+channels, a key 17-21 ms, the app list 14-18 ms.
+
+Named `appletv`, not `apple-tv`: a dash in an extension name makes its
+states unreadable in an expression (`apple-tv.power` parses as a
+subtraction, `core/src/states.rs`). Registry-only: it needs an Apple TV and
+a pairing. Tests run the extension against a stand-in TV (`fake.ts`, its
+state a JSON file); the wire is tested on pyatv's vectors and recorded MRP
+messages.

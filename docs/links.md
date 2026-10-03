@@ -96,6 +96,12 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://hue/toggle?room=<room>` | Toggle a room's lights (`&on=1` or `&on=0` sets them instead) |
 | `pal://hue/scene?name=<scene>` | Play a scene (`&room=<room>` when the name is in several; `&dynamic=1` for its dynamic form) |
 | `pal://hue/off` | Every light off |
+| `pal://appletv/key?name=<button>` | Press an Apple TV remote button (`up`, `select`, `menu`, `home`, `play_pause`, `volume_up`, `sleep`, `wake`, ...; `&press=hold` or `double`) |
+| `pal://appletv/launch?app=<app>` | Open an app on the Apple TV, by name, bundle id or a url it handles |
+| `pal://appletv/power?to=on` | Wake the Apple TV (`off` sleeps it, `toggle` by default) |
+| `pal://appletv/type?text=<text>` | Type into the text field the Apple TV shows (`&append=1` adds to it) |
+| `pal://appletv/media?command=<command>` | `play_pause`, `play`, `pause`, `next`, `previous`, `skip_forward`, `skip_backward`, `seek` (`&value=` seconds) |
+| `pal://appletv/volume?level=40` | The TV set's volume (`up`, `down`, or 0 to 100) |
 | `pal://obsidian/open?path=<note>` | Open a note in Obsidian, or in the editor |
 | `pal://obsidian/new?title=<title>` | Create a note and open it (`&body=`, `&folder=`) |
 | `pal://obsidian/append-today?text=<text>` | Append a line to today's daily note, created when missing |

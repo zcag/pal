@@ -1,0 +1,530 @@
+{
+  "name": "appletv",
+  "title": "Apple TV",
+  "description": "A remote for your Apple TV under the keys: the clickpad on the arrows, your apps a digit away, typing into the TV's search from the keyboard, what is playing with its cover and a seek bar, sleep and wake, users, and the menu bar. Pairs in a guided setup, no other app or hub needed.",
+  "keywords": [
+    "atv",
+    "tv",
+    "remote",
+    "appletv"
+  ],
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "svg": "M20.57 17.735h-1.815l-3.34-9.203h1.633l2.02 5.987c.075.231.273.9.586 2.012l.297-.997.33-1.006 2.094-6.004H24zm-5.344-.066a5.76 5.76 0 0 1-1.55.207c-1.23 0-1.84-.693-1.84-2.087V9.646h-1.063V8.532h1.121V7.081l1.476-.602v2.062h1.707v1.113H13.38v5.805c0 .446.074.75.214.932.14.182.396.264.75.264.207 0 .495-.041.883-.115zm-7.29-5.343c.017 1.764 1.55 2.358 1.567 2.366-.017.042-.248.842-.808 1.658-.487.71-.99 1.418-1.79 1.435-.783.016-1.03-.462-1.93-.462-.89 0-1.17.445-1.913.478-.758.025-1.344-.775-1.838-1.484-.998-1.451-1.765-4.098-.734-5.88.51-.89 1.426-1.451 2.416-1.46.75-.016 1.468.512 1.93.512.461 0 1.327-.627 2.234-.536.38.016 1.452.157 2.136 1.154-.058.033-1.278.743-1.27 2.219M6.468 7.988c.404-.495.685-1.18.61-1.864-.585.025-1.294.388-1.723.883-.38.437-.71 1.138-.619 1.806.652.05 1.328-.338 1.732-.825Z",
+      "box": 24,
+      "bg": "#000000"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "device",
+      "label": "Apple TV",
+      "placeholder": "Living Room",
+      "description": "Which paired Apple TV the remote, the root commands and the bar item control, by its name. Empty: the one paired last. d on the remote switches, and writes it here.",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "favorites",
+      "label": "Dock",
+      "placeholder": "An app's name (YouTube) or bundle id",
+      "description": "The apps on the remote's dock, in order; each gets a digit, 1 to 8. Empty: the apps you open most. cmd+D in Apple TV Apps adds or removes one.",
+      "default": []
+    },
+    {
+      "kind": "number",
+      "id": "skip",
+      "label": "Skip",
+      "description": "How far , and . (and Skip Back / Forward at the root) move what plays.",
+      "min": 5,
+      "max": 60,
+      "step": 5,
+      "unit": "s",
+      "default": 10
+    },
+    {
+      "kind": "boolean",
+      "id": "wake",
+      "label": "Wake",
+      "text": "Wake the Apple TV when the remote opens",
+      "description": "With HDMI-CEC on, the TV set comes on with it.",
+      "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "stay",
+      "label": "Stay connected",
+      "text": "Keep the connection open in the background",
+      "description": "So the menu bar item follows what plays and a key answers at once. Off, pal connects while the remote is open and lets go a minute and a half after.",
+      "default": true
+    }
+  ],
+  "palettes": {
+    "remote": {
+      "title": "Apple TV Remote",
+      "description": "The clickpad on the arrows, Enter selects, Backspace goes back, the TV button on h; what is playing with its cover and a seek bar, the volume, your dock of apps on the digits, and a field that types into the TV.",
+      "kind": "view",
+      "keywords": [
+        "clickpad",
+        "control"
+      ],
+      "refresh": 15,
+      "on": [
+        "wake",
+        "network",
+        "show"
+      ],
+      "keys": [
+        {
+          "keys": "up, down, left, right",
+          "title": "Move (the clickpad)"
+        },
+        {
+          "keys": "shift+up, shift+down, shift+left, shift+right",
+          "title": "Swipe"
+        },
+        {
+          "keys": "enter",
+          "title": "Select"
+        },
+        {
+          "keys": "shift+enter",
+          "title": "Hold Select: more options"
+        },
+        {
+          "keys": "backspace",
+          "title": "Back"
+        },
+        {
+          "keys": "h",
+          "title": "Home, the TV button"
+        },
+        {
+          "keys": "tab",
+          "title": "App switcher"
+        },
+        {
+          "keys": "c",
+          "title": "Control Center"
+        },
+        {
+          "keys": "space",
+          "title": "Play or pause"
+        },
+        {
+          "keys": ", .",
+          "title": "Skip back or forward"
+        },
+        {
+          "keys": "cmd+left, cmd+right",
+          "title": "Previous or next (chapter, track)"
+        },
+        {
+          "keys": "- =",
+          "title": "Volume down or up"
+        },
+        {
+          "keys": "1-8",
+          "title": "Open a dock app"
+        },
+        {
+          "keys": "a",
+          "title": "All apps"
+        },
+        {
+          "keys": "t",
+          "title": "Type into the field the TV shows"
+        },
+        {
+          "keys": "p",
+          "title": "Sleep or wake"
+        },
+        {
+          "keys": "s",
+          "title": "Screen saver"
+        },
+        {
+          "keys": "u",
+          "title": "Switch user"
+        },
+        {
+          "keys": "d",
+          "title": "Switch Apple TV (with several paired)"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy what is playing"
+        },
+        {
+          "keys": "r",
+          "title": "Reconnect"
+        }
+      ]
+    },
+    "apps": {
+      "title": "Apple TV Apps",
+      "description": "Every app on the Apple TV with its icon; Enter opens it on the TV.",
+      "kind": "list",
+      "lazy": true,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open on the TV"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open, then show the remote"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Add to or remove from the dock"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the bundle id"
+        }
+      ]
+    },
+    "commands": {
+      "title": "Apple TV",
+      "description": "Play or pause, sleep, wake, home, Control Center, the screen saver, skip, volume, typing and switching users or Apple TVs, as root results.",
+      "kind": "list",
+      "tier": "primary",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Run"
+        },
+        {
+          "keys": "tab",
+          "title": "On Type on Apple TV: the text to type"
+        }
+      ]
+    },
+    "users": {
+      "title": "Apple TV Users",
+      "description": "The people signed in on the Apple TV; Enter switches to one.",
+      "kind": "list",
+      "lazy": true,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Switch to this user"
+        }
+      ]
+    },
+    "setup": {
+      "title": "Set Up Apple TV",
+      "description": "Finds the Apple TVs on the network and pairs one in two codes: the remote, then what is playing (skippable); ends with a check of what works.",
+      "kind": "view",
+      "keywords": [
+        "pair"
+      ],
+      "keys": [
+        {
+          "keys": "1-9",
+          "title": "Pair with that Apple TV"
+        },
+        {
+          "keys": "enter",
+          "title": "Send the code"
+        },
+        {
+          "keys": "n",
+          "title": "Show a new code"
+        },
+        {
+          "keys": "s",
+          "title": "Skip the now playing step"
+        },
+        {
+          "keys": "i",
+          "title": "Type an address"
+        },
+        {
+          "keys": "r",
+          "title": "Look again"
+        },
+        {
+          "keys": "x",
+          "title": "Forget an Apple TV"
+        }
+      ]
+    }
+  },
+  "bar": {
+    "playing": {
+      "title": "Apple TV",
+      "description": "What plays on the Apple TV, with the app's icon; hidden while nothing does. The popover is the remote: what plays with its seek bar, the clickpad and the buttons, the dock on the digits.",
+      "refresh": {
+        "every": 60,
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
+      },
+      "keys": [
+        {
+          "keys": "up, down, left, right",
+          "title": "Move"
+        },
+        {
+          "keys": "enter",
+          "title": "Select"
+        },
+        {
+          "keys": "backspace",
+          "title": "Back"
+        },
+        {
+          "keys": "h",
+          "title": "Home"
+        },
+        {
+          "keys": "space",
+          "title": "Play or pause"
+        },
+        {
+          "keys": ", .",
+          "title": "Skip back or forward"
+        },
+        {
+          "keys": "- =",
+          "title": "Volume"
+        },
+        {
+          "keys": "1-6",
+          "title": "Open a dock app"
+        },
+        {
+          "keys": "t",
+          "title": "Type into the TV"
+        },
+        {
+          "keys": "p",
+          "title": "Sleep or wake"
+        }
+      ],
+      "rules": [
+        {
+          "id": "paused",
+          "when": "appletv.power == 'on' and not appletv.playing and appletv.title",
+          "description": "Something is loaded but paused: muted on the strip.",
+          "color": "muted"
+        }
+      ],
+      "settings": [
+        {
+          "kind": "select",
+          "id": "when",
+          "label": "Show",
+          "description": "While something plays (paused counts), or whenever the Apple TV is awake (the app in front then).",
+          "options": [
+            {
+              "id": "playing",
+              "title": "While something plays"
+            },
+            {
+              "id": "awake",
+              "title": "While the Apple TV is awake"
+            }
+          ],
+          "default": "playing"
+        },
+        {
+          "kind": "boolean",
+          "id": "artwork",
+          "label": "Icon",
+          "text": "The app's icon instead of the TV mark",
+          "default": true
+        }
+      ],
+      "mocks": {
+        "playing": {
+          "title": "A film playing",
+          "item": {
+            "icon": "󰄂",
+            "title": "The Long Quiet",
+            "tooltip": "The Long Quiet · TV on Living Room"
+          }
+        },
+        "paused": {
+          "title": "Paused",
+          "item": {
+            "icon": "󰄂",
+            "title": "The Long Quiet",
+            "color": "muted",
+            "tooltip": "The Long Quiet · TV on Living Room, paused"
+          }
+        },
+        "asleep": {
+          "title": "Asleep or nothing playing",
+          "item": {
+            "hidden": true,
+            "empty": {
+              "icon": "󰄂",
+              "tooltip": "Living Room is asleep"
+            }
+          }
+        }
+      }
+    }
+  },
+  "states": {
+    "power": {
+      "description": "The Apple TV's power: on, off, screensaver, unknown",
+      "kind": "string"
+    },
+    "playing": {
+      "description": "Something is playing on the Apple TV",
+      "kind": "boolean"
+    },
+    "app": {
+      "description": "The app in front on the Apple TV",
+      "kind": "string"
+    },
+    "title": {
+      "description": "The title of what plays on the Apple TV",
+      "kind": "string"
+    }
+  },
+  "links": {
+    "key": {
+      "description": "Press a remote button",
+      "params": {
+        "name": {
+          "description": "up, down, left, right, select, menu, home, play_pause, volume_up, volume_down, sleep, wake, screensaver",
+          "required": true
+        },
+        "press": {
+          "description": "tap (default), double or hold"
+        }
+      }
+    },
+    "launch": {
+      "description": "Open an app on the Apple TV",
+      "params": {
+        "app": {
+          "description": "Its name (YouTube), bundle id, or a url the app handles",
+          "required": true
+        }
+      }
+    },
+    "power": {
+      "description": "Wake the Apple TV or put it to sleep",
+      "params": {
+        "to": {
+          "description": "on, off or toggle (default)"
+        }
+      }
+    },
+    "type": {
+      "description": "Type into the text field the Apple TV shows",
+      "params": {
+        "text": {
+          "description": "The text",
+          "required": true
+        },
+        "append": {
+          "description": "Add to what is there instead of replacing it",
+          "type": "boolean"
+        }
+      }
+    },
+    "media": {
+      "description": "A transport command",
+      "params": {
+        "command": {
+          "description": "play_pause, play, pause, next, previous, skip_forward, skip_backward, seek",
+          "required": true
+        },
+        "value": {
+          "description": "Seconds: how far to skip, or where to seek",
+          "type": "number"
+        }
+      }
+    },
+    "volume": {
+      "description": "The volume, as the TV set reports it over HDMI-CEC",
+      "params": {
+        "level": {
+          "description": "up, down, or 0 to 100",
+          "required": true
+        }
+      }
+    }
+  },
+  "store": {
+    "tagline": "Your Apple TV's remote, apps and search, from the keyboard",
+    "category": "media",
+    "features": [
+      "The clickpad on the arrows, Enter selects, Backspace goes back, h is the TV button; swipes on shift and the arrows",
+      "Your dock of apps on the digits, and every app at the root with its icon: type `youtube`, press Enter",
+      "Type into the TV's search from the keyboard instead of hunting letters on screen",
+      "What is playing with its cover, a seek bar a click moves, and the volume as a slider",
+      "Sleep and wake, Control Center, the app switcher, the screen saver, switching users",
+      "A menu bar item with what plays; its popover is the remote",
+      "Guided setup: finds the Apple TV, takes the code it shows, and checks what works"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-remote.png",
+        "caption": "The remote: the clickpad and the buttons, what plays with its cover and a seek bar, the dock of apps on the digits, the volume"
+      },
+      {
+        "file": "2-typing.png",
+        "caption": "The TV's search wants text: type it here, Enter sends it"
+      },
+      {
+        "file": "3-apps.png",
+        "caption": "Every app on the Apple TV with its icon; Enter opens it, cmd+D puts it in the dock"
+      },
+      {
+        "file": "4-setup.png",
+        "caption": "Setup finds the Apple TVs on the network; a digit pairs one"
+      },
+      {
+        "file": "5-setup-code.png",
+        "caption": "Type the code the TV shows; a second code adds what is playing"
+      },
+      {
+        "file": "6-ready.png",
+        "caption": "Paired: a check of what works, read from the TV itself"
+      },
+      {
+        "file": "bar-menubar.png",
+        "caption": "On the menu bar: what plays on the Apple TV",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-popover.png",
+        "caption": "A click opens the remote: what plays with its seek bar, the clickpad and the buttons, the dock on the digits",
+        "kind": "bar",
+        "box": [
+          352,
+          64,
+          840,
+          942
+        ]
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the TV mark and the title",
+        "kind": "bar"
+      }
+    ]
+  }
+}
