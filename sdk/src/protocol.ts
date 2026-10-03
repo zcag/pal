@@ -969,6 +969,8 @@ export type PlayerState = ControlBase & {
   at?: number;
   duration?: number;
   palette?: string;
+  /** The provider's own bar item for this playback (`"playing"`): media's item steps aside while that one shows. */
+  item?: string;
   same?: string[];
 };
 export type ControlStates = { volume: VolumeState; power: PowerState; inputs: InputsState; player: PlayerState };
