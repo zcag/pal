@@ -3,7 +3,7 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import type { BarItem, CopyText, Effect, InstanceInfo, ResolvedSettings, StateEntry, StateValue, View, ViewNode, ViewPost, ViewShown, ViewTarget, ViewUpdate, WindowLayoutRequest } from "./protocol.ts";
+import { CONTROL_NAMES, type BarItem, type ControlName, type ControlOp, type ControlOps, type ControlStates, type CopyText, type Effect, type InstanceInfo, type ResolvedSettings, type Served, type StateEntry, type StateValue, type View, type ViewNode, type ViewPost, type ViewShown, type ViewTarget, type ViewUpdate, type WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 import { checkBarItem, checkView } from "./view.ts";
 
@@ -145,6 +145,75 @@ export const state = {
   onChange: (a: string | ((changed: Record<string, StateValue>) => void), b?: (value: StateValue) => void): (() => void) =>
     typeof a === "string" ? runtime().onStates((c) => { if (a in c) b?.(c[a]); }) : runtime().onStates(a),
 };
+
+/** What `controls.onChange` hears: a control `provider` published (or its group changed), and whether the caller's own `get(control)` answer moved. */
+export type ControlChange = { control: ControlName; provider: string; mine: boolean };
+
+/** How long `controls.run` waits: the op crosses to another extension, which may wake a device. */
+export const CONTROL_RUN_MS = 15_000;
+
+/**
+ * Controls (docs/design/controls.md): one device's view drives another
+ * device's volume, power and inputs, and every player reaches one Now
+ * Playing. A provider declares `controls` in pal.json, handles the ops in
+ * its default export (`controls: { volume: { set, step, mute } }`) and
+ * `publish`es the state when it changes; a consumer asks for its own
+ * (`get`), which the user's group (`[groups.<id>]`) may hand to another
+ * extension, and `run`s ops on whoever serves it. Neither names the other.
+ */
+export const controls = {
+  /** Publish this extension's state of `control` (`null` withdraws it: asleep, gone). */
+  publish: <C extends ControlName>(control: C, state: ControlStates[C] | null, extension?: string) => call<null>("controls.publish", { extension: who(extension), control, state }),
+  /** The control as it is served to the caller: its group's binding, else its own; null when nobody serves it. */
+  get: <C extends ControlName>(control: C, extension?: string) => call<Served<C> | null>("controls.get", { extension: who(extension), control }),
+  /** Every provider's published state of `control`, grouped or not (media's players). */
+  all: <C extends ControlName>(control: C, extension?: string) => call<Served<C>[]>("controls.all", { extension: who(extension), control }),
+  /** One op on whoever serves `control` for the caller (every member's power in a group); the provider's error rejects it. */
+  run: <C extends ControlName, O extends ControlOp<C>>(control: C, op: O, ...args: ControlOps[C][O] & unknown[]) => call<null>("controls.run", { extension: who(), control, op, args }, { timeout: CONTROL_RUN_MS }),
+  /** `cb` on every published or regrouped control, `mine` when the caller's own answer moved. Returns the unsubscribe. */
+  onChange: (cb: (change: ControlChange) => void, extension?: string): (() => void) => {
+    const me = who(extension);
+    return runtime().onControls(({ changes }) => { for (const c of changes) cb({ control: c.control, provider: c.provider, mine: c.keys.includes(me) }); });
+  },
+  /**
+   * A view's `controls:*` action (`volumeRow`, `powerButton`, `inputsRow`,
+   * or the extension's own keys spelled the same way) run on whoever
+   * serves it: false when `action` is none of them, so a `pick` forwards
+   * in a line. `values.value` is a slider's fraction.
+   */
+  act: async (action: string, ctx?: { values?: Record<string, string> }): Promise<boolean> => {
+    const a = parseControlAction(action);
+    if (!a) return false;
+    const value = Number(ctx?.values?.value);
+    const v = async <C extends ControlName>(c: C) => (await controls.get(c)) as Served<C> | null;
+    switch (`${a.control}:${a.op}`) {
+      case "volume:set": {
+        const level = a.arg !== undefined ? Number(a.arg) : value;
+        if (Number.isFinite(level)) await controls.run("volume", "set", Math.min(1, Math.max(0, level)));
+        break;
+      }
+      case "volume:step": await controls.run("volume", "step", Number(a.arg) < 0 ? -1 : 1); break;
+      case "volume:mute": await controls.run("volume", "mute", a.arg !== undefined ? a.arg === "true" : !(await v("volume"))?.muted); break;
+      case "power:set": await controls.run("power", "set", a.arg !== undefined ? a.arg === "true" : !(await v("power"))?.on); break;
+      case "inputs:set": if (a.arg) await controls.run("inputs", "set", a.arg); break;
+      case "player:play_pause": case "player:next": case "player:previous": await controls.run("player", a.op as "next"); break;
+      case "player:seek": {
+        const s = a.arg !== undefined ? Number(a.arg) : value * ((await v("player"))?.duration ?? NaN);
+        if (Number.isFinite(s)) await controls.run("player", "seek", Math.max(0, s));
+        break;
+      }
+      default: throw new Error(`no control action ${action}`);
+    }
+    return true;
+  },
+};
+
+/** `controls:<control>:<op>[:<arg>]` into its parts; undefined for any other id. The argument keeps its colons (an input id may have them). */
+export function parseControlAction(action: string): { control: ControlName; op: string; arg?: string } | undefined {
+  const [head, control, op, ...rest] = action.split(":");
+  if (head !== "controls" || !CONTROL_NAMES.includes(control as ControlName) || !op) return undefined;
+  return { control: control as ControlName, op, ...(rest.length && { arg: rest.join(":") }) };
+}
 
 /** Pushes to one view level closer together than this are coalesced: the last one within the window goes, ~30 a second at most. */
 export const VIEW_UPDATE_MIN_MS = 33;

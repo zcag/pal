@@ -14,7 +14,7 @@
 // settings }` on a settings change, `{ stop }` before terminate. Out: `{
 // res: { id, result | error } }`, `{ call: { id, method, params, timeout }
 // }` for the SDK's bridge calls (answered by `{ reply }`), `{ stopped }`.
-import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import { checkBarRules, checkBarSettings, checkControls, checkDeps, checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
 import type { Extension, InstanceInfo, ResolvedSettings } from "../../sdk/src/protocol.ts";
 import { bind, type Caller } from "../../sdk/src/runtime.ts";
 import { barMetas, barMethods } from "./bar.ts";
@@ -22,6 +22,7 @@ import { advance, ready as clockReady, skip, timers } from "./clock.ts";
 import { instanceInfo, instanceMeta, rewriteCall, type WorkerInit } from "./instances.ts";
 import { describe, importEntry, log, paletteMethods, sections, timeout } from "./serve.ts";
 import { context, resolved, subscribe, update } from "./settings.ts";
+import { controlsMethods, onControls, update as updateControls } from "./controls.ts";
 import { onStates, update as updateStates } from "./states.ts";
 import { onView, viewMethods, views } from "./views.ts";
 
@@ -69,7 +70,7 @@ const instance = (): InstanceInfo => {
   return info;
 };
 
-bind({ call, caller, resolved, subscribe, update: (extension, s) => update({ [extension]: s }), instance, views, onView, onStates });
+bind({ call, caller, resolved, subscribe, update: (extension, s) => update({ [extension]: s }), instance, views, onView, onStates, onControls });
 
 // ---- messages -----------------------------------------------------------
 
@@ -94,11 +95,11 @@ async function init(id: number, i: WorkerInit) {
     if (!loaded?.palettes) throw new Error("default export has no palettes");
     ext = loaded;
     const manifestOf = () => i.manifest;
-    methods = { ...paletteMethods(lookup, manifestOf), ...barMethods(lookup, () => info, manifestOf), ...viewMethods };
+    methods = { ...paletteMethods(lookup, manifestOf), ...barMethods(lookup, () => info, manifestOf), ...controlsMethods(lookup), ...viewMethods };
     for (const kind of ["inline", "fallback", "fallback/late", "suggest"] as const) methods[kind] = (p) => sections([[key, loaded]], manifestOf, kind, p?.query, rootTimeout);
     // The manifest against the code, with the instance's title and mark on every meta.
     const check = checkPalettes(i.manifest, loaded, instanceMeta(i.inst, i.alone));
-    check.warnings.push(...checkLinks(i.manifest, loaded), ...checkBarRules(i.manifest), ...checkBarSettings(i.manifest), ...checkDeps(i.manifest));
+    check.warnings.push(...checkLinks(i.manifest, loaded), ...checkBarRules(i.manifest), ...checkBarSettings(i.manifest), ...checkDeps(i.manifest), ...checkControls(i.manifest, loaded));
     self.postMessage({ res: { id, result: { palettes: check.metas, bar: barMetas(loaded, i.manifest), warnings: check.warnings, ms: performance.now() - t0 } } });
   } catch (e) {
     error = describe(e);
@@ -143,6 +144,8 @@ function onMessage(m: any) {
     serve(m.id, String(m.req.method), m.req.params);
   } else if (m?.states) {
     updateStates(m.states);
+  } else if (m?.controls) {
+    updateControls(m.controls);
   } else if (m?.settings) {
     update({ [key]: m.settings as ResolvedSettings });
   } else if (typeof m?.advance === "number") {

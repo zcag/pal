@@ -8,7 +8,7 @@ import { setDefaultTimeout } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewNode, ViewUpdate, Window } from "../../sdk/src/index.ts";
+import type { BarCtx, BarItem, BarMeta, ClipboardEntry, ControlName, Ctx, Detail, Effect, Group, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewNode, ViewUpdate, Window } from "../../sdk/src/index.ts";
 
 // A test's own budget grows with its waits (`until` triples them on the CI runner): at bun's 5 s a test was killed while its 7.5 s wait
 // still ran, and that wait's error landed on whichever test came next.
@@ -71,6 +71,8 @@ export type Options = {
   settings?: Overlay;
   /** Per request, ms. */
   timeout?: number;
+  /** `[groups]` as the config would hold it (docs/design/controls.md); `host.setGroups` changes it and tells the host, as a reload does. */
+  groups?: Record<string, Group>;
   /** The extensions to load; the rest of the roots' are turned off (`core/store.disabled`). A bundled host otherwise runs all of them, and their background work (sessions reading this machine's Claude sessions, downloads thumbnailing) slows the root sections. A `core["store.disabled"]` of the test's own wins over it. */
   only?: string[];
 };
@@ -428,6 +430,7 @@ export class Host {
     const method = req.method.replace(/^core\//, "");
     this.coreCalls.push({ method, params: req.params });
     let fn = this.opts.core?.[method] ?? CORE[method];
+    if (method.startsWith("controls.") && !this.opts.core?.[method]) fn = (p) => this.controlsCall(method.slice(9), p);
     if (method === "store.disabled" && this.opts.only && !this.opts.core?.[method]) {
       const only = new Set(this.opts.only);
       fn = () => this.opts.roots.flatMap((r) => readdirSync(r, { withFileTypes: true }).filter((d) => d.isDirectory() && !only.has(d.name)).map((d) => d.name));
@@ -453,6 +456,78 @@ export class Host {
     }
     // The core's config watcher would push the reload after the write; here at once.
     if (changed) this.notify("settings/changed", { extensions: { [changed.extension]: changed.resolved } });
+  }
+
+  // ---- controls: what the core does (app controls.rs over pal_core::controls), in memory ----
+
+  /** What extensions published, `<key>\0<control>` to state. */
+  readonly published = new Map<string, Record<string, unknown>>();
+
+  /** The group `key` is in: the first by id, as the core reads it. */
+  private groupOf(key: string): Group | undefined {
+    return Object.entries(this.opts.groups ?? {}).sort(([a], [b]) => (a < b ? -1 : 1)).find(([, g]) => g.members?.includes(key))?.[1];
+  }
+
+  private binding(g: Group | undefined, control: string): string | undefined {
+    const b = control === "volume" ? g?.volume : control === "inputs" ? g?.inputs : undefined;
+    return b && g?.members?.includes(b) ? b : undefined;
+  }
+
+  private served(key: string, control: string) {
+    const s = this.published.get(`${key}\0${control}`);
+    return s ? { ...s, provider: { key, device: s.device } } : null;
+  }
+
+  private affected(key: string): string[] {
+    return [...new Set([key, ...(this.groupOf(key)?.members ?? [])])].sort();
+  }
+
+  /** `[groups]` changed (a config reload): the members of every group that did hear it, as `controls::regrouped`. */
+  setGroups(groups: Record<string, Group>) {
+    const prev = this.opts.groups ?? {};
+    const keys = new Set<string>();
+    for (const id of new Set([...Object.keys(prev), ...Object.keys(groups)])) {
+      if (JSON.stringify(prev[id]) !== JSON.stringify(groups[id])) for (const g of [prev[id], groups[id]]) for (const m of g?.members ?? []) keys.add(m);
+    }
+    this.opts.groups = groups;
+    if (keys.size) this.notify("controls/changed", { changes: (["volume", "power", "inputs"] as ControlName[]).map((control) => ({ control, provider: "", keys: [...keys].sort() })) });
+  }
+
+  private async controlsCall(fn: string, p: { extension: string; control: string; state?: Record<string, unknown> | null; op?: string; args?: unknown[] }): Promise<unknown> {
+    const { extension: key, control } = p;
+    if (!["volume", "power", "inputs", "player"].includes(control)) throw new Error(`no control ${control}`);
+    const g = this.groupOf(key);
+    switch (fn) {
+      case "publish": {
+        const at = `${key}\0${control}`;
+        const before = JSON.stringify(this.published.get(at) ?? null);
+        if (p.state) this.published.set(at, p.state);
+        else this.published.delete(at);
+        if (JSON.stringify(p.state ?? null) !== before) this.notify("controls/changed", { changes: [{ control, provider: key, keys: this.affected(key) }] });
+        return null;
+      }
+      case "get": {
+        if (control === "power" && g) {
+          const members = (g.members ?? []).flatMap((m) => { const s = this.published.get(`${m}\0power`); return s ? [{ ...s, key: m } as Record<string, unknown> & { key: string }] : []; });
+          const first = members.find((m) => m.key === key) ?? members[0];
+          if (!first) return null;
+          const known = members.some((m) => typeof m.on === "boolean");
+          return { ...(known && { on: members.some((m) => m.on === true) }), ...(members.some((m) => m.busy === true) && { busy: true }), provider: { key: first.key, device: first.device }, members };
+        }
+        return this.served(this.binding(g, control) ?? key, control);
+      }
+      case "all":
+        return [...this.published.keys()].filter((k) => k.endsWith(`\0${control}`)).map((k) => this.served(k.split("\0")[0], control));
+      case "run": {
+        const powered = control === "power" && g ? (g.members ?? []).filter((m) => this.published.has(`${m}\0power`)) : [];
+        const targets = powered.length ? powered : [this.binding(g, control) ?? key];
+        const errors: string[] = [];
+        await Promise.all(targets.map((t) => this.request("controls/run", { extension: t, control, op: p.op, args: p.args ?? [] }).catch((e) => { errors.push(e instanceof Error ? e.message : String(e)); })));
+        if (errors.length) throw new Error(errors.join("; "));
+        return null;
+      }
+    }
+    throw new Error(`unknown controls.${fn}`);
   }
 
   /** The manifest's defaults, the overlay the test gave (or `given`), and what `settings.set` wrote since (secrets resolved to their values). */

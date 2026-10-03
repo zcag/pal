@@ -24,8 +24,8 @@ import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { tileBrand } from "../../sdk/src/icon.ts";
-import { checkBarRules, checkBarSettings, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
-import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
+import { checkBarRules, checkBarSettings, checkControls, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
+import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type ControlsChanged, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { advance, advanced, ready as clockReady, timers as clockTimers } from "./clock.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
@@ -33,6 +33,7 @@ import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance
 import { bindSdk, SDK } from "./sdk.ts";
 import { describe, forgetDetails, importEntry, log, paletteMethods, sections as sectionsOf, timeout, type Section, type SectionKind } from "./serve.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
+import { controlsMethods, update as updateControls } from "./controls.ts";
 import { update as updateStates } from "./states.ts";
 import { transpile } from "./surface.ts";
 import { forget as forgetViews, viewMethods } from "./views.ts";
@@ -221,7 +222,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
-    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest), ...checkDeps(manifest));
+    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest), ...checkDeps(manifest), ...checkControls(manifest, ext));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
@@ -372,7 +373,7 @@ async function stopInstances(name: string, keep: string[] = []) {
 }
 
 /** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
-const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "disabled/changed", "reload", "clock/advance", "clock/timers"]);
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "fallback/late", "suggest", "settings/changed", "instances/changed", "states/changed", "controls/changed", "disabled/changed", "reload", "clock/advance", "clock/timers"]);
 
 /** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
 const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
@@ -624,6 +625,7 @@ const methods: Record<string, (params: any) => unknown> = {
   "fallback/late": (p) => sections("fallback/late", p?.query),
   suggest: () => sections("suggest", ""),
   ...barMethods(extension, undefined, (k) => manifests.get(k)),
+  ...controlsMethods(extension),
   ...viewMethods,
   // A game surface's `*.ts` as JavaScript, for the app's `ext://` scheme (surface.ts).
   "surface/transpile": (p) => transpile(String(p?.path)),
@@ -642,6 +644,12 @@ const methods: Record<string, (params: any) => unknown> = {
     const changed = p?.states ?? {};
     updateStates(changed);
     for (const w of workers.values()) w.states(changed);
+  },
+  // Notification from the core: controls published or regrouped; the inline extensions' listeners here, every worker's through its own relay.
+  "controls/changed": (p: ControlsChanged) => {
+    const changed = { changes: Array.isArray(p?.changes) ? p.changes : [] };
+    updateControls(changed);
+    for (const w of workers.values()) w.controls(changed);
   },
   // Notification from the core: `[instances.*]` of the extension changed; its instances are reloaded, as a file change would.
   "instances/changed": async (p) => {

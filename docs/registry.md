@@ -23,6 +23,7 @@ older builds really stop working.
 | 1 | the first registry |
 | 2 | `preview()`, `ignoreStore()`, `Effect.show.actions` |
 | 3 | the detail header: `Detail.caption`, `title`, `chips`, `stats` |
+| 4 | controls and groups (`docs/design/controls.md`): `controls`, `Extension.controls`, the manifest's `controls`, the control view components |
 
 ## Packages
 

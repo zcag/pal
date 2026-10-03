@@ -10,7 +10,7 @@
 // The typed `defineExtension(manifest, ext)` (index.ts) is the same rule at
 // type level: `ExtensionFor<M>` names the palettes the manifest declares.
 import { badged, checkIcon, TILE_COLORS, type TileColor } from "./icon.ts";
-import type { Extension, LinkParams, ListPalette, Manifest, ManifestLink, ManifestPalette, OwnIcon, Palette, PaletteKind, PaletteMeta, ViewPalette, ViewTrigger } from "./protocol.ts";
+import { CONTROL_NAMES, type ControlName, type Extension, type LinkParams, type ListPalette, type Manifest, type ManifestLink, type ManifestPalette, type OwnIcon, type Palette, type PaletteKind, type PaletteMeta, type ViewPalette, type ViewTrigger } from "./protocol.ts";
 
 /** A palette whose `view` is a function draws a tree instead of listing rows. */
 export const isViewPalette = (p: Palette): p is ViewPalette => typeof p.view === "function";
@@ -347,6 +347,24 @@ export function checkDeps(manifest: Manifest): string[] {
       if (!isExtensionName(n)) warnings.push(`${key}: ${JSON.stringify(n)} is not an extension name (lowercase letters, digits, "-", "_", ".")`);
       else if (n === manifest.name) warnings.push(`${key}: names the extension itself`);
     }
+  }
+  return warnings;
+}
+
+/** `controls` in pal.json against `Extension.controls`, both ways (docs/design/controls.md): a declared control the code does not handle, a handled one not declared, a name pal does not define. */
+export function checkControls(manifest: Manifest, ext: Extension): string[] {
+  const warnings: string[] = [];
+  const v = manifest.controls as unknown;
+  if (v !== undefined && !Array.isArray(v)) return [`controls: not a list of control names (${CONTROL_NAMES.join(", ")})`];
+  const declared = (v ?? []) as string[];
+  const handled = Object.keys(ext.controls ?? {});
+  for (const c of declared) {
+    if (!CONTROL_NAMES.includes(c as ControlName)) warnings.push(`controls: ${JSON.stringify(c)} is not a control (${CONTROL_NAMES.join(", ")})`);
+    else if (!handled.includes(c)) warnings.push(`controls: "${c}" is declared in pal.json but the code's controls have no ${c} handlers`);
+  }
+  for (const c of handled) {
+    if (!CONTROL_NAMES.includes(c as ControlName)) warnings.push(`controls: the code handles "${c}", which is not a control`);
+    else if (!declared.includes(c)) warnings.push(`controls: the code handles "${c}" but pal.json does not declare it; Settings › Groups will not offer it`);
   }
   return warnings;
 }

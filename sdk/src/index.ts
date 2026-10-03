@@ -10,15 +10,16 @@ import type { Extension } from "./protocol.ts";
 
 export * from "./api.ts";
 export type * from "./protocol.ts";
-export { PROTOCOL, PROTOCOL_MIN } from "./protocol.ts";
+export { CONTROL_NAMES, PROTOCOL, PROTOCOL_MIN } from "./protocol.ts";
 export { checkBarItem, checkEffect, checkForm, checkView, isSurfaceSrc, shortcutsOf, HEX_COLOR, IMAGE_SRC, MAX_BAR_MENU_NODES, MAX_BAR_SEGMENTS, MAX_BAR_SUBMENU_DEPTH, MAX_BAR_TITLE, MAX_DEPTH, MAX_NODES, SHELL_PREFIX } from "./view.ts";
-export { checkDeps, checkLinkEffect, checkLinkParams, checkLinks, checkPalettes, depNames, isExtensionName, instanceTitle, stripInstance, isViewPalette, kindOf, LINK_EFFECT_REFUSED, LINK_PARAM_TYPES, PALETTE_KINDS, paletteMeta, VIEW_TRIGGERS } from "./manifest.ts";
+export { checkControls, checkDeps, checkLinkEffect, checkLinkParams, checkLinks, checkPalettes, depNames, isExtensionName, instanceTitle, stripInstance, isViewPalette, kindOf, LINK_EFFECT_REFUSED, LINK_PARAM_TYPES, PALETTE_KINDS, paletteMeta, VIEW_TRIGGERS } from "./manifest.ts";
 export type { ExtensionFor, ManifestLike, PaletteCheck, PaletteFor, PaletteKeys } from "./manifest.ts";
 export { xdg, XDG_ICONS } from "./icons.ts";
 export { expand, formatDate, hasPlaceholders, isoDate, isoTime, offsetDate, FORMAT_TOKENS, PLACEHOLDERS } from "./placeholders.ts";
 export type { Sources as PlaceholderSources } from "./placeholders.ts";
 export { badged, checkIcon, isTileIcon, isTintedIcon, tile, tileBrand, tinted, MAX_BADGE, MAX_TILE_BOX, MAX_TILE_SVG, TILE_COLORS } from "./icon.ts";
 export type { Tile, TileColor, TileIcon, TileMark, TintedIcon } from "./icon.ts";
+export { CONTROL_GLYPHS, CONTROL_LIT, controlButton, inputsRow, powerButton, volumeButton, volumeRow, withControls } from "./controls.ts";
 export { argsForm, column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W, preview, row, text, toast } from "./rows.ts";
 export { appName, bytes, errorMessage, htmlText, mdEscape, oneLine, slug, truncate } from "./text.ts";
 export { EXEC_MS, exec, run } from "./exec.ts";

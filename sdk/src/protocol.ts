@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). */
-export const PROTOCOL: number = 3;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). */
+export const PROTOCOL: number = 4;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -934,6 +934,70 @@ export type StateEntry = { name: string; value: StateValue; source: StateSource;
 /** The core's `states/changed`: the states whose resolved value changed, with the new values. */
 export type StatesChanged = { states: Record<string, StateValue> };
 
+// ---- controls (docs/design/controls.md) -------------------------------------
+// A control is a small contract pal defines: an extension that provides one
+// declares it in `pal.json` (`controls`), handles its ops in the default
+// export (`Extension.controls`) and publishes its state; any extension asks
+// for "my volume" and pal answers whoever serves it: the caller's group's
+// binding (`[groups.<id>]`), else the caller itself.
+
+/** The controls pal defines. */
+export type ControlName = "volume" | "power" | "inputs" | "player";
+export const CONTROL_NAMES: readonly ControlName[] = ["volume", "power", "inputs", "player"];
+
+/** What every control's state carries: the provider's device name ("75\" Neo QLED"), for a slot's tooltip and the group editor. */
+type ControlBase = { device?: string };
+/** `volume`: `level` 0..1 when the device reports one (absent: it only steps), `muted`. */
+export type VolumeState = ControlBase & { level?: number; muted?: boolean };
+/** `power`: `on`, and `busy` while it wakes or goes to sleep. */
+export type PowerState = ControlBase & { on?: boolean; busy?: boolean };
+/** One input a device switches to. */
+export type ControlInput = { id: string; name: string; icon?: Icon };
+/** `inputs`: what the device switches between and which is on. */
+export type InputsState = ControlBase & { list?: ControlInput[]; current?: string };
+/** `player`: what plays. `position` is seconds as of `at` (unix ms); `palette` the provider's own Now Playing palette; `same` the bundle ids of the system's players that show the same playback (media drops those rows). */
+export type PlayerState = ControlBase & {
+  state?: "playing" | "paused" | "stopped";
+  title?: string;
+  artist?: string;
+  album?: string;
+  /** A url or a `data:` image. */
+  artwork?: string;
+  /** The app it plays in ("YouTube"). */
+  app?: string;
+  position?: number;
+  at?: number;
+  duration?: number;
+  palette?: string;
+  same?: string[];
+};
+export type ControlStates = { volume: VolumeState; power: PowerState; inputs: InputsState; player: PlayerState };
+
+/** Who serves a control for the caller: an instance key, and the device name it published. */
+export type ControlProvider = { key: string; device?: string };
+/** A control as `controls.get` answers it: the provider's state with who it is. `power` in a group answers every member's, `on` when any is. */
+export type Served<C extends ControlName = ControlName> = ControlStates[C] & { provider: ControlProvider } & (C extends "power" ? { members?: (PowerState & { key: string })[] } : unknown);
+
+/** The ops each control takes, by name, with their arguments. */
+export type ControlOps = {
+  volume: { set: [level: number]; step: [dir: 1 | -1]; mute: [on: boolean] };
+  power: { set: [on: boolean] };
+  inputs: { set: [id: string] };
+  player: { play_pause: []; next: []; previous: []; seek: [seconds: number] };
+};
+export type ControlOp<C extends ControlName> = keyof ControlOps[C] & string;
+
+/** `Extension.controls`: a handler per op of each control the extension provides; what it answers is ignored, a throw is the caller's error. Runs in the provider's own context (its settings, storage). */
+export type ControlHandlers = { [C in ControlName]?: { [O in keyof ControlOps[C]]?: (...args: ControlOps[C][O] & unknown[]) => unknown } };
+
+/** `controls/changed` (core to host): per published or regrouped control, who published it and the instance keys whose `get` answer moved. */
+export type ControlsChanged = { changes: { control: ControlName; provider: string; keys: string[] }[] };
+/** `controls/run` (core to host): one op on the provider's handler. */
+export type ControlRun = { extension: string; control: ControlName; op: string; args?: unknown[] };
+
+/** `[groups.<id>]`: devices used together. `members` are instance keys; `volume` and `inputs` the member serving each (unset: each member its own); power is every member's. */
+export type Group = { title?: string; members?: string[]; volume?: string; inputs?: string };
+
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
 /**
  * One presentation rule of a bar item (`docs/design/states.md`, "Rules"):
@@ -992,7 +1056,7 @@ export type BarMeta = ManifestBar & { id: string; source: boolean };
  * old module instance stays resident and what it left running would keep
  * pushing.
  */
-export type Extension = { palettes: Record<string, Palette>; bar?: Record<string, BarSource>; link?: LinkHandler; dispose?(): void | Promise<void> };
+export type Extension = { palettes: Record<string, Palette>; bar?: Record<string, BarSource>; link?: LinkHandler; /** The ops of the controls it provides (`Manifest.controls`, docs/design/controls.md). */ controls?: ControlHandlers; dispose?(): void | Promise<void> };
 
 // ---- links (pal://<extension>/<route>) -------------------------------------
 // An extension's own deep links (docs/design/links.md): `pal.json` declares
@@ -1146,6 +1210,8 @@ export type Manifest = {
   requires?: string[];
   /** Extensions some of its actions use (their names): the actions that need one hide while it is missing. */
   suggests?: string[];
+  /** The controls it provides (`Extension.controls`, docs/design/controls.md): what Settings › Groups offers it for, readable without the code. */
+  controls?: ControlName[];
 };
 
 /**

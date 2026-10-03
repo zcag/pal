@@ -9,7 +9,7 @@
 import { TILE_COLORS, type TileColor } from "../../sdk/src/icon.ts";
 import { tooLate } from "./bridge.ts";
 import type { InstanceMeta } from "../../sdk/src/manifest.ts";
-import type { BarMeta, InstanceInfo, Manifest, PaletteMeta, ResolvedSettings, StateValue } from "../../sdk/src/protocol.ts";
+import type { BarMeta, ControlsChanged, InstanceInfo, Manifest, PaletteMeta, ResolvedSettings, StateValue } from "../../sdk/src/protocol.ts";
 
 /** The extension's name behind an instance key: `gmail` for `gmail@work` and for `gmail`. */
 export const nameOf = (key: string): string => key.split("@")[0];
@@ -182,6 +182,11 @@ export class WorkerInstance {
   /** `states/changed`, relayed to the worker's own listeners. */
   states(changed: Record<string, StateValue>) {
     if (!this.gone) this.worker.postMessage({ states: changed });
+  }
+
+  /** `controls/changed`, relayed to the worker's own listeners. */
+  controls(changed: ControlsChanged) {
+    if (!this.gone) this.worker.postMessage({ controls: changed });
   }
 
   /** `dispose` in the worker (up to `grace` ms), then `terminate()`; every pending request is rejected. */

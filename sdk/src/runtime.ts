@@ -6,7 +6,7 @@
 // to the copy the host links) still finds the host's binding: the calls
 // are the wire's method names, which is what stays compatible, not the
 // module instance.
-import type { InstanceInfo, ResolvedSettings, StateValue, ViewShown } from "./protocol.ts";
+import type { ControlsChanged, InstanceInfo, ResolvedSettings, StateValue, ViewShown } from "./protocol.ts";
 
 /** Which extension (and palette) a call comes from, as the host resolves it. */
 export type Caller = { extension: string; palette?: string };
@@ -31,6 +31,8 @@ export type Runtime = {
   onView(extension: string, cb: (ev: ViewShown, shown: boolean) => void): () => void;
   /** Called with the changed states on every `states/changed`; returns the unsubscribe. */
   onStates(cb: (changed: Record<string, StateValue>) => void): () => void;
+  /** Called with every `controls/changed`; returns the unsubscribe. */
+  onControls(cb: (changed: ControlsChanged) => void): () => void;
 };
 
 const KEY = Symbol.for("@zcag/pal/runtime");
