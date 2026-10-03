@@ -10,7 +10,7 @@
 // pressed (`flash`), and the whole pad tinted toward the direction of a
 // swipe. Nothing here waits on the TV: the extension renders from what
 // the connection last said and pushes a new tree when that changes.
-import { POPOVER_W, column, keyHint, keycap, row, text, type Action, type HexColor, type TagColor, type View, type ViewNode } from "@zcag/pal";
+import { CONTROL_LIT, POPOVER_W, column, controlButton, inputsRow, keyHint, keycap, powerButton, row, text, volumeButton, volumeRow as servedVolumeRow, withControls, type Action, type HexColor, type Served, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Keyboard, NowPlaying, Power, Swipe } from "./types.ts";
 
 /** Nerd Font glyphs (Material Design) the remote is drawn with. */
@@ -64,13 +64,38 @@ export type RemoteState = {
   noAirplay?: boolean;
   /** A link was just copied: the banner offers it. */
   offer?: OfferCard;
+  /**
+   * The controls a group hands to another device (docs/design/controls.md):
+   * what `controls.get` answered when someone else serves them, `null` when
+   * the group's server is gone. Unset: the Apple TV's own, from `volume`
+   * and `power` above.
+   */
+  served?: { volume?: Served<"volume"> | null; power?: Served<"power"> | null; inputs?: Served<"inputs"> | null };
 };
+
+/** The Apple TV's own key, as its controls are published under. */
+const SELF = "appletv";
+
+/** The volume the remote drives: the group's server, else the Apple TV itself (a level when it reports one, else the keys only). */
+export function volumeOf(st: RemoteState): Served<"volume"> | null {
+  if (st.served?.volume !== undefined) return st.served.volume;
+  return { provider: { key: SELF, device: st.device?.name }, ...(st.volume !== undefined && { level: st.volume }) };
+}
+
+/** The power the remote switches: the group's (every member), else the Apple TV's. */
+export function powerOf(st: RemoteState): Served<"power"> | null {
+  if (st.served?.power !== undefined) return st.served.power;
+  return { provider: { key: SELF, device: st.device?.name }, on: st.power !== "off" };
+}
+
+/** Whether another device serves `v` (its name then says so). */
+export const elsewhere = (v: { provider: { key: string } } | null | undefined) => !!v && v.provider.key !== SELF;
 
 /** Dock tiles: as many 5:3 tiles as fit beside the "All apps" tile, a digit each. */
 export const DOCK_WIDE = 6, DOCK_COMPACT = 5;
 
-/** A part of the pad or a button while its key flashes: the accent, translucent, so the panel's ink stays on it in both themes. */
-const LIT: HexColor = "#4F8AE866";
+/** A part of the pad while its key flashes: the buttons' own lit colour. */
+const LIT: HexColor = CONTROL_LIT;
 
 // ---- the clickpad --------------------------------------------------------------------------------
 
@@ -101,20 +126,19 @@ export function clickpad(st: RemoteState, side: number): ViewNode {
   };
 }
 
-/** A round-ish remote button: a glyph on the button colour, its action on a click, lit while its key flashes. */
-function button(st: RemoteState, id: Flash, glyph: string, action: string, size: number, label?: string): ViewNode {
-  const lit = st.flash === id;
-  return column([
-    { type: "stack", key: `btn-${id}`, width: size, height: size, surface: lit ? LIT : "elevated", radius: true, align: "center", justify: "center", action, children: [text(glyph, { style: "glyph", size: "md", color: lit ? "accent" : undefined })] },
-    ...(label ? [text(label, { size: "xs", color: "faint", align: "center", width: size + 8 })] : []),
-  ], { key: `b-${id}`, gap: 0, align: "center" });
-}
+/** A remote button (pal's `controlButton`, the same as the volume and power parts), lit while its key flashes. */
+const button = (st: RemoteState, id: Flash, glyph: string, action: string, size: number, label?: string): ViewNode => controlButton(id, glyph, action, size, { lit: st.flash === id, label });
 
 /** The buttons under the pad, as the Siri Remote lays them out: Back and TV, then Play/Pause, then the volume, then power. */
 function buttons(st: RemoteState, size: number, labels: boolean): ViewNode {
   return column([
     row([button(st, "menu", G.back, "menu", size, labels ? "back" : undefined), button(st, "home", G.home, "home", size, labels ? "home" : undefined), button(st, "play", G.playPause, "play-pause", size, labels ? "play" : undefined)], { key: "btns-1", gap: 2, justify: "center", align: "start" }),
-    row([button(st, "vol-", G.volDown, "volume-down", size, labels ? "vol" : undefined), button(st, "vol+", G.volUp, "volume-up", size, labels ? "vol" : undefined), button(st, "power", st.power === "off" ? G.power : G.sleep, "power", size, labels ? (st.power === "off" ? "wake" : "sleep") : undefined)], { key: "btns-2", gap: 2, justify: "center", align: "start" }),
+    // The volume and power parts are pal's (`@zcag/pal`): a group can hand them to the TV.
+    row([
+      volumeButton(volumeOf(st), -1, size, { lit: st.flash === "vol-", label: labels ? "vol" : undefined }),
+      volumeButton(volumeOf(st), 1, size, { lit: st.flash === "vol+", label: labels ? "vol" : undefined }),
+      powerButton(powerOf(st), size, { lit: st.flash === "power", labels }),
+    ].filter((x): x is ViewNode => !!x), { key: "btns-2", gap: 2, justify: "center", align: "start" }),
   ], { key: "buttons", gap: 2, align: "center" });
 }
 
@@ -247,15 +271,15 @@ function extras(st: RemoteState): ViewNode {
   ], { key: "extras", gap: 1, minHeight: 22 });
 }
 
+/** The volume slider: the Apple TV's while it reports a level, the group's server's whenever it serves one. */
 function volumeRow(st: RemoteState, width: number): ViewNode | undefined {
-  if (st.volume === undefined) return undefined;
-  const pct = Math.round(st.volume * 100);
-  return row([
-    text(G.volume, { style: "glyph", size: "sm", color: "muted" }),
-    { type: "slider", key: "volume", value: st.volume, width: width - 24 - 44 - 16, label: "Volume", action: "volume:set" },
-    text(`${pct}%`, { style: "number", size: "xs", width: 44, align: "end", key: `vol-${pct}` }),
-  ], { key: "volume-row", gap: 2 });
+  const v = volumeOf(st);
+  if (!v || (v.level === undefined && !elsewhere(v))) return undefined;
+  return servedVolumeRow(v, width, { device: st.device?.name });
 }
+
+/** The TV's inputs, when a group has a device that serves them. */
+const inputsOf = (st: RemoteState, width: number) => inputsRow(st.served?.inputs, width);
 
 function header(st: RemoteState): ViewNode {
   const badges: ViewNode[] = [];
@@ -328,7 +352,7 @@ export function actions(st: RemoteState): Action[] {
     { id: "now", title: "Now Playing", shortcut: "n" },
     { id: "play-link", title: st.offer ? `Play “${st.offer.title.length > 40 ? `${st.offer.title.slice(0, 39)}…` : st.offer.title}”` : "Play a link on the TV", shortcut: "l" },
     ...(st.offer ? [{ id: "offer:dismiss", title: "Not now", shortcut: "x" } as Action] : []),
-    { id: "power", title: st.power === "off" ? "Wake up" : "Sleep", shortcut: "p" },
+    { id: "power", title: powerOf(st)?.on === false ? "Wake up" : "Sleep", shortcut: "p" },
     { id: "screensaver", title: "Screen saver", shortcut: "s" },
     { id: "accounts", title: "Switch user", shortcut: "u" },
     ...(st.others ? [{ id: "device", title: "Switch Apple TV", shortcut: "d" } as Action] : []),
@@ -343,7 +367,6 @@ export function actions(st: RemoteState): Action[] {
   st.dock.slice(0, st.layout === "compact" ? DOCK_COMPACT : DOCK_WIDE).forEach((a, i) => acts.push({ id: `launch:${i}`, title: `Open ${a.name}`, shortcut: String(i + 1), hidden: true }));
   // The sliders' clicks; declared only while a slider draws them.
   if (showsNow(st) && seekable(st) && st.now?.duration && st.position !== undefined) acts.push({ id: "seek", title: "Seek", hidden: true });
-  if (st.volume !== undefined) acts.push({ id: "volume:set", title: "Set volume", hidden: true });
   acts.push({ id: "type:send", title: "Send the text", hidden: true, shortcut: "enter" }, { id: "type:cancel", title: "Stop typing", hidden: true, shortcut: "escape" });
   return acts;
 }
@@ -360,7 +383,7 @@ export function render(st: RemoteState): View {
     tree = column([
       nowCard(st, W, 56),
       ...[offerBanner(st, W), keyboardBanner(st, W)].filter((x): x is ViewNode => !!x),
-      row([clickpad(st, 148), column([buttons(st, 36, false), ...[volumeRow(st, W - 148 - 16)].filter((x): x is ViewNode => !!x)], { key: "right", gap: 3, grow: true, align: "center" })], { key: "controls", gap: 4, align: "center" }),
+      row([clickpad(st, 148), column([buttons(st, 36, false), ...[volumeRow(st, W - 148 - 16), inputsOf(st, W - 148 - 16)].filter((x): x is ViewNode => !!x)], { key: "right", gap: 3, grow: true, align: "center" })], { key: "controls", gap: 4, align: "center" }),
       dock(st, DOCK_COMPACT, 36),
     ], { key: "compact", padding: 3, gap: 3 });
   } else {
@@ -371,14 +394,14 @@ export function render(st: RemoteState): View {
       nowCard(st, RIGHT, 84),
       ...[offerBanner(st, RIGHT), keyboardBanner(st, RIGHT)].filter((x): x is ViewNode => !!x),
       dock(st, DOCK_WIDE, 40),
-      ...[volumeRow(st, RIGHT)].filter((x): x is ViewNode => !!x),
+      ...[volumeRow(st, RIGHT), inputsOf(st, RIGHT)].filter((x): x is ViewNode => !!x),
       // The banners take the room the extras row had.
       ...(st.offer || st.keyboard?.focused ? [] : [extras(st)]),
     ], { key: "right", gap: 3, grow: true });
     tree = column([row([left, right], { key: "main", gap: 4, align: "start" }), { type: "spacer", key: "fill" }, hints(st)], { key: "wide", padding: 3, gap: 2, grow: true });
   }
   const title = st.unpaired ? "Apple TV" : `${st.device?.name ?? "Apple TV"}${st.now?.title && st.conn === "up" ? ` · ${st.now.title}` : ""}`;
-  const v: View = { tree, actions: actions(st), title: title.length > 72 ? `${title.slice(0, 71)}…` : title, id: "remote", keys: "actions" };
+  const v: View = withControls({ tree, actions: actions(st), title: title.length > 72 ? `${title.slice(0, 71)}…` : title, id: "remote", keys: "actions" });
   if (st.typing && !st.unpaired && st.conn === "up") v.input = { value: st.keyboard?.text ?? "", placeholder: st.keyboard?.title || st.keyboard?.prompt || "Text for the TV", submit: "type:send", cancel: "type:cancel" };
   return v;
 }

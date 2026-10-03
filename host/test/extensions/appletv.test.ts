@@ -20,8 +20,8 @@ import { findLink, linkKey, parseLink, seconds, target } from "../../../extensio
 import { actions as nowActions, chapterAt, panels, render as renderNow, type NowState } from "../../../extensions/appletv/nowplaying.ts";
 import { backdrop, dominant, pngData, rounded } from "../../../extensions/appletv/image.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import type { BarItem, View } from "../../../sdk/src/protocol.ts";
-import { Host, bundledIcon, logLines, stored } from "../harness.ts";
+import type { BarItem, Served, View } from "../../../sdk/src/protocol.ts";
+import { API, BUNDLED, Host, Root, bundledIcon, logLines, manifest, stored } from "../harness.ts";
 
 const E = "appletv";
 const LIVING = { id: "32:C4:F2:8D:8E:A9", name: "Living Room", address: "192.168.1.113", model: "AppleTV11,1", modelName: "Apple TV 4K (2nd generation)", os: "26.6", companionPort: 49153, airplayPort: 7000 };
@@ -248,7 +248,7 @@ describe("over the host against the stand-in TV", () => {
     // The seek bar: a click's fraction of the duration.
     await host.pick(E, "remote", "remote", "seek", { values: { value: "0.5" } });
     await host.until(() => ops("media").at(-1)?.command === "seek" && ops("media").at(-1)?.arg === 3060, 2000, "seek");
-    await host.pick(E, "remote", "remote", "volume:set", { values: { value: "0.25" } });
+    await host.pick(E, "remote", "remote", "controls:volume:set", { values: { value: "0.25" } });
     await host.until(() => ops("volume").at(-1)?.level === 0.25, 2000, "volume");
     // The dock's first digit opens the first app.
     expect(await pick("remote", "launch:0")).toMatchObject({ hud: "Opening TV" });
@@ -394,5 +394,116 @@ describe("over the host against the stand-in TV", () => {
     expect(ops("power").at(-1)).toEqual({ op: "power", to: "off" });
     await expect(host.request("link", { extension: E, route: "launch", params: { app: "nothing here" } })).rejects.toThrow(/no app "nothing here" on Living Room/);
     await expect(host.request("link", { extension: E, route: "type", params: { text: "hi" } })).rejects.toThrow(/no text field is open/);
+  });
+});
+
+// ---- in a group with a TV (docs/design/controls.md) ---------------------------------------------------------
+
+/** A TV that serves volume (a level), power and inputs; every op republishes, and the ops it ran are kept in storage. */
+const GROUP_TV = `
+import { controls, storage } from "${API}";
+let level = 0.2, on = true, current = "hdmi1";
+const ran = [];
+const publish = () => Promise.all([
+  controls.publish("volume", { device: "Living TV", level }),
+  controls.publish("power", { device: "Living TV", on }),
+  controls.publish("inputs", { device: "Living TV", list: [{ id: "hdmi1", name: "Apple TV" }, { id: "hdmi2", name: "PS5" }], current }),
+]);
+const note = (op) => { ran.push(op); return storage.set("ran", ran); };
+await publish();
+export default {
+  palettes: { tv: { title: "TV", list: () => [], pick: () => ({}) } },
+  controls: {
+    volume: { set: async (l) => { level = l; await note("set"); await publish(); }, step: async (d) => { level = Math.round((level + d / 10) * 10) / 10; await note("step"); await publish(); }, mute: () => {} },
+    power: { set: async (o) => { on = o; await note(o ? "on" : "off"); await publish(); } },
+    inputs: { set: async (id) => { current = id; await note(id); await publish(); } },
+  },
+};
+`;
+
+describe("pure parts: the parts a group serves", () => {
+  const base: RemoteState = { layout: "wide", conn: "up", power: "on", dock: [], skip: 10, mrp: true, device: { name: "Living Room", modelName: "Apple TV 4K" }, volume: 0.4 };
+  const tv = { provider: { key: "tv", device: "Living TV" } };
+  const grouped: RemoteState = { ...base, served: { volume: { ...tv, level: 0.2 }, power: { ...tv, on: true, members: [{ key: "appletv", on: true }, { key: "tv", on: true }] }, inputs: { ...tv, list: [{ id: "hdmi1", name: "Apple TV" }, { id: "hdmi2", name: "PS5" }], current: "hdmi1" } as Served<"inputs"> } };
+  test("alone, the Apple TV's own volume and power; in a group, the TV's volume with its name, the inputs, every member's power", () => {
+    const alone = JSON.stringify(renderRemote(base).tree);
+    expect(alone).toContain("40%");
+    expect(alone).not.toContain("inputs-row");
+    for (const layout of ["wide", "compact"] as const) {
+      const v = renderRemote({ ...grouped, layout });
+      expect(() => checkView(v, "remote")).not.toThrow();
+      const t = JSON.stringify(v.tree);
+      expect(t).toContain("20%");
+      expect(t).toContain("Living TV");
+      expect(t).toContain("controls:inputs:set:hdmi2");
+      expect(v.actions.map((a) => a.id)).toEqual(expect.arrayContaining(["controls:volume:set", "controls:volume:step:1", "controls:power:set:false", "controls:inputs:set:hdmi2"]));
+    }
+    // The group's volume device is gone: no volume part at all, rather than the Apple TV's drawn as if it were the TV's.
+    const gone = JSON.stringify(renderRemote({ ...grouped, served: { ...grouped.served, volume: null } }).tree);
+    expect(gone).not.toContain("volume-row");
+    expect(gone).not.toContain("btn-vol+");
+  });
+});
+
+describe("in a group with a TV", () => {
+  let host: Host;
+  let root: Root;
+  const dir = mkdtempSync(join(tmpdir(), "pal-appletv-group-"));
+  const log = () => logLines(join(dir, "log")).map((l) => JSON.parse(l) as Record<string, unknown>);
+  const ops = (op: string) => log().filter((l) => l.op === op);
+  const view = () => host.request<View>("view", { extension: E, palette: "remote" });
+  const text = (v: { tree: unknown }) => JSON.stringify(v.tree);
+  const ran = () => (stored.get("tv\0ran") as string[] | undefined) ?? [];
+
+  beforeAll(async () => {
+    writeFileSync(join(dir, "tv.json"), JSON.stringify(TV));
+    process.env.PAL_APPLETV_FAKE = dir;
+    stored.set(`${E}\0devices`, [{ ...LIVING, companion: { serverId: `${LIVING.id}-companion` }, airplay: { serverId: `${LIVING.id}-airplay` } }]);
+    root = new Root({ tv: { "index.ts": GROUP_TV, "pal.json": manifest("tv", { controls: ["volume", "power", "inputs"] }) } });
+    host = await Host.bundled({ roots: [BUNDLED, root.dir], only: [E, "tv"], settings: { [E]: { settings: { stay: false } } } });
+  });
+  afterAll(() => { host.kill(); root.rm(); delete process.env.PAL_APPLETV_FAKE; rmSync(dir, { recursive: true, force: true }); });
+
+  test("alone it publishes its volume, power and what plays, and draws its own volume", async () => {
+    host.viewShown(E, { palette: "remote" }, "remote");
+    await view();
+    await host.until(() => host.published.get(`${E}\0player`)?.title === "The Long Quiet", 3000, "the player published");
+    expect(host.published.get(`${E}\0player`)).toMatchObject({ device: "Living Room", state: "playing", app: "TV", palette: "now", item: "playing", duration: 6120 });
+    expect(host.published.get(`${E}\0power`)).toMatchObject({ device: "Living Room", on: true });
+    expect(host.published.get(`${E}\0volume`)).toMatchObject({ level: 0.5 });
+    const t = text(await view());
+    expect(t).toContain("50%");
+    expect(t).not.toContain("Living TV");
+  });
+
+  test("grouped, the remote draws the TV's volume and inputs; = steps the TV, not the Apple TV, and says whose", async () => {
+    host.setGroups({ living: { title: "Living room", members: [E, "tv"], volume: "tv", inputs: "tv" } });
+    await host.until(async () => text(await view()).includes("Living TV"), 3000, "the TV's volume in the remote");
+    const t = text(await view());
+    expect(t).toContain("20%");
+    expect(t).toContain("controls:inputs:set:hdmi2");
+    const keys = ops("key").length;
+    expect(await host.pick(E, "remote", "remote", "volume-up")).toMatchObject({ hud: "Living TV: volume up" });
+    expect(host.published.get("tv\0volume")?.level).toBe(0.3);
+    expect(ops("key").length).toBe(keys);
+    await host.pick(E, "remote", "remote", "controls:volume:set", { values: { value: "0.6" } });
+    expect(host.published.get("tv\0volume")?.level).toBe(0.6);
+    await host.pick(E, "remote", "remote", "controls:inputs:set:hdmi2");
+    expect(host.published.get("tv\0inputs")?.current).toBe("hdmi2");
+  });
+
+  test("power in the group puts both to sleep; the bar popover's power wakes both", async () => {
+    expect(await host.pick(E, "remote", "remote", "power")).toMatchObject({ hud: expect.stringContaining("going to sleep") });
+    await host.until(() => ops("power").at(-1)?.to === "off" && ran().includes("off"), 3000, "both asleep");
+    await host.barAction(E, "playing", "controls:power:set:true");
+    await host.until(() => ran().at(-1) === "on" && ops("power").at(-1)?.to === "on", 3000, "both woken");
+  });
+
+  test("out of the group, the remote is the Apple TV's alone again", async () => {
+    host.setGroups({});
+    await host.until(async () => !text(await view()).includes("Living TV"), 3000, "the Apple TV's own volume");
+    const keys = ops("key").length;
+    await host.pick(E, "remote", "remote", "volume-up");
+    await host.until(() => ops("key").length === keys + 1 && ops("key").at(-1)?.key === "volume_up", 2000, "the Apple TV's key");
   });
 });

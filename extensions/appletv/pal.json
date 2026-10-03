@@ -606,7 +606,8 @@
       "Type into the TV's search from the keyboard instead of hunting letters on screen",
       "Sleep and wake, Control Center, the app switcher, the screen saver, switching users",
       "A menu bar item with what plays; its popover is the remote",
-      "Guided setup: finds the Apple TV, takes the code it shows, and checks what works"
+      "Guided setup: finds the Apple TV, takes the code it shows, and checks what works",
+      "In a group with your TV (Settings › Groups), the remote sets the TV's volume, switches its inputs and wakes both"
     ],
     "permissions": [
       "network"
@@ -662,5 +663,10 @@
         "kind": "bar"
       }
     ]
-  }
+  },
+  "controls": [
+    "volume",
+    "power",
+    "player"
+  ]
 }

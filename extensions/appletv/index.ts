@@ -5,7 +5,7 @@
 // lights its part of the clickpad for 160 ms), the bar item, the list
 // palettes and the links; now.ts is Now Playing, play.ts the links, and
 // pairing.ts the setup.
-import { settings, toast, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+import { controls, settings, toast, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
 import { DOCK_WIDE, G, positionAt, render as renderRemote, titles, type DockApp, type Flash, type Layout, type RemoteState } from "./remote.ts";
 import { SETUP_ROW, accountRow, appRow, commandRows, noTv } from "./rows.ts";
 import { cancelPairing, setupPick, setupView } from "./pairing.ts";
@@ -14,8 +14,8 @@ import { render as renderNow } from "./nowplaying.ts";
 import { OFFER_BAR_MS, disposePlay, dismissOffer, linkPlay, listPlay, offer, offerFresh, offerTitle, pickPlay, playLink, suggestPlay, watchClipboard } from "./play.ts";
 import { LINK_APPS } from "./links.ts";
 import {
-  appLists, appsOf, artOf, cfg, coverArt, current, disposeTv, drop, ensure, frontApp, launch, launches, onOpen, paired, plain, push, registerBar, registerView,
-  stripArtOf, tv, warm, wideArtOf, withConn, NAME, type BarSettings, type Level,
+  appLists, appsOf, artOf, cfg, coverArt, current, disposeTv, drop, ensure, frontApp, launch, launches, mute, muteFrom, onOpen, paired, plain, publishControls, push, readServed, registerBar, registerView,
+  served, stripArtOf, tv, warm, wideArtOf, withConn, NAME, type BarSettings, type Level,
 } from "./tv.ts";
 import type { App, Key, MediaCommand, Press, Swipe } from "./types.ts";
 
@@ -63,6 +63,7 @@ async function remoteState(layout: Layout): Promise<RemoteState> {
     volume: c.volume(), keyboard: c.keyboard(), typing,
     dock: dockOf(appLists.get(dev.id) ?? []),
     flash, swipe, mrp: c.mrpUp,
+    served: { ...served },
   };
 }
 
@@ -86,6 +87,9 @@ const MEDIA: Record<string, MediaCommand> = { "skip-back": "skip_backward", "ski
 /** One action of the remote, from a key, a click, the bar popover or a root row; `undefined` means it was done and the view redraws. */
 async function act(action: string, ctx?: Ctx | BarCtx): Promise<Effect | undefined> {
   const values = (ctx as Ctx | undefined)?.values;
+  // The volume and power parts (`controls:*`, pal's): the Apple TV's own the way its keys go, else on whoever the group serves them from.
+  if (action.startsWith("controls:")) return controlAct(action, ctx);
+  if (action === "volume-up" || action === "volume-down") return step(action === "volume-up" ? 1 : -1);
   if (KEYS[action]) {
     const [key, press, f] = KEYS[action];
     if (f) lightUp(f);
@@ -99,17 +103,13 @@ async function act(action: string, ctx?: Ctx | BarCtx): Promise<Effect | undefin
     return app ? launch(app.id, app.name) : { keep: true };
   }
   switch (action) {
-    case "power": lightUp("power"); return withConn("switch it", async (c) => { if (c.power() === "off") await c.turnOn(); else await c.turnOff(); });
+    case "power": return power();
     case "wake": return withConn("wake it", (c) => c.turnOn());
     case "sleep": return withConn("put it to sleep", (c) => c.turnOff());
     case "seek": {
       const n = tv.conn?.nowPlaying(), f = Number(values?.value);
       if (!n?.duration || Number.isNaN(f)) return { keep: true };
       return withConn("seek", (c) => c.media("seek", Math.round(f * n.duration!)));
-    }
-    case "volume:set": {
-      const f = Number(values?.value);
-      return Number.isNaN(f) ? { keep: true } : withConn("set the volume", (c) => c.setVolume(Math.min(1, Math.max(0, f))));
     }
     case "type": {
       const c = await ensure().catch(() => undefined);
@@ -150,6 +150,48 @@ async function act(action: string, ctx?: Ctx | BarCtx): Promise<Effect | undefin
   return { keep: true };
 }
 
+// ---- the controls a group can serve from another device (docs/design/controls.md) ----------------------------
+
+/** Who serves it, as a HUD says: "75\" Neo QLED: volume up". */
+const by = (v: { provider: { device?: string } } | null | undefined) => v?.provider.device ?? "Apple TV";
+
+/** Volume up or down: the Apple TV's key (it reaches the TV over HDMI), or the group's volume server. */
+async function step(dir: 1 | -1): Promise<Effect | undefined> {
+  lightUp(dir > 0 ? "vol+" : "vol-");
+  const v = served.volume;
+  if (v === undefined) return withConn("press the key", (c) => c.key(dir > 0 ? "volume_up" : "volume_down", "tap"));
+  if (!v) return toast("Nothing serves the volume", "The group's volume device is not running", "failure");
+  return served_(() => controls.run("volume", "step", dir), `${by(v)}: volume ${dir > 0 ? "up" : "down"}`);
+}
+
+/** Wake (`true`), sleep (`false`) or switch (unset, as it is now): the Apple TV alone, or every member of its group. */
+async function power(on?: boolean): Promise<Effect | undefined> {
+  lightUp("power");
+  if (served.power === undefined) return withConn("switch it", (c) => ((on ?? c.power() === "off") ? c.turnOn() : c.turnOff()));
+  const wake = on ?? served.power?.on === false;
+  const names = served.power?.members?.map((m) => m.device ?? m.key).join(" and ");
+  return served_(() => controls.run("power", "set", wake), `${names ?? by(served.power)}: ${wake ? "waking up" : "going to sleep"}`);
+}
+
+/** A control run on another device: a HUD naming it, kept in the view; its error as a toast. */
+async function served_(f: () => Promise<unknown>, hud: string): Promise<Effect | undefined> {
+  try { await f(); return { hud, keep: true }; } catch (e) { return toast("It did not go", plain(e), "failure"); }
+}
+
+/** A click on one of pal's parts: the Apple TV's own where it serves them, else pal runs it on the group's device. */
+async function controlAct(action: string, ctx?: Ctx | BarCtx): Promise<Effect | undefined> {
+  const [, control, op, arg] = action.split(":");
+  const values = (ctx as Ctx | undefined)?.values;
+  if (control === "volume" && op === "step") return step(Number(arg) < 0 ? -1 : 1);
+  if (control === "power" && op === "set") return power(arg === undefined ? undefined : arg === "true");
+  if (control === "volume" && served.volume === undefined) {
+    if (op === "set") { const f = Number(values?.value); return Number.isNaN(f) ? { keep: true } : withConn("set the volume", (c) => c.setVolume(Math.min(1, Math.max(0, f)))); }
+    if (op === "mute") return withConn("mute", () => mute(arg === undefined ? muteFrom === undefined : arg === "true"));
+  }
+  const v = control === "volume" ? served.volume : control === "inputs" ? served.inputs : undefined;
+  return served_(() => controls.act(action, { values: values as Record<string, string> | undefined }), `${by(v)}: ${control === "inputs" ? "switching input" : op === "mute" ? "mute" : "volume"}`);
+}
+
 /** A remote action from the panel view or the popover: done means a new tree in place. */
 async function remotePick(action: string | undefined, ctx: Ctx | BarCtx | undefined, layout: Layout): Promise<Effect> {
   const e = await act(action ?? "select", ctx);
@@ -163,7 +205,10 @@ async function remotePick(action: string | undefined, ctx: Ctx | BarCtx | undefi
 registerView("remote", async (l) => renderRemote(await remoteState(l.compact ? "compact" : "wide")));
 registerView("bar:playing", async () => renderRemote(await remoteState("compact")));
 onOpen((l: Level) => {
-  if (l.palette === "remote" && cfg().wake) void ensure().then((c) => (c.power() === "off" ? c.turnOn() : undefined)).catch(() => {});
+  if (l.palette !== "remote" || !cfg().wake) return;
+  const self = () => ensure().then((c) => (c.power() === "off" ? c.turnOn() : undefined));
+  // In a group, waking means every member: the TV with the Apple TV.
+  void readServed().then(() => (served.power?.members?.length ? controls.run("power", "set", true).catch(self) : self())).catch(() => {});
 });
 
 // ---- the bar item ---------------------------------------------------------------------------------------
@@ -286,10 +331,10 @@ async function link(route: string, params: LinkParams): Promise<Effect | void> {
     }
     case "power": {
       const to = str("to") || "toggle";
-      const c = await ensure();
-      const on = to === "on" || (to === "toggle" && c.power() === "off");
-      await (on ? c.turnOn() : c.turnOff());
-      return { hud: `Apple TV: ${on ? "waking up" : "going to sleep"}` };
+      await readServed();
+      const e = await power(to === "on" ? true : to === "off" ? false : undefined);
+      fail(e);
+      return { hud: e?.hud ?? `Apple TV: ${to === "off" ? "going to sleep" : to === "on" ? "waking up" : "power"}` };
     }
     case "type": {
       const c = await ensure();
@@ -304,13 +349,16 @@ async function link(route: string, params: LinkParams): Promise<Effect | void> {
       return { hud: `Apple TV: ${cmd.replace(/_/g, " ")}` };
     }
     case "volume": {
-      const c = await ensure();
       const level = str("level");
-      if (level === "up" || level === "down") { await c.key(level === "up" ? "volume_up" : "volume_down"); return { hud: `Apple TV: volume ${level}` }; }
+      await readServed();
+      if (level === "up" || level === "down") { const e = await step(level === "up" ? 1 : -1); fail(e); return { hud: e?.hud ?? `Apple TV: volume ${level}` }; }
       const n = Number(level);
       if (Number.isNaN(n)) throw new Error("level is up, down or 0 to 100");
-      await c.setVolume(Math.min(100, Math.max(0, n)) / 100);
-      return { hud: `Apple TV: volume ${Math.round(n)}%` };
+      const to = Math.min(100, Math.max(0, n)) / 100;
+      if (served.volume === undefined) await (await ensure()).setVolume(to);
+      else if (!served.volume) throw new Error("the group's volume device is not running");
+      else await controls.run("volume", "set", to);
+      return { hud: `${served.volume?.provider.device ?? "Apple TV"}: volume ${Math.round(n)}%` };
     }
     case "play": return linkPlay(str("url") || undefined);
   }
@@ -397,6 +445,21 @@ export default {
     },
   },
   link,
+  // What a group can drive here from another device's view (docs/design/controls.md); each runs on this Apple TV.
+  controls: {
+    volume: {
+      set: (level: number) => ensure().then((c) => c.setVolume(level)),
+      step: (dir: 1 | -1) => ensure().then((c) => c.key(dir > 0 ? "volume_up" : "volume_down", "tap")),
+      mute: (on: boolean) => mute(on),
+    },
+    power: { set: (on: boolean) => ensure().then((c) => (on ? (c.power() === "off" ? c.turnOn() : undefined) : c.power() !== "off" ? c.turnOff() : undefined)) },
+    player: {
+      play_pause: () => ensure().then((c) => c.key("play_pause", "tap")),
+      next: () => ensure().then((c) => c.media("next")),
+      previous: () => ensure().then((c) => c.media("previous")),
+      seek: (seconds: number) => ensure().then((c) => c.media("seek", Math.round(seconds))),
+    },
+  },
   dispose: () => {
     if (flashTimer) clearTimeout(flashTimer);
     cancelPairing();
@@ -407,3 +470,5 @@ export default {
 } satisfies Extension;
 
 void watchClipboard();
+// Paired is enough to be woken by a group: power is published from the start, not on the first redraw.
+void paired().then(() => publishControls()).catch(() => {});

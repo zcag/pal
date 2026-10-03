@@ -7,7 +7,8 @@
 // the TV tells something (`push`), a burst being one redraw, and the bar
 // item with it when it changed. The palettes' own modules (index.ts,
 // now.ts, play.ts, pairing.ts) keep their state and register here.
-import { bar, errorMessage, failed, imageData, settings, state, storage, view as liveView, type BarItem, type Effect, type View } from "@zcag/pal";
+import { bar, controls, errorMessage, failed, imageData, settings, state, storage, view as liveView, type BarItem, type ControlStates, type Effect, type Served, type View } from "@zcag/pal";
+import { titles } from "./remote.ts";
 import { placeholderArt, wideArt } from "./art.ts";
 import { fakeDriver } from "./fake.ts";
 import { backdrop, decodeJpeg, dominant, pngData, rounded, type RGB } from "./image.ts";
@@ -263,6 +264,7 @@ export function push(): void {
         if (json !== lastBar) { lastBar = json; void bar.update("playing", item, NAME).catch(() => {}); }
       }
       publish();
+      publishControls();
       ticking();
     } catch (e) {
       console.error(`[appletv] redraw: ${plain(e)}`);
@@ -282,6 +284,7 @@ liveView.onShown((ev) => {
   const l: Level = { palette: ev.palette, bar: ev.bar, compact: ev.compact };
   levels.set(levelKey(l), l);
   for (const f of opened) f(l);
+  void readServed();
   void ensure().then(async () => {
     const dev = current(await paired());
     if (dev && !appLists.has(dev.id)) await appsOf(dev).catch(() => {});
@@ -289,6 +292,65 @@ liveView.onShown((ev) => {
   }).catch(() => push());
 }, NAME);
 liveView.onHidden((ev) => { levels.delete(levelKey({ palette: ev.palette, bar: ev.bar })); idle(); }, NAME);
+
+// ---- controls (docs/design/controls.md) --------------------------------------------------------------------------
+
+/**
+ * What a group serves the remote from another device: its `controls.get`
+ * answer, kept only while someone else serves it (the Apple TV's own
+ * volume and power are drawn from the connection, fresher than a round
+ * trip); `null` when the group's server is gone. Re-read on every change
+ * of ours (`controls.onChange`, `mine`).
+ */
+export const served: { volume?: Served<"volume"> | null; power?: Served<"power"> | null; inputs?: Served<"inputs"> | null } = {};
+
+export async function readServed(): Promise<void> {
+  const [volume, power, inputs] = await Promise.all((["volume", "power", "inputs"] as const).map((c) => controls.get(c, NAME).catch(() => undefined)));
+  const other = (v: Served | null | undefined) => !!v && v.provider.key !== NAME;
+  const p = power as Served<"power"> | null | undefined;
+  // In a group when anything comes from another device; alone (or before our own publish lands) a `null` means ours, not "gone".
+  const grouped = other(volume) || other(inputs) || !!p?.members?.some((m) => m.key !== NAME);
+  served.volume = grouped && !(volume && !other(volume)) ? (volume as Served<"volume"> | null) : undefined;
+  served.power = grouped && p?.members?.some((m) => m.key !== NAME) ? p : undefined;
+  served.inputs = grouped ? (inputs as Served<"inputs"> | null | undefined) ?? null : undefined;
+  push();
+}
+controls.onChange((c) => { if (c.mine) void readServed(); }, NAME);
+
+let saidControls: Record<string, string> = {};
+/** The Apple TV's own `volume`, `power` and `player`, published when they change: `null` while it cannot be driven. */
+export function publishControls(): void {
+  const c = tv.conn, dev = c?.device ?? current(), n = c?.nowPlaying(), name = dev?.name;
+  // Turned up on the TV itself while muted: not muted any more.
+  if (muteFrom !== undefined && (c?.volume() ?? 0) > 0) muteFrom = undefined;
+  const power = c?.power();
+  const loaded = n && n.state !== "idle" && !!(n.title || n.series || n.artist);
+  const app = frontApp();
+  const next: { [K in "volume" | "power" | "player"]: ControlStates[K] | null } = {
+    // The keys step the volume whatever the TV reports (they reach the TV over HDMI); a level only when it says one.
+    volume: c && tv.state === "up" ? { device: name, ...(c.volume() !== undefined && { level: c.volume() }), ...(muteFrom !== undefined && { muted: true }) } : null,
+    // Paired is enough to be woken; the state when a connection says it.
+    power: dev ? { device: name, ...(c && power !== "unknown" && { on: power !== "off" }) } : null,
+    player: c && loaded && power !== "off" ? {
+      device: name, state: n.state === "paused" ? "paused" : n.state === "stopped" ? "stopped" : "playing",
+      title: titles(n, app?.name).title, artist: n.series ?? n.artist, album: n.album, artwork: coverArt.data, app: app?.name,
+      position: n.position, at: n.at, duration: n.duration, palette: "now", item: "playing",
+    } : null,
+  };
+  for (const k of ["volume", "power", "player"] as const) {
+    const json = JSON.stringify(next[k]);
+    if (saidControls[k] !== json) { saidControls[k] = json; void controls.publish(k, next[k], NAME).catch(() => {}); }
+  }
+}
+
+/** The level before a mute (the Apple TV has no mute of its own: the volume goes to 0 and back). */
+export let muteFrom: number | undefined;
+export async function mute(on: boolean): Promise<void> {
+  const c = await ensure();
+  if (on && muteFrom === undefined) { muteFrom = c.volume() ?? 0.3; await c.setVolume(0); }
+  else if (!on && muteFrom !== undefined) { const back = muteFrom; muteFrom = undefined; await c.setVolume(back); }
+  push();
+}
 
 // ---- states ------------------------------------------------------------------------------------------------------
 
