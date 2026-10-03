@@ -24,6 +24,7 @@
 .pal-panel[data-place] .pal-row[data-active]:not([data-marked]) { background: var(--pal-cursor-row, color-mix(in oklab, var(--pal-place) var(--pal-place-cursor, 0%), var(--pal-cursor, var(--pal-selection)))); }
 .pal-panel[data-place] .pal-list__cursor { background: color-mix(in oklab, var(--pal-place) var(--pal-place-cursor, 0%), var(--pal-cursor, var(--pal-selection))); }
 .pal-panel[data-place] .pal-search__back { color: color-mix(in oklab, var(--pal-place) var(--pal-place-crumb, 0%), var(--pal-fg-muted)); }
+@supports (color: oklch(from red l c h)) { .pal-panel[data-place] .pal-search__back { color: oklch(from color-mix(in oklab, var(--pal-place) var(--pal-place-crumb, 0%), var(--pal-fg-muted)) max(l, var(--pal-ink-floor, 0)) c h); } }
 .pal-panel[data-place] .pal-search__input { caret-color: color-mix(in oklab, var(--pal-place) var(--pal-place-accent, 0%), var(--pal-caret, var(--pal-accent))); }
 .pal-panel[data-place] .pal-search[data-loading]::after, .pal-bar-page[data-refreshing] .pal-panel[data-place] .pal-search::after { background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--pal-place) var(--pal-place-accent, 0%), var(--pal-accent)), transparent); }
 .pal-panel__search { position: relative; flex: none; border-bottom: 1px solid var(--pal-search-line, var(--pal-line)); }

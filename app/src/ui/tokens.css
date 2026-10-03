@@ -91,6 +91,8 @@
   --pal-bg-sunken: #EAEAEE;
   --pal-fg: #1A1A1F;
   --pal-fg-muted: #5C5D66;
+  /* The least lightness (oklch) a colour drawn as text in a place takes (the crumb): none on light, lifted on dark so a deep brand (Samsung's navy) still reads. */
+  --pal-ink-floor: 0;
   --pal-fg-faint: #6B6C76;
   --pal-line: rgba(26, 26, 31, 0.08);
   --pal-line-strong: rgba(26, 26, 31, 0.16);
@@ -156,6 +158,7 @@
     --pal-bg-sunken: #141417;
     --pal-fg: #ECECF0;
     --pal-fg-muted: #A3A4AE;
+    --pal-ink-floor: 0.74;
     --pal-fg-faint: #868794;
     --pal-line: rgba(255, 255, 255, 0.08);
     --pal-line-strong: rgba(255, 255, 255, 0.16);
@@ -220,6 +223,7 @@
   --pal-bg-sunken: #141417;
   --pal-fg: #ECECF0;
   --pal-fg-muted: #A3A4AE;
+  --pal-ink-floor: 0.74;
   --pal-fg-faint: #868794;
   --pal-line: rgba(255, 255, 255, 0.08);
   --pal-line-strong: rgba(255, 255, 255, 0.16);
@@ -282,6 +286,8 @@
   --pal-bg-sunken: #EAEAEE;
   --pal-fg: #1A1A1F;
   --pal-fg-muted: #5C5D66;
+  /* The least lightness (oklch) a colour drawn as text in a place takes (the crumb): none on light, lifted on dark so a deep brand (Samsung's navy) still reads. */
+  --pal-ink-floor: 0;
   --pal-fg-faint: #6B6C76;
   --pal-line: rgba(26, 26, 31, 0.08);
   --pal-line-strong: rgba(26, 26, 31, 0.16);

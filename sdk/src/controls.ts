@@ -12,7 +12,7 @@ import { column, row, text } from "./rows.ts";
 
 /** Material Design glyphs (Nerd Font) the parts are drawn with. */
 export const CONTROL_GLYPHS = {
-  volume: "\u{f057e}", volumeOff: "\u{f0581}", volUp: "\u{f075d}", volDown: "\u{f075e}", power: "\u{f0425}", sleep: "\u{f0904}", input: "\u{f0383}",
+  volume: "\u{f057e}", volumeOff: "\u{f0581}", volUp: "\u{f075d}", volDown: "\u{f075e}", power: "\u{f0425}", sleep: "\u{f0904}", input: "\u{f0841}",
 } as const;
 
 /** A button while its key flashes: the accent, translucent, so the panel's ink stays on it in both themes. */

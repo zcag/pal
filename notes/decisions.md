@@ -2312,3 +2312,12 @@ while an Apple TV is paired: no extension can subscribe to the clipboard.
   name. theater publishes the first playing Jellyfin session from its
   `playing` render (so only while that item renders), with NextTrack,
   PreviousTrack and Seek added to the session commands.
+
+## Samsung TV (2026-10-04)
+
+- **Local only, current Tizen.** Checked live on Cagdas's QE75QN85D (2024, `/api/v2/` says `TokenAuthSupport: true`), paired as "pal": the Allow prompt hands a token and a reconnect with it asks nothing; keys over `wss://:8002` work; UPnP `SetVolume` on `:9197` works and reaches the HW-Q600C soundbar; Power goes to `standby` within ~3 s (REST keeps answering) and back on.
+- **Apps open over REST** (`POST :8001/api/v2/applications/<id>`): the websocket's `ed.apps.launch` (NATIVE_LAUNCH, and DEEP_LINK with `v=<id>`) opened nothing on this TV, and DIAL (`POST :8080/ws/apps/YouTube`) answers 403, so there is no "play this YouTube link" here. `ed.installedApp.get` answers nothing; the known ids find YouTube, Spotify and Internet.
+- **Inputs are Next HDMI and the input menu.** `KEY_HDMI` cycles, `KEY_SOURCE` opens the menu, `KEY_HDMI1..4` do nothing; the current input is not readable locally. Home Assistant's own Samsung integration lists the same two (`source_list: ["TV","HDMI"]`).
+- **Typing only where the TV's keyboard opens.** YouTube draws its own keyboard: no `ms.remote.imeStart`, and `SendInputString` lands nowhere.
+- **No SmartThings.** It would add named inputs with the current one marked, picture mode, sound mode (greyed out with the soundbar), cloud power-on (Wake-on-LAN already works here) and channels. Cagdas, 2026-10-04: not worth a cloud dependency and a token for that list. Revisit only if a reason outside that table comes up.
+- **The crumb on dark.** Samsung's navy (#1428A0) made the level's crumb unreadable on the dark panel; the crumb now keeps at least `--pal-ink-floor` lightness (0.74 on dark, none on light, `ui.css`), for any deep brand colour, not the Samsung's alone.

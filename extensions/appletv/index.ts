@@ -173,9 +173,9 @@ async function power(on?: boolean): Promise<Effect | undefined> {
   return served_(() => controls.run("power", "set", wake), `${names ?? by(served.power)}: ${wake ? "waking up" : "going to sleep"}`);
 }
 
-/** A control run on another device: a HUD naming it, kept in the view; its error as a toast. */
-async function served_(f: () => Promise<unknown>, hud: string): Promise<Effect | undefined> {
-  try { await f(); return { hud, keep: true }; } catch (e) { return toast("It did not go", plain(e), "failure"); }
+/** A control run on another device: a HUD naming it (none for a slider, which shows its own level), kept in the view; its error as a toast. */
+async function served_(f: () => Promise<unknown>, hud?: string): Promise<Effect | undefined> {
+  try { await f(); return hud ? { hud, keep: true } : { keep: true }; } catch (e) { return toast("It did not go", plain(e), "failure"); }
 }
 
 /** A click on one of pal's parts: the Apple TV's own where it serves them, else pal runs it on the group's device. */
@@ -189,7 +189,7 @@ async function controlAct(action: string, ctx?: Ctx | BarCtx): Promise<Effect | 
     if (op === "mute") return withConn("mute", () => mute(arg === undefined ? muteFrom === undefined : arg === "true"));
   }
   const v = control === "volume" ? served.volume : control === "inputs" ? served.inputs : undefined;
-  return served_(() => controls.act(action, { values: values as Record<string, string> | undefined }), `${by(v)}: ${control === "inputs" ? "switching input" : op === "mute" ? "mute" : "volume"}`);
+  return served_(() => controls.act(action, { values: values as Record<string, string> | undefined }), control === "volume" && op === "set" ? undefined : `${by(v)}: ${control === "inputs" ? "switching input" : op === "mute" ? "mute" : "volume"}`);
 }
 
 /** A remote action from the panel view or the popover: done means a new tree in place. */
