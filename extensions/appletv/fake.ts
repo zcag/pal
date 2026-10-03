@@ -8,7 +8,7 @@
 // with the real driver's words.
 import { appendFileSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Account, App, ChangeEvent, Conn, Credentials, Driver, Found, Keyboard, MediaCommand, NowPlaying, Paired, Power } from "./types.ts";
+import type { Account, App, ChangeEvent, Conn, Credentials, Driver, Found, Keyboard, Lyrics, MediaCommand, NowPlaying, Paired, Power, QueueItem } from "./types.ts";
 
 export type FakeTv = {
   found: Found[];
@@ -23,8 +23,11 @@ export type FakeTv = {
   accounts: Account[];
   now?: NowPlaying;
   keyboard: Keyboard;
-  /** App Store icon urls by bundle id. */
+  /** App Store icon urls by bundle id (`tv:<id>` for the 5:3 tvOS one). */
   icons?: Record<string, string>;
+  /** What plays next (no artwork in a file). */
+  queue?: Omit<QueueItem, "artwork">[];
+  lyrics?: Lyrics;
 };
 
 const creds = (who: string): Credentials => ({ clientId: `client-${who}`, clientLTSK: "11".repeat(32), clientLTPK: "22".repeat(32), serverLTPK: "33".repeat(32), serverId: who });
@@ -75,6 +78,11 @@ export function fakeDriver(dir: string): Driver {
         async media(command: MediaCommand, arg?: number) { did("media", { command, ...(arg !== undefined && { arg }) }); },
         nowPlaying: () => (device.airplay ? read().now : undefined),
         async artwork() { return null; },
+        async queue(count) { return device.airplay ? (read().queue ?? []).slice(0, count) : []; },
+        async playQueueItem(id) { did("queue", { play: id }); },
+        async lyrics() { return device.airplay ? read().lyrics ?? null : null; },
+        async setLanguage(kind, id) { did("language", { kind, id }); },
+        async setRate(rate) { did("rate", { rate }); },
         power: () => read().power,
         async turnOn() { did("power", { to: "on" }); write((tv) => { tv.power = "on"; }); },
         async turnOff() { did("power", { to: "off" }); write((tv) => { tv.power = "off"; }); },
@@ -93,6 +101,6 @@ export function fakeDriver(dir: string): Driver {
       };
       return conn;
     },
-    async appIcon(bundleId) { return read().icons?.[bundleId]; },
+    async appIcon(bundleId, kind) { return read().icons?.[kind === "tv" ? `tv:${bundleId}` : bundleId]; },
   };
 }

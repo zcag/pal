@@ -26,7 +26,10 @@ export const G = {
 export type Layout = "wide" | "compact";
 /** The parts of the pad and the buttons a key lights for a moment. */
 export type Flash = "up" | "down" | "left" | "right" | "select" | "menu" | "home" | "play" | "vol+" | "vol-" | "power";
-export type DockApp = { id: string; name: string; art: string };
+/** A dock app: its square picture and its 5:3 tvOS one. */
+export type DockApp = { id: string; name: string; art: string; wide: string };
+/** A copied link waiting to be played. */
+export type OfferCard = { title: string; by?: string; thumb?: string; app: string };
 
 export type RemoteState = {
   layout: Layout;
@@ -59,10 +62,12 @@ export type RemoteState = {
   mrp: boolean;
   /** The AirPlay half was never paired: the card says how to add it. */
   noAirplay?: boolean;
+  /** A link was just copied: the banner offers it. */
+  offer?: OfferCard;
 };
 
-/** Dock tiles: as many as fit beside the "All apps" tile, the digits 1-9 each. */
-export const DOCK_WIDE = 8, DOCK_COMPACT = 6;
+/** Dock tiles: as many 5:3 tiles as fit beside the "All apps" tile, a digit each. */
+export const DOCK_WIDE = 6, DOCK_COMPACT = 5;
 
 /** A part of the pad or a button while its key flashes: the accent, translucent, so the panel's ink stays on it in both themes. */
 const LIT: HexColor = "#4F8AE866";
@@ -188,7 +193,7 @@ function nowCard(st: RemoteState, width: number, side: number): ViewNode {
   } else {
     lines = [text("Home Screen", { style: "headline", width: inner }), text(st.noAirplay ? "Pair AirPlay in the setup to see what plays" : "Nothing playing", { style: "muted", size: "sm", width: inner })];
   }
-  return row([cover(st, side), column(lines, { key: "lines", gap: 1, grow: true, justify: "center" })], { key: "card", gap: 3, padding: 2, surface: "elevated", radius: true, align: "center", minHeight: side + 16 });
+  return row([cover(st, side), column(lines, { key: "lines", gap: 1, grow: true, justify: "center" })], { key: "card", gap: 3, padding: 2, surface: "elevated", radius: true, align: "center", minHeight: side + 16, ...(showsNow(st) && { action: "now" }) });
 }
 
 /** The TV is showing its keyboard: a banner that says what for, with `t` (or the field already open). */
@@ -203,14 +208,27 @@ function keyboardBanner(st: RemoteState, width: number): ViewNode | undefined {
   ], { key: "keyboard", gap: 2, padding: 2, surface: "#F0B25A26", radius: true, transition: { enter: "slide-down" } });
 }
 
+/** A link was just copied: its picture and title, and the keys that play it or wave it off. */
+function offerBanner(st: RemoteState, width: number): ViewNode | undefined {
+  const o = st.offer;
+  if (!o) return undefined;
+  return row([
+    o.thumb ? { type: "image", key: "offer-thumb", src: o.thumb, width: 48, height: 27, mask: "rounded", alt: o.title } : text(G.play, { style: "glyph", size: "md", color: "accent" }),
+    column([text(o.title, { size: "sm", weight: "semibold", width: width - 190 }), text(["Copied", o.by, o.app].filter(Boolean).join(" · "), { size: "xs", color: "muted", width: width - 190 })], { gap: 0, grow: true }),
+    ...keyHint("l", "play", { action: "play-link" }), ...keyHint("x", "dismiss", { action: "offer:dismiss" }),
+  ], { key: "offer", gap: 2, padding: 2, surface: "#4F8AE826", radius: true, action: "play-link", transition: { enter: "slide-down" } });
+}
+
 /** The favourite apps as tiles with their digit, and the All apps tile. */
-function dock(st: RemoteState, max: number, side: number): ViewNode {
+function dock(st: RemoteState, max: number, h: number): ViewNode {
+  // The TV's Home Screen shape: 5:3 tiles, the app's own tvOS picture.
+  const w = Math.round((h * 5) / 3);
   const tiles = st.dock.slice(0, max).map((a, i): ViewNode => column([
-    { type: "image", key: `dock-img-${a.id}`, src: a.art, width: side, height: side, mask: "rounded", alt: a.name, action: `launch:${i}` },
+    { type: "image", key: `dock-img-${a.id}`, src: a.wide, width: w, height: h, mask: "rounded", alt: a.name, action: `launch:${i}` },
     row([keycap(String(i + 1), `launch:${i}`)], { key: `dk-${i}`, justify: "center" }),
   ], { key: `dock-${a.id}`, gap: 1, align: "center", transition: { enter: "fade", delay: Math.min(8, i) } }));
   tiles.push(column([
-    { type: "stack", key: "dock-all", width: side, height: side, surface: "sunken", radius: true, align: "center", justify: "center", action: "apps", children: [text(G.apps, { style: "glyph", size: "lg", color: "muted" })] },
+    { type: "stack", key: "dock-all", width: h, height: h, surface: "sunken", radius: true, align: "center", justify: "center", action: "apps", children: [text(G.apps, { style: "glyph", size: "lg", color: "muted" })] },
     row([keycap("a", "apps")], { key: "dk-a", justify: "center" }),
   ], { key: "dock-all-col", gap: 1, align: "center" }));
   return row(tiles, { key: "dock", gap: 2, align: "start" });
@@ -307,6 +325,9 @@ export function actions(st: RemoteState): Action[] {
     { id: "volume-down", title: "Volume down", shortcut: "-" },
     { id: "type", title: st.keyboard?.focused ? `Type: ${st.keyboard.title || st.keyboard.prompt || "the field on the TV"}` : "Type on the TV", shortcut: "t" },
     { id: "apps", title: "All apps", shortcut: "a" },
+    { id: "now", title: "Now Playing", shortcut: "n" },
+    { id: "play-link", title: st.offer ? `Play “${st.offer.title.length > 40 ? `${st.offer.title.slice(0, 39)}…` : st.offer.title}”` : "Play a link on the TV", shortcut: "l" },
+    ...(st.offer ? [{ id: "offer:dismiss", title: "Not now", shortcut: "x" } as Action] : []),
     { id: "power", title: st.power === "off" ? "Wake up" : "Sleep", shortcut: "p" },
     { id: "screensaver", title: "Screen saver", shortcut: "s" },
     { id: "accounts", title: "Switch user", shortcut: "u" },
@@ -338,9 +359,9 @@ export function render(st: RemoteState): View {
     const W = POPOVER_W;
     tree = column([
       nowCard(st, W, 56),
-      ...[keyboardBanner(st, W)].filter((x): x is ViewNode => !!x),
+      ...[offerBanner(st, W), keyboardBanner(st, W)].filter((x): x is ViewNode => !!x),
       row([clickpad(st, 148), column([buttons(st, 36, false), ...[volumeRow(st, W - 148 - 16)].filter((x): x is ViewNode => !!x)], { key: "right", gap: 3, grow: true, align: "center" })], { key: "controls", gap: 4, align: "center" }),
-      dock(st, DOCK_COMPACT, 40),
+      dock(st, DOCK_COMPACT, 36),
     ], { key: "compact", padding: 3, gap: 3 });
   } else {
     const LEFT = 176, RIGHT = 696 - LEFT - 16;
@@ -348,10 +369,11 @@ export function render(st: RemoteState): View {
     const right = column([
       header(st),
       nowCard(st, RIGHT, 84),
-      ...[keyboardBanner(st, RIGHT)].filter((x): x is ViewNode => !!x),
-      dock(st, DOCK_WIDE, 44),
+      ...[offerBanner(st, RIGHT), keyboardBanner(st, RIGHT)].filter((x): x is ViewNode => !!x),
+      dock(st, DOCK_WIDE, 40),
       ...[volumeRow(st, RIGHT)].filter((x): x is ViewNode => !!x),
-      extras(st),
+      // The banners take the room the extras row had.
+      ...(st.offer || st.keyboard?.focused ? [] : [extras(st)]),
     ], { key: "right", gap: 3, grow: true });
     tree = column([row([left, right], { key: "main", gap: 4, align: "start" }), { type: "spacer", key: "fill" }, hints(st)], { key: "wide", padding: 3, gap: 2, grow: true });
   }

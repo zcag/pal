@@ -93,7 +93,31 @@ export type NowPlaying = {
   artworkAvailable?: boolean;
   /** The MediaCommands the app offers now; absent = unknown, assume the basics. */
   commands?: MediaCommand[];
+  /** A longer text about the item (an episode's synopsis), when the app gives one. */
+  description?: string;
+  /** Year or ISO date of release. */
+  released?: string;
+  /** "TV-MA", "PG-13"... */
+  rating?: string;
+  /** The speeds the app allows (`[0.5, 1, 1.25, 1.5, 2]`); absent = 1x only. */
+  rates?: number[];
+  /** Chapters of the item, when the app gives them. */
+  chapters?: Chapter[];
+  /** Audio and subtitle tracks, the active one marked. */
+  languages?: { audio: Language[]; subtitles: Language[] };
+  /** The like state where the app has one (Music). */
+  liked?: boolean;
+  /** Lyrics are there to ask for (`Conn.lyrics`). */
+  hasLyrics?: boolean;
 };
+
+export type Chapter = { title: string; start: number; duration?: number };
+/** An audio or subtitle option; `id` is what `Conn.setLanguage` takes. */
+export type Language = { id: string; name: string; active: boolean };
+/** One item of the playback queue (what plays next). */
+export type QueueItem = { id: string; title?: string; artist?: string; series?: string; season?: number; episode?: number; duration?: number; artwork?: Uint8Array };
+/** Lyrics, timed when the app gives times (seconds). */
+export type Lyrics = { lines: { at?: number; text: string }[] };
 
 export type App = { id: string; name: string };
 export type Account = { id: string; name: string; current?: boolean };
@@ -134,6 +158,17 @@ export interface Conn {
   volume(): number | undefined;
   setVolume(level: number): Promise<void>;
 
+  /** The next items after the one playing (with their artwork when `artwork` is set), as the app tells; [] when it tells none. */
+  queue(count: number, artwork?: number): Promise<QueueItem[]>;
+  /** Jump to an item of the queue. */
+  playQueueItem(id: string): Promise<void>;
+  /** The lyrics of what plays, or null. */
+  lyrics(): Promise<Lyrics | null>;
+  /** Choose an audio or subtitle track; `null` turns subtitles off. */
+  setLanguage(kind: "audio" | "subtitles", id: string | null): Promise<void>;
+  /** Playback speed, one of `NowPlaying.rates`. */
+  setRate(rate: number): Promise<void>;
+
   apps(): Promise<App[]>;
   launch(bundleIdOrUrl: string): Promise<void>;
   accounts(): Promise<Account[]>;
@@ -155,6 +190,6 @@ export interface Driver {
   /** Shows a PIN on the TV's screen. */
   pair(found: Found, protocol: PairProtocol): Promise<Pairing>;
   connect(device: Paired): Promise<Conn>;
-  /** An app's icon for a bundle id, as an https url, or undefined (the App Store's lookup). */
-  appIcon(bundleId: string): Promise<string | undefined>;
+  /** An app's icon for a bundle id, as an https url, or undefined (the App Store's lookup): `tv` the 5:3 tvOS icon, else the square one. */
+  appIcon(bundleId: string, kind?: "square" | "tv"): Promise<string | undefined>;
 }

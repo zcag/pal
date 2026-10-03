@@ -12,7 +12,7 @@ import { PairSetup } from "node-appletv-remote/dist/auth/pair-setup.js";
 import { Mcc, pairError } from "./protocol/companion.ts";
 import { MrpLink } from "./protocol/mrp.ts";
 import { CompanionSession } from "./protocol/session.ts";
-import type { Account, App, ChangeEvent, Conn, Credentials, Driver, Found, Key, Keyboard, MediaCommand, NowPlaying, PairProtocol, Paired, Pairing, Power, Press, Swipe } from "./types.ts";
+import type { Account, App, ChangeEvent, Conn, Credentials, Driver, Found, Key, Keyboard, Lyrics, MediaCommand, NowPlaying, PairProtocol, Paired, Pairing, Power, Press, QueueItem, Swipe } from "./types.ts";
 
 /** Apple's model identifiers as people say them. */
 export const MODELS: Record<string, string> = {
@@ -103,7 +103,8 @@ export function lookupIcon(bundleId: string, kind: "square" | "tv" = "square"): 
         const j = (await r.json()) as { results?: { artworkUrl512?: string; artworkUrl100?: string }[] };
         return j.results?.[0]?.artworkUrl512 ?? j.results?.[0]?.artworkUrl100;
       };
-      if (kind === "tv") return get("tvSoftware");
+      // The tvOS icon is layered and 5:3; the image service renders it to the box asked for, 400x240 here (under the 96 KB a view image may be).
+      if (kind === "tv") return (await get("tvSoftware"))?.replace(/\/\d+x\d+bb\.(jpg|png)$/, "/400x240bb.$1");
       // A tvOS-only app has no iOS icon: its tvOS one, centre-cropped square by the image service.
       return (await get("software")) ?? (await get("tvSoftware"))?.replace(/\/\d+x\d+bb\.(jpg|png)$/, "/512x512cc.$1");
     })().catch(() => { icons.delete(key); return undefined; });
@@ -233,6 +234,17 @@ class RealConn implements Conn {
   nowPlaying(): NowPlaying | undefined { return this.mrp?.players.nowPlaying(); }
   async artwork(width: number, height: number) { return this.mrpUp ? this.mrp!.artwork(width, height) : null; }
 
+  /** The MRP link, or the words for why there is none: what plays needs the AirPlay pairing. */
+  private m(): MrpLink {
+    if (this.mrpUp) return this.mrp!;
+    throw new Error(this.device.airplay ? "The media channel is not up yet; try again in a moment" : "That needs the AirPlay pairing too: run Set up Apple TV again");
+  }
+  async queue(count: number, artwork?: number): Promise<QueueItem[]> { return this.mrpUp ? this.mrp!.queue(count, artwork) : []; }
+  async playQueueItem(id: string) { await this.m().playQueueItem(id); }
+  async lyrics(): Promise<Lyrics | null> { return this.mrpUp ? this.mrp!.lyrics() : null; }
+  async setLanguage(kind: "audio" | "subtitles", id: string | null) { await this.m().setLanguage(kind, id); }
+  async setRate(rate: number) { await this.m().setRate(rate); }
+
   power(): Power { return this.companion?.state.power ?? "unknown"; }
   async turnOn() { await (await this.c()).power(true); }
   async turnOff() { await (await this.c()).power(false); }
@@ -257,6 +269,7 @@ class RealConn implements Conn {
 
   async close(): Promise<void> {
     this.closing = true;
+    
     for (const t of this.timers) clearTimeout(t);
     this.timers.clear();
     this.mrp?.close();
@@ -273,4 +286,4 @@ async function connect(device: Paired): Promise<Conn> {
   return conn;
 }
 
-export const realDriver: Driver = { scan, pair, connect, appIcon: (id) => lookupIcon(id) };
+export const realDriver: Driver = { scan, pair, connect, appIcon: (id, kind) => lookupIcon(id, kind) };

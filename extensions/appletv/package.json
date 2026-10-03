@@ -6,6 +6,7 @@
     "bonjour-service": "^1.3.0",
     "bplist-creator": "^0.1.1",
     "bplist-parser": "^0.3.2",
+    "jpeg-js": "^0.4.4",
     "node-appletv-remote": "^0.3.2",
     "protobufjs": "^8.0.0"
   }

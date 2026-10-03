@@ -28,7 +28,6 @@ import CommandInfo from "node-appletv-remote/dist/proto/CommandInfo.proto" with 
 import CommandOptions from "node-appletv-remote/dist/proto/CommandOptions.proto" with { type: "text" };
 import PlayerPath from "node-appletv-remote/dist/proto/PlayerPath.proto" with { type: "text" };
 import TransactionPackets from "node-appletv-remote/dist/proto/TransactionPackets.proto" with { type: "text" };
-import ContentItem from "node-appletv-remote/dist/proto/ContentItem.proto" with { type: "text" };
 import NowPlayingClient from "node-appletv-remote/dist/proto/NowPlayingClient.proto" with { type: "text" };
 import PlaybackQueueContext from "node-appletv-remote/dist/proto/PlaybackQueueContext.proto" with { type: "text" };
 import TextEditingAttributesMessage from "node-appletv-remote/dist/proto/TextEditingAttributesMessage.proto" with { type: "text" };
@@ -43,6 +42,40 @@ import ContentItemMetadata from "node-appletv-remote/dist/proto/ContentItemMetad
 import LanguageOption from "node-appletv-remote/dist/proto/LanguageOption.proto" with { type: "text" };
 import TextInputTraitsMessage from "node-appletv-remote/dist/proto/TextInputTraitsMessage.proto" with { type: "text" };
 import TransactionKey from "node-appletv-remote/dist/proto/TransactionKey.proto" with { type: "text" };
+
+/**
+ * pyatv's ContentItem (the library's has the language options flat, where the
+ * wire carries groups), plus the two fields both skip: Apple's lyrics (7) and
+ * sections, which are the chapters (8). Those two are read as bytes and
+ * decoded by hand (mrp.ts), so a shape guessed wrong costs the field, never
+ * the message.
+ */
+const CONTENT_ITEM = `syntax = "proto2";
+import "ContentItemMetadata.proto";
+import "LanguageOption.proto";
+message LanguageOptionGroup {
+  optional bool allowEmptySelection = 1;
+  optional LanguageOption defaultLanguageOption = 2;
+  repeated LanguageOption languageOptions = 3;
+}
+message LyricsItem { optional string lyrics = 1; optional bool userProvided = 2; }
+message ContentItem {
+  optional string identifier = 1;
+  optional ContentItemMetadata metadata = 2;
+  optional bytes artworkData = 3;
+  optional string info = 4;
+  repeated LanguageOptionGroup availableLanguageOptions = 5;
+  repeated LanguageOption currentLanguageOptions = 6;
+  optional bytes lyricsData = 7;
+  repeated bytes sectionsData = 8;
+  optional string parentIdentifier = 9;
+  optional string ancestorIdentifier = 10;
+  optional string queueIdentifier = 11;
+  optional string requestIdentifier = 12;
+  optional int32 artworkDataWidth = 13;
+  optional int32 artworkDataHeight = 14;
+}
+`;
 
 const EXTRA = `syntax = "proto2";
 import "ProtocolMessage.proto";
@@ -107,7 +140,7 @@ export const PROTOS: Record<string, string> = {
   "CommandOptions.proto": CommandOptions,
   "PlayerPath.proto": PlayerPath,
   "TransactionPackets.proto": TransactionPackets,
-  "ContentItem.proto": ContentItem,
+  "ContentItem.proto": CONTENT_ITEM,
   "NowPlayingClient.proto": NowPlayingClient,
   "PlaybackQueueContext.proto": PlaybackQueueContext,
   "TextEditingAttributesMessage.proto": TextEditingAttributesMessage,
@@ -118,7 +151,7 @@ export const PROTOS: Record<string, string> = {
   "Origin.proto": Origin,
   "NowPlayingPlayer.proto": NowPlayingPlayer,
   "TransactionPacket.proto": TransactionPacket,
-  "ContentItemMetadata.proto": ContentItemMetadata,
+  "ContentItemMetadata.proto": ContentItemMetadata.replace(/\}\s*$/, "  optional int32 albumYear = 88;\n}\n"),
   "LanguageOption.proto": LanguageOption,
   "TextInputTraitsMessage.proto": TextInputTraitsMessage,
   "TransactionKey.proto": TransactionKey,

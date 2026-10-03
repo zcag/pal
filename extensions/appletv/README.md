@@ -1,9 +1,10 @@
 # Apple TV
 
 A remote for an Apple TV on the same network, spoken directly to the box:
-no Home Assistant, no hub, no app on the phone. Five palettes and a bar
-item: the remote under the keys, the TV's apps at the root, the commands at
-the root, its users, the guided pairing, and what plays on the bar.
+no Home Assistant, no hub, no app on the phone. Seven palettes and a bar
+item: the remote under the keys, Now Playing in full, links played on the
+TV, the TV's apps at the root, the commands at the root, its users, the
+guided pairing, and what plays on the bar.
 
 Two of Apple's protocols, the ones the iPhone's own remote uses:
 
@@ -65,6 +66,49 @@ Everything the TV tells (a new item, a pause, sleep, a keyboard) pushes a
 new tree into the open remote and the bar popover; a playing item's
 position ticks every second while one is open.
 
+## Now Playing
+
+`Now Playing on Apple TV` (also `n` on the remote, or a click on its card):
+the left side sits on the cover's own colour brought down to a deep tone
+(the dominant hue of the JPEG, `image.ts`): the cover (wide for a film or a
+show), the app, the title, the show with its season and episode or the
+artist and album, the year, rating and genre, a line of the synopsis. The
+position bar is split at the chapters when the app gives them, each part
+filling as it plays, the chapter's name under it. Left and right scrub: each
+press moves a target 10 s, 30 s once the key repeats, a minute after that
+(shift: a minute, then five), the bar shows where it will land, and one seek
+goes when the keys rest 700 ms (Enter: at once). The transport is large
+buttons; chips beside them set the speed (`[` `]`), the subtitles and the
+audio, like a song (`l`), shuffle and repeat. On the right a panel, Tab to
+cycle or its letter: Up Next (`q`, the queue with its pictures, Enter plays
+one), Chapters (`c`, Enter jumps), Audio (`a`) and Subtitles (`s`, Enter
+picks a track or turns them off), Lyrics (`y`, the line playing lit) and
+Info (`i`). What a panel shows is what the app tells the TV: YouTube
+gives a title and its channel, the TV app much more.
+
+## Play on Apple TV
+
+A link sent to the TV in one key: a YouTube video (opened in the TV's
+YouTube app at its start time), a Netflix title or an Apple TV+ page.
+Not yet: a media file over AirPlay (tvOS 26.6 takes the request and never
+fetches the file) and Twitch (its app refuses every link form). Wherever
+the link is:
+
+- **Copied**: pal reads its own clipboard history every two seconds while
+  an Apple TV is paired. A new playable link becomes the offer: the bar
+  item comes up for 90 s ("Play on TV: <title>"), the remote shows it as a
+  banner (`l` plays, `x` waves it off), and the empty root's Now section
+  leads with it for 10 minutes. The entry on the clipboard when pal starts
+  is never offered.
+- **At the root**: typed or pasted, the `Play on Apple TV` palette answers
+  inline with "Play on <TV>".
+- **The palette** lists the offer, the browser tab in front when it plays
+  something, every link in the clipboard history and what was played
+  before, with titles and pictures (YouTube's oEmbed, no key). cmd+Enter
+  plays a YouTube link from the start.
+- **`pal://appletv/play`**: the `url` given, else the copied link, else the
+  browser tab in front; bind it to a key.
+
 ## The other palettes
 
 - **Apple TV Apps**: every app with its icon (the App Store's for third-
@@ -82,10 +126,12 @@ position ticks every second while one is open.
 
 ## The bar item
 
-`playing`: the app's icon (or the TV mark) and what plays, muted while
-paused (the `paused` rule), hidden while nothing plays or the TV sleeps
-(`show = "always"` keeps the mark). The `when` setting shows it whenever the
-TV is awake instead. The popover is the remote, laid out for 420 px.
+`playing`: the TV mark (or, with the `artwork` setting, the app's App Store
+icon with rounded corners) and what plays, muted while paused (the `paused`
+rule), hidden while nothing plays or the TV sleeps (`show = "always"` keeps
+the mark). The `when` setting shows it whenever the TV is awake instead. A
+link just copied brings it up to offer it. The popover is the remote, laid
+out for 420 px.
 
 States: `appletv/power` (`on`, `off`, `screensaver`, `unknown`),
 `appletv/playing`, `appletv/app`, `appletv/title`.
@@ -100,6 +146,7 @@ States: `appletv/power` (`on`, `off`, `screensaver`, `unknown`),
 | `pal://appletv/type` | `text`, `append` |
 | `pal://appletv/media` | `command` (play_pause, play, pause, next, previous, skip_forward, skip_backward, seek), `value` (seconds) |
 | `pal://appletv/volume` | `level`: up, down, or 0 to 100 |
+| `pal://appletv/play` | `url`; without it the link just copied, else the browser tab in front |
 
 ## Settings
 
@@ -118,8 +165,9 @@ States: `appletv/power` (`on`, `off`, `screensaver`, `unknown`),
 - An app decides what it tells: some give no cover (YouTube), some no
   position.
 - Typing needs a text field the TV is showing (a search, a sign-in).
-- The connection stays on the LAN; the one call out is the App Store
-  icon lookup, by bundle id, once per app.
+- The connection stays on the LAN; the calls out are the App Store icon
+  lookup (by bundle id, once per app) and YouTube's oEmbed for a link's
+  title (once per link).
 
 ## Tests
 

@@ -1,7 +1,7 @@
 {
   "name": "appletv",
   "title": "Apple TV",
-  "description": "A remote for your Apple TV under the keys: the clickpad on the arrows, your apps a digit away, typing into the TV's search from the keyboard, what is playing with its cover and a seek bar, sleep and wake, users, and the menu bar. Pairs in a guided setup, no other app or hub needed.",
+  "description": "A remote for your Apple TV under the keys: the clickpad on the arrows, Now Playing in full with chapters, subtitles, Up Next and lyrics, links played on the TV in one key (copy a YouTube link and pal offers it), your apps a digit away, typing into the TV's search from the keyboard, sleep and wake, users, and the menu bar. Pairs in a guided setup, no other app or hub needed.",
   "keywords": [
     "atv",
     "tv",
@@ -133,6 +133,14 @@
           "title": "Open a dock app"
         },
         {
+          "keys": "n",
+          "title": "Now Playing"
+        },
+        {
+          "keys": "l",
+          "title": "Play the link just copied (or pick one)"
+        },
+        {
           "keys": "a",
           "title": "All apps"
         },
@@ -163,6 +171,116 @@
         {
           "keys": "r",
           "title": "Reconnect"
+        }
+      ]
+    },
+    "now": {
+      "title": "Now Playing on Apple TV",
+      "description": "What plays on the Apple TV in full: the cover with its colour behind it, the show, season and episode or the artist, the synopsis, a position bar split at the chapters, hold-to-scrub, speed, subtitles and audio, and a panel for Up Next, Chapters, Audio, Subtitles, Lyrics and Info.",
+      "kind": "view",
+      "keywords": [
+        "playing",
+        "up next",
+        "queue",
+        "chapters",
+        "subtitles",
+        "lyrics"
+      ],
+      "refresh": 15,
+      "on": [
+        "wake",
+        "network",
+        "show"
+      ],
+      "keys": [
+        {
+          "keys": "space",
+          "title": "Play or pause"
+        },
+        {
+          "keys": "left, right",
+          "title": "Scrub: hold to go faster, one seek when you let go"
+        },
+        {
+          "keys": "shift+left, shift+right",
+          "title": "Scrub by the minute"
+        },
+        {
+          "keys": ", .",
+          "title": "Skip back or forward"
+        },
+        {
+          "keys": "cmd+left, cmd+right",
+          "title": "Previous or next (chapter, episode, track)"
+        },
+        {
+          "keys": "tab",
+          "title": "Next panel: Up Next, Chapters, Audio, Subtitles, Lyrics, Info"
+        },
+        {
+          "keys": "q c a s y i",
+          "title": "Open a panel"
+        },
+        {
+          "keys": "up, down, enter",
+          "title": "Walk the panel; play, jump or choose"
+        },
+        {
+          "keys": "[ ]",
+          "title": "Slower or faster"
+        },
+        {
+          "keys": "l",
+          "title": "Like (music)"
+        },
+        {
+          "keys": "cmd+s, cmd+r",
+          "title": "Shuffle, repeat"
+        },
+        {
+          "keys": "- =",
+          "title": "Volume"
+        },
+        {
+          "keys": "o",
+          "title": "The remote"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy what is playing"
+        }
+      ]
+    },
+    "play": {
+      "title": "Play on Apple TV",
+      "description": "Send a link to the TV in one key: a YouTube video (at its start time), a Netflix title or an Apple TV+ page. Lists the link just copied, the browser tab in front, every link in the clipboard history and what was played before; a link typed or pasted at the root is offered there too.",
+      "kind": "input",
+      "keywords": [
+        "youtube",
+        "netflix",
+        "link",
+        "url",
+        "cast",
+        "send"
+      ],
+      "match": "https?://\\S*(youtu\\.?be|netflix\\.com/(title|watch)|tv\\.apple\\.com)",
+      "inline": true,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Play on the TV"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Play from the start (a link with a start time)"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open in the browser"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
         }
       ]
     },
@@ -260,7 +378,7 @@
   "bar": {
     "playing": {
       "title": "Apple TV",
-      "description": "What plays on the Apple TV, with the app's icon; hidden while nothing does. The popover is the remote: what plays with its seek bar, the clickpad and the buttons, the dock on the digits.",
+      "description": "What plays on the Apple TV, hidden while nothing does; a link just copied brings it up for a minute and a half to offer it. The popover is the remote: what plays, the clickpad and the buttons, the dock on the digits, the copied link on l.",
       "refresh": {
         "every": 60,
         "on": [
@@ -309,6 +427,14 @@
         {
           "keys": "p",
           "title": "Sleep or wake"
+        },
+        {
+          "keys": "l",
+          "title": "Play the copied link"
+        },
+        {
+          "keys": "n",
+          "title": "Now Playing"
         }
       ],
       "rules": [
@@ -342,7 +468,8 @@
           "id": "artwork",
           "label": "Icon",
           "text": "The app's icon instead of the TV mark",
-          "default": true
+          "default": false,
+          "description": "Off, the strip keeps the TV mark like the menu bar's other glyphs; on, the App Store icon with rounded corners."
         }
       ],
       "mocks": {
@@ -458,16 +585,25 @@
           "required": true
         }
       }
+    },
+    "play": {
+      "description": "Play a link on the Apple TV: the url given, else the link just copied, else the browser tab in front",
+      "params": {
+        "url": {
+          "description": "A YouTube or Netflix link, or an Apple TV+ page"
+        }
+      }
     }
   },
   "store": {
-    "tagline": "Your Apple TV's remote, apps and search, from the keyboard",
+    "tagline": "Your Apple TV's remote, Now Playing and links, from the keyboard",
     "category": "media",
     "features": [
       "The clickpad on the arrows, Enter selects, Backspace goes back, h is the TV button; swipes on shift and the arrows",
-      "Your dock of apps on the digits, and every app at the root with its icon: type `youtube`, press Enter",
+      "Now Playing in full: the cover's colour behind it, chapters on the position bar, hold-to-scrub, speed, subtitles and audio, Up Next, lyrics",
+      "Play a link on the TV in one key: copy a YouTube link and pal offers it, or paste one at the root",
+      "Your dock of apps on the digits, drawn as the TV's own tvOS icons; every app at the root: type `youtube`, press Enter",
       "Type into the TV's search from the keyboard instead of hunting letters on screen",
-      "What is playing with its cover, a seek bar a click moves, and the volume as a slider",
       "Sleep and wake, Control Center, the app switcher, the screen saver, switching users",
       "A menu bar item with what plays; its popover is the remote",
       "Guided setup: finds the Apple TV, takes the code it shows, and checks what works"
@@ -481,28 +617,28 @@
     ],
     "screenshots": [
       {
-        "file": "1-remote.png",
-        "caption": "The remote: the clickpad and the buttons, what plays with its cover and a seek bar, the dock of apps on the digits, the volume"
+        "file": "1-now.png",
+        "caption": "Now Playing: the episode on its own colour, the chapters on the position bar, speed, subtitles and audio, Up Next with its stills"
       },
       {
-        "file": "2-typing.png",
-        "caption": "The TV's search wants text: type it here, Enter sends it"
+        "file": "2-remote.png",
+        "caption": "The remote: the clickpad and the buttons, what plays, your apps as the TV draws them on the digits, the volume"
       },
       {
-        "file": "3-apps.png",
-        "caption": "Every app on the Apple TV with its icon; Enter opens it, cmd+D puts it in the dock"
+        "file": "3-play.png",
+        "caption": "Play on Apple TV: the link just copied, the browser tab in front and every link copied before; Enter plays it on the TV"
       },
       {
-        "file": "4-setup.png",
-        "caption": "Setup finds the Apple TVs on the network; a digit pairs one"
+        "file": "4-offer.png",
+        "caption": "Copy a YouTube link and the remote offers it: l plays it on the TV, at its start time"
       },
       {
-        "file": "5-setup-code.png",
-        "caption": "Type the code the TV shows; a second code adds what is playing"
+        "file": "5-lyrics.png",
+        "caption": "A song with its lyrics, the line playing lit; hold an arrow to scrub, one seek when you let go"
       },
       {
-        "file": "6-ready.png",
-        "caption": "Paired: a check of what works, read from the TV itself"
+        "file": "6-setup.png",
+        "caption": "Guided setup: type the code the TV shows; a second code adds what is playing"
       },
       {
         "file": "bar-menubar.png",
@@ -517,7 +653,7 @@
           352,
           64,
           840,
-          942
+          934
         ]
       },
       {

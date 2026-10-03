@@ -2222,3 +2222,16 @@ subtraction, `core/src/states.rs`). Registry-only: it needs an Apple TV and
 a pairing. Tests run the extension against a stand-in TV (`fake.ts`, its
 state a JSON file); the wire is tested on pyatv's vectors and recorded MRP
 messages.
+
+Round two (2026-10-04): Now Playing in full, links, tvOS icons. Measured on
+tvOS 26.6 before choosing what links do: a media url over AirPlay (`/play`
+as pyatv sends it, RTSP and HTTP, every body shape) is taken, the TV's
+AirPlay app comes forward, and the file is never fetched, so files are not
+offered; Twitch's app refuses `twitch://stream/<channel>`; YouTube takes
+its own scheme (`youtube://www.youtube.com/watch?v=<id>`) and refuses its
+https links; the TV app claims its https links, as pyatv documents for
+Netflix. The strip's icon is the TV mark by default: a full-colour square
+beside one-colour glyphs read as noise; the App Store icon, its corners
+rounded into a PNG (the strip draws rasters only), is the `artwork` opt-in.
+A copied link is noticed by reading pal's own clipboard history every 2 s
+while an Apple TV is paired: no extension can subscribe to the clipboard.

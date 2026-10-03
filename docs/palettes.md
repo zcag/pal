@@ -31,11 +31,13 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | palette | id | kind, tier | what `Enter` does |
 | --- | --- | --- | --- |
 | [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
-| [Apple TV Remote](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-remote` | view, normal | Select (the clickpad's centre) |
-| [Apple TV Apps](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-apps` | indexed, normal | Open the app on the TV |
-| [Apple TV](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-commands` | indexed, primary | Run the command on the TV |
-| [Apple TV Users](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-users` | indexed, normal | Switch to the user |
-| [Set Up Apple TV](#apple-tv-appletv-remote-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-setup` | view, normal | Pair with the Apple TV |
+| [Apple TV Remote](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-remote` | view, normal | Select (the clickpad's centre) |
+| [Now Playing on Apple TV](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-now` | view, normal | The panel's row (play the queue item, jump to the chapter, pick the track), else play or pause |
+| [Play on Apple TV](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-play` | input, normal | Play the link on the TV |
+| [Apple TV Apps](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-apps` | indexed, normal | Open the app on the TV |
+| [Apple TV](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-commands` | indexed, primary | Run the command on the TV |
+| [Apple TV Users](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-users` | indexed, normal | Switch to the user |
+| [Set Up Apple TV](#apple-tv-appletv-remote-appletv-now-appletv-play-appletv-apps-appletv-commands-appletv-users-appletv-setup-appletvplaying) | `appletv-setup` | view, normal | Pair with the Apple TV |
 | [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
 | [Battery & Power](#battery--power-power) | `power` | view, normal | Find the process under the cursor in Processes |
@@ -3943,7 +3945,7 @@ Settings, `[extensions.tela]`:
 
 For the tests, `PAL_TELA_URL` and `PAL_TELA_TOKEN` replace the two settings.
 
-## Apple TV (`appletv-remote`, `appletv-apps`, `appletv-commands`, `appletv-users`, `appletv-setup`, `appletv/playing`)
+## Apple TV (`appletv-remote`, `appletv-now`, `appletv-play`, `appletv-apps`, `appletv-commands`, `appletv-users`, `appletv-setup`, `appletv/playing`)
 
 An Apple TV on the same network, spoken to directly over the two protocols
 the iPhone's remote uses: Companion for the buttons, swipes, apps, users,
@@ -3975,6 +3977,22 @@ with its cover and a seek bar a click moves; the dock (`favorites`, else
 the apps opened most) puts apps on the digits; the volume is a slider when
 the TV set reports it over HDMI-CEC. When the TV shows a keyboard a banner
 says what for, and `t` types into it from the search row.
+
+**Now Playing on Apple TV** (`appletv-now`, a view; `n` on the remote)
+sits what plays on its cover's colour: the cover, the title, the show with
+its season and episode (or the artist and album), the facts and a line of
+the synopsis, a position bar split at the chapters, the transport as large
+buttons with speed, subtitles, audio and like beside them. Left and right
+scrub (each press moves the target further, faster while held; one seek
+when the keys rest), Tab cycles a panel: Up Next with pictures, Chapters,
+Audio, Subtitles, Lyrics, Info.
+
+**Play on Apple TV** (`appletv-play`, input, inline at the root on a
+playable url) sends a link to the TV: a YouTube video at its start time, a
+Netflix title or an Apple TV+ page. It lists the link just copied, the browser tab in front, the
+clipboard history's links and what was played before. A newly copied link
+is offered by the bar item (90 s), the remote's banner (`l`) and the empty
+root's Now section (10 min).
 
 **Apple TV Apps** (`appletv-apps`) lists every app with its App Store icon
 (Apple's own drawn from their marks); Enter opens it on the TV, `cmd+enter`

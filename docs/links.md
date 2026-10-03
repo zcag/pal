@@ -102,6 +102,7 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://appletv/type?text=<text>` | Type into the text field the Apple TV shows (`&append=1` adds to it) |
 | `pal://appletv/media?command=<command>` | `play_pause`, `play`, `pause`, `next`, `previous`, `skip_forward`, `skip_backward`, `seek` (`&value=` seconds) |
 | `pal://appletv/volume?level=40` | The TV set's volume (`up`, `down`, or 0 to 100) |
+| `pal://appletv/play?url=<link>` | Play a link on the Apple TV (a YouTube or Netflix link, an Apple TV+ page); without `url`, the link just copied, else the browser tab in front |
 | `pal://obsidian/open?path=<note>` | Open a note in Obsidian, or in the editor |
 | `pal://obsidian/new?title=<title>` | Create a note and open it (`&body=`, `&folder=`) |
 | `pal://obsidian/append-today?text=<text>` | Append a line to today's daily note, created when missing |

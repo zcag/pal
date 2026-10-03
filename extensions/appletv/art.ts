@@ -43,3 +43,19 @@ export function sampleApp(bundleId: string): string | undefined {
 
 /** What an app shows before (or without) its App Store icon: Apple's mark, else its initial. */
 export const placeholderArt = (bundleId: string, name: string): string => appleApp(bundleId) ?? letterTile(name);
+
+const svgWide = (body: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 40 24">${body}</svg>`)}`;
+
+/**
+ * A 5:3 tile, the shape of a tvOS app icon, for an app without its tvOS
+ * picture: Apple's mark (or the sample's) centred on its colour, the
+ * square icon centred on a dark tile, else the initial on its colour.
+ */
+export function wideArt(bundleId: string, name: string, square?: string): string {
+  const mark = APPLE_APPS[bundleId] ? { path: APPLE_APPS[bundleId][1], bg: APPLE_APPS[bundleId][2] } : SAMPLE_MARKS[bundleId] ? { path: SAMPLE_MARKS[bundleId][0], bg: SAMPLE_MARKS[bundleId][1] } : undefined;
+  if (mark) return svgWide(`<rect width="40" height="24" rx="3" fill="${mark.bg}"/><g transform="translate(12.8 4.8) scale(0.6)" fill="${inkOn(mark.bg)}"><path d="${mark.path}"/></g>`);
+  if (square) return svgWide(`<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a42"/><stop offset="1" stop-color="#1c1c21"/></linearGradient><clipPath id="c"><rect x="13" y="5" width="14" height="14" rx="3.2"/></clipPath></defs><rect width="40" height="24" rx="3" fill="url(#g)"/><image href="${square}" xlink:href="${square}" x="13" y="5" width="14" height="14" clip-path="url(#c)"/>`);
+  const bg = LETTER_BGS[hash(name) % LETTER_BGS.length];
+  const ch = ([...name.trim()][0] ?? "?").toUpperCase().replace(/[<&>"]/g, "");
+  return svgWide(`<rect width="40" height="24" rx="3" fill="${bg}"/><text x="20" y="16.4" text-anchor="middle" font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">${ch}</text>`);
+}

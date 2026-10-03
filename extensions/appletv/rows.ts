@@ -34,6 +34,8 @@ type Cmd = { id: string; name: string; icon: string; keywords?: string[] };
 
 /** The commands that make sense as root rows: what a remote's buttons do, plus typing. */
 export const COMMANDS: Cmd[] = [
+  { id: "now-playing", name: "Now Playing", icon: G.movie, keywords: ["playing", "queue", "up next", "subtitles", "chapters", "lyrics"] },
+  { id: "play-link", name: "Play a Link on Apple TV", icon: G.play, keywords: ["youtube", "netflix", "url", "cast", "send"] },
   { id: "play-pause", name: "Play or Pause", icon: G.playPause, keywords: ["resume", "stop"] },
   { id: "wake", name: "Wake Up", icon: G.power, keywords: ["turn on", "power"] },
   { id: "sleep", name: "Sleep", icon: G.sleep, keywords: ["turn off", "power", "off"] },

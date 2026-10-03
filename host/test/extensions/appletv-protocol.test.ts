@@ -5,7 +5,7 @@
 // pairing errors in words.
 import { describe, expect, test } from "bun:test";
 import { Cipher, frameHeader, nonce, pairError } from "../../../extensions/appletv/protocol/companion.ts";
-import { Players, T, commandFields, decode as mrpDecode, encode as mrpEncode, CF_EPOCH } from "../../../extensions/appletv/protocol/mrp.ts";
+import { Extra, Players, T, chaptersOf, commandFields, decode as mrpDecode, encode as mrpEncode, languagesOf, parseLyrics, queueItems, schema, CF_EPOCH } from "../../../extensions/appletv/protocol/mrp.ts";
 import { Uuid, decode, float, pack, sized, unpack } from "../../../extensions/appletv/protocol/opack.ts";
 import { archive, clearPayload, insertPayload, readArchive, readSession } from "../../../extensions/appletv/protocol/rti.ts";
 import { MODELS, modelName, pairFailure } from "../../../extensions/appletv/device.ts";
@@ -216,6 +216,78 @@ describe("mrp", () => {
     // The messages the library's schema lacks (pyatv's numbering) decode too.
     const player = await mrpDecode(await mrpEncode(T.SetNowPlayingPlayer, "setNowPlayingPlayerMessage", "SetNowPlayingPlayerMessage", { playerPath: { client, player: { identifier: "p1" } } }));
     expect(player).toMatchObject({ type: 47, ".setNowPlayingPlayerMessage": { playerPath: { player: { identifier: "p1" } } } });
+  });
+});
+
+describe("mrp, the full item", () => {
+  const client = { bundleIdentifier: "com.apple.TVWatchList", displayName: "TV" };
+  const path = { client, player: { identifier: "MediaRemote-DefaultPlayer" } };
+  const enc = async (type: string, o: object) => { const t = (await schema()).lookupType(type); return t.encode(t.fromObject(o)).finish(); };
+  /** An episode the way Apple's encoder sends it: info, sections, lyrics, the option groups, through the schema both ways. */
+  const episode = async (requestID?: string) => {
+    const sections = await Promise.all([["Cold open", 0, 95], ["The harbour", 95, 1200], ["Credits", 1295, 60]].map(([title, startTime, duration]) => enc("ContentItem", { identifier: `s-${title}`, metadata: { title, startTime, duration } })));
+    const option = (identifier: string, languageTag: string, type: number, characteristics: string[], displayName?: string) => ({ identifier, languageTag, type, characteristics, ...(displayName && { displayName }) });
+    const en = option("a-en", "en", 0, ["public.audible"], "English"), tr = option("a-tr", "tr", 0, ["public.audible"]);
+    const subEn = option("s-en", "en", 1, ["public.legible"], "English CC"), subDe = option("s-de", "de", 1, []);
+    const msg = await mrpEncode(T.SetState, "setStateMessage", "SetStateMessage", {
+      playerPath: path, playbackState: 1,
+      supportedCommands: { supportedCommands: [{ command: Extra.changeRate, enabled: true, supportedRates: [0.5, 1, 1.25, 1.5, 2, 1] }, { command: 25, enabled: true }] },
+      ...(requestID && { request: { location: 0, length: 1, requestID } }),
+      playbackQueue: { location: 0, contentItems: [{
+        identifier: requestID ? "side-item" : "ep-3", info: "The tide turns; nobody leaves the harbour.",
+        metadata: { title: "Low Water", seriesName: "Harbour", seasonNumber: 2, episodeNumber: 3, mediaType: 2, duration: 1355, elapsedTime: 120, playbackRate: 1, elapsedTimeTimestamp: 812712592, releaseDate: (Date.UTC(2025, 2, 14) / 1000) - CF_EPOCH, localizedContentRating: "TV-14", isLiked: true, lyricsAvailable: true },
+        availableLanguageOptions: [{ languageOptions: [en, tr] }, { allowEmptySelection: true, languageOptions: [subEn, subDe] }],
+        currentLanguageOptions: [en, subEn],
+        lyricsData: await enc("LyricsItem", { lyrics: '<tt><body><div><p begin="00:00:12.400" end="00:00:18">Harbour lights</p><p begin="00:01:04">on the &amp; water</p></div></body></tt>' }),
+        sectionsData: sections,
+      }] },
+    });
+    return mrpDecode(msg);
+  };
+
+  test("an episode in full: description, release, rating, speeds, chapters, tracks, like, lyrics", async () => {
+    const p = new Players();
+    p.handle(await episode());
+    const n = p.nowPlaying()!;
+    expect(n).toMatchObject({
+      state: "playing", title: "Low Water", series: "Harbour", season: 2, episode: 3, mediaType: "tv", duration: 1355, position: 120,
+      description: "The tide turns; nobody leaves the harbour.", released: "2025-03-14", rating: "TV-14", rates: [0.5, 1, 1.25, 1.5, 2], liked: true, hasLyrics: true,
+      chapters: [{ title: "Cold open", start: 0, duration: 95 }, { title: "The harbour", start: 95, duration: 1200 }, { title: "Credits", start: 1295, duration: 60 }],
+      languages: { audio: [{ id: "a-en", name: "English", active: true }, { id: "a-tr", name: "Turkish", active: false }], subtitles: [{ id: "s-en", name: "English CC", active: true }, { id: "s-de", name: "German", active: false }] },
+    });
+    expect(n.commands).toContain("next_chapter");
+  });
+  test("an answer to a request of our own (the queue, the lyrics, a cover) leaves what plays alone", async () => {
+    const p = new Players();
+    p.handle(await episode());
+    expect(p.handle(await episode("pal-side-1234"))).toBe(false);
+    expect(p.nowPlaying()!.itemId).toBe("ep-3");
+  });
+  test("chapters without starts run one after another; no sections, no chapters", async () => {
+    const sec = (title: string, duration: number) => enc("ContentItem", { metadata: { title, duration } });
+    await schema();
+    expect(chaptersOf({ sectionsData: [await sec("One", 60), await sec("Two", 30)] })).toEqual([{ title: "One", start: 0, duration: 60 }, { title: "Two", start: 60, duration: 30 }]);
+    expect(chaptersOf({})).toBeUndefined();
+    expect(languagesOf({})).toBeUndefined();
+  });
+  test("lyrics: TTML timed, entities and tags out; plain text a line each; nothing is null", () => {
+    expect(parseLyrics('<tt xmlns="x"><body><p begin="1:02.5">One<br/>line</p><p begin="75s">Two &apos;n&apos;</p><p></p></body></tt>')).toEqual({ lines: [{ at: 62.5, text: "One line" }, { at: 75, text: "Two 'n'" }] });
+    expect(parseLyrics("a\nb")).toEqual({ lines: [{ text: "a" }, { text: "b" }] });
+    expect(parseLyrics("  ")).toBeNull();
+  });
+  test("queue items: the next ones with their show and cover; ids required", () => {
+    const art = new Uint8Array([0xff, 0xd8, 1]);
+    expect(queueItems([{ identifier: "n1", metadata: { title: "High Water", seriesName: "Harbour", seasonNumber: 2, episodeNumber: 4, duration: 1400 }, artworkData: art }, { metadata: { title: "no id" } }])).toEqual([
+      { id: "n1", title: "High Water", artist: undefined, series: "Harbour", season: 2, episode: 4, duration: 1400, artwork: art },
+    ]);
+  });
+  test("speed, track and queue commands carry their option through the schema", async () => {
+    const lang = await enc("LanguageOption", { identifier: "s-de", languageTag: "de", type: 1 });
+    for (const [command, options] of [[Extra.changeRate, { playbackRate: 1.5 }], [Extra.enableLanguage, { languageOption: lang }], [Extra.playItem, { contentItemID: "n1" }]] as const) {
+      const back = await mrpDecode(await mrpEncode(T.SendCommand, "sendCommandMessage", "SendCommandMessage", { command, options }));
+      expect((back[".sendCommandMessage"] as { command: number }).command).toBe(command);
+      expect((back[".sendCommandMessage"] as { options: object }).options).toMatchObject(command === Extra.enableLanguage ? { languageOption: new Uint8Array(lang) } : options);
+    }
   });
 });
 
