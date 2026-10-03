@@ -2228,7 +2228,8 @@ tvOS 26.6 before choosing what links do: a media url over AirPlay (`/play`
 as pyatv sends it, RTSP and HTTP, every body shape) is taken, the TV's
 AirPlay app comes forward, and the file is never fetched, so files are not
 offered; Twitch's app refuses `twitch://stream/<channel>`; YouTube takes
-its own scheme (`youtube://www.youtube.com/watch?v=<id>`) and refuses its
+its own scheme (`youtube://www.youtube.com/watch?v=<id>&t=<s>`, the video
+opening at that second, checked on the screen by Cagdas) and refuses its
 https links; the TV app claims its https links, as pyatv documents for
 Netflix. The strip's icon is the TV mark by default: a full-colour square
 beside one-colour glyphs read as noise; the App Store icon, its corners
