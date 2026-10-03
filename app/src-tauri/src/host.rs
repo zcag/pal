@@ -361,7 +361,7 @@ impl Host {
         serde_json::from_value(v).map_err(|e| format!("reload {name}: {e}"))
     }
 
-    async fn request_within(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
+    pub(crate) async fn request_within(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
         lock(&self.pending).insert(id, tx);

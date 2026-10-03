@@ -243,6 +243,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
         autostart::apply(app, &loaded.config);
     }
     crate::states::apply_config(app, &prev, &loaded.config);
+    crate::controls::apply_config(app, &prev, &loaded.config);
     crate::bar::apply_config(app, &prev, &loaded.config);
     crate::sidebar::apply_config(app, &prev, &loaded.config);
     crate::expansion::apply_config(app, &prev, &loaded.config);
@@ -1056,7 +1057,7 @@ pub fn settings_general(st: State<'_, Settings>) -> pal_core::config::General {
 
 /// One retry on `Contended`: a hand save that landed while we held the
 /// text is re-read and the key applied over it.
-fn retrying<T>(f: impl Fn() -> Result<T, Error>) -> Result<T, String> {
+pub(crate) fn retrying<T>(f: impl Fn() -> Result<T, Error>) -> Result<T, String> {
     match f() {
         Err(Error::Contended(_)) => f(),
         r => r,

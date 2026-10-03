@@ -901,6 +901,33 @@
       },
       "type": "object"
     },
+    "Group": {
+      "additionalProperties": false,
+      "description": "`[groups.<id>]`: devices used together.",
+      "properties": {
+        "inputs": {
+          "description": "The member serving the inputs to every member; unset: each its own.",
+          "type": "string"
+        },
+        "members": {
+          "default": [],
+          "description": "The devices: instance keys of extensions that provide a control (`appletv`, `samsungtv`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "title": {
+          "description": "What Settings shows (\"Living room\"); the id when unset.",
+          "type": "string"
+        },
+        "volume": {
+          "description": "The member serving the volume to every member; unset: each its own.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "Hotkeys": {
       "anyOf": [
         {
@@ -1293,6 +1320,14 @@
         "theme_file": "",
         "usage": true
       }
+    },
+    "groups": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Group"
+      },
+      "default": {},
+      "description": "Groups: devices used together, one remote driving the TV's volume,\ninputs and power (`[groups.living-room] members = [\"appletv\",\n\"samsungtv\"] volume = \"samsungtv\"`; `docs/design/controls.md`).",
+      "type": "object"
     },
     "instances": {
       "additionalProperties": {

@@ -45,6 +45,7 @@ mod reserve;
 mod selection;
 mod settings;
 mod sidebar;
+mod controls;
 mod states;
 mod storage;
 mod store;
@@ -372,6 +373,12 @@ pub fn run() {
             settings::instances_add,
             settings::instances_rename,
             settings::instances_remove,
+            controls::controls_published,
+            controls::groups_create,
+            controls::groups_rename,
+            controls::groups_delete,
+            controls::groups_set_members,
+            controls::groups_bind,
             settings::settings_check_updates,
             settings::settings_about,
             settings::settings_open_link,
@@ -478,6 +485,7 @@ pub fn run() {
             updater::install_checks(app.handle());
             index::restore_cache(app.handle());
             views::install(app.handle());
+            controls::install(app.handle());
             states::install(app.handle());
             watchdog::install(app.handle());
             bar::install(app.handle());

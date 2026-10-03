@@ -741,6 +741,7 @@ pub async fn apply_config(app: AppHandle, host: Arc<Host>, prev: Config, next: C
 
 fn remove_extension(app: &AppHandle, ext: &str) {
     crate::bar::remove_extension(app, ext);
+    crate::controls::forget(app, ext);
     let gone: Vec<Source> = Palettes::with(app, |reg| {
         let gone = reg.iter().filter(|r| r.source.extension == ext).map(|r| r.source.clone()).collect();
         reg.retain(|r| r.source.extension != ext);

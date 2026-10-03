@@ -67,6 +67,10 @@ pub struct Config {
     /// (`[states.working] expr = "hour >= 9 and hour < 18"`;
     /// `docs/design/states.md`).
     pub states: BTreeMap<String, crate::states::Decl>,
+    /// Groups: devices used together, one remote driving the TV's volume,
+    /// inputs and power (`[groups.living-room] members = ["appletv",
+    /// "samsungtv"] volume = "samsungtv"`; `docs/design/controls.md`).
+    pub groups: BTreeMap<String, crate::controls::Group>,
     /// Extension settings, keyed by extension name, or by instance key
     /// (`[extensions."gmail@work"]`, which inherits `[extensions.gmail]`
     /// except its secrets and `scope: "instance"` settings). Shape is
@@ -1304,6 +1308,7 @@ impl Config {
         for (key, d) in &self.states {
             out.extend(unknown(&format!("states.{key}."), &d.extra));
         }
+        out.extend(crate::controls::diagnostics(&self.groups));
         out.extend(unknown("features.sidebar.", &self.features.sidebar.extra));
         for (id, t) in &self.features.tables {
             if !crate::features::is(id) {
@@ -1900,6 +1905,15 @@ limit = 5
 token = \"keychain:pal/github-token\"\n[extensions.\"github@work\"]\ntoken = \"keychain:pal/github@work-token\"\n").unwrap();
         assert_eq!(c.extension_settings_resolved("github@work", &specs, &store)["token"].as_str(), Some("ghp_w"));
         assert_eq!(c.extension_settings_resolved("github", &specs, &store)["token"].as_str(), Some("ghp_p"));
+    }
+
+    #[test]
+    fn groups_parse_with_their_warnings() {
+        let (c, d) = parse("[groups.living-room]\ntitle = \"Living room\"\nmembers = [\"appletv\", \"samsungtv\"]\nvolume = \"samsungtv\"\ninputs = \"hue\"\nloud = true\n").unwrap();
+        let g = &c.groups["living-room"];
+        assert_eq!((g.title.as_deref(), g.members.len(), g.binding("volume"), g.binding("inputs")), (Some("Living room"), 2, Some("samsungtv"), None), "a binding to a non-member is ignored");
+        let paths: Vec<&str> = d.iter().map(|d| d.path.as_str()).collect();
+        assert!(paths.contains(&"groups.living-room.inputs") && paths.contains(&"groups.living-room.loud"), "{paths:?}");
     }
 
     #[test]

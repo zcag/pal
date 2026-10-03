@@ -65,6 +65,9 @@ pub const TRIGGER: &str = "pal://trigger";
 /// To every page: states changed, `{ states: { <name>: value } }` (states.rs);
 /// a view level whose palette lists `state:<name>` under `on` asks again.
 pub const STATES: &str = "pal://states";
+/// To every page: controls were published or regrouped, `{ changes: [{ control,
+/// provider, keys }] }` (controls.rs); Settings › Groups reads the devices again.
+pub const CONTROLS: &str = "pal://controls";
 /// To the panel's page: a confirm card to render with its `Confirm`
 /// component, `{ title, message, ok, cancel, token }`, or `null` to drop
 /// the one up (deeplink.rs); the page answers on [`CONFIRM_REPLY`].
