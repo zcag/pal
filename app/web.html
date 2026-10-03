@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>pal</title>
+    <!-- The SDK reads `process.env` (PAL_NOW and the like) and `process.platform` at import. -->
+    <script>globalThis.process = { env: {}, platform: "web", argv: [] };</script>
+    <script type="importmap">{ "imports": { "@zcag/pal": "./ext/sdk.js" } }</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/web/main.ts"></script>
+  </body>
+</html>
