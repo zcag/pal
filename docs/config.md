@@ -402,11 +402,15 @@ Power has no key: it is every member's (the power button wakes or sleeps
 them all). Players are never grouped: every one reaches Now Playing.
 
 Settings › Groups (also `pal settings groups`, the root's Settings ›
-Groups) has a card per group: its name, its members with the device each
-drives (one not installed or not running says so), a picker for who
-serves the volume and the inputs among the members that have them, and
-which members power reaches. A device in another group is offered as a
-move. The field under the cards starts a new one.
+Groups) has a card per group: its name, its devices with the device each
+drives, where the sound and the inputs come from (only among members
+that have them; no row when none does), and who turns on and off
+together. "New group" makes one at once ("Living room", then "Group 2")
+and asks which devices: the installed ones, and the ones a registry
+offers (their index entry's `controls`), which install on the pick and
+then join. A device joining binds the sound and the inputs to the TV
+(the member with inputs) when nothing serves them yet, so an Apple TV
+and a Samsung TV need no pick. A device in another group moves.
 
 The id is lowercase letters, digits, `-` and `_`. Settings writes the
 table through these app commands (for a page of your own on the same

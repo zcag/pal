@@ -17,7 +17,7 @@ export type BuildInfo = { hash: string; seq: number; protocol: number; commit: s
 export type Screenshot = { url: string; caption?: string } | string;
 export type Listing = {
   title: string; description: string; tagline: string; features: string[]; category: string; keywords: string[]; icon: unknown; author: string;
-  platforms?: string[] | null; play: boolean; palettes: { id: string; title: string; kind: string }[]; screenshots: Screenshot[]; requires: string[]; suggests: string[];
+  platforms?: string[] | null; play: boolean; palettes: { id: string; title: string; kind: string }[]; screenshots: Screenshot[]; requires: string[]; suggests: string[]; controls?: string[];
 };
 export type Origin = "bundled" | "store" | "local";
 /** `pal_core::updates::Status`, its state flattened under `state`. */

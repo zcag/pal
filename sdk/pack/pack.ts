@@ -27,6 +27,8 @@ export type Listing = {
   screenshots: { url: string; caption: string }[];
   requires: string[];
   suggests: string[];
+  /** The manifest's `controls`: what it can do for a group (Settings › Groups offers it to install). */
+  controls: string[];
 };
 export type BuildInfo = { hash: string; seq: number; protocol: number; commit: string };
 /** `<name>.entry.json`: one built extension, before signing. */
@@ -98,6 +100,7 @@ export function listingOf(m: Json, screenshotsBase?: string): Listing {
     screenshots: base ? shots.filter((s) => str(s?.file)).map((s) => ({ url: `${base}/${m.name}/screenshots/${s.file}`, caption: str(s.caption) ?? "" })) : [],
     requires: strs(m.requires),
     suggests: strs(m.suggests),
+    controls: strs(m.controls),
   });
 }
 

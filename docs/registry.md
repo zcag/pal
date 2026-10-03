@@ -105,7 +105,7 @@ A registry is one JSON file and its detached minisign signature
         "author": "pal", "platforms": ["macos", "linux"], "play": false,
         "palettes": [{ "id": "weather", "title": "Weather", "kind": "list" }],
         "screenshots": [{ "url": "https://…/1-list.png", "caption": "…" }],
-        "requires": [], "suggests": []
+        "requires": [], "suggests": [], "controls": []
       },
       "builds": [
         {
@@ -126,7 +126,8 @@ A registry is one JSON file and its detached minisign signature
   anything else; `manifest` is the full `pal.json` of that build. It is
   the manifest's `title`, `description`, `keywords`, `icon` (a tile,
   a product's logo included: docs/extensions.md, "Icons"), `author`,
-  `requires` and `suggests`, its store block's `tagline`, `features` (the
+  `requires`, `suggests` and `controls` (what it can do for a group:
+  `volume`, `power`, `inputs`, `player`; design/controls.md), its store block's `tagline`, `features` (the
   "What it does" bullets), `category`, `platforms` (absent: every
   platform), `play` and `screenshots` (absolute urls with their
   captions), and its `palettes` (`id`, `title`, `kind`). A field an

@@ -157,14 +157,19 @@ wins. A binding to a non-member is a load warning and ignored.
 
 UI first: the page is the way to make a group; the file mirrors it.
 
-- A card per group: its name (editable), its members as chips (added
-  from the extensions that provide any control, each with its tile),
-  and a row per control with a picker among the members that provide
-  it ("Volume: 75\" Neo QLED"; "each its own" when unset). Power reads
-  "every member" with the members that provide it.
-- "New group" at the bottom; a group with no members reads what it is
-  for ("Put devices you use together in one group: one remote then
-  drives the TV's volume and inputs").
+- A card per group: its name (click to edit), its devices as chips
+  with the device each drives, "Sound comes from" and "Inputs come
+  from" among the members that have them (hidden when none does), and
+  "Power" listing who turns on and off together.
+- **Never a dead end** (Cagdas, 2026-10-04: the first page was "a bunch
+  of text and an input" and a new group showed nothing to add). "New
+  group" makes one at once and asks which devices; a device a registry
+  offers but this pal lacks is in the same list and installs on the
+  pick (`listing.controls`, docs/registry.md). A device is an extension
+  with volume, power or inputs: a player alone (Spotify) is not one.
+- **Zero picks for the usual case.** Joining binds the sound and the
+  inputs to the member with inputs (the TV), taking the sound over
+  from a box without inputs (`bindingsOnJoin`).
 - An extension in no group shows nothing new anywhere.
 
 ## Now Playing

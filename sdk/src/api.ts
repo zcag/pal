@@ -511,6 +511,8 @@ export type StoreListing = {
   screenshots: ({ url: string; caption?: string } | string)[];
   requires: string[];
   suggests: string[];
+  /** The manifest's `controls` (docs/design/controls.md); empty from an index older than 0.12. */
+  controls?: string[];
 };
 
 /**

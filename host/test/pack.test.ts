@@ -63,7 +63,7 @@ describe("build", () => {
       title: "Thing", tagline: "t", features: ["Does one thing", "Does another"], category: "fun", keywords: [], platforms: ["macos"], play: true,
       palettes: [{ id: "thing", title: "Thing", kind: "view" }, { id: "other", title: "Other", kind: "list" }],
       screenshots: [{ url: "https://pal.cagdas.io/extensions/thing/screenshots/1-list.png", caption: "The list" }],
-      requires: [], suggests: [],
+      requires: [], suggests: [], controls: [],
     });
   });
 
@@ -142,7 +142,7 @@ describe("build", () => {
 
 describe("listing", () => {
   test("absent fields are left out or empty; a palette without a title is its key", () => {
-    expect(listingOf({ name: "n", palettes: { list: {}, n: {} } })).toEqual({ title: "n", features: [], keywords: [], platforms: [], play: false, palettes: [{ id: "list", title: "list", kind: "list" }, { id: "n", title: "n", kind: "list" }], screenshots: [], requires: [], suggests: [] });
+    expect(listingOf({ name: "n", palettes: { list: {}, n: {} } })).toEqual({ title: "n", features: [], keywords: [], platforms: [], play: false, palettes: [{ id: "list", title: "list", kind: "list" }, { id: "n", title: "n", kind: "list" }], screenshots: [], requires: [], suggests: [], controls: [] });
   });
 });
 

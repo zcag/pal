@@ -179,6 +179,9 @@ pub struct Listing {
     pub screenshots: Vec<serde_json::Value>,
     pub requires: Vec<String>,
     pub suggests: Vec<String>,
+    /// The manifest's `controls` (docs/design/controls.md): Settings › Groups
+    /// offers a device it can install. Absent in an index from before 0.12.
+    pub controls: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

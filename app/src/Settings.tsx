@@ -10,7 +10,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
-  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsGroups, SettingsOverview, SettingsShortcuts, SettingsWindow, groupsIndex, type GroupControl, type GroupDevice, type DeviceGroup,
+  SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsGroups, SettingsOverview, SettingsShortcuts, SettingsWindow, groupsIndex, isDevice, type GroupControl, type GroupDevice, type DeviceGroup, type DeviceOffer,
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, permissionUsers, storePermissions, type SettingsFeature,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
@@ -21,7 +21,7 @@ import { comboOf, isMac } from "./ui/keys";
 import { DESIGNS, designOf } from "./ui/designs";
 import { screenshotUrl } from "./ui/icons";
 import { iconOf } from "./items";
-import { ok, store, useStore, type Status, type StoreState } from "./store";
+import { listed, ok, store, useStore, type Status, type StoreState } from "./store";
 import type { ExtensionsStore } from "./ui/SettingsStore";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
@@ -419,12 +419,23 @@ export default function Settings() {
     return all.map((e) => toExtension(e, view.config, storeState, enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
   }, [view, storeState]);
   const groups = useMemo<DeviceGroup[]>(() => Object.entries(view?.config.groups ?? {}).map(([id, g]) => ({ id, title: g.title, members: g.members ?? [], volume: g.volume, inputs: g.inputs })), [view]);
-  // Every instance whose manifest declares `controls` can be a member; the device it drives is whatever it published last.
-  const devices = useMemo<GroupDevice[]>(() => (view?.extensions ?? []).filter((e) => e.manifest.controls?.length).map((e) => {
+  // Every instance whose manifest declares a device control (volume, power, inputs; a player alone is no device) can be a member; the device it drives is whatever it published last.
+  const devices = useMemo<GroupDevice[]>(() => (view?.extensions ?? []).filter((e) => isDevice(e.manifest.controls)).map((e) => {
     const s = extensions.find((x) => x.key === e.key);
     const device = Object.values(published[e.key] ?? {}).find((p) => p?.device)?.device;
     return { key: e.key, title: s?.title ?? e.manifest.title ?? e.name, icon: s?.icon, controls: e.manifest.controls ?? [], device, stopped: !e.loaded || undefined };
   }), [view, extensions, published]);
+  // A device a registry offers and this pal has not installed: Settings › Groups installs it on a pick (`listing.controls`, docs/registry.md).
+  const deviceOffers = useMemo<DeviceOffer[]>(() => {
+    const have = new Set((view?.extensions ?? []).map((e) => e.name));
+    const seen = new Set<string>();
+    return storeState.available.filter((a) => !a.installed && !have.has(a.name) && isDevice(a.listing.controls)).flatMap((a) => {
+      if (seen.has(a.name)) return [];
+      seen.add(a.name);
+      const l = listed(storeState, a.name) ?? a;
+      return [{ name: a.name, title: l.listing.title || a.name, icon: iconOf(l.listing.icon, l.listing.title || a.name), controls: (l.listing.controls ?? []) as GroupControl[], blocked: l.installable ? undefined : l.blocked ?? "Not available here" }];
+    });
+  }, [view, storeState]);
   const barItems = useMemo(() => (view?.bar ? view.bar.items.map((b) => toBarItem(b, view.config, extensions, view.features)) : []), [view, extensions]);
   // Every store operation goes through the core and resolves once the host loaded (or dropped) the extension; `pal://store` and `pal://host` bring the pages up to date.
   const onExtUpdate = async (names: string[]) => { for (const r of await store.update(names, "settings")) ok(r); };
@@ -434,7 +445,11 @@ export default function Settings() {
   const onInstanceRemove = async (key: string) => { await invoke("instances_remove", { key }); refresh(); };
   // Groups (controls.rs `groups_*`): one file edit each, in order, so a move (out of one group, into another) never races itself.
   const groupWrites = useRef<Promise<unknown>>(Promise.resolve());
-  const onGroup = (cmd: string, args: Record<string, unknown>) => { groupWrites.current = groupWrites.current.then(() => invoke(cmd, args)).then(refresh, (e) => setError(String(e))); };
+  const onGroup = <T,>(cmd: string, args: Record<string, unknown>): Promise<T> => {
+    const done = groupWrites.current.then(() => invoke<T>(cmd, args));
+    groupWrites.current = done.then(refresh, (e) => setError(String(e)));
+    return done;
+  };
   const onInstanceEnabled = (key: string, enabled: boolean) => write(["instances", key, "enabled"], enabled ? undefined : false);
   // A selection that names nothing (a removed extension no registry lists) goes back to the page's home; one only listed opens as its listing.
   useEffect(() => {
@@ -745,11 +760,13 @@ export default function Settings() {
         <SettingsGroups
           groups={groups}
           devices={devices}
-          onCreate={(title) => onGroup("groups_create", { title, members: null })}
-          onRename={(id, title) => onGroup("groups_rename", { id, title })}
-          onDelete={(id) => onGroup("groups_delete", { id })}
-          onMembers={(id, members) => onGroup("groups_set_members", { id, members })}
-          onBind={(id, control, member) => onGroup("groups_bind", { id, control, member: member ?? null })}
+          offers={deviceOffers}
+          onCreate={(title) => onGroup<string>("groups_create", { title, members: null })}
+          onRename={(id, title) => { onGroup("groups_rename", { id, title }).catch(() => {}); }}
+          onDelete={(id) => { onGroup("groups_delete", { id }).catch(() => {}); }}
+          onMembers={(id, members) => onGroup<void>("groups_set_members", { id, members })}
+          onBind={(id, control, member) => onGroup<void>("groups_bind", { id, control, member: member ?? null })}
+          onInstall={async (name) => { ok(await store.install(name, listed(storeState, name)?.registry ?? null, "settings")); }}
         />
       )}
       {page === "about" && (
