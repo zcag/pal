@@ -74,8 +74,9 @@ cannot be driven).
 | `inputs` | `list: { id, name, icon? }[]`, `current` id | `set(id)` |
 | `player` | `state` (playing/paused/stopped), `title`, `artist`, `album`, `artwork` (url or `data:`), `app`, `position` + `at` (unix ms the position was read), `duration`, `palette` (the provider's own Now Playing palette), `item` (its own bar item for this playback, when it has one), `same` (bundle ids it duplicates on the system's list) | `play_pause`, `next`, `previous`, `seek(seconds)` |
 
-Every state also carries the provider's `title` (its device's name,
-"75\" Neo QLED") for the slot's tooltip and the group editor.
+Every state also carries the provider's `device` (its device's name,
+"75\" Neo QLED") for the slot's tooltip and the group editor (as built:
+`device`, not `title`, which `player` uses for the track).
 
 ## SDK
 
@@ -89,7 +90,7 @@ export default defineExtension(manifest, {
     inputs: { set: (id) => tv.source(id) },
   },
 });
-controls.publish("volume", { title: "75\" Neo QLED", level: 0.24, muted: false });
+controls.publish("volume", { device: "75\" Neo QLED", level: 0.24, muted: false });
 
 // consumer (any extension, the provider itself included)
 const v = await controls.get("volume");   // { provider: { key, title }, ...state } | null
@@ -105,15 +106,19 @@ const players = await controls.all("player"); // every provider's, not grouped
 - `run(control, op, ...args)` lands on the provider's handler, through
   the host, inside the provider's own context (its settings, storage,
   `view.update` are its own). Its error comes back to the caller.
-- `onChange(cb)` fires when anything the caller would `get` changed:
-  a provider's publish, or the group config.
-- View components, pal's own look: `volumeRow(state, opts)`,
-  `powerButton(state, opts)`, `inputsRow(state, opts)` answer a
+- `onChange(cb)` fires on every publish and regroup with `{ control,
+  provider, mine }`, `mine` when the caller's own `get` answer moved
+  (Now Playing listens to every `player`).
+- View components, pal's own look: `volumeRow(state, width, opts)`,
+  `volumeButton(state, dir, size)`, `powerButton(state, size, opts)`,
+  `inputsRow(state, width)`, `controlButton` for an extension's own
+  button in the same look, answer a
   `ViewNode` (or nothing for a `null` state) whose actions are
   `controls:<control>:<op>[:<arg>]`; `controls.act(id, ctx)` runs one
   and answers whether it was one, so a view's `pick` forwards them in a
-  line. The Apple TV's current volume row and buttons are where the look
-  comes from.
+  line; `withControls(view)` declares the actions the parts run. The
+  Apple TV's current volume row and buttons are where the look comes
+  from.
 
 ## Core and host
 

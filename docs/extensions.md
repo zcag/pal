@@ -140,6 +140,9 @@ whose code fails to load.
   installs them.
 - `suggests`: the names of extensions some of its actions use (`["colors",
   "diff"]` on Clipboard). The actions that need a missing one hide.
+- `controls`: the controls the code provides (`["volume", "power",
+  "inputs"]`; below, "Controls"), so Settings › Groups offers the
+  extension for them without loading it.
 - `protocol`: written by `pal-pack`, never by hand: the `PROTOCOL` of the
   SDK the package was built against (below, "Packages").
 
@@ -1388,6 +1391,93 @@ A bar item that follows a state re-renders on `state:<name>` in its
 without a render. The bundled `sessions` publishes `working` and
 `waiting` (its counts) at every render.
 
+## Controls: one device's view drives another's
+
+An Apple TV and the TV it is plugged into are used together: the remote
+you navigate with should set the TV's volume, switch its inputs and wake
+both. Neither extension knows the other (`docs/design/controls.md`).
+pal defines four **controls**; an extension that **provides** one says so
+and publishes its state, any extension asks for "my volume", and the
+user's **group** (`[groups]`, Settings › Groups) decides who serves it.
+Without a group every extension is served by itself, so a provider that
+is also a consumer (the usual case) behaves as it did alone.
+
+| Control | State (every field optional) | Ops |
+| --- | --- | --- |
+| `volume` | `level` 0..1 (absent: the device only steps), `muted` | `set(level)`, `step(1 \| -1)`, `mute(on)` |
+| `power` | `on`, `busy` (waking or going to sleep) | `set(on)` |
+| `inputs` | `list: { id, name, icon? }[]`, `current` | `set(id)` |
+| `player` | `state` (`playing`/`paused`/`stopped`), `title`, `artist`, `album`, `artwork` (a url or `data:`), `app`, `position` (s) with `at` (unix ms it was read), `duration`, `palette` (your own Now Playing palette), `same` (bundle ids of the system's players showing the same playback) | `play_pause`, `next`, `previous`, `seek(seconds)` |
+
+Every state also takes `device`, the name of the thing it controls
+("75\" Neo QLED"): a part drawn for another device says whose it is.
+
+**Providing.** Declare the controls in `pal.json` (`"controls":
+["volume", "power", "inputs"]`; Settings offers the extension for them
+without loading it), handle the ops in the default export, publish the
+state whenever it changes, `null` when the device cannot be driven:
+
+```ts
+export default defineExtension(manifest, {
+  palettes: { ... },
+  controls: {
+    volume: { set: (l) => tv.setVolume(l), step: (d) => tv.key(d > 0 ? "VOLUP" : "VOLDOWN"), mute: (on) => tv.mute(on) },
+    power: { set: (on) => (on ? tv.wake() : tv.key("POWER")) },
+    inputs: { set: (id) => tv.source(id) },
+  },
+});
+await controls.publish("volume", { device: tv.name, level: 0.24, muted: false });
+```
+
+A handler runs in your own context (your settings, storage, `view.update`
+are yours), whoever asked; what it answers is ignored and a throw is the
+asker's error. The host warns when the manifest and the code disagree
+(`checkControls`).
+
+**Asking.** From any extension, the provider included:
+
+- `controls.get(control)`: the state as it is served to you, with
+  `provider: { key, device }`; `null` when nobody serves it. `power` in
+  a group answers every member's (`on` when any is, `members` each).
+- `controls.run(control, op, ...args)`: on whoever serves it; `power` in
+  a group goes to every member at once. Waits up to 15 s
+  (`CONTROL_RUN_MS`): a wake crosses the network.
+- `controls.onChange((c) => ...)`: `{ control, provider, mine }` on
+  every publish and every regroup (`provider` empty then); `mine` when
+  your own `get` answer moved. Redraw on `mine`; Now Playing listens to
+  every `player`.
+- `controls.all(control)`: every provider's state, grouped or not.
+- `controls.publish(control, state | null)`.
+
+**The parts a group can hand over** are pal's, so they look the same
+whoever serves them and a part nobody serves is not drawn: `volumeRow(v,
+width, { device })` (the glyph mutes, a slider sets, the percentage; the
+step buttons when there is no level; the serving device's name under it
+when it is not `device`, your own), `volumeButton(v, 1 | -1, size, { lit,
+label })`, `powerButton(p, size, { lit, labels })` (wake when off, sleep
+when on), `inputsRow(i, width)` (a chip each, the current one lit), and
+`controlButton` under them for a button of your own in the same look
+(`lit` is a key's flash, `CONTROL_LIT`). Each takes what `controls.get`
+answered. Their clicks are actions spelled
+`controls:<control>:<op>[:<arg>]` (`controls:volume:step:-1`,
+`controls:power:set:true`, `controls:inputs:set:<id>`;
+`controls:volume:set` and `controls:player:seek` read a slider's
+`values.value`, `controls:volume:mute` and `controls:power:set` without an
+argument toggle). `withControls(view)` declares the ones the tree runs as
+hidden actions, so the view needs no list of its own; give your keys the
+same ids to route them too (`{ id: "controls:volume:step:1", shortcut:
+"=" }`). In `pick`, one line forwards them:
+
+```ts
+pick: async (_id, action, ctx) => {
+  if (await controls.act(action ?? "", ctx)) return { keep: true };
+  // ...your own actions
+},
+```
+
+Redraw on `controls.onChange` with `mine`: the TV publishing its new
+volume is what moves the slider in the Apple TV's remote.
+
 ## Storage
 
 `storage` in `@zcag/pal` is a small per-extension key-value store:
@@ -1417,6 +1507,9 @@ the host through a process-wide slot, not a shared module, so the version in
 your `node_modules` only has to speak the same wire. Every call is one request
 to the core.
 
+- `controls.{publish, get, run, all, onChange, act}` and the parts
+  `volumeRow`, `volumeButton`, `powerButton`, `inputsRow`,
+  `controlButton`, `withControls` (protocol 4): "Controls" above.
 - `settings.get<T>()`: the extension's values, `[extensions.<name>]`
   (the instance's, for an instance of a `multi` extension: "Instances"
   above). `settings.palette<T>()`: the current palette's declared values.

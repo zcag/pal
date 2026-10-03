@@ -376,6 +376,41 @@ published, else `default`. `pal state reset <name>` drops the manual value.
 The manual and published layers survive a relaunch (`states.json` under
 pal's data directory, next to `bar.json`); the built-ins are read afresh.
 
+## `[groups]`
+
+Devices you use together (`docs/design/controls.md`): one remote then
+drives the TV's volume, inputs and power. Settings › Groups is where you
+make one; the file mirrors it. An extension in no group is served by
+itself, as if this table were not here.
+
+```toml
+[groups.living-room]
+title = "Living room"
+members = ["appletv", "samsungtv"]
+volume = "samsungtv"      # the Apple TV's remote sets the TV's volume
+inputs = "samsungtv"
+```
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `title` | string | the id | What Settings shows. |
+| `members` | list of strings | `[]` | The devices: instance keys of extensions that provide a control (`Manifest.controls`). A key in two groups is a diagnostic; the first group by id wins. |
+| `volume` | string | unset | The member that serves the volume to every member; unset, each member its own. A key that is not a member is a diagnostic and ignored. |
+| `inputs` | string | unset | The same for the inputs. |
+
+Power has no key: it is every member's (the power button wakes or sleeps
+them all). Players are never grouped: every one reaches Now Playing.
+
+The id is lowercase letters, digits, `-` and `_`. Settings writes the
+table through these app commands (for a page of your own on the same
+bridge): `groups_create { title, members? }` (answers the id, the title
+slugged), `groups_rename { id, title }`, `groups_delete { id }`,
+`groups_set_members { id, members }` (a binding to a member that left is
+unset with it), `groups_bind { id, control: "volume" | "inputs", member
+| null }`; `controls_published` answers what every extension published,
+by key then control (the devices' names), and `pal://controls` says when
+it changed.
+
 ## `[features]`
 
 One table per feature, what pal does on its own

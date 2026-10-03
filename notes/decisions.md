@@ -2236,3 +2236,60 @@ beside one-colour glyphs read as noise; the App Store icon, its corners
 rounded into a PNG (the strip draws rasters only), is the `artwork` opt-in.
 A copied link is noticed by reading pal's own clipboard history every 2 s
 while an Apple TV is paired: no extension can subscribe to the clipboard.
+
+## Decided: controls and groups (2026-10-04)
+
+- **The ask (Cagdas, 2026-10-04).** He uses an Apple TV and a Samsung TV
+  together and wants one remote for both, without pal's design following
+  his setup: someone else has only one of them, or an Apple TV with some
+  other TV. Now Playing had the same shape (`media`, `spotify`,
+  `appletv`, `theater` each a "playing" bar item). Spec:
+  `docs/design/controls.md`.
+- **Rejected.** A common remote next to each extension's own (two places
+  to look, and owning both devices would get you the lesser one); one
+  extension calling another (coupling, and a missing-extension case at
+  every call); a "living room" extension requiring both (his setup built
+  into pal). What stays: each device keeps its own view, and only the
+  parts a group can hand to another device are pal's.
+- **What landed (the foundation).** Four controls (`volume`, `power`,
+  `inputs`, `player`) as types in `sdk/src/protocol.ts`;
+  `Extension.controls` (handlers per op), `Manifest.controls`,
+  `checkControls` (a warning both ways, host and worker). `controls` in
+  the SDK: `publish`, `get` (resolved for the caller), `run`, `all`,
+  `onChange` (`{ control, provider, mine }`), `act` (a view's
+  `controls:<control>:<op>[:<arg>]` action). The parts in
+  `sdk/src/controls.ts`, the Apple TV remote's look: `volumeRow`,
+  `volumeButton`, `powerButton`, `inputsRow`, `controlButton`,
+  `withControls`. The table and the resolution in
+  `pal_core::controls` (`Table`, `Group`, `regrouped`, `diagnostics`),
+  live in `app/src-tauri/src/controls.rs`: `core/controls.*`,
+  `controls/run` to the host (every member's power at once, 14 s each),
+  `controls/changed` to the host and `pal://controls` to the pages, what
+  an unloaded extension published dropped with it. `[groups.<id>]`
+  (`title`, `members`, `volume`, `inputs`) in the config and its schema;
+  the `groups_*` and `controls_published` commands for Settings ›
+  Groups. Protocol 4.
+- **Resolution.** A caller in a group gets the member its group binds
+  for `volume`/`inputs`, else itself; a binding to a member that
+  published nothing answers `null` (it does not fall back to the
+  caller: the Apple TV's own volume shown in the TV's place would drive
+  the wrong device). `power` in a group is every member that published
+  one: `on` when any is, a run goes to all. Players are never grouped. A
+  key in two groups: the first by id wins, a warning.
+- **Deviations from the spec.** The device's name is `device`, not
+  `title`: `player` has a `title` of its own (the track). The parts gained
+  `volumeButton` and `controlButton` (the Apple TV's vol± and its own
+  buttons in the same look) and `withControls` (declares the parts'
+  actions, so `checkView` passes without a hand-kept list). `onChange`
+  hears every change with `mine`, rather than only the caller's: Now
+  Playing wants every player. A regroup's change has an empty `provider`.
+- **Tests.** `pal_core::controls` (resolution, combined power, changes,
+  warnings, ids, regrouping), the config parse; `host/test/controls.test.ts`
+  through a real host with a provider, a consumer and a `multi` provider
+  (the harness stands in for the core's table: `Options.groups`,
+  `host.setGroups`, `host.published`) and the parts against `checkView`.
+- **Not done here (other lanes).** Settings › Groups (the page), the Apple
+  TV as provider and consumer, `media` + Spotify + theater players, the
+  Samsung TV extension. Not done at all: what a host restart leaves in
+  the table for an extension that does not publish again on load (it is
+  cleared on `extension/removed`, error and disable only).
