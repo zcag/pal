@@ -1383,7 +1383,15 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" || view.kind === "missing" ? "" : isMenu ? `Search ${view.title}…` : (view.kind === "palette" ? view.placeholder : undefined) ?? scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
   /** What Enter runs and the footer names: the field's submit while a view's text field is open, else the first listed action. */
   const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : runnable[0];
-  const onPickAt = (i: number) => { cur.set(i); const a = listed[0]; if (a) run(a); };
+  // A click on another row moves the cursor first and runs that row's primary once its actions are listed: `listed` is still the old row's here. A mouse hovers the row first (Row's onMouseMove) so the cursor is usually there already; a tap never hovers.
+  const pickAt = useRef<number | null>(null);
+  const onPickAt = (i: number) => { if (i !== cur.cursor) { pickAt.current = i; cur.set(i); return; } const a = listed[0]; if (a) run(a); };
+  useEffect(() => {
+    if (pickAt.current === null || pickAt.current !== cur.cursor) return;
+    pickAt.current = null;
+    const a = listed[0];
+    if (a) run(a);
+  }, [cur.cursor, listed]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Enter with rows marked and nothing that works on several: say so rather than pick one. */
   const noMulti = () => setToast({ style: "failure", title: "Nothing here works on several rows", message: "Clear the selection (Escape) to pick one" });
   /** A single-row action's key with rows marked. */
