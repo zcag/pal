@@ -1419,8 +1419,9 @@ mod tests {
     /// The same over a real index cache (`$PAL_CORPUS`, an
     /// `index/` directory under the profile's data dir): every cached
     /// palette as a source, a `pal/palettes` row per palette with the
-    /// app's bonus and tier, tiers from the bundled manifests (`extensions/<ext>/
-    /// pal.json`) and the scripts rule for the v1 catalogs. Prints only.
+    /// app's bonus and tier, tiers from the manifests in the extension
+    /// repos' checkouts (`extensions::dev`) and the scripts rule for the v1
+    /// catalogs. Prints only.
     /// `PAL_CORPUS=~/Library/Application\ Support/pal/default/index cargo
     /// test -p pal-core --release -- --ignored --nocapture corpus_heads`.
     #[test]

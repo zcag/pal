@@ -28,7 +28,7 @@
 //! missing (`permissions::ask`: the card, then the prompt), the way expansion does; the
 //! extension's row says so and asks again on Enter.
 //!
-//! Settings are the extension's (`extensions/keycast/pal.json`, read the
+//! Settings are the extension's (`pal-extensions/keycast/pal.json`, read the
 //! way expansion reads snippets'): the default mode, the strip's corner,
 //! scale, hold and length, `shortcuts_only`, the ring's colour and whether
 //! clicks ripple. Whether it is on and in which mode is runtime state, not

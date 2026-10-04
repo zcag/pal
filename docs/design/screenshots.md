@@ -46,14 +46,14 @@ live in one place, the fixture.
 
 - **Invented, plausible data.** People, places, repositories, mail and
   tracks are made up; no real person's name, no real brand's artwork (draw an
-  SVG for an app icon, as `extensions/privacy/fixture.ts` does). The
+  SVG for an app icon, as pal-extensions' `privacy/fixture.ts` does). The
   pictures should look like a real day: sensible times, amounts that add up,
   a few items rather than one or fifty.
 - **One fixed clock**, 16 Sep 2026 14:32 local, the strip's clock.
 - **What the item really shows.** A bar fixture's item is what the
   extension's `render` answers for that state, a popover's tree is its
   `view.ts` over the fixture; a fixture never hand-writes a tree the code
-  would not produce. `extensions/<name>/fixture.ts` builds the fixtures from
+  would not produce. The extension's `<name>/fixture.ts` (in its repo) builds the fixtures from
   the extension's own functions and writes them; a bar fixture always comes
   from one (a gate), a panel fixture of plain rows may be written by hand.
 - **The same every run.** A fixture pins the clock and the zone
@@ -99,7 +99,9 @@ drawn twice its width and a glyph run at the wrong size.
     make shots                  # every extension, both themes, both kinds
     make shots EXT=privacy      # one (a space-separated list works)
 
-`make shots` runs each `extensions/<name>/fixture.ts`, starts the gallery's
+Run in the extension's repo (zcag/pal-extensions, zcag/pal-games), which
+calls pal's tools from its `.pal` checkout; the fixtures land in that
+repo's `test/shots/`. `make shots` runs each `<name>/fixture.ts`, starts the gallery's
 Vite server, renders every shot both themes with `app/scripts/shots.mjs`
 (the cached Chrome for Testing, never the daily browser, its clock pinned to
 the fixtures' moment and zone), quantises the PNGs to 256 colours with

@@ -455,7 +455,7 @@ function GalleryPage() {
       </Section>
 
       <Section id="tiles" title="Icon tiles">
-        <p className="g-note">Every bundled extension's icon as its manifest writes it (<code>extensions/*/pal.json</code>, read live): a rounded square in one of the twelve <code>--pal-brand-*</code> colours with a white mark, or a product's logo on its own colour. The same tile at 24 in a row, 20 in the crumb and the footer, 32 in a grid cell, 56 on a settings page. A row's plain glyph takes its palette's colour (<code>tint</code>); a state keeps its own.</p>
+        <p className="g-note">Every bundled extension's icon as its manifest writes it (<code>pal-extensions/*/pal.json</code>, read live): a rounded square in one of the twelve <code>--pal-brand-*</code> colours with a white mark, or a product's logo on its own colour. The same tile at 24 in a row, 20 in the crumb and the footer, 32 in a grid cell, 56 on a settings page. A row's plain glyph takes its palette's colour (<code>tint</code>); a state keeps its own.</p>
         <State label="Palette rows, the second selected">
           <Pair surface>
             {tileRows.map((item, i) => <Row key={item.id} item={item} active={i === 1} />)}

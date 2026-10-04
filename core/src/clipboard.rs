@@ -135,7 +135,7 @@ pub enum Content {
 }
 
 /// What the recorder keeps. The defaults match the clipboard extension's
-/// manifest (`extensions/clipboard/pal.json`), which is where the user sets
+/// manifest (`pal-extensions/clipboard/pal.json`), which is where the user sets
 /// them.
 #[derive(Clone, Copy, Debug)]
 pub struct Retention {

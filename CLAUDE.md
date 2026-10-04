@@ -14,30 +14,46 @@ section of `notes/decisions.md`.
   UI control in the same change.
 - Quiet, plain words over jargon; animations are fine, never add
   `prefers-reduced-motion` handling.
-- `make test` before every push (it mirrors CI); CI runs on Linux too. A push
-  that only touches extensions (their directories, their tests, the
-  bundled/registry-only lists) gets CI's extension mode
-  (`.github/scripts/ci-scope.ts`): run `make test-ext NAMES="a b"` (add
-  `APP=1` when a `pal.json` changed) instead, which is what CI runs then.
-  Push such a change on its own, not together with core/app/host work, or
-  it gets the full run.
+- `make test` before every push (it mirrors CI); CI runs on Linux too. It
+  runs the host's contract tests over the extension repos' checkouts and
+  the bundled extensions' tests from pal-extensions (CI checks out both
+  repos at main), so a host or SDK change that breaks one is caught here.
+
+## The extension repos
+
+The extensions live in `zcag/pal-extensions`, the games in
+`zcag/pal-games`; extension and game changes are made there, and their
+CLAUDE.md has the rules that moved with them (the store block, the icon,
+the screenshots, edge and stable). In development they are the checkouts
+beside this one, `../pal-extensions` and `../pal-games`
+(`PAL_EXTENSION_REPOS`, a path list, overrides;
+`app/scripts/extension-repos.mjs` and `pal_core::extensions::dev` read
+them): a debug app loads them, the host harness tests them, the gallery
+and `make shots` read their manifests and fixtures. Each repo tests
+against a pal checkout in its `.pal/` (`make test` there is its CI).
 
 ## Extensions are distributed, not just bundled
 
 - **Bundled vs registry is a decision for every extension.**
-  `extensions/bundled.txt` lists the extensions built into the app (they
-  need no account or setup and a Mac user expects them on day one, or a
-  core feature relies on them); `extensions/registry-only.txt` lists the
-  rest, which ship only through pal's registry. Every extension directory
-  must be in exactly one of the two, and a test fails otherwise, so a new
-  extension gets a deliberate call: say which list and why when adding it.
+  `app/bundled.txt` lists the extensions built into the app (they need no
+  account or setup and a Mac user expects them on day one, or a core
+  feature relies on them); each extension repo's `registry-only.txt` lists
+  the rest of its own, which ship only through pal's registry. Every
+  extension must be in exactly one of the two, and a test fails otherwise
+  (`host/test/pack.test.ts`, run over each repo), so a new extension gets a
+  deliberate call: say which list and why when adding it. An app build
+  bundles each name's stable registry build (`app/scripts/build-extensions.sh`).
   Moving one is a one-line change; a name that leaves the bundle is
   installed by itself on machines that use it (the migration in
   `app/src-tauri/src/store.rs`).
-- **How a change reaches users.** A green push to main publishes every
-  changed extension to the **edge** index (`.github/workflows/extensions.yml`).
+- **How a change reaches users.** A green push to an extension repo's main
+  hands every changed build to `.github/workflows/extensions.yml` here (a
+  `publish-builds` repository_dispatch, sent by
+  `.github/actions/publish-extensions`), which builds it again, signs it and
+  adds it to the **edge** index; it is the only signer.
   Users follow **stable**: `make ext-release [NAMES="a b"]` promotes edge to
-  stable, and every app release promotes everything built at its tag.
+  stable, and every app release promotes everything on edge first, then
+  bundles stable's builds.
   Promoting is a release decision, like cutting an app release: only after
   the change was tried. Auto-update is on by default, so a promoted build
   reaches everyone within hours; a bad one is pulled with the `yank`
@@ -68,25 +84,19 @@ section of `notes/decisions.md`.
   public docs; pal.cagdas.io's code (`~/proj/pal-site`, private) only hosts
   it. Changing a format means changing `docs/registry.md` first.
 
-## Shipping an extension change
+## What stays here when an extension changes
 
-Beyond the code, unasked:
-- its `pal.json` store block (tagline, description, features: plain,
-  specific) and palette `title`s (registry listings and root search match on
-  them; a test requires them);
-- its icon: a product's real logo only when the extension is that product
-  (`bun app/scripts/brand-icons.ts`, Simple Icons; `--check` exits 1 when a
-  manifest drifted),
-  pal's own tools keep glyph tiles;
-- store screenshots (`extensions/<ext>/fixture.ts`, `make shots EXT=<ext>`,
-  look at every PNG in both themes), committing the regenerated
-  `app/src/gallery/shots/*.json` with them; when a bar item's look changed,
-  also `PAL_UPDATE_PARITY=1 cargo test -p pal parity` and `npx vitest run
-  bar-parity` in app/, or CI fails on the stale strip snapshot;
-- pal-site: `scripts/subset-font.py ../pal` when a manifest gains a Nerd
-  glyph, then its `./deploy.sh`; the landing's hand-picked lists
-  (`showcase`, `featured`, `apiShots`, `popovers`, `barStrip` in
-  `web/server.go`) when the extension deserves a slot.
+- The bar's strip parity snapshot (`app/src/ui/__tests__/bar-parity.json`)
+  keeps the items it draws, so an extension repo never breaks it; when a
+  bar item's look changed there, refresh it here with the checkouts beside
+  this one (`PAL_UPDATE_PARITY=1 cargo test -p pal parity`, then
+  `npx vitest run bar-parity` in app/) and commit it. A renderer change
+  here needs the same.
+- Promoting (`make ext-release`) and yanking (the `yank` dispatch input)
+  are done here, for every repo's builds.
+- pal-site (`~/proj/pal-site`): its `scripts/subset-font.py` when a
+  manifest gains a Nerd glyph, the landing's hand-picked lists; its
+  `./deploy.sh` asks first.
 
 ## Usage data
 

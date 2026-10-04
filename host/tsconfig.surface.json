@@ -4,7 +4,6 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
   "include": [
-    "../extensions/*/surface",
     "../examples/*/surface"
   ],
   "exclude": []

@@ -11,7 +11,7 @@
 // variable are that module's, so they are not reported.
 //
 // The games are the store's Fun shelf that have a view palette (the Games
-// shelf's own rule, extensions/games), less the ones that are not games,
+// shelf's own rule, pal-extensions/games), less the ones that are not games,
 // and any extension that declares `sync`. A game without `sync` is listed
 // by its own test, a todo until every game has one.
 import { describe, expect, test } from "bun:test";

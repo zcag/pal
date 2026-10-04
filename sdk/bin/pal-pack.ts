@@ -38,7 +38,7 @@ async function main(argv: string[]) {
   if (v.help || !cmd) return console.log(USAGE);
   switch (cmd) {
     case "build": {
-      // A glob like `extensions/*` also matches the files beside the extensions (bundled.txt, a README): those are skipped, said on stderr.
+      // A glob like `*/` or `extensions/*` also matches what sits beside the extensions (test/, a README): those are skipped, said on stderr.
       const dirs = pos.filter((p) => statSync(p, { throwIfNoEntry: false })?.isDirectory() ?? true);
       for (const p of pos) if (!dirs.includes(p)) console.error(`pal-pack: ${p}: not a directory, skipped`);
       if (!dirs.length) throw new Error(`build: no extension directory given\n\n${USAGE}`);

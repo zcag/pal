@@ -9,7 +9,7 @@
 // Run as a script it is the same serving for a plain browser, where the
 // kit's stub stands in for pal (`window.parent === window`):
 //
-//   bun host/src/surface.ts extensions/solitaire [port]
+//   bun host/src/surface.ts ../pal-games/solitaire [port]
 //
 // then open http://<host>:<port>/surface/index.html.
 import { stat } from "node:fs/promises";

@@ -26,8 +26,14 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
    to `v0.2.1` are on origin).
 2. The tag push starts `release.yml`, which refuses a tag that does not match
    `tauri.conf.json`'s version.
-3. Three jobs run (`macos-latest` for aarch64 and, cross-compiled, x86_64;
-   `ubuntu-24.04` for x86_64) and upload to that draft. ~13 min each without
+3. First a job `extensions` runs `extensions.yml` with `promote=all`
+   ([Extensions](#extensions)) and waits for it: everything on edge goes to
+   stable. Then three jobs run (`macos-latest` for aarch64 and, cross-compiled, x86_64;
+   `ubuntu-24.04` for x86_64) and upload to that draft. Each bundles the
+   extensions in `app/bundled.txt` as stable serves them
+   (`app/scripts/build-extensions.sh`: the index checked with `minisign`
+   against `PAL_KEYS`, each package against its tree hash), so the jobs
+   install `minisign`. ~13 min each without
    a cache, about 4 of it the dependencies: a push to `main` that changes
    `Cargo.lock` or a `Cargo.toml` runs the same build without bundling
    (`warm`) and saves the Rust cache, which a tag run restores (a tag sees
@@ -37,14 +43,13 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
    the three jobs merge into that one file in parallel, and a platform can
    be dropped when two finish at once. Re-run the missing platform's job;
    it merges its entry in again.
-4. Once the bundles are up, a job `extensions` runs `extensions.yml` for the
-   tag ([Extensions](#extensions)): every extension built at the tag goes
-   to the registry's edge and stable indexes. `manifest` then also checks
-   that every extension the aarch64 bundle ships (its `.pal-build.json`
-   hash) is a build stable lists, not yanked, and fails otherwise: an app
-   compares its bundled copies with the registry by hash, so a mismatch
-   would offer an "update" to what it already runs. A failed `extensions`
-   leaves the draft unpublished too: re-run it, then `manifest`.
+4. `manifest` also checks that every extension the aarch64 bundle ships (its
+   `.pal-build.json` hash) is a build stable lists, not yanked, and fails
+   otherwise: an app compares its bundled copies with the registry by
+   hash, so a mismatch would offer an "update" to what it already runs.
+   Taking them from stable makes it hold by construction; the check stays.
+   A failed `extensions` stops the bundles and leaves the draft
+   unpublished: re-run the workflow.
 5. When every bundle is there (with the updater key set: both dmgs, the
    AppImage and the deb, the `.app.tar.gz` and AppImage `.sig`s, and
    `latest.json`), `manifest` publishes the draft with `--latest`. The repo's
@@ -117,28 +122,38 @@ with the updater artifacts off:
 
 ## Extensions
 
-The registry's packages and indexes are published by
-`.github/workflows/extensions.yml` to pal.cagdas.io (formats and URLs:
-[registry.md](registry.md)). Two indexes: **edge**, what `main` builds,
-and **stable**, what every pal follows unless a registry is set to
-`channel = "edge"`.
+The extensions live in `zcag/pal-extensions` and the games in
+`zcag/pal-games`; their packages and the indexes are published by this
+repo's `.github/workflows/extensions.yml` to pal.cagdas.io, the only
+holder of the signing key (formats, URLs and the hand-over:
+[registry.md](registry.md)). Two indexes: **edge**, what the extension
+repos' main builds, and **stable**, what every pal follows unless a
+registry is set to `channel = "edge"`.
 
-- **Edge, on every green push to main.** When `ci` passes on a push to
-  main, `extensions.yml` builds every extension at that commit with
-  `pal-pack`, keeps those whose hash is not already edge's newest build,
-  signs them and publishes them to edge. A push that changed no extension
-  publishes nothing. A build yanked in edge is never published again, even
-  when the tree comes back to it.
+- **Edge, on every green push to an extension repo's main.** That repo's
+  `publish` job builds every extension with `pal-pack` (from the pal
+  checkout its tests ran against), keeps those whose hash is not already
+  edge's newest build, uploads them with `PAL_UPLOAD_TOKEN` and sends a
+  `publish-builds` repository_dispatch here with `PAL_DISPATCH_TOKEN`
+  (`.github/actions/publish-extensions`). `extensions.yml` checks the repo
+  is one of the two and both commits are on their main, builds each
+  extension again from that commit with that pal, and signs and publishes
+  to edge only when the hash is the dispatched one and the uploaded
+  tarball is those bytes. A push that changed no extension dispatches
+  nothing. A build yanked in edge is never published again, even when the
+  tree comes back to it. (A push to pal's own main builds pal's
+  `extensions/` the same way while it has one; it has none since the
+  split.)
 - **Stable, on `make ext-release [NAMES="a b"]`.** It dispatches the
   workflow with `promote` (every extension, or those names) and watches the
   run: edge's newest builds of those go to stable. Like an app release, a
   promotion is a decision, taken after trying edge.
 - **Stable, at every app release.** `release.yml` dispatches
-  `extensions.yml` for the tag (`release: true`) and waits for it; a called
-  workflow would not get the `registry` environment's secrets. Every build
-  at the tag goes to edge and to stable, so the
-  registry never offers anything older than what the app bundles, and the
-  `manifest` job checks the bundled hashes against stable.
+  `extensions.yml` with `promote=all` and waits for it before bundling; a
+  called workflow would not get the `registry` environment's secrets.
+  Everything on edge goes to stable, the bundles take stable's builds, so
+  the registry never offers anything older than what the app bundles, and
+  the `manifest` job checks the bundled hashes against stable.
 - **By hand** (Actions › extensions › Run workflow): `ref` builds another
   commit into edge (it does not wait for `ci`, so pick a green one);
   `yank` and `reindex` are below.
@@ -171,6 +186,21 @@ and on a tag when a release calls it):
 | `PAL_PUBLISH_TOKEN` | secret | the bearer token pal.cagdas.io's `/api/registry` accepts |
 | `PAL_REGISTRY_PUBKEYS` | variable | the public keys the live indexes may be signed with, space separated: the current key first, then an old one during a rotation |
 | `PAL_REGISTRY_NEXT_KEY` | variable | empty, or the public key the registry is moving to (announced in both indexes as `next_key`) |
+
+**The extension repos' tokens.** Each of `zcag/pal-extensions` and
+`zcag/pal-games` has an environment `publish` (Settings › Environments,
+deployment branches limited to `main`), which its `publish` job names:
+
+| name | kind | what |
+| --- | --- | --- |
+| `PAL_UPLOAD_TOKEN` | secret | a bearer token pal.cagdas.io accepts for `PUT /api/registry/pkg/*` only, never an index: a leaked one can put up packages no index lists |
+| `PAL_DISPATCH_TOKEN` | secret | a GitHub fine-grained token, resource owner `zcag`, repository access only `zcag/pal`, permission Contents: read and write (what `repository_dispatch` requires) |
+
+Contents: write on pal is more than a dispatch needs, and GitHub has
+nothing narrower for it: keep `main` and the `v*` tags of `zcag/pal`
+protected by a ruleset, so the token cannot push where a build is made
+from. What it can do to the registry is bounded by `extensions.yml`: only
+the two repos' builds, from commits on their main, rebuilt here.
 
 The extension key is not the updater key and never reaches `release.yml`:
 the call passes no secrets, and only the jobs that name the `registry`
@@ -258,13 +288,15 @@ notarised, refused once by Gatekeeper on first launch.
 
 ## CI
 
-`ci.yml` runs on every push and pull request on the same two runners
-(`extensions.yml` follows it on main, [Extensions](#extensions)):
+`ci.yml` runs on every push and pull request on the same two runners:
 clippy with `-D warnings`, `cargo test --workspace` (tests that need a
 pasteboard, an unlocked keychain or the fixture corpus are `#[ignore]`d and
 run by hand with `--ignored`), a `cargo build` of the app crate (build.rs,
 tauri-build, no bundle), `tsc` and `vitest` in `app/`, `tsc` and `bun test`
-in `host/` (the `apps` test is macOS-only), the declaration build and a
+in `host/` over checkouts of `zcag/pal-extensions` and `zcag/pal-games` at
+main (`PAL_EXTENSION_REPOS` points the harness, the gallery and the Rust
+tests at them), with the bundled extensions' tests from pal-extensions, the
+declaration build and a
 `npm pack --dry-run` in `sdk/`. Caches: cargo (rust-cache), npm
 (setup-node), bun's package cache and the fetched bun sidecar
 (`app/src-tauri/binaries`, keyed on `fetch-bun.sh`).

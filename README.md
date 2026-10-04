@@ -84,15 +84,15 @@ what it can without leaving the search bar:
   <tr>
     <td width="50%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/clipboard/screenshots/1-list-dark.png">
-      <img src="extensions/clipboard/screenshots/1-list.png"
+        srcset="https://pal.cagdas.io/extensions/clipboard/screenshots/1-list-dark.png">
+      <img src="https://pal.cagdas.io/extensions/clipboard/screenshots/1-list.png"
         alt="Clipboard history: pinned entries, links, colours, images and
         code, with a preview pane">
     </picture></td>
     <td width="50%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/github/screenshots/1-prs-dark.png">
-      <img src="extensions/github/screenshots/1-prs.png"
+        srcset="https://pal.cagdas.io/extensions/github/screenshots/1-prs-dark.png">
+      <img src="https://pal.cagdas.io/extensions/github/screenshots/1-prs.png"
         alt="GitHub pull requests: mine, review requested and merged, with
         checks and review state on each row">
     </picture></td>
@@ -106,14 +106,14 @@ what it can without leaving the search bar:
   <tr>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/calc/screenshots/2-dates-dark.png">
-      <img src="extensions/calc/screenshots/2-dates.png"
+        srcset="https://pal.cagdas.io/extensions/calc/screenshots/2-dates-dark.png">
+      <img src="https://pal.cagdas.io/extensions/calc/screenshots/2-dates.png"
         alt="Calculator: a date question answered as you type">
     </picture></td>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/window-management/screenshots/1-layouts-dark.png">
-      <img src="extensions/window-management/screenshots/1-layouts.png"
+        srcset="https://pal.cagdas.io/extensions/window-management/screenshots/1-layouts-dark.png">
+      <img src="https://pal.cagdas.io/extensions/window-management/screenshots/1-layouts.png"
         alt="Window management: layouts to arrange the windows on screen">
     </picture></td>
   </tr>
@@ -127,15 +127,15 @@ what it can without leaving the search bar:
   <tr>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/spotify/screenshots/1-lyrics-dark.png">
-      <img src="extensions/spotify/screenshots/1-lyrics.png"
+        srcset="https://pal.cagdas.io/extensions/spotify/screenshots/1-lyrics-dark.png">
+      <img src="https://pal.cagdas.io/extensions/spotify/screenshots/1-lyrics.png"
         alt="Spotify: the cover, the progress bar and synced lyrics around
         the line playing">
     </picture></td>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/calendar/screenshots/1-schedule-dark.png">
-      <img src="extensions/calendar/screenshots/1-schedule.png"
+        srcset="https://pal.cagdas.io/extensions/calendar/screenshots/1-schedule-dark.png">
+      <img src="https://pal.cagdas.io/extensions/calendar/screenshots/1-schedule.png"
         alt="Calendar: the day's schedule with the next meeting and its
         join link">
     </picture></td>
@@ -149,15 +149,15 @@ what it can without leaving the search bar:
   <tr>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/sessions/screenshots/1-list-dark.png">
-      <img src="extensions/sessions/screenshots/1-list.png"
+        srcset="https://pal.cagdas.io/extensions/sessions/screenshots/1-list-dark.png">
+      <img src="https://pal.cagdas.io/extensions/sessions/screenshots/1-list.png"
         alt="Sessions: Claude Code, Codex and Copilot CLI sessions with
         their state">
     </picture></td>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/flashcards/screenshots/1-card-dark.png">
-      <img src="extensions/flashcards/screenshots/1-card.png"
+        srcset="https://pal.cagdas.io/extensions/flashcards/screenshots/1-card-dark.png">
+      <img src="https://pal.cagdas.io/extensions/flashcards/screenshots/1-card.png"
         alt="Flashcards: a card on a stack, flipped with space">
     </picture></td>
   </tr>
@@ -171,15 +171,15 @@ what it can without leaving the search bar:
   <tr>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/power/screenshots/1-now-dark.png">
-      <img src="extensions/power/screenshots/1-now.png"
+        srcset="https://pal.cagdas.io/extensions/power/screenshots/1-now-dark.png">
+      <img src="https://pal.cagdas.io/extensions/power/screenshots/1-now.png"
         alt="Battery and power: six hours of draw and what uses power
         now">
     </picture></td>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/hue/screenshots/1-rooms-dark.png">
-      <img src="extensions/hue/screenshots/1-rooms.png"
+        srcset="https://pal.cagdas.io/extensions/hue/screenshots/1-rooms-dark.png">
+      <img src="https://pal.cagdas.io/extensions/hue/screenshots/1-rooms.png"
         alt="Philips Hue: rooms as tiles with switches and brightness">
     </picture></td>
   </tr>
@@ -200,15 +200,15 @@ has its screenshots, keys, settings and source.
   <tr>
     <td width="50%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/spotify/screenshots/bar-popover-dark.png">
-      <img src="extensions/spotify/screenshots/bar-popover.png"
+        srcset="https://pal.cagdas.io/extensions/spotify/screenshots/bar-popover-dark.png">
+      <img src="https://pal.cagdas.io/extensions/spotify/screenshots/bar-popover.png"
         alt="Spotify's bar item: the lyric line playing on the menu bar,
         and its popover with the track, the lyrics and the queue">
     </picture></td>
     <td width="50%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/calendar/screenshots/bar-popover-dark.png">
-      <img src="extensions/calendar/screenshots/bar-popover.png"
+        srcset="https://pal.cagdas.io/extensions/calendar/screenshots/bar-popover-dark.png">
+      <img src="https://pal.cagdas.io/extensions/calendar/screenshots/bar-popover.png"
         alt="Calendar's bar item: the next meeting on the menu bar, and its
         popover with the day's agenda">
     </picture></td>
@@ -216,15 +216,15 @@ has its screenshots, keys, settings and source.
   <tr>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/privacy/screenshots/bar-popover-dark.png">
-      <img src="extensions/privacy/screenshots/bar-popover.png"
+        srcset="https://pal.cagdas.io/extensions/privacy/screenshots/bar-popover-dark.png">
+      <img src="https://pal.cagdas.io/extensions/privacy/screenshots/bar-popover.png"
         alt="Privacy's bar item: camera and microphone glyphs on the menu
         bar, and a popover naming the apps that hold them">
     </picture></td>
     <td><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/stats/screenshots/bar-popover-dark.png">
-      <img src="extensions/stats/screenshots/bar-popover.png"
+        srcset="https://pal.cagdas.io/extensions/stats/screenshots/bar-popover-dark.png">
+      <img src="https://pal.cagdas.io/extensions/stats/screenshots/bar-popover.png"
         alt="Stats's bar item: CPU on the menu bar, and a popover with its
         history, every core and the busiest processes">
     </picture></td>
@@ -260,20 +260,20 @@ screen.
   <tr>
     <td width="33%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/sudoku/screenshots/1-solving-dark.png">
-      <img src="extensions/sudoku/screenshots/1-solving.png"
+        srcset="https://pal.cagdas.io/extensions/sudoku/screenshots/1-solving-dark.png">
+      <img src="https://pal.cagdas.io/extensions/sudoku/screenshots/1-solving.png"
         alt="Sudoku mid-game with pencil marks">
     </picture></td>
     <td width="33%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/crossword/screenshots/1-solving-dark.png">
-      <img src="extensions/crossword/screenshots/1-solving.png"
+        srcset="https://pal.cagdas.io/extensions/crossword/screenshots/1-solving-dark.png">
+      <img src="https://pal.cagdas.io/extensions/crossword/screenshots/1-solving.png"
         alt="A mini crossword being solved, with its clues">
     </picture></td>
     <td width="33%"><picture>
       <source media="(prefers-color-scheme: dark)"
-        srcset="extensions/snake/screenshots/1-play-dark.png">
-      <img src="extensions/snake/screenshots/1-play.png"
+        srcset="https://pal.cagdas.io/extensions/snake/screenshots/1-play-dark.png">
+      <img src="https://pal.cagdas.io/extensions/snake/screenshots/1-play.png"
         alt="Snake II on a Nokia 3310's screen">
     </picture></td>
   </tr>
@@ -413,19 +413,22 @@ for your platform (Xcode command line tools and `cmake` on macOS;
 webkit2gtk-4.1, gtk3, librsvg, openssl and base-devel on Linux).
 
 ```sh
-git clone git@github.com:zcag/pal.git && cd pal
-(cd app && npm install)
-bun install
-for d in extensions/*/; do
-  [ -f "$d/package.json" ] && (cd "$d" && bun install)
-done
+git clone git@github.com:zcag/pal.git
+git clone git@github.com:zcag/pal-extensions.git   # beside it: the extensions
+git clone git@github.com:zcag/pal-games.git        # and the games
+(cd pal-extensions && make setup) && (cd pal-games && make setup)   # each links ../pal as .pal, installs dependencies
+cd pal && (cd app && npm install) && bun install
 cd app && npm run tauri dev
 ```
 
-In dev the host and the extensions load from the repo and reload when a
-file changes. On macOS, `make app` builds a release and installs it to
+In dev the host loads from the repo and the extensions from the checkouts
+beside it (`../pal-extensions`, `../pal-games`; `PAL_EXTENSION_REPOS`, a
+`:` separated list, points elsewhere), and each reloads when a file
+changes. On macOS, `make app` builds a release and installs it to
 `/Applications`, signed with the same certificate as releases so it keeps
-their permissions.
+their permissions; its bundled extensions are built from those checkouts
+(`PAL_BUNDLE=registry make app` takes stable's builds instead, as a
+release does).
 
 <details>
 <summary>What the first build fetches, release builds, and where things
@@ -448,9 +451,12 @@ cd app && npm run tauri build
 ```
 
 `beforeBuildCommand` builds the UI and stages the host, the SDK and the
-extensions under `app/src-tauri/resources/` (`app/scripts/build-extensions.sh`:
-each extension bundled to one `index.js` with `bun build`, the SDK inlined,
-so no `node_modules` ships). The bundle also signs the updater artifacts,
+bundled extensions under `app/src-tauri/resources/`
+(`app/scripts/build-extensions.sh`): each name in `app/bundled.txt` is the
+stable build our registry serves, the index checked against the keys
+built into the app and the unpacked package against its tree hash, so the
+app ships the same package users install (`PAL_BUNDLE=local` builds them
+from the checkouts instead, offline). The bundle also signs the updater artifacts,
 so it wants `TAURI_SIGNING_PRIVATE_KEY` in the environment; without the
 key, add `-- --config '{"bundle":{"createUpdaterArtifacts":false}}'`
 (releases come from CI anyway: [Releasing](docs/releasing.md)). Output
@@ -480,7 +486,8 @@ data dir (`~/Library/Application Support/pal/extensions/`,
 - `host/` the extension host, one long-lived Bun process the app talks to
   over stdio
 - `sdk/` `@zcag/pal`, the extension API: what an extension imports
-- `extensions/` the bundled extensions, one directory each
+- `app/bundled.txt` the extensions the app comes with (they live in
+  [pal-extensions](https://github.com/zcag/pal-extensions))
 - `examples/` the smallest complete palette and surface, two script
   commands, two theme files
 - `docs/` what [pal.cagdas.io/docs](https://pal.cagdas.io/docs) renders
@@ -488,15 +495,44 @@ data dir (`~/Library/Application Support/pal/extensions/`,
 
 </details>
 
+## Extensions and games
+
+pal is three repositories:
+
+| Repository | What lives there |
+| --- | --- |
+| [zcag/pal](https://github.com/zcag/pal) (this one) | the app, the core, the extension host, the `@zcag/pal` SDK, the surface kit, the CLI, the docs, `app/bundled.txt` (which extensions the app comes with), and the registry's signer |
+| [zcag/pal-extensions](https://github.com/zcag/pal-extensions) | every extension that is not a game: the 33 the app comes with, the rest the Store installs, and the Games shelf |
+| [zcag/pal-games](https://github.com/zcag/pal-games) | the 13 games: Snake II, Solitaire, Minesweeper, Sudoku, Night Parade and the rest |
+
+**How an extension or a game reaches users.** A push to its repo's main
+that passes the tests there builds every extension whose package
+changed, uploads it to pal.cagdas.io and hands it to this repo's
+`extensions.yml`, the only holder of the signing key. That run builds it
+again from the same commit, checks it is the same package, signs it and
+adds it to the **edge** index. `make ext-release` here promotes edge to
+**stable**, the index every pal follows, and every app release promotes
+everything on edge and bundles stable's builds of the names in
+`app/bundled.txt`. Installed extensions, bundled ones included, update
+themselves within hours, without a new app.
+
+**Where to send a change.** A fix or a feature in an extension or a game:
+a pull request to its repo, whose README says how to run and test it
+against a checkout of pal. The SDK, the host, the app, and whether an
+extension comes with the app: a pull request here.
+
 ## Contributing
 
 Issues and pull requests are welcome at
 [github.com/zcag/pal](https://github.com/zcag/pal). `make test` runs what
 CI runs on every push, on macOS and Ubuntu: clippy with warnings as
 errors, the Rust tests, the SDK build, the app's typecheck and vitest,
-the host's typecheck (which covers `sdk/`, `extensions/` and `examples/`)
-and `bun test` ([its rules](host/test/README.md)), and the SDK's pack.
-Docs are linted with `npx markdownlint-cli2 "docs/**/*.md" README.md`.
+the host's typecheck (which covers `sdk/` and `examples/`) and `bun test`
+([its rules](host/test/README.md)) over the pal-extensions and pal-games
+checkouts, with the bundled extensions' tests from pal-extensions, and the
+SDK's pack. Docs are linted with
+`npx markdownlint-cli2 "docs/**/*.md" README.md`. A change to an extension
+or a game goes to its own repo (below).
 
 An extension of your own needs no pull request against the app: publish
 it on GitHub and anyone can `pal install github:you/repo`. To list it in

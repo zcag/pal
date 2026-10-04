@@ -8,7 +8,7 @@
 // A repo is { dir, shots, tests }: `dir` holds the `<name>/` directories,
 // `shots` the gallery fixtures (`<name>.json`, `bar-<name>.json`) and
 // `tests` the tests.
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,10 +42,36 @@ export function extensionDirs(repos = extensionRepos()) {
 /** One extension's directory, or undefined. */
 export const extensionDir = (name, repos) => extensionDirs(repos).get(name)?.dir;
 
-// For the shell scripts: `node app/scripts/extension-repos.mjs` prints the
-// repos' directories one a line, `... list` every extension as
-// `<name>\t<dir>\t<shots dir>`.
+/** The names app/bundled.txt lists. */
+export const bundledNames = () => readFileSync(join(PAL, "app/bundled.txt"), "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
+
+/**
+ * The tests of the bundled extensions, which pal's own `make test` and CI
+ * run: in each repo that has a bundled extension, the test files named
+ * after one (`<name>.test.ts`, `<name>-*.test.ts`, the longest name that
+ * fits) and the ones named after none (`links.test.ts`, several
+ * extensions' routes).
+ */
+export function bundledTests(repos = extensionRepos()) {
+  const bundled = new Set(bundledNames());
+  const out = [];
+  for (const repo of repos) {
+    const names = readdirSync(repo.dir).filter((n) => existsSync(join(repo.dir, n, "pal.json")));
+    if (!names.some((n) => bundled.has(n)) || !existsSync(repo.tests)) continue;
+    for (const f of readdirSync(repo.tests).filter((f) => f.endsWith(".test.ts")).sort()) {
+      const owner = names.filter((n) => f.startsWith(`${n}.`) || f.startsWith(`${n}-`)).sort((a, b) => b.length - a.length)[0];
+      if (!owner || bundled.has(owner)) out.push(join(repo.tests, f));
+    }
+  }
+  return out;
+}
+
+// For the shell scripts and the Makefile: `node app/scripts/extension-repos.mjs`
+// prints the repos' directories one a line, `... list` every extension as
+// `<name>\t<dir>\t<shots dir>`, `... bundled-tests` the files bundledTests names.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === "list") for (const [name, { dir, repo }] of extensionDirs()) console.log(`${name}\t${dir}\t${repo.shots}`);
+  const cmd = process.argv[2];
+  if (cmd === "list") for (const [name, { dir, repo }] of extensionDirs()) console.log(`${name}\t${dir}\t${repo.shots}`);
+  else if (cmd === "bundled-tests") for (const f of bundledTests()) console.log(f);
   else for (const r of extensionRepos()) console.log(r.dir);
 }

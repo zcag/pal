@@ -2,8 +2,13 @@
 
 Design spec, 2026-10-04. pal's repo holds the launcher; the extensions move
 to `zcag/pal-extensions` and the games to `zcag/pal-games`. Status:
-proposed; nothing implemented. Comes after the accounts work
-(`accounts.md`) has landed, since that work touches every game.
+built 2026-10-05 (the two repos made with
+`git filter-repo`, waiting to be pushed); it came after the accounts work
+(`accounts.md`), which touches every game. Where the build differs from
+the plan below: each repo's screenshot fixtures are in `test/shots/`;
+`bundled.txt` is `app/bundled.txt`; the signer builds every dispatched
+extension again from the repo's commit, with the pal it names, and takes
+it only when the hash and the uploaded tarball agree.
 
 ## Why
 

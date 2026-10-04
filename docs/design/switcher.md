@@ -213,5 +213,5 @@ differs from a popover:
 - `app/src-tauri/src/switcher.rs` (new): begin / step / commit / cancel, the flags poll, `on_hidden`; `hotkey.rs` `Target::Hold`; `lib.rs` `Shown.hold`; `cli.rs` `Cmd::Switch`; `events.rs` `SWITCH`.
 - `app/src-tauri/src/sidebar.rs` (new): the window, the strip, placement, the machine; `panel/macos.rs` the strip panel; `config` `[sidebar]`; `hotkey.rs` `Target::Sidebar`.
 - `app/src/Launcher.tsx`, `App.tsx`, `BarPage.tsx`, `ui/keys.ts`, `ui/List.tsx`: hold mode (cursor, flat, step/commit), sidebar mode (ordinals, `cmd+N` runs).
-- `extensions/windows`: `hidden`, Show app, README, `hold` suggestion.
+- `windows/` in pal-extensions: `hidden`, Show app, README, `hold` suggestion.
 - `docs/config.md`, `docs/keyboard.md`, `docs/palettes.md` (Windows), `docs/cli.md` (`pal switch`).

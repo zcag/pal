@@ -283,9 +283,9 @@ carries 5, as the protocol gate already does.
 | `leaderboard`, `account`, `storage.onChange`, manifest types | sdk; host relays; core bridge `core/account.*`, `core/leaderboard.*` |
 | kit calls | `app/src-tauri/surface-kit/surface.js`, `Surface.tsx` |
 | manifest validation | core manifest parsing and `pal-pack` (`leaderboards` ids and patterns, `sync` rules) |
-| boards in the Games shelf | `extensions/games` |
+| boards in the Games shelf | `games/` in pal-extensions |
 | the play page, sandbox, sign-in sheet, boards | pal-site `web/play.go`, templates, static js |
-| every game's `sync` and `leaderboards` | `extensions/<game>/pal.json` and code |
+| every game's `sync` and `leaderboards` | `<game>/pal.json` and code in pal-games |
 
 ## Order of work
 

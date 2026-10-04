@@ -2,10 +2,13 @@
 # test suites, on the two platforms pal ships for. No bundle here; that is
 # release.yml. Budget is ~10 min warm: cargo via rust-cache, npm via
 # setup-node, bun's package cache and the fetched bun sidecar via
-# actions/cache (build.rs downloads it once per target otherwise). A push
-# that only touches extensions runs the `scope` job's extension mode:
-# the host's typechecks and own tests plus those extensions' tests, the
-# app's only when a manifest changed, nothing Rust (a couple of minutes).
+# actions/cache (build.rs downloads it once per target otherwise). The
+# extensions are zcag/pal-extensions' and zcag/pal-games' (their own CI runs
+# all of their tests against pal's main); here checkouts of both at main
+# are what the host's contract tests, the gallery and the Rust tests that
+# read manifests run over, as beside a checkout at home, and the bundled
+# extensions' tests run with the host's, so a change to pal that breaks one
+# fails here.
 name: ci
 
 on:
@@ -22,33 +25,29 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  # What this push needs tested (.github/scripts/ci-scope.ts): mode=ext when
-  # it only touches extensions (their directories, their tests, the bundled
-  # and registry-only lists), which skips Rust and, unless a pal.json changed,
-  # the app; mode=full for everything else.
-  scope:
-    runs-on: ubuntu-24.04
-    outputs:
-      mode: ${{ steps.scope.outputs.mode }}
-      names: ${{ steps.scope.outputs.names }}
-      app: ${{ steps.scope.outputs.app }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: oven-sh/setup-bun@v2
-      - id: scope
-        run: bun .github/scripts/ci-scope.ts "${{ github.event.pull_request.base.sha || github.event.before }}"
-
   check:
-    needs: scope
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
+    env:
+      # app/scripts/extension-repos.mjs and pal_core::extensions::dev read it.
+      PAL_EXTENSION_REPOS: ${{ github.workspace }}/.ext/pal-extensions:${{ github.workspace }}/.ext/pal-games
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: zcag/pal-extensions
+          ref: main
+          path: .ext/pal-extensions
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: zcag/pal-games
+          ref: main
+          path: .ext/pal-games
+          persist-credentials: false
 
       # Tauri v2's Debian list (https://tauri.app/start/prerequisites/#linux).
       # libwebkit2gtk-4.1-dev pulls gtk3, soup3, javascriptcore and the
@@ -56,7 +55,7 @@ jobs:
       # wl-clipboard-rs/x11rb, freedesktop-icons, resvg, bundled rusqlite,
       # zbus) are pure Rust or dlopen at runtime, so nothing is added.
       - name: Linux prerequisites
-        if: runner.os == 'Linux' && needs.scope.outputs.mode == 'full'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -67,11 +66,9 @@ jobs:
       # nobody ran locally (1.98 turned the tree red on chunks_exact_to_as_chunks
       # while every box was on 1.97). Bump both workflows together.
       - uses: dtolnay/rust-toolchain@1.97.1
-        if: needs.scope.outputs.mode == 'full'
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-        if: needs.scope.outputs.mode == 'full'
         with:
           cache-on-failure: true
 
@@ -95,7 +92,6 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
       - name: Bun sidecar
-        if: needs.scope.outputs.mode == 'full'
         uses: actions/cache@v4
         with:
           path: app/src-tauri/binaries
@@ -103,66 +99,59 @@ jobs:
       # The MediaRemote adapter build.rs builds on macOS (fetch-mediaremote.sh:
       # a git clone and a cmake build, ~10 s); the runner image ships cmake.
       - name: MediaRemote adapter
-        if: runner.os == 'macOS' && needs.scope.outputs.mode == 'full'
+        if: runner.os == 'macOS'
         uses: actions/cache@v4
         with:
           path: app/src-tauri/mediaremote
           key: mediaremote-${{ runner.os }}-${{ hashFiles('app/scripts/fetch-mediaremote.sh') }}
       - name: cmake
-        if: runner.os == 'macOS' && needs.scope.outputs.mode == 'full'
+        if: runner.os == 'macOS'
         run: command -v cmake || brew install cmake
 
+      # The root `bun install` links the workspace (host/, sdk/ and the
+      # `@zcag/pal` name); the extensions' own dependencies are installed in
+      # the checkouts, which find `@zcag/pal` up the tree, here.
       - name: Install JS dependencies
         run: |
-          if [ "${{ needs.scope.outputs.mode }}" = full ] || [ "${{ needs.scope.outputs.app }}" = true ]; then (cd app && npm ci); fi
+          (cd app && npm ci)
           bun install --frozen-lockfile
-          for d in extensions/*/; do
+          for d in .ext/*/*/; do
             if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
           done
 
       - name: cargo clippy
-        if: needs.scope.outputs.mode == 'full'
         run: cargo clippy --workspace --all-targets -- -D warnings
       # `#[ignore]` covers what needs a real session: a pasteboard, an
       # unlocked keychain, the ranking fixture corpus.
       - name: cargo test
-        if: needs.scope.outputs.mode == 'full'
         run: cargo test --workspace
       # The app crate through build.rs and tauri-build, without bundling.
       - name: cargo build (app)
-        if: needs.scope.outputs.mode == 'full'
         run: cargo build -p pal
 
       - name: app typecheck and tests
-        if: needs.scope.outputs.mode == 'full' || needs.scope.outputs.app == 'true'
         working-directory: app
-        # The gallery imports extension modules, which import `@zcag/pal`; its types come from sdk/dist, so the SDK builds first.
+        # The gallery imports `@zcag/pal` types from sdk/dist, so the SDK builds first; it reads the extensions' manifests from the checkout.
         run: |
           npm --prefix ../sdk run build
           npx tsc --noEmit
           npx vitest run
-      # The root `bun install` links the workspace: host/, sdk/ and the
-      # `@zcag/pal` name every extension imports (root package.json).
-      # host/tsconfig.json includes ../sdk/src, ../extensions and
-      # ../examples, so this typechecks them all; tsconfig.surface.json
-      # the extensions' surface pages, which run in the webview (DOM).
+      # host/tsconfig.json includes ../sdk/src and ../examples, so this
+      # typechecks them too; tsconfig.surface.json the examples' surface
+      # pages, which run in the webview (DOM). The tests: the host's own and
+      # the bundled extensions' (app/scripts/extension-repos.mjs bundled-tests).
       - name: host typecheck and tests
-        if: needs.scope.outputs.mode == 'full'
         working-directory: host
         run: |
           bunx tsc --noEmit
           bunx tsc --noEmit -p tsconfig.surface.json
-          bun test --parallel --reporter=junit --reporter-outfile="$RUNNER_TEMP/host-tests.xml"
+          bundled=$(bun ../app/scripts/extension-repos.mjs bundled-tests)
+          # shellcheck disable=SC2086 # one path a line, none with a space
+          bun test --parallel --reporter=junit --reporter-outfile="$RUNNER_TEMP/host-tests.xml" test/*.test.ts $bundled
           bun test/budget.ts "$RUNNER_TEMP/host-tests.xml"
-      # An extension-only push: the host's typechecks and own tests, and the
-      # changed extensions' tests (Makefile `test-ext`).
-      - name: extension typecheck and tests
-        if: needs.scope.outputs.mode == 'ext'
-        run: make test-ext NAMES="${{ needs.scope.outputs.names }}"
       # The published package: its declarations build, and the tarball
       # holds only what `files` lists.
       - name: sdk build and pack
-        if: needs.scope.outputs.mode == 'full'
         working-directory: sdk
         run: |
           bun run build

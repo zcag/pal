@@ -1,8 +1,0 @@
-{
-  "name": "pal-ext-clipboard",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "qrcode-generator": "^2.0.4"
-  }
-}

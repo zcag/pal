@@ -316,7 +316,7 @@ pub enum Plan {
     Open(&'static str),
     /// The changelog from this build's version on.
     WhatsNew,
-    /// The store palette (`extensions/store`) as a pushed level; the website when it is not loaded.
+    /// The store palette (`pal-extensions/store`) as a pushed level; the website when it is not loaded.
     Store,
     /// The install form.
     InstallForm,

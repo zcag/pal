@@ -2,7 +2,7 @@
 //! click, scrolling is reversed for the trackpad, the mouse or both, each
 //! axis on its own (what MiddleClick and Scroll Reverser do), and the pointer
 //! is hidden while it is idle ([`hide`]). The settings are
-//! the `mouse` extension's (`extensions/mouse/pal.json`); the extension's rows
+//! the `mouse` extension's (`pal-extensions/mouse/pal.json`); the extension's rows
 //! flip them and read [`call`]'s `status`.
 //!
 //! Two sources, both started while the middle click or a reversal is on:

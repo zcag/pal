@@ -1,7 +1,12 @@
 # Host tests
 
-`bun test` here covers the extension host and every bundled extension (`extensions/`), each file against a real host process
-(`harness.ts`). `make test` runs them with the rest of the repo, as CI does.
+`bun test` here covers the extension host, each file against a real host process (`harness.ts`). The extensions' own tests live in
+their repos (zcag/pal-extensions, zcag/pal-games, under `test/`) and run through this harness from there: the harness loads the
+extension repos `app/scripts/extension-repos.mjs` finds (`../pal-extensions` and `../pal-games` beside this checkout, or the
+`:` separated `PAL_EXTENSION_REPOS`), and the contract tests here (manifests, links, packages, screenshots, synced storage, the
+bundled and registry-only lists) check every extension in them. `make test` runs them with the rest of the repo and the bundled
+extensions' tests from the pal-extensions checkout, as CI does; an extension repo's `make test` runs them over that repo.
+These rules hold for the tests in those repos too: `rules.test.ts` reads them.
 
 They run **in parallel**: bun gives each file a worker process (`--parallel`, up to 8 locally, one per core on CI), so the suite
 takes about as long as its slowest file. `test/budget.ts` prints the slowest five after every run and **fails any file over 30 s**

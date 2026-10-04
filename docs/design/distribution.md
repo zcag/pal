@@ -478,9 +478,10 @@ The other 47 are in our registry only:
 - **Other**: stats, weather, maps, speedtest, space, privacy, images, icons,
   flashcards, turkish, dpi.
 
-The list lives in a file (`extensions/bundled.txt`) that the build reads, not
+The list lives in a file (`extensions/bundled.txt`, since the repo split
+`app/bundled.txt`: [repo-split.md](repo-split.md)) that the build reads, not
 in the loader, so moving one across is a one-line change. The rest are named
-in `extensions/registry-only.txt`, and a test requires every extension to be
+in `extensions/registry-only.txt` (now each extension repo's own), and a test requires every extension to be
 in exactly one of the two: a new extension is a decision, never a default. The usage counts
 will settle the borderline ones (stats, weather, ssh).
 

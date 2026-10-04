@@ -1,8 +1,0 @@
-{
-  "name": "pal-ext-diff",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "diff": "^9.0.0"
-  }
-}

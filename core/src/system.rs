@@ -26,7 +26,7 @@
 //! macOS versions, so the script walks the shapes known (Sonoma through
 //! Tahoe) and reports what it found.
 //!
-//! **Keep awake** is the System extension's (`extensions/system/awake.ts`:
+//! **Keep awake** is the System extension's (`pal-extensions/system/awake.ts`:
 //! `caffeinate` with its own `-t`, a bar item, `pal://system/awake`). The
 //! [`SPECS`] entry stays so the extension's row takes its place in the
 //! catalogue; [`run`] refuses it and points there.

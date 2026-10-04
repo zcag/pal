@@ -267,7 +267,7 @@ render`, and print nothing.
 
 ## The States palette
 
-A bundled core-backed extension, `extensions/states/`, like `system`:
+A bundled core-backed extension, `states/` in pal-extensions, like `system`:
 `list` from `state.get()`, one row per state:
 
 - title the name, subtitle the description (or the expression, for a
@@ -380,13 +380,13 @@ happen in the palette and the file, not in a second form.
 - `sdk/src/api.ts`: `state`; `sdk/src/manifest.ts`: `states` in the
   manifest; `sdk/src/protocol.ts`: the types; `host/src/`: the
   `states/changed` notification to subscribers, the instance rewrite.
-- `extensions/states/`: the palette and the `forced` item;
-  `host/test/extensions/states.test.ts`.
-- `extensions/sessions/`: publishes `working` and `waiting` at every
+- `states/` (in pal-extensions, as the two below): the palette and the `forced` item;
+  `test/states.test.ts` in pal-extensions.
+- `sessions/`: publishes `working` and `waiting` at every
   render, declared in its `pal.json`.
 - Settings > Bar: `show_when`/`hide_when` fields on the item pane under
   Placement; the state line reads "off the strip by show_when ...".
-- `extensions/github/`: prs keeps its `work_hours` setting for now (the
+- `github/`: prs keeps its `work_hours` setting for now (the
   extension does not know the user's state names); its description points
   at `show_when = "working"` on the item as the general way, and the
   bespoke setting goes once that has been the answer for a while.

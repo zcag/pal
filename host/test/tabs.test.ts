@@ -2,7 +2,7 @@
 // mozlz4 session file (compressed here by hand: literals, one 16-byte
 // match, literals, so the decoder's copy path runs), the Automation
 // refusal. The sources and the operations run against fakes in
-// extensions/browser-tabs.test.ts and quicklinks.test.ts.
+// pal-extensions' test/browser-tabs.test.ts and test/quicklinks.test.ts.
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

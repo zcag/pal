@@ -8,14 +8,13 @@
 #   Each is built again here from that repo's commit with the pal it was
 #   built against (both must be on their main), and goes to edge only when
 #   the hash is the one dispatched and the uploaded tarball is these bytes.
-# - A green `ci` on a push to main builds main's own extensions/ (while pal
-#   has one) into the edge index; only the
-#   extensions whose hash is not edge's newest go out, so a push that touched
-#   no extension publishes nothing.
+# - A green `ci` on a push to main builds main's own extensions/ into the
+#   edge index, when pal has one again (it has none since the split): only
+#   the extensions whose hash is not edge's newest go out.
 # - `make ext-release [NAMES="a b"]` dispatches `promote`: edge's newest
 #   builds of those (or all) go to the stable index apps use.
-# - release.yml calls it for a tag: the builds at the tag go to edge and
-#   every one of them to stable.
+# - release.yml dispatches `promote: all` for a tag, before it bundles
+#   stable's builds of app/bundled.txt.
 # - `yank: name@hash` marks a build yanked in both indexes; `reindex`
 #   re-signs both and every build in them with the current key (a key
 #   rotation, docs/releasing.md).

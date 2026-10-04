@@ -1,11 +1,12 @@
 // Extension links (docs/design/links.md): `checkLinks` against the manifest
 // and the code, `checkLinkParams` coercing a query string by the declared
 // types, `checkLinkEffect` refusing what needs a level, the host's `link`
-// method end to end on a fixture, and the bundled extensions' routes.
+// method end to end on a fixture, and every loaded extension's links block
+// (their routes are tested in their own repos).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { checkLinkEffect, checkLinkParams, checkLinks } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest } from "../../sdk/src/protocol.ts";
-import { Host, HostError, Root, manifest, stored } from "./harness.ts";
+import { Host, HostError, Root, manifest } from "./harness.ts";
 
 const ext = (link?: Extension["link"]): Extension => ({ palettes: { a: { list: () => [], pick: () => {} } }, ...(link && { link }) });
 const man = (links?: Manifest["links"]): Manifest => ({ name: "x", title: "X", ...(links && { links }) });
@@ -95,59 +96,16 @@ export default { palettes: { a: { list: () => [], pick: () => {} } },
   });
 });
 
-describe("bundled extensions", () => {
-  describe("over the wire", () => {
-    let host: Host;
-    const calls: string[] = [];
-    beforeAll(async () => {
-      stored.set("quicklinks\0links", [{ id: "q1", name: "GitHub search", url: "https://github.com/search?q={query}", keywords: ["gh"] }, { id: "q2", name: "Docs", url: "https://pal.cagdas.io/docs" }]);
-      stored.set("expansion\0snippets", [{ id: "s1", name: "Signature", keyword: "sig", text: "Best,\nAda" }]);
-      // The timer CLI pointed at nothing: a real `timer` on PATH would start one on this machine.
-      host = await Host.bundled({ settings: { timer: { settings: { command: "/nonexistent/pal-test-timer" } } }, core: { "system.run": ({ id }: { id: string }) => { calls.push(`run ${id}`); return null; }, "clipboard.copy": ({ id }: { id: number }) => { calls.push(`copy ${id}`); return null; } } });
-    });
-    afterAll(async () => { await host.close(); });
-    const link = (extension: string, route: string, params: Record<string, unknown> = {}) => host.request<Record<string, unknown>>("link", { extension, route, params });
-
-    test("every manifest's links block is clean against its code (the host's load warnings), and each route has a description for the store", () => {
+describe("the extension repos' extensions", () => {
+  // Every manifest's links block held to its code, as the host loads them: whichever extension repos this run reads.
+  test("every manifest's links block is clean against its code (the host's load warnings), and each route has a description for the store", async () => {
+    const host = await Host.bundled();
+    try {
       const loaded = host.loaded();
-      expect(loaded.length).toBeGreaterThan(10);
       expect(loaded.flatMap((l) => l.warnings.filter((w) => w.startsWith("links")).map((w) => `${l.extension}: ${w}`))).toEqual([]);
-      const withLinks = loaded.filter((l) => l.manifest.links);
-      expect(withLinks.map((l) => l.extension).sort()).toEqual(expect.arrayContaining(["clipboard", "quicklinks", "snippets", "system", "timer", "window-management"]));
-      for (const l of withLinks) for (const [route, spec] of Object.entries(l.manifest.links!)) expect(spec.description, `${l.extension}/${route}`).toBeTruthy();
-    });
-
-    test("quicklinks/open: by name or keyword; a {query} link opens filled or pushes the drill-in", async () => {
-      expect(await link("quicklinks", "open", { name: "docs" })).toEqual({ open: "https://pal.cagdas.io/docs" });
-      expect(await link("quicklinks", "open", { name: "gh", query: "pal launcher" })).toEqual({ open: "https://github.com/search?q=pal%20launcher" });
-      expect(await link("quicklinks", "open", { name: "GitHub search" })).toEqual({ push: { extension: "quicklinks", palette: "quicklinks", args: { link: "q1" } } });
-      await expect(link("quicklinks", "open", { name: "nope" })).rejects.toThrow('no quicklink "nope"');
-      await expect(link("quicklinks", "open", {})).rejects.toThrow("quicklinks/open: name is required");
-    });
-    test("snippets/paste: by name or keyword, placeholders filled; copy=1 copies", async () => {
-      expect(await link("snippets", "paste", { name: "sig" })).toEqual({ paste: { text: "Best,\nAda" } });
-      expect(await link("snippets", "paste", { name: "signature", copy: "true" })).toEqual({ copy: "Best,\nAda" });
-      await expect(link("snippets", "paste", { name: "x" })).rejects.toThrow('no snippet "x"');
-    });
-    test("window-management/layout answers the layout effect for the focused window", async () => {
-      expect(await link("window-management", "layout", { name: "left_half" })).toMatchObject({ layout: { name: "left_half" } });
-      await expect(link("window-management", "layout", { name: "sideways" })).rejects.toThrow(/no layout "sideways"; one of left_half/);
-    });
-    test("system/run runs an available command by id, refuses an unknown one", async () => {
-      expect(await link("system", "run", { id: "sleep" })).toEqual({});
-      expect(calls).toContain("run sleep");
-      await expect(link("system", "run", { id: "dnd" })).rejects.toThrow('no system command "dnd" on this machine');
-    });
-    test("clipboard/copy puts the nth newest entry back; out of range names the count", async () => {
-      expect(await link("clipboard", "copy", { index: "1" })).toEqual({ hud: "Copied" });
-      expect(calls).toContain("copy 2");
-      expect(await link("clipboard", "copy", {})).toEqual({ hud: "Copied" });
-      expect(calls).toContain("copy 1");
-      await expect(link("clipboard", "copy", { index: "99" })).rejects.toThrow(/no history entry 99/);
-      await expect(link("clipboard", "copy", { index: "x" })).rejects.toThrow("clipboard/copy: index must be a number");
-    });
-    test("timer/start without the CLI installed says so", async () => {
-      await expect(link("timer", "start", { duration: "1m", name: "t" })).rejects.toThrow("/nonexistent/pal-test-timer is not installed");
-    });
+      for (const l of loaded.filter((l) => l.manifest.links)) for (const [route, spec] of Object.entries(l.manifest.links!)) expect(spec.description, `${l.extension}/${route}`).toBeTruthy();
+    } finally {
+      await host.close();
+    }
   });
 });

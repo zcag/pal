@@ -6,7 +6,7 @@ export type Mode = "keys" | "cursor" | "both";
 export type Position = "bottom-center" | "bottom-left" | "bottom-right" | "top-right" | "top-left";
 export type Button = "left" | "right" | "middle";
 
-/** `[extensions.keycast]` as the shell resolves it (extensions/keycast/pal.json). */
+/** `[extensions.keycast]` as the shell resolves it (pal-extensions/keycast/pal.json). */
 export type Settings = { mode: Mode; position: Position; scale: number; hold: number; max: number; shortcuts_only: boolean; ring: boolean; ring_color: string; ripples: boolean; gestures: boolean };
 /** One entry of the strip (`pal_core::keycast::Entry`): the caps, the repeat count, the last press or move in unix ms, what it is, and for a scroll how much (1..3). */
 export type Entry = { id: number; keys: string[]; count: number; at: number; kind: "key" | "text" | "scroll" | "gesture"; level: number };

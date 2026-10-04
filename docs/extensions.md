@@ -13,9 +13,14 @@ the code is right.
 
 ## Where they live
 
-- Bundled: `extensions/<name>/` in the repo; in a release build the
-  names in `extensions/bundled.txt`, each built into a package (below,
-  "Packages: `pal-pack`") in the app's resource tree.
+- Bundled: the names in `app/bundled.txt`, each the package pal's registry
+  serves (below, "Packages: `pal-pack`"), in the app's resource tree. The
+  sources are in [zcag/pal-extensions](https://github.com/zcag/pal-extensions)
+  (the games in [zcag/pal-games](https://github.com/zcag/pal-games)); a
+  debug build of pal loads those checkouts beside its own
+  (`../pal-extensions`, `../pal-games`, or the `:` separated
+  `PAL_EXTENSION_REPOS`) in place of the bundle, after the store, so an
+  edit there is what runs.
 - The store, what `pal install` and the settings window fill:
   `~/Library/Application Support/pal/extensions/<name>/` on macOS,
   `~/.local/share/pal/extensions/<name>/` on Linux (`$XDG_DATA_HOME/pal/`
@@ -649,18 +654,18 @@ optimisation for later: if `list` awaits the network, it streams.
   answers `{ items, partials }`; check the first partial is the fast part
   and that each partial is a prefix of the answer.
 
-`extensions/github` (your cached items, then each search tier in order)
-and `extensions/files` (names, then the matches inside files a batch at a
+[`github`](https://github.com/zcag/pal-extensions/tree/main/github) (your cached items, then each search tier in order)
+and [`files`](https://github.com/zcag/pal-extensions/tree/main/files) (names, then the matches inside files a batch at a
 time) are the reference shapes.
 
 ## View palettes: a render tree
 
 A palette can draw instead of list: give it `view(ctx)` in place of
 `list`, returning a `View`, and pal opens it as a **view level**. The
-bundled 2048 and Wordle are (`extensions/{2048,wordle}/`); Blackjack, Crossword,
-Minesweeper, Night Parade, Snake II, Solitaire, Sudoku, Typing and Yahtzee draw their own page instead, a
-`surface` node (`extensions/{blackjack,crossword,minesweeper,night-parade,snake,solitaire,sudoku,typing,vortex,yahtzee}/surface/`),
-and so does Flashcards (`extensions/flashcards/surface/`).
+games 2048 and Wordle are ([pal-games](https://github.com/zcag/pal-games/tree/main/): `2048/`, `wordle/`); Blackjack, Crossword,
+Minesweeper, Night Parade, Snake II, Solitaire, Sudoku, Typing, Vortex and Yahtzee draw their own page instead, a
+`surface` node (each one's `surface/` in pal-games),
+and so does Flashcards ([`flashcards/surface/`](https://github.com/zcag/pal-extensions/tree/main/flashcards/surface) in pal-extensions).
 The tree is built from a fixed vocabulary the app draws with its own
 tokens, never HTML, so a view looks like the rest of the panel in both
 themes. The one exception is a game's own page, a `surface` node (below,
@@ -889,12 +894,12 @@ export default defineExtension({
   ⌘T where letters type) that writes it through the extension, as the
   bundled games do: a ticking number rushes some players. Hidden, the time
   still counts and the finish still shows it.
-- **In a browser.** `bun host/src/surface.ts extensions/<name> [port]`
+- **In a browser.** `bun host/src/surface.ts <extension folder> [port]`
   serves the folder the same way (`.ts` transpiled, the kit mapped), and
   the kit runs as a stub outside pal: storage in `localStorage`, settings
   from `?settings=<json>`, the theme from `?theme=dark|light` or the OS. A
-  page's TypeScript is typechecked against the DOM by
-  `host/tsconfig.surface.json` (`make test` runs it).
+  page's TypeScript is typechecked against the DOM by the extension
+  repo's `tsconfig.surface.json` (its `make test` runs it).
 - **On the web.** A game that needs nothing from its extension (every
   `pal.send` only tells it something, and the page does without the
   reply) can say `"play": true` in its `store` block, and
@@ -977,8 +982,8 @@ A pick can answer `{ form }` instead of doing something, and pal pushes a
 **form level**: the fields in place of the list, the form's `title` in
 the search row, the submit in the footer. Enter submits (⌘Enter from a
 textarea), Escape leaves, Tab moves between fields. The bundled Quicklinks
-and Snippets create and edit their rows this way (`extensions/quicklinks/`,
-`extensions/snippets/`).
+and Snippets create and edit their rows this way ([`quicklinks/`](https://github.com/zcag/pal-extensions/tree/main/quicklinks),
+[`snippets/`](https://github.com/zcag/pal-extensions/tree/main/snippets) in pal-extensions).
 
 ```ts
 pick: async (id, action, ctx) => {
@@ -1333,12 +1338,12 @@ export default defineExtension({
 
 **The bundled items**, each in the extension that already owns the
 data, so the strip and the palette share one loader and one cache. Every
-popover is a `{ view }` level laid out for 420 px (`extensions/<name>/view.ts`,
+popover is a `{ view }` level laid out for 420 px (`<name>/view.ts` in pal-extensions,
 Hue's `popover.ts`: a pure `render(state)` the gallery draws too), with
 `keys: "actions"`, a keycap hint row, the cursor as a `selected` ring the
 arrows move and a click sets, and the strip untouched:
 
-- **Hue, `home`** (`extensions/hue/`): the main room's colour as a dot and
+- **Hue, `home`** (`hue/`): the main room's colour as a dot and
   the count on the strip. The popover: a status row (lights on, the motion
   and temperature sensors as badges, a bridge that is away), the rooms as
   a grid of tiles in their lit colour with a switch, the count and a thin
@@ -1346,43 +1351,43 @@ arrows move and a click sets, and the strip untouched:
   inline, each with a slider a tap sets), the scenes as five-swatch tiles
   on the digits, `e` everything on, `x` all off. Follows the event stream
   (a `bar.update` at most every 300 ms redraws strip and popover).
-- **Spotify, `playing`** (`extensions/spotify/`): the cover, the titles, a
+- **Spotify, `playing`** (`spotify/`): the cover, the titles, a
   progress row ticking every second while shown, the lyric line playing
   with its neighbours, the transport and state keycaps, the queue's next
   two as rows (a click skips to one).
-- **Timer, `timer`** (`extensions/timer/`): a card per timer with the
+- **Timer, `timer`** (`timer/`): a card per timer with the
   time left large and a progress bar in the strip's colour, `space`
   pause/resume/dismiss, `+` five minutes, `backspace` stop, `n` a text
   field (`25m tea`) whose Enter starts one (`ctx.values.input`), the last
   durations as tiles. Ticks every second while shown.
-- **Calendar, `upcoming`** (`extensions/calendar/`): today's events as
+- **Calendar, `upcoming`** (`calendar/`): today's events as
   rows (a time column, the calendar's colour bar, "in 12 min" / "ends in
   24 min", the running one on a card), a Join tile on rows with a call,
   all-day events as badges, tomorrow folded under a header (`t`), `o` the
   calendar, a 30 s tick from the cache while shown.
-- **Slack, `unreads`** (`extensions/slack/`): a section per kind (direct
+- **Slack, `unreads`** (`slack/`): a section per kind (direct
   messages, mentions, threads) with avatars fetched into data urls, the
   latest line and a count badge; Enter opens, `r` a reply field whose
   Enter posts `ctx.values.input`, `m` marks read, `a` all read; quiet
   channels as badges. Urgent while a direct message waits.
-- **GitHub, `notifications`** (`extensions/github/`): the unread threads
+- **GitHub, `notifications`** (`github/`): the unread threads
   grouped by repository with a colour rail per subject type, a reason
   badge and the age; Enter / `o` marks read and opens, `m` marks read,
   `a` all read, `p` the palette; a height budget keeps six or so rows and
   says how many more are in pal. Hidden at zero and signed out.
-- **Now Playing, `now-playing`** (`extensions/media/`): the cover large
+- **Now Playing, `now-playing`** (`media/`): the cover large
   (the stream's picture, a cover url fetched once, else the app's icon),
   the titles, a progress row ticking while shown, `space` / arrows /
   `c` / `o` keycaps. Hidden while nothing plays.
-- **Verification Codes, `latest-code`** (`extensions/otp/`): the newest
+- **Verification Codes, `latest-code`** (`otp/`): the newest
   code as digit tiles with the sender and a bar counting the minute
   down, Enter copies (concealed), `p` pastes, the two before as rows a
   click copies. The item leaves when the minute ends.
-- **States, `forced`** (`extensions/states/`): the states held by hand
+- **States, `forced`** (`states/`): the states held by hand
   with the time left on the soonest to expire; hidden while none is.
   `on: ["state:*"]`, so a hold or a reset redraws it at once.
 - **Stats, `cpu`, `memory`, `disk`, `network`, `load`**
-  (`extensions/stats/`): five items off one 3 s sampler that pushes them
+  (`stats/`): five items off one 3 s sampler that pushes them
   all (`bar.update`, the core's `every` floor being 10 s), each stating
   its facts (`stats/cpu`, `stats/memory_pressure`, `stats/disk_free`,
   `stats/net_down`, ...) and hidden by its manifest rules while quiet.
@@ -1391,7 +1396,7 @@ arrows move and a click sets, and the strip untouched:
   reveals), every interface with its rates and address, the load tiles,
   each with a sparkline of the last 60 samples as an SVG `image` in the
   theme's ink. `ps` runs every tick only while a process popover is open.
-- **System, `awake`** (`extensions/system/`): a coffee and what is left
+- **System, `awake`** (`system/`): a coffee and what is left
   of a keep-awake run (`∞` without an end), hidden while off; the popover
   a card with the time left and a bar, the presets as tiles on the
   digits, the display switch, `u` a field for `45m` or `14:30`, Enter
@@ -2269,11 +2274,12 @@ Sizes: a panel shot 1440 by 900 (the panel on a wallpaper), a bar strip
 (`bar-popover`); `bar-menubar-<state>` and `bar-popover-<state>` for other
 states. Invented data only: nobody's real mail, calendar or music.
 
-A bundled extension's pictures are generated, never captured: a
+The pictures of pal's own extensions are generated, never captured: a
 `fixture.ts` beside `index.ts` builds them from the extension's own code and
-`make shots EXT=<name>` renders both themes, writes the list and stamps it;
-`make test` refuses a set that is missing, stale, the wrong size or
-unlisted. The whole contract is `docs/design/screenshots.md`.
+`make shots EXT=<name>` in its repo renders both themes, writes the list
+and stamps it; that repo's `make test` refuses a set that is missing,
+stale, the wrong size or unlisted. The whole contract is
+`docs/design/screenshots.md`.
 
 ## Trust
 

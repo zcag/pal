@@ -9,7 +9,7 @@
 //! `states/changed` for `state.onChange`.
 //!
 //! `core/states.{get, set, list, eval}` are the SDK's; `manual`, `reset`,
-//! `declare` and `undeclare` are the States palette's (extensions/states),
+//! `declare` and `undeclare` are the States palette's (pal-extensions/states),
 //! which is the one extension that manages states rather than reads them.
 
 use std::path::PathBuf;

@@ -26,11 +26,9 @@
     "../sdk/src",
     "../sdk/pack",
     "../sdk/bin",
-    "../extensions",
     "../examples"
   ],
   "exclude": [
-    "../extensions/*/surface",
     "../examples/*/surface"
   ]
 }

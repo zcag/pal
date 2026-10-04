@@ -36,14 +36,14 @@ their owners, used to name their products.
 
 ## Flashcards' Spanish word pack
 
-`extensions/flashcards/packs/spanish-words.json`, bundled into the
+`flashcards/packs/spanish-words.json` in zcag/pal-extensions, bundled into the
 Flashcards extension, is CC BY-SA 4.0, not MIT: converted from 6001
 Spanish by Jeff Doozan (https://github.com/doozan/6001_Spanish), itself
 made of hermitdave/FrequencyWords (OpenSubtitles 2018, CC BY-SA 4.0),
 English Wiktionary's meanings (its contributors, CC BY-SA 4.0) and
 sentences from Tatoeba (https://tatoeba.org, CC BY 2.0 FR; contributors
 credited in 6001 Spanish's CREDITS). Detail:
-`extensions/flashcards/packs/LICENSE.md`.
+`flashcards/packs/LICENSE.md` there.
 
 ## fflate
 

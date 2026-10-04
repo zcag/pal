@@ -194,7 +194,7 @@ UI first: the page is the way to make a group; the file mirrors it.
 
 ## The Samsung TV extension
 
-`extensions/samsungtv`, registry-only (a device most Macs do not have,
+`samsungtv/` in pal-extensions, registry-only (a device most Macs do not have,
 and setup). Local only, current Tizen TVs (2016+, token auth): the
 remote channel on `wss://<tv>:8002`, UPnP RenderingControl on `:9197`
 for the volume level, Wake-on-LAN for power on. Provides `volume`,

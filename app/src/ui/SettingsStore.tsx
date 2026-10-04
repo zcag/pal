@@ -186,7 +186,7 @@ export const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? cap(c) : "
  * thing pal does (music, code, a game, the day, words, the disk, the
  * lights, typing), in order; the first three that are not installed and
  * install here show. The Store palette's Featured section
- * (extensions/store/store.ts) keeps the same list.
+ * (pal-extensions/store/store.ts) keeps the same list.
  */
 export const FEATURED = ["spotify", "github", "solitaire", "calendar", "translate", "space", "hue", "typing"];
 

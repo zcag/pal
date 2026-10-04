@@ -4,10 +4,9 @@
 # latest release, only once every bundle is on it; docs/releasing.md has the
 # rest. `make release VERSION=x.y.z` bumps the versions, commits,
 # tags and pushes; the guard below refuses a tag that does not match
-# tauri.conf.json. `extensions` (extensions.yml) first publishes every
-# extension built at the tag to the registry's edge and stable indexes; the
-# bundles then take each bundled extension's stable build
-# (build-extensions.sh). The `manifest` job checks that latest.json carries
+# tauri.conf.json. `extensions` (extensions.yml) first promotes everything
+# on the registry's edge index to stable; the bundles then take each
+# bundled extension's stable build (build-extensions.sh). The `manifest` job checks that latest.json carries
 # all three platforms (the three jobs merge into one file in parallel) and
 # that stable lists every bundled extension's build, and publishes.
 #
@@ -32,9 +31,11 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Every extension built at the tag goes to edge and then to stable
-  # (extensions.yml) before anything is bundled, so the bundles take those
-  # builds and the registry never offers one older than the app has. Only
+  # Every extension's newest edge build goes to stable (extensions.yml)
+  # before anything is bundled: a release is everything that was tried on
+  # edge, the bundles take those builds, and the registry never offers one
+  # older than the app has. The extensions are built and put on edge from
+  # zcag/pal-extensions and zcag/pal-games, not at this tag. Only
   # the `registry` environment's secrets reach it: nothing is passed, so the
   # updater key stays in this workflow. extensions.yml dispatched, not
   # called: a called workflow does not get the `registry` environment's
@@ -50,10 +51,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - name: publish the tag's extensions (extensions.yml)
+      - name: promote edge to stable (extensions.yml)
         run: |
           before=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          gh workflow run extensions.yml --ref main -f ref="$GITHUB_SHA" -f promote=all -f release=true
+          gh workflow run extensions.yml --ref main -f promote=all
           for _ in $(seq 36); do
             id=$(gh run list --workflow extensions.yml --event workflow_dispatch --limit 5 --json databaseId,createdAt -q "[.[] | select(.createdAt >= \"$before\")][-1].databaseId")
             [ -n "$id" ] && break

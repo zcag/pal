@@ -2,29 +2,22 @@
 # a green `make test` is a green push: clippy with warnings as errors, the
 # Rust workspace, the SDK's declarations (the app's typecheck reads them),
 # the app's typecheck and vitest, the host's typecheck (which covers the
-# extensions and the examples) and bun test, the SDK's pack. The host's
-# files run in parallel workers, one per core up to 8 (CI: one per core),
-# and host/test/budget.ts fails a file over its time budget: host/test/README.md.
+# examples) and bun test, the SDK's pack. The host's tests are its own
+# (the contract every extension is held to, run over the extension repos'
+# checkouts) and the bundled extensions' from the pal-extensions checkout
+# (app/scripts/extension-repos.mjs: ../pal-extensions and ../pal-games beside
+# this one, or PAL_EXTENSION_REPOS); those repos run all of theirs. The
+# host's files run in parallel workers, one per core up to 8 (CI: one per
+# core), and host/test/budget.ts fails a file over its time budget:
+# host/test/README.md.
 .PHONY: test
 test:
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
 	npm --prefix sdk run build
 	cd app && npx tsc --noEmit && npx vitest run
-	cd host && bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.surface.json && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
+	cd host && bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.surface.json && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml test/*.test.ts $$(bun ../app/scripts/extension-repos.mjs bundled-tests) && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
 	cd sdk && npm pack --dry-run
-
-# An extension-only change (what ci.yml runs when .github/scripts/ci-scope.ts
-# says mode=ext): the host's typechecks (every extension, the surfaces), the
-# host's own tests (the contract every extension is held to: manifests, links,
-# packages, the bundled/registry lists) and the named extensions' tests; with
-# APP=1 (a pal.json changed) the app's typecheck and tests too, since its
-# gallery reads every manifest. No Rust. `make test` is still the full run.
-#   make test-ext NAMES="night-parade" [APP=1]
-.PHONY: test-ext
-test-ext:
-	$(if $(APP),npm --prefix sdk run build && cd app && npx tsc --noEmit && npx vitest run)
-	cd host && bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.surface.json && bun test --parallel=$$(n=$$(getconf _NPROCESSORS_ONLN); echo $$(( n < 8 ? n : 8 ))) --reporter=junit --reporter-outfile=$${TMPDIR:-/tmp}/pal-host-tests.xml test/*.test.ts $(patsubst host/%,%,$(foreach n,$(NAMES),$(wildcard host/test/extensions/$(n).test.ts host/test/extensions/$(n)-*.test.ts))) && bun test/budget.ts $${TMPDIR:-/tmp}/pal-host-tests.xml
 
 # Sets one version everywhere it is written (tauri.conf.json is what the
 # bundle and the tag guard in release.yml read; the two Cargo.toml,
@@ -101,8 +94,9 @@ app:
 	open -a /Applications/pal.app
 	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
 
-# The store screenshots, both themes (docs/design/screenshots.md): `make shots`
-# for every extension, `make shots EXT="privacy timer"` for some;
+# The store screenshots, both themes (docs/design/screenshots.md), of the
+# extension repos' checkouts beside this one (each repo's own `make shots`
+# is the same): `make shots` for every extension, `make shots EXT="privacy timer"` for some;
 # `DESIGN=ink` renders them in a built-in design into $TMPDIR/pal-shots-ink/
 # to look at, the store's pictures untouched.
 .PHONY: shots
