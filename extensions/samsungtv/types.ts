@@ -91,6 +91,8 @@ export interface Conn {
 
   /** 0..100 as the TV counts it, undefined until read. */
   volume(): number | undefined;
+  /** Whether the TV takes an exact level (`setVolume`); false while its sound is on another speaker and only the keys step it, undefined before it was asked. */
+  levelSettable(): boolean | undefined;
   setVolume(level: number): Promise<void>;
   muted(): boolean | undefined;
   setMuted(muted: boolean): Promise<void>;

@@ -158,6 +158,7 @@ class RealConn implements Conn {
       this.readMedia().catch(() => undefined),
       this.readFront(),
     ]);
+    if (vol !== undefined && !Number.isNaN(vol)) await this.probeLevel(vol);
     if ((vol !== undefined && !Number.isNaN(vol) && vol !== this.st.volume) || (mute !== undefined && mute !== this.st.muted)) {
       if (vol !== undefined && !Number.isNaN(vol)) this.st.volume = vol;
       if (mute !== undefined) this.st.muted = mute;
@@ -264,10 +265,32 @@ class RealConn implements Conn {
     await this.rawKey(KEYS.power);
   }
 
+  /**
+   * Whether the TV takes an exact level. With its sound on the soundbar
+   * (the QE75QN85D and an HW-Q600C, 2026-10-04) it reads 0 and refuses
+   * `SetVolume` even to the level it has (501 Action Failed), while the
+   * volume keys still reach the soundbar: then only steps. Asked by setting
+   * the level it reads, once a connection and again a minute after a refusal,
+   * since the sound can move back to the TV's speakers.
+   */
+  levelSettable() { return this.levelOk; }
+  private levelOk: boolean | undefined;
+  private probedAt = 0;
+  private async probeLevel(vol: number) {
+    if (this.levelOk === true || (this.levelOk === false && Date.now() - this.probedAt < 60_000)) return;
+    this.probedAt = Date.now();
+    const ok = await upnp.soap(this.device.address, upnp.RC, "SetVolume", { Channel: "Master", DesiredVolume: vol }, 2000, this.w.upnpPort).then(() => true, () => false);
+    if (ok !== this.levelOk) { this.levelOk = ok; this.emit({ kind: "volume" }); }
+  }
   volume() { return this.st.volume; }
   async setVolume(level: number) {
     const v = Math.round(Math.min(100, Math.max(0, level)));
-    await upnp.soap(this.device.address, upnp.RC, "SetVolume", { Channel: "Master", DesiredVolume: v }, 2000, this.w.upnpPort);
+    const ok = await upnp.soap(this.device.address, upnp.RC, "SetVolume", { Channel: "Master", DesiredVolume: v }, 2000, this.w.upnpPort).then(() => true, () => false);
+    if (!ok) {
+      if (this.levelOk !== false) { this.levelOk = false; this.probedAt = Date.now(); this.emit({ kind: "volume" }); }
+      throw new Error("The TV takes only volume up and down while its sound is on another speaker");
+    }
+    this.levelOk = true;
     if (v !== this.st.volume) { this.st.volume = v; this.emit({ kind: "volume" }); }
   }
   muted() { return this.st.muted; }

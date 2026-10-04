@@ -21,6 +21,8 @@ export type FakeTv = {
   down?: string;
   power: Power;
   volume?: number;
+  /** false: the TV refuses an exact level (its sound on the soundbar), only steps. */
+  levelOk?: boolean;
   muted?: boolean;
   apps: App[];
   /** The app in front, by id. */
@@ -75,7 +77,8 @@ export function fakeDriver(dir: string): Driver {
         async turnOn() { did("power", { to: "on" }); write((tv) => { tv.power = "on"; }); },
         async turnOff() { did("power", { to: "off" }); write((tv) => { tv.power = "standby"; }); },
         volume: () => (on() ? read().volume : undefined),
-        async setVolume(level) { did("volume", { level }); write((tv) => { tv.volume = level; }); },
+        levelSettable: () => (on() ? read().levelOk ?? true : undefined),
+        async setVolume(level) { if (read().levelOk === false) throw new Error("The TV takes only volume up and down while its sound is on another speaker"); did("volume", { level }); write((tv) => { tv.volume = level; }); },
         muted: () => (on() ? read().muted : undefined),
         async setMuted(muted) { did("mute", { muted }); write((tv) => { tv.muted = muted; }); },
         inputs: () => INPUTS,

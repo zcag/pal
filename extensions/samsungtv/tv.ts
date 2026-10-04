@@ -189,7 +189,8 @@ export function provided(): { [C in ControlName]: ControlStates[C] | null } {
   const v = on ? c!.volume() : undefined;
   const m = on ? c!.media() : undefined, front = on ? frontApp() : undefined;
   return {
-    volume: on && v !== undefined ? { device, level: v / 100, muted: c!.muted() ?? false } : null,
+    // The keys always step it; a level only while the TV takes one (`levelSettable`: not with its sound on the soundbar).
+    volume: on ? { device, ...(v !== undefined && c!.levelSettable() !== false && { level: v / 100 }), muted: c!.muted() ?? false } : null,
     // A TV that is off is still woken by Wake-on-LAN: its power stays offered while its MAC is known.
     power: dev && (c || dev.mac) ? { device, on: !!on, ...(tv.waking && { busy: true }) } : null,
     inputs: on ? { device, list: c!.inputs().map((i) => ({ id: i.id, name: i.name })) } : null,
