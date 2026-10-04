@@ -18,7 +18,6 @@ github
 gmail
 google
 grafana
-highway
 home-assistant
 hue
 icons
