@@ -3,7 +3,7 @@
 // "Living room" at once and asks which devices; a device offered by a
 // registry installs on a pick and joins; joining binds the sound and the
 // inputs to the TV with no pick needed; members show the device each drives,
-// one missing with Install; "Sound comes from" / "Inputs come from" offer
+// one missing with Install; "Volume buttons change" / "Input buttons switch" offer
 // only members that have it and hide when none does; power lists who turns
 // on together; a name commits on Enter; the search finds a group by name.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,16 +81,16 @@ describe("SettingsGroups", () => {
   it("says where the sound and the inputs come from, only among members that have them, and who powers together", async () => {
     const onBind = vi.fn();
     await show({ onBind });
-    const sound = card("living-room").querySelector<HTMLSelectElement>('[aria-label="Sound of Living room"]')!;
+    const sound = card("living-room").querySelector<HTMLSelectElement>('[aria-label="Volume buttons change in Living room"]')!;
     expect(sound.value).toBe("samsungtv");
-    expect(options(sound)).toEqual(["Each its own", "Apple TV", "Samsung TV"]);
+    expect(options(sound)).toEqual(["Each device its own", "the Apple TV", "the Samsung TV"]);
     select(sound, "");
     expect(onBind).toHaveBeenLastCalledWith("living-room", "volume", undefined);
-    const inputs = card("living-room").querySelector<HTMLSelectElement>('[aria-label="Inputs of Living room"]')!;
-    expect(options(inputs), "only the Samsung has inputs").toEqual(["Each its own", "Samsung TV"]);
+    expect(card("living-room").querySelector('[aria-label="Input buttons switch in Living room"]'), "only the Samsung has inputs: nothing to pick").toBeNull();
+    expect(card("living-room").textContent).toContain("Input buttons switchthe Samsung TV");
     expect(card("living-room").textContent).toContain("Apple TV and Samsung TV turn on and off together");
     await show({ groups: [{ id: "bed", title: "Bed", members: ["appletv"] }] });
-    expect(card("bed").querySelector('[aria-label="Inputs of Bed"]'), "no member has inputs: no row").toBeNull();
+    expect(card("bed").textContent, "no member has inputs: no row").not.toContain("Input buttons");
   });
 
   it("removes a member, renames on Enter, and deletes on a second click", async () => {

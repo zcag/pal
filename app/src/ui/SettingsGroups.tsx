@@ -230,9 +230,16 @@ function Card({ g, open, devices, offers, groupOf, join, onRename, onDelete, onM
             const able = g.members.filter((m) => provides(m, control));
             if (able.length === 0) return null;
             const bound = g[control] && g.members.includes(g[control]!) ? g[control]! : "";
+            const label = control === "volume" ? "Volume buttons change" : "Input buttons switch";
+            // One member has it: nothing to choose, the row only says what the buttons do.
+            if (able.length === 1 && (!bound || bound === able[0])) return (
+              <SettingsRow key={control} label={label}>
+                <span className="pal-group__note">{bound ? `the ${name(able[0])}` : `each device its own`}</span>
+              </SettingsRow>
+            );
             return (
-              <SettingsRow key={control} label={control === "volume" ? "Sound comes from" : "Inputs come from"}>
-                <SettingsSelect value={bound} label={`${control === "volume" ? "Sound" : "Inputs"} of ${g.title || g.id}`} options={[{ id: "", title: "Each its own" }, ...able.map((m) => ({ id: m, title: name(m) }))]} onChange={(m) => onBind(g.id, control, m || undefined)} />
+              <SettingsRow key={control} label={label} description={control === "volume" ? "Pick the device your speakers or soundbar listen to." : undefined}>
+                <SettingsSelect value={bound} label={`${label} in ${g.title || g.id}`} options={[{ id: "", title: "Each device its own" }, ...able.map((m) => ({ id: m, title: `the ${name(m)}` }))]} onChange={(m) => onBind(g.id, control, m || undefined)} />
               </SettingsRow>
             );
           })}

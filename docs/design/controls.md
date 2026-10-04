@@ -158,8 +158,8 @@ wins. A binding to a non-member is a load warning and ignored.
 UI first: the page is the way to make a group; the file mirrors it.
 
 - A card per group: its name (click to edit), its devices as chips
-  with the device each drives, "Sound comes from" and "Inputs come
-  from" among the members that have them (hidden when none does), and
+  with the device each drives, "Volume buttons change" and "Input buttons switch" among the members
+  that have them (a picker only when two do) (hidden when none does), and
   "Power" listing who turns on and off together.
 - **Never a dead end** (Cagdas, 2026-10-04: the first page was "a bunch
   of text and an input" and a new group showed nothing to add). "New
