@@ -305,7 +305,7 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
       {adding && <AddForm kind={adding} onKind={setAdding} extensions={extensions} bar={bar} items={items} onPalette={onPalette} onBarItem={onBarItem} onClose={() => setAdding(undefined)} />}
 
       {matches(filter, "show pal", ...general.hotkeys.map(comboLabel), "window switcher", chord && comboLabel(chord), "app switcher", general.appSwitcher && comboLabel(general.appSwitcher), "sidebar", sidebar?.value.hotkey && comboLabel(sidebar.value.hotkey)) && (
-        <SettingsGroup title="pal">
+        <SettingsGroup title="pal" note="this Mac only">
           <SettingsRow anchor={text.hotkey.anchor} label={text.hotkey.label} description={text.hotkey.description}>
             <HotkeyRows value={general.hotkeys} onChange={(hotkeys) => onGeneral({ ...general, hotkeys })} status={hotkey} onOpenKeyboardShortcuts={onOpenKeyboardShortcuts} all={all} />
           </SettingsRow>
@@ -333,7 +333,7 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
         </SettingsGroup>
       )}
 
-      <SettingsGroup title="Palettes" note="palettes.<id>.hotkey, hold">
+      <SettingsGroup title="Palettes" note="this Mac only · palettes.<id>.hotkey, hold">
         <SettingsRow anchor={text.palettes.anchor} label={text.palettes.label} description={text.palettes.description} layout="stack">
           {shown.palettes.length === 0 && <p className="pal-ppane__none">{filter ? "No palette shortcut matches." : "None. Add Shortcut › Open a palette, or a palette's own pane under Palettes."}</p>}
           {shown.palettes.length > 0 && (
@@ -357,7 +357,7 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
         </SettingsRow>
       </SettingsGroup>
 
-      <SettingsGroup title="Rows" note="palettes.<id>.item_hotkeys">
+      <SettingsGroup title="Rows" note="this Mac only · palettes.<id>.item_hotkeys">
         <SettingsRow anchor={text.items.anchor} label={text.items.label} description={text.items.description} layout="stack">
           {shown.items.length === 0 && <p className="pal-ppane__none">{filter ? "No row shortcut matches." : "None. Add Shortcut › Run a row: a layout, a space, a script."}</p>}
           {shown.items.length > 0 && (
@@ -380,7 +380,7 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
       </SettingsGroup>
 
       {onFeatureHotkey && (
-        <SettingsGroup title="Commands" note="features.<id>.hotkeys">
+        <SettingsGroup title="Commands" note="this Mac only · features.<id>.hotkeys">
           <SettingsRow anchor={text.commands.anchor} label={text.commands.label} description={text.commands.description} layout="stack">
             {commandRows.length === 0 && <p className="pal-ppane__none">{filter ? "No command shortcut matches." : "None. A feature's card under Features lists its commands, each with a hotkey field."}</p>}
             {commandRows.length > 0 && (
@@ -403,7 +403,7 @@ export function SettingsShortcuts({ general, onGeneral, hotkey, onOpenKeyboardSh
       )}
 
       {bar.length > 0 && onBarItem && (
-        <SettingsGroup title="Bar items" note="bar.items.<key>.hotkey">
+        <SettingsGroup title="Bar items" note="this Mac only · bar.items.<key>.hotkey">
           <SettingsRow anchor={text.bar.anchor} label={text.bar.label} description={text.bar.description} layout="stack">
             {shown.bar.length === 0 && <p className="pal-ppane__none">{filter ? "No bar item shortcut matches." : "None. Add Shortcut › Open a bar item."}</p>}
             {shown.bar.length > 0 && (

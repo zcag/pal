@@ -14,10 +14,14 @@
 //!
 //! Files are read on first touch and kept in memory after; the bridge runs
 //! handlers on blocking threads, so the map is behind one mutex.
+//!
+//! A `set` or `remove` that changed a key calls the [`Storage::watch`]
+//! callback (sync marks the key, `crate::sync`); a value sync brought in
+//! is written with [`Storage::put`], which does not.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, RwLock};
 
 use serde_json::Value;
 
@@ -57,9 +61,13 @@ impl std::error::Error for Error {}
 /// One extension's keys, in key order so the file is stable to diff.
 type Map = BTreeMap<String, Value>;
 
+/// Told `(extension, key)` after a write changed that key.
+pub type Watch = Arc<dyn Fn(&str, &str) + Send + Sync>;
+
 pub struct Storage {
     dir: PathBuf,
     files: Mutex<HashMap<String, Map>>,
+    watch: RwLock<Option<Watch>>,
 }
 
 /// An install name, or an instance key (`gmail@work`: one `@`, a name on
@@ -76,7 +84,7 @@ fn valid_key(key: &str) -> bool {
 impl Storage {
     /// Nothing is read or created until an extension touches its file.
     pub fn open_in(dir: impl Into<PathBuf>) -> Storage {
-        Storage { dir: dir.into(), files: Mutex::new(HashMap::new()) }
+        Storage { dir: dir.into(), files: Mutex::new(HashMap::new()), watch: RwLock::new(None) }
     }
 
     /// `<data dir>/pal/storage`.
@@ -150,31 +158,58 @@ impl Storage {
 
     /// Setting a key to `Value::Null` removes it: the file holds what is set.
     pub fn set(&self, extension: &str, key: &str, value: Value) -> Result<(), Error> {
-        if !valid_key(key) {
-            return Err(Error::BadKey(key.to_string()));
-        }
-        if value.is_null() {
-            return self.remove(extension, key);
-        }
-        self.with(extension, |m| {
-            let changed = m.get(key) != Some(&value);
-            if changed {
-                m.insert(key.to_string(), value);
-            }
-            ((), changed)
-        })
+        self.write(extension, key, value, true).map(drop)
     }
 
     pub fn remove(&self, extension: &str, key: &str) -> Result<(), Error> {
+        self.write(extension, key, Value::Null, true).map(drop)
+    }
+
+    /// [`Self::set`] without telling the watch: a value sync brought in.
+    /// Whether it changed anything.
+    pub fn put(&self, extension: &str, key: &str, value: Value) -> Result<bool, Error> {
+        self.write(extension, key, value, false)
+    }
+
+    /// The one callback told of every changed key (one at a time: a later
+    /// call replaces it).
+    pub fn watch(&self, f: Watch) {
+        *self.watch.write().unwrap_or_else(|e| e.into_inner()) = Some(f);
+    }
+
+    fn write(&self, extension: &str, key: &str, value: Value, notify: bool) -> Result<bool, Error> {
         if !valid_key(key) {
             return Err(Error::BadKey(key.to_string()));
         }
-        self.with(extension, |m| ((), m.remove(key).is_some()))
+        let changed = self.with(extension, |m| {
+            let changed = if value.is_null() {
+                m.remove(key).is_some()
+            } else if m.get(key) != Some(&value) {
+                m.insert(key.to_string(), value);
+                true
+            } else {
+                false
+            };
+            (changed, changed)
+        })?;
+        if changed && notify {
+            if let Some(f) = self.watch.read().unwrap_or_else(|e| e.into_inner()).clone() {
+                f(extension, key);
+            }
+        }
+        Ok(changed)
     }
 
     /// Every key set, sorted.
     pub fn keys(&self, extension: &str) -> Result<Vec<String>, Error> {
         self.with(extension, |m| (m.keys().cloned().collect(), false))
+    }
+
+    /// Every extension with a file, sorted.
+    pub fn extensions(&self) -> Vec<String> {
+        let mut out: Vec<String> = std::fs::read_dir(&self.dir).into_iter().flatten().flatten().filter_map(|e| e.file_name().to_str()?.strip_suffix(".json").filter(|n| valid_name(n)).map(String::from)).collect();
+        out.sort();
+        out
     }
 
     /// The extension's whole file gone (an instance removed), and what
@@ -302,6 +337,24 @@ mod tests {
         assert!(matches!(s.get("ok", &"k".repeat(MAX_KEY + 1)), Err(Error::BadKey(_))));
         assert!(s.get("ok", &"k".repeat(MAX_KEY)).is_ok());
         assert!(!dir.join("...json").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_watch_hears_changes_and_put_is_quiet() {
+        let dir = temp();
+        let s = Storage::open_in(&dir);
+        let heard = Arc::new(Mutex::new(Vec::new()));
+        let h = heard.clone();
+        s.watch(Arc::new(move |e: &str, k: &str| h.lock().unwrap().push(format!("{e}/{k}"))));
+        s.set("a", "k", json!(1)).unwrap();
+        s.set("a", "k", json!(1)).unwrap();
+        s.remove("a", "gone").unwrap();
+        s.remove("a", "k").unwrap();
+        assert_eq!(s.put("a", "p", json!(2)), Ok(true));
+        assert_eq!(s.put("a", "p", json!(2)), Ok(false));
+        assert_eq!(*heard.lock().unwrap(), ["a/k", "a/k"], "a change each, an unchanged write and put say nothing");
+        assert_eq!(s.get("a", "p").unwrap(), json!(2));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

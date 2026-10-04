@@ -16,6 +16,7 @@ import {
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, ownBrand, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
   useThemeFile,
+  SettingsAccount, accountIndex, LocalKeys, localMatcher, type AccountDevice, type AccountState, type SyncRev,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
 import { DESIGNS, designOf } from "./ui/designs";
@@ -65,11 +66,24 @@ type RawBarState = NonNullable<BarItem["state"]>;
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
 type RawBarView = { key: string; extension: string; id: string; title: string; /** A glance-only item (`ManifestBar.strip: false`). */ glance_only?: boolean; /** The manifest's `bar.<id>.settings`. */ settings_specs?: SettingSpec[]; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[] };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[]; /** The config keys that stay on this machine (`pal_core::config::sync`): their rows say "this Mac only". */ local?: string[] };
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
 type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
 type About = { docs: string; repo: string; changelog?: string; store?: string; issues?: string; report?: CrashReport; panic?: PanicReport };
+
+/** account.rs: the account as Settings › Account draws it, re-read on `pal://account` and when the page opens. */
+function useAccount(page: SettingsPage): AccountState {
+  const [state, setState] = useState<AccountState>({ signedIn: false, synced: [] });
+  const read = useCallback(() => { invoke<AccountState>("account_state").then(setState).catch(() => {}); }, []);
+  useEffect(() => {
+    read();
+    const u = listen("pal://account", read);
+    return () => { u.then((f) => f()); };
+  }, [read]);
+  useEffect(() => { if (page === "account") read(); }, [page, read]);
+  return state;
+}
 
 /** The store site, where every bundled extension has a page. */
 const STORE = "https://pal.cagdas.io/extensions";
@@ -384,6 +398,8 @@ export default function Settings() {
   // answer, so a second refresh from here would only race it). Every
   // registry is also fetched when the Extensions page opens.
   const { state: storeState, loaded: storeLoaded, refresh: storeRefresh } = useStore();
+  const account = useAccount(page);
+  const isLocal = useMemo(() => localMatcher(view?.local ?? []), [view?.local]);
   const [checking, setChecking] = useState(false);
   // Answers what the core knows after, for the About page's row (the app's result, or its error).
   const check = useCallback((force: boolean): Promise<Checks | undefined> => {
@@ -669,7 +685,7 @@ export default function Settings() {
   const openKeyboardShortcuts = () => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail);
 
   const barSupported = view.bar?.supported ?? isMac;
-  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions, storeState.available), ...barIndex(barItems, barSupported), ...groupsIndex(groups), ...aboutIndex];
+  const index: SettingsIndexEntry[] = [...overviewIndex, ...generalIndex, ...shortcutsIndex(general, extensions, barSupported ? barItems : [], barSupported ? sidebar : undefined, features), ...featuresIndex(features), ...(barSupported ? sidebarIndex : []), ...palettesIndex(extensions), ...extensionsIndex(extensions, storeState.available), ...barIndex(barItems, barSupported), ...groupsIndex(groups), ...accountIndex, ...aboutIndex];
   /** A search hit selects what it names before the page lights its row. */
   const onJump = (entry: SettingsIndexEntry) => go(entry.page, entry.anchor);
   const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
@@ -682,6 +698,7 @@ export default function Settings() {
   const sidebarLine = barSupported ? sidebarSummary(sidebar, sidebarPalettes) : undefined;
 
   return (
+    <LocalKeys.Provider value={isLocal}>
     <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch(fail)} mac={isMac} attention={attention}>
       {page === "overview" && (
         <SettingsOverview
@@ -794,6 +811,22 @@ export default function Settings() {
           onRefreshListings={() => invoke("index_refresh", { source: null }).catch(fail)}
         />
       )}
+      {page === "account" && (
+        <SettingsAccount
+          state={account}
+          onStart={(email) => invoke("account_start", { email }).then(() => {})}
+          onVerify={(email, code) => invoke("account_verify", { email, code }).then(() => {})}
+          onDevices={() => invoke<{ devices?: AccountDevice[] }>("account_details").then((d) => d.devices ?? [])}
+          onHandle={(handle) => invoke<string>("account_set_handle", { handle })}
+          onDropDevice={(id, current) => invoke("account_drop_device", { id, current }).then(() => {})}
+          onSyncNow={() => invoke("sync_now").then(() => {})}
+          onHistory={(space) => invoke<{ revs?: SyncRev[] }>("sync_history", { space, key: null }).then((r) => r.revs ?? [])}
+          onRestore={(space, t) => invoke("sync_restore", "key" in t ? { space, key: t.key, rev: t.rev, at: null } : { space, key: null, rev: null, at: t.at }).then(() => {})}
+          onSignOut={() => invoke("account_sign_out").then(() => {})}
+          onDelete={() => invoke("account_delete").then(() => {})}
+        />
+      )}
     </SettingsWindow>
+    </LocalKeys.Provider>
   );
 }

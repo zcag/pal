@@ -16,6 +16,7 @@ import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, per
 import {
   SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsFeatures, SettingsField, SettingsGeneral, SettingsGroups, SettingsShortcuts, SettingsWindow, featuresIndex, groupsIndex, type DeviceGroup, sidebarDefaults, type SettingsFeature, type SettingSpec, type SidebarConfig,
   aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, ownBrand, palettesIndex, resolveInstance, shortcutsIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+  SettingsAccount, accountIndex, LocalKeys, localMatcher, type AccountState, type SyncRev,
 } from "../ui";
 import { groupStates, settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, settingsStore, browseStore, storeExtensions, storeReferences, tileRows } from "./data";
 import type { StoreState } from "../store";
@@ -267,7 +268,7 @@ function Solo({ what }: { what: string }) {
   }, []);
   return (
     <div className="g-solo" data-theme={theme}>
-      <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} open={params.get("open") ?? undefined} browse={params.has("browse")} groupState={(params.get("groups") as GroupState | null) ?? undefined} />
+      <SettingsDemo page={page as SettingsPage} account={params.get("account") === "out" ? "out" : "in"} diagnostics={params.has("diagnostics")} open={params.get("open") ?? undefined} browse={params.has("browse")} groupState={(params.get("groups") as GroupState | null) ?? undefined} />
     </div>
   );
 }
@@ -603,6 +604,12 @@ function GalleryPage() {
         <State label="Groups, a member not installed: the Samsung TV listed with Install; an empty bedroom asking which devices">
           <WidePair>{(t) => <SettingsDemo key={t} page="groups" groupState="missing" />}</WidePair>
         </State>
+        <State label="Account, signed out: the email, then the code; one sentence on what syncs">
+          <WidePair>{(t) => <SettingsDemo key={t} page="account" account="out" />}</WidePair>
+        </State>
+        <State label="Account, signed in: the handle, Sync now, the devices, settings history by day and a game's keys with their revisions, Sign out and Delete">
+          <WidePair>{(t) => <SettingsDemo key={t} page="account" />}</WidePair>
+        </State>
         <State label="About: the version, the update check, the links">
           <WidePair>{(t) => <SettingsDemo key={t} page="about" />}</WidePair>
         </State>
@@ -660,7 +667,50 @@ const galleryFeatures: SettingsFeature[] = FEATURE_ORDER.map((id) => featureSpec
 });
 
 type GroupState = keyof typeof groupStates;
-function SettingsDemo({ page: initial, diagnostics, open, browse, groupState = "ready" }: { page: SettingsPage; diagnostics?: boolean; /** A feature card to open (`&open=keycast`). */ open?: string; /** Extensions opens on Browse over the whole registry (`&browse`). */ browse?: boolean; /** Groups' fixture (`&groups=empty|ready|missing`). */ groupState?: GroupState }) {
+
+/** The core's machine-local list (`core/src/config/sync.rs` `LOCAL`), the part these pages draw. */
+const galleryLocal = localMatcher(["general.hotkey", "general.launch_at_login", "general.menu_bar_icon", "general.usage", "general.extension_dirs", "general.theme_file", "bar.target", "bar.items.*.target", "bar.items.*.position", "bar.items.*.hotkey", "features.sidebar.hotkey", "features.sidebar.display", "extensions.files.folders"]);
+
+/** Settings › Account's fixture: a week of settings changes on two Macs, Vortex's best and plays. */
+const day = 86_400;
+const accountNow = Math.floor(Date.now() / 1000);
+const accountHistory: Record<string, SyncRev[]> = {
+  config: [
+    { key: "general.theme", value: "dark", rev: 41, at: accountNow - 3_600, device: "hornet" },
+    { key: "store.installed", value: ["weather", "vortex"], rev: 38, at: accountNow - day - 7_200, device: "marko" },
+    { key: "palettes.files.enabled", value: false, rev: 30, at: accountNow - 3 * day, device: "hornet" },
+    { key: "general.design", value: "frappe", rev: 22, at: accountNow - 6 * day, device: "hornet" },
+  ],
+  "ext:vortex": [
+    { key: "best", value: 182.4, rev: 40, at: accountNow - 5_400, device: "hornet" },
+    { key: "best", value: 141.9, rev: 33, at: accountNow - 2 * day, device: "marko" },
+    { key: "plays", value: 57, rev: 39, at: accountNow - 5_400, device: "hornet" },
+  ],
+};
+function AccountDemo({ signedIn }: { signedIn: boolean }) {
+  const [state, setState] = useState<AccountState>(signedIn ? { signedIn: true, email: "ada@example.com", handle: "ada", lastSynced: accountNow - 120, synced: [{ key: "vortex", title: "Vortex" }, { key: "wordle", title: "Wordle" }] } : { signedIn: false, synced: [] });
+  const wait = () => new Promise<void>((r) => setTimeout(r, 500));
+  return (
+    <SettingsAccount
+      state={state}
+      onStart={wait}
+      onVerify={async (email) => { await wait(); setState({ signedIn: true, email, handle: null, lastSynced: accountNow, synced: [{ key: "vortex", title: "Vortex" }] }); }}
+      onDevices={async () => [
+        { id: "a", name: "hornet", created: accountNow - 40 * day, last_seen: accountNow - 60, current: true },
+        { id: "b", name: "marko", created: accountNow - 12 * day, last_seen: accountNow - day - 7_200, current: false },
+      ]}
+      onHandle={async (h) => { await wait(); if (h === "admin") throw new Error("That handle is taken."); setState((s) => ({ ...s, handle: h })); return h; }}
+      onDropDevice={wait}
+      onSyncNow={async () => { await wait(); setState((s) => ({ ...s, lastSynced: Math.floor(Date.now() / 1000) })); }}
+      onHistory={async (space) => accountHistory[space] ?? []}
+      onRestore={wait}
+      onSignOut={async () => setState({ signedIn: false, synced: [] })}
+      onDelete={async () => setState({ signedIn: false, synced: [] })}
+    />
+  );
+}
+
+function SettingsDemo({ page: initial, account = "in", diagnostics, open, browse, groupState = "ready" }: { page: SettingsPage; /** Settings › Account signed in or out (`&account=out`). */ account?: "in" | "out"; diagnostics?: boolean; /** A feature card to open (`&open=keycast`). */ open?: string; /** Extensions opens on Browse over the whole registry (`&browse`). */ browse?: boolean; /** Groups' fixture (`&groups=empty|ready|missing`). */ groupState?: GroupState }) {
   const [page, setPage] = useState<SettingsPage>(initial);
   const [features, setFeatures] = useState(galleryFeatures);
   const [sidebar, setSidebar] = useState<SidebarConfig>(sidebarDefaults);
@@ -720,9 +770,10 @@ function SettingsDemo({ page: initial, diagnostics, open, browse, groupState = "
   const [groupDevices, setGroupDevices] = useState(groupStates[groupState].devices);
   const [groupOffers, setGroupOffers] = useState(groupStates[groupState].offers);
   const patchGroup = (id: string, f: (g: DeviceGroup) => DeviceGroup) => setGroups((gs) => gs.map((g) => (g.id === id ? f(g) : g)));
-  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts, store.available), ...barIndex(barItems), ...groupsIndex(groups), ...aboutIndex];
+  const index = [...generalIndex, ...shortcutsIndex(general, exts, barItems), ...featuresIndex(features), ...palettesIndex(exts), ...extensionsIndex(exts, store.available), ...barIndex(barItems), ...groupsIndex(groups), ...accountIndex, ...aboutIndex];
   const mac = /Mac/.test(navigator.platform);
   return (
+    <LocalKeys.Provider value={galleryLocal}>
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
       {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} onOpenShortcuts={() => setPage("shortcuts")} onOpenLink={noop} />}
       {page === "shortcuts" && <SettingsShortcuts general={general} onGeneral={setGeneral} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} extensions={exts} onPalette={patchPalette} bar={barItems} onBarItem={patchBarItem} onGo={(p) => setPage(p)} />}
@@ -731,7 +782,9 @@ function SettingsDemo({ page: initial, diagnostics, open, browse, groupState = "
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
       {page === "groups" && <SettingsGroups groups={groups} devices={groupDevices} offers={groupOffers} onInstall={async (name) => { const o = groupOffers.find((x) => x.name === name); if (!o) return; setGroupOffers((os) => os.filter((x) => x.name !== name)); setGroupDevices((ds) => [...ds, { key: o.name, title: o.title, icon: o.icon, controls: o.controls }]); }} onCreate={(title) => { const id = title.toLowerCase().replace(/[^a-z0-9]+/g, "-"); setGroups((gs) => [...gs, { id, title, members: [] }]); return id; }} onRename={(id, title) => patchGroup(id, (g) => ({ ...g, title }))} onDelete={(id) => setGroups((gs) => gs.filter((g) => g.id !== id))} onMembers={(id, members) => patchGroup(id, (g) => ({ ...g, members, volume: g.volume && members.includes(g.volume) ? g.volume : undefined, inputs: g.inputs && members.includes(g.inputs) ? g.inputs : undefined }))} onBind={(id, control, member) => patchGroup(id, (g) => ({ ...g, [control]: member }))} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal", store: "https://pal.cagdas.io/extensions", changelog: "https://pal.cagdas.io/changelog?from=0.1.0", issues: "https://github.com/zcag/pal/issues/new" }} extensionUpdates={[]} onUpdateExtensions={async () => {}} onResetFrecency={noop} onRestartHost={noop} onRefreshListings={noop} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
+      {page === "account" && <AccountDemo signedIn={account === "in"} />}
     </SettingsWindow>
+    </LocalKeys.Provider>
   );
 }
 

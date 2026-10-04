@@ -23,10 +23,14 @@ pub struct Request {
     pub body: Vec<u8>,
 }
 
+/// Answers a request itself (a fake API with state): `None` falls back to the routes.
+pub type Handler = Box<dyn Fn(&Request) -> Option<(u16, Vec<u8>)> + Send>;
+
 #[derive(Clone)]
 pub struct Server {
     pub base: String,
     routes: Arc<Mutex<HashMap<String, Route>>>,
+    handler: Arc<Mutex<Option<Handler>>>,
     pub requests: Arc<Mutex<Vec<Request>>>,
 }
 
@@ -34,7 +38,7 @@ impl Server {
     pub fn start() -> Server {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
-        let server = Server { base, routes: Arc::default(), requests: Arc::default() };
+        let server = Server { base, routes: Arc::default(), handler: Arc::default(), requests: Arc::default() };
         let s = server.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
@@ -55,6 +59,11 @@ impl Server {
 
     pub fn ok(&self, path: &str, body: impl Into<Vec<u8>>) {
         self.put(path, 200, body, None);
+    }
+
+    /// Every request goes to `f` first.
+    pub fn handle(&self, f: impl Fn(&Request) -> Option<(u16, Vec<u8>)> + Send + 'static) {
+        *self.handler.lock().unwrap() = Some(Box::new(f));
     }
 
     pub fn requests_to(&self, path: &str) -> Vec<Request> {
@@ -82,11 +91,14 @@ impl Server {
         reader.read_exact(&mut body)?;
         let route = self.routes.lock().unwrap().get(&path).cloned();
         let inm = headers.get("if-none-match").cloned();
-        self.requests.lock().unwrap().push(Request { method, path, headers, body });
-        let (status, body, etag) = match route {
-            Some(r) if r.etag.is_some() && r.etag == inm => (304, Vec::new(), r.etag),
-            Some(r) => (r.status, r.body, r.etag),
-            None => (404, b"not found".to_vec(), None),
+        let req = Request { method, path, headers, body };
+        let handled = self.handler.lock().unwrap().as_ref().and_then(|h| h(&req));
+        self.requests.lock().unwrap().push(req);
+        let (status, body, etag) = match (handled, route) {
+            (Some((status, body)), _) => (status, body, None),
+            (None, Some(r)) if r.etag.is_some() && r.etag == inm => (304, Vec::new(), r.etag),
+            (None, Some(r)) => (r.status, r.body, r.etag),
+            (None, None) => (404, b"not found".to_vec(), None),
         };
         let etag = etag.map(|e| format!("ETag: {e}\r\n")).unwrap_or_default();
         write!(stream, "HTTP/1.1 {status} X\r\nContent-Length: {}\r\n{etag}Connection: close\r\n\r\n", body.len())?;

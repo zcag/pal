@@ -677,6 +677,44 @@ Secret Service on the session bus, every `keychain:` reference is
 unresolved and the log says which of the two is missing; `env:` references
 work everywhere.
 
+## Sync
+
+Signed in to a pal account (Settings › Account, `docs/design/accounts.md`),
+the file syncs between your machines, except the keys that belong to one
+machine. The core sees the file as dotted keys, one per value
+(`general.theme`, `palettes.files.enabled`; an array is one value, so
+`store.installed` is one key), and only what the file says: a default the
+file leaves out is no value, so setting a key back to its default (which
+unsets it) removes it on the other machines too. A key changed here goes up
+a few seconds later; another machine's change arrives when the panel opens
+(at most once a minute) and every 15 minutes, written through the same
+edit path as Settings, so your comments and formatting stay. Config keys
+merge by `latest`; the server keeps every version, and Settings › Account ›
+History puts back the settings of any earlier day.
+
+These stay on this machine (`core/src/config/sync.rs` `LOCAL`; `*` is any
+one key), and Settings marks the rows that set them "this Mac only":
+
+| key | why |
+| --- | --- |
+| `general.hotkey`, `palettes.*.hotkey`, `palettes.*.hold`, `palettes.*.item_hotkeys`, `bar.items.*.hotkey`, `features.*.hotkeys`, `features.sidebar.hotkey` | hotkeys: keyboards and habits differ per machine, and a chord taken on one is free on another |
+| `general.launch_at_login` | installs a login agent on this machine |
+| `general.menu_bar_icon` | the menu bar of this machine |
+| `general.usage` | the usage id is per machine (`docs/usage.md`) |
+| `general.extension_dirs`, `general.theme_file` | paths (a theme file's name is looked up in this machine's config dir) |
+| `bar.target`, `bar.sketchybar.position`, `bar.items.*.target`, `bar.items.*.position`, `bar.items.*.rules.*.position` | where the bar draws: sketchybar runs on one machine and not another |
+| `features.sidebar.display` | a display's name |
+| `extensions.apps.folders`, `extensions.files.folders`, `extensions.make.projects`, `extensions.services.agent_dirs` | folder lists of bundled extensions |
+
+On top of the table, an extension's, palette's, bar item's or feature's
+declared setting of kind `hotkey` or `path`, or one that says
+`"local": true`, stays local (`extensions.<key>.<id>`,
+`palettes.<id>.settings.<id>`, `bar.items."<key>/<id>".settings.<id>`,
+`features.<id>.<setting>`). Everything else syncs, the installed and
+turned-off extensions included (a new machine installs them), and a secret
+setting's `keychain:` reference: the value itself never leaves the
+keychain, so it is added once on the new machine.
+
 ## Live reload
 
 pal watches the config file's directory (editors save by writing a new file

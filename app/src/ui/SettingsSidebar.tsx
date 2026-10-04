@@ -59,7 +59,7 @@ export function SettingsSidebar({ value, onChange, palettes = [], displays = [] 
       <SettingsRow anchor={text.edge.anchor} label={text.edge.label} description={text.edge.description}>
         <SettingsSegment value={value.edge} options={edges} onChange={(v) => set("edge", v as SidebarEdge)} label="Sidebar edge" />
       </SettingsRow>
-      <SettingsRow anchor={text.display.anchor} label={text.display.label} description={text.display.description} htmlFor="pal-sidebar-display">
+      <SettingsRow anchor={text.display.anchor} label={text.display.label} description={text.display.description} htmlFor="pal-sidebar-display" configKey="features.sidebar.display">
         <SettingsSelect id="pal-sidebar-display" value={value.display} options={displayOptions} onChange={(v) => set("display", v)} />
       </SettingsRow>
       <SettingsRow anchor={text.width.anchor} label={text.width.label} description={text.width.description} htmlFor="pal-sidebar-width">
@@ -74,7 +74,7 @@ export function SettingsSidebar({ value, onChange, palettes = [], displays = [] 
       <SettingsRow anchor={text.grace.anchor} label={text.grace.label} description={text.grace.description} htmlFor="pal-sidebar-grace">
         <span className="pal-number"><input id="pal-sidebar-grace" className="pal-field__input pal-bar__order" type="number" min={0} step={50} aria-label="Sidebar peek grace" value={value.grace} onChange={(e) => { const n = Number(e.target.value); if (e.target.value !== "" && Number.isFinite(n) && n >= 0) set("grace", n); }} /><span className="pal-number__unit">ms</span></span>
       </SettingsRow>
-      <SettingsRow anchor={text.hotkey.anchor} label={text.hotkey.label} description={text.hotkey.description}>
+      <SettingsRow anchor={text.hotkey.anchor} label={text.hotkey.label} description={text.hotkey.description} configKey="features.sidebar.hotkey">
         <SettingsHotkey value={value.hotkey} onChange={(v) => set("hotkey", v)} label="Sidebar hotkey" />
       </SettingsRow>
     </div>

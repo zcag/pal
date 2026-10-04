@@ -87,6 +87,9 @@ pub const DEEPLINK: &str = "pal://deeplink";
 /// To every page: the extension store's state (`store::StoreState`),
 /// whenever it changes: a refresh, an operation, a load, a config change.
 pub const STORE: &str = "pal://store";
+/// To every page: the account or its sync moved (signed in or out, a
+/// sync ran); Settings › Account re-reads (`account::account_state`).
+pub const ACCOUNT: &str = "pal://account";
 
 /// Emit to every window; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.

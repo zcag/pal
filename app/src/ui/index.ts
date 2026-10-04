@@ -48,7 +48,8 @@ export { needsOf, browseRows, registryLine, refsLine, originLine, statusText, bu
 export { SettingsBar, barIndex, BAR_DEFAULTS } from "./SettingsBar";
 export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";
-export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsDisclosure, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
+export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsDisclosure, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect, LocalKeys, LocalNote, localMatcher, keySegments, quoteKey } from "./SettingsField";
+export { SettingsAccount, accountIndex, byDay, summary, type AccountState, type AccountDevice, type SyncRev, type RestoreTarget, type SettingsAccountProps } from "./SettingsAccount";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
 export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permissionRows, permissionUsers, storePermissions, type PermissionUser } from "./SettingsTypes";
 export type {

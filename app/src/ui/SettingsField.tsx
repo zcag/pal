@@ -1,7 +1,53 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Kbd } from "./Kbd";
 import { comboOf } from "./keys";
 import { describeDefault, isModified, type SettingOption, type SettingSpec, type SettingValue } from "./SettingsTypes";
+
+/* Machine-local settings. The core keeps the list of config keys that
+   never sync (`core/src/config/sync.rs`, settings.rs `View.local`); a row
+   that sets one says "this Mac only", and a synced one says nothing. */
+
+/** A dotted config key's segments, quotes resolved: `palettes."a.b".hotkey` is three. */
+export function keySegments(key: string): string[] {
+  const out: string[] = [];
+  let i = 0;
+  while (i < key.length) {
+    if (key[i] === '"') {
+      let j = i + 1;
+      let seg = "";
+      while (j < key.length && key[j] !== '"') { if (key[j] === "\\") j++; seg += key[j++]; }
+      out.push(seg);
+      i = j + 2;
+    } else {
+      const j = key.indexOf(".", i);
+      out.push(key.slice(i, j < 0 ? undefined : j));
+      i = j < 0 ? key.length : j + 1;
+    }
+  }
+  return out;
+}
+
+/** A segment as a dotted key writes it: bare when TOML allows, else quoted. */
+export const quoteKey = (seg: string) => (/^[A-Za-z0-9_-]+$/.test(seg) ? seg : JSON.stringify(seg));
+
+/** Whether `key` stays on this machine: a pattern (`*` one segment) is the key or one of its parents. */
+export function localMatcher(patterns: string[]): (key: string) => boolean {
+  const ps = patterns.map(keySegments);
+  return (key) => {
+    const k = keySegments(key);
+    return ps.some((p) => p.length <= k.length && p.every((s, i) => s === "*" || s === k[i]));
+  };
+}
+
+/** The matcher Settings.tsx provides from the view; nothing is local without it. */
+export const LocalKeys = createContext<(key: string) => boolean>(() => false);
+
+/** "this Mac only" after a row's description, when `configKey` (or `local`) says it never syncs. */
+export function LocalNote({ configKey, local }: { configKey?: string; local?: boolean }) {
+  const isLocal = useContext(LocalKeys);
+  if (!local && !(configKey && isLocal(configKey))) return null;
+  return <> <span className="pal-setting__local">this Mac only</span></>;
+}
 
 /* Controls. Each is a plain accessible widget sized by the tokens; the
    field renderer below picks one per declared setting kind. */
@@ -272,6 +318,8 @@ export type SettingsFieldProps = {
   base?: SettingValue;
   /** A muted line under the description ("From Gmail (Personal)", "Set for this instance"). */
   note?: string;
+  /** The setting's config key, for the "this Mac only" note; a hotkey, a path or `local: true` says it without. */
+  configKey?: string;
 };
 
 /**
@@ -279,11 +327,13 @@ export type SettingsFieldProps = {
  * and, once the value differs from the declared default (or `base`), the
  * default and a way back to it.
  */
-export function SettingsField({ spec, value, onChange, layout = "row", base, note }: SettingsFieldProps) {
+export function SettingsField({ spec, value, onChange, layout = "row", base, note, configKey }: SettingsFieldProps) {
   const id = useId();
   const inherits = base !== undefined;
   const modified = inherits ? JSON.stringify(value ?? null) !== JSON.stringify(base ?? null) : spec.default !== undefined && isModified(spec, value);
   const labelled = spec.kind !== "boolean" && spec.kind !== "hotkey" && spec.kind !== "secret";
+  const isLocal = useContext(LocalKeys);
+  const local = spec.kind === "hotkey" || spec.kind === "path" || (spec as { local?: boolean }).local === true || (!!configKey && isLocal(configKey));
   const back = inherits ? `Back to the inherited value: ${describeDefault({ ...spec, default: base } as SettingSpec)}` : `Reset to default: ${describeDefault(spec)}`;
   return (
     <div className="pal-setting" data-layout={layout} data-kind={spec.kind} data-modified={modified || undefined}>
@@ -297,11 +347,12 @@ export function SettingsField({ spec, value, onChange, layout = "row", base, not
             </button>
           )}
         </div>
-        {(spec.description || modified || note) && (
+        {(spec.description || modified || note || local) && (
           <p className="pal-setting__desc">
             {spec.description}
             {modified && <>{spec.description ? " " : ""}<span className="pal-setting__default">{inherits ? "Inherited" : "Default"}: {describeDefault(inherits ? ({ ...spec, default: base } as SettingSpec) : spec)}</span></>}
             {note && <>{spec.description || modified ? " " : ""}<span className="pal-setting__note">{note}</span></>}
+            {local && <LocalNote local />}
           </p>
         )}
       </div>
@@ -310,13 +361,15 @@ export function SettingsField({ spec, value, onChange, layout = "row", base, not
 }
 
 /** A labelled row with any control, for pal's own settings (not declared ones). `anchor` is what the search jumps to. */
-export function SettingsRow({ label, description, children, layout = "row", htmlFor, anchor }: { label: string; description?: ReactNode; children: ReactNode; layout?: "row" | "stack"; htmlFor?: string; anchor?: string }) {
+export function SettingsRow({ label, description, children, layout = "row", htmlFor, anchor, configKey }: { label: string; description?: ReactNode; children: ReactNode; layout?: "row" | "stack"; htmlFor?: string; anchor?: string; configKey?: string }) {
+  const isLocal = useContext(LocalKeys);
+  const local = !!configKey && isLocal(configKey);
   return (
     <div className="pal-setting" data-layout={layout} data-anchor={anchor}>
       {htmlFor ? <label className="pal-setting__label" htmlFor={htmlFor}>{label}</label> : <span className="pal-setting__label">{label}</span>}
       <div className="pal-setting__body">
         <div className="pal-setting__control">{children}</div>
-        {description && <p className="pal-setting__desc">{description}</p>}
+        {(description || local) && <p className="pal-setting__desc">{description}{local && <LocalNote local />}</p>}
       </div>
     </div>
   );

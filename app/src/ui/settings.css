@@ -634,6 +634,25 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass); }
 .pal-about__row { display: inline-flex; align-items: center; gap: var(--pal-space-3); }
 .pal-about__built { color: var(--pal-fg); }
 
+/* Account: sign-in fields, the devices, the history lists */
+.pal-setting__control > .pal-account__code { max-width: 120px; font-family: var(--pal-font-mono); letter-spacing: 0.2em; }
+.pal-setting__control > .pal-account__handle { max-width: 200px; }
+.pal-account__email { color: var(--pal-fg); }
+.pal-account__now { color: var(--pal-fg-faint); font-size: var(--pal-text-sm); }
+.pal-account__days, .pal-account__history, .pal-account__revs { display: flex; flex-direction: column; gap: var(--pal-space-1); width: 100%; margin: 0; padding: 0; list-style: none; }
+.pal-account__history { gap: var(--pal-space-3); }
+.pal-account__day, .pal-account__rev { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) auto; align-items: center; gap: var(--pal-space-3); min-height: var(--pal-icon-box); }
+.pal-account__rev { grid-template-columns: 6em minmax(0, 1fr) auto; }
+.pal-account__day > :last-child, .pal-account__rev > :last-child { justify-self: end; }
+.pal-account__name { color: var(--pal-fg); }
+.pal-account__key > .pal-account__name { font-size: var(--pal-text-sm); }
+.pal-account__revs { margin-top: var(--pal-space-1); padding-left: var(--pal-space-3); border-left: 1px solid var(--pal-line); }
+.pal-account__value { color: var(--pal-fg); font-variant-numeric: tabular-nums; }
+.pal-account__when { color: var(--pal-fg-muted); font-size: var(--pal-text-sm); }
+
+/* A setting that never syncs: said quietly after its description. */
+.pal-setting__local { color: var(--pal-fg-faint); white-space: nowrap; }
+
 /* Diagnostics: what the config core found in the file */
 .pal-diag { padding: var(--pal-space-2) var(--pal-space-5) var(--pal-space-3); background: var(--pal-bg-sunken); font-size: var(--pal-text-sm); }
 .pal-diag__lead { margin: 0 0 var(--pal-space-1); color: var(--pal-fg-muted); line-height: var(--pal-leading-prose); }

@@ -3,6 +3,7 @@
 //! `call`. Runs on a blocking thread (`host::serve`), never on the host's
 //! reader. The methods, with `api.ts` as the caller:
 //!
+//! - `core/account.{get, signIn}` (account.rs)
 //! - `core/apps.{for_file, open_with}` (apps.rs)
 //! - `core/audio.{devices, set_default, set_volume, set_mute}` (audio.rs)
 //! - `core/bar.{update, refresh}` (bar/mod.rs)
@@ -13,6 +14,7 @@
 //! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)
 //! - `core/media.{now_playing, control, artwork}` (media.rs)
 //! - `core/ocr.{image {path | data}, available}` (ocr.rs)
+//! - `core/leaderboard.{post {extension, board, value}, get {extension, board, period?, anon?}}` (account.rs)
 //! - `core/keycast.{status, start {mode?}, stop, toggle {mode?}}` (keycast.rs)
 //! - `core/snippets.{list, set {snippets}}` (expansion.rs)
 //! - `core/selection.{text,files}` (selection.rs)
@@ -45,6 +47,8 @@ fn route(method: &str) -> Result<(&str, &str), String> {
 pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, String> {
     let (capability, func) = route(method)?;
     match capability {
+        "account" => crate::account::call_account(app, func, params),
+        "leaderboard" => crate::account::call_leaderboard(app, func, params),
         "apps" => crate::apps::call(app, func, params),
         "audio" => crate::audio::call(app, func, params),
         "bar" => crate::bar::call(app, func, params),
@@ -104,6 +108,8 @@ mod tests {
         assert_eq!(route("core/store.disabled"), Ok(("store", "disabled")));
         assert_eq!(route("core/permissions.request"), Ok(("permissions", "request")));
         assert_eq!(route("core/controls.run"), Ok(("controls", "run")));
+        assert_eq!(route("core/account.signIn"), Ok(("account", "signIn")));
+        assert_eq!(route("core/leaderboard.post"), Ok(("leaderboard", "post")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");
         assert!(route("core/.list").is_err());

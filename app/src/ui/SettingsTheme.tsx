@@ -50,7 +50,7 @@ export function SettingsThemeFile({ status, onChange, onEdit, onOpenDir }: Theme
   const errors = status.diagnostics.filter((d) => d.level === "error");
   const warnings = status.diagnostics.filter((d) => d.level !== "error");
   return (
-    <SettingsRow anchor="general:theme-file" label="Theme file" description={<>Colours, radii and fonts from a TOML file in <code>{status.dir}</code>, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.</>} htmlFor="pal-general-theme-file">
+    <SettingsRow anchor="general:theme-file" configKey="general.theme_file" label="Theme file" description={<>Colours, radii and fonts from a TOML file in <code>{status.dir}</code>, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.</>} htmlFor="pal-general-theme-file">
       <span className="pal-theme-file">
         <SettingsSelect id="pal-general-theme-file" value={status.setting} options={options} onChange={onChange} />
         <span className="pal-button-row">
