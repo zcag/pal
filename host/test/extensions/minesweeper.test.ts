@@ -5,8 +5,11 @@
 // actions for cmd+k.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, LEVELS, adopt, apply, around, clockText, count, isChord, isState, layMines, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, type Level, type State } from "../../../extensions/minesweeper/game.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
+import { DEFAULTS, LEVELS, adopt, apply, around, clockText, count, dailyBoard, isChord, isState, layMines, middle, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, utcDay, type Level, type State } from "../../../extensions/minesweeper/game.ts";
+import { KEYS, changes, restore, scores } from "../../../extensions/minesweeper/progress.ts";
+import manifest from "../../../extensions/minesweeper/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
+import type { Manifest, View } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
 
 /**
@@ -159,6 +162,53 @@ describe("winning, losing, the records", () => {
   });
 });
 
+describe("the daily board", () => {
+  test("Intermediate; the first open is the middle wherever the cursor is, and the mines are the day's", () => {
+    const prev = newGame("beginner");
+    const a = apply(at(dailyBoard(prev, "2026-10-04"), 0, 0), "open", DEFAULTS, Math.random, 1000);
+    const b = apply(dailyBoard(newGame("expert"), "2026-10-04"), "open", DEFAULTS, () => 0.5, 5000);
+    expect(a).toMatchObject({ level: "intermediate", w: 16, h: 16, mines: 40, phase: "play", daily: "2026-10-04", cursor: middle(a) });
+    expect(a.open[middle(a)]).toBe(true);
+    expect(a.mine).toEqual(b.mine);
+    expect(apply(dailyBoard(prev, "2026-10-05"), "open").mine).not.toEqual(a.mine);
+    expect(status(dailyBoard(prev, "2026-10-04"))).toBe("Daily board: Enter opens the middle");
+    expect(utcDay(Date.UTC(2026, 9, 4, 0, 0, 1))).toBe("2026-10-04");
+  });
+  test("the difficulty setting leaves a daily not yet begun alone; a new game after it is an ordinary one", () => {
+    const d = dailyBoard(newGame("beginner"), "2026-10-04");
+    expect(adopt(d, "beginner")).toBe(d);
+    expect(apply(d, "new").daily).toBeUndefined();
+  });
+});
+
+describe("what syncs, and the boards", () => {
+  const won = (extra: Partial<State> = {}) => apply(at(board(["*o", "o."], { clock: { ms: 0, since: 1000 }, ...extra }), 1, 1), "open", DEFAULTS, Math.random, 8000);
+  test("every key the game writes has a rule; the boards a win posts to are declared", () => {
+    expect(Object.keys(manifest.sync).sort()).toEqual([...KEYS].sort());
+    expect(manifest.sync).toMatchObject({ state: "local", "best-expert": "min", records: { fields: { expert: { fields: { won: "sum" } } } } });
+    expect(checkSync(manifest)).toEqual([]);
+    expect(checkLeaderboards(manifest)).toEqual([]);
+    for (const l of Object.keys(LEVELS)) for (const [b] of scores({ ...won(), level: l as Level, daily: "d" }, "d")) expect(leaderboardOf(manifest as unknown as Manifest, b), b).toBeDefined();
+  });
+  test("a store from before the split keeps its records and bests; synced ones overrule, the faster best wins", () => {
+    const old = { ...newGame("beginner"), records: { ...newGame().records, beginner: { played: 30, won: 20, best: 9000 } } };
+    expect(restore({ state: old }).records.beginner).toEqual({ played: 30, won: 20, best: 9000 });
+    const synced = restore({ state: old, records: { beginner: { played: 50, won: 25 }, intermediate: { played: 2, won: 1 }, expert: { played: 0, won: 0 } }, "best-beginner": 8000, "best-intermediate": 60_000 });
+    expect(synced.records).toEqual({ beginner: { played: 50, won: 25, best: 8000 }, intermediate: { played: 2, won: 1, best: 60_000 }, expert: { played: 0, won: 0 } });
+    expect(restore({ "best-expert": 99_000 }, "expert")).toMatchObject({ level: "expert", records: { expert: { best: 99_000 } } });
+    expect(changes(restore({ state: old }), { state: old })).toMatchObject({ records: { beginner: { played: 30, won: 20 } }, "best-beginner": 9000 });
+  });
+  test("a win writes the counts and a best it beat, and goes to its level's board; the Daily only on its own day", () => {
+    const w = won();
+    expect(changes(w, {})).toEqual({ state: w, records: { beginner: { played: 1, won: 1 }, intermediate: { played: 0, won: 0 }, expert: { played: 0, won: 0 } }, "best-beginner": 7000 });
+    expect(Object.keys(changes(w, { records: changes(w, {}).records, "best-beginner": 5000 }))).toEqual(["state"]);
+    expect(scores(w, "2026-10-04")).toEqual([["beginner", 7]]);
+    expect(scores({ ...w, daily: "2026-10-04" }, "2026-10-04")).toEqual([["beginner", 7], ["daily", 7]]);
+    expect(scores({ ...w, daily: "2026-10-03" }, "2026-10-04")).toHaveLength(1);
+    expect(scores(newGame(), "2026-10-04")).toEqual([]);
+  });
+});
+
 describe("the clock", () => {
   test("pause folds the run in, resume starts one, settle cuts a stale run at the last move", () => {
     const st = board(["*..", "...", "..."], { clock: { ms: 1000, since: 5000, seen: 7000 } });
@@ -240,7 +290,7 @@ describe("over the wire", () => {
     const v = await host.request<View>("view", { extension: "minesweeper", palette: "minesweeper" });
     expect(v.tree as unknown).toEqual({ type: "surface", src: "surface/index.html" });
     expect(v.title).toBe("Minesweeper");
-    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["open", "enter"], ["flag", ["/", "f", "space"]], ["new", "n"], ["level", "d"], ["clock", "t"]]);
+    expect(v.actions.map((a) => [a.id, a.shortcut])).toEqual([["open", "enter"], ["flag", ["/", "f", "space"]], ["new", "n"], ["daily", "y"], ["level", "d"], ["clock", "t"]]);
     expect(v.actions.at(-1)?.title).toBe("Hide the clock");
   });
   test("the page hides the clock (T): the setting written, the ⌘K title following; the difficulty as before", async () => {
