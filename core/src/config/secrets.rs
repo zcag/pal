@@ -61,25 +61,44 @@ pub fn resolve(value: &str, store: &dyn SecretStore) -> Result<String, SecretErr
     }
 }
 
-/// Resolve, in place, the values of `values` whose spec in `specs` (a
-/// manifest's `settings` list as JSON) is `kind: "secret"` and that are
-/// string references. A failed lookup leaves the reference as written and
-/// logs it, so a missing secret never blocks the caller; anything not
-/// declared secret is left alone even when it looks like a reference.
-pub fn resolve_declared(values: &mut toml::Table, specs: &serde_json::Value, store: &dyn SecretStore) {
+/// The ids of `specs` (a manifest's `settings` list as JSON) declared
+/// `kind: "secret"` whose value in `values` is a reference.
+fn declared_refs<'a>(values: &'a toml::Table, specs: &'a serde_json::Value) -> impl Iterator<Item = (&'a str, &'a str)> {
     let secret_ids = specs.as_array().into_iter().flatten().filter(|s| s["kind"] == "secret").filter_map(|s| s["id"].as_str());
-    for id in secret_ids {
-        let Some(toml::Value::String(raw)) = values.get(id) else { continue };
-        if SecretRef::parse(raw).is_none() {
-            continue;
-        }
-        match resolve(raw, store) {
+    secret_ids.filter_map(|id| match values.get(id) {
+        Some(toml::Value::String(raw)) if SecretRef::parse(raw).is_some() => Some((id, raw.as_str())),
+        _ => None,
+    })
+}
+
+/// Resolve, in place, the values of `values` whose spec in `specs` is
+/// `kind: "secret"` and that are string references. A reference with
+/// nothing behind it (a synced setting whose key was never added on this
+/// machine) is taken out, so the extension sees the setting unset and
+/// says what it needs as it does for any missing setting; one the store
+/// failed to answer (locked, a denied prompt) stays as written. Both are
+/// logged, and neither blocks the caller; anything not declared secret is
+/// left alone even when it looks like a reference.
+pub fn resolve_declared(values: &mut toml::Table, specs: &serde_json::Value, store: &dyn SecretStore) {
+    let refs: Vec<(String, String)> = declared_refs(values, specs).map(|(id, raw)| (id.to_string(), raw.to_string())).collect();
+    for (id, raw) in refs {
+        match resolve(&raw, store) {
             Ok(v) => {
-                values.insert(id.to_string(), toml::Value::String(v));
+                values.insert(id, toml::Value::String(v));
+            }
+            Err(e @ SecretError::NotFound(_)) => {
+                eprintln!("secrets\tabsent\t{id}\t{e}");
+                values.remove(&id);
             }
             Err(e) => eprintln!("secrets\tunresolved\t{id}\t{e}"),
         }
     }
+}
+
+/// The declared secrets of `values` whose reference has nothing behind it
+/// here: what Settings shows as "Add your key".
+pub fn absent_declared(values: &toml::Table, specs: &serde_json::Value, store: &dyn SecretStore) -> Vec<String> {
+    declared_refs(values, specs).filter(|(_, raw)| matches!(resolve(raw, store), Err(SecretError::NotFound(_)))).map(|(id, _)| id.to_string()).collect()
 }
 
 /// The OS store: macOS Keychain, Linux Secret Service.

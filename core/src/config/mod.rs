@@ -1268,8 +1268,9 @@ impl Config {
     /// [`extension_settings`](Self::extension_settings) from the manifest's
     /// `settings` list itself, with every `kind: "secret"` value that is a
     /// `keychain:` / `env:` reference resolved through `store`. A reference
-    /// that does not resolve stays as written and is logged, so a missing
-    /// secret never keeps the extension from loading; values of any other
+    /// with nothing behind it is left out (the setting reads unset), one the
+    /// store failed to answer stays as written; either is logged and never
+    /// keeps the extension from loading; values of any other
     /// kind are passed through untouched, reference-shaped or not. Resolved
     /// on the instance's final table, so `keychain:pal/gmail@work-token` is
     /// looked up per instance.
@@ -1957,7 +1958,8 @@ token = \"keychain:pal/github-token\"\n[extensions.\"github@work\"]\ntoken = \"k
         let (c, _) = parse("[extensions.github]\ntoken = \"keychain:pal/github-token\"\nother = \"keychain:pal/missing\"\nundeclared = \"keychain:pal/github-token\"\n\n[palettes.github.settings]\ntoken = \"keychain:pal/github-token\"\n").unwrap();
         let s = c.extension_settings_resolved("github", &specs, &store);
         assert_eq!(s["token"].as_str(), Some("ghp_x"), "a declared secret is fetched");
-        assert_eq!(s["other"].as_str(), Some("keychain:pal/missing"), "a miss keeps the reference");
+        assert_eq!(s.get("other"), None, "nothing behind the reference here: unset, so the extension asks for it");
+        assert_eq!(secrets::absent_declared(&c.extension_settings("github", &spec_defaults(&specs), &specs), &specs, &store), ["other"], "what Settings shows as Add your key");
         assert_eq!(s["note"].as_str(), Some("keychain:pal/github-token"), "only kind: secret is resolved");
         assert_eq!(s["undeclared"].as_str(), Some("keychain:pal/github-token"), "an undeclared key is never resolved");
         assert_eq!(s["url"].as_str(), Some("https://x"));
