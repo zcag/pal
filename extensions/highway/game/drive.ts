@@ -8,7 +8,7 @@ import { Traffic, crossing, type Npc } from "./traffic.ts";
 import { Director } from "./director.ts";
 import { Score, type Miss } from "./score.ts";
 import { collide, resolve, type Rigid } from "./crash.ts";
-import { TRAFFIC, FEEL, spec, nitroOf, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
+import { TRAFFIC, FEEL, spec, nitroOf, trafficTop, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
@@ -63,7 +63,7 @@ export class Drive {
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
     this.veh.launch((100 / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
-    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: car.top / 3.6, rnd: () => this.rnd(), density: o.density ?? 1 });
+    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: trafficTop(car, up) / 3.6, rnd: () => this.rnd(), density: o.density ?? 1 });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
   }
 

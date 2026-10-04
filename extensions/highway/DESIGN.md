@@ -41,7 +41,8 @@ knock, so a bump still sends the car sliding.
 
 Density is Traffic Racer's: 5 cars in the 140 m ahead at the start, one more
 every 27 s, up to 14 (it then drops to 6; our breathers do that job). Speeds
-are its band from your car's top speed, 9 + top/5.7 to 51.5 + top/5.5 km/h,
+are its band, 9 + top/5.7 to 51.5 + top/5.5 km/h, from a top speed halfway
+between the first car's and yours (Progression, Cars),
 faster lanes to the left, trucks slower. Where it drops cars at random,
 `game/director.ts` plans rows (a single car, a pair, a door to thread, a
 diagonal, a truck with company, a near wall) and never closes every lane; the
@@ -116,21 +117,39 @@ the fourth upgrade something to grow.
 
 ### Cars and upgrades
 
-Seventeen cars, each a step up in top speed and handling; four upgrades per
-car (engine, handling, brakes, nitro), five levels each, each level a change
-you can feel: +7 km/h a level of engine (five of them are about a car's step),
-handling makes the car cross faster and turn back sooner, brakes stop harder.
+Seventeen cars in five classes: City (158 to 182
+km/h), Sport (200 to 230), Muscle (245 to 275), GT (290 to 310) and Super (325
+to 360). Every car is quicker, sharper and better on the brakes than the one
+before, and the big jumps are between classes (measured, `game/vehicle.ts`):
+
+| | Compact (first) | Asti (top Sport) | Saba (top Super) |
+| --- | --- | --- | --- |
+| 100 to 150 km/h | 17.3 s | 4.5 s | 2.4 s |
+| A lane change at 160 | 0.54 s | 0.43 s | 0.34 s |
+| A flick turned back | 0.21 s | 0.16 s | 0.13 s |
+| Braking 160 to 100 | 1.02 s | 0.92 s | 0.81 s |
+
+Four upgrades per car (engine, handling, brakes, nitro), five levels each: a
+full set takes a car about half a class up. The garage shows the gain before
+you pay: browsing another car, each bar marks yours and shows what it adds in
+yellow; on an upgrade's row, what its next level adds.
+
+Traffic follows only half of your climb in top speed (Traffic Racer scales it
+with yours, so every car meets the same road): a faster car truly outruns it,
+passes more cars a minute, and near misses pay more the faster you pass (×2 at
+300 km/h). A better car is worth more money, not only more points.
 
 Prices come from `scripts/economy.ts`, which plays thousands of real runs with
 a bot of four skills (`game/bot.ts`) and pays careers through `meta.finish`.
-Cars run $2,500 to $76,000, about 20% more each, and upgrades cost 6% of the
-car's price, half again each level. Simulated at 40 minutes a day:
+Cars run $2,500 to $76,000, and upgrades cost 6% of the car's price, half again
+each level. Simulated at 40 minutes a day (the bot drives about 70 km/h in any
+car, so it misses what a faster car earns; real play reaches the top sooner):
 
 | | regular | good |
 | --- | --- | --- |
 | First purchase | after run 1 | after run 1 |
 | A new car, middle of the ladder | every 20 to 40 min | every 10 to 20 min |
-| The top car | about 17 h | about 7 h |
+| The top car | about 18 h | about 7 h |
 
 What it found and changed: a combo paid its square (12·c²), so short, wild
 Two-Way runs out-earned everything; it now pays 30 per step. Near misses on

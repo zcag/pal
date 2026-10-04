@@ -75,11 +75,12 @@ export class Sound {
     return src;
   }
 
-  /** The engine for a set ("sport", "sedan"). */
+  /** The engine for a set ("sedan", "sport", "muscle", "gt", "super"); one with no recordings plays "sport". */
   setEngine(set: string) {
     this.wantEngine = set;
     const ctx = this.ctx;
     if (!ctx || !this.ready) return;
+    if (!this.files.some((f) => f.kind === "engine" && f.set === set)) set = "sport";
     if (this.engine) { for (const l of [...this.engine.on, ...this.engine.off]) l.src.stop(); this.engine.out.disconnect(); }
     const filter = ctx.createBiquadFilter(); filter.type = "lowpass"; filter.Q.value = 0.5;
     const out = ctx.createGain(); out.gain.value = 0;

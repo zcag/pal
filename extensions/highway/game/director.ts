@@ -15,7 +15,7 @@ export type Row = { z: number; spawns: Spawn[]; pattern: string };
 
 export type DirectorOpts = {
   lanes: number; oncomingLanes: number;
-  topSpeed: number; // the player's car, m/s: traffic speeds scale with it, as in the original
+  topSpeed: number; // m/s: traffic speeds scale with it (content.ts trafficTop: half of the player's climb)
   rnd: () => number;
   density?: number; // the place's traffic, 1 normal
 };

@@ -168,10 +168,10 @@ export class Vehicle {
       if (input.steer * this.steer < 0) this.steer = 0;
       this.steer += Math.max(-ramp, Math.min(ramp, input.steer - this.steer));
       const lat = speed * Math.sin(this.yaw) + this.v * Math.cos(this.yaw); // sideways speed on the road
-      const across = (5.5 + (speed / FEEL.pace) * 0.07) * (0.85 + 0.35 * h) * FEEL.across * FEEL.pace;
+      const across = (5.5 + (speed / FEEL.pace) * 0.07) * (0.85 + 0.6 * h) * FEEL.across * FEEL.pace;
       // checking a slide the other way is twice as quick as building one
       const want = this.steer * across, reverse = (want - lat) * lat < 0;
-      const aMax = (26 + 36 * h) * (reverse ? 1.9 : 1);
+      const aMax = (26 + 50 * h) * (reverse ? 1.9 : 1);
       const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, want - lat));
       // nitro pushes on past the top speed, to a fifth over it
       const du = Flong / s.mass + (this.boost && this.u < (s.top ?? 99) * 1.2 ? this.boost : 0);

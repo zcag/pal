@@ -10,7 +10,7 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { ONE_WAY, TWO_WAY, laneX } from "../game/layout.ts";
-import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, upgradeCost, stats, paintSet, type Upgrades } from "../game/content.ts";
+import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, upgradeCost, stats, paintSet, classOf, type Upgrades } from "../game/content.ts";
 import { load, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
 import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
 import type { Miss } from "../game/score.ts";
@@ -207,7 +207,12 @@ let tint = ""; // a colour being looked at, not yet bought
 
 function drawGarage() {
   const car = shownCar(), owned = save.owned[car.id], up = owned?.upgrades ?? NO_UP;
-  const st = stats(car, up);
+  // browsing another car: each bar shows what it gains on yours in yellow, and where yours stands; on an
+  // upgrade's row, what its next level adds to this car
+  const k = ROWS[row] as keyof Upgrades, next = owned && k in up && k !== "nitro" && up[k] < UPGRADE_MAX;
+  const st = stats(car, next ? { ...up, [k]: up[k] + 1 } : up);
+  const mine = next ? stats(car, up) : car.id === save.car ? null : stats(carOf(save.car), save.owned[save.car]?.upgrades ?? NO_UP);
+  const bar = (v: number, was?: number) => `<i class="${was === undefined ? "" : v > was + 0.05 ? "up" : "cmp"}" style="--v:${v.toFixed(2)};--w:${Math.min(v, was ?? v).toFixed(2)};--was:${(was ?? 0).toFixed(2)}"></i>`;
   const loc = LOCATIONS.find((l) => l.id === save.location)!;
   const mode = MODES.find((m) => m.id === save.mode)!;
   const best = save.best[save.mode];
@@ -227,12 +232,12 @@ function drawGarage() {
     <div class="sign">
       <div class="head"><b>Highway</b><span>${money(save.cash)}</span></div>
       <div class="rows">
-        <div class="row${sel("car")}"><span>Car</span><div class="val"><span class="arrows">${car.name}</span>${carTag}</div></div>
+        <div class="row${sel("car")}"><span>${classOf(car).name}</span><div class="val"><span class="arrows">${car.name}</span>${carTag}</div></div>
         <div class="bars">
-          <span>Top speed</span><i style="--v:${st.speed.toFixed(1)}"></i>
-          <span>Pickup</span><i style="--v:${st.accel.toFixed(1)}"></i>
-          <span>Handling</span><i style="--v:${st.handling.toFixed(1)}"></i>
-          <span>Brakes</span><i style="--v:${st.brakes.toFixed(1)}"></i>
+          <span>Top speed</span>${bar(st.speed, mine?.speed)}
+          <span>Pickup</span>${bar(st.accel, mine?.accel)}
+          <span>Handling</span>${bar(st.handling, mine?.handling)}
+          <span>Brakes</span>${bar(st.brakes, mine?.brakes)}
         </div>
         <div class="row${sel("paint")}"><span>${set.name}</span><div class="val"><span class="swatches">${swatches}</span>${paintTag}</div></div>
         ${upRow("speed", "Engine")}

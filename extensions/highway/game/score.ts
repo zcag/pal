@@ -75,7 +75,9 @@ export class Score {
     if (double) { base += 2500; this.doubles++; }
     if (this.boosting) base *= 2;
     this.lastMiss = this.time;
-    this.missCash += grade.cash; // the oncoming side pays in points (×3), not cash: it would out-earn everything else
+    // faster pays more (a near miss at 300 is worth twice one at 150), so a quicker car earns its price back;
+    // the oncoming side pays in points (×3), not cash: it would out-earn everything else
+    this.missCash += grade.cash * Math.min(2.4, Math.max(0.8, kmh / 150));
     const points = Math.round(base);
     this.points += points;
     return { points, grade, combo: n, oncoming, double };
