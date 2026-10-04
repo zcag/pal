@@ -24,7 +24,7 @@ export const CLASSES = [
 export const classOf = (car: PlayerCar) => [...CLASSES].reverse().find((c) => CARS.indexOf(car) >= CARS.findIndex((x) => x.id === c.from))!;
 
 /** Where each engine note peaks, rpm. */
-export const REDLINE: Record<PlayerCar["engine"], number> = { sedan: 6400, sport: 7200, muscle: 6200, gt: 7200, super: 8400 };
+export const REDLINE: Record<PlayerCar["engine"], number> = { sedan: 6400, sport: 7200, muscle: 6500, gt: 7000, super: 8000 };
 
 /** The top speed traffic is set by, km/h: the original scales it with yours, so every car meets the same
  *  road; here it follows only half of the climb above the first car, so a faster car truly outruns it

@@ -117,7 +117,7 @@ the fourth upgrade something to grow.
 
 ### Cars and upgrades
 
-Seventeen cars in five classes: City (158 to 182
+Seventeen cars in five classes, each with its own engine note: City (158 to 182
 km/h), Sport (200 to 230), Muscle (245 to 275), GT (290 to 310) and Super (325
 to 360). Every car is quicker, sharper and better on the brakes than the one
 before, and the big jumps are between classes (measured, `game/vehicle.ts`):
