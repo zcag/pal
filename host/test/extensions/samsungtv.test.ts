@@ -133,7 +133,8 @@ describe("over the host against the stand-in TV", () => {
   });
 
   test("the controls are published: the volume as 0..1, power, the inputs, what is on", async () => {
-    await host.until(() => pub("volume")?.level === 0.1, 2000, "the volume published");
+    // Each control is published on its own answer from the TV: wait for every one, not only the first.
+    await host.until(() => pub("volume")?.level === 0.1 && !!pub("power") && !!pub("inputs") && !!pub("player"), 2000, "the controls published");
     expect(pub("volume")).toEqual({ device: LIVING.name, level: 0.1, muted: false });
     expect(pub("power")).toEqual({ device: LIVING.name, on: true });
     expect(pub("inputs")).toEqual({ device: LIVING.name, list: [{ id: "hdmi", name: "Next HDMI" }, { id: "source", name: "Input menu" }, { id: "tv", name: "TV" }] });
