@@ -1,0 +1,272 @@
+// One run: your car on the physics, the traffic the director plans and the
+// drivers drive, near misses and the score, the crash rule. It draws itself
+// into the world's scene and tells the page what happened through events.
+import * as THREE from "./vendor/three.js";
+import { Car } from "./car.ts";
+import { laneX, oncomingX, LANE_W, type Layout } from "./road.ts";
+import type { World } from "./world.ts";
+import { Vehicle, type Input } from "../game/vehicle.ts";
+import { Traffic, crossing, type Npc } from "../game/traffic.ts";
+import { Director } from "../game/director.ts";
+import { Score, type Miss } from "../game/score.ts";
+import { collide, resolve, type Rigid } from "../game/crash.ts";
+import { TRAFFIC, spec, type PlayerCar, type Upgrades } from "../game/content.ts";
+
+/** Closing speed that ends a run (km/h), as in the original; any touch of an oncoming car does too. */
+export const FATAL_KMH = 35;
+
+export type RunEvents = {
+  miss(m: Miss, n: Npc, side: number): void;
+  pass(n: Npc, gap: number, closing: number, side: number): void;
+  bump(impulse: number, side: number): void;
+  crash(info: { you: number; them: number; kind: string; oncoming: boolean }): void;
+  scrape(): void;
+};
+
+let seed = 1;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+// the traffic's cars, made once and shared by every run: idle ones wait here by model
+const pool = new Map<string, Car[]>();
+const sizes = new Map<string, THREE.Vector3>();
+const loading = new Set<string>();
+let glow: THREE.Texture | null = null;
+
+async function makeCar(id: string) {
+  const t = TRAFFIC.find((x) => x.id === id)!;
+  const color = t.livery ? "#ffffff" : t.colors![Math.floor(rnd() * t.colors!.length)];
+  const c = await Car.load(id, color);
+  // the light its headlights throw ahead at night
+  const beam = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: glow, color: 0xffe2b8, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  beam.position.set(0, 0.03, c.size.z / 2 + 9);
+  beam.scale.set(5, 1, 16);
+  beam.visible = false;
+  beam.name = "beam";
+  c.root.add(beam);
+  return c;
+}
+
+/** Make one of every traffic model before the first run (`progress` 0..1 as they come in). */
+export async function preloadTraffic(world: World, progress: (f: number) => void) {
+  glow = world.glow;
+  let done = 0;
+  await Promise.all(TRAFFIC.map(async (t) => {
+    if (sizes.has(t.id)) return;
+    const c = await makeCar(t.id);
+    sizes.set(t.id, c.size.clone());
+    (pool.get(t.id) ?? pool.set(t.id, []).get(t.id)!).push(c);
+    progress(++done / TRAFFIC.length);
+  }));
+}
+
+/** Lamps for the time of day. */
+function lamps(car: Car, night: boolean, braking: boolean) {
+  car.light("head", night ? 6 : 0);
+  car.light("brake", braking ? 3.5 : night ? 0.9 : 0);
+  const beam = car.root.getObjectByName("beam");
+  if (beam) beam.visible = night;
+}
+
+export class Run {
+  veh: Vehicle;
+  traffic: Traffic;
+  director: Director;
+  score = new Score();
+  over = false;
+  /** The body on its springs, for the car and the camera. */
+  spring = { pitch: 0, pitchV: 0, roll: 0, rollV: 0 };
+  scraping = 0;
+  private shown = new Map<number, Car>();
+  /** Where the run began: the traffic thickens with the distance from here. */
+  startZ = 0;
+  private blink = 0;
+  lights: THREE.SpotLight[] = [];
+
+  constructor(public world: World, public layout: Layout, public player: Car, public car: PlayerCar, up: Upgrades, public events: RunEvents, density = 1) {
+    seed = Math.floor(Math.random() * 2147483646) + 1;
+    const s = spec(car, up, player.wheelbase);
+    this.veh = new Vehicle(s);
+    this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
+    this.veh.launch(80 / 3.6);
+    this.traffic = new Traffic(layout.lanes, layout.oncoming);
+    this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: car.top / 3.6, rnd, density });
+    world.scene.add(player.root);
+    this.headlights();
+  }
+
+  /** At night, two real spotlights from the player's headlamps. */
+  private headlights() {
+    for (const l of this.lights) { l.target.removeFromParent(); l.removeFromParent(); }
+    this.lights = [];
+    const player = this.player;
+    if (this.world.night) for (const p of player.anchors.head.length ? player.anchors.head : [new THREE.Vector3(0.6, 0.7, 2), new THREE.Vector3(-0.6, 0.7, 2)]) {
+      const spot = new THREE.SpotLight(0xfff1dc, 900, 120, 0.42, 0.55, 1.6);
+      spot.position.copy(p);
+      spot.target.position.set(p.x * 0.6 - 0.4, 0, p.z + 30);
+      player.body.add(spot, spot.target);
+      this.lights.push(spot);
+    }
+  }
+
+  /** Swap the car you drive, keeping where and how fast it goes (the garage's browsing). */
+  setPlayer(player: Car, car: PlayerCar, up: Upgrades) {
+    const old = this.veh;
+    this.player.root.removeFromParent();
+    this.player = player;
+    this.car = car;
+    this.veh = new Vehicle(spec(car, up, player.wheelbase));
+    this.veh.x = old.x; this.veh.z = old.z;
+    this.veh.launch(old.u);
+    this.world.scene.add(player.root);
+    this.headlights();
+  }
+
+  private pickKind(heavy: boolean) {
+    const list = TRAFFIC.filter((t) => !!t.heavy === heavy);
+    const total = list.reduce((a, t) => a + t.weight, 0);
+    let r = rnd() * total;
+    for (const t of list) if ((r -= t.weight) <= 0) return t;
+    return list[0];
+  }
+
+  /** Which of our lanes the car is in, and whether it is over the centre line. */
+  lanePos() {
+    const lane = Math.round((this.veh.x - laneX(this.layout, 0)) / LANE_W);
+    const onc = this.layout.oncoming > 0 && this.veh.x > 0;
+    return { lane: Math.max(0, Math.min(this.layout.lanes - 1, lane)), oncoming: onc };
+  }
+
+  step(dt: number, input: Input) {
+    const v = this.veh, L = this.layout;
+    if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
+    v.step(dt, input);
+
+    // the guardrails
+    const lim = (this.world.hi - this.world.lo) / 2 + 1.55 - this.player.size.x / 2;
+    const mid = (this.world.hi + this.world.lo) / 2;
+    if (Math.abs(v.x - mid) > lim) {
+      v.x = mid + Math.sign(v.x - mid) * lim;
+      v.v *= -0.3; v.yaw *= 0.5; v.r *= 0.5; v.u *= 1 - 1.2 * dt;
+      if (this.scraping <= 0) this.events.scrape();
+      this.scraping = 0.15;
+      this.score.breakCombo();
+    }
+    this.scraping = Math.max(0, this.scraping - dt);
+
+    // traffic: plan, drive, place
+    this.director.travelled = v.z - this.startZ;
+    const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming })));
+    for (const row of rows) for (const s of row.spawns) {
+      const kind = s.heavy ? this.pickKind(true) : this.pickKind(rnd() < 0.12);
+      const size = sizes.get(kind.id);
+      if (!size) continue;
+      this.traffic.add({ kind: kind.id, length: size.z, width: size.x, z: row.z + s.dz, v: s.v0, lane: s.lane, v0: s.v0, T: 1.1 + rnd() * 0.6, a: kind.heavy ? 0.8 : 1.4, b: 2.5, oncoming: s.oncoming, politeness: 0.3 + rnd() * 0.4 });
+    }
+    const lp = this.lanePos();
+    this.traffic.step(dt, { z: v.z, v: v.u, lane: lp.lane, length: this.player.size.z });
+    for (const n of this.traffic.cars) {
+      if (n.hit) continue;
+      const at = (l: number) => (n.oncoming ? oncomingX(L, l) : laneX(L, l));
+      n.x = at(n.from) + (at(n.lane) - at(n.from)) * crossing(n);
+    }
+
+    // passing: near misses and the whoosh
+    const kmh = v.kmh;
+    for (const n of this.traffic.cars) {
+      if (n.hit || n.passed) continue;
+      const rel = n.z - v.z;
+      if (rel > 0) continue;
+      n.passed = true;
+      const gap = Math.abs(n.x - v.x) - (n.width + this.player.size.x) / 2;
+      const closing = v.u - (n.oncoming ? -n.v : n.v);
+      const side = n.x > v.x ? -1 : 1; // -1: it went by on the left of the screen
+      this.events.pass(n, gap, closing, side);
+      if (this.over) continue;
+      const m = this.score.pass(gap, kmh, n.oncoming || lp.oncoming);
+      if (m) this.events.miss(m, n, side);
+    }
+
+    // contact
+    for (const n of this.traffic.cars) {
+      const nyaw = n.hit ? n.hit.yaw : n.oncoming ? Math.PI : 0;
+      const c = collide({ x: v.x, z: v.z, yaw: v.yaw, w: this.player.size.x * 0.96, l: this.player.size.z * 0.98 }, { x: n.x, z: n.z, yaw: nyaw, w: n.width * 0.96, l: n.length * 0.98 });
+      if (!c) continue;
+      const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw);
+      const me: Rigid = { x: v.x, z: v.z, vx: v.u * sy + v.v * cy, vz: v.u * cy - v.v * sy, r: v.r, m: v.spec.mass, I: v.spec.mass * (this.player.size.z ** 2 + this.player.size.x ** 2) / 12 };
+      const heavy = !!TRAFFIC.find((t) => t.id === n.kind)?.heavy;
+      const nm = heavy ? 5500 : 1400;
+      const nvz = n.hit ? n.v * (n.oncoming ? -1 : 1) : n.oncoming ? -n.v : n.v;
+      const them: Rigid = { x: n.x, z: n.z, vx: n.hit?.vx ?? 0, vz: nvz, r: n.hit?.r ?? 0, m: nm, I: (nm * (n.length ** 2 + n.width ** 2)) / 12 };
+      const closing = Math.abs((me.vx - them.vx) * c.nx + (me.vz - them.vz) * c.nz) * 3.6;
+      const j = resolve(me, them, c);
+      v.x = me.x; v.z = me.z; v.r = me.r;
+      v.u = Math.max(0, me.vx * sy + me.vz * cy); v.v = me.vx * cy - me.vz * sy;
+      n.x = them.x; n.z = them.z;
+      n.v = Math.abs(them.vz);
+      n.hit = { vx: them.vx, yaw: nyaw, r: them.r };
+      n.signal = 0;
+      const side = n.x > v.x ? -1 : 1;
+      if (!this.over && (closing >= FATAL_KMH || n.oncoming)) {
+        this.over = true;
+        this.events.crash({ you: Math.round(kmh), them: Math.round(n.v * 3.6), kind: n.kind, oncoming: n.oncoming });
+      } else this.events.bump(j, side);
+    }
+    this.traffic.remove((n) => n.z < v.z - 70 || n.z > v.z + 1000);
+
+    // the body on its springs: squat, dive, lean
+    const sp = this.spring;
+    const pitchT = THREE.MathUtils.clamp(-v.ax * 0.0045, -0.05, 0.05), rollT = THREE.MathUtils.clamp(v.ay * 0.0055, -0.06, 0.06);
+    sp.pitchV += ((pitchT - sp.pitch) * 120 - sp.pitchV * 11) * dt; sp.pitch += sp.pitchV * dt;
+    sp.rollV += ((rollT - sp.roll) * 110 - sp.rollV * 10) * dt; sp.roll += sp.rollV * dt;
+
+    if (!this.over) this.score.tick(dt, kmh, lp.oncoming);
+  }
+
+  /** Put the cars where the simulation says, once a frame. */
+  draw(dt: number) {
+    const v = this.veh, p = this.player;
+    p.root.position.set(v.x, 0, v.z);
+    p.root.rotation.y = v.yaw;
+    p.body.rotation.set(this.spring.pitch, 0, -this.spring.roll);
+    for (const w of p.wheels) { w.spin.rotation.x = v.wheelSpin; if (w.front) w.pivot.rotation.y = v.delta; }
+    lamps(p, this.world.night, v.braking > 0.1);
+    this.blink += dt;
+    const on = Math.floor(this.blink / 0.38) % 2 === 0;
+    for (const [id, car] of this.shown) if (!this.traffic.cars.some((n) => n.id === id)) {
+      car.root.removeFromParent();
+      pool.get(car.kind)!.push(car);
+      this.shown.delete(id);
+    }
+    for (const n of this.traffic.cars) {
+      let car = this.shown.get(n.id);
+      if (!car) {
+        const list = pool.get(n.kind)!;
+        if (!list.length) {
+          if (!loading.has(n.kind)) { loading.add(n.kind); makeCar(n.kind).then((c) => { list.push(c); loading.delete(n.kind); }); }
+          continue;
+        }
+        car = list.pop()!;
+        this.shown.set(n.id, car);
+        this.world.scene.add(car.root);
+      }
+      const at = (l: number) => (n.oncoming ? oncomingX(this.layout, l) : laneX(this.layout, l));
+      const dx = n.t < 1 ? ((at(n.lane) - at(n.from)) * 6 * n.t * (1 - n.t)) / 3.2 : 0;
+      car.root.position.set(n.x, 0, n.z);
+      car.root.rotation.y = n.hit ? n.hit.yaw : (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
+      car.setShadow(Math.abs(n.z - v.z) < 60);
+      for (const w of car.wheels) w.spin.rotation.x += (n.v / 0.33) * dt;
+      lamps(car, this.world.night, n.braking);
+      const hazard = !!n.hit;
+      car.light("left", (n.signal === 1 || hazard) && on ? 5 : 0);
+      car.light("right", (n.signal === -1 || hazard) && on ? 5 : 0);
+    }
+  }
+
+  /** Leave the road: the traffic's cars go back to the pool. */
+  dispose() {
+    this.player.root.removeFromParent();
+    for (const car of this.shown.values()) { car.root.removeFromParent(); pool.get(car.kind)!.push(car); }
+    this.shown.clear();
+    for (const l of this.lights) { l.target.removeFromParent(); l.removeFromParent(); }
+  }
+}

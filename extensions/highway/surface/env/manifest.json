@@ -1,0 +1,1152 @@
+{
+ "generated": "2026-10-04",
+ "units": "metres, Y up",
+ "totalBytes": 20559112,
+ "conventions": {
+  "equirect": "three.js equirect mapping: u = atan2(z, x) / 2pi + 0.5, v = asin(y) / pi + 0.5 (v = 1 at the top of the image). azimuthDeg = u * 360 measured from the image's left edge. direction is the world-space unit vector toward the light with scene.backgroundRotation / environmentRotation = 0.",
+  "hdr": "Ultra HDR (gain-map) JPEGs. Load with sky/decode.js (exact gain-map maths on top of three's UltraHDRLoader); the stock UltraHDRLoader also loads them but reads 10-30% low. Use hdrNoSun for scene.environment when a DirectionalLight provides the sun, hdr when it does not.",
+  "sunIntensity": "sun.intensity is the sun disk's irradiance in the HDRI's own units divided by the luminance of sun.color: a DirectionalLight with that color and intensity, together with the hdrNoSun environment at environmentIntensity 1, reproduces the full HDRI's lighting.",
+  "background": "background JPGs are display-referred (already tone mapped). Set colorSpace = SRGBColorSpace; three does not tone-map an sRGB background texture, so it matches a renderer using the same ACESFilmic exposure.",
+  "textures": "ground textures tile seamlessly; RepeatWrapping with repeat = metres / tileMetres. ORM packs AO (R) and roughness (G): use the same texture for aoMap and roughnessMap. Normal maps are OpenGL convention (three's default).",
+  "props": "glTF 2.0 JSON with the buffer embedded as a data URI, saved as .json. Textures are .webp next to it under props/tex/ (EXT_texture_webp, shared between props). Meshes use KHR_mesh_quantization. Load with new GLTFLoader().parse(jsonText, 'props/')."
+ },
+ "skies": [
+  {
+   "name": "clear_midday",
+   "description": "Clear midday, high sun, open dry field",
+   "background": "sky/clear_midday.jpg",
+   "backgroundSize": [
+    4096,
+    2048
+   ],
+   "backgroundToneMapping": "ACESFilmic, exposure 1, sRGB",
+   "hdr": "sky/clear_midday.hdr.jpg",
+   "hdrNoSun": "sky/clear_midday.nosun.hdr.jpg",
+   "hdrSize": [
+    1024,
+    512
+   ],
+   "hdrPeak": 54517,
+   "hdrNoSunPeak": 76.2,
+   "sun": {
+    "what": "sun",
+    "direction": [
+     0.2285,
+     0.9592,
+     0.1664
+    ],
+    "azimuthDeg": 216.1,
+    "elevationDeg": 73.6,
+    "u": 0.6002,
+    "color": [
+     0.939,
+     0.934,
+     1
+    ],
+    "intensity": 3.235
+   },
+   "dominantLight": {
+    "dir": [
+     0.2127,
+     0.9622,
+     0.1703
+    ],
+    "azimuthDeg": 218.7,
+    "elevationDeg": 74.2
+   },
+   "bytes": 1389402,
+   "source": {
+    "site": "Poly Haven",
+    "id": "countrytrax_midday",
+    "url": "https://polyhaven.com/a/countrytrax_midday",
+    "author": "Dimitrios Savva, Jarod Guest",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "partly_cloudy",
+   "description": "Partly cloudy cumulus, rural road between green fields",
+   "background": "sky/partly_cloudy.jpg",
+   "backgroundSize": [
+    4096,
+    2048
+   ],
+   "backgroundToneMapping": "ACESFilmic, exposure 1, sRGB",
+   "hdr": "sky/partly_cloudy.hdr.jpg",
+   "hdrNoSun": "sky/partly_cloudy.nosun.hdr.jpg",
+   "hdrSize": [
+    1024,
+    512
+   ],
+   "hdrPeak": 104006.3,
+   "hdrNoSunPeak": 140.4,
+   "sun": {
+    "what": "sun",
+    "direction": [
+     0.5675,
+     0.7122,
+     0.4133
+    ],
+    "azimuthDeg": 216.1,
+    "elevationDeg": 45.4,
+    "u": 0.6002,
+    "color": [
+     1,
+     0.805,
+     0.691
+    ],
+    "intensity": 7.428
+   },
+   "dominantLight": {
+    "dir": [
+     0.5448,
+     0.75,
+     0.375
+    ],
+    "azimuthDeg": 214.5,
+    "elevationDeg": 48.6
+   },
+   "bytes": 1199993,
+   "source": {
+    "site": "Poly Haven",
+    "id": "rural_asphalt_road",
+    "url": "https://polyhaven.com/a/rural_asphalt_road",
+    "author": "Alexander Scholten",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "golden_hour",
+   "description": "Golden hour, sun 6 deg above a mountain horizon, straight desert road",
+   "background": "sky/golden_hour.jpg",
+   "backgroundSize": [
+    4096,
+    2048
+   ],
+   "backgroundToneMapping": "ACESFilmic, exposure 1, sRGB",
+   "hdr": "sky/golden_hour.hdr.jpg",
+   "hdrNoSun": "sky/golden_hour.nosun.hdr.jpg",
+   "hdrSize": [
+    1024,
+    512
+   ],
+   "hdrPeak": 140868.3,
+   "hdrNoSunPeak": 214.1,
+   "sun": {
+    "what": "sun",
+    "direction": [
+     0.8022,
+     0.1079,
+     0.5873
+    ],
+    "azimuthDeg": 216.2,
+    "elevationDeg": 6.2,
+    "u": 0.6006,
+    "color": [
+     1,
+     0.588,
+     0.221
+    ],
+    "intensity": 13.01
+   },
+   "dominantLight": {
+    "dir": [
+     0.8002,
+     0.1945,
+     0.5673
+    ],
+    "azimuthDeg": 215.3,
+    "elevationDeg": 11.2
+   },
+   "bytes": 2062243,
+   "source": {
+    "site": "Poly Haven",
+    "id": "goegap_road",
+    "url": "https://polyhaven.com/a/goegap_road",
+    "author": "Greg Zaal, James Ray Cock",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "overcast",
+   "description": "Flat overcast, open ploughed field (rain-ready grey)",
+   "background": "sky/overcast.jpg",
+   "backgroundSize": [
+    4096,
+    2048
+   ],
+   "backgroundToneMapping": "ACESFilmic, exposure 1, sRGB",
+   "hdr": "sky/overcast.hdr.jpg",
+   "hdrNoSun": null,
+   "hdrSize": [
+    1024,
+    512
+   ],
+   "hdrPeak": 5.6,
+   "hdrNoSunPeak": null,
+   "sun": null,
+   "dominantLight": {
+    "dir": [
+     0.0706,
+     0.9975,
+     -0.0021
+    ],
+    "azimuthDeg": 178.3,
+    "elevationDeg": 86
+   },
+   "bytes": 932560,
+   "source": {
+    "site": "Poly Haven",
+    "id": "overcast_soil",
+    "url": "https://polyhaven.com/a/overcast_soil",
+    "author": "Sergej Majboroda",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "night",
+   "description": "Clear night, moon 17 deg up, distant town lights on a flat horizon",
+   "background": "sky/night.jpg",
+   "backgroundSize": [
+    4096,
+    2048
+   ],
+   "backgroundToneMapping": "ACESFilmic, exposure 0.5, sRGB",
+   "hdr": "sky/night.hdr.jpg",
+   "hdrNoSun": "sky/night.nosun.hdr.jpg",
+   "hdrSize": [
+    1024,
+    512
+   ],
+   "hdrPeak": 42094.2,
+   "hdrNoSunPeak": 10691.5,
+   "sun": {
+    "what": "moon",
+    "direction": [
+     0.7771,
+     0.2929,
+     0.557
+    ],
+    "azimuthDeg": 215.6,
+    "elevationDeg": 17,
+    "u": 0.599,
+    "color": [
+     0.798,
+     0.86,
+     1
+    ],
+    "intensity": 1.833
+   },
+   "dominantLight": {
+    "dir": [
+     0.7566,
+     0.477,
+     0.4472
+    ],
+    "azimuthDeg": 210.6,
+    "elevationDeg": 28.5
+   },
+   "bytes": 1244426,
+   "source": {
+    "site": "Poly Haven",
+    "id": "kloppenheim_02",
+    "url": "https://polyhaven.com/a/kloppenheim_02",
+    "author": "Greg Zaal",
+    "license": "CC0 1.0"
+   }
+  }
+ ],
+ "textures": [
+  {
+   "name": "asphalt_worn",
+   "description": "Worn light-grey highway asphalt, fine aggregate",
+   "size": 1024,
+   "files": {
+    "color": "tex/asphalt_worn_color.webp",
+    "normal": "tex/asphalt_worn_normal.webp",
+    "orm": "tex/asphalt_worn_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 2,
+   "tileMetresIsEstimate": true,
+   "bytes": 1082556,
+   "source": {
+    "site": "ambientCG",
+    "id": "Asphalt031",
+    "url": "https://ambientcg.com/view?id=Asphalt031",
+    "author": "ambientCG (Lennart Demes)",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "asphalt_new",
+   "description": "Darker, newer asphalt",
+   "size": 1024,
+   "files": {
+    "color": "tex/asphalt_new_color.webp",
+    "normal": "tex/asphalt_new_normal.webp",
+    "orm": "tex/asphalt_new_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 2,
+   "tileMetresIsEstimate": false,
+   "bytes": 789644,
+   "source": {
+    "site": "Poly Haven",
+    "id": "asphalt_pit_lane",
+    "url": "https://polyhaven.com/a/asphalt_pit_lane",
+    "author": "Dimitrios Savva",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "grass",
+   "description": "Green roadside grass",
+   "size": 1024,
+   "files": {
+    "color": "tex/grass_color.webp",
+    "normal": "tex/grass_normal.webp",
+    "orm": "tex/grass_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 1.4,
+   "tileMetresIsEstimate": false,
+   "bytes": 1396290,
+   "source": {
+    "site": "ambientCG",
+    "id": "Grass004",
+    "url": "https://ambientcg.com/view?id=Grass004",
+    "author": "ambientCG (Lennart Demes)",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "dry_grass",
+   "description": "Dry / withered grass over dirt",
+   "size": 1024,
+   "files": {
+    "color": "tex/dry_grass_color.webp",
+    "normal": "tex/dry_grass_normal.webp",
+    "orm": "tex/dry_grass_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 2,
+   "tileMetresIsEstimate": false,
+   "bytes": 1352184,
+   "source": {
+    "site": "Poly Haven",
+    "id": "withered_grass",
+    "url": "https://polyhaven.com/a/withered_grass",
+    "author": "Charlotte Baglioni",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "gravel",
+   "description": "Fine light gravel (shoulder)",
+   "size": 1024,
+   "files": {
+    "color": "tex/gravel_color.webp",
+    "normal": "tex/gravel_normal.webp",
+    "orm": "tex/gravel_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 2,
+   "tileMetresIsEstimate": false,
+   "bytes": 1430468,
+   "source": {
+    "site": "Poly Haven",
+    "id": "gravel_floor_02",
+    "url": "https://polyhaven.com/a/gravel_floor_02",
+    "author": "Jenelle van Heerden, Dimitrios Savva",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "concrete",
+   "description": "Grey cast concrete (barriers)",
+   "size": 1024,
+   "files": {
+    "color": "tex/concrete_color.webp",
+    "normal": "tex/concrete_normal.webp",
+    "orm": "tex/concrete_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 2,
+   "tileMetresIsEstimate": true,
+   "bytes": 583892,
+   "source": {
+    "site": "ambientCG",
+    "id": "Concrete031",
+    "url": "https://ambientcg.com/view?id=Concrete031",
+    "author": "ambientCG (Lennart Demes)",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "snow",
+   "description": "Snow ground",
+   "size": 1024,
+   "files": {
+    "color": "tex/snow_color.webp",
+    "normal": "tex/snow_normal.webp",
+    "orm": "tex/snow_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 2.5,
+   "tileMetresIsEstimate": false,
+   "bytes": 513284,
+   "source": {
+    "site": "ambientCG",
+    "id": "Snow006",
+    "url": "https://ambientcg.com/view?id=Snow006",
+    "author": "ambientCG (Lennart Demes)",
+    "license": "CC0 1.0"
+   }
+  },
+  {
+   "name": "sand",
+   "description": "Compact sand",
+   "size": 1024,
+   "files": {
+    "color": "tex/sand_color.webp",
+    "normal": "tex/sand_normal.webp",
+    "orm": "tex/sand_orm.webp"
+   },
+   "normalConvention": "OpenGL (+Y up)",
+   "orm": "R = ambient occlusion, G = roughness, B = 0 (metalness)",
+   "tileMetres": 1.8,
+   "tileMetresIsEstimate": false,
+   "bytes": 548882,
+   "source": {
+    "site": "Poly Haven",
+    "id": "dense_sand",
+    "url": "https://polyhaven.com/a/dense_sand",
+    "author": "Dimitrios Savva",
+    "license": "CC0 1.0"
+   }
+  }
+ ],
+ "props": [
+  {
+   "name": "guardrail",
+   "description": "W-beam guardrail segment, 4 m, two posts with blockouts",
+   "placement": "runs along X, centred; W face toward +Z; tile every 4 m",
+   "file": "props/guardrail.json",
+   "textures": [
+    "props/tex/light_pole_0.webp",
+    "props/tex/light_pole_1.webp"
+   ],
+   "triangles": 100,
+   "sizeMetres": [
+    4,
+    0.8,
+    0.3
+   ],
+   "boundsMin": [
+    -2,
+    0,
+    -0.05
+   ],
+   "bytesJson": 8908,
+   "bytesWithTextures": 11186,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Metal032",
+     "url": "https://ambientcg.com/view?id=Metal032",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "jersey_barrier",
+   "description": "New Jersey concrete barrier, 4 m (0.61 base, 0.81 tall)",
+   "placement": "runs along X, centred; tile every 4 m",
+   "file": "props/jersey_barrier.json",
+   "textures": [
+    "props/tex/jersey_barrier_0.webp",
+    "props/tex/jersey_barrier_1.webp",
+    "props/tex/jersey_barrier_2.webp"
+   ],
+   "triangles": 60,
+   "sizeMetres": [
+    4,
+    0.83,
+    0.63
+   ],
+   "boundsMin": [
+    -2,
+    -0.01,
+    -0.31
+   ],
+   "bytesJson": 6692,
+   "bytesWithTextures": 82778,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Concrete031",
+     "url": "https://ambientcg.com/view?id=Concrete031",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "light_pole",
+   "description": "Highway light pole, 10 m, cobra-head luminaire with emissive lens",
+   "placement": "pole at origin, arm reaches toward +Z (2.85 m)",
+   "file": "props/light_pole.json",
+   "textures": [
+    "props/tex/light_pole_0.webp",
+    "props/tex/light_pole_1.webp"
+   ],
+   "triangles": 416,
+   "sizeMetres": [
+    0.44,
+    10.2,
+    3.5
+   ],
+   "boundsMin": [
+    -0.22,
+    0,
+    -0.2
+   ],
+   "bytesJson": 20925,
+   "bytesWithTextures": 23203,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Metal032",
+     "url": "https://ambientcg.com/view?id=Metal032",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "sign_gantry",
+   "description": "Overhead sign gantry, 18 m box truss, two green panels, 6 m clearance",
+   "placement": "spans X (-9..9 m); panels face +Z",
+   "file": "props/sign_gantry.json",
+   "textures": [
+    "props/tex/light_pole_0.webp",
+    "props/tex/light_pole_1.webp",
+    "props/tex/sign_speed_limit_0.webp"
+   ],
+   "triangles": 2900,
+   "sizeMetres": [
+    18.8,
+    7.7,
+    1.19
+   ],
+   "boundsMin": [
+    -9.4,
+    0,
+    -0.57
+   ],
+   "bytesJson": 229362,
+   "bytesWithTextures": 270560,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Metal032",
+     "url": "https://ambientcg.com/view?id=Metal032",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "sign_speed_limit",
+   "description": "Round 100 speed-limit sign on a post",
+   "placement": "faces +Z",
+   "file": "props/sign_speed_limit.json",
+   "textures": [
+    "props/tex/sign_speed_limit_0.webp",
+    "props/tex/light_pole_0.webp",
+    "props/tex/light_pole_1.webp"
+   ],
+   "triangles": 240,
+   "sizeMetres": [
+    0.9,
+    2.75,
+    0.07
+   ],
+   "boundsMin": [
+    -0.45,
+    0,
+    -0.07
+   ],
+   "bytesJson": 16254,
+   "bytesWithTextures": 57452,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Metal032",
+     "url": "https://ambientcg.com/view?id=Metal032",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "sign_curve_warning",
+   "description": "Triangular curve-warning sign on a post",
+   "placement": "faces +Z",
+   "file": "props/sign_curve_warning.json",
+   "textures": [
+    "props/tex/sign_speed_limit_0.webp",
+    "props/tex/light_pole_0.webp",
+    "props/tex/light_pole_1.webp"
+   ],
+   "triangles": 49,
+   "sizeMetres": [
+    1,
+    2.75,
+    0.07
+   ],
+   "boundsMin": [
+    -0.5,
+    0,
+    -0.07
+   ],
+   "bytesJson": 6132,
+   "bytesWithTextures": 47330,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Metal032",
+     "url": "https://ambientcg.com/view?id=Metal032",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "sign_direction",
+   "description": "Green distance sign (fictional places) on two posts",
+   "placement": "faces +Z",
+   "file": "props/sign_direction.json",
+   "textures": [
+    "props/tex/sign_speed_limit_0.webp",
+    "props/tex/light_pole_0.webp",
+    "props/tex/light_pole_1.webp"
+   ],
+   "triangles": 94,
+   "sizeMetres": [
+    3,
+    3,
+    0.07
+   ],
+   "boundsMin": [
+    -1.5,
+    0,
+    -0.07
+   ],
+   "bytesJson": 9135,
+   "bytesWithTextures": 50333,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Metal032",
+     "url": "https://ambientcg.com/view?id=Metal032",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "delineator",
+   "description": "Roadside delineator post with amber reflector",
+   "placement": "reflector faces +Z",
+   "file": "props/delineator.json",
+   "textures": [],
+   "triangles": 36,
+   "sizeMetres": [
+    0.1,
+    1.05,
+    0.13
+   ],
+   "boundsMin": [
+    -0.05,
+    0,
+    -0.06
+   ],
+   "bytesJson": 3692,
+   "bytesWithTextures": 3692,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    }
+   ]
+  },
+  {
+   "name": "house",
+   "description": "Single-storey house, 9 x 7 m, gable roof",
+   "placement": "door on +Z side",
+   "file": "props/house.json",
+   "textures": [
+    "props/tex/house_0.webp",
+    "props/tex/house_1.webp",
+    "props/tex/house_2.webp",
+    "props/tex/house_3.webp",
+    "props/tex/house_4.webp",
+    "props/tex/house_5.webp"
+   ],
+   "triangles": 220,
+   "sizeMetres": [
+    9.6,
+    5.55,
+    7.87
+   ],
+   "boundsMin": [
+    -4.8,
+    0,
+    -3.94
+   ],
+   "bytesJson": 18491,
+   "bytesWithTextures": 159377,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "PaintedPlaster017",
+     "url": "https://ambientcg.com/view?id=PaintedPlaster017",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    },
+    {
+     "site": "ambientCG",
+     "id": "RoofingTiles014A",
+     "url": "https://ambientcg.com/view?id=RoofingTiles014A",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "warehouse",
+   "description": "Warehouse, 32 x 18 x 8 m, corrugated steel, four roller doors",
+   "placement": "doors on +Z side",
+   "file": "props/warehouse.json",
+   "textures": [
+    "props/tex/warehouse_0.webp",
+    "props/tex/warehouse_1.webp",
+    "props/tex/warehouse_2.webp",
+    "props/tex/jersey_barrier_0.webp",
+    "props/tex/jersey_barrier_1.webp",
+    "props/tex/jersey_barrier_2.webp"
+   ],
+   "triangles": 100,
+   "sizeMetres": [
+    32.4,
+    9.57,
+    18.62
+   ],
+   "boundsMin": [
+    -16.2,
+    0,
+    -9.31
+   ],
+   "bytesJson": 10874,
+   "bytesWithTextures": 149466,
+   "sources": [
+    {
+     "site": "procedural (built for this set in tools/props.html)",
+     "license": "CC0 1.0",
+     "author": "generated"
+    },
+    {
+     "site": "ambientCG",
+     "id": "CorrugatedSteel005",
+     "url": "https://ambientcg.com/view?id=CorrugatedSteel005",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    },
+    {
+     "site": "ambientCG",
+     "id": "Concrete031",
+     "url": "https://ambientcg.com/view?id=Concrete031",
+     "author": "ambientCG (Lennart Demes)",
+     "license": "CC0 1.0",
+     "use": "texture"
+    }
+   ]
+  },
+  {
+   "name": "tree_oak",
+   "description": "Deciduous tree (oak), 11 m, alpha-tested leaf cards",
+   "placement": "",
+   "file": "props/tree_oak.json",
+   "textures": [
+    "props/tex/bush_b_0.webp",
+    "props/tex/bush_b_1.webp",
+    "props/tex/bush_b_2.webp",
+    "props/tex/bush_b_3.webp",
+    "props/tex/tree_oak_4.webp"
+   ],
+   "triangles": 13806,
+   "sizeMetres": [
+    9.24,
+    11,
+    7.88
+   ],
+   "boundsMin": [
+    -4.36,
+    0,
+    -3.35
+   ],
+   "bytesJson": 752761,
+   "bytesWithTextures": 1058429,
+   "sources": [
+    {
+     "site": "EZ-Tree",
+     "url": "https://github.com/dgreenheck/ez-tree",
+     "author": "Daniel Greenheck",
+     "license": "MIT",
+     "note": "geometry generated with the library's preset; bark and leaf textures are the ones bundled in the MIT-licensed package"
+    }
+   ]
+  },
+  {
+   "name": "tree_aspen",
+   "description": "Deciduous tree (aspen), 14 m, alpha-tested leaf cards",
+   "placement": "",
+   "file": "props/tree_aspen.json",
+   "textures": [
+    "props/tex/tree_aspen_0.webp",
+    "props/tex/tree_aspen_1.webp",
+    "props/tex/tree_aspen_2.webp",
+    "props/tex/tree_aspen_3.webp",
+    "props/tex/bush_b_4.webp"
+   ],
+   "triangles": 7200,
+   "sizeMetres": [
+    6.79,
+    14,
+    7.27
+   ],
+   "boundsMin": [
+    -3.27,
+    0,
+    -3.39
+   ],
+   "bytesJson": 261125,
+   "bytesWithTextures": 534027,
+   "sources": [
+    {
+     "site": "EZ-Tree",
+     "url": "https://github.com/dgreenheck/ez-tree",
+     "author": "Daniel Greenheck",
+     "license": "MIT",
+     "note": "geometry generated with the library's preset; bark and leaf textures are the ones bundled in the MIT-licensed package"
+    }
+   ]
+  },
+  {
+   "name": "tree_pine",
+   "description": "Conifer (pine), 13 m, alpha-tested needle cards",
+   "placement": "",
+   "file": "props/tree_pine.json",
+   "textures": [
+    "props/tex/tree_pine_0.webp",
+    "props/tex/tree_pine_1.webp",
+    "props/tex/tree_pine_2.webp",
+    "props/tex/tree_pine_3.webp",
+    "props/tex/tree_pine_4.webp"
+   ],
+   "triangles": 19872,
+   "sizeMetres": [
+    7.63,
+    13,
+    8.82
+   ],
+   "boundsMin": [
+    -4.12,
+    0,
+    -4.38
+   ],
+   "bytesJson": 858420,
+   "bytesWithTextures": 1155260,
+   "sources": [
+    {
+     "site": "EZ-Tree",
+     "url": "https://github.com/dgreenheck/ez-tree",
+     "author": "Daniel Greenheck",
+     "license": "MIT",
+     "note": "geometry generated with the library's preset; bark and leaf textures are the ones bundled in the MIT-licensed package"
+    }
+   ]
+  },
+  {
+   "name": "tree_pine_tall",
+   "description": "Conifer (pine), 18 m",
+   "placement": "",
+   "file": "props/tree_pine_tall.json",
+   "textures": [
+    "props/tex/tree_pine_0.webp",
+    "props/tex/tree_pine_1.webp",
+    "props/tex/tree_pine_2.webp",
+    "props/tex/tree_pine_3.webp",
+    "props/tex/tree_pine_4.webp"
+   ],
+   "triangles": 19392,
+   "sizeMetres": [
+    11.5,
+    18,
+    11.14
+   ],
+   "boundsMin": [
+    -5.65,
+    0,
+    -5.6
+   ],
+   "bytesJson": 750740,
+   "bytesWithTextures": 1047580,
+   "sources": [
+    {
+     "site": "EZ-Tree",
+     "url": "https://github.com/dgreenheck/ez-tree",
+     "author": "Daniel Greenheck",
+     "license": "MIT",
+     "note": "geometry generated with the library's preset; bark and leaf textures are the ones bundled in the MIT-licensed package"
+    }
+   ]
+  },
+  {
+   "name": "bush_a",
+   "description": "Bush, 1.6 m",
+   "placement": "",
+   "file": "props/bush_a.json",
+   "textures": [
+    "props/tex/bush_b_0.webp",
+    "props/tex/bush_b_1.webp",
+    "props/tex/bush_b_2.webp",
+    "props/tex/bush_b_3.webp",
+    "props/tex/bush_a_4.webp"
+   ],
+   "triangles": 13872,
+   "sizeMetres": [
+    1.86,
+    1.6,
+    2.09
+   ],
+   "boundsMin": [
+    -1.14,
+    0,
+    -0.86
+   ],
+   "bytesJson": 543840,
+   "bytesWithTextures": 833236,
+   "sources": [
+    {
+     "site": "EZ-Tree",
+     "url": "https://github.com/dgreenheck/ez-tree",
+     "author": "Daniel Greenheck",
+     "license": "MIT",
+     "note": "geometry generated with the library's preset; bark and leaf textures are the ones bundled in the MIT-licensed package"
+    }
+   ]
+  },
+  {
+   "name": "bush_b",
+   "description": "Bush, 1.3 m",
+   "placement": "",
+   "file": "props/bush_b.json",
+   "textures": [
+    "props/tex/bush_b_0.webp",
+    "props/tex/bush_b_1.webp",
+    "props/tex/bush_b_2.webp",
+    "props/tex/bush_b_3.webp",
+    "props/tex/bush_b_4.webp"
+   ],
+   "triangles": 4760,
+   "sizeMetres": [
+    1.11,
+    1.3,
+    1.25
+   ],
+   "boundsMin": [
+    -0.53,
+    0,
+    -0.78
+   ],
+   "bytesJson": 178456,
+   "bytesWithTextures": 467690,
+   "sources": [
+    {
+     "site": "EZ-Tree",
+     "url": "https://github.com/dgreenheck/ez-tree",
+     "author": "Daniel Greenheck",
+     "license": "MIT",
+     "note": "geometry generated with the library's preset; bark and leaf textures are the ones bundled in the MIT-licensed package"
+    }
+   ]
+  },
+  {
+   "name": "rock_boulder",
+   "description": "Boulder, ~1.8 m (simplified from 66k to 4k tris)",
+   "placement": "",
+   "file": "props/rock_boulder.json",
+   "textures": [
+    "props/tex/rock_boulder_0.webp",
+    "props/tex/rock_boulder_1.webp",
+    "props/tex/rock_boulder_2.webp"
+   ],
+   "triangles": 3966,
+   "sizeMetres": [
+    1.27,
+    1,
+    1.82
+   ],
+   "boundsMin": [
+    -0.75,
+    -0.07,
+    -0.94
+   ],
+   "bytesJson": 117091,
+   "bytesWithTextures": 339601,
+   "sources": [
+    {
+     "site": "Poly Haven",
+     "id": "boulder_01",
+     "url": "https://polyhaven.com/a/boulder_01",
+     "author": "Rico Cilliers",
+     "license": "CC0 1.0"
+    }
+   ]
+  },
+  {
+   "name": "rock_flat",
+   "description": "Flat roadside boulder, 1.4 m",
+   "placement": "",
+   "file": "props/rock_flat.json",
+   "textures": [
+    "props/tex/rock_flat_0.webp",
+    "props/tex/rock_flat_1.webp",
+    "props/tex/rock_flat_2.webp"
+   ],
+   "triangles": 7168,
+   "sizeMetres": [
+    1.36,
+    0.53,
+    0.75
+   ],
+   "boundsMin": [
+    -0.64,
+    -0.01,
+    -0.4
+   ],
+   "bytesJson": 188171,
+   "bytesWithTextures": 394021,
+   "sources": [
+    {
+     "site": "Poly Haven",
+     "id": "namaqualand_boulder_05",
+     "url": "https://polyhaven.com/a/namaqualand_boulder_05",
+     "author": "Jenelle van Heerden, Dario Barresi",
+     "license": "CC0 1.0"
+    }
+   ]
+  },
+  {
+   "name": "rock_set",
+   "description": "Cluster of five mossy rocks, 8 x 7 m footprint",
+   "placement": "",
+   "file": "props/rock_set.json",
+   "textures": [
+    "props/tex/rock_set_0.webp",
+    "props/tex/rock_set_1.webp",
+    "props/tex/rock_set_2.webp"
+   ],
+   "triangles": 9462,
+   "sizeMetres": [
+    8,
+    1.76,
+    6.94
+   ],
+   "boundsMin": [
+    -3.91,
+    -0.66,
+    -3.82
+   ],
+   "bytesJson": 272159,
+   "bytesWithTextures": 372705,
+   "sources": [
+    {
+     "site": "Poly Haven",
+     "id": "rock_moss_set_01",
+     "url": "https://polyhaven.com/a/rock_moss_set_01",
+     "author": "Kless Gyzen",
+     "license": "CC0 1.0"
+    }
+   ]
+  }
+ ],
+ "decoder": "sky/decode.js",
+ "tests": [
+  "tests/test-hdr.html",
+  "tests/test-props.html",
+  "tests/preview.html"
+ ]
+}
