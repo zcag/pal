@@ -380,21 +380,22 @@ impl Sync {
         now >= t.wait && t.pulled.is_none_or(|p| now >= p + SHOW_GAP_MS)
     }
 
-    fn failed<T>(&self, r: Result<T>, now: u64) -> Result<T> {
-        if matches!(r, Err(Error::Offline(_))) {
+    /// A tick's work: a push and the pull after it, or a pull. A failure
+    /// (offline, a config file that does not parse) waits [`RETRY_MS`]
+    /// before the next try.
+    pub fn run(&self, due: Due, client: &Client, places: &Places, now: u64) -> Result<Outcome> {
+        let r = (|| {
+            let mut out = Outcome::default();
+            if due == Due::Push {
+                out.add(self.push(client, places, now)?);
+            }
+            out.add(self.pull(client, places, now)?);
+            Ok(out)
+        })();
+        if r.is_err() {
             lock(&self.timing).wait = now + RETRY_MS;
         }
         r
-    }
-
-    /// A tick's work: a push and the pull after it, or a pull.
-    pub fn run(&self, due: Due, client: &Client, places: &Places, now: u64) -> Result<Outcome> {
-        let mut out = Outcome::default();
-        if due == Due::Push {
-            out.add(self.push(client, places, now)?);
-        }
-        out.add(self.pull(client, places, now)?);
-        Ok(out)
     }
 
     /// Sign-in on this device: nothing is known of the account, every
@@ -478,7 +479,14 @@ impl Sync {
         if changes.is_empty() {
             return Ok(Outcome::default());
         }
-        let answer: Answer = self.failed(client.post("/api/sync", &body), now).and_then(|v| serde_json::from_value(v).map_err(|e| Error::Local(format!("sync: {e}"))))?;
+        let answer: Answer = match client.post("/api/sync", &body).and_then(|v| serde_json::from_value(v).map_err(|e| Error::Local(format!("sync: {e}")))) {
+            Ok(a) => a,
+            Err(e) => {
+                // The config is compared again next time; storage keeps its marks.
+                lock(&self.timing).config |= config;
+                return Err(e);
+            }
+        };
         let flat_after = if flat.is_some() { flatten_file(places.config).ok() } else { None };
         let mut out = Outcome { sent: changes.len(), ..Outcome::default() };
         let mut config_in = Vec::new();
@@ -538,7 +546,7 @@ impl Sync {
     pub fn pull(&self, client: &Client, places: &Places, now: u64) -> Result<Outcome> {
         let _busy = lock(&self.busy);
         let since = lock(&self.state).rev;
-        let answer: Answer = self.failed(client.get(&format!("/api/sync?since={since}")), now).and_then(|v| serde_json::from_value(v).map_err(|e| Error::Local(format!("sync: {e}"))))?;
+        let answer: Answer = client.get(&format!("/api/sync?since={since}")).and_then(|v| serde_json::from_value(v).map_err(|e| Error::Local(format!("sync: {e}"))))?;
         let out = self.take_in(places, answer, false)?;
         lock(&self.timing).pulled = Some(now);
         let mut st = lock(&self.state);
@@ -853,6 +861,23 @@ mod tests {
         m.sync.run(Due::Push, &client, &m.places(), 5_000).unwrap();
         assert_eq!(m.get("best"), json!(90.0), "merged by max");
         assert!(std::fs::read_to_string(m.config.path()).unwrap().contains("\"system\""), "latest: this write");
+    }
+
+    #[test]
+    fn offline_waits_a_minute_and_keeps_what_was_pending() {
+        let m = machine("[general]\ntheme = \"dark\"\n");
+        m.sync.first(&m.storage);
+        m.set("best", json!(5), 0);
+        let off = Client::new("http://127.0.0.1:1", Some("t".into()));
+        assert!(m.sync.run(Due::Push, &off, &m.places(), 10_000).is_err());
+        assert_eq!(m.sync.due(10_001), None, "nothing tried for a minute");
+        assert_eq!(m.sync.due(10_000 + RETRY_MS), Some(Due::Push), "the mark and the config are still pending");
+        let server = Server::start();
+        serve(&server);
+        let client = Client::new(&server.base, Some("t".into()));
+        m.sync.run(Due::Push, &client, &m.places(), 10_000 + RETRY_MS).unwrap();
+        let keys: BTreeSet<String> = sent(&server).iter().map(|c| c["key"].as_str().unwrap().to_string()).collect();
+        assert_eq!(keys, ["best".to_string(), "general.theme".to_string()].into());
     }
 
     #[test]

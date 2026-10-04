@@ -66,6 +66,9 @@ fn ticker(app: &AppHandle) {
             if let Some(due) = s.due(now) {
                 let _ = exchange(app, due);
             }
+        } else {
+            // Signed out from another device: nothing is marked any more.
+            s.set_on(false);
         }
         if now >= scores_at && a.has_queued() {
             scores_at = now + 60_000;
