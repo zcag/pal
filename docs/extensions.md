@@ -144,6 +144,11 @@ whose code fails to load.
 - `controls`: the controls the code provides (`["volume", "power",
   "inputs"]`; below, "Controls"), so Settings › Groups offers the
   extension for them without loading it.
+- `sync`: the extension's storage syncs with the user's pal account,
+  each key merged by its rule (below, "Syncing storage"). Without it the
+  storage never leaves the machine.
+- `leaderboards`: the boards a game posts scores to (below,
+  "Leaderboards").
 - `protocol`: written by `pal-pack`, never by hand: the `PROTOCOL` of the
   SDK the package was built against (below, "Packages").
 
@@ -858,7 +863,11 @@ export default defineExtension({
   actions, `storage.get/set` (the extension's own storage), `settings()`
   and `onSettings(fn)`, `title(text)` for the title line, `onTheme(fn)`,
   `onShown(fn)` / `onHidden(fn)` (pause the loop), `ready()` once the
-  first frame is drawn (the app shows the page from then on). Every
+  first frame is drawn (the app shows the page from then on);
+  `storage.onChange(fn)` for a value sync brought in (below, "Syncing
+  storage"), `score(board, value)` and `leaderboard(board, { period,
+  anon })` for the game's boards, `account()` and `signIn()` (below,
+  "Leaderboards"). Every
   `--pal-*` token is set on `:root` and `data-theme` on `<html>`, again on
   every flip.
 - **Actions** keep their place: ⌘K lists them, the footer shows the
@@ -884,10 +893,15 @@ export default defineExtension({
 - **On the web.** A game that needs nothing from its extension (every
   `pal.send` only tells it something, and the page does without the
   reply) can say `"play": true` in its `store` block, and
-  [palplay.cagdas.io](https://palplay.cagdas.io) serves it the same way,
-  the kit a stub in a frame loaded with `?web` and the settings at their
-  defaults; its page on pal.cagdas.io links there. Keep the page's
-  own keys off ⌘ combos the browser keeps (⌘T, ⌘N, ⌘W).
+  [play.cagdas.io](https://play.cagdas.io) serves it the same way, in a
+  frame loaded with `?web&play=1` and the settings at their defaults; its
+  page on pal.cagdas.io links there. The game page there is the kit's
+  other half, as the app is: it keeps the storage (synced to the player's
+  account when they sign in) and answers `score`, `leaderboard`,
+  `account` and `signIn`, so a game's progress and boards are the same in
+  the browser and in pal. Framed with `?web` alone the kit is the stub
+  above (a score kept as is, no board, signed out). Keep the page's own
+  keys off ⌘ combos the browser keeps (⌘T, ⌘N, ⌘W).
 
 ## Live views: push and pull
 
@@ -1522,6 +1536,108 @@ choice; not for a cache. Which extension is asking is known inside
 `list`/`pick`/`view` and at import time; elsewhere pass the name as the
 last argument.
 
+## Syncing storage
+
+A user signed in to a pal account (Settings › Account) gets their
+settings and the storage of the extensions that opt in on every machine
+and on play.cagdas.io. An extension opts in with `sync` in `pal.json`,
+one rule per storage key:
+
+```json
+"sync": {
+  "best": "max", "unlocks": "union", "plays": "sum",
+  "stats": { "fields": { "wins": "sum", "streak": "latest", "longest": "max" } },
+  "settings": "latest", "hand": "local"
+}
+```
+
+Two devices that both played since they last synced each have a value
+for the key; the server merges them by the rule, so neither replaces the
+other:
+
+| rule | merge |
+| --- | --- |
+| `max`, `min` | the larger, the smaller (numbers) |
+| `union` | arrays: every element of both, first seen first, no duplicates |
+| `sum` | counters: the other device's count plus what this one added since it last synced |
+| `{ "fields": {...} }` | objects: field by field, each by its rule (recursively), unlisted fields `latest` |
+| `latest` | the one written last; the other is kept in the account's history |
+| `local` | never synced: stays on this machine |
+
+- **Every key that holds progress needs a rule.** A key not listed syncs
+  as `latest`, which for progress is a loss the player feels: yesterday's
+  longer streak replaced by today's shorter one, the levels one machine
+  opened gone on the other. A best is `max` (`min` for a time), what was
+  opened or collected is `union`, a count is `sum`, a stats object is
+  `fields`.
+- **`local`** for what belongs to one sitting on one machine: a hand of
+  cards in progress, a cursor. A credential never goes in synced storage:
+  without `sync` nothing leaves the machine, which is why it is opt-in.
+- A first sign-in on a machine that already has progress merges it into
+  the account by the same rules, as does a machine back from a month
+  offline.
+- A value that arrived while the extension runs (merged, or from another
+  device) is told to it: `storage.onChange((key, value) => ...)` in the
+  SDK, `pal.storage.onChange(fn)` in a game's page. Code that keeps state
+  in memory takes it there, so its next `set` does not write back
+  something older (that `set` is merged again in any case, so nothing is
+  lost, but the game would show stale numbers until then).
+- pal-pack refuses a package whose rules are not these, and the host
+  warns on load.
+
+## Leaderboards
+
+A game declares its boards in `pal.json`, as many as it has modes, maps
+or daily runs:
+
+```json
+"leaderboards": [
+  { "id": "daily", "title": "Daily", "order": "desc", "format": "points", "period": "day" },
+  { "id": "stage/*", "title": "Stage {1}", "order": "asc", "format": "time", "min": 0, "max": 3600 },
+  { "id": "endless", "title": "Endless", "order": "desc", "format": "time" }
+]
+```
+
+- `id`: `[a-z0-9_-]` segments joined by `/`. A `*` segment matches one
+  segment of a posted board (`stage/hyper-3`), and `{1}` in the title is
+  what it matched (`{2}` the second `*`).
+- `order`: `desc` (higher is better) or `asc` (lower is: a time to clear).
+- `format`: `points`, `time` (seconds, shown `1:01.20`) or `moves`.
+- `period`: `all` (the default), `day` or `week`; days are UTC, so a daily
+  board is the same board everywhere.
+- `min`, `max`: a value outside is refused, the one cheap check against a
+  forged score.
+
+```ts
+import { account, leaderboard } from "@zcag/pal";
+const { best, rank, total } = await leaderboard.post("stage/3", 74.2);
+const board = await leaderboard.get("daily", { anon: false });   // { board, rows, me }
+if (!(await account.get()).signedIn) { /* "Sign in to keep your scores" */ await account.signIn(); }
+```
+
+- `leaderboard.post(board, value)` keeps the player's best on the board
+  (and period) and answers it with its rank and the board's size. Signed
+  in, the score is the account's; signed out, this device's, under an
+  anonymous id of its own (never the usage id), shown as a generated
+  name (*Teal Fox*) and moved to the account when the user signs in.
+  Offline it is queued and sent later, answering `{ queued: true, best }`
+  with the local best. Signed in without a handle yet, it rejects with
+  "choose a handle" and the app opens Settings › Account at the handle.
+- `leaderboard.get(board, { period, anon })`: the top 50 (`rows`: `rank`,
+  `name`, `anon`, `value`, `at`, `me`), the player's own row as `me` when
+  they are not among them, and the board's declaration. `anon: false`
+  hides anonymous players and ranks within what is shown.
+- `account.get()`: `{ signedIn, handle }`, never the email.
+  `account.signIn()` opens Settings › Account (the sign-in sheet on
+  play.cagdas.io).
+- A game's page: `pal.score`, `pal.leaderboard`, `pal.account`,
+  `pal.signIn`, the same calls ("Game surfaces").
+- No board UI is needed: the Games shelf and the game's page on
+  play.cagdas.io show its boards. A game may draw its own from `get`.
+- Boards exist for pal's own registry's extensions: the server reads the
+  declaration from the newest build it has and refuses an undeclared
+  board. pal-pack refuses a package whose `leaderboards` is malformed.
+
 ## The `@zcag/pal` package
 
 `import { ... } from "@zcag/pal"` is pal's extension API: the calls into the
@@ -1602,7 +1718,11 @@ to the core.
   Services on macOS, `xdg-mime` + `mimeapps.list` + `mimeinfo.cache` on
   Linux. `apps.openWith(path, app)` opens the file with one of them.
 - `storage.get(key)`, `set(key, value)`, `remove(key)`, `keys()`: the
-  extension's own key-value file (above).
+  extension's own key-value file (above); `storage.onChange(cb)` (protocol
+  5): a value sync brought in ("Syncing storage").
+- `leaderboard.post(board, value)`, `leaderboard.get(board, { period,
+  anon })`, `account.get()`, `account.signIn()` (protocol 5):
+  "Leaderboards" above.
 - `color.sample()`: one pixel off the screen, picked by the user with the
   OS's own loupe (`NSColorSampler` on macOS, no permission; the
   `org.freedesktop.portal.Screenshot.PickColor` portal on Linux, which may

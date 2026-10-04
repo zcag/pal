@@ -267,7 +267,7 @@ is published but not offered until that app release is out.
     the bundled one" (`extension.html:80,89`) change to core / pal registry.
   - `DeepLink`/`InstallCmd` stop emitting `github:` specs (`server.go:368-372`,
     `registry/sync.go:30`).
-- **palplay** serves `store.play` games from the published package, not main's
+- **play.cagdas.io** serves `store.play` games from the published package, not main's
   source. It is our registry's games only.
 
 ## Third-party publishing
