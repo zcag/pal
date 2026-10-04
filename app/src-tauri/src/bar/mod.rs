@@ -608,10 +608,21 @@ pub struct Bar {
     sketchybar: AtomicBool,
 }
 
+thread_local! {
+    /// This thread holds the table: a second `Bar::with` inside the first would wait on itself forever.
+    static HOLDING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
 impl Bar {
     fn with<T>(app: &AppHandle, f: impl FnOnce(&mut BTreeMap<String, Entry>) -> T) -> T {
+        // The lock is not reentrant: a nested call (anything reading `entry` from inside a closure here) hung pal at startup once. Fail loud instead of hanging.
+        assert!(!HOLDING.with(|h| h.get()), "bar: the item table is locked again from inside Bar::with (a deadlock); read what you need before locking");
         let st = app.state::<Bar>();
         let mut e = lock(&st.entries);
+        HOLDING.with(|h| h.set(true));
+        struct Release;
+        impl Drop for Release { fn drop(&mut self) { HOLDING.with(|h| h.set(false)); } }
+        let _release = Release;
         f(&mut e)
     }
 }
