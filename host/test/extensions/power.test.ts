@@ -86,6 +86,15 @@ describe("power: the palette", () => {
     expect(v.actions[0]).toMatchObject({ id: "processes", title: "Find Google Chrome Helper (Renderer) in Processes", shortcut: "enter" });
   });
 
+  test("in the popover (ctx.compact) the level stacks over the tabs, no side card; a key there keeps it", async () => {
+    const keys = (n: ViewNode | View): string[] => ("tree" in n ? keys(n.tree) : [n.key ?? "", ...(n.type === "stack" ? n.children.flatMap(keys) : [])]);
+    const v = await host.request<View>("view", { extension: "power", palette: "power", compact: true });
+    expect(keys(v)).not.toContain("left");
+    expect(keys(v)).toContain("percent");
+    expect(keys((await host.pick("power", "power", "dash", "next", { compact: true })).view!)).not.toContain("left");
+    expect(keys(await view())).toContain("left");
+  });
+
   test("keys: the cursor moves, Enter finds the process, cmd+c copies, tabs switch", async () => {
     await view();
     expect(texts((await pick("down")).view!)).toContain("WindowServer");

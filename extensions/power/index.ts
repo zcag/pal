@@ -107,6 +107,7 @@ async function barItem(): Promise<BarItem> {
 type Ui = { tab: Tab; focus: number };
 const ui: Ui = { tab: "now", focus: 0 };
 let timer: ReturnType<typeof setInterval> | undefined;
+/** The last level asked for drew in the popover (`ctx.compact`); the live timer redraws with it. */
 let compact = false;
 
 async function dash(): Promise<Dash | undefined> {
@@ -173,7 +174,7 @@ export default {
         ui.tab = "now"; ui.focus = 0; compact = !!ctx?.compact;
         return render();
       },
-      pick: (_id, action) => dashPick(action),
+      pick: (_id, action, ctx) => { compact = !!ctx?.compact; return dashPick(action); },
     },
   },
   bar: {

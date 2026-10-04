@@ -59,13 +59,13 @@ export function describe(e: unknown): string {
 }
 
 /** A palette request's params as the core sends them (index.rs): JSON off the wire, so every field is read as it may not be. */
-type Params = { extension?: string; palette?: string; id?: string; action?: string; call?: string; data?: unknown; query?: string; route?: string; params?: unknown; filter?: string; args?: unknown; refresh?: boolean; values?: FormValues | null; inline?: boolean; ids?: unknown[]; stream?: unknown };
+type Params = { extension?: string; palette?: string; id?: string; action?: string; call?: string; data?: unknown; query?: string; route?: string; params?: unknown; filter?: string; args?: unknown; refresh?: boolean; values?: FormValues | null; inline?: boolean; ids?: unknown[]; stream?: unknown; compact?: boolean };
 
 const paletteKey = (p: Params) => `${p.extension}/${p.palette}`;
 // The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
 const ctxOf = (p: Params): Ctx | undefined =>
-  p.filter !== undefined || p.args != null || p.refresh || p.values != null || p.inline || Array.isArray(p.ids)
-    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }), ...(Array.isArray(p.ids) && { ids: p.ids.map(String) }) }
+  p.filter !== undefined || p.args != null || p.refresh || p.values != null || p.inline || Array.isArray(p.ids) || p.compact
+    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }), ...(Array.isArray(p.ids) && { ids: p.ids.map(String) }), ...(p.compact === true && { compact: true as const }) }
     : undefined;
 
 /**
