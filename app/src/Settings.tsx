@@ -64,7 +64,7 @@ type RawBarState = NonNullable<BarItem["state"]>;
 /** A rule's effect from the file's spelling: the look keys as the page names them, plus hidden, urgent and position. */
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
-type RawBarView = { key: string; extension: string; id: string; title: string; /** The manifest's `bar.<id>.settings`. */ settings_specs?: SettingSpec[]; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
+type RawBarView = { key: string; extension: string; id: string; title: string; /** A glance-only item (`ManifestBar.strip: false`). */ glance_only?: boolean; /** The manifest's `bar.<id>.settings`. */ settings_specs?: SettingSpec[]; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
 type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[] };
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
 type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
@@ -203,6 +203,7 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     extTitle: ext?.title ?? feature?.title ?? b.extension,
     extIcon: ext?.icon ?? (feature?.icon ? iconOf(feature.icon, feature.title) : undefined),
     source: b.source,
+    glanceOnly: b.glance_only,
     refreshEvery: b.refresh_every,
     renderedAt: b.rendered_at,
     stale: b.stale,
@@ -718,7 +719,7 @@ export default function Settings() {
           onRequestPermission={requestPermission}
           onOpenOverview={() => go("overview", "overview:attention")}
           themeFile={themeFile}
-          glanceItems={barItems.map((b) => ({ key: b.key, title: `${b.extTitle} › ${b.title}` }))}
+          glanceItems={barItems.map((b) => ({ key: b.key, title: b.glanceOnly ? b.title : `${b.extTitle} › ${b.title}` }))}
           onOpenShortcuts={() => go("shortcuts", "shortcuts:hotkey")}
           onOpenLink={openLink}
         />

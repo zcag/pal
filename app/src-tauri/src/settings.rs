@@ -795,6 +795,9 @@ pub struct BarItemView {
     description: Option<String>,
     /// The code has a `render` for it; `false` is declared only, never drawn.
     source: bool,
+    /// `false`: a glance-only item (`ManifestBar.strip`): a card is its place, no strip draws it unless it has a `target`.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    glance_only: bool,
     /// The item's own settings as its manifest declares them (`bar.<id>.settings`), for its pane.
     #[serde(skip_serializing_if = "Value::is_null")]
     settings_specs: Value,
@@ -975,6 +978,7 @@ fn bar_view(app: &AppHandle, config: &Config) -> BarView {
                     title: e.manifest.title.clone(),
                     description: e.manifest.description.clone(),
                     source: e.manifest.source,
+                    glance_only: !e.manifest.strip,
                     settings_specs: e.manifest.settings.clone(),
                     refresh_every: e.manifest.refresh.as_ref().and_then(|r| r.every),
                     rendered_at: e.rendered_unix,

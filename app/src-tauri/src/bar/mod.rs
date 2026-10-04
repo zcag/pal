@@ -166,11 +166,30 @@ pub struct BarItem {
     pub click: Option<Click>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub menu: Option<Value>,
+    /// What only its glance card draws (`BarItem.glance`): lines under the
+    /// text, each a way in of its own (`glance.rs`). Never on a strip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub glance: Option<GlanceExtra>,
     /// The facts the item knows, published as `<extension>/<name>` with the
     /// render (docs/design/states.md): what its rules and anyone's
     /// expressions read. Not drawn.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub states: BTreeMap<String, Value>,
+}
+
+/// `BarItem.glance`: what a glance card adds to the item's own text.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct GlanceExtra {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lines: Vec<GlanceLine>,
+}
+
+/// One line of a glance card: its text, and the `onAction` id a click on it runs (opened like a click on an item without a menu).
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct GlanceLine {
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
 }
 
 /// What an `icon` value is, for the renderers.
@@ -358,6 +377,15 @@ pub struct ManifestBar {
     /// action as `ctx.settings` ([`settings_of`]).
     #[serde(default, skip_serializing_if = "Value::is_null")]
     pub settings: Value,
+    /// `false`: a glance-only item (`ManifestBar.strip`): no strip draws it
+    /// unless the file gives it a `target`; it renders while a glance card
+    /// shows it (`general.glance`), and that card is its place.
+    #[serde(default = "yes", skip_serializing_if = "is_true")]
+    pub strip: bool,
+}
+
+fn is_true(b: &bool) -> bool {
+    *b
 }
 
 /// One `ManifestBar.rules[]` entry: a `BarRule` with its id.
@@ -382,7 +410,7 @@ fn yes() -> bool {
 
 impl Default for ManifestBar {
     fn default() -> Self {
-        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new(), rules: Vec::new(), settings: Value::Null }
+        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new(), rules: Vec::new(), settings: Value::Null, strip: true }
     }
 }
 
@@ -657,9 +685,21 @@ pub fn conditions(app: &AppHandle, config: &Config) -> Vec<pal_core::states::Bar
 }
 
 /// Whether `key` is drawn here: the config says so, its state condition
-/// holds, and the platform can.
+/// holds, the platform can, and it goes on a strip (a glance-only item,
+/// `strip: false`, only when the file gives it a `target`).
 fn draws(app: &AppHandle, config: &Config, key: &str) -> bool {
-    SUPPORTED && config.bar.draws(key) && crate::states::shows(app, key)
+    SUPPORTED && config.bar.draws(key) && crate::states::shows(app, key) && on_strip(app, config, key)
+}
+
+fn on_strip(app: &AppHandle, config: &Config, key: &str) -> bool {
+    entry(app, key).is_none_or(|e| e.manifest.strip) || config.bar.items.get(key).is_some_and(|i| i.target.is_some())
+}
+
+/// Whether `key` renders and polls: a strip draws it, or a glance card
+/// shows it (`general.glance`; a card is the item's last render, so a
+/// glance-only item renders for the card alone).
+fn renders(app: &AppHandle, config: &Config, key: &str) -> bool {
+    draws(app, config, key) || (SUPPORTED && config.general.glance.iter().any(|k| k == key) && config.bar.item(key).enabled && crate::states::shows(app, key))
 }
 
 /// The host loaded an extension (an instance of one: `ext` is the key):
@@ -712,7 +752,7 @@ fn register(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, instance: Option
         let source = entry(app, k).is_some_and(|e| e.manifest.source);
         if !source {
             eprintln!("bar\t{k}\tregistered\tno render in the code; never rendered");
-        } else if draws(app, &config, k) {
+        } else if renders(app, &config, k) {
             eprintln!("bar\t{k}\tregistered");
             render(app, k, "load");
         } else {
@@ -1011,7 +1051,7 @@ fn schedule(app: &AppHandle, key: &str) {
     let next = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
         entry.timer_gen += 1;
-        if entry.fixture || !draws(app, &config, key) {
+        if entry.fixture || !renders(app, &config, key) {
             return None;
         }
         let every = entry.manifest.refresh.as_ref().and_then(|r| r.every);
@@ -1059,7 +1099,7 @@ pub fn trigger(app: &AppHandle, trigger: &'static str) {
     crate::events::emit(app, crate::events::TRIGGER, json!({ "name": trigger }));
     let config = settings::config(app);
     let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(_, en)| !en.fixture && en.manifest.wants(trigger)).map(|(k, _)| k.clone()).collect());
-    let keys: Vec<String> = keys.into_iter().filter(|k| draws(app, &config, k)).collect();
+    let keys: Vec<String> = keys.into_iter().filter(|k| renders(app, &config, k)).collect();
     for k in keys {
         render(app, &k, trigger);
     }
@@ -1073,7 +1113,7 @@ pub fn on_shown(app: &AppHandle) {
 /// The config was reloaded: items switched off leave, ones switched on
 /// render, the rest are re-placed (target, position, order, hover).
 pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
-    if prev.bar == next.bar {
+    if prev.bar == next.bar && prev.general.glance == next.general.glance {
         return;
     }
     if SUPPORTED {
@@ -1082,7 +1122,7 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     }
     let keys: Vec<String> = Bar::with(app, |e| e.keys().cloned().collect());
     for key in &keys {
-        let (was, now) = (draws(app, prev, key), draws(app, next, key));
+        let (was, now) = (renders(app, prev, key), renders(app, next, key));
         let settings_moved = || prev.bar.items.get(key).map(|i| &i.settings) != next.bar.items.get(key).map(|i| &i.settings);
         if (!was && now) || (now && settings_moved()) {
             render(app, key, "settings");
@@ -1107,7 +1147,7 @@ pub fn on_states_changed(app: &AppHandle, changed: &[String], all: bool) {
     let conditioned: Vec<String> = if all { conditions(app, &config).into_iter().map(|c| c.key).collect() } else { crate::states::bar_items_reading(app, changed) };
     let triggered: Vec<String> = Bar::with(app, |e| e.iter().filter(|(_, en)| !en.fixture && (changed.iter().any(|n| en.manifest.wants(&format!("state:{n}"))) || (!changed.is_empty() && en.manifest.wants("state:*")))).map(|(k, _)| k.clone()).collect());
     for key in conditioned {
-        let now = draws(app, &config, &key);
+        let now = renders(app, &config, &key);
         let held = Bar::with(app, |e| e.get_mut(&key).map(|en| std::mem::replace(&mut en.held, !now)));
         match (held, now) {
             (None, _) => {}
@@ -1121,7 +1161,7 @@ pub fn on_states_changed(app: &AppHandle, changed: &[String], all: bool) {
         }
     }
     for key in triggered {
-        if draws(app, &config, &key) {
+        if renders(app, &config, &key) {
             render(app, &key, "state");
         }
     }
@@ -1137,7 +1177,7 @@ pub fn on_states_held(app: &AppHandle) {
     let config = settings::config(app);
     let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(_, en)| !en.fixture && en.manifest.wants("state:*")).map(|(k, _)| k.clone()).collect());
     for key in keys {
-        if draws(app, &config, &key) {
+        if renders(app, &config, &key) {
             render(app, &key, "state");
         }
     }
@@ -1188,13 +1228,28 @@ pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, wind
 /// `onOpen` answers an Effect. A `push`, `view`, `show`, `form` or `toast`
 /// in it opens the popover engaged with that level.
 pub async fn open(app: &AppHandle, key: &str, anchor: &str, rect: Option<Rect>) -> Result<Value, String> {
+    opened(app, key, None, anchor, rect).await
+}
+
+/// One of the item's actions opened as a click without a menu is: its
+/// `onAction`'s Effect, a level landing in the popover engaged. A glance
+/// card's line (`BarItem.glance.lines`, glance.rs).
+pub async fn open_action(app: &AppHandle, key: &str, action: &str, anchor: &str) -> Result<Value, String> {
+    opened(app, key, Some(action), anchor, None).await
+}
+
+async fn opened(app: &AppHandle, key: &str, action: Option<&str>, anchor: &str, rect: Option<Rect>) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
     let e = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?;
     let r = if e.fixture || e.native {
-        json!({ "hud": format!("{key}: open") })
+        json!({ "hud": format!("{key}: {}", action.unwrap_or("open")) })
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
-        host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "anchor": anchor, "compact": true, "settings": settings_of(app, key) } })).await?
+        let ctx = json!({ "reason": "open", "anchor": anchor, "compact": true, "settings": settings_of(app, key) });
+        match action {
+            Some(a) => host.request("bar/action", json!({ "extension": ext, "id": id, "action": a, "ctx": ctx })).await?,
+            None => host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": ctx })).await?,
+        }
     };
     let r = effects::apply_from(app, r, popover::WINDOW).await?;
     if effects::stays_open(&r) {
@@ -1513,6 +1568,19 @@ mod tests {
         assert_eq!(map[0].mocks["copied"].title, "Code copied");
         assert_eq!(map[0].mocks["copied"].item.title.as_deref(), Some("123 456"));
         assert!(manifest_bars(&Value::Null).is_empty());
+    }
+
+    #[test]
+    fn a_glance_only_item_and_its_card_lines() {
+        let m = manifest_bars(&json!({ "playing": { "title": "Playing", "strip": false }, "now-playing": { "title": "Now Playing" } }));
+        let by = |id: &str| m.iter().find(|b| b.id == id).unwrap();
+        assert!(!by("playing").strip, "strip: false is glance-only");
+        assert!(by("now-playing").strip, "unsaid is a strip item, as before");
+        assert_eq!(serde_json::to_value(by("now-playing")).unwrap().get("strip"), None, "the default is not written back");
+        let item: BarItem = serde_json::from_value(json!({ "title": "Mr. Blue Sky", "progress": 0.25, "glance": { "lines": [{ "text": "also: Weird Fishes · Spotify", "action": "open:spotify" }, { "text": "+1 more" }] } })).unwrap();
+        let lines = &item.glance.as_ref().unwrap().lines;
+        assert_eq!((lines[0].action.as_deref(), lines[1].action.as_deref()), (Some("open:spotify"), None));
+        assert_eq!(serde_json::to_value(&item).unwrap()["glance"]["lines"][1], json!({ "text": "+1 more" }));
     }
 
     #[test]

@@ -392,6 +392,9 @@ export default {
     expect(await refused({ badge: "x" })).toMatch(/badge must be a number or "dot"/);
     expect(await refused({ badge: "dot", progress: 0.5, color: "amber", refresh: 30 })).toBeUndefined();
     expect(await refused({ progress: 2 })).toMatch(/progress must be 0..1/);
+    expect(await refused({ glance: { lines: [{ text: "also: x", action: "open:x" }, { text: "+1 more" }] } })).toBeUndefined();
+    expect(await refused({ glance: { lines: [{ text: "" }] } })).toMatch(/a glance line has no text/);
+    expect(await refused({ glance: { lines: Array.from({ length: 4 }, () => ({ text: "x" })) } })).toMatch(/more than 3 glance lines/);
     expect(await refused({ color: "chartreuse" })).toMatch(/unknown color/);
     expect(await refused(null)).toMatch(/not an object/);
   });

@@ -889,6 +889,14 @@ export type BarItem = {
   click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
   menu?: BarMenu;
+  /**
+   * What only the item's glance card draws (`general.glance`), never a
+   * strip: `lines` under its text, at most 3, each a way in of its own:
+   * a click runs the line's `action` (`onAction`), its Effect opened the
+   * way a click on an item without a menu opens one. Media's `playing`:
+   * "also: Weird Fishes · Spotify".
+   */
+  glance?: { lines?: { text: string; action?: string }[] };
   /** The facts the item knows, published as `<extension>/<name>` with this render (`docs/design/states.md`): what its manifest `rules` and anyone's expressions read. A JSON scalar each; `null` withdraws one. Not drawn. */
   states?: Record<string, StateValue>;
 };
@@ -1017,7 +1025,7 @@ export type Group = { title?: string; members?: string[]; volume?: string; input
  */
 export type ManifestBarRule = { id: string; when: string; description?: string; hidden?: boolean; urgent?: boolean; color?: string; urgent_color?: string; size?: number; icon_size?: number; text_size?: number; dim?: number; opacity?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; badge_color?: string; badge_style?: "count" | "dot" | "none"; width?: number; font?: "system" | "mono"; max_chars?: number; position?: string };
 
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[]; /** The item's presentation rules, in order (`ManifestBarRule`). */ rules?: ManifestBarRule[]; /** The item's own settings: Settings › Bar shows them on its pane, the file keeps them in `[bar.items."<key>".settings]`, and every render and action gets them resolved as `ctx.settings`. What the extension's palettes read too stays an extension setting. */ settings?: SettingSpec[] };
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** `false`: a glance-only item, its card (`general.glance`) its place: no strip draws it unless the user gives it a `target`, and it renders while a card shows it. Media's `playing`. */ strip?: boolean; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[]; /** The item's presentation rules, in order (`ManifestBarRule`). */ rules?: ManifestBarRule[]; /** The item's own settings: Settings › Bar shows them on its pane, the file keeps them in `[bar.items."<key>".settings]`, and every render and action gets them resolved as `ctx.settings`. What the extension's palettes read too stays an extension setting. */ settings?: SettingSpec[] };
 
 /**
  * Why `render` runs, and what a popover-opening click carried. `compact`:

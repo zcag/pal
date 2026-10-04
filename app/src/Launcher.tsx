@@ -312,9 +312,9 @@ export type LauncherProps = {
   /** A design's fitted panel (Panel `onFit`): the window takes the height (`panel_fit`); absent, the panel sizes itself (the gallery). */
   onPanelFit?: (height: number | null) => void;
   /** The glance strip's cards (`glance_items`): the chosen bar items as they are now, drawn over the empty root where the design shows the strip. */
-  glance?: { key: string; label: string; title?: string; count?: number; tooltip?: string; icon?: unknown; urgent?: boolean }[];
-  /** A glance card's click or ⌥1–⌥4: the item's own click (`glance_open`). */
-  onGlance?: (key: string) => void;
+  glance?: { key: string; label: string; title?: string; count?: number; tooltip?: string; icon?: unknown; urgent?: boolean; progress?: number; lines?: { text: string; action?: string }[] }[];
+  /** A glance card's click or ⌥1–⌥4: the item's own click (`glance_open`); with `line`, that line's action. */
+  onGlance?: (key: string, line?: number) => void;
   /** Sidebar mode: every row wears its number without cmd held, and cmd+N runs row N instead of moving the cursor to it (the number is the pick). */
   ordinals?: boolean;
   mark?: (name: string, t: number) => void;

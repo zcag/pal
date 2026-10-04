@@ -161,8 +161,8 @@ export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "
 /** One named, static state Settings can put through an item's preview strip. It never reaches the live bar. */
 export type ManifestBarMock = { title: string; item: BarItem };
 
-/** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; mocks?: Record<string, ManifestBarMock> };
+/** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). `strip: false` (2026-10-04): a glance-only item, see below. */
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; mocks?: Record<string, ManifestBarMock>; strip?: boolean };
 // Manifest gains: bar?: Record<string, ManifestBar>
 
 /** Why `render` runs, and what a popover-opening click carried. */
@@ -220,6 +220,15 @@ re-renders an extension's items as it relists its palettes.
   Option<Rect> }` with `MenuBar`, `Sketchybar`, `Feed`; removal on quit and
   `enabled = false`. A target draws the strip and reports `Click`, `Enter` and
   `Exit` for a key with the anchor rect; it builds no menus.
+- What renders and what draws are two questions (2026-10-04): `draws` is a
+  strip putting the item up (enabled, a target, its state condition, and
+  not a glance-only item, `strip: false`, unless the file gives it a
+  `target`); `renders` is `draws` or a glance card showing it
+  (`general.glance`), since a card is the item's last render. The render
+  loop, the triggers and a config change follow `renders`; `sync` to the
+  targets follows `draws`. A glance card's line (`BarItem.glance.lines`)
+  runs `bar/action` and opens its Effect as `bar/open`'s would
+  (`bar::open_action`, glance.rs).
 - `bar/popover.rs` owns the peek/engage state (Hover, above): a click opens
   engaged or sends `bar/open`; `Enter` arms `hover_delay`, `Exit` (the item's
   or the popover's own pointer tracking) arms `hover_grace`. Popover picks

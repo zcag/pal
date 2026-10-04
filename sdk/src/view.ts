@@ -209,6 +209,8 @@ export function checkEffect<T>(r: T, where: string): T {
 export const MAX_BAR_TITLE = 64;
 /** Segments on one item: the prs strip has five. */
 export const MAX_BAR_SEGMENTS = 8;
+/** A glance card's lines under its text (`BarItem.glance.lines`): the card is one row of the panel, a few lines tall. */
+export const MAX_GLANCE_LINES = 3;
 /** Nodes in one item's menu, submenus included: a screenful of commands. */
 export const MAX_BAR_MENU_NODES = 64;
 /** Submenus inside submenus: deeper is a palette's job. */
@@ -247,6 +249,15 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
     }
   }
   if (item.click !== undefined && item.click !== "open") throw new Error(`${where}: click must be "open"`);
+  if (item.glance !== undefined) {
+    const lines = item.glance?.lines;
+    if (!item.glance || typeof item.glance !== "object" || (lines !== undefined && !Array.isArray(lines))) throw new Error(`${where}: glance must be { lines }`);
+    if ((lines?.length ?? 0) > MAX_GLANCE_LINES) throw new Error(`${where}: more than ${MAX_GLANCE_LINES} glance lines`);
+    for (const l of lines ?? []) {
+      if (!l || typeof l.text !== "string" || !l.text) throw new Error(`${where}: a glance line has no text`);
+      if (l.action !== undefined && (typeof l.action !== "string" || !l.action)) throw new Error(`${where}: a glance line's action must be an action id`);
+    }
+  }
   if (item.segments !== undefined) {
     if (!Array.isArray(item.segments)) throw new Error(`${where}: segments must be an array`);
     if (item.segments.length > MAX_BAR_SEGMENTS) throw new Error(`${where}: more than ${MAX_BAR_SEGMENTS} segments`);

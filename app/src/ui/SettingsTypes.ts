@@ -472,6 +472,8 @@ export type BarItem = {
   extIcon?: Icon;
   /** The code has a `render` for it; `false` is declared only, never drawn. */
   source: boolean;
+  /** A glance-only item (`ManifestBar.strip: false`): a glance card is its place; the picker names it by its own title ("Playing"). */
+  glanceOnly?: boolean;
   refreshEvery?: number;
   /** Unix seconds of the last render. */
   renderedAt?: number;

@@ -117,7 +117,8 @@ whose code fails to load.
 - `bar.<id>`: a bar item's `title`, `description`, `refresh` schedule,
   `keys`, optional Settings-only `mocks`, its `rules` and its own
   `settings` (below, "Bar items"). The id is the key in the code's `bar`
-  object.
+  object. `"strip": false` makes it a glance-only item (below, "A card
+  of its own").
 - `store.permissions`: what the store page lists the extension as
   needing (`network`, `token`, the tools it runs). The OS permissions
   among them (`accessibility`, `calendars`, `full-disk-access`,
@@ -1157,6 +1158,23 @@ diffs it against the last one:
   answers an Effect. `click: "open"` takes that direct path even when the
   item has a menu (a hover peek still opens the menu); `{ view }`, `{ push }` or `{ show }` in it opens the
   popover on that level.
+
+**A card of its own.** The glance strip (`general.glance`,
+docs/config.md) draws chosen items as cards over the empty root: the
+item's last render, its title or count large, its tooltip's first line
+under it. An `{ image }` icon is drawn as a cover beside the text,
+`progress` runs along the card's foot, and `glance: { lines }` (at most
+3, never drawn on a strip) adds lines under the text, each a way in of
+its own: a click on a line runs its `action` through `onAction`, the
+Effect opened the way a click on an item without a menu opens one (a
+`push` lands in the popover). An item whose manifest says `"strip":
+false` lives only there: no strip draws it unless the user gives it a
+`target` in Settings › Bar, it renders (and polls) while a card shows it
+and not otherwise, and the glance picker names it by its own title.
+Media's `playing` is one: whatever plays, the newest first, a second
+playing one as `{ text: "also: Weird Fishes · Spotify", action:
+"open:spotify" }`, the lead's own view (`{ palette, extension }`) as the
+item's `menu` so the card's click and ⌥N open it.
 
 **The manifest.** `bar.<id>` next to `palettes`, so the settings window
 lists the item without running the code:

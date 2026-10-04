@@ -22,6 +22,7 @@ import type { StoreState } from "../store";
 import type { ExtensionsStore } from "../ui/SettingsStore";
 import Shots from "./shots";
 import BarShot from "./bar-shot";
+import GlanceShot from "./glance-shot";
 import { parseThemeToml } from "./theme-toml";
 import { applyThemeFile, type ThemeFile } from "../theme";
 import type { ThemeFileStatus } from "../ui/SettingsTheme";
@@ -278,6 +279,8 @@ export default function Gallery() {
   if (design) document.documentElement.dataset.design = design;
   const solo = params.get("gallery");
   if (solo?.startsWith("settings")) return <Solo what={solo} />;
+  // `?gallery=glance&state=one|two|three|none&design=ink[&theme=dark]`: the empty root with the glance strip (glance-shot.tsx).
+  if (solo === "glance") return <GlanceShot state={params.get("state") ?? undefined} theme={params.get("theme") === "dark" ? "dark" : "light"} />;
   // `?gallery&shot=<extension>&palette=<key>[&theme=dark]`: one launcher on the wallpaper, for the store screenshots (shots.tsx).
   const shot = params.get("shot");
   if (shot) return <Shots extension={shot} palette={params.get("palette") ?? undefined} theme={params.get("theme") === "dark" ? "dark" : "light"} />;

@@ -14,8 +14,8 @@ import type { Item } from "./ui/types";
 const hide = () => invoke("hide");
 /** The window to a design's fitted panel height (compact.rs `panel_fit`), or the full height back (`null`). */
 const panelFit = (height: number | null) => { invoke("panel_fit", { height }).catch(() => {}); };
-/** A glance card's open: the panel steps aside and the bar item is clicked (glance.rs). */
-const glanceOpen = (key: string) => { invoke("glance_open", { key }).catch(() => {}); };
+/** A glance card's open: the panel steps aside and the bar item is clicked, or with `line` that line's action runs (glance.rs). */
+const glanceOpen = (key: string, line?: number) => { invoke("glance_open", { key, line: line ?? null }).catch(() => {}); };
 type Glance = NonNullable<LauncherProps["glance"]>;
 
 /** A confirm card the core asks for (`pal://confirm`, deeplink.rs); `null` drops the one up. */
