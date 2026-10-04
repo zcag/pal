@@ -81,7 +81,7 @@ export function newMission(level: number, topSpeed: number, held: Mission[], rnd
   const tier = tierOf(level);
   const target = Math.round(t.target(tier, topSpeed) * 10) / 10;
   const scale = 1 + tier * 0.6;
-  return { kind: t.kind, text: t.text(target), target, reward: { cash: Math.round((600 * scale) / 50) * 50, xp: Math.round((150 * scale) / 50) * 50 } };
+  return { kind: t.kind, text: t.text(target), target, reward: { cash: Math.round((400 * scale) / 50) * 50, xp: Math.round((150 * scale) / 50) * 50 } };
 }
 
 /** How far a run took a mission (0..1); 1 is done. */

@@ -154,7 +154,8 @@ Endless, measured:
 | a good player | $436 | $637 | $754 |
 | near misses a minute | 7.5 | 11.5 | 12.7 |
 
-Cars run $2,500 to $56,000; upgrades cost 6% of the car's price, half again a
+Cars run $2,500 to $56,000; upgrades cost 6% of the car's price (at least $800, so a
+first run buys two or three, not a set), half again a
 level. Simulated at 40 minutes a day:
 
 | | regular | good |

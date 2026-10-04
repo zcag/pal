@@ -79,7 +79,7 @@ async function runAll(jobs: Parameters<typeof play>[], threads: number) {
  * ("mode:label" keys scale one mode only). It holds the game's numbers as of the last tuning (2026-10-04); change it to try others. */
 const REC = {
   prices: CARS.map((c) => c.price),
-  upgrade: { frac: 0.06, min: 200, growth: 1.5 },
+  upgrade: { frac: 0.06, min: 800, growth: 1.5 },
   pay: {} as Record<string, number>,
 };
 type Over = typeof REC;
@@ -208,7 +208,11 @@ async function main() {
       for (const [a, b, label] of phases) {
         const gaps: number[] = [], mins: number[] = [];
         for (const x of cs) { let last = { t: 0, run: 0 }; for (const y of x.buys) { if (y.t > a && y.t <= b && y.run > last.run) { gaps.push(y.run - last.run); mins.push(y.t - last.t); } if (y.run > last.run) last = y; } }
-        if (gaps.length) console.log(`  ${label.padEnd(13)} a purchase every ${med(gaps)} runs (p90 ${pct(gaps, 0.9)}), ${hm(med(mins))} (p90 ${hm(pct(mins, 0.9))})`);
+        // and how many land after one run: a run that buys a whole set at once spends the next ones' rewards
+        const at = new Map<string, number>();
+        cs.forEach((x, i) => x.buys.forEach((y) => { if (y.t > a && y.t <= b) at.set(`${i}|${y.run}`, (at.get(`${i}|${y.run}`) ?? 0) + 1); }));
+        const once = [...at.values()];
+        if (gaps.length) console.log(`  ${label.padEnd(13)} a purchase every ${med(gaps)} runs (p90 ${pct(gaps, 0.9)}), ${hm(med(mins))} (p90 ${hm(pct(mins, 0.9))}); at once ${med(once)} (p90 ${pct(once, 0.9)}, most ${Math.max(...once)})`);
       }
       // driver levels: where play time leaves you, and when each unlock lands
       const at = (l: number) => med(cs.map((x) => x.levelAt[l] ?? Infinity));

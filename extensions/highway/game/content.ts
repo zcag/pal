@@ -77,8 +77,9 @@ export const paintSet = (color: string) => PAINT_SETS.find((p) => p.colors.inclu
 
 export type Upgrades = { speed: number; handling: number; brakes: number; nitro: number }; // 0..5 each
 export const UPGRADE_MAX = 5;
-/** What a level of an upgrade costs: 6% of the car's price (at least 200), half again each level; tuned by scripts/economy.ts. */
-export const upgradeCost = (car: PlayerCar, level: number) => Math.round((Math.max(200, car.price * 0.06) * 1.5 ** level) / 50) * 50;
+/** What a level of an upgrade costs: 6% of the car's price, at least 800 as in the original (a first run buys two or three, not
+ *  a whole set), half again each level; tuned by scripts/economy.ts. */
+export const upgradeCost = (car: PlayerCar, level: number) => Math.round((Math.max(800, car.price * 0.06) * 1.5 ** level) / 50) * 50;
 
 const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 
