@@ -27,6 +27,22 @@ repo's layout is flat: `<name>/` at the root, `test/` for its tests,
 `registry-only.txt` there; `bundled.txt` stays in pal, since bundling is an
 app decision.
 
+## READMEs
+
+Each of the three is the front door of its repo, good and descriptive:
+
+- **pal**: what pal is, then a clear section pointing to the two other
+  repos (what lives where, how an extension or a game reaches users through
+  the registry, where to send a change).
+- **pal-extensions**: what is there (bundled ones marked), how to run and
+  test one against a pal checkout, how a change ships (edge, stable), how
+  to write a new one (links to pal's docs).
+- **pal-games**: the games with a line each and their play.cagdas.io link,
+  said plainly that they are almost entirely written by Claude, and that
+  most are reworks or clones of classic games (Snake II, Minesweeper,
+  Solitaire, Super Hexagon's Vortex, ...); then how to run, test and ship
+  one, accounts, sync rules and leaderboards.
+
 ## How a bundled extension reaches the app
 
 Today `app/scripts/build-extensions.sh` copies `extensions/<name>` for each
