@@ -13,9 +13,10 @@ const SRC = readFileSync(resolve(__dirname, "../../src-tauri/surface-kit/surface
 
 function load(search: string, framed = true) {
   const listeners: ((e: { source: unknown; data: unknown }) => void)[] = [];
+  const keys: ((e: { key: string; target: unknown; preventDefault: () => void }) => void)[] = [];
   const up: Record<string, unknown>[] = [];
   const parent = { postMessage: (m: Record<string, unknown>) => { up.push(m); } };
-  const win: Record<string, unknown> = { addEventListener: (t: string, f: (e: { source: unknown; data: unknown }) => void) => { if (t === "message") listeners.push(f); } };
+  const win: Record<string, unknown> = { addEventListener: (t: string, f: (e: { source: unknown; data: unknown }) => void) => { if (t === "message") listeners.push(f); if (t === "keydown") keys.push(f as never); } };
   win.parent = framed ? parent : win;
   const media = () => ({ matches: false, addEventListener: () => {} });
   const document = { head: { prepend: () => {} }, createElement: () => ({}), documentElement: { dataset: {}, style: { setProperty: () => {} } }, addEventListener: () => {}, hidden: false };
@@ -24,7 +25,8 @@ function load(search: string, framed = true) {
   new Function("window", "location", "matchMedia", "document", "localStorage", SRC)(win, { search, pathname: "/game/" }, media, document, localStorage);
   const down = (data: unknown, source: unknown = parent) => listeners.forEach((f) => f({ source, data }));
   const calls = () => up.filter((m) => m.pal === "call");
-  return { pal: win.pal as SurfaceKit, up, calls, down };
+  const press = (key: string, target: unknown = {}) => { let prevented = false; keys.forEach((f) => f({ key, target, preventDefault: () => { prevented = true; } })); return prevented; };
+  return { pal: win.pal as SurfaceKit, up, calls, down, press };
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -78,6 +80,10 @@ describe("surface kit", () => {
     off();
     k.down({ pal: "storage", key: "best", value: 41 });
     expect(heard).toEqual([["best", 40]]);
+    // A key the game left alone does not scroll the page around the frame, but types into a field.
+    expect(k.press("ArrowDown")).toBe(true);
+    expect(k.press(" ", { tagName: "INPUT" })).toBe(false);
+    expect(k.press("a")).toBe(false);
   });
 
   it("inside pal: the account calls go up as calls, answered by reply; a storage post reaches onChange", async () => {

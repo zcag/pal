@@ -116,6 +116,12 @@
         if (m.pal === "result") settle(m);
         else if (m.pal === "storage" && typeof m.key === "string") fire("storage", { key: m.key, value: m.value ?? null });
       });
+      // A key the game left alone would scroll the play page around the frame.
+      const scrolls = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "PageUp", "PageDown", "Home", "End"]);
+      window.addEventListener("keydown", (e) => {
+        const t = e.target;
+        if (scrolls.has(e.key) && !(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || "")))) e.preventDefault();
+      });
     }
     document.addEventListener("visibilitychange", () => fire(document.hidden ? "hidden" : "shown"));
     window.pal = pal;
