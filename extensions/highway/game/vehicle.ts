@@ -158,13 +158,19 @@ export class Vehicle {
     // the tyre model below takes over for a moment, so a hit still sends the car sliding.
     if (this.knocked > 0) this.knocked -= dt;
     if (this.knocked <= 0 && speed > 3) {
-      const ag = (s.agility ?? 1.2) / 1.2;
-      const ramp = dt / Math.max(0.01, FEEL.ramp);
+      // handling, 0 (a city car, stock) to 1 (the best car, fully upgraded): how fast it crosses, how hard
+      // it may change direction, and how quickly the wheel answers
+      const h = Math.max(0, Math.min(1, ((s.agility ?? 1.2) - 0.95) / 0.75));
+      const ramp = dt / Math.max(0.01, FEEL.ramp * (1.2 - 0.5 * h));
+      // flicking the other way goes straight through the middle, as hands on a wheel would
+      if (input.steer * this.steer < 0) this.steer = 0;
       this.steer += Math.max(-ramp, Math.min(ramp, input.steer - this.steer));
       const lat = speed * Math.sin(this.yaw) + this.v * Math.cos(this.yaw); // sideways speed on the road
-      const across = (5.5 + (speed / FEEL.pace) * 0.07) * ag * FEEL.across * FEEL.pace;
-      const aMax = 34 * ag;
-      const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, this.steer * across - lat));
+      const across = (5.5 + (speed / FEEL.pace) * 0.07) * (0.85 + 0.35 * h) * FEEL.across * FEEL.pace;
+      // checking a slide the other way is twice as quick as building one
+      const want = this.steer * across, reverse = (want - lat) * lat < 0;
+      const aMax = (26 + 36 * h) * (reverse ? 1.9 : 1);
+      const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, want - lat));
       const du = Flong / s.mass;
       const crawl = (FEEL.crawl / 3.6) * FEEL.pace;
       this.u = Math.max(Math.min(this.u, crawl), this.u + du * dt); // the brakes slow you to a crawl, never a stop
