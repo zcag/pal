@@ -227,14 +227,16 @@ export class Run {
       const closing = Math.abs((me.vx - them.vx) * c.nx + (me.vz - them.vz) * c.nz) * 3.6;
       const j = resolve(me, them, c);
       v.x = me.x; v.z = me.z; v.r = me.r;
-      v.u = Math.max(0, me.vx * sy + me.vz * cy); v.v = me.vx * cy - me.vz * sy;
-      v.knocked = 0.9; // the tyres, not the driver, until it settles
+      v.u = Math.max(0, me.vx * sy + me.vz * cy);
+      const fatal = closing / FEEL.pace >= FATAL_KMH || n.oncoming;
+      if (fatal) { v.v = me.vx * cy - me.vz * sy; v.knocked = 2; } // the run is over: the tyres slide it to a stop
+      else { v.v = THREE.MathUtils.clamp(me.vx * cy - me.vz * sy, -4, 4); v.r = 0; } // a shove sideways your steering soaks up
       n.x = them.x; n.z = them.z;
       n.v = Math.abs(them.vz);
       n.hit = { vx: them.vx, yaw: nyaw, r: them.r };
       n.signal = 0;
       const side = n.x > v.x ? -1 : 1;
-      if (!this.over && (closing / FEEL.pace >= FATAL_KMH || n.oncoming)) {
+      if (!this.over && fatal) {
         this.over = true;
         this.events.crash({ you: Math.round(kmh), them: Math.round((n.v * 3.6) / FEEL.pace), kind: n.kind, oncoming: n.oncoming });
       } else this.events.bump(j, side);

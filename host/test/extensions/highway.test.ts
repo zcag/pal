@@ -7,15 +7,18 @@ import { fresh, buyCar, buyUpgrade, load } from "../../../extensions/highway/gam
 
 const NO_UP = { speed: 0, handling: 0, brakes: 0 };
 
-test("every car reaches about its top speed and stops from 100 km/h in under 45 m", () => {
+test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
   for (const car of [CARS[0], CARS[CARS.length - 1]]) {
     const v = new Vehicle(spec(car, NO_UP, 2.6));
     for (let i = 0; i < 120 * 70; i++) v.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
     expect(Math.abs(v.kmh / FEEL.pace - car.top) / car.top).toBeLessThan(0.08);
     const b = new Vehicle(spec(car, NO_UP, 2.6));
     b.launch((100 / 3.6) * FEEL.pace);
-    while (b.u > 0.1) b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
-    expect(b.z).toBeLessThan(45 * FEEL.pace * FEEL.pace);
+    let t = 0;
+    while (b.kmh / FEEL.pace > FEEL.crawl + 1 && t < 5) { b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 }); t += 1 / 120; }
+    expect(t).toBeLessThan(1.5);
+    for (let i = 0; i < 240; i++) b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
+    expect(b.kmh / FEEL.pace).toBeGreaterThan(FEEL.crawl - 1); // the brakes never stop you on the highway
   }
 });
 

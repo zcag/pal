@@ -145,7 +145,7 @@ export class Vehicle {
     const rearBudget = Math.sqrt(Math.max(0, Math.pow(s.grip * Nr, 2) - Fyr * Fyr));
     Fx = Math.min(Fx, rearBudget);
     // brakes, held at what the tyres allow (ABS)
-    const brakeF = this.braking * Math.min(s.brake * W, s.grip * (Nf + Nr) * 0.98);
+    const brakeF = this.braking * s.brake * W * FEEL.brake * FEEL.pace;
     // engine braking off the throttle, drag, rolling
     const engineBrake = (1 - this.throttle) * (this.rpm / s.redline) * ratio() * 22 / s.wheelRadius;
     const resist = 0.5 * RHO * s.drag * speed * speed + CRR * W + engineBrake;
@@ -166,7 +166,8 @@ export class Vehicle {
       const aMax = 34 * ag;
       const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, this.steer * across - lat));
       const du = Flong / s.mass;
-      this.u = Math.max(0, this.u + du * dt);
+      const crawl = (FEEL.crawl / 3.6) * FEEL.pace;
+      this.u = Math.max(Math.min(this.u, crawl), this.u + du * dt); // the brakes slow you to a crawl, never a stop
       const yaw = Math.asin(Math.max(-0.6, Math.min(0.6, next / Math.max(this.u, 1))));
       this.r = (yaw - this.yaw) / dt;
       this.yaw = yaw;
