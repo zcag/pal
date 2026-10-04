@@ -1,6 +1,8 @@
 // Highway's page: the garage (your car driving the highway behind a sign you
 // set it up on), the run, the pause and the end of a run. The extension's
-// storage keeps the save; the panel hiding pauses the run.
+// storage keeps the save (synced: a merged one sync brings in replaces the
+// page's); every finished run goes to its mode's leaderboard; the panel
+// hiding pauses the run.
 import * as THREE from "./vendor/three.js";
 import type { SurfaceKit } from "@zcag/pal";
 import { Renderer } from "./render.ts";
@@ -11,7 +13,7 @@ import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { ONE_WAY, TWO_WAY, laneX } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, upgradeCost, stats, paintSet, classOf, type Upgrades } from "../game/content.ts";
-import { load, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
+import { load, stored, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
 import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
 import type { Miss } from "../game/score.ts";
 import type { End, Packed } from "../game/drive.ts";
@@ -36,7 +38,10 @@ let scene: Scene | null = null;
 let trial = false; // ?test: everything open, nothing saved
 /** The saved view's place in VIEWS; the first if it is gone. */
 const viewOf = (s: Save) => Math.max(0, VIEWS.findIndex((v) => v.name === s.settings.view));
-const persist = () => { if (!scene && !trial) pal.storage.set("save", save).catch((e: unknown) => console.error("highway: save", e)); };
+const persist = () => { if (!scene && !trial) pal.storage.set("save", stored(save)).catch((e: unknown) => console.error("highway: save", e)); };
+/** Whether the player is signed in to a pal account, asked again on every show; until known, no offer to sign in. */
+let signedIn = true;
+const account = () => pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
 const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
@@ -367,6 +372,7 @@ function results() {
   const s = run.score;
   const res = finish(save, s, save.mode, save.location, today());
   persist();
+  post(Math.round(s.points), res.record);
   const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
   const why = ended === "time" ? "Time's up" : ended === "slow" ? "Too slow for too long" : crashInfo
     ? crashInfo.oncoming ? `Head-on with ${article(what)} ${what} at ${Math.round(kmh(crashInfo.you))} ${unit()}` : `Into ${article(what)} ${what}: you at ${Math.round(kmh(crashInfo.you))}, it at ${Math.round(kmh(crashInfo.them))} ${unit()}`
@@ -385,6 +391,17 @@ function results() {
     <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
   tally(res);
 }
+
+/** The run to its mode's board; once it answers, where it stands under the points (and, signed out after a best, the offer to keep it). */
+function post(points: number, record: boolean) {
+  if (scene || trial || points <= 0) return;
+  pal.score(save.mode, points).then((r) => {
+    if (state !== "results" || !r.rank || !r.total) return;
+    const keep = !signedIn && record ? ` · <a class="signin">Sign in to keep your scores</a>` : "";
+    document.querySelector(".result .headline")?.insertAdjacentHTML("beforeend", `<span class="standing">#${r.rank.toLocaleString("en-US")} of ${r.total.toLocaleString("en-US")}${keep}</span>`);
+  }).catch((e: unknown) => console.error("highway: score", e));
+}
+document.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
 
 /** Count the run's pay up line by line, then the XP bar fills, a level at a time. */
 function tally(res: Result) {
@@ -628,7 +645,16 @@ async function carryOn(k: Kept) {
   hint("");
   pause();
 }
-pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.now(); });
+pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.now(); account(); });
+// A save sync merged with another machine's: take it, so the next change writes onto it rather than over it.
+pal.storage.onChange((k, v) => {
+  if (k !== "save" || scene || trial) return;
+  const vol = save.settings.sound;
+  save = load(v);
+  save.settings.sound = vol; // the volume is this machine's setting (pal's Volume)
+  fillMissions(save);
+  if (state === "garage") drawGarage();
+});
 pal.onSettings((s: Record<string, unknown>) => { if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); } });
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
@@ -661,6 +687,7 @@ async function stage(sc: Scene) {
   pal.ready(); // the loading sign is ours to show: reveal the page at once
   scene = ((await pal.storage.get("scene").catch(() => null)) as Scene | null) ?? null;
   save = load(await pal.storage.get("save").catch(() => null));
+  account();
   let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);
   if (kept && save.owned[kept.car] && modes(save).some((m) => m.id === kept!.mode) && places(save).some((l) => l.id === kept!.location)) {
     save.car = kept.car; save.mode = kept.mode; save.location = kept.location;

@@ -1,11 +1,13 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { Vehicle } from "../../../extensions/highway/game/vehicle.ts";
 import { Director } from "../../../extensions/highway/game/director.ts";
 import { Score } from "../../../extensions/highway/game/score.ts";
-import { CARS, FEEL, spec } from "../../../extensions/highway/game/content.ts";
+import { CARS, FEEL, MODES, spec } from "../../../extensions/highway/game/content.ts";
 import { Drive } from "../../../extensions/highway/game/drive.ts";
 import { ONE_WAY } from "../../../extensions/highway/game/layout.ts";
-import { fresh, buyCar, buyUpgrade, load } from "../../../extensions/highway/game/meta.ts";
+import { fresh, buyCar, buyUpgrade, load, stored, xpTotal, type Save } from "../../../extensions/highway/game/meta.ts";
+import { gainXp, xpFor } from "../../../extensions/highway/game/progress.ts";
+import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 const NO_UP = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
 
@@ -65,9 +67,64 @@ test("buying needs the cash, and a save survives a round trip", () => {
   s.cash = CARS[1].price + 5000;
   expect(buyCar(s, CARS[1])).toBe(true);
   expect(buyUpgrade(s, CARS[1], "speed")).toBe(true);
-  const back = load(JSON.parse(JSON.stringify(s)));
+  const back = load(JSON.parse(JSON.stringify(stored(s))));
   expect(back.owned[CARS[1].id].upgrades.speed).toBe(1);
   expect(back.car).toBe(CARS[1].id);
+});
+
+describe("accounts", () => {
+  const m = manifestOf("highway");
+  const rule = m.sync.save as { fields: Record<string, { fields: Record<string, unknown> }> };
+
+  test("every stored key has a rule (a kept run and a staged scene stay on this machine), every car and mode merges field by field", () => {
+    expect(problems(m)).toEqual([]);
+    expect(Object.keys(m.sync).sort()).toEqual(storedKeys("highway"));
+    expect([m.sync.run, m.sync.scene]).toEqual(["local", "local"]);
+    expect(Object.keys(rule.fields.owned.fields)).toEqual(CARS.map((c) => c.id));
+    expect(Object.keys(rule.fields.best.fields)).toEqual(MODES.map((x) => x.id));
+    expect(Object.keys(rule.fields).sort()).toEqual(Object.keys(stored(fresh())).sort());
+  });
+
+  test("each mode has its board, the one a finished run posts to", () => {
+    for (const x of MODES) expect(declared(m, x.id), x.id).toMatchObject({ title: x.name, order: "desc", format: "points" });
+  });
+
+  test("the level is stored as every XP earned, and a save from before reads it back from its level", () => {
+    const s = fresh();
+    Object.assign(s, gainXp(1, 0, xpFor(1) + xpFor(2) + 120));
+    expect([s.level, s.xp]).toEqual([3, 120]);
+    expect(stored(s).xpTotal).toBe(xpTotal(3, 120));
+    expect(load({ ...stored(s), level: 1, xp: 0 })).toMatchObject({ level: 3, xp: 120 });
+    expect(load({ v: 2, level: 7, xp: 40 })).toMatchObject({ level: 7, xp: 40 });
+  });
+
+  test("two machines that both played since they synced keep the cash, XP, cars, upgrades and records of both", () => {
+    const base = fresh();
+    base.cash = 10000;
+    Object.assign(base, gainXp(1, 0, 500));
+    const synced = JSON.parse(JSON.stringify(stored(base))) as Save;
+    const a = load(synced), b = load(synced);
+    // a buys a car and upgrades it, earns XP, sets a record
+    buyCar(a, CARS[1]); buyUpgrade(a, CARS[1], "speed");
+    Object.assign(a, gainXp(a.level, a.xp, 300));
+    a.best.endless = { score: 40000, distance: 9000, combo: 5, topSpeed: 230 };
+    a.totals.runs += 3;
+    // b earns cash, upgrades the first car, does better on Two-Way
+    b.cash += 4000;
+    buyUpgrade(b, CARS[0], "brakes");
+    Object.assign(b, gainXp(b.level, b.xp, 2000));
+    b.best.twoway = { score: 52000, distance: 7000, combo: 8, topSpeed: 210 };
+    b.totals.runs += 2;
+    const merged = load(merge(m.sync.save, stored(b), merge(m.sync.save, stored(a), synced, synced), synced));
+    // what each spent and earned since: the base, less a's car and upgrade, plus b's earnings less its upgrade
+    expect(merged.cash).toBe(10000 + (a.cash - 10000) + (b.cash - 10000));
+    expect(merged.cash).toBeLessThan(10000);
+    expect(merged.owned[CARS[1].id].upgrades.speed).toBe(1);
+    expect(merged.owned[CARS[0].id].upgrades.brakes).toBe(1);
+    expect(xpTotal(merged.level, merged.xp)).toBe(500 + 300 + 2000);
+    expect(merged.best).toMatchObject({ endless: { score: 40000 }, twoway: { score: 52000 } });
+    expect(merged.totals.runs).toBe(5);
+  });
 });
 
 test("Speed Trap ends a run held under its floor; Time Attack's clock runs down", () => {

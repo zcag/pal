@@ -18,6 +18,10 @@ as a view level whose body is the extension's own page (`surface/`, a
 - **Modes**: Endless (four lanes your way) and Two-Way (the oncoming side
   pays three times).
 - C changes the view (chase, far, bumper), P pauses, M mutes.
+- **Leaderboards**: one per mode, every finished run's points. Signed in to
+  a pal account, the save syncs: cash, XP (stored as every XP earned, so two
+  machines add up) and totals by `sum`, records and upgrades by `max`, paints
+  by `union`; a kept run stays on its machine.
 
 ## How it is built
 

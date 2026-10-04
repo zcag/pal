@@ -26,6 +26,352 @@
       "default": 80
     }
   ],
+  "sync": {
+    "save": {
+      "fields": {
+        "v": "max",
+        "cash": "sum",
+        "xpTotal": "sum",
+        "level": "max",
+        "xp": "latest",
+        "car": "latest",
+        "owned": {
+          "fields": {
+            "compact-07": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "kiri-10": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "milano-95": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "tozzo-98": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "sigil-07": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "tiara-gt-83": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "asti-stradale-89": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "thunderbolt-96": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "jdm-sport-99": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "exterminator-00": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "phoenix-455-71": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "stinger-96": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "hazer-turbo-81": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "libeccio-v6-91": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "roadster-00": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "cheetah-84": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            },
+            "saba-v12-95": {
+              "fields": {
+                "upgrades": {
+                  "fields": {
+                    "speed": "max",
+                    "handling": "max",
+                    "brakes": "max",
+                    "nitro": "max"
+                  }
+                },
+                "paint": "latest",
+                "paints": "union"
+              }
+            }
+          }
+        },
+        "location": "latest",
+        "mode": "latest",
+        "missions": "latest",
+        "day": "latest",
+        "best": {
+          "fields": {
+            "endless": {
+              "fields": {
+                "score": "max",
+                "distance": "max",
+                "combo": "max",
+                "topSpeed": "max"
+              }
+            },
+            "twoway": {
+              "fields": {
+                "score": "max",
+                "distance": "max",
+                "combo": "max",
+                "topSpeed": "max"
+              }
+            },
+            "time": {
+              "fields": {
+                "score": "max",
+                "distance": "max",
+                "combo": "max",
+                "topSpeed": "max"
+              }
+            },
+            "trap": {
+              "fields": {
+                "score": "max",
+                "distance": "max",
+                "combo": "max",
+                "topSpeed": "max"
+              }
+            }
+          }
+        },
+        "totals": {
+          "fields": {
+            "runs": "sum",
+            "distance": "sum",
+            "misses": "sum",
+            "cash": "sum"
+          }
+        },
+        "settings": {
+          "fields": {
+            "view": "latest",
+            "music": "latest",
+            "sound": "latest",
+            "units": "latest"
+          }
+        }
+      }
+    },
+    "run": "local",
+    "scene": "local"
+  },
+  "leaderboards": [
+    {
+      "id": "endless",
+      "title": "Endless",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 100000000
+    },
+    {
+      "id": "twoway",
+      "title": "Two-Way",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 100000000
+    },
+    {
+      "id": "time",
+      "title": "Time Attack",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 100000000
+    },
+    {
+      "id": "trap",
+      "title": "Speed Trap",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 100000000
+    }
+  ],
   "store": {
     "tagline": "Weave through highway traffic at speed",
     "category": "fun",
@@ -72,7 +418,8 @@
       "Four modes: Endless, Two-Way (the oncoming side pays three times), Time Attack against the clock, and Speed Trap above a rising speed",
       "Driver levels from 1 to 40 that open modes, places and paint collections, and three missions at a time that grow with you",
       "Seventeen cars in five classes, City to Super, each quicker and sharper than the last with its own engine note; engine, handling, brake and nitro upgrades, and the garage shows what each one adds before you pay",
-      "Five places under photographed skies, from a cloudy countryside to a night run with headlights; close pal mid-run and it waits where you left it"
+      "Five places under photographed skies, from a cloudy countryside to a night run with headlights; close pal mid-run and it waits where you left it",
+      "A leaderboard for each mode; signed in, your cash, cars, level and records follow you to your other machines and play.cagdas.io"
     ],
     "screenshots": [
       {

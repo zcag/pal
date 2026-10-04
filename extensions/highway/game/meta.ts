@@ -1,6 +1,9 @@
 // What outlives a run: cash, the garage, the driver's level and missions,
 // records. Stored whole in the extension's storage under "save" after every
-// change. `finish` turns a run into everything the end of a run counts up.
+// change (`stored`), and synced to the player's account field by field
+// (pal.json `sync`): cash, XP and totals `sum`, records and upgrades `max`,
+// paints `union`. `finish` turns a run into everything the end of a run
+// counts up.
 import { CARS, LOCATIONS, MODES, PAINT_SETS, UPGRADE_MAX, paintSet, upgradeCost, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { MAX_LEVEL, gainXp, levelCash, newMission, progressOf, statsOf, unlocked, xpFor, xpOfPoints, type Mission, type Unlock } from "./progress.ts";
 import type { PayLine, Score } from "./score.ts";
@@ -39,16 +42,26 @@ export function fresh(): Save {
   };
 }
 
+/** Every XP earned, from a level and the XP toward the next. */
+export const xpTotal = (level: number, xp: number) => { let t = xp; for (let l = 1; l < level; l++) t += xpFor(l); return t; };
+/**
+ * The save as it is stored: with `xpTotal`, which syncs by `sum` so the XP
+ * two machines earned adds up (a level and its XP could not merge); `load`
+ * reads the level back from it.
+ */
+export const stored = (s: Save) => ({ ...s, xpTotal: xpTotal(s.level, s.xp) });
+
 /** A stored save, or a fresh one; anything unknown in it is dropped, an older save is carried over. */
 export function load(raw: unknown): Save {
   const s = fresh();
   if (!raw || typeof raw !== "object") return s;
-  const r = raw as Partial<Save> & { locations?: string[] };
+  const r = raw as Partial<Save> & { locations?: string[]; xpTotal?: number };
   if (typeof r.cash === "number") s.cash = Math.max(0, Math.floor(r.cash));
   if (r.owned) for (const [id, o] of Object.entries(r.owned)) if (CARS.some((c) => c.id === id)) s.owned[id] = { ...o, upgrades: { ...NO_UP, ...o.upgrades } };
   if (r.car && s.owned[r.car]) s.car = r.car;
   if (typeof r.level === "number") s.level = Math.max(1, Math.min(MAX_LEVEL, Math.floor(r.level)));
   if (typeof r.xp === "number") s.xp = Math.max(0, r.xp);
+  if (typeof r.xpTotal === "number") ({ level: s.level, xp: s.xp } = gainXp(1, 0, Math.max(0, r.xpTotal)));
   if (Array.isArray(r.missions)) s.missions = r.missions.slice(0, 3);
   if (typeof r.day === "string") s.day = r.day;
   if (r.location && places(s).some((l) => l.id === r.location)) s.location = r.location;
