@@ -6,9 +6,10 @@ import { parseArgs } from "node:util";
 import { buildAll, promote, writeIndex, writeStatements } from "../pack/pack.ts";
 import { treeHash } from "../pack/treehash.ts";
 
-const USAGE = `pal-pack build <dir>... [--out dist] [--cwd <root>] [--seq N] [--commit SHA] [--screenshots-base URL] [--dir-only]
+const USAGE = `pal-pack build <dir>... [--out dist] [--cwd <root>] [--prefix P] [--seq N] [--commit SHA] [--screenshots-base URL] [--dir-only]
     each extension directory into <out>/<name>/, <out>/<name>.tar.gz and <out>/<name>.entry.json;
-    --dir-only writes the directory alone, with .pal-build.json in it (the bundled form)
+    --dir-only writes the directory alone, with .pal-build.json in it (the bundled form);
+    --prefix builds a copy staged at P/<name>, so the output's source paths read P/<name>/...
 pal-pack statements <dist>
     <dist>/<name>.statement per entry, for minisign -S -m
 pal-pack index <dist> --name <registry> --base <url> --out <dir> [--merge index.json] [--yank name@hash]... [--keep a,b] [--key KEY] [--next-key KEY]
@@ -26,7 +27,7 @@ async function main(argv: string[]) {
     args: rest,
     allowPositionals: true,
     options: {
-      out: { type: "string" }, cwd: { type: "string" }, seq: { type: "string" }, commit: { type: "string" },
+      out: { type: "string" }, cwd: { type: "string" }, prefix: { type: "string" }, seq: { type: "string" }, commit: { type: "string" },
       "screenshots-base": { type: "string" }, "dir-only": { type: "boolean" },
       name: { type: "string" }, base: { type: "string" }, merge: { type: "string" }, yank: { type: "string", multiple: true },
       keep: { type: "string" }, key: { type: "string" }, "next-key": { type: "string" },
@@ -44,7 +45,7 @@ async function main(argv: string[]) {
       if (!dirs.length) throw new Error(`build: no extension directory given\n\n${USAGE}`);
       const seq = v.seq === undefined ? undefined : Number(v.seq);
       if (seq !== undefined && !(Number.isInteger(seq) && seq > 0)) throw new Error(`build: --seq ${v.seq} is not a positive integer`);
-      await buildAll(dirs, { out: v.out ?? "dist", cwd: v.cwd, seq, commit: v.commit, screenshotsBase: v["screenshots-base"], dirOnly: v["dir-only"] }, (e) =>
+      await buildAll(dirs, { out: v.out ?? "dist", cwd: v.cwd, prefix: v.prefix, seq, commit: v.commit, screenshotsBase: v["screenshots-base"], dirOnly: v["dir-only"] }, (e) =>
         console.log(`${e.name}\t${e.build.hash}\t${e.build.seq}\t${e.build.protocol}${v["dir-only"] ? "" : `\t${e.build.size}`}`),
       );
       return;

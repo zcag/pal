@@ -125,25 +125,24 @@ with the updater artifacts off:
 The extensions live in `zcag/pal-extensions` and the games in
 `zcag/pal-games`; their packages and the indexes are published by this
 repo's `.github/workflows/extensions.yml` to pal.cagdas.io, the only
-holder of the signing key (formats, URLs and the hand-over:
+holder of the signing key (formats, URLs and how it polls the repos:
 [registry.md](registry.md)). Two indexes: **edge**, what the extension
 repos' main builds, and **stable**, what every pal follows unless a
 registry is set to `channel = "edge"`.
 
-- **Edge, on every green push to an extension repo's main.** That repo's
-  `publish` job builds every extension with `pal-pack` (from the pal
-  checkout its tests ran against), keeps those whose hash is not already
-  edge's newest build, uploads them with `PAL_UPLOAD_TOKEN` and sends a
-  `publish-builds` repository_dispatch here with `PAL_DISPATCH_TOKEN`
-  (`.github/actions/publish-extensions`). `extensions.yml` checks the repo
-  is one of the two and both commits are on their main, builds each
-  extension again from that commit with that pal, and signs and publishes
-  to edge only when the hash is the dispatched one and the uploaded
-  tarball is those bytes. A push that changed no extension dispatches
-  nothing. A build yanked in edge is never published again, even when the
-  tree comes back to it. (A push to pal's own main builds pal's
-  `extensions/` the same way while it has one; it has none since the
-  split.)
+- **Edge, within about 15 minutes of a green push to an extension repo's
+  main.** `extensions.yml` runs every 15 minutes (`schedule`; run it with
+  `publish` for at once). It reads each repo's main head and its `ci` run
+  there; a green head it has not taken yet is checked out, every
+  extension in it built with `pal-pack` (`--prefix extensions`, so an
+  unchanged extension keeps its hash), and those whose hash is not edge's
+  newest build are signed and published to edge. A head that is pending or
+  red waits for a later run, and only a main's head is ever built. A taken
+  head is remembered as a cache entry (`polled-<repo>-<commit>`), so a run
+  with nothing new is a few API calls and ends green. A build yanked in
+  edge is never published again, even when the tree comes back to it.
+  GitHub turns a schedule off after 60 days without activity in this repo;
+  turn it back on in the Actions tab.
 - **Stable, on `make ext-release [NAMES="a b"]`.** It dispatches the
   workflow with `promote` (every extension, or those names) and watches the
   run: edge's newest builds of those go to stable. Like an app release, a
@@ -187,20 +186,9 @@ and on a tag when a release calls it):
 | `PAL_REGISTRY_PUBKEYS` | variable | the public keys the live indexes may be signed with, space separated: the current key first, then an old one during a rotation |
 | `PAL_REGISTRY_NEXT_KEY` | variable | empty, or the public key the registry is moving to (announced in both indexes as `next_key`) |
 
-**The extension repos' tokens.** Each of `zcag/pal-extensions` and
-`zcag/pal-games` has an environment `publish` (Settings › Environments,
-deployment branches limited to `main`), which its `publish` job names:
-
-| name | kind | what |
-| --- | --- | --- |
-| `PAL_UPLOAD_TOKEN` | secret | a bearer token pal.cagdas.io accepts for `PUT /api/registry/pkg/*` only, never an index: a leaked one can put up packages no index lists |
-| `PAL_DISPATCH_TOKEN` | secret | a GitHub fine-grained token, resource owner `zcag`, repository access only `zcag/pal`, permission Contents: read and write (what `repository_dispatch` requires) |
-
-Contents: write on pal is more than a dispatch needs, and GitHub has
-nothing narrower for it: keep `main` and the `v*` tags of `zcag/pal`
-protected by a ruleset, so the token cannot push where a build is made
-from. What it can do to the registry is bounded by `extensions.yml`: only
-the two repos' builds, from commits on their main, rebuilt here.
+The extension repos (`zcag/pal-extensions`, `zcag/pal-games`) hold no
+secret: their CI only tests, and this repo's `extensions.yml` reads them
+(public) with its own `GITHUB_TOKEN`.
 
 The extension key is not the updater key and never reaches `release.yml`:
 the call passes no secrets, and only the jobs that name the `registry`

@@ -506,11 +506,11 @@ pal is three repositories:
 | [zcag/pal-games](https://github.com/zcag/pal-games) | the 13 games: Snake II, Solitaire, Minesweeper, Sudoku, Night Parade and the rest |
 
 **How an extension or a game reaches users.** A push to its repo's main
-that passes the tests there builds every extension whose package
-changed, uploads it to pal.cagdas.io and hands it to this repo's
-`extensions.yml`, the only holder of the signing key. That run builds it
-again from the same commit, checks it is the same package, signs it and
-adds it to the **edge** index. `make ext-release` here promotes edge to
+whose tests pass there is picked up within about 15 minutes by this
+repo's `extensions.yml` (or at once, run with `publish`), the only holder
+of the signing key: it builds every extension at that commit, and signs
+and adds the ones whose package changed to the **edge** index. The
+extension repos only test and hold no secret. `make ext-release` here promotes edge to
 **stable**, the index every pal follows, and every app release promotes
 everything on edge and bundles stable's builds of the names in
 `app/bundled.txt`. Installed extensions, bundled ones included, update

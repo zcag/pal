@@ -6,9 +6,13 @@ built 2026-10-05 (the two repos made with
 `git filter-repo`, waiting to be pushed); it came after the accounts work
 (`accounts.md`), which touches every game. Where the build differs from
 the plan below: each repo's screenshot fixtures are in `test/shots/`;
-`bundled.txt` is `app/bundled.txt`; the signer builds every dispatched
-extension again from the repo's commit, with the pal it names, and takes
-it only when the hash and the uploaded tarball agree.
+`bundled.txt` is `app/bundled.txt`; the signer builds every
+extension itself; and publishing is a poll, not a hand-over: pal's
+`extensions.yml` reads each repo's main every 15 minutes, builds a green
+head it has not taken (staged at `extensions/<name>`, so an unchanged
+extension keeps its hash) and publishes the changed builds. The extension
+repos hold no token, upload nothing and dispatch nothing; steps 1 to 3 of
+"Publishing: one signer" below are what was planned before that.
 
 ## Why
 

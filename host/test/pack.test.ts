@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { addBuild, build, finish, listingOf, promote, readIndex, retain, statement, writeIndex, writeStatements, type Entry, type Index, type IndexBuild } from "../../sdk/pack/pack.ts";
 import { tar } from "../../sdk/pack/tar.ts";
@@ -146,15 +146,16 @@ describe("build", () => {
     expect(run(dir, "build", "broken", "--out", join(dir, "bad"), "--cwd", dir, "--seq", "7").stderr.toString()).toContain(`broken: pal.json names it "other"`);
   });
 
-  // Weather where the extension repos have it (pal-extensions, not pal-games): the path in bun's comments is the one from its repo's root.
-  test.skipIf(!extensionsByName().has("weather"))("a repo extension: seq and commit from git; the listing's palette titles from the manifest, the extension's for one named after it", async () => {
+  // Weather where the extension repos have it (pal-extensions, not pal-games), built as pal's registry builds it: staged at
+  // extensions/weather, so bun's source-path comments are those pal's own builds had and an unchanged extension keeps its hash.
+  test.skipIf(!extensionsByName().has("weather"))("a repo extension: seq and commit from its checkout, staged under extensions/; the listing's palette titles from the manifest, the extension's for one named after it", async () => {
     const out = join(dir, "repo");
     const src = extDir("weather");
-    const e = await build(src, { out, dirOnly: true });
+    const e = await build(src, { out, dirOnly: true, prefix: "extensions" });
     const git = (...a: string[]) => Bun.spawnSync(["git", ...a], { cwd: src }).stdout.toString().trim();
     expect(e.build.seq).toBe(Number(git("log", "-1", "--format=%ct")));
     expect(e.build.commit).toBe(git("rev-parse", "HEAD"));
-    expect(readFileSync(join(out, "weather", "index.js"), "utf8")).toContain(`// ${relative(git("rev-parse", "--show-toplevel"), src)}/index.ts`);
+    expect(readFileSync(join(out, "weather", "index.js"), "utf8")).toContain("// extensions/weather/index.ts");
     expect(e.listing.palettes).toEqual([{ id: "weather", title: "Weather", kind: "live" }]);
     expect(e.listing.screenshots).toEqual([]);
   });

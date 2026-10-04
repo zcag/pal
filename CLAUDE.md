@@ -46,11 +46,12 @@ against a pal checkout in its `.pal/` (`make test` there is its CI).
   Moving one is a one-line change; a name that leaves the bundle is
   installed by itself on machines that use it (the migration in
   `app/src-tauri/src/store.rs`).
-- **How a change reaches users.** A green push to an extension repo's main
-  hands every changed build to `.github/workflows/extensions.yml` here (a
-  `publish-builds` repository_dispatch, sent by
-  `.github/actions/publish-extensions`), which builds it again, signs it and
-  adds it to the **edge** index; it is the only signer.
+- **How a change reaches users.** `.github/workflows/extensions.yml` here,
+  the only signer, polls the extension repos every 15 minutes (or at once,
+  run with `publish`): a green main head it has not taken is built here
+  (`pal-pack --prefix extensions`, so unchanged extensions keep their
+  hashes), and the changed builds are signed and added to the **edge**
+  index. Those repos hold no secret; keep it so.
   Users follow **stable**: `make ext-release [NAMES="a b"]` promotes edge to
   stable, and every app release promotes everything on edge first, then
   bundles stable's builds.

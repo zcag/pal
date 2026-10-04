@@ -76,8 +76,8 @@ case $mode in
       [ -f "$dir/index.ts" ] || die "app/bundled.txt lists $name, which no extension repo has (checkouts: $("$bun" "$root/app/scripts/extension-repos.mjs" | tr '\n' ' '))"
       dirs+=("$dir")
     done
-    # Each built from its own repo's root (pal-pack's default), as the registry's build is.
-    pack build --dir-only --out "$stage/extensions" "${dirs[@]}" >/dev/null
+    # Staged at extensions/<name>, as the registry's build is (extensions.yml), so an unchanged extension has stable's hash.
+    pack build --dir-only --prefix extensions --out "$stage/extensions" "${dirs[@]}" >/dev/null
     ;;
   registry)
     base=${PAL_REGISTRY:-https://pal.cagdas.io/registry} channel=${PAL_CHANNEL:-stable}

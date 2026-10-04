@@ -3,7 +3,8 @@
 // promote a registry index. The CLI is ../bin/pal-pack.ts; build-extensions.sh,
 // our CI and third parties all run this one implementation.
 import { spawnSync } from "node:child_process";
-import { chmod, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
 import { checkLeaderboards, checkSync } from "../src/manifest.ts";
 import { PROTOCOL } from "../src/protocol.ts";
@@ -66,6 +67,15 @@ export type BuildOptions = {
   dirOnly?: boolean;
   /** The bun that builds; this one by default. */
   bun?: string;
+  /**
+   * Build a copy staged at `<prefix>/<name>` (with `cwd` its root), so the
+   * source paths bun writes into the output read `<prefix>/<name>/...`
+   * wherever the extension's directory is. pal's own builds pass
+   * `extensions`: the paths they had when the extensions were in pal's
+   * repo, which keeps an unchanged extension's tree hash. Seq and commit
+   * still come from the extension's own checkout.
+   */
+  prefix?: string;
 };
 
 /**
@@ -157,10 +167,23 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
   // The server reads `leaderboards` from the package and the core merges by `sync`: a mistake there is refused here, not found by a player.
   const bad = [...checkSync(manifest), ...checkLeaderboards(manifest)];
   if (bad.length) throw new Error(`${name}: pal.json: ${bad.join("; ")}`);
-  const cwd = resolve(o.cwd ?? git(dir, "rev-parse", "--show-toplevel") ?? process.cwd());
   const seq = o.seq ?? Number(git(dir, "log", "-1", "--format=%ct"));
   if (!Number.isInteger(seq) || seq <= 0) throw new Error(`${name}: no commit time to use as seq (not in a git checkout?): pass --seq`);
   const commit = o.commit ?? git(dir, "rev-parse", "HEAD") ?? "";
+  if (o.prefix) {
+    // A copy, symlinks as they are (a dependency's node_modules links stay relative to it), built from the stage's root.
+    const stage = await mkdtemp(join(tmpdir(), "pal-pack-"));
+    try {
+      const at = join(stage, o.prefix, name);
+      await mkdir(dirname(at), { recursive: true });
+      const cp = spawnSync("cp", ["-R", dir, at]);
+      if (cp.status !== 0) throw new Error(`${name}: staging under ${o.prefix}/ failed: ${cp.stderr}`);
+      return await build(at, { ...o, prefix: undefined, cwd: stage, seq, commit });
+    } finally {
+      await rm(stage, { recursive: true, force: true });
+    }
+  }
+  const cwd = resolve(o.cwd ?? git(dir, "rev-parse", "--show-toplevel") ?? process.cwd());
   const out = resolve(o.out);
   const pkg = join(out, name);
   await rm(pkg, { recursive: true, force: true });

@@ -1,16 +1,14 @@
 # Our registry (docs/registry.md "Our registry"): every extension built with
 # pal-pack, signed with the extension key, published to pal.cagdas.io.
 #
-# - pal's extension repos (zcag/pal-extensions, zcag/pal-games; SOURCES
-#   below) hand their builds over with a `publish-builds` repository_dispatch
-#   `{repo, ref, pal, builds: [name@hash]}` after a green push to their main
-#   (.github/actions/publish-extensions, which also uploads the packages).
-#   Each is built again here from that repo's commit with the pal it was
-#   built against (both must be on their main), and goes to edge only when
-#   the hash is the one dispatched and the uploaded tarball is these bytes.
-# - A green `ci` on a push to main builds main's own extensions/ into the
-#   edge index, when pal has one again (it has none since the split): only
-#   the extensions whose hash is not edge's newest go out.
+# - Every 15 minutes (or at once: run it with `publish`) it looks at the
+#   main of pal's extension repos (zcag/pal-extensions, zcag/pal-games;
+#   SOURCES below). A main whose `ci` run is green and that this workflow
+#   has not taken yet is checked out at that commit, every extension in it
+#   built here, and the ones whose hash is not edge's newest build go to
+#   edge with that commit as their `commit`. A main that is pending or red
+#   is left for a later run; a commit that is not a main's head is never
+#   built. The repos hold no secret: everything is done here.
 # - `make ext-release [NAMES="a b"]` dispatches `promote`: edge's newest
 #   builds of those (or all) go to the stable index apps use.
 # - release.yml dispatches `promote: all` for a tag, before it bundles
@@ -24,25 +22,25 @@
 # extension key and installs nothing: bun runs pal-pack, which has no
 # dependencies, with auto-install off. `publish` holds only the site token.
 # The key and the token live in the `registry` environment.
+#
+# A run that finds nothing to do is a few API calls and ends green: a main
+# taken already is remembered as a cache entry (`polled-<repo>-<commit>`),
+# saved once its builds are on edge or it had none that were new.
 name: extensions
 
 on:
-  workflow_run:
-    workflows: [ci]
-    types: [completed]
-    branches: [main]
-  repository_dispatch:
-    types: [publish-builds]
+  schedule:
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
+      publish:
+        description: "Publish the extension repos' main now (what the schedule does), even a commit taken already"
+        type: boolean
+        default: false
       promote:
-        description: "Promote edge to stable: all, or extension names (space or comma separated). Empty: build ref into edge."
+        description: "Promote edge to stable: all, or extension names (space or comma separated)"
         type: string
         default: ""
-      ref:
-        description: "What to build into edge (without promote, yank or reindex)"
-        type: string
-        default: main
       yank:
         description: "name@hash to mark yanked in both indexes"
         type: string
@@ -51,15 +49,11 @@ on:
         description: "Re-sign both indexes and every build in them with the current key"
         type: boolean
         default: false
-      release:
-        description: "An app release (release.yml): build ref into edge, then promote exactly those builds to stable"
-        type: boolean
-        default: false
 
 # Each run reads an index, adds to it and writes it back, so runs go one at a
 # time and none is cancelled halfway. GitHub keeps one pending run per
 # group: a third run arriving cancels the one waiting, not the one running.
-# For edge that loses nothing (the newer run builds a newer main); a
+# For edge that loses nothing (the next poll takes what is still new); a
 # cancelled promote shows as a failed `make ext-release` or release job,
 # to run again.
 concurrency:
@@ -68,148 +62,151 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write   # the polled-<repo>-<commit> cache entries
 
 env:
   SITE: https://pal.cagdas.io
   BASE: https://pal.cagdas.io/registry
-  # The repos whose dispatched builds are taken (space separated).
+  # The repos whose main is published (owner/name, space separated). Each
+  # has a workflow named `ci` whose green run on the commit is required.
   SOURCES: zcag/pal-extensions zcag/pal-games
 
 jobs:
   build:
-    # A workflow_run fires for every `ci` run on a branch named main,
-    # including a pull request's from a fork: only a push to this
-    # repository's main that passed is built.
-    if: >-
-      github.event_name != 'workflow_run' || (
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_repository.full_name == github.repository)
+    # Forks have no key and no site; a schedule there does nothing.
+    if: github.repository == 'zcag/pal'
     runs-on: ubuntu-24.04
     outputs:
       sha: ${{ steps.sha.outputs.sha }}
       built: ${{ steps.plan.outputs.built }}
       work: ${{ steps.plan.outputs.work }}
+      # The repos' commits this run takes (empty: none), saved as taken once on edge.
+      extensions: ${{ steps.todo.outputs.extensions }}
+      games: ${{ steps.todo.outputs.games }}
     env:
       # A dispatch that promotes, yanks or re-signs publishes what is already
-      # built; everything else builds.
-      BUILD: ${{ github.event_name != 'workflow_dispatch' || inputs.release || (inputs.promote == '' && inputs.yank == '' && !inputs.reindex) }}
+      # built; the schedule and `publish` poll the repos.
+      POLL: ${{ github.event_name == 'schedule' || inputs.publish }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || inputs.ref || 'main' }}
           persist-credentials: false
       - id: sha
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      # Builds another repo dispatched: the payload's shape, a repo of ours,
-      # and both commits on their main, so what is signed was merged there
-      # (never a branch's or a fork's).
-      - name: Dispatched builds
-        if: github.event_name == 'repository_dispatch'
-        id: dispatched
+      # Each repo's main head and its `ci` run there: `<repo> <commit>` for
+      # a green one, nothing for one pending, red or not answering (a later
+      # run looks again; a scheduled run never fails on it).
+      - name: Poll
+        if: env.POLL == 'true'
+        id: poll
         env:
-          REPO: ${{ github.event.client_payload.repo }}
-          REF: ${{ github.event.client_payload.ref }}
-          PAL: ${{ github.event.client_payload.pal }}
-          BUILDS: ${{ join(github.event.client_payload.builds, ' ') }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          case " $SOURCES " in *" $REPO "*) ;; *) echo "::error::$REPO is not one of pal's extension repos ($SOURCES)"; exit 1 ;; esac
-          [[ $REF =~ ^[0-9a-f]{40}$ && $PAL =~ ^[0-9a-f]{40}$ ]] || { echo "::error::ref and pal are commit hashes"; exit 1; }
-          [ -n "$BUILDS" ] || { echo "::error::no builds"; exit 1; }
-          for b in $BUILDS; do [[ $b =~ ^[a-z0-9][a-z0-9-]*@[0-9a-f]{64}$ ]] || { echo "::error::$b is not name@hash"; exit 1; }; done
-          for at in "$REPO $REF" "$GITHUB_REPOSITORY $PAL"; do
-            read -r repo commit <<< "$at"
-            s=$(gh api "repos/$repo/compare/$commit...main" --jq .status)
-            case $s in ahead|identical) ;; *) echo "::error::$repo@$commit is not on its main ($s)"; exit 1 ;; esac
+          green=()
+          for repo in $SOURCES; do
+            sha=$(gh api "repos/$repo/commits/main" --jq .sha 2>/dev/null) || { echo "::notice::$repo: main not read, skipped"; continue; }
+            run=$(gh api "repos/$repo/actions/workflows/ci.yml/runs?head_sha=$sha&branch=main&event=push&per_page=10" \
+              --jq '[.workflow_runs[]] | sort_by(.run_number) | last | "\(.status) \(.conclusion)"' 2>/dev/null) || run="unknown"
+            echo "$repo@${sha:0:10}: ci ${run:-none}"
+            [ "$run" = "completed success" ] && green+=("$repo $sha")
           done
-          echo "names=$(for b in $BUILDS; do printf '%s ' "${b%@*}"; done)" >> "$GITHUB_OUTPUT"
-          echo "### Dispatched by $REPO@${REF:0:10}, built with pal@${PAL:0:10}" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/checkout@v4
-        if: github.event_name == 'repository_dispatch'
+          slot() { for g in "${green[@]}"; do [ "${g%% *}" = "$1" ] && echo "${g#* }"; done; }
+          echo "extensions=$(slot zcag/pal-extensions)" >> "$GITHUB_OUTPUT"
+          echo "games=$(slot zcag/pal-games)" >> "$GITHUB_OUTPUT"
+      # Whether a run took that commit already.
+      - uses: actions/cache/restore@v4
+        if: steps.poll.outputs.extensions != ''
+        id: seen-extensions
         with:
-          repository: ${{ github.event.client_payload.repo }}
-          ref: ${{ github.event.client_payload.ref }}
-          path: src
+          path: ${{ runner.temp }}/polled
+          key: polled-pal-extensions-${{ steps.poll.outputs.extensions }}
+          lookup-only: true
+      - uses: actions/cache/restore@v4
+        if: steps.poll.outputs.games != ''
+        id: seen-games
+        with:
+          path: ${{ runner.temp }}/polled
+          key: polled-pal-games-${{ steps.poll.outputs.games }}
+          lookup-only: true
+      # What this run builds: a green main not taken yet, or any green main
+      # when `publish` asks. `taken` names the cache entries to save once
+      # its builds are out.
+      - name: To build
+        if: env.POLL == 'true'
+        id: todo
+        env:
+          EXT: ${{ steps.poll.outputs.extensions }}
+          GAMES: ${{ steps.poll.outputs.games }}
+          EXT_SEEN: ${{ steps.seen-extensions.outputs.cache-hit }}
+          GAMES_SEEN: ${{ steps.seen-games.outputs.cache-hit }}
+          FORCE: ${{ inputs.publish }}
+        run: |
+          taken=""
+          if [ -n "$EXT" ] && { [ "$FORCE" = true ] || [ "$EXT_SEEN" != true ]; }; then echo "extensions=$EXT" >> "$GITHUB_OUTPUT"; taken="$taken polled-pal-extensions-$EXT"; fi
+          if [ -n "$GAMES" ] && { [ "$FORCE" = true ] || [ "$GAMES_SEEN" != true ]; }; then echo "games=$GAMES" >> "$GITHUB_OUTPUT"; taken="$taken polled-pal-games-$GAMES"; fi
+          echo "taken=${taken# }" >> "$GITHUB_OUTPUT"
+          [ -n "$taken" ] && echo "building:$taken" || echo "nothing new on the repos' main"
+
+      - uses: actions/checkout@v4
+        if: steps.todo.outputs.extensions != ''
+        with:
+          repository: zcag/pal-extensions
+          ref: ${{ steps.todo.outputs.extensions }}
+          path: src/pal-extensions
           persist-credentials: false
-      # The pal the repo built with: its pal-pack and Bun, so the hashes can agree.
       - uses: actions/checkout@v4
-        if: github.event_name == 'repository_dispatch'
+        if: steps.todo.outputs.games != ''
         with:
-          ref: ${{ github.event.client_payload.pal }}
-          path: packer
+          repository: zcag/pal-games
+          ref: ${{ steps.todo.outputs.games }}
+          path: src/pal-games
           persist-credentials: false
 
       # The same Bun as ci.yml and the app's sidecar (fetch-bun.sh pins it).
       - name: Bun version
-        if: env.BUILD == 'true'
+        if: steps.todo.outputs.taken != ''
         id: bun
-        env:
-          FROM: ${{ github.event_name == 'repository_dispatch' && 'packer/' || '' }}
-        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' "${FROM}app/scripts/fetch-bun.sh")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' app/scripts/fetch-bun.sh)" >> "$GITHUB_OUTPUT"
       - uses: oven-sh/setup-bun@v2
-        if: env.BUILD == 'true'
+        if: steps.todo.outputs.taken != ''
         with:
           bun-version: ${{ steps.bun.outputs.version }}
       - uses: actions/cache@v4
-        if: env.BUILD == 'true'
+        if: steps.todo.outputs.taken != ''
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
       - name: Install JS dependencies
-        if: env.BUILD == 'true'
-        env:
-          FROM: ${{ github.event_name == 'repository_dispatch' && 'src/*/' || 'extensions/*/' }}
+        if: steps.todo.outputs.taken != ''
         run: |
-          bun install --frozen-lockfile
-          for d in $FROM; do
+          for d in src/*/*/; do
             if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
           done
 
-      # Every extension at this commit, with its statement. `seq` is the
-      # commit's time (docs/registry.md), the same in every workflow that
-      # builds it, so the release's build of a tag and this one agree.
-      #
-      # Dispatched builds are built from the repo's commit with its pal, each
-      # held to the hash the repo dispatched and to the tarball it uploaded.
-      # pal without an extensions/ of its own builds nothing for itself.
+      # Every extension in each repo at its commit, with its statement.
+      # `seq` is the commit's time (docs/registry.md). Staged at
+      # extensions/<name> (pal-pack --prefix), the source paths in the
+      # output are the ones pal's own builds had, so an extension that did
+      # not change keeps its hash.
       - name: Build
-        if: env.BUILD == 'true'
-        env:
-          NAMES: ${{ steps.dispatched.outputs.names }}
-          BUILDS: ${{ join(github.event.client_payload.builds, ' ') }}
-          REPO: ${{ github.event.client_payload.repo }}
+        if: steps.todo.outputs.taken != ''
         run: |
           set -euo pipefail
           R=$RUNNER_TEMP/registry
-          if [ "$GITHUB_EVENT_NAME" = repository_dispatch ]; then
-            dirs=(); for n in $NAMES; do dirs+=("src/$n"); done
-            bun packer/sdk/bin/pal-pack.ts build "${dirs[@]}" --out "$R/all" \
-              --seq "$(git -C src show -s --format=%ct HEAD)" --commit "$(git -C src rev-parse HEAD)" \
-              --screenshots-base "$SITE/extensions"
-            for b in $BUILDS; do
-              n=${b%@*} h=${b#*@}
-              got=$(jq -r .build.hash "$R/all/$n.entry.json")
-              [ "$got" = "$h" ] || { echo "::error::$n: built here from $REPO it hashes to $got, the dispatch says $h"; exit 1; }
-              curl -fsS -o "$R/uploaded.tar.gz" "$BASE/pkg/$n/$h.tar.gz" || { echo "::error::$n@$h: no uploaded package"; exit 1; }
-              cmp -s "$R/uploaded.tar.gz" "$R/all/$n.tar.gz" || { echo "::error::$n@$h: the uploaded tarball is not the one built here"; exit 1; }
-            done
-            rm -f "$R/uploaded.tar.gz"
-          else
-            shopt -s nullglob
-            dirs=(extensions/*/)
-            [ ${#dirs[@]} -gt 0 ] || { echo "no extensions/ in pal: nothing of its own to build"; exit 0; }
-            bun sdk/bin/pal-pack.ts build "${dirs[@]}" --out "$R/all" \
-              --seq "$(git show -s --format=%ct HEAD)" --commit "$(git rev-parse HEAD)" \
-              --screenshots-base "$SITE/extensions"
-          fi
-          bun sdk/bin/pal-pack.ts statements "$R/all"
+          for src in src/*/; do
+            dirs=(); for d in "$src"*/; do [ -f "$d/pal.json" ] && dirs+=("${d%/}"); done
+            bun --no-install sdk/bin/pal-pack.ts build "${dirs[@]}" --prefix extensions --out "$R/all" \
+              --seq "$(git -C "$src" show -s --format=%ct HEAD)" --commit "$(git -C "$src" rev-parse HEAD)" \
+              --screenshots-base "$SITE/extensions" > /dev/null
+            echo "### $(basename "$src")@$(git -C "$src" rev-parse --short=10 HEAD): ${#dirs[@]} extensions built" >> "$GITHUB_STEP_SUMMARY"
+          done
+          bun --no-install sdk/bin/pal-pack.ts statements "$R/all" > /dev/null
           .github/actions/registry/registry.sh fetch "$BASE/edge/index.json" "$R/edge.json"
-          .github/actions/registry/registry.sh changed "$R/all" "$R/edge.json" | tee "$R/changed.txt"
+          .github/actions/registry/registry.sh changed "$R/all" "$R/edge.json" > "$R/changed.txt"
           rm -f "$R/edge.json" "$R/edge.json.minisig"
+          awk '$2 == "new" { print "- `" $1 "`" }' "$R/changed.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Plan
         id: plan
@@ -229,6 +226,20 @@ jobs:
           name: built
           path: ${{ runner.temp }}/registry
           retention-days: 7
+      # Built, and nothing in it new: taken.
+      - name: Remember the commits
+        if: steps.todo.outputs.taken != '' && steps.plan.outputs.work != 'true'
+        run: mkdir -p "$RUNNER_TEMP/polled" && touch "$RUNNER_TEMP/polled/taken"
+      - uses: actions/cache/save@v4
+        if: steps.todo.outputs.extensions != '' && steps.plan.outputs.work != 'true'
+        with:
+          path: ${{ runner.temp }}/polled
+          key: polled-pal-extensions-${{ steps.todo.outputs.extensions }}
+      - uses: actions/cache/save@v4
+        if: steps.todo.outputs.games != '' && steps.plan.outputs.work != 'true'
+        with:
+          path: ${{ runner.temp }}/polled
+          key: polled-pal-games-${{ steps.todo.outputs.games }}
 
   sign:
     needs: build
@@ -313,17 +324,7 @@ jobs:
           fi
 
           if [ -n "$PROMOTE" ]; then
-            if [ -d "$R/all" ]; then
-              # A release: exactly the builds at its commit, whatever edge
-              # has since. A build yanked in edge is left out, and the
-              # release's manifest job then refuses to ship it bundled.
-              awk '$2 != "yanked" { print $1 }' "$R/changed.txt" > "$R/at-ref.txt"
-              $r pick "$R/all" "$R/at-ref" "$R/at-ref.txt"
-              pack index "$R/at-ref" --name pal --base "$BASE" --out "$R/at-ref-index"
-              from=$R/at-ref-index/index.json
-            elif [ -f "$R/out/edge/index.json" ]; then from=$R/out/edge/index.json
-            else from=$R/edge.json
-            fi
+            if [ -f "$R/out/edge/index.json" ]; then from=$R/out/edge/index.json; else from=$R/edge.json; fi
             [ -f "$from" ] || { echo "::error::no edge index to promote from"; exit 1; }
             [ -f "$R/stable.json" ] || jq -n '{format: 1, name: "pal", generated_at: "1970-01-01T00:00:00Z", next_key: null, extensions: []}' > "$R/stable.json"
             names=()
@@ -387,15 +388,30 @@ jobs:
             curl -fsS "$BASE/$ch/index.json.minisig" | cmp - "$S/$ch/index.json.minisig"
             echo "$BASE/$ch/index.json is live"
           done
+      # The repos' commits whose builds are now on edge: taken.
+      - name: Remember the commits
+        if: needs.build.outputs.extensions != '' || needs.build.outputs.games != ''
+        run: mkdir -p "$RUNNER_TEMP/polled" && touch "$RUNNER_TEMP/polled/taken"
+      - uses: actions/cache/save@v4
+        if: needs.build.outputs.extensions != ''
+        with:
+          path: ${{ runner.temp }}/polled
+          key: polled-pal-extensions-${{ needs.build.outputs.extensions }}
+      - uses: actions/cache/save@v4
+        if: needs.build.outputs.games != ''
+        with:
+          path: ${{ runner.temp }}/polled
+          key: polled-pal-games-${{ needs.build.outputs.games }}
       - name: Summary
         env:
           YANK: ${{ inputs.yank }}
           REINDEX: ${{ inputs.reindex }}
-          FROM: ${{ github.event.client_payload.repo && format('{0}@{1}', github.event.client_payload.repo, github.event.client_payload.ref) || '' }}
+          EXT: ${{ needs.build.outputs.extensions }}
+          GAMES: ${{ needs.build.outputs.games }}
         run: |
           r=.github/actions/registry/registry.sh S=$RUNNER_TEMP/signed
           {
-            echo "## Registry at \`${{ needs.build.outputs.sha }}\`${FROM:+, builds of \`$FROM\`}"
+            echo "## Registry at \`${{ needs.build.outputs.sha }}\`${EXT:+, pal-extensions@\`${EXT:0:10}\`}${GAMES:+, pal-games@\`${GAMES:0:10}\`}"
             for ch in edge stable; do
               [ -f "$S/$ch/index.json" ] || continue
               echo; echo "### $ch"; echo
