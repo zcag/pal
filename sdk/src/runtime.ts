@@ -33,6 +33,8 @@ export type Runtime = {
   onStates(cb: (changed: Record<string, StateValue>) => void): () => void;
   /** Called with every `controls/changed`; returns the unsubscribe. */
   onControls(cb: (changed: ControlsChanged) => void): () => void;
+  /** Called with `(key, value)` on every `storage/changed` of the extension's; returns the unsubscribe. */
+  onStorage(extension: string, cb: (key: string, value: unknown) => void): () => void;
 };
 
 const KEY = Symbol.for("@zcag/pal/runtime");

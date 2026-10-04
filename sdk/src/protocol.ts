@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). */
-export const PROTOCOL: number = 4;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). */
+export const PROTOCOL: number = 5;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -436,7 +436,7 @@ export type ViewUpdate = ViewTarget & { id?: string; spec: View | { tree: ViewNo
  * "settings", data }` from the host). Dropped like an update while no
  * such level is open.
  */
-export type ViewPost = ViewTarget & { id?: string; msg: { pal: "message" | "settings"; data: unknown } };
+export type ViewPost = ViewTarget & { id?: string; msg: { pal: "message" | "settings"; data: unknown } | { pal: "storage"; key: string; value: unknown } };
 /**
  * `window.pal` in a game surface's page, as the kit sets it
  * (`/__pal/surface.js`, docs/design/game-surface.md). A page's TypeScript
@@ -452,7 +452,12 @@ export type SurfaceKit = {
   /** A view action picked from ⌘K or the footer, or its key pressed outside the page. */
   onAction(fn: (id: string) => void): () => void;
   /** The extension's own storage (`storage` in this SDK, the same file); `set` of null or undefined removes the key. */
-  storage: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
+  storage: {
+    get(key: string): Promise<unknown>;
+    set(key: string, value: unknown): Promise<void>;
+    /** A value sync brought in (merged, or from another device): `(key, value)`, value null when removed. Keep it rather than overwrite it with older state. */
+    onChange(fn: (key: string, value: unknown) => void): () => void;
+  };
   /** The extension's resolved settings, and every change after the first ask. */
   settings(): Promise<Record<string, unknown>>;
   onSettings(fn: (settings: Record<string, unknown>) => void): () => void;
@@ -465,6 +470,14 @@ export type SurfaceKit = {
   onHidden(fn: () => void): () => void;
   /** The first frame is drawn: the app reveals the page. */
   ready(): void;
+  /** Post a score to a declared board (`Manifest.leaderboards`); offline it is queued. */
+  score(board: string, value: number): Promise<ScoreResult>;
+  /** Read a board. */
+  leaderboard(board: string, opts?: LeaderboardQuery): Promise<Leaderboard>;
+  /** Whether the user is signed in, and their handle. */
+  account(): Promise<AccountInfo>;
+  /** Open the sign-in (Settings › Account in the app, the sheet on play.cagdas.io). */
+  signIn(): Promise<void>;
 };
 
 // ---- form: a prompt with fields --------------------------------------------
@@ -1224,7 +1237,56 @@ export type Manifest = {
   suggests?: string[];
   /** The controls it provides (`Extension.controls`, docs/design/controls.md): what Settings › Groups offers it for, readable without the code. */
   controls?: ControlName[];
+  /**
+   * Its storage syncs with the user's account (docs/design/accounts.md):
+   * present is opted in, each key merged by its rule; a key not listed
+   * syncs as `latest`, one marked `local` never leaves the machine.
+   */
+  sync?: Record<string, SyncRule>;
+  /** Its leaderboards: what `leaderboard.post` and the kit's `pal.score` may post to. */
+  leaderboards?: LeaderboardSpec[];
 };
+
+/** How a synced storage key merges two devices' values (docs/extensions.md, "Syncing storage"). */
+export type SyncMerge = "max" | "min" | "union" | "sum" | "latest";
+/** A key's rule in `Manifest.sync`: a merge, `fields` for an object merged key by key (unlisted fields `latest`), or `local` (never synced). */
+export type SyncRule = SyncMerge | "local" | { fields: Record<string, SyncMerge | { fields: Record<string, unknown> }> };
+
+/**
+ * One board in `Manifest.leaderboards`. `id` is `[a-z0-9_-]` segments
+ * joined by `/`; a `*` segment matches one segment of a posted board, and
+ * `{1}` in the title is what it matched (`stage/*`, "Stage {1}").
+ */
+export type LeaderboardSpec = {
+  id: string;
+  title: string;
+  /** `desc`: higher is better; `asc`: lower is (a time to clear). */
+  order: "asc" | "desc";
+  /** How a value shows: `points`, `time` (seconds, `1:01.20`), `moves`. */
+  format: "points" | "time" | "moves";
+  /** `all` (the default), or a board that starts again every UTC `day` or `week`. */
+  period?: "all" | "day" | "week";
+  /** Values outside are refused. */
+  min?: number;
+  max?: number;
+};
+
+/** What a posted score did (`leaderboard.post`, the kit's `pal.score`): the player's best on the board, its rank and the board's size; offline, `queued` with the local best, sent later. */
+export type ScoreResult = { best: number; rank: number | null; total: number | null; queued?: true };
+/** One row of a board: `name` is the player's handle, or a generated "Teal Fox" for an `anon` one; `me` marks the asking player's. */
+export type LeaderboardRow = { rank: number; name: string; anon: boolean; value: number; at: number; me: boolean };
+/** A board as `leaderboard.get` answers it: the top 50, and the asking player's own row (null when they have none). `board` is null where there is no server (the kit outside pal and play.cagdas.io). */
+export type Leaderboard = {
+  board: { id: string; title: string; order: "asc" | "desc"; format: "points" | "time" | "moves"; period: "all" | "day" | "week" } | null;
+  rows: LeaderboardRow[];
+  me: LeaderboardRow | null;
+};
+/** Which slice of a board to read: the period (the declared one by default) and `anon: false` to hide anonymous players (ranks then count only what is shown). */
+export type LeaderboardQuery = { period?: "all" | "day" | "week"; anon?: boolean };
+/** The user's account as an extension sees it: never the email. */
+export type AccountInfo = { signedIn: boolean; handle: string | null };
+/** `storage/changed` (core to host): sync changed a stored value of the extension's; `value` null is removed. */
+export type StorageChanged = { extension: string; key: string; value: unknown };
 
 /**
  * `extension/loaded` (host to core): one per loaded instance. `extension`

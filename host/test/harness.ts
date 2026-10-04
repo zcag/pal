@@ -311,8 +311,8 @@ export class Host {
   surfaceSend(extension: string, palette: string, msg: unknown, args?: unknown) {
     return this.request<{ reply?: unknown }>("surface", { extension, palette, call: "send", data: { msg }, ...(args !== undefined && { args }) }).then((r) => r.reply);
   }
-  /** The `core/view.post` messages the host sent to one palette's surface page, in order (`{ pal, data }`). */
-  surfacePosts(extension: string, palette: string): { pal: string; data: unknown }[] {
+  /** The `core/view.post` messages the host sent to one palette's surface page, in order (`{ pal, data }`, a storage change `{ pal, key, value }`). */
+  surfacePosts(extension: string, palette: string): ({ pal: string; data?: unknown } & Record<string, unknown>)[] {
     return this.coreCalls.filter((c) => c.method === "view.post" && (c.params as any)?.extension === extension && (c.params as any)?.palette === palette).map((c) => (c.params as any).msg);
   }
   /** The `bar/shown` notification. */

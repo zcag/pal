@@ -9,7 +9,7 @@
 import { realpathSync } from "node:fs";
 import { dirname } from "node:path";
 import { checkLinkEffect, checkLinkParams, inlineMatches, isViewPalette as isView } from "../../sdk/src/manifest.ts";
-import { settings, storage } from "../../sdk/src/api.ts";
+import { account, leaderboard, settings, storage } from "../../sdk/src/api.ts";
 import type { Ctx, Extension, FormValues, Item, Manifest, Palette, ViewPost } from "../../sdk/src/protocol.ts";
 import { runtime } from "../../sdk/src/runtime.ts";
 import { checkEffect, checkView } from "../../sdk/src/view.ts";
@@ -161,10 +161,10 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
       }
       return r;
     },
-    // A game surface's page (docs/design/game-surface.md), relayed by the app with the level's extension and palette (never the page's say): `pal.send` to `onMessage`, the reply as `{ reply }` (none for undefined); the page's storage and settings are the extension's own.
+    // A game surface's page (docs/design/game-surface.md), relayed by the app with the level's extension and palette (never the page's say): `pal.send` to `onMessage`, the reply as `{ reply }` (none for undefined); the page's storage, settings and leaderboards are the extension's own.
     surface: (p) => {
       const pal = palette(p);
-      const d = (p.data ?? {}) as { msg?: unknown; key?: unknown; value?: unknown };
+      const d = (p.data ?? {}) as { msg?: unknown; key?: unknown; value?: unknown; board?: unknown; period?: unknown; anon?: unknown };
       return inContext(p, async () => {
         switch (p.call) {
           case "send": {
@@ -175,6 +175,11 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
           case "storage.get": return storage.get(String(d.key));
           case "storage.set": return storage.set(String(d.key), d.value ?? null);
           case "settings": followSettings(String(p.extension), String(p.palette)); return settings.get();
+          // The kit's account calls: the extension's boards, the account as any extension sees it.
+          case "score": return leaderboard.post(String(d.board), Number(d.value));
+          case "leaderboard": return leaderboard.get(String(d.board), { ...(typeof d.period === "string" && { period: d.period as "all" }), ...(typeof d.anon === "boolean" && { anon: d.anon }) });
+          case "account": return account.get();
+          case "signIn": return account.signIn();
           default: throw new Error(`${paletteKey(p)}: no surface call ${p.call}`);
         }
       });

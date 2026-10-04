@@ -3,7 +3,7 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import { CONTROL_NAMES, type BarItem, type ControlName, type ControlOp, type ControlOps, type ControlStates, type CopyText, type Effect, type InstanceInfo, type ResolvedSettings, type Served, type StateEntry, type StateValue, type View, type ViewNode, type ViewPost, type ViewShown, type ViewTarget, type ViewUpdate, type WindowLayoutRequest } from "./protocol.ts";
+import { CONTROL_NAMES, type AccountInfo, type BarItem, type ControlName, type ControlOp, type ControlOps, type ControlStates, type CopyText, type Effect, type InstanceInfo, type Leaderboard, type LeaderboardQuery, type ResolvedSettings, type ScoreResult, type Served, type StateEntry, type StateValue, type View, type ViewNode, type ViewPost, type ViewShown, type ViewTarget, type ViewUpdate, type WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 import { checkBarItem, checkView } from "./view.ts";
 
@@ -327,6 +327,49 @@ export const storage = {
   remove: (key: string, extension?: string) => call<null>("storage.remove", { extension: who(extension), key }),
   /** Every key the extension has set, sorted. */
   keys: (extension?: string) => call<string[]>("storage.keys", { extension: who(extension) }),
+  /**
+   * Called with `(key, value)` when sync changed a stored value (merged
+   * with another device's, or brought in from one; value null when
+   * removed), for an extension whose manifest says `sync`. Code that keeps
+   * a value in memory takes the new one here, so its next `set` does not
+   * write back what is older. Returns the unsubscribe.
+   */
+  onChange: (cb: (key: string, value: unknown) => void, extension?: string): (() => void) => runtime().onStorage(who(extension), cb),
+};
+
+/** A leaderboard call waits on the network (the core answers offline itself, queueing a post): longer than the bridge's 5 s. */
+const BOARD_MS = 15_000;
+
+/**
+ * The extension's leaderboards (`leaderboards` in pal.json; docs/extensions.md,
+ * "Leaderboards"), through the core to pal's server. `post(board, value)`
+ * keeps the player's best (signed in: their account's, else this
+ * device's anonymous one) and answers it with its rank; offline it is
+ * queued and sent later (`queued`, with the local best). A board must
+ * match a declared id (`stage/*` takes `stage/3`); a value outside its
+ * `min`/`max` is refused. Signed in without a handle, a post rejects with
+ * "choose a handle" and the app opens Settings › Account. Which extension:
+ * as for `storage`.
+ */
+export const leaderboard = {
+  post: (board: string, value: number, extension?: string): Promise<ScoreResult> => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return Promise.reject(new Error(`leaderboard.post ${board}: the value must be a finite number`));
+    return call<ScoreResult>("leaderboard.post", { extension: who(extension), board, value }, { timeout: BOARD_MS });
+  },
+  /** The top 50 and the player's own row; `{ period }` for another than the declared one, `{ anon: false }` to hide anonymous players. */
+  get: (board: string, opts: LeaderboardQuery = {}, extension?: string): Promise<Leaderboard> =>
+    call<Leaderboard>("leaderboard.get", { extension: who(extension), board, ...(opts.period && { period: opts.period }), ...(opts.anon !== undefined && { anon: opts.anon }) }, { timeout: BOARD_MS }),
+};
+
+/**
+ * The user's pal account (docs/design/accounts.md), as an extension sees
+ * it: whether they are signed in and their leaderboard handle, never the
+ * email. `signIn()` opens Settings › Account, for a game that offers
+ * "Sign in to keep your scores".
+ */
+export const account = {
+  get: (): Promise<AccountInfo> => call<AccountInfo>("account.get", {}),
+  signIn: (): Promise<null> => call<null>("account.signIn", {}),
 };
 
 /** `pal_core::clipboard::Entry`: one of text/image/files is set, by kind. */

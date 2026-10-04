@@ -75,7 +75,8 @@ comment, `src/protocol.ts` is the contract.
 | `BarItem`, `BarSegment`, `BarColor`, `BarMenu`, `BarMenuNode`, `BarSource`, `BarCtx`, `BarRefresh` | a bar item: what `Extension.bar[id].render` answers, its popover menu, why it ran |
 | `Manifest`, `SettingSpec`, `ManifestPalette`, `ManifestBar`, `ResolvedSettings` | `pal.json` and the values it resolves to |
 | `settings` | `get()`, `palette()`, `onChange()` |
-| `storage` | `get()`, `set()`, `remove()`, `keys()`, per-extension JSON, `LIMIT` bytes |
+| `storage` | `get()`, `set()`, `remove()`, `keys()`, per-extension JSON, `LIMIT` bytes; `onChange()` for a value sync brought in |
+| `leaderboard`, `account` | `post()`, `get()` on the game's declared boards; `get()` (`{ signedIn, handle }`), `signIn()`; `ScoreResult`, `Leaderboard`, `AccountInfo` |
 | `bar` | `update()` (push an item now), `refresh()` (ask for a render) |
 | `clipboard` | `list()`, `get()`, `pin()`, `delete()`, `clear()`, `copy()`, `imageUrl()`; `ClipboardEntry` |
 | `windows` | `list()`, `close()`, `minimize()`, `frame()`, `setFrame()`, `displays()`, `focused()`, `layout()`; `Window`, `Rect`, `Display`, `WindowLayout` |
@@ -96,6 +97,7 @@ comment, `src/protocol.ts` is the contract.
 | `defineExtension()` | type-checks the default export where it is written |
 | `PROTOCOL`, `PROTOCOL_MIN` | the extension protocol this SDK speaks, and the oldest a pal built with it still runs |
 | `checkDeps()` | what the host warns about a manifest's `requires` and `suggests` |
+| `checkSync()`, `checkLeaderboards()`, `leaderboardOf()`, `isBoardId()` | what pal-pack refuses in a manifest's `sync` and `leaderboards`; the declared board a posted one falls under, its title filled in |
 | `@zcag/pal/runtime` | the host's side (`bind`); not for extensions |
 
 Wire shapes (`Request`, `Response`, `Notification`, `PaletteMeta`,

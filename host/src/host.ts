@@ -1,6 +1,6 @@
 // The extension host: loads every extension under the given roots into this
 // one process, serves list/pick (and the bar items' render/action, bar.ts;
-// the view lifecycle notifications, views.ts; a game surface's TypeScript, surface.ts) over stdio, re-imports an extension when its files change, and relays
+// the view lifecycle notifications, views.ts; synced storage changes, storage.ts; a game surface's TypeScript, surface.ts) over stdio, re-imports an extension when its files change, and relays
 // extensions' capability calls to the core (bridge.ts). Logs go to stderr;
 // stdout is the protocol.
 //
@@ -24,7 +24,7 @@ import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { tileBrand } from "../../sdk/src/icon.ts";
-import { checkBarRules, checkBarSettings, checkControls, checkDeps, checkLinks, checkPalettes, depNames } from "../../sdk/src/manifest.ts";
+import { checkBarRules, checkBarSettings, checkControls, checkDeps, checkLeaderboards, checkLinks, checkPalettes, checkSync, depNames } from "../../sdk/src/manifest.ts";
 import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type ControlsChanged, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { advance, advanced, ready as clockReady, timers as clockTimers } from "./clock.ts";
@@ -36,6 +36,7 @@ import { context, setRoots, update as updateSettings } from "./settings.ts";
 import { controlsMethods, update as updateControls } from "./controls.ts";
 import { update as updateStates } from "./states.ts";
 import { transpile } from "./surface.ts";
+import { forget as forgetStorage, storageMethods } from "./storage.ts";
 import { forget as forgetViews, viewMethods } from "./views.ts";
 
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
@@ -222,7 +223,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
-    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest), ...checkDeps(manifest), ...checkControls(manifest, ext));
+    check.warnings.push(...checkLinks(manifest, ext), ...checkBarRules(manifest), ...checkBarSettings(manifest), ...checkDeps(manifest), ...checkSync(manifest), ...checkLeaderboards(manifest), ...checkControls(manifest, ext));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
@@ -296,8 +297,9 @@ async function drop(name: string) {
 /** The resident module's `dispose` before it is replaced or let go: its intervals and watchers would otherwise run on. Its failure is its own (logged). */
 async function dispose(name: string) {
   const ext = exts.get(name);
-  // The old module's `view.onShown` listeners would otherwise fire next to the new module's.
+  // The old module's `view.onShown` and `storage.onChange` listeners would otherwise fire next to the new module's.
   forgetViews(name);
+  forgetStorage(name);
   if (!ext?.dispose) return;
   exts.delete(name);
   try { await timeout(context.run({ extension: name }, () => Promise.resolve(ext.dispose!())), 1000, `dispose of ${name}`); } catch (e) { log(`dispose ${name} failed: ${describe(e)}`); }
@@ -627,6 +629,8 @@ const methods: Record<string, (params: any) => unknown> = {
   ...barMethods(extension, undefined, (k) => manifests.get(k)),
   ...controlsMethods(extension),
   ...viewMethods,
+  // Notification from the core: sync changed a stored value (an instance key routes to its worker's own listeners).
+  ...storageMethods,
   // A game surface's `*.ts` as JavaScript, for the app's `ext://` scheme (surface.ts).
   "surface/transpile": (p) => transpile(String(p?.path)),
   // Notification from the core: the resolved values of the named extensions (instance keys route to their workers' own tables).

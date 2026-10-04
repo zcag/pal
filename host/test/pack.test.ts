@@ -85,6 +85,21 @@ describe("build", () => {
     await expect(build(d, { out, cwd: dir, seq: 1790000000, commit: "abc", dirOnly: true })).rejects.toThrow("outside the extension");
   });
 
+  test("a manifest whose sync rules or leaderboards are wrong is refused, naming each mistake", async () => {
+    const dir = tmp();
+    const opts = { out: join(dir, "dist"), cwd: dir, seq: 1790000000, commit: "abc", dirOnly: true };
+    const d = source(dir, "boards", { sync: { best: "max", hand: "local", plays: "add" }, leaderboards: [{ id: "daily", title: "Daily", order: "desc", format: "points" }, { id: "Stage", title: "Stage {1}", order: "up", format: "points" }] });
+    const err = await build(d, opts).then(() => "", (e: Error) => e.message);
+    expect(err).toContain(`sync.plays: "add" is not a rule`);
+    expect(err).toContain("leaderboards.Stage: an id is lowercase letters");
+    expect(err).toContain(`leaderboards.Stage: the title's {1} names no "*" segment`);
+    expect(err).toContain(`leaderboards.Stage: order is "asc"`);
+    const good = source(dir, "fine", { sync: { best: "max" }, leaderboards: [{ id: "stage/*", title: "Stage {1}", order: "desc", format: "time", min: 0, max: 3600 }] });
+    await build(good, opts);
+    expect(json(join(dir, "dist", "fine", "pal.json"))).toMatchObject({ protocol: PROTOCOL, leaderboards: [{ id: "stage/*" }] });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   test("reproducible: the same source twice is the same hash and the same tarball bytes; the header and entries are normalised", async () => {
     const [a, b] = [join(dir, "a"), join(dir, "b")];
     await build(join(dir, "thing"), { out: a, cwd: dir, seq: 5, commit: "" });

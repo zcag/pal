@@ -5,6 +5,7 @@
 import { spawnSync } from "node:child_process";
 import { chmod, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
+import { checkLeaderboards, checkSync } from "../src/manifest.ts";
 import { PROTOCOL } from "../src/protocol.ts";
 import { tarball } from "./tar.ts";
 import { treeHash, walk } from "./treehash.ts";
@@ -153,6 +154,9 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
   const name = basename(dir);
   const manifest = await readJson(join(dir, "pal.json")).catch((e) => { throw new Error(`${name}: pal.json: ${e instanceof Error ? e.message : e}`); });
   if (manifest.name !== name) throw new Error(`${name}: pal.json names it ${JSON.stringify(manifest.name)}; the directory and the manifest must agree`);
+  // The server reads `leaderboards` from the package and the core merges by `sync`: a mistake there is refused here, not found by a player.
+  const bad = [...checkSync(manifest), ...checkLeaderboards(manifest)];
+  if (bad.length) throw new Error(`${name}: pal.json: ${bad.join("; ")}`);
   const cwd = resolve(o.cwd ?? git(dir, "rev-parse", "--show-toplevel") ?? process.cwd());
   const seq = o.seq ?? Number(git(dir, "log", "-1", "--format=%ct"));
   if (!Number.isInteger(seq) || seq <= 0) throw new Error(`${name}: no commit time to use as seq (not in a git checkout?): pass --seq`);

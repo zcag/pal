@@ -10,7 +10,7 @@
 // The typed `defineExtension(manifest, ext)` (index.ts) is the same rule at
 // type level: `ExtensionFor<M>` names the palettes the manifest declares.
 import { badged, checkIcon, TILE_COLORS, type TileColor } from "./icon.ts";
-import { CONTROL_NAMES, type ControlName, type Extension, type LinkParams, type ListPalette, type Manifest, type ManifestLink, type ManifestPalette, type OwnIcon, type Palette, type PaletteKind, type PaletteMeta, type ViewPalette, type ViewTrigger } from "./protocol.ts";
+import { CONTROL_NAMES, type ControlName, type Extension, type LeaderboardSpec, type LinkParams, type ListPalette, type Manifest, type ManifestLink, type ManifestPalette, type OwnIcon, type Palette, type PaletteKind, type PaletteMeta, type SyncMerge, type ViewPalette, type ViewTrigger } from "./protocol.ts";
 
 /** A palette whose `view` is a function draws a tree instead of listing rows. */
 export const isViewPalette = (p: Palette): p is ViewPalette => typeof p.view === "function";
@@ -276,17 +276,6 @@ const ROUTE_NAME = /^[a-z0-9][a-z0-9-]*$/;
 export const LINK_PARAM_TYPES = ["string", "number", "boolean", "json", "string[]"] as const;
 
 /**
- * The manifest's `links` against the code's `link`, one warning per
- * disagreement (`links.<route>: ...`), none when they agree, run on every
- * load like `checkPalettes`: a `links` block with no `link` function
- * (nothing could answer them), a `link` function with no `links` block
- * (nothing can reach it: a route is served only when declared), a route
- * name a link path cannot carry, a param `type` not in
- * `LINK_PARAM_TYPES`. The routes are the manifest's either way; a warned
- * route is still listed, since the settings window shows the warning next
- * to it.
- */
-/**
  * The bar items' `rules` in `pal.json`: each has an id (unique within
  * the item, lowercase letters, digits, _), a `when` string, and does
  * something (hidden, urgent, or an appearance key).
@@ -369,6 +358,100 @@ export function checkControls(manifest: Manifest, ext: Extension): string[] {
   return warnings;
 }
 
+// ---- accounts: synced storage and leaderboards (docs/design/accounts.md) -----
+
+/** How a synced key merges (docs/extensions.md, "Syncing storage"); `local` is the rule that keeps a key off the account. */
+export const SYNC_MERGES: readonly SyncMerge[] = ["max", "min", "union", "sum", "latest"];
+/** A board id: `[a-z0-9_-]` segments joined by `/`, any of which may be `*` in a declaration. */
+const BOARD_ID = /^(\*|[a-z0-9_-]+)(\/(\*|[a-z0-9_-]+))*$/;
+/** A posted board: the same segments, none of them `*`. */
+export const isBoardId = (v: unknown): v is string => typeof v === "string" && v.length <= 128 && BOARD_ID.test(v) && !v.split("/").includes("*");
+
+/**
+ * `sync` in pal.json (docs/design/accounts.md): an object of storage keys,
+ * each a merge (`SYNC_MERGES`), `local`, or `{ fields: { <field>: <rule> } }`
+ * for an object merged field by field, recursively (a field is a merge or
+ * another `fields`, never `local`). One problem per line; none when it is
+ * absent or right. pal-pack refuses a package with any.
+ */
+export function checkSync(manifest: { sync?: unknown }): string[] {
+  const v = manifest.sync;
+  if (v === undefined) return [];
+  if (!v || typeof v !== "object" || Array.isArray(v)) return [`sync: not an object of storage keys and their rules`];
+  const out: string[] = [];
+  const rule = (r: unknown, where: string, local: boolean) => {
+    if (typeof r === "string") {
+      if (!(SYNC_MERGES as readonly string[]).includes(r) && !(local && r === "local")) out.push(`${where}: ${JSON.stringify(r)} is not a rule (${[...SYNC_MERGES, ...(local ? ["local"] : [])].join(", ")}, or { "fields": {...} })`);
+      return;
+    }
+    const f = (r as { fields?: unknown } | null)?.fields;
+    if (!r || typeof r !== "object" || Array.isArray(r) || Object.keys(r).length !== 1 || !f || typeof f !== "object" || Array.isArray(f)) {
+      out.push(`${where}: a rule is a string or { "fields": { <field>: <rule> } }`);
+      return;
+    }
+    for (const [k, fr] of Object.entries(f)) rule(fr, `${where}.fields.${k}`, false);
+  };
+  for (const [k, r] of Object.entries(v)) rule(r, `sync.${k}`, true);
+  return out;
+}
+
+/**
+ * `leaderboards` in pal.json: a list of boards, each with a unique `id`
+ * (`[a-z0-9_-]` segments joined by `/`, a segment may be `*`), a `title`
+ * (`{1}`, `{2}` name what the first, second `*` matched, so only as many
+ * as there are), `order` (asc, desc), `format` (points, time, moves), an
+ * optional `period` (all, day, week) and numeric `min` below `max`. One
+ * problem per line; pal-pack refuses a package with any.
+ */
+export function checkLeaderboards(manifest: { leaderboards?: unknown }): string[] {
+  const v = manifest.leaderboards;
+  if (v === undefined) return [];
+  if (!Array.isArray(v)) return [`leaderboards: not a list of boards`];
+  const out: string[] = [];
+  const ids = new Set<string>();
+  v.forEach((b: Record<string, unknown> | null, i) => {
+    const where = `leaderboards.${typeof b?.id === "string" ? b.id : i}`;
+    if (!b || typeof b !== "object" || Array.isArray(b)) return out.push(`${where}: not an object`);
+    const id = b.id;
+    if (typeof id !== "string" || id.length > 128 || !BOARD_ID.test(id)) out.push(`${where}: an id is lowercase letters, digits, "_" and "-", in segments joined by "/" (a segment may be "*")`);
+    else if (ids.has(id)) out.push(`${where}: the id is used twice`);
+    else ids.add(id);
+    const stars = typeof id === "string" ? id.split("/").filter((x) => x === "*").length : 0;
+    if (typeof b.title !== "string" || !b.title.trim()) out.push(`${where}: no title`);
+    else for (const m of b.title.matchAll(/\{(\d+)\}/g)) if (Number(m[1]) < 1 || Number(m[1]) > stars) out.push(`${where}: the title's {${m[1]}} names no "*" segment of the id`);
+    if (!["asc", "desc"].includes(b.order as string)) out.push(`${where}: order is "asc" (lower is better) or "desc" (higher is)`);
+    if (!["points", "time", "moves"].includes(b.format as string)) out.push(`${where}: format is "points", "time" or "moves"`);
+    if (b.period !== undefined && !["all", "day", "week"].includes(b.period as string)) out.push(`${where}: period is "all", "day" or "week"`);
+    for (const k of ["min", "max"] as const) if (b[k] !== undefined && (typeof b[k] !== "number" || !Number.isFinite(b[k]))) out.push(`${where}: ${k} is not a number`);
+    if (typeof b.min === "number" && typeof b.max === "number" && !(b.min < b.max)) out.push(`${where}: min must be below max`);
+  });
+  return out;
+}
+
+/** The declared board a posted one falls under (`stage/*` for `stage/3`), with its title filled in ("Stage 3"); undefined when none matches. */
+export function leaderboardOf(manifest: Manifest, board: string): (LeaderboardSpec & { title: string }) | undefined {
+  if (!isBoardId(board) || !Array.isArray(manifest.leaderboards)) return undefined;
+  const segs = board.split("/");
+  for (const spec of manifest.leaderboards) {
+    const pat = typeof spec?.id === "string" ? spec.id.split("/") : [];
+    if (pat.length !== segs.length || !pat.every((p, i) => p === "*" || p === segs[i])) continue;
+    const matched = segs.filter((_, i) => pat[i] === "*");
+    return { ...spec, title: String(spec.title ?? board).replace(/\{(\d+)\}/g, (all, n) => matched[Number(n) - 1] ?? all) };
+  }
+  return undefined;
+}
+
+/**
+ * The manifest's `links` against the code's `link`, one warning per
+ * disagreement (`links.<route>: ...`), none when they agree, run on every
+ * load like `checkPalettes`: a `links` block with no `link` function
+ * (nothing could answer them), a `link` function with no `links` block
+ * (nothing can reach it: a route is served only when declared), a route
+ * name a link path cannot carry, a param `type` not in
+ * `LINK_PARAM_TYPES`. The routes are the manifest's either way; a warned
+ * route is still listed, since the settings window shows the warning next
+ * to it.
+ */
 export function checkLinks(manifest: Manifest, ext: Extension): string[] {
   const warnings: string[] = [];
   const links = manifest.links;
