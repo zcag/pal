@@ -115,6 +115,8 @@ jobs:
         run: |
           (cd app && npm ci)
           bun install --frozen-lockfile
+          # Their tests reach pal through `.pal` (their `make setup` links it): here, this checkout.
+          for r in .ext/*/; do ln -sfn ../.. "$r.pal"; done
           for d in .ext/*/*/; do
             if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
           done
