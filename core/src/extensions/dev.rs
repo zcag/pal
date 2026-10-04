@@ -67,7 +67,7 @@ mod tests {
         std::fs::create_dir_all(t.path().join("pal-games/snake")).unwrap();
         std::fs::write(t.path().join("pal-games/snake/pal.json"), "{}").unwrap();
         let games = Repo { dir: pal.join("../pal-games"), shots: pal.join("../pal-games/test/shots") };
-        assert_eq!(repos_from(&pal, None), [games.clone()]);
+        assert_eq!(repos_from(&pal, None), [games]);
         assert_eq!(extensions(&repos_from(&pal, None)), [("snake".to_string(), pal.join("../pal-games/snake"))]);
         // The list is taken as given, and never falls back.
         let other = t.path().join("elsewhere");
