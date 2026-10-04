@@ -164,6 +164,56 @@
           "color": "muted"
         }
       ]
+    },
+    "playing": {
+      "title": "Playing",
+      "description": "Whatever plays, for the glance strip: the Apple TV, Spotify, a browser tab, the newest one leading with its cover, \"artist · where\" and a progress bar, a second one as an \"also\" line. Never on a strip (put it on one by giving it a target in Settings › Bar); ⌥N or a click opens the lead's own view.",
+      "strip": false,
+      "refresh": {
+        "every": 30,
+        "on": [
+          "show",
+          "wake",
+          "media"
+        ]
+      },
+      "mocks": {
+        "one": {
+          "title": "One playing",
+          "item": {
+            "icon": "",
+            "title": "Mr. Blue Sky",
+            "tooltip": "Pomplamoose · YouTube on Living Room",
+            "progress": 0.42
+          }
+        },
+        "two": {
+          "title": "Two playing (an also line)",
+          "item": {
+            "icon": "",
+            "title": "Mr. Blue Sky",
+            "tooltip": "Pomplamoose · YouTube on Living Room",
+            "progress": 0.42,
+            "glance": {
+              "lines": [
+                {
+                  "text": "also: Weird Fishes · Spotify",
+                  "action": "open:spotify"
+                }
+              ]
+            }
+          }
+        },
+        "paused": {
+          "title": "Nothing playing, the last one paused",
+          "item": {
+            "icon": "",
+            "title": "Mr. Blue Sky",
+            "tooltip": "Pomplamoose · YouTube on Living Room",
+            "color": "muted"
+          }
+        }
+      }
     }
   },
   "license": "MIT",
@@ -173,12 +223,13 @@
     "features": [
       "One row per player with the track, artist, cover and progress",
       "Every player the system knows about on macOS (a browser, VLC), and MPRIS players on Linux",
-    "What your other extensions play comes first: a show on the Apple TV, Spotify on another device, Jellyfin; `enter` opens that extension's own view",
-    "The bar item leaves alone a playback another extension's own item already shows, so nothing is on the bar twice",
+      "What your other extensions play comes first: a show on the Apple TV, Spotify on another device, Jellyfin; `enter` opens that extension's own view",
+      "The bar item leaves alone a playback another extension's own item already shows, so nothing is on the bar twice",
       "`enter` plays or pauses, `cmd+right` and `cmd+left` skip",
       "`cmd+c` copies `artist - title`, `cmd+o` opens the track or the app",
       "The playing track is found from the root by its title or artist",
-      "A bar item with the track; its popover shows the cover, progress and controls"
+      "A bar item with the track; its popover shows the cover, progress and controls",
+      "One Playing card on the glance strip for whatever plays, the newest first, with an \"also\" line for a second"
     ],
     "permissions": [
       "automation"

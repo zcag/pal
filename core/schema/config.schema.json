@@ -786,7 +786,7 @@
         "glance": {
           "default": [
             "calendar/upcoming",
-            "spotify/playing",
+            "media/playing",
             "gmail/unread",
             "weather/weather"
           ],
@@ -1283,7 +1283,7 @@
         "fallbacks_always": false,
         "glance": [
           "calendar/upcoming",
-          "spotify/playing",
+          "media/playing",
           "gmail/unread",
           "weather/weather"
         ],

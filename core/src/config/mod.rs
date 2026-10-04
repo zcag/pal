@@ -306,7 +306,7 @@ impl Default for General {
             theme: Theme::System,
             theme_file: String::new(),
             design: "ink".into(),
-            glance: ["calendar/upcoming", "spotify/playing", "gmail/unread", "weather/weather"].map(String::from).to_vec(),
+            glance: ["calendar/upcoming", "media/playing", "gmail/unread", "weather/weather"].map(String::from).to_vec(),
             compact: false,
             launch_at_login: false,
             menu_bar_icon: true,

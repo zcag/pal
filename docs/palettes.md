@@ -2428,6 +2428,19 @@ Settings, `[extensions.media]`:
 | --- | --- | --- |
 | Cover on the bar (`artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
 
+**The Playing card** (`media/playing`, a glance-only item: `"strip":
+false`, in the default `general.glance`): one card for whatever plays,
+published players and the system's alike, a provider's own bar item
+showing it or not (the card is no strip, so nothing doubles). The one
+that started playing last leads: its track (the app when it names
+none), "artist · where" under it, its cover, its progress along the
+foot, rendered every 10 s while it plays. A second playing one is an
+"also: Weird Fishes · Spotify" line, a third and more "+N more"; with
+nothing playing the last paused one leads, muted; nothing at all is no
+card. The card's click and its ⌥N open the lead's own view (the Apple
+TV's remote, Spotify's lyrics, this palette for a system player); an
+also line opens that player's, "+N more" this palette.
+
 ## Displays (`displays`, `displays/brightness`)
 
 Every display with its mode and brightness, from `extensions/displays/`.

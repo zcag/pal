@@ -341,7 +341,7 @@ function listen() {
   liveView.onShown((ev) => { if (ev.bar === ITEM) startTick(); }, EXTENSION);
   liveView.onHidden((ev) => { if (ev.bar === ITEM) stopTick(); }, EXTENSION);
   // A published player moved (a track, a pause, its own item showing or not): the strip looks again.
-  try { controls.onChange((c) => { if (c.control === "player") bar.refresh(ITEM, EXTENSION).catch(() => {}); }, EXTENSION); } catch {}
+  try { controls.onChange((c) => { if (c.control === "player") for (const id of [ITEM, GLANCE]) bar.refresh(id, EXTENSION).catch(() => {}); }, EXTENSION); } catch {}
 }
 
 /**
@@ -370,6 +370,79 @@ async function renderBar(ctx?: BarCtx): Promise<BarItem> {
   try { np = await nowPlaying(); } catch { np = undefined; }
   follow(np);
   return np ? playingItem(np) : barItem(undefined, undefined, false);
+}
+
+// ---- the glance card: whatever plays (`playing`, `strip: false`) ------------------------
+
+const GLANCE = "playing";
+/** Per player id: whether it played at the last look and since when (the start of that playing), so the card leads with the newest. */
+export type Seen = Map<string, { playing: boolean; since: number }>;
+const seen: Seen = new Map();
+
+/**
+ * The card's players, lead first: every playing one by when it started,
+ * newest first; with none playing, the paused ones the same way (the
+ * last thing that played leads, muted). Every player is counted, the
+ * ones whose own bar item shows included: the card is not a strip, so
+ * nothing doubles. `seen` is updated in place.
+ */
+export function cardOrder(players: Player[], seen: Seen, at = now()): Player[] {
+  const live = players.filter((p) => !excluded(p) && (p.state === "playing" || p.state === "paused"));
+  for (const id of seen.keys()) if (!live.some((p) => p.id === id)) seen.delete(id);
+  for (const p of live) {
+    const was = seen.get(p.id), playing = p.state === "playing";
+    seen.set(p.id, { playing, since: playing && !was?.playing ? at : was?.since ?? 0 });
+  }
+  const newest = (a: Player, b: Player) => (seen.get(b.id)?.since ?? 0) - (seen.get(a.id)?.since ?? 0);
+  const playing = live.filter((p) => p.state === "playing").sort(newest);
+  return playing.length ? playing : live.sort(newest);
+}
+
+/** Where a player's own view is: its provider's Now Playing, else this extension's (a system player). */
+const viewOf = (p: Player): { palette: string; extension?: string } => (p.ext?.palette ? { palette: p.ext.palette, extension: p.ext.key } : { palette: "media" });
+
+/**
+ * The card: the lead's track (the app when it names none) with "artist ·
+ * where" under it, its cover, its progress; the item's menu is the lead's
+ * own view (the Apple TV's remote, Spotify's lyrics), so ⌥N and a click
+ * open it. A second playing one is an "also" line that opens its own,
+ * a third and more a "+N more" line onto the Now Playing list.
+ */
+export function glanceItem(list: Player[], cover: string | undefined, at = now()): BarItem {
+  const [lead, ...rest] = list;
+  if (!lead) return { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "Nothing playing" } };
+  const others = lead.state === "playing" ? rest : [];
+  const pos = positionAt(lead, at, at);
+  const lines = [
+    ...others.slice(0, 1).map((p) => ({ text: `also: ${p.title ?? p.name} · ${whereOf(p)}`, action: `open:${p.id}` })),
+    ...(others.length > 1 ? [{ text: `+${others.length - 1} more`, action: "open:all" }] : []),
+  ];
+  return {
+    icon: cover && /^(data:image\/|icon:\/\/)/.test(cover) ? { image: cover } : BAR_GLYPH,
+    title: (lead.title ?? lead.name).slice(0, 40),
+    tooltip: lead.title ? [lead.artist, whereOf(lead)].filter(Boolean).join(" · ") || whereOf(lead) : lead.state === "playing" ? `Playing on ${whereOf(lead)}` : `Paused on ${whereOf(lead)}`,
+    ...(lead.state !== "playing" && { color: "muted" as const }),
+    ...(pos !== undefined && lead.duration ? { progress: Math.min(1, Math.max(0, pos / lead.duration)) } : {}),
+    // The position moves: a look every few seconds while it plays, so the foot keeps up.
+    ...(lead.state === "playing" && { refresh: 10 }),
+    menu: viewOf(lead),
+    ...(lines.length && { glance: { lines } }),
+  };
+}
+
+async function renderGlance(): Promise<BarItem> {
+  listen();
+  let np: Playing;
+  try { np = await nowPlaying(); } catch { return glanceItem([], undefined); }
+  const list = cardOrder(np.players, seen);
+  return glanceItem(list, list[0] ? await popoverCover(list[0], await coverOf(list[0])) : undefined);
+}
+
+/** An "also" line: that player's own view; "+N more": the Now Playing list. */
+async function glanceAction(action: string): Promise<Effect> {
+  const id = action.startsWith("open:") ? action.slice(5) : "all";
+  const p = id === "all" ? undefined : (await nowPlaying()).players.find((x) => x.id === id);
+  return { push: { extension: p ? viewOf(p).extension ?? EXTENSION : EXTENSION, palette: p ? viewOf(p).palette : "media" } };
 }
 
 async function barAction(action: string): Promise<Effect> {
@@ -419,6 +492,7 @@ export default {
   },
   bar: {
     [ITEM]: { render: renderBar, onAction: barAction },
+    [GLANCE]: { render: renderGlance, onAction: glanceAction },
   },
   dispose: () => { clearInterval(poll); stopTick(); },
 } satisfies Extension;
