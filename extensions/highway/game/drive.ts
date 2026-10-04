@@ -28,6 +28,9 @@ export type DriveEvents = {
 /** Why a run ended: a crash, the clock (Time Attack), too slow for too long (Speed Trap). */
 export type End = "crash" | "time" | "slow";
 
+/** A run packed for storage (`Drive.pack`). */
+export type Packed = { car: string; up: Upgrades; mode: ModeId; drive: object; veh: object; traffic: object; director: object; score: object };
+
 /** A car's footprint: width and length, m. */
 export type Size = { x: number; z: number };
 
@@ -61,6 +64,25 @@ export class Drive {
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: car.top / 3.6, rnd: () => this.rnd(), density: o.density ?? 1 });
     this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
+  }
+
+  /** The run as plain data, to carry it over a reload: pal may drop a hidden page, and the page saves this when it hides. */
+  pack(): Packed {
+    const data = (o: object, skip: string[] = []) => JSON.parse(JSON.stringify(Object.fromEntries(Object.entries(o).filter(([k]) => !skip.includes(k)))));
+    return {
+      car: this.car.id, up: this.up, mode: this.mode,
+      drive: data(this, ["layout", "car", "up", "size", "sizeOf", "events", "veh", "traffic", "director", "score", "mode"]),
+      veh: data(this.veh, ["spec"]), traffic: data(this.traffic), director: data(this.director, ["o"]), score: data(this.score),
+    };
+  }
+
+  /** Carry on from `pack()`; the car and mode must be the ones it was packed with. */
+  unpack(p: Packed) {
+    Object.assign(this, p.drive);
+    Object.assign(this.veh, p.veh);
+    Object.assign(this.traffic, p.traffic);
+    Object.assign(this.director, p.director);
+    Object.assign(this.score, p.score);
   }
 
   rnd() { return (this.seed = (this.seed * 16807) % 2147483647) / 2147483647; }

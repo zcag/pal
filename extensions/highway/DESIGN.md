@@ -76,8 +76,8 @@ more, and the end of a run counts it up line by line.
   peak of your best combo, time above 150 km/h, time in the oncoming lane, and
   threading a gap; the place and the mode multiply it. The first run of each
   day pays double.
-- **XP** is the score divided by 20, plus whatever missions you finish; level 2
-  takes 400, each level after about 16% more.
+- **XP** is the score divided by 80, plus whatever missions you finish; level 2
+  takes 300, each level after 14% more. A level pays 150 times its number.
 
 ### Driver level
 

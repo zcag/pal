@@ -5,10 +5,10 @@ import type { Score } from "./score.ts";
 
 export const MAX_LEVEL = 40;
 
-/** XP from one level to the next: 400 at first (a run or two), about 16% more each level. */
-export const xpFor = (level: number) => Math.round((400 * Math.pow(1.16, level - 1)) / 50) * 50;
-/** XP a run's score is worth. */
-export const xpOfPoints = (points: number) => Math.round(points / 20);
+/** XP from one level to the next: 300 at first (a run or two), 14% more each level. */
+export const xpFor = (level: number) => Math.round((300 * Math.pow(1.14, level - 1)) / 50) * 50;
+/** XP a run's score is worth: a good first run (about 25,000 points) is most of level 2. */
+export const xpOfPoints = (points: number) => Math.round(points / 80);
 
 /** What a level opens. A level with nothing listed still pays its cash. */
 export type Unlock = { kind: "mode" | "place" | "paints"; id: string; name: string };
@@ -25,7 +25,7 @@ export const UNLOCKS: Record<number, Unlock[]> = {
   25: [{ kind: "paints", id: "deep", name: "Deep paints" }],
 };
 /** Cash a level pays on reaching it. */
-export const levelCash = (level: number) => 400 * level;
+export const levelCash = (level: number) => 150 * level;
 
 /** Everything opened at or below a level. */
 export function unlocked(level: number) {
@@ -60,11 +60,11 @@ const TEMPLATES: Template[] = [
   { kind: "misses", text: (n) => `Pass ${n} cars closely in one run`, target: (t) => 6 + 4 * t, value: (r) => r.misses },
   { kind: "combo", text: (n) => `Reach a ×${n} combo`, target: (t) => 3 + 2 * t, value: (r) => r.bestCombo },
   { kind: "distance", text: (n) => `Drive ${n} km in one run`, target: (t) => 2 + 1.5 * t, value: (r) => r.distance / 1000 },
-  { kind: "paint", text: (n) => `${n} paint traders in one run`, target: (t) => 1 + t, value: (r) => r.paint },
+  { kind: "paint", text: (n) => `${n} paint trader${n === 1 ? "" : "s"} in one run`, target: (t) => 1 + t, value: (r) => r.paint },
   { kind: "doubles", text: (n) => (n === 1 ? "Thread a gap between two cars" : `Thread the gap ${n} times in one run`), target: (t) => 1 + Math.floor(t / 2), value: (r) => r.doubles, minLevel: 2 },
   { kind: "speed", text: (n) => `Reach ${n} km/h`, target: (t, top) => Math.min(Math.round(top * 0.98 / 5) * 5, 150 + 15 * t), value: (r) => r.topSpeed },
   { kind: "points", text: (n) => `Score ${n.toLocaleString("en-US")} in one run`, target: (t) => Math.round((15000 * Math.pow(1.6, t)) / 1000) * 1000, value: (r) => r.points },
-  { kind: "nitro", text: (n) => `Light the nitro ${n} times in one run`, target: (t) => 1 + t, value: (r) => r.nitroUses },
+  { kind: "nitro", text: (n) => (n === 1 ? "Light the nitro in a run" : `Light the nitro ${n} times in one run`), target: (t) => 1 + t, value: (r) => r.nitroUses },
   { kind: "oncoming", text: (n) => `${n} s in the oncoming lane in one Two-Way run`, target: (t) => 10 + 8 * t, value: (r) => (r.mode === "twoway" ? r.oncomingTime : 0), minLevel: 2 },
 ];
 
@@ -80,7 +80,7 @@ export function newMission(level: number, topSpeed: number, held: Mission[], rnd
   const tier = tierOf(level);
   const target = Math.round(t.target(tier, topSpeed) * 10) / 10;
   const scale = 1 + tier * 0.6;
-  return { kind: t.kind, text: t.text(target), target, reward: { cash: Math.round((600 * scale) / 50) * 50, xp: Math.round((500 * scale) / 50) * 50 } };
+  return { kind: t.kind, text: t.text(target), target, reward: { cash: Math.round((600 * scale) / 50) * 50, xp: Math.round((150 * scale) / 50) * 50 } };
 }
 
 /** How far a run took a mission (0..1); 1 is done. */
