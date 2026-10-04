@@ -1,9 +1,12 @@
 // 2048: the rules (game.ts, pure) on rigged boards, the tree (render.ts),
 // and the extension over the wire: a view palette's meta, its opening
-// tree, picks that answer trees and persist the state, the undo setting.
+// tree, picks that answer trees and persist the state, the undo setting;
+// the storage split for sync (and the old blob taken apart), the scores
+// posted when a game ends, the sign-in hint at game over.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import { DEFAULTS, SIZE, actions, apply, canMove, isState, newGame, phase, slide, slideLine, spawn, type Board, type State } from "../../../extensions/2048/game.ts";
+import { finished } from "../../../extensions/2048/index.ts";
 import { TILE, lookOf, render } from "../../../extensions/2048/render.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
@@ -241,43 +244,101 @@ describe("render", () => {
 
 describe("over the wire", () => {
   let host: Host;
-  beforeAll(async () => { stored.clear(); host = await Host.bundled(); });
+  let signedIn = true;
+  const key = (k: string) => `2048\0${k}`;
+  const game = () => stored.get(key("game")) as State;
+  const posts = () => host.coreCalls.filter((c) => c.method === "leaderboard.post").map((c) => c.params);
+  beforeAll(async () => {
+    stored.clear();
+    host = await Host.bundled({ only: ["2048"], core: { "account.get": () => ({ signedIn, handle: null }), "account.signIn": () => null, "leaderboard.post": (p: { value: number }) => ({ best: p.value, rank: 1, total: 1 }) } });
+  });
   afterAll(() => host.kill());
 
   test("a view palette is input on the wire with view: view", async () => {
     const l = host.loaded().find((l) => l.extension === "2048")!;
     expect(l.palettes).toEqual([{ name: "2048", title: "2048", live: false, input: true, icon: tile("amber", { svg: "M2 2h5.5v5.5H2zM8.5 2H14v5.5H8.5zM2 8.5h5.5V14H2zM8.5 8.5H14V14H8.5z" }), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
+    expect(l.warnings).toEqual([]);
   });
-  test("view answers the opening tree and stores the fresh game", async () => {
+  test("view answers the opening tree and stores the fresh game, the count apart from the board", async () => {
     await expect(host.request("list", { extension: "2048", palette: "2048" })).rejects.toThrow("view palette has no list");
     const v = await host.request<View>("view", { extension: "2048", palette: "2048" });
     expect(v.title).toBe("New game");
     expect(find(v.tree, (n) => n.type === "tile")).toHaveLength(16);
-    const st = stored.get("2048\0state") as State;
-    expect(isState(st)).toBe(true);
-    expect(st.board.filter(Boolean)).toHaveLength(2);
+    expect(game().board.filter(Boolean)).toHaveLength(2);
+    expect(game()).not.toHaveProperty("best");
+    expect(stored.get(key("games"))).toBe(1);
   });
   test("a pick answers the next tree and persists the state; undo follows the setting", async () => {
     // Rig a board so the move is certain to change it.
-    const rigged = state([2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    stored.set("2048\0state", rigged);
+    const { best: _b, games: _g, ...rigged } = state([2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    stored.set(key("game"), rigged);
+    stored.set(key("best"), 0);
     const r = await host.pick("2048", "2048", "view", "left");
     const v = r.view as View;
     expect(v.title).toBe("Score 4");
-    const st = stored.get("2048\0state") as State;
-    expect(st.moves).toBe(1);
-    expect(st.board[0]!.v).toBe(4);
+    expect(game().moves).toBe(1);
+    expect(game().board[0]!.v).toBe(4);
+    expect(stored.get(key("best"))).toBe(4);
+    expect(stored.get(key("top"))).toBe(4);
     expect(v.actions.some((a) => a.id === "undo")).toBe(true);
     const same = await host.pick("2048", "2048", "view", "hologram");
     expect((same.view as View).title).toBe("Score 4");
-    expect((stored.get("2048\0state") as State).moves).toBe(1);
+    expect(game().moves).toBe(1);
     host.changeSettings("2048", { settings: { undo: false } });
     const noUndo = await host.pick("2048", "2048", "view", "undo");
     expect((noUndo.view as View).actions.some((a) => a.id === "undo")).toBe(false);
-    expect((stored.get("2048\0state") as State).moves).toBe(1);
+    expect(game().moves).toBe(1);
     host.changeSettings("2048", { settings: { undo: true } });
     const back = await host.pick("2048", "2048", "view", "undo");
     expect((back.view as View).title).toBe("New game");
-    expect((stored.get("2048\0state") as State).moves).toBe(0);
+    expect(game().moves).toBe(0);
+    // Undo never lowers a best: the stored one is the larger of what any machine reached.
+    expect(stored.get(key("best"))).toBe(4);
+  });
+  test("a value sync brought in is what the next move builds on", async () => {
+    stored.set(key("best"), 90_000);
+    stored.set(key("games"), 12);
+    const v = (await host.pick("2048", "2048", "view", "left")).view as View;
+    expect(find(v.tree, (n) => n.type === "text" && n.value === "90,000")).toHaveLength(1);
+    expect(stored.get(key("best"))).toBe(90_000);
+  });
+  test("a store from before the split is taken apart on the first read, nothing lost", async () => {
+    for (const k of ["game", "best", "games", "top"]) stored.delete(key(k));
+    const old = state([1024, 512, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { score: 7000, best: 20_000, games: 9 });
+    stored.set(key("state"), old);
+    const v = await host.request<View>("view", { extension: "2048", palette: "2048" });
+    expect(v.title).toBe("New game");
+    expect(stored.has(key("state"))).toBe(false);
+    expect(game().score).toBe(7000);
+    expect(values(game().board).slice(0, 2)).toEqual([1024, 512]);
+    expect([stored.get(key("best")), stored.get(key("games")), stored.get(key("top"))]).toEqual([20_000, 9, 1024]);
+  });
+  test("a game's score and highest tile are posted when it ends, and when New game leaves one with a score", async () => {
+    const over = state([2, 4, 2, 4, 4, 2, 4, 2, 2, 4, 2, 4, 4, 2, 4, 4], { score: 300 });
+    expect(finished(over, apply(over, "left", DEFAULTS, first))).toEqual({ score: 308, tile: 8 });
+    const mid = state([2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { score: 40 });
+    expect(finished(mid, apply(mid, "left", DEFAULTS, first))).toBeNull();
+    expect(finished(mid, apply(mid, "new", DEFAULTS, first), "new")).toEqual({ score: 40, tile: 2 });
+    expect(finished(state(Array(16).fill(0)), newGame(undefined, first), "new")).toBeNull();
+
+    const { best: _b, games: _g, ...rigged } = over;
+    stored.set(key("game"), rigged);
+    const from = posts().length;
+    const v = (await host.pick("2048", "2048", "view", "left")).view as View;
+    expect(v.title).toBe("Game over");
+    await host.until(() => posts().length === from + 2, 3000, "the posts");
+    expect(posts().slice(from)).toEqual([{ extension: "2048", board: "score", value: 308 }, { extension: "2048", board: "tile", value: 8 }]);
+    expect(v.actions.some((a) => a.id === "signin")).toBe(false);
+  });
+  test("signed out, game over offers to sign in, and s opens it", async () => {
+    signedIn = false;
+    try {
+      const v = await host.request<View>("view", { extension: "2048", palette: "2048" });
+      expect(v.actions.find((a) => a.id === "signin")).toMatchObject({ title: "Sign in to keep your scores", shortcut: "s" });
+      checkView(v);
+      const before = host.coreCalls.filter((c) => c.method === "account.signIn").length;
+      await host.pick("2048", "2048", "view", "signin");
+      expect(host.coreCalls.filter((c) => c.method === "account.signIn")).toHaveLength(before + 1);
+    } finally { signedIn = true; }
   });
 });

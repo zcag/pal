@@ -66,7 +66,8 @@ function cell(st: State, i: number): ViewNode {
   return { type: "stack", key: `cell${i}`, minHeight: TILE, children: [inner] };
 }
 
-export function render(st: State, s: Settings): View {
+/** `signIn`: the player is signed out, so game over offers to sign in and keep the scores. */
+export function render(st: State, s: Settings, signIn = false): View {
   const ph = phase(st);
   const board = column(
     Array.from({ length: SIZE }, (_, r) => row(Array.from({ length: SIZE }, (_, c) => cell(st, r * SIZE + c)), { key: `row${r}`, gap: 2, minHeight: TILE })),
@@ -101,7 +102,7 @@ export function render(st: State, s: Settings): View {
     title = "Game over";
     line = [
       text("Game over", { key: "over", style: "title", color: "destructive", transition: { enter: "slide-up" } }),
-      row([...hint(["enter"], "new game"), ...(st.prev && s.undo ? hint(["u"], "undo") : [])], { key: "over-keys", gap: 1, transition: { enter: "fade" } }),
+      row([...hint(["enter"], "new game"), ...(st.prev && s.undo ? hint(["u"], "undo") : []), ...(signIn ? hint(["s"], "sign in") : [])], { key: "over-keys", gap: 1, transition: { enter: "fade" } }),
     ];
   } else {
     title = st.moves ? `Score ${num(st.score)}` : "New game";
@@ -114,6 +115,7 @@ export function render(st: State, s: Settings): View {
     { key: "table", grow: true, align: "center", justify: "center" },
   );
 
-  const acts = legal(st, s).map((m) => (m === "new" && ph === "play" && st.moves ? { ...MOVES.new, confirm: "Start a new game? The board and the score are lost." } : MOVES[m]));
+  const acts: Action[] = legal(st, s).map((m) => (m === "new" && ph === "play" && st.moves ? { ...MOVES.new, confirm: "Start a new game? The board and the score are lost." } : MOVES[m]));
+  if (signIn && ph === "over") acts.push({ id: "signin", title: "Sign in to keep your scores", shortcut: "s" });
   return { tree, actions: acts, title, keys: "actions" };
 }
