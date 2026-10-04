@@ -228,7 +228,7 @@
   "bar": {
     "tv": {
       "title": "Samsung TV",
-      "description": "The app on the Samsung TV's screen while it is on, hidden in standby. The popover is the remote: the arrows, the buttons, the volume, the inputs and the dock on the digits.",
+      "description": "The app on the Samsung TV's screen, hidden while the TV shows another device's input and in standby. The popover is the remote: the arrows, the buttons, the volume, the inputs and the dock on the digits.",
       "refresh": {
         "every": 60,
         "on": [
@@ -288,18 +288,18 @@
           "kind": "select",
           "id": "when",
           "label": "Show",
-          "description": "Whenever the TV is on (its name when no app is in front), or only while an app is.",
+          "description": "Only while an app runs on the TV itself (on another device's input, like an Apple TV, that device's own item says what plays), or whenever the TV is on.",
           "options": [
-            {
-              "id": "on",
-              "title": "While the TV is on"
-            },
             {
               "id": "app",
               "title": "While an app is on screen"
+            },
+            {
+              "id": "on",
+              "title": "While the TV is on"
             }
           ],
-          "default": "on"
+          "default": "app"
         }
       ],
       "mocks": {

@@ -16,7 +16,7 @@ import {
 } from "./tv.ts";
 import type { App, Input, Key, Press } from "./types.ts";
 
-let barCfg: BarSettings = { when: "on" };
+let barCfg: BarSettings = { when: "app" };
 
 // ---- the remote ----------------------------------------------------------------------------------------
 
