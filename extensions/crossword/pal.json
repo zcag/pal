@@ -24,6 +24,33 @@
     "cumhuriyet",
     "sabah"
   ],
+  "sync": {
+    "counts": { "fields": {
+      "crosshare": {"fields": {"solved": "sum", "clean": "sum", "ms": "sum"}},
+      "haberturk": {"fields": {"solved": "sum", "clean": "sum", "ms": "sum"}},
+      "cumhuriyet": {"fields": {"solved": "sum", "clean": "sum", "ms": "sum"}},
+      "sabah": {"fields": {"solved": "sum", "clean": "sum", "ms": "sum"}}
+    } },
+    "best": { "fields": {
+      "crosshare": "min",
+      "haberturk": "min",
+      "cumhuriyet": "min",
+      "sabah": "min"
+    } },
+    "days": { "fields": {
+      "crosshare": "union",
+      "haberturk": "union",
+      "cumhuriyet": "union",
+      "sabah": "union"
+    } },
+    "seeded": "local"
+  },
+  "leaderboards": [
+    {"id": "crosshare/*", "title": "Crosshare, {1}", "order": "asc", "format": "time", "min": 1, "max": 86400},
+    {"id": "haberturk/*", "title": "HaberTürk, {1}", "order": "asc", "format": "time", "min": 1, "max": 86400},
+    {"id": "cumhuriyet/*", "title": "Cumhuriyet, {1}", "order": "asc", "format": "time", "min": 1, "max": 86400},
+    {"id": "sabah/*", "title": "Sabah, {1}", "order": "asc", "format": "time", "min": 1, "max": 86400}
+  ],
   "settings": [
     {
       "kind": "select",
@@ -84,7 +111,8 @@
       "Turkish letters typed on a US keyboard: `c` where Ç goes shows Ç",
       "Check or reveal a square, a word or the grid; a clock that runs only while the grid is on screen",
       "A calendar of past puzzles per source, marked solved, started or new",
-      "Stats per source: best and average times, daily streaks, a chart of recent solves"
+      "Stats per source: best and average times, daily streaks, a chart of recent solves",
+      "A dated puzzle solved without a reveal goes on its own leaderboard; signed in to a pal account, the stats and streaks follow you to every machine"
     ],
     "permissions": [
       "network"
