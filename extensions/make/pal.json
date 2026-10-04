@@ -16,6 +16,7 @@
     {
       "kind": "list",
       "id": "projects",
+      "local": true,
       "label": "Project folders",
       "description": "Folders scanned two levels deep for a Makefile, makefile or GNUmakefile. ~ is expanded.",
       "placeholder": "~/proj",

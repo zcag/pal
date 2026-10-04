@@ -34,6 +34,7 @@
     {
       "kind": "list",
       "id": "agent_dirs",
+      "local": true,
       "label": "Agent folders (macOS)",
       "description": "Where the launchd agent plists are read from; the first is yours, the second every user's.",
       "default": [

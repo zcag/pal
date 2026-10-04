@@ -16,6 +16,7 @@
     {
       "kind": "list",
       "id": "folders",
+      "local": true,
       "label": "Folders",
       "description": "Where to search. `~` is expanded.",
       "placeholder": "~/Documents",

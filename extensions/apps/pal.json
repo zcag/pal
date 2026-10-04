@@ -16,6 +16,7 @@
     {
       "kind": "list",
       "id": "folders",
+      "local": true,
       "label": "Extra folders",
       "description": "Scanned in addition to the system's application folders.",
       "placeholder": "/path/to/apps",
