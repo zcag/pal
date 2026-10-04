@@ -43,6 +43,69 @@
       "default": true
     }
   ],
+  "sync": {
+    "state": "local",
+    "records": {
+      "fields": {
+        "beginner": {
+          "fields": {
+            "played": "sum",
+            "won": "sum"
+          }
+        },
+        "intermediate": {
+          "fields": {
+            "played": "sum",
+            "won": "sum"
+          }
+        },
+        "expert": {
+          "fields": {
+            "played": "sum",
+            "won": "sum"
+          }
+        }
+      }
+    },
+    "best-beginner": "min",
+    "best-intermediate": "min",
+    "best-expert": "min"
+  },
+  "leaderboards": [
+    {
+      "id": "daily",
+      "title": "Daily board",
+      "order": "asc",
+      "format": "time",
+      "period": "day",
+      "min": 1,
+      "max": 86400
+    },
+    {
+      "id": "beginner",
+      "title": "Beginner",
+      "order": "asc",
+      "format": "time",
+      "min": 0.2,
+      "max": 86400
+    },
+    {
+      "id": "intermediate",
+      "title": "Intermediate",
+      "order": "asc",
+      "format": "time",
+      "min": 1,
+      "max": 86400
+    },
+    {
+      "id": "expert",
+      "title": "Expert",
+      "order": "asc",
+      "format": "time",
+      "min": 5,
+      "max": 86400
+    }
+  ],
   "store": {
     "tagline": "Classic Minesweeper, by mouse or one hand on the arrows",
     "category": "fun",
@@ -51,7 +114,8 @@
       "Mouse as in the original: click opens, right-click flags, both buttons open around a number",
       "One hand: the arrows move, `enter` opens, `/` flags, `n` starts over, `d` picks the level",
       "The first click is always safe; beginner, intermediate and expert, each with a best time",
-      "Leave at any point and the game waits, across restarts; `t` hides the clock"
+      "Leave at any point and the game waits, across restarts; `t` hides the clock",
+      "A daily board, the same mines for everyone that day (`Y`); signed in to pal, your record and best times follow you, and wins go on leaderboards: the day's fastest and the fastest at each level"
     ],
     "permissions": [],
     "platforms": [
@@ -98,6 +162,11 @@
         "keys": "n"
       },
       {
+        "title": "Daily board",
+        "description": "Intermediate, the same mines for everyone until midnight UTC; the first open is the middle. A win goes on the day's board. Asks first mid-game.",
+        "keys": "y"
+      },
+      {
         "title": "Difficulty",
         "description": "The level picker: left and right choose, Enter takes it (asking first mid-game), D again closes it.",
         "keys": "d"
@@ -131,6 +200,10 @@
         {
           "keys": "n",
           "title": "New game, asking first mid-game"
+        },
+        {
+          "keys": "y",
+          "title": "The daily board, asking first mid-game"
         },
         {
           "keys": "d",

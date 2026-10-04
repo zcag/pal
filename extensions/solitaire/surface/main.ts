@@ -8,19 +8,22 @@
 // and sends them out row by row, a win bounces them off the foundations
 // leaving trails on a canvas.
 //
-// The state persists whole in the extension's storage (`state`, the key
-// the host side's storage reads) after every change, so Escape mid-game
-// loses nothing. The clock counts only while the page is shown: the time
+// The state persists in the extension's storage after every change
+// (progress.ts: the deal stays on this machine, the record and the bests
+// sync), so Escape mid-game loses nothing; a record sync brought in
+// replaces the one in memory. A win goes to its boards (`pal.score`), and
+// the won table says where it ranks. Y deals the daily deal, the same
+// cards for everyone that UTC day. The clock counts only while the page is shown: the time
 // since it was shown (or since the last change) is folded in at every
 // change and when it is hidden. The `clock` setting (T, ⌘K) only hides it
 // from the rail.
-import { DEFAULTS, F, RANKS, SUITS, SUIT_GLYPH, STOCK, WASTE, apply, canFinish, clock, finishStep, headline, isFoundation, isState, newGame, play, refusal, run, running, suitOf, type Action, type Card, type Settings, type State } from "../game.ts";
+import { DEFAULTS, F, RANKS, SUITS, SUIT_GLYPH, STOCK, WASTE, apply, canFinish, clock, dailyDeal, finishStep, headline, isFoundation, isState, play, refusal, run, running, suitOf, utcDay, type Action, type Card, type Settings, type State } from "../game.ts";
+import { KEYS as STORED, changes, restore, scores, type Key, type Saved } from "../progress.ts";
 import { dropBox, geometry, layout, overlap, slot, topBox, type Box, type Layout } from "./layout.ts";
 import type { SurfaceKit } from "@zcag/pal";
 
 declare const pal: SurfaceKit;
 
-const KEY = "state";
 /** A card's glide (style.css `--move`); the deal's step between two cards; the finish's between two cards home. */
 const MOVE = 240, DEAL_STEP = 34, FINISH_STEP = 110;
 
@@ -166,10 +169,10 @@ function status() {
   const { played, won } = st.stats;
   $("record").textContent = played ? `${won} of ${played}` : "none yet";
   $("home").style.width = `${(st.foundations.reduce((n, f) => n + f.length, 0) / 52) * 100}%`;
-  $("draw").textContent = `Draw ${st.draw}`;
+  $("draw").textContent = st.daily ? "Daily deal" : `Draw ${st.draw}`;
   const enter = st.held ? (st.cursor === st.held.from ? "send" : "drop") : st.cursor === STOCK ? "draw" : "pick up";
   const keys = st.won
-    ? keycaps(["⏎"], "new game")
+    ? keycaps(["⏎"], "new game") + keycaps(["Y"], "daily deal")
     : [keycaps(["←", "→"], "pile"), keycaps(["↑", "↓"], "cards"), keycaps(["⏎"], enter), keycaps(["␣"], "draw"), keycaps(["U"], "undo"), keycaps(["N"], "new game")].join("");
   const list = $("keys");
   if (list.innerHTML !== keys) list.innerHTML = keys;
@@ -187,7 +190,26 @@ function snap() {
 
 // ---- changing the state ---------------------------------------------------------
 
-const save = () => pal.storage.set(KEY, st).catch(() => {});
+/** What storage holds, as this page last wrote or heard it. */
+let saved: Saved = {};
+const save = () => {
+  const ch = changes(st, saved);
+  Object.assign(saved, ch);
+  for (const [k, v] of Object.entries(ch)) pal.storage.set(k, v).catch(() => {});
+};
+
+/** Where the last win ranks, once its boards answered; shown on the won table. */
+let standing: { text: string; signIn: boolean } | undefined;
+async function post() {
+  standing = undefined;
+  const won = st, list = scores(won, utcDay());
+  const answers = await Promise.all(list.map(([board, value]) => pal.score(board, value).catch((e) => void console.error(`solitaire: score ${board}: ${e}`))));
+  const daily = answers[2], r = daily ?? answers[0];
+  if (st !== won || !r || r.rank == null) return;
+  const { signedIn } = await pal.account().catch(() => ({ signedIn: true }));
+  standing = { text: `#${r.rank} of ${r.total}${daily ? " today" : ` at draw ${won.draw}`}`, signIn: !signedIn };
+  if (asking && st.won) showWon();
+}
 
 /** The one way the state changes: the clock folded in, the change made, stored, drawn, then what follows it (the finish, the win). */
 function update(f: (s: State) => State, o: Draw = {}) {
@@ -198,7 +220,7 @@ function update(f: (s: State) => State, o: Draw = {}) {
   save();
   draw(o);
   if (canFinish(st)) finishSoon();
-  if (st.won && !before.won) celebrate();
+  if (st.won && !before.won) { celebrate(); void post(); }
 }
 
 let finishing: ReturnType<typeof setTimeout> | undefined;
@@ -211,14 +233,14 @@ function finishSoon() {
 }
 
 /** A new deal: the cards gather on the stock face down, then go out row by row as by hand, the top ones turning as they land. */
-function deal() {
+function deal(daily = false) {
   clearTimeout(finishing);
   finishing = undefined;
   stopCascade();
   clear();
   closeDialog();
   fold();
-  st = apply(st, "new", settings);
+  st = daily ? dailyDeal(st) : apply(st, "new", settings);
   save();
   const s = slot(lay.g, STOCK);
   cards.forEach((el, c) => {
@@ -251,11 +273,14 @@ const KEYS: Record<string, Action> = {
   ArrowLeft: "left", h: "left", ArrowRight: "right", l: "right", ArrowUp: "up", k: "up", ArrowDown: "down", j: "down",
   Enter: "select", " ": "draw", d: "draw", u: "undo", Backspace: "undo", n: "new",
 };
+/** The page's own keys, for what is not a move of the rules. */
+const PAGE_KEYS: Record<string, string> = { y: "daily" };
 
 /** An action by key, by ⌘K, or by the footer. */
 function act(a: string) {
   if (a === "clock") return toggleClock();
   if (a === "new" || (a === "select" && st.won)) return askNew();
+  if (a === "daily") return askNew(true);
   if (a === "select" && canFinish(st)) a = "finish";
   if (a === "finish") { clearTimeout(finishing); finishing = undefined; }
   update((s) => apply(s, a as Action, settings));
@@ -269,12 +294,12 @@ document.addEventListener("keydown", (e) => {
     if (key === "Escape") return;
     e.preventDefault();
     if (key === "Enter" || key === "n") asking.yes();
-    else asking.no?.();
+    else if (!asking.noKey || key === asking.noKey) asking.no?.();
     return;
   }
   if (cascading) { stopCascade(); showWon(); }
   if (key === "t") return toggleClock();
-  const a = KEYS[key];
+  const a = KEYS[key] ?? PAGE_KEYS[key];
   if (!a || (e.repeat && a === "select")) return;
   e.preventDefault();
   act(a);
@@ -380,16 +405,18 @@ addEventListener("pointermove", () => body.classList.remove("kbd"), { passive: t
 
 // ---- the dialog: the ask before a new deal, the won table ------------------------
 
-let asking: { yes: () => void; no?: () => void } | undefined;
-function ask(title: string, text: string, yes: [string, () => void], no?: [string, () => void]) {
+/** `noKey`: the one key that picks the second button; without it, any key but Enter does. */
+let asking: { yes: () => void; no?: () => void; noKey?: string } | undefined;
+function ask(title: string, text: string, yes: [string, () => void], no?: [string, () => void], noKey?: string) {
   $("dialog-title").textContent = title;
   $("dialog-text").textContent = text;
   const y = $("dialog-yes"), n = $("dialog-no");
   y.innerHTML = `${yes[0]} <kbd>⏎</kbd>`;
   y.onclick = yes[1];
   n.hidden = !no;
-  if (no) { n.textContent = no[0]; n.onclick = no[1]; }
-  asking = { yes: yes[1], no: no?.[1] };
+  if (no) { n.innerHTML = no[0]; n.onclick = no[1]; }
+  asking = { yes: yes[1], no: no?.[1], noKey };
+  $("dialog-signin").hidden = true;
   dialog.hidden = false;
 }
 function closeDialog() {
@@ -397,14 +424,15 @@ function closeDialog() {
   dialog.hidden = true;
 }
 
-function askNew() {
-  if (!running(st)) return deal();
-  ask("Deal a new game?", "This one counts as lost.", ["Deal", deal], ["Keep playing", closeDialog]);
+function askNew(daily = false) {
+  if (!running(st)) return deal(daily);
+  ask(daily ? "Deal the daily deal?" : "Deal a new game?", "This one counts as lost.", ["Deal", () => deal(daily)], ["Keep playing", closeDialog]);
 }
 
 function showWon() {
   const { played, won } = st.stats;
-  ask("You won", `${st.moves} moves in ${clock(st.elapsed)} · ${won} of ${played} won`, ["New game", deal]);
+  ask("You won", `${st.moves} moves in ${clock(st.elapsed)} · ${won} of ${played} won${standing ? ` · ${standing.text}` : ""}`, ["New game", () => deal()], ["Daily deal <kbd>Y</kbd>", () => deal(true)], "y");
+  $("dialog-signin").hidden = !standing?.signIn;
 }
 
 // ---- the win: the cards bounce off the foundations, leaving trails ------------
@@ -464,6 +492,7 @@ function stopCascade() {
 // ---- the panel: actions, settings, shown and hidden ------------------------------
 
 pal.onAction(act);
+$("dialog-signin").onclick = () => void pal.signIn();
 function showClock(on: boolean) { clockOn = on; body.classList.toggle("noclock", !on); }
 function toggleClock() {
   showClock(!clockOn);
@@ -490,10 +519,19 @@ addEventListener("resize", () => snap());
 
 // ---- the first frame -------------------------------------------------------------
 
-const [stored, s] = await Promise.all([pal.storage.get(KEY).catch(() => undefined), pal.settings().catch(() => ({}))]);
+pal.storage.onChange((key, value) => {
+  if (!st || key === "state" || !STORED.includes(key as Key)) return;
+  saved[key as Key] = value;
+  if (key !== "stats") return;
+  const next = restore({ ...saved, state: st }, settings);
+  if (next.stats !== st.stats) { st = { ...st, stats: next.stats }; status(); }
+});
+
+const [values, s] = await Promise.all([Promise.all(STORED.map(async (k) => [k, await pal.storage.get(k).catch(() => undefined)])), pal.settings().catch(() => ({}))]);
 applySettings(s);
-const fresh = !isState(stored);
-st = fresh ? newGame(settings) : { ...stored, held: undefined, note: undefined, drawn: [] };
+saved = Object.fromEntries(values);
+st = restore(saved, settings);
+const fresh = !isState(saved.state);
 snap();
 startTick();
 pal.ready();

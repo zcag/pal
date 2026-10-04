@@ -55,6 +55,10 @@ export type State = {
   stats: Stats;
   /** Counts up per deal; keys the cards of one hand apart from the last one's. */
   handNo: number;
+  /** Hands won in a row (a push leaves it be); absent in a state from before it was counted. */
+  streak?: number;
+  /** The bankroll this game started with: the Biggest bankroll board takes games started at the default only. */
+  start?: number;
 };
 
 export type Action = "deal" | "hit" | "stand" | "double" | "split" | "insure" | "decline" | "next" | "bet-up" | "bet-down" | "new";
@@ -101,7 +105,7 @@ export const isBlackjack = (h: { cards: Card[]; split?: boolean }) => h.cards.le
 const stats0: Stats = { hands: 0, wins: 0, losses: 0, pushes: 0, blackjacks: 0, net: 0 };
 
 export function newGame(s: Settings = DEFAULTS, rng: Rng = Math.random): State {
-  return { shoe: shoe(s.decks, rng), decks: s.decks, phase: "bet", hands: [], active: 0, dealer: [], revealed: false, bet: s.min_bet, bankroll: s.starting_bankroll, insurance: 0, stats: { ...stats0 }, handNo: 0 };
+  return { shoe: shoe(s.decks, rng), decks: s.decks, phase: "bet", hands: [], active: 0, dealer: [], revealed: false, bet: s.min_bet, bankroll: s.starting_bankroll, insurance: 0, stats: { ...stats0 }, handNo: 0, streak: 0, start: s.starting_bankroll };
 }
 
 /** Legal moves now, in the order the view lists them (first is Enter). */
@@ -281,6 +285,7 @@ function settle(st: State): State {
     h.payout = outcome === "blackjack" ? h.bet * 2.5 : outcome === "win" ? h.bet * 2 : outcome === "push" ? h.bet : 0;
     h.done = true;
     st.bankroll += h.payout;
+    st.streak = outcome === "push" ? st.streak ?? 0 : outcome === "blackjack" || outcome === "win" ? (st.streak ?? 0) + 1 : 0;
     st.stats.hands++;
     if (outcome === "blackjack") { st.stats.blackjacks++; st.stats.wins++; }
     else if (outcome === "win") st.stats.wins++;

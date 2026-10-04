@@ -53,6 +53,8 @@ export type State = {
   /** Counts up per board; keys one board's tiles apart from the last one's. */
   game: number;
   records: Record<Level, Tally>;
+  /** `2026-10-04` on the daily board: that UTC day's mines, the same for everyone (`dailyBoard`). */
+  daily?: string;
 };
 
 export type Rng = () => number;
@@ -65,6 +67,28 @@ export function newGame(level: Level = DEFAULTS.difficulty, prev?: Pick<State, "
   const none = () => Array<boolean>(n).fill(false);
   return { level, w, h, mines, mine: none(), open: none(), flag: none(), cursor: Math.floor(h / 2) * w + Math.floor(w / 2), phase: "ready", clock: { ms: 0 }, game: (prev?.game ?? 0) + 1, records: prev?.records ?? records0() };
 }
+
+/** The UTC day, `2026-10-04`: the daily board's day, the same everywhere. */
+export const utcDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+/** A repeatable `Rng` from a string (a 32-bit hash into mulberry32): one seed, one minefield, on every machine. */
+export function seeded(seed: string): Rng {
+  let a = 2166136261;
+  for (let i = 0; i < seed.length; i++) a = Math.imul(a ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The daily board's level; its first open is always the middle cell, so the mines, laid from the day, are the same for everyone. */
+export const DAILY: Level = "intermediate";
+export const middle = (st: Pick<State, "w" | "h">) => Math.floor(st.h / 2) * st.w + Math.floor(st.w / 2);
+
+/** The day's board: Intermediate, its mines from the day. The records carry over. */
+export const dailyBoard = (prev: Pick<State, "records" | "game">, day = utcDay()): State => ({ ...newGame(DAILY, prev), daily: day });
 
 /** The up to eight cells around `i`. */
 export function around(i: number, w: number, h: number): number[] {
@@ -109,7 +133,7 @@ export function pointAt(st: State, i: number): State {
 }
 
 /** The difficulty setting on this board: a game in play keeps its level and plays out first, any other board takes it as a new one. */
-export const adopt = (st: State, level: Level): State => (st.phase === "play" || st.level === level ? st : newGame(level, st));
+export const adopt = (st: State, level: Level): State => (st.phase === "play" || st.level === level || (st.daily && st.phase === "ready") ? st : newGame(level, st));
 
 /** Rings from cell `from` to cell `i` (0 on the cell itself): how far a ripple has travelled. */
 export const rings = (st: Pick<State, "w">, i: number, from: number): number =>
@@ -125,9 +149,9 @@ export const clockText = (ms: number): string => {
 export function status(st: State): string {
   if (st.phase === "won") return `Cleared in ${clockText(st.clock.ms)}${st.records[st.level].best === st.clock.ms ? ", a new best" : ""}`;
   if (st.phase === "lost") return "Boom";
-  if (st.phase === "ready") return "Open any cell";
+  if (st.phase === "ready") return st.daily ? "Daily board: Enter opens the middle" : "Open any cell";
   const left = minesLeft(st);
-  return `${left} mine${left === 1 ? "" : "s"} left`;
+  return `${st.daily ? "Daily · " : ""}${left} mine${left === 1 ? "" : "s"} left`;
 }
 
 /** Legal actions now, in the order the view lists them (first is Enter). */
@@ -157,7 +181,8 @@ export function apply(state: State, action: Action, s: Settings = DEFAULTS, rng:
     const to = step(state, action);
     return to === state.cursor ? state : { ...state, cursor: to };
   }
-  const i = state.cursor;
+  // The daily's first open is the middle, wherever the cursor is: the mines are laid around it from the day.
+  const i = state.daily && state.phase === "ready" && action === "open" ? middle(state) : state.cursor;
   if (action === "flag") {
     if (state.open[i]) return state;
     const st = clone(state);
@@ -167,7 +192,8 @@ export function apply(state: State, action: Action, s: Settings = DEFAULTS, rng:
   if (state.flag[i] || (state.open[i] && !isChord(state, i))) return state;
   const st = clone(state);
   if (st.phase === "ready") {
-    st.mine = layMines(st.w, st.h, st.mines, i, rng);
+    st.mine = layMines(st.w, st.h, st.mines, i, st.daily ? seeded(`minesweeper ${st.daily}`) : rng);
+    st.cursor = i;
     st.phase = "play";
     st.clock = { ms: 0, since: now };
   }

@@ -61,6 +61,8 @@ export type State = Table & {
   /** Counts deals up; keys one deal's cards apart from the last one's. */
   game: number;
   stats: Stats;
+  /** `2026-10-04` on the daily deal: that UTC day's deal, the same for everyone (`dailyDeal`). */
+  daily?: string;
 };
 
 export type Action = "select" | "left" | "right" | "up" | "down" | "draw" | "undo" | "new" | "finish";
@@ -102,6 +104,64 @@ export function newGame(s: Settings = DEFAULTS, rng: Rng = Math.random, prev?: P
     draw: s.draw === "3" ? 3 : 1, depth: 1, history: [], started: false, elapsed: 0, won: false, drawn: [],
     game: (prev?.game ?? 0) + 1, stats: prev ? { ...prev.stats } : { played: 0, won: 0 },
   };
+}
+
+/** The UTC day, `2026-10-04`: the daily board's day, the same everywhere. */
+export const utcDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+/** A repeatable `Rng` from a string (a 32-bit hash into mulberry32): one seed, one shuffle, on every machine. */
+export function seeded(seed: string): Rng {
+  let a = 2166136261;
+  for (let i = 0; i < seed.length; i++) a = Math.imul(a ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * The day's deal: draw one, shuffled from the day, so everyone plays the
+ * same cards for the Daily board; the first of the day's shuffles that
+ * plain play wins (`easyWin`), since a deal nobody can win is no race.
+ * The record carries over.
+ */
+export function dailyDeal(prev: Pick<State, "stats" | "game">, day = utcDay()): State {
+  const deal = (k: number) => newGame({ draw: "1" }, seeded(`solitaire ${day} ${k}`), prev);
+  for (let k = 0; k < 200; k++) if (easyWin(deal(k))) return { ...deal(k), daily: day };
+  return { ...deal(0), daily: day };
+}
+
+/** A move that only goes forward: a card home, a whole face-up run that turns a card over, the waste's card onto the table. */
+function forward(st: State): State | undefined {
+  for (const from of [WASTE, ...st.tableau.map((_, i) => T(i))]) {
+    const c = run(st, from, 1)[0];
+    if (c && !refusal(st, [c], home(c))) return move(st, from, 1, home(c));
+  }
+  for (let i = 0; i < 7; i++) {
+    const p = st.tableau[i];
+    if (!p.up.length || !p.down.length) continue;
+    for (let j = 0; j < 7; j++) if (j !== i && !refusal(st, p.up, T(j))) return move(st, T(i), p.up.length, T(j));
+  }
+  const w = st.waste.at(-1);
+  if (w) for (let j = 0; j < 7; j++) if (!refusal(st, [w], T(j))) return move(st, WASTE, 1, T(j));
+  return undefined;
+}
+
+/** Whether forward moves and draws alone win the deal: no lookahead, so the deals it wins are fair races. */
+export function easyWin(deal: State): boolean {
+  let st: State = deal, idle = 0;
+  while (!st.won) {
+    const fwd = forward(st);
+    // A whole pass through the stock and back with nothing to do: stuck.
+    idle = fwd ? 0 : idle + 1;
+    if (idle > st.stock.length + st.waste.length + 1) return false;
+    const next = fwd ?? (st.stock.length || st.waste.length ? turn(st) : undefined);
+    if (!next) return false;
+    st = { ...next, history: [] };
+  }
+  return true;
 }
 
 /** Every card is face up and nothing is left to draw: the rest plays itself out (`finishStep`). */

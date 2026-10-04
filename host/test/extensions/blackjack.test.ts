@@ -8,7 +8,10 @@ import { tile } from "../../../sdk/src/icon.ts";
 import { DEFAULTS, RESHUFFLE_AT, actions, apply, canDouble, canSplit, isBlackjack, newGame, shoe, value, type Settings, type State } from "../../../extensions/blackjack/game.ts";
 import { type Card } from "../../../extensions/blackjack/game.ts";
 import { MAX_CHIPS, chipsFor, money, moveFor, titleOf, viewActions } from "../../../extensions/blackjack/moves.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
+import { KEYS, changes, restore, scores } from "../../../extensions/blackjack/progress.ts";
+import manifest from "../../../extensions/blackjack/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
+import type { Manifest, View } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
 /** A shoe that deals `order` in that order: the dealer pops from the end. */
@@ -215,6 +218,50 @@ describe("the moves as the table offers them", () => {
   });
 });
 
+describe("what syncs, and the boards", () => {
+  test("every key the game writes has a rule; the boards are declared", () => {
+    expect(Object.keys(manifest.sync).sort()).toEqual([...KEYS].sort());
+    expect(manifest.sync).toMatchObject({ state: "local", winnings: "sum", peak: "max", longest: "max" });
+    expect(checkSync(manifest)).toEqual([]);
+    expect(checkLeaderboards(manifest)).toEqual([]);
+    for (const [board] of scores({ peak: 1500, longest: 4 })) expect(leaderboardOf(manifest as unknown as Manifest, board), board).toBeDefined();
+  });
+  test("a store from before the split keeps its bankroll and record; the synced keys overrule them", () => {
+    const old = { ...dealt(["10S", "9H", "9D", "8C"]), bankroll: 1385, stats: { hands: 57, wins: 27, losses: 25, pushes: 5, blackjacks: 3, net: 385 } };
+    delete (old as Partial<State>).streak;
+    delete (old as Partial<State>).start;
+    const st = restore({ state: old });
+    expect(st).toMatchObject({ bankroll: 1385, start: 1000, streak: 0, stats: { hands: 57 }, phase: "play" });
+    // The first save writes the winnings and the record out of the blob.
+    expect(changes(st, { state: old })).toMatchObject({ winnings: 385, stats: old.stats, peak: 1385 });
+    const synced = restore({ state: old, winnings: 900, stats: { ...old.stats, hands: 80 } });
+    expect([synced.bankroll, synced.stats.hands]).toEqual([1900, 80]);
+  });
+  test("a new machine: no hand here, the synced winnings on a fresh table", () => {
+    const st = restore({ winnings: -400, stats: { hands: 3, wins: 0, losses: 3, pushes: 0, blackjacks: 0, net: -400 } }, DEFAULTS, () => 0.5);
+    expect([st.phase, st.bankroll, st.stats.losses]).toEqual(["bet", 600, 3]);
+  });
+  test("only what moved is written; a best only when beaten, a bankroll best only from a $1,000 start", () => {
+    const st = apply(dealt(["10S", "9H", "9D", "8C"]), "stand");
+    const saved = { winnings: 10, stats: st.stats, peak: 1200, longest: 0 };
+    expect(Object.keys(changes(st, saved))).toEqual(["state", "longest"]);
+    expect(changes({ ...st, bankroll: 1300 }, saved)).toMatchObject({ winnings: 300, peak: 1300 });
+    expect(changes({ ...st, bankroll: 5000, start: 4000 }, saved).peak).toBeUndefined();
+    expect(scores({ peak: 1300, longest: 2 })).toEqual([["bankroll", 1300], ["streak", 2]]);
+    expect(scores({ state: st })).toEqual([]);
+  });
+  test("the streak counts hands won in a row; a push leaves it, a loss ends it", () => {
+    const won = apply(dealt(["10S", "9H", "9D", "8C"]), "stand");
+    expect(won.streak).toBe(1);
+    const again = apply(rig(apply(won, "next"), ["10S", "9H", "9D", "8C"]), "deal");
+    expect(apply(again, "stand").streak).toBe(2);
+    const push = apply(rig(apply({ ...won, streak: 2 }, "next"), ["10S", "9H", "7D", "8C"]), "deal");
+    expect(apply(push, "stand").streak).toBe(2);
+    const lost = apply(rig(apply({ ...won, streak: 2 }, "next"), ["10S", "9H", "6D", "8C"]), "deal");
+    expect(apply(lost, "stand").streak).toBe(0);
+  });
+});
+
 describe("over the wire", () => {
   let host: Host;
   beforeAll(async () => { stored.clear(); host = await Host.bundled(); });
@@ -244,6 +291,14 @@ describe("over the wire", () => {
     const fresh = await host.request<View>("view", { extension: "blackjack", palette: "blackjack" });
     expect(fresh.title).toBe("Out of chips");
     expect(fresh.actions.map((a) => a.id)).toEqual(["new"]);
+    host.changeSettings("blackjack", { settings: {} });
+  });
+  test("the view counts the synced winnings: a table another machine lost is out of chips here too", async () => {
+    stored.set("blackjack\0state", newGame(DEFAULTS, () => 0.5));
+    stored.set("blackjack\0winnings", -995);
+    const v = await host.request<View>("view", { extension: "blackjack", palette: "blackjack" });
+    expect(v.title).toBe("Out of chips");
+    stored.delete("blackjack\0winnings");
   });
   test("the page's `moved` pushes the view's actions and title for the saved state", async () => {
     stored.set("blackjack\0state", dealt(["8S", "9H", "8D", "6C"]));

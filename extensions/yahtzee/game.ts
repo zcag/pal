@@ -6,7 +6,9 @@
 // upper box if open, else any open lower box at full value (a full house,
 // straights), else an upper box for 0. A move that does not apply returns
 // the same state, which is what a key pressed a beat late should do. The
-// dice come from an injected `rng`, so the tests roll what they need.
+// dice come from an injected `rng`, so the tests roll what they need; in
+// the daily game each die's face is the day's (`dailyFace`), so everyone
+// rolls the same dice that day.
 
 export const UPPER = ["ones", "twos", "threes", "fours", "fives", "sixes"] as const;
 export const LOWER = ["three-kind", "four-kind", "full-house", "small-straight", "large-straight", "yahtzee", "chance"] as const;
@@ -43,9 +45,11 @@ export type State = {
   record: Tally;
   /** Set when the last box is filled: the final score, and whether it beat an earlier game's best. */
   ended?: { total: number; best: boolean };
+  /** `2026-10-04` in the daily game: that UTC day's dice, the same for everyone. */
+  daily?: string;
 };
 
-export type Move = { type: "roll" } | { type: "hold"; die: number } | { type: "score"; category: Category } | { type: "new" };
+export type Move = { type: "roll" } | { type: "hold"; die: number } | { type: "score"; category: Category } | { type: "new" } | { type: "daily"; day: string };
 
 export type Rng = () => number;
 
@@ -53,6 +57,27 @@ const blank = () => [0, 0, 0, 0, 0];
 
 export const newGame = (record: Tally = { games: 0, sum: 0, best: 0 }): State =>
   ({ v: 1, dice: blank(), held: [false, false, false, false, false], rolls: 0, scores: {}, bonuses: 0, record });
+
+/** The daily game: a fresh card on the day's dice. The record carries over. */
+export const dailyGame = (record: Tally, day: string): State => ({ ...newGame(record), daily: day });
+
+/** The UTC day, `2026-10-04`: the daily board's day, the same everywhere. */
+export const utcDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+/** A repeatable `Rng` from a string (a 32-bit hash into mulberry32). */
+export function seeded(seed: string): Rng {
+  let a = 2166136261;
+  for (let i = 0; i < seed.length; i++) a = Math.imul(a ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** A die's face on the day: fixed by the round, the roll and the die's place, so what you hold changes which faces you see, never what they are. */
+export const dailyFace = (day: string, round: number, roll: number, die: number) => 1 + Math.floor(seeded(`yahtzee ${day} ${round} ${roll} ${die}`)() * 6);
 
 /** How many of each face: `counts(d)[5]` is the number of fives. */
 export function counts(dice: number[]): number[] {
@@ -152,9 +177,11 @@ export const started = (st: State) => !st.ended && (st.rolls > 0 || filled(st) >
 export function apply(st: State, m: Move, rng: Rng = Math.random): State {
   switch (m.type) {
     case "new": return newGame(st.record);
+    case "daily": return dailyGame(st.record, m.day);
     case "roll": {
       if (st.ended || st.rolls >= ROLLS) return st;
-      const dice = st.dice.map((d, i) => (st.rolls > 0 && st.held[i] ? d : 1 + Math.floor(rng() * 6)));
+      const face = (i: number) => (st.daily ? dailyFace(st.daily, round(st), st.rolls, i) : 1 + Math.floor(rng() * 6));
+      const dice = st.dice.map((d, i) => (st.rolls > 0 && st.held[i] ? d : face(i)));
       return { ...st, dice, rolls: st.rolls + 1 };
     }
     case "hold": {

@@ -185,6 +185,7 @@ body.noclock #time { visibility: hidden; }
 #toast small { font-family: var(--pal-font-ui, system-ui, sans-serif); letter-spacing: normal; }
 #toast.show { animation: toast 2600ms var(--pal-ease, ease-out) forwards; }
 #toast small { display: block; margin-top: 2px; font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500); color: var(--pal-success); }
+#toast small.rank { color: var(--pal-fg-muted); }
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.9); } 12%, 80% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-50%, -60%); } }
 #prompt { animation: ask 160ms var(--pal-ease, ease-out); }
 @keyframes ask { from { opacity: 0; transform: translate(-50%, -46%) scale(.96); } }

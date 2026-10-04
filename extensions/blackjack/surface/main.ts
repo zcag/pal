@@ -1,26 +1,37 @@
 // The table page: the state, the input, the save. A move from a key, a
 // button or cmd+k (`pal.onAction`) is `apply` from game.ts, the rules the
-// host tests; the new state is drawn (table.ts), saved whole under the
-// key the extension reads ("state"), and the extension is told, so the
-// view's actions follow the phase. New game from the page asks first;
-// from cmd+k the panel already has.
-import { DEFAULTS, RANKS, SUITS, apply, isState, newGame, type Action as Move, type Card, type Settings, type State } from "../game.ts";
+// host tests; the new state is drawn (table.ts), saved under the keys
+// the extension reads (progress.ts: what changed of the hand, the chips,
+// the record and the bests), and the extension is told, so the view's
+// actions follow the phase. A new best goes to its board (`pal.score`).
+// Chips or a record that sync brought in (another machine's night, merged)
+// replace the ones in memory at once, so the next move does not show, or
+// write back, the old ones. New game from the page asks first; from cmd+k
+// the panel already has.
+import { DEFAULTS, RANKS, SUITS, apply, type Action as Move, type Card, type Settings, type State } from "../game.ts";
 import { MOVES, moveFor, titleOf } from "../moves.ts";
+import { KEYS as STORED, changes, restore, scores, type Key, type Saved } from "../progress.ts";
 import { Table, preload } from "./table.ts";
 import type { SurfaceKit } from "@zcag/pal";
 
 declare const pal: SurfaceKit;
 
-const KEY = "state";
 const settingsOf = (raw: Record<string, unknown>): Settings => ({ ...DEFAULTS, ...(raw as Partial<Settings>) });
 
 let s: Settings = DEFAULTS;
 let st: State;
 const table = new Table((m) => play(m));
 
+/** What storage holds, as this page last wrote or heard it. */
+let saved: Saved = {};
 /** Saves in order, each after the last, then says so: the extension re-reads and pushes the view's actions. */
 let saving: Promise<unknown> = Promise.resolve();
-const save = (snap: State) => { saving = saving.then(() => pal.storage.set(KEY, snap)).then(() => pal.send({ moved: true })).catch((e) => console.error("blackjack: save", e)); };
+const save = (snap: State) => {
+  const ch = changes(snap, saved);
+  Object.assign(saved, ch);
+  saving = saving.then(() => Promise.all(Object.entries(ch).map(([k, v]) => pal.storage.set(k, v)))).then(() => pal.send({ moved: true })).catch((e) => console.error("blackjack: save", e));
+  for (const [board, value] of scores(ch)) pal.score(board, value).catch((e) => console.error(`blackjack: score ${board}`, e));
+};
 
 const confirmBox = document.getElementById("confirm")!;
 const confirming = () => confirmBox.classList.contains("open");
@@ -68,9 +79,21 @@ pal.onAction((id) => { if (id in MOVES) play(id as Move, true); });
 pal.onSettings((raw) => { s = settingsOf(raw); table.render(st, st, s); pal.title(titleOf(st, s)); });
 new ResizeObserver(() => { if (st) table.render(st, st, s); }).observe(document.getElementById("felt")!);
 
+pal.storage.onChange((key, value) => {
+  if (!st || key === "state" || !STORED.includes(key as Key)) return;
+  saved[key as Key] = value;
+  const next = restore({ ...saved, state: st }, s);
+  if (next.bankroll === st.bankroll && next.stats === st.stats) return;
+  const prev = st;
+  st = next;
+  table.render(st, prev, s);
+  pal.title(titleOf(st, s));
+  pal.send({ moved: true }).catch(() => {});
+});
+
 s = settingsOf(await pal.settings());
-const stored = await pal.storage.get(KEY);
-st = isState(stored) ? stored : newGame(s);
+saved = Object.fromEntries(await Promise.all(STORED.map(async (k) => [k, await pal.storage.get(k)])));
+st = restore(saved, s);
 const deck: Card[] = SUITS.flatMap((u) => RANKS.map((r): Card => `${r}${u}`));
 preload(deck);
 table.render(st, undefined, s);

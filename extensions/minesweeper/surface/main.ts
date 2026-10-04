@@ -1,8 +1,12 @@
 // Minesweeper's page (the view's `surface`). The rules are game.ts's, the
 // same the host tests play: the page holds one `State`, turns every key and
-// click into an `apply`, draws what changed and writes the state to the
-// extension's storage (`pal.storage`) after every move; a cursor move is
-// written a beat later so a held arrow is not a write per repeat.
+// click into an `apply`, draws what changed and writes it to the
+// extension's storage (`pal.storage`, the keys progress.ts names: the
+// board stays here, the records and bests sync) after every move; a
+// cursor move is written a beat later so a held arrow is not a write per
+// repeat. Records sync brought in replace the ones in memory. A win goes
+// to its level's board and, on the daily board (Y: the day's mines, the
+// same for everyone), to the Daily (`pal.score`); the toast says the rank.
 //
 // Drawing is a diff: each cell has a look (closed, flag, open n, mine, the
 // hit, a wrong flag) and only cells whose look changed are touched, with
@@ -17,13 +21,13 @@
 // setting through the extension (`pal.send({ difficulty })`, which calls
 // `settings.set`), so the settings page and the page agree; so does T,
 // which hides the clock (the `clock` setting) while it keeps counting.
-import { LEVELS, adopt, apply, around, count, elapsed, isChord, isState, levelOf, minesLeft, newGame, pause, pointAt, resume, rings, settle, status, clockText, type Action, type Dir, type Level, type State } from "../game.ts";
+import { LEVELS, adopt, apply, around, count, dailyBoard, elapsed, isChord, levelOf, minesLeft, pause, pointAt, resume, rings, settle, status, clockText, utcDay, type Action, type Dir, type Level, type State } from "../game.ts";
+import { KEYS as STORED, changes, restore, scores, type Key, type Saved } from "../progress.ts";
 import { blast, confetti } from "./fx.ts";
 import type { SurfaceKit } from "@zcag/pal";
 
 declare const pal: SurfaceKit;
 
-const KEY = "state";
 const ORDER: Level[] = ["beginner", "intermediate", "expert"];
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const grid = $("#grid"), frame = $("#frame"), cursorEl = $("#cursor"), face = $<HTMLButtonElement>("#face");
@@ -37,10 +41,16 @@ let clockOn = true;
 
 // ---- persistence and the title ------------------------------------------
 
+/** What storage holds, as this page last wrote or heard it. */
+let saved: Saved = {};
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 function save(lazy = false) {
   clearTimeout(saveTimer);
-  const write = () => pal.storage.set(KEY, st).catch((e) => console.error(`minesweeper: save: ${e}`));
+  const write = () => {
+    const ch = changes(st, saved);
+    Object.assign(saved, ch);
+    for (const [k, v] of Object.entries(ch)) pal.storage.set(k, v).catch((e) => console.error(`minesweeper: save ${k}: ${e}`));
+  };
   if (lazy) saveTimer = setTimeout(write, 400);
   else void write();
 }
@@ -200,6 +210,16 @@ function win() {
   toast.hidden = false;
   replay(toast, "show");
   replay(face, "bump");
+  void post();
+}
+
+/** The win to its boards; the rank, when a board answers, under the time while the toast is up. */
+async function post() {
+  const won = st, list = scores(won, utcDay());
+  const answers = await Promise.all(list.map(([board, value]) => pal.score(board, value).catch((e) => void console.error(`minesweeper: score ${board}: ${e}`))));
+  const daily = answers[1], r = daily ?? answers[0];
+  if (st !== won || !r || r.rank == null) return;
+  toast.insertAdjacentHTML("beforeend", `<small class="rank">#${r.rank} of ${r.total} ${daily ? "today" : LEVELS[won.level].title}</small>`);
 }
 
 // ---- the question before throwing a game away -----------------------------
@@ -220,6 +240,11 @@ prompt.querySelector("[data-yes]")!.addEventListener("click", () => answer(true)
 prompt.querySelector("[data-no]")!.addEventListener("click", () => answer(false));
 
 const restart = () => act("new");
+function daily() {
+  const go = () => commit(dailyBoard(st));
+  if (st.phase === "play") ask("Give up this game for the daily board?", "y", go);
+  else go();
+}
 function startOver(key = "n") {
   if (st.phase === "play") ask("Start a new game? This one is given up.", key, restart);
   else restart();
@@ -273,6 +298,7 @@ window.addEventListener("keydown", (e) => {
   else if (k === "Enter") enter();
   else if (k === "/" || k === "f" || k === " ") act("flag");
   else if (k === "n") startOver();
+  else if (k === "y") daily();
   else if (k === "d" || k === "Tab") { picking = ORDER.indexOf(st.level); showPicker(); }
   else if (k === "t") toggleClock();
 });
@@ -281,6 +307,7 @@ pal.onAction((id) => {
   if (id === "open") enter();
   else if (id === "flag") act("flag");
   else if (id === "new") startOver();
+  else if (id === "daily") daily();
   else if (id === "level") { picking = ORDER.indexOf(st.level); showPicker(); }
   else if (id === "clock") toggleClock();
 });
@@ -379,12 +406,19 @@ pal.onSettings((s) => {
   commit(adopt(st, level));
 });
 
+pal.storage.onChange((key, value) => {
+  if (!st || key === "state" || !STORED.includes(key as Key)) return;
+  saved[key as Key] = value;
+  st = restore({ ...saved, state: st }, level);
+  header();
+});
+
 async function start() {
   const s = await pal.settings();
   showClock(s.clock !== false);
   level = levelOf(s.difficulty);
-  const stored = await pal.storage.get(KEY);
-  st = resume(adopt(settle(isState(stored) ? stored : newGame(level)), level), Date.now());
+  saved = Object.fromEntries(await Promise.all(STORED.map(async (k) => [k, await pal.storage.get(k)])));
+  st = resume(adopt(settle(restore(saved, level)), level), Date.now());
   build();
   header();
   title();
