@@ -5,6 +5,7 @@
 import * as THREE from "./vendor/three.js";
 import { BufferGeometryUtils } from "./vendor/three.js";
 import { loadGltf } from "./gltf.ts";
+import { floats } from "./env.ts";
 
 export type CarInfo = { id: string; name: string; author: string; license: string; source: string; size: [number, number, number] };
 
@@ -33,43 +34,89 @@ const WHEEL = /wh(e|ee)l[a-z]*_(fl|fr|rl|rr)(?![a-z])|(^|[^a-z])wheel_\d+(?![a-z
 const CALIPER = /caliper[a-z]*_(fl|fr)(?![a-z])/i;
 const PAINT = /bodymat|(^|_)body$/i;
 
-/** Merge every part that never moves on its own into one mesh per material:
- *  ~80 meshes become ~10. Wheels, calipers, lamps and their lenses stay separate. */
+/** What a model's parts are, worked out once when it loads (they are flattened then, so their parents
+ *  are gone): each part's names and box as it was placed, which wheel it belongs to, the model's size;
+ *  and the geometries every car of it shares, merged on its first build. */
+type Part = { names: string; box: THREE.Box3; wheel: number; caliper: boolean };
+type Model = { parts: Part[]; size: THREE.Vector3; wheels: THREE.Box3[]; merged: Map<string, THREE.BufferGeometry> };
+const models = new WeakMap<THREE.Object3D, Model>();
+
+/** A part's geometry with the attributes every other one has, as plain floats, so parts merge. */
+function plain(src: THREE.BufferGeometry) {
+  const g = src.clone();
+  for (const name of Object.keys(g.attributes)) {
+    if (!["position", "normal", "uv", "uv1"].includes(name)) { g.deleteAttribute(name); continue; }
+    const a = g.attributes[name] as THREE.BufferAttribute;
+    const f = new Float32Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++) for (let c = 0; c < a.itemSize; c++) f[i * a.itemSize + c] = a.getComponent(i, c);
+    g.setAttribute(name, new THREE.BufferAttribute(f, a.itemSize));
+  }
+  if (!g.attributes.normal) g.computeVertexNormals();
+  if (!g.attributes.uv) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+  if (!g.attributes.uv1) g.setAttribute("uv1", (g.attributes.uv as THREE.BufferAttribute).clone());
+  return g;
+}
+
+/** Geometries as one: the attributes they all have, indexed (an unindexed one is given the trivial index). */
+function merge(list: THREE.BufferGeometry[]) {
+  const names = Object.keys(list[0].attributes).filter((n) => list.every((g) => g.attributes[n]));
+  const all = list.map((g) => {
+    const out = new THREE.BufferGeometry();
+    for (const n of names) out.setAttribute(n, g.attributes[n]);
+    out.setIndex(g.index ?? [...Array(g.attributes.position.count).keys()]);
+    return out;
+  });
+  return BufferGeometryUtils.mergeGeometries(all, false);
+}
+
+/** Merge every part that never moves on its own into one mesh per material: ~80 meshes become ~10.
+ *  Wheels, calipers, lamps and their lenses stay separate (a car merges those per car, in build), and
+ *  sit flat under the model with their placement baked in, so a car is a dozen nodes, not a hundred. */
 function prepare(src: THREE.Group): THREE.Group {
   src.updateMatrixWorld(true);
   const groups = new Map<THREE.Material, THREE.BufferGeometry[]>();
-  const merged: THREE.Mesh[] = [];
+  const merged: THREE.Mesh[] = [], rest: [THREE.Mesh, string][] = [];
   src.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     const names = [mesh.name, mesh.parent?.name ?? "", mesh.parent?.parent?.name ?? ""].join(" ");
-    if (WHEEL.test(names) || CALIPER.test(names) || LENS.test(names) || LAMP.some(([re]) => re.test(names))) return; // a lamp's lens stays its own mesh: clear, not a window
-    const g = mesh.geometry.clone();
-    // the same plain float attributes everywhere, so they merge
-    for (const name of Object.keys(g.attributes)) {
-      if (!["position", "normal", "uv", "uv1"].includes(name)) { g.deleteAttribute(name); continue; }
-      const a = g.attributes[name] as THREE.BufferAttribute;
-      const f = new Float32Array(a.count * a.itemSize);
-      for (let i = 0; i < a.count; i++) for (let c = 0; c < a.itemSize; c++) f[i * a.itemSize + c] = a.getComponent(i, c);
-      g.setAttribute(name, new THREE.BufferAttribute(f, a.itemSize));
-    }
-    if (!g.attributes.normal) g.computeVertexNormals();
-    if (!g.attributes.uv) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
-    if (!g.attributes.uv1) g.setAttribute("uv1", (g.attributes.uv as THREE.BufferAttribute).clone());
-    g.applyMatrix4(mesh.matrixWorld);
+    if (WHEEL.test(names) || CALIPER.test(names) || LENS.test(names) || LAMP.some(([re]) => re.test(names))) { rest.push([mesh, names]); return; } // a lamp's lens stays its own mesh: clear, not a window
+    const g = plain(mesh.geometry).applyMatrix4(mesh.matrixWorld);
     const mat = mesh.material as THREE.Material;
-    (groups.get(mat) ?? groups.set(mat, []).get(mat)!).push(g.index ? g : g);
+    (groups.get(mat) ?? groups.set(mat, []).get(mat)!).push(g);
     merged.push(mesh);
   });
   for (const m of merged) m.removeFromParent();
   for (const [mat, list] of groups) {
-    const indexed = list.every((g) => g.index), plain = indexed ? list : list.map((g) => (g.index ? g.toNonIndexed() : g));
-    const geo = BufferGeometryUtils.mergeGeometries(plain, false);
+    const geo = merge(list);
     if (!geo) continue;
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = `merged ${mat.name}`;
     src.add(mesh);
   }
+  // the model as a car measures it, and each remaining part where it stands; a wheel is its own node,
+  // the highest one whose name says wheel (the names are unreliable for which corner: that comes from its position)
+  const model: Model = { parts: [], size: new THREE.Box3().setFromObject(src).getSize(new THREE.Vector3()), wheels: [], merged: new Map() };
+  const nodes: THREE.Object3D[] = [];
+  for (const [mesh, names] of rest) {
+    let wheel = -1;
+    if (WHEEL.test(names)) {
+      let node: THREE.Object3D = mesh;
+      while (node.parent && WHEEL.test(node.parent.name)) node = node.parent;
+      wheel = nodes.indexOf(node);
+      if (wheel < 0) wheel = nodes.push(node) - 1;
+    }
+    model.parts.push({ names, box: new THREE.Box3().setFromObject(mesh), wheel, caliper: CALIPER.test(names) });
+  }
+  model.wheels = nodes.map((n) => new THREE.Box3().setFromObject(n));
+  rest.forEach(([mesh], i) => {
+    mesh.geometry = floats(mesh.geometry.clone()).applyMatrix4(mesh.matrixWorld);
+    mesh.position.set(0, 0, 0); mesh.quaternion.identity(); mesh.scale.set(1, 1, 1);
+    mesh.userData.part = i;
+    src.add(mesh);
+  });
+  for (const o of [...src.children]) if (!(o as THREE.Mesh).isMesh) src.remove(o);
+  models.set(src, model);
   return src;
 }
 
@@ -109,13 +156,11 @@ export class Reflections {
     best.root.getWorldPosition(this.cube.position).y += best.size.y * 0.55;
     this.cube.updateMatrixWorld();
     if (this.cube.coordinateSystem !== gl.coordinateSystem) { this.cube.coordinateSystem = gl.coordinateSystem; this.cube.updateCoordinateSystem(); }
-    const shadows = gl.shadowMap.autoUpdate, last = gl.getRenderTarget();
-    gl.shadowMap.autoUpdate = false;
+    const last = gl.getRenderTarget();
     best.root.visible = false;
     gl.setRenderTarget(this.target, this.face);
     gl.render(scene, this.cube.children[this.face] as THREE.Camera);
     best.root.visible = true;
-    gl.shadowMap.autoUpdate = shadows;
     gl.setRenderTarget(last);
     if (++this.face === 6) { this.face = 0; this.target.texture.needsPMREMUpdate = true; }
   }
@@ -141,6 +186,63 @@ const LAMP_GAIN: Record<Lamp, number> = { head: 1.0, brake: 3.4, reverse: 1.2, l
 const LAMP_OFF: Record<Lamp, number> = { head: 0xd8d8d8, brake: 0xb0140c, reverse: 0xdddddd, left: 0x8a4a08, right: 0x8a4a08, bar: 0x6a0a06 };
 const LENS = /(head|tail|brake)\w*_?glass|lights?_glass/i;
 const TYRE = /tire|tyre/i;
+
+/** The lamps in the order the merged lamps' shader indexes them. */
+const LAMPS: Lamp[] = ["head", "brake", "reverse", "left", "right", "bar"];
+const LAMP_GLOW = LAMPS.map((l) => new THREE.Color(LAMP_COLOR[l]));
+const LAMP_DARK = LAMPS.map((l) => new THREE.Color(LAMP_OFF[l]));
+
+/** A car's lamps of one material as one draw: each vertex says which lamp it is (aLamp), and `glow` (the car's,
+ *  one colour per lamp, its brightness in it) lights it. Off, a headlamp is a chrome reflector and a tail lamp
+ *  coloured plastic. */
+function lampMaterial(src: THREE.Material, glow: THREE.Color[]) {
+  const m = (src as THREE.MeshStandardMaterial).clone();
+  delete m.userData.carAlpha; // a clone has the flag but not the shader change: carAlpha does it again
+  m.emissive.set(0xffffff); m.emissiveMap = m.map; m.emissiveIntensity = 1;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uLampOff = { value: LAMP_DARK };
+    sh.uniforms.uLampGlow = { value: glow };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aLamp; varying float vLamp;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvLamp = aLamp;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>\nvarying float vLamp; uniform vec3 uLampOff[${LAMPS.length}], uLampGlow[${LAMPS.length}];`)
+      .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\nint lamp = int(vLamp + 0.5); diffuseColor.rgb = uLampOff[lamp];")
+      .replace("#include <metalnessmap_fragment>", THREE.ShaderChunk.metalnessmap_fragment.replace("= metalness;", "= lamp == 0 ? 1.0 : 0.1;"))
+      .replace("#include <roughnessmap_fragment>", THREE.ShaderChunk.roughnessmap_fragment.replace("= roughness;", "= lamp == 0 ? 0.12 : 0.25;"))
+      .replace("#include <emissivemap_fragment>", "totalEmissiveRadiance = uLampGlow[lamp];\n#include <emissivemap_fragment>");
+  };
+  m.customProgramCacheKey = () => "lamps";
+  return m;
+}
+
+/** A car's wheels and calipers of one material as one draw: each vertex says which it is (aWheel: the wheel,
+ *  or the number of wheels + the wheel a caliper sits on), and `turn` (the car's, set before each draw) spins
+ *  and steers it about its wheel's centre. */
+function wheelMaterial(src: THREE.Material, turn: THREE.Matrix4[]) {
+  const m = src.clone();
+  m.onBeforeCompile = (sh, r) => {
+    src.onBeforeCompile(sh, r);
+    sh.uniforms.uTurn = { value: turn };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", `#include <common>\nattribute float aWheel; uniform mat4 uTurn[${turn.length}];`)
+      .replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nmat4 turn = uTurn[int(aWheel + 0.5)]; objectNormal = mat3(turn) * objectNormal;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed = (turn * vec4(transformed, 1.0)).xyz;");
+  };
+  const key = src.customProgramCacheKey.bind(src);
+  m.customProgramCacheKey = () => `${key()}|wheels${turn.length}`;
+  carAlpha(m);
+  return m;
+}
+
+/** What a car casts into the sun's shadow map: its parts merged into one shape for the body and one for the
+ *  wheels (every car material is double-sided and none is cut out), drawn there in place of ~18 parts and
+ *  hidden from every other pass (Renderer.shadows). */
+const SHAPE = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+function shape(geos: THREE.BufferGeometry[]) {
+  return merge(geos.map((g) => { const p = new THREE.BufferGeometry(); p.setAttribute("position", g.attributes.position); p.setIndex(g.index); return p; }))!;
+}
+
+/** Show the cars' shadow shapes (for the shadow map) or hide them (for everything else). */
+export function shadowShapes(on: boolean) { for (const c of cars) for (const s of c.shapes) s.visible = on; }
 
 /** Car pixels write alpha 0 (opaque parts in the shader, see-through ones by their blending), which
  *  the finishing reads as "a car": no motion blur on it, and none of its colour smeared onto the road. */
@@ -230,17 +332,22 @@ export class Car {
   kind = "";
   root = new THREE.Group();
   body = new THREE.Group(); // pitches and rolls on the springs
+  /** Where each wheel is and how it is turned: run.ts sets `spin.rotation.x` and, on a front one, `pivot.rotation.y`. */
   wheels: { pivot: THREE.Object3D; spin: THREE.Object3D; front: boolean; left: boolean; radius: number }[] = [];
   paint: THREE.MeshPhysicalMaterial[] = [];
-  lamps: Record<Lamp, THREE.MeshStandardMaterial[]> = { head: [], brake: [], reverse: [], left: [], right: [], bar: [] };
   size = new THREE.Vector3();
   /** Where things are, in the car's frame (metres, +z forward). */
   anchors = { head: [] as THREE.Vector3[], tail: [] as THREE.Vector3[] };
   wheelbase = 2.6;
   track = 1.5;
+  /** What it casts into the shadow map (shadowShapes). */
+  shapes: THREE.Mesh[] = [];
   private beams: THREE.Mesh[] = [];
   /** Paint and windows: what mirrors the world (Reflections). */
   private shiny: THREE.MeshStandardMaterial[] = [];
+  /** Each lamp's light (lampMaterial), and each wheel's and caliper's turn (wheelMaterial). */
+  private glow = LAMPS.map(() => new THREE.Color(0));
+  private turn: THREE.Matrix4[] = [];
 
   static async load(id: string, color: THREE.ColorRepresentation, opts: { shadow?: boolean } = {}) {
     const car = new Car();
@@ -250,22 +357,20 @@ export class Car {
   }
 
   private async build(src: THREE.Group, color: THREE.ColorRepresentation, shadow: boolean) {
-    const model = src.clone(true);
+    const info = models.get(src)!;
+    const model = src.clone(true); // flat (prepare): its parts are its children
     this.root.add(this.body);
     this.body.add(model);
-    model.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(model);
-    box.getSize(this.size);
+    this.size.copy(info.size);
 
-    const meshes: THREE.Mesh[] = [];
-    model.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
+    const meshes = [...model.children] as THREE.Mesh[];
     const paintFor = new Map<THREE.Material, THREE.MeshPhysicalMaterial>();
-    const wheelNodes = new Set<THREE.Object3D>();
     const heads = new THREE.Box3();
+    const lit: [THREE.Mesh, Lamp][] = [], turning: [THREE.Mesh, number][] = [], casts: THREE.BufferGeometry[] = [];
 
     for (const mesh of meshes) {
-      const names = [mesh.name, mesh.parent?.name ?? "", mesh.parent?.parent?.name ?? ""].join(" ");
-      mesh.castShadow = shadow;
+      const part = info.parts[mesh.userData.part as number] as Part | undefined; // none for a merged part
+      const names = part?.names ?? [mesh.name, model.name, ""].join(" ");
       mesh.receiveShadow = true;
       const mat = mesh.material as THREE.MeshStandardMaterial;
 
@@ -299,63 +404,71 @@ export class Car {
 
       const lamp = LAMP.find(([re]) => re.test(names))?.[1];
       if (lamp) {
-        const m = (mesh.material as THREE.MeshStandardMaterial).clone();
-        // off, a headlamp is a chrome reflector and a tail lamp coloured plastic
-        m.color.set(LAMP_OFF[lamp]); m.metalness = lamp === "head" ? 1 : 0.1; m.roughness = lamp === "head" ? 0.12 : 0.25;
-        m.emissive = new THREE.Color(LAMP_COLOR[lamp]);
-        m.emissiveMap = m.map;
-        m.emissiveIntensity = 0;
-        if (lamp === "left") {
-          // one mesh holds both sides: split it into two
-          const [l, r] = splitByX(mesh);
-          const mr = m.clone();
-          l.material = m; r.material = mr;
-          this.lamps.left.push(m); this.lamps.right.push(mr);
-        } else {
-          mesh.material = m;
-          this.lamps[lamp].push(m);
-        }
-        const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
-        if (lamp === "head") { this.anchors.head.push(c); heads.union(new THREE.Box3().setFromObject(mesh)); } else if (lamp === "brake") this.anchors.tail.push(c);
+        lit.push([mesh, lamp]);
+        const c = part!.box.getCenter(new THREE.Vector3());
+        if (lamp === "head") { this.anchors.head.push(c); heads.union(part!.box); } else if (lamp === "brake") this.anchors.tail.push(c);
       }
-
-      if (WHEEL.test(names)) {
-        // the wheel's own node, the highest one whose name says wheel
-        let node: THREE.Object3D = mesh;
-        while (node.parent && WHEEL.test(node.parent.name)) node = node.parent;
-        wheelNodes.add(node);
-      }
-      const cal = names.match(CALIPER);
-      if (cal) mesh.userData.caliper = cal[1].toUpperCase();
+      // a caliper follows its front wheel's steering, without spinning
+      const cx = part?.caliper ? part.box.getCenter(new THREE.Vector3()).x : 0;
+      const on = part?.caliper ? info.wheels.findIndex((b) => { const c = b.getCenter(new THREE.Vector3()); return c.z > 0 && c.x > 0 === cx > 0; }) : -1;
+      if (on >= 0) turning.push([mesh, info.wheels.length + on]);
+      else if (part && part.wheel >= 0) turning.push([mesh, part.wheel]);
+      else if (lamp !== "left") casts.push(mesh.geometry); // a blinker casts nothing
     }
 
-    // wheels on pivots at their centres: the pivot steers, the wheel spins inside it
-    for (const node of wheelNodes) {
-      const wbox = new THREE.Box3().setFromObject(node);
-      const centre = wbox.getCenter(new THREE.Vector3());
-      const radius = (wbox.max.y - wbox.min.y) / 2;
-      const pivot = new THREE.Group();
-      pivot.position.copy(centre);
-      this.root.add(pivot); // wheels stay on the ground: not on the sprung body
-      const spin = new THREE.Group();
-      pivot.add(spin);
-      node.updateMatrixWorld(true);
-      const world = node.matrixWorld.clone();
-      spin.updateMatrixWorld(true);
-      spin.attach(node);
-      node.matrixWorld.copy(world);
-      this.wheels.push({ pivot, spin, front: centre.z > 0, left: centre.x > 0, radius });
-    }
-    // calipers follow the front wheels' steering, without spinning
-    for (const mesh of meshes) {
-      const c = mesh.userData.caliper as string | undefined;
-      const cx = c ? new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3()).x : 0;
-      const wheel = c && this.wheels.find((w) => w.front && w.left === cx > 0);
-      if (wheel) wheel.pivot.attach(mesh);
-    }
+    // the lamps of a material as one mesh; a blinker mesh holds both sides, told apart by each triangle's side
+    const groups = (list: [THREE.Mesh, number][]) => { const m = new Map<THREE.Material, [THREE.Mesh, number][]>(); for (const e of list) (m.get(e[0].material as THREE.Material) ?? m.set(e[0].material as THREE.Material, []).get(e[0].material as THREE.Material)!).push(e); return [...m]; };
+    groups(lit.map(([m, l]) => [m, LAMPS.indexOf(l)])).forEach(([mat, list], i) => {
+      const geo = cached(info, `lamps${i}`, () => merge(list.map(([mesh, l]) => {
+        let g = plain(mesh.geometry);
+        if (LAMPS[l] === "left") g = g.toNonIndexed();
+        const p = g.attributes.position, at = new Float32Array(p.count).fill(l);
+        if (LAMPS[l] === "left") for (let t = 0; t < p.count; t += 3) if (p.getX(t) + p.getX(t + 1) + p.getX(t + 2) <= 0) at.fill(LAMPS.indexOf("right"), t, t + 3);
+        g.setAttribute("aLamp", new THREE.BufferAttribute(at, 1));
+        return g;
+      }))!);
+      const mesh = new THREE.Mesh(geo, lampMaterial(mat, this.glow));
+      mesh.renderOrder = Math.max(...list.map(([m]) => m.renderOrder));
+      mesh.receiveShadow = true;
+      model.add(mesh);
+      for (const [m] of list) m.removeFromParent();
+    });
     // every part of the car writes alpha 0: the motion blur (looks.ts) leaves cars sharp
     this.body.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) for (const x of Array.isArray(m) ? m : [m]) carAlpha(x); });
-    for (const w of this.wheels) w.pivot.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) carAlpha(m as THREE.Material); });
+
+    // the wheels, on the ground (not the sprung body): pivots at their centres steer, the wheel spins inside;
+    // all of them and the calipers of a material drawn as one mesh that turns each part in its shader
+    this.wheels = info.wheels.map((b) => {
+      const centre = b.getCenter(new THREE.Vector3()), pivot = new THREE.Object3D();
+      pivot.position.copy(centre);
+      return { pivot, spin: new THREE.Object3D(), front: centre.z > 0, left: centre.x > 0, radius: (b.max.y - b.min.y) / 2 };
+    });
+    const n = this.wheels.length, spun = new THREE.Matrix4(), back = new THREE.Matrix4();
+    this.turn = Array.from({ length: 2 * n }, () => new THREE.Matrix4());
+    const turn = () => this.wheels.forEach((w, i) => {
+      // about the wheel's centre: steered, then (the wheel, not its caliper) spun
+      const steer = this.turn[n + i], wheel = this.turn[i];
+      back.makeTranslation(-w.pivot.position.x, -w.pivot.position.y, -w.pivot.position.z);
+      steer.makeRotationY(w.pivot.rotation.y).setPosition(w.pivot.position);
+      wheel.multiplyMatrices(steer, spun.makeRotationX(w.spin.rotation.x)).multiply(back);
+      steer.multiply(back);
+    });
+    groups(turning).forEach(([mat, list], i) => {
+      const geo = cached(info, `wheels${i}`, () => merge(list.map(([mesh, k]) => { const g = plain(mesh.geometry); g.setAttribute("aWheel", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(k), 1)); return g; }))!);
+      const mesh = new THREE.Mesh(geo, wheelMaterial(mat, this.turn));
+      mesh.receiveShadow = true;
+      mesh.onBeforeRender = turn;
+      this.root.add(mesh);
+      for (const [m] of list) m.removeFromParent();
+    });
+
+    // the shadow: the body's shape on the body, the wheels' on the ground
+    const body = new THREE.Mesh(cached(info, "shape", () => shape(casts)), SHAPE), wheels = new THREE.Mesh(cached(info, "wheelShape", () => shape(turning.map(([m]) => m.geometry))), SHAPE);
+    for (const s of [body, wheels]) { s.castShadow = shadow; s.visible = false; this.shapes.push(s); }
+    model.add(body);
+    if (turning.length) this.root.add(wheels);
+    this.shadow = shadow;
+
     // the light the headlamps throw through the air at night, one cone from each lamp
     if (!heads.isEmpty()) {
       const hw = (heads.max.x - heads.min.x) / 2, cy = (heads.min.y + heads.max.y) / 2;
@@ -368,6 +481,8 @@ export class Car {
       }
     }
 
+    this.root.traverse((o) => { if ((o as THREE.Mesh).isMesh) twoPass(o as THREE.Mesh); });
+    this.shiny = this.shiny.flatMap((m) => (sides.get(m) as THREE.MeshStandardMaterial[] | undefined) ?? [m]);
     cars.add(this);
 
     // a soft dark patch under the car: grounds it where the shadow map doesn't reach
@@ -388,14 +503,15 @@ export class Car {
   setShadow(on: boolean) {
     if (on === this.shadow) return;
     this.shadow = on;
-    this.root.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = on; });
+    for (const s of this.shapes) s.castShadow = on;
   }
 
   setColor(color: THREE.ColorRepresentation) { for (const p of this.paint) p.color.set(color); }
 
   /** How brightly each lamp glows (0 off); a lit headlamp also shows its beam. */
   light(lamp: Lamp, level: number) {
-    for (const m of this.lamps[lamp]) m.emissiveIntensity = level * LAMP_GAIN[lamp];
+    const i = LAMPS.indexOf(lamp);
+    this.glow[i].copy(LAMP_GLOW[i]).multiplyScalar(level * LAMP_GAIN[lamp]);
     if (lamp === "head") for (const b of this.beams) b.visible = level > 0;
   }
 
@@ -405,36 +521,23 @@ export class Car {
   dispose() { this.root.removeFromParent(); cars.delete(this); }
 }
 
-/** Two meshes from one: the triangles left of the car's centre and right of it. */
-function splitByX(mesh: THREE.Mesh): [THREE.Mesh, THREE.Mesh] {
-  const geo = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
-  const pos = geo.attributes.position;
-  mesh.updateMatrixWorld(true);
-  // which side is decided in the car's frame: the mesh's world x (the model is centred on x = 0)
-  const m = mesh.matrixWorld;
-  const v = new THREE.Vector3();
-  const sides: number[][] = [[], []];
-  for (let t = 0; t < pos.count; t += 3) {
-    let x = 0;
-    for (let k = 0; k < 3; k++) x += v.fromBufferAttribute(pos, t + k).applyMatrix4(m).x;
-    sides[x > 0 ? 0 : 1].push(t);
+/** A see-through part seen from both sides is drawn back faces first, then front. Three does that by flipping its
+ *  material's side for each of the two draws, which makes it work the material's shader out again each time (with
+ *  a road full of cars, most of a frame's work); as two groups over the same triangles, a material for each side,
+ *  the same two draws, in the same order, cost nothing extra. */
+const sides = new WeakMap<THREE.Material, THREE.Material[]>();
+function twoPass(mesh: THREE.Mesh) {
+  const m = mesh.material as THREE.Material;
+  if (Array.isArray(m) || !m.transparent || m.side !== THREE.DoubleSide || m.forceSinglePass) return;
+  let pair = sides.get(m);
+  if (!pair) {
+    pair = [THREE.BackSide, THREE.FrontSide].map((side) => Object.assign(m.clone(), { side, onBeforeCompile: m.onBeforeCompile, customProgramCacheKey: m.customProgramCacheKey }));
+    sides.set(m, pair);
   }
-  const make = (tris: number[]) => {
-    const g = new THREE.BufferGeometry();
-    for (const [name, attr] of Object.entries(geo.attributes)) {
-      const a = attr as THREE.BufferAttribute;
-      const out = new Float32Array(tris.length * 3 * a.itemSize);
-      let o = 0;
-      for (const t of tris) for (let k = 0; k < 3; k++) for (let c = 0; c < a.itemSize; c++) out[o++] = a.getComponent(t + k, c);
-      g.setAttribute(name, new THREE.BufferAttribute(out, a.itemSize, false));
-    }
-    const mm = new THREE.Mesh(g, mesh.material);
-    mm.castShadow = false;
-    mesh.parent!.add(mm);
-    mm.position.copy(mesh.position); mm.quaternion.copy(mesh.quaternion); mm.scale.copy(mesh.scale);
-    return mm;
-  };
-  const l = make(sides[0]), r = make(sides[1]);
-  mesh.removeFromParent();
-  return [l, r];
+  const g = mesh.geometry;
+  if (!g.groups.length) { const n = (g.index ?? g.attributes.position).count; g.addGroup(0, n, 0); g.addGroup(0, n, 1); }
+  mesh.material = pair;
 }
+
+/** A model's merged geometry, made by its first car and shared by the rest. */
+const cached = (m: Model, key: string, make: () => THREE.BufferGeometry) => m.merged.get(key) ?? m.merged.set(key, make()).get(key)!;

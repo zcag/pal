@@ -5,7 +5,7 @@
 // rest of the frame and its sun blooms.
 import * as THREE from "./vendor/three.js";
 import { Finish, ACES } from "./looks.ts";
-import { Reflections } from "./car.ts";
+import { Reflections, shadowShapes } from "./car.ts";
 
 /** hit 0..1 for the flash, dim 0..1 to darken behind a card; speed is not needed (the motion blur sees it). */
 export type Fx = { speed?: number; hit?: number; dim?: number };
@@ -40,6 +40,11 @@ export class Renderer {
     gl.setPixelRatio(Math.min(2, devicePixelRatio));
     gl.shadowMap.enabled = true;
     gl.shadowMap.type = THREE.PCFShadowMap;
+    // the shadow map is drawn once a frame, by the frame's own render (not the reflections'), and the cars
+    // cast their merged shapes (car.ts) into it, which only it sees
+    gl.shadowMap.autoUpdate = false;
+    const shadows = gl.shadowMap.render.bind(gl.shadowMap);
+    gl.shadowMap.render = (lights, scene, camera) => { shadowShapes(true); shadows(lights, scene, camera); shadowShapes(false); };
     gl.toneMapping = THREE.ACESFilmicToneMapping; // only the exposure is read (looks.ts tone-maps)
     this.finish = new Finish(gl, this.camera);
     addEventListener("resize", () => this.resize());
@@ -50,6 +55,7 @@ export class Renderer {
   async warm(scene: THREE.Scene) {
     this.camera.position.set(0, 2, 0);
     this.camera.lookAt(0, 0, -30);
+    this.gl.shadowMap.needsUpdate = true;
     await this.finish.warm(scene);
     await this.reflections.warm(() => this.finish.warm(scene));
     this.finish.render(scene, {});
@@ -71,7 +77,13 @@ export class Renderer {
   }
 
   render(scene: THREE.Scene, fx: Fx = {}) {
+    // the scene's matrices once a frame: the shadow map, the reflections and the frame all draw this one
+    scene.updateMatrixWorld();
+    scene.matrixWorldAutoUpdate = false;
     this.reflections.update(this.gl, scene, this.camera);
+    this.gl.shadowMap.needsUpdate = true;
     this.finish.render(scene, fx);
+    scene.matrixWorldAutoUpdate = true;
   }
+
 }

@@ -11,6 +11,7 @@ const AHEAD = 9, BEHIND = 1;
 const WIDTH = 900; // each side
 const COLS = 80, ROWS = 24;
 const NEAR = 220; // chunks starting closer than this ahead draw their full meshes, the rest their impostors
+const PADDED = 8; // a kind of at most this many triangles keeps its instances padded (Land.flush)
 
 export function rng(seed: number) {
   let s = seed >>> 0;
@@ -95,8 +96,9 @@ export type Placer = (r: () => number, z0: number, put: Put) => void;
 export type Part = { geo: THREE.BufferGeometry; mat: THREE.Material };
 type Mode = "near" | "far";
 
-/** A kind of thing on the land: its meshes (and an impostor's for far away), the matrices of every chunk, and which chunks changed. */
-type Kind = { meshes: THREE.InstancedMesh[]; far: THREE.InstancedMesh[]; per: number; yOffset: number; mats: Float32Array; counts: Int32Array; dirty: Set<number> };
+/** A kind of thing on the land: its meshes (and an impostor's for far away), the matrices of every chunk, which
+ *  chunks changed, and whether its instances are packed (see flush). */
+type Kind = { meshes: THREE.InstancedMesh[]; far: THREE.InstancedMesh[]; per: number; yOffset: number; mats: Float32Array; counts: Int32Array; dirty: Set<number>; packed: boolean };
 
 export class Land {
   group = new THREE.Group();
@@ -134,7 +136,8 @@ export class Land {
       this.group.add(mesh);
       return mesh;
     });
-    this.kinds.set(name, { meshes: make(parts), far: make(o.far ?? []), per, yOffset: o.yOffset ?? 0, mats: new Float32Array(per * this.slots.length * 16), counts: new Int32Array(this.slots.length), dirty: new Set() });
+    const tris = parts.reduce((a, { geo }) => a + (geo.index ?? geo.attributes.position).count / 3, 0);
+    this.kinds.set(name, { meshes: make(parts), far: make(o.far ?? []), per, yOffset: o.yOffset ?? 0, mats: new Float32Array(per * this.slots.length * 16), counts: new Int32Array(this.slots.length), dirty: new Set(), packed: !!o.far || tris > PADDED });
     for (let i = 0; i < this.slots.length; i++) this.slots[i] = -999; // rebuild with the new kind
   }
 
@@ -186,12 +189,13 @@ export class Land {
     });
   }
 
-  /** Copy the changed chunks' matrices into a kind's meshes. One with an impostor is packed (near chunks into the
-   *  full meshes, far ones into the impostor's) and sent whole, being small; the rest keep a fixed range per chunk,
-   *  padded with nothing, so only the chunk that streamed in is sent. */
+  /** Copy the changed chunks' matrices into a kind's meshes. A packed kind (one with an impostor: near chunks into
+   *  the full meshes, far ones into the impostor's; or a model of more than a few triangles) is sent whole, being
+   *  few; a quad's kind (grass, impostors: thousands of them) keeps a fixed range per chunk, padded with nothing,
+   *  so only the chunk that streamed in is sent, and the padding costs a few empty vertices. */
   private flush(k: Kind) {
     const zero = new Float32Array(16);
-    if (!k.far.length) {
+    if (!k.packed) {
       for (const m of k.meshes) {
         const dst = m.instanceMatrix.array as Float32Array;
         m.count = k.per * this.slots.length;
@@ -208,12 +212,12 @@ export class Land {
       return;
     }
     k.dirty.clear();
-    const fill = (meshes: THREE.InstancedMesh[], want: Mode) => {
+    const fill = (meshes: THREE.InstancedMesh[], want: Mode | null) => {
       if (!meshes.length) return;
       let n = 0;
       const dst = meshes[0].instanceMatrix.array as Float32Array;
       for (let s = 0; s < this.slots.length; s++) {
-        if ((this.near[s] ? "near" : "far") !== want) continue;
+        if (want && (this.near[s] ? "near" : "far") !== want) continue;
         const c = k.counts[s];
         dst.set(k.mats.subarray(s * k.per * 16, (s * k.per + c) * 16), n * 16);
         n += c;
@@ -226,7 +230,7 @@ export class Land {
         m.instanceMatrix.needsUpdate = true;
       }
     };
-    fill(k.meshes, "near");
+    fill(k.meshes, k.far.length ? "near" : null);
     fill(k.far, "far");
   }
 
