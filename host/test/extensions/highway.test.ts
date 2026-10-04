@@ -3,6 +3,8 @@ import { Vehicle } from "../../../extensions/highway/game/vehicle.ts";
 import { Director } from "../../../extensions/highway/game/director.ts";
 import { Score } from "../../../extensions/highway/game/score.ts";
 import { CARS, FEEL, spec } from "../../../extensions/highway/game/content.ts";
+import { Drive } from "../../../extensions/highway/game/drive.ts";
+import { ONE_WAY } from "../../../extensions/highway/game/layout.ts";
 import { fresh, buyCar, buyUpgrade, load } from "../../../extensions/highway/game/meta.ts";
 
 const NO_UP = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
@@ -66,4 +68,14 @@ test("buying needs the cash, and a save survives a round trip", () => {
   const back = load(JSON.parse(JSON.stringify(s)));
   expect(back.owned[CARS[1].id].upgrades.speed).toBe(1);
   expect(back.car).toBe(CARS[1].id);
+});
+
+test("Speed Trap ends a run held under its floor; Time Attack's clock runs down", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const trap = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "trap" });
+  for (let i = 0; i < 120 * 6 && !trap.ended; i++) trap.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
+  expect(trap.ended).toBe("slow");
+  const time = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "time" });
+  for (let i = 0; i < 120; i++) time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
+  expect(time.clock).toBeCloseTo(59, 1);
 });
