@@ -4,6 +4,7 @@
 //! (`bridge`), the `icon://` and `ext://` schemes, the menu bar icon, and
 //! timing marks.
 
+mod account;
 mod apps;
 mod audio;
 mod autostart;
@@ -346,6 +347,17 @@ pub fn run() {
             index::search_history,
             index::search_history_clear,
             fallback::fallback,
+            account::account_state,
+            account::account_start,
+            account::account_verify,
+            account::account_details,
+            account::account_set_handle,
+            account::account_drop_device,
+            account::account_sign_out,
+            account::account_delete,
+            account::sync_now,
+            account::sync_history,
+            account::sync_restore,
             settings::settings_general,
             settings::settings_get,
             settings::settings_theme,
@@ -438,6 +450,7 @@ pub fn run() {
             //      permissions: log what the OS lets pal do, watch for a grant
             //   8. clipboard: the recorder, retention from the loaded settings
             //      storage: the extensions' key-value files, nothing read yet
+            //      account: the token if signed in, sync marking storage writes, its ticker
             //   9. updater: the daily check (release builds)
             //  10. cache restore: last run's listings, so the root answers now
             //      bar: the popover window, the strip targets and their probes
@@ -476,6 +489,7 @@ pub fn run() {
             permissions::install(app.handle());
             clipboard::install(app.handle());
             storage::install(app.handle());
+            account::install(app.handle());
             expansion::install(app.handle());
             keycast::install(app.handle());
             reserve::install(app.handle());

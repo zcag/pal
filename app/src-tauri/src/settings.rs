@@ -253,6 +253,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);
     crate::store::apply_config(app, &prev, &loaded.config);
+    crate::account::config_changed(app);
     if prev.features != loaded.config.features || prev.palettes != loaded.config.palettes {
         crate::features::sync(app);
     }
@@ -332,18 +333,22 @@ pub fn register(app: &AppHandle, key: &str, params: &Value, loaded: bool, disabl
         Some(e) => *e = ext,
         None => exts.push(ext),
     }
+    drop(exts);
+    crate::account::refresh(app);
 }
 
 /// `host/ready`: instances the host no longer has are gone (`known`
 /// lists keys).
 pub fn retain(app: &AppHandle, live: &[String]) {
     lock(&app.state::<Settings>().extensions).retain(|e| live.contains(&e.key));
+    crate::account::refresh(app);
 }
 
 /// `extension/removed`: its directory is gone, or the instance was
 /// stopped (its `[instances.<key>]` removed or parked).
 pub fn forget(app: &AppHandle, key: &str) {
     lock(&app.state::<Settings>().extensions).retain(|e| e.key != key);
+    crate::account::refresh(app);
 }
 
 /// The label of the instance `key` for the bar and the panel (`InstanceInfo::label`), from the registry and the config's count of enabled instances.
@@ -1015,6 +1020,9 @@ pub struct View {
     displays: Vec<String>,
     /// Every feature: its spec, whether it runs here, on or off, the permission it waits on (features.rs).
     features: Vec<Value>,
+    /// The config keys that stay on this machine (`pal_core::config::sync`,
+    /// `*` one segment): the rows they set say "this Mac only".
+    local: Vec<String>,
 }
 
 /// Off the main thread: `permissions::status` probes the OS (~85 ms on
@@ -1040,6 +1048,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         checks: lock(&st.checks).clone(),
         displays: crate::bar::popover::displays(&app).0.into_iter().map(|d| d.name).collect(),
         features: crate::features::view(&app, &l.config, &perms),
+        local: crate::account::local_keys(&app),
     }
 }
 

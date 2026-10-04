@@ -548,6 +548,8 @@ async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &Pa
 /// whatever the gap says: its order is the point.
 pub fn on_shown(app: &AppHandle, held: Option<&str>) {
     SHOWN.store(true, Ordering::SeqCst);
+    // Signed in: the account's changes, at most once a minute.
+    crate::account::shown(app);
     // The welcome rows follow the permission and the marker; a no-op once hidden.
     welcome::sync(app);
     let waiting: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
