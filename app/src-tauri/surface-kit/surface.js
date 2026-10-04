@@ -8,21 +8,29 @@
 // belongs to: `send` reaches the palette's `onMessage` (its return value
 // is the reply), `on` hears `surface.post`, `onAction` a view action
 // picked from ⌘K or the footer, `storage` and `settings` are the
-// extension's own. The theme arrives as every `--pal-*` token on :root
-// and `data-theme` on <html>, again on every flip. Escape and ⌘K go to
-// the panel, and so does any cmd combo the page does not preventDefault.
+// extension's own, `score`, `leaderboard`, `account` and `signIn` reach
+// the user's pal account through the core. The theme arrives as every
+// `--pal-*` token on :root and `data-theme` on <html>, again on every
+// flip. Escape and ⌘K go to the panel, and so does any cmd combo the page
+// does not preventDefault.
 //
 // Opened in a plain browser (`window.parent === window`), or framed with
-// `?web` (palplay.cagdas.io's game page), it is a stub, so a page is
-// developed, screenshot and played in a browser as is: storage in
-// localStorage, settings from `?settings=<json>`, the theme from
-// `?theme=dark|light` or the OS (tokens.css linked for the values), sends
-// logged to the console.
+// `?web`, it is a stub, so a page is developed, screenshot and played in
+// a browser as is: storage in localStorage, settings from
+// `?settings=<json>`, the theme from `?theme=dark|light` or the OS
+// (tokens.css linked for the values), sends logged to the console, a
+// score kept as is, no board, signed out. Framed with `?play=1` (the game
+// page on play.cagdas.io), the same stub but storage and the account
+// calls go to that page, which keeps and syncs them: `{ pal: "call", id,
+// method, params }` up, `{ pal: "result", id, result | error }` and `{
+// pal: "storage", key, value }` down.
 (() => {
   const q = new URLSearchParams(location.search);
-  const inPal = window.parent !== window && !q.has("web");
+  const framed = window.parent !== window;
+  const play = framed && q.get("play") === "1";
+  const inPal = framed && !q.has("web") && !play;
   const root = document.documentElement;
-  const handlers = { message: [], action: [], settings: [], theme: [], shown: [], hidden: [] };
+  const handlers = { message: [], action: [], settings: [], theme: [], shown: [], hidden: [], storage: [] };
   // A message, an action or settings that arrive before the page listens (its module runs after this script, and the app
   // flushes what it held at the hello) wait for the first handler of their kind; the rest are states, sent again anyway.
   const early = { message: [], action: [], settings: [] };
@@ -39,6 +47,26 @@
   const pal = {
     on: on("message"), onAction: on("action"), onSettings: on("settings"), onTheme: on("theme"), onShown: on("shown"), onHidden: on("hidden"),
   };
+  const onStorage = (fn) => on("storage")((m) => fn(m.key, m.value));
+
+  // Calls answered by the parent window (the app, or the play page), each by its id.
+  const pending = new Map();
+  let seq = 0;
+  const callUp = (method, params) => new Promise((resolve, reject) => { const id = ++seq; pending.set(id, { resolve, reject }); window.parent.postMessage({ pal: "call", id, method, params }, "*"); });
+  const settle = (m) => {
+    const p = pending.get(m.id);
+    if (!p) return;
+    pending.delete(m.id);
+    if (m.error !== undefined) p.reject(new Error(String(m.error)));
+    else p.resolve(m.result);
+  };
+  /** The kit's account calls over `call`: the app's host, or the play page. */
+  const accountCalls = (call) => ({
+    score: (board, value) => call("score", { board: String(board), value }),
+    leaderboard: (board, opts = {}) => call("leaderboard", { board: String(board), ...(opts.period && { period: opts.period }), ...(opts.anon !== undefined && { anon: !!opts.anon }) }),
+    account: () => call("account", {}),
+    signIn: () => call("signIn", {}).then(() => undefined),
+  });
 
   // The design faces the `--pal-font-*` tokens name (fonts.css, the kit's route); a face loads only once text in it shows.
   const faces = document.createElement("link");
@@ -61,14 +89,34 @@
     const key = (k) => `pal:${location.pathname}:${k}`;
     Object.assign(pal, {
       send: async (msg) => { console.log("pal.send", msg); return undefined; },
-      storage: {
+      storage: play ? {
+        get: (k) => callUp("storage.get", { key: String(k) }),
+        set: (k, v) => callUp("storage.set", { key: String(k), value: v === undefined ? null : v }).then(() => undefined),
+        onChange: onStorage,
+      } : {
         get: async (k) => { const v = localStorage.getItem(key(k)); return v === null ? null : JSON.parse(v); },
         set: async (k, v) => { if (v === null || v === undefined) localStorage.removeItem(key(k)); else localStorage.setItem(key(k), JSON.stringify(v)); },
+        onChange: onStorage,
       },
       settings: async () => settings,
       title: (text) => { document.title = String(text); },
       ready: () => {},
+      ...(play ? accountCalls(callUp) : {
+        score: async (board, value) => ({ best: value, rank: null, total: null }),
+        leaderboard: async () => ({ board: null, rows: [], me: null }),
+        account: async () => ({ signedIn: false, handle: null }),
+        signIn: async () => {},
+      }),
     });
+    if (play) {
+      window.addEventListener("message", (e) => {
+        if (e.source !== window.parent) return;
+        const m = e.data;
+        if (!m || typeof m !== "object") return;
+        if (m.pal === "result") settle(m);
+        else if (m.pal === "storage" && typeof m.key === "string") fire("storage", { key: m.key, value: m.value ?? null });
+      });
+    }
     document.addEventListener("visibilitychange", () => fire(document.hidden ? "hidden" : "shown"));
     window.pal = pal;
     return;
@@ -76,9 +124,7 @@
 
   // ---- inside pal ------------------------------------------------------------
   const up = (m) => window.parent.postMessage(m, "*");
-  const pending = new Map();
-  let seq = 0;
-  const call = (method, params) => new Promise((resolve, reject) => { const id = ++seq; pending.set(id, { resolve, reject }); up({ pal: "call", id, method, params }); });
+  const call = callUp;
   // `ready` waits for the theme, so the page the app reveals is already in its colours.
   let themed = false, readyAsked = false;
   const tellReady = () => { if (themed && readyAsked) up({ pal: "ready" }); };
@@ -93,16 +139,10 @@
         setScheme(m.scheme);
         if (!themed) { themed = true; tellReady(); }
         break;
-      case "reply": {
-        const p = pending.get(m.id);
-        if (!p) break;
-        pending.delete(m.id);
-        if (m.error !== undefined) p.reject(new Error(String(m.error)));
-        else p.resolve(m.result);
-        break;
-      }
+      case "reply": settle(m); break;
       case "message": fire("message", m.data); break;
       case "settings": fire("settings", m.data); break;
+      case "storage": if (typeof m.key === "string") fire("storage", { key: m.key, value: m.value ?? null }); break;
       case "action": fire("action", String(m.id)); break;
       case "shown": fire("shown"); break;
       case "hidden": fire("hidden"); break;
@@ -123,10 +163,12 @@
     storage: {
       get: (key) => call("storage.get", { key }),
       set: (key, value) => call("storage.set", { key, value: value === undefined ? null : value }).then(() => undefined),
+      onChange: onStorage,
     },
     settings: () => call("settings", {}),
     title: (text) => up({ pal: "title", text: String(text) }),
     ready: () => { readyAsked = true; tellReady(); },
+    ...accountCalls(call),
   });
   window.pal = pal;
   up({ pal: "hello" });

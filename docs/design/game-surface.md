@@ -100,6 +100,10 @@ The type is `SurfaceKit` in `@zcag/pal` (`declare const pal: SurfaceKit`).
 | `on(fn)` | what the extension pushes with `surface.post(msg)` |
 | `onAction(fn)` | a view action picked from ⌘K or the footer, or its key pressed while the panel had focus |
 | `storage.get(key)`, `storage.set(key, value)` | the extension's storage, the file the SDK's `storage` uses |
+| `storage.onChange(fn)` | `(key, value)` for a value sync brought in (docs/design/accounts.md) |
+| `score(board, value)` | a score on a declared board: `{ best, rank, total }`, or `{ queued: true, best }` offline |
+| `leaderboard(board, { period, anon })` | a board: `{ board, rows, me }` |
+| `account()`, `signIn()` | `{ signedIn, handle }`; open the sign-in (Settings › Account) |
 | `settings()`, `onSettings(fn)` | the extension's resolved settings; every change after the first ask |
 | `title(text)` | the level's title line; `""` puts the view's own back |
 | `onTheme(fn)` | the scheme after a flip; every `--pal-*` token is already set on `:root` and `data-theme` on `<html>` |
@@ -109,7 +113,15 @@ The type is `SurfaceKit` in `@zcag/pal` (`declare const pal: SurfaceKit`).
 Outside pal (`window.parent === window`, or a frame loaded with `?web`)
 the kit is a stub: storage in
 `localStorage`, settings from `?settings=<json>`, the theme from
-`?theme=dark|light` or the OS with `tokens.css` linked, sends logged. The
+`?theme=dark|light` or the OS with `tokens.css` linked, sends logged, a
+score answered as is (`{ best: value, rank: null, total: null }`), an
+empty board (`{ board: null, rows: [], me: null }`), signed out. In a
+frame loaded with `?play=1` (play.cagdas.io's game page) it is the same
+stub except that storage and the account calls go to the parent page,
+which plays the app's part: frame to page `{ pal: "call", id, method,
+params }` (`storage.get`, `storage.set`, `score`, `leaderboard`,
+`account`, `signIn`), page to frame `{ pal: "result", id, result | error
+}` and the push `{ pal: "storage", key, value }`. The
 same serving for a plain browser, `.ts` transpiled and the kit mapped, is
 `bun host/src/surface.ts <extension dir> [port]`.
 
@@ -137,8 +149,9 @@ storage.
 - **The bridge decides who is asking.** A message counts only when its
   `source` is our frame's window. The app sends the page's calls to the
   host with the level's extension and palette, never a name from the
-  page, and relays only `send`, `storage.get`, `storage.set`, `settings`.
-  A post from the host reaches the page only as `message` or `settings`.
+  page, and relays only `send`, `storage.get`, `storage.set`, `settings`,
+  `score`, `leaderboard`, `account`, `signIn`. A post from the host
+  reaches the page only as `message`, `settings` or `storage`.
 - **CSP.** No network (`connect-src 'self'`), no other extension's origin,
   no `icon://` (so no file thumbnails of the user's disk), no eval, no
   inline script, no nested frame.
@@ -175,7 +188,8 @@ The frame and the app speak `{ pal: <kind>, ... }`. Page to app: `hello`
 (the app answers with the theme and flushes what it held), `ready`,
 `title`, `key`, `call { id, method, params }`. App to page: `theme {
 scheme, tokens }`, `reply { id, result | error }`, `action { id }`,
-`message { data }`, `settings { data }`, `shown`, `hidden`. The app holds
+`message { data }`, `settings { data }`, `storage { key, value }`,
+`shown`, `hidden`. The app holds
 what it would post until the page's hello; the kit holds a `message`,
 `action` or `settings` until the page registers its first handler of
 that kind (its module runs after the kit, so a `surface.post` from

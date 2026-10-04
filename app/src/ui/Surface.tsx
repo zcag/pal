@@ -20,20 +20,20 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 export type SurfaceHost = {
   /** The page's URL for the node's `src` (the extension's `ext://` origin). */
   url(src: string): string;
-  /** A page's call (`send`, `storage.get`, `storage.set`, `settings`), answered by the host. */
+  /** A page's call (`send`, `storage.get`, `storage.set`, `settings`, `score`, `leaderboard`, `account`, `signIn`), answered by the host. */
   call(method: string, params: Record<string, unknown>): Promise<unknown>;
   /** `pal.title`: the level's title line; empty for the view's own. */
   title(text: string): void;
   /** The frame's handle while it is mounted, null once it is gone. */
   attach(h: SurfaceHandle | null): void;
 };
-/** The Launcher's way into the page: a message for the kit (`action`, `message`, `settings`, `shown`, `hidden`) and the focus. */
+/** The Launcher's way into the page: a message for the kit (`action`, `message`, `settings`, `storage`, `shown`, `hidden`) and the focus. */
 export type SurfaceHandle = { post(msg: { pal: string } & Record<string, unknown>): void; focus(): void };
 
 export const SurfaceContext = createContext<SurfaceHost | null>(null);
 
 /** The page's calls, the only ones relayed. */
-const CALLS = new Set(["send", "storage.get", "storage.set", "settings"]);
+const CALLS = new Set(["send", "storage.get", "storage.set", "settings", "score", "leaderboard", "account", "signIn"]);
 /** Revealed this long after the load even without `pal.ready()`, so a page that never says it is still seen. */
 const READY_FALLBACK_MS = 1000;
 

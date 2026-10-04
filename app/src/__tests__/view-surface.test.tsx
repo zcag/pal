@@ -150,6 +150,20 @@ describe("surface level", () => {
     expect(posted.slice(2)).toEqual([{ pal: "hidden" }]);
   });
 
+  it("the account calls go to the host for the level; a synced storage change reaches the page", async () => {
+    await mount();
+    await fromPage({ pal: "hello" });
+    await fromPage({ pal: "call", id: 5, method: "score", params: { board: "daily", value: 120 } });
+    await fromPage({ pal: "call", id: 6, method: "leaderboard", params: { board: "daily", anon: false } });
+    await fromPage({ pal: "call", id: 7, method: "account", params: {} });
+    await fromPage({ pal: "call", id: 8, method: "signIn", params: {} });
+    expect(calls.map(([level, method]) => [level, method])).toEqual(["score", "leaderboard", "account", "signIn"].map((m) => [{ extension: "snake", palette: "snake" }, m]));
+    expect(calls[0][2]).toEqual({ board: "daily", value: 120 });
+    expect(posted).toContainEqual({ pal: "reply", id: 8, result: null });
+    await act(() => { launcher.current!.update({ extension: "snake", palette: "snake", post: { pal: "storage", key: "best", value: 42 } }); });
+    expect(posted.at(-1)).toEqual({ pal: "storage", key: "best", value: 42 });
+  });
+
   it("the game's panel: its remembered mode on entering, ⌘⇧F and ⌘⇧J toggle big and corner (each remembered), normal on leaving", async () => {
     const asked: [string | undefined, PanelMode | undefined][] = [];
     await mount(async (palette, mode) => { asked.push([palette, mode]); return mode ?? (palette ? "corner" : "normal"); });

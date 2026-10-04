@@ -214,7 +214,7 @@ export type ViewOpen = { extension: string; palette?: string; bar?: string; id: 
  * surface page (`ViewPost`); `shown`, the level shown or hidden with its
  * window, for that page too.
  */
-export type ViewUpdate = { extension: string; palette?: string | null; bar?: string | null; id?: string | null; spec?: ViewSpec | { tree: ViewNode }; post?: { pal: string; data?: unknown }; shown?: boolean };
+export type ViewUpdate = { extension: string; palette?: string | null; bar?: string | null; id?: string | null; spec?: ViewSpec | { tree: ViewNode }; post?: { pal: string; data?: unknown; key?: unknown; value?: unknown }; shown?: boolean };
 /** Where a surface page's calls go (App wires the host): its URL on the extension's `ext://` origin, and a call the host answers for that level. */
 export type SurfaceBridge = { url(extension: string, src: string): string; call(level: { extension: string; palette: string; args?: unknown }, method: string, params: Record<string, unknown>): Promise<unknown> };
 /** A bar item's own level (BarPage's `levelOf`) keys its `palette` as `bar:ext/item`: a source key is `ext/palette`, and an extension may name a bar item after one of its palettes (github's prs, issues, notifications), so the bare key would resolve to the palette and a pick would go there. */
@@ -941,6 +941,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (u.post || typeof u.shown === "boolean") {
       if (!names(level.current, u)) return;
       if (u.post?.pal === "message" || u.post?.pal === "settings") surfaceRef.current?.post({ pal: u.post.pal, data: u.post.data });
+      if (u.post?.pal === "storage" && typeof u.post.key === "string") surfaceRef.current?.post({ pal: "storage", key: u.post.key, value: u.post.value ?? null });
       if (typeof u.shown === "boolean") surfaceRef.current?.post({ pal: u.shown ? "shown" : "hidden" });
       return;
     }
