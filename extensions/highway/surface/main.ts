@@ -443,7 +443,7 @@ async function stage(sc: Scene) {
   await drive();
   // the run, played forward by the driver, then shown live
   run!.veh.launch((sc.speed ?? 170) / 3.6 * 0.9);
-  run!.startZ = -3500; // a few kilometres in: the traffic is up to strength
+  run!.director.time = 160; // a few minutes in: the traffic is up to strength
   for (let i = 0; i < (sc.warm ?? 6) * 120; i++) { run!.step(1 / 120, autopilot(sc.speed ?? 170)); if (i % 60 === 0) run!.draw(1 / 2); }
   run!.settle();
   chase.reset(run!.pose);

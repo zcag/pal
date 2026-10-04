@@ -87,8 +87,6 @@ export class Run {
   spring = { pitch: 0, pitchV: 0, roll: 0, rollV: 0 };
   scraping = 0;
   private shown = new Map<number, Car>();
-  /** Where the run began: the traffic thickens with the distance from here. */
-  startZ = 0;
   private blink = 0;
   lights: THREE.SpotLight[] = [];
 
@@ -97,7 +95,7 @@ export class Run {
     const s = spec(car, up, player.wheelbase);
     this.veh = new Vehicle(s);
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
-    this.veh.launch(80 / 3.6);
+    this.veh.launch(100 / 3.6);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: car.top / 3.6, rnd, density });
     world.scene.add(player.root);
@@ -179,7 +177,7 @@ export class Run {
     this.scraping = Math.max(0, this.scraping - dt);
 
     // traffic: plan, drive, place
-    this.director.travelled = v.z - this.startZ;
+    if (!this.over) this.director.time += dt;
     const rows = this.director.plan(v.z, v.u, this.traffic.cars.map((n) => ({ lane: n.lane, z: n.z, oncoming: n.oncoming })));
     for (const row of rows) for (const s of row.spawns) {
       const kind = s.heavy ? this.pickKind(true) : this.pickKind(rnd() < 0.12);

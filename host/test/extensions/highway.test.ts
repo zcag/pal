@@ -33,7 +33,7 @@ test("the director never fills every lane of a row", () => {
   const d = new Director({ lanes: 4, oncomingLanes: 0, topSpeed: 70, rnd });
   const cars: { lane: number; z: number; oncoming: boolean }[] = [];
   for (let z = 0; z < 30000; z += 200) {
-    d.travelled = z;
+    d.time = z / 60;
     d.plan(z, 60, cars);
   }
   for (const c of cars) {

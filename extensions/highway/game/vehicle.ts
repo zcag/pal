@@ -41,6 +41,10 @@ export const SEDAN: Spec = {
 export type Input = { throttle: number; brake: number; steer: number }; // steer: +1 left
 
 const G = 9.81, RHO = 1.2, CRR = 0.012, SHIFT_TIME = 0.16;
+// The tyres grip harder sideways than real ones (and the car turns in faster): a lane at 160 km/h
+// in about two thirds of a second, where a real car would take one and a half. The motion keeps a
+// real car's shape (it yaws in, leans, settles); it is the speed of it that is a game's.
+const SIDE_GRIP = 1.6;
 
 export class Vehicle {
   // pose and motion in the road's frame
@@ -82,22 +86,22 @@ export class Vehicle {
   step(dt: number, input: Input) {
     const s = this.spec;
     const L = s.wheelbase, a = L * (1 - s.cgFront), b = L * s.cgFront; // cg to front / rear axle
-    const Iz = s.inertia ?? s.mass * L * L * 0.3;
+    const Iz = s.inertia ?? s.mass * L * L * 0.24;
     this.throttle += (input.throttle - this.throttle) * Math.min(1, dt * 8);
     this.braking += (input.brake - this.braking) * Math.min(1, dt * 10);
 
     // --- steering: the aid turns the wheel in at a rate, less lock at speed
     const speed = Math.max(0, this.u);
     // full lock asks for about the car's agility in g at any speed past a crawl: lots of angle in town, a hair at 250
-    const lock = Math.min(s.steerMax, ((s.agility ?? 0.62) * G * L * 1.35) / Math.max(speed * speed, 1));
+    const lock = Math.min(s.steerMax, ((s.agility ?? 0.62) * SIDE_GRIP * G * L * 1.5) / Math.max(speed * speed, 1));
     // the driver aims the car: holding a direction asks for a heading that crosses the road at a
     // steady sideways speed (sharper cars cross faster), letting go asks for straight down the road;
     // the wheels are steered to get there, within what the tyres allow
-    const across = 4.4 + ((s.agility ?? 0.9) - 0.9) * 4; // m/s sideways
+    const across = 8.2 + ((s.agility ?? 1.2) - 1.2) * 6; // m/s sideways
     const maxYaw = Math.min(0.5, across / Math.max(speed, 1));
-    const wantR = (input.steer * maxYaw - this.yaw) * 5.5;
-    const target = Math.max(-lock, Math.min(lock, (((wantR - this.r * 0.5) * L) / Math.max(speed, 4)) * 1.6));
-    const rate = Math.max(lock / 0.15, 0.02); // full lock in a sixth of a second
+    const wantR = (input.steer * maxYaw - this.yaw) * 11;
+    const target = Math.max(-lock, Math.min(lock, (((wantR - this.r * 0.35) * L) / Math.max(speed, 4)) * 2));
+    const rate = Math.max(lock / 0.06, 0.02); // full lock in 60 ms: the wheel answers the key at once
     this.delta += Math.max(-rate * dt, Math.min(rate * dt, target - this.delta));
 
     // --- loads on each axle, weight shifting with the last step's acceleration
@@ -110,7 +114,7 @@ export class Vehicle {
     const alphaF = Math.atan2(this.v + a * this.r, uu) - this.delta;
     const alphaR = Math.atan2(this.v - b * this.r, uu);
     const tyre = (alpha: number, N: number) => {
-      const peak = s.grip * N, k = s.corner * N;
+      const peak = s.grip * SIDE_GRIP * N, k = s.corner * SIDE_GRIP * N;
       // a smooth saturation (Pacejka-like): linear at small slip, a plateau past the peak
       const x = (k * alpha) / peak;
       return -peak * Math.tanh(x) * (1 - 0.08 * Math.min(1, Math.abs(x) / 3));
@@ -158,7 +162,7 @@ export class Vehicle {
       this.v *= 1 - k;
     }
     // stability control: a yaw rate past what the tyres can hold is braked back, as ESC would
-    const rMax = (s.grip * G) / Math.max(uu, 4) * 1.1;
+    const rMax = (s.grip * SIDE_GRIP * G) / Math.max(uu, 4) * 1.1;
     if (Math.abs(this.r) > rMax) this.r += (Math.sign(this.r) * rMax - this.r) * Math.min(1, dt * 6);
     this.yaw += this.r * dt;
     const c = Math.cos(this.yaw), sn = Math.sin(this.yaw);
