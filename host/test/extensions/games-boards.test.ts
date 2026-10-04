@@ -90,7 +90,7 @@ describe("over the wire", () => {
   test("an installed game with boards has Leaderboards on its row, which opens them", async () => {
     const rows = await host.list("games", "games");
     expect(rows.find((r) => r.id === "2048/2048")!.actions).toEqual([{ id: "play", title: "Play" }, { id: "boards", title: "Leaderboards", shortcut: "cmd+l" }]);
-    expect(rows.find((r) => r.id === "snake/snake")!.actions).toEqual([{ id: "play", title: "Play" }]);
+    expect(rows.find((r) => r.id === "snake/snake")!.actions).toEqual([{ id: "play", title: "Play" }, { id: "boards", title: "Leaderboards", shortcut: "cmd+l" }]);
     expect(rows.map((r) => r.id)).not.toContain("games/leaderboards");
     expect(await host.pick("games", "games", "2048/2048", "boards")).toEqual({ push: { extension: "games", palette: "leaderboards", args: { game: "2048" } } });
   });

@@ -6,6 +6,9 @@
 // `pal.storage.set("k"` in its page, the key a literal or a `const` of one
 // in the same file. A key written any other way (a variable, a template)
 // is reported too, since nothing could check it: write it as a literal.
+// A game whose writes all go through a `progress.ts` names its keys there
+// (`export const KEYS`); those are its keys, and its own writes by a
+// variable are that module's, so they are not reported.
 //
 // The games are the store's Fun shelf that have a view palette (the Games
 // shelf's own rule, extensions/games), less the ones that are not games,
@@ -58,7 +61,11 @@ function scan(name: string): { keys: Map<string, string>; unknown: string[] } {
     for (const k of w.keys) if (!keys.has(k)) keys.set(k, at);
     unknown.push(...w.unknown.map((u) => `${at}: storage.set(${u}, ...)`));
   }
-  return { keys, unknown };
+  const progress = join(dir, "progress.ts");
+  const listed: readonly string[] | undefined = existsSync(progress) ? require(progress).KEYS : undefined;
+  if (!listed) return { keys, unknown };
+  for (const k of listed) if (!keys.has(k)) keys.set(k, "progress.ts KEYS");
+  return { keys, unknown: [] };
 }
 
 describe("synced storage is declared", () => {
