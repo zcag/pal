@@ -94,6 +94,26 @@ export function isMemory(x: unknown): x is Memory {
     && (m.game === null || (typeof m.game === "object" && Array.isArray(m.game.snake) && m.game.snake.length > 0));
 }
 
+/**
+ * EXTRA, not the firmware: what follows the player to their other machines
+ * (pal.json `sync`): the top score (`best`, merged by `max`) and the level and
+ * maze last chosen (`options`). The memory itself (`phone`: rand()'s state and
+ * a paused game) stays on this machine, as it would in one phone.
+ */
+export type Shared = { best: number; options: { level: number; maze: number } };
+export const shared = ({ best, level, maze }: Memory): Shared => ({ best, options: { level, maze } });
+/** The memory with what sync kept: the higher top score, the level and maze chosen last; anything malformed is left out. */
+export function withShared(m: Partial<Memory>, best: unknown, options: unknown): Partial<Memory> {
+  const out = { ...m };
+  if (Number.isInteger(best) && (best as number) > (m.best ?? 0) && (best as number) <= 1e9) out.best = best as number;
+  const o = options as Shared["options"] | null;
+  if (o && Number.isInteger(o.level) && o.level >= 1 && o.level <= 9 && Number.isInteger(o.maze) && o.maze >= 0 && o.maze <= 5) Object.assign(out, { level: o.level, maze: o.maze });
+  return out;
+}
+
+/** The leaderboards a game's score goes to (pal.json `leaderboards`): the top score, this week's, and its level's. */
+export const boardsOf = (g: Pick<Game, "level">) => ["top", "week", `level/${g.level}`];
+
 /** A phone with Snake II just entered (the splash): at power-on, or with the memory kept from before. */
 export function boot(t: number, saved: Partial<Memory> = {}): Phone {
   return {

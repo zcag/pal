@@ -14,11 +14,13 @@
 // The phone's memory (the level, the maze, the top score, a paused game,
 // rand()'s state) is in the extension's storage. rand() starts again from 1
 // only at a power-on: the first time the page asks the extension since pal
-// started (a plain browser tab counts every load as one).
+// started (a plain browser tab counts every load as one). The top score and
+// the level and maze also go to their own keys, which sync to the player's
+// account (phone.ts `Shared`), and each game's score to the leaderboards.
 import type { SurfaceKit } from "@zcag/pal";
 import type { Key } from "../game.ts";
 import { LCD_H, LCD_W, frame } from "../lcd.ts";
-import { REPEAT_EVERY, REPEAT_FIRST, advance, boot, enter, gone, isMemory, memory, press, repeats, type Phone } from "../phone.ts";
+import { REPEAT_EVERY, REPEAT_FIRST, advance, boardsOf, boot, enter, gone, isMemory, memory, press, repeats, shared, withShared, type Phone } from "../phone.ts";
 import { TONES, hz } from "../tones.ts";
 
 declare const pal: SurfaceKit;
@@ -130,6 +132,7 @@ function run() {
   }
   advance(ph, t);
   for (const s of ph.sounds.splice(0)) sound(s.t, s.kind);
+  if (ph.screen.id === "dying" && ph.screen.at !== died) { died = ph.screen.at; post(); }
   save();
   title();
   if (gone(ph) && !leaving) leave();
@@ -149,12 +152,42 @@ function leave() {
   }, 600);
 }
 
-let stored = "";
+let stored = "", storedBest: unknown = null, storedOptions = "";
+const fail = (e: unknown) => console.error(`snake: save: ${e}`);
 function save() {
   const m = JSON.stringify(memory(ph));
   if (m === stored) return;
   stored = m;
-  pal.storage.set(KEY, memory(ph)).catch((e) => console.error(`snake: save: ${e}`));
+  pal.storage.set(KEY, memory(ph)).catch(fail);
+  share();
+}
+/** The synced keys, when they changed (or were never written: a phone from before sync). */
+function share() {
+  const { best, options } = shared(memory(ph));
+  if (best !== storedBest) { storedBest = best; pal.storage.set("best", best).catch(fail); }
+  if (JSON.stringify(options) !== storedOptions) { storedOptions = JSON.stringify(options); pal.storage.set("options", options).catch(fail); }
+}
+/** Sync brought a higher top score from another machine, or the level and maze chosen there. */
+pal.storage.onChange((k, v) => {
+  if (!ph || (k !== "best" && k !== "options")) return;
+  Object.assign(ph, withShared(memory(ph), k === "best" ? v : null, k === "options" ? v : null));
+  if (k === "best") storedBest = v;
+  else storedOptions = JSON.stringify(v);
+  share();
+});
+
+// ---- the boards ------------------------------------------------------------------------------------------------
+
+/** The game that just died, by its death's time; where its score stands, for the title line until the next game. */
+let died = -1;
+let standing = "";
+function post() {
+  const g = ph.game;
+  if (!g || g.score <= 0) return;
+  standing = "";
+  const top = pal.score("top", g.score).then((r) => { if (r.rank && r.total) { standing = ` · #${r.rank} of ${r.total}`; shown = -1; } });
+  for (const b of boardsOf(g).slice(1)) pal.score(b, g.score).catch((e) => console.error(`snake: score: ${e}`));
+  top.catch((e) => console.error(`snake: score: ${e}`));
 }
 
 // ---- the panel -------------------------------------------------------------------------------------------------
@@ -162,9 +195,10 @@ function save() {
 /** EXTRA, not the firmware: the top score in the panel's title line, so it reads without the phone's Top score screen. */
 let shown = -1;
 function title() {
+  if (ph.screen.id === "play" && standing) { standing = ""; shown = -1; }
   if (ph.best === shown) return;
   shown = ph.best;
-  pal.title(`Top score ${ph.best}`);
+  pal.title(`Top score ${ph.best}${standing}`);
 }
 
 /** EXTRA, not the firmware: the panel hidden or the view left pauses the game as C does in play (Continue waits in the menu). */
@@ -186,17 +220,21 @@ pal.onAction((id) => {
 pal.onSettings((s) => { tones = s.tones !== false; if (ph) ph.queue = s.queue_turns !== false; });
 
 async function start() {
-  const [saved, reply, s] = await Promise.all([
+  const [saved, best, options, reply, s] = await Promise.all([
     pal.storage.get(KEY).catch(() => undefined),
+    pal.storage.get("best").catch(() => null),
+    pal.storage.get("options").catch(() => null),
     pal.send({ boot: true }).catch(() => undefined) as Promise<{ powerOn?: boolean } | undefined>,
     pal.settings().catch(() => ({}) as Record<string, unknown>),
   ]);
   tones = s.tones !== false;
   const mem = isMemory(saved) ? saved : undefined;
   const powerOn = reply?.powerOn ?? true;
-  ph = boot(now(), mem ? { ...mem, seed: powerOn ? 1 : mem.seed } : {});
+  ph = boot(now(), withShared(mem ? { ...mem, seed: powerOn ? 1 : mem.seed } : {}, best, options));
   ph.queue = s.queue_turns !== false; // EXTRA, not the firmware (game.ts `steer`)
   stored = JSON.stringify(memory(ph));
+  storedBest = best; storedOptions = JSON.stringify(options);
+  share();
   fit();
   paint();
   title();

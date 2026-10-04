@@ -10,11 +10,12 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { CELLS, GRACE, MAZES, STARTS, STEP, W, cell, newGame, nextSeed, placeFood, step, steer, walls, type Dir, type Event, type Game, type Key } from "../../../extensions/snake/game.ts";
 import { blank, drawGame, frame } from "../../../extensions/snake/lcd.ts";
-import { advance, boot, gone, isMemory, memory, menuItems, press, type Phone } from "../../../extensions/snake/phone.ts";
+import { advance, boardsOf, boot, gone, isMemory, memory, menuItems, press, shared, withShared, type Phone } from "../../../extensions/snake/phone.ts";
 import { hz, TONES } from "../../../extensions/snake/tones.ts";
 import type { View } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
 import { replay, type Run } from "./snake-replay.ts";
+import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 const RUNS: Record<string, Run> = JSON.parse(readFileSync(`${import.meta.dir}/snake-emulator.fixture.json`, "utf8")).runs;
 
@@ -291,5 +292,35 @@ describe("over the wire", () => {
     expect(await send({ boot: true })).toEqual({ powerOn: true });
     expect(await send({ boot: true })).toEqual({ powerOn: false });
     expect(await send({ tones: false })).toEqual({ tones: false });
+  });
+});
+
+describe("accounts", () => {
+  const m = manifestOf("snake");
+
+  test("the phone's memory stays on this machine; the top score syncs by max, the level and maze last chosen", () => {
+    expect(problems(m)).toEqual([]);
+    expect(Object.keys(m.sync).sort()).toEqual([...storedKeys("snake"), "phone"].sort());
+    expect(m.sync).toEqual({ phone: "local", best: "max", options: { fields: { level: "latest", maze: "latest" } } });
+    const ph = boot(0, { level: 5, maze: 2, best: 186, seed: 419 });
+    expect(shared(memory(ph))).toEqual({ best: 186, options: { level: 5, maze: 2 } });
+    // Two machines' top scores merge to the higher one.
+    expect(merge(m.sync.best, 140, 186, 100)).toBe(186);
+  });
+
+  test("a stored memory takes the synced top score when it is higher, and the level and maze chosen elsewhere; a phone from before sync keeps its own", () => {
+    const mem = memory(boot(0, { level: 5, maze: 2, best: 186, seed: 419 }));
+    expect(withShared(mem, 240, { level: 9, maze: 4 })).toEqual({ ...mem, best: 240, level: 9, maze: 4 });
+    expect(withShared(mem, 100, null)).toEqual(mem);
+    expect(withShared(mem, null, null)).toEqual(mem);
+    expect(withShared(mem, 1.5, { level: 10, maze: 2 })).toEqual(mem);
+    expect(withShared({}, 50, { level: 3, maze: 0 })).toEqual({ best: 50, level: 3, maze: 0 });
+  });
+
+  test("a game's score goes to the top score, this week's and its level's board", () => {
+    expect(boardsOf({ level: 7 })).toEqual(["top", "week", "level/7"]);
+    for (let l = 1; l <= 9; l++) for (const b of boardsOf({ level: l })) expect(declared(m, b), b).toBeDefined();
+    expect(declared(m, "level/7")?.title).toBe("Level 7");
+    expect(declared(m, "week")?.period).toBe("week");
   });
 });
