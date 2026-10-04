@@ -32,7 +32,7 @@ branch), the body's lean is in `surface/run.ts`, the views in
 | Letting go | the sideways motion stops in about 0.2 s | about 0.3 s, no overshoot | a lane change ends where you let go |
 | Heading on screen | input times (3 + 0.035 per km/h) degrees | 85% of the real heading (about 8 at 160) | the car points into the move, never a drift |
 | Body lean | input times (4 + 0.05 per km/h) degrees, 12 at 160 | 45% of that, on a soft spring | 12 degrees looks cartoonish on realistic cars |
-| Camera | rigid, 38.5 degrees, about 12 m back, 28 down, on the centre line | rigid, 42 degrees, 4.4 m up, 17 down, following a third of the way | a steady frame to judge a turn against, with more road ahead |
+| Camera | rigid, 38.5 degrees, about 12 m back, 28 down, on the centre line | rigid, low behind the car (2.3 m up, 6.4 m back, 50 degrees), following three quarters of the way; C cycles six others (Chase, Classic, Bumper, High, Tower, Long lens) | the road rushes at you; a steady frame to judge a turn against |
 
 The tyre model (slip angles, load transfer) only takes over for 0.9 s after a
 knock, so a bump still sends the car sliding.

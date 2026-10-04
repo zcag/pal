@@ -12,13 +12,13 @@ export type Pose = { x: number; z: number; yaw: number; u: number; ax: number; d
 
 type View = { name: string; dist: number; h: number; look: number; lookH: number; fov: number; follow: number; speedFov: number; attached?: boolean };
 export const VIEWS: View[] = [
+  // the default: low behind the car, the road rushing at you
+  { name: "Low", dist: 6.4, h: 2.3, look: 12, lookH: 0.9, fov: 50, follow: 0.75, speedFov: 6 },
   // higher than a usual chase cam, about 17 degrees down: the road ahead to read, the car small in it
   { name: "Chase", dist: 8.6, h: 4.4, look: 5, lookH: 0.2, fov: 42, follow: 0.35, speedFov: 4 },
   // Traffic Racer's own: 38.5 degrees, about 12 m back and 28 down, on the road's centre line
   { name: "Classic", dist: 10.4, h: 5.5, look: 1.5, lookH: 0, fov: 38.5, follow: 0, speedFov: 0 },
-  { name: "Low", dist: 6.4, h: 2.3, look: 12, lookH: 0.9, fov: 50, follow: 0.75, speedFov: 6 },
   { name: "Bumper", dist: -0.6, h: 1.15, look: 40, lookH: 1.05, fov: 62, follow: 1, speedFov: 8, attached: true },
-  // to try (added after the first four, so a saved view keeps its number):
   // up a storey, about 25 degrees down: more of the traffic ahead, the car still close
   { name: "High", dist: 10, h: 7, look: 5, lookH: 0, fov: 42, follow: 0.3, speedFov: 4 },
   // nearly overhead, the road read like a map: every gap at a glance, the least sense of speed
